@@ -223,7 +223,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/keystone
 curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/placement.yaml
 ```
 
-Per Cinder non c'è alcun file. I suoi `os-services` e `scheduler-stats/get_pools` rispondono al ruolo con `403 User does not have admin privileges`, su tutte e cinque le release che registriamo. Deriva dal codice di Cinder stesso, che richiede un contesto admin, dopo che la policy è già passata, quindi nessun override può aprirli.
+Per Cinder non c'è alcun file. I suoi `os-services` e `scheduler-stats/get_pools` rispondono al ruolo con `403 User does not have admin privileges`, su tutti e cinque i cloud che registriamo. Deriva dal codice di Cinder stesso, che richiede un contesto admin, dopo che la policy è già passata, quindi nessun override può aprirli.
 
 **Per rimuovere di nuovo gli override, svuota il file (`{}`) e non eliminarlo mai.** Su Flamingo (2025.2) ed Epoxy (2025.1), oslo.policy genera un errore a ogni controllo una volta che un file di policy già letto non esiste più, quindi quel servizio fallisce ogni richiesta. Quando il servizio è Keystone, smette di convalidare i token e l'intero cloud risponde `503`. Se è già successo, riavvia il servizio.
 
@@ -246,7 +246,7 @@ L'agente vede le righe di quel progetto da Cinder e Neutron e nessuna infrastrut
 
 - **Tramite l'agente non mostra alcuna istanza.** L'exporter chiede a Nova i server di tutti i progetti, Nova rifiuta un semplice reader e quella lettura fallisce per intero. Solo una probe di OneUptime, che raccoglie senza questo agente, può elencare le istanze di un solo progetto.
 - **Potrebbe poter scrivere.** Su un cloud dove Cinder ha `enforce_new_defaults` disattivato, anche un semplice `reader` può creare volumi nel suo progetto. Su Epoxy, Flamingo e Gazpacho è successo (`202`), mentre su Hibiscus è stato rifiutato (`403`), perché DevStack attiva `enforce_new_defaults` solo lì. Il default di Cinder è disattivato.
-- **Placement risulta non rispondere.** Ogni chiamata che fa viene rifiutata, e l'exporter lo segnala come segnala un Placement fermo: `openstack_placement_up 0`, su tutte e cinque le release che registriamo. Le pagine lo capiscono, da ciò che altro è chiuso a questa credenziale, e lo dicono. Il template [Placement API Down](/docs/monitor/openstack-monitor#template-di-avviso-predefiniti) non può, quindi a questo livello lascialo fuori.
+- **Placement risulta non rispondere.** Ogni chiamata che fa viene rifiutata, e l'exporter lo segnala come segnala un Placement fermo: `openstack_placement_up 0`, su tutti e cinque i cloud che registriamo. Le pagine lo capiscono, da ciò che altro è chiuso a questa credenziale, e lo dicono. Il template [Placement API Down](/docs/monitor/openstack-monitor#template-di-avviso-predefiniti) non può, quindi a questo livello lascialo fuori.
 :::
 
 ### Installa e avvia l'agente
@@ -354,7 +354,7 @@ La **Panoramica** del cloud dice se i suoi dati stanno arrivando a OneUptime, co
 
 ## Variabili d'ambiente
 
-Lo script di installazione le scrive in `/opt/oneuptime-openstack-agent/.env`; un'installazione con Docker Compose le legge dal `.env` accanto a `docker-compose.yml`. Dopo averne modificata una, esegui `docker compose up -d` in quella cartella. Solo `clouds.yaml` contiene la credenziale.
+Lo script di installazione le scrive in `/opt/oneuptime-openstack-agent/.env`; un'installazione con Docker Compose le legge dal `.env` accanto a `docker-compose.yml`. Dopo averne modificata una, esegui `docker compose up -d` in quella cartella, oppure `sudo systemctl restart oneuptime-openstack-agent` senza Docker. Solo `clouds.yaml` contiene la credenziale.
 
 | Variabile | Obbligatoria | Descrizione |
 | --- | --- | --- |
@@ -450,7 +450,7 @@ Ogni servizio riporta anche `openstack_<service>_up`, come `openstack_nova_up`. 
 | Attributo | Cosa dice |
 | --- | --- |
 | `openstack.cloud.name` | Il nome del cloud, un attributo di risorsa |
-| `oneuptime.agent.version` | La versione del collector fissata dai file dell'agente, un attributo di risorsa |
+| `oneuptime.agent.version` | La versione dei file dell'agente, un attributo di risorsa: la versione del collector che fissano, con l'ultimo numero incrementato a ogni modifica dei file su quel collector |
 | `openstack.region.name` | La regione, dal nome della voce di `clouds.yaml`, su ogni datapoint |
 | `openstack_service` | Il servizio OpenStack del job (`compute`, `network`, ...), su ogni datapoint |
 
@@ -468,7 +468,7 @@ Il monitoraggio non deve mai essere ciò che manda giù un cloud, quindi i defau
 | Servizi che un cloud potrebbe non eseguire | Attivi | Load balancer, bare metal, stack, cluster, share, DNS, archiviazione a oggetti, database e Gnocchi, dove il cloud li ha | Un cloud che ne è privo paga un login ogni 5 minuti. Designate costa una chiamata per zona per scrape, quindi cresce con il numero di zone |
 | Intervalli di scrape | 2 e 5 minuti | Dati più freschi, o meno carico | Il doppio delle volte sono il doppio delle chiamate API. Mantieni ogni `scrape_timeout` sotto il suo `scrape_interval`, così una scrape lenta non si somma a quella precedente |
 
-**Quote dei progetti:** esegui di nuovo `install.sh` con `OPENSTACK_COLLECT_QUOTAS=true`. Avvia un secondo exporter, `openstack-quota-exporter`, che non legge nient'altro, e il collector gli chiede una volta all'ora `openstack_nova_limits_*`, `openstack_neutron_quota_*`, `openstack_cinder_limits_*` e `openstack_cinder_volume_type_quota_gigabytes`. Cambiano lentamente, e un exporter legge le stesse cose a prescindere dal job che lo interroga, quindi leggerle meno spesso richiede un exporter dedicato. Il tuo exporter non ha nulla del genere: l'agente legge ciò che dice, a ogni scrape.
+**Quote dei progetti:** esegui di nuovo `install.sh` con `OPENSTACK_COLLECT_QUOTAS=true`. Con un'installazione Docker Compose, aggiungi `openstack-quotas` a `COMPOSE_PROFILES` in `.env` e imposta `OPENSTACK_QUOTA_CLOUDS` a ciò che dice `OPENSTACK_EXPORTER_CLOUDS`. In entrambi i casi si avvia un secondo exporter, `openstack-quota-exporter`, che non legge nient'altro, e il collector gli chiede una volta all'ora `openstack_nova_limits_*`, `openstack_neutron_quota_*`, `openstack_cinder_limits_*` e `openstack_cinder_volume_type_quota_gigabytes`. Cambiano lentamente, e un exporter legge le stesse cose a prescindere dal job che lo interroga, quindi leggerle meno spesso richiede un exporter dedicato. Il tuo exporter non ha nulla del genere: l'agente legge ciò che dice, a ogni scrape.
 
 **Metriche lente:** elimina la riga `--disable-metric` per ciò che vuoi, dal `command` dell'exporter in `docker-compose.yml`, oppure da `ExecStart` in `oneuptime-openstack-exporter.service` senza Docker. Il costo è una chiamata per progetto per scrape.
 
@@ -523,7 +523,7 @@ Ognuno di questi casi è stato registrato su un vero DevStack, e ogni pagina lo 
 
 ## Capacità
 
-"Ci sta questo?" è la domanda che più spesso si fa a un operatore OpenStack, e i conteggi di libero di Nova non rispondono: rapporti di allocazione, riserve e frammentazione contano tutti, quindi un cloud può avere migliaia di vCPU libere e nessuno spazio per una grande istanza. La pagina **Capacità** di un cloud dice quanti altri flavor di ciascun tipo ci stanno e cosa scarseggia, il più presto prima. Legge un unico riepilogo, calcolato ogni due minuti, quindi un cloud di 5.000 host si carica veloce come un cloud di uno. **Esporta CSV** sulla sua tabella dei flavor scarica tutto ciò che c'è nella pagina.
+"Ci sta questo?" è la domanda che più spesso si fa a un operatore OpenStack, e i conteggi di libero di Nova non rispondono: rapporti di allocazione, riserve e frammentazione contano tutti, quindi un cloud può avere migliaia di vCPU libere e nessuno spazio per una grande istanza. La pagina **Capacità** di un cloud dice quanti altri flavor di ciascun tipo ci stanno e cosa scarseggia, il più presto prima. Legge un unico riepilogo, calcolato ogni due minuti, quindi ciò che carica non cresce con il numero di host. **Esporta CSV** sulla sua tabella dei flavor scarica tutto ciò che c'è nella pagina.
 
 Tutto ciò che contiene è allocazione: quanto è stato promesso, non quanto è occupato. Un'istanza inattiva ne trattiene tutta.
 
@@ -562,7 +562,7 @@ nova-manage placement audit --verbose --delete
 
 ## Spesa
 
-I cloud privati costano comunque denaro, e a chi ne gestisce uno viene chiesto chi usa cosa e cosa si potrebbe recuperare. La pagina **Spesa** di un cloud risponde a entrambe le domande, su qualsiasi cloud di qualsiasi dimensione, e funziona senza alcuna configurazione. Mostra utilizzo e stime su cui pianificare. OneUptime non fattura nessuno, e nulla qui è un importo dovuto da un tenant.
+I cloud privati costano comunque denaro, e a chi ne gestisce uno viene chiesto chi usa cosa e cosa si potrebbe recuperare. La pagina **Spesa** di un cloud risponde a entrambe le domande, e funziona senza alcuna configurazione. Mostra utilizzo e stime su cui pianificare. OneUptime non fattura nessuno, e nulla qui è un importo dovuto da un tenant.
 
 **Questo mese rispetto al precedente** è in cima, poi chi sta crescendo, poi ogni progetto, dal più grande, con **Esporta CSV**. Sotto ci sono i domini e cosa è stato usato su quale flavor e tipo di volume. La pagina di un progetto mostra il suo mese riga per riga e i mesi precedenti.
 
@@ -573,7 +573,7 @@ Ogni 15 minuti, un worker legge ciò che ogni progetto contiene nell'inventario 
 Cosa significa per i numeri:
 
 - **Un ridimensionamento sposta le ore da un flavor all'altro**, e un'eliminazione le ferma. Una modifica viene contata dalla prima lettura che la mostra, quindi ognuna può sbagliare fino a 15 minuti. Un'istanza vissuta meno di così potrebbe non essere mai vista.
-- **Una parte conta finché l'inventario non la lascia andare,** cioè fino a [la finestra di obsolescenza](#variabili-dambiente) dopo che è sparita. Su un cloud grande letto a turni, una modifica impiega quanto il proprio turno per arrivare.
+- **Una parte conta finché l'inventario non la lascia andare,** cioè fino a 15 minuti dopo che è sparita. Su un cloud grande letto a turni, una modifica impiega quanto il proprio turno per arrivare.
 - **Un'istanza tiene il suo flavor da quando viene collocata fino a quando viene eliminata.** Una spenta conta comunque, su una riga propria, perché Nova tiene le sue vCPU e la sua memoria riservate sul suo host. Una che non ha mai raggiunto un host non conta, e nemmeno una shelved fuori dal suo host.
 - **Un volume o snapshot in errore, o ancora in creazione, non conta,** perché non ha spazio dietro di sé nel complesso.
 - **Le ore in cui OneUptime non leggeva non vengono indovinate.** Un buco più lungo di un'ora conta la sua ultima ora, e la pagina dice quante ore non sono state contate.
@@ -689,7 +689,7 @@ Cosa costa una singola istanza, con due vCPU, un disco e un'interfaccia di rete:
 | `prometheus-libvirt-exporter`, letto ogni minuto | 30 | 1.800 | 131.400.000 | 1.314.000.000 |
 | L'exporter di Ceilometer, letto ogni minuto e interrogato ogni 5 | 24 | 864 | 63.072.000 | 630.720.000 |
 
-Ogni disco in più aggiunge 12 serie a entrambi, e ogni interfaccia in più 4. Ogni vCPU in più ne aggiunge 1 con libvirt. Il collector dell'agente le tiene in memoria nel loro percorso in uscita, quindi un cloud grande potrebbe volere più dei suoi 512 MiB di default. Il calcolatore della guida, sotto **Documentazione** su un cloud, mette un prezzo a queste per un cloud della tua dimensione.
+Ogni disco in più aggiunge 12 serie a entrambi, e ogni interfaccia in più 4. Ogni vCPU in più ne aggiunge 1 con libvirt. Il collector dell'agente le tiene in memoria nel loro percorso in uscita, quindi un cloud grande potrebbe volere più dei suoi 512 MiB di default. Il calcolatore della guida, sotto **OpenStack → Documentazione**, mette un prezzo a queste per un cloud della tua dimensione.
 
 ## Progetti e domini
 
@@ -957,7 +957,7 @@ Nessun processore arriva in **Richiede attenzione**, e così anche un arretrato 
 
 L'exporter legge lo status di Gnocchi, che solo un admin può usare. Gnocchi rifiuta qualsiasi cosa di meno, e l'exporter legge un rifiuto proprio come legge Gnocchi fermo: `openstack_gnocchi_up` legge 0. Quindi a una credenziale che non ha mai letto Gnocchi una sola volta viene detto questo, anziché che Gnocchi è giù, e non le vengono proposti i suoi avvisi. Una probe distingue i due casi: Gnocchi ha risposto, quindi la sua API si legge come attiva, e il test di connessione dice che è stata rifiutata.
 
-**Gnocchi Backlog Growing** legge una retta sulle ultime due ore. L'arretrato di un cloud occupato non legge mai 0, quindi uno grande che sta scendendo va bene, e uno che non sta scendendo è ciò che dice. I runner hanno raggiunto al massimo un arretrato di 10 misure, quindi la sua soglia è stata verificata solo su numeri inventati.
+**Gnocchi Backlog Growing** legge una retta sulle ultime due ore. L'arretrato di un cloud occupato non legge mai 0, quindi uno grande che sta scendendo va bene, e uno che non sta scendendo è ciò che dice. I nostri cloud di prova hanno raggiunto al massimo un arretrato di 10 misure, quindi la sua soglia è stata verificata solo su numeri inventati.
 
 ## Swift
 
@@ -976,9 +976,9 @@ Una credenziale che Swift rifiuta legge `openstack_object_store_up` 0, proprio c
 
 Un object server fermo non cambia nulla di ciò che dice l'exporter, registrato: gli elenchi di Swift vengono dai suoi account e container server, e il suo proxy continua a rispondere. Lo dice solo ciò che ogni storage server dice tramite il proprio `/recon`, e quello non è nel catalogo di Keystone.
 
-Quindi una probe lo legge dove li nomini: in **Cosa legge oltre i valori predefiniti** nella scheda **Raccolta dati**, elenca la porta `/recon` di ogni storage server come `host:port`. Richiede 5 chiamate per server a ogni raccolta, e nessuna credenziale va a loro. Ottieni allora **Swift Storage Server Not Answering**, **Swift Rings Differ** e **Swift Replication Stale**, e ciò che sommano nella pagina di Swift stessa. Una registrazione aveva un solo server da leggere, quindi i ring che differiscono sono stati verificati solo su numeri inventati. Lo stesso vale per la replica diventata obsoleta, che su un runner finisce ogni pochi minuti.
+Quindi una probe lo legge dove li nomini: in **Cosa legge oltre i valori predefiniti** nella scheda **Raccolta dati**, elenca la porta `/recon` di ogni storage server come `host:port`. Richiede 5 chiamate per server a ogni raccolta, e nessuna credenziale va a loro. Ottieni allora **Swift Storage Server Not Answering**, **Swift Rings Differ** e **Swift Replication Stale**, e ciò che sommano nella pagina di Swift stessa. Una registrazione aveva un solo server da leggere, quindi i ring che differiscono sono stati verificati solo su numeri inventati. Lo stesso vale per la replica diventata obsoleta, che su un cloud di prova finisce ogni pochi minuti.
 
-**Object Container Growth Forecast** legge una retta sull'ultima settimana di ogni container, e guarda una settimana avanti. Swift qui non dice nulla di quanto spazio abbia un cloud, quindi la sua soglia di 1 TiB è una di cui essere informati più che una a cui qualcosa si rompe. Cambiala per adattarla al tuo cloud. Nessun runner contiene una settimana di crescita, quindi è stata verificata solo su numeri inventati.
+**Object Container Growth Forecast** legge una retta sull'ultima settimana di ogni container, e guarda una settimana avanti. Swift qui non dice nulla di quanto spazio abbia un cloud, quindi la sua soglia di 1 TiB è una di cui essere informati più che una a cui qualcosa si rompe. Cambiala per adattarla al tuo cloud. Nessun cloud di prova contiene una settimana di crescita, quindi è stata verificata solo su numeri inventati.
 
 ## Barbican
 
@@ -1204,7 +1204,7 @@ Un evento CADF può contenere ciò che non dovrebbe essere conservato: la creden
 
 ## Traccia le richieste attraverso il piano di controllo
 
-"Perché avviare un'istanza richiede quattro minuti?" attraversa Nova, Neutron, Keystone e Glance, e i log mostrano solo i pezzi. Una traccia mostra dove è andato il tempo. Il modo di OpenStack per crearne una è [OSProfiler](https://docs.openstack.org/osprofiler/latest/), e OneUptime mostra ciò che invia in [Tracce](/docs/telemetry/traces-explorer), unito alle parti del cloud e ai suoi log.
+"Perché avviare un'istanza richiede quattro minuti?" attraversa Nova, Neutron, Keystone e Glance, e i log mostrano solo i pezzi. Una traccia mostra dove è andato il tempo. Il modo di OpenStack per crearne una è [OSProfiler](https://docs.openstack.org/osprofiler/latest/), e OneUptime mostra ciò che invia in [Tracce](/docs/telemetry/traces-explorer), unito alle parti del cloud e ai suoi log. Su 2026.2 c'è anche il [tracciamento di OpenStack stesso](#il-tracciamento-di-openstack-stesso), che non richiede nulla di firmato.
 
 Sii chiaro su cosa stai attivando:
 
@@ -1221,6 +1221,7 @@ Sii chiaro su cosa stai attivando:
 - [Attiva le tracce](#attiva-le-tracce): Il collector, le librerie e la configurazione.
 - [Traccia una richiesta](#traccia-una-richiesta): Il comando per il tuo cloud, e dove si trova la sua traccia.
 - [Quanto costa il tracciamento](#quanto-costa-il-tracciamento): Cosa è stato contato, e cosa nessuno ha misurato.
+- [Il tracciamento di OpenStack stesso](#il-tracciamento-di-openstack-stesso): Ogni richiesta API senza nulla di firmato, su 2026.2.
 :::
 
 ### Cosa mostra una traccia
@@ -1349,7 +1350,7 @@ Ognuna apre [quella richiesta](#segui-una-richiesta), attraverso ogni servizio, 
 
 ### Quanto costa il tracciamento
 
-Nulla finché una richiesta non viene firmata. Con OSProfiler attivo e nulla di firmato, una richiesta costa un solo controllo fallito di un header. OpenStack [non dà alcuna cifra](https://docs.openstack.org/osprofiler/latest/user/integration.html) per quanto costi una firmata, e nemmeno noi, perché nessuno l'ha misurato. Una richiesta firmata fa più lavoro in ogni servizio che attraversa, invia ogni span via HTTP da ciascuno di essi, e porta la tua chiave sul bus di messaggi nel proprio contesto. Firma ciò che stai indagando, non il traffico.
+Con OSProfiler da solo, nulla finché una richiesta non viene firmata. Con OSProfiler attivo e nulla di firmato, una richiesta costa un solo controllo fallito di un header. OpenStack [non dà alcuna cifra](https://docs.openstack.org/osprofiler/latest/user/integration.html) per quanto costi una firmata, e nemmeno noi, perché nessuno l'ha misurato. Una richiesta firmata fa più lavoro in ogni servizio che attraversa, invia ogni span via HTTP da ciascuno di essi, e porta la tua chiave sul bus di messaggi nel proprio contesto. Firma ciò che stai indagando, non il traffico.
 
 Ciò che è stato contato è quanto invia un avvio firmato, sul DevStack di una sola macchina:
 
@@ -1363,6 +1364,8 @@ Su 2026.2 invia anche `nova-conductor`, e il lavoro successivo finisce nella tra
 
 Con il collector fermo, un avvio firmato ha funzionato comunque e i suoi span sono andati persi, quindi il tracciamento non ha intralciato la richiesta.
 
+Su 2026.2 `cinder-volume`, che gira ancora su eventlet, a volte ha occupato un intero core dopo un riavvio, per lo più con il driver di OSProfiler attivo e una volta con il driver disattivato. Un altro riavvio l'ha risolto. Non sappiamo perché, quindi guarda prima lì se una macchina scalda troppo.
+
 ### Cosa contiene uno span
 
 Il driver di OSProfiler copia nel suo span ciò che una chiamata tracciata ha ricevuto, scritto come lo stamperebbe Python: la password admin e gli user data di un'istanza, e le connection info di un volume. Il collector rimuove `args`, `kwargs`, `result` e `db.params` prima che lascino la macchina, e OneUptime li rimuove all'arrivo per uno span giunto in altro modo. Nulla disattiva questo comportamento. Un'istruzione da `trace_sqlalchemy` viene conservata con i suoi segnaposto, e i suoi valori no.
@@ -1371,7 +1374,57 @@ La tua chiave non è in nessuno dei due. Viaggia invece tra le parti di un servi
 
 ### Tracce pianificate
 
-Una traccia esiste solo quando una richiesta è firmata, quindi nulla qui traccia un cloud da solo. [Il controllo del ciclo di vita](#il-controllo-del-ciclo-di-vita) firma le proprie scritture quando gli viene data la chiave, ogni passaggio in una traccia propria, quindi un avvio lento che vede ha una traccia. La chiave è l'unico posto in cui OneUptime ne conserva una: cifrata, in sola scrittura, e solo per quel controllo.
+Con OSProfiler da solo, una traccia esiste solo quando una richiesta è firmata, quindi nulla qui traccia un cloud da solo. [Il controllo del ciclo di vita](#il-controllo-del-ciclo-di-vita) firma le proprie scritture quando gli viene data la chiave, ogni passaggio in una traccia propria, quindi un avvio lento che vede ha una traccia. La chiave è l'unico posto in cui OneUptime ne conserva una: cifrata, in sola scrittura, e solo per quel controllo.
+
+### Il tracciamento di OpenStack stesso
+
+Su 2026.2, oslo.messaging 18.3.1 e oslo.middleware 8.2.0 tracciano ogni richiesta API senza nulla di firmato. Le versioni precedenti non li hanno. Mantieni [i passaggi sopra](#attiva-le-tracce): il driver di OSProfiler è ciò che dà a ogni servizio un tracer attraverso cui inviare, e senza di esso oslo.messaging fallisce a ogni chiamata con `has no attribute 'trace_exporter'`.
+
+Aggiungi questo alla configurazione di ogni servizio, accanto a `[profiler]`:
+
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+Aggiungi questo a `nova.conf`, `neutron.conf`, `cinder.conf` e `glance-api.conf`, con `service_name` il nome proprio di quell'API e `otlp_endpoint` il collector che `connection_string` indica:
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+Aggiungi questo filtro al file paste di ciascuna di quelle API, e `otel_tracing` a ogni pipeline, subito prima di `osprofiler`. Poi riavviale:
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+Ora una traccia segue una richiesta via RPC: un avvio è una sola traccia da `nova-api` attraverso `nova-conductor` e `nova-scheduler` fino a `nova-compute`, e quegli span contengono l'ID di richiesta che contengono i suoi log, quindi i suoi [log](#da-una-traccia-ai-suoi-log) non richiedono congetture. Non attraversa una chiamata HTTP, quindi Nova che interroga Neutron è una traccia a sé. `keystone` e Placement non hanno una pipeline a cui aggiungere il filtro, nemmeno `cinder-volume` invia nulla qui, e la pagina **Tracce** dice quale dei due sta inviando un cloud.
+
+Per portare una traccia attraverso le chiamate HTTP, aggiungi una riga a keystoneauth dove gira ogni servizio. È una modifica al codice di OpenStack sulle tue macchine, quindi sta a te mantenerla a ogni aggiornamento:
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+La traccia di un avvio attraversa allora anche Neutron e Glance, per ciò che `nova-api` chiede loro. `nova-compute` costruisce un'istanza su un thread proprio, che avvia nuove tracce sotto lo stesso ID di richiesta, quindi ciò che chiede a Neutron resta fuori dalla traccia dell'avvio.
+
+Quanto è costato sul DevStack di una sola macchina, con un nodo compute e un lettore. Non è un cloud trafficato, e tre API non hanno risposto più lentamente, per quanto riusciamo a distinguere dal rumore:
+
+| Letto 40 volte, o misurato | Off | On |
+| --- | --- | --- |
+| `GET /servers`, metà risposte entro | 48 ms | 32 ms |
+| `GET /v2.0/networks`, metà risposte entro | 16 ms | 18 ms |
+| `GET /v2/images`, metà risposte entro | 5 ms | 8 ms |
+| CPU in due minuti di quiete, tutti i servizi insieme | 3,0 s | 3,9 s |
+
+Un avvio crea circa 220 span, e il collector ne inoltra circa 110, circa 75 KB. Un minuto di inattività ne crea circa 33, e ne inoltra circa 2, perché scarta `nova-compute` che chiede al suo conductor di leggere o salvare un oggetto, a meno che non sia fallito. Sono la maggior parte degli span RPC di un avvio e quasi tutti quelli di un cloud inattivo. Togli `filter/nova-object-calls` dalla pipeline del collector per tenerli.
+
+Questo è stato eseguito su DevStack con 2026.2, da un avvio reale fino a un OneUptime in funzione, e in nessun altro posto.
 
 ## Verifica il cloud dall'esterno
 
@@ -1477,21 +1530,11 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
-### Il tracciamento di OpenStack stesso
-
-oslo.middleware 8.2.0 e oslo.messaging 18.3.1, su 2026.2, possono tracciare senza nulla di firmato, quindi un giorno potrebbero essere un feed sempre attivo. Li abbiamo eseguiti, e OneUptime non li legge ancora, perché così come sono forniti non seguono una richiesta attraverso i servizi:
-
-- oslo.messaging da solo non invia nulla, e registra `has no attribute 'trace_exporter'` a ogni chiamata.
-- Con il filtro di oslo.middleware aggiunto alla pipeline di ogni API, una chiamata API è una traccia a sé. Un avvio ha creato 83 tracce, e nessuna ha attraversato due servizi, perché nulla passa la traccia in una chiamata HTTP in uscita. Keystone e Placement non hanno una pipeline a cui aggiungerlo.
-- Quegli span non contengono alcun ID di richiesta, e gli span RPC sì.
-
-Se li attivi, i loro span raggiungono comunque la pagina **Tracce** di questo cloud tramite il collector, con i loro nomi.
-
 ## Agente IA
 
 Il `docker-compose.yml` dell'agente esegue anche l'**Agente IA OpenStack**, `oneuptime-openstack-ai-agent` (immagine `oneuptime/resource-ai-agent:release`). Mentre OneUptime AI indaga su un incidente o un avviso su questo cloud, esegue tramite esso comandi `openstack` di sola lettura — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — e cita ciò che ha eseguito. Nell'agente non c'è alcun binario `openstack` né una shell: ogni comando diventa una `GET` al servizio che risponde, con la credenziale dell'agente stesso. L'agente si registra con lo stesso `OPENSTACK_CLOUD_NAME` che riporta il collector, quindi serve questo cloud.
 
-- **Le indagini IA sono attive per default.** Una volta connesso l'agente, OneUptime AI indaga con esso su incidenti e avvisi di questo cloud, e la **Panoramica** del cloud mostra lo stato dell'agente. Per fermarle, imposta `ONEUPTIME_AI_INVESTIGATION=false` dove gira l'agente. **IA > Agente** ha lo stato dell'agente, **Testa la connessione**, **Reimposta l'agente** e le istruzioni di installazione, **IA > Insights** ciò che ha fatto, e **IA > Registri** i comandi che ha eseguito.
+- **Le indagini IA sono attive per default.** Una volta connesso l'agente, OneUptime AI indaga con esso su incidenti e avvisi di questo cloud, e la **Panoramica** del cloud mostra lo stato dell'agente. Per fermarle, imposta `ONEUPTIME_AI_INVESTIGATION=false` dove gira l'agente. **IA → Agente IA** ha lo stato dell'agente, **Testa la connessione**, **Reimposta l'agente** e le istruzioni di installazione, **IA → Informazioni** ciò che ha fatto, e **IA → Registri** i comandi che ha eseguito.
 - **Legge, finché non dici altrimenti.** Le correzioni sono disattivate finché non le scegli due volte, e usano una credenziale propria: vedi [Correzioni](#correzioni). Utenti, credenziali e assegnazioni di ruoli di Keystone, console, ciò che un guest ha stampato e i secret di Barbican sono off-limits per esso, da leggere o da modificare.
 - **La credenziale è il limite rigido.** Usa la credenziale in `clouds.yaml` che legge l'exporter, quindi vede ciò che il livello che hai scelto in [Scegli quanto vede l'agente](#scegli-quanto-vede-lagente) gli permette di vedere. Se hai creato quella credenziale con regole di accesso, creane una nuova dalle [regole](https://oneuptime.com/install/openstack-agent/access/application-credential-access-rules.json) attuali: hanno acquisito alcuni percorsi `GET` per l'agente (le azioni di un'istanza, una rete, subnet, router, floating IP, porta o immagine), e le vecchie funzionano ancora per tutto il resto. Per usare una credenziale propria, imposta `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` e `OPENSTACK_AUTH_URL`, e `OPENSTACK_AI_CLOUDS_FILE=/dev/null` se non c'è un `clouds.yaml` accanto all'agente, come con il tuo exporter.
 - **I segreti restano fuori.** Lo `user_data` di un'istanza, la sua password admin, il `direct_url` di un'immagine e il `provider_auth` di un volume, e i segreti generici che ogni agente IA maschera, vengono rimossi dall'output prima che raggiunga il modello o un log.
@@ -1558,9 +1601,9 @@ Nova consegna l'istanza di un altro progetto solo a un contesto admin, nel propr
 
    Le regole di accesso richiedono che `service_type` sia impostato per keystonemiddleware su Nova (`compute`) e Neutron (`network`), e un riavvio di ciascuno.
 
-3. **Un file di policy, per ciò che le regole di accesso non possono vedere.** `POST /servers/{id}/action` è un solo percorso sia per uno start sia per un'eliminazione forzata. `access/policy/write-nova.yaml` toglie al ruolo `oneuptime_remediation` ogni azione su quel percorso che l'agente non fa mai, e lascia i default di tutti gli altri com'erano. Una credenziale rubata allora avvia, riavvia, sposta ed evacua, e nient'altro.
+3. **Un file di policy, per ciò che le regole di accesso non possono vedere.** `POST /servers/{id}/action` è un solo percorso sia per uno start sia per un'eliminazione forzata. `https://oneuptime.com/install/openstack-agent/access/policy/write-nova.yaml` toglie al ruolo `oneuptime_remediation` ogni azione su quel percorso che l'agente non fa mai, e lascia i default di tutti gli altri com'erano. Una credenziale rubata allora avvia, riavvia, sposta ed evacua, e nient'altro.
 
-Poi dai all'agente il suo ID e secret, e riavvialo:
+Poi metti il suo ID e secret nel `.env` dell'agente ed esegui `docker compose up -d`:
 
 ```bash
 ONEUPTIME_AI_ALLOW_WRITES=true
@@ -1612,7 +1655,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 ## Aggiornare l'agente
 
-L'agente riporta la versione del collector fissata dai suoi file come **Versione dell'agente**. Quando questo OneUptime ne fissa una più recente, accanto compare un segnale di avviso. Selezionalo per vedere questi comandi.
+L'agente riporta la versione dei suoi file come **Versione dell'agente**: la versione del collector che fissano, con l'ultimo numero incrementato a ogni modifica dei file su quel collector. Quando è più vecchia della versione fissata da questa release di OneUptime, accanto compare un segnale di avviso. Selezionalo per vedere questi comandi.
 
 L'immagine del collector è fissata in `docker-compose.yml` e la sua configurazione è un file accanto, quindi il solo pull non fa avanzare l'agente. Esegui di nuovo `install.sh`, con `sudo` se hai installato senza Docker: riusa ogni valore del tuo `.env` esistente e la credenziale in `clouds.yaml` (nulla viene chiesto di nuovo), verifica la credenziale con Keystone, aggiorna i file dell'agente (un file che hai modificato viene conservato come `<file>.bak.<timestamp>`), scarica le immagini e ricrea l'agente così che il collector legga la sua nuova configurazione.
 
@@ -1663,7 +1706,7 @@ Poi elimina la credenziale: `openstack application credential delete oneuptime-a
 
 ## Senza Internet
 
-Un agente dietro un air gap ha bisogno di tre cose dall'esterno: lo script di installazione e i suoi file, che serve il tuo OneUptime; le immagini che esegue il suo `docker-compose.yml`, che copi in un registry dalla tua parte; e nient'altro. L'agente invia sempre e solo all'URL del tuo OneUptime e legge il tuo cloud.
+Un agente dietro un air gap ha bisogno di due cose dall'esterno: lo script di installazione e i suoi file, che serve il tuo OneUptime, e le immagini che esegue il suo `docker-compose.yml`, che copi in un registry dalla tua parte. L'agente invia sempre e solo all'URL del tuo OneUptime e legge il tuo cloud.
 
 Le immagini sono fissate in `docker-compose.yml`, quindi ciò che copi è esattamente ciò che l'agente esegue:
 

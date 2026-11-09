@@ -671,6 +671,32 @@ describe("hasNotificationInFlight", () => {
     ).toBe(false);
     expect(hasNotificationInFlight([])).toBe(false);
   });
+
+  /*
+   * Issue #5720: a note waiting for approval keeps its notification queued
+   * until it is published - nothing is on its way, so the feed does not
+   * keep asking.
+   */
+  test("is false for a note waiting for approval, its notification queued", () => {
+    expect(
+      hasNotificationInFlight([
+        {
+          isPublished: false,
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
+        },
+      ]),
+    ).toBe(false);
+    expect(
+      hasNotificationInFlight([
+        {
+          isPublished: true,
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
+        },
+      ]),
+    ).toBe(true);
+  });
 });
 
 describe("getNotesCopy", () => {
@@ -880,6 +906,10 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
         "subscriberNotificationStatusMessageOnNoteUpdated",
         "subscriberNotificationStatusOnNoteCreated",
         "subscriberNotificationStatusOnNoteUpdated",
+        // Where it stands in approval, and an edit waiting for it (#5720).
+        "isPublished",
+        "approvalStatus",
+        "pendingNote",
       ].sort(),
     );
     expect(select["createdByUser"]).toEqual({

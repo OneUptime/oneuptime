@@ -30,11 +30,17 @@ import { MemoryRouter } from "react-router-dom";
 const mockCapturedTableProps: Array<Record<string, unknown>> = [];
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
+  const react: typeof React = jest.requireActual("react") as typeof React;
+
   return {
     __esModule: true,
-    default: (props: Record<string, unknown>): null => {
+    // A mark where the table is drawn, so a page's order can be read.
+    default: (props: Record<string, unknown>): React.ReactElement => {
       mockCapturedTableProps.push(props);
-      return null;
+      return react.createElement("div", {
+        "data-testid": "captured-model-table",
+        "data-table-id": props["id"],
+      });
     },
   };
 });
@@ -48,6 +54,7 @@ import {
   CloudCostState,
   CloudSavingKind,
 } from "../../../Types/Cloud/CloudCost";
+import { CloudCommitmentKind } from "../../../Types/Cloud/CloudCommitments";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -77,6 +84,7 @@ interface CapturedFormField {
   required?: boolean;
   collapsibleSection?: unknown;
   customValidation?: (values: Record<string, unknown>) => string | null;
+  defaultValue?: unknown;
 }
 
 const ACCOUNT_ROW: string = "10000000-0000-4000-8000-0000000000b1";
@@ -466,6 +474,138 @@ describe("Cloud > Savings", () => {
     expect(gap).toHaveTextContent("cost-optimization-hub:ListRecommendations");
     expect(gap).toHaveTextContent("Cost Optimization Hub");
   });
+
+  test("each account's commitments, under the ways to spend less: the page's own list first", async () => {
+    accountsForTest = [
+      account({
+        savingsSummary: {
+          state: CloudCostState.Reading,
+          count: 1,
+          monthlySavings: 40,
+          byKind: {
+            [CloudSavingKind.Commitment]: { count: 1, monthlySavings: 40 },
+          },
+          currency: "EUR",
+          commitments: {
+            state: CloudCostState.Reading,
+            currency: "EUR",
+            days: 30,
+            kinds: [
+              {
+                kind: CloudCommitmentKind.SavingsPlans,
+                coveredSpend: 600,
+                onDemandSpend: 400,
+                commitmentSpend: 500,
+                unusedSpend: 25,
+              },
+            ],
+            readAt: new Date().toISOString(),
+          },
+          readAt: new Date().toISOString(),
+        },
+      }),
+    ];
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudSavings {...pageProps} />
+        </MemoryRouter>,
+      );
+    });
+
+    const card: HTMLElement = await screen.findByTestId("cloud-commitments");
+    expect(card).toHaveTextContent("web-prod");
+    expect(card).toHaveTextContent("Savings Plans");
+    expect(card).toHaveTextContent("Covers 60%");
+    expect(card).toHaveTextContent("€25.00 unused");
+
+    /*
+     * The strip, the ways to spend less it sums up, then the commitments:
+     * what the page is for comes first.
+     */
+    const table: HTMLElement = screen.getByTestId("captured-model-table");
+    expect(table).toHaveAttribute("data-table-id", "cloud-savings-table");
+    expect(
+      screen.getByTestId("cloud-savings-strip").compareDocumentPosition(table) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      table.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("the accounts whose recommendations are not read close the page, after the commitments", async () => {
+    accountsForTest = [
+      account({
+        _id: ACCOUNT_ROW,
+        savingsSummary: {
+          state: CloudCostState.Reading,
+          count: 1,
+          monthlySavings: 40,
+          byKind: {},
+          currency: "USD",
+          commitments: {
+            state: CloudCostState.NotAllowed,
+            message:
+              "The role may not read Savings Plans and Reserved Instances from Cost Explorer.",
+            currency: "USD",
+            days: 30,
+            kinds: [],
+            readAt: new Date().toISOString(),
+          },
+          readAt: new Date().toISOString(),
+        },
+      }),
+      account({
+        _id: RESOURCE_ROW,
+        name: "data-lake",
+        savingsSummary: {
+          state: CloudCostState.NotAllowed,
+          message:
+            "User is not authorized to perform cost-optimization-hub:ListRecommendations",
+          count: 0,
+          monthlySavings: 0,
+          byKind: {},
+          currency: "USD",
+          readAt: new Date().toISOString(),
+        },
+      }),
+    ];
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudSavings {...pageProps} />
+        </MemoryRouter>,
+      );
+    });
+
+    const card: HTMLElement = await screen.findByTestId("cloud-commitments");
+    const gaps: HTMLElement = screen.getByTestId("cloud-savings-gaps");
+
+    // web-prod's commitments are refused: what to do, with its cloud's guide.
+    expect(within(card).getByTestId("cloud-commitment-step")).toHaveTextContent(
+      "Run the connection's setup command again: it lets the connection read Savings Plans and Reserved Instances.",
+    );
+    expect(
+      card.compareDocumentPosition(gaps) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(gaps).toHaveTextContent("data-lake");
+  });
+
+  test("no account's commitments read: no Commitments card", async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudSavings {...pageProps} />
+        </MemoryRouter>,
+      );
+    });
+
+    await screen.findByTestId("cloud-savings-not-read");
+    expect(screen.queryByTestId("cloud-commitments")).toBeNull();
+  });
 });
 
 describe("Cloud > Budgets", () => {
@@ -493,6 +633,7 @@ describe("Cloud > Budgets", () => {
         currency: "EUR",
         alertThresholds: "80,100",
         alertOnProjection: true,
+        alertOnAnomaly: true,
         isEnabled: true,
       },
     });
@@ -529,9 +670,17 @@ describe("Cloud > Budgets", () => {
     expect(byStep("alerts")).toEqual([
       "Alert At",
       "Alert When On Course To Pass",
+      "Alert On Unusual Days",
       "Alert Severity",
       "On-Call Policies",
     ]);
+    // A day that cost far more than usual alerts unless turned off.
+    const unusualDays: CapturedFormField | undefined = fields.find(
+      (field: CapturedFormField): boolean => {
+        return field.title === "Alert On Unusual Days";
+      },
+    );
+    expect(unusualDays?.defaultValue).toBe(true);
     // The currency and a description wait under More fields.
     expect(
       fields

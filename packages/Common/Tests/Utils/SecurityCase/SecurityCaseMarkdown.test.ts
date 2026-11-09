@@ -13,6 +13,7 @@ import {
   incidentDeclaredFromCaseMarkdown,
   playbookFinishedMarkdown,
   playbookStartedMarkdown,
+  playbookStoppedMarkdown,
   priorityChangedMarkdown,
   renderSecurityCaseTemplate,
   securityCaseSummaryMarkdown,
@@ -197,6 +198,36 @@ describe("feed sentences", () => {
         isApproved: false,
       }).toString(),
     ).toContain("ends the run");
+  });
+
+  test("a run a Stop step ended says where, and why in the playbook's words, inert", () => {
+    expect(
+      playbookStoppedMarkdown({
+        playbookName: "Triage",
+        stepNumber: 2,
+        reason: "Nothing to contain",
+      }).toString(),
+    ).toBe("🏁 Playbook **Triage** stopped at step 2: Nothing to contain");
+    expect(
+      playbookStoppedMarkdown({
+        playbookName: "Triage",
+        stepNumber: 3,
+      }).toString(),
+    ).toBe("🏁 Playbook **Triage** stopped at step 3, as it says to.");
+    expect(
+      playbookStoppedMarkdown({
+        playbookName: "Triage",
+        stepNumber: 3,
+        reason: "",
+      }).toString(),
+    ).toBe("🏁 Playbook **Triage** stopped at step 3, as it says to.");
+    assertInert(
+      playbookStoppedMarkdown({
+        playbookName: HOSTILE,
+        stepNumber: 1,
+        reason: HOSTILE,
+      }).toString(),
+    );
   });
 
   test("an incident a case declared names the case, and what it was linked to because the case names it", () => {

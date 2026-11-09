@@ -8,6 +8,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 
 /*
  * One product, one name. Every page under the Profiler carries a
@@ -49,6 +51,8 @@ const ProfilesLayout: FunctionComponent<
       breadcrumbLinks={getProfilesBreadcrumbs(path)}
       sideMenu={<SideMenu />}
     >
+      {/* Only while today's Profiles budget is past its warning or used up. */}
+      <TelemetryIngestionBudgetExplorerBanner signal={ProductType.Profiles} />
       <Outlet />
     </Page>
   );

@@ -107,9 +107,11 @@ function namesOf(items: ReadonlyArray<ResourceAttentionItem>): Array<string> {
     .sort();
 }
 
-function roleFacts(
-  rows: Array<OpenStackResource>,
-): Array<{ status?: string; loadBalancerId?: string; role?: string }> {
+function roleFacts(rows: Array<OpenStackResource>): Array<{
+  status?: string | undefined;
+  loadBalancerId?: string | undefined;
+  role?: string | undefined;
+}> {
   return rows.map((row: OpenStackResource) => {
     return {
       status: row.status,

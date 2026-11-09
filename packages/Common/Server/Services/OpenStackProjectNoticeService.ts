@@ -13,6 +13,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SSRFProtection from "../Utils/SSRFProtection";
 import ProjectReferencesService from "./ProjectReferencesService";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 /*
  * Who is told about one OpenStack project (OpenStackProjectNotice). Guards it as it is written: one
@@ -57,8 +58,11 @@ export class Service extends ProjectReferencesService<Model> {
 
     const email: string | undefined = createBy.data.email?.toString();
     const webhookUrl: string | undefined = createBy.data.webhookUrl?.toString();
-    const statusPageId: string | undefined =
-      createBy.data.statusPageId?.toString();
+    const statusPageId: string | undefined = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["statusPageId", "statusPage"],
+      "status page",
+    )?.toString();
     const channel: OpenStackProjectNoticeChannel | null =
       getOpenStackNoticeChannel({ email, webhookUrl, statusPageId });
 
@@ -75,11 +79,17 @@ export class Service extends ProjectReferencesService<Model> {
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
 
-    if (projectId && createBy.data.openStackCloudId) {
+    const openStackCloudId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["openStackCloudId", "openStackCloud"],
+      "OpenStack cloud",
+    );
+
+    if (projectId && openStackCloudId) {
       const existing: Array<Model> = await this.findBy({
         query: {
           projectId,
-          openStackCloudId: createBy.data.openStackCloudId,
+          openStackCloudId,
           openStackProjectId,
         },
         select: { email: true, webhookUrl: true, statusPageId: true },

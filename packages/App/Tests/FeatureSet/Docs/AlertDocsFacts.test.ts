@@ -34,13 +34,18 @@ import {
 } from "./DocsDashboardMenus";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import {
+  DEFAULT_MINIMUM_COUNT,
   GROUPING_MODE_OPTIONS,
   GROUPING_RULE_COPY,
   GROUPING_RULE_TEMPLATES,
+  GROUPING_SUMMARY_COPY,
   GroupingRuleKind,
   DEFAULT_TIME_WINDOW_MINUTES,
   GroupingModeOption,
   GroupingRuleTemplate,
+  MAX_MINIMUM_COUNT,
+  MINIMUM_COUNT_FIELD_NAMES,
+  MIN_MINIMUM_COUNT,
 } from "../../../FeatureSet/Dashboard/src/Utils/GroupingRule/GroupingRuleSetup";
 import { STATE_SETTINGS_COPY } from "../../../FeatureSet/Dashboard/src/Components/StateSettings/StateSettingsCopy";
 import {
@@ -668,6 +673,71 @@ describe("the episode page's menu table is the episode's own menu", () => {
       }).toEqual({
         section: menuSection.title,
         folded: folded.includes(menuSection.title),
+      });
+    }
+  });
+});
+
+/*
+ * An episode's Root Cause page charts the metrics behind it (issue #6320):
+ * those of its first alert, as its Overview charts them, around the episode.
+ */
+describe("the episode's Root Cause page charts its first alert's metrics, as its Overview does", () => {
+  const table: string = section(
+    english(ALERT_EPISODES),
+    "## What each page of an episode shows",
+  );
+
+  it("says so, in the words the code holds it to", () => {
+    expect(table).toContain(
+      "The **Root Cause** page charts the metrics behind the episode beside its root cause: those of its first alert, the earliest created, as the telemetry card on its **Overview** charts them, around when the episode started and with its moments marked, so you can read them over any time range around it while you write down why it happened. When that alert kept no snapshot of a metric check (one created by hand on a metrics monitor, say), the page charts that monitor's metrics as the monitor reads them now, and says so.",
+    );
+
+    // The page shows the Root Cause card an alert's page shows...
+    expect(
+      readDashboardSource("Pages/Alerts/EpisodeView/RootCause.tsx"),
+    ).toContain(
+      "<AlertEpisodeRootCauseMetricChart alertEpisodeId={modelId} />",
+    );
+    const reader: string = readDashboardSource(
+      "Components/AlertEpisode/AlertEpisodeRootCauseMetricChart.tsx",
+    );
+    expect(reader).toContain("<EventRootCauseMetricChart");
+    expect(reader).toContain("subject: EventMetricSubject.AlertEpisode,");
+
+    // ...of its first alert, the earliest created, the one its Overview charts...
+    expect(reader).toContain("kind: ALERT_EPISODE_FIRST_MEMBER,");
+    expect(readDashboardSource("Pages/Alerts/EpisodeView/Index.tsx")).toContain(
+      "kind: ALERT_EPISODE_FIRST_MEMBER,",
+    );
+    expect(
+      readDashboardSource("Components/EpisodeView/EpisodeFirstMember.ts"),
+    ).toContain('startedAtField: "createdAt",');
+
+    // ...around when the episode started, with its own moments...
+    const metrics: string = readDashboardSource(
+      "Utils/EventRootCauseMetrics.ts",
+    );
+    expect(metrics).toContain("startedAt: asDate(input.episode?.createdAt),");
+    expect(
+      readDashboardSource("Components/Telemetry/EventRootCauseMetricChart.tsx"),
+    ).toContain("moments.times ||");
+
+    // ...and, with no snapshot, the monitor as it reads now, which it says.
+    expect(metrics).toContain("chartedFromMonitorNow: {");
+  });
+
+  it("names the pages as the episode's menu does", () => {
+    const pages: Array<string> = episodeViewMenu().flatMap(
+      (menuSection: MenuSection): Array<string> => {
+        return menuSection.items;
+      },
+    );
+
+    for (const page of ["Root Cause", "Overview"]) {
+      expect({ page, inMenu: pages.includes(page) }).toEqual({
+        page,
+        inMenu: true,
       });
     }
   });
@@ -1477,6 +1547,53 @@ describe("responding to an alert", () => {
     );
   });
 
+  it("says the Root Cause page charts the metrics behind the alert, with the card an incident's Root Cause page shows", () => {
+    const pages: string = section(page, "## What each page of an alert shows");
+
+    expect(pages).toContain(
+      "- **Description**, **Root Cause**, **Remediation** — three markdown pages. The Root Cause page also charts the metrics behind the alert, as the Overview's telemetry card does, so you can read them over any time range around it while you write down why it happened. When the alert kept no snapshot of a metric check (one created by hand on a metrics monitor, say), it charts that monitor's metrics as the monitor reads them now, and says so.",
+    );
+
+    // Three Markdown pages, as each draws its field.
+    for (const file of [
+      "Description.tsx",
+      "RootCause.tsx",
+      "Remediation.tsx",
+    ]) {
+      expect(readDashboardSource(`Pages/Alerts/View/${file}`)).toContain(
+        "fieldType: FieldType.Markdown,",
+      );
+    }
+
+    // The card an incident's Root Cause page shows, reading the alert...
+    expect(readDashboardSource("Pages/Alerts/View/RootCause.tsx")).toContain(
+      "<AlertRootCauseMetricChart alertId={modelId} />",
+    );
+    for (const card of [
+      "Components/Alert/AlertRootCauseMetricChart.tsx",
+      "Components/Incident/IncidentRootCauseMetricChart.tsx",
+    ]) {
+      expect(readDashboardSource(card)).toContain("<EventRootCauseMetricChart");
+    }
+
+    // ...which is the Overview's metric investigation, metrics only...
+    const rootCauseCard: string = readDashboardSource(
+      "Components/Telemetry/EventRootCauseMetricChart.tsx",
+    );
+    expect(rootCauseCard).toContain("<EventMetricInvestigationPanel");
+    expect(rootCauseCard).toContain("showsCompanionTabs={false}");
+
+    // ...and, with no snapshot, the monitor as it reads now, which it says.
+    expect(readDashboardSource("Utils/EventRootCauseMetrics.ts")).toContain(
+      "chartedFromMonitorNow: {",
+    );
+    expect(
+      readDashboardSource(
+        "Components/Telemetry/EventMetricInvestigationPanel.tsx",
+      ),
+    ).toContain('"Charted for what this monitor checks now."');
+  });
+
   it("says who a private alert is seen by, in the product's words", () => {
     const model: string = readCommonSource("Models/DatabaseModels/Alert.ts");
 
@@ -2067,6 +2184,7 @@ describe("alert episodes and grouping rules", () => {
       GROUPING_RULE_COPY.episodeOwnersTitle,
     ]);
     expect(boldNames(table[1]?.[1] || "")).toEqual([
+      GROUPING_RULE_COPY.minimumCountTitle[KIND],
       GROUPING_RULE_COPY.reopenWindowTitle,
       GROUPING_RULE_COPY.resolveDelayTitle,
       GROUPING_RULE_COPY.inactivityTimeoutTitle,
@@ -2147,6 +2265,81 @@ describe("alert episodes and grouping rules", () => {
         ]),
       ),
     ).toBe(true);
+  });
+
+  it("waits for more alerts only while the rule says so, asking how many as the form does", () => {
+    const waiting: string = section(
+      page,
+      "### Open an episode only for several alerts",
+    );
+    const model: string = readCommonSource(
+      "Models/DatabaseModels/AlertGroupingRule.ts",
+    );
+    const fields: { enabled: string; count: string } =
+      MINIMUM_COUNT_FIELD_NAMES[KIND];
+
+    expect(DEFAULT_MINIMUM_COUNT).toBe(3);
+    expect(MIN_MINIMUM_COUNT).toBe(2);
+    expect(MAX_MINIMUM_COUNT).toBe(100);
+    expect(waiting).toContain(
+      `**${GROUPING_RULE_COPY.minimumCountTitle[KIND]}**, under **Episode Lifecycle**, keeps a lone alert out of an episode. Turn it on and say how many: **${GROUPING_RULE_COPY.minimumCountSentence[
+        KIND
+      ].replace(
+        "{{count}}",
+        String(DEFAULT_MINIMUM_COUNT),
+      )}**, from ${MIN_MINIMUM_COUNT} to ${MAX_MINIMUM_COUNT}.`,
+    );
+    expect(waiting).toContain(
+      `The list's **Grouping** column says "${GROUPING_SUMMARY_COPY.opensOnceOngoing[
+        KIND
+      ].replace("{{count}}", String(DEFAULT_MINIMUM_COUNT))}".`,
+    );
+    expect(waiting).toContain(
+      `Through the API and Terraform it is \`${fields.enabled}\` and \`${fields.count}\`.`,
+    );
+    expect(model).toContain(`public ${fields.enabled}?: boolean`);
+    expect(model).toContain(`public ${fields.count}?: number`);
+    // Off on every rule until someone turns it on.
+    expect(model).toContain(
+      "default: false,\n  })\n  public enableMinimumAlertCount?: boolean",
+    );
+    expect(section(page, "## How grouping works")).toContain(
+      "- **Wait for more alerts** decides when a new episode opens. Off, as a new rule starts, the first matching alert opens one.",
+    );
+  });
+
+  it("counts only alerts still ongoing, and opens the episode with all of them after the reopen check", () => {
+    const waiting: string = section(
+      page,
+      "### Open an episode only for several alerts",
+    );
+
+    expect(engine).toContain(
+      "await AlertStateService.getUnresolvedAlertStateIds(projectId);",
+    );
+    expect(engine).toContain(
+      "currentAlertStateId: QueryHelper.any(unresolvedStateIds),",
+    );
+    expect(engine).toContain("alertEpisodeId: QueryHelper.isNull(),");
+    expect(
+      inOrder(
+        positionsIn(engine, [
+          "if (rule.enableReopenWindow) {",
+          "alertsWaiting = await this.findAlertsWaitingForEpisode({",
+          "const newEpisode: AlertEpisode | null = await this.createNewEpisode(",
+          "await this.addWaitingAlertsToNewEpisode({",
+        ]),
+      ),
+    ).toBe(true);
+    expect(waiting).toContain(
+      "**Only ongoing alerts count.** One resolved meanwhile is over, so a monitor that keeps failing and recovering never opens an episode by itself.",
+    );
+    expect(waiting).toContain(
+      `While **${GROUPING_RULE_COPY.timeWindowTitle[KIND]}** is on, the alerts must also have arrived within its window of each other.`,
+    );
+    expect(page).toContain(
+      "- **An alert waiting for more alerts** runs only its own policies too.",
+    );
   });
 
   it("groups each alert once, right after its own on-call policies run", () => {

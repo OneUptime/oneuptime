@@ -84,7 +84,7 @@ Allt som avgör hur SLO:et mäter börjar med ett standardvärde som du ändrar 
 | Driftstoppsstatusar | Alla projektets icke-operativa statusar | **Inställningar** → **Beräkning av driftstopp** |
 | Läge för flera monitorer | **Valfri monitor nere** | **Inställningar** → **Beräkning av driftstopp** |
 | Utvärdering | På | **Inställningar** → **Utvärdering** |
-| Regler för förbrukningstakt | En regel **Fast burn** och en regel **Slow burn**, anpassade till fönstret | **Förbrukningstaktsregler** |
+| Regler för förbrukningstakt | En regel **Fast burn**, en regel **Slow burn** och en regel **Slow leak**, anpassade till fönstret | **Förbrukningstaktsregler** |
 
 ## Vad ett SLO består av
 
@@ -141,7 +141,7 @@ Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar
 Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återstående budget, förbrukningstakt, mål, fönster, monitorer, etiketter och ägare.
 
 - Rutorna ovanför listan räknar SLO:er per status: **Felfri**, **I riskzonen**, **Budget förbrukad**, **Felkonfigurerad**, **Pausad** och **Inaktiverad**. De visas så snart det finns ett SLO som inte är arkiverat. Klicka på en ruta för att bara se de SLO:erna, och igen för att se alla.
-- Markera SLO:er för att lägga till eller ta bort etiketter och ägare, aktivera eller inaktivera dem, arkivera dem eller radera dem, alla på en gång.
+- Markera SLO:er för att lägga till eller ta bort etiketter och ägare, aktivera eller inaktivera dem, ge dem de [rekommenderade reglerna för förbrukningstakt](/docs/slo/burn-rate-alerts#lägg-till-dem-i-många-sloer-på-en-gång) som de saknar, arkivera dem eller radera dem, alla på en gång.
 - Sidomenyns avsnitt **Inställningar** innehåller **Etikettregler** och **Ägarregler**, som sätter etiketter på nya SLO:er och ger dem ägare: se [Etikett- och ägarregler](/docs/slo/label-and-owner-rules).
 - Sidomenyns avsnitt **Avancerad** innehåller **Arkiverad**, listan över arkiverade SLO:er.
 
@@ -153,18 +153,19 @@ Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återst�
 | --- | --- |
 | **Översikt** | Statusen, nyckeltalen, felbudgetens förbrukning, senaste aktiviteten, öppna larm och incidenter och reglerna för förbrukningstakt. |
 | **Mätvärden** | SLO:ets `oneuptime.slo.*`-metriker, dess långsiktiga felbudgethistorik och metrikerna för de incidenter och larm som påverkar det. Se [SLO-metriker och -instrumentpaneler](/docs/slo/metrics). |
-| **Incidenter** | De incidenter som dess regler för förbrukningstakt har deklarerat. Märket räknar de öppna. |
-| **Larm** | De larm som dess regler för förbrukningstakt har utlöst. Märket räknar de öppna. |
+| **Incidenter** | De incidenter som dess regler för förbrukningstakt och dess felbudgetpolicy har deklarerat. Märket räknar de öppna. |
+| **Larm** | De larm som dess regler för förbrukningstakt och dess felbudgetpolicy har utlöst. Märket räknar de öppna. |
 | **Feed** | Vad som har hänt med SLO:et, som en tidslinje. Se [SLO-flöde och granskningsloggar](/docs/slo/feed-and-audit-logs). |
 | **Monitorer** | De monitorer som det mäter, och om var och en kopplades av en person eller en regel. |
 | **Monitorregler** | Reglerna som kopplar monitorer som matchar. |
 | **Förbrukningstaktsregler** | Reglerna som utlöser larm och deklarerar incidenter när budgeten förbrukas för snabbt. |
+| **Felbudgetpolicy** | Vad teamet har kommit överens om att göra medan felbudgeten tar slut, och de larm och incidenter som varje nivå i policyn utlöser. Se [Felbudgetpolicy](/docs/slo/error-budget-policy). |
 | **Ägare** | De användare och team som får höra om dess statusändringar. |
 | **Inställningar** | Målet, efterlevnadsperioden, beräkningen av driftstopp, utvärderingsreglaget och arkivkortet. |
 | **Granskningsloggar** | Vem som ändrade SLO:et, dess regler och dess ägare, och när. |
 | **Ta bort SLO** | Raderar SLO:et permanent och löser de larm och incidenter för förbrukningstakt som det hade öppna. |
 
-**Monitorer** ligger i ett avsnitt **Konfiguration**, **Monitorregler** och **Förbrukningstaktsregler** i ett avsnitt **Regler**, och **Ägare**, **Inställningar**, **Granskningsloggar** och **Ta bort SLO** i ett avsnitt **Hantering**. Alla tre börjar hopfällda, precis som ett avsnitt **Utvecklare** för att hantera SLO:et från kod: klicka på ett avsnitts rubrik för att öppna det.
+**Monitorer** ligger i ett avsnitt **Konfiguration**, **Monitorregler**, **Förbrukningstaktsregler** och **Felbudgetpolicy** i ett avsnitt **Regler**, och **Ägare**, **Inställningar**, **Granskningsloggar** och **Ta bort SLO** i ett avsnitt **Hantering**. Alla tre börjar hopfällda, precis som ett avsnitt **Utvecklare** för att hantera SLO:et från kod: klicka på ett avsnitts rubrik för att öppna det.
 
 När något hindrar ett SLO från att mäta talar en banner högst upp på var och en av dess sidor om vad som är fel och länkar till sidan som åtgärdar det: se [Felsökning](#felsökning).
 
@@ -176,13 +177,15 @@ När något hindrar ett SLO från att mäta talar en banner högst upp på var o
 - **Nyckeltalen**:
   - **SLI**: andelen bra tid i fönstret, och hur mycket den ligger över eller under målet.
   - **Felbudget kvar**: en procentandel, en varaktighet som "12m 30s left of 43m 12s" och en stapel med en markering vid tröskeln för riskzon. När budgeten är överskriden visar den **Budget exceeded** och med hur mycket.
-  - **Förbrukningstakt**: hur snabbt budgeten används under de senaste 60 minuterna, den period som standardregeln för snabb förbrukning använder. Blir gul över 1× och röd, med **Regeltröskel nådd**, vid den lägsta tröskeln bland SLO:ets aktiverade regler för förbrukningstakt.
+  - **Förbrukningstakt**: hur snabbt budgeten används under de senaste 60 minuterna, den period som standardregeln för snabb förbrukning använder. Blir gul över 1× och röd, med **Regeltröskel nådd**, vid den lägsta tröskeln bland SLO:ets aktiverade regler för förbrukningstakt som ser högst 6 timmar bakåt. En timme säger lite om en regel som ser flera dagar bakåt, som **Slow leak**, så den jämförs inte med en sådan regel.
   - **Budgetens räckvidd**: hur länge budgeten räcker i den takten. Se [Felbudgetar](/docs/slo/error-budget#budgetens-räckvidd).
 - **Nedbränning av felbudget**: den återstående budgeten över det aktuella fönstret. Se [Felbudgetar](/docs/slo/error-budget#felbudgetens-förbrukning).
 - **Senaste aktivitet**: de senaste posterna i SLO:ets flöde.
 - **SLO-detaljer**: namnet, beskrivningen och etiketterna, de enda inställningar som redigeras i översikten.
 - **Öppna larm och incidenter**: det som reglerna för förbrukningstakt har öppet just nu.
-- **Burn rate rules**: tröskeln för varje aktiverad regel bredvid den aktuella förbrukningstakten, och vad regeln deklarerar.
+- **Burn rate rules**: tröskeln för varje aktiverad regel bredvid den aktuella förbrukningstakten, för regler som ser högst 6 timmar bakåt, och vad regeln deklarerar.
+
+När SLO:et är i en nivå i sin felbudgetpolicy visar **Översikt** också den nivån och vad teamet har kommit överens om att göra i den: se [Felbudgetpolicy](/docs/slo/error-budget-policy).
 
 ### Inställningar
 

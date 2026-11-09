@@ -1,4 +1,5 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { isOnCallObserverPage } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
@@ -158,6 +159,8 @@ export class Service extends DatabaseService<Model> {
           onCallDutyPolicyExecutionLog: {
             triggeredByWorkflowName: true,
             triggeredByUserId: true,
+            // An observer's answer reads as having seen it (OnCallObserverPage).
+            isObserverPage: true,
           },
         },
         props: {
@@ -331,6 +334,9 @@ export class Service extends DatabaseService<Model> {
               recipient: recipient,
               overriddenUser: overriddenUser,
               statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
+              isObserverPage: isOnCallObserverPage(
+                onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyExecutionLog,
+              ),
             })
           : OnCallFeedText.getDirectPageStepMarkdown({
               status: status,
@@ -351,6 +357,9 @@ export class Service extends DatabaseService<Model> {
               recipient: recipient,
               overriddenUser: overriddenUser,
               statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
+              isObserverPage: isOnCallObserverPage(
+                onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyExecutionLog,
+              ),
             });
 
         logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown, {

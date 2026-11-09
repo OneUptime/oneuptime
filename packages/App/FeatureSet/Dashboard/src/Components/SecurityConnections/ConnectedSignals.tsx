@@ -89,7 +89,10 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { getChangeTitleForReader } from "Common/Utils/Telemetry/CloudChangeTitle";
+import {
+  getChangeTitleDirection,
+  getChangeTitleForReader,
+} from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -516,12 +519,20 @@ const ConnectedRecord: FunctionComponent<{
               className="mt-0.5 text-sm text-gray-600 text-pretty [overflow-wrap:anywhere]"
               data-testid={SECURITY_CONNECTIONS_TEST_IDS.recordReason}
             >
+              {/*
+               * Drawn and nothing else, so its values are set apart: in a
+               * Persian sentence what the case named and what the record
+               * holds - an address, a URL, a host - are each an isolate,
+               * read left to right in one piece, its punctuation at its
+               * own ends.
+               */}
               {translator.translateTemplate(
                 getConnectionReasonTemplate({ kind: resource.kind, match }),
                 {
                   value: match.entityValue,
                   matched: match.matchedValue,
                 },
+                { setsValuesApart: true },
               )}
             </p>
           ) : (
@@ -667,12 +678,28 @@ const ConnectedRecord: FunctionComponent<{
                               <span
                                 className={CONNECTED_CHANGE_TITLE_CLASS_NAME}
                               >
-                                <bdi>
+                                {/*
+                                 * Set apart, each title its own way: one
+                                 * worded in the reader's language reads
+                                 * theirs - a Persian health event right to
+                                 * left, though it starts with "AWS
+                                 * Health:" - a deploy's or a pipeline's
+                                 * title its own (getChangeTitleDirection).
+                                 */}
+                                <bdi
+                                  dir={getChangeTitleDirection({
+                                    facts: change.cloudChange,
+                                    health: change.cloudHealth,
+                                    translator,
+                                  })}
+                                >
                                   {getChangeTitleForReader({
                                     title: change.title,
                                     eventType: change.eventType,
                                     facts: change.cloudChange,
+                                    health: change.cloudHealth,
                                     translator,
+                                    options: { setsValuesApart: true },
                                   })}
                                 </bdi>
                               </span>

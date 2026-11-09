@@ -53,7 +53,7 @@ Et offentligt dashboard:
 
 Behandl deling af et dashboard som udgivelse af en webside. Alle widgets på det bliver læsbare for alle med linket. Se, hvad der er på lærredet, før du deler det.
 
-Hver widget offentliggør kun det, den tegner, og kun for de ressourcer, den er peget mod. En SLO-widget offentliggør for eksempel det SLO's nøgletal, men aldrig dets definition: se [SLO](/docs/dashboards/widgets#slo). Widgets med en ekstern **Data Source** er undtagelsen: de fjernes helt fra et offentligt dashboard i stedet for at blive gengivet, fordi deres konfiguration er selve forespørgslen. Nogle få andre widgets kan ikke vises uden en indlogget session og skriver det på deres plads: [På et offentligt dashboard](/docs/dashboards/widgets#på-et-offentligt-dashboard) viser hvilke.
+Hver widget offentliggør kun det, den tegner, og kun for de ressourcer, den er peget mod. En SLO-widget offentliggør for eksempel det SLO's nøgletal, men aldrig dets definition: se [SLO](/docs/dashboards/widgets#slo). Widgets med en ekstern **Data Source** er undtagelsen: de fjernes helt fra et offentligt dashboard i stedet for at blive gengivet, fordi deres konfiguration er selve forespørgslen. Nogle få andre widgets kan ikke vises uden en indlogget session og skriver det på deres plads: [På et offentligt dashboard](/docs/dashboards/widgets#på-et-offentligt-dashboard) viser hvilke. De offentliggør kun deres titel, aldrig de søgninger og filtre, de læser deres data med. Variabler offentliggør også kun det, deres vælgere viser: en ældre forespørgselsvariabels forespørgsel offentliggøres aldrig.
 
 ## Deling med en adgangskode
 
@@ -94,13 +94,13 @@ Når det er bekræftet, kan dashboardet nås på både dit brugerdefinerede dom�
 
 ### Tilføj domænet
 
-Klik på **Opret Dashboard Domæne**. Dialogen er én side:
+Klik på **Opret Dashboard-domæne**. Dialogen er én side:
 
 - **Underdomæne**: kun etiketten, med pladsholderen `dashboard (leave blank for root)`. Indtast blot `dashboard`, ikke hele værtsnavnet. Lad det være tomt, eller indtast `@` for at bruge roddomænet (apex).
 - **Domæne**: de domæner, der er bekræftet under **Projektindstillinger → Avanceret → Domæner**, hvor du med en TXT-post beviser, at et domæne er dit. Et domæne, du ikke har bekræftet, står ikke på listen, fordi det ville blive afvist. Linket **Tilføj et domæne** ved siden af feltet åbner den side i en ny fane.
 - **Flere felter**: foldet sammen. Så længe det er foldet sammen, siger overskriften, hvilket certifikat domænet vil bruge: "Vi udsteder et gratis SSL-certifikat til dette domæne og fornyer det automatisk." Åbn det kun for at bruge dit eget certifikat (se nedenfor).
 
-Klik på **Opret Dashboard Domæne**. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner. Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge et andet underdomæne tilføjer du det domæne og sletter det gamle.
+Klik på **Opret Dashboard-domæne**. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner. Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge et andet underdomæne tilføjer du det domæne og sletter det gamle.
 
 ### DNS-opsætning og Tjek nu
 

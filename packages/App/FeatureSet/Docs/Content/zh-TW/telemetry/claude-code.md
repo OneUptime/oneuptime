@@ -161,7 +161,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 標準屬性包括 `session.id`、`app.version`、`app.entrypoint`、`organization.id`、`user.account_uuid`、`user.account_id`、`user.id`、`user.email` 和 `terminal.type`，以及你的 `OTEL_RESOURCE_ATTRIBUTES`。其中一些可以關閉：請參閱 [降低指標量](#降低指標量)。
 
-- 快取 token 類型使用駝峰式命名：`cacheRead` 和 `cacheCreation`。OneUptime 的 token 總數只計算 `input` 和 `output`。
+- 快取 token 類型使用駝峰式命名：`cacheRead` 和 `cacheCreation`。Claude Code 的 `input` 不包含它們，因此 OneUptime 也會把它們計為輸入 token。
 - 在成本和 token 指標上，除非設定了 `OTEL_LOG_TOOL_DETAILS=1`（Claude Code 2.1.273 或更新版本），否則你自己的代理程式和 MCP 伺服器，以及第三方外掛程式和技能的名稱會顯示為 `custom` 或 `third-party`。
 
 ## 事件
@@ -220,7 +220,7 @@ Claude Code 預設傳送差異值指標：每個資料點是自上次匯出以�
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-只有當組織中的每個匯出器都使用 `cumulative` 時才固定它，而且不要在同一批機器中混用兩種方式。
+只有當組織中的每個匯出器都使用 `cumulative` 時才固定它，而且不要在同一批機器中混用兩種方式。OneUptime 的使用量分頁和預算兩種都能計算：delta 把資料點相加，累積計數器依時間範圍內成長了多少來計算。
 
 ## 追蹤（搶先版）
 

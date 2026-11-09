@@ -20,12 +20,15 @@ flowchart TB
     open -->|Sí| join["Se une a él"]
     open -->|No| reopen(["¿Uno resuelto dentro de<br/>la ventana de reapertura?"])
     reopen -->|Sí| reopened["Lo reabre"]
-    reopen -->|No| created["Abre un<br/>episodio nuevo"]
+    reopen -->|No| enough(["¿Hay suficientes alertas<br/>que coinciden en curso?"])
+    enough -->|Sí| created["Abre un episodio nuevo<br/>con todas ellas"]
+    enough -->|Todavía no| waits["Espera sola"]
 ```
 
 - **Las condiciones de la regla** deciden a qué alertas se aplica. Una regla sin condiciones se aplica a todas las alertas nuevas.
 - **La clave de agrupación** decide qué alertas comparten un episodio: las del mismo monitor, la misma gravedad, el mismo título o la combinación por la que agrupe la regla. Una regla que no agrupa por nada pone en un solo episodio todas las alertas con las que coincide.
 - **La ventana de tiempo** decide durante cuánto tiempo sigue aceptando alertas un episodio. Si está activada, una alerta solo se une si llega dentro de la ventana desde la última alerta del episodio. Si está desactivada, las alertas que coinciden siguen uniéndose hasta que el episodio se resuelve.
+- **Esperar más alertas** decide cuándo se abre un episodio nuevo. Si está desactivado, que es como empieza una regla nueva, la primera alerta que coincide abre uno. Si está activado, una alerta espera sola hasta que estén en curso tantas alertas de su grupo que coinciden como hayas fijado, y entonces se abre un solo episodio con todas ellas. Consulta [Abrir un episodio solo para varias alertas](#abrir-un-episodio-solo-para-varias-alertas).
 
 La agrupación ocurre cuando se crea una alerta. Una regla que añades hoy agrupa las alertas creadas después; no vuelve a agrupar las que ya existen.
 
@@ -72,10 +75,21 @@ Todo lo demás que puede hacer una regla está plegado en **Más campos**, al fi
 | Grupo                            | Ajustes                                                                                                    |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Guardia y propiedad**          | **Políticas de guardia** que se ejecutan cuando la regla abre un episodio, y **Propietarios del episodio**. |
-| **Ciclo de vida del episodio**   | **Reabrir episodios resueltos recientemente**, **Esperar antes de resolver un episodio** y **Resolver episodios inactivos**, cada uno un interruptor con sus minutos. |
+| **Ciclo de vida del episodio**   | **Esperar más alertas**, un interruptor con un número, después **Reabrir episodios resueltos recientemente**, **Esperar antes de resolver un episodio** y **Resolver episodios inactivos**, cada uno un interruptor con sus minutos. |
 | **Detalles**                     | La **Descripción** de la regla, la **Plantilla del título del episodio**, la **Plantilla de descripción del episodio** y las **Etiquetas del episodio**. |
 
 Las reglas se comprueban de arriba abajo en la lista, y gana la primera que coincide: arrastra una regla para cambiar su posición. Pon las reglas específicas por encima de las generales. La columna **Agrupación** de la lista dice en una frase lo que hace cada regla, por ejemplo "Un episodio por monitor".
+
+### Abrir un episodio solo para varias alertas
+
+**Esperar más alertas**, en **Ciclo de vida del episodio**, deja fuera de los episodios a una alerta aislada. Actívalo e indica cuántas: **Abrir un episodio cuando haya 3 alertas que coinciden en curso**, de 2 a 100.
+
+- **Hasta entonces, cada alerta espera sola.** Una alerta que no encuentra ningún episodio abierto de su grupo al que unirse, ni uno resuelto que reabrir, no abre nada y solo ejecuta sus propias políticas de guardia, como una alerta con la que no coincide ninguna regla.
+- **Después se abre un solo episodio con todas ellas.** La alerta que completa el número abre el episodio con cada alerta que esperaba. El episodio toma el título, el monitor y la gravedad de la primera de ellas y sube a la más grave, y las alertas posteriores se unen a él como de costumbre.
+- **Solo cuentan las alertas en curso.** Una que se resuelve mientras tanto ya ha terminado, así que un monitor que no deja de fallar y recuperarse nunca abre un episodio por sí solo. Mientras **Agrupar solo las alertas que llegan seguidas** está activado, las alertas también deben haber llegado dentro de su ventana unas respecto de otras.
+- **Cuenta por grupo.** Con **Todo junto** cuentan todas las alertas que coinciden, así que un episodio solo se abre ante una caída que dispara varios monitores a la vez. Con **Monitor**, el episodio de un monitor se abre cuando ese monitor tiene varias alertas en curso.
+
+La columna **Agrupación** de la lista dice "Abre un episodio cuando hay 3 alertas que coinciden en curso". En la API y en Terraform son `enableMinimumAlertCount` y `minimumAlertCount`.
 
 ## Títulos de los episodios
 
@@ -117,6 +131,7 @@ flowchart TB
 
 - **Un episodio nuevo** ejecuta las **Políticas de guardia** de la regla, más las de cualquier regla que coincida en la pestaña **Reglas de episodios** de **Alertas → Reglas → Reglas de guardia**.
 - **Una alerta que se une a un episodio abierto** solo ejecuta sus propias políticas. Las del episodio no se vuelven a ejecutar.
+- **Una alerta que espera más alertas** también ejecuta solo sus propias políticas. Cuando **Esperar más alertas** está activado y las políticas de la regla son las únicas que avisan, una alerta aislada no avisa a nadie hasta que haya suficientes en curso.
 - **Responder al aviso de un episodio** reconoce el episodio y, con él, cada alerta que contiene.
 
 > [!TIP]
@@ -161,6 +176,8 @@ Un episodio que creas tú no tiene regla de agrupación, así que la lista muest
 | **Avanzado** | **Registros de auditoría**, **Eliminar episodio** |
 
 **Desarrolladores** y **Avanzado** empiezan plegadas. En la **Vista general**, la cabecera nombra a los **Propietarios** del episodio, primero los equipos, y el primer recuadro, **Creado**, dice cuándo se creó el episodio —**Automáticamente**, cuando lo abrió una regla de agrupación—. La tarjeta **Qué pasó** encabeza la página —la descripción del episodio y su **Causa raíz**—, después **Alertas de este episodio** y el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Mover el episodio a** en el menú **⋯**.
+
+La página **Causa raíz** traza las métricas que hay detrás del episodio junto a su causa raíz: las de su primera alerta, la creada antes, como las traza la tarjeta de telemetría de su **Vista general**, alrededor del inicio del episodio y con sus momentos marcados, para que puedas leerlas en cualquier intervalo a su alrededor mientras escribes por qué ocurrió. Cuando esa alerta no guardó ninguna instantánea de una comprobación de métricas (una creada a mano sobre un monitor de métricas, por ejemplo), la página traza las métricas de ese monitor tal como el monitor las lee ahora, y lo indica.
 
 **Alertas → Episodios activos** muestra los episodios que aún no se han resuelto, y la insignia a su lado los cuenta.
 

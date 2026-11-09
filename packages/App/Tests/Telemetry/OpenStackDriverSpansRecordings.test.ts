@@ -17,7 +17,11 @@ import {
   getRecordedTraceReleases,
   traceIdOfPrinted,
 } from "Common/Tests/Helpers/OpenStackTraceRecordings";
-import { OSPROFILER_DRIVER_SCOPE_NAME } from "Common/Utils/OpenStack/OpenStackTraces";
+import {
+  OSLO_MESSAGING_SCOPE_NAME,
+  OSLO_MIDDLEWARE_SCOPE_NAME,
+  OSPROFILER_DRIVER_SCOPE_NAME,
+} from "Common/Utils/OpenStack/OpenStackTraces";
 import { keyForOpenStackResource } from "Common/Utils/Telemetry/EntityKey";
 import {
   afterEach,
@@ -313,6 +317,65 @@ describe.each(getRecordedTraceReleases())(
         expect(attributes["resource.openstack.node.name"]).toBeTruthy();
         expect(attributes["openstack.service"]).toBeTruthy();
       }
+    });
+
+    test("OpenStack's own spans, signed by nobody, are read the same way where a release has them", async () => {
+      if (release !== "hibiscus-ovn") {
+        return;
+      }
+
+      await OtelTracesIngestService.processTracesFromQueue({
+        projectId: PROJECT_ID,
+        headers: {},
+        body: movedToNow(recording.otlp("native-always-on-boot", "native")),
+      } as unknown as TelemetryRequest);
+      await TelemetryFanInWriter.flushAll();
+
+      const rows: Array<JSONObject> = [];
+
+      for (const call of insert.mock.calls) {
+        rows.push(...(call[0] as Array<JSONObject>));
+      }
+
+      const oslo: Array<JSONObject> = rows.filter((row: JSONObject) => {
+        return [OSLO_MESSAGING_SCOPE_NAME, OSLO_MIDDLEWARE_SCOPE_NAME].includes(
+          String(attributesOf(row)["scope.name"]),
+        );
+      });
+      const post: JSONObject | undefined = oslo.find((row: JSONObject) => {
+        return row["name"] === "POST /compute/v2.1/servers";
+      });
+
+      expect(oslo.length).toBeGreaterThan(100);
+      expect(post).toBeDefined();
+      expect(post!["kind"]).toBe("SPAN_KIND_SERVER");
+      expect(post!["isRootSpan"]).toBe(true);
+      expect(attributesOf(post!)["openstack.service"]).toBe("nova-api");
+      expect(attributesOf(post!)["http.url"]).toBeUndefined();
+
+      const boot: Array<JSONObject> = oslo.filter((row: JSONObject) => {
+        return row["traceId"] === post!["traceId"];
+      });
+
+      expect(
+        new Set(
+          boot.map((row: JSONObject): unknown => {
+            return attributesOf(row)["openstack.service"];
+          }),
+        ),
+      ).toEqual(
+        new Set([
+          "nova-api",
+          "nova-conductor",
+          "nova-scheduler",
+          "nova-compute",
+        ]),
+      );
+      expect(
+        boot.map((row: JSONObject): unknown => {
+          return row["kind"];
+        }),
+      ).toContain("SPAN_KIND_CONSUMER");
     });
 
     test("a call that only finds a method is on no row, and no row's parent", async () => {

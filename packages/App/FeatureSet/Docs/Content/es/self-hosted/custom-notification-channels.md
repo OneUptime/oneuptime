@@ -79,6 +79,7 @@ Cada aviso es una solicitud `POST` con un cuerpo JSON:
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ Cada aviso es una solicitud `POST` con un cuerpo JSON:
 | `recordType`, `record` | De qué trata el aviso: un `incident`, `alert`, `incidentEpisode` o `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | La política y el nivel que le avisaron |
 | `isPageAgain` | `true` cuando el registro se reconoció hace un tiempo y sigue sin resolverse |
+| `isObserverPage` | `true` cuando se avisa a la persona como observadora: se la mantiene informada mientras otros responden. Confirmar su aviso solo indica que lo ha visto |
 | `actions` | Los enlaces que tu servicio llama para [actuar sobre el aviso](#actuar-sobre-un-aviso) |
 
 Un aviso a varias personas es una solicitud por persona, cada una con los enlaces propios de esa persona, para que OneUptime sepa quién respondió. El título, el mensaje y la descripción juntos se limitan a 16.384 caracteres; una descripción más larga se corta y termina con «… (truncated — see OneUptime for the full text)».
@@ -170,6 +172,7 @@ Una notificación va a cada canal activado, como una solicitud por canal, con `e
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

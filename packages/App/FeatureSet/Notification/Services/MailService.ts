@@ -1,6 +1,7 @@
 import {
   SendGridConfig,
   getEmailServerType,
+  getGlobalEmailProviderServer,
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../Config";
@@ -8,6 +9,10 @@ import InlineImageAttachments from "./MailProviders/InlineImageAttachments";
 import InlineImageRefusal from "./MailProviders/InlineImageRefusal";
 import MicrosoftGraphMailProvider from "./MailProviders/MicrosoftGraphMailProvider";
 import SendGridMailProvider from "./MailProviders/SendGridMailProvider";
+import AmazonSesMailProvider from "./MailProviders/AmazonSesMailProvider";
+import MailgunMailProvider from "./MailProviders/MailgunMailProvider";
+import PostmarkMailProvider from "./MailProviders/PostmarkMailProvider";
+import ResendMailProvider from "./MailProviders/ResendMailProvider";
 import SMTPOAuthService from "./SMTPOAuthService";
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
@@ -17,7 +22,13 @@ import Email from "Common/Types/Email";
 import EmailMessage, { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import MailTransportType from "Common/Types/Email/MailTransportType";
+import MailTransportType, {
+  isApiKeyMailTransport,
+  toMailTransportType,
+} from "Common/Types/Email/MailTransportType";
+import { isMailgunDomain } from "Common/Types/Email/MailgunDomain";
+import { toMailgunRegion } from "Common/Types/Email/MailgunRegion";
+import { isAwsRegion } from "Common/Types/Cloud/AwsRegionCode";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -642,9 +653,9 @@ export default class MailService {
      * SMTP_TRANSPORT_TYPE is optional. Absent → 'SMTP' (back-compat: existing
      * callers that don't send this key get identical behavior to before).
      */
-    const transportType: MailTransportType =
-      (obj["SMTP_TRANSPORT_TYPE"] as MailTransportType) ||
-      MailTransportType.SMTP;
+    const transportType: MailTransportType = toMailTransportType(
+      obj["SMTP_TRANSPORT_TYPE"],
+    );
 
     /*
      * Every branch below reports a field the operator did not fill in (or
@@ -668,6 +679,14 @@ export default class MailService {
     if (!obj["SMTP_FROM_NAME"]) {
       logger.error("SMTP_FROM_NAME env var not found", EXTERNAL_FAULT);
       return false;
+    }
+
+    /*
+     * A provider with an HTTP API of its own needs its own key alone: no
+     * host, port, sign-in or OAuth app.
+     */
+    if (isApiKeyMailTransport(transportType)) {
+      return this.isApiProviderConfigValid(obj, transportType);
     }
 
     /*
@@ -756,15 +775,99 @@ export default class MailService {
     return true;
   }
 
+  /*
+   * The keys each HTTP API provider is sent with, as
+   * Common/Server/Services/MailService writes them: an AWS access key and
+   * Region for Amazon SES, an API key for the others, and Mailgun's sending
+   * domain. Each refusal is stamped external, as above: it names a field the
+   * tenant left blank.
+   */
+  private static isApiProviderConfigValid(
+    obj: JSONObject,
+    transportType: MailTransportType,
+  ): boolean {
+    if (transportType === MailTransportType.AmazonSES) {
+      for (const key of [
+        "SMTP_AWS_ACCESS_KEY_ID",
+        "SMTP_AWS_SECRET_ACCESS_KEY",
+        "SMTP_AWS_REGION",
+      ]) {
+        if (!obj[key]) {
+          logger.error(`${key} not found for Amazon SES`, EXTERNAL_FAULT);
+          return false;
+        }
+      }
+
+      if (!isAwsRegion(String(obj["SMTP_AWS_REGION"]))) {
+        logger.error(
+          "SMTP_AWS_REGION is not an AWS Region code such as us-east-1",
+          EXTERNAL_FAULT,
+        );
+        return false;
+      }
+
+      return true;
+    }
+
+    if (!obj["SMTP_API_KEY"]) {
+      logger.error(
+        `SMTP_API_KEY not found for ${transportType}`,
+        EXTERNAL_FAULT,
+      );
+      return false;
+    }
+
+    if (
+      transportType === MailTransportType.Mailgun &&
+      !isMailgunDomain(obj["SMTP_MAILGUN_DOMAIN"])
+    ) {
+      logger.error(
+        "SMTP_MAILGUN_DOMAIN not found, or not a domain, for Mailgun",
+        EXTERNAL_FAULT,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   public static getEmailServer(obj: JSONObject): EmailServer {
     if (!this.isSMTPConfigValid(obj)) {
       // isSMTPConfigValid has already logged which field is wrong.
       throw new BadDataException("SMTP Config is not valid").asUserError();
     }
 
-    const transportType: MailTransportType =
-      (obj["SMTP_TRANSPORT_TYPE"] as MailTransportType) ||
-      MailTransportType.SMTP;
+    const transportType: MailTransportType = toMailTransportType(
+      obj["SMTP_TRANSPORT_TYPE"],
+    );
+
+    // An HTTP API provider is sent with its own key, and nothing else.
+    if (isApiKeyMailTransport(transportType)) {
+      return {
+        id:
+          obj && obj["SMTP_ID"]
+            ? new ObjectID(obj["SMTP_ID"].toString())
+            : undefined,
+        transportType: transportType,
+        username: undefined,
+        password: undefined,
+        fromEmail: new Email(obj["SMTP_EMAIL"]?.toString() as string),
+        fromName: obj["SMTP_FROM_NAME"]?.toString() as string,
+        apiKey: obj["SMTP_API_KEY"]?.toString() || undefined,
+        awsAccessKeyId: obj["SMTP_AWS_ACCESS_KEY_ID"]?.toString() || undefined,
+        awsSecretAccessKey:
+          obj["SMTP_AWS_SECRET_ACCESS_KEY"]?.toString() || undefined,
+        awsRegion:
+          obj["SMTP_AWS_REGION"]?.toString().trim().toLowerCase() || undefined,
+        mailgunDomain:
+          obj["SMTP_MAILGUN_DOMAIN"]?.toString().trim().toLowerCase() ||
+          undefined,
+        mailgunRegion:
+          transportType === MailTransportType.Mailgun
+            ? toMailgunRegion(obj["SMTP_MAILGUN_REGION"])
+            : undefined,
+      };
+    }
 
     const authType: SMTPAuthenticationType =
       transportType === MailTransportType.MicrosoftGraph
@@ -800,6 +903,35 @@ export default class MailService {
       oauthProviderType:
         (obj["SMTP_OAUTH_PROVIDER_TYPE"] as OAuthProviderType) || undefined,
     };
+  }
+
+  /*
+   * The transport an Email Server Type sends through when it is a provider
+   * with an HTTP API of its own: Amazon SES, Mailgun, Postmark or Resend.
+   * Null for Custom SMTP and SendGrid, which have paths of their own, and
+   * for anything that is not an Email Server Type.
+   */
+  public static getGlobalProviderTransport(
+    emailServerType: unknown,
+  ): MailTransportType | null {
+    if (typeof emailServerType !== "string" || !emailServerType) {
+      return null;
+    }
+
+    const providers: Array<[EmailServerType, MailTransportType]> = [
+      [EmailServerType.AmazonSES, MailTransportType.AmazonSES],
+      [EmailServerType.Mailgun, MailTransportType.Mailgun],
+      [EmailServerType.Postmark, MailTransportType.Postmark],
+      [EmailServerType.Resend, MailTransportType.Resend],
+    ];
+
+    for (const [serverType, transport] of providers) {
+      if (serverType && serverType === emailServerType) {
+        return transport;
+      }
+    }
+
+    return null;
   }
 
   public static async getGlobalFromEmail(): Promise<Email> {
@@ -933,7 +1065,8 @@ export default class MailService {
   private static async readCarriedLogo(
     address: string,
   ): Promise<CarriedLogo | null> {
-    const productLogo: CarriedLogo | null = getCarriedProductLogo(address);
+    const productLogo: CarriedLogo | null =
+      await getCarriedProductLogo(address);
 
     if (productLogo) {
       return productLogo;
@@ -1044,20 +1177,57 @@ export default class MailService {
     const inlineImages: Array<EmailInlineImage> = options.inlineImages || [];
 
     /*
-     * Dispatch on transport type. HTTP-API transports (Microsoft Graph today,
-     * Gmail/SES tomorrow) bypass nodemailer and the SMTP connection pool — they
-     * are stateless HTTP and have their own auth/retry concerns.
+     * Dispatch on transport type. HTTP-API transports (Microsoft Graph,
+     * Amazon SES, SendGrid, Mailgun, Postmark, Resend) bypass nodemailer and
+     * the SMTP connection pool — they are stateless HTTPS, and each provider
+     * owns its retries (honouring the provider's Retry-After), its deadline
+     * (the caller's timeout, for every try together) and a gate of the
+     * config's own (HttpMailApi). No second retry loop is wrapped around
+     * them here: it would multiply attempts and ignore Retry-After.
      */
-    if (
-      options.emailServer.transportType === MailTransportType.MicrosoftGraph
-    ) {
-      await this.transportViaMicrosoftGraph(
-        mail,
-        options.emailServer,
-        options.timeout,
-        inlineImages,
-      );
-      return;
+    switch (toMailTransportType(options.emailServer.transportType)) {
+      case MailTransportType.MicrosoftGraph:
+        await this.transportViaMicrosoftGraph(
+          mail,
+          options.emailServer,
+          options.timeout,
+          inlineImages,
+        );
+        return;
+      case MailTransportType.AmazonSES:
+        await new AmazonSesMailProvider().send(mail, options.emailServer, {
+          timeoutMs: options.timeout,
+          inlineImages: inlineImages,
+        });
+        return;
+      case MailTransportType.Mailgun:
+        await new MailgunMailProvider().send(mail, options.emailServer, {
+          timeoutMs: options.timeout,
+          inlineImages: inlineImages,
+        });
+        return;
+      case MailTransportType.Postmark:
+        await new PostmarkMailProvider().send(mail, options.emailServer, {
+          timeoutMs: options.timeout,
+          inlineImages: inlineImages,
+        });
+        return;
+      case MailTransportType.Resend:
+        await new ResendMailProvider().send(mail, options.emailServer, {
+          timeoutMs: options.timeout,
+          inlineImages: inlineImages,
+        });
+        return;
+      case MailTransportType.SendGrid:
+        await this.transportViaProjectSendGrid(
+          mail,
+          options.emailServer,
+          options.timeout,
+          inlineImages,
+        );
+        return;
+      default:
+        break;
     }
 
     const mailer: Transporter<SMTPSentMessageInfo> = await this.createMailer(
@@ -1148,6 +1318,35 @@ export default class MailService {
       // Always release the connection slot
       TransporterPool.releaseConnection(options.emailServer);
     }
+  }
+
+  /*
+   * A project's SendGrid config: its own client, never the shared one the
+   * server's own SendGrid settings use (SendGridMailProvider).
+   */
+  private static async transportViaProjectSendGrid(
+    mail: EmailMessage,
+    emailServer: EmailServer,
+    timeout: number | undefined,
+    inlineImages: Array<EmailInlineImage>,
+  ): Promise<void> {
+    if (!emailServer.apiKey) {
+      throw new BadDataException("SendGrid needs an API Key.").asUserError();
+    }
+
+    await new SendGridMailProvider().sendWithOwnClient(
+      mail,
+      {
+        apiKey: emailServer.apiKey,
+        fromEmail: emailServer.fromEmail,
+        fromName: emailServer.fromName,
+      },
+      {
+        timeoutMs: timeout,
+        inlineImages: inlineImages,
+        configId: emailServer.id?.toString(),
+      },
+    );
   }
 
   private static async transportViaMicrosoftGraph(
@@ -1435,8 +1634,9 @@ export default class MailService {
       /*
        * A logo an operator uploaded - the installation's own, a status
        * page's - that the email shows by its address goes inside the email
-       * in its place, when every mail client can draw it and it is small
-       * enough (EmailCarriedLogos); any other stays its address.
+       * in its place (EmailCarriedLogos), made into an image every mail
+       * client draws, sized for the header, when it is not one already
+       * (EmailLogoImage); a logo that cannot be made stays its address.
        */
       const carried: EmailWithCarriedLogos = await EmailCarriedLogos.carry(
         rendered.body,
@@ -1585,6 +1785,26 @@ export default class MailService {
         return;
       }
 
+      /*
+       * The server's own settings for a provider with an HTTP API of its own
+       * (Email Server Type: Amazon SES, Mailgun, Postmark or Resend): sent as
+       * a project's config of that provider is, below. Settings left
+       * incomplete refuse the email with the field to fill in, and its
+       * Email Log row says so.
+       */
+      const globalProviderTransport: MailTransportType | null =
+        this.getGlobalProviderTransport(emailServerType);
+
+      if ((!options || !options.emailServer) && globalProviderTransport) {
+        if (!options) {
+          options = {};
+        }
+
+        options.emailServer = await getGlobalEmailProviderServer(
+          globalProviderTransport,
+        );
+      }
+
       if (
         (!options || !options.emailServer) &&
         emailServerType === EmailServerType.CustomSMTP
@@ -1640,8 +1860,13 @@ export default class MailService {
         mail: mail,
         envelope: envelope,
         inlineImages: inlineImages,
+        /*
+         * An SMTP server's limits are the tenant's; what an HTTP API refuses
+         * of the attachments OneUptime writes is OneUptime's to fix.
+         */
         isServiceExternal:
-          emailServer.transportType !== MailTransportType.MicrosoftGraph,
+          toMailTransportType(emailServer.transportType) ===
+          MailTransportType.SMTP,
         send: async (
           message: EmailMessage,
           images: Array<EmailInlineImage>,

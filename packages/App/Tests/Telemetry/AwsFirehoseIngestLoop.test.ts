@@ -486,6 +486,72 @@ describe("streamed metrics, through the real metrics ingest", () => {
   });
 });
 
+describe("Every metric, through the real metrics ingest", () => {
+  test("a resource's own aggregate is its one row, the stream's summary; its splits store nothing", async () => {
+    const concurrency: (
+      dimensions: Record<string, string>,
+      sum: number,
+    ) => JSONObject = (
+      dimensions: Record<string, string>,
+      sum: number,
+    ): JSONObject => {
+      return openTelemetryMetric({
+        namespace: "AWS/Lambda",
+        metricName: "ConcurrentExecutions",
+        dimensions,
+        unit: "1",
+        count: 1,
+        sum,
+        min: sum,
+        max: sum,
+      });
+    };
+
+    await ingest(
+      await decode([
+        openTelemetryRecord([
+          openTelemetryRequest([
+            concurrency(
+              { FunctionName: "checkout", Resource: "checkout:7" },
+              6,
+            ),
+            concurrency({ FunctionName: "checkout" }, 8),
+            concurrency(
+              {
+                FunctionName: "checkout",
+                Resource: "checkout:7",
+                ExecutedVersion: "7",
+              },
+              6,
+            ),
+          ]),
+        ]),
+      ]),
+    );
+
+    const rows: Array<JSONObject> = rowsFor(MetricService);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        name: "amazonaws.com/aws/lambda/concurrentexecutions",
+        metricPointType: MetricPointType.Summary,
+        sum: 8,
+      }),
+    );
+    expect(rows[0]!["attributes"]).toEqual(
+      expect.objectContaining({ "Dimensions.FunctionName": "checkout" }),
+    );
+    expect(
+      Object.keys(rows[0]!["attributes"] as JSONObject).filter(
+        (key: string): boolean => {
+          return key.startsWith("Dimensions.");
+        },
+      ),
+    ).toEqual(["Dimensions.FunctionName"]);
+  });
+});
+
 describe("streamed logs, through the real logs ingest", () => {
   test("rows carry the function's id, account, Region, severity and faas.name", async () => {
     await ingest(
@@ -552,5 +618,58 @@ describe("streamed logs, through the real logs ingest", () => {
     ](serverlessAttributes[0]);
 
     expect(identity?.functionIdentifier).toBe("checkout");
+  });
+
+  test("a PostgreSQL database's rows carry the severity each line's level says, and its DETAIL lines none", async () => {
+    const client: string =
+      "2026-11-04 09:59:01 UTC:10.0.1.23(52344):orders_app@orders:[23817]";
+
+    await ingest(
+      await decode([
+        cloudWatchLogsRecord(
+          cloudWatchLogsDocument({
+            logGroup: "/aws/rds/instance/orders-db/postgresql",
+            logStream: "orders-db.0",
+            events: [
+              {
+                id: "1",
+                timestamp: MINUTE_START_MS + 1000,
+                message: `${client}:LOG:  connection authorized: user=orders_app`,
+              },
+              {
+                id: "2",
+                timestamp: MINUTE_START_MS + 2000,
+                message: `${client}:ERROR:  deadlock detected`,
+              },
+              {
+                id: "3",
+                timestamp: MINUTE_START_MS + 2000,
+                message: `${client}:DETAIL:  Process 23817 waits for ShareLock on transaction 9123411.`,
+              },
+              {
+                id: "4",
+                timestamp: MINUTE_START_MS + 3000,
+                message:
+                  "2026-11-04 09:59:03 UTC::@:[6045]:WARNING:  could not write to log file",
+              },
+            ],
+          }),
+        ),
+      ]),
+    );
+
+    const rows: Array<JSONObject> = rowsFor(LogService);
+
+    expect(
+      rows.map((row: JSONObject) => {
+        return row["severityText"];
+      }),
+    ).toEqual(["Information", "Error", "Unspecified", "Warning"]);
+    // On the database's Logs page: its id, as the rules give it.
+    for (const row of rows) {
+      expect(
+        (row["attributes"] as JSONObject)["resource.cloud.resource_id"],
+      ).toBe(`arn:aws:rds:${REGION}:${ACCOUNT_ID}:db:orders-db`);
+    }
   });
 });

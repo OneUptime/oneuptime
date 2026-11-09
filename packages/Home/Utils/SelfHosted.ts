@@ -100,7 +100,7 @@ export interface SelfHostedFaq {
 }
 
 const HELM_DOCS_BASE: string =
-  "https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs";
+  "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs";
 
 export interface HelmDocLinks {
   installation: string;
@@ -126,7 +126,7 @@ export const HelmDocs: HelmDocLinks = {
   customDomains: `${HELM_DOCS_BASE}/custom-domains.md`,
   localAi: `${HELM_DOCS_BASE}/ai-vllm.md`,
   chart:
-    "https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime",
+    "https://github.com/OneUptime/oneuptime/tree/main/HelmChart/Public/oneuptime",
   repository: "https://github.com/OneUptime/oneuptime",
   releases: "https://github.com/OneUptime/oneuptime/releases",
 };

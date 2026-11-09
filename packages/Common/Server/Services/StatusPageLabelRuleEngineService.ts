@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
@@ -95,6 +97,7 @@ class StatusPageLabelRuleEngineServiceClass
       return await this.applyRules({
         statusPage: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running status page label rules: ${error}`, {
@@ -110,6 +113,8 @@ class StatusPageLabelRuleEngineServiceClass
   private async applyRules(data: {
     statusPage: StatusPage;
     rules: Array<StatusPageLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { statusPage, rules } = data;
 
@@ -190,11 +195,12 @@ class StatusPageLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await StatusPageService.getRepository()
-      .createQueryBuilder()
-      .relation(StatusPage, "labels")
-      .of(statusPage.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: StatusPageService,
+      resourceId: statusPage.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory statusPage.labels with the now-persisted set so a

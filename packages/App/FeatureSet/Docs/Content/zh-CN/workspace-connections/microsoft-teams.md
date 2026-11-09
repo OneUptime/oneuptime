@@ -84,8 +84,8 @@ flowchart TB
 
 | 产品 | 其 **Microsoft Teams** 页面上的标签页 |
 | --- | --- |
-| **事件** | **事件**、 **事件 片段**、 **摘要** |
-| **警报** | **警报**、 **警报 片段**、 **摘要** |
+| **事件** | **事件**、 **事件片段**、 **摘要** |
+| **警报** | **警报**、 **警报片段**、 **摘要** |
 | **计划维护** | 一个规则列表 |
 | **监视器** | 一个规则列表 |
 | **值班** | 一个规则列表 |
@@ -114,6 +114,8 @@ flowchart TB
 频道和聊天保持易读：每次更新只发布一次，记录的第一个状态写在宣布该记录的卡片里，而不是单独发一张卡片。值班策略的一次运行就是一张卡片，随着升级推进而被编辑：呼叫了谁、呼叫了几次以及通过什么方式、谁没有被呼叫以及原因、谁确认了。只有在需要有人采取行动时才会发布新卡片：某条升级规则没有呼叫到任何人，或者运行结束时仍没有人确认。记录的所有者或状态页订阅者已收到通知这件事，保留在 OneUptime 中该记录的信息流里。
 
 **项目设置** > **工作区** > **Microsoft Teams** 列出 OneUptime 在您的团队中能看到的频道，以及已添加它的聊天，每一项旁边都有 **发送测试**。在 Microsoft Teams 中将 OneUptime 应用添加到聊天后，该聊天就会出现； **Refresh Chats** 会获取新的聊天及其当前名称。
+
+通知规则可以属于团队。**更多字段** 下的 **负责团队** 将规则限定给你选择的团队：只有这些团队的成员和项目管理员可以编辑或删除它，其他能看到规则的人只能以只读方式查看。参见 [属于团队的规则](/docs/permissions/index#属于团队的规则)。
 
 ## 测试规则
 
@@ -154,7 +156,7 @@ flowchart TB
 | 回应 | 保存为 |
 | --- | --- |
 | 📌 或 📍 | 仅您的团队可见的私密备注 |
-| 📣 或 📢 | 显示在状态页上的公开备注。仅限事件和计划维护活动。在私密事件上为私密备注，确认消息会说明原因。 |
+| 📣 或 📢 | 显示在状态页上的公开备注。仅限事件和计划维护活动。在私密事件上为私密备注，确认消息会说明原因。如果项目的公开备注需要审批，它会在获批后才显示，确认消息会说明它在等待谁：参见 [公开备注审批](/docs/incidents/notes-owners-and-feed#公开备注审批)。 |
 
 备注会保留消息在 Microsoft Teams 中的样子：格式、链接和代码，以名字显示的被提及的人，以及指向其文件和图片的链接。公开备注会去掉文件和图片，因为它们只对您的团队开放。
 
@@ -216,6 +218,8 @@ flowchart TB
 - **显示位置。** 对话会以一张持续更新的卡片显示这次呼叫：呼叫了谁、如何呼叫，每个团队以其名称显示、后面跟着其成员，您的消息，以及谁已确认。机器人无法发布它时，它的回复会告诉您呼叫了谁，并附上事件或警报的链接。
 - **谁可以呼叫。** 在事件或警报的专属频道中，能执行值班策略（ **项目所有者**、 **项目管理员**、 **项目成员**、 **值班管理员** 和 **值班成员**，或自定义角色中的 **Execute On-Call Duty Policy** ）并能读取该事件或警报的人。在其他任何地方，呼叫会创建一条警报，因此还需要创建警报的权限： **项目所有者**、 **项目管理员** 和 **项目成员**，或同时拥有 **值班成员** 和 **警报成员** 的人（自定义角色中的 **Execute On-Call Duty Policy** 和 **Create Alert** ）。不经值班策略直接呼叫人员、团队或值班计划，还需要访问项目中所有值班策略的权限。其他任何人都会在回复中收到告知，并且不会呼叫任何人。在 OneUptime Cloud 上，呼叫需要 Growth 套餐：低于该套餐时，OneUptime 会说明所需的套餐，并且不会呼叫任何人。
 
+若要在别人响应时让一些人随时知情，请以观察者身份呼叫他们。在事件或警报的专属频道中，在要呼叫的人后面输入 `as observers`，例如 `@OneUptime page @Oversight as observers Team Y is on it`，或在卡片的 **Page them as** 中选择 **Observers: keep them informed**。他们收到的呼叫会说明他们是观察者，确认呼叫只表示他们已经看到：事件或警报不会被确认，其他人的呼叫不会停止，显示这次呼叫的地方也会说明他们是以观察者身份被呼叫的。关于新情况的呼叫需要有人响应，所以在其他地方，`as observers` 会被拒绝，不会呼叫任何人。
+
 ## 值班标记
 
 让 Microsoft Teams 标记（例如 `@Payments on-call`）与一个或多个值班计划中当前正在值班的人保持一致，这样其团队中的任何人都可以 @提及它来联系值班人员。OneUptime 会在每次交接和覆盖时更改该标记的成员，并每 15 分钟检查一次。
@@ -262,7 +266,7 @@ OneUptime 卡片上的按钮以点击者的身份执行，无论是在个人聊�
 
 - **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或计划维护活动需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。与 OneUptime 中的状态面板一样，它们不要求编辑事件或警报本身的权限。其他任何人都会收到告知，并且不会有任何更改。
 - **哪些记录。** 与在 OneUptime 中一样，是此人可以读取的记录：如果角色仅限于某些标签，则为带有这些标签的事件、警报、片段和活动。任何其他记录上的按钮都会说明原因，并且不会有任何更改：对于此人的角色无法触及的事件，回复 "your access in this project does not include this incident. Ask a project admin for access to it."；对于此人不是负责人的私密事件，回复 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."；对于此后已删除的事件，回复 "the incident was not found. It may have been deleted." 在 OneUptime Cloud 上，项目套餐不包含的更改会被拒绝，并说明所需的套餐。
-- **Change State 提供什么。** 按项目的顺序，提供此人可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段与事件、警报或计划维护活动一样，因为状态更改永远不会让记录在其列表中回退（请参阅 [顺序是真正的约束，而不是显示偏好](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好) ）。如果此人一个都无法读取，机器人会说 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，则会说 "There is no later state to move this incident to."。这两种情况都不会显示空卡片。
+- **Change State 提供什么。** 按项目的顺序，提供此人可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段也与事件、警报或计划维护活动一样，因为状态更改永远不会让记录在其列表中回退（参见 [顺序是真正的约束](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好)）。如果此人一个都无法读取，机器人会说 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，则会说 "There is no later state to move this incident to." 这两种情况都不会显示空卡片。
 - **私密事件上的 Add Note。** 私密事件不能添加公开备注，因此它的卡片不会询问备注类型，而是添加一条私密备注。在它设为私密之前发送的卡片也会添加私密备注，并说明这一点。参见[私密事件只能添加私密备注](/docs/incidents/notes-owners-and-feed#私密事件只能添加私密备注)。
 - **Escalate.** 卡片上的 **Escalate** 会针对卡片所涉及的事件、警报或片段执行其值班策略，以点击者的身份，并使用与 **Execute On-Call Policy** 相同的权限。不涉及其中任何一种的卡片会得到 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 的回复，并且不会呼叫任何人。
 - **在哪里收到回复。** 在同一个对话中（在频道中即卡片的话题中）以提及此人的回复答复，因此 Microsoft Teams 会通知此人。按得太晚的按钮会说明谁先操作了、何时操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
@@ -271,6 +275,10 @@ OneUptime 卡片上的按钮以点击者的身份执行，无论是在个人聊�
 ## 批准 OneUptime AI 提出的修复
 
 OneUptime AI 提出待批准的修复时，会以一张包含其变更和三个按钮的卡片发布到事件或警报的频道中。 **Review and approve** 会回复一张卡片，其中包含修复要执行的全部内容和 **Approve and run**，后者会以按下它的人的身份准确执行这些内容；批准后，这张卡片会被移除，并告知此人修复正在进行。 **Dismiss** 会驳回修复， **View in OneUptime** 会打开事件或警报。与 OneUptime 卡片上的每个按钮一样，它们以按下它们的人的身份执行：批准需要在项目中批准修复的权限，对于集群或资源的修复，还需要编辑它的权限。在卡片发布后发生了变化的修复会被拒绝，什么都不会执行。参见 [从 Slack 或 Microsoft Teams 批准或驳回修复](/docs/ai/ai-sre#从-slack-或-microsoft-teams-批准或驳回修复)。
+
+## 审批公开备注
+
+当项目的公开备注需要审批，且您在通知设置中为 **公开备注审批** 打开了 Microsoft Teams 时，每条等待您所审批步骤的公开备注都会以卡片形式发到您与 OneUptime 机器人的个人聊天中：谁发送了它、它在等待哪一步、备注内容，以及三个按钮。 **Approve** 会为该步骤批准它；在最后一步，它显示为 **Approve and publish** ，备注会立即发布。 **Reject** 会回复一张卡片，询问 **Why are you rejecting it?** ：理由为必填项，备注的作者会看到它；备注被拒绝后，该卡片会被移除。 **View in OneUptime** 会打开该备注。这些按钮以您的身份、按照与 OneUptime 相同的规则操作：您必须被列在该步骤中，可以是直接列出或通过团队，且不能对自己发送的备注做决定，也不能批准同一条备注的两个步骤。机器人会在同一聊天中回复。在别人已做决定之后，或在备注或其步骤变化之后按下按钮，不会做出任何决定，并会说明发生了什么。备注一经决定，每位审批人关于它的卡片（包括您的）都会改为说明发生了什么：已为其步骤批准以及它现在在等待谁、已发布、已拒绝、已更改或已重新提交审批、未经审批即已发布，或已删除。卡片保留 **View in OneUptime** ，而 **Approve** 和 **Reject** 会消失。如果您的 Microsoft Teams 账号尚未关联，回复会请您关联它，关联完成后 OneUptime 会代您批准该备注；对于 **Reject** ，请再按一次。审批步骤在备注等待期间发生变化时，如果备注不再等待你的步骤，或不再询问你，你关于它的消息也会随之改变，而它现在等待的人会收到属于自己的消息。请参阅 [公开备注审批](/docs/incidents/notes-owners-and-feed#公开备注审批)。
 
 ## 断开连接
 

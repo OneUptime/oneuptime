@@ -44,8 +44,22 @@ flowchart TB
 | 연결 방법 | 얻는 것 | 방법 |
 | --- | --- | --- |
 | **내 앱** | 일어나는 즉시 모든 AI 호출: 대화, 사람, 프롬프트와 답변, 토큰, 비용, 오류 | 코드나 게이트웨이에서 보내는 OpenTelemetry, 다섯 단계로 설정 |
-| **AI 공급자 계정** | OpenAI, Anthropic, Azure, Bedrock, Vertex AI 각 계정의 일별 사용량과 비용 | 읽기 전용 자격 증명만 있으면 되고 코드는 필요 없음: [AI 공급자 계정](/docs/telemetry/ai-provider-accounts) |
+| **AI 공급자 계정** | OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 각 계정의 일별 또는 시간별 사용량과 비용 | 읽기 전용 자격 증명만 있으면 되고 코드는 필요 없음: [AI 공급자 계정](/docs/telemetry/ai-provider-accounts) |
 | **회사의 AI 도구** | 직원들이 Claude Enterprise나 Microsoft 365 Copilot에 묻는 내용, 사람별 | 읽기 전용 자격 증명만 있으면 되고 코드는 필요 없음: [회사의 AI 도구](/docs/telemetry/ai-company-tools) |
+
+공급자 계정과 코딩 도우미는 사용량과 비용을 가져올 뿐 호출은 가져오지 않습니다. 이들이 채우는 곳은 **사용량**이며, **대화**와 **호출**은 앱이 AI 호출을 보내거나 회사의 AI 도구가 연결될 때까지 비어 있습니다. 어떤 방식이 무엇을 가져오는지는 [들어오는 내용 확인하기](#들어오는-내용-확인하기)에서 볼 수 있습니다.
+
+## 들어오는 내용 확인하기
+
+**연결** 상단의 **설정 점검**은 각 방식이 지금 무엇을 가져오는지 알려 주며, **다시 확인**으로 다시 읽습니다. **대화**나 **호출** 목록이 비어 있을 때도 같은 결과와 다음 단계 버튼이 맨 앞에 표시됩니다.
+
+| 찾는 것 | 할 일 |
+| --- | --- |
+| 어떤 앱도 AI 호출을 보내지 않음 | [AI 호출 보내기](#ai-호출-보내기). 연결된 공급자 계정은 일별 사용량과 비용을 가져올 뿐 호출은 가져오지 않습니다 |
+| 앱이 AI 공급자의 API를 호출하지만 GenAI 계측이 기록하지 않음 | 앱의 언어에 맞는 계측을 추가하세요. 점검에서 앱의 HTTP 클라이언트 스팬이 `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` 또는 다른 AI 공급자의 API로 향하는 것을 찾았습니다 |
+| 호출은 도착하지만 프롬프트와 응답이 없음 | 스팬에 [오간 내용 기록하기](#오간-내용-기록하기). 로그 이벤트로 보낸 프롬프트와 응답은 표시되지 않습니다 |
+| 호출이 기간 바로 바깥에 있음 | 목록에서 최근 호출이 포함된 기간을 제안합니다 |
+| 공급자 계정이 사용량을 읽지 못함 | 그 줄에 사용량이 있었던 마지막 날이나 처음 읽은 날이 표시됩니다. 리소스를 찾지 못하는 Azure 연결에는 리소스가 있는 곳의 Monitoring Reader가 필요합니다 |
 
 ## 시작하기 전에
 
@@ -94,6 +108,25 @@ traceloop.initialize({
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
+@tab .NET
+```bash
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
+```
+
+```csharp
+// Before any OpenAI or Azure OpenAI client is created:
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("OpenAI.*").AddOtlpExporter())
+    .WithMetrics(metrics => metrics.AddMeter("OpenAI.*").AddOtlpExporter());
+```
+@tab Java
+```bash
+curl -L -O https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+java -javaagent:opentelemetry-javaagent.jar -jar my-ai-agent.jar
+```
 @tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -102,6 +135,8 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
 :::
+
+모두 OpenAI, Azure OpenAI, Microsoft Foundry 호출을 같은 방식으로 추적합니다. .NET과 Java에서는 OpenTelemetry SDK 탭의 변수도 설정하세요. OpenAI와 Azure.AI.OpenAI 라이브러리는 스위치를 켜면 호출을 추적하고, Java 에이전트는 OpenAI Java SDK를 추적합니다.
 
 OneUptime을 직접 호스팅하나요? `https://oneuptime.com/otlp` 대신 `https://YOUR-ONEUPTIME-HOST/otlp`를 사용하세요. 모델을 한 번 호출하면 그 호출이 **호출** 에 나타납니다.
 
@@ -114,6 +149,8 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
 최신 OpenTelemetry 계측은 `true` 대신 `span_only`, `event_only`, `span_and_event`를 받습니다. 기록된 내용이 없어도 대화에는 타이밍, 비용, 문제가 표시됩니다. 프롬프트에는 민감한 데이터가 들어 있을 수 있습니다. 저장 전에 마스킹하는 방법은 [개인정보 보호와 마스킹](#개인정보-보호와-마스킹)에서 설명합니다.
+
+대화는 호출의 스팬에 기록된 내용을 읽습니다. Python용 OpenTelemetry 계측은 `span_only`로 스팬에 기록합니다. JavaScript와 Java용 계측, 그리고 `true`로 설정한 Python용 계측은 이를 로그 이벤트로 보내는데, 대화는 이를 읽지 않으며 **설정 점검**이 이를 알려 줍니다. Azure의 AI Inference SDK는 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`로 스팬에 기록하고, Microsoft.Extensions.AI는 `EnableSensitiveData`로 기록합니다. .NET용 OpenAI 라이브러리는 아무것도 기록하지 않습니다.
 
 ### 호출을 대화로 묶기
 
@@ -203,7 +240,7 @@ trace.get_current_span().add_event(
 
 **사용량** 탭은 기간(다른 기간을 고르지 않으면 지난 7일)의 호출, 토큰, 비용과, 다섯 가지 분류( **직원** , **팀** , **모델** , **공급자** , **애플리케이션 / 서비스** ) 중 하나에 따른 상위 25개 표를 보여 줍니다. 아무도 지목하지 않는 호출은 **미지정** 으로 집계되며, 버려지지 않습니다.
 
-이것은 **내 AI 호출**입니다. 연결된 OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정에 청구된 금액을 보려면 대신 **공급자 계정**을 선택하세요. [AI 공급자 계정](/docs/telemetry/ai-provider-accounts#사용량-보기)을 참고하세요. 두 데이터는 절대 합산되지 않습니다.
+이것은 **내 AI 호출**입니다. 연결된 OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 계정에 청구된 금액을 보려면 대신 **공급자 계정**을 선택하세요. [AI 공급자 계정](/docs/telemetry/ai-provider-accounts#사용량-보기)을 참고하세요. 두 데이터는 절대 합산되지 않습니다.
 
 사람과 팀은 호출의 신원 속성에서 가져옵니다. [직원 및 팀 귀속](/docs/telemetry/ai-coding-assistants#직원-및-팀-귀속)을 참조하세요.
 
@@ -225,11 +262,13 @@ flowchart TB
 | 입력 및 출력 토큰 | 두 합계 모두 | 스팬의 토큰 합계가 둘 다 0 |
 | 비용(USD) | 비용. Codex의 마이크로 USD 비용은 USD로 환산 | 스팬의 비용 합계가 0 |
 | LLM 호출 | 없음. 스팬만 | — |
-| **직원** , **팀** , **모델** 표 | 비용만. 호출과 토큰 셀은 `—` 표시 | 그 표에서 스팬 행을 찾지 못함 |
+| **직원** , **팀** , **모델** 표 | 비용과, 메트릭이 센 토큰. 호출 셀은 `—` 표시 | 그 표에서 스팬 행을 찾지 못함 |
 | **공급자** , **애플리케이션 / 서비스** 표 | 없음. 스팬만 | — |
 | 대화 | 없음. 대화는 스팬으로 만들어짐 | — |
 
 메트릭에서 가져온 수치에는 **GenAI 메트릭 기준** 이라고 표시됩니다. **호출** 에 해당하는 행이 없기 때문입니다. 따라서 GenAI 스팬이 수치를 보고하는 순간, 메트릭만 보내는 도구의 몫은 표시되지 않습니다. 그런 도구의 지출을 따로 보려면, GenAI 스팬이 들어오지 않는 전용 프로젝트로 보내세요.
+
+토큰이나 비용 메트릭은 카운터입니다. 델타 카운터는 포인트를 더하고, 누적 카운터(OpenTelemetry SDK의 기본값)는 기간 동안 늘어난 양을 시리즈별로 세므로, 매분 내보내는 누계도 한 번만 셉니다. 예산도 GenAI 메트릭을 같은 방식으로 셉니다.
 
 ## 호출 비용
 
@@ -302,6 +341,8 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 
 이 값 중 하나를 가지고 있거나, `gen_ai.`, `llm.`, `traceloop.`로 시작하는 속성을 가진 스팬은 AI 호출로 셉니다. 합계가 보고되지 않으면 총 토큰은 입력과 출력의 합입니다. `gen_ai.usage.total_tokens`와 `gen_ai.usage.cost` 키는 규칙에 포함되지 않으며, 규칙은 둘 다 정의하지 않습니다. 일반적인 계측이 보내기 때문에 OneUptime이 읽습니다.
 
+공급자는 어떤 표기로 들어오든 규약의 이름으로 저장됩니다. `az.ai.openai`와 `azure_openai`는 `azure.ai.openai`로, `az.ai.inference`는 `azure.ai.inference`로, `OpenAI`는 `openai`로 저장됩니다. OpenAI SDK가 `openai`라고 부르지만 Azure OpenAI 또는 Microsoft Foundry 엔드포인트로 보낸 호출은 그 `server.address`나 OpenLLMetry의 `gen_ai.openai.api_base`로 판단해 `azure.ai.openai`로 저장됩니다. **호출**에는 공급자가 이름으로 표시되고, Azure 배포의 호출에는 요청한 배포와 그 아래에 호출을 처리하고 가격을 정한 모델이 표시됩니다.
+
 입력 토큰에는 규약의 방식대로 캐시 토큰도 포함됩니다. 스팬의 캐시 수가 입력 수보다 크면 입력 수에서 캐시가 빠진 것이므로 OneUptime이 더합니다. Claude Code의 트레이스 베타는 `gen_ai.usage.*` 키를 보내지 않습니다. 모델 이름이 있는 스팬에서 OneUptime은 `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_creation_tokens`를 읽고, 두 캐시 수를 캐시가 빠진 `input_tokens`에 더합니다.
 
 신원 키(누가 호출했는지와 그 팀)는 [직원 및 팀 귀속](/docs/telemetry/ai-coding-assistants#직원-및-팀-귀속)에 나와 있습니다.
@@ -312,11 +353,15 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 
 - `gen_ai.client.inference.operation.details` 이벤트.
 - `gen_ai.input.messages`, `gen_ai.output.messages`, `gen_ai.system_instructions` 속성.
-- 역할별 이전 이벤트: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message`, `gen_ai.choice`.
+- 역할별 이전 이벤트: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message`, `gen_ai.choice`. Azure의 AI Inference SDK나 Semantic Kernel이 보냈다면 메시지는 `gen_ai.event.content`에 있습니다.
 - 인덱스가 붙은 속성: OpenLLMetry의 `gen_ai.prompt.N.content`와 `gen_ai.completion.N.content`, OpenInference의 `llm.input_messages.N.message.content`와 `llm.output_messages.N.message.content`.
 - `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value`, `output.value` 안의 메시지 배열.
 
 ## 문제 해결
+
+:::details 공급자 계정을 연결했는데 대화와 호출이 비어 있음
+공급자 계정은 일별 사용량과 비용을 가져올 뿐 호출이나 대화는 가져오지 않습니다. 이는 앱에서 옵니다. **연결**의 **설정 점검**에서 AI 호출을 보내는 앱이 있는지 확인하고, [AI 호출 보내기](#ai-호출-보내기)에 나온 대로 보내세요.
+:::
 
 :::details 호출은 들어오지만 대화에 텍스트가 표시되지 않음
 계측이 내용을 기록하지 않고 있습니다. [오간 내용 기록하기](#오간-내용-기록하기)에 나온 대로 켜세요. 그 전에 만들어진 호출은 텍스트 없이 남습니다.
@@ -327,11 +372,11 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 :::
 
 :::details 호출에 토큰은 표시되지만 비용이 $0
-모델이 기본 제공 가격표에 없거나, 스팬이 모델을 지목하지 않습니다. **가격** 탭에서 모델의 가격을 추가하세요. 그 뒤에 도착하는 호출에는 가격이 매겨집니다.
+모델이 기본 제공 가격표에 없거나, 스팬이 모델을 지목하지 않습니다. **가격** 탭에서 모델의 가격을 추가하세요. 그 뒤에 도착하는 호출에는 가격이 매겨집니다. Azure OpenAI 호출에는 그 호출을 처리한 모델 `gen_ai.response.model`의 가격이 매겨집니다. 스팬에 모델이 없으면 배포 이름에 가격을 정하세요.
 :::
 
-:::details 사용량 탭에 GenAI 메트릭 기준이라고 나오고 호출과 토큰이 `—`로 표시됨
-수치가 코딩 어시스턴트처럼 메트릭은 보내고 GenAI 스팬은 보내지 않는 도구에서 왔습니다. 메트릭은 비용을 담지만 호출별 세부 정보는 없으므로, 그 셀은 비어 있습니다. [스팬이 먼저, 메트릭은 보충](#스팬이-먼저-메트릭은-보충)을 참조하세요.
+:::details 사용량 탭에 GenAI 메트릭 기준이라고 나오고 호출이 `—`로 표시됨
+수치가 코딩 어시스턴트처럼 메트릭은 보내고 GenAI 스팬은 보내지 않는 도구에서 왔습니다. 메트릭은 비용과 토큰을 담지만 호출별 세부 정보는 없으므로, 호출 셀은 비어 있습니다. [스팬이 먼저, 메트릭은 보충](#스팬이-먼저-메트릭은-보충)을 참조하세요.
 :::
 
 :::details 예산 모니터가 두 상태 사이를 오감
@@ -341,7 +386,7 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 ## 다음 단계
 
 :::cards
-- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정의 사용량과 비용을 코드 없이.
+- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 계정의 사용량과 비용을 코드 없이.
 - [회사의 AI 도구](/docs/telemetry/ai-company-tools): 직원들이 Claude Enterprise와 Microsoft 365 Copilot에 묻는 내용.
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): Claude Code, Cursor, Codex, Gemini CLI, Copilot의 엔지니어별 지출.
 - [AI 게이트웨이](/docs/telemetry/ai-gateways): LiteLLM 또는 Portkey 게이트웨이 하나로 모든 앱의 모델 호출을 트레이스합니다.

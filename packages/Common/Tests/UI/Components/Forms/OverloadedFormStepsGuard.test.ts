@@ -65,26 +65,16 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
  * one row there.
  */
 export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
-  {
-    file: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Create.tsx`,
-    form: "ModelForm: Create New Scheduled Maintenance Event",
-    step: "resources-affected",
-    reason:
-      "One question, what this event affects, asked per kind of resource: every field is an optional picker, and Change Monitor Status to only shows with a monitor picked.",
-  },
   /*
-   * Read since the form's fields stopped going through a wrapper the scan
-   * could not follow (the owner-user loader the owners picker replaced).
+   * An SLO burn rate rule's Alert and Incident steps left this list when
+   * their fields moved into the SLO record output helpers (Dashboard
+   * Pages/Slo/Utils/SloRecordOutputForm.ts), which an error budget policy
+   * tier's form shares: the helpers place a field on its step by an
+   * argument, which the scan leaves to the helpers' own tests. Those pin
+   * what this list said of the two steps - only the title and the severity
+   * open, the rest in four folded sections - in App's
+   * Tests/Dashboard/SloErrorBudgetPolicyTierForm.test.ts.
    */
-  ...["alert-details", "incident-details"].map((step: string): ListedStep => {
-    return {
-      file: `${DASHBOARD}/Pages/Slo/View/BurnRateRules.tsx`,
-      form: "ModelTable: SLO > Burn Rate Rules",
-      step,
-      reason:
-        "Only the title and the severity are open: everything else on the step sits in four collapsed sections (Description, Ownership & Labels, On-Call, Advanced Options) that open one at a time, so the step reads as two fields and four headings.",
-    };
-  }),
   {
     file: `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookStepDialog.tsx`,
     form: "BasicFormModal #1",
@@ -117,18 +107,6 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
     step: "twilio-info",
     reason:
       "Every field after the token is written once for each answer to Use This Account For (calls and SMS, SMS only, calls only) with a showIf for that answer alone: the one number the answer takes, the default switch whose help names what goes through the default, and the folded extra numbers. The step shows five rows at most - the account SID, the token, one number, the switch and the More fields line - and four for SMS only.",
-  },
-  /*
-   * The mail server forms (Common/UI/Components/SmtpConfig): Server, then
-   * Sender. The Admin Dashboard's instance server is the same step without
-   * the Name, five rows; SmtpConfigFormsGuard pins both.
-   */
-  {
-    file: `${DASHBOARD}/Components/CustomSMTP/CustomSMTPTable.tsx`,
-    form: "ModelTable: Settings > Custom SMTP Config",
-    step: "server",
-    reason:
-      "The config's name over the four values every provider's SMTP settings page lists together - hostname, port, username and password, copied across in one go and changed together when a password is rotated - and one folded Advanced header (transport, TLS, sign-in type, OAuth). Moving the sign-in to the Sender step would split that copy-and-paste across a Next, and moving the name would set 'Name' beside 'From Name'.",
   },
 ];
 

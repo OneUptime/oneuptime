@@ -306,11 +306,12 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Automatisation | Run a workflow | Lance un flux de travail OneUptime avec le dossier en entrée |
 | Automatisation | Run a runbook | Lance l'un de vos runbooks OneUptime avec le dossier en entrée |
 | Automatisation | Fix the code with AI | Demande à OneUptime AI une pull request qui corrige les exceptions levées par les requêtes du dossier |
+| Contrôle du déroulement | Arrêter l'exécution | Met fin à l'exécution à cet endroit, comme réussie : les étapes suivantes ne s'exécutent pas |
 
 Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune une fois la précédente terminée. Chaque étape peut aussi :
 
 - **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les huit étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage. **Run a runbook**, **Post a status page announcement** et les deux étapes de magasin de données commencent avec ce réglage activé, car elles exécutent des commandes sur vos systèmes, s'adressent à vos clients ou modifient les paramètres d'un cloud ; la personne qui ajoute l'étape peut le désactiver.
-- **Exécuter cette étape** : **Toujours**, ou seulement après un résultat d'une étape précédente, par exemple quand **Vérifier les entités dans le renseignement sur les menaces** trouve une entité connue comme malveillante ; voir [Bifurquer selon le résultat d'une étape](#bifurquer-selon-le-résultat-dune-étape).
+- **Exécuter cette étape** : **Toujours**, ou seulement après des résultats d'étapes précédentes, par exemple quand **Vérifier les entités dans le renseignement sur les menaces** trouve une entité connue comme malveillante ; voir [Bifurquer selon le résultat d'une étape](#bifurquer-selon-le-résultat-dune-étape).
 - **Continuer en cas d'échec** : exécuter l'étape suivante même si celle-ci échoue. Sans ce réglage, une étape en échec arrête l'exécution. Ce réglage se trouve sous **Plus de champs**, avec **Exécuter cette étape**.
 
 ### Bifurquer selon le résultat d'une étape
@@ -324,6 +325,12 @@ Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune 
 | Toute autre étape | A réussi, et a échoué quand **Continuer en cas d'échec** y est activé |
 
 Deux étapes qui attendent des résultats opposés d'une même étape forment un si et un sinon : suspendre un utilisateur seulement quand le renseignement sur les menaces le connaît, et sinon ajouter une tâche pour confirmer la connexion avec lui. Quand l'étape attendue se termine autrement, l'étape qui attend est sautée, et l'exécution indique pourquoi sous elle ; il en va de même pour une étape qui attend une étape sautée. La carte d'une étape indique ce qu'elle attend, et une étape qu'une autre attend ne peut être ni déplacée sous celle-ci ni supprimée tant que celle-ci ne s'exécute pas autrement. Le modèle **Escalader les indicateurs malveillants connus** ne relève la priorité et le statut d'un dossier qu'en cas de correspondance du renseignement sur les menaces, et une étape enregistrée avec l'ancien interrupteur du renseignement sur les menaces le garde sous la forme **Seulement si une vérification antérieure du renseignement sur les menaces a trouvé une entité connue comme malveillante**.
+
+Une étape peut attendre jusqu'à cinq résultats : choisissez chacun dans **Exécuter cette étape**, et **Exécuter quand** demande comment les lire, **Quand tous se sont produits** ou **Quand l'un d'eux s'est produit**. Suspendre un utilisateur seulement quand le renseignement sur les menaces le connaît et que son activité a été trouvée, ou appeler l'astreinte quand l'une ou l'autre recherche a trouvé quelque chose. Une étape qui attend tous ses résultats ne peut pas attendre deux résultats d'une même étape, comme trouvé et rien trouvé, puisqu'aucune exécution n'a les deux.
+
+### Arrêter l'exécution
+
+**Arrêter l'exécution**, sous **Contrôle du déroulement**, met fin à l'exécution là où elle en est, comme réussie : les étapes suivantes sont sautées, chacune indiquant où l'exécution s'est arrêtée, et l'exécution réussit. Avec **Exécuter cette étape**, elle ne s'arrête qu'après un résultat : s'arrêter quand le renseignement sur les menaces n'a rien trouvé de connu comme malveillant, et sinon laisser s'exécuter les étapes de confinement en dessous. Ce que vous écrivez dans **Raison de l'arrêt** est indiqué dans la chronologie du dossier quand l'exécution s'arrête là. Elle n'a rien à approuver et n'échoue jamais : elle n'a donc ni **Approbation requise** ni **Continuer en cas d'échec**, et aucune étape ne peut l'attendre. Une étape d'arrêt qui s'exécute toujours termine chaque exécution : elle ne peut donc être que la dernière étape.
 
 ### Répondre avec OneUptime
 
@@ -394,7 +401,7 @@ Chaque exécution est listée, étape par étape, sur son dossier et sous **Prod
 | En file d'attente | En attente d'un worker |
 | En cours d'exécution | Exécute ses étapes |
 | En attente d'approbation | Retenue avant une étape qui demande une approbation |
-| Réussi | Chaque étape s'est exécutée ou a été sautée |
+| Réussi | Chaque étape s'est exécutée ou a été sautée, ou une étape **Arrêter l'exécution** y a mis fin |
 | Échec | Une étape a échoué et l'exécution s'est arrêtée |
 | Annulé | Quelqu'un l'a annulée, ou a rejeté une étape |
 
@@ -454,6 +461,10 @@ Le dossier ne porte sur aucun utilisateur ni aucun hôte, seulement sur une adre
 
 :::details Une étape qui ne s'exécute qu'après une autre a été sautée
 L'étape qu'elle attend s'est terminée autrement, ou a elle-même été sautée : elle n'a rien trouvé de connu comme malveillant, par exemple, alors que l'étape attend une entité connue comme malveillante. Ouvrez l'exécution sur le dossier : l'étape sautée indique quelle étape elle attendait, et quel résultat. Pour la modifier, modifiez l'étape et ouvrez **Plus de champs**.
+:::
+
+:::details Une exécution s'est terminée avant ses dernières étapes
+Une étape **Arrêter l'exécution** s'est exécutée : le résultat qu'elle attend est arrivé, ou elle s'exécute toujours. Ouvrez l'exécution sur le dossier : les étapes suivantes indiquent où l'exécution s'est arrêtée, et l'étape d'arrêt indique pourquoi si vous lui avez donné une raison. Pour changer quand elle s'arrête, modifiez l'étape et ouvrez **Plus de champs**.
 :::
 
 :::details Un statut ou une priorité ne peut être ni supprimé ni archivé

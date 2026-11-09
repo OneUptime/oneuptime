@@ -13,7 +13,7 @@ Fai clic su un modello per vedere cosa fa: il suo trigger, i blocchi che lo comp
 
 I workflow vengono creati disattivati, quindi il loro trigger non li avvia finché non li attivi. Un nuovo workflow si apre nel **Costruttore**, la tela su cui lo progetti.
 
-Puoi anche descrivere un workflow ad Ask AI e lasciare che lo crei per te. Trova il trigger e i passaggi, li configura e li collega, e ti chiede di approvare il workflow prima di salvarlo. Un nuovo workflow parte disattivato: leggilo nel Builder, compila password, token o URL di webhook che ti ha lasciato, perché Ask AI non li chiede mai nella conversazione, e poi attivalo tu. Ask AI può modificare un workflow allo stesso modo. Dalla pagina di un workflow, "questo workflow" indica quello. Salva a tuo nome, quindi può fare solo ciò che puoi fare nel Builder, e il Builder mostra le modifiche appena vengono salvate.
+Puoi anche descrivere un workflow ad Ask AI e lasciare che lo crei per te. Trova il trigger e i passaggi, li configura e li collega, e ti chiede di approvare il workflow prima di salvarlo. Un nuovo workflow parte disattivato: leggilo nel Builder, compila password, token o URL di webhook che ti ha lasciato, perché Ask AI non li chiede mai nella conversazione, e poi attivalo tu. Ask AI può modificare un workflow allo stesso modo. Dalla pagina di un workflow, "questo workflow" indica quello. Salva a tuo nome, quindi può fare solo ciò che puoi fare nel Builder, e il Builder mostra le modifiche appena vengono salvate. Se il workflow viene salvato mentre una modifica di Ask AI attende la tua approvazione, da te nel Builder o da qualcun altro, approvarla mantiene ciò che è stato salvato. Quando le due modifiche riguardano passaggi diversi, Ask AI fa la sua modifica sopra ciò che è stato salvato, e lo dice. Quando toccano lo stesso passaggio, non viene cambiato nulla: Ask AI dice che il workflow è cambiato e propone di nuovo la sua modifica sul workflow com'è ora. Ask AI scrive una modifica a partire dal workflow com'era l'ultima volta che l'ha letto. Se il workflow è stato salvato dopo, e la modifica annullerebbe parte di ciò che è stato salvato, la scheda lo dice prima che tu la approvi e nomina i passaggi, per esempio "Questa modifica annulla ciò che è stato salvato dopo che l'IA ha letto il workflow: Send Message to Slack." Per mantenere ciò che è stato salvato, salta la modifica e chiedi ad Ask AI di rileggere il workflow. Spostare le schede non conta mai, e nemmeno un'impostazione cambiata in un passaggio che la modifica di Ask AI lascia com'è. Se Ask AI non ha mai letto i passaggi del workflow, la scheda dice anche questo. In Esecuzione automatica, dove nessuno approva le azioni, Ask AI non fa una modifica del genere: rilegge il workflow e fa la sua modifica sul workflow com'è ora.
 
 ## La tela
 
@@ -21,7 +21,9 @@ Un workflow creato da zero si apre con un unico blocco tratteggiato con la scrit
 
 Ogni workflow ha esattamente un **trigger** in cima. Tutto il resto è un **componente** che fa qualcosa. Per cambiare il trigger, eliminalo: il segnaposto tratteggiato torna al suo posto, e facendo clic su di esso puoi sceglierne un altro. Eliminando un blocco si eliminano anche le sue linee, quindi ricollega il nuovo trigger al primo blocco.
 
-Le modifiche vengono salvate automaticamente. Una pillola nella barra degli strumenti lo segnala: **Salvataggio…** mentre la modifica è in corso, poi **Salvato**, oppure **Impossibile salvare** se non ha funzionato. La tela non ha un pulsante di salvataggio né un passaggio di pubblicazione separato.
+Le modifiche vengono salvate automaticamente, un attimo dopo che le hai fatte. Una pillola nella barra degli strumenti lo segnala: **Salvataggio…** mentre la modifica è in corso, poi **Salvato**. Se una modifica non è stata salvata, la pillola mostra **Impossibile salvare**, con il motivo quando ci passi sopra con il mouse, e **Riprova** accanto. Nel frattempo le tue modifiche restano sulla tela, e la prossima modifica che fai riprova a salvare. Se lasci la pagina prima che una modifica sia salvata, ti viene chiesta prima una conferma. La tela non ha un pulsante di salvataggio né un passaggio di pubblicazione separato. Anche un errore viene salvato, quindi il Costruttore conserva ogni modifica, così puoi annullarla: vedi [Annullare, ripetere e cronologia delle versioni](#annullare-ripetere-e-cronologia-delle-versioni).
+
+Due persone possono avere aperto lo stesso flusso di lavoro. Se qualcun altro lo salva dopo che l'hai aperto, in un altro Costruttore o tramite l'API, il Costruttore non salva la tua modifica sopra la sua: la pillola mostra **Non salvata** e una finestra elenca cosa hanno modificato. **Mostra le loro modifiche** mette la loro versione sulla tela e **Annulla** riporta la tua. **Tieni la mia** salva la tua versione, e la loro resta nella cronologia delle versioni. Non si perde nulla, qualunque cosa tu scelga.
 
 ## Aggiungere blocchi
 
@@ -169,6 +171,26 @@ Per mettere in pausa un workflow senza eliminarlo, disattiva **Abilitato**. Il s
 - Per eliminare un blocco, fai clic su di esso e usa **Elimina** in fondo alla sua finestra delle impostazioni. Anche selezionare un blocco o una linea e premere Backspace lo rimuove.
 - Non c'è modo di duplicare un singolo blocco. **Duplica: Flusso di lavoro** nella pagina **Impostazioni** del workflow copia tutto. Il nome della copia è già compilato, numerato oltre i workflow del progetto ("Nightly Sync" viene copiato come "Nightly Sync 2"), e la copia si apre, disabilitata.
 - Impila i blocchi dall'alto verso il basso, così si leggono nella direzione in cui vengono eseguiti: gli ingressi sono sul bordo superiore e le uscite su quello inferiore, quindi il flusso scende in modo naturale.
+
+## Annullare, ripetere e cronologia delle versioni
+
+Ogni modifica che fai sulla tela si può annullare, anche se è stata salvata subito.
+
+- **Annulla** e **Ripeti** si trovano all'inizio della barra degli strumenti. Passa sopra uno dei due per vedere cosa annullerebbe o rifarebbe, e di quale blocco si tratta. Ogni modifica si annulla in un colpo solo: aggiungere, eliminare o spostare un blocco, collegare o scollegare due blocchi e salvare le impostazioni di un blocco. Trascinare un blocco conta come una sola modifica, per quanto lontano lo trascini.
+- Funziona anche la tastiera: ⌘Z su un Mac, o Ctrl+Z, annulla, e ⇧⌘Z, Ctrl+Shift+Z o Ctrl+Y ripete. Mentre scrivi in un campo o in un editor di codice, gli stessi tasti annullano invece ciò che hai scritto.
+- Un annullamento viene salvato come qualsiasi altra modifica. L'annullamento copre ciò che hai fatto da quando hai aperto il Costruttore; la cronologia delle versioni va più indietro.
+
+**Cronologia versioni**, nella barra degli strumenti, elenca ogni versione salvata del workflow, dalla più recente: chi l'ha salvata, quando e cosa ha cambiato, ad esempio `Added "Send Email" (send-email-1)`. Le modifiche che salvi a meno di 10 minuti l'una dall'altra formano un'unica versione, così una versione è un pezzo di lavoro e non ogni singolo clic. Anche le modifiche fatte tramite l'API sono versioni, e ogni modifica fatta da Ask AI è una versione a sé, che dice che Ask AI l'ha fatta per te. Ripristinare la versione precedente annulla esattamente ciò che ha fatto Ask AI. Quando la modifica di Ask AI è stata fatta sopra una modifica che non avevi ancora visto, il Builder le mostra come due passaggi: Annulla ritira solo la modifica di Ask AI, e la modifica salvata prima è il passaggio precedente.
+
+Per tornare a una versione precedente:
+
+:::steps
+1. Fai clic su **Cronologia versioni** nella barra degli strumenti.
+2. Fai clic su **Anteprima** sulla versione. L'anteprima elenca cosa cambierebbe ripristinandola, e mostra la versione su una tela tutta sua. Fai clic su un blocco di quella tela per leggerne le impostazioni.
+3. Fai clic su **Ripristina questa versione**. La versione torna sulla tela e viene salvata subito.
+:::
+
+Il ripristino è una modifica come tutte le altre. Viene salvato come una nuova versione che dice quale versione ha ripristinato, così puoi annullarlo, o ripristinare la versione che avevi prima. Chiunque possa aprire il workflow può vederne la cronologia; per ripristinare una versione serve il permesso di modificare il workflow. Vengono conservate le 100 versioni più recenti di ogni workflow.
 
 ## Prossimi passi
 

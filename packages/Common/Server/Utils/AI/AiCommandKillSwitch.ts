@@ -29,6 +29,14 @@ import ProjectService from "../../Services/ProjectService";
  *     resource AI agent ingresses): a job enqueued before the switch went
  *     off is failed with the reason, never handed to the agent.
  *
+ * And a third time for a resource AI agent - a cloud account's Cloud AI
+ * agent among them - on every heartbeat of a job it holds (getStopReason):
+ * the switch turned off after the claim tells the agent to stop. Its
+ * heartbeat just before the command starts stops it from starting; a cloud
+ * change stops before its call, or stops waiting for one already sent. The
+ * job is not failed for it: the agent reports what it did, and that is
+ * what the job records.
+ *
  * The one exception is an access test - Test connection on a resource's
  * AI agent page, Test access on a cluster's. A person runs it to check an
  * agent before turning AI on, it is a read, and no AI composed it.
@@ -43,6 +51,9 @@ export const AI_COMMANDS_OFF_ENQUEUE_MESSAGE: string =
 
 export const AI_COMMANDS_OFF_CLAIM_MESSAGE: string =
   "OneUptime AI was turned off for this project (Enable AI) before this command left OneUptime, so its agent did not run it.";
+
+export const AI_COMMANDS_OFF_STOP_MESSAGE: string =
+  "OneUptime AI was turned off for this project (Enable AI) while its agent held this command.";
 
 export default class AiCommandKillSwitch {
   /*
@@ -100,6 +111,28 @@ export default class AiCommandKillSwitch {
 
     return (await AiCommandKillSwitch.isAiOff(data.projectId))
       ? AI_COMMANDS_OFF_CLAIM_MESSAGE
+      : null;
+  }
+
+  /*
+   * Why an agent that holds this job - it claimed it, and may be running it
+   * - must stop: an AI command (not an access test) of a project whose
+   * Enable AI is off now. Null while it may go on. Read on each of the
+   * job's heartbeats (the resource AI agent's ingress).
+   */
+  public static async getStopReason(data: {
+    job: Pick<RunnerJob, "origin" | "aiRunId" | "autoRemediationSuggestionId">;
+    projectId: ObjectID;
+  }): Promise<string | null> {
+    if (
+      !AiCommandKillSwitch.isAiCommandJob(data.job) ||
+      AiCommandKillSwitch.isAccessTestJob(data.job)
+    ) {
+      return null;
+    }
+
+    return (await AiCommandKillSwitch.isAiOff(data.projectId))
+      ? AI_COMMANDS_OFF_STOP_MESSAGE
       : null;
   }
 }

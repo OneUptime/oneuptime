@@ -21,7 +21,7 @@ description: >-
 # Only for jobs that pull other people's images. A mirror answers for a tag
 # with whatever image it holds under that tag, and the daemon takes that answer
 # without asking Docker Hub. The e2e jobs pull OneUptime's own images under
-# tags every master push or release pushes again; through a mirror holding an
+# tags every main push or release pushes again; through a mirror holding an
 # older image under the same tag, they would test that older image.
 #
 # Tests/Ops/DockerHubMirrorCoverage.test.js holds every test job that pulls a

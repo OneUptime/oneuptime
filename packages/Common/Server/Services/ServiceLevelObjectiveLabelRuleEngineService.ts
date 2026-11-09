@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
@@ -108,6 +110,7 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
       return await this.applyRules({
         serviceLevelObjective: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running SLO label rules: ${error}`, {
@@ -123,6 +126,8 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
   private async applyRules(data: {
     serviceLevelObjective: ServiceLevelObjective;
     rules: Array<ServiceLevelObjectiveLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { serviceLevelObjective, rules } = data;
 
@@ -209,11 +214,12 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await ServiceLevelObjectiveService.getRepository()
-      .createQueryBuilder()
-      .relation(ServiceLevelObjective, "labels")
-      .of(serviceLevelObjective.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: ServiceLevelObjectiveService,
+      resourceId: serviceLevelObjective.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory labels so the owner-rule engine that runs next in the

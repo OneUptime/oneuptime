@@ -9,6 +9,7 @@
 
 import IconProp from "../../../../Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "../../Button/Button";
+import FieldError from "../../Forms/Fields/FieldError";
 import {
   DictionaryFilterOperator,
   DictionaryFilterOperatorOption,
@@ -43,7 +44,10 @@ import { rowIssue } from "./ColumnRowSerialization";
 import ColumnValueInput from "./ColumnValueInput";
 import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import React, { FunctionComponent, ReactElement, useContext } from "react";
-import { Translator } from "../../../Utils/TranslateTemplate";
+import {
+  getInlineSeparator,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 
 /*
@@ -118,7 +122,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           .filter((part: string) => {
             return part !== "";
           })
-          .join(" · "),
+          .join(getInlineSeparator(translator.language)),
       };
     },
   );
@@ -290,10 +294,18 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           </p>
         )}
 
+        {/*
+         * What is wrong with what was typed, drawn as every field's error is
+         * (FieldError). Said politely: it comes and goes as the value is
+         * typed, and saving still goes ahead (rowIssue).
+         */}
         {issue && (
-          <p className="mt-1 text-[11px] text-red-500">
-            {translator.translateText(issue)}
-          </p>
+          <FieldError
+            message={issue}
+            className="mt-1 text-[11px]"
+            announce="polite"
+            dataTestId={`model-column-issue-${props.row.columnId}`}
+          />
         )}
       </div>
 

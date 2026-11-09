@@ -37,7 +37,7 @@ flowchart TB
 
 Il modello `IncidentState` ha `name`, `description`, `color` e `order`, più tre booleani: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Tutto ciò che il prodotto fa con gli stati si basa su quei booleani e su `order` — mai sul nome dello stato. Ecco perché potete rinominare **Risolto** in «Closed» senza rompere nulla: il flag resta sulla riga.
 
-Il modello `IncidentSeverity` ha `name`, `description`, `color` e `order`, e nient'altro. Non ci sono flag. Nulla in OneUptime tratta di per sé **Critical Incident** diversamente da **Minor Incident** — la gravità conta solo dove le fate puntare qualcosa, come il criterio di corrispondenza **Incidente Gravità** di una regola di reperibilità.
+Il modello `IncidentSeverity` ha `name`, `description`, `color` e `order`, e nient'altro. Non ci sono flag. Nulla in OneUptime tratta di per sé **Critical Incident** diversamente da **Minor Incident** — la gravità conta solo dove le fate puntare qualcosa, come il criterio di corrispondenza **Gravità degli incidenti** di una regola di reperibilità.
 
 Qualche regola veloce:
 
@@ -83,7 +83,7 @@ Uno stato che aggiungete è un passaggio della vostra risposta che i tre predefi
 :::steps
 ### Aprire l'elenco degli stati
 
-Andate in **Incidenti → Impostazioni → Stato incidente**. La scheda **Incidente Stati** elenca i vostri stati nel loro ordine, una riga ciascuno: una maniglia per trascinarlo, il suo colore e il suo nome, come **Conta come** un incidente in esso, e la sua descrizione. La frase sotto il titolo lo dice chiaramente: gli incidenti scendono soltanto lungo questo elenco.
+Andate in **Incidenti → Impostazioni → Stato incidente**. La scheda **Stati incidente** elenca i vostri stati nel loro ordine, una riga ciascuno: una maniglia per trascinarlo, il suo colore e il suo nome, come **Conta come** un incidente in esso, e la sua descrizione. La frase sotto il titolo lo dice chiaramente: gli incidenti scendono soltanto lungo questo elenco.
 
 ### Creare lo stato
 
@@ -115,14 +115,20 @@ Non potete impostare i tre flag da questo modulo — appartengono alle righe pre
 
 ## L'ordine è un vincolo reale, non una preferenza di visualizzazione
 
-L'ordine viene applicato quando viene scritto un cambio di stato, non solo quando viene disegnato l'elenco:
+L'ordine viene applicato quando viene scritto un cambio di stato, non solo quando viene disegnato l'elenco. Un'unica regola vale per ogni cambio di stato di un incidente, di un avviso, di un episodio di incidenti o di avvisi e di un evento di manutenzione programmata, chiunque lo faccia — la dashboard, Slack, Microsoft Teams, l'API, Terraform, un workflow o OneUptime stesso — e sia che venga inviato come riga della cronologia degli stati del record sia come aggiornamento del suo stato attuale:
 
-- **Le transizioni all'indietro vengono rifiutate.** Portare un incidente in uno stato che viene prima del suo stato attuale nell'ordine fallisce con un errore che nomina entrambi gli stati.
+- **Le transizioni all'indietro vengono rifiutate.** Portare un incidente in uno stato che viene prima del suo stato attuale nell'ordine fallisce con un errore che nomina entrambi gli stati: «Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.» Un episodio è vincolato alla stessa regola degli incidenti che raggruppa, con un proprio messaggio di errore («Episode cannot transition to …»), quindi un episodio risolto non viene riportato a uno stato precedente — né, attraverso di esso, i suoi incidenti. Un aggiornamento che riporterebbe indietro un record viene rifiutato prima che venga salvato qualsiasi cosa.
 - **Riselezionare lo stato attuale viene rifiutato.** Mettere un incidente nello stato in cui si trova già fallisce con «Incident state cannot be same as previous state.»
 - **Una riga retrodatata non può duplicare la sua vicina.** Anche inserire una riga della cronologia il cui stato coincide con quello della riga che la segue viene rifiutato.
-- **I pulsanti dell'intestazione seguono la posizione degli stati contrassegnati nell'ordine.** **Riconosci** e **Risolvi** vengono offerti in base a dove si trova lo stato attuale nell'elenco ordinato. Uno stato personalizzato posto *dopo* lo stato risolto non mostra mai un pulsante **Risolvi**, perché un incidente in esso conta già come risolto.
+- **I pulsanti dell'intestazione seguono la posizione degli stati contrassegnati nell'ordine.** **Riconosci** e **Risolvi** vengono offerti in base a dove si trova lo stato attuale nell'elenco ordinato. Uno stato personalizzato posto *dopo* lo stato risolto non mostra mai un pulsante **Risolvi**, perché un incidente in esso conta già come risolto. Il menu degli stati nell'intestazione e il modulo di cambio di stato in Slack e Microsoft Teams offrono solo gli stati successivi a quello attuale; per un record nell'ultimo stato dell'elenco, Slack e Teams dicono «There is no later state to move this incident to.» invece di aprire un modulo vuoto.
 
 Quindi, quando aggiungete uno stato, mettetelo dove un incidente ci passerebbe davvero. Ordinarlo male non ha solo un aspetto strano: rende impossibili delle transizioni. Spostare uno stato più in basso cambia il modo in cui contano gli incidenti che vi si trovano già, nel momento in cui lo rilasciate.
+
+Un episodio sposta i suoi incidenti solo dove possono andare. Quando un episodio cambia stato, ciascuno dei suoi incidenti viene spostato con esso solo se l'ordine proprio dell'incidente consente il passaggio: un incidente che è già in quello stato, o oltre — risolto per conto suo, o in uno stato vostro posto dopo lo stato risolto — resta dov'è.
+
+Un solo passaggio risale l'elenco: la riapertura da parte di una regola di raggruppamento. Una regola impostata per riaprire gli episodi risolti di recente riapre un episodio risolto quando arriva un incidente corrispondente entro la sua finestra, e riporta l'episodio al vostro stato di creazione. È un passaggio che fa OneUptime stesso — nulla di ciò che inviate può richiederlo — e non riapre gli incidenti dell'episodio.
+
+Per correggere uno stato impostato per errore, eliminate la sua riga nella pagina della cronologia degli stati del record (vedete [La cronologia degli stati](#la-cronologia-degli-stati)). Il record torna allo stato della sua ultima riga rimasta; un episodio di cui eliminate la riga di risoluzione torna aperto, e il suo orario di risoluzione viene cancellato.
 
 Tramite l'API e Terraform l'ordine è la colonna `order`: i numeri più bassi vengono prima. Uno stato creato senza ordine va appena sopra lo stato risolto; uno creato o aggiornato con un numero prende quel posto, e gli stati che lo intralciano scendono di una posizione. I numeri che nessun altro ha vengono mantenuti come scritti, così uno stato gestito con Terraform rilegge il numero che gli è stato dato.
 
@@ -149,7 +155,7 @@ Due differenze rispetto agli stati:
 - **Non c'è protezione contro l'eliminazione.** Qualsiasi gravità può essere eliminata, comprese le tre predefinite.
 - **Non ci sono flag da ereditare, né «Conta come».** Una nuova gravità si comporta esattamente come quelle predefinite — è un'etichetta con un colore e un grado.
 
-Dove la gravità fa più che descrivere: in **Incidenti → Regole → Regole di reperibilità**, il campo **Incidente Gravità** di una regola è un criterio di corrispondenza. Elencarvi **Critical Incident** è il modo in cui si esprime «avvisa il team del database per tutto ciò che è critico» — la policy di reperibilità vive sulla regola, non sulla gravità.
+Dove la gravità fa più che descrivere: in **Incidenti → Regole → Regole di reperibilità**, il campo **Gravità degli incidenti** di una regola è un criterio di corrispondenza. Elencarvi **Critical Incident** è il modo in cui si esprime «avvisa il team del database per tutto ciò che è critico» — la policy di reperibilità vive sulla regola, non sulla gravità.
 
 **Cambiare la gravità di un incidente** — con **Modifica** sulla scheda **Dettagli dell'incidente** dell'incidente, tramite l'API o Terraform (`incidentSeverityId`), con un workflow o con gli strumenti di IA — fa le stesse quattro cose in qualunque modo venga inviata: il feed dell'incidente riceve una voce **Incident updated** che nomina la nuova gravità, le scadenze dello SLA dell'incidente vengono ricalcolate, la sua regola di promemoria viene riabbinata, e le metriche degli incidenti contano un cambio di gravità. Salvare la gravità che l'incidente ha già non fa nulla di tutto ciò, quindi modificare solo il titolo di un incidente lascia le sue scadenze SLA, i suoi promemoria e il conteggio dei cambi di gravità come erano. La gravità di un avviso funziona allo stesso modo per la sua voce di feed e i suoi promemoria.
 

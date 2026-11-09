@@ -261,7 +261,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 
 ## 자체 호스팅 구성
 
-따로 켤 것은 없습니다. 피드는 모든 설치에서 작동합니다. 네 개의 환경 변수로 제어하며, Docker Compose에서는 `config.env` 에, Helm에서는 values의 `onCallCalendarFeed` 아래에 설정합니다(차트의 [구성 참조](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) 참조).
+따로 켤 것은 없습니다. 피드는 모든 설치에서 작동합니다. 네 개의 환경 변수로 제어하며, Docker Compose에서는 `config.env` 에, Helm에서는 values의 `onCallCalendarFeed` 아래에 설정합니다(차트의 [구성 참조](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) 참조).
 
 | 변수 | Helm 값 | 기본값 | 효과 |
 | --- | --- | --- | --- |
@@ -273,7 +273,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 그 밖의 관련 사항:
 
 - **`HOST` 및 `HTTP_PROTOCOL`** 로 링크를 만듭니다. `HOST` 가 비어 있거나 `localhost` 이거나 `HTTP_PROTOCOL` 이 `http` 이면 피드 페이지에 경고가 표시되고 링크는 외부에서 작동하지 않습니다. `HOST` 가 사설 주소( `10.x`, `172.16–31.x`, `192.168.x`, 컨테이너 이름처럼 점이 없는 이름, 또는 `.internal`, `.local`, `.lan` 등 아래의 이름)이면 페이지에서 Google 캘린더와 웹용 Outlook이 링크에 접근할 수 없다고 알려 줍니다. 같은 네트워크의 컴퓨터에 있는 앱은 여전히 접근할 수 있습니다.
-- **`TRUSTED_PROXY_HOPS`** 는 주소별 제한이 어떤 주소를 셀지 정합니다. 기본값 `1` 은 기본 Docker Compose 및 Helm 구성에 맞습니다. `X-Forwarded-For` 에 덧붙이는 자체 프록시(CDN, WAF, 부하 분산 장치)마다 1을 더하세요. 그렇지 않으면 모든 캘린더 클라이언트가 같은 주소로 보여 하나의 예산을 나눠 씁니다. 차트 문서의 [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) 를 참조하세요.
+- **`TRUSTED_PROXY_HOPS`** 는 주소별 제한이 어떤 주소를 셀지 정합니다. 기본값 `1` 은 기본 Docker Compose 및 Helm 구성에 맞습니다. `X-Forwarded-For` 에 덧붙이는 자체 프록시(CDN, WAF, 부하 분산 장치)마다 1을 더하세요. 그렇지 않으면 모든 캘린더 클라이언트가 같은 주소로 보여 하나의 예산을 나눠 씁니다. 차트 문서의 [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) 를 참조하세요.
 - **Redis** 는 캐시와 속도 제한기를 뒷받침합니다. 둘 다 우아하게 저하됩니다. Redis가 없어도 피드는 느려질 뿐 계속 만들어지고, 속도 제한기는 요청을 통과시킵니다.
 - Helm 차트의 분할 모드( `worker.enabled: true` )에서는 피드가 API 계층에서 만들어지므로, 매 정시에 몰리는 캘린더 클라이언트에 맞춰 그 계층의 규모를 정하세요.
 - 위의 Nginx 액세스 로그 예외는 함께 제공되는 `packages/Nginx/default.conf.template` 에 포함되어 있습니다. 템플릿을 사용자 지정할 때도 유지하세요.

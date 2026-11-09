@@ -35,7 +35,7 @@ Vá em **Manutenção programada → Todos os eventos** e clique em **Criar Even
 
 ### Dizer o que acontece e quando
 
-Digite um **Título** e adicione uma **Descrição** se ajudar: ela é em Markdown e aparece nas suas páginas de status. **Começa em** já está na próxima hora cheia do seu relógio, e **Termina em** uma hora depois; mude-os só se estiverem errados. Mover **Começa em** move **Termina em** junto, para que a janela mantenha sua duração. **Proprietários** e **Rótulos** ficam recolhidos em **Mais campos**.
+Digite um **Título** e adicione uma **Descrição** se ajudar: ela é em Markdown e aparece nas suas páginas de status. **Começa em** já está na próxima hora cheia do seu relógio, e **Termina em** uma hora depois; mude-os só se estiverem errados. Mover **Começa em** move **Termina em** junto, para que a janela mantenha sua duração. **Proprietários**, **Rótulos** e **Data Observability Bancos de dados** ficam recolhidos em **Mais campos**.
 
 ### Escolher o que ele afeta
 
@@ -70,12 +70,12 @@ Nada é enviado até você escolher uma página de status: um evento que não ap
 
 Duas coisas preenchem o formulário para você no caminho:
 
-- **Recursos vinculados.** Quando você escolhe um monitor, os hosts, clusters, serviços e outros recursos aos quais ele está vinculado são adicionados em **Outros recursos afetados**, e uma linha abaixo do campo os nomeia. Remova os que você não quiser. Recursos de nuvem não são adicionados: um evento de manutenção não os contém.
+- **Recursos vinculados.** Quando você escolhe um monitor, os hosts, clusters, serviços e outros recursos aos quais ele está vinculado são adicionados em **Outros recursos afetados**, e uma linha abaixo do campo os nomeia. Remova os que você não quiser. Recursos de nuvem também são adicionados: enquanto o evento está em andamento, os monitores deles não abrem incidentes nem alertas.
 - **Páginas de status sugeridas.** Em **Mostrar evento nestas páginas de status**, são sugeridas as páginas que mostram seus monitores: clique no nome de uma página para adicioná-la, ou em **Adicionar todas**. Nada é escolhido por você. Veja [Eventos de manutenção programada](/docs/status-pages/subscribers#eventos-de-manutenção-programada).
 
 ## Começar por um recurso ou um modelo
 
-Na aba **Manutenção programada** de um host, um cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, um host Docker ou Podman, um vCenter, uma nuvem OpenStack, um storage array, uma frota de IoT, um banco de dados, um serviço ou um site de rede, **Criar Evento de Manutenção Programada** abre o mesmo formulário com esse recurso já escolhido em **Outros recursos afetados**, e a aba lista os eventos que o afetam. A aba de um item de inventário escolhe o host, o serviço ou o cluster Kubernetes para o qual o item aponta.
+Na aba **Manutenção programada** de um host, um cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, um host Docker ou Podman, um vCenter, uma nuvem OpenStack, um storage array, uma frota de IoT, um banco de dados, um recurso de nuvem, um serviço ou um site de rede, **Criar Evento de Manutenção Programada** abre o mesmo formulário com esse recurso já escolhido em **Outros recursos afetados**, e a aba lista os eventos que o afetam. A aba de um item de inventário escolhe o host, o serviço ou o cluster Kubernetes para o qual o item aponta.
 
 **Criar a partir de modelo**, ao lado do botão de criar, pede que você use **Selecionar Modelo de Manutenção Programada** e depois abre o formulário preenchido a partir do modelo. Veja [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates).
 
@@ -113,20 +113,20 @@ Tudo o que está no formulário pode ser alterado nas páginas do evento, exceto
 
 | Para alterar                                | Vá em                                                                          |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| O título, a janela ou os rótulos            | **Editar** no cartão **Maintenance Details** da sua **Visão geral**, passo **Evento** |
+| O título, a janela ou os rótulos            | **Editar** no cartão **Detalhes da manutenção** da sua **Visão geral**, passo **Evento** |
 | As páginas de status, quando ele é publicado, ou os lembretes | O mesmo **Editar**, passo **Páginas de status**                 |
 | Os monitores, o status deles ou outros recursos | **Editar** no cartão **Recursos afetados**                                  |
 | A descrição                                 | **Descrição** no menu lateral dele                                             |
 | Os proprietários                            | **Proprietários** no menu lateral dele                                         |
 
-**Alterar status do monitor para** pode ser alterado até o evento começar. Depois disso, o cartão o mostra só para leitura, porque os monitores já estão nesse status. Uma edição adiciona ao **Agendado Manutenção Feed** uma entrada que nomeia o que ela mudou; salvar sem mudar nada não adiciona nenhuma.
+**Alterar status do monitor para** pode ser alterado até o evento começar. Depois disso, o cartão o mostra só para leitura, porque os monitores já estão nesse status. Uma edição adiciona ao **Feed da manutenção programada** uma entrada que nomeia o que ela mudou; salvar sem mudar nada não adiciona nenhuma.
 
 ## Publicar notas enquanto o trabalho avança
 
-- As **Notas públicas** são atualizações para os seus clientes: aparecem nas páginas de status do evento, e cada uma pode avisar os assinantes delas com **Notify status page subscribers**.
+- As **Notas públicas** são atualizações para os seus clientes: aparecem nas páginas de status do evento, e cada uma pode avisar os assinantes delas com **Notificar os assinantes da página de status**.
 - As **Notas privadas** são só para a sua equipe.
 
-Escreva uma na página **Notas públicas** ou **Notas privadas** do evento, ou pelo menu **Ações** do **Agendado Manutenção Feed** com **Add Public Note** ou **Adicionar nota privada**. O mesmo menu executa um runbook com **Execute Runbook**. Um modelo de nota preenche um texto que a sua equipe escreve com frequência: veja [Regras e configurações da manutenção](/docs/scheduled-maintenance/settings#modelos-de-notas).
+Escreva uma na página **Notas públicas** ou **Notas privadas** do evento, ou pelo menu **Ações** do **Feed da manutenção programada** com **Adicionar nota pública** ou **Adicionar nota privada**. O mesmo menu executa um runbook com **Executar runbook**. Um modelo de nota preenche um texto que a sua equipe escreve com frequência: veja [Regras e configurações da manutenção](/docs/scheduled-maintenance/settings#modelos-de-notas).
 
 ## Criar eventos pelo código
 

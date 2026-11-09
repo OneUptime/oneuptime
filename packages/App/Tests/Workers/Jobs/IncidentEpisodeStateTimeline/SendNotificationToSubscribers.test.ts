@@ -2623,3 +2623,98 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers subscribers
     expect(emailsSentTo()).toEqual(page.told);
   });
 });
+
+/*
+ * A CUSTOM TEMPLATE'S VALUES, IN ITS PAGE'S LANGUAGE.
+ *
+ * A custom template is the team's own text, written once: the values of
+ * OneUptime's own words it is filled with - its default state and severity
+ * names, "None" for no resources - are in the page's default language
+ * (SubscriberTemplateValues), whoever reads it. A project's own names read
+ * as written, and a page with no default language reads in English, as the
+ * tests above have it.
+ */
+describe("IncidentEpisodeStateTimeline custom templates, in the page's language", () => {
+  const pageIn: (language: string) => StatusPage = (
+    language: string,
+  ): StatusPage => {
+    const page: StatusPage = statusPage({ withCustomSmtpAndSms: true });
+    page.defaultLanguage = language;
+    return page;
+  };
+
+  test("OneUptime's default state and severity names are the page's language's, on every channel", async () => {
+    pendingTimelines = [stateTimeline({ stateName: "Resolved" })];
+    storedEpisode!.incidentSeverity!.name = "Major Incident";
+    useCustomTemplatesOnEveryChannel([pageIn("de")]);
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["episodeState"]).toBe("Behoben");
+      expect(call.variables["episodeSeverity"]).toBe("Schwerwiegender Vorfall");
+      // What the team wrote reads as written.
+      expect(call.variables["episodeTitle"]).toBe(EPISODE_TITLE);
+    }
+    expect(sentMail()[0]!["subject"]).toBe(
+      `Subject: ${EPISODE_TITLE} is Behoben`,
+    );
+  });
+
+  test("a project's own state and severity names read as written", async () => {
+    pendingTimelines = [stateTimeline({ stateName: STATE_NAME })];
+    useCustomTemplatesOnEveryChannel([pageIn("de")]);
+
+    await runJob();
+
+    for (const call of compileCalls()) {
+      expect(call.variables["episodeState"]).toBe(STATE_NAME);
+      expect(call.variables["episodeSeverity"]).toBe(EPISODE_SEVERITY);
+    }
+  });
+
+  test("a resource list that lists none reads 'None' in the page's language", async () => {
+    pendingTimelines = [stateTimeline()];
+    useCustomTemplatesOnEveryChannel([pageIn("fr")]);
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+      resource({ displayName: "" }),
+    ] as never);
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["resourcesAffected"]).toBe("Aucune");
+    }
+  });
+
+  test("a subscriber's own language does not change the template's values", async () => {
+    pendingTimelines = [stateTimeline({ stateName: "Resolved" })];
+    const french: StatusPageSubscriber = subscriber();
+    french.language = "fr";
+    subscribersByPage[STATUS_PAGE_ID.toString()] = [french];
+    useCustomTemplatesOnEveryChannel([pageIn("de")]);
+
+    await runJob();
+
+    for (const call of compileCalls()) {
+      expect(call.variables["episodeState"]).toBe("Behoben");
+    }
+  });
+
+  test("a page without a default language fills them in English", async () => {
+    pendingTimelines = [stateTimeline({ stateName: "Resolved" })];
+    storedEpisode!.incidentSeverity!.name = "Major Incident";
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    for (const call of compileCalls()) {
+      expect(call.variables["episodeState"]).toBe("Resolved");
+      expect(call.variables["episodeSeverity"]).toBe("Major Incident");
+    }
+  });
+});

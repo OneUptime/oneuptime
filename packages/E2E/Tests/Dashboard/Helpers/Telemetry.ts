@@ -649,6 +649,11 @@ export const postOtlpMetrics: PostOtlpMetricsFunction = async (data: {
  * telemetry dashboards do not always live-refresh, so poll by re-navigating to
  * the page until the expected text shows up. Generous timeout because CI runs
  * the whole stack on one box.
+ *
+ * `target`, when given, is the element the text must show up in: for a page
+ * that also keeps the text where it is hidden (the rows of a folded
+ * section), whose first match would be that hidden one and never turn
+ * visible. Without it, the first element with the text is waited for.
  */
 type WaitForTelemetryTextFunction = (data: {
   page: Page;
@@ -656,6 +661,7 @@ type WaitForTelemetryTextFunction = (data: {
   url: string;
   ready: Locator;
   text: string;
+  target?: Locator | undefined;
   timeoutMs?: number;
 }) => Promise<void>;
 
@@ -665,11 +671,14 @@ export const waitForTelemetryText: WaitForTelemetryTextFunction = async (data: {
   url: string;
   ready: Locator;
   text: string;
+  target?: Locator | undefined;
   timeoutMs?: number;
 }): Promise<void> => {
   const timeoutMs: number = data.timeoutMs ?? 180000;
   const deadline: number = Date.now() + timeoutMs;
-  const target: Locator = data.page.getByText(data.text).first();
+  const target: Locator = data.target
+    ? data.target.getByText(data.text).first()
+    : data.page.getByText(data.text).first();
 
   let lastError: Error | null = null;
   let attempt: number = 0;

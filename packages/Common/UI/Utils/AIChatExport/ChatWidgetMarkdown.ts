@@ -13,6 +13,7 @@ import {
 } from "../../../Types/AI/ResourceCardFacts";
 import { JSONObject } from "../../../Types/JSON";
 import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   ExportChartPoint,
   ExportChartSeries,
@@ -315,17 +316,22 @@ export function toolActionsToMarkdown(
 
   const lines: Array<string> = ["#### Actions", ""];
 
+  /*
+   * An action's title, line and outcome are text - a pull request's title,
+   * the files a commit names (src/__init__.py, pages/[slug].tsx) - placed
+   * with mdText, so nothing in them reads as Markdown it is not.
+   */
   for (const action of toolActions) {
-    lines.push(`- **${action.status}** — ${action.title}`);
+    lines.push(mdText`- **${action.status}** — ${action.title}`.toString());
     if (action.description) {
-      lines.push(`  - ${action.description}`);
+      lines.push(mdText`  - ${action.description}`.toString());
     }
     const args: string = formatToolArguments(action.arguments || {});
     if (args) {
       lines.push(`  - \`${args.replace(/`/g, "'")}\``);
     }
     if (action.resultSummary) {
-      lines.push(`  - _${action.resultSummary}_`);
+      lines.push(mdText`  - _${action.resultSummary}_`.toString());
     }
   }
 

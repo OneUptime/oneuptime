@@ -35,7 +35,7 @@ Go to **Scheduled Maintenance → All Events** and click **Create Scheduled Main
 
 ### Say what is happening and when
 
-Type a **Title**, and add a **Description** if it helps: it is Markdown, and it is shown on your status pages. **Starts At** is already the next full hour on your clock, and **Ends At** an hour later; change them only when they are wrong. Moving **Starts At** moves **Ends At** with it, so the window keeps its length. **Owners** and **Labels** wait under **More fields**, folded.
+Type a **Title**, and add a **Description** if it helps: it is Markdown, and it is shown on your status pages. **Starts At** is already the next full hour on your clock, and **Ends At** an hour later; change them only when they are wrong. Moving **Starts At** moves **Ends At** with it, so the window keeps its length. **Owners**, **Labels** and **Data Observability Databases** wait under **More fields**, folded.
 
 ### Pick what it affects
 
@@ -70,12 +70,12 @@ Nothing is sent until you pick a status page: an event shown on no status page t
 
 Two things fill the form in for you as you go:
 
-- **Linked resources.** When you pick a monitor, the hosts, clusters, services and other resources it is linked to are added under **Other Affected Resources**, and a line under the field names them. Remove any you do not want. Cloud resources are not added: a maintenance event does not hold them.
+- **Linked resources.** When you pick a monitor, the hosts, clusters, services and other resources it is linked to are added under **Other Affected Resources**, and a line under the field names them. Remove any you do not want. Cloud resources are added too: while the event is in progress, their monitors open no incident or alert.
 - **Suggested status pages.** Under **Show event on these status pages**, the pages that show your monitors are suggested: click a page's name to add it, or **Add all**. Nothing is picked for you. See [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
 
 ## Start from a resource or a template
 
-On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
+On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
 
 **Create from Template**, beside the create button, asks you to **Select Scheduled Maintenance Template**, then opens the form filled in from the template. See [Templates & Recurring Events](/docs/scheduled-maintenance/templates).
 

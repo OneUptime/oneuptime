@@ -137,6 +137,8 @@ describe("validateSettings", () => {
       config: {
         accessKeyId: ACCESS_KEY_ID,
         readIntervalInMinutes: "10",
+        // Costs per resource are read once someone turns them on.
+        resourceCosts: "off",
         // Data Security reads nothing until it is chosen.
         dataSecurity: "off",
         dataSecurityResponse: "off",
@@ -591,6 +593,7 @@ describe("getConnectorSettings", () => {
       config: {
         accessKeyId: ACCESS_KEY_ID,
         readIntervalInMinutes: "10",
+        resourceCosts: "off",
         dataSecurity: "off",
         dataSecurityResponse: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,

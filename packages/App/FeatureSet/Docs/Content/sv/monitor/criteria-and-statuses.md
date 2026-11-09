@@ -39,7 +39,7 @@ Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrolle
 | Del | Vad den innehåller |
 | --- | --- |
 | **Kriterienamn** | Namnet i listan över kriterier och i grundorsaken till varje incident och larm som kriteriet öppnar. **Lägg till kriterier** namnger ett nytt kriterium efter dess filter, och namnet följer dem tills du skriver ett eget. |
-| **Filter** | Vad kontrollen måste visa, som ett eller flera filter. Kubernetes- och måttmonitorer kallar dem **Alert Rules**. |
+| **Filter** | Vad kontrollen måste visa, som ett eller flera filter. Kubernetes- och måttmonitorer kallar dem **Larmregler**. |
 | **Åtgärder** | Vad som händer när filtren matchar: ändra statusen, skapa ett larm, deklarera en incident eller någon kombination. |
 | **Inställningar** | **Aktivera det här kriteriet**, en valfri **Beskrivning** och, på monitorer för inkommande förfrågningar, **Group incidents and alerts by a payload field**. |
 
@@ -88,10 +88,23 @@ flowchart TB
 - **En i taget.** Så länge en incident som ett kriterium har deklarerat fortfarande är öppen, deklarerar samma kriterium ingen ny när det matchar igen. Larm fungerar på samma sätt. En monitor som grupperar efter värd eller payload-fält håller en öppen per värd eller värde, och ett kriterium på en monitor för inkommande e-post med **Öppna en ny incident för varje e-postmeddelande** öppnar en per e-postmeddelande.
 - **Stängning.** Vid en senare kontroll där ett annat kriterium matchar, eller inget, löses en incident vars kriterium har **Lös incident automatiskt** påslaget, och likaså ett larm med **Lös larm automatiskt**. Båda finns under **Fler fält** i incidenten eller larmet, och de kriterier som en ny monitor börjar med har dem påslagna.
 - **Flera sonder.** En monitor som kontrolleras av mer än en sond ändras bara när dess sonder är överens. Se [Hur kriterier utvärderas](/docs/monitor/create-monitor#så-utvärderas-kriterier).
-- **En överordnad monitor som är nere.** På en monitors sida **Konfiguration → Beroenden** anger **Depends On Monitors** de monitorer den är beroende av. Så länge någon av dem har en status som står i **Suppress When Parent Status Is** (vilken offline-status som helst, om fältet lämnas tomt), öppnar monitorn inga incidenter eller larm. Dess status ändras fortfarande, och det som är öppet löses fortfarande.
+- **En överordnad monitor som är nere.** På en monitors sida **Konfiguration → Beroenden** anger **Beror på monitorer** de monitorer den är beroende av. Så länge någon av dem har en status som står i **Undertryck när överordnad status är** (vilken offline-status som helst, om fältet lämnas tomt), öppnar monitorn inga incidenter eller larm. Dess status ändras fortfarande, och det som är öppet löses fortfarande.
 - **Schemalagt underhåll.** En monitor i en underhållshändelse som pågår kontrolleras inte, så dess kriterier körs inte. Se [Schemalagt underhåll – Översikt](/docs/scheduled-maintenance/index).
 
 För att se hur en kontroll bedömdes öppnar du monitorns **Översikt**: kortet **Monitor-sammanfattning** visar vilket kriterium som matchade och vad varje kriterium gjorde, även en incident som hoppades över eftersom en redan var öppen.
+
+## Vad en incident eller ett larm behåller av kontrollen
+
+En incident eller ett larm som en monitor öppnar behåller kontrollen som öppnade den, så att du kan se varför långt efter att monitorns egna loggar är borta. Under rotorsaken nämner **Utvärderingsdetaljer** kriteriet som matchade och, för varje filter som matchade, vad kontrollen hittade. **Visa detaljer** lägger till resten av bevisen, filtren som inte matchade och själva kontrollen: förfrågan, när den kördes, från vilken sond och vad som kom tillbaka. Det ett filter hittade kan vara:
+
+- **Fältet.** Var ett filter **Svarstext** matchade i ett JSON-innehåll, till exempel `checks[1].status`, eller headern där ett filter **Response Header Value** matchade.
+- **Värdena.** Vad varje värde som en **JavaScript Expression** läser innehöll när det utvärderades, till exempel `responseBody.status = "down"`.
+- **Ett utdrag.** En kort bit av svaret runt träffen, med träffen markerad: aldrig hela innehållet.
+
+Hemligheter och personuppgifter maskeras innan något sparas: headers som `Authorization`, `Cookie` och `Set-Cookie`, fält vars namn säger `password`, `token`, `key`, `session` eller `email`, och text som ser ut som en bearer-token, en JWT, ett kortnummer eller en e-postadress. Förfrågans URL är den som monitorn konfigurerades med, så `{{monitorSecrets.NAME}}` förblir ett namn, och ett hemligt frågevärde maskeras. En incident eller ett larm som öppnades för hand, eller innan utvärderingsdetaljer sparades, har inga.
+
+> [!TIP]
+> När svaren från en webbplats- eller API-monitor är känsliga i sig själva stänger du av **Behåll svarsinnehåll på incidenter och larm** på kortet **Svarsinnehåll** på dess sida **Avancerad → Inställningar**. Dess incidenter och larm behåller då vilka filter som matchade, statuskoden och svarstiden, och ingen del av svaret. En monitor för inkommande förfrågningar har samma reglage för förfrågningarna den tar emot: **Behåll förfrågans innehåll på incidenter och larm**, på kortet **Förfrågans innehåll**. Reglaget gäller de incidenter och larm som öppnas efter att du ändrar det.
 
 ## Ändra en monitors kriterier
 
@@ -148,7 +161,7 @@ En status som du lägger till senare läggs inte till i listan **Räknas som dri
 :::steps
 ### Öppna Monitorstatus
 
-Gå till **Övervakare → Inställningar → Monitorstatus**. **Inställningar** är hopfällt i sidomenyn: fäll ut det först. Kortet **Monitor Statusar** listar statusarna från den friskaste till den värsta.
+Gå till **Övervakare → Inställningar → Monitorstatus**. **Inställningar** är hopfällt i sidomenyn: fäll ut det först. Kortet **Monitorstatusar** listar statusarna från den friskaste till den värsta.
 
 ### Skapa statusen
 
@@ -167,7 +180,7 @@ Den fungerande statusen och offline-statusen är markerade som **Inbyggd**: du k
 
 ### Statustidslinjen
 
-Varje statusändring sparas på monitorns **Statustidslinje**: när den började, hur länge den varade, och **Visa orsak** för det kriterium som satte den. **Skapa Monitor Status Händelse** lägger till en status manuellt. På en monitor som sonder kontrollerar sätter nästa kontroll som matchar ett kriterium med en status den statusen igen.
+Varje statusändring sparas på monitorns **Statustidslinje**: när den började, hur länge den varade, och **Visa orsak** för det kriterium som satte den. **Skapa Statushändelse för monitor** lägger till en status manuellt. På en monitor som sonder kontrollerar sätter nästa kontroll som matchar ett kriterium med en status den statusen igen.
 
 En statusändring meddelar monitorns ägare bara om de har slagit på **Övervakningsstatus ändrad** i sina aviseringsinställningar: den är avstängd från början. En monitor som går tillbaka till sin **Standardstatus för övervakning** eftersom inget kriterium matchade meddelar ingen. Se [Vad som är påslaget för en ny medlem](/docs/notifications/notification-settings#vad-som-är-påslaget-för-en-ny-medlem).
 
@@ -187,7 +200,7 @@ Ett kriterium högre upp i listan matchade först. Öppna **Konfiguration → Kr
 :::
 
 :::details Ingen incident öppnades när monitorn gick ned
-Kontrollera kriteriet som matchade: **När filter matchar, deklarera en incident.** måste vara påslaget. En incident deklareras inte så länge samma kriteriums incident fortfarande är öppen, så länge en överordnad monitor i **Depends On Monitors** är nere, eller så länge monitorn är i schemalagt underhåll. Kortet **Monitor-sammanfattning** på monitorns **Översikt** säger vilket det var.
+Kontrollera kriteriet som matchade: **När filter matchar, deklarera en incident.** måste vara påslaget. En incident deklareras inte så länge samma kriteriums incident fortfarande är öppen, så länge en överordnad monitor i **Beror på monitorer** är nere, eller så länge monitorn är i schemalagt underhåll. Kortet **Monitor-sammanfattning** på monitorns **Översikt** säger vilket det var.
 :::
 
 :::details Incidenten förblir öppen efter att monitorn har återhämtat sig

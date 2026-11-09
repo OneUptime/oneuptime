@@ -261,7 +261,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 
 ## 自行託管的設定
 
-不需要開啟任何東西：訂閱源在每個安裝上都能使用。四個環境變數控制它們，在 Docker Compose 中設定在 `config.env` 裡，在 Helm 中設定在 values 的 `onCallCalendarFeed` 下（請參閱 chart 的 [設定參考](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) ）：
+不需要開啟任何東西：訂閱源在每個安裝上都能使用。四個環境變數控制它們，在 Docker Compose 中設定在 `config.env` 裡，在 Helm 中設定在 values 的 `onCallCalendarFeed` 下（請參閱 chart 的 [設定參考](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) ）：
 
 | 變數 | Helm 值 | 預設值 | 效果 |
 | --- | --- | --- | --- |
@@ -273,7 +273,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 另外還需注意：
 
 - **`HOST` 和 `HTTP_PROTOCOL`** 用於建構連結。如果 `HOST` 為空或為 `localhost` ，或 `HTTP_PROTOCOL` 為 `http` ，訂閱源頁面會顯示警告，連結在外部無法使用。如果 `HOST` 是私人位址—— `10.x` 、 `172.16–31.x` 、 `192.168.x` 、不含點的名稱（如容器名稱），或 `.internal` 、 `.local` 、 `.lan` 等網域下的名稱——頁面會提示 Google 日曆和網頁版 Outlook 無法存取該連結；同一網路中電腦上的應用程式仍可存取。
-- **`TRUSTED_PROXY_HOPS`** 決定依位址限制速率時計算的是哪個位址。預設值 `1` 適用於標準的 Docker Compose 和 Helm 部署；你自己的每個會附加 `X-Forwarded-For` 的代理伺服器（CDN、WAF 或負載平衡器）都要加一，否則所有行事曆用戶端看起來都是同一個位址，共用一份額度。請參閱 chart 文件中的 [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) 。
+- **`TRUSTED_PROXY_HOPS`** 決定依位址限制速率時計算的是哪個位址。預設值 `1` 適用於標準的 Docker Compose 和 Helm 部署；你自己的每個會附加 `X-Forwarded-For` 的代理伺服器（CDN、WAF 或負載平衡器）都要加一，否則所有行事曆用戶端看起來都是同一個位址，共用一份額度。請參閱 chart 文件中的 [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) 。
 - **Redis** 支撐快取和速率限制器。兩者都能平穩降級：沒有 Redis 時訂閱源仍能產生，只是比較慢，速率限制器則會放行請求。
 - 在 Helm chart 的分離模式（ `worker.enabled: true` ）下，訂閱源在 API 層產生，因此請依整點時大量行事曆用戶端集中擷取的情況規劃該層的規模。
 - 上面所示的 Nginx 存取記錄豁免是隨附的 `packages/Nginx/default.conf.template` 的一部分；自訂範本時請保留它。

@@ -35,6 +35,7 @@ import React, {
 } from "react";
 import { getOpenStackPartLogFacts } from "./OpenStackPartLogs";
 import { OpenStackPart } from "./UseOpenStackPart";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * What happened to a part, from what its cloud's notifications said, and who did it, from
@@ -180,7 +181,7 @@ export const OpenStackPartFeed: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Feed"
-      description="What this part's cloud said happened to it, and what OneUptime AI changed on it and who approved that, newest first. What the cloud says needs notifications sent to the logs, or a probe, which reads an instance's actions from Nova: the OpenStack guide says how."
+      description="What the cloud said happened to this part, and what OneUptime AI changed on it and who approved that, newest first. The cloud's side needs notifications in the logs, or a probe: the OpenStack guide says how."
     >
       <div className="p-4 text-sm" data-testid="openstack-part-feed">
         {error ? (
@@ -218,7 +219,7 @@ export const OpenStackPartFeed: FunctionComponent<ComponentProps> = (
                       : ""}
                     {who ? (
                       <Fragment>
-                        {" · "}
+                        <InlineSeparator />
                         <bdi className="font-mono">{who}</bdi>
                       </Fragment>
                     ) : (

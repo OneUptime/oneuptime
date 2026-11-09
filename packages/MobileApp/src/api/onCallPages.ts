@@ -1,4 +1,4 @@
-import type { AxiosResponse } from "axios";
+import type { AxiosError, AxiosResponse } from "axios";
 import apiClient from "./client";
 import { toPlainText } from "../utils/text";
 import type { OnCallPageItem } from "./types";
@@ -31,6 +31,14 @@ function toResourceRef(raw: unknown): { _id?: string; title?: string } | null {
     ...(id ? { _id: id } : {}),
     ...(title ? { title } : {}),
   };
+}
+
+function isObserverPageRun(raw: unknown): boolean {
+  return Boolean(
+    raw &&
+      typeof raw === "object" &&
+      (raw as Record<string, unknown>)["isObserverPage"] === true,
+  );
 }
 
 export function toOnCallPageItem(
@@ -73,6 +81,13 @@ export function toOnCallPageItem(
         ? toPlainText((policy as Record<string, unknown>)["name"]) || undefined
         : undefined,
     ...(isDirectPage ? { isDirectPage: true } : {}),
+    /*
+     * An observer's page (oncall/observerPage.ts), as its run says: only
+     * ever true, and never on a server too old to say.
+     */
+    ...(isObserverPageRun(item["onCallDutyPolicyExecutionLog"])
+      ? { isObserverPage: true }
+      : {}),
     triggeredByIncident: toResourceRef(item["triggeredByIncident"]),
     triggeredByAlert: toResourceRef(item["triggeredByAlert"]),
     triggeredByIncidentEpisode: toResourceRef(
@@ -82,13 +97,32 @@ export function toOnCallPageItem(
   };
 }
 
-export async function fetchMyOnCallPages(
-  project: { projectId: string; projectName: string },
-  options: { limit?: number } = {},
-): Promise<OnCallPageItem[]> {
-  const { limit = 25 } = options;
+/*
+ * Whether a page was an observer's is read from its run
+ * (onCallDutyPolicyExecutionLog.isObserverPage). A server older than
+ * observer pages - or than reading that through a page - refuses the whole
+ * list for it, as a bad request: the list is then read as before, and every
+ * page in it shows as a responder's, as it always did.
+ */
+const OBSERVER_PAGE_SELECT: Record<string, unknown> = {
+  onCallDutyPolicyExecutionLog: { _id: true, isObserverPage: true },
+};
 
-  const response: AxiosResponse = await apiClient.post(
+function isRefusedSelect(error: unknown): boolean {
+  return (
+    Boolean(error) &&
+    typeof error === "object" &&
+    (error as AxiosError).isAxiosError === true &&
+    (error as AxiosError).response?.status === 400
+  );
+}
+
+async function postMyOnCallPages(
+  project: { projectId: string; projectName: string },
+  limit: number,
+  withObserverPage: boolean,
+): Promise<AxiosResponse> {
+  return await apiClient.post(
     `/api/user-notification-log/get-list?skip=0&limit=${limit}`,
     {
       query: {},
@@ -101,6 +135,7 @@ export async function fetchMyOnCallPages(
         // Read with every row: a row with none is a direct page.
         onCallDutyPolicyId: true,
         onCallDutyPolicy: { _id: true, name: true },
+        ...(withObserverPage ? OBSERVER_PAGE_SELECT : {}),
         triggeredByIncident: { _id: true, title: true },
         triggeredByAlert: { _id: true, title: true },
         triggeredByIncidentEpisode: { _id: true, title: true },
@@ -112,6 +147,25 @@ export async function fetchMyOnCallPages(
       headers: { tenantid: project.projectId },
     },
   );
+}
+
+export async function fetchMyOnCallPages(
+  project: { projectId: string; projectName: string },
+  options: { limit?: number } = {},
+): Promise<OnCallPageItem[]> {
+  const { limit = 25 } = options;
+
+  let response: AxiosResponse;
+
+  try {
+    response = await postMyOnCallPages(project, limit, true);
+  } catch (error: unknown) {
+    if (!isRefusedSelect(error)) {
+      throw error;
+    }
+
+    response = await postMyOnCallPages(project, limit, false);
+  }
 
   const rows: Array<unknown> = Array.isArray(response.data?.data)
     ? response.data.data

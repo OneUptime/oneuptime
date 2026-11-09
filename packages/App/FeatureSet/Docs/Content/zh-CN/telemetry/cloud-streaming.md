@@ -47,6 +47,8 @@ flowchart TB
 
 对于日志，请在 **日志组** 中每行填写一个，可以是旁边 **区域** 中的名称，也可以是位于其自身区域的 ARN；或者选择 **账户的所有日志组，包括新建的**。一条命令最多按名称订阅 50 个日志组，最多覆盖 10 个区域。
 
+AWS 每个区域只允许一个账户级日志订阅，每个日志组最多两个订阅筛选器。命令在部署任何内容之前会检查这两点：如果另一个工具（例如 SIEM）已占用某个区域的账户级订阅，或者你指定的日志组不存在或已有两个订阅筛选器，它会说明是哪一个，并且不设置任何内容。
+
 ### 创建流密钥
 
 选择 **创建流密钥**。密钥只在命令中显示这一次：OneUptime 只保存它的 SHA-256。
@@ -66,6 +68,7 @@ flowchart TB
 | --- | --- |
 | **所有指标，而不仅是关键指标** | 流式传输 CloudWatch 中该账户的所有指标，包括你的自定义指标。AWS 按流发送的每次指标更新计费，因此费用可能高出许多倍 |
 | **区域** | 从哪里流式传输：初始为连接找到资源的区域。留空时，命令会从 AWS CloudShell 自身所在的区域流式传输。最多 30 个 |
+| **组织的所有账户** | 对于读取 AWS Organization 的连接：在其管理账户中运行的命令，还会通过 StackSet 在每个成员账户以及之后加入的账户中创建相同的堆栈。要么所有日志组，要么不包含日志组：指定名称的日志组只属于一个账户 |
 | **用其他方式设置** | 指标和日志的端点以及密钥，用于通过 Terraform 或控制台设置流 |
 
 **下载模板** 会保存命令所部署的模板，方便你用自己的方式部署。
@@ -77,6 +80,7 @@ flowchart TB
 | 指标 | 落在其度量的云资源上，名称和属性与连接的读取所赋予的相同 |
 | 日志 | 落在日志浏览器中，归于连接的遥测服务之下，并以账户、区域和日志组作为属性 |
 | AWS 以资源命名的日志组中的日志 | 也会落在该资源上：该资源在云中的页面会多出一个 **日志** 选项卡 |
+| App Runner 服务、Elastic Beanstalk 环境或 ECS 任务或集群的日志 | 也会落在 应用平台 中其所在的环境上：显示在该环境的 **日志** 选项卡中 |
 
 当 AWS 以某个资源为日志组命名时，该日志组会归入这个资源：
 
@@ -93,8 +97,11 @@ flowchart TB
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-每条日志都以 `cloud.resource_id` 携带资源的 ID，Lambda 函数的日志还携带 `faas.name`，因此它们也会显示在 Serverless 中的该函数上。其他名称的日志组同样会被流式传输，归于其账户和区域之下。日志的严重性就是其消息中按 Lambda 的写法注明的严重性。
+每条日志都以 `cloud.resource_id` 携带资源的 ID，Lambda 函数的日志还携带 `faas.name`，因此它们也会显示在 Serverless 中的该函数上。其他名称的日志组同样会被流式传输，归于其账户和区域之下。日志的严重性就是其消息中按 Lambda、PostgreSQL 或 MySQL 的写法注明的严重性。
+
+App Runner 服务、Elastic Beanstalk 环境和 ECS 集群的日志还携带 `cloud.platform`，ECS 任务的日志也是如此：它们来自 ECS 控制台命名为 `/ecs/<task-definition-family>` 的日志组，并携带 `aws.ecs.task.family`。加上账户和区域，这些日志就会落在 应用平台 中它们所在的环境上；如果还没有应用向该环境上报过，环境会随这些日志一起出现。它们不会创建应用：应用由其自身的遥测命名，参见 [云环境](/docs/telemetry/cloud-environments)。
 
 ## 堆栈创建的内容
 
@@ -127,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+对于读取 AWS Organization 的连接，请在管理账户中运行对话框中的命令：如果流式传输过整个组织，它还会删除每个成员账户的堆栈和 StackSet。
 :::
 
 要更改堆栈流式传输的内容，请再次打开 **流式传输指标和日志**，选择 **创建新密钥** 并运行新的命令。被替换的密钥在 24 小时内仍然有效，因此堆栈更新期间不会有投递被拒绝。同时最多有 3 个被替换的密钥有效。
@@ -166,6 +175,10 @@ OneUptime 会按照 Firehose 期望的方式回应每次投递：
 
 :::details 连接显示流被拒绝
 对话框和该行的工具提示会说明原因。密钥错误意味着堆栈正在使用一个已失效的密钥运行：请创建新密钥并重新运行命令。Firehose 会继续发送它保留的内容，密钥正确后就会被接收。
+:::
+
+:::details 命令显示 `Nothing was set up`
+上面的行说明了原因，每行都附有对应的区域或日志组。如果另一个工具占用了某个区域的账户级日志订阅，请改为指定要流式传输的日志组，或移除该工具的策略。如果某个日志组已有两个订阅筛选器，请移除其中一个，或不包含该组。如果没有这样的日志组，请检查其名称和区域，或提供其 ARN。然后再次运行命令。
 :::
 
 :::details Lambda 函数的日志没有显示在其页面上

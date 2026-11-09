@@ -26,6 +26,7 @@ flowchart TB
 
 - **La chiave decide il progetto.** Non inviate mai un ID di progetto: i dati inviati con una chiave finiscono nel progetto a cui la chiave appartiene.
 - **Le modifiche raggiungono ogni server entro un minuto.** Disattivare una chiave, reimpostarne il segreto o cambiarne le origini, la scadenza o il limite ha effetto entro un minuto circa.
+- **Una chiave può avere budget propri.** Un budget giornaliero e un limite di frequenza al secondo per ogni segnale, entro quelli del suo progetto: vedete [Budget di acquisizione](/docs/telemetry/ingestion-budgets).
 - **Una chiave Server è una password.** Chiunque la possieda può inviare telemetria nel vostro progetto. Conservatela tra i segreti dei vostri server, mai nel controllo di versione né in una pagina web.
 
 ## Server o Browser
@@ -155,4 +156,5 @@ Nulla ha inviato dati con questa chiave da quando OneUptime ha iniziato a regist
 - [Catalogo servizi](/docs/telemetry/services): Vedete i servizi sotto cui è archiviata la vostra telemetria.
 - [Conservazione dei dati](/docs/telemetry/data-retention): Decidete per quanto tempo vengono conservati i dati.
 - [Filtri di scarto e regole di mascheramento](/docs/telemetry/drop-filters-and-scrub-rules): Scartate o mascherate i dati prima che vengano salvati.
+- [Budget di acquisizione](/docs/telemetry/ingestion-budgets): Limitate quanto può inviare ogni chiave in un giorno.
 :::

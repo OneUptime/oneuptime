@@ -19,7 +19,9 @@ import Dictionary from "Common/Types/Dictionary";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
   readCloudChangeTitleFactsJson,
+  readCloudHealthTitleFactsJson,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -27,6 +29,7 @@ import {
   RESOURCE_SECURITY_WINDOW_IN_DAYS,
   ResourceSecurityCaseJson,
   ResourceSecurityJson,
+  ResourceSecurityScopeJson,
   SECURITY_CONNECTION_KINDS,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SecurityConnectedResourceJson,
@@ -65,6 +68,7 @@ import {
   toTracesExplorerQueryParams,
 } from "Common/Utils/Telemetry/CrossSignalScope";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { readSecurityEventScope } from "Common/Types/SecurityEvent/SecurityEventScope";
 import { getTelemetryMessageSearchText } from "Common/Utils/SecurityCase/SecurityTelemetrySearch";
 
 /*
@@ -188,14 +192,17 @@ function readChanges(
 
       const cloudChange: CloudChangeTitleFacts | null =
         readCloudChangeTitleFactsJson(change["cloudChange"]);
+      const cloudHealth: CloudHealthTitleFacts | null =
+        readCloudHealthTitleFactsJson(change["cloudHealth"]);
 
       return {
         id: readString(change["id"]),
         time: readString(change["time"]),
         title: readString(change["title"]),
         eventType: readString(change["eventType"]) || "change",
-        // A cloud change's facts, which its title is worded from.
+        // A cloud change's facts, or a health event's, which its title is worded from.
         ...(cloudChange ? { cloudChange } : {}),
+        ...(cloudHealth ? { cloudHealth } : {}),
       };
     })
     .filter(
@@ -450,6 +457,29 @@ export function parseResourceSecurity(json: JSONObject): ResourceSecurityJson {
             entityType: readString(risk["entityType"]),
           }
         : null,
+  };
+}
+
+/*
+ * What a record's own Security Events page reads under. The scope is read
+ * as the server's compile reads it (readSecurityEventScope), so the page
+ * never sends what the server would drop - and a scope that names nothing
+ * stays one that matches nothing.
+ */
+export function parseResourceSecurityScope(
+  json: JSONObject,
+): ResourceSecurityScopeJson {
+  return {
+    kind: isKind(json["kind"]) ? json["kind"] : SecurityConnectionKind.Host,
+    id: readString(json["id"]),
+    name: readString(json["name"]),
+    values: readArray(json["values"]).filter(
+      (value: JSONValue): value is string => {
+        return typeof value === "string" && value.length > 0;
+      },
+    ),
+    isSearchedByLogs: json["isSearchedByLogs"] === true,
+    scope: readSecurityEventScope(json["scope"]) || { observables: [] },
   };
 }
 
@@ -843,9 +873,24 @@ export function getConnectionReasonTemplate(data: {
 }
 
 /*
+ * The records with a Security Events page of their own (issue #5769),
+ * which reads exactly what their Security card counts: the events naming
+ * any of their exact identities, or read from their own logs. The search
+ * bar cannot spell that OR, so the card's count opens this page, not the
+ * Events explorer.
+ */
+export const RECORD_SECURITY_EVENTS_PAGES: Partial<
+  Record<SecurityConnectionKind, PageMap>
+> = {
+  [SecurityConnectionKind.NetworkDevice]:
+    PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS,
+};
+
+/*
  * Security Events on the events about a record, over the Security card's
- * week: the events naming any of its exact identities, or - a service - the
- * events read from its logs.
+ * week: the record's own Security Events page when it has one, else the
+ * explorer on the events naming any of its exact identities, or - a
+ * service - the events read from its logs.
  */
 export function getRecordSecurityEventsRoute(data: {
   security: Pick<
@@ -855,6 +900,22 @@ export function getRecordSecurityEventsRoute(data: {
   now: Date;
 }): Route | null {
   const { security } = data;
+  const ownPage: PageMap | undefined =
+    RECORD_SECURITY_EVENTS_PAGES[security.kind];
+
+  if (ownPage) {
+    const route: Route | null = pageRoute(ownPage, security.id);
+
+    return route
+      ? new Route(route.toString()).addQueryParams(
+          getSecurityEventsTimeRangeLinkParams(
+            OneUptimeDate.addRemoveDays(data.now, -security.windowDays),
+            data.now,
+          ),
+        )
+      : null;
+  }
+
   let search: string = "";
 
   if (security.isSearchedByLogs) {

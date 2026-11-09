@@ -13,7 +13,7 @@ The generator renders every template and twelve representative examples, includi
 long links, state transitions, rich Markdown content, invoices, on-call notices,
 subscriber branding and reports. It does not send email or access the database.
 
-The default comparison is `origin/master`. Set `EMAIL_PREVIEW_BASE` to compare
+The default comparison is `origin/main`. Set `EMAIL_PREVIEW_BASE` to compare
 another local git revision. The committed screenshots compare against
 `302d796fee8` and were captured in Chromium. They are browser renderings of the
 email HTML, not screenshots from Gmail or Outlook. Real inbox/client rendering

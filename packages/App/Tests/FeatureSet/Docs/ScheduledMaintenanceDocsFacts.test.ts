@@ -2157,7 +2157,7 @@ describe("the create form", () => {
     );
   });
 
-  it("folds Owners and Labels under More fields", () => {
+  it("folds Owners, Labels and Data Observability Databases under More fields", () => {
     expect(
       readCommonSource("UI/Components/FoldedSection/FoldedSectionTitles.ts"),
     ).toContain(
@@ -2168,9 +2168,9 @@ describe("the create form", () => {
     );
     expect(
       CREATE_PAGE.match(/collapsibleSection: advancedSection,/g)?.length,
-    ).toBe(2);
+    ).toBe(3);
     expect(creating).toContain(
-      "**Owners** and **Labels** wait under **More fields**, folded.",
+      "**Owners**, **Labels** and **Data Observability Databases** wait under **More fields**, folded.",
     );
   });
 
@@ -2232,12 +2232,15 @@ describe("the create form", () => {
     );
 
     expect(prefill).toContain(
-      'export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =\n  [\n    ...MONITOR_LINKED_RESOURCE_KEYS.filter(\n      (key: MonitorLinkedResourceKey): boolean => {\n        return key !== "cloudResources";\n      },\n    ),\n    "networkSites",\n  ];',
+      'export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =\n  [...MONITOR_LINKED_RESOURCE_KEYS, "networkSites"];',
     );
-    // A maintenance event holds no cloud resources, and the page says so.
+    /*
+     * A maintenance event holds cloud resources too, and silences their
+     * monitors while it is in progress: the page says so.
+     */
     expect(prefill).toContain('"cloudResources",\n  "services",\n];');
     expect(creating).toContain(
-      "Remove any you do not want. Cloud resources are not added: a maintenance event does not hold them.",
+      "Remove any you do not want. Cloud resources are added too: while the event is in progress, their monitors open no incident or alert.",
     );
     expect(suggestions).toContain(
       'export const ADD_ALL_SUGGESTED_STATUS_PAGES: string = translationKey("Add all");',
@@ -2291,6 +2294,7 @@ describe("starting from a resource or a template", () => {
         CreateFromRecordKind.StorageArray,
         CreateFromRecordKind.IoTFleet,
         CreateFromRecordKind.DatabaseServer,
+        CreateFromRecordKind.CloudResource,
         CreateFromRecordKind.Service,
         CreateFromRecordKind.NetworkSite,
       ].sort(),
@@ -2306,7 +2310,7 @@ describe("starting from a resource or a template", () => {
     }
 
     expect(start).toContain(
-      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
+      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
     );
   });
 
@@ -3214,6 +3218,7 @@ describe("where maintenance settings live", () => {
       "Event State",
       "Event Templates",
       "Note Templates",
+      "Public Note Approval",
       "Custom Fields",
       "Measurements",
       "Calendar Settings",
@@ -3236,16 +3241,17 @@ describe("where maintenance settings live", () => {
       "ScheduledMaintenanceEventsRoutePath",
     );
     const keys: Array<string> = Array.from(
+      // A long key is broken across lines by the formatter: PageMap\n.KEY.
       MAINTENANCE_MENU_SOURCE.matchAll(
-        /PageMap\.(SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_\w+)/g,
+        /PageMap\s*\.\s*(SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_\w+)/g,
       ),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
     const routeMap: string = readDashboardSource("Utils/RouteMap.ts");
 
-    // Four Rules pages and seven Settings pages, Calendar Settings among them.
-    expect(keys.length).toBe(11);
+    // Four Rules pages and eight Settings pages, Calendar Settings among them.
+    expect(keys.length).toBe(12);
     expect(keys).toContain("SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR");
 
     for (const key of keys) {

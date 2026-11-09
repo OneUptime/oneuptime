@@ -8,7 +8,7 @@
  * It is a like-for-like replacement except for when it runs, and both halves
  * matter: the same languages, build modes and categories as default setup, or
  * the alerts default setup raised would not carry over to it; and never on a
- * push to master, which is the scan it exists to drop. It must also stay
+ * push to main, which is the scan it exists to drop. It must also stay
  * inert until default setup is off, because GitHub refuses an advanced
  * setup's results while default setup is on - after the analysis has run.
  *
@@ -62,7 +62,7 @@ const VENDORED = /vendored/i;
 
 /*
  * The languages default setup scans, each with the build mode of its
- * analyses on master. `gh api repos/OneUptime/oneuptime/code-scanning/default-setup`
+ * analyses on main. `gh api repos/OneUptime/oneuptime/code-scanning/default-setup`
  * listed actions, go, javascript-typescript (with its aliases javascript and
  * typescript) and python on 12 October 2026. Python has no build mode but
  * none.
@@ -364,7 +364,7 @@ describe(WORKFLOW, () => {
     });
 
     /*
-     * The categories of master's analyses, /language:python included: a
+     * The categories of main's analyses, /language:python included: a
      * pull request missing one is reported as missing that configuration.
      */
     expect(upload.with.category).toBe("/language:${{ matrix.language }}");

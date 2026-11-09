@@ -1,3 +1,4 @@
+import readAsWritten from "../../IsolatedText/ReadAsWritten";
 import FieldError from "./FieldError";
 import Dictionary from "../../../../Types/Dictionary";
 import { GetReactElementFunction } from "../../../Types/FunctionTypes";
@@ -481,9 +482,9 @@ const FormField: <T extends GenericObject>(
        */
       fieldDescription = (
         <>
-          {translatedDescription}
+          {readAsWritten(translatedDescription, translator.language)}
           {translatedDescription ? " " : null}
-          {timezoneSentence}
+          {readAsWritten(timezoneSentence, translator.language)}
         </>
       );
     }
@@ -727,6 +728,15 @@ const FormField: <T extends GenericObject>(
                  * server itself.
                  */
                 disabled={props.field.disabled}
+                /*
+                 * A required pick has no Clear, as the plain Dropdown below
+                 * has none: one is always picked, and another is picked from
+                 * the list in its place. A required record - a new
+                 * incident's severity, a status page resource's monitor -
+                 * offered Clear, and pressing it only made the form say the
+                 * field was required.
+                 */
+                isClearable={!required}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                   change?: DropdownChange,

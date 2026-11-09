@@ -1061,6 +1061,12 @@ export const DASHBOARD_WIDGET_TYPES_SORTED_BY_OWN_COLUMNS: ReadonlyArray<Dashboa
  * or Terraform user now learns at once. Widgets of a kind that does not
  * sort, or that this version does not know, are not looked at: a config is
  * stored as it is sent.
+ *
+ * Each widget's arguments are read as the board reads them
+ * (StoredDashboardViewConfig.withArgumentsRead): arguments written as JSON
+ * text are the object that text says, so a sort there is checked like the
+ * same sort in object arguments - it was stored without a word (issue
+ * #6315). Text that says no object is no arguments, and so no sort.
  */
 export function getDashboardWidgetSortsProblem(
   dashboardViewConfig: JSONObject,
@@ -1075,7 +1081,8 @@ export function getDashboardWidgetSortsProblem(
       continue;
     }
 
-    const widgetArguments: unknown = entry["arguments"];
+    const widgetArguments: unknown =
+      StoredDashboardViewConfig.withArgumentsRead(entry)["arguments"];
 
     if (
       !widgetArguments ||

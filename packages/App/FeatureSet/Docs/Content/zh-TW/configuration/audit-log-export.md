@@ -121,7 +121,7 @@ OneUptime 將每個批次以 POST 方式傳送到 **URL**，依照**內文格式
 每個條目是一則傳送到**主機**和**連接埠**的 RFC 5424 訊息，除非**協定**選擇 TCP，否則透過 TLS 傳送到連接埠 `6514`，facility 為 13（log audit），severity 為 6（informational）：
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
 訊息依八位元組計數（RFC 5425）分框，除非**分框方式**選擇每行一則訊息。如果接收端的憑證由私有 CA 簽發，需要在 **CA 憑證**中填寫該 CA 的憑證。這兩項都位於**更多欄位**中。
@@ -132,7 +132,7 @@ OneUptime 將每個批次以 POST 方式傳送到 **URL**，依照**內文格式
 
 | 鍵 | 包含的內容 |
 | --- | --- |
-| `schemaVersion` | `1`。結構的變更會隨新版本一起發布。 |
+| `schemaVersion` | 新匯出為 `2`，版本 2 之前儲存的匯出為 `1`。版本只會增加鍵。 |
 | `id` | 條目的 ID。同一條目傳送兩次時 ID 相同。 |
 | `createdAt` | 變更被記錄的時間，採用 UTC。 |
 | `projectId` | 進行變更的專案。 |
@@ -143,11 +143,22 @@ OneUptime 將每個批次以 POST 方式傳送到 **URL**，依照**內文格式
 | `apiKeyId`, `apiKeyName` | 進行變更所用的 API 金鑰（如有）。 |
 | `mcpOAuthGrantId`, `mcpClientName` | 進行變更所經由的 MCP 用戶端（如有）。 |
 | `workflowId`, `workflowName` | 進行變更的工作流程（如有）。 |
-| `changes` | 每個被變更的欄位：`field`，以及 `oldValue` 和 `newValue`。 |
+| `changes` | 每個被變更的欄位：`field`，以及 `oldValue` 和 `newValue`，版本 2 中還有 `summary`。 |
 
 檔案每行一個條目，使用 gzip 壓縮，並依其第一個條目所在的小時歸檔：`oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`。
 
+每個 `oldValue` 和 `newValue` 都是欄位的值：文字、數字、`true` 或 `false`，或由多個部分組成的設定的 JSON。電話號碼、電子郵件地址或 URL 是其文字，例如 `+14155550100`，連接埠是其編號。
+
 金鑰、權杖和密碼永遠不會外送：它們被記錄為 `[REDACTED]`，任何人都無權讀取的欄位不會出現在任何條目中。
+
+## 記錄版本
+
+| 版本 | 傳送的內容 |
+| --- | --- |
+| `2` | 每項變更還帶有 `summary`：以稽核日誌顯示的行說明變更了什麼，例如工作流程步驟的 `Added "Send Email" (send-email-1)`，或 JSON 中變更的路徑，沒有時為 `null`。這些行只寫出設定和路徑，從不寫出值。 |
+| `1` | 條目最初傳送時的樣子，沒有 `summary`。工作流程的步驟以前後的大小傳送，例如 `3 steps and 2 connections`。 |
+
+新匯出傳送版本 2。版本 2 之前儲存的匯出繼續傳送版本 1，因此讀取它的一方無需任何變更：當它準備好接收 `summary` 時，在匯出上點擊 **編輯**，然後在 **更多欄位** 下的 **記錄版本** 中選擇版本 2。版本適用於此後傳送的條目，每個條目都會在 `schemaVersion` 中寫明自己的版本。
 
 ## 條目何時傳送
 

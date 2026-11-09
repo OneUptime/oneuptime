@@ -15,7 +15,7 @@
  * So this suite walks agents/ and holds
  *
  *   - every agent whose package.json has a test script to a job that, on every
- *     pull request and every push to master, installs in the agent's directory
+ *     pull request and every push to main, installs in the agent's directory
  *     and then runs that script, with the Node major the agent's image runs;
  *   - every image that compiles its agent (its Dockerfile.tpl runs `npm run
  *     compile`) to one job of build.yml, which builds the Dockerfile release.yml
@@ -203,7 +203,7 @@ describe("every agent with npm tests has a workflow that runs them", () => {
   });
 
   test.each(agentsWithTests)(
-    "%s: on every pull request and push to master, with the Node major its image runs",
+    "%s: on every pull request and push to main, with the Node major its image runs",
     (directory) => {
       const running = allJobs.filter(({ job }) => {
         return jobRunsTests(job, directory);
@@ -220,14 +220,14 @@ describe("every agent with npm tests has a workflow that runs them", () => {
         expect({
           where,
           onPullRequests: Object.keys(triggers).includes("pull_request"),
-          onPushToMaster: ((triggers.push || {}).branches || []).includes(
-            "master",
+          onPushToMain: ((triggers.push || {}).branches || []).includes(
+            "main",
           ),
           node: nodeMajorOf(job),
         }).toEqual({
           where,
           onPullRequests: true,
-          onPushToMaster: true,
+          onPushToMain: true,
           node: imageNodeMajor(directory),
         });
       }

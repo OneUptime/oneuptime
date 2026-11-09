@@ -30,7 +30,7 @@ Värden för hela projektet som du sparar en gång och återanvänder i varje ar
 :::steps
 ### Öppna de globala variablerna
 
-Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**.
+Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflödesvariabel**.
 
 ### Namnge variabeln
 
@@ -48,7 +48,7 @@ Fyll i steget **Värde**:
 - **Innehåll** — själva värdet. Det är ett fält för lång text, så värden på flera rader fungerar.
 - **Hemlighet** — när den är påslagen tas värdet bort från körningsloggar och stegspår.
 
-Klicka på **Skapa Arbetsflöde Variabel**. För att ändra namnet eller beskrivningen dessförinnan klickar du på **Variabel** i listan över steg bredvid formuläret (visas på breda skärmar); det du skrev i båda stegen behålls.
+Klicka på **Skapa Arbetsflödesvariabel**. För att ändra namnet eller beskrivningen dessförinnan klickar du på **Variabel** i listan över steg bredvid formuläret (visas på breda skärmar); det du skrev i båda stegen behålls.
 :::
 
 Använd en global variabel i vilket arbetsflöde som helst med:
@@ -66,15 +66,15 @@ Listan visar varje variabels namn och beskrivning. Klicka på **Visa** på en ra
 | **Redigera Variabel**                      | Ändrar namnet, beskrivningen och — för en statisk variabel som ännu inte är hemlig — hemlighetsmarkeringen. När en variabel väl är hemlig förblir den hemlig. |
 | **Update Content**                         | Ersätter ett statiskt värde. Det sparade innehållet kan inte läsas tillbaka, så du skriver det nya värdet i sin helhet.                          |
 | **Use in Workflows**                       | Visar den exakta referensen att klistra in i dina block, med en kopieringsknapp.                                                                 |
-| **Ta bort Arbetsflöde Variabel**           | Tar bort den efter att ha bett dig bekräfta. Bekräftelsen nämner variabeln, så att du kan kontrollera att det är rätt.                            |
+| **Ta bort Arbetsflödesvariabel**           | Tar bort den efter att ha bett dig bekräfta. Bekräftelsen nämner variabeln, så att du kan kontrollera att det är rätt.                            |
 
-För att i stället skapa en variabel för en **OAuth 2.0-åtkomsttoken** öppnar du menyn **Mer** (**⋯**) bredvid **Skapa Arbetsflöde Variabel** och väljer **Create OAuth 2.0 Variable**. OAuth 2.0-variabler har [ett eget avsnitt](#oauth-20-variabler-token-som-förnyar-sig-själva) nedan. En variabels typ kan inte ändras efter att den har sparats.
+För att i stället skapa en variabel för en **OAuth 2.0-åtkomsttoken** öppnar du menyn **Mer** (**⋯**) bredvid **Skapa Arbetsflödesvariabel** och väljer **Create OAuth 2.0 Variable**. OAuth 2.0-variabler har [ett eget avsnitt](#oauth-20-variabler-token-som-förnyar-sig-själva) nedan. En variabels typ kan inte ändras efter att den har sparats.
 
 Du kan också uppdatera en variabel via API:t, vilket beskrivs [i slutet av den här sidan](#uppdatera-en-variabel-från-ett-arbetsflöde). Globala variabler och arbetsflödesvariabler är en funktion i planen Growth.
 
 ## Lokala arbetsflödesvariabler
 
-Variabler som hör till ett arbetsflöde, hanterade under **Arbetsflödesvariabler** i det arbetsflödets meny. De fungerar på samma sätt som globala variabler: **Skapa Arbetsflöde Variabel** skapar en statisk variabel, menyn **Mer** (**⋯**) skapar en OAuth 2.0-variabel och **Visa** öppnar en variabels sida. Hänvisa till dem med:
+Variabler som hör till ett arbetsflöde, hanterade under **Arbetsflödesvariabler** i det arbetsflödets meny. De fungerar på samma sätt som globala variabler: **Skapa Arbetsflödesvariabel** skapar en statisk variabel, menyn **Mer** (**⋯**) skapar en OAuth 2.0-variabel och **Visa** öppnar en variabels sida. Hänvisa till dem med:
 
 ```text
 {{local.variables.NAME}}

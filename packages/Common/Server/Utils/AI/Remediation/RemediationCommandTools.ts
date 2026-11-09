@@ -1,4 +1,5 @@
 import ObjectID from "../../../../Types/ObjectID";
+import { getLastingCloudChange } from "../../../../Utils/AiRemediation/DeclaredCodeChange";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
@@ -1742,8 +1743,19 @@ export default class RemediationCommandToolkit {
        * changes the code too).
        */
       if (command.managedAsCode) {
+        /*
+         * A change the code declares can also be made in the code: the
+         * person asks for that pull request from the fix's card
+         * (DeclaredCodeChanges), never the model.
+         */
+        const codeNote: string = getLastingCloudChange({
+          resourceType: command.resourceType,
+          command: command.command,
+        })
+          ? " From the fix's card a person can also ask for a pull request to that code with the same change, so the next apply keeps it: say so in your summary."
+          : "";
         const refusal: FullAutoRefusal = {
-          text: `The resource this changes belongs to ${command.managedAsCode}, and OneUptime AI only proposes changes to resources declared as code: the next apply would put the old value back. It was NOT executed. ${this.describeWhereRefusedChangesGo()}`,
+          text: `The resource this changes belongs to ${command.managedAsCode}, and OneUptime AI only proposes changes to resources declared as code: the next apply would put the old value back. It was NOT executed.${codeNote} ${this.describeWhereRefusedChangesGo()}`,
           approvalReason: `the resource belongs to ${command.managedAsCode}`,
         };
 

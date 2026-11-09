@@ -260,6 +260,7 @@ import {
 import type { SpyInstance } from "jest-mock";
 
 import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
+import { stubPublicNoteApproval } from "Common/Tests/Server/TestingUtils/PublicNoteApproval";
 const STATE_CHANGE_JOB: string =
   "IncidentStateTimeline:SendNotificationToSubscribers";
 const PUBLIC_NOTE_JOB: string =
@@ -615,6 +616,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   timelines = [];
   notes = [];
+
+  // Public notes need no approval here: each is published as it is posted.
+  stubPublicNoteApproval({});
 
   // The hooks, without a database.
   jest

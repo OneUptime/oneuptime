@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45208,
-    "untranslated": 2832
+    "keys": 47062,
+    "untranslated": 2785
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -224,6 +224,7 @@
     "Info",
     "Interaction to Next Paint",
     "Interfaces",
+    "Internet",
     "IoT",
     "Israel",
     "Israel (+972)",
@@ -334,6 +335,7 @@
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
+    "Powered by OneUptime",
     "Proxies",
     "Puerto Rico",
     "Pull request",
@@ -623,6 +625,7 @@
     "{{count}} MB",
     "{{count}} OID",
     "{{count}} Podman",
+    "{{count}} SLO",
     "{{count}} VM",
     "{{count}} app",
     "{{count}} appliance",
@@ -639,6 +642,7 @@
     "{{count}} manager",
     "{{count}} managers",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} pod",
     "{{count}} pods",

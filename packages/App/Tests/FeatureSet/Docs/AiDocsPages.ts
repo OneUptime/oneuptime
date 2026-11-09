@@ -346,6 +346,9 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   [INFRASTRUCTURE_AI_AGENTS]: [
     "resource AI agents",
+    // An AWS Organization's agents from one command, and a fix that lasts as a pull request.
+    "Every account of an AWS Organization.",
+    "A fix that lasts.",
     "The same tiers and modes.",
     "The same three checks.",
     "The same rule about credentials.",
@@ -369,6 +372,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Proxmox:",
     "OpenStack clouds:",
     "Cloud accounts:",
+    // What running the Cloud AI agent somewhere else needs, cloud by cloud.
+    "AWS:",
+    "Azure:",
+    "Google Cloud:",
     "OneUptime AI's tools.",
     "When OneUptime queues it.",
     "On the agent, before anything runs.",
@@ -491,6 +498,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
  */
 export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "OneUptime Cloud",
+  // A record's model, as the MCP Server page's table names it in every language.
+  "Cloud Budget",
   "OneUptime AI",
   "OneUptime",
   "OpenTelemetry",

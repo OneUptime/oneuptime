@@ -22,6 +22,10 @@ import {
   YAxis,
 } from "recharts";
 import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
+import {
+  ReferenceLineShade,
+  getReferenceLineShade,
+} from "../../Utils/ReferenceLineShade";
 import ExemplarPoint from "../../Types/ExemplarPoint";
 import FormattedExemplarPoint from "../Types/FormattedExemplarPoint";
 import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
@@ -450,7 +454,8 @@ const ChartLegend: (
   return (
     <div
       ref={legendRef}
-      style={{ paddingLeft: paddingLeft }}
+      // The legend's own items take the pointer; see the wrapper below.
+      style={{ paddingLeft: paddingLeft, pointerEvents: "auto" }}
       className={cx(
         "flex items-center",
         { "justify-center": legendPosition === "center" },
@@ -1140,6 +1145,12 @@ const LineChart: React.ForwardRefExoticComponent<
                    * the legend and the plot; see UseChartAnnotations.
                    */
                   height={legendHeight + annotations.railHeight}
+                  /*
+                   * The padded wrapper reaches down over the rail: it lets
+                   * the pointer through, so a mark's chip under it can be
+                   * hovered and clicked. The items above it take it back.
+                   */
+                  wrapperStyle={{ pointerEvents: "none" }}
                   content={({ payload }: any) => {
                     return ChartLegend(
                       { payload },
@@ -1321,27 +1332,35 @@ const LineChart: React.ForwardRefExoticComponent<
                 : null}
               {referenceLines?.map(
                 (refLine: ChartReferenceLineProps, refIndex: number) => {
+                  // The side a rule matches, shaded faintly under its line.
+                  const shade: ReferenceLineShade | null =
+                    getReferenceLineShade(refLine);
+
                   return (
-                    <ReferenceLine
-                      key={`ref-${refIndex}`}
-                      y={refLine.value}
-                      stroke={refLine.color}
-                      strokeDasharray={refLine.strokeDasharray || "4 4"}
-                      strokeWidth={1.5}
-                      {...(refLine.extendsDomain
-                        ? { ifOverflow: "extendDomain" as const }
-                        : {})}
-                    >
-                      {refLine.label && (
-                        <Label
-                          value={refLine.label}
-                          position="insideTopRight"
-                          fill={refLine.color}
-                          fontSize={11}
-                          fontWeight={500}
-                        />
-                      )}
-                    </ReferenceLine>
+                    <React.Fragment key={`ref-${refIndex}`}>
+                      {shade ? (
+                        <ReferenceArea {...shade} stroke="none" />
+                      ) : null}
+                      <ReferenceLine
+                        y={refLine.value}
+                        stroke={refLine.color}
+                        strokeDasharray={refLine.strokeDasharray || "4 4"}
+                        strokeWidth={1.5}
+                        {...(refLine.extendsDomain
+                          ? { ifOverflow: "extendDomain" as const }
+                          : {})}
+                      >
+                        {refLine.label && (
+                          <Label
+                            value={refLine.label}
+                            position="insideTopRight"
+                            fill={refLine.color}
+                            fontSize={11}
+                            fontWeight={500}
+                          />
+                        )}
+                      </ReferenceLine>
+                    </React.Fragment>
                   );
                 },
               )}

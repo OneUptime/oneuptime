@@ -72,6 +72,7 @@ import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailL
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
 import SubscriberMessageText, {
   SubscriberChatText,
   SubscriberSmsText,
@@ -630,13 +631,18 @@ const notifySubscribersOfEpisodePublicNote: (data: {
          * names, "<br/>" between groups) is for email bodies alone; every text
          * channel gets the plain-text one.
          */
-        const templateVariables: Record<string, string> = {
-          statusPageName: statusPageName,
-          statusPageUrl: statusPageURL,
-          detailsUrl: episodeDetailsUrl,
-          episodeSeverity: episode.incidentSeverity?.name || " - ",
-          episodeTitle: episode.title || "",
-        };
+        const templateVariables: Record<string, string> =
+          SubscriberTemplateValues.inPageLanguage(statuspage, {
+            statusPageName: statusPageName,
+            statusPageUrl: statusPageURL,
+            detailsUrl: episodeDetailsUrl,
+            // A default severity name in the page's language.
+            episodeSeverity: SubscriberTemplateValues.stateName(
+              episode.incidentSeverity?.name,
+              " - ",
+            ),
+            episodeTitle: episode.title || "",
+          });
 
         const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
           {
@@ -1360,6 +1366,8 @@ RunCron(
             subscriberNotificationStatusOnNoteCreated:
               StatusPageSubscriberNotificationStatus.Pending,
             shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+            // Published notes only: one waiting for approval is told to nobody yet.
+            isPublished: true,
           },
           props: {
             isRoot: true,
@@ -1438,6 +1446,8 @@ RunCron(
           query: {
             subscriberNotificationStatusOnNoteUpdated:
               StatusPageSubscriberNotificationStatus.Pending,
+            // Published notes only: one waiting for approval is told to nobody yet.
+            isPublished: true,
           },
           props: {
             isRoot: true,

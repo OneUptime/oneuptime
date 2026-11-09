@@ -9,7 +9,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 
 # Read-only: these jobs check out and test the code, nothing more.
 permissions:
@@ -60,6 +60,22 @@ jobs:
         env:
           RUN_REAL_SIDECAR_PRUNE_TESTS: "1"
         run: npx jest --config ./jest.config.json --runInBand PruneUnreachablePackages
+
+  # Every action a workflow or composite action names must exist on GitHub,
+  # which resolves a `uses:` ref only when a job that runs it starts. Some
+  # jobs start only on release day: 14.0.104's "Sign the release's images"
+  # never started, because sigstore/cosign-installer publishes no v4 tag
+  # (#6151). This reads each repository's tags and branches once (git
+  # ls-remote, no token) and fails the pull request that names a ref that is
+  # neither, or a commit pin that is not the tag its comment names. A job of
+  # its own: it needs only the checkout, and a red here skips nothing.
+  action-refs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every action a workflow names exists on GitHub
+        run: bash ./Scripts/GHA/check_action_refs.sh
 
   test:
     runs-on: ubuntu-latest
@@ -330,7 +346,7 @@ jobs:
       # the development render, without building anything; the jest suite
       # above pins what the stages contain.
       - run: bash Tests/Ops/lint-app-dockerfile.sh
-      # The same for the image Anthropic's OSS Scanner builds from master
+      # The same for the image Anthropic's OSS Scanner builds from main
       # (.oss-scanner/Dockerfile): BuildKit's checks, without building it.
       # The image is about 10 GB, more than a standard runner has to spare,
       # and the scanner emails security@oneuptime.com when its build fails;

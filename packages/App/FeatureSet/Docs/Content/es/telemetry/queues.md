@@ -2,6 +2,8 @@
 
 **Colas** da a cada cola de mensajes, topic y suscripción que usan tus aplicaciones su propia página: qué servicios publican en ella y cuáles consumen de ella, cuántos mensajes pasan, cuántos fallan y cuánto tarda el procesamiento, sus trazas y métricas y, en cuanto las métricas propias del broker llegan a OneUptime, su acumulación, el retraso de los consumidores, los mensajes fallidos y la limitación. Las colas tienen etiquetas, propietarios, reglas de etiquetas y de propietarios y archivado, como cualquier otro recurso. Ábrelas en **Productos → Recursos → Colas**.
 
+**Colas → Topología** muestra cómo fluyen los mensajes entre tus servicios: cada cola entre los servicios que publican en ella y los que consumen de ella. Cada línea muestra su tasa de mensajes, su tasa de errores y su tiempo p95, contados como los cuentan las tarjetas **Productores** y **Consumidores** de la cola, y en cuanto las métricas de un broker llegan a OneUptime, sus colas muestran el retraso de los consumidores o su acumulación, y sus mensajes fallidos. Busca en el mapa, fíltralo por broker o quédate solo con lo que necesita atención. La pestaña **Topología** de cada cola muestra de dónde vienen sus mensajes y adónde van.
+
 :::cards
 - [Instrumentar aplicaciones](#instrumentar-aplicaciones): Los spans de mensajería que tu instrumentación de OpenTelemetry ya envía.
 - [Métricas de salud del broker](#métricas-de-salud-del-broker): Acumulación, retraso y mensajes fallidos de tu broker, sistema por sistema.
@@ -213,6 +215,10 @@ builder.Services.AddOpenTelemetry()
 Un broker sabe lo que ninguna aplicación puede ver: cuántos mensajes esperan, cuánto retraso lleva cada grupo de consumidores, qué fue a parar a una cola de mensajes fallidos. Cada sección de abajo tiene la configuración del colector para un sistema: una configuración completa de OpenTelemetry Collector que termina en el exportador OTLP que envía a OneUptime. Pon una clave de ingesta de telemetría (**Ajustes del proyecto → Telemetría y APM → Claves de ingesta**) en `x-oneuptime-token`, sustituye `https://oneuptime.com` por tu propio host si usas autoalojamiento y ejecútala con `otel/opentelemetry-collector-contrib` 0.161.0 o posterior (cada configuración de aquí está validada con 0.161.0). Los colectores recientes registran que `otlphttp` está obsoleto en favor de `otlp_http`; ambos nombres son el mismo exportador. Para recopilar varios sistemas, combina sus receptores en un solo colector.
 
 La sección **Salud del broker** de cada cola representa las métricas listadas para su sistema (un indicador como su valor, un recuento por período sumado por intervalo, un contador como tasa por segundo) combinando las series de una cola como lo necesita cada métrica (los mensajes listos y sin confirmar de una cola de RabbitMQ se suman; el grupo de consumidores más retrasado es el retraso). Todo lo que envía el colector también está en el explorador **Métricas**. Mientras no haya llegado ninguna métrica listada para una cola, la sección muestra de dónde vienen las métricas de ese sistema, con un enlace a su sección de aquí.
+
+Donde ninguna aplicación con trazas publica en una cola ni consume de ella, sus mosaicos **Publicado**, **Consumido** y **Errores** y su gráfico **Mensajes** leen en su lugar los recuentos propios del broker (mensajes entrantes, mensajes salientes y sus errores sumados, con las solicitudes limitadas contadas aparte en **Errores**), y cada uno lo indica bajo su número. Una cola con spans los conserva, porque dicen qué servicio hizo qué. El **tiempo de procesamiento p95** sale solo de las trazas de los consumidores, porque ningún broker mide cuánto tarda un consumidor con un mensaje: sin ellas muestra **Necesita trazas de consumidores**.
+
+La tarjeta **Métricas del broker** de la parte superior de la sección lista cada métrica representada para el sistema de la cola: si llegó para la cola en el intervalo seleccionado, cuándo llegó por última vez y por qué no llegó cada una de las demás. Un recuento puede no tener nada que informar (que no haya solicitudes limitadas es una buena noticia); un nivel que el broker informa todo el tiempo y que nunca llega es uno que el colector no pide, y la tarjeta da las líneas que necesita su configuración; una métrica también puede dejar de llegar. Para una cola de Service Bus o Event Hubs de la que no llega ninguna métrica, la tarjeta también lee lo que su espacio de nombres envía en su lugar (consulta [La salud del broker sigue vacía](#la-salud-del-broker-sigue-vacía)).
 
 ### Amazon SNS
 
@@ -617,6 +623,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -648,6 +655,7 @@ Azure Monitor no tiene métrica de retraso de los consumidores para Event Hubs: 
 | `azure_usererrors_total` | Errores de usuario | Recuento por período |
 | `azure_quotaexceedederrors_total` | Errores de cuota superada | Recuento por período |
 | `azure_throttledrequests_total` | Solicitudes limitadas | Recuento por período |
+| `azure_size_average` | Tamaño | Indicador |
 
 ### Azure Service Bus
 
@@ -677,6 +685,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -684,6 +694,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -706,13 +717,17 @@ service:
 - Las métricas encuentran su cola o su topic por el espacio de nombres (`name`) y la entidad (`EntityName`); los spans de los SDK nombran el mismo espacio de nombres como `<namespace>.servicebus.windows.net`. Un span sobre `orders/Subscriptions/billing` u `orders/$DeadLetterQueue` pertenece a `orders`, como las métricas.
 - `maximum_number_of_records_per_resource` es cuántas series devuelve Azure por métrica y espacio de nombres, 10 salvo que lo aumentes: mantenlo por encima de tu número de colas y topics (las métricas de errores dividen además cada entidad por resultado), o los demás no se informarán.
 - Azure Monitor no divide por suscripción de topic: los recuentos de un topic cubren todas sus suscripciones.
-- La lista `metrics` recopila exactamente lo que representa la página de la cola, cada una con la única agregación que representa; añade una métrica (`ScheduledMessages`, `Size`, …) para recopilarla también.
+- La lista `metrics` recopila exactamente lo que representa la página de la cola, cada una con la única agregación que representa; añade una métrica (`IncomingRequests`, `Messages`, …) para recopilarla también. Un colector cuya lista es anterior a `ScheduledMessages`, `Size` o `ServerSendLatency` no envía ninguna de ellas: la tarjeta **Métricas del broker** de la cola nombra las líneas que hay que añadir.
+- Solo este receptor divide las métricas por cola y topic. Una [suscripción de Azure conectada](/docs/telemetry/cloud-accounts) y una configuración de diagnóstico que exporta métricas envían ambas los totales del espacio de nombres, sin `EntityName`, así que ninguna de ellas llega a una cola: la página del propio espacio de nombres en **Nube → Todos los recursos** tiene los de la suscripción, y la tarjeta **Métricas del broker** de una cola dice por qué faltan los suyos.
+- Ninguna de estas métricas depende del nivel del espacio de nombres. `ServerSendLatency` se informa por cada envío, así que una cola a la que no se envió nada en el intervalo no tiene ninguna.
 - El receptor lista tus espacios de nombres una vez al día, así que un espacio de nombres nuevo puede tardar hasta 24 horas en aparecer.
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
 | `azure_activemessages_average` | Mensajes activos | Indicador |
 | `azure_deadletteredmessages_average` | Mensajes con problemas de entrega | Indicador |
+| `azure_scheduledmessages_average` | Mensajes programados | Indicador |
+| `azure_size_average` | Tamaño | Indicador |
 | `azure_incomingmessages_total` | Mensajes entrantes | Recuento por período |
 | `azure_outgoingmessages_total` | Mensajes salientes | Recuento por período |
 | `azure_completemessage_total` | Mensajes completados | Recuento por período |
@@ -720,6 +735,7 @@ service:
 | `azure_servererrors_total` | Errores del servidor | Recuento por período |
 | `azure_usererrors_total` | Errores de usuario | Recuento por período |
 | `azure_throttledrequests_total` | Solicitudes limitadas | Recuento por período |
+| `azure_serversendlatency_average` | Latencia de envío del servidor | Indicador |
 
 ### BullMQ
 
@@ -1046,6 +1062,10 @@ Cuando sus spans sí la nombran, créala a mano con el mismo sistema y destino (
 - El receptor no informa de ella. Kafka solo informa del retraso de un grupo de consumidores después de que el grupo confirme un offset; RabbitMQ solo informa de las colas de los hosts virtuales a los que tiene acceso su usuario, y no registra ningún error por el resto (consulta [RabbitMQ](#rabbitmq)); los contadores de RabbitMQ aparecen con la primera actividad; Azure Monitor devuelve 10 colas por métrica y espacio de nombres salvo que se aumente `maximum_number_of_records_per_resource`; Cloud Monitoring solo lee los tipos de `metrics_list`.
 - Llega tarde. `aws_cloudwatch` espera `delay` (10 minutos) a que CloudWatch publique, así que sus puntos llegan con 11 a 17 minutos de retraso, y las métricas de Pub/Sub llegan con minutos de retraso.
 - El sistema no tiene métricas representadas: Azure Event Grid, NATS, los brokers JMS distintos de ActiveMQ y BullMQ (consulta sus secciones). Sus métricas están en el explorador **Métricas**.
+- Abre la tarjeta **Métricas del broker** de la cola: lista qué métricas llegan y por qué no llegan las demás. Para una cola de Service Bus o Event Hubs de la que no llega ninguna métrica, también dice qué envía el espacio de nombres en su lugar, una de tres cosas.
+- **Nada del espacio de nombres**: ningún colector lo lee, o todas las lecturas fallan. Da a la entidad de servicio del receptor el rol **Monitoring Reader**, y busca `AuthorizationFailed` o `401` en el registro del colector: un secreto de cliente caducado detiene todas las lecturas.
+- **Solo totales**: una [suscripción de Azure conectada](/docs/telemetry/cloud-accounts) o una configuración de diagnóstico envía las métricas del espacio de nombres para el espacio de nombres en su conjunto, sin ninguna cola ni topic. Lee también el espacio de nombres con el receptor `azure_monitor`, que las divide por `EntityName`.
+- **Solo otras colas**: llegan métricas de otras colas y topics del espacio de nombres, pero no de esta. El `maximum_number_of_records_per_resource` del receptor (10 salvo que lo aumentes) la dejó fuera: súbelo por encima del número de colas y topics del espacio de nombres.
 
 ### Dos colas para un mismo destino
 

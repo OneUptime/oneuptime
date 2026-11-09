@@ -44,8 +44,22 @@ Toutes trois se trouvent sous **Produits → IA / LLM → Connecter**. Utilisez-
 | Façon d'entrer | Ce que vous obtenez | Comment |
 | --- | --- | --- |
 | **Vos applications** | Chaque appel d'IA au moment où il a lieu : la conversation, la personne, le prompt et la réponse, les jetons, le coût et les erreurs | OpenTelemetry depuis votre code ou une passerelle, en cinq étapes |
-| **Vos comptes de fournisseurs d'IA** | Ce que chaque compte OpenAI, Anthropic, Azure, Bedrock ou Vertex AI a consommé et coûté, par jour | Un identifiant en lecture seule et aucun code : [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts) |
+| **Vos comptes de fournisseurs d'IA** | Ce que chaque compte OpenAI, Anthropic, Azure, Bedrock, Vertex AI ou Cursor a consommé et coûté, par jour ou par heure | Un identifiant en lecture seule et aucun code : [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts) |
 | **Les outils d'IA de votre entreprise** | Ce que vos équipes demandent à Claude Enterprise ou Microsoft 365 Copilot, par personne | Un identifiant en lecture seule et aucun code : [Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools) |
+
+Les comptes de fournisseurs et les assistants de code apportent l'utilisation et le coût, jamais un appel : ils remplissent **Utilisation**, et **Conversations** et **Appels** restent vides tant que vos applications n'envoient pas leurs appels d'IA ou qu'aucun outil d'IA de l'entreprise n'est connecté. [Vérifier ce qui arrive](#vérifier-ce-qui-arrive) montre quelle voie apporte quoi.
+
+## Vérifier ce qui arrive
+
+La **Vérification de la configuration** en haut de **Connecter** indique ce que chaque voie apporte en ce moment, et **Vérifier à nouveau** la relit. Une liste **Conversations** ou **Appels** vide commence par le même constat, avec un bouton pour la suite.
+
+| Ce qu'elle trouve | Ce qu'il faut faire |
+| --- | --- |
+| Aucune application n'a envoyé d'appel d'IA | [Envoyer vos appels d'IA](#envoyer-vos-appels-dia) : les comptes de fournisseurs connectés apportent l'utilisation et le coût par jour, jamais un appel |
+| Une application appelle l'API d'un fournisseur d'IA, et aucune instrumentation GenAI ne l'enregistre | Ajoutez-en une pour le langage de l'application : la vérification a trouvé ses spans client HTTP vers `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` ou l'API d'un autre fournisseur d'IA |
+| Les appels arrivent sans prompts ni réponses | [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit) sur les spans : les prompts et les réponses envoyés comme événements de journal n'apparaissent pas |
+| Les appels sont juste en dehors de la période | La liste propose la période qui contient le plus récent |
+| Un compte de fournisseur ne lit aucune utilisation | Sa ligne indique le dernier jour avec utilisation, ou le premier jour lu ; une connexion Azure qui ne trouve aucune ressource a besoin de Monitoring Reader là où se trouvent les ressources |
 
 ## Avant de commencer
 
@@ -94,6 +108,25 @@ traceloop.initialize({
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
+@tab .NET
+```bash
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
+```
+
+```csharp
+// Before any OpenAI or Azure OpenAI client is created:
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("OpenAI.*").AddOtlpExporter())
+    .WithMetrics(metrics => metrics.AddMeter("OpenAI.*").AddOtlpExporter());
+```
+@tab Java
+```bash
+curl -L -O https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+java -javaagent:opentelemetry-javaagent.jar -jar my-ai-agent.jar
+```
 @tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -102,6 +135,8 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
 :::
+
+Chacun d'eux trace de la même façon les appels à OpenAI, Azure OpenAI et Microsoft Foundry. Sur .NET et Java, définissez aussi les variables de l'onglet OpenTelemetry SDK : les bibliothèques OpenAI et Azure.AI.OpenAI tracent leurs appels une fois leur option activée, et l'agent Java trace le SDK Java d'OpenAI.
 
 Vous hébergez OneUptime vous-même ? Utilisez `https://YOUR-ONEUPTIME-HOST/otlp` au lieu de `https://oneuptime.com/otlp`. Appelez votre modèle une fois, et l'appel apparaît sous **Appels**.
 
@@ -114,6 +149,8 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
 Les instrumentations OpenTelemetry plus récentes attendent `span_only`, `event_only` ou `span_and_event` au lieu de `true`. Sans contenu enregistré, une conversation montre quand même ses durées, son coût et ses problèmes. Les prompts peuvent contenir des données sensibles : [Confidentialité et masquage](#confidentialité-et-masquage) montre comment les masquer avant leur stockage.
+
+Les conversations lisent ce qui est enregistré sur le span de l'appel. L'instrumentation OpenTelemetry pour Python l'y enregistre avec `span_only` ; les instrumentations pour JavaScript et Java, et celle pour Python avec `true`, l'envoient comme événements de journal, que les conversations ne lisent pas, et la **Vérification de la configuration** le signale. Le SDK AI Inference d'Azure l'enregistre sur le span avec `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI avec `EnableSensitiveData` ; la bibliothèque OpenAI pour .NET n'en enregistre aucun.
 
 ### Regrouper les appels en conversations
 
@@ -203,7 +240,7 @@ Une alerte prête à l'emploi déclenche une alerte qui se résout d'elle-même,
 
 L'onglet **Utilisation** montre les appels, jetons et coûts d'une période (les 7 derniers jours si vous n'en choisissez pas une autre), et un tableau des 25 premiers selon l'une de cinq ventilations : **Employé**, **Équipe**, **Modèle**, **Fournisseur** et **Application / Service**. Les appels qui ne nomment personne sont comptés sous **Non attribué**, jamais écartés.
 
-Ce sont **Vos appels d'IA**. Choisissez plutôt **Comptes fournisseurs** pour voir ce qui a été facturé à vos comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI connectés : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#voir-lutilisation). Les deux ne sont jamais additionnés.
+Ce sont **Vos appels d'IA**. Choisissez plutôt **Comptes fournisseurs** pour voir ce qui a été facturé à vos comptes OpenAI, Anthropic, Azure, Bedrock, Vertex AI et Cursor connectés : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#voir-lutilisation). Les deux ne sont jamais additionnés.
 
 Les personnes et les équipes viennent des attributs d'identité de l'appel : voir [Attribution aux employés et aux équipes](/docs/telemetry/ai-coding-assistants#attribution-aux-employés-et-aux-équipes).
 
@@ -225,11 +262,13 @@ flowchart TB
 | Jetons en entrée et en sortie | Les deux totaux | Les totaux de jetons des spans valent tous deux 0 |
 | Coût (USD) | Le coût, avec le coût en micro-USD de Codex converti en USD | Le total des coûts des spans vaut 0 |
 | Appels LLM | Rien : spans uniquement | — |
-| Tableaux **Employé**, **Équipe**, **Modèle** | Le coût seulement ; les cellules des appels et des jetons affichent `—` | Ce tableau n'a trouvé aucune ligne de span |
+| Tableaux **Employé**, **Équipe**, **Modèle** | Le coût, et les jetons quand les métriques les comptent ; la cellule des appels affiche `—` | Ce tableau n'a trouvé aucune ligne de span |
 | Tableaux **Fournisseur**, **Application / Service** | Rien : spans uniquement | — |
 | Conversations | Rien : les conversations sont construites à partir des spans | — |
 
 Un chiffre tiré des métriques est marqué **depuis les métriques GenAI**, car il n'a pas de lignes correspondantes dans **Appels**. Ainsi, dès que vos spans GenAI fournissent un chiffre, la part d'un outil qui n'envoie que des métriques n'apparaît pas. Pour voir les dépenses d'un tel outil à part, envoyez-le dans un projet à lui, où n'arrive aucun span GenAI.
+
+Une métrique de jetons ou de coût est un compteur. Les points d'un compteur delta sont additionnés ; un compteur cumulatif, celui des SDK OpenTelemetry par défaut, compte ce dont il a augmenté sur la période, chaque série à part, si bien qu'un total courant exporté chaque minute n'est compté qu'une fois. Les budgets comptent les métriques GenAI de la même façon.
 
 ## Ce que coûte un appel
 
@@ -302,6 +341,8 @@ OneUptime lit les conventions GenAI d'OpenTelemetry, ainsi que les variantes qu'
 
 Un span compte comme un appel d'IA s'il porte l'une de ces valeurs, ou n'importe quel attribut qui commence par `gen_ai.`, `llm.` ou `traceloop.`. Le total de jetons vaut entrée plus sortie quand aucun total n'est fourni. Les clés `gen_ai.usage.total_tokens` et `gen_ai.usage.cost` ne font pas partie des conventions, qui ne définissent ni l'une ni l'autre ; OneUptime les lit parce que les instrumentations courantes les envoient.
 
+Le fournisseur est enregistré sous le nom des conventions, quelle que soit l'orthographe reçue : `az.ai.openai` et `azure_openai` comme `azure.ai.openai`, `az.ai.inference` comme `azure.ai.inference`, `OpenAI` comme `openai`. Un appel qu'un SDK OpenAI nomme `openai` mais envoie à un point de terminaison Azure OpenAI ou Microsoft Foundry, d'après son `server.address` ou le `gen_ai.openai.api_base` d'OpenLLMetry, est enregistré comme `azure.ai.openai`. **Appels** affiche le fournisseur par son nom, et l'appel d'un déploiement Azure affiche le déploiement demandé avec, en dessous, le modèle qui l'a servi et qui en fixe le prix.
+
 Les jetons en entrée comptent aussi ceux du cache, comme les conventions les comptent : quand les nombres de cache d'un span dépassent son nombre en entrée, celui-ci les a laissés de côté, et OneUptime les ajoute. La bêta des traces de Claude Code n'envoie aucune clé `gen_ai.usage.*` : sur un span qui nomme son modèle, OneUptime lit ses `input_tokens`, `output_tokens`, `cache_read_tokens` et `cache_creation_tokens`, et ajoute les deux nombres de cache à `input_tokens`, qui les laisse de côté.
 
 Les clés d'identité (qui a fait l'appel, et son équipe) sont listées sous [Attribution aux employés et aux équipes](/docs/telemetry/ai-coding-assistants#attribution-aux-employés-et-aux-équipes).
@@ -312,11 +353,15 @@ La vue de conversation lit les messages d'un appel, dans cet ordre, depuis :
 
 - l'événement `gen_ai.client.inference.operation.details` ;
 - les attributs `gen_ai.input.messages`, `gen_ai.output.messages` et `gen_ai.system_instructions` ;
-- les anciens événements par rôle : `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` et `gen_ai.choice` ;
+- les anciens événements par rôle : `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` et `gen_ai.choice`, avec le message dans `gen_ai.event.content` quand le SDK AI Inference d'Azure ou Semantic Kernel les a envoyés ;
 - les attributs indexés : `gen_ai.prompt.N.content` et `gen_ai.completion.N.content` d'OpenLLMetry, `llm.input_messages.N.message.content` et `llm.output_messages.N.message.content` d'OpenInference ;
 - les tableaux de messages dans `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` et `output.value`.
 
 ## Dépannage
+
+:::details Des comptes de fournisseurs sont connectés, mais Conversations et Appels sont vides
+Un compte de fournisseur apporte ce qu'il a utilisé et coûté, par jour, jamais un appel ni une conversation : ceux-ci viennent de vos applications. La **Vérification de la configuration** sur **Connecter** indique si une application envoie des appels d'IA ; envoyez-les comme le montre [Envoyer vos appels d'IA](#envoyer-vos-appels-dia).
+:::
 
 :::details Des appels arrivent, mais aucune conversation n'affiche de texte
 Votre instrumentation n'enregistre pas le contenu. Activez-le comme le montre [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit) ; les appels antérieurs restent sans texte.
@@ -327,11 +372,11 @@ Les appels ne portent aucun identifiant de conversation. Définissez `gen_ai.con
 :::
 
 :::details Les appels affichent des jetons mais coûtent 0 $
-Le modèle ne figure pas dans la liste de prix intégrée, ou le span ne nomme aucun modèle. Ajoutez les prix du modèle dans l'onglet **Tarifs** ; les appels qui arrivent ensuite sont tarifés.
+Le modèle ne figure pas dans la liste de prix intégrée, ou le span ne nomme aucun modèle. Ajoutez les prix du modèle dans l'onglet **Tarifs** ; les appels qui arrivent ensuite sont tarifés. Un appel Azure OpenAI est tarifé selon le modèle qui l'a servi, `gen_ai.response.model` : si son span n'en nomme aucun, tarifez le nom du déploiement.
 :::
 
-:::details L'onglet Utilisation indique depuis les métriques GenAI et affiche `—` pour les appels et les jetons
-Les chiffres viennent d'un outil qui envoie des métriques sans spans GenAI, comme un assistant de code. Une métrique porte le coût mais aucun détail par appel, donc ces cellules restent vides. Voir [Les spans d'abord, les métriques en relais](#les-spans-dabord-les-métriques-en-relais).
+:::details L'onglet Utilisation indique depuis les métriques GenAI et affiche `—` pour les appels
+Les chiffres viennent d'un outil qui envoie des métriques sans spans GenAI, comme un assistant de code. Une métrique porte le coût et les jetons mais aucun détail par appel, donc les cellules des appels restent vides. Voir [Les spans d'abord, les métriques en relais](#les-spans-dabord-les-métriques-en-relais).
 :::
 
 :::details Un moniteur de budget oscille entre deux états
@@ -341,7 +386,7 @@ La fenêtre glissante du moniteur fait moins de 15 minutes, si bien qu'il ne tro
 ## Étapes suivantes
 
 :::cards
-- [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts): Utilisation et coût de vos comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI, sans code.
+- [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts): Utilisation et coût de vos comptes OpenAI, Anthropic, Azure, Bedrock, Vertex AI et Cursor, sans code.
 - [Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools): Ce que vos équipes demandent à Claude Enterprise et Microsoft 365 Copilot.
 - [Assistants de code IA](/docs/telemetry/ai-coding-assistants): Les dépenses par ingénieur pour Claude Code, Cursor, Codex, Gemini CLI et Copilot.
 - [Passerelles IA](/docs/telemetry/ai-gateways): Tracer les appels de modèle de chaque application depuis une passerelle LiteLLM ou Portkey.

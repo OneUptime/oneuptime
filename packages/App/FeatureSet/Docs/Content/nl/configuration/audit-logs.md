@@ -71,49 +71,39 @@ Een wijziging van deze instellingen geldt binnen een minuut.
 
 Filter op **Resourcetype**, **Resourcenaam**, **Actie**, **E-mailadres gebruiker** of **Tijd**. Een wijziging toont alleen de velden die zijn veranderd, ervoor en erna, en een opslag die niets verandert, voegt geen vermelding toe.
 
+Een resource zonder eigen naam krijgt de naam van wat hem in OneUptime benoemt: een uitzondering haar type en het begin van haar bericht, met id's, adressen en alles wat op een geheim lijkt gemaskeerd, een uitvoering van een runbook zijn runbook, het telefoonnummer van een beleid voor inkomende oproepen het nummer zelf, en een sjabloon of een domein zijn eigen naam.
+
 Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resources hebben ook een eigen pagina **Auditlogboeken**, in een ingeklapte sectie van hun zijmenu, zoals **Geavanceerd**. Die toont alleen de vermeldingen van die resource, samen met die van wat erbij hoort: de pagina van een SLO toont ook de regels en eigenaren.
 
 ## Wat wordt vastgelegd
 
-| Resource | **Resourcetype** in het logboek |
+Alles wat mensen in een project maken, wijzigen of verwijderen, wordt vastgelegd: monitors, incidenten, waarschuwingen, statuspagina's, workflows en hun stappen, wachtrijen, dashboards, piketbeleid, teams en wie erin zit, API-sleutels en elke instelling. **Resourcetype** zegt waar een vermelding over gaat, bijvoorbeeld `Monitor`, `Workflow` of `Queue`.
+
+| Niet vastgelegd | Waarom |
 | --- | --- |
-| Monitors | `Monitor` |
-| Incidenten | `Incident` |
-| Waarschuwingen | `Alert` |
-| Statuspagina's | `Status Page` |
-| Geplande onderhoudsgebeurtenissen | `Scheduled Maintenance Event` |
-| Piketbeleid | `On-Call Policy` |
-| SLO's | `Service Level Objective` |
-| De regels en eigenaren van een SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Teams | `Team` |
-| Aangepaste rollen, en de teams en API-sleutels die er een krijgen | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Labels | `Label` |
-| Statussen en ernstniveaus van incidenten | `Incident State`, `Incident Severity` |
-| Statussen en ernstniveaus van waarschuwingen | `Alert State`, `Alert Severity` |
-| Monitorstatussen | `Monitor Status` |
-| Statussen van gepland onderhoud | `Scheduled Maintenance State` |
-| Incidentrollen | `Incident Role` |
-| Postmortem-statussen | `Postmortem Status` |
-| API-sleutels | `API Key` |
-| MCP-clients die mensen koppelen | `MCP Client Authorization` |
-| Inventarisitems | `Inventory Item` |
-| Collectorconfiguraties | `Collector Config` |
-| vCenters | `vCenter` |
-| OpenStack-clouds, en de controles die ertegen draaien | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Pakketopnames, en hun downloads | `Packet Capture` |
-| Beveiligingszaken en hun prioriteiten en statussen, playbooks en hun uitvoeringen, beschermde entiteiten, entiteitkritikaliteit, en het risico van een entiteit als iemand het reset | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Regeluitzonderingen | `Rule Exception` |
-| Volglijsten | `Watchlist` |
-| Volglijstwaarden | `Watchlist Value` |
-| Hunts | `Hunt` |
-| Taken en bewijs van beveiligingszaken | `Security Case Task`, `Security Case Evidence` |
-| Gegevensopslagen en hun bevindingen, en de problemen, instellingen, controle-instellingen, aangepaste gegevenstypen en residentieregels van Gegevensbeveiliging | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Instellingen van Data-observability | `Data Observability Setting` |
-| Exports van het auditlogboek | `Audit Log Export` |
+| Logboeken van berichten | Elk is al de vastlegging van een e-mail, sms, oproep, pushmelding of chatbericht dat OneUptime heeft verzonden of ontvangen. |
+| Vastleggingen van uitvoeringen | Elk is al de vastlegging van een workflowuitvoering, een piketescalatie, een scan, een import of een AI-uitvoering. |
+| Wat agents en telemetrie rapporteren | Gevonden resources, metingen en gebruik veranderen bij elk rapport, niet omdat iemand ze heeft gewijzigd. |
+| Activiteitenfeeds | Een feed toont wijzigingen die het auditlogboek al vastlegt. |
+| De werkstatus van OneUptime | Sessies, taken in de wachtrij en andere status die OneUptime bijhoudt terwijl het werkt. |
+| De eigen meldingsinstellingen van een persoon | De adressen, nummers en persoonlijke piketregels van ieder persoon zijn alleen van hem of haar. |
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.
 
-Andere gegevens staan niet in het auditlogboek, zoals wie in een team zit, of een machtiging die los aan een team is toegevoegd. Velden die niemand mag lezen, ontbreken in elke vermelding, en sleutels, tokens en wachtwoorden worden vastgelegd als `[REDACTED]`: de vermelding laat zien dat ze zijn gewijzigd, nooit hun waarde.
+Velden die alleen OneUptime schrijft, zoals wanneer een host voor het laatst is gezien, ontbreken in elke vermelding, net als velden die niemand mag lezen. Schrijft OneUptime er een omdat iemand erom vroeg, zoals bij het samenvoegen van een uitzondering met een andere of het opnieuw instellen van een webhook-URL, dan legt de vermelding het vast als een wijziging van die persoon. Sleutels, tokens en wachtwoorden worden vastgelegd als `[REDACTED]`: de vermelding laat zien dat ze zijn gewijzigd, nooit hun waarde. De stappen van een workflow worden vastgelegd als wat er veranderde, met de namen van de instellingen van een stap maar nooit wat erin is getypt, en het verplaatsen van een stap op het canvas wordt niet vastgelegd.
+
+Wat OneUptime doet omdat iemand erom vroeg, wordt ook als diens wijziging vastgelegd, of het project systeemgebeurtenissen opslaat of niet:
+
+- Een uitvoering van een runbook starten, goedkeuren, voltooien, overslaan en annuleren. De stappen ervan worden vastgelegd als wat er met elke stap gedaan is, zoals `Approved "Restart the API" (step 3)`, nooit met wat een stap uitvoerde.
+- Wat een regel verandert wanneer iemand die uitvoert: de labels en eigenaren die hij toevoegt, de records die een privacyregel privé maakt, de apparaten die een regel voor locatietoewijzing verplaatst, de apparaten en monitoren die een regel voor automatisch importeren aanmaakt, en wat een monitorregel van een statuspagina of een SLO aan die pagina of SLO verandert.
+- Het telefoonnummer van een beleid voor inkomende oproepen kopen, koppelen en vrijgeven.
+- Een data-alert oplossen dat iemand markeert als verwacht of als geen probleem.
+- De link van een agendafeed opnieuw instellen.
+- De teams waar iemand lid van wordt bij het aanmelden met SSO.
+
+Wat een regel uit zichzelf doet, is een wijziging van OneUptime zelf, vastgelegd wanneer **Systeemgebeurtenissen opslaan** aan staat: labels en eigenaren die een regel toevoegt wanneer een record wordt aangemaakt, en een record dat hij dan privé maakt; de apparaten en monitoren die een regel voor automatisch importeren aanmaakt uit nieuwe scanresultaten; en wat een monitorregel van een statuspagina of een SLO verandert wanneer een regel, een monitor of een label wordt opgeslagen.
+
+Het opnieuw instellen van de AI-agent van een host, een cluster of een cloudaccount wordt vastgelegd op de eigen pagina **Auditlogboeken** van die resource, als de wijziging van `aiAgentResetAt` door wie hem opnieuw instelde: wie, en wanneer. Hetzelfde geldt voor het maken van een sleutel voor de AI-agent van een cloudaccount: de sleutels staan er als gewijzigd, nooit met een sleutel of een hash. Wat een agent meldt wanneer hij verbinding maakt en zich meldt, blijft buiten beschouwing, zoals voorheen.
 
 ## Hoe lang vermeldingen blijven
 

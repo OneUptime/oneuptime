@@ -20,12 +20,15 @@ flowchart TB
     open -->|Ja| join["Blir med i den"]
     open -->|Nei| reopen(["En løst innenfor<br/>gjenåpningsvinduet?"])
     reopen -->|Ja| reopened["Gjenåpner den"]
-    reopen -->|Nei| created["Åpner en<br/>ny episode"]
+    reopen -->|Nei| enough(["Pågår nok<br/>samsvarende varsler?"])
+    enough -->|Ja| created["Åpner en ny episode<br/>med alle sammen"]
+    enough -->|Ikke ennå| waits["Venter alene"]
 ```
 
 - **Regelens betingelser** avgjør hvilke varsler den gjelder for. En regel uten betingelser gjelder for hvert nytt varsel.
 - **Grupperingsnøkkelen** avgjør hvilke varsler som deler en episode: de med samme monitor, samme alvorlighetsgrad, samme tittel eller den kombinasjonen regelen grupperer etter. En regel som ikke grupperer etter noe, legger hvert varsel den samsvarer med, i én episode.
 - **Tidsvinduet** avgjør hvor lenge en episode fortsetter å ta imot varsler. Når det er slått på, blir et varsel bare med hvis det kommer innenfor vinduet etter episodens siste varsel. Når det er slått av, fortsetter samsvarende varsler å bli med til episoden er løst.
+- **Vent på flere varsler** avgjør når en ny episode åpnes. Når det er slått av, som en ny regel starter med, åpner det første samsvarende varselet en. Når det er slått på, venter et varsel alene til så mange samsvarende varsler fra gruppen som du har satt, pågår, og da åpnes én episode med alle sammen. Se [Åpne en episode bare for flere varsler](#åpne-en-episode-bare-for-flere-varsler).
 
 Gruppering skjer når et varsel opprettes. En regel du legger til i dag, grupperer varslene som opprettes etter den; den omgrupperer ikke dem som allerede finnes.
 
@@ -72,10 +75,21 @@ Alt annet en regel kan gjøre, er foldet sammen under **Flere felt** sist på tr
 | Gruppe                    | Innstillinger                                                                                              |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Vakt og eierskap**      | **Vaktpolicyer** som skal kjøre når regelen åpner en episode, og **Episodeeiere**.                         |
-| **Episodens livssyklus**  | **Gjenåpne nylig løste episoder**, **Vent før en episode løses** og **Løs stille episoder**, hver en bryter med sine minutter. |
+| **Episodens livssyklus**  | **Vent på flere varsler**, en bryter med et antall, deretter **Gjenåpne nylig løste episoder**, **Vent før en episode løses** og **Løs stille episoder**, hver en bryter med sine minutter. |
 | **Detaljer**              | Regelens **Beskrivelse**, **Mal for episodetittel**, **Mal for episodebeskrivelse** og **Episodeetiketter**. |
 
 Regler kontrolleres ovenfra og ned i listen, og det første samsvaret vinner: Dra en regel for å endre plassen. Sett spesifikke regler over brede. Listens kolonne **Gruppering** sier i én setning hva hver regel gjør, for eksempel "Én episode per overvåking".
+
+### Åpne en episode bare for flere varsler
+
+**Vent på flere varsler**, under **Episodens livssyklus**, holder et enkelt varsel utenfor en episode. Slå det på og angi hvor mange: **Åpne en episode når 3 samsvarende varsler pågår**, fra 2 til 100.
+
+- **Inntil da venter hvert varsel alene.** Et varsel som ikke finner noen åpen episode fra sin gruppe å bli med i, og ingen løst episode å gjenåpne, åpner ingenting og kjører bare sine egne vaktpolicyer, slik et varsel som ingen regel samsvarer med, gjør.
+- **Så åpnes én episode med alle sammen.** Varselet som fyller antallet, åpner episoden med hvert varsel som ventet. Episoden tar tittel, monitor og alvorlighetsgrad fra det første av dem og stiger til den mest alvorlige, og varslene etter dem blir med i den som vanlig.
+- **Bare pågående varsler teller.** Et varsel som er løst i mellomtiden, er over, så en monitor som stadig feiler og kommer seg igjen, åpner aldri en episode av seg selv. Mens **Grupper bare varsler som kommer tett etter hverandre** er slått på, må varslene også ha kommet innenfor tidsvinduet fra hverandre.
+- **Det teller per gruppe.** Med **Alt samlet** teller alle samsvarende varsler, så en episode åpnes bare ved et utfall som utløser flere monitorer samtidig. Med **Overvåking** åpnes en monitors episode når den monitoren har flere pågående varsler.
+
+Listens kolonne **Gruppering** sier "Åpner en episode når 3 samsvarende varsler pågår". Via API-et og Terraform heter det `enableMinimumAlertCount` og `minimumAlertCount`.
 
 ## Episodetitler
 
@@ -115,8 +129,9 @@ flowchart TB
     grouped -->|"Blir med i en episode"| none["Ingenting mer kjører"]
 ```
 
-- **En ny episode** kjører regelens **Vaktpolicyer** pluss dem fra enhver samsvarende regel på fanen **Episode Rules** under **Varsler → Regler → Vaktregler**.
+- **En ny episode** kjører regelens **Vaktpolicyer** pluss dem fra enhver samsvarende regel på fanen **Episoderegler** under **Varsler → Regler → Vaktregler**.
 - **Et varsel som blir med i en åpen episode**, kjører bare sine egne policyer. Episodens kjører ikke på nytt.
+- **Et varsel som venter på flere varsler**, kjører også bare sine egne policyer. Når **Vent på flere varsler** er slått på og regelens policyer er de eneste som tilkaller, tilkaller et enkelt varsel ingen før nok av dem pågår.
 - **Svarer noen på en episodes tilkalling**, bekreftes episoden og dermed hvert varsel i den.
 
 > [!TIP]
@@ -160,7 +175,9 @@ En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperi
 | **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avansert** | **Revisjonslogger**, **Slett episode** |
 
-**Utvikler** og **Avansert** starter sammenfoldet. På **Oversikt** nevner toppen episodens **Eiere**, team først, og den første ruten, **Opprettet**, sier når episoden ble opprettet — **Automatisk**, når en grupperingsregel åpnet den. Kortet **Hva som skjedde** står øverst på siden — episodens beskrivelse og **Rotårsak** — deretter **Alerts in this episode** og **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Flytt episode til** i menyen **⋯**.
+**Utvikler** og **Avansert** starter sammenfoldet. På **Oversikt** nevner toppen episodens **Eiere**, team først, og den første ruten, **Opprettet**, sier når episoden ble opprettet — **Automatisk**, når en grupperingsregel åpnet den. Kortet **Hva som skjedde** står øverst på siden — episodens beskrivelse og **Rotårsak** — deretter **Varsler i denne episoden** og **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Flytt episode til** i menyen **⋯**.
+
+Siden **Rotårsak** viser målingene bak episoden ved siden av rotårsaken: målingene til det første varselet, det som ble opprettet tidligst, slik telemetrikortet på **Oversikt** viser dem, rundt da episoden startet og med øyeblikkene markert, så du kan lese dem over et hvilket som helst tidsrom rundt episoden mens du skriver ned hvorfor den skjedde. Når det varselet ikke har tatt vare på et øyeblikksbilde av en målingskontroll (et som er opprettet for hånd på en målingsmonitor, for eksempel), viser siden målingene til den monitoren slik monitoren leser dem nå, og sier fra om det.
 
 **Varsler → Aktive episoder** viser episodene som ikke er løst ennå, og merket ved siden av teller dem.
 

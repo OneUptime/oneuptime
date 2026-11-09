@@ -5,6 +5,7 @@ import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLog
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MattermostUtil from "../../../Server/Utils/Workspace/Mattermost/Mattermost";
+import { WorkspaceDirectMessageLocation } from "../../../Server/Utils/Workspace/WorkspaceBase";
 import logger from "../../../Server/Utils/Logger";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -651,5 +652,210 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
       expect(slackSend).not.toHaveBeenCalled();
       expect(teamsSend).not.toHaveBeenCalled();
     });
+  });
+});
+
+/*
+ * WHERE A DIRECT MESSAGE LANDED (#6317). Once a message is sent, whoever
+ * sent it can be told where it is - the direct message, the id the chat
+ * gave it, Teams' service, the workspace the project's connection sent it
+ * through - to keep it, and edit it later: a public note's approval
+ * message is replaced once the note is decided. Keeping it never fails, or
+ * changes, the send.
+ */
+describe("WorkspaceUserNotificationService.sendDirectMessageToUser - where the message landed", () => {
+  const SLACK_LANDED: { channelId: string; messageId: string } = {
+    channelId: "D0DIRECT",
+    messageId: "1760000000.000100",
+  };
+  const TEAMS_LANDED: {
+    channelId: string;
+    messageId: string;
+    serviceUrl: string;
+  } = {
+    channelId: "a:1personal-chat-the-bot-opened",
+    messageId: "1:activity-1",
+    serviceUrl: "https://smba.trafficmanager.net/teams/",
+  };
+  const MATTERMOST_LANDED: { channelId: string; messageId: string } = {
+    channelId: "d".repeat(26),
+    messageId: "p".repeat(26),
+  };
+
+  let createLog: jest.SpyInstance;
+  let updateTimeline: jest.SpyInstance;
+  let errorLog: jest.SpyInstance;
+
+  function connected(workspaceProjectId: string | undefined): void {
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockResolvedValue({
+        id: PROJECT_ID,
+        authToken: BOT_TOKEN,
+        workspaceProjectId: workspaceProjectId,
+      } as unknown as WorkspaceProjectAuthToken as never);
+  }
+
+  beforeEach(() => {
+    errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    connected("T0TEAM");
+    jest
+      .spyOn(SlackUtil, "sendDirectMessageToUser")
+      .mockResolvedValue(SLACK_LANDED as never);
+    jest
+      .spyOn(MicrosoftTeamsUtil, "sendDirectMessageToUserAsBot")
+      .mockResolvedValue(TEAMS_LANDED as never);
+    jest
+      .spyOn(MattermostUtil, "sendDirectMessageToUser")
+      .mockResolvedValue(MATTERMOST_LANDED as never);
+    createLog = jest
+      .spyOn(WorkspaceNotificationLogService, "createWorkspaceLog")
+      .mockResolvedValue({} as never);
+    updateTimeline = jest
+      .spyOn(UserOnCallLogTimelineService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    [WorkspaceType.Slack, SLACK_USER_ID, "T0TEAM", SLACK_LANDED],
+    [WorkspaceType.MicrosoftTeams, TEAMS_USER_ID, "tenant-xyz", TEAMS_LANDED],
+    [
+      WorkspaceType.Mattermost,
+      MATTERMOST_USER_ID,
+      "t".repeat(26),
+      MATTERMOST_LANDED,
+    ],
+  ] as Array<[WorkspaceType, string, string, WorkspaceDirectMessageLocation]>)(
+    "%s: told once, with where it landed and the workspace it was sent through",
+    async (
+      workspaceType: WorkspaceType,
+      workspaceUserId: string,
+      workspaceProjectId: string,
+      landed: WorkspaceDirectMessageLocation,
+    ) => {
+      connected(workspaceProjectId);
+      const onSent: jest.Mock = jest.fn(async (): Promise<void> => {
+        return undefined;
+      });
+
+      await WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: workspaceType,
+        workspaceUserId: workspaceUserId,
+        messageBlocks: markdownBlocks(),
+        onSent: onSent as never,
+      });
+
+      expect(onSent).toHaveBeenCalledTimes(1);
+      expect(onSent.mock.calls[0]![0]).toEqual({
+        ...landed,
+        workspaceType: workspaceType,
+        workspaceProjectId: workspaceProjectId,
+      });
+    },
+  );
+
+  test("a send that failed tells nobody, and its error is thrown as before", async () => {
+    jest
+      .spyOn(SlackUtil, "sendDirectMessageToUser")
+      .mockRejectedValue(new Error("channel_not_found") as never);
+    const onSent: jest.Mock = jest.fn();
+
+    await expect(
+      WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: SLACK_USER_ID,
+        messageBlocks: markdownBlocks(),
+        onSent: onSent as never,
+      }),
+    ).rejects.toThrow("channel_not_found");
+
+    expect(onSent).not.toHaveBeenCalled();
+  });
+
+  test("a chat that did not say where the message landed tells nobody", async () => {
+    jest
+      .spyOn(SlackUtil, "sendDirectMessageToUser")
+      .mockResolvedValue(null as never);
+    const onSent: jest.Mock = jest.fn();
+
+    await WorkspaceUserNotificationService.sendDirectMessageToUser({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.Slack,
+      workspaceUserId: SLACK_USER_ID,
+      messageBlocks: markdownBlocks(),
+      onSent: onSent as never,
+    });
+
+    expect(onSent).not.toHaveBeenCalled();
+  });
+
+  test("a connection that names no workspace tells nobody: the message could not be held to its workspace", async () => {
+    connected(undefined);
+    const onSent: jest.Mock = jest.fn();
+
+    await WorkspaceUserNotificationService.sendDirectMessageToUser({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.Slack,
+      workspaceUserId: SLACK_USER_ID,
+      messageBlocks: markdownBlocks(),
+      onSent: onSent as never,
+    });
+
+    expect(onSent).not.toHaveBeenCalled();
+  });
+
+  test("a failure to keep it is logged, and the send stands: logged as sent, its timeline row Sent, nothing thrown", async () => {
+    const onSent: jest.Mock = jest.fn(async (): Promise<void> => {
+      throw new Error("The table is not there.");
+    });
+
+    await WorkspaceUserNotificationService.sendDirectMessageToUser({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.Slack,
+      workspaceUserId: SLACK_USER_ID,
+      messageBlocks: markdownBlocks(),
+      userOnCallLogTimelineId: TIMELINE_ID,
+      onSent: onSent as never,
+    });
+
+    expect(onSent).toHaveBeenCalledTimes(1);
+    expect(
+      (createLog.mock.calls[0]![0] as { status: WorkspaceNotificationStatus })
+        .status,
+    ).toBe(WorkspaceNotificationStatus.Success);
+    expect(
+      (
+        updateTimeline.mock.calls[0]![0] as {
+          data: { status: UserNotificationStatus };
+        }
+      ).data.status,
+    ).toBe(UserNotificationStatus.Sent);
+    expect(
+      errorLog.mock.calls.some((call: Array<unknown>): boolean => {
+        return String(call[0]).includes(
+          "OneUptime could not keep where it landed",
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("without anybody to tell, a send is as it always was", async () => {
+    await WorkspaceUserNotificationService.sendDirectMessageToUser({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      workspaceUserId: TEAMS_USER_ID,
+      messageBlocks: markdownBlocks(),
+    });
+
+    expect(createLog).toHaveBeenCalledTimes(1);
+    expect(errorLog).not.toHaveBeenCalled();
   });
 });

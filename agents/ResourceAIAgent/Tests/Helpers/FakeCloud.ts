@@ -265,6 +265,7 @@ const TARGET_SERVICES: Readonly<Record<string, string>> = {
   AmazonEC2ContainerServiceV20141113: "ecs",
   AnyScaleFrontendService: "application-autoscaling",
   AmazonSQS: "sqs",
+  AppRunner: "apprunner",
 };
 
 // Whether a session policy lets this action through.
@@ -606,6 +607,31 @@ export const AZURE_IDENTITY_ENDPOINT: string =
 export const AZURE_IDENTITY_HEADER: string = "identity-header-secret";
 export const AZURE_IMDS_URL: string =
   "http://169.254.169.254/metadata/identity/oauth2/token";
+/*
+ * The write identity the setup command makes, by its resource ID, and the
+ * object id Azure gave it; and the object id of the agent's own identity.
+ */
+export const AZURE_WRITE_IDENTITY: string = `/subscriptions/${AZURE_SUBSCRIPTION}/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write`;
+export const AZURE_WRITE_PRINCIPAL_ID: string =
+  "6d5c4b3a-2f1e-4d0c-9b8a-7f6e5d4c3b2a";
+export const AZURE_OWN_PRINCIPAL_ID: string =
+  "9f3c2b1a-0d4e-4f5a-8b6c-7d8e9f0a1b2c";
+
+// A token shaped as Entra ID writes one, its payload these claims.
+export function azureJwt(claims: Record<string, unknown>): string {
+  const part: (value: Record<string, unknown>) => string = (
+    value: Record<string, unknown>,
+  ): string => {
+    return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+  };
+
+  return `${part({ alg: "RS256", typ: "JWT" })}.${part(claims)}.c2lnbmF0dXJl`;
+}
+
+// The nth token of the write identity the fake hands out (from 1).
+export function azureWriteToken(nth: number): string {
+  return azureJwt({ oid: AZURE_WRITE_PRINCIPAL_ID, nth });
+}
 
 export interface ArmCall {
   method: string;
@@ -619,9 +645,24 @@ export interface ArmCall {
 
 export class FakeArm {
   public readonly calls: Array<ArmCall> = [];
+  // Requests for the agent's own identity's token.
   public readonly tokenRequests: Array<CloudHttpRequest> = [];
+  /*
+   * Requests for a user-assigned identity's token by its resource ID
+   * (mi_res_id on the identity endpoint, msi_res_id on IMDS): the write
+   * identity's, which answer apart.
+   */
+  public readonly writeTokenRequests: Array<CloudHttpRequest> = [];
   public token: string = AZURE_TOKEN;
   public expiresInSeconds: number = 3600;
+  /*
+   * The user-assigned identities attached where the agent runs, by
+   * resource ID (compared without case, as Azure does): a token of any
+   * other is refused as the platform refuses it. Each token handed out is
+   * a new one (azureWriteToken), so a test can tell them apart.
+   */
+  public attachedIdentities: Array<string> = [AZURE_WRITE_IDENTITY];
+  private writeTokensIssued: number = 0;
   private readonly handlers: Array<{
     method: string;
     path: string;
@@ -632,9 +673,11 @@ export class FakeArm {
     public readonly cloud: FakeCloud,
     private readonly clock: { nowMs: number },
   ) {
-    const token: () => FakeAnswer = (): FakeAnswer => {
+    const token: (accessToken: string) => FakeAnswer = (
+      accessToken: string,
+    ): FakeAnswer => {
       return jsonReply({
-        access_token: this.token,
+        access_token: accessToken,
         expires_on: String(
           Math.floor(this.clock.nowMs / 1000) + this.expiresInSeconds,
         ),
@@ -643,18 +686,57 @@ export class FakeArm {
       });
     };
 
+    const answer: (
+      request: CloudHttpRequest,
+      url: URL,
+      resourceIdParameter: string,
+    ) => FakeAnswer = (
+      request: CloudHttpRequest,
+      url: URL,
+      resourceIdParameter: string,
+    ): FakeAnswer => {
+      const resourceId: string | null =
+        url.searchParams.get(resourceIdParameter);
+
+      if (resourceId === null) {
+        this.tokenRequests.push(request);
+        return token(this.token);
+      }
+
+      this.writeTokenRequests.push(request);
+
+      if (
+        !this.attachedIdentities.some((attached: string): boolean => {
+          return attached.toLowerCase() === resourceId.toLowerCase();
+        })
+      ) {
+        return jsonReply(
+          {
+            statusCode: 400,
+            message: "Unable to load the proper Managed Identity.",
+          },
+          400,
+        );
+      }
+
+      this.writeTokensIssued++;
+      return token(azureWriteToken(this.writeTokensIssued));
+    };
+
     cloud.on(
       "GET",
       AZURE_IDENTITY_ENDPOINT,
-      (request: CloudHttpRequest): FakeAnswer => {
-        this.tokenRequests.push(request);
-        return token();
+      (request: CloudHttpRequest, url: URL): FakeAnswer => {
+        return answer(request, url, "mi_res_id");
       },
     );
-    cloud.on("GET", AZURE_IMDS_URL, (request: CloudHttpRequest): FakeAnswer => {
-      this.tokenRequests.push(request);
-      return token();
-    });
+    cloud.on(
+      "GET",
+      AZURE_IMDS_URL,
+      (request: CloudHttpRequest, url: URL): FakeAnswer => {
+        return answer(request, url, "msi_res_id");
+      },
+    );
     cloud.on(
       "*",
       (url: URL): boolean => {
@@ -749,6 +831,11 @@ export const GCP_PROJECT_NUMBER: string = "987654321012";
 export const GCP_SERVICE_ACCOUNT: string =
   "oneuptime-ai-agent@shop-prod-1234.iam.gserviceaccount.com";
 export const GCP_TOKEN: string = "ya29.gcp-access-token";
+// The account each change runs as, which the setup command makes.
+export const GCP_WRITE_SERVICE_ACCOUNT: string =
+  "oneuptime-ai-agent-write@shop-prod-1234.iam.gserviceaccount.com";
+export const GCP_GENERATE_ACCESS_TOKEN_URL: string = `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_WRITE_SERVICE_ACCOUNT}:generateAccessToken`;
+export const GCP_TEST_IAM_PERMISSIONS_URL: string = `https://iam.googleapis.com/v1/projects/-/serviceAccounts/${GCP_WRITE_SERVICE_ACCOUNT}:testIamPermissions`;
 export const GCP_METADATA: string =
   "http://metadata.google.internal/computeMetadata/v1";
 
@@ -847,6 +934,32 @@ export class FakeGcp {
     return this.calls.filter((call: GcpCall): boolean => {
       return call.method === method && call.bare === url;
     });
+  }
+
+  /*
+   * IAM Credentials' generateAccessToken for the write account: a token of
+   * its own each time it is asked (ya29.write-1, ya29.write-2, ...), for the
+   * lifetime asked.
+   */
+  public issueWriteTokens(): this {
+    let issued: number = 0;
+
+    return this.handle(
+      "POST",
+      GCP_GENERATE_ACCESS_TOKEN_URL,
+      (call: GcpCall): FakeAnswer => {
+        issued++;
+
+        return jsonReply({
+          accessToken: `ya29.write-${issued}`,
+          expireTime: new Date(
+            Date.parse("2026-10-27T12:00:00.000Z") +
+              Number.parseInt(String(call.body?.["lifetime"] || "0"), 10) *
+                1000,
+          ).toISOString(),
+        });
+      },
+    );
   }
 
   private dispatch(request: CloudHttpRequest, url: URL): FakeAnswer {

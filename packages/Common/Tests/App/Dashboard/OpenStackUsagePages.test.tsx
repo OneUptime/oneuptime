@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -94,6 +95,14 @@ jest.mock(
 );
 
 configure({ testIdAttribute: "data-testid" });
+
+/*
+ * What a spy on a generic method sees: its signature with the type parameters
+ * at their constraints, which is what jest.spyOn gives.
+ */
+type MethodOf<Method extends (...args: Array<never>) => unknown> = (
+  ...args: Parameters<Method>
+) => ReturnType<Method>;
 
 const BURNER_ID: string = "a1b2c3d4-0000-4000-8000-000000000001";
 const QUIET_ID: string = "a1b2c3d4-0000-4000-8000-000000000002";
@@ -343,7 +352,7 @@ describe("a hypervisor's page", () => {
           hostIdentifier: "compute-07",
         },
       ];
-      const spy: jest.SpiedFunction<typeof AnalyticsModelAPI.aggregate> =
+      const spy: SpyInstance<MethodOf<typeof AnalyticsModelAPI.aggregate>> =
         jest.spyOn(AnalyticsModelAPI, "aggregate");
       const otherwise: unknown = spy.getMockImplementation();
       spy.mockImplementation((async (options: {
@@ -466,6 +475,11 @@ describe("a hypervisor's page", () => {
     jest.spyOn(API, "post").mockImplementation((async (options: {
       url: { toString: () => string };
     }) => {
+      // The Planned Work card reads who this would reach: nobody here.
+      if (options.url.toString().includes("who-would-be-told")) {
+        return { data: { told: [], notTold: [] } };
+      }
+
       return options.url.toString().includes("blast-radius")
         ? {
             data: {
@@ -830,9 +844,9 @@ describe("a storage pool's page", () => {
     };
   }
 
-  async function openPool(answer: Record<string, unknown>): Promise<jest.Mock> {
+  async function openPool(answer: Record<string, unknown>): Promise<Mock> {
     server.rows = [poolRow()];
-    const posted: jest.Mock = jest.fn();
+    const posted: Mock = jest.fn();
     jest.spyOn(API, "post").mockImplementation((async (options: {
       url: { toString: () => string };
       data: unknown;
@@ -880,7 +894,7 @@ describe("a storage pool's page", () => {
   });
 
   test("says someone said it isn't on Ceph, and lets them take that back", async () => {
-    const posted: jest.Mock = await openPool({
+    const posted: Mock = await openPool({
       link: {
         state: "not-ceph",
         clusterId: null,
@@ -916,7 +930,7 @@ describe("a storage pool's page", () => {
   });
 
   test("someone's choice can be taken back, and a fact the driver states can't", async () => {
-    const posted: jest.Mock = await openPool({
+    const posted: Mock = await openPool({
       link: {
         state: "confirmed",
         clusterId: CLUSTER_ID,
@@ -951,7 +965,7 @@ describe("a storage pool's page", () => {
   });
 
   test("a name only suggests a cluster, and asks", async () => {
-    const posted: jest.Mock = await openPool({
+    const posted: Mock = await openPool({
       link: {
         state: "suggested",
         clusterId: CLUSTER_ID,
@@ -977,7 +991,7 @@ describe("a storage pool's page", () => {
   });
 
   test("someone can say it isn't on Ceph", async () => {
-    const posted: jest.Mock = await openPool({
+    const posted: Mock = await openPool({
       link: {
         state: "suggested",
         clusterId: CLUSTER_ID,

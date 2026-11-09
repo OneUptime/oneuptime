@@ -88,6 +88,8 @@ export const TOPOLOGY_DRAWING_STYLE: {
   badgeFontSize: number;
   deviceBadgeColor: string;
   labelColor: string;
+  // The line under a name - an address, or a maker - a shade lighter.
+  labelSecondaryColor: string;
   // The paper-coloured outline that keeps a name readable across a link.
   labelHaloColor: string;
   labelHaloWidth: number;
@@ -114,6 +116,7 @@ export const TOPOLOGY_DRAWING_STYLE: {
   badgeFontSize: 9,
   deviceBadgeColor: "#ffffff",
   labelColor: "var(--ou-text-secondary, #374151)",
+  labelSecondaryColor: "var(--ou-text-muted, #6b7280)",
   labelHaloColor: "var(--ou-surface-primary, #ffffff)",
   labelHaloWidth: 3,
 };

@@ -1,5 +1,8 @@
 import { JSONObject } from "../JSON";
+import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../Workflow/WorkflowDraftProposedOnKey";
+import { CODE_CHANGE_PROPOSED_ON_KEY } from "../CodeRepository/CodeChangeProposedOnKey";
 import { AIActionCardWords, AIActionWords } from "./AIActionWords";
+import { AIChatRecordSeen } from "./AIChatRecordSeen";
 import { AiContextActivity } from "./AiContext";
 import { LlmProviderActivity } from "./LlmProviderChoice";
 
@@ -90,6 +93,16 @@ export interface AIChatCitation {
   queryArguments: JSONObject; // validated tool args as executed — replayable
   rowCount: number;
   target?: AIChatCitationTarget | undefined;
+  /*
+   * What the result showed the model of a record it may change from it
+   * later - a workflow's steps, by keyed fingerprints, or a repository's
+   * file on a branch - so a change it proposes afterwards, in this turn or
+   * a later one, can say what it would undo that was saved since
+   * (AIChatRecordSeen, issues #6291 and #6313). A list for a result that
+   * showed several: the files a commit wrote. Written by the server alone,
+   * from its own read; absent for every other result.
+   */
+  recordSeen?: AIChatRecordSeen | Array<AIChatRecordSeen> | undefined;
 }
 
 /*
@@ -256,6 +269,19 @@ export interface AIChatToolAction {
 }
 
 /*
+ * Arguments OneUptime writes into an action for itself, never the model or
+ * the person: what an Ask AI change to a workflow was proposed on (issue
+ * #6274), and the files an Ask AI code change writes as the branch had them
+ * when its card was shown (issue #6313), which its approval is checked
+ * against. Nothing in them is for a person to decide by, so the approval
+ * card and the exports leave them out.
+ */
+export const AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME: ReadonlyArray<string> = [
+  WORKFLOW_DRAFT_PROPOSED_ON_KEY,
+  CODE_CHANGE_PROPOSED_ON_KEY,
+];
+
+/*
  * Why a tool call was refused rather than run (the AI toolbox's gate and
  * the services behind it). A refused call is never tried again, so the
  * run's activity says it was not done, and why, in the reader's language -
@@ -314,6 +340,13 @@ export interface AIRunEventResultSummary {
    * (Utils/AI/InvestigationLogStall, read with parseInvestigationLogStall).
    */
   logStall?: JSONObject | undefined;
+  /*
+   * InvestigationImpact events: who and what the incident or alert hurts,
+   * in numbers - the users, sessions or requests, the services and the SLOs
+   * (Utils/AI/InvestigationImpactNumbers, read with
+   * parseInvestigationImpactNumbers).
+   */
+  impactNumbers?: JSONObject | undefined;
   /*
    * The server-minted citation label and deep-link target of the tool call
    * that completed (ToolCallCompleted events of autonomous investigations).
@@ -501,6 +534,13 @@ export interface AIRunPausedState {
   toolActions: Array<AIChatToolAction>;
   egressToolEntries: Array<AIRunEgressManifestToolEntry>;
   startedAtMs: number;
+  /*
+   * What the model had been shown of records in the turns before this one
+   * (the citations of the history it replays), kept for the turn's later
+   * proposals once it resumes (issue #6291). Absent from a turn paused
+   * before OneUptime kept it: it then knows only this turn's.
+   */
+  recordsSeenBeforeTurn?: Array<AIChatRecordSeen> | undefined;
 }
 
 export interface AIRunEgressManifest {

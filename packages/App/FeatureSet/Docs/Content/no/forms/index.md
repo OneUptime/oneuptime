@@ -97,6 +97,7 @@ Under **Del** kopierer du lenken og sender den til dem som skal bruke skjemaet. 
 | **Egendefinerte domener** | Skjemaets egne domener, som `report.acme.com`, med DNS-postene og sertifikatene deres. Se [Egendefinerte domener](/docs/forms/sharing-and-security#egendefinerte-domener). |
 | **Innsendinger** | Hver innsending gjennom skjemaet, nyeste først, med svarene og det den opprettet. |
 | **Dupliser skjema** | Under **Avansert**: en kopi av skjemaet, navngitt for deg, med spørsmålene, malene, innstillingene under Ved innsending, merkevaren, takkemeldingen og IP-tillatelseslisten, og en egen lenke. Kopien starter avslått og åpner i byggeverktøyet. |
+| **Revisjonslogger** | Under **Avansert**: hver endring av skjemaet, de egendefinerte domenene og innsendingene, hvem som gjorde den, og når. |
 | **Slett skjema** | Sletting av skjemaet, under **Avansert**. Innsendingene slettes sammen med det; hendelsene det opprettet, gjør ikke det. |
 
 Delen **Utvikler** i skjemaets meny inneholder sidene for Terraform, API og AI-assistenter, som for alle andre ressurser.
@@ -113,7 +114,7 @@ En mal og et skjema sparer deg begge for å skrive den samme hendelsen to ganger
 | Hva man ser | Monitorene, policyene, eierne og hvert felt | Skjemaets navn, beskrivelse og spørsmål, og bare alternativene du tilbyr |
 | Statussider | Det malen og opprettingsskjemaet sier | Skjult til en som håndterer hendelsen, publiserer den |
 
-De virker sammen. Gi et hendelsesskjema en **Hendelse Mal** på siden **Ved innsending**, så opprettes hver hendelse det oppretter, fra den malen: bygg malen for det teamet ditt trenger på hendelsen, og skjemaet for det du vil spørre innsenderen om.
+De virker sammen. Gi et hendelsesskjema en **Hendelsesmal** på siden **Ved innsending**, så opprettes hver hendelse det oppretter, fra den malen: bygg malen for det teamet ditt trenger på hendelsen, og skjemaet for det du vil spørre innsenderen om.
 
 ## Innsendinger
 

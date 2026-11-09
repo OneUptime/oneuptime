@@ -14,13 +14,23 @@ import {
 } from "../../../Types/LlmObservability/LlmConnectionTest";
 import LlmConversationReaders from "../../../Types/LlmObservability/LlmConversationReaders";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
 import { DOCS_URL } from "../../../UI/Config";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import {
   getLlmConnectionHealth,
   getLlmConnectionLastReadSummary,
+  getLlmConnectionPeopleSummary,
+  getLlmConnectionReadingNote,
+  LLM_CONNECTION_ACTIVE_MEMBERS,
+  LLM_CONNECTION_MEMBERS,
+  LLM_CONNECTION_STILL_READING,
+  LlmConnectionSummary,
+  formatLlmUsageDay,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionHealth";
 import {
+  CURSOR_COUNTED_ONLY_ADVICE,
+  CURSOR_NO_USAGE_ADVICE,
   getLlmConnectionReadFailureWords,
   getLlmConnectionTestFigures,
   getLlmConnectionTestWords,
@@ -271,12 +281,119 @@ describe("what the last read brought in", () => {
     });
   });
 
-  test("an account that used nothing", () => {
+  test("an account that used nothing, read before reads kept what they covered", () => {
     expect(
       getLlmConnectionLastReadSummary(
         connectionWith({ lastPullResult: { kind: "usage", days: 7 } }),
       ),
     ).toEqual({ template: "No usage yet", values: {} });
+  });
+
+  /*
+   * A read after the first covers the last three days, so "No usage yet"
+   * said nothing about the thirty the first read covered (#5776). A quiet
+   * read now says what the reads found overall.
+   */
+  test("a quiet read after usage was found says when the account was last used", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 3,
+            newestUsageDay: "2026-10-28T00:00:00.000Z",
+            readSince: "2026-10-05T00:00:00.000Z",
+          },
+        }),
+      );
+
+    expect(summary?.template).toBe("Last used {{date}}");
+    expect(summary?.values["date"]).toBe(
+      formatLlmUsageDay("2026-10-28T00:00:00.000Z"),
+    );
+  });
+
+  test("an account never used says since when it was read", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 3,
+            readSince: "2026-10-05T00:00:00.000Z",
+          },
+        }),
+      );
+
+    expect(summary?.template).toBe("No usage since {{date}}");
+    expect(summary?.values["date"]).toBe(
+      formatLlmUsageDay("2026-10-05T00:00:00.000Z"),
+    );
+    expect(summary?.plural).toBeUndefined();
+  });
+
+  test("Azure says how many resources it read, in the reader's plural", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 3,
+            resources: 3,
+            readSince: "2026-10-05T00:00:00.000Z",
+          },
+        }),
+      );
+
+    expect(summary?.plural).toEqual({
+      one: "{{count}} resource read, no usage since {{date}}",
+      other: "{{count}} resources read, no usage since {{date}}",
+    });
+    expect(summary?.count).toBe(3);
+  });
+
+  test("Azure that found no resource says so: a role in the wrong place, not a quiet account", () => {
+    expect(
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 30,
+            resources: 0,
+            readSince: "2026-10-05T00:00:00.000Z",
+          },
+        }),
+      ),
+    ).toEqual({
+      template: "No Azure OpenAI or Foundry resource found",
+      values: {},
+    });
+  });
+
+  test("usage in the last read still says what it cost", () => {
+    expect(
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 3,
+            costUsd: 12,
+            newestUsageDay: "2026-10-28T00:00:00.000Z",
+          },
+        }),
+      )?.template,
+    ).toBe("${{cost}} over the last {{days}} days");
+  });
+
+  test("a UTC day is written as the same date in every timezone", () => {
+    // Noon UTC: never the day before in the Americas, nor after in Asia.
+    expect(formatLlmUsageDay("2026-10-28T00:00:00.000Z")).toBe(
+      OneUptimeDate.getDateAsCompactLocalString(
+        new Date("2026-10-28T12:00:00.000Z"),
+        { onlyShowDate: true },
+      ),
+    );
+    expect(formatLlmUsageDay("not a date")).toBe("");
   });
 
   test("a result it does not know is left out", () => {
@@ -285,6 +402,174 @@ describe("what the last read brought in", () => {
         connectionWith({ lastPullResult: { kind: "something-new" } }),
       ),
     ).toBe(undefined);
+  });
+});
+
+/*
+ * #5547: a Cursor team counts its members, and its first read of a busy
+ * team takes more than one run - the row says both under what it read.
+ */
+describe("a team's people, and a read still catching up", () => {
+  test("how many of the team's members were active in the past 7 days", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionPeopleSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            status: "success",
+            members: 40,
+            activeMembers: 12,
+          },
+        }),
+      );
+
+    expect(summary).toEqual({
+      template: LLM_CONNECTION_ACTIVE_MEMBERS.other,
+      values: { active: "12" },
+      plural: LLM_CONNECTION_ACTIVE_MEMBERS,
+      count: 40,
+    });
+    expect(
+      getGlobalTranslator().translatePlural(
+        summary!.plural!,
+        summary!.count!,
+        summary!.values,
+      ),
+    ).toBe("12 of 40 members active in the last 7 days");
+  });
+
+  /*
+   * The count is written by translatePlural, the reader's way; the active
+   * members beside it were written as a bare number, so a big team read
+   * "1031 of 1,248". Both go through the same formatter now.
+   */
+  test("a big team's two numbers are written alike, in the reader's way", () => {
+    const team: LlmObservabilityConnection = connectionWith({
+      lastPullResult: {
+        kind: "usage",
+        status: "success",
+        members: 1248,
+        activeMembers: 1031,
+      },
+    });
+    const english: LlmConnectionSummary = getLlmConnectionPeopleSummary(team)!;
+
+    expect(english.values).toEqual({ active: "1,031" });
+    expect(
+      getGlobalTranslator().translatePlural(
+        english.plural!,
+        english.count!,
+        english.values,
+      ),
+    ).toBe("1,031 of 1,248 members active in the last 7 days");
+
+    // The translator's formatter, as the list hands it over.
+    const german: LlmConnectionSummary = getLlmConnectionPeopleSummary(
+      team,
+      (value: number): string => {
+        return value.toLocaleString("de-DE");
+      },
+    )!;
+
+    expect(german.values).toEqual({ active: "1.031" });
+    expect(german.count).toBe(1248);
+  });
+
+  test("one member reads in the singular; no more active than there are", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionPeopleSummary(
+        connectionWith({
+          lastPullResult: { kind: "usage", members: 1, activeMembers: 3 },
+        }),
+      );
+
+    expect(
+      getGlobalTranslator().translatePlural(
+        summary!.plural!,
+        summary!.count!,
+        summary!.values,
+      ),
+    ).toBe("1 of 1 member active in the last 7 days");
+  });
+
+  test("the members alone when who was active could not be read", () => {
+    expect(
+      getLlmConnectionPeopleSummary(
+        connectionWith({ lastPullResult: { kind: "usage", members: 25 } }),
+      ),
+    ).toEqual({
+      template: LLM_CONNECTION_MEMBERS.other,
+      values: {},
+      plural: LLM_CONNECTION_MEMBERS,
+      count: 25,
+    });
+  });
+
+  test.each([
+    [undefined],
+    // A provider that does not count people.
+    [{ kind: "usage", status: "success", costUsd: 4 }],
+    [{ kind: "conversations", members: 40 }],
+    [{ kind: "usage", members: "40" }],
+  ] as Array<[JSONObject | undefined]>)(
+    "nothing to say of people for %p",
+    (lastPullResult: JSONObject | undefined) => {
+      expect(
+        getLlmConnectionPeopleSummary(
+          connectionWith(lastPullResult ? { lastPullResult } : {}),
+        ),
+      ).toBe(undefined);
+    },
+  );
+
+  test("a read that is still catching up says so, until it has", () => {
+    expect(
+      getLlmConnectionReadingNote(
+        connectionWith({
+          lastPullResult: { kind: "usage", status: "partial", days: 7 },
+        }),
+      ),
+    ).toBe(LLM_CONNECTION_STILL_READING);
+    expect(LLM_CONNECTION_STILL_READING).toBe("Still reading earlier usage");
+
+    for (const lastPullResult of [
+      { kind: "usage", status: "success", days: 7 },
+      { kind: "usage", status: "failed" },
+      { kind: "conversations", status: "partial" },
+    ] as Array<JSONObject>) {
+      expect(
+        getLlmConnectionReadingNote(connectionWith({ lastPullResult })),
+      ).toBe(undefined);
+    }
+
+    // A connection turned off is not reading anything.
+    expect(
+      getLlmConnectionReadingNote(
+        connectionWith({
+          isEnabled: false,
+          lastPullResult: { kind: "usage", status: "partial" },
+        }),
+      ),
+    ).toBe(undefined);
+  });
+
+  test("a read still catching up is working, with what it has read so far", () => {
+    const connection: LlmObservabilityConnection = connectionWith({
+      lastPulledAt: minutesAgo(5),
+      lastSuccessfulPullAt: minutesAgo(5),
+      lastPullResult: {
+        kind: "usage",
+        status: "partial",
+        days: 7,
+        costUsd: 96.25,
+      },
+    });
+
+    expect(getLlmConnectionHealth(connection).key).toBe("working");
+    expect(getLlmConnectionLastReadSummary(connection)).toEqual({
+      template: "${{cost}} over the last {{days}} days",
+      values: { cost: "96.25", days: "7" },
+    });
   });
 });
 
@@ -330,6 +615,41 @@ describe("what a test says", () => {
       "It works, but nobody has used it in the last 7 days.",
     );
     expect(tool.advice).toContain("organization or tenant");
+  });
+
+  /*
+   * Azure lists a subscription's resources without complaint when the app
+   * registration has no role where they are: a test that read none found
+   * nothing to read, which is not a quiet account (#5776).
+   */
+  test("an Azure test that found no resource says where the role belongs", () => {
+    const words: ReturnType<typeof getLlmConnectionTestWords> =
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.AzureOpenAI,
+          status: "warn",
+          counts: { days: 7, resources: 0 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.AzureOpenAI),
+      });
+
+    expect(words.headline).toBe(
+      "It signs in, but it found no Azure OpenAI or Foundry resource in the subscription.",
+    );
+    expect(words.advice).toContain("Monitoring Reader role");
+  });
+
+  test("an Azure test that read resources with no usage is a quiet account", () => {
+    expect(
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.AzureOpenAI,
+          status: "warn",
+          counts: { days: 7, resources: 2 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.AzureOpenAI),
+      }).headline,
+    ).toBe("It works, but the account has no usage in the last 7 days.");
   });
 
   test.each([
@@ -393,6 +713,95 @@ describe("what a test says", () => {
     expect(words.headline).toBe("The provider refused the test.");
     expect(words.details).toBe(undefined);
   });
+
+  /*
+   * #5547: a busy Cursor team's test counts its week of requests instead of
+   * reading them (CursorConnector), so it shows requests and members and no
+   * cost: it says why, and when the rest arrives, so the team is not taken
+   * for one that spent nothing.
+   */
+  test("a busy Cursor team's test says its cost and tokens come with the first read", () => {
+    expect(
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.Cursor,
+          status: "pass",
+          counts: { days: 7, requests: 48_200, members: 1248 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+      }),
+    ).toEqual({
+      headline: "It works. Here is what the account used in the last 7 days.",
+      advice: CURSOR_COUNTED_ONLY_ADVICE,
+    });
+    expect(CURSOR_COUNTED_ONLY_ADVICE).toBe(
+      "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.",
+    );
+
+    // A team whose week was read whole has its figures, even at no cost.
+    for (const counts of [
+      {
+        days: 7,
+        requests: 2310,
+        members: 40,
+        costUsd: 96.25,
+        inputTokens: 5_400_000,
+        outputTokens: 610_000,
+      },
+      {
+        days: 7,
+        requests: 120,
+        members: 3,
+        costUsd: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+      },
+    ]) {
+      expect(
+        getLlmConnectionTestWords({
+          result: result({
+            provider: LlmConnectionProvider.Cursor,
+            status: "pass",
+            counts,
+          }),
+          definition: definitionOf(LlmConnectionProvider.Cursor),
+        }).advice,
+      ).toBe(undefined);
+    }
+
+    // Another provider that counts requests alone has nothing to explain.
+    expect(
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.AwsBedrock,
+          status: "pass",
+          counts: { days: 7, requests: 900 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.AwsBedrock),
+      }).advice,
+    ).toBe(undefined);
+  });
+
+  test("a quiet Cursor team: its key belongs to a team, not an organization", () => {
+    const words: ReturnType<typeof getLlmConnectionTestWords> =
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.Cursor,
+          status: "warn",
+          counts: { days: 7, requests: 0, members: 40 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+      });
+
+    expect(words).toEqual({
+      headline: "It works, but the account has no usage in the last 7 days.",
+      advice: CURSOR_NO_USAGE_ADVICE,
+    });
+    expect(CURSOR_NO_USAGE_ADVICE).toBe(
+      "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.",
+    );
+    expect(words.advice).not.toContain("organization");
+  });
 });
 
 describe("why a saved connection's last read failed", () => {
@@ -450,6 +859,38 @@ describe("why a saved connection's last read failed", () => {
         lastPullResult: { status: "failed", failureKind: "permission" },
       }),
     ).toBe(undefined);
+  });
+
+  /*
+   * Cursor has no role or scope to give: what it refuses is a personal key,
+   * or a team whose plan has no Admin API.
+   */
+  test("a Cursor key that may not read the team: Cursor's own words", () => {
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+        lastPullResult: { status: "failed", failureKind: "permission" },
+      }),
+    ).toEqual({
+      headline:
+        "Cursor accepted the key, but it may not read the team's usage.",
+      advice:
+        "Use an Admin API key of a Teams or Enterprise team: a team admin creates it in the Cursor dashboard, under Settings, Cursor Admin API Keys. Then test again.",
+    });
+
+    // Its other failures keep the words every provider has.
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+        lastPullResult: { status: "failed", failureKind: "authentication" },
+      })?.headline,
+    ).toBe("The key or secret was not accepted.");
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+        lastPullResult: { status: "failed", failureKind: "rate-limited" },
+      })?.headline,
+    ).toBe("The provider asked OneUptime to slow down.");
   });
 });
 
@@ -520,6 +961,45 @@ describe("the figures a test shows", () => {
         }),
       ),
     ).toEqual([{ key: "conversations", label: "Conversations", value: "0" }]);
+  });
+
+  test("a Cursor team's members, beside the people who used it", () => {
+    expect(
+      getLlmConnectionTestFigures(
+        result({
+          provider: LlmConnectionProvider.Cursor,
+          counts: {
+            costUsd: 96.25,
+            inputTokens: 5_400_000,
+            outputTokens: 610_000,
+            requests: 2310,
+            models: 4,
+            people: 12,
+            members: 40,
+          },
+        }),
+        LlmConnectionProvider.Cursor,
+      ),
+    ).toEqual([
+      { key: "cost", label: "Cost", value: "$96.25" },
+      { key: "tokens", label: "Tokens", value: "6.0M" },
+      { key: "requests", label: "Requests", value: "2,310" },
+      { key: "models", label: "Models", value: "4" },
+      { key: "people", label: "People", value: "12" },
+      { key: "members", label: "Members", value: "40" },
+    ]);
+
+    // A team of none: no figure.
+    expect(
+      getLlmConnectionTestFigures(
+        result({
+          provider: LlmConnectionProvider.Cursor,
+          status: "warn",
+          counts: { members: 0 },
+        }),
+        LlmConnectionProvider.Cursor,
+      ),
+    ).toEqual([]);
   });
 
   test("money reads as money: thousands set apart, cents kept", () => {
@@ -633,12 +1113,89 @@ describe("each connection's guide", () => {
 });
 
 describe("the snippets for your apps", () => {
-  test("python, Node.js, any language and a gateway, in that order", () => {
+  test("Python, Node.js, .NET, Java, any language and a gateway, in that order", () => {
     expect(
       LLM_APPS_SNIPPETS.map((snippet: LlmAppsSnippet): string => {
         return snippet.key;
       }),
-    ).toEqual(["python", "node", "otel", "gateway"]);
+    ).toEqual(["python", "node", "dotnet", "java", "otel", "gateway"]);
+  });
+
+  function codeOf(key: string): string {
+    return LLM_APPS_SNIPPETS.find((snippet: LlmAppsSnippet): boolean => {
+      return snippet.key === key;
+    })!
+      .blocks.map((block: LlmAppsSnippetBlock): string => {
+        return block.code;
+      })
+      .join("\n");
+  }
+
+  function noteOf(key: string): string {
+    return LLM_APPS_SNIPPETS.find((snippet: LlmAppsSnippet): boolean => {
+      return snippet.key === key;
+    })!.note;
+  }
+
+  /*
+   * The same SDKs call OpenAI and Azure OpenAI or Microsoft Foundry (#5776):
+   * each language's snippet shows both clients, traced the same way.
+   */
+  test("Python and Node.js show the OpenAI and the Azure OpenAI client", () => {
+    expect(codeOf("python")).toContain("client = OpenAI()");
+    expect(codeOf("python")).toContain(
+      "# client = AzureOpenAI(azure_endpoint=",
+    );
+    expect(codeOf("node")).toContain("const client = new OpenAI();");
+    expect(codeOf("node")).toContain("// const client = new AzureOpenAI({");
+
+    for (const key of ["python", "node"]) {
+      expect(noteOf(key)).toContain("Azure OpenAI and Microsoft Foundry");
+    }
+  });
+
+  test("Node.js hands OpenLLMetry the openai module, as its docs say to", () => {
+    expect(codeOf("node")).toContain("instrumentModules: { openAI: OpenAI }");
+  });
+
+  test(".NET turns the OpenAI library's OpenTelemetry on and exports its source and meter", () => {
+    const dotnet: string = codeOf("dotnet");
+
+    expect(dotnet).toContain(
+      "dotnet add package OpenTelemetry.Extensions.Hosting",
+    );
+    expect(dotnet).toContain(
+      "dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol",
+    );
+    expect(dotnet).toContain(
+      'AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);',
+    );
+    expect(dotnet).toContain('AddSource("OpenAI.*")');
+    expect(dotnet).toContain('AddMeter("OpenAI.*")');
+    expect(dotnet).toContain('OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"');
+    // It records no content: the note says so, and which library does.
+    expect(noteOf("dotnet")).toContain("They record no prompts or answers");
+    expect(noteOf("dotnet")).toContain("EnableSensitiveData");
+  });
+
+  test("Java runs the OpenTelemetry Java agent, and says where its content goes", () => {
+    const java: string = codeOf("java");
+
+    expect(java).toContain(
+      "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar",
+    );
+    expect(java).toContain("java -javaagent:opentelemetry-javaagent.jar");
+    expect(noteOf("java")).toContain(
+      "as log events, which conversations do not show",
+    );
+    // The agent records no content until it is told to: never said as if it did.
+    expect(noteOf("java")).toContain(
+      "With content capture on, it sends prompts and answers",
+    );
+  });
+
+  test("the any-language snippet says Python's instrumentations take span_only", () => {
+    expect(codeOf("otel")).toContain("span_only instead of true");
   });
 
   test.each(

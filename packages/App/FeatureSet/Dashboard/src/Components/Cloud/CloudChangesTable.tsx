@@ -17,18 +17,32 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getReadingDirection } from "Common/Types/ReadingDirection";
+import {
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  ChangeTitleDirection,
   CloudChangeTitleFacts,
+  getChangeTitleDirection,
   getChangeTitleForReader,
   getCloudChangeTitleSentence,
   readCloudChangeTitleFacts,
+  readCloudHealthTitleFacts,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
+import {
+  CloudHealthDescription,
+  CloudHealthDescriptionFacts,
+  getCloudHealthDescription,
+  readCloudHealthDescriptionFacts,
+} from "Common/Utils/Telemetry/CloudHealthDescription";
 import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  ReactNode,
   useMemo,
   useRef,
   useState,
@@ -74,6 +88,15 @@ import {
 // A change's time takes the room it needs (TableLayout's min-w- floor).
 export const CLOUD_CHANGE_TIME_CONTENT_CLASS_NAME: string = "min-w-max";
 
+/*
+ * Who made a change gives way before the table scrolls: a name, OneUptime
+ * AI and who approved it wrap or cut on their own, so the column's floor is
+ * 7rem, not a wrapping column's 10rem (TableLayout). At 1280 pixels in
+ * German, beside a 12-hour time and "Konfigurationsänderung", the 10rem
+ * floor held the table 16 pixels past its card, and the Region scrolled.
+ */
+export const CLOUD_CHANGE_BY_CONTENT_CLASS_NAME: string = "min-w-[7rem]";
+
 // The kinds of change a cloud records, for the Type filter.
 export const CLOUD_CHANGE_TYPE_OPTIONS: Array<DropdownOption> = [
   ChangeEventType.ConfigChange,
@@ -88,21 +111,53 @@ export const CLOUD_CHANGE_TYPE_OPTIONS: Array<DropdownOption> = [
 /*
  * What changed, in the reader's language: an operation the activity log
  * recorded worded from its operation, resource and outcome; a health
- * event, or any other change, by its own title.
+ * event with its frame and state worded, the provider's event as written;
+ * any other change by its own title.
  */
 export function getCloudChangeTitleText(
   change: ChangeEvent,
   translator: Translator,
 ): string {
+  const stored: {
+    title: string | undefined;
+    attributes: JSONObject | undefined;
+  } = {
+    title: change.title,
+    attributes: change.attributes as JSONObject | undefined,
+  };
+
   return getChangeTitleForReader({
     title: change.title,
     eventType: change.eventType,
-    facts: readCloudChangeTitleFacts({
-      title: change.title,
-      attributes: change.attributes as JSONObject | undefined,
-    }),
+    facts: readCloudChangeTitleFacts(stored),
+    health: readCloudHealthTitleFacts(stored),
     translator,
     options: { setsValuesApart: true },
+  });
+}
+
+/*
+ * Which way a change's title line reads (getChangeTitleDirection): a title
+ * worded in the reader's language reads their way - a Persian health event
+ * right to left, though its first words are "AWS Health:" - and any other
+ * title its own way.
+ */
+export function getCloudChangeTitleDirection(
+  change: ChangeEvent,
+  translator: Translator,
+): ChangeTitleDirection {
+  const stored: {
+    title: string | undefined;
+    attributes: JSONObject | undefined;
+  } = {
+    title: change.title,
+    attributes: change.attributes as JSONObject | undefined,
+  };
+
+  return getChangeTitleDirection({
+    facts: readCloudChangeTitleFacts(stored),
+    health: readCloudHealthTitleFacts(stored),
+    translator,
   });
 }
 
@@ -170,6 +225,107 @@ export const CloudChangeTitle: FunctionComponent<{
   );
 };
 
+/*
+ * What a health event's line under its title says: the provider's own
+ * words as written, and OneUptime's own about the event in the reader's
+ * language (CloudHealthDescription) - null for a change with no words.
+ * An event of an older server, without its source, is drawn as written.
+ */
+export function getCloudHealthDetail(
+  change: ChangeEvent,
+  translator: Translator,
+): CloudHealthDescription | null {
+  const facts: CloudHealthDescriptionFacts | null =
+    readCloudHealthDescriptionFacts({
+      description: change.description,
+      attributes: change.attributes as JSONObject | undefined,
+    });
+
+  if (facts) {
+    return getCloudHealthDescription(facts, translator);
+  }
+
+  const written: string = (change.description || "").trim();
+
+  return written ? { written, worded: "" } : null;
+}
+
+/*
+ * Text with an identifier in it kept whole on its line: "Tracking-ID:
+ * 7NQ8-TX0." breaks before the identifier, never at its hyphen. The text as
+ * it is when the identifier is not in it.
+ */
+export function keepIdentifierWhole(
+  text: string,
+  identifier: string | undefined,
+): ReactNode {
+  const at: number = identifier ? text.indexOf(identifier) : -1;
+
+  if (!identifier || at < 0) {
+    return text;
+  }
+
+  return (
+    <>
+      {text.slice(0, at)}
+      <span
+        className="whitespace-nowrap"
+        data-testid="cloud-change-detail-identifier"
+      >
+        {identifier}
+      </span>
+      {text.slice(at + identifier.length)}
+    </>
+  );
+}
+
+/*
+ * The line under a health event's title. The provider's words are drawn as
+ * they were written - in English, as the clouds answer, and marked so
+ * (lang) - never translated or rewritten: OneUptime would be inventing
+ * what the provider said. OneUptime's own words about the event are in the
+ * reader's language. A line with OneUptime's words reads the reader's way,
+ * the provider's words set apart in it; a line of the provider's words
+ * alone reads its own way (dir="auto"), so an English line on a Persian
+ * page keeps its start, and its cut, at the end it is read to.
+ */
+export const CloudHealthDetail: FunctionComponent<{
+  detail: CloudHealthDescription;
+}> = (props: { detail: CloudHealthDescription }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const written: string = props.detail.written;
+  const worded: string = props.detail.worded;
+
+  return (
+    <div
+      className="mt-0.5 text-xs text-gray-500 line-clamp-2 break-words"
+      title={[written, worded].filter(Boolean).join(" ")}
+      dir={worded ? getReadingDirection(translator.language) : "auto"}
+      data-testid="cloud-change-detail"
+    >
+      {written ? (
+        <bdi
+          dir="auto"
+          lang={DEFAULT_LANGUAGE}
+          data-testid="cloud-change-detail-written"
+        >
+          {written}
+        </bdi>
+      ) : (
+        <></>
+      )}
+      {written && worded ? " " : ""}
+      {worded ? (
+        <span data-testid="cloud-change-detail-worded">
+          {keepIdentifierWhole(worded, props.detail.identifier)}
+        </span>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
 function readAttribute(change: ChangeEvent, key: string): string {
   const attributes: JSONObject | undefined = change.attributes as
     | JSONObject
@@ -191,6 +347,8 @@ export interface ComponentProps {
 const CloudChangesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // The reader's: a title worded in their language reads their way.
+  const translator: Translator = useTranslator();
   const scopeKey: string = JSON.stringify(
     getCloudChangesAttributeFilter(props.scope),
   );
@@ -384,48 +542,39 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
           wrapMaxWidthClassName: "max-w-2xl",
           getElement: (change: ChangeEvent): ReactElement => {
             /*
-             * The provider's own words under a health event's title; an
-             * operation's description only repeats its row (who, where).
+             * Under a health event's title, what the provider and OneUptime
+             * said about it (CloudHealthDetail); an operation's description
+             * only repeats its row (who, where).
              */
-            const detail: string = isCloudHealthChange({
+            const detail: CloudHealthDescription | null = isCloudHealthChange({
               eventType: change.eventType,
               attributes: change.attributes as JSONObject | undefined,
             })
-              ? (change.description || "").trim()
-              : "";
+              ? getCloudHealthDetail(change, translator)
+              : null;
             const ai: CloudAiChange | null = readCloudAiChange({
               attributes: change.attributes as JSONObject | undefined,
             });
 
             /*
-             * Each line in its own direction (dir="auto"): a change worded
-             * in Persian reads right to left, a health event's English
-             * title and its provider's words left to right, so an English
-             * line on a Persian page keeps its start, and its cut, at the
-             * end it is read to. The values a title sets apart are not
-             * counted.
+             * Each line in its own direction: a title worded in the
+             * reader's language reads their way - a Persian one right to
+             * left, a health event's too, though it starts with "AWS
+             * Health:" (getCloudChangeTitleDirection) - and a title as
+             * written, or the provider's words under it, its own way
+             * (dir="auto"), so an English line on a Persian page keeps its
+             * start, and its cut, at the end it is read to.
              */
             return (
               <div className="min-w-0">
                 <div
                   className="text-sm font-medium text-gray-900 break-words"
-                  dir="auto"
+                  dir={getCloudChangeTitleDirection(change, translator)}
                   data-testid="cloud-change-title"
                 >
                   <CloudChangeTitle change={change} />
                 </div>
-                {detail ? (
-                  <div
-                    className="mt-0.5 text-xs text-gray-500 line-clamp-2 break-words"
-                    title={detail}
-                    dir="auto"
-                    data-testid="cloud-change-detail"
-                  >
-                    {detail}
-                  </div>
-                ) : (
-                  <></>
-                )}
+                {detail ? <CloudHealthDetail detail={detail} /> : <></>}
                 {ai ? (
                   <CloudChangeAiLine
                     change={ai}
@@ -480,6 +629,7 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
           hideOnMobile: true,
           disableSort: true,
           wrapContent: true,
+          contentClassName: CLOUD_CHANGE_BY_CONTENT_CLASS_NAME,
           getElement: (change: ChangeEvent): ReactElement => {
             const actor: string = readAttribute(
               change,

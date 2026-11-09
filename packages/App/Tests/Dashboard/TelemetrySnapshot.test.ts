@@ -154,13 +154,15 @@ describe("episode telemetry wiring", () => {
      * incidentEpisodeId / alertEpisodeId names only the latest episode it is
      * in, so the episode's founding member could be missing from a query on
      * it. The read is the one the page can do without (.catch): a reader who
-     * may not read the membership still gets the overview.
+     * may not read the membership still gets the overview. It is picked by
+     * the rule the episode's Root Cause page picks it by too
+     * (EpisodeFirstMember, issue #6320), so the two chart the same member.
      */
     const incident: string = readSquashed(
       "Pages/Incidents/EpisodeView/Index.tsx",
     );
     expect(incident).toContain(
-      "fetchEpisodeMembers<Incident, IncidentEpisodeMember>({ episodeId: modelId, membership: INCIDENT_EPISODE_MEMBERSHIP, modelType: Incident, select: { _id: true, telemetryQuery: true, seriesLabels: true, },",
+      "fetchFirstEpisodeMember<Incident, IncidentEpisodeMember>({ episodeId: modelId, kind: INCIDENT_EPISODE_FIRST_MEMBER, select: { _id: true, telemetryQuery: true, seriesLabels: true, }, }).catch((): null => { return null; }),",
     );
     expect(incident).not.toContain(
       "modelType: Incident, query: { incidentEpisodeId",
@@ -168,28 +170,34 @@ describe("episode telemetry wiring", () => {
     expect(incident).toContain("deriveTelemetrySnapshot");
     expect(incident).toContain("<TelemetrySnapshotPanel");
     expect(incident).toContain('eventNoun="incident"');
-    // First member = earliest declared.
     expect(incident).toContain(
-      'sortField: "declaredAt", sortOrder: SortOrder.Ascending, limit: 1, }).catch((): null => { return null; }),',
-    );
-    expect(incident).toContain(
-      "const firstMember: Incident | undefined = firstMembers?.members[0];",
+      "const [firstMember, episodeTimelines, stateList, loaded]: [ Incident | null,",
     );
 
     const alert: string = readSquashed("Pages/Alerts/EpisodeView/Index.tsx");
     expect(alert).toContain(
-      "fetchEpisodeMembers<Alert, AlertEpisodeMember>({ episodeId: modelId, membership: ALERT_EPISODE_MEMBERSHIP, modelType: Alert, select: { _id: true, telemetryQuery: true, seriesLabels: true, },",
+      "fetchFirstEpisodeMember<Alert, AlertEpisodeMember>({ episodeId: modelId, kind: ALERT_EPISODE_FIRST_MEMBER, select: { _id: true, telemetryQuery: true, seriesLabels: true, }, }).catch((): null => { return null; }),",
     );
     expect(alert).not.toContain("modelType: Alert, query: { alertEpisodeId");
     expect(alert).toContain("deriveTelemetrySnapshot");
     expect(alert).toContain("<TelemetrySnapshotPanel");
     expect(alert).toContain('eventNoun="alert"');
-    // Alerts have no declaredAt — earliest created.
     expect(alert).toContain(
-      'sortField: "createdAt", sortOrder: SortOrder.Ascending, limit: 1, }).catch((): null => { return null; }),',
+      "const [firstMember, episodeTimelines, stateList, loaded]: [ Alert | null,",
     );
-    expect(alert).toContain(
-      "const firstMember: Alert | undefined = firstMembers?.members[0];",
+
+    // First member = earliest declared; alerts have no declaredAt: earliest created.
+    const firstMember: string = readSquashed(
+      "Components/EpisodeView/EpisodeFirstMember.ts",
+    );
+    expect(firstMember).toContain(
+      'membership: INCIDENT_EPISODE_MEMBERSHIP, modelType: Incident, startedAtField: "declaredAt",',
+    );
+    expect(firstMember).toContain(
+      'membership: ALERT_EPISODE_MEMBERSHIP, modelType: Alert, startedAtField: "createdAt",',
+    );
+    expect(firstMember).toContain(
+      "sortField: data.kind.startedAtField, sortOrder: SortOrder.Ascending, limit: 1, }); return fetched.members[0] || null;",
     );
   });
 

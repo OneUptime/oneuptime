@@ -127,13 +127,15 @@ describe("Octavia is a service a cloud may not run", () => {
     ).toEqual([OpenStackServiceType.LoadBalancer]);
   });
 
-  test("names three kinds and a title", () => {
+  test("names five kinds and a title", () => {
     expect(
       OPENSTACK_KINDS_BY_SERVICE[OpenStackServiceType.LoadBalancer],
     ).toEqual([
       OpenStackResourceKind.LoadBalancer,
       OpenStackResourceKind.LoadBalancerPool,
       OpenStackResourceKind.Amphora,
+      OpenStackResourceKind.Listener,
+      OpenStackResourceKind.LoadBalancerMember,
     ]);
     expect(OPENSTACK_SERVICE_TITLES[OpenStackServiceType.LoadBalancer]).toBe(
       "Load Balancers (Octavia)",

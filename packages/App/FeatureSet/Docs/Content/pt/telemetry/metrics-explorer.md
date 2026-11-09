@@ -108,7 +108,7 @@ Arraste sobre um gráfico para dar zoom em um momento, e clique duas vezes para 
 
 ## Insights de métricas
 
-A aba **Insights** conta as métricas de um intervalo de tempo: **Métricas ativas**, **Serviços de relatório** e a média por serviço. Ela agrupa as métricas em categorias e lista os serviços que as informam.
+A aba **Insights** conta as métricas de um intervalo de tempo: **Métricas ativas**, **Serviços que enviam dados** e a média por serviço. Ela agrupa as métricas em categorias e lista os serviços que as informam.
 
 ## Melhorar as métricas e adicionar as que faltam com IA
 

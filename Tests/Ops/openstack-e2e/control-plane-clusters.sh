@@ -182,6 +182,25 @@ rabbit_cluster_of_three() {
     | python3 -I -c 'import json,sys; print(len(json.load(sys.stdin)["running_nodes"]))')" = "3" ]
 }
 
+# The node's own RabbitMQ has booted, whatever its cluster is doing.
+rabbit_running() {
+  docker exec "ou-rabbit$1" rabbitmq-diagnostics -q check_running
+}
+
+# Start stopped nodes in the order given, each once the one before it runs. docker start
+# returns as soon as the container runs, not when RabbitMQ has booted, so nodes started back
+# to back boot together: a node coming back with a schema of its own (rabbit3, after the
+# partition) crashed merging it with a peer still booting - Mnesia's merge_schema failed,
+# BOOT FAILED, and the container was gone (#6172). A node that never runs is named, and the
+# next one still starts, so the scene records what is there.
+start_rabbits_in_turn() {
+  local node
+  for node in "$@"; do
+    docker start "ou-rabbit$node" >/dev/null
+    wait_for "rabbit$node running" 60 rabbit_running "$node"
+  done
+}
+
 start_rabbit() {
   local node="$1" address
   address="$(node_address "$node")"
@@ -301,7 +320,7 @@ EOF
   docker stop ou-rabbit3 >/dev/null
   sleep 30
   record rabbitmq-node-down
-  docker start ou-rabbit3 >/dev/null
+  start_rabbits_in_turn 3
   wait_for "rabbit3 back in the cluster" 60 rabbit_cluster_of_three
 
   # Cut one node off from the other two. With partition handling on ignore each side
@@ -325,15 +344,14 @@ EOF
   RECORD_GAP=10 record rabbitmq-recovered
 
   # One at a time, and back in the opposite order: nodes stopped together cannot agree
-  # which of them stopped last, and one that started early crashed on merging its schema.
+  # which of them stopped last. The last to stop starts first, and each of the others
+  # once the one before it runs (start_rabbits_in_turn says why).
   docker stop ou-rabbit3 >/dev/null
   docker stop ou-rabbit2 >/dev/null
   docker stop ou-rabbit1 >/dev/null
   sleep 15
   record rabbitmq-cluster-down
-  docker start ou-rabbit1 >/dev/null
-  docker start ou-rabbit2 >/dev/null
-  docker start ou-rabbit3 >/dev/null
+  start_rabbits_in_turn 1 2 3
   wait_for "RabbitMQ's three nodes back" 80 rabbit_cluster_of_three
   RECORD_GAP=10 record rabbitmq-recovered-from-cluster-down
 }
@@ -916,7 +934,7 @@ EOF
 
   docker stop ou-rabbit1 >/dev/null
   wait_for "Alertmanager's firing webhook" 40 bash -c "grep -ls '\"status\":\"firing\"' '$RECORDING/alertmanager/'*.json | grep -q ."
-  docker start ou-rabbit1 >/dev/null
+  start_rabbits_in_turn 1
   wait_for "Alertmanager's resolved webhook" 60 bash -c "grep -ls '\"status\":\"resolved\"' '$RECORDING/alertmanager/'*.json | grep -q ."
   kill "$prometheus" "$alertmanager" "$sink" 2>/dev/null
 }

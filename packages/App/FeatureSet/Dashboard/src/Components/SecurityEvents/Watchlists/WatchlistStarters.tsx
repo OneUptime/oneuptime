@@ -38,6 +38,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 // A starter as the list it creates: empty, kept by hand, described in the reader's words.
 export function buildWatchlistFromStarter(data: {
@@ -244,7 +245,7 @@ const WatchlistStarters: FunctionComponent<ComponentProps> = (
                       <bdi dir="ltr" className="font-mono">
                         {starter.name}
                       </bdi>
-                      {" · "}
+                      <InlineSeparator />
                       {getWatchlistHoldsLabel(translator, starter.entityType)}
                     </p>
                   </div>

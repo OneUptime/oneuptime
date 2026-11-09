@@ -871,7 +871,18 @@ describe("buildTopologyViewModel — labels, geometry and identifiers", () => {
     expect(nodeById(model, "core-1")!.labelLines).toEqual(
       labelLinesForNode(core),
     );
-    expect(nodeById(model, "endpoint:pos-1")!.labelLines).toEqual(["pos-1"]);
+    /*
+     * Its address on the line under its name (issue #5775), and the view
+     * says that last line is the lighter one.
+     */
+    expect(nodeById(model, "endpoint:pos-1")!.labelLines).toEqual([
+      "pos-1",
+      "10.0.0.11",
+    ]);
+    expect(nodeById(model, "endpoint:pos-1")!.hasSecondaryLabelLine).toBe(true);
+    expect(nodeById(model, "core-1")!.hasSecondaryLabelLine).toBe(
+      labelLinesForNode(core).length > 1 && Boolean(core.ipAddress),
+    );
   });
 
   test("a node with an empty name produces no label lines and still draws", () => {

@@ -11,6 +11,7 @@ import React, {
   useState,
 } from "react";
 import Tooltip from "../Tooltip/Tooltip";
+import readAsWritten from "../IsolatedText/ReadAsWritten";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue, { TranslatableValue } from "../../Utils/Translation";
@@ -467,7 +468,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
                   hasTitle ? "" : "leading-6"
                 }`}
               >
-                {description}
+                {readAsWritten(description, translator.language)}
               </div>
             ) : (
               <></>
@@ -488,7 +489,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
         <FieldError
           id={errorId}
           message={props.error}
-          className={`mt-1 text-sm text-red-400 ${
+          className={`mt-1 text-sm ${
             hasTitle || hasDescription ? "pl-14" : ""
           }`}
         />

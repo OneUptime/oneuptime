@@ -258,6 +258,13 @@ describe("which columns record a person doing something", () => {
        * recorded; no request chooses it.
        */
       "feedback",
+      /*
+       * AutoRemediationSuggestion.firstApprovedByUserId: who gave the first
+       * of the two approvals a riskier fix needs where the project asks two
+       * people to approve one. RemediationApproval stamps it from the caller
+       * once the approval has passed its checks; no request chooses it.
+       */
+      "firstApproved",
       "humanVerdict",
       /*
        * MarketplaceSubscription.linkedByUserId: who linked a cloud
@@ -277,6 +284,7 @@ describe("which columns record a person doing something", () => {
       "merged",
       "overrided",
       "pinned",
+      "previewSeen",
       "projectCreated",
       "projectDeleted",
       "requested",

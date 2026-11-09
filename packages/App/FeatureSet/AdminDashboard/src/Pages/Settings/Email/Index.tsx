@@ -14,8 +14,11 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
 import {
+  GLOBAL_EMAIL_PROVIDERS,
   GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+  GlobalEmailProviderTransport,
   SMTP_AUTH_TYPE_CHOICES,
+  getGlobalEmailProviderCard,
   getGlobalSmtpConfigFormFields,
   getSmtpConfigFormSteps,
   showsSmtpOAuthCredentials,
@@ -23,8 +26,11 @@ import {
   showsSmtpServerFields,
   showsSmtpUsername,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
+import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import IconProp from "Common/Types/Icon/IconProp";
+import EmailProviderSettingsCard from "./EmailProviderSettingsCard";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import GlobalConfig, {
   EmailServerType,
@@ -46,31 +52,51 @@ const SMTP_HOST_FORM_STEPS: Array<FormStep<GlobalConfig>> =
 const SMTP_HOST_FORM_FIELDS: Array<ModelField<GlobalConfig>> =
   getGlobalSmtpConfigFormFields();
 
-// How the instance sends its email: its own mail server first, the default.
-export const EMAIL_SERVER_TYPE_CHOICES: Array<RadioButton> = [
+/*
+ * How the instance sends its email: its own mail server first, the default,
+ * then each provider with an HTTP API of its own - SendGrid as it always
+ * was, and Amazon SES, Mailgun, Postmark and Resend - one card each, with
+ * its icon and a line. The stored values are the enum's, as before.
+ */
+export const EMAIL_SERVER_TYPE_CHOICES: Array<CardSelectOption> = [
   {
     value: EmailServerType.CustomSMTP,
     title: "Custom SMTP",
     description: "Send through your own mail server.",
+    icon: IconProp.Server,
   },
+  getGlobalEmailProviderCard(EmailServerType.AmazonSES)!,
   {
     value: EmailServerType.Sendgrid,
     title: "SendGrid",
+    isTitleProductName: true,
     description: "Send through your SendGrid account.",
+    icon: IconProp.PaperAirplane,
   },
+  getGlobalEmailProviderCard(EmailServerType.Mailgun)!,
+  getGlobalEmailProviderCard(EmailServerType.Postmark)!,
+  getGlobalEmailProviderCard(EmailServerType.Resend)!,
 ];
 
 // The answer a stored value reads as, as the card shows it: "SendGrid", not "Sendgrid".
 export const getEmailServerTypeTitle: (value: unknown) => string = (
   value: unknown,
 ): string => {
-  const choice: RadioButton | undefined = EMAIL_SERVER_TYPE_CHOICES.find(
-    (candidate: RadioButton): boolean => {
+  const choice: CardSelectOption | undefined = getEmailServerTypeChoice(value);
+
+  return choice ? choice.title : value ? String(value) : "";
+};
+
+export const getEmailServerTypeChoice: (
+  value: unknown,
+) => CardSelectOption | undefined = (
+  value: unknown,
+): CardSelectOption | undefined => {
+  return EMAIL_SERVER_TYPE_CHOICES.find(
+    (candidate: CardSelectOption): boolean => {
       return candidate.value === value;
     },
   );
-
-  return choice ? choice.title : value ? String(value) : "";
 };
 
 /*
@@ -225,22 +251,25 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         formFields={[
           /*
-           * Two plain answers, each with its line, where a dropdown listed
-           * the enum's names (Sendgrid first) under a description that
-           * only said "Email Server Type" again. The stored values are the
-           * enum's, as before.
+           * One card an answer, each with its icon and its line, where a
+           * dropdown listed the enum's names (Sendgrid first) under a
+           * description that only said "Email Server Type" again. The
+           * stored values are the enum's, as before.
            */
           {
             field: {
               emailServerType: true,
             },
             title: "Email Server Type",
-            fieldType: FormFieldSchemaType.RadioButton,
-            radioButtonOptions: EMAIL_SERVER_TYPE_CHOICES,
+            fieldType: FormFieldSchemaType.CardSelect,
+            cardSelectOptions: EMAIL_SERVER_TYPE_CHOICES,
+            // Two to a row: each card carries a line, which three columns squeeze.
+            cardSelectMaxColumns: 2,
             // An instance that never picked one sends through its own server, as this page reads it.
             defaultValue: EmailServerType.CustomSMTP,
             required: true,
             hideColumnDescription: true,
+            dataTestId: "email-server-type",
           },
         ]}
         modelDetailProps={{
@@ -255,13 +284,16 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FieldType.Element,
               getElement: (item: GlobalConfig): ReactElement => {
                 // Never picked: the mail service sends through Custom SMTP.
+                const value: EmailServerType =
+                  item.emailServerType || EmailServerType.CustomSMTP;
+                const title: string = getEmailServerTypeTitle(value);
+
+                // A provider's name is its own in every language.
                 return (
                   <span>
-                    {t(
-                      getEmailServerTypeTitle(
-                        item.emailServerType || EmailServerType.CustomSMTP,
-                      ),
-                    )}
+                    {getEmailServerTypeChoice(value)?.isTitleProductName
+                      ? title
+                      : t(title)}
                   </span>
                 );
               },
@@ -550,6 +582,27 @@ const Settings: FunctionComponent = (): ReactElement => {
       ) : (
         <></>
       )}
+
+      {/* One element: Page's children are elements, not an array among them. */}
+      <>
+        {GLOBAL_EMAIL_PROVIDERS.map(
+          (provider: {
+            serverType: EmailServerType;
+            transport: GlobalEmailProviderTransport;
+          }): ReactElement => {
+            if (emailServerType !== provider.serverType) {
+              return <React.Fragment key={provider.transport}></React.Fragment>;
+            }
+
+            return (
+              <EmailProviderSettingsCard
+                key={provider.transport}
+                transport={provider.transport}
+              />
+            );
+          },
+        )}
+      </>
     </Page>
   );
 };

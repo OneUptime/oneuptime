@@ -22,6 +22,7 @@ import {
   runSshStep,
 } from "./StepExecutors";
 import { runAiStep } from "./AIStepExecutor";
+import { truncateLongText } from "Common/Server/Utils/Database/TruncateColumnValue";
 import QueueRunbook from "./QueueRunbook";
 
 export default class RunRunbook {
@@ -372,11 +373,21 @@ export default class RunRunbook {
         );
       });
 
-    const failureReason: string = failedStep
-      ? `Step "${failedStep.step.title}" failed: ${
-          failedStep.errorMessage || "unknown error"
-        }`
-      : "Runbook execution failed.";
+    /*
+     * Held to what the column takes (varchar(500)): a step's error is what
+     * something else said - a Runner's report of a script's or a Kubernetes
+     * API's error, an LLM provider's - and is often longer. Unheld, the write
+     * was refused, the execution stayed Running until the stuck-execution
+     * sweep failed it as interrupted, and the reason was lost. The step's
+     * own record keeps the whole error.
+     */
+    const failureReason: string = truncateLongText(
+      failedStep
+        ? `Step "${failedStep.step.title}" failed: ${
+            failedStep.errorMessage || "unknown error"
+          }`
+        : "Runbook execution failed.",
+    );
 
     await RunbookExecutionService.updateOneById({
       id: new ObjectID(executionId),

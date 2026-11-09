@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45208,
-    "untranslated": 11662
+    "keys": 47062,
+    "untranslated": 11082
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -73,8 +73,10 @@
     "Element",
     "Embedding",
     "Endpoint",
+    "Episode",
     "Fahrenheit",
     "Failover",
+    "Favicon",
     "Feed",
     "Filter",
     "Filter:",
@@ -177,6 +179,7 @@
     "Port",
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Problem",
     "Prompt",
     "Push",
@@ -187,6 +190,7 @@
     "Red Hat OpenShift",
     "Region",
     "RegionOne",
+    "Reserved Instances",
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
@@ -273,6 +277,7 @@
     "database",
     "db-primary",
     "deployment",
+    "episode",
     "f3a1c0d2e4b64f7c8a9d0e1f2a3b4c5d",
     "failed password",
     "flavor",
@@ -348,6 +353,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} SLO",
     "{{count}} VM",
     "{{count}} alarm",
     "{{count}} app",
@@ -364,6 +370,7 @@
     "{{count}} hypervisor",
     "{{count}} manager",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} node",
     "{{count}} person",
@@ -372,6 +379,7 @@
     "{{count}} pod",
     "{{count}} pods",
     "{{count}} pool",
+    "{{count}} problem",
     "{{count}} region",
     "{{count}} repository",
     "{{count}} s",

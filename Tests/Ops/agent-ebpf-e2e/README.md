@@ -24,7 +24,7 @@ OBI's config unprivileged. Only this test shows, on a real kernel, that:
 
 It runs in CI as the "Kubernetes Agent eBPF E2E" workflow
 ([`.github/workflows/test.kubernetes-agent-ebpf-e2e.yaml`](../../../.github/workflows/test.kubernetes-agent-ebpf-e2e.yaml)):
-on pull requests and pushes to master that touch the chart, this directory or
+on pull requests and pushes to main that touch the chart, this directory or
 the workflow, weekly (the runner kernel changes under an unchanged chart), and
 on demand, where `obi_image` tries another OBI build. The analyzer's unit tests
 run on every pull request in "Ops Config Test".
@@ -123,8 +123,15 @@ OBI discovery.
    `/v1development/profiles`) and the workloads
    ([`manifests/workloads.yaml`](manifests/workloads.yaml); the app's npm
    dependencies are installed by an init container, so nothing is built). A
-   workload that is not Ready within 10 minutes stops the run, with its pods
-   described in `not-ready-<namespace>.txt`.
+   workload that is not Ready within 10 minutes stops the run. Its
+   `not-ready-<namespace>.txt` holds:
+   - its pods, the namespace's events (where a probe's own error is) and its
+     logs;
+   - `kubectl exec` of `true` and of its readiness probe, by hand;
+   - each container as the runtime sees it, read through
+     [`container-facts.sh`](container-facts.sh) on each node;
+   - the kernel's AppArmor, seccomp and audit lines;
+   - k3s's or containerd's journal.
 5. `helm install`, wait for the DaemonSets and for OBI's "Script successfully
    injected". An agent component that is not Ready within 5 minutes does not
    stop the run: its logs are collected and the checks (OBI-1, PR-1) report

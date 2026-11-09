@@ -296,7 +296,7 @@ const STATE_TO_JIRA_STATUS = {
 
 Jira Cloud 接受由账户的电子邮件和 API 令牌编码在一起构成的 Basic 身份验证，与 [模板需要的设置](#模板需要的设置) 中的相同。
 
-1. 前往 **工作流 → 全局变量**，点击 **创建工作流 变量**。将其命名为 `JIRA_AUTH`，把编码后的值粘贴到 **内容** 中，打开 **密钥**，然后创建它。
+1. 前往 **工作流 → 全局变量**，点击 **创建工作流变量**。将其命名为 `JIRA_AUTH`，把编码后的值粘贴到 **内容** 中，打开 **密钥**，然后创建它。
 2. 再创建一个变量 `JIRA_URL`，值为不带末尾斜杠的 `https://your-domain.atlassian.net`，并保持 **密钥** 关闭。
 
 之后任何块都可以把 `Basic {{global.variables.JIRA_AUTH}}` 作为它的 `Authorization` 请求头发送，令牌永远不会出现在工作流或其运行中。使用带作用域的令牌时，`JIRA_URL` 改为 `https://api.atlassian.com/ex/jira/<cloudId>`，下面的每个路径都原样接在它后面。

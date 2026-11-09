@@ -60,6 +60,7 @@ import {
   TypedRowLink,
   resolveDatabaseServerLink,
 } from "../Inventory/ResolveTypedRowLink";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * Right-hand detail drawer for anything on a topology map. It keeps the user
@@ -923,7 +924,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         {(hasMetrics || typeLabel) && (
           <p className="mt-0.5 text-xs text-gray-500">
             {typeLabel ? t(typeLabel) : ""}
-            {typeLabel && hasMetrics ? " · " : ""}
+            {typeLabel && hasMetrics ? <InlineSeparator /> : null}
             {hasMetrics
               ? `${formatCallRate(row.callCount!, props.metricsWindowSeconds)} · ${formatErrorRate(row.callCount, row.errorCount)} errors · avg ${formatDurationMs(row.avgDurationMs)}`
               : ""}

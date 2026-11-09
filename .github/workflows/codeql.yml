@@ -4,11 +4,11 @@ name: CodeQL Advanced
 # repository's settings. It analyses the same languages, with the same build
 # modes, query suite (default) and threat model (remote), under the same
 # categories - so the alerts default setup raised carry over - but not on
-# every push to master. Default setup scanned each of those as well as each
+# every push to main. Default setup scanned each of those as well as each
 # pull request: on 2 October 2026 its master scans took ~800 runner-minutes
 # in five and a half hours, about 12% of what the organisation's 20 concurrent
 # runners could do, while every other workflow queued for them. Every change
-# reaching master was scanned on its pull request; master itself is scanned
+# reaching main was scanned on its pull request; main itself is scanned
 # nightly here, and on demand.
 #
 # When the repository gains a language, default setup starts scanning it by
@@ -44,7 +44,7 @@ concurrency:
 on:
   pull_request:
   schedule:
-    # Nightly, for master's alerts.
+    # Nightly, for main's alerts.
     - cron: "17 3 * * *"
   workflow_dispatch:
 

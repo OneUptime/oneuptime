@@ -26,10 +26,7 @@ import CodeHostAccess, {
   CodeHostReader,
 } from "../../CodeRepository/CodeHost/CodeHostAccess";
 import { CodeHostFileContent } from "../../CodeRepository/CodeHost/CodeHostTypes";
-import {
-  CodeHost,
-  CodeHostCapability,
-} from "../../../../Types/CodeRepository/CodeHost";
+import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
 import StackTraceParser, {
   ParsedStackTrace,
   StackFrame,
@@ -41,6 +38,19 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import {
+  AIChatLinesShown,
+  AIChatRecordSeen,
+} from "../../../../Types/AI/AIChatRecordSeen";
+import {
+  getCodeFileLinesShown,
+  normalizeCodeBranchName,
+} from "../../../../Types/CodeRepository/CodeFileSeen";
+import {
+  describeValuesHiddenOnRead,
+  findLinesWithValuesHidden,
+  getCodeFileSeenFromRead,
+} from "./CodeFilesSeen";
 
 /*
  * Tools that let the chat agent read the project's linked source code and
@@ -49,10 +59,11 @@ import {
  * The trust posture here is deliberately narrower than the observability
  * tools': source is read-only, only repositories OneUptime reaches and whose
  * files it reads (a GitHub repository through the GitHub App, a GitLab,
- * Forgejo or Gitea repository through its connection - CodeHostAccess), and
- * every payload goes through the same secret redaction as telemetry (a repo's
- * config files are a likelier place to find a live credential than a log line
- * is).
+ * Forgejo or Gitea repository through its connection, a Git repository on
+ * Azure DevOps through Azure DevOps' file API and its Git credentials -
+ * CodeHostAccess), and every payload goes through the same secret redaction
+ * as telemetry (a repo's config files are a likelier place to find a live
+ * credential than a log line is).
  */
 
 /*
@@ -175,18 +186,75 @@ async function addInstallationIds(
 }
 
 /*
+ * What the code tools may say of the project's repositories: the ones whose
+ * code OneUptime reads now, and the plain Git repositories this caller may
+ * see. A Git repository is connected for Code's tasks - a Runner clones it -
+ * but a Git server OneUptime does not know has no API for its files, so
+ * OneUptime reads only its branches. Named so the model says why it cannot
+ * read one (issue #6144: a repository connected as Git read as though
+ * nothing were connected) - never as readable. A Git repository on Azure
+ * DevOps is no plain one: its files are read (AzureDevOpsApi), as a GitLab
+ * repository's are.
+ */
+export interface CodeToolRepositories {
+  readable: Array<CodeRepository>;
+  plainGit: Array<CodeRepository>;
+}
+
+/*
+ * Where OneUptime reads code, as the tools tell the model when it reads
+ * none: every host but a Git server OneUptime does not know.
+ */
+const READ_HOSTS: string =
+  "GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories are read";
+
+// A repository as the code tools name it: its name and where it is.
+function nameRepository(repository: CodeRepository): string {
+  return `${repository.name} (${repository.organizationName}/${repository.repositoryName})`;
+}
+
+/*
+ * The plain Git repositories, named, and why the code tools cannot open
+ * them - a sentence for the model to pass on.
+ */
+export function describePlainGitRepositories(
+  repositories: Array<CodeRepository>,
+): string {
+  const isOne: boolean = repositories.length === 1;
+  const it: string = isOne ? "it" : "them";
+  const its: string = isOne ? "its" : "their";
+
+  return `${repositories.map(nameRepository).join(", ")} ${
+    isOne ? "is a plain Git repository" : "are plain Git repositories"
+  }: OneUptime reads ${its} branches, not ${its} files, so search_code and read_code_file cannot open ${it}. A task in Code still works in ${it} - a Runner clones ${it} - and AI pushes its change on a branch.`;
+}
+
+/*
  * The repositories this user can see, already filtered to the ones that are
  * actually readable. A repository row can exist without a way in (a GitHub
  * one imported then uninstalled, a GitLab one whose token was refused) or on
- * a host whose files OneUptime does not read (a plain Git repository), and
- * those must never look readable to the model. A run held to some
- * repositories (ctx.codeRepositoryAllowance - the ones the rules that matched
- * its incident name) reads only those.
+ * a host whose files OneUptime does not read (a plain Git repository: a Git
+ * server that is not Azure DevOps), and those must never look readable to
+ * the model. A run held to some repositories (ctx.codeRepositoryAllowance -
+ * the ones the rules that matched its incident name) reads only those.
  */
 export async function findReadableRepositories(
   ctx: ToolContext,
   codeRepositoryId?: ObjectID | undefined,
 ): Promise<Array<CodeRepository>> {
+  return (await findCodeToolRepositories(ctx, codeRepositoryId)).readable;
+}
+
+/*
+ * The readable repositories (findReadableRepositories), and beside them the
+ * plain Git repositories the same read found - in the project, readable by
+ * this caller, within the run's allowance - so the tools can say why those
+ * are not read.
+ */
+export async function findCodeToolRepositories(
+  ctx: ToolContext,
+  codeRepositoryId?: ObjectID | undefined,
+): Promise<CodeToolRepositories> {
   const query: JSONObject = {
     projectId: ctx.projectId,
   };
@@ -215,6 +283,8 @@ export async function findReadableRepositories(
         repositoryName: true,
         mainBranchName: true,
         repositoryHostedAt: true,
+        // A Git repository's clone address says whether it is on Azure DevOps.
+        repositoryUrl: true,
         description: true,
       },
       limit: LIMIT_MAX,
@@ -243,9 +313,28 @@ export async function findReadableRepositories(
   );
 
   /*
-   * Repositories on other hosts are read through their connections: only
-   * those connected now, on a host whose files OneUptime reads, whose server
-   * OneUptime may reach.
+   * Plain Git repositories are never read, whatever their connection: there
+   * is no API to read their files through. They are said apart. A Git
+   * repository on Azure DevOps is not one: its files are read through Azure
+   * DevOps' own API, where it is reached.
+   */
+  const plainGit: Array<CodeRepository> = repositories.filter(
+    (repository: CodeRepository) => {
+      return (
+        CodeHost.readType(repository.repositoryHostedAt) ===
+          CodeRepositoryType.Git &&
+        !CodeHost.canReadRepositoryCode({
+          type: CodeRepositoryType.Git,
+          repositoryUrl: repository.repositoryUrl?.toString(),
+        })
+      );
+    },
+  );
+
+  /*
+   * Repositories on other hosts - and Git repositories on Azure DevOps -
+   * are read through their connections: only those connected now, whose
+   * files OneUptime reads, on a server OneUptime may reach.
    */
   const otherRepositories: Array<CodeRepository> =
     await keepRepositoriesWithReadableCode(
@@ -253,7 +342,7 @@ export async function findReadableRepositories(
       repositories.filter((repository: CodeRepository) => {
         return (
           CodeHost.readType(repository.repositoryHostedAt) !==
-          CodeRepositoryType.GitHub
+            CodeRepositoryType.GitHub && !plainGit.includes(repository)
         );
       }),
     );
@@ -273,36 +362,40 @@ export async function findReadableRepositories(
    * being wrong here is another tenant's source code.
    */
   if (gitHubRepositories.length === 0) {
-    return otherRepositories;
+    return { readable: otherRepositories, plainGit };
   }
 
   // Every row here is in ctx.projectId, so one lookup answers for all of them.
   const boundInstallationId: string | null =
     await GitHubInstallationBinding.getBoundInstallationId(ctx.projectId);
 
-  return [
-    ...gitHubRepositories.filter((repository: CodeRepository) => {
-      if (
-        boundInstallationId &&
-        repository.gitHubAppInstallationId === boundInstallationId
-      ) {
-        return true;
-      }
+  return {
+    readable: [
+      ...gitHubRepositories.filter((repository: CodeRepository) => {
+        if (
+          boundInstallationId &&
+          repository.gitHubAppInstallationId === boundInstallationId
+        ) {
+          return true;
+        }
 
-      logger.error(
-        `Excluding code repository ${repository.id?.toString()} from AI code tools: its GitHub App installation is not bound to project ${ctx.projectId.toString()}.`,
-      );
+        logger.error(
+          `Excluding code repository ${repository.id?.toString()} from AI code tools: its GitHub App installation is not bound to project ${ctx.projectId.toString()}.`,
+        );
 
-      return false;
-    }),
-    ...otherRepositories,
-  ];
+        return false;
+      }),
+      ...otherRepositories,
+    ],
+    plainGit,
+  };
 }
 
 /*
  * Of repositories on hosts beside GitHub, those whose code OneUptime reads
  * now: connected through their connection (the project's, its token not
- * refused), on a host whose files it reads, on a server it may reach.
+ * refused), whose files it reads - their host's, or a Git repository's on
+ * Azure DevOps (CodeHost.canReadRepositoryCode) - on a server it may reach.
  */
 async function keepRepositoriesWithReadableCode(
   ctx: ToolContext,
@@ -333,7 +426,10 @@ async function keepRepositoriesWithReadableCode(
       summary &&
         summary.state === CodeHostConnectionState.Connected &&
         summary.isReachableFromServer &&
-        CodeHost.can(summary.provider, CodeHostCapability.ReadCode),
+        CodeHost.canReadRepositoryCode({
+          type: summary.provider,
+          repositoryUrl: repository.repositoryUrl?.toString(),
+        }),
     );
   });
 }
@@ -425,19 +521,33 @@ export async function resolveTargetRepository(
     "repositoryId",
   );
 
-  const repositories: Array<CodeRepository> = await findReadableRepositories(
+  const found: CodeToolRepositories = await findCodeToolRepositories(
     ctx,
     requestedId,
   );
+  const repositories: Array<CodeRepository> = found.readable;
 
   if (repositories.length === 0) {
     if (requestedId) {
+      if (found.plainGit.length > 0) {
+        throw new BadDataException(
+          `OneUptime cannot read the code of this repository. ${describePlainGitRepositories(found.plainGit)}`,
+        );
+      }
+
       throw new BadDataException(
         `No readable repository with id ${requestedId.toString()} in this project. Call list_code_repositories to see which repositories are connected.`,
       );
     }
+
+    if (found.plainGit.length > 0) {
+      throw new BadDataException(
+        `This project has no connected code repository whose source OneUptime can read: ${READ_HOSTS}. ${describePlainGitRepositories(found.plainGit)}`,
+      );
+    }
+
     throw new BadDataException(
-      "This project has no connected code repository whose source OneUptime can read. Connect one in Code: GitHub, GitLab, Forgejo and Gitea repositories are read (a plain Git repository's files are not).",
+      `This project has no connected code repository whose source OneUptime can read. Connect one in Code: ${READ_HOSTS} (another Git server's files are not).`,
     );
   }
 
@@ -577,6 +687,24 @@ function splitIntoLines(content: string): Array<string> {
 }
 
 /*
+ * How many lines a numbered block still holds whole once the serializer
+ * cut it at its own payload cap: the line breaks it kept, each the end of
+ * a line shown whole. Counted with indexOf, never a regular expression: a
+ * block can hold a single line tens of kilobytes long.
+ */
+function countWholeLinesKept(text: string): number {
+  let count: number = 0;
+  let at: number = text.indexOf("\n");
+
+  while (at !== -1) {
+    count++;
+    at = text.indexOf("\n", at + 1);
+  }
+
+  return count;
+}
+
+/*
  * Take as many whole lines as fit the code payload budget. Whole lines, not
  * bytes: a mid-line cut would hand the model a truncated identifier that reads
  * like real code.
@@ -637,8 +765,8 @@ export const ListCodeRepositoriesTool: ObservabilityTool = {
     _args: JSONObject,
     ctx: ToolContext,
   ): Promise<ToolExecutionResult> => {
-    const repositories: Array<CodeRepository> =
-      await findReadableRepositories(ctx);
+    const found: CodeToolRepositories = await findCodeToolRepositories(ctx);
+    const repositories: Array<CodeRepository> = found.readable;
 
     const rows: Array<JSONObject> = repositories.map(
       (repository: CodeRepository) => {
@@ -655,14 +783,26 @@ export const ListCodeRepositoriesTool: ObservabilityTool = {
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
+    /*
+     * The plain Git repositories are said after the readable ones, as
+     * repositories whose code cannot be opened - never as rows the model
+     * could pass to search_code or read_code_file.
+     */
+    const plainGitNote: { text: string; count: number } =
+      found.plainGit.length > 0
+        ? ToolResultSerializer.redact(
+            `\n\n${describePlainGitRepositories(found.plainGit)}`,
+          )
+        : { text: "", count: 0 };
+
     return {
       dataForLlm:
         rows.length === 0
-          ? "(no GitHub-connected code repositories in this project — source code cannot be read)"
-          : serialized.text,
+          ? `(no code repository in this project whose source OneUptime can read — ${READ_HOSTS})${plainGitNote.text}`
+          : `${serialized.text}${plainGitNote.text}`,
       rowCount: serialized.rowCount,
       citationLabel: `Connected code repositories (${serialized.rowCount})`,
-      redactionCount: serialized.redactionCount,
+      redactionCount: serialized.redactionCount + plainGitNote.count,
       isTruncated: serialized.isTruncated,
     };
   },
@@ -974,7 +1114,7 @@ export const SearchCodeTool: ObservabilityTool = {
 export const ReadCodeFileTool: ObservabilityTool = {
   name: "read_code_file",
   description:
-    "Read the source of one file from a connected repository, with line numbers. Pass startLine/endLine to read the region around a stack-trace line rather than the whole file. Quote only the few lines that matter in your answer.",
+    "Read the source of one file from a connected repository, with line numbers. Pass startLine/endLine to read the region around a stack-trace line rather than the whole file. Quote only the few lines that matter in your answer. It reads the repository's main branch unless you pass branchName: before you change a file with commit_code_to_branch, read it on the branch you commit to.",
   inputSchema: {
     type: "object",
     properties: {
@@ -1001,6 +1141,11 @@ export const ReadCodeFileTool: ObservabilityTool = {
         type: "number",
         description: `Read a window centred on this line — the convenient way to inspect a stack-trace frame. Returns ${DEFAULT_CONTEXT_LINES} lines either side. Ignored when startLine is given.`,
       },
+      branchName: {
+        type: "string",
+        description:
+          "The branch to read the file on. Defaults to the repository's main branch.",
+      },
     },
     required: ["filePath"],
   },
@@ -1018,7 +1163,10 @@ export const ReadCodeFileTool: ObservabilityTool = {
     }
 
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
-    const branchName: string = repository.mainBranchName || "main";
+    const branchName: string =
+      normalizeCodeBranchName(ToolArgs.getString(args, "branchName") || "") ||
+      repository.mainBranchName ||
+      "main";
 
     const file: CodeHostFileContent | null = await readRepositoryFile({
       ctx,
@@ -1033,15 +1181,44 @@ export const ReadCodeFileTool: ObservabilityTool = {
       );
     }
 
+    /*
+     * What this showed the model of the file: its version on the branch
+     * read, kept with the citation by OneUptime - never the model - so a
+     * commit written from it later says, before anyone approves it, what
+     * was pushed to the file since (issue #6313). Whichever lines it shows,
+     * the version is the file's - and the lines it shows are kept with it,
+     * when they are not all of them (issue #6330): a commit writes the
+     * whole file, so a version Ask AI saw only part of says so on the card.
+     */
+    const seen: (
+      linesShown?: AIChatLinesShown | undefined,
+    ) => AIChatRecordSeen | null = (
+      linesShown?: AIChatLinesShown | undefined,
+    ): AIChatRecordSeen | null => {
+      return repository.id
+        ? getCodeFileSeenFromRead({
+            repositoryId: repository.id.toString(),
+            branchName: branchName,
+            filePath: filePath,
+            file: file,
+            linesShown: linesShown,
+          })
+        : null;
+    };
+
     const allLines: Array<string> = splitIntoLines(file.content);
 
     if (allLines.length === 0) {
+      // An empty file shows all of itself.
+      const recordSeen: AIChatRecordSeen | null = seen();
+
       return {
         dataForLlm: `file: ${filePath}\nrepository: ${repository.organizationName}/${repository.repositoryName}@${branchName}\n\n(this file is empty — 0 bytes)`,
         rowCount: 0,
         citationLabel: `${filePath} (empty)`,
         redactionCount: 0,
         isTruncated: false,
+        ...(recordSeen ? { recordSeen: recordSeen } : {}),
       };
     }
 
@@ -1122,6 +1299,23 @@ export const ReadCodeFileTool: ObservabilityTool = {
       selected.length,
     );
 
+    /*
+     * The lines this showed whole: each one selected - unless the serializer
+     * cut the block at its own cap, which only a line longer than a result
+     * may carry makes it do; then the lines it kept whole. Another read
+     * shows the rest, and reads of the same version add up.
+     */
+    const shownCount: number = serialized.isTruncated
+      ? Math.min(selected.length, countWholeLinesKept(serialized.text))
+      : selected.length;
+    const recordSeen: AIChatRecordSeen | null = seen(
+      getCodeFileLinesShown({
+        lineCount: allLines.length,
+        firstLine: startLine,
+        lastLine: startLine + shownCount - 1,
+      }),
+    );
+
     const header: string = [
       `file: ${filePath}`,
       `repository: ${repository.organizationName}/${repository.repositoryName}@${branchName}`,
@@ -1132,12 +1326,35 @@ export const ReadCodeFileTool: ObservabilityTool = {
       ? `\n… [stopped at line ${actualEndLine}; call again with startLine=${actualEndLine + 1} to read on]`
       : "";
 
+    /*
+     * The lines whose values were hidden (issue #6364), said before the
+     * model writes anything from them: a commit writes the file whole, and
+     * a placeholder written back lands where the value was. Read from the
+     * lines it showed whole; the redaction itself is the serializer's,
+     * exactly as it was.
+     */
+    const wholeLinesShown: string = serialized.isTruncated
+      ? serialized.text.slice(0, Math.max(0, serialized.text.lastIndexOf("\n")))
+      : serialized.text;
+    const valuesHidden: string | null = describeValuesHiddenOnRead(
+      findLinesWithValuesHidden({
+        numberedLines: numbered.split("\n"),
+        firstLine: startLine,
+        // formatWithLineNumbers' "NNN| ": the last line's number, padded, and "| ".
+        prefixLength: String(startLine + selected.length - 1).length + 2,
+        shown: wholeLinesShown,
+      }),
+    );
+
     return {
-      dataForLlm: `${header}\n\n${serialized.text}${footer}`,
+      dataForLlm: `${header}\n\n${serialized.text}${footer}${
+        valuesHidden ? `\n${valuesHidden}` : ""
+      }`,
       rowCount: selected.length,
       citationLabel: `${filePath}:${startLine}-${actualEndLine} (${repository.organizationName}/${repository.repositoryName})`,
       redactionCount: serialized.redactionCount,
       isTruncated: isTruncated || serialized.isTruncated,
+      ...(recordSeen ? { recordSeen: recordSeen } : {}),
     };
   },
 };

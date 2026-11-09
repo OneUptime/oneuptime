@@ -519,10 +519,44 @@ describe("SecurityCaseStory.build", () => {
     });
   });
 
+  test("tells a cloud's health event with the facts its title is worded from in the reader's language", async () => {
+    const health: ChangeEvent = new ChangeEvent();
+    health._id = new ObjectID(CHANGE_ID);
+    health.time = at(-10);
+    health.title = "Azure Resource Health: Available → Unavailable";
+    health.eventType = "provider-event";
+    health.attributes = {
+      "oneuptime.change.source": "cloud-health",
+      "oneuptime.cloud.operation": "ResourceHealth Unavailable",
+      "oneuptime.resource.id": SERVICE_ID,
+    } as never;
+    changeRead.mockResolvedValue([health]);
+
+    const item: SecurityCaseStoryItemJson = itemOf(
+      await story(),
+      SecurityCaseStoryItemKind.Change,
+    );
+
+    // The English title as stored, for the API and OneUptime AI; the facts beside it.
+    expect(item).toMatchObject({
+      title: "Azure Resource Health: Available → Unavailable",
+      cloudHealth: {
+        source: "azure-resource",
+        event: "Unavailable",
+        status: "Available",
+      },
+    });
+    expect(item).not.toHaveProperty("cloudChange");
+  });
+
   test("a change that is not a cloud's keeps only its title", async () => {
-    expect(
-      itemOf(await story(), SecurityCaseStoryItemKind.Change),
-    ).not.toHaveProperty("cloudChange");
+    const item: SecurityCaseStoryItemJson = itemOf(
+      await story(),
+      SecurityCaseStoryItemKind.Change,
+    );
+
+    expect(item).not.toHaveProperty("cloudChange");
+    expect(item).not.toHaveProperty("cloudHealth");
   });
 
   test("tells the incident the case declared once, and those raised on its records, with the record", async () => {

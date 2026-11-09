@@ -1,9 +1,9 @@
 import { isAwsRegion } from "../Cloud/AwsRegionCode";
 import {
+  AWS_DEFAULT_PERIOD_SECONDS,
   AWS_KEY_METRICS,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
-  DAILY_PERIOD_SECONDS,
 } from "../Cloud/CloudKeyMetrics";
 import { AWS_LOG_GROUP_NAME_MAX_LENGTH } from "../Cloud/CloudLogGroups";
 import { JSONObject } from "../JSON";
@@ -15,6 +15,8 @@ import {
   CLOUD_STREAM_KEY_PREFIX,
   CLOUD_STREAM_KEY_SECRET_LENGTH,
   CLOUD_STREAM_RETRY_DURATION_SECONDS,
+  CloudStreamProblem,
+  getCloudStreamSuffix,
 } from "./CloudStream";
 
 /*
@@ -104,24 +106,7 @@ export interface CloudStreamTemplateOptions {
 }
 
 // The first 8 hex characters of the connection: what its AWS names end in.
-export function getCloudStreamSuffix(connectionId: string): string {
-  let suffix: string = "";
-
-  for (const character of connectionId.toLowerCase()) {
-    if (
-      (character >= "0" && character <= "9") ||
-      (character >= "a" && character <= "f")
-    ) {
-      suffix += character;
-    }
-
-    if (suffix.length === 8) {
-      break;
-    }
-  }
-
-  return suffix;
-}
+export { getCloudStreamSuffix };
 
 /*
  * What the stack and the things in it are called: one stack per
@@ -254,12 +239,9 @@ export function getCloudStreamLogGroupRegions(
 
 /*
  * What stops a command being written from the choices: a sentence of the
- * dialog (a translation key) and its values.
+ * dialog (a translation key) and its values (CloudStream).
  */
-export interface CloudStreamProblem {
-  text: string;
-  values: Record<string, string>;
-}
+export type { CloudStreamProblem };
 
 export const STREAM_NOTHING_CHOSEN: string = translationKey(
   "Choose metrics, logs or both to stream.",
@@ -358,9 +340,13 @@ export function getCloudStreamOptionsProblem(data: {
 
 /*
  * The metric stream's filters for the key metrics: each namespace
- * OneUptime reads, with its key metrics. Amazon S3's are left out: they are
- * daily storage metrics, which a metric stream does not carry, so the
- * connection's own reads keep reading them.
+ * OneUptime reads, with its key metrics - the ones read every five
+ * minutes, which a stream brings a minute at a time. A metric published a
+ * few times a day or once is left to the connection's own reads, which
+ * keep reading it: S3's daily storage metrics, which a metric stream does
+ * not carry, and ACM's DaysToExpiry, published twice a day and read once
+ * an hour, which a stream would bring an hour or two sooner - nothing to a
+ * count of days - for a bigger template.
  */
 export function getCloudStreamKeyMetricFilters(): Array<{
   Namespace: string;
@@ -371,7 +357,7 @@ export function getCloudStreamKeyMetricFilters(): Array<{
   for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
     const metricNames: Array<string> = namespace.metrics
       .filter((metric: AwsKeyMetric): boolean => {
-        return metric.periodSeconds < DAILY_PERIOD_SECONDS;
+        return metric.periodSeconds <= AWS_DEFAULT_PERIOD_SECONDS;
       })
       .map((metric: AwsKeyMetric): string => {
         return metric.metricName;
@@ -864,10 +850,88 @@ function shellQuote(value: string): string {
 }
 
 /*
+ * AWS's limits a stack's logs half can meet in an account, which would fail
+ * the stack mid-way and leave it rolled back. An account has ONE
+ * account-level subscription filter policy per Region: every log group's
+ * subscription holds it, so another tool's - a SIEM's - already there means
+ * ours cannot be made. And a log group takes two subscription filters at
+ * most: a named group with two of other tools already cannot take ours.
+ */
+export const AWS_SUBSCRIPTION_FILTERS_PER_LOG_GROUP: number = 2;
+
+// What the command says, in English as the shell prints it, when it sets nothing up.
+export const CLOUD_STREAM_COMMAND_STOPPED: string =
+  "Nothing was set up: fix what is said above, then run this command again.";
+
+/*
+ * The checks the command runs before it deploys anything, as shell lines:
+ * each problem is said, naming the Region and the log group, and sets
+ * BLOCKED. Every log group: the account-level subscription policies of
+ * each Region, other than this connection's own (a re-run updates it).
+ * Named log groups: each one's subscription filters, other than this
+ * connection's own - a group that cannot be read (no such group) is said
+ * too, since it would fail the stack the same way. None for metrics alone.
+ */
+function getCloudStreamCheckLines(data: {
+  options: CloudStreamTemplateOptions;
+  regionList: string;
+}): Array<string> {
+  const names: ReturnType<typeof getCloudStreamNames> = getCloudStreamNames(
+    data.options.connectionId,
+  );
+
+  if (data.options.logs === CloudStreamLogsMode.All) {
+    return [
+      "BLOCKED=0",
+      `for REGION in ${data.regionList}; do`,
+      `  OTHER=$(aws logs describe-account-policies --region "$REGION" --policy-type SUBSCRIPTION_FILTER_POLICY --query "accountPolicies[?policyName!='${names.accountPolicy}'].policyName" --output text) || { echo "$REGION: the account's log subscription policies could not be read."; BLOCKED=1; continue; }`,
+      `  if [ -n "$OTHER" ] && [ "$OTHER" != "None" ]; then echo "$REGION: AWS allows one account-wide log subscription per Region, and $OTHER already holds it. Name the log groups to stream instead, or remove $OTHER."; BLOCKED=1; fi`,
+      "done",
+    ];
+  }
+
+  if (data.options.logs !== CloudStreamLogsMode.Groups) {
+    return [];
+  }
+
+  const logGroups: Array<CloudStreamLogGroup> = (
+    data.options.logGroups || []
+  ).slice(0, CLOUD_STREAM_MAX_LOG_GROUPS);
+  const groupRegions: Array<string> = getCloudStreamLogGroupRegions(
+    logGroups,
+  ).slice(0, CLOUD_STREAM_MAX_LOG_GROUP_REGIONS);
+  const pairs: Array<string> = logGroups
+    .filter((logGroup: CloudStreamLogGroup): boolean => {
+      return (
+        groupRegions.includes(logGroup.region) &&
+        isAwsRegion(logGroup.region) &&
+        isAwsLogGroupName(logGroup.name)
+      );
+    })
+    .map((logGroup: CloudStreamLogGroup): string => {
+      return shellQuote(`${logGroup.region} ${logGroup.name}`);
+    });
+
+  if (pairs.length === 0) {
+    return [];
+  }
+
+  return [
+    "BLOCKED=0",
+    `for GROUP_IN in ${pairs.join(" ")}; do`,
+    '  GROUP_REGION="${GROUP_IN%% *}"; GROUP="${GROUP_IN#* }"',
+    `  OTHERS=$(aws logs describe-subscription-filters --region "$GROUP_REGION" --log-group-name "$GROUP" --query "length(subscriptionFilters[?filterName!='${names.subscriptionFilter}'])" --output text) || { echo "$GROUP in $GROUP_REGION: no such log group, or it could not be read."; BLOCKED=1; continue; }`,
+    `  if [ "$OTHERS" -ge ${AWS_SUBSCRIPTION_FILTERS_PER_LOG_GROUP} ] 2> /dev/null; then echo "$GROUP in $GROUP_REGION already has ${AWS_SUBSCRIPTION_FILTERS_PER_LOG_GROUP} subscription filters, the most AWS allows. Remove one, or leave the group out."; BLOCKED=1; fi`,
+    "done",
+  ];
+}
+
+/*
  * The one command, for AWS CloudShell: write the template, then deploy it
  * in each Region - created the first time, updated after. With no Region
  * known it deploys in CloudShell's own. A key of null leaves STREAM_KEY for
- * the person to fill in.
+ * the person to fill in. When it streams logs, it first checks the limits
+ * above, and deploys nothing - saying why - if one is met.
  */
 export function getAwsCloudStreamCommand(data: {
   options: CloudStreamTemplateOptions;
@@ -885,15 +949,41 @@ export function getAwsCloudStreamCommand(data: {
   });
   const regionList: string =
     regions.length > 0 ? regions.join(" ") : '"${AWS_REGION:-us-east-1}"';
-
-  return [
+  const deploy: string = `aws cloudformation deploy --region "$REGION" --stack-name ${names.stackName} --template-file ${CLOUD_STREAM_TEMPLATE_FILE} --capabilities CAPABILITY_IAM --parameter-overrides "StreamKey=$STREAM_KEY" --no-fail-on-empty-changeset`;
+  const checks: Array<string> = getCloudStreamCheckLines({
+    options: data.options,
+    regionList,
+  });
+  const start: Array<string> = [
     `cat > ${CLOUD_STREAM_TEMPLATE_FILE} <<'TEMPLATE'`,
     getAwsCloudStreamTemplateBody(data.options),
     "TEMPLATE",
     `STREAM_KEY=${shellQuote(data.streamKey || "<YOUR_STREAM_KEY>")}`,
-    `for REGION in ${regionList}; do`,
-    `  aws cloudformation deploy --region "$REGION" --stack-name ${names.stackName} --template-file ${CLOUD_STREAM_TEMPLATE_FILE} --capabilities CAPABILITY_IAM --parameter-overrides "StreamKey=$STREAM_KEY" --no-fail-on-empty-changeset`,
-    "done",
+  ];
+
+  if (checks.length === 0) {
+    return [
+      ...start,
+      `for REGION in ${regionList}; do`,
+      `  ${deploy}`,
+      "done",
+    ].join("\n");
+  }
+
+  /*
+   * No `exit`: pasted into CloudShell, it would close the shell. A stop is
+   * the deploys not run.
+   */
+  return [
+    ...start,
+    ...checks,
+    'if [ "$BLOCKED" = 1 ]; then',
+    `  echo ${shellQuote(CLOUD_STREAM_COMMAND_STOPPED)}`,
+    "else",
+    `  for REGION in ${regionList}; do`,
+    `    ${deploy}`,
+    "  done",
+    "fi",
   ].join("\n");
 }
 

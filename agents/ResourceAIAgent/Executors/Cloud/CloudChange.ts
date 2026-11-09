@@ -174,6 +174,12 @@ export function kindName(
  * One command being run: its budget, its reads and its one change. A dry
  * run (dryRun) makes the same reads and checks, and stops at the change
  * call with CloudDryRunStop instead of sending it.
+ *
+ * stopReason, when the job loop gives one, is asked right before the change
+ * call and between polls of its operation: once OneUptime said to stop
+ * (Enable AI was turned off while the agent held the job), a change not yet
+ * sent is never sent - nothing was changed - and one already sent is no
+ * longer waited for.
  */
 export class CloudCommandRun {
   // The value the change replaces, set right before the change call.
@@ -182,17 +188,31 @@ export class CloudCommandRun {
   public readonly startedAtMs: number;
   public readonly deadlineMs: number;
   public readonly dryRun: boolean;
+  private readonly stopReason: () => string | null;
 
   public constructor(
     public readonly runtime: CloudRuntime,
     public readonly command: ParsedCloudCommand,
     public readonly settings: CloudAgentSettings,
     public readonly timeoutInMs: number,
-    options: { dryRun?: boolean | undefined } = {},
+    options: {
+      dryRun?: boolean | undefined;
+      stopReason?: (() => string | null) | undefined;
+    } = {},
   ) {
     this.startedAtMs = runtime.nowMs();
     this.deadlineMs = this.startedAtMs + timeoutInMs - CLOUD_RUN_HEADROOM_MS;
     this.dryRun = options.dryRun === true;
+    this.stopReason =
+      options.stopReason ||
+      ((): string | null => {
+        return null;
+      });
+  }
+
+  // Why OneUptime said to stop, or null.
+  public getStopReason(): string | null {
+    return this.stopReason();
   }
 
   public get provider(): CloudCatalogProvider {
@@ -294,6 +314,15 @@ export class CloudCommandRun {
 
     if (this.dryRun) {
       throw new CloudDryRunStop(replaced);
+    }
+
+    // OneUptime said to stop while the reads ran: the change is never sent.
+    const stop: string | null = this.stopReason();
+
+    if (stop) {
+      throw new CloudNotRunError(
+        `The change was not sent, so nothing was changed: ${stop}`,
+      );
     }
 
     this.changeStarted = true;
@@ -430,11 +459,15 @@ export class CloudCommandRun {
     return requested;
   }
 
-  // Waits between polls of a long-running operation, never past the budget.
+  /*
+   * Waits between polls of a long-running operation, never past the budget,
+   * and not at all once OneUptime said to stop: the change was sent, and
+   * the agent stops waiting for it.
+   */
   public async pause(ms: number): Promise<boolean> {
     const wait: number = Math.min(ms, this.remainingMs());
 
-    if (wait <= 0) {
+    if (wait <= 0 || this.stopReason()) {
       return false;
     }
 

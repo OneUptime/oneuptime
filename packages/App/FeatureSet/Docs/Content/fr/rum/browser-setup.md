@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 Construisez-les avec le même objet `resource`. Un pipeline de journaux ou de métriques dont la ressource n'a pas `browser.*` est classé comme service backend distinct.
 
+Un pipeline de journaux n'envoie que les entrées que votre code écrit : écrivez-en une partout où se passe quelque chose qui mérite d'être su :
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## Référence des points de terminaison
 
 | Signal | Point de terminaison | En-tête |

@@ -402,11 +402,11 @@ Abra as ferramentas de desenvolvedor do navegador na aba do painel (F12, ou Cmd+
 
 As gravações de portal feitas antes de o OneUptime carregar esses arquivos durante a reprodução, as que mostravam a barra offline em toda reprodução, agora também tocam com ela escondida, desde que a folha de estilos que indicam ainda seja servida: não há nada para mudar em uma gravação.
 
-## O aplicativo RUM diz «Desconectado»
+## O aplicativo RUM diz «Sem tráfego recente»
 
-O rótulo de status e **Visto pela última vez** na página da aplicação informam quando a telemetria chegou pela última vez para essa aplicação. A reprodução de sessões conta: tanto um gravador buscando a sua política quanto um fragmento aceito os atualizam, então uma aplicação instrumentada só com o snippet de reprodução continua Conectado. Em versões anteriores só a telemetria RUM do OpenTelemetry fazia isso, então uma aplicação só com reprodução mostrava «Desconectado» com um Visto pela última vez de dias atrás enquanto os gravadores dela funcionavam perfeitamente.
+O rótulo de status e **Visto pela última vez** na página da aplicação informam quando a telemetria chegou pela última vez para essa aplicação. A reprodução de sessões conta: tanto um gravador buscando a sua política quanto um fragmento aceito os atualizam, então uma aplicação instrumentada só com o snippet de reprodução mostra **Recebendo dados** enquanto as pessoas usam o site. Em versões anteriores só a telemetria RUM do OpenTelemetry fazia isso, então uma aplicação só com reprodução parecia inativa, com um Visto pela última vez de dias atrás, enquanto os gravadores dela funcionavam perfeitamente.
 
-Então «Conectado» significa que *algo* está informando — não que tudo esteja. Visualizações de página, taxa de erros, duração p95 e clientes vêm do SDK do OpenTelemetry para navegador, que é instalado à parte; quando eles marcam zero enquanto chegam gravações, a página Visão geral da aplicação diz isso diretamente.
+Então **Recebendo dados** significa que *algo* está informando — não que tudo esteja. Visualizações de página, taxa de erros, duração p95 e clientes vêm do SDK do OpenTelemetry para navegador, que é instalado à parte; quando eles marcam zero enquanto chegam gravações, a página Visão geral da aplicação diz isso diretamente.
 
 ## A telemetria RUM é separada
 

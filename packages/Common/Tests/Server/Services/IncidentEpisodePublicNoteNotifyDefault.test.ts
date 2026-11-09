@@ -28,6 +28,7 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 import { stubReadableParents } from "../TestingUtils/ReadableParents";
 
 /*
@@ -38,6 +39,8 @@ import { stubReadableParents } from "../TestingUtils/ReadableParents";
  * (CreatePermission.checkParentPermission), answered here as found.
  */
 beforeEach(() => {
+  // Public note approval off: every note is published as it is posted.
+  stubPublicNoteApproval({});
   stubProjectDirectory({});
   stubReadableParents();
 });

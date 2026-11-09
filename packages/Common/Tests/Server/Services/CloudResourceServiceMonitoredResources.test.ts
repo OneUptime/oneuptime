@@ -29,6 +29,7 @@ import ResourceFeedUtil from "../../../Server/Utils/ResourceFeed/ResourceFeedUti
 import logger from "../../../Server/Utils/Logger";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   CloudMonitoredResource,
   buildCloudMonitoredResourceIdentifier,
@@ -512,6 +513,40 @@ describe("recordMonitoredResourceSighting", () => {
     expect("cloudRegion" in metadata).toBe(false);
     expect("cloudAccountId" in metadata).toBe(false);
     expect("cloudResourceGroup" in metadata).toBe(false);
+  });
+
+  test("a datapoint that does not name its resource completely leaves the row's own id as it is", async () => {
+    // An App Runner metric without the service's id: its stand-in id.
+    await service.recordMonitoredResourceSighting({
+      cloudResourceId: ObjectID.generate(),
+      resource: {
+        ...vm(),
+        provider: CloudProvider.AWS,
+        providerResourceId: "AWS/AppRunner ServiceName=checkout-web",
+      },
+    });
+    // One that names it by its ARN writes it.
+    await service.recordMonitoredResourceSighting({
+      cloudResourceId: ObjectID.generate(),
+      resource: {
+        ...vm(),
+        provider: CloudProvider.AWS,
+        providerResourceId:
+          "arn:aws:apprunner:us-east-1:123456789012:service/checkout-web/8fe1e10304f84fd2b0df550fe98a71fa",
+      },
+    });
+
+    const [standIn, own]: Array<any> = write.mock.calls.map(
+      (call: Array<any>): any => {
+        return call[0].metadata;
+      },
+    );
+
+    expect("providerResourceId" in standIn).toBe(false);
+    expect(standIn.cloudProvider).toBe("aws");
+    expect(own.providerResourceId).toBe(
+      "arn:aws:apprunner:us-east-1:123456789012:service/checkout-web/8fe1e10304f84fd2b0df550fe98a71fa",
+    );
   });
 
   test("a value wider than its column is clamped to it", async () => {

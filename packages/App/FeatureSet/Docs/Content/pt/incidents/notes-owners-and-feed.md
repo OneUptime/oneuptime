@@ -27,7 +27,7 @@ flowchart TB
     private --> feed
 ```
 
-As **Notas públicas** são publicadas na sua página de status e podem notificar os assinantes. As **Notas privadas** (o modelo `IncidentInternalNote`) ficam dentro do painel. Por baixo das duas estão o **Incidente Feed**, uma linha do tempo somente de acréscimo que registra tudo o que aconteceu com o incidente, e a lista de **Proprietários**, que decide quem é avisado.
+As **Notas públicas** são publicadas na sua página de status e podem notificar os assinantes. As **Notas privadas** (o modelo `IncidentInternalNote`) ficam dentro do painel. Por baixo das duas estão o **Feed do incidente**, uma linha do tempo somente de acréscimo que registra tudo o que aconteceu com o incidente, e a lista de **Proprietários**, que decide quem é avisado.
 
 Tudo isso fica no menu lateral do incidente: **Notas → Notas públicas**, **Notas → Notas privadas** e **Equipe → Proprietários**. O feed fica na página **Visão geral** do incidente.
 
@@ -40,7 +40,7 @@ Os dois tipos de nota parecem parecidos no painel e se comportam de forma muito 
 | Modelo                         | `IncidentPublicNote`                                                | `IncidentInternalNote`                                          |
 | Aparece nas páginas de status  | Sim, como parte da linha do tempo do incidente                      | Nunca — nada no aplicativo de páginas de status as lê           |
 | Horário de publicação          | `postedAt`, que você pode definir                                   | Nenhum: carimbada e ordenada por `createdAt`                    |
-| Notifica os assinantes         | Quando **Notify status page subscribers** está marcada              | Nunca: ela não tem nenhum campo de assinante                    |
+| Notifica os assinantes         | Quando **Notificar os assinantes da página de status** está marcada              | Nunca: ela não tem nenhum campo de assinante                    |
 | Anexos acessíveis por          | Visitantes da página de status, por uma rota da página de status    | Só a API autenticada do painel                                  |
 | Notifica os proprietários      | Sim                                                                 | Sim                                                             |
 
@@ -64,42 +64,42 @@ Abra o incidente e escolha **Notas → Notas públicas** no menu lateral dele. O
 
 ### Escrever a atualização
 
-Escreva a nota em Markdown, ou comece a partir de um dos seus **Modelos** ou de **Rascunho com IA**. Adicione arquivos com **Attach** se os assinantes precisarem vê-los.
+Escreva a nota em Markdown, ou comece a partir de um dos seus **Modelos** ou de **Rascunho com IA**. Adicione arquivos com **Anexar** se os assinantes precisarem vê-los.
 
 ### Decidir quem é avisado
 
-Deixe **Notify status page subscribers** marcada para notificar os assinantes, ou desmarque-a para publicar em silêncio. **Will notify**, abaixo dela, mostra quais páginas de status a nota alcançará, e **Pré-visualização** mostra o e-mail que elas receberão.
+Deixe **Notificar os assinantes da página de status** marcada para notificar os assinantes, ou desmarque-a para publicar em silêncio. **Will notify**, abaixo dela, mostra quais páginas de status a nota alcançará, e **Pré-visualização** mostra o e-mail que elas receberão.
 
 ### Publicá-la
 
-Clique em **Post update**, ou pressione Ctrl+Enter (⌘+Enter no Mac). A nota aparece no topo da lista, com um selo que acompanha a notificação dela.
+Clique em **Publicar atualização**, ou pressione Ctrl+Enter (⌘+Enter no Mac). A nota aparece no topo da lista, com um selo que acompanha a notificação dela.
 :::
 
-O mesmo editor abre em uma caixa de diálogo a partir de **Add Public Note** no menu **Ações** do feed do incidente (veja [O feed do incidente](#o-feed-do-incidente)), então uma nota é escrita do mesmo jeito de qualquer um dos dois lugares.
+O mesmo editor abre em uma caixa de diálogo a partir de **Adicionar nota pública** no menu **Ações** do feed do incidente (veja [O feed do incidente](#o-feed-do-incidente)), então uma nota é escrita do mesmo jeito de qualquer um dos dois lugares.
 
 | Controle                           | Propósito                                                                                                                                     |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | A nota                             | O corpo, em Markdown. Obrigatório.                                                                                                            |
 | **Modelos**                        | Insere um dos seus modelos de nota na nota, depois do que você já digitou. Veja [Modelos de notas](#modelos-de-notas).                          |
 | **Rascunho com IA**                  | Redige a nota a partir do incidente, para você editar. Veja [Gerar uma nota com IA](#gerar-uma-nota-com-ia).                              |
-| **Attach**                         | Arquivos compartilhados com os assinantes na página de status. Opcional.                                                                      |
-| **Posted now**                     | Quando a nota diz que foi publicada: o momento em que você a publica, a menos que você escolha aqui um horário anterior, no seu fuso horário atual. |
-| **Notify status page subscribers** | Caixa de seleção. Marcada por padrão, a menos que o incidente tenha sido declarado sem notificar os assinantes — aí ela começa desmarcada. Desmarque-a para publicar em silêncio. |
+| **Anexar**                         | Arquivos compartilhados com os assinantes na página de status. Opcional.                                                                      |
+| **Publicada agora**                     | Quando a nota diz que foi publicada: o momento em que você a publica, a menos que você escolha aqui um horário anterior, no seu fuso horário atual. |
+| **Notificar os assinantes da página de status** | Caixa de seleção. Marcada por padrão, a menos que o incidente tenha sido declarado sem notificar os assinantes — aí ela começa desmarcada. Desmarque-a para publicar em silêncio. |
 
 **Incidentes silenciosos continuam silenciosos.** Se um incidente foi declarado com **Notificar assinantes da página de status** desativado (ou como incidente privado), seus assinantes nunca souberam dele, então uma nota pública não deveria ser a primeira coisa que eles ouvem. Em um incidente assim, a caixa começa desmarcada, com uma linha abaixo explicando por quê. Você ainda pode marcá-la para notificar os assinantes sobre aquela nota. As notas publicadas sem uma escolha explícita seguem a mesma regra: notas do Slack e do Microsoft Teams, workflows e requisições à API que omitem `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Um `true` ou um `false` explícitos são sempre mantidos. As notas públicas de [eventos de manutenção programada](/docs/status-pages/subscribers#eventos-de-manutenção-programada) e de [episódios de incidente](/docs/status-pages/subscribers#episódios-de-incidentes) seguem uma regra parecida, conforme o próprio evento ou episódio tenha notificado os assinantes ao ser criado. Um incidente ou episódio privado não aceita nenhuma nota pública.
 
-**Veja quem a nota alcançará.** Enquanto **Notify status page subscribers** estiver marcada, uma linha **Will notify** abaixo dela lista as páginas de status para onde a nota irá, com uma contagem de assinantes «até» por canal, e as páginas que listam os monitores do incidente mas não serão avisadas, com o motivo. Quando ninguém será avisado, ela não mostra nada, a menos que o incidente esteja oculto das páginas de status ou que o motivo seja seu escopo de páginas de status. Ela segue o escopo de páginas de status do incidente, então uma nota em um incidente limitado a duas páginas de unidades diz que alcançará essas duas. Veja [Uma página de status por público](/docs/status-pages/one-status-page-per-audience).
+**Veja quem a nota alcançará.** Enquanto **Notificar os assinantes da página de status** estiver marcada, uma linha **Will notify** abaixo dela lista as páginas de status para onde a nota irá, com uma contagem de assinantes «até» por canal, e as páginas que listam os monitores do incidente mas não serão avisadas, com o motivo. Quando ninguém será avisado, ela não mostra nada, a menos que o incidente esteja oculto das páginas de status ou que o motivo seja seu escopo de páginas de status. Ela segue o escopo de páginas de status do incidente, então uma nota em um incidente limitado a duas páginas de unidades diz que alcançará essas duas. Veja [Uma página de status por público](/docs/status-pages/one-status-page-per-audience).
 
 **Veja o que eles receberão.** Ao lado da mesma caixa, **Pré-visualização** mostra o e-mail que os assinantes de cada uma dessas páginas de status receberão pela nota que você está escrevendo, e qual modelo ele usa e por quê. Ela fica cinza até a nota ter algum texto. **Enviar teste para mim** envia esse e-mail para o e-mail da sua própria conta, e para mais ninguém. Veja [Assinantes e comunicados](/docs/status-pages/subscribers#pré-visualizar-o-e-mail-antes-do-envio).
 
 > [!TIP]
-> **O horário de publicação é o carimbo de tempo real da nota.** As páginas de status ordenam e exibem as notas públicas por `postedAt`, não por quando você as digitou — então, se você está atualizando a página de status com algo que enviou há 40 minutos, escolha **Posted now** e defina quando realmente aconteceu. Se uma nota chegar pela API (`/api/incident-public-note`) sem horário, o OneUptime coloca o horário atual.
+> **O horário de publicação é o carimbo de tempo real da nota.** As páginas de status ordenam e exibem as notas públicas por `postedAt`, não por quando você as digitou — então, se você está atualizando a página de status com algo que enviou há 40 minutos, escolha **Publicada agora** e defina quando realmente aconteceu. Se uma nota chegar pela API (`/api/incident-public-note`) sem horário, o OneUptime coloca o horário atual.
 
-Cada nota mostra quem a escreveu, seu horário de publicação, o Markdown renderizado com os anexos e, no cabeçalho, em que ponto está a notificação aos assinantes. **Search notes…** encontra notas pelo que elas dizem, e o feed pode ser lido do mais recente ou do mais antigo primeiro. Links para outros sites e para anexos abrem em uma nova aba. Linhas que começam com `>` aparecem como citação; comece-a com uma linha própria, `> [!NOTE]`, `> [!TIP]` ou `> [!WARNING]`, para mostrá-la como um quadro de destaque.
+Cada nota mostra quem a escreveu, seu horário de publicação, o Markdown renderizado com os anexos e, no cabeçalho, em que ponto está a notificação aos assinantes. **Buscar nas notas…** encontra notas pelo que elas dizem, e o feed pode ser lido do mais recente ou do mais antigo primeiro. Links para outros sites e para anexos abrem em uma nova aba. Linhas que começam com `>` aparecem como citação; comece-a com uma linha própria, `> [!NOTE]`, `> [!TIP]` ou `> [!WARNING]`, para mostrá-la como um quadro de destaque.
 
 ## Publicar uma nota privada
 
-**Notas → Notas privadas** é deliberadamente mais simples. É o mesmo editor, dizendo **Private · Only your team can see this**, com a nota, **Modelos**, **Rascunho com IA** e **Attach** para arquivos destinados à equipe de resposta ao incidente. **Adicionar nota privada** no menu **Ações** do feed do incidente o abre em uma caixa de diálogo. Pela API, as notas privadas são `/api/incident-internal-note`.
+**Notas → Notas privadas** é deliberadamente mais simples. É o mesmo editor, dizendo **Private · Only your team can see this**, com a nota, **Modelos**, **Rascunho com IA** e **Anexar** para arquivos destinados à equipe de resposta ao incidente. **Adicionar nota privada** no menu **Ações** do feed do incidente o abre em uma caixa de diálogo. Pela API, as notas privadas são `/api/incident-internal-note`.
 
 Sem horário de publicação, sem caixa de assinantes — a nota é carimbada quando é criada.
 
@@ -109,7 +109,7 @@ Os dois tipos de nota são escritos no editor Markdown, que aninha itens de list
 
 Um incidente privado não aparece em nenhuma página de status e não notifica nenhum assinante (veja [Manter um incidente fora da página de status](/docs/incidents/states-and-severities#manter-um-incidente-fora-da-página-de-status)), então uma nota pública nele não chegaria a ninguém para quem foi escrita. O OneUptime não a oferece:
 
-- **A página de notas públicas dele** diz «Este incidente é privado, por isso não é possível adicionar notas públicas a ele. Use uma nota privada.» onde ficava o editor, com um botão **Adicionar nota privada** que abre as notas privadas dele. **Add Public Note** no menu **Ações** do feed fica bloqueado e diz o mesmo.
+- **A página de notas públicas dele** diz «Este incidente é privado, por isso não é possível adicionar notas públicas a ele. Use uma nota privada.» onde ficava o editor, com um botão **Adicionar nota privada** que abre as notas privadas dele. **Adicionar nota pública** no menu **Ações** do feed fica bloqueado e diz o mesmo.
 - **Ao alterar o estado dele**, o diálogo recolhe uma nota privada em **Adicionar uma nota privada** no lugar da pública e não pergunta sobre assinantes. A ação em massa **Alterar estado** adiciona a nota como nota privada a cada incidente privado que move e não notifica ninguém sobre eles.
 - **No Slack e no Microsoft Teams**, um 📣 ou 📢 numa mensagem do canal dele salva a mensagem como nota privada, e a confirmação diz por quê.
 - **Pela API, por fluxos de trabalho e pelo OneUptime AI**, uma nota pública nele é recusada com a mesma frase, e uma mudança de estado enviada com uma é recusada por inteiro, então o estado não muda. Os lembretes de notas públicas de uma regra de SLA esperam até ele voltar a ser público; os lembretes privados são publicados como sempre.
@@ -118,7 +118,7 @@ As notas públicas publicadas antes de o incidente se tornar privado ficam. Voc�
 
 ## Anexos nas notas
 
-Os dois tipos de nota aceitam anexos pelo botão **Attach** do editor, e os dois mostram uma lista de anexos abaixo do corpo da nota com um link **Download attachment** por arquivo.
+Os dois tipos de nota aceitam anexos pelo botão **Anexar** do editor, e os dois mostram uma lista de anexos abaixo do corpo da nota com um link **Download attachment** por arquivo.
 
 Onde eles divergem é em quem pode buscar o arquivo:
 
@@ -138,12 +138,12 @@ Ler uma nota pela API, pelo Terraform ou por um workflow lista só os anexos que
 
 ## Gerar uma nota com IA
 
-O editor tem um botão **Rascunho com IA**, nas duas páginas de notas e nas caixas de diálogo **Add Public Note** e **Adicionar nota privada** do feed. Ele envia o incidente ao provedor de IA do seu projeto e coloca o Markdown gerado na nota, onde você o edita antes de publicar — nada é publicado automaticamente.
+O editor tem um botão **Rascunho com IA**, nas duas páginas de notas e nas caixas de diálogo **Adicionar nota pública** e **Adicionar nota privada** do feed. Ele envia o incidente ao provedor de IA do seu projeto e coloca o Markdown gerado na nota, onde você o edita antes de publicar — nada é publicado automaticamente.
 
 | Caixa de diálogo                       | O que ela escreve                                                    | Modelos                                                           |
 | -------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Generate Public Note with AI**       | Uma nota voltada aos clientes, a partir de uma análise dos dados do incidente. | **Status Update**, **Resolution Notice**, **Maintenance Update** |
-| **Generate Private Note with AI**      | Uma nota técnica interna.                                            | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
+| **Gerar nota pública com IA**       | Uma nota voltada aos clientes, a partir de uma análise dos dados do incidente. | **Status Update**, **Resolution Notice**, **Maintenance Update** |
+| **Gerar nota privada com IA**      | Uma nota técnica interna.                                            | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
 
 Por trás do botão, o painel faz uma requisição para `/incident/generate-note-from-ai/{incidentId}` com o modelo escolhido e um tipo de nota `public` ou `internal`.
 
@@ -169,7 +169,7 @@ Se você conectou um espaço de trabalho, os respondedores nunca precisam sair d
 Três detalhes que vale conhecer:
 
 - **Proteção contra duplicatas** — cada nota registra a mensagem do Slack de onde veio (`postedFromSlackMessageId`, no formato `channel_id:message_ts`), então várias pessoas reagindo à mesma mensagem geram uma nota, não cinco.
-- **As notas ecoam** — publicar qualquer um dos dois tipos de nota também envia uma mensagem para o canal do incidente conectado, porque o item de feed da nota é criado com a notificação do espaço de trabalho ativada.
+- **As notas ecoam** — publicar qualquer um dos dois tipos de nota também envia uma mensagem para o canal do incidente conectado, porque o item de feed da nota é criado com a notificação do espaço de trabalho ativada. Uma nota pública que aguarda aprovação é enviada para lá depois de publicada: veja [Aprovação de notas públicas](#aprovação-de-notas-públicas).
 - **Publicada como a pessoa que pediu** — uma nota da caixa de diálogo ou de uma reação é publicada com as permissões do OneUptime dessa pessoa, então ela precisa da permissão para publicar esse tipo de nota no incidente. Quando é recusada, a pessoa é informada do motivo — em uma mensagem direta no Slack, e na conversa no Microsoft Teams (na thread da mensagem, para uma reação) — e nada é publicado.
 
 ## Quando uma nota pública realmente chega aos assinantes
@@ -196,22 +196,22 @@ flowchart TB
 6. Cada assinante precisa passar pelas próprias preferências — não ter cancelado a assinatura, e estar inscrito neste recurso e no tipo de evento `Incident` onde a página deixa os assinantes escolherem.
 
 > [!NOTE]
-> **As notificações não são instantâneas.** A tarefa que as envia roda uma vez por minuto, então espere até cerca de um minuto entre salvar a nota e o e-mail sair. É isso que **Notifying subscribers soon** significa em uma nota, e **Sending Soon** nas notificações do próprio incidente.
+> **As notificações não são instantâneas.** A tarefa que as envia roda uma vez por minuto, então espere até cerca de um minuto entre salvar a nota e o e-mail sair. É isso que **Os assinantes serão notificados em breve** significa em uma nota, e **Sending Soon** nas notificações do próprio incidente.
 
 O cabeçalho de uma nota pública acompanha todo o percurso com um selo. Clique nele para ver a mensagem de status da notificação, que diz o que aconteceu:
 
 | Selo                           | O que significa                                                                                                                                   |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Subscribers not notified**   | Nada foi enviado: a nota foi publicada com **Notificar assinantes da página de status** desmarcado, ou uma das barreiras acima se fechou. O motivo é registrado. |
-| **Notifying subscribers soon** | Na fila, aguardando a próxima execução da tarefa de envio.                                                                                        |
-| **Notifying subscribers**      | A tarefa está percorrendo a lista de assinantes.                                                                                                  |
-| **Subscribers notified**       | A mensagem de cada assinante foi enviada. A mensagem de status lista, por página de status, quantas saíram em cada canal.                         |
-| **Notification failed**        | Nem todos os assinantes receberam, ou a tarefa parou com um erro. A mensagem de status diz qual dos dois.                                          |
+| **Assinantes não notificados**   | Nada foi enviado: a nota foi publicada com **Notificar assinantes da página de status** desmarcado, ou uma das barreiras acima se fechou. O motivo é registrado. |
+| **Os assinantes serão notificados em breve** | Na fila, aguardando a próxima execução da tarefa de envio.                                                                                        |
+| **Notificando os assinantes**      | A tarefa está percorrendo a lista de assinantes.                                                                                                  |
+| **Assinantes notificados**       | A mensagem de cada assinante foi enviada. A mensagem de status lista, por página de status, quantas saíram em cada canal.                         |
+| **Falha na notificação**        | Nem todos os assinantes receberam, ou a tarefa parou com um erro. A mensagem de status diz qual dos dois.                                          |
 
-**Enviado significa enviado.** A tarefa espera cada mensagem: um e-mail ou uma mensagem de texto conta como enviado assim que o servidor de e-mail ou o provedor de SMS o aceitou, e uma mensagem do Slack, do Microsoft Teams ou de webhook assim que a outra ponta respondeu. Uma mensagem recusada, com erro ou sem resposta em 4 minutos conta como falha, e uma única falha muda o selo para **Notification failed**; os outros assinantes continuam recebendo. A mensagem de status fica então parecida com `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` «Enviado» vai até onde o OneUptime consegue ver: um servidor de e-mail ainda pode devolver um e-mail depois.
+**Enviado significa enviado.** A tarefa espera cada mensagem: um e-mail ou uma mensagem de texto conta como enviado assim que o servidor de e-mail ou o provedor de SMS o aceitou, e uma mensagem do Slack, do Microsoft Teams ou de webhook assim que a outra ponta respondeu. Uma mensagem recusada, com erro ou sem resposta em 4 minutos conta como falha, e uma única falha muda o selo para **Falha na notificação**; os outros assinantes continuam recebendo. A mensagem de status fica então parecida com `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` «Enviado» vai até onde o OneUptime consegue ver: um servidor de e-mail ainda pode devolver um e-mail depois.
 
 :::details Páginas grandes e envios longos
-Os assinantes de uma página de status são lidos de 10.000 em 10.000 até que todos tenham sido alcançados, e há 20 mensagens em andamento ao mesmo tempo. Uma notificação para de iniciar novas mensagens depois de 20 minutos: o que ela não alcançou até ali é listado, e ela é marcada como **Notification failed**. Um envio interrompido no meio — o servidor dele reiniciou ou parou de responder — também é marcado como **Notification failed**, com uma mensagem que começa com `Interrupted:`, depois de ficar 40 minutos em **Notifying subscribers**, para que nunca fique ali para sempre. Veja [Assinantes e comunicados](/docs/status-pages/subscribers#verificar-o-que-foi-enviado).
+Os assinantes de uma página de status são lidos de 10.000 em 10.000 até que todos tenham sido alcançados, e há 20 mensagens em andamento ao mesmo tempo. Uma notificação para de iniciar novas mensagens depois de 20 minutos: o que ela não alcançou até ali é listado, e ela é marcada como **Falha na notificação**. Um envio interrompido no meio — o servidor dele reiniciou ou parou de responder — também é marcado como **Falha na notificação**, com uma mensagem que começa com `Interrupted:`, depois de ficar 40 minutos em **Notificando os assinantes**, para que nunca fique ali para sempre. Veja [Assinantes e comunicados](/docs/status-pages/subscribers#verificar-o-que-foi-enviado).
 :::
 
 ### Enviar de novo a notificação de uma nota
@@ -240,18 +240,46 @@ Uma atualização enviada não é oferecida de novo: edite a nota com a caixa ma
 
 A mensagem que os assinantes realmente recebem vem de um modelo por página de status e por canal — e-mail, SMS, Slack e Microsoft Teams têm cada um seu próprio modelo para o evento **Subscriber Incident Note Created**, com variáveis para o nome e a URL da página de status, o link de detalhes, os recursos afetados, a severidade e o título do incidente, o corpo da nota, os rótulos do incidente, suas páginas de status afetadas e seus campos personalizados, e um link de cancelamento da assinatura por assinante. As mensagens padrão de e-mail, Slack e Microsoft Teams também listam os campos personalizados do incidente marcados com **Incluir nas notificações aos assinantes**, com seus valores atuais. Veja [Assinantes e comunicados](/docs/status-pages/subscribers) para saber como esses modelos e canais são configurados.
 
+## Aprovação de notas públicas
+
+Um projeto pode exigir que suas notas públicas sejam aprovadas antes que os clientes as leiam, para que alguém revise uma atualização, por exemplo sobre uma violação de segurança, antes que ela saia. A aprovação fica desativada até que um proprietário ou administrador do projeto a ative e escolha quem aprova: em **Incidentes → Configurações → Aprovação de notas públicas** para incidentes e episódios de incidente, e em **Manutenção programada → Configurações → Aprovação de notas públicas** para eventos de manutenção programada. Veja [Aprovação de notas públicas](/docs/incidents/settings#aprovação-de-notas-públicas).
+
+Enquanto ela está ativada, o editor diz que a nota é publicada depois de aprovada e indica quem a aprova, e **Publicar atualização** passa a ser **Enviar para aprovação**. A nota é salva com o selo **Aguardando aprovação** e mostra abaixo dele quem pode aprová-la e, quando há várias etapas, qual ela aguarda. Até ser aprovada, uma nota:
+
+- não aparece em nenhuma página de status, nem em nenhum dos feeds RSS e Atom delas;
+- não avisa nenhum assinante: a notificação dela sai quando ela é publicada, se **Notificar os assinantes da página de status** estava marcado. Veja [Notas públicas aguardando aprovação](/docs/status-pages/subscribers#notas-públicas-aguardando-aprovação);
+- não é publicada nos canais do Slack, do Microsoft Teams ou do Mattermost do incidente, e os proprietários dele só ficam sabendo dela quando ela é publicada;
+- não inicia nenhum fluxo de trabalho e fica de fora do que o OneUptime AI lê, então nunca aparece numa nota redigida;
+- mostra suas imagens só aos membros do projeto.
+
+Toda nota pública nova aguarda, seja onde for escrita: no painel, pela API, por um fluxo de trabalho ou pelo OneUptime AI, pelo Slack, pelo Microsoft Teams ou pelo Mattermost, pelo lembrete de uma regra de SLA ou com uma mudança de estado.
+
+**Aprovar e rejeitar.** As pessoas que a etapa aguardada por uma nota nomeia, e os membros das equipes que ela nomeia, veem **Aprovar** e **Rejeitar** na nota, e são avisados de que ela aguarda pelas configurações de notificação que escolheram: veja [Aprovação de notas públicas](/docs/notifications/notification-settings#aprovação-de-notas-públicas). Na última etapa, **Aprovar** passa a ser **Aprovar e publicar**, e a nota é publicada na hora, com a data do momento em que é publicada, a menos que o horário dela tenha sido escolhido quando foi escrita. Depois de publicada, ela traz o selo **Aprovado** e uma linha que diz quem a aprovou, e a entrada dela no feed e a mensagem dela nos canais do incidente terminam com os mesmos nomes. **Rejeitar** pergunta **Por que você está rejeitando?**, e quem escreveu a nota vê o motivo. Ninguém aprova nem rejeita uma nota que enviou, ninguém aprova duas etapas da mesma nota, e uma chave de API não aprova nada: quem aprova são pessoas.
+
+**Enviar de novo.** Uma nota rejeitada continua fora das páginas de status, marcada como **Rejeitado**. Quem pode editá-la pode alterá-la, ou enviá-la como está com **Enviar novamente para aprovação**; nos dois casos a aprovação recomeça da primeira etapa. Editar uma nota que ainda aguarda também reinicia a aprovação dela: uma aprovação vale para as palavras que lhe foram apresentadas.
+
+**Editar uma nota publicada.** Uma edição também aguarda. O formulário de edição diz isso, e **Enviar edição para aprovação** a salva. As páginas de status continuam mostrando a nota como foi aprovada, a nota mostra a edição em **Edição proposta**, marcada como **Edição aguardando aprovação** ou, depois de rejeitada, **Edição rejeitada**, e **Retirar edição** a descarta. Os arquivos de uma nota publicada não podem mudar enquanto a aprovação estiver ativada: publique uma nota nova com os arquivos. Uma edição enviada enquanto alguém decide sobre a nota não é salva: atualize a página e faça a edição de novo.
+
+**Desativar a aprovação.** A partir daí, as notas novas são publicadas assim que são postadas. Uma nota que ainda aguardava, ou que foi rejeitada, oferece **Publicar agora** a quem pode editá-la, o que a publica como está, sem aprovação, e o feed registra isso.
+
+**Pelo Slack, pelo Microsoft Teams e pelo Mattermost.** O formulário para adicionar uma nota diz que uma nota pública é publicada na página de status depois de aprovada. Quem envia uma fica sabendo que ela foi enviada para aprovação e quem ela aguarda: numa mensagem que só essa pessoa vê no Slack e no Mattermost, e na conversa no Microsoft Teams. Uma nota salva a partir de uma reação 📣 ou 📢 diz o mesmo na sua confirmação. O canal fica sabendo da nota quando ela é publicada.
+
+**Aprovar pelo Slack, pelo Microsoft Teams e pelo Mattermost.** Os aprovadores que ativam o Slack, o Microsoft Teams ou o Mattermost para **Aprovação de notas públicas** em **Configurações do usuário → Configurações de notificação** recebem a nota ali, numa mensagem direta da OneUptime: quem a enviou, a etapa que ela aguarda e botões para aprová-la, rejeitá-la ou abri-la na OneUptime. Um clique decide como a conta da OneUptime à qual a conta de chat deles está conectada, com as mesmas regras dos botões da nota, e ali também uma rejeição exige um motivo. Só eles veem a resposta. Se outra pessoa decidiu antes, ou se a nota ou as etapas dela mudaram depois do envio da mensagem, nada é decidido e a resposta diz o que aconteceu. Assim que a nota é decidida, a mensagem de cada aprovador sobre ela muda para dizer o que aconteceu e mantém só o link para a OneUptime. Quando as etapas de aprovação mudam enquanto ela aguarda, as mensagens sobre uma etapa que ela não aguarda mais mudam da mesma forma, e também a de quem a etapa dela não consulta mais; quem ela aguarda agora recebe uma mensagem própria, com os botões. Veja [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) e [Mattermost](/docs/workspace-connections/mattermost).
+
+O feed registra cada etapa como uma entrada `PublicNoteApproval`: uma nota enviada para aprovação, aprovada ou rejeitada, uma edição retirada ou uma nota publicada sem aprovação. Essas entradas não são publicadas nos canais de chat; a nota publicada, sim.
+
 ## O feed do incidente
 
-O cartão **Incidente Feed** fica no fim da coluna esquerda da página **Visão geral** do incidente. É a história do incidente como uma linha do tempo. Cada dia tem um título com a sua data, diz quando é hoje ou ontem e nomeia o fuso horário dos horários: o das suas configurações de usuário ou, se não houver, o do seu navegador. Cada item mostra a hora em que aconteceu, a menos que o item acima tenha acontecido no mesmo minuto, e, na última hora, há quanto tempo; aponte para a hora para ver a data e a hora completas. Ao lado da hora ficam o ícone do tipo do item e uma frase que começa com o avatar e o nome de quem o causou. O que alguém escreveu, como uma nota ou uma causa raiz, aparece à parte em um cartão abaixo dessa frase. Três ou mais itens do mesmo tipo seguidos em até cinco minutos, como atualizações de plantão, notificações aos proprietários ou aos assinantes ou regras executadas, ficam recolhidos sob o primeiro, atrás de um botão que mostra o restante. Por padrão, os itens mais recentes ficam no topo.
+O cartão **Feed do incidente** fica no fim da coluna esquerda da página **Visão geral** do incidente. É a história do incidente como uma linha do tempo. Cada dia tem um título com a sua data, diz quando é hoje ou ontem e nomeia o fuso horário dos horários: o das suas configurações de usuário ou, se não houver, o do seu navegador. Cada item mostra a hora em que aconteceu, a menos que o item acima tenha acontecido no mesmo minuto, e, na última hora, há quanto tempo; aponte para a hora para ver a data e a hora completas. Ao lado da hora ficam o ícone do tipo do item e uma frase que começa com o avatar e o nome de quem o causou. O que alguém escreveu, como uma nota ou uma causa raiz, aparece à parte em um cartão abaixo dessa frase. Três ou mais itens do mesmo tipo seguidos em até cinco minutos, como atualizações de plantão, notificações aos proprietários ou aos assinantes ou regras executadas, ficam recolhidos sob o primeiro, atrás de um botão que mostra o restante. Por padrão, os itens mais recentes ficam no topo.
 
 Alguns itens trazem detalhes extras — uma notificação aos proprietários lista todos para quem foi enviada, por exemplo, e uma notificação aos assinantes lista cada página de status para onde foi, com o número de mensagens enviadas e com falha em cada canal e o assunto com que seu e-mail saiu, seguido, quando enviou alguma, dos valores de campos personalizados que ela colocou em uma mensagem, em **Custom fields sent**. Esses detalhes se abrem sob o item: **Mostrar quem foi notificado** em uma notificação aos proprietários, **Mostrar o relatório completo** na causa raiz que uma investigação de IA publicou e **Mostrar detalhes** nos demais. **Ocultar detalhes** os recolhe de novo.
 
 O cabeçalho do cartão também tem um menu **Ações** para você agir sem sair da linha do tempo:
 
-- **Execute Runbook** — inicia um [runbook](/docs/runbooks/index) neste incidente.
-- **Executar política de plantão** — aciona uma política sob demanda. Uma política arquivada não aciona ninguém: seu log de execução no incidente diz que ela não foi executada porque a política está arquivada.
-- **Add Public Note** — o editor da página **Notas públicas**, em uma caixa de diálogo: escreva a nota e depois **Post update**. Os modelos, **Rascunho com IA**, os anexos, **Notify status page subscribers** com quem ela alcançará, e **Pré-visualização** estão todos ali. A nota é publicada agora; para retroagi-la, escolha **Posted now**.
-- **Adicionar nota privada** — o editor da página **Notas privadas**, em uma caixa de diálogo: escreva a nota e depois **Add note**.
+- **Executar runbook** — inicia um [runbook](/docs/runbooks/index) neste incidente.
+- **Executar política de plantão** — aciona uma política sob demanda. Uma política arquivada não aciona ninguém: seu log de execução no incidente diz que ela não foi executada porque a política está arquivada. Ative **Acioná-las como observadoras** para, em vez disso, manter as pessoas da política informadas: a resposta delas só diz que viram o acionamento, e o incidente não é confirmado.
+- **Adicionar nota pública** — o editor da página **Notas públicas**, em uma caixa de diálogo: escreva a nota e depois **Publicar atualização**. Os modelos, **Rascunho com IA**, os anexos, **Notificar os assinantes da página de status** com quem ela alcançará, e **Pré-visualização** estão todos ali. A nota é publicada agora; para retroagi-la, escolha **Publicada agora**.
+- **Adicionar nota privada** — o editor da página **Notas privadas**, em uma caixa de diálogo: escreva a nota e depois **Adicionar nota**.
 
 As duas ações de nota ficam bloqueadas, nomeando a permissão que falta, para quem não pode escrever notas. Depois que uma nota é publicada, a caixa de diálogo se fecha e o feed a mostra.
 
@@ -269,7 +297,7 @@ Todo o resto fica atrás do botão **⋯** ao lado, o mesmo botão **Mais opçõ
 Os itens do feed são gravados pelo próprio serviço de incidentes, pelos dois serviços de notas, pela linha do tempo de estados, por mudanças de proprietários e membros, pela vinculação e desvinculação de alertas, pelos mecanismos de regras, pela execução de plantão, pelas execuções de investigação e de post-mortem da IA, e pelas tarefas agendadas de notificação. Os tipos de evento cobrem:
 
 - **O próprio incidente** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. Uma entrada `IncidentUpdated` registra o que uma edição mudou: o título, a descrição, a causa raiz, as notas de remediação, os rótulos, a severidade, os monitores e o status colocado neles, e as páginas de status adicionadas ao escopo do incidente ou removidas dele. Ela tem uma linha para cada valor que mudou e nenhuma para um valor salvo como estava, então salvar um cartão sem mudar nada, ou um cliente da API ou um workflow regravando o incidente como ele está, não adiciona entrada nenhuma. Um texto que se lê igual é o mesmo (deixando de lado quebras de linha e os espaços ao redor), e os rótulos são os mesmos se formam o mesmo conjunto, em qualquer ordem; um valor que foi apagado se lê como removido, e tirar todos os rótulos como «All labels removed.». As entradas **Alert updated** de um alerta funcionam do mesmo jeito.
-- **Notas e relatórios** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. Um item `PostmortemNote` é gravado quando a nota do post-mortem muda, não toda vez que o post-mortem é salvo.
+- **Notas e relatórios** — `PublicNote`, `PublicNoteApproval`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. Um item `PostmortemNote` é gravado quando a nota do post-mortem muda, não toda vez que o post-mortem é salvo.
 - **Pessoas** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved` e `ChannelMemberAdded`, mostrado como **Membro adicionado ao canal**, para alguém adicionado ao canal do Slack ou do Mattermost do incidente pela página dele. Veja [Quem está no canal de um registro](/docs/workspace-connections/slack#quem-está-no-canal-de-um-registro).
 - **Alertas vinculados** — `AlertLinked` e `AlertUnlinked`, mostrados como **Alerta vinculado** e **Alerta desvinculado**.
 - **Notificações** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
@@ -304,7 +332,7 @@ Há cinco caminhos para a lista de proprietários:
 
 - **Ao declarar** — a pessoa que declara um incidente vira proprietária, e **Proprietários**, em **Mais campos** de **Declarar incidente**, adiciona mais: cada equipe de que ela é membro fica a um clique, logo abaixo do campo. Veja [Quem será o proprietário](/docs/incidents/declaring-incidents#quem-será-o-proprietário).
 - **A partir de um modelo de incidente** — os modelos têm um campo **Proprietários**: as pessoas e equipes proprietárias do incidente, que serão notificadas quando ele for criado ou atualizado, escolhidas da mesma lista de **Adicionar proprietário**. Criar um incidente a partir do modelo as preenche, e elas são adicionadas depois que os canais do Slack e do Microsoft Teams do incidente existem, então uma regra de notificação que convida os proprietários do incidente para um canal novo também as convida. O painel, e a etapa **Create One Incident** de um workflow com um **Incident Template** escolhido, as adicionam sem a notificação «você foi adicionado»; um [formulário](/docs/forms/on-submit) com um modelo as notifica, e segura a notificação **Incidente criado** do incidente até que elas sejam adicionadas. Veja [Declarar um incidente](/docs/incidents/declaring-incidents).
-- **A partir das regras de proprietário de incidentes** — as regras correspondentes adicionam proprietários automaticamente no momento da criação.
+- **A partir das regras de proprietário de incidentes** — as regras correspondentes adicionam proprietários automaticamente no momento da criação, e de novo quando a gravidade ou os rótulos do incidente mudam.
 - **Na criação pela API** — os usuários e equipes proprietários passados com a chamada de criação são adicionados do mesmo jeito, depois que os canais existem, e sem a notificação «você foi adicionado».
 - **Manualmente** — o controle **Adicionar proprietário** na página **Proprietários**, a qualquer momento do incidente, ou **Adicionar** abaixo dos proprietários no cabeçalho da **Visão geral** enquanto ele está aberto.
 
@@ -324,6 +352,8 @@ Uma regra nova precisa adicionar alguém: escolha pelo menos um proprietário, a
 **Notificar proprietários**, em **Mais campos**, controla se as pessoas ficam sabendo. Deixe-o ativado para um roteamento de verdade; desative-o para adicionar proprietários em silêncio — útil quando uma regra é uma conveniência de registro, e não um acionamento.
 
 Toda execução de regra é gravada no feed do incidente, então você sempre pode saber se uma pessoa foi adicionada por uma regra ou por um humano.
+
+As regras são executadas quando um incidente é declarado, e de novo sempre que sua gravidade ou seus rótulos mudam enquanto ele está aberto. Um incidente cuja gravidade é elevada a um nível com que uma regra corresponde, ou que recebe um rótulo com que uma corresponde, recebe na hora os proprietários dessa regra, notificados como a regra diz, e seu feed diz que a regra agora corresponde a ele, e por quê: é assim que uma equipe assume um incidente assim que se descobre que ele afeta toda a organização. Os proprietários nunca são removidos quando o incidente deixa de corresponder.
 
 ## Sobre o que os proprietários são notificados
 

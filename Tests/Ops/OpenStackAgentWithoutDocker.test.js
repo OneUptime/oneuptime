@@ -827,6 +827,33 @@ describe("what it downloads is held to a pinned sha256", () => {
 });
 
 describe("a re-run, the upgrade", () => {
+  test("an agent reading a cloud's databases stays on them, and there is no Compose profile to keep", () => {
+    const env = setup();
+    const first = env.run({ input: FRESH });
+    expect(first.status).toBe(0);
+    fs.appendFileSync(
+      env.installed(".env"),
+      [
+        "OPENSTACK_EXPORTER_CLOUDS=[]",
+        "OPENSTACK_DATABASE_EXPORTER_TARGETS=[10.0.0.9:9180]",
+        "OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]",
+        "",
+      ].join("\n"),
+    );
+
+    const second = env.run({ args: [] });
+
+    expect(second.status).toBe(0);
+    expect(systemdRead(second.envFile)).toMatchObject({
+      OPENSTACK_EXPORTER_CLOUDS: "[]",
+      OPENSTACK_DATABASE_EXPORTER_TARGETS: "[10.0.0.9:9180]",
+      OPENSTACK_WORKER_STATE_CLOUDS: "[RegionOne]",
+      COMPOSE_PROFILES: "",
+    });
+    expect(second.cloudsText).toBe(first.cloudsText);
+    expect(backupsIn(env.installDir)).toEqual([]);
+  });
+
   test("needs no flag, asks nothing, keeps .env and clouds.yaml, and restarts on new binaries", () => {
     const env = setup();
     const first = env.run({ input: FRESH });
@@ -998,6 +1025,27 @@ describe("each project's quotas, without Docker", () => {
 
 describe("your own exporter, without Docker", () => {
   const OWN = "10.0.0.5:9180";
+
+  test("a re-run keeps what .env says of Keystone, and asks it nothing", () => {
+    const env = setup();
+    const first = env.run({
+      input: answers(URL, KEY, "prod", "RegionOne"),
+      env: { OPENSTACK_EXPORTER_ADDRESS: OWN },
+    });
+    expect(first.status).toBe(0);
+    fs.appendFileSync(
+      env.installed(".env"),
+      "OPENSTACK_AUTH_URL=https://keystone.example.com:5000\n",
+    );
+
+    const second = env.run({ args: [] });
+
+    expect(second.status).toBe(0);
+    expect(systemdRead(second.envFile).OPENSTACK_AUTH_URL).toBe(
+      "https://keystone.example.com:5000",
+    );
+    expect(fs.existsSync(env.installed("clouds.yaml"))).toBe(false);
+  });
 
   test("installs the collector alone, and localhost is allowed, since nothing is in a container", () => {
     for (const address of [OWN, "127.0.0.1:9198"]) {

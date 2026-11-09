@@ -33,7 +33,12 @@ import MicrosoftTeamsCardChoices, {
 } from "../MicrosoftTeamsCardChoices";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
 import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
-import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import {
+  WorkspaceAnswer,
+  WorkspaceLatePress,
+} from "../../WorkspaceActionAnswers";
+import WorkspaceHeldPublicNote from "../../WorkspaceHeldPublicNote";
+import WorkspaceNoteForm from "../../WorkspaceNoteForm";
 import MicrosoftTeamsTimezone, {
   MicrosoftTeamsUserTimezone,
 } from "../MicrosoftTeamsTimezone";
@@ -444,6 +449,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
                 contentType: "application/vnd.microsoft.card.adaptive",
                 content: this.buildAddScheduledMaintenanceNoteCard(
                   scheduledMaintenanceId,
+                  await WorkspaceHeldPublicNote.isApprovalRequired({
+                    type: WorkspaceEventType.ScheduledMaintenance,
+                    projectId: request.projectId,
+                  }),
                 ),
               },
             ],
@@ -482,8 +491,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           });
 
           // Posted by the member, as the dashboard posts it for them.
+          let publicNote: ScheduledMaintenancePublicNote | null = null;
+
           if (isPublic) {
-            await ScheduledMaintenancePublicNoteService.addNote({
+            publicNote = await ScheduledMaintenancePublicNoteService.addNote({
               scheduledMaintenanceId: scheduledMaintenanceId,
               note: note,
               projectId: request.projectId,
@@ -498,10 +509,32 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             });
           }
 
-          await MicrosoftTeamsReplies.sendBestEffort(
-            turnContext,
-            "Note added successfully",
-          );
+          /*
+           * Held for approval: posted to no channel until it is approved,
+           * so its answer says it waits, and for whom
+           * (WorkspaceHeldPublicNote), rather than that it was added.
+           */
+          const heldAnswer: WorkspaceAnswer | null =
+            await WorkspaceHeldPublicNote.getAnswerForAddedNote({
+              event: {
+                type: WorkspaceEventType.ScheduledMaintenance,
+                id: scheduledMaintenanceId,
+              },
+              note: publicNote,
+              props: databaseProps,
+            });
+
+          if (heldAnswer) {
+            await MicrosoftTeamsActionAnswer.reply({
+              turnContext: turnContext,
+              answer: heldAnswer,
+            });
+          } else {
+            await MicrosoftTeamsReplies.sendBestEffort(
+              turnContext,
+              "Note added successfully",
+            );
+          }
 
           /*
            * The action is done: a refused reply or a failed delete of the
@@ -651,6 +684,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
   private static buildAddScheduledMaintenanceNoteCard(
     scheduledMaintenanceId: ObjectID,
+    // The project asks for public notes to be approved (WorkspaceNoteForm.getPublicOption).
+    isPublicNoteApprovalRequired: boolean,
   ): JSONObject {
     return {
       type: "AdaptiveCard",
@@ -671,7 +706,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           value: "public",
           choices: [
             {
-              title: "Public Note (Will be posted on Status Page)",
+              title: WorkspaceNoteForm.getPublicOption(
+                isPublicNoteApprovalRequired,
+              ),
               value: "public",
             },
             {

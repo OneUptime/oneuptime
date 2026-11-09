@@ -123,10 +123,10 @@ function recorded(scene: string, exporter: string = "exporter"): Array<Row> {
     return {
       _id: id(),
       kind: entry.kind,
-      name: entry.name,
+      name: entry.name ?? undefined,
       externalId: entry.externalId,
-      regionName: entry.regionName,
-      status: entry.status,
+      regionName: entry.regionName ?? undefined,
+      status: entry.status ?? undefined,
       facts: entry.facts,
       lastSeenAt: new Date(),
     };

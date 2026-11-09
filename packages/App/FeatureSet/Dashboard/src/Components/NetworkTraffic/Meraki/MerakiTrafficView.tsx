@@ -38,8 +38,6 @@ import {
   MerakiUplinkComparisonRow,
   UNKNOWN_VALUE,
   countListedNetworks,
-  getClientDetails,
-  getClientLabel,
   getConversationDetails,
   getConversationTarget,
   getNewestAnalyticsBeforeRange,
@@ -58,12 +56,27 @@ import {
   toFlowSummary,
 } from "./MerakiTrafficRows";
 import MerakiUplinkComparison from "./MerakiUplinkComparison";
+import {
+  MerakiApplianceLine,
+  MerakiDeviceLinkState,
+} from "./MerakiDeviceAppliance";
+import {
+  toApplicationTopRow,
+  toClientTopRow,
+  toNetworkTopRow,
+} from "./MerakiListRows";
+import {
+  UNLINKED_DEVICE_DESCRIPTION,
+  VIEW_ALL_LABELS,
+} from "./MerakiLinkWords";
+import MerakiTrafficListModal from "./MerakiTrafficListModal";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
+  NetworkTrafficUsageApplianceLinkStatus,
   NetworkTrafficUsageApplicationRow,
   NetworkTrafficUsageClientRow,
   NetworkTrafficUsageConnection,
@@ -71,7 +84,9 @@ import {
   NetworkTrafficUsageDestinationRow,
   NetworkTrafficUsageFilters,
   NetworkTrafficUsageFiltersUtil,
+  NetworkTrafficUsageListKind,
   NetworkTrafficUsageNetworkRow,
+  NetworkTrafficUsageRequest,
   NetworkTrafficUsageSummary,
   NetworkTrafficUsageUplinkRow,
   getUsageOctets,
@@ -95,7 +110,9 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
+  useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * THE MERAKI SIDE OF A TRAFFIC PAGE: a device's, a site's or the whole
@@ -127,6 +144,14 @@ import React, {
  * read, or that it failed, and why - so traffic that stopped coming in is
  * never taken for a quiet network. A line to act on links to where it is
  * acted on: the connection's row at the foot of the network's page.
+ *
+ * Top networks, Top applications and Top clients show the ten busiest; one
+ * with more says how many under its rows and opens every one of them,
+ * searched, sorted and paged (MerakiTrafficListModal, issue #5762).
+ *
+ * A device's page says which appliance the device is, over its traffic
+ * (MerakiApplianceLine) - or, before its traffic is filed, that it is not
+ * linked to one yet, and links it (MerakiDeviceLinkState).
  */
 
 export interface ComponentProps {
@@ -143,6 +168,17 @@ export interface ComponentProps {
   hasFlows: boolean;
   // The flow side of the page: its conversations, or how to send flows.
   onShowFlows: () => void;
+  /*
+   * The page's request - whose traffic, its range as of now - which a whole
+   * list reads too, from when it opens.
+   */
+  getRequest: () => NetworkTrafficUsageRequest;
+  // A device's page: the device, which its appliance link is of.
+  networkDeviceId?: ObjectID | undefined;
+  // A link made or undone: the page reads its traffic again.
+  onApplianceChanged: () => void;
+  // A device linked a moment ago, its traffic still to come: read it again.
+  onReadAgain?: (() => void) | undefined;
 }
 
 export const MERAKI_DESCRIPTIONS: {
@@ -229,7 +265,7 @@ const ConnectionLines: FunctionComponent<{
                 {connection.organizationName || connection.name}
               </span>
               <span>
-                {" · "}
+                <InlineSeparator />
                 {drawMerakiTemplate(
                   translator,
                   getMerakiConnectionSentence(connection, {
@@ -340,35 +376,29 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
   // ---- Rows ----------------------------------------------------------------
 
+  // A network picked: the page narrowed to it, or widened from it again.
+  const toggleNetwork: (controllerNetworkId: string) => void = (
+    controllerNetworkId: string,
+  ): void => {
+    setFilters(
+      filters.controllerNetworkId === controllerNetworkId
+        ? withoutMerakiFilter(filters, "network")
+        : withMerakiNetwork(filters, controllerNetworkId),
+    );
+  };
+
   const networkRows: Array<TrafficTopRow> = summary.topNetworks.map(
     (row: NetworkTrafficUsageNetworkRow): TrafficTopRow => {
-      const isActive: boolean =
-        filters.controllerNetworkId === row.controllerNetworkId;
-      const name: string = row.name || row.controllerNetworkId;
-
-      return {
-        key: row.controllerNetworkId,
-        label: name,
-        octets: getUsageOctets(row),
-        detail: translator.translateTemplate("In {{in}} · out {{out}}", {
-          in: formatTrafficBytes(row.receivedOctets),
-          out: formatTrafficBytes(row.sentOctets),
-        }),
-        isActive,
-        ariaLabel: translator.translateTemplate(
-          "Show only the traffic of {{network}}",
-          { network: name },
-        ),
+      return toNetworkTopRow({
+        row,
+        translator,
+        isActive: filters.controllerNetworkId === row.controllerNetworkId,
         onClick: canNarrow
           ? () => {
-              setFilters(
-                isActive
-                  ? withoutMerakiFilter(filters, "network")
-                  : withMerakiNetwork(filters, row.controllerNetworkId),
-              );
+              toggleNetwork(row.controllerNetworkId);
             }
           : undefined,
-      };
+      });
     },
   );
 
@@ -431,17 +461,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
   const applicationRows: Array<TrafficTopRow> = summary.topApplications.map(
     (row: NetworkTrafficUsageApplicationRow): TrafficTopRow => {
-      return {
-        key: row.application,
-        label: row.application,
-        sublabel: formatTrafficProtocolPort(row, translator) || undefined,
-        octets: getUsageOctets(row),
-        detail: translator.translateTemplate("In {{in}} · out {{out}}", {
-          in: formatTrafficBytes(row.receivedOctets),
-          out: formatTrafficBytes(row.sentOctets),
-        }),
-        isActive: false,
-      };
+      return toApplicationTopRow(row, translator);
     },
   );
 
@@ -464,22 +484,9 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
   const clientRows: Array<TrafficTopRow> = summary.topClients.map(
     (row: NetworkTrafficUsageClientRow): TrafficTopRow => {
-      const details: Array<string> = getClientDetails(row, {
+      return toClientTopRow(row, translator, {
         withNetwork: clientsWithNetwork,
       });
-
-      return {
-        key: row.clientKey,
-        label: getClientLabel(row),
-        isMono: !row.name,
-        sublabel: details.length > 0 ? details.join(" · ") : undefined,
-        octets: getUsageOctets(row),
-        detail: translator.translateTemplate("In {{in}} · out {{out}}", {
-          in: formatTrafficBytes(row.receivedOctets),
-          out: formatTrafficBytes(row.sentOctets),
-        }),
-        isActive: false,
-      };
     },
   );
 
@@ -583,7 +590,71 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
     0,
   );
 
+  /*
+   * A whole list, open: which one, and the page's request as it was when it
+   * opened - its pages read one window, however long the reader pages. Its
+   * "View all" shows only when the list has more rows than its ten.
+   */
+  const [openList, setOpenList] = useState<{
+    list: NetworkTrafficUsageListKind;
+    request: NetworkTrafficUsageRequest;
+  } | null>(null);
+
+  const viewAllOf: (
+    list: NetworkTrafficUsageListKind,
+    count: number,
+    shown: number,
+  ) => { label: string; onClick: () => void } | undefined = (
+    list: NetworkTrafficUsageListKind,
+    count: number,
+    shown: number,
+  ): { label: string; onClick: () => void } | undefined => {
+    if (count <= shown) {
+      return undefined;
+    }
+
+    return {
+      label: translator.translatePlural(VIEW_ALL_LABELS[list], count),
+      onClick: () => {
+        setOpenList({ list, request: { ...props.getRequest(), filters } });
+      },
+    };
+  };
+
+  const listTotals: Record<NetworkTrafficUsageListKind, number> = {
+    [NetworkTrafficUsageListKind.Networks]: getUsageOctets(summary.totals),
+    [NetworkTrafficUsageListKind.Applications]: applicationTotal,
+    [NetworkTrafficUsageListKind.Clients]: clientTotal,
+  };
+
+  const listCounts: Record<NetworkTrafficUsageListKind, number> = {
+    [NetworkTrafficUsageListKind.Networks]: summary.networkCount,
+    [NetworkTrafficUsageListKind.Applications]: summary.applicationCount,
+    [NetworkTrafficUsageListKind.Clients]: summary.clientCount,
+  };
+
+  /*
+   * A device's page with nothing of Meraki's shown yet: not linked to an
+   * appliance, or linked a moment ago. Nothing else is said over it.
+   */
+  const deviceApplianceState: ReactElement | null =
+    props.scopeKind === "device" &&
+    props.networkDeviceId &&
+    !summary.isAvailable &&
+    summary.deviceAppliance ? (
+      <MerakiDeviceLinkState
+        networkDeviceId={props.networkDeviceId}
+        appliance={summary.deviceAppliance}
+        onChanged={props.onApplianceChanged}
+        onReadAgain={props.onReadAgain}
+      />
+    ) : null;
+
   const body: ReactNode = ((): ReactNode => {
+    if (deviceApplianceState) {
+      return deviceApplianceState;
+    }
+
     if (isWaiting) {
       return (
         <div
@@ -714,7 +785,13 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
     <Fragment>
       <Card
         title="Traffic"
-        description={MERAKI_DESCRIPTIONS[props.scopeKind]}
+        description={
+          deviceApplianceState &&
+          summary.deviceAppliance?.status ===
+            NetworkTrafficUsageApplianceLinkStatus.Unlinked
+            ? UNLINKED_DEVICE_DESCRIPTION
+            : MERAKI_DESCRIPTIONS[props.scopeKind]
+        }
         rightElement={props.headerElement}
       >
         <div className="relative" aria-busy={props.isLoading}>
@@ -757,7 +834,20 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
             className={props.isLoading ? "opacity-75 transition-opacity" : ""}
             data-testid="meraki-traffic-body"
           >
-            {lines.length > 0 ? (
+            {!deviceApplianceState &&
+            props.networkDeviceId &&
+            summary.deviceAppliance?.status ===
+              NetworkTrafficUsageApplianceLinkStatus.Linked ? (
+              <MerakiApplianceLine
+                networkDeviceId={props.networkDeviceId}
+                appliance={summary.deviceAppliance}
+                onChanged={props.onApplianceChanged}
+              />
+            ) : (
+              <></>
+            )}
+
+            {lines.length > 0 && !deviceApplianceState ? (
               <ConnectionLines
                 connections={lines}
                 scopeKind={props.scopeKind}
@@ -853,6 +943,11 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
                 totalOctets={getUsageOctets(summary.totals)}
                 emptyMessage="No networks in this time range."
                 dataTestId="meraki-top-networks"
+                viewAll={viewAllOf(
+                  NetworkTrafficUsageListKind.Networks,
+                  summary.networkCount,
+                  networkRows.length,
+                )}
               />
             ) : (
               <TrafficTopList
@@ -878,6 +973,11 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
                 )
               }
               dataTestId="meraki-top-applications"
+              viewAll={viewAllOf(
+                NetworkTrafficUsageListKind.Applications,
+                summary.applicationCount,
+                applicationRows.length,
+              )}
             />
             <TrafficTopList
               title="Top clients"
@@ -890,6 +990,11 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
                 translationKey("No clients in this time range.")
               }
               dataTestId="meraki-top-clients"
+              viewAll={viewAllOf(
+                NetworkTrafficUsageListKind.Clients,
+                summary.clientCount,
+                clientRows.length,
+              )}
             />
             <TrafficTopList
               title="Top destinations"
@@ -961,6 +1066,32 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
             }
           />
         </Fragment>
+      ) : (
+        <></>
+      )}
+
+      {openList ? (
+        <MerakiTrafficListModal
+          list={openList.list}
+          request={openList.request}
+          primaryKind={summary.primaryKind}
+          totalOctets={listTotals[openList.list]}
+          count={listCounts[openList.list]}
+          activeNetworkId={filters.controllerNetworkId}
+          onSelectNetwork={
+            canNarrow
+              ? (controllerNetworkId: string) => {
+                  if (filters.controllerNetworkId !== controllerNetworkId) {
+                    toggleNetwork(controllerNetworkId);
+                  }
+                }
+              : undefined
+          }
+          clientsWithNetwork={clientsWithNetwork}
+          onClose={() => {
+            setOpenList(null);
+          }}
+        />
       ) : (
         <></>
       )}

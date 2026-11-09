@@ -211,7 +211,7 @@ OneUptime Database Agent는 **PostgreSQL**, **MySQL / MariaDB**, **SQL Server**,
 
 **에이전트 하나가 데이터베이스 서버 하나를 모니터링합니다.** 에이전트가 보내는 모든 것에 ID가 붙으므로 서버마다 에이전트 하나(설치 디렉터리 하나)를 실행하고, 복제본을 각자의 페이지에서 보고 싶다면 복제본마다 하나씩 실행하세요.
 
-에이전트는 [DatabaseAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)에 있습니다: `docker-compose.yml`, 리시버별 Collector 구성(`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh`, systemd 유닛. 포크나 호환 대체 엔진은 해당 계열의 구성을 실행하고 자신의 이름을 보고합니다. `DATABASE_SYSTEM=mariadb`는 `configs/mysql.yaml`을 실행하며, 데이터베이스는 MariaDB로 표시됩니다.
+에이전트는 [DatabaseAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)에 있습니다: `docker-compose.yml`, 리시버별 Collector 구성(`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh`, systemd 유닛. 포크나 호환 대체 엔진은 해당 계열의 구성을 실행하고 자신의 이름을 보고합니다. `DATABASE_SYSTEM=mariadb`는 `configs/mysql.yaml`을 실행하며, 데이터베이스는 MariaDB로 표시됩니다.
 
 ### 시작하기 전에
 

@@ -11,6 +11,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -20,9 +21,12 @@ import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import { AggregationTemporality } from "Common/Models/AnalyticsModels/Metric";
 import Icon from "Common/UI/Components/Icon/Icon";
+import ObjectID from "Common/Types/ObjectID";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import HintChip from "./HintChip";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useServiceNames from "../Telemetry/useServiceNames";
 
 export interface ComponentProps {
   data: MetricQueryData;
@@ -211,11 +215,50 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const activeFilterCount: number = Object.keys(
-    ((props.data.filterData as Record<string, unknown> | undefined)?.[
-      "attributes"
-    ] as Record<string, unknown> | undefined) || {},
-  ).length;
+  /*
+   * The services the query reads its metric for (issue #6266): a chart of a
+   * Metrics monitor limited to some services, or a link to one, carries
+   * them. Shown with the query's other filters, each one removable.
+   */
+  const serviceIds: Array<string> = MetricQueryServices.normalize(
+    props.data.filterData?.telemetryServiceIds,
+  );
+  const serviceObjectIds: Array<ObjectID> = useMemo(() => {
+    return serviceIds.map((serviceId: string): ObjectID => {
+      return new ObjectID(serviceId);
+    });
+  }, [serviceIds.join(",")]);
+  const serviceNames: Record<string, string> =
+    useServiceNames(serviceObjectIds);
+
+  const removeService: (serviceId: string) => void = (
+    serviceId: string,
+  ): void => {
+    const filterData: Record<string, unknown> = {
+      ...(props.data.filterData as Record<string, unknown>),
+    };
+    const remaining: Array<string> = serviceIds.filter((id: string) => {
+      return id !== serviceId;
+    });
+
+    if (remaining.length > 0) {
+      filterData["telemetryServiceIds"] = remaining;
+    } else {
+      delete filterData["telemetryServiceIds"];
+    }
+
+    props.onDataChanged({
+      ...props.data,
+      filterData: filterData as MetricQueryData["filterData"],
+    });
+  };
+
+  const activeFilterCount: number =
+    Object.keys(
+      ((props.data.filterData as Record<string, unknown> | undefined)?.[
+        "attributes"
+      ] as Record<string, unknown> | undefined) || {},
+    ).length + (serviceIds.length > 0 ? 1 : 0);
 
   return (
     <Fragment>
@@ -318,6 +361,46 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
 
       {showAdvancedFilters ? (
         <div className="mt-2 space-y-4 border-l-2 border-gray-100 pl-3">
+          {serviceIds.length > 0 ? (
+            <div data-testid="metric-query-service-filter">
+              <label className="block text-sm font-medium text-gray-700">
+                {translator.translateText("Services")}
+              </label>
+              <p className="mt-1 text-xs text-gray-500">
+                {translator.translateText(
+                  "Only chart this metric from these services.",
+                )}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {serviceIds.map((serviceId: string): ReactElement => {
+                  const name: string = serviceNames[serviceId] || serviceId;
+
+                  return (
+                    <span
+                      key={serviceId}
+                      className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700"
+                    >
+                      {name}
+                      <button
+                        type="button"
+                        aria-label={translator.translateTemplate(
+                          "Remove {{name}}",
+                          { name: name },
+                        )}
+                        className="inline-flex h-4 w-4 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                        onClick={(): void => {
+                          removeService(serviceId);
+                        }}
+                      >
+                        <Icon icon={IconProp.Close} className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           <div>
             <label className="block text-sm font-medium text-gray-700">
               {translator.translateText("Filter by attributes")}

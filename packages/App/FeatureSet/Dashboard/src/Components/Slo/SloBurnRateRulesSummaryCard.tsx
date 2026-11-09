@@ -12,7 +12,11 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
-import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
+import {
+  SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES,
+  SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
+  isComparedWithCurrentBurnRate,
+} from "Common/Utils/Slo/SloEvaluation";
 import { isBurnRateAtOrAboveThreshold } from "Common/Utils/Slo/SloProjection";
 import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -68,7 +72,10 @@ const getRatioBarClass: GetRatioBarClassFunction = (ratio: number): string => {
  * The "now" bar compares the headline burn rate — measured over the last
  * hour — with each rule's threshold. A rule fires on its OWN long and short
  * windows, so this is an at-a-glance proximity, not a prediction; the
- * footnote says so rather than letting a full bar read as "firing".
+ * footnote says so rather than letting a full bar read as "firing". A rule
+ * that looks back further than the hour can speak for (the default slow-leak
+ * rule's 3 days: isComparedWithCurrentBurnRate) gets no bar at all - any
+ * hour that burned would fill it - and the footnote says that too.
  */
 const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -103,16 +110,22 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
     SLO_CURRENT_BURN_RATE_WINDOW_MINUTES * 60,
   );
 
+  const comparableLongWindowText: string = formatDurationCompact(
+    SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES * 60,
+  );
+
+  const hasUncomparedRule: boolean = enabledRules.some(
+    (rule: ServiceLevelObjectiveBurnRateRule): boolean => {
+      return !isComparedWithCurrentBurnRate(rule.longWindowInMinutes);
+    },
+  );
+
   type GetBodyFunction = () => ReactElement;
 
   const getBody: GetBodyFunction = (): ReactElement => {
     if (props.error) {
       return (
-        <FieldError
-          message={props.error}
-          className="text-sm text-red-700"
-          announce="none"
-        />
+        <FieldError message={props.error} className="text-sm" announce="none" />
       );
     }
 
@@ -157,15 +170,22 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
                   ? rule.burnRateThreshold
                   : null;
 
+              // The last hour says nothing about a rule that looks back days.
+              const isCompared: boolean = isComparedWithCurrentBurnRate(
+                rule.longWindowInMinutes,
+              );
+
               const ratio: number =
                 threshold !== null && currentBurnRate !== null
                   ? Math.max(0, Math.min(1, currentBurnRate / threshold))
                   : 0;
 
-              const isAtThreshold: boolean = isBurnRateAtOrAboveThreshold({
-                burnRate: currentBurnRate,
-                threshold: threshold,
-              });
+              const isAtThreshold: boolean =
+                isCompared &&
+                isBurnRateAtOrAboveThreshold({
+                  burnRate: currentBurnRate,
+                  threshold: threshold,
+                });
 
               return (
                 <li
@@ -195,7 +215,7 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
                     )}
                   </div>
 
-                  {threshold !== null ? (
+                  {threshold !== null && isCompared ? (
                     <div className="mt-2 flex items-center gap-2">
                       <div
                         role="progressbar"
@@ -258,6 +278,9 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
 
         <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500">
           {`"Now" is the burn over the last ${burnRateWindowText}; each rule fires on its own windows.`}
+          {hasUncomparedRule
+            ? ` Rules that look back more than ${comparableLongWindowText} are not compared with it.`
+            : ""}
           {disabledCount > 0
             ? ` ${disabledCount} disabled rule${disabledCount === 1 ? " is" : "s are"} not shown.`
             : ""}

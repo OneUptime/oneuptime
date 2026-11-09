@@ -16,6 +16,7 @@ import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "../../Types/
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { toOnCallPersonPageMessage } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallObserverPage } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -312,6 +313,12 @@ export class Service extends ProjectReferencesService<Model> {
      * the run as it is then.
      */
     pageMessage?: string | undefined;
+    /*
+     * Pages its people as observers (OnCallObserverPage): kept informed, and
+     * answering only says they have seen it. Left out, they are paged as
+     * responders.
+     */
+    isObserverPage?: boolean | undefined;
   }): Promise<OnCallDirectPageRun> {
     if (
       Boolean(data.triggeredByIncidentId) === Boolean(data.triggeredByAlertId)
@@ -353,6 +360,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (pageMessage) {
       log.pageMessage = pageMessage;
+    }
+
+    if (data.isObserverPage) {
+      log.isObserverPage = true;
     }
 
     /*
@@ -947,11 +958,13 @@ export class Service extends ProjectReferencesService<Model> {
               isStartedBySomeone: Boolean(startedByUserId),
               startedByWorkflowName: createdItem.triggeredByWorkflowName,
               waitingMessage: createdItem.statusMessage,
+              isObserverPage: isOnCallObserverPage(createdItem),
             })
           : OnCallFeedText.getRunStartedMarkdown({
               policyLink: policyLink,
               isStartedBySomeone: Boolean(startedByUserId),
               startedByWorkflowName: createdItem.triggeredByWorkflowName,
+              isObserverPage: isOnCallObserverPage(createdItem),
             });
 
         await this.addToRecordFeed({
@@ -1045,6 +1058,7 @@ export class Service extends ProjectReferencesService<Model> {
             policyLink: policyLink,
             isStartedBySomeone: false,
             startedEarlyReason: startedEarlyReason,
+            isObserverPage: isOnCallObserverPage(run),
           }),
           displayColor: Yellow500,
         });

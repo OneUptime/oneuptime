@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
@@ -94,6 +96,7 @@ class IoTFleetLabelRuleEngineServiceClass
       return await this.applyRules({
         iotFleet: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running IoT fleet label rules: ${error}`, {
@@ -109,6 +112,8 @@ class IoTFleetLabelRuleEngineServiceClass
   private async applyRules(data: {
     iotFleet: IoTFleet;
     rules: Array<IoTFleetLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { iotFleet, rules } = data;
 
@@ -189,11 +194,12 @@ class IoTFleetLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await IoTFleetService.getRepository()
-      .createQueryBuilder()
-      .relation(IoTFleet, "labels")
-      .of(iotFleet.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: IoTFleetService,
+      resourceId: iotFleet.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory iotFleet.labels so a downstream owner-rule engine in

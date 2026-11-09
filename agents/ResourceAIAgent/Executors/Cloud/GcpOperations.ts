@@ -23,8 +23,17 @@ import {
   boundsOf,
   withArticle,
 } from "./CloudChange";
-import { GcpMetadata } from "./GcpIdentity";
-import { RESOURCE_AI_CLOUD_OPERATIONS_ENV } from "../../Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  GCP_WRITE_TOKEN_LIFETIME_SECONDS,
+  GcpMetadata,
+  GcpWriteToken,
+  canActAsGcpServiceAccount,
+  generateGcpWriteToken,
+} from "./GcpIdentity";
+import {
+  RESOURCE_AI_CLOUD_OPERATIONS_ENV,
+  RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
+} from "../../Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
   CloudParamValue,
   ParsedCloudCommand,
@@ -33,17 +42,26 @@ import {
 /*
  * The Google Cloud AI agent: each catalog change on each kind of Google
  * Cloud resource, as the ONE API call it maps to (Compute Engine v1, Cloud
- * Run Admin v2, Cloud SQL Admin v1), after the reads that decide whether it
- * may run and what it replaces, signed with the service account's token
- * from the metadata server (GcpIdentity). A change starts a long-running
- * operation: it is polled briefly within the command's budget and
- * reported by name and status. Poll URLs are built by the agent from the
- * operation's name on the API's own host, never taken from the answer.
+ * Run Admin v2, Cloud SQL Admin v1, App Engine Admin v1), after the reads
+ * that decide whether it
+ * may run and what it replaces. A change starts a long-running operation:
+ * it is polled briefly within the command's budget and reported by name
+ * and status. Poll URLs are built by the agent from the operation's name on
+ * the API's own host, never taken from the answer.
+ *
+ * Who it signs as: with ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT set (the
+ * setup command sets it), a change - its reads and its call - runs as that
+ * write account, with a token the agent asks for that one change and that
+ * lasts 15 minutes (generateGcpWriteToken); the agent's own service
+ * account, whose token the metadata server always hands out, only reads,
+ * and a dry run reads with it. Without it (an agent set up before), the
+ * agent's own account makes the change, as it did then.
  */
 
 export const COMPUTE_API: string = "https://compute.googleapis.com/compute/v1";
 export const RUN_API: string = "https://run.googleapis.com/v2";
 export const SQLADMIN_API: string = "https://sqladmin.googleapis.com/v1";
+export const APPENGINE_API: string = "https://appengine.googleapis.com/v1";
 
 // The Cloud Run service the agent runs as (set by Cloud Run itself).
 export const K_SERVICE_ENV: string = "K_SERVICE";
@@ -54,6 +72,9 @@ const OPERATION_NAME_PATTERN: RegExp = /^[A-Za-z0-9_-]{1,128}$/;
 const RUN_OPERATION_PATTERN: RegExp =
   /^projects\/[a-z0-9-]{1,63}\/locations\/[a-z0-9-]{1,63}\/operations\/[A-Za-z0-9_-]{1,128}$/;
 const PROJECT_NUMBER_PATTERN: RegExp = /^[0-9]{1,20}$/;
+// An App Engine long-running operation: apps/<project>/operations/<id>.
+const APPENGINE_OPERATION_PATTERN: RegExp =
+  /^apps\/[a-z0-9-]{1,63}\/operations\/[A-Za-z0-9_-]{1,128}$/;
 // A Cloud Run service's name (K_SERVICE).
 const RUN_SERVICE_NAME_PATTERN: RegExp = /^[a-z](?:[-a-z0-9]{0,47}[a-z0-9])?$/;
 
@@ -314,7 +335,49 @@ export default class GcpCloud {
       );
     }
 
+    lines.push(await this.describeWriteAccount(data.run));
+
     return lines;
+  }
+
+  // Test connection's line about the account changes run as.
+  private async describeWriteAccount(run: CloudCommandRun): Promise<string> {
+    const settings: CloudCommandRun["settings"] = run.settings;
+
+    if (settings.gcpWriteServiceAccountProblem) {
+      return `Write service account: ${settings.gcpWriteServiceAccountProblem}`;
+    }
+
+    const account: string | null = settings.gcpWriteServiceAccount;
+
+    if (!account) {
+      return `Write service account: none (${RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV} is not set): changes use the agent's own service account, with whatever it allows`;
+    }
+
+    const send: CloudSender = run.send.bind(run);
+    let check: { may: boolean; detail: string };
+
+    try {
+      check = await canActAsGcpServiceAccount({
+        send,
+        ownToken: await this.metadata.token(send),
+        serviceAccount: account,
+        userAgent: this.options.runtime.userAgent,
+      });
+    } catch (err: unknown) {
+      check = {
+        may: false,
+        detail: err instanceof Error ? err.message : String(err),
+      };
+    }
+
+    return `Write service account: ${account}, whose token the agent asks for each change, for ${
+      GCP_WRITE_TOKEN_LIFETIME_SECONDS / 60
+    } minutes (${
+      check.may
+        ? `the agent may ask for one: ${check.detail}`
+        : `the agent may NOT ask for one, so every change fails: ${check.detail}`
+    })`;
   }
 
   public async change(data: {
@@ -327,7 +390,7 @@ export default class GcpCloud {
     const kindName: string = run.kindName;
     const allPermissions: string = command.kindSpec.permissions.join(", ");
     const send: CloudSender = run.send.bind(run);
-    const token: string = await run.read(
+    const ownToken: string = await run.read(
       "to sign the agent in (the metadata server)",
       (): Promise<string> => {
         return this.metadata.token(send);
@@ -344,16 +407,52 @@ export default class GcpCloud {
       }
     }
 
-    const identity: string = email
+    /*
+     * A change runs as the write account, with a token asked for it alone;
+     * a dry run reads as the agent's own account, which can change nothing.
+     */
+    const writeAccount: string | null = run.dryRun
+      ? null
+      : run.settings.gcpWriteServiceAccount;
+    let token: string = ownToken;
+    let identity: string = email
       ? `the service account ${email}`
       : "the agent's service account";
+    let who: string = email
+      ? `The service account ${email}`
+      : "The agent's service account";
+
+    if (writeAccount) {
+      /*
+       * "to sign in as": the output redactor reads "a token of ...: x" as a
+       * secret, and would hide the reason.
+       */
+      const write: GcpWriteToken = await run.read(
+        `to sign in as the write service account ${writeAccount} for this change (${
+          GCP_WRITE_TOKEN_LIFETIME_SECONDS / 60
+        } minutes)`,
+        (): Promise<GcpWriteToken> => {
+          return generateGcpWriteToken({
+            send,
+            ownToken,
+            serviceAccount: writeAccount,
+            userAgent: this.options.runtime.userAgent,
+          });
+        },
+      );
+
+      token = write.token;
+      identity = `the write service account ${writeAccount}, with a token for this change alone`;
+      who = `The write service account ${writeAccount}`;
+    }
+
     const client: GcpClient = new GcpClient({
       send,
       token,
       userAgent: this.options.runtime.userAgent,
       identityName: identity,
       describeMissingPermission: (permission: string): string => {
-        return `${identity.charAt(0).toUpperCase()}${identity.slice(1)} lacks ${permission} on ${run.resourceId}: the setup command's custom role grants it when ${operation} is in ${RESOURCE_AI_CLOUD_OPERATIONS_ENV} (cloud ${operation} on ${withArticle(kindName)} needs ${allPermissions}).`;
+        return `${who} lacks ${permission} on ${run.resourceId}: the setup command's custom role grants it when ${operation} is in ${RESOURCE_AI_CLOUD_OPERATIONS_ENV} (cloud ${operation} on ${withArticle(kindName)} needs ${allPermissions}).`;
       },
     });
     const resourceProject: string = run.part("project");
@@ -382,6 +481,11 @@ export default class GcpCloud {
       case "reboot-instance/cloud-sql-instance":
       case "fail-over-database/cloud-sql-instance":
         return change.changeCloudSql();
+      case "roll-back-service/app-engine-service":
+        return change.rollBackAppEngine();
+      case "scale-out/app-engine-service":
+      case "scale-in/app-engine-service":
+        return change.scaleAppEngine();
       default:
         return run.refuse(
           `the Google Cloud AI agent has no implementation of cloud ${operation} for ${withArticle(kindName)}`,
@@ -969,6 +1073,257 @@ class GcpChange {
           answer,
           this.runOperationUrl(answer),
           "run.operations.get",
+        ),
+      ],
+    };
+  }
+
+  // ---- App Engine ----------------------------------------------------------------------------
+
+  private appEngineServiceUrl(): string {
+    return `${APPENGINE_API}/apps/${this.project}/services/${this.name}`;
+  }
+
+  private appEngineOperationUrl(
+    operation: Record<string, unknown>,
+  ): string | null {
+    const name: string = readString(operation, "name") || "";
+    return APPENGINE_OPERATION_PATTERN.test(name)
+      ? `${APPENGINE_API}/${name}`
+      : null;
+  }
+
+  private readAppEngineService(): Promise<Record<string, unknown>> {
+    return this.read(
+      `about the App Engine service ${this.name} (appengine.services.get)`,
+      this.appEngineServiceUrl(),
+      "appengine.services.get",
+    );
+  }
+
+  /*
+   * The version that serves all of the service's traffic, or a refusal: a
+   * service whose traffic is split between versions is moved by a person,
+   * since one version cannot stand for where its traffic goes.
+   */
+  private soleServingVersion(service: Record<string, unknown>): string {
+    const allocations: Record<string, unknown> | null = readObject(
+      readObject(service, "split"),
+      "allocations",
+    );
+    const serving: Array<string> = Object.entries(allocations || {})
+      .filter(([, share]: [string, unknown]): boolean => {
+        return typeof share === "number" && share > 0;
+      })
+      .map(([version]: [string, unknown]): string => {
+        return version;
+      });
+
+    if (serving.length === 0) {
+      return this.run.refuse(
+        `no version of the App Engine service ${this.name} serves its traffic, so nothing was changed`,
+      );
+    }
+
+    if (serving.length > 1) {
+      return this.run.refuse(
+        `the App Engine service ${this.name} splits its traffic between ${serving.length} versions (${serving.join(", ")}): a person decides where split traffic goes, so nothing was changed`,
+      );
+    }
+
+    return serving[0] as string;
+  }
+
+  public async rollBackAppEngine(): Promise<CloudChangeOutcome> {
+    const service: Record<string, unknown> = await this.readAppEngineService();
+
+    this.run.checkRequiredTag(readLabels(service, "labels"));
+
+    const current: string = this.soleServingVersion(service);
+    const versions: Array<{
+      id: string;
+      serving: boolean;
+      createdMs: number;
+    }> = [];
+    let pageToken: string | null = null;
+
+    for (let page: number = 0; page < MAX_GCP_LIST_PAGES; page++) {
+      const query: Record<string, string> = { view: "BASIC", pageSize: "100" };
+
+      if (pageToken) {
+        query["pageToken"] = pageToken;
+      }
+
+      const list: Record<string, unknown> = await this.read(
+        `for the App Engine service's versions (appengine.versions.list)`,
+        `${this.appEngineServiceUrl()}/versions`,
+        "appengine.versions.list",
+        query,
+      );
+
+      for (const entry of readArray(list, "versions")) {
+        if (!isPlainObject(entry)) {
+          continue;
+        }
+
+        const created: number = Date.parse(
+          readString(entry, "createTime") || "",
+        );
+
+        versions.push({
+          id: readString(entry, "id") || "",
+          serving: readString(entry, "servingStatus") === "SERVING",
+          createdMs: Number.isFinite(created) ? created : 0,
+        });
+      }
+
+      pageToken = readString(list, "nextPageToken");
+
+      if (!pageToken) {
+        break;
+      }
+    }
+
+    const currentVersion:
+      | { id: string; serving: boolean; createdMs: number }
+      | undefined = versions.find((version: { id: string }): boolean => {
+      return version.id === current;
+    });
+    const to: CloudParamValue | undefined = this.command.flags["to"];
+    let target: string;
+
+    if (to !== undefined) {
+      const word: string = String(to);
+      const named: { id: string; serving: boolean } | undefined = versions.find(
+        (version: { id: string }): boolean => {
+          return version.id === word;
+        },
+      );
+
+      if (!named) {
+        return this.run.refuse(
+          `--to ${word} is not a version of the App Engine service ${this.name}, so nothing was changed`,
+        );
+      }
+
+      if (word === current) {
+        return this.run.refuse(
+          `the App Engine service ${this.name} already sends its traffic to ${word}, so nothing was changed`,
+        );
+      }
+
+      if (!named.serving) {
+        return this.run.refuse(
+          `the version ${word} of the App Engine service ${this.name} is stopped, so it could not take the traffic, and nothing was changed`,
+        );
+      }
+
+      target = word;
+    } else {
+      const createdMs: number = currentVersion ? currentVersion.createdMs : 0;
+      const previous: { id: string } | undefined = versions
+        .filter(
+          (version: {
+            id: string;
+            serving: boolean;
+            createdMs: number;
+          }): boolean => {
+            return (
+              version.id !== current &&
+              version.serving &&
+              version.createdMs < createdMs
+            );
+          },
+        )
+        .sort(
+          (
+            left: { createdMs: number },
+            right: { createdMs: number },
+          ): number => {
+            return right.createdMs - left.createdMs;
+          },
+        )[0];
+
+      if (!previous) {
+        return this.run.refuse(
+          `the App Engine service ${this.name} has no serving version older than ${current}, so there is nothing to roll back to`,
+        );
+      }
+
+      target = previous.id;
+    }
+
+    const answer: Record<string, unknown> = await this.change(
+      { version: current },
+      {
+        method: "PATCH",
+        url: this.appEngineServiceUrl(),
+        query: { updateMask: "split" },
+        body: { split: { allocations: { [target]: 1 } } },
+        permission: "appengine.services.update",
+      },
+    );
+
+    return {
+      lines: [
+        `App Engine service ${this.name}: traffic ${arrow(current, target)} (all of it). A new deployment serves no traffic until traffic moves to it.`,
+        this.apiCall(`updateMask=split, ${target}=1`),
+        await this.follow(
+          answer,
+          this.appEngineOperationUrl(answer),
+          "appengine.operations.get",
+        ),
+      ],
+    };
+  }
+
+  public async scaleAppEngine(): Promise<CloudChangeOutcome> {
+    const service: Record<string, unknown> = await this.readAppEngineService();
+
+    this.run.checkRequiredTag(readLabels(service, "labels"));
+
+    const versionId: string = this.soleServingVersion(service);
+    const versionUrl: string = `${this.appEngineServiceUrl()}/versions/${versionId}`;
+    const version: Record<string, unknown> = await this.read(
+      `about the version ${versionId} of the App Engine service ${this.name} (appengine.versions.get)`,
+      versionUrl,
+      "appengine.versions.get",
+      { view: "FULL" },
+    );
+    const manual: Record<string, unknown> | null = readObject(
+      version,
+      "manualScaling",
+    );
+    const current: number | null = readInteger(manual, "instances");
+
+    if (!manual || current === null) {
+      this.run.refuse(
+        `the version ${versionId} of the App Engine service ${this.name} scales on its own (automatic or basic scaling): its scaling settings are a person's to change, so nothing was changed`,
+      );
+    }
+
+    const count: number = this.run.checkCount(
+      boundsOf({ current: current as number, unit: "instance count" }),
+    );
+    const answer: Record<string, unknown> = await this.change(
+      { count: String(current) },
+      {
+        method: "PATCH",
+        url: versionUrl,
+        query: { updateMask: "manualScaling.instances" },
+        body: { manualScaling: { instances: count } },
+        permission: "appengine.versions.update",
+      },
+    );
+
+    return {
+      lines: [
+        `App Engine service ${this.name}, version ${versionId}: instances ${arrow(current as number, count)} (manual scaling).`,
+        this.apiCall(`updateMask=manualScaling.instances, instances=${count}`),
+        await this.follow(
+          answer,
+          this.appEngineOperationUrl(answer),
+          "appengine.operations.get",
         ),
       ],
     };

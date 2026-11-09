@@ -292,6 +292,15 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       "apinumber_roundtrip_test.go",
       "internal/provider",
     );
+    /*
+     * A runbook whose steps the API answers as a JSON array, created,
+     * refreshed, updated and looked up through the real protocol server
+     * (OneUptime/terraform-provider-oneuptime#18).
+     */
+    await this.copyStaticFile(
+      "jsonarray_roundtrip_test.go",
+      "internal/provider",
+    );
     await this.copyStaticFile("jsonenvelope.go", "internal/provider");
     await this.copyStaticFile("jsonenvelope_test.go", "internal/provider");
     await this.copyStaticFileIfExists("monitorsteps.go", "internal/provider");
@@ -2805,6 +2814,13 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         } else {
             ${fieldName} = NewJSONSubsetNull()
         }
+    } else if arr, ok := ${responseValue}.([]interface{}); ok {
+        // A JSON array column, such as a runbook's steps: the array, as JSON
+        if jsonBytes, err := json.Marshal(r.normalizeURLWrappers(arr)); err == nil {
+            ${fieldName} = NewJSONSubsetValue(string(jsonBytes))
+        } else {
+            ${fieldName} = NewJSONSubsetNull()
+        }
     } else if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = NewJSONSubsetValue(val)
     } else {
@@ -2845,6 +2861,13 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
             }
         } else if jsonBytes, err := json.Marshal(obj); err == nil {
             // Fallback to JSON marshaling for other complex objects
+            ${fieldName} = types.StringValue(string(jsonBytes))
+        } else {
+            ${fieldName} = types.StringNull()
+        }
+    } else if arr, ok := ${responseValue}.([]interface{}); ok {
+        // A JSON array column: the array, as JSON
+        if jsonBytes, err := json.Marshal(r.normalizeURLWrappers(arr)); err == nil {
             ${fieldName} = types.StringValue(string(jsonBytes))
         } else {
             ${fieldName} = types.StringNull()

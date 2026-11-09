@@ -4,6 +4,7 @@ import {
   CloudAiAgentFixesMode,
   CloudAiAgentSetupOptions,
   getCloudAiAgentChangeOperations,
+  getCloudAiAgentImage,
   getCloudAiAgentMaxProtectedTargets,
   isReadableCloudAiAgentProtectedTarget,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
@@ -16,12 +17,14 @@ import {
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   CLOUD_AI_AGENT_NAME,
   CloudAiAgentProvider,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
   GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+  GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
   GcpCloudAiAgentHost,
   getCloudAiAgentOwnTargets,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
@@ -32,6 +35,7 @@ import {
   parseResourceAiRemediationMode,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import { getCloudCatalogProvider } from "Common/Utils/AiRemediation/Resource/CloudOperationCatalog";
+import { parseCloudAiAgentKey } from "Common/Types/CloudConnection/CloudAiAgentKey";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -346,12 +350,16 @@ export function getProtectedTargetsProblem(data: {
   return patterns.length > most ? { kind: "too-many", most } : null;
 }
 
-// The setup command's options for these choices and this account.
+/*
+ * The setup command's options for these choices and this account, with the
+ * key made for its agent (Types/CloudConnection/CloudAiAgentKey) - "" while
+ * it is being made, which no command is written from.
+ */
 export function getCloudAiAgentSetupOptions(data: {
   provider: CloudProvider;
   choices: CloudAiAgentSetupChoices;
   oneuptimeUrl: string;
-  ingestionKey: string;
+  agentKey: string;
   cloudAccountId: string;
   accountId: string;
 }): CloudAiAgentSetupOptions {
@@ -367,7 +375,7 @@ export function getCloudAiAgentSetupOptions(data: {
   return {
     provider: data.provider,
     oneuptimeUrl: data.oneuptimeUrl,
-    ingestionKey: data.ingestionKey,
+    agentKey: data.agentKey,
     cloudAccountId: data.cloudAccountId,
     accountId: data.accountId,
     fixesMode: getCloudAiAgentFixesMode(data.choices),
@@ -431,3 +439,139 @@ export function getCloudAiAgentLogsCommand(
 
 // How often the dialog asks whether the agent connected, while it waits.
 export const CLOUD_AI_AGENT_CONNECT_POLL_INTERVAL_MS: number = 5000;
+
+/*
+ * The key route's answer (POST /resource-ai-access/agent-key) as the key it
+ * holds - one of this account's own - or null for anything else, so no
+ * command is ever written from a value that is not one.
+ */
+export function readCloudAiAgentKeyAnswer(data: {
+  answer: unknown;
+  cloudAccountId: string;
+}): string | null {
+  const answer: Record<string, unknown> | null =
+    data.answer &&
+    typeof data.answer === "object" &&
+    !Array.isArray(data.answer)
+      ? (data.answer as Record<string, unknown>)
+      : null;
+  const key: unknown = answer ? answer["agentKey"] : null;
+  const parsed: { cloudAccountId: string; secret: string } | null =
+    parseCloudAiAgentKey(key);
+
+  return parsed &&
+    parsed.cloudAccountId === data.cloudAccountId.trim().toLowerCase()
+    ? (key as string).trim()
+    : null;
+}
+
+/*
+ * Whether asking the key route again may get a key, by the status of the
+ * answer that did not hold one: a refusal (someone who may not set the
+ * agent up, an account that is gone) says the same thing every time, so
+ * the dialog says it with no Try again; no answer at all (a network
+ * failure, -1 or 0), a server or gateway error, a timeout or too many
+ * requests may pass, and Try again asks once more.
+ */
+export function isCloudAiAgentKeyFailureRetryable(statusCode: number): boolean {
+  if (statusCode === 408 || statusCode === 429) {
+    return true;
+  }
+
+  return !(statusCode >= 400 && statusCode < 500);
+}
+
+/*
+ * "Run the agent somewhere else", under More fields: what a team that
+ * deploys the agent its own way gives it, as the setup command makes it on
+ * each cloud. First the image, with the variables shown under that line
+ * (in Azure or Google Cloud, where its identities come from); then, as a
+ * list of two, its two identities - one of its own that changes nothing,
+ * and the write role, identity or account each change runs as.
+ */
+export interface CloudAiAgentElsewhereTexts {
+  // The image, the variables under it, and the cloud it must run in.
+  deploy: string;
+  // The agent's own identity, which changes nothing.
+  ownIdentity: string;
+  // The write role, identity or account its changes run as.
+  writeIdentity: string;
+}
+
+export const CLOUD_AI_AGENT_ELSEWHERE_TEXTS: Readonly<
+  Record<CloudProvider, CloudAiAgentElsewhereTexts>
+> = {
+  [CloudProvider.AWS]: {
+    deploy: translationKey(
+      "Deploy the image {{image}} your own way, with these variables:",
+    ),
+    ownIdentity: translationKey(
+      "A role of its own that may only assume the write role.",
+    ),
+    writeIdentity: translationKey(
+      "The write role {{writeRole}}, which trusts the agent's role and holds the permissions of the changes AI may make.",
+    ),
+  },
+  [CloudProvider.Azure]: {
+    deploy: translationKey(
+      "Deploy the image {{image}} your own way in Azure, with these variables:",
+    ),
+    ownIdentity: translationKey(
+      "A managed identity of its own that only reads.",
+    ),
+    writeIdentity: translationKey(
+      "The write identity {{writeIdentity}}, attached where the agent runs, which holds the permissions of the changes AI may make.",
+    ),
+  },
+  [CloudProvider.GCP]: {
+    deploy: translationKey(
+      "Deploy the image {{image}} your own way in Google Cloud, with these variables:",
+    ),
+    ownIdentity: translationKey(
+      "A service account of its own that only reads, with Service Account Token Creator on the write account.",
+    ),
+    writeIdentity: translationKey(
+      "The write account {{writeAccount}}, which holds the permissions of the changes AI may make.",
+    ),
+  },
+};
+
+// The line over the two identities, the same on every cloud.
+export const CLOUD_AI_AGENT_ELSEWHERE_IDENTITIES_TEXT: string = translationKey(
+  "Give it two identities, as the setup command does:",
+);
+
+/*
+ * The names each cloud's lines fill in: the image, and its own write role,
+ * identity or account, by the placeholder its line names it with.
+ */
+export function getCloudAiAgentElsewhereValues(
+  provider: CloudProvider,
+): Record<string, string> {
+  const image: string = getCloudAiAgentImage();
+
+  switch (provider) {
+    case CloudProvider.AWS:
+      return { image, writeRole: AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME };
+    case CloudProvider.Azure:
+      return {
+        image,
+        writeIdentity: AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
+      };
+    default:
+      return {
+        image,
+        writeAccount: GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+      };
+  }
+}
+
+// The line under the command, about the key it holds.
+export const CLOUD_AI_AGENT_KEY_NOTE: string = translationKey(
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.",
+);
+
+// While the key is being made, where the command goes.
+export const CLOUD_AI_AGENT_MAKING_KEY_TEXT: string = translationKey(
+  "Making a key for this agent…",
+);

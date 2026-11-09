@@ -34,7 +34,7 @@ Formularen **Erklær ny hændelse** spørger om en hændelse i tre trin — **H�
 1. Åbn **Hændelser → Alle hændelser**, og klik på **Erklær hændelse** øverst til højre i listen **Hændelser**. Formularen åbner på **Hændelsesdetaljer**.
 2. Indtast en **Titel**, og vælg en **Hændelsesalvor**. Resten af formularen er valgfri.
 3. Klik dig gennem de resterende trin med **Næste**, og udfyld det, du ved nu: monitorer og andre ressourcer, vagtpolitikker, roller.
-4. Læs opsummeringen, og klik på **Erklær hændelse**. Du lander på den nye hændelse, og dens **Hændelse Feed** begynder at registrere.
+4. Læs opsummeringen, og klik på **Erklær hændelse**. Du lander på den nye hændelse, og dens **Hændelsesfeed** begynder at registrere.
 :::
 
 Kun det første trin har påkrævede felter, plus ethvert brugerdefineret felt, dine administratorer har markeret som **Påkrævet ved oprettelse**, og som trinnet **Detaljer** spørger om. Hvert trin før opsummeringen har en almindelig **Næste**, og **Erklær hændelse** står på opsummeringen, det sidste trin. Har du travlt, så udfyld **Hændelsesdetaljer** og tryk **Næste** gennem de andre trin uden at udfylde dem: at tilføje ressourcer, tilføje vagtpolitikker og tildele roller kan også vente til hændelsens egne sider. Trykker du på **Enter** i et felt, går det også videre; det erklærer aldrig før opsummeringen.
@@ -142,7 +142,7 @@ Bliver du ved med at erklære den samme slags hændelse — det samme titelmøns
 3. Ændr det, der er anderledes denne gang, gå derefter trinene igennem, og erklær som sædvanlig.
 :::
 
-Har dit projekt endnu ingen skabeloner, får du i stedet en dialog **No Incident Templates** med en knap **Create Template**, der fører dig til **Hændelser → Indstillinger → Hændelsesskabeloner**.
+Har dit projekt endnu ingen skabeloner, får du i stedet en dialog **Ingen hændelsesskabeloner** med en knap **Create Template**, der fører dig til **Hændelser → Indstillinger → Hændelsesskabeloner**.
 
 Skabeloner bygges med deres egen guide i fire trin — **Skabeloninformation**, **Hændelsesdetaljer**, **Berørte ressourcer**, **Vagt** — plus trinene **Brugerdefinerede felter** og **Brugerdefinerede felter ved oprettelse** efter **Berørte ressourcer**, når dit projekt har brugerdefinerede hændelsesfelter. Skabelonens **Indledende hændelsestilstand**, **Ejere** og **Etiketter** ligger under **Flere felter** i slutningen af **Hændelsesdetaljer**. **Berørte ressourcer** spørger, som erklæringsformularen gør — **Monitorer**, derefter **Skift overvågningsstatus til**, derefter **Andre berørte ressourcer**, med **Begræns til disse statussider** under **Flere felter** — bortset fra at en skabelon altid spørger om monitorstatussen: den gælder også de monitorer, der vælges, når en hændelse erklæres fra skabelonen. Det er felterne:
 
@@ -178,7 +178,7 @@ Et par hurtige regler:
 De fleste hændelser burde ikke kræve, at et menneske skriver dem ind. En monitors kriterier kan erklære en i det øjeblik, et filter matcher:
 
 :::steps
-1. Åbn monitoren, vælg **Kriterier** i dens sidemenu, og klik på **Edit Monitoring Criteria**. (En ny monitor spørger om de samme kriterier, mens du opretter den.)
+1. Åbn monitoren, vælg **Kriterier** i dens sidemenu, og klik på **Rediger overvågningskriterier**. (En ny monitor spørger om de samme kriterier, mens du opretter den.)
 2. Slå **Når filtre matcher, erklæres en hændelse.** til i det kriteriefilter, der skal erklære. Et afsnit **Opret hændelse** vises med en knap **Tilføj hændelse** — ét kriteriefilter kan erklære mere end én hændelse.
 3. Udfyld hændelsens felter (se nedenfor), og gem. Næste gang filteret matcher, erklæres hændelsen og tilkalder sine vagtpolitikker.
 :::

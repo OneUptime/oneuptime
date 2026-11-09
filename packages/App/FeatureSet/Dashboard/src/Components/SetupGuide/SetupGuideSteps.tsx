@@ -9,7 +9,10 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { withUnbrokenFlags } from "./UnbrokenFlags";
-import { getTextReadingDirectionByMostLetters } from "Common/Types/ReadingDirection";
+import {
+  getTextReadingDirectionByMostLetters,
+  ReadingDirection,
+} from "Common/Types/ReadingDirection";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   PAGE_ANCHOR_SCROLL_MARGIN_TOP,
@@ -55,6 +58,11 @@ export function getAnchoredSetupGuideStep(
 
 export interface ComponentProps {
   steps: Array<SetupGuideStepView>;
+  /*
+   * The way the guide's words read when they are the reader's language
+   * (SetupGuideContent.language): every step's description that way.
+   */
+  direction?: ReadingDirection | undefined;
 }
 
 const SetupGuideSteps: FunctionComponent<ComponentProps> = (
@@ -146,8 +154,13 @@ const SetupGuideSteps: FunctionComponent<ComponentProps> = (
               </h3>
               {step.description && (
                 <p
-                  // A sentence not yet in the reader's language reads its own way.
+                  /*
+                   * The guide's way when its words are the reader's
+                   * language; otherwise a sentence not yet in it reads
+                   * its own way.
+                   */
                   dir={
+                    props.direction ||
                     getTextReadingDirectionByMostLetters(step.description) ||
                     undefined
                   }

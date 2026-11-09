@@ -88,6 +88,12 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION,
       ["Project", "Real User Monitoring", "View Application", "Documentation"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Real User Monitoring",
+      "View Application",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.RUM_APPLICATION_VIEW_DELETE, [
       "Project",
       "Real User Monitoring",

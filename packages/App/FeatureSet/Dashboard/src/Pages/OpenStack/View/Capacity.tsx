@@ -63,6 +63,7 @@ import { getOpenStackHostGroupId } from "../Utils/OpenStackPartFacts";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * CAN WE FIT THIS?
@@ -81,7 +82,7 @@ const HEAD_CLASS_NAME: string =
 // A browser centres a heading cell by itself.
 const CELL_CLASS_NAME: string = "py-2 pe-4 text-start align-top";
 // What a phone can go without: the row's own page has it, or a person can read it on a wider one.
-const WIDE_CELL_CLASS_NAME: string = `${CELL_CLASS_NAME} hidden md:table-cell`;
+const WIDE_CELL_CLASS_NAME: string = `${CELL_CLASS_NAME} max-md:hidden md:table-cell`;
 const ROW_CLASS_NAME: string = "border-b border-gray-100 last:border-0";
 const LINK_CLASS_NAME: string =
   "font-medium text-indigo-600 hover:text-indigo-700 hover:underline";
@@ -520,12 +521,13 @@ const FlavorsTable: FunctionComponent<{
                     {flavor.hostsWithRoom.toLocaleString()}
                   </td>
                   <td className={WIDE_CELL_CLASS_NAME}>
-                    {Object.keys(flavor.byZone)
-                      .sort()
-                      .map((zone: string): string => {
-                        return `${zoneTitle(zone, translator)} ${flavor.byZone[zone]!.toLocaleString()}`;
-                      })
-                      .join(", ")}
+                    {joinList(
+                      Object.keys(flavor.byZone)
+                        .sort()
+                        .map((zone: string): string => {
+                          return `${zoneTitle(zone, translator)} ${flavor.byZone[zone]!.toLocaleString()}`;
+                        }),
+                    )}
                   </td>
                   <td className={WIDE_CELL_CLASS_NAME}>
                     {flavor.instanceCount.toLocaleString()}
@@ -1065,16 +1067,17 @@ const OpenStackCloudCapacity: FunctionComponent<
             },
             notCounted.length + snapshot.hostsNotCountedLeftOut,
           )}{" "}
-          {notCounted
-            .slice(0, 5)
-            .map((host: OpenStackCapacityHostNotCounted): string => {
-              return `${host.name} (${
-                host.state === "lost"
-                  ? translator.translateText("lost")
-                  : translator.translateText("disabled")
-              })`;
-            })
-            .join(", ")}
+          {joinList(
+            notCounted
+              .slice(0, 5)
+              .map((host: OpenStackCapacityHostNotCounted): string => {
+                return `${host.name} (${
+                  host.state === "lost"
+                    ? translator.translateText("lost")
+                    : translator.translateText("disabled")
+                })`;
+              }),
+          )}
         </OpenStackPartNotice>
       ) : (
         <></>
@@ -1222,7 +1225,7 @@ const OpenStackCloudCapacity: FunctionComponent<
           <Card
             title={translationKey("By bare metal class")}
             description={translationKey(
-              "What Placement holds of each resource class a flavor can ask for, whatever Ironic shows this credential. A node takes one instance whole, so these are nodes, and none of it is in the vCPUs and memory above. Held back means Nova's Ironic driver can't use it right now: it has failed, is in maintenance or isn't available, and the Bare Metal section says which.",
+              "What Placement holds of each resource class a flavor can ask for. A node takes one instance whole, so these are nodes, apart from the vCPUs above. Held back means Nova's Ironic driver can't use it right now.",
             )}
           >
             <BareMetalClassesTable
@@ -1312,7 +1315,7 @@ const OpenStackCloudCapacity: FunctionComponent<
           <Card
             title={translationKey("Allocations no instance explains")}
             description={translationKey(
-              "Placement holds more on these hosts than their instances' flavors add up to, and has for a while. That is usually an orphaned allocation, left by a delete or a move that failed part way, and it silently eats capacity: nothing else will ever give it back.",
+              "Placement holds more on these hosts than their instances' flavors add up to, and has for a while: usually an orphaned allocation from a failed delete or move, eating capacity until someone clears it.",
             )}
           >
             <ul className="divide-y divide-gray-100">

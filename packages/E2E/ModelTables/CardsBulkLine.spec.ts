@@ -368,3 +368,144 @@ test("on a laptop a table's rows keep their bar over them", async ({
   await expect(page.getByTestId("table-cards-header")).toHaveCount(0);
   await expect(page.getByTestId("bulk-update-row")).toHaveCount(0);
 });
+
+/*
+ * #5587's follow-up: the rows' bar disabled its Select All while it read
+ * every match, and a disabled button drops the focus to the page - pressed
+ * from the keyboard, Select All left the reader at the top of the page. It
+ * is busy now, not disabled, as the band's offer is: the focus stays on it
+ * while it reads, and moves on to Bulk Actions once every monitor is
+ * selected. Each read takes 1.2 seconds here (?delay=1200), so the reading
+ * is there to be seen.
+ */
+test("on a laptop, Select All pressed from the keyboard keeps its place while it reads, then hands the focus to Bulk Actions", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "&delay=1200", 1280);
+
+  await page
+    .locator("#Monitors-table-body > tr")
+    .first()
+    .locator("input[type=checkbox]")
+    .check();
+
+  const selectAll: Locator = page.getByTestId("bulk-update-select-all");
+  await expect(selectAll).toHaveText("Select All Monitors");
+
+  await selectAll.focus();
+  await page.keyboard.press("Enter");
+
+  // Reading: busy, saying so, and still where the keyboard is.
+  await expect(selectAll).toHaveText("Selecting All Monitors...");
+  await expect(selectAll).toHaveAttribute("aria-busy", "true");
+  await expect(selectAll).toHaveAttribute("aria-disabled", "true");
+  await expect(selectAll).not.toHaveAttribute("disabled", /.*/);
+  await expect(selectAll).toBeFocused();
+
+  // A second press while it reads starts no second read.
+  const readsBefore: number = (await fixture(page)).listRequests.filter(
+    (read: FixtureRecord["listRequests"][number]): boolean => {
+      return read.tableName === "Monitor" && read.limit === 1000;
+    },
+  ).length;
+  await page.keyboard.press("Enter");
+
+  // Every monitor selected: Select All is gone, and Bulk Actions is next.
+  await expect(page.getByTestId("bulk-update-card-count")).toHaveText(
+    `${MATCHING} Monitors Selected`,
+  );
+  await expect(selectAll).toHaveCount(0);
+
+  await expect
+    .poll(async (): Promise<string> => {
+      return await focusedControl(page);
+    })
+    .toBe("button: Bulk Actions");
+
+  // A keyboard's focus there is drawn: the indigo ring of the bar's buttons.
+  expect(await focusRing(page)).toEqual({
+    isFocusVisible: true,
+    isIndigoRing: true,
+  });
+
+  const selectAllReads: number = (await fixture(page)).listRequests.filter(
+    (read: FixtureRecord["listRequests"][number]): boolean => {
+      return read.tableName === "Monitor" && read.limit === 1000;
+    },
+  ).length;
+  expect(selectAllReads).toBe(Math.max(readsBefore, 1));
+
+  // Enter there opens the actions, from where the keyboard was.
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menu")).toBeVisible();
+});
+
+/*
+ * Pressed with a mouse, Select All hands the focus on all the same - a
+ * keyboard may be next - but no ring is drawn round Bulk Actions at the
+ * other end of the bar: the ring is a keyboard's (focus-visible).
+ */
+test("on a laptop, Select All pressed with a mouse draws no ring round Bulk Actions as it hands the focus on", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "&delay=400", 1280);
+
+  await page
+    .locator("#Monitors-table-body > tr")
+    .first()
+    .locator("input[type=checkbox]")
+    .check();
+
+  await page.getByTestId("bulk-update-select-all").click();
+
+  await expect(page.getByTestId("bulk-update-card-count")).toHaveText(
+    `${MATCHING} Monitors Selected`,
+  );
+  await expect
+    .poll(async (): Promise<string> => {
+      return await focusedControl(page);
+    })
+    .toBe("button: Bulk Actions");
+  expect(await focusRing(page)).toEqual({
+    isFocusVisible: false,
+    isIndigoRing: false,
+  });
+});
+
+// What has the focus: its role and its words ("button: Bulk Actions").
+async function focusedControl(page: Page): Promise<string> {
+  return await page.evaluate((): string => {
+    const active: Element | null = document.activeElement;
+
+    return active && active !== document.body
+      ? `${active.getAttribute("role") || active.tagName.toLowerCase()}: ${(
+          active.textContent || ""
+        ).trim()}`
+      : "the page";
+  });
+}
+
+// Whether the focused control draws its focus: indigo-500's ring.
+async function focusRing(
+  page: Page,
+): Promise<{ isFocusVisible: boolean; isIndigoRing: boolean }> {
+  return await page.evaluate(
+    (): {
+      isFocusVisible: boolean;
+      isIndigoRing: boolean;
+    } => {
+      const active: HTMLElement = document.activeElement as HTMLElement;
+
+      return {
+        isFocusVisible: active.matches(":focus-visible"),
+        isIndigoRing: window
+          .getComputedStyle(active)
+          .boxShadow.includes("rgb(99, 102, 241)"),
+      };
+    },
+  );
+}

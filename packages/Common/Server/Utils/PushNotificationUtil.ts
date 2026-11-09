@@ -8,6 +8,11 @@ import {
   getOnCallPersonPagePushBody,
   getOnCallPersonPagePushTitle,
 } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import {
+  OnCallObserverPageRecordKind,
+  getOnCallObserverPagePushBody,
+  getOnCallObserverPagePushTitle,
+} from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 
 export default class PushNotificationUtil {
   public static readonly DEFAULT_ICON =
@@ -58,6 +63,44 @@ export default class PushNotificationUtil {
       data: data.data,
     });
   }
+  /*
+   * The push of an observer's page (OnCallObserverPage): "FYI: Incident
+   * INC-42: <title>", and that they are kept informed while the people
+   * responding stay on it - with who paged them, for a person's page.
+   * Tapped, it opens the record, and it carries the record's own type and
+   * data, as any page's push does. The service names the observer's
+   * category (PushNotificationCategory): its one action, "I've seen it",
+   * only says they have seen it - a responder's Acknowledge would
+   * acknowledge the record itself.
+   */
+  private static getObserverPageNotification(data: {
+    recordLabel: string;
+    recordTitle: string;
+    projectName: string;
+    kind: OnCallObserverPageRecordKind;
+    personPage?: OnCallPersonPageNotice | undefined;
+    viewLink: string;
+    tag: string;
+    data: { [key: string]: unknown };
+  }): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: getOnCallObserverPagePushTitle({
+        recordLabel: data.recordLabel,
+        recordTitle: data.recordTitle,
+      }),
+      body: getOnCallObserverPagePushBody({
+        kind: data.kind,
+        projectName: data.projectName,
+        personPage: data.personPage,
+      }),
+      clickAction: data.viewLink,
+      url: data.viewLink,
+      tag: data.tag,
+      requireInteraction: true,
+      data: data.data,
+    });
+  }
+
   public static createIncidentCreatedNotification(params: {
     incidentTitle: string;
     projectName: string;
@@ -73,6 +116,11 @@ export default class PushNotificationUtil {
      * the message they wrote, instead of "A new incident has been created".
      */
     personPage?: OnCallPersonPageNotice | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): says they are kept informed
+     * while the people responding stay on it.
+     */
+    isObserverPage?: boolean | undefined;
   }): PushNotificationMessage {
     const {
       incidentTitle,
@@ -88,6 +136,27 @@ export default class PushNotificationUtil {
     const incidentIdentifier: string = displayNumber
       ? `${displayNumber} (${incidentTitle})`
       : incidentTitle;
+
+    if (params.isObserverPage) {
+      return PushNotificationUtil.getObserverPageNotification({
+        recordLabel: `Incident${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordTitle: incidentTitle,
+        projectName: projectName,
+        kind: "incident",
+        personPage: params.personPage,
+        viewLink: incidentViewLink,
+        tag: "incident-created",
+        data: {
+          type: "incident-created",
+          entityType: "incident",
+          entityId: incidentId,
+          projectId: projectId,
+          incidentTitle: incidentTitle,
+          projectName: projectName,
+          url: incidentViewLink,
+        },
+      });
+    }
 
     if (params.personPage) {
       return PushNotificationUtil.getPersonPageNotification({
@@ -244,6 +313,11 @@ export default class PushNotificationUtil {
      * the message they wrote, instead of "A new alert has been created".
      */
     personPage?: OnCallPersonPageNotice | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): says they are kept informed
+     * while the people responding stay on it.
+     */
+    isObserverPage?: boolean | undefined;
   }): PushNotificationMessage {
     const {
       alertTitle,
@@ -259,6 +333,27 @@ export default class PushNotificationUtil {
     const alertIdentifier: string = displayNumber
       ? `${displayNumber} (${alertTitle})`
       : alertTitle;
+
+    if (params.isObserverPage) {
+      return PushNotificationUtil.getObserverPageNotification({
+        recordLabel: `Alert${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordTitle: alertTitle,
+        projectName: projectName,
+        kind: "alert",
+        personPage: params.personPage,
+        viewLink: alertViewLink,
+        tag: "alert-created",
+        data: {
+          type: "alert-created",
+          entityType: "alert",
+          entityId: alertId,
+          projectId: projectId,
+          alertTitle: alertTitle,
+          projectName: projectName,
+          url: alertViewLink,
+        },
+      });
+    }
 
     if (params.personPage) {
       return PushNotificationUtil.getPersonPageNotification({
@@ -313,6 +408,11 @@ export default class PushNotificationUtil {
     projectId?: string;
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): says they are kept informed
+     * while the people responding stay on it.
+     */
+    isObserverPage?: boolean | undefined;
   }): PushNotificationMessage {
     const {
       alertEpisodeTitle,
@@ -328,6 +428,26 @@ export default class PushNotificationUtil {
     const episodeIdentifier: string = displayNumber
       ? `${displayNumber} (${alertEpisodeTitle})`
       : alertEpisodeTitle;
+    if (params.isObserverPage) {
+      return PushNotificationUtil.getObserverPageNotification({
+        recordLabel: `Alert Episode${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordTitle: alertEpisodeTitle,
+        projectName: projectName,
+        kind: "alert episode",
+        viewLink: alertEpisodeViewLink,
+        tag: "alert-episode-created",
+        data: {
+          type: "alert-episode-created",
+          entityType: "alert-episode",
+          entityId: alertEpisodeId,
+          projectId: projectId,
+          alertEpisodeTitle: alertEpisodeTitle,
+          projectName: projectName,
+          url: alertEpisodeViewLink,
+        },
+      });
+    }
+
     return PushNotificationUtil.applyDefaults({
       title: params.pageAgain
         ? `Alert Episode${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${alertEpisodeTitle}`
@@ -361,6 +481,11 @@ export default class PushNotificationUtil {
     projectId?: string;
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): says they are kept informed
+     * while the people responding stay on it.
+     */
+    isObserverPage?: boolean | undefined;
   }): PushNotificationMessage {
     const {
       incidentEpisodeTitle,
@@ -376,6 +501,26 @@ export default class PushNotificationUtil {
     const episodeIdentifier: string = displayNumber
       ? `${displayNumber} (${incidentEpisodeTitle})`
       : incidentEpisodeTitle;
+    if (params.isObserverPage) {
+      return PushNotificationUtil.getObserverPageNotification({
+        recordLabel: `Incident Episode${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordTitle: incidentEpisodeTitle,
+        projectName: projectName,
+        kind: "incident episode",
+        viewLink: incidentEpisodeViewLink,
+        tag: "incident-episode-created",
+        data: {
+          type: "incident-episode-created",
+          entityType: "incident-episode",
+          entityId: incidentEpisodeId,
+          projectId: projectId,
+          incidentEpisodeTitle: incidentEpisodeTitle,
+          projectName: projectName,
+          url: incidentEpisodeViewLink,
+        },
+      });
+    }
+
     return PushNotificationUtil.applyDefaults({
       title: params.pageAgain
         ? `Incident Episode${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${incidentEpisodeTitle}`

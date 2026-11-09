@@ -645,8 +645,17 @@ export function getOpenStackExporterRequestsPerScrape(
 }
 
 /*
+ * The agent's jobs for the services a cloud may not run: load balancers, bare metal, stacks,
+ * clusters, shares, DNS, object storage, databases and Gnocchi. What each reads on a cloud that
+ * runs it depends on what that cloud holds, so it isn't counted, and its login is the same anywhere.
+ */
+const OPENSTACK_AGENT_OPTIONAL_SERVICE_JOBS: number = 9;
+
+/*
  * The same, a minute at a time, at the agent's own intervals: two minutes for most, five for
- * Keystone and Glance. Each login is a request of Keystone's, whichever service it is for.
+ * Keystone, Glance and the services a cloud may not run. Each login is a request of Keystone's,
+ * whichever service it is for, and each job logs in on every scrape of every region, whether or
+ * not the cloud runs that service. OpenStackScale.test.ts holds this to the agent's config.
  */
 export function getOpenStackExporterRequestsPerMinute(
   counts: OpenStackCloudCounts,
@@ -674,9 +683,11 @@ export function getOpenStackExporterRequestsPerMinute(
     (scrape[OpenStackServiceType.Image] - 1) * SLOW;
   perMinute[OpenStackServiceType.Identity] += SLOW;
 
+  perMinute[OpenStackServiceType.Identity] +=
+    OPENSTACK_AGENT_OPTIONAL_SERVICE_JOBS * SLOW;
+
   for (const service of Object.keys(perMinute) as Array<OpenStackServiceType>) {
-    perMinute[service] *=
-      service === OpenStackServiceType.Identity ? 1 : counts.regions;
+    perMinute[service] *= counts.regions;
   }
 
   return perMinute;

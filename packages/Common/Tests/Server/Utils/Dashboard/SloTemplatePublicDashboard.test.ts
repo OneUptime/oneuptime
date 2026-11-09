@@ -168,7 +168,8 @@ function buildPolicy(data: {
 }): PublicDashboardResourceListPolicyResult {
   return PublicDashboardResourceListPolicy.build({
     widget: data.component as unknown as JSONObject,
-    dashboardViewConfig: data.config,
+    // The variables as the public page's toolbar draws them, as the route reads them.
+    variables: PublicDashboardViewConfig.getDrawnConfig(data.config).variables,
     requestedVariables: data.requestedVariables || [],
     requestedQuery: data.requestedQuery || {},
   });
@@ -205,7 +206,8 @@ function buildHistoryPolicy(data: {
   // The route resolves the viewer's selections exactly like this before building.
   const variables: Array<DashboardVariable> =
     PublicDashboardResourceListPolicy.resolveDashboardVariableSelections({
-      dashboardViewConfig: data.config,
+      variables: PublicDashboardViewConfig.getDrawnConfig(data.config)
+        .variables,
       requestedVariables: data.requestedVariables || [],
     });
 

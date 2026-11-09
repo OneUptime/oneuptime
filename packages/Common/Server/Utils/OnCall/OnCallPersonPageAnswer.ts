@@ -3,6 +3,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { isOnCallPersonPage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserOnCallLogService from "../../Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../Services/UserOnCallLogTimelineService";
@@ -127,6 +128,7 @@ export default class OnCallPersonPageAnswer {
             triggeredByUserId: true,
             triggeredByWorkflowId: true,
             acknowledgedAt: true,
+            isObserverPage: true,
           },
         },
         skip: 0,
@@ -134,11 +136,16 @@ export default class OnCallPersonPageAnswer {
         props: { isRoot: true },
       });
 
-      // A person's page, of a run nobody answered yet, that can be answered.
+      /*
+       * A person's page, or an observer's (OnCallObserverPage) - an observer
+       * who acknowledges the record has seen it - of a run nobody answered
+       * yet, that can be answered.
+       */
       const unanswered: Array<UserOnCallLog> = logs.filter(
         (log: UserOnCallLog): boolean => {
           return (
-            isOnCallPersonPage(log.onCallDutyPolicyExecutionLog) &&
+            (isOnCallPersonPage(log.onCallDutyPolicyExecutionLog) ||
+              isOnCallObserverPage(log.onCallDutyPolicyExecutionLog)) &&
             !log.onCallDutyPolicyExecutionLog?.acknowledgedAt &&
             Boolean(log.onCallDutyPolicyExecutionLogId) &&
             Boolean(log.onCallDutyPolicyExecutionLogTimelineId)

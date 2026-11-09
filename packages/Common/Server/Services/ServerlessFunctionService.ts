@@ -21,6 +21,7 @@ import DiscoveredResourceCreate, {
 } from "../Utils/Telemetry/DiscoveredResourceCreate";
 import ServerlessFunctionLabelRuleEngineService from "./ServerlessFunctionLabelRuleEngineService";
 import ServerlessFunctionOwnerRuleEngineService from "./ServerlessFunctionOwnerRuleEngineService";
+import { SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES } from "../../Types/Serverless/ServerlessFunctionStatus";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "serverless-function-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -349,6 +350,12 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * "disconnected" is the stored value; the Dashboard says "No recent
+   * invocations", in grey (ServerlessFunctionStatus, issue #6269). A
+   * function sends data only while it runs, so fifteen minutes with
+   * nothing is usually nothing having invoked it, not a broken link.
+   */
   @CaptureSpan()
   public async markDisconnectedFunctions(): Promise<void> {
     /*
@@ -357,7 +364,8 @@ export class Service extends ProjectReferencesService<Model> {
      * OtelIngestBaseService) — lastSeenAt is legitimately up to
      * ~5 minutes stale during continuous telemetry, so a threshold
      * equal to the fence TTL flaps healthy resources. 15 minutes
-     * gives 3x headroom.
+     * gives 3x headroom. The status's words say the same number, so
+     * both read it from ServerlessFunctionStatus.
      */
     /*
      * Measured in time OneUptime was receiving: a stretch when OneUptime
@@ -366,7 +374,7 @@ export class Service extends ProjectReferencesService<Model> {
      * stretch this is exactly 15 minutes ago.
      */
     const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
-      silenceInMinutes: 15,
+      silenceInMinutes: SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES,
     });
 
     const connectedFunctions: Array<Model> = await this.findBy({

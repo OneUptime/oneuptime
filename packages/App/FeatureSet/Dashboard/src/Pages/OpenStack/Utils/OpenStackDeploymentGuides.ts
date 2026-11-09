@@ -370,7 +370,7 @@ function kollaAnsible(
   return {
     alreadyRuns:
       "With `enable_prometheus` on in `/etc/kolla/globals.yml`, which Kolla-Ansible leaves off until you set it, it runs Prometheus, Alertmanager and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what those run rather than starting a second copy.",
-    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its commands were then run on a real all-in-one Kolla-Ansible (stable/2026.1, Open vSwitch) on a CI runner, reporting to a stand-in for OneUptime that kept what the agent sent: the agent on the first credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the exporter on the second credential, the targets read from its real prometheus.yml, and the logs profile. With Memcached really stopped there, its Alertmanager posted a firing webhook and then a resolved one, and what it posted, sent to a running OneUptime, opened one incident on the right cloud and on no other, and resolved it. ${WHOLE_PATH}`,
+    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its commands were then run on a real all-in-one at stable/2026.1 with Open vSwitch, with a stand-in for OneUptime that kept what the agent sent: the agent on the Full view credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the agent's exporter on the Infrastructure only credential, the targets read from its real prometheus.yml, and the logs profile. With Memcached really stopped there, its Alertmanager posted a firing webhook and then a resolved one, and what it posted, sent to a running OneUptime, opened one incident on the right cloud and on no other, and resolved it. ${WHOLE_PATH}`,
     firstSteps: [
       {
         title: "Forward what is already firing",
@@ -510,7 +510,7 @@ function openStackAnsible(
   return {
     alreadyRuns:
       "OpenStack-Ansible keeps its services' logs in journald and runs no Prometheus of its own, so the agent is the way in, and the logs have a path of their own.",
-    howFarTested: `Its paths and variables were read from OpenStack-Ansible's own source and docs. Its commands were then run on a real all-in-one OpenStack-Ansible (stable/2026.1, in LXC containers) on a CI runner, reporting to a stand-in for OneUptime that kept what the agent sent: the agent on the first credential, the exporter on the second with its policy overrides, the RabbitMQ and HAProxy settings with the agent reading each, and the logs profile on the journal. ${WHOLE_PATH}`,
+    howFarTested: `Its paths and variables were read from OpenStack-Ansible's own source and docs. Its commands were then run on a real all-in-one at stable/2026.1, in LXC containers, with a stand-in for OneUptime that kept what the agent sent: the agent on the Full view credential, the agent's exporter on the Infrastructure only credential with its policy overrides, the RabbitMQ and HAProxy settings with the agent reading each, and the logs profile on the journal. ${WHOLE_PATH}`,
     firstSteps: [],
     credentialNotes: [
       "Log in as an admin from the utility container: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, then `. ~/openrc`. It has no `curl`, which the commands below use, so run `apt-get install -y curl` there first.",

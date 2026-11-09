@@ -47,6 +47,8 @@ Vá em **Nuvem → Conectar** e, na linha da conta da AWS, escolha **Transmitir 
 
 Para os logs, informe os **Grupos de logs** um por linha, pelo nome na **Região** ao lado ou pelo ARN na região deles, ou escolha **Todos os grupos de logs da conta, inclusive os novos**. Um comando assina no máximo 50 grupos de logs pelo nome, em no máximo 10 regiões.
 
+A AWS permite uma única assinatura de logs para toda a conta por região e dois filtros de assinatura por grupo de logs. Antes de implantar qualquer coisa, o comando verifica as duas coisas: se outra ferramenta, como um SIEM, já ocupa a assinatura de toda a conta de uma região, ou se um grupo de logs que você informou não existe ou já tem dois filtros de assinatura, ele diz qual e não configura nada.
+
 ### Criar uma chave de fluxo
 
 Escolha **Criar uma chave de fluxo**. A chave só é mostrada desta vez, no comando: o OneUptime guarda só o SHA-256 dela.
@@ -66,6 +68,7 @@ A caixa pergunta a cada poucos segundos o que chegou. O Firehose entrega poucos 
 | --- | --- |
 | **Todas as métricas, não só as principais** | Transmite todas as métricas que o CloudWatch tem para a conta, inclusive as suas. A AWS cobra cada atualização de métrica que um fluxo envia, então pode custar muitas vezes mais |
 | **Regiões** | De onde transmitir: de início, as regiões em que a conexão encontrou recursos. Se ficar vazio, o comando transmite da própria região do AWS CloudShell. No máximo 30 |
+| **Todas as contas da organização** | Para uma conexão que lê uma AWS Organization: o comando, executado na conta de gerenciamento, também cria as mesmas pilhas em cada conta-membro por meio de um StackSet, e nas contas que entrarem depois. Todos os grupos de logs ou nenhum: grupos nomeados são de uma única conta |
 | **Configurar de outra forma** | Os endpoints de métricas e de logs e a chave, para configurar os fluxos com o Terraform ou o console |
 
 **Baixar o modelo** salva o modelo que o comando implanta, para implantá-lo do seu jeito.
@@ -77,6 +80,7 @@ A caixa pergunta a cada poucos segundos o que chegou. O Firehose entrega poucos 
 | Métricas | Nos recursos de nuvem que medem, com os nomes e atributos que as leituras da conexão dão a elas |
 | Logs | No explorador de registros, sob o serviço de telemetria da conexão, com a conta, a região e o grupo de logs como atributos |
 | Logs de um grupo de logs que a AWS nomeia com o nome de um recurso | Também nesse recurso: a página dele na Nuvem ganha uma aba **Registros** |
+| Logs de um serviço do App Runner, de um ambiente do Elastic Beanstalk ou de uma tarefa ou um cluster do ECS | Também no ambiente dele em Plataformas de aplicativos: a aba **Registros** |
 
 Um grupo de logs é arquivado sob um recurso quando a AWS lhe deu o nome de um:
 
@@ -93,8 +97,11 @@ Um grupo de logs é arquivado sob um recurso quando a AWS lhe deu o nome de um:
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Cada log leva o ID do recurso como `cloud.resource_id`, e os logs de uma função Lambda levam também `faas.name`, por isso aparecem também na função em Serverless. Um grupo de logs com outro nome é transmitido mesmo assim, sob a conta e a região dele. A gravidade de um log é a que a mensagem dele informa, do jeito que o Lambda a escreve.
+Cada log leva o ID do recurso como `cloud.resource_id`, e os logs de uma função Lambda levam também `faas.name`, por isso aparecem também na função em Serverless. Um grupo de logs com outro nome é transmitido mesmo assim, sob a conta e a região dele. A gravidade de um log é a que a mensagem dele informa, do jeito que o Lambda, o PostgreSQL ou o MySQL a escreve.
+
+Os logs de um serviço do App Runner, de um ambiente do Elastic Beanstalk e de um cluster do ECS também levam `cloud.platform`, assim como os de uma tarefa do ECS, do grupo de logs que o console do ECS chama de `/ecs/<task-definition-family>`, com `aws.ecs.task.family`. Com a conta e a região, isso os coloca no ambiente deles em Plataformas de aplicativos, que aparece com eles se nenhum app tiver enviado dados para ele ainda. Eles não criam nenhum app: um app recebe o nome da própria telemetria, como explica [Ambientes de nuvem](/docs/telemetry/cloud-environments).
 
 ## O que a pilha cria
 
@@ -127,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Para uma conexão que lê uma AWS Organization, execute o comando da caixa de diálogo na conta de gerenciamento: quando a organização era transmitida, ele também exclui as pilhas de cada conta-membro e o StackSet.
 :::
 
 Para mudar o que uma pilha transmite, abra de novo **Transmitir métricas e logs**, escolha **Criar uma nova chave** e execute o novo comando. A chave que ela substitui continua funcionando por 24 horas, então nenhuma entrega é recusada enquanto as pilhas são atualizadas. No máximo 3 chaves substituídas funcionam ao mesmo tempo.
@@ -166,6 +175,10 @@ Verifique se o comando terminou em cada região sem erros: `aws cloudformation d
 
 :::details A conexão diz Fluxo recusado
 A caixa e a dica da linha dizem por quê. Uma chave errada significa que as pilhas rodam com uma chave que não funciona mais: crie uma nova chave e execute o comando de novo. O Firehose continua enviando o que guarda, e isso é aceito assim que a chave estiver certa.
+:::
+
+:::details O comando diz `Nothing was set up`
+As linhas acima dizem por quê, cada uma com a sua região ou o seu grupo de logs. Se outra ferramenta ocupa a assinatura de logs de toda a conta de uma região, informe em vez disso os grupos de logs a transmitir, ou remova a política dessa ferramenta. Se um grupo de logs já tem dois filtros de assinatura, remova um deles ou deixe o grupo de fora. Se o grupo de logs não existe, verifique o nome e a região dele, ou informe o ARN dele. Depois, execute o comando de novo.
 :::
 
 :::details Os logs de uma função Lambda não aparecem na página dela

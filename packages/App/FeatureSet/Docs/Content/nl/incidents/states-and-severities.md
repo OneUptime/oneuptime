@@ -37,7 +37,7 @@ flowchart TB
 
 Het model `IncidentState` heeft `name`, `description`, `color` en `order`, plus drie booleans: `isCreatedState`, `isAcknowledgedState` en `isResolvedState`. Alles wat het product met statussen doet, gaat uit van die booleans en van `order` — nooit van de naam van de status. Daarom kun je **Opgelost** hernoemen naar "Closed" zonder dat er iets breekt: de vlag reist mee met de rij.
 
-Het model `IncidentSeverity` heeft `name`, `description`, `color` en `order`, en verder niets. Er zijn geen vlaggen. Niets in OneUptime behandelt **Critical Incident** uit zichzelf anders dan **Minor Incident** — ernst doet er alleen toe waar je er iets op richt, zoals het criterium **Incident Ernsten** van een bereikbaarheidsregel.
+Het model `IncidentSeverity` heeft `name`, `description`, `color` en `order`, en verder niets. Er zijn geen vlaggen. Niets in OneUptime behandelt **Critical Incident** uit zichzelf anders dan **Minor Incident** — ernst doet er alleen toe waar je er iets op richt, zoals het criterium **Ernstniveaus van incidenten** van een bereikbaarheidsregel.
 
 Een paar korte regels:
 
@@ -83,7 +83,7 @@ Een status die je toevoegt, is een stap in je respons die de drie vooraf aangema
 :::steps
 ### Open de statuslijst
 
-Ga naar **Incidenten → Instellingen → Status incident**. De kaart **Incident Statussen** toont je statussen in hun volgorde, één rij per status: een greep om hem aan te slepen, zijn kleur en naam, waarvoor een incident erin **Telt als**, en zijn beschrijving. De zin onder de titel zegt het duidelijk: incidenten gaan in deze lijst alleen omlaag.
+Ga naar **Incidenten → Instellingen → Status incident**. De kaart **Incidentstatussen** toont je statussen in hun volgorde, één rij per status: een greep om hem aan te slepen, zijn kleur en naam, waarvoor een incident erin **Telt als**, en zijn beschrijving. De zin onder de titel zegt het duidelijk: incidenten gaan in deze lijst alleen omlaag.
 
 ### Maak de status aan
 
@@ -115,14 +115,20 @@ De drie vlaggen kun je niet met dit formulier instellen — die horen bij de voo
 
 ## De volgorde is een echte beperking, geen weergavevoorkeur
 
-De volgorde wordt afgedwongen wanneer een statuswijziging wordt geschreven, niet alleen wanneer de lijst wordt getekend:
+De volgorde wordt afgedwongen wanneer een statuswijziging wordt geschreven, niet alleen wanneer de lijst wordt getekend. Eén regel geldt voor elke statuswijziging van een incident, een waarschuwing, een incident- of waarschuwingsepisode en een geplande onderhoudsgebeurtenis, wie of wat de wijziging ook doorvoert — het dashboard, Slack, Microsoft Teams, de API, Terraform, een workflow of OneUptime zelf — en of die nu wordt verstuurd als rij op de statustijdlijn van het record of als update van zijn huidige status:
 
-- **Overgangen terug worden geweigerd.** Een incident naar een status verplaatsen die eerder in de volgorde staat dan zijn huidige status, mislukt met een fout die beide statussen noemt.
+- **Overgangen terug worden geweigerd.** Een incident naar een status verplaatsen die eerder in de volgorde staat dan zijn huidige status, mislukt met een fout die beide statussen noemt: "Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states." Voor een episode geldt dezelfde regel als voor de incidenten die ze groepeert, met een eigen foutmelding ("Episode cannot transition to …"), dus een opgeloste episode wordt niet teruggezet naar een eerdere status — en via haar ook haar incidenten niet. Een update die een record zou terugzetten, wordt geweigerd voordat er iets wordt opgeslagen.
 - **De huidige status opnieuw kiezen wordt geweigerd.** Een incident in de status zetten waarin het al staat, mislukt met "Incident state cannot be same as previous state."
 - **Een rij met een eerdere datum kan haar buur niet dupliceren.** Een tijdlijnrij invoegen waarvan de status gelijk is aan die van de rij erna, wordt ook geweigerd.
-- **De knoppen in de kop volgen de positie van de statussen met een vlag in de volgorde.** **Bevestigen** en **Oplossen** worden aangeboden op basis van waar de huidige status in de gesorteerde lijst staat. Een eigen status die *na* de opgeloste status staat, toont nooit een knop **Oplossen**, omdat een incident erin al als opgelost telt.
+- **De knoppen in de kop volgen de positie van de statussen met een vlag in de volgorde.** **Bevestigen** en **Oplossen** worden aangeboden op basis van waar de huidige status in de gesorteerde lijst staat. Een eigen status die *na* de opgeloste status staat, toont nooit een knop **Oplossen**, omdat een incident erin al als opgelost telt. Het statusmenu in de kop en het formulier voor een statuswijziging in Slack en Microsoft Teams bieden alleen de statussen na de huidige aan; voor een record in de laatste status van de lijst zeggen Slack en Teams "There is no later state to move this incident to." in plaats van een leeg formulier te openen.
 
 Zet een status die je toevoegt dus waar een incident er echt doorheen zou gaan. Hem verkeerd ordenen ziet er niet alleen vreemd uit — het maakt overgangen onmogelijk. Een status later in de volgorde zetten verandert waarvoor de incidenten die er al in staan tellen, op het moment dat je hem loslaat.
+
+Een episode verplaatst haar incidenten alleen naar waar ze heen kunnen. Wanneer een episode van status verandert, gaat elk van haar incidenten alleen mee als de eigen volgorde van het incident die stap toelaat: een incident dat al in die status staat, of er voorbij is — op zichzelf opgelost, of in een eigen status na de opgeloste status — blijft waar het is.
+
+Eén stap gaat de lijst weer op: het heropenen door een groeperingsregel. Een regel die is ingesteld om recent opgeloste episodes te heropenen, heropent een opgeloste episode wanneer er binnen zijn venster een overeenkomend incident binnenkomt, en zet de episode terug naar je aanmaakstatus. Dat is een stap van OneUptime zelf — niets wat je verstuurt kan erom vragen — en het heropent de incidenten van de episode niet.
+
+Om een per vergissing ingestelde status te herstellen, verwijder je de rij ervan op de statustijdlijnpagina van het record (zie [De statustijdlijn](#de-statustijdlijn)). Het record gaat terug naar de status van zijn laatste resterende rij; een episode waarvan je de rij verwijdert die haar oploste, is weer open, en haar oplostijd wordt gewist.
 
 Via de API en Terraform is de volgorde de kolom `order`: lagere getallen komen eerst. Een status die zonder volgorde wordt aangemaakt, komt net boven de opgeloste status; een status die met een getal wordt aangemaakt of bijgewerkt, neemt die plek in, en de statussen die in de weg staan, schuiven een plek op. Getallen die geen andere status heeft, blijven zoals ze zijn geschreven, dus een status die door Terraform wordt beheerd, leest het getal terug dat hij kreeg.
 
@@ -149,7 +155,7 @@ Twee verschillen met statussen:
 - **Er is geen beveiliging tegen verwijderen.** Elke ernst kan worden verwijderd, ook de drie vooraf aangemaakte.
 - **Er zijn geen vlaggen om over te nemen, en er is geen "Telt als".** Een nieuwe ernst gedraagt zich precies als de vooraf aangemaakte — het is een label met een kleur en een rang.
 
-Waar ernst meer doet dan beschrijven: onder **Incidenten → Regels → Bereikbaarheidsregels** is het veld **Incident Ernsten** van een regel een criterium. **Critical Incident** daar opnemen is hoe "roep het databaseteam op voor alles wat kritiek is" wordt uitgedrukt — het bereikbaarheidsbeleid zit op de regel, niet op de ernst.
+Waar ernst meer doet dan beschrijven: onder **Incidenten → Regels → Bereikbaarheidsregels** is het veld **Ernstniveaus van incidenten** van een regel een criterium. **Critical Incident** daar opnemen is hoe "roep het databaseteam op voor alles wat kritiek is" wordt uitgedrukt — het bereikbaarheidsbeleid zit op de regel, niet op de ernst.
 
 **De ernst van een incident wijzigen** — onder **Bewerken** op de kaart **Incidentdetails** van het incident, via de API of Terraform (`incidentSeverityId`), met een workflow of met de AI-tools — doet dezelfde vier dingen, hoe het ook wordt verstuurd: de incidentfeed krijgt een item **Incident updated** dat de nieuwe ernst noemt, de SLA-deadlines van het incident worden opnieuw berekend, zijn herinneringsregel wordt opnieuw gezocht, en de incidentstatistieken tellen één ernstwijziging. De ernst opslaan die het incident al heeft, doet geen van deze dingen, dus alleen de titel van een incident bewerken laat zijn SLA-deadlines, herinneringen en aantal ernstwijzigingen zoals ze waren. De ernst van een waarschuwing werkt op dezelfde manier voor haar feeditem en haar herinneringen.
 

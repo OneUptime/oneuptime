@@ -27,6 +27,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   item: SecurityCaseEvidence;
@@ -173,7 +174,7 @@ const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
             eventMetaParts.map((part: string, index: number): ReactElement => {
               return (
                 <React.Fragment key={`${index}-${part}`}>
-                  {index > 0 ? " · " : ""}
+                  {index > 0 ? <InlineSeparator /> : null}
                   <IsolatedText
                     text={part}
                     className={

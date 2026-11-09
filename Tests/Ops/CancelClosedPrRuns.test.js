@@ -23,7 +23,7 @@
  *     workflows that run on pull_request.
  *   - each of those workflows: for a pull_request event its group evaluates to
  *     the string the canceller's group evaluates to for it, and a push to
- *     master lands in a different group (so a merge's own push runs are never
+ *     main lands in a different group (so a merge's own push runs are never
  *     cancelled); it does not itself run on `closed`; and its name is unique.
  *
  * Groups are evaluated with a small reader of GitHub's expressions that
@@ -110,20 +110,20 @@ function pullRequestContext(workflowName) {
       },
       ref: `refs/pull/${PR_NUMBER}/merge`,
       head_ref: "feature",
-      base_ref: "master",
+      base_ref: "main",
       sha: "1".repeat(40),
       run_id: "101",
     },
   };
 }
 
-function pushToMasterContext(workflowName) {
+function pushToMainContext(workflowName) {
   return {
     github: {
       workflow: workflowName,
       event_name: "push",
       event: {},
-      ref: "refs/heads/master",
+      ref: "refs/heads/main",
       head_ref: "",
       base_ref: "",
       sha: "2".repeat(40),
@@ -143,9 +143,9 @@ function closedContext(cancellerName, matrixWorkflow) {
         number: PR_NUMBER,
         pull_request: { number: PR_NUMBER, merged: true },
       },
-      ref: "refs/heads/master",
+      ref: "refs/heads/main",
       head_ref: "feature",
-      base_ref: "master",
+      base_ref: "main",
       sha: "3".repeat(40),
       run_id: "103",
     },
@@ -194,8 +194,8 @@ describe("the expression reader this suite uses", () => {
     expect(evaluate(group, pullRequestContext("Compile"))).toBe(
       `Compile-${PR_NUMBER}`,
     );
-    expect(evaluate(group, pushToMasterContext("Compile"))).toBe(
-      "Compile-refs/heads/master",
+    expect(evaluate(group, pushToMainContext("Compile"))).toBe(
+      "Compile-refs/heads/main",
     );
     expect(
       evaluate("${{ github.head_ref || github.base_ref }}", {
@@ -316,9 +316,9 @@ describe.each(pullRequestWorkflows)("$file", ({ workflow, name }) => {
   });
 
   // The merge commit's own push runs, which must not be cancelled.
-  test("puts a push to master in a different group", () => {
+  test("puts a push to main in a different group", () => {
     const group = concurrencyGroup(workflow);
-    expect(evaluate(group, pushToMasterContext(name))).not.toBe(
+    expect(evaluate(group, pushToMainContext(name))).not.toBe(
       cancellerGroupFor(name),
     );
   });

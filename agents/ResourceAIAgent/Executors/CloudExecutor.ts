@@ -14,6 +14,7 @@ import {
   ResourceCommandRequest,
   ResourceExecutor,
   ResourcePostureProbe,
+  RunControl,
 } from "./ResourceExecutor";
 import { redactOutput, replaceNulCharacters } from "./SpawnSandbox";
 import AwsCloud, { AwsProbe } from "./Cloud/AwsOperations";
@@ -39,7 +40,9 @@ import {
 } from "./Cloud/CloudChange";
 import {
   CloudAgentSettings,
+  describeAzureWriteIdentityElsewhere,
   formatRequiredTag,
+  getServiceAccountProject,
   parseCloudAgentSettings,
 } from "./Cloud/CloudSettings";
 import AiResourceType from "../Common/Types/ResourceAiAgent/AiResourceType";
@@ -57,6 +60,7 @@ import {
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
   RESOURCE_AI_GCP_HOST_ENV,
+  RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
   ResourceCommandTier,
 } from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
@@ -76,6 +80,7 @@ import {
 } from "../Common/Utils/AiRemediation/Resource/CloudOperationCatalog";
 import {
   ResourceCommandPolicyResult,
+  globMatchesTarget,
   renderResourceDisplayCommand,
 } from "../Common/Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 
@@ -101,9 +106,12 @@ import {
  *     plus its own service as it finds it), then refuses: an operation that
  *     runs on OneUptime (the reads), a change ONEUPTIME_AI_CLOUD_OPERATIONS
  *     does not enable, a resource outside the agent's own account
- *     (subscription, project), and settings it cannot read
- *     (ONEUPTIME_AI_CLOUD_REQUIRED_TAG, ONEUPTIME_AI_AWS_WRITE_ROLE_ARN).
- *     Nothing is sent before run().
+ *     (subscription, project), settings it cannot read
+ *     (ONEUPTIME_AI_CLOUD_REQUIRED_TAG, ONEUPTIME_AI_AWS_WRITE_ROLE_ARN,
+ *     ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT,
+ *     ONEUPTIME_AI_AZURE_WRITE_IDENTITY), and a write role, account or
+ *     identity of another account than its own: a change never falls back
+ *     to the agent's own credentials. Nothing is sent before run().
  *   - run() reads what the change replaces, checks its bounds and the
  *     required tag, makes the ONE call, and reports. A change's output
  *     starts with formatCloudReplacedValue(...) — the line the server
@@ -187,6 +195,14 @@ function realSleep(ms: number): Promise<void> {
 function sentence(text: string): string {
   const trimmed: string = text.trim();
   return SENTENCE_END_PATTERN.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+// Why a Google Cloud write account of another project changes nothing (no full stop).
+function describeGcpWriteAccountElsewhere(data: {
+  writeProject: string;
+  accountId: string;
+}): string {
+  return `${RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV} names a service account of project ${data.writeProject}, but the agent serves project ${data.accountId || "(unknown)"}, so it changes nothing. Set it to a service account of project ${data.accountId || "the agent serves"}`;
 }
 
 /*
@@ -375,12 +391,37 @@ export default class CloudExecutor implements ResourceExecutor {
       .trim()
       .toLowerCase();
     const subscription: string = this.accountId();
+    const targets: Array<string> =
+      this.azure && subscription && CONTAINER_APP_NAME_PATTERN.test(app)
+        ? [
+            `/subscriptions/${subscription}/resourcegroups/*/providers/microsoft.app/containerapps/${app}`,
+          ]
+        : [];
+    /*
+     * Its write identity, where a team that runs it its own way keeps it
+     * outside the agent's own resource group (which covers the one its
+     * setup command makes).
+     */
+    const settings: CloudAgentSettings | null = this.azure
+      ? this.settings()
+      : null;
+    const writeIdentity: string = settings?.azureWriteIdentity
+      ? settings.azureWriteIdentity.resourceId.toLowerCase()
+      : "";
 
-    return this.azure && subscription && CONTAINER_APP_NAME_PATTERN.test(app)
-      ? [
-          `/subscriptions/${subscription}/resourcegroups/*/providers/microsoft.app/containerapps/${app}`,
-        ]
-      : [];
+    if (
+      writeIdentity &&
+      !getCloudAiAgentOwnTargets({
+        provider: "azure",
+        accountId: subscription,
+      }).some((pattern: string): boolean => {
+        return globMatchesTarget(pattern, writeIdentity);
+      })
+    ) {
+      targets.push(writeIdentity);
+    }
+
+    return targets;
   }
 
   // ---- prepare ---------------------------------------------------------------------------
@@ -470,8 +511,8 @@ export default class CloudExecutor implements ResourceExecutor {
       refusal: null,
       displayCommand: guarded.displayCommand,
       tier: guarded.tier,
-      run: (): Promise<ExecResult> => {
-        return this.run(call);
+      run: (control?: RunControl | undefined): Promise<ExecResult> => {
+        return this.run(call, control);
       },
     };
   }
@@ -498,6 +539,14 @@ export default class CloudExecutor implements ResourceExecutor {
 
     if (settings.awsWriteRoleProblem) {
       return settings.awsWriteRoleProblem;
+    }
+
+    if (settings.gcpWriteServiceAccountProblem) {
+      return settings.gcpWriteServiceAccountProblem;
+    }
+
+    if (settings.azureWriteIdentityProblem) {
+      return settings.azureWriteIdentityProblem;
     }
 
     const resource: ParsedCloudCommand["resource"] = command.resource;
@@ -527,6 +576,18 @@ export default class CloudExecutor implements ResourceExecutor {
     }
 
     if (command.provider === "azure") {
+      // The write identity is the served subscription's own, as its setup command makes it.
+      const elsewhere: string | null = settings.azureWriteIdentity
+        ? describeAzureWriteIdentityElsewhere({
+            identity: settings.azureWriteIdentity,
+            subscriptionId: accountId,
+          })
+        : null;
+
+      if (elsewhere) {
+        return `${elsewhere}.`;
+      }
+
       if (resource.accountId.toLowerCase() !== accountId.toLowerCase()) {
         return `${showCloudId("azure", resource.id)} is in subscription ${resource.accountId}, and this agent acts in subscription ${accountId || "(unknown)"} only.`;
       }
@@ -545,6 +606,29 @@ export default class CloudExecutor implements ResourceExecutor {
     const metadataNumber: string | null = this.gcp
       ? this.gcp.metadata.getKnownProjectNumber()
       : null;
+
+    /*
+     * The write account is the served project's own, as its setup command
+     * makes it. A project served by its number before the metadata server
+     * was read is checked by run() (verifyGcpProject), as a resource is.
+     */
+    if (settings.gcpWriteServiceAccount) {
+      const writeProject: string = getServiceAccountProject(
+        settings.gcpWriteServiceAccount,
+      );
+      const isNumberNotYetKnown: boolean =
+        PROJECT_NUMBER_PATTERN.test(accountId) &&
+        (metadataId === null || metadataNumber === null);
+
+      if (
+        writeProject !== accountId &&
+        !(metadataId === writeProject && metadataNumber === accountId) &&
+        !isNumberNotYetKnown
+      ) {
+        return `${describeGcpWriteAccountElsewhere({ writeProject, accountId })}.`;
+      }
+    }
+
     const names: Array<string> = [accountId];
 
     if (metadataId === accountId || metadataNumber === accountId) {
@@ -570,16 +654,24 @@ export default class CloudExecutor implements ResourceExecutor {
 
   // ---- run -------------------------------------------------------------------------------
 
-  private async run(call: CloudCall): Promise<ExecResult> {
+  private async run(
+    call: CloudCall,
+    control?: RunControl | undefined,
+  ): Promise<ExecResult> {
     if (isCloudDryRun(call.command)) {
       return this.dryRun(call);
     }
 
+    /*
+     * A change stops before its call when OneUptime says so while it runs
+     * (Enable AI turned off since the claim): CloudCommandRun.change.
+     */
     const run: CloudCommandRun = new CloudCommandRun(
       this.runtime,
       call.command,
       call.settings,
       call.timeoutInMs,
+      control ? { stopReason: control.stopReason } : {},
     );
 
     try {
@@ -780,8 +872,21 @@ export default class CloudExecutor implements ResourceExecutor {
     call: CloudCall,
   ): Promise<void> {
     const resource: ParsedCloudCommand["resource"] = call.command.resource;
+    const writeAccount: string | null = call.settings.gcpWriteServiceAccount;
+    const writeProject: string | null = writeAccount
+      ? getServiceAccountProject(writeAccount)
+      : null;
+    const isResourceNamedOtherwise: boolean = Boolean(
+      resource && resource.accountId !== call.accountId,
+    );
+    const isWriteProjectNamedOtherwise: boolean =
+      writeProject !== null && writeProject !== call.accountId;
 
-    if (!this.gcp || !resource || resource.accountId === call.accountId) {
+    if (
+      !this.gcp ||
+      !resource ||
+      (!isResourceNamedOtherwise && !isWriteProjectNamedOtherwise)
+    ) {
       return;
     }
 
@@ -799,9 +904,23 @@ export default class CloudExecutor implements ResourceExecutor {
       (known.id === call.accountId || known.number === call.accountId) &&
       (known.id === resource.accountId || known.number === resource.accountId);
 
-    if (!sameProject) {
+    if (isResourceNamedOtherwise && !sameProject) {
       run.refuse(
         `${resource.id} is in Google Cloud project ${resource.accountId}, and this agent acts in project ${call.accountId} only`,
+      );
+    }
+
+    // The project it serves by its number is the write account's, by its id.
+    if (
+      writeProject !== null &&
+      isWriteProjectNamedOtherwise &&
+      !(known.id === writeProject && known.number === call.accountId)
+    ) {
+      run.refuse(
+        describeGcpWriteAccountElsewhere({
+          writeProject,
+          accountId: call.accountId,
+        }),
       );
     }
   }
@@ -1149,6 +1268,17 @@ export default class CloudExecutor implements ResourceExecutor {
       details["azureIdentity"] = this.azure.describeIdentity();
       // The Activity Log's caller of the agent's changes (CloudAiChangeAttribution).
       details["azurePrincipalId"] = this.azure.principalId();
+
+      /*
+       * The identity its changes run as, and its object id once the agent
+       * was given a token of it (a change, or Test connection): the caller
+       * of those changes. The posture never asks for one itself.
+       */
+      if (settings.azureWriteIdentity) {
+        details["azureWriteIdentity"] = settings.azureWriteIdentity.resourceId;
+        details["azureWritePrincipalId"] = this.azure.writePrincipalId();
+      }
+
       reachable = probe.reachable;
       reachError = probe.reachError;
     } else if (this.gcp) {
@@ -1159,13 +1289,28 @@ export default class CloudExecutor implements ResourceExecutor {
 
       details["gcpProjectNumber"] = probe.projectNumber;
       details["gcpServiceAccount"] = probe.serviceAccount;
+      // The account its changes run as (CloudAiChangeAttribution marks them).
+      if (settings.gcpWriteServiceAccount) {
+        details["gcpWriteServiceAccount"] = settings.gcpWriteServiceAccount;
+      }
       details["gcpHost"] = this.gcpHost();
       reachable = probe.reachable;
       reachError = probe.reachError;
     }
 
+    const azureWriteIdentityElsewhere: string | null =
+      provider === "azure" && settings.azureWriteIdentity
+        ? describeAzureWriteIdentityElsewhere({
+            identity: settings.azureWriteIdentity,
+            subscriptionId: accountId,
+          })
+        : null;
     const problem: string | null =
-      settings.requiredTagProblem || settings.awsWriteRoleProblem;
+      settings.requiredTagProblem ||
+      settings.awsWriteRoleProblem ||
+      settings.gcpWriteServiceAccountProblem ||
+      settings.azureWriteIdentityProblem ||
+      (azureWriteIdentityElsewhere ? `${azureWriteIdentityElsewhere}.` : null);
 
     if (reachable && problem) {
       details["settingsProblem"] = problem.slice(0, MAX_POSTURE_STRING_LENGTH);

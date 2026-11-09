@@ -1,8 +1,10 @@
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import logger from "../../Logger";
 import GitHubUtil, {
   GitHubBranchInfo,
   GitHubCommitResult,
+  GitHubFileBlob,
 } from "../GitHub/GitHub";
 import GitHubInstallationBinding from "../GitHub/GitHubInstallationBinding";
 import CodeHostAccess, {
@@ -14,9 +16,14 @@ import GitLabApi from "./GitLabApi";
 import {
   CodeHostBranch,
   CodeHostCommitMade,
+  CodeHostFileBlob,
+  CodeHostFileExpected,
+  CodeHostFileVersion,
   CodeHostFileWrite,
   CodeHostOpenedPullRequest,
 } from "./CodeHostTypes";
+import { CodeHostHttpError } from "./CodeHostHttp";
+import ArrayUtil from "../../../../Utils/Array";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import {
   CodeHost,
@@ -60,11 +67,31 @@ export interface CodeHostWriter {
     branchName: string;
     fromBranchName: string;
   }): Promise<boolean>;
-  // One commit on the branch that writes each file whole.
+  /*
+   * What is at each path on a branch now, as a commit there would find it
+   * (issue #6313): the git blob SHA of the file, null where there is none,
+   * or why it could not be read - and on GitLab the last commit that
+   * changed it. One answer per path, in their order.
+   */
+  getFileBlobShas(data: {
+    branchName: string;
+    filePaths: Array<string>;
+  }): Promise<Array<CodeHostFileBlob>>;
+  /*
+   * One commit on the branch that writes each file whole. Held to the
+   * files as they were read (expected, issue #6331), the host makes it only
+   * while each is still so, and refuses it otherwise - nothing written,
+   * CodeHostFilesMovedError thrown: GitLab by the last commit of each file,
+   * Forgejo and Gitea by its blob, GitHub by the tree the commit is built
+   * on and a fast-forward-only move of the branch. Every host chat writes
+   * to holds a commit so. A file it is not held to is written as the
+   * branch has it when the commit is made, as it always was.
+   */
   commitFiles(data: {
     branchName: string;
     commitMessage: string;
     files: Array<CodeHostFileWrite>;
+    expected?: ReadonlyArray<CodeHostFileExpected> | undefined;
   }): Promise<CodeHostCommitMade>;
   // A pull (or merge) request from one branch into another, ready for review.
   openPullRequest(data: {
@@ -87,6 +114,52 @@ export enum CodeHostWriterGap {
 export type CodeHostWriterResult =
   | { writer: CodeHostWriter; gap: null }
   | { writer: null; gap: CodeHostWriterGap };
+
+// How many paths a writer reads at once (getFileBlobShas).
+const FILE_BLOB_READS_AT_ONCE: number = 4;
+
+type ReadFileBlobsFunction = (data: {
+  filePaths: Array<string>;
+  // The version at one path, null where there is no file; throws when it cannot be read.
+  read: (filePath: string) => Promise<CodeHostFileVersion | null>;
+}) => Promise<Array<CodeHostFileBlob>>;
+
+/*
+ * Each path read on its own, a few at a time: a path that cannot be read
+ * says why, in words the server's API gave - never stopping the others.
+ */
+const readFileBlobs: ReadFileBlobsFunction = async (data: {
+  filePaths: Array<string>;
+  read: (filePath: string) => Promise<CodeHostFileVersion | null>;
+}): Promise<Array<CodeHostFileBlob>> => {
+  return await ArrayUtil.mapWithConcurrency(
+    data.filePaths,
+    FILE_BLOB_READS_AT_ONCE,
+    async (filePath: string): Promise<CodeHostFileBlob> => {
+      try {
+        const version: CodeHostFileVersion | null = await data.read(filePath);
+
+        return {
+          filePath,
+          blobSha: version ? version.blobSha : null,
+          ...(version?.lastCommitId
+            ? { lastCommitId: version.lastCommitId }
+            : {}),
+        };
+      } catch (error) {
+        logger.debug(error);
+
+        return {
+          filePath,
+          failure:
+            error instanceof CodeHostHttpError && error.message
+              ? error.message
+              : "The server could not be reached.",
+        };
+      }
+    },
+  );
+};
 
 export default class CodeHostWriters {
   /*
@@ -214,10 +287,23 @@ export default class CodeHostWriters {
           fromBranchName: args.fromBranchName,
         });
       },
+      getFileBlobShas: async (args: {
+        branchName: string;
+        filePaths: Array<string>;
+      }): Promise<Array<CodeHostFileBlob>> => {
+        const blobs: Array<GitHubFileBlob> = await GitHubUtil.getFileBlobShas({
+          ...repository,
+          branchName: args.branchName,
+          filePaths: args.filePaths,
+        });
+
+        return blobs;
+      },
       commitFiles: async (args: {
         branchName: string;
         commitMessage: string;
         files: Array<CodeHostFileWrite>;
+        expected?: ReadonlyArray<CodeHostFileExpected> | undefined;
       }): Promise<CodeHostCommitMade> => {
         const commit: GitHubCommitResult = await GitHubUtil.commitFilesToBranch(
           {
@@ -225,6 +311,7 @@ export default class CodeHostWriters {
             branchName: args.branchName,
             changes: args.files,
             commitMessage: args.commitMessage,
+            ...(args.expected ? { expected: args.expected } : {}),
           },
         );
 
@@ -288,10 +375,30 @@ export default class CodeHostWriters {
           });
         });
       },
+      getFileBlobShas: async (args: {
+        branchName: string;
+        filePaths: Array<string>;
+      }): Promise<Array<CodeHostFileBlob>> => {
+        return await readFileBlobs({
+          filePaths: args.filePaths,
+          read: async (
+            filePath: string,
+          ): Promise<CodeHostFileVersion | null> => {
+            return await api.call(() => {
+              return gitLab.getFileVersion({
+                project,
+                ref: args.branchName,
+                filePath,
+              });
+            });
+          },
+        });
+      },
       commitFiles: async (args: {
         branchName: string;
         commitMessage: string;
         files: Array<CodeHostFileWrite>;
+        expected?: ReadonlyArray<CodeHostFileExpected> | undefined;
       }): Promise<CodeHostCommitMade> => {
         return await api.call(() => {
           return gitLab.commitFiles({
@@ -299,6 +406,7 @@ export default class CodeHostWriters {
             branchName: args.branchName,
             commitMessage: args.commitMessage,
             files: args.files,
+            ...(args.expected ? { expected: args.expected } : {}),
           });
         });
       },
@@ -362,10 +470,33 @@ export default class CodeHostWriters {
           });
         });
       },
+      getFileBlobShas: async (args: {
+        branchName: string;
+        filePaths: Array<string>;
+      }): Promise<Array<CodeHostFileBlob>> => {
+        return await readFileBlobs({
+          filePaths: args.filePaths,
+          read: async (
+            filePath: string,
+          ): Promise<CodeHostFileVersion | null> => {
+            const sha: string | null = await api.call(() => {
+              return forgejo.getFileSha({
+                owner,
+                name,
+                ref: args.branchName,
+                filePath,
+              });
+            });
+
+            return sha ? { blobSha: sha } : null;
+          },
+        });
+      },
       commitFiles: async (args: {
         branchName: string;
         commitMessage: string;
         files: Array<CodeHostFileWrite>;
+        expected?: ReadonlyArray<CodeHostFileExpected> | undefined;
       }): Promise<CodeHostCommitMade> => {
         return await api.call(() => {
           return forgejo.commitFiles({
@@ -374,6 +505,7 @@ export default class CodeHostWriters {
             branchName: args.branchName,
             commitMessage: args.commitMessage,
             files: args.files,
+            ...(args.expected ? { expected: args.expected } : {}),
           });
         });
       },

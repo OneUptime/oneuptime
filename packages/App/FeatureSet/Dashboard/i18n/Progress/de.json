@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45208,
-    "untranslated": 3569
+    "keys": 47062,
+    "untranslated": 3472
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -295,6 +295,7 @@
     "Initiator",
     "Integration",
     "Interaction to Next Paint",
+    "Internet",
     "IoT",
     "Isle of Man",
     "Israel",
@@ -464,6 +465,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Postmortem",
+    "Powered by OneUptime",
     "Problem",
     "Profiler",
     "Prompt",
@@ -487,6 +489,7 @@
     "RegionOne",
     "Registrar",
     "Repository",
+    "Reserved Instances",
     "Resolver",
     "Revision",
     "Revision {{revision}}",
@@ -565,7 +568,6 @@
     "Tabs",
     "Tag",
     "Tags",
-    "Task",
     "Task · 31% CPU · 380 MB",
     "Task · 44% CPU · 610 MB",
     "Task · 52% CPU · 512 MB",
@@ -639,6 +641,7 @@
     "Variable",
     "Version",
     "Version {{number}}",
+    "Version {{version}}",
     "Vertical Pod Autoscalers",
     "Viewport",
     "Vital",
@@ -793,6 +796,8 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} SLO",
+    "{{count}} SLOs",
     "{{count}} VM",
     "{{count}} VMs",
     "{{count}} s",

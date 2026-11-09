@@ -47,6 +47,8 @@ Go to **Cloud → Connect**, and on the AWS account's row choose **Stream metric
 
 For logs, list the **Log groups** one a line, by name in the **Region** beside them or by ARN in their own Region, or choose **Every log group of the account, new ones too**. One command subscribes at most 50 log groups by name, in at most 10 Regions.
 
+AWS allows one account-wide log subscription per Region and two subscription filters per log group. Before it deploys anything, the command checks both: if another tool, such as a SIEM, already holds a Region's account-wide subscription, or a log group you named is not there or already has two subscription filters, it says which and sets nothing up.
+
 ### Make a stream key
 
 Choose **Make a stream key**. The key is shown this once, in the command: OneUptime keeps only its SHA-256.
@@ -66,6 +68,7 @@ The dialog asks every few seconds what arrived. Firehose delivers within a few m
 | --- | --- |
 | **Every metric, not only the key ones** | Streams every metric CloudWatch has for the account, your own included. AWS bills each metric update a stream sends, so it can cost many times more |
 | **Regions** | Where to stream from: at first, the Regions the connection found resources in. Left empty, the command streams from AWS CloudShell's own Region. At most 30 |
+| **Every account of the organization** | For a connection that reads an AWS Organization: the command, run in its management account, also makes the same stacks in every member account through a StackSet, and in accounts that join later. Every log group or none: named log groups are one account's |
 | **Set it up another way** | The metrics and logs endpoints and the key, to set the streams up with Terraform or the console |
 
 **Download the template** saves the template the command deploys, to deploy it your own way.
@@ -77,6 +80,7 @@ The dialog asks every few seconds what arrived. Firehose delivers within a few m
 | Metrics | On the cloud resources they measure, with the names and attributes the connection's reads give them |
 | Logs | In the Logs explorer, under the connection's telemetry service, with the account, Region and log group as attributes |
 | Logs of a log group AWS names after a resource | On that resource too: its page in Cloud gains a **Logs** tab |
+| Logs of an App Runner service, an Elastic Beanstalk environment or an ECS task or cluster | On its environment in App Platforms too: its **Logs** tab |
 
 A log group is filed under a resource when AWS named it after one:
 
@@ -93,8 +97,11 @@ A log group is filed under a resource when AWS named it after one:
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Each log carries the resource's ID as `cloud.resource_id`, and a Lambda function's logs carry `faas.name` too, so they also appear on the function in Serverless. A log group of any other name streams all the same, under its account and Region. A log's severity is the one its message states, the way Lambda writes it.
+Each log carries the resource's ID as `cloud.resource_id`, and a Lambda function's logs carry `faas.name` too, so they also appear on the function in Serverless. A log group of any other name streams all the same, under its account and Region. A log's severity is the one its message states, the way Lambda, PostgreSQL or MySQL writes it.
+
+An App Runner service's, an Elastic Beanstalk environment's and an ECS cluster's logs also carry `cloud.platform`, and so do an ECS task's, from the log group the ECS console names `/ecs/<task-definition-family>`, with `aws.ecs.task.family`. With the account and Region, that puts them on their environment in App Platforms, which appears with them if no app has reported to it yet. They make no app: an app is named by its own telemetry, as [Cloud Environments](/docs/telemetry/cloud-environments) says.
 
 ## What the stack creates
 
@@ -127,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+For a connection that reads an AWS Organization, run the dialog's command in the management account: when the organization was streamed, it also deletes every member account's stacks and the StackSet.
 :::
 
 To change what a stack streams, open **Stream metrics and logs** again, choose **Make a new key** and run the new command. The key it replaces keeps working for 24 hours, so no delivery is refused while the stacks update. At most 3 replaced keys work at once.
@@ -166,6 +175,10 @@ Check that the command finished in every Region, without an error: `aws cloudfor
 
 :::details The connection says Stream refused
 The dialog and the row's tooltip say why. A wrong key means the stacks run with a key that no longer works: make a new key and run the command again. Firehose keeps sending what it holds, and it is taken once the key is right.
+:::
+
+:::details The command says `Nothing was set up`
+The lines above it say why, each with its Region or log group. When another tool holds a Region's account-wide log subscription, name the log groups to stream instead, or remove that tool's policy. When a log group already has two subscription filters, remove one or leave the group out. When there is no such log group, check its name and Region, or give its ARN. Then run the command again.
 :::
 
 :::details A Lambda function's logs do not show on its page

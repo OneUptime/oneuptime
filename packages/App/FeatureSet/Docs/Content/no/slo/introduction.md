@@ -84,7 +84,7 @@ Alt som bestemmer hvordan SLO-et måler, starter med en standardverdi som du end
 | Nedetidsstatuser | Alle prosjektets ikke-operative statuser | **Innstillinger** → **Beregning av nedetid** |
 | Modus for flere monitorer | **En hvilken som helst monitor nede** | **Innstillinger** → **Beregning av nedetid** |
 | Evaluering | På | **Innstillinger** → **Evaluering** |
-| Forbruksrateregler | En regel **Fast burn** og en regel **Slow burn**, tilpasset vinduet | **Forbruksrateregler** |
+| Forbruksrateregler | En regel **Fast burn**, en regel **Slow burn** og en regel **Slow leak**, tilpasset vinduet | **Forbruksrateregler** |
 
 ## Hva et SLO består av
 
@@ -141,7 +141,7 @@ Et deaktivert eller arkivert SLO evalueres ikke, så statusen blir stående som 
 Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværende budsjett, forbruksrate, mål, vindu, monitorer, etiketter og eiere.
 
 - Flisene over listen teller SLO-er etter status: **Feilfri**, **I faresonen**, **Budsjett oppbrukt**, **Feilkonfigurert**, **Pauset** og **Deaktivert**. De vises så snart det finnes et SLO som ikke er arkivert. Klikk på en flis for å se bare de SLO-ene, og igjen for å se alle.
-- Velg SLO-er for å legge til eller fjerne etiketter og eiere, aktivere eller deaktivere dem, arkivere dem eller slette dem, alle på én gang.
+- Velg SLO-er for å legge til eller fjerne etiketter og eiere, aktivere eller deaktivere dem, gi dem de [anbefalte forbruksratereglene](/docs/slo/burn-rate-alerts#legg-dem-til-på-mange-slo-er-på-én-gang) de mangler, arkivere dem eller slette dem, alle på én gang.
 - Sidemenyens seksjon **Innstillinger** inneholder **Etikettregler** og **Eierregler**, som setter etiketter på nye SLO-er og gir dem eiere: se [Etikett- og eierregler](/docs/slo/label-and-owner-rules).
 - Sidemenyens seksjon **Avansert** inneholder **Arkivert**, listen over arkiverte SLO-er.
 
@@ -153,18 +153,19 @@ Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværen
 | --- | --- |
 | **Oversikt** | Statusen, nøkkeltallene, forbruket av feilbudsjettet, nylig aktivitet, åpne varsler og hendelser og forbruksratereglene. |
 | **Målinger** | `oneuptime.slo.*`-metrikkene til SLO-et, den langsiktige historikken for feilbudsjettet og metrikkene for hendelsene og varslene som påvirker det. Se [SLO-metrikker og -dashbord](/docs/slo/metrics). |
-| **Hendelser** | Hendelsene som forbruksratereglene har erklært. Merket teller de åpne. |
-| **Varsler** | Varslene som forbruksratereglene har utløst. Merket teller de åpne. |
+| **Hendelser** | Hendelsene som forbruksratereglene og feilbudsjettpolicyen har erklært. Merket teller de åpne. |
+| **Varsler** | Varslene som forbruksratereglene og feilbudsjettpolicyen har utløst. Merket teller de åpne. |
 | **Feed** | Hva som har skjedd med SLO-et, som en tidslinje. Se [SLO-feed og revisjonslogger](/docs/slo/feed-and-audit-logs). |
 | **Monitorer** | Monitorene det måler, og om hver av dem ble knyttet til av en person eller en regel. |
 | **Monitorregler** | Reglene som knytter til monitorer som samsvarer. |
 | **Forbruksrateregler** | Reglene som utløser varsler og erklærer hendelser når budsjettet brennes for fort. |
+| **Feilbudsjettpolicy** | Hva teamet har avtalt å gjøre mens feilbudsjettet tømmes, og varslene og hendelsene hvert nivå i policyen utløser. Se [Feilbudsjettpolicy](/docs/slo/error-budget-policy). |
 | **Eiere** | Brukerne og teamene som får høre om statusendringene. |
 | **Innstillinger** | Målet, samsvarsperioden, nedetidsberegningen, evalueringsbryteren og arkiveringskortet. |
 | **Revisjonslogger** | Hvem som har endret SLO-et, reglene og eierne, og når. |
 | **Slett SLO** | Sletter SLO-et for godt og løser forbruksratevarslene og -hendelsene det hadde åpne. |
 
-**Monitorer** ligger i en seksjon **Konfigurasjon**, **Monitorregler** og **Forbruksrateregler** i en seksjon **Regler**, og **Eiere**, **Innstillinger**, **Revisjonslogger** og **Slett SLO** i en seksjon **Administrasjon**. Alle tre starter slått sammen, akkurat som en seksjon **Utvikler** for å styre SLO-et fra kode: klikk på tittelen til en seksjon for å åpne den.
+**Monitorer** ligger i en seksjon **Konfigurasjon**, **Monitorregler**, **Forbruksrateregler** og **Feilbudsjettpolicy** i en seksjon **Regler**, og **Eiere**, **Innstillinger**, **Revisjonslogger** og **Slett SLO** i en seksjon **Administrasjon**. Alle tre starter slått sammen, akkurat som en seksjon **Utvikler** for å styre SLO-et fra kode: klikk på tittelen til en seksjon for å åpne den.
 
 Når noe hindrer et SLO i å måle, forteller et banner øverst på hver av sidene hva som er galt, og lenker til siden som løser det: se [Feilsøking](#feilsøking).
 
@@ -176,13 +177,15 @@ Når noe hindrer et SLO i å måle, forteller et banner øverst på hver av side
 - **Nøkkeltallene**:
   - **SLI**: andelen god tid i vinduet, og hvor mye den ligger over eller under målet.
   - **Feilbudsjett igjen**: en prosentandel, en varighet som "12m 30s left of 43m 12s" og en stolpe med et merke ved risikoterskelen. Når budsjettet er overskredet, viser den **Budget exceeded** og hvor mye.
-  - **Forbruksrate**: hvor fort budsjettet brukes de siste 60 minuttene, perioden standardregelen for raskt forbruk bruker. Blir gul over 1× og rød, med **Regelterskel nådd**, ved den laveste terskelen blant de aktiverte forbruksratereglene til SLO-et.
+  - **Forbruksrate**: hvor fort budsjettet brukes de siste 60 minuttene, perioden standardregelen for raskt forbruk bruker. Blir gul over 1× og rød, med **Regelterskel nådd**, ved den laveste terskelen blant de aktiverte forbruksratereglene til SLO-et som ser 6 timer eller mindre tilbake. En time sier lite om en regel som ser flere dager tilbake, som **Slow leak**, så den sammenlignes ikke med en slik regel.
   - **Budsjettets rekkevidde**: hvor lenge budsjettet varer i det tempoet. Se [Feilbudsjetter](/docs/slo/error-budget#rekkevidden-til-budsjettet).
 - **Nedbrenning av feilbudsjett**: gjenværende budsjett over det gjeldende vinduet. Se [Feilbudsjetter](/docs/slo/error-budget#forbruket-av-feilbudsjettet).
 - **Nylig aktivitet**: de nyeste elementene i feeden til SLO-et.
 - **SLO-detaljer**: navnet, beskrivelsen og etikettene, de eneste innstillingene som redigeres i oversikten.
 - **Åpne varsler og hendelser**: det forbruksratereglene har åpent akkurat nå.
-- **Burn rate rules**: terskelen til hver aktivert regel ved siden av gjeldende forbruksrate, og hva regelen erklærer.
+- **Burn rate rules**: terskelen til hver aktivert regel ved siden av gjeldende forbruksrate, for regler som ser 6 timer eller mindre tilbake, og hva regelen erklærer.
+
+Når SLO-et er i et nivå i feilbudsjettpolicyen sin, viser **Oversikt** også det nivået og hva teamet har avtalt å gjøre i det: se [Feilbudsjettpolicy](/docs/slo/error-budget-policy).
 
 ### Innstillinger
 

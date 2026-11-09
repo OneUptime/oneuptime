@@ -413,6 +413,8 @@ test.describe("one paste, whatever the cloud", () => {
         readScope: "account",
         roleArn: ROLE_ARN,
         readIntervalInMinutes: "10",
+        // AWS's costs per resource, under More fields: off until turned on.
+        resourceCosts: "off",
         // Data Security's levels, under More fields: off until chosen.
         dataSecurity: "off",
         dataSecurityResponse: "off",
@@ -1658,7 +1660,12 @@ test.describe("an account's pages", () => {
      * read again until the table has fitted its columns to the new width,
      * which it does a frame after the window changes (useTableBoxWidth): one
      * read right after the resize found the old frame, or no cells at all,
-     * one run in 97 under load (2026-11-02).
+     * one run in 97 under load (2026-11-02). Beside the side menu the box is
+     * narrower than 48rem, so whether the rows fit there turns on how wide
+     * the times are, and the fixture's times are its clock's: when they did
+     * not fit, the list was drawn as cards and a read of row cells alone
+     * found none (main, 2026-11-06). The time is read wherever it is drawn:
+     * a row's second cell, or the value under a card's Time.
      */
     for (const width of [1280, 1024]) {
       await page.setViewportSize({ width, height: 900 });
@@ -1666,7 +1673,9 @@ test.describe("an account's pages", () => {
         .poll(
           (): Promise<Array<boolean>> => {
             return page
-              .locator("tbody tr td:nth-child(2) > div")
+              .locator(
+                'tbody tr td:nth-child(2) > div, dl > div:has(> dt:text-is("Time")) > dd',
+              )
               .evaluateAll((cells: Array<Element>): Array<boolean> => {
                 return cells.map((cell: Element): boolean => {
                   return cell.scrollWidth > cell.clientWidth + 1;
@@ -1976,6 +1985,8 @@ async function feedEntries(page: Page): Promise<Array<string>> {
     "OneUptime found",
     "The Cloud AI agent connected",
     "changed what OneUptime AI may do on",
+    "now connects with a key of its own",
+    "OneUptime refused a Cloud AI agent",
     "The Cloud AI agent was reset",
   ]) {
     const box: Box = await boxOf(page.getByText(words).first());
@@ -2006,6 +2017,59 @@ function readLocale(language: string): Record<string, string> {
 const GERMAN: Record<string, string> = readLocale("de");
 const PERSIAN: Record<string, string> = readLocale("fa");
 
+// The Cloud AI agent's image, as Run the agent somewhere else names it.
+const AGENT_IMAGE: string = "docker.io/oneuptime/resource-ai-agent:release";
+
+/*
+ * Run the agent somewhere else on Google Cloud: the image's line over the
+ * variables, the line over the list, and the list's two identities.
+ */
+const GCP_ELSEWHERE: string =
+  "Deploy the image {{image}} your own way in Google Cloud, with these variables:";
+const ELSEWHERE_IDENTITIES: string =
+  "Give it two identities, as the setup command does:";
+const GCP_ELSEWHERE_OWN: string =
+  "A service account of its own that only reads, with Service Account Token Creator on the write account.";
+const GCP_ELSEWHERE_WRITE: string =
+  "The write account {{writeAccount}}, which holds the permissions of the changes AI may make.";
+
+/*
+ * The names Run the agent somewhere else draws as code, and the lines each
+ * takes: one, at desktop and phone width - a name is never broken at a
+ * hyphen ("oneuptime-ai-agent-" / "write").
+ */
+async function elsewhereNameLines(
+  page: Page,
+): Promise<Array<{ name: string; lines: number }>> {
+  return await page.evaluate(() => {
+    return Array.from(
+      document.querySelectorAll(
+        '[data-testid="cloud-ai-agent-setup-elsewhere-name"]',
+      ),
+    ).map((element: Element): { name: string; lines: number } => {
+      const name: HTMLElement = element as HTMLElement;
+      const lineHeight: number = parseFloat(
+        window.getComputedStyle(name).lineHeight,
+      );
+
+      return {
+        name: name.textContent || "",
+        lines: Math.round(name.offsetHeight / lineHeight),
+      };
+    });
+  });
+}
+
+/*
+ * A name drawn in a sentence of the language: set apart from the words
+ * around it where the sentence reads right to left.
+ */
+function nameIn(locale: Record<string, string>, value: string): string {
+  return locale === PERSIAN
+    ? `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`
+    : value;
+}
+
 // A word as a locale draws it (a template's {{values}} filled in).
 function wordIn(
   locale: Record<string, string>,
@@ -2023,6 +2087,24 @@ interface AiPost {
   route: string;
   body: { resourceType?: string; resourceId?: string };
 }
+
+// The keys the fixture made for the account's agent, one per opening.
+async function agentKeys(page: Page): Promise<Array<string>> {
+  return await page.evaluate(() => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __cloudConnectFixture: { state: { agentKeys: unknown } };
+          }
+        ).__cloudConnectFixture.state.agentKeys,
+      ),
+    );
+  });
+}
+
+const AGENT_KEY_NOTE: string =
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.";
 
 async function aiPosts(page: Page): Promise<Array<AiPost>> {
   return await page.evaluate(() => {
@@ -2050,7 +2132,10 @@ function setupDialog(page: Page): Locator {
   return dialog(page).getByTestId("cloud-ai-agent-setup");
 }
 
-// The dialog, at rest: its command written (a Server key is picked first).
+/*
+ * The dialog, at rest: its command written, with the key made for the
+ * account's agent as it opened.
+ */
 async function openSetup(page: Page): Promise<void> {
   await setUpButton(page).click();
   await expect(setupDialog(page)).toBeVisible();
@@ -2192,10 +2277,38 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(setupDialog(page)).toContainText(
       "ONEUPTIME_AI_FIXES=automatic",
     );
+    // The image's line over them.
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+    ).toHaveText(
+      `Deploy the image ${AGENT_IMAGE} your own way, with these variables:`,
+    );
+    // And its two identities on AWS: a role of its own that may only assume the write role.
+    await expect(
+      setupDialog(page)
+        .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+        .locator("li"),
+    ).toHaveText([
+      "A role of its own that may only assume the write role.",
+      "The write role OneUptimeAiAgentWrite, which trusts the agent's role and holds the permissions of the changes AI may make.",
+    ]);
+    // Each name whole on its line, a phone's included.
+    await expect
+      .poll(async () => {
+        return await elsewhereNameLines(page);
+      })
+      .toEqual([
+        { name: AGENT_IMAGE, lines: 1 },
+        { name: "OneUptimeAiAgentWrite", lines: 1 },
+      ]);
 
     // A phone: the dialog fits its width, long lines scroll in their box.
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup");
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+      .scrollIntoViewIfNeeded();
+    await shoot(page, "account-ai-setup-elsewhere");
   });
 
   test("the agent connects on its own: the dialog that waits for it says Connected", async ({
@@ -2620,9 +2733,9 @@ test.describe("OneUptime AI on a cloud account", () => {
     );
     const title: Box = await boxOf(firstStep.getByRole("heading"));
     expect(number.x).toBeGreaterThan(title.x + title.width - 1);
-    await expect(firstStep).toContainText(
-      wordIn(PERSIAN, "Choose an ingestion key"),
-    );
+    // The command's key, said in Persian.
+    await expect(firstStep).toContainText(wordIn(PERSIAN, AGENT_KEY_NOTE));
+    expect(wordIn(PERSIAN, AGENT_KEY_NOTE)).not.toBe(AGENT_KEY_NOTE);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-fa");
   });
@@ -2649,10 +2762,57 @@ test.describe("OneUptime AI on a cloud account", () => {
     // Newest first: the reset half an hour ago, the account found nine days ago.
     expect(await feedEntries(page)).toEqual([
       "The Cloud AI agent was reset",
+      "OneUptime refused a Cloud AI agent",
+      "now connects with a key of its own",
       "changed what OneUptime AI may do on",
       "The Cloud AI agent connected",
       "OneUptime found",
     ]);
+
+    // A Cloud AI agent's reset says how it comes back: its setup command, run again.
+    await expect(
+      page.getByText(
+        "Its key no longer works, and it stays disconnected until its setup command runs again",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText("It reconnects on its own within a few minutes"),
+    ).toHaveCount(0);
+
+    /*
+     * The agent's own key: under Show details, the ingestion key it no
+     * longer uses, by its name, and what to do with it.
+     */
+    const ownKeyEntry: Locator = page
+      .getByRole("listitem")
+      .filter({ hasText: "now connects with a key of its own" });
+    await ownKeyEntry.getByRole("button", { name: "Show details" }).click();
+    await expect(
+      ownKeyEntry.getByText("Ingestion key it connected with before"),
+    ).toBeVisible();
+    await expect(ownKeyEntry).toContainText("Cloud AI agent key");
+    await expect(ownKeyEntry).toContainText(
+      "If nothing else uses it, delete it under Project Settings",
+    );
+
+    /*
+     * A refused agent: what it was refused for, and under Show details where
+     * it says it runs, what it came with and its version - never a key.
+     */
+    const refusedEntry: Locator = page
+      .getByRole("listitem")
+      .filter({ hasText: "OneUptime refused a Cloud AI agent" });
+    await expect(refusedEntry).toContainText(
+      "the project's telemetry ingestion key no longer connects it",
+    );
+    await refusedEntry.getByRole("button", { name: "Show details" }).click();
+    await expect(refusedEntry.getByText("Where it says it runs")).toBeVisible();
+    await expect(refusedEntry).toContainText("AWS account 123456789012");
+    await expect(refusedEntry).toContainText(
+      "the project's telemetry ingestion key",
+    );
+    await expect(refusedEntry).toContainText("14.0.90");
+    expect(await page.locator("body").innerText()).not.toContain("ouca_");
 
     // Read for this account, and nothing else's.
     const reads: Array<ListRequest> = (await listRequests(page)).filter(
@@ -2721,7 +2881,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     await shoot(page, "account-feed-fa");
   });
 
-  test("Let AI fix problems reads as a guide: the question, then three numbered steps - the key, the command, the wait", async ({
+  test("Let AI fix problems reads as a guide: the question, then two numbered steps - the command with its key, the wait", async ({
     page,
   }: {
     page: Page;
@@ -2738,51 +2898,177 @@ test.describe("OneUptime AI on a cloud account", () => {
     const steps: Locator = setupDialog(page)
       .getByTestId("setup-guide-steps")
       .locator(":scope > li");
-    await expect(steps).toHaveCount(3);
+    await expect(steps).toHaveCount(2);
     await expect(steps.nth(0).getByRole("heading")).toHaveText(
-      "Step 1: Choose an ingestion key",
+      "Step 1: Run this in AWS CloudShell",
     );
     await expect(steps.nth(1).getByRole("heading")).toHaveText(
-      "Step 2: Run this in AWS CloudShell",
-    );
-    await expect(steps.nth(2).getByRole("heading")).toHaveText(
-      "Step 3: Wait for it to connect",
+      "Step 2: Wait for it to connect",
     );
 
-    // 1: the key, said what it is for, and picked.
+    // 1: the command, with the key made for this agent, who may run it, and what it costs.
     await expect(steps.nth(0)).toContainText(
-      "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.",
-    );
-    await expect(
-      steps.nth(0).getByTestId("cloud-ai-agent-setup-key"),
-    ).toContainText("Cloud AI agent key");
-    // 2: the command, who may run it, and what it costs.
-    await expect(steps.nth(1)).toContainText(
       "Run it as someone who may create roles in this account.",
     );
+    const command: Locator = steps
+      .nth(0)
+      .getByTestId("cloud-ai-agent-setup-command");
+    await expect(command).toContainText("aws cloudformation deploy");
+    const [key] = await agentKeys(page);
+    expect(key).toMatch(
+      /^ouca_30000000-0000-4000-8000-000000000001_[0-9]{64}$/,
+    );
+    await expect(command).toContainText(key!);
     await expect(
-      steps.nth(1).getByTestId("cloud-ai-agent-setup-command"),
-    ).toContainText("aws cloudformation deploy");
+      steps.nth(0).getByTestId("cloud-ai-agent-setup-key-note"),
+    ).toHaveText(AGENT_KEY_NOTE);
     await expect(
-      steps.nth(1).getByTestId("cloud-ai-agent-setup-cost"),
+      steps.nth(0).getByTestId("cloud-ai-agent-setup-cost"),
     ).toContainText("a month at list prices");
-    // 3: the wait, live, and its logs.
+    // No ingestion key to choose: the agent connects with its own.
+    await expect(setupDialog(page)).not.toContainText("ingestion key");
+    // 2: the wait, live, and its logs.
     await expect(
-      steps.nth(2).getByTestId("cloud-ai-agent-setup-connection"),
+      steps.nth(1).getByTestId("cloud-ai-agent-setup-connection"),
     ).toHaveAttribute("data-state", "waiting");
     await expect(
-      steps.nth(2).getByTestId("cloud-ai-agent-setup-logs-command"),
+      steps.nth(1).getByTestId("cloud-ai-agent-setup-logs-command"),
     ).toBeVisible();
 
     // The rest under More fields, after the steps.
     const more: Box = await boxOf(
       setupDialog(page).getByRole("button", { name: "More fields" }),
     );
-    const lastStep: Box = await boxOf(steps.nth(2));
+    const lastStep: Box = await boxOf(steps.nth(1));
     expect(more.y).toBeGreaterThan(lastStep.y + lastStep.height - 1);
 
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-steps");
+  });
+
+  test("the key is made for this account as the dialog opens, once each time: a dialog opened again holds a new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What is asked: a desktop's.");
+
+    await openAccounts(page, `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected`);
+    await openSetup(page);
+
+    const keyAsks: () => Promise<Array<AiPost>> = async (): Promise<
+      Array<AiPost>
+    > => {
+      return (await aiPosts(page)).filter((post: AiPost): boolean => {
+        return post.route === "/resource-ai-access/agent-key";
+      });
+    };
+
+    expect(await keyAsks()).toEqual([
+      {
+        route: "/resource-ai-access/agent-key",
+        body: { resourceType: "AwsAccount", resourceId: AWS_ACCOUNT },
+      },
+    ]);
+
+    const command: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-command",
+    );
+    const [first] = await agentKeys(page);
+    await expect(command).toContainText(first!);
+
+    // The other answer writes another command, with the same key.
+    await setupDialog(page)
+      .getByRole("radiogroup", { name: "How far may AI go?" })
+      .getByRole("radio", { name: /Fix safe problems on its own/ })
+      .click();
+    await expect(command).toContainText("automatic");
+    await expect(command).toContainText(first!);
+    expect(await keyAsks()).toHaveLength(1);
+
+    // Closed and opened again: a new key, and the command holds it.
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
+    await openSetup(page);
+
+    const keys: Array<string> = await agentKeys(page);
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).not.toBe(first);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toContainText(keys[1]!);
+    expect(await keyAsks()).toHaveLength(2);
+  });
+
+  test("someone who may not set the agent up is told why where the command would be, with no Try again: asking again never changes that", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected&agentkey=refused`,
+    );
+    await setUpButton(page).click();
+    await expect(setupDialog(page)).toBeVisible();
+
+    const problem: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-problem",
+    );
+    await expect(problem).toHaveText(
+      "You need permission to edit this AWS account to set up its Cloud AI agent.",
+    );
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toHaveCount(0);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-key-try-again"),
+    ).toHaveCount(0);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-key-note"),
+    ).toHaveCount(0);
+    expect(await agentKeys(page)).toEqual([]);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-key-refused");
+  });
+
+  test("a key OneUptime could not make just then is said where the command would be, and Try again asks again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected&agentkey=fail`,
+    );
+    await setUpButton(page).click();
+    await expect(setupDialog(page)).toBeVisible();
+
+    const problem: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-problem",
+    );
+    await expect(problem).not.toBeEmpty();
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-key-failed");
+
+    // Asked again, the key is made, and the command holds it.
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-key-try-again")
+      .click();
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toBeVisible();
+    const [key] = await agentKeys(page);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toContainText(key!);
+    await expect(problem).toHaveCount(0);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-key-try-again"),
+    ).toHaveCount(0);
   });
 
   test("Change on a connected agent opens on what it runs with: its changes, its tag and the resources a person protected", async ({
@@ -2935,9 +3221,14 @@ const READERS: Array<{ code: string; locale: Record<string, string> }> = [
 /*
  * #5702's review: the hero's identifier line is monospace, both its label
  * and its value - set apart in elements of their own, each took the page's
- * universal Inter rule until each said font-mono.
+ * universal Inter rule until each said font-mono. #6149's follow-up: a label
+ * that reads right to left (Persian) takes the page's font instead, as no
+ * monospace font draws its letters; the identifier stays monospace.
  */
-async function expectIdentifierInMonospace(page: Page): Promise<void> {
+async function expectIdentifierInMonospace(
+  page: Page,
+  readerCode: string,
+): Promise<void> {
   const fonts: Array<string> = await page
     .getByTestId("resource-overview-identifier")
     .evaluate((line: Element): Array<string> => {
@@ -2947,8 +3238,15 @@ async function expectIdentifierInMonospace(page: Page): Promise<void> {
     });
 
   expect(fonts).toHaveLength(2);
-  for (const font of fonts) {
-    expect(font).toMatch(/mono/i);
+  const [labelFont, identifierFont] = fonts as [string, string];
+
+  expect(identifierFont).toMatch(/mono/i);
+
+  if (readerCode === "fa") {
+    expect(labelFont).not.toMatch(/mono/i);
+    expect(labelFont).toMatch(/Inter/);
+  } else {
+    expect(labelFont).toMatch(/mono/i);
   }
 }
 
@@ -2995,7 +3293,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       expect(await readText(identifier)).toBe(
         `${wordIn(reader.locale, "account")}: 123456789012`,
       );
-      await expectIdentifierInMonospace(page);
+      await expectIdentifierInMonospace(page, reader.code);
       // Its status says what it means, under the pointer.
       await expect(
         page.getByTestId("resource-overview-status"),
@@ -3029,10 +3327,27 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         }),
       );
       expect(titles).not.toContain("Failed: DeleteLoadBalancer on web-alb");
+      /*
+       * What AWS Health published: its frame, its state and its kind of
+       * event in the reader's words, the service as AWS names it - from the
+       * title and the type the row keeps, as every health event was kept.
+       */
+      expect(titles).toContain(
+        wordIn(reader.locale, "AWS Health: {{event}} (open)", {
+          event: wordIn(reader.locale, "{{service}} operational issue", {
+            service: "EC2",
+          }),
+        }),
+      );
+      expect(titles).not.toContain("AWS Health: EC2 operational issue (open)");
       await expectTitleValuesWhole(page);
       /*
-       * Each line in its own direction: a change worded in Persian reads
-       * right to left, the health event's English left to right.
+       * Each line the way its words read: every title here is worded in
+       * the reader's language, so in Persian every one reads right to left
+       * - the health event's too, though its first words are "AWS
+       * Health:", which read by its first letter put its event and its
+       * state in the wrong order (the UI review of #6149). The provider's
+       * own English words under it read left to right.
        */
       const directions: Array<string> = await page
         .getByTestId("cloud-change-title")
@@ -3041,13 +3356,31 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
             return getComputedStyle(element).direction;
           });
         });
-      expect(directions).toContain("ltr");
-      if (reader.code === "fa") {
-        expect(directions).toContain("rtl");
-      }
+      expect(directions.length).toBeGreaterThan(1);
+      expect(new Set(directions)).toEqual(
+        new Set([reader.code === "fa" ? "rtl" : "ltr"]),
+      );
+      const healthLine: Locator = page
+        .getByTestId("cloud-change-title")
+        .filter({ hasText: "AWS Health" });
+      await expect(healthLine).toHaveCount(1);
+      await expect(healthLine).toHaveCSS(
+        "direction",
+        reader.code === "fa" ? "rtl" : "ltr",
+      );
       await expect(page.getByTestId("cloud-change-detail")).toHaveCSS(
         "direction",
         "ltr",
+      );
+      /*
+       * #6149's follow-up: AWS's own words are drawn as written - never
+       * translated or rewritten - and marked as the English they are.
+       */
+      await expect(
+        page.getByTestId("cloud-change-detail-written"),
+      ).toHaveAttribute("lang", "en");
+      await expect(page.getByTestId("cloud-change-detail-worded")).toHaveCount(
+        0,
       );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `account-changes-${reader.code}`);
@@ -3100,7 +3433,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
           },
         );
       expect(reading).toEqual({ direction: "ltr", startVisible: true });
-      await expectIdentifierInMonospace(page);
+      await expectIdentifierInMonospace(page, reader.code);
 
       // How it is run, in words.
       await expect(
@@ -3153,6 +3486,127 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         }),
       ]);
       await expectNoSidewaysScroll(page, { tolerance: 1 });
+    });
+
+    /*
+     * #6149's follow-up: what Azure published about its health
+     * (?changes=health). The sentences OneUptime writes about an event -
+     * who published it, its tracking id, what caused a resource's change -
+     * read in the reader's words, from the English the row keeps; Azure's
+     * own words are drawn as written, marked as the English they are, set
+     * apart in the reader's line.
+     */
+    test(`${reader.code}: what Azure published about its health`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAccounts(
+        page,
+        `${ACCOUNTS_PATH}/${AZURE_ACCOUNT}/changes?state=connected&changes=health&lang=${reader.code}`,
+      );
+
+      expect(await changeTitles(page)).toEqual([
+        wordIn(reader.locale, "Azure Service Health: {{event}} (Active)", {
+          event: "Network connectivity issues in West Europe",
+        }),
+        wordIn(reader.locale, "Azure Resource Health: {{status}} → {{event}}", {
+          status: wordIn(reader.locale, "Available"),
+          event: wordIn(reader.locale, "Unavailable"),
+        }),
+      ]);
+
+      const details: Locator = page.getByTestId("cloud-change-detail");
+      await expect(details).toHaveCount(2);
+      const readerDirection: string = reader.code === "fa" ? "rtl" : "ltr";
+
+      // The incident's line is all OneUptime's: in the reader's words.
+      const published: Locator = details.nth(0);
+      expect(await readText(published)).toBe(
+        `${wordIn(reader.locale, "Azure published an incident.")} ${wordIn(
+          reader.locale,
+          "Tracking ID: {{trackingId}}.",
+          { trackingId: "7NQ8-TX0" },
+        )}`,
+      );
+      await expect(
+        published.getByTestId("cloud-change-detail-written"),
+      ).toHaveCount(0);
+      await expect(published).toHaveCSS("direction", readerDirection);
+      /*
+       * #6149's UI review: Azure's tracking id is kept whole on its line,
+       * never broken at its hyphen ("7NQ8-" over "TX0." in German).
+       */
+      const identifier: Locator = published.getByTestId(
+        "cloud-change-detail-identifier",
+      );
+      await expect(identifier).toHaveText("7NQ8-TX0");
+      await expect(identifier).toHaveCSS("white-space", "nowrap");
+      expect(
+        await identifier.evaluate((element: Element): number => {
+          return element.getClientRects().length;
+        }),
+      ).toBe(1);
+
+      // The resource's: Azure's title as written, then what caused it.
+      const caused: Locator = details.nth(1);
+      const written: Locator = caused.getByTestId(
+        "cloud-change-detail-written",
+      );
+      await expect(written).toHaveText(
+        "The virtual machine is being restarted for a planned platform update.",
+      );
+      await expect(written).toHaveAttribute("lang", "en");
+      await expect(written).toHaveCSS("direction", "ltr");
+      const worded: Locator = caused.getByTestId("cloud-change-detail-worded");
+      await expect(worded).toHaveText(
+        wordIn(reader.locale, "Azure caused it."),
+      );
+      await expect(caused).toHaveCSS("direction", readerDirection);
+
+      // Never the stored English sentences.
+      await expect(
+        page.getByText("Incident published by Azure", { exact: false }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("Azure caused it.", { exact: true }),
+      ).toHaveCount(0);
+
+      /*
+       * Read from the reader's end: Azure's words start the line - at its
+       * right on a Persian page - and the reader's follow them, further
+       * along the same line or on the next; both are seen, within the two
+       * lines the list gives what was said about a change.
+       */
+      const [lineBox, writtenBox, wordedBox]: Array<FrameBox> =
+        await boxesInOneFrame([caused, written, worded]);
+      if (reader.code === "fa") {
+        expect(
+          Math.abs(
+            lineBox!.x + lineBox!.width - (writtenBox!.x + writtenBox!.width),
+          ),
+        ).toBeLessThan(1.5);
+      } else {
+        expect(Math.abs(lineBox!.x - writtenBox!.x)).toBeLessThan(1.5);
+      }
+      if (Math.abs(writtenBox!.y - wordedBox!.y) < 2) {
+        if (reader.code === "fa") {
+          expect(writtenBox!.x).toBeGreaterThanOrEqual(
+            wordedBox!.x + wordedBox!.width,
+          );
+        } else {
+          expect(wordedBox!.x).toBeGreaterThanOrEqual(
+            writtenBox!.x + writtenBox!.width,
+          );
+        }
+      } else {
+        expect(wordedBox!.y).toBeGreaterThan(writtenBox!.y);
+      }
+      expect(wordedBox!.y + wordedBox!.height).toBeLessThanOrEqual(
+        lineBox!.y + lineBox!.height + 0.5,
+      );
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `azure-health-${reader.code}`);
     });
   }
 });
@@ -3229,6 +3683,36 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
     await openAccounts(page, AI_CHANGES_PATH);
 
     const [rollback, fix] = await waitForAiLines(page);
+
+    /*
+     * A rollback is titled as the recorder titles any change - the same
+     * operation on the same resource as its fix - and only its line says it
+     * undid the fix: no word is added to its title. Both rows are as the
+     * recorder writes them: CloudTrail's operation with its service, the
+     * resource by the name the inventory holds, and the kind of change
+     * classifyCloudChange gives an ECS UpdateService - a deploy.
+     */
+    if (isDesktop()) {
+      const aiRows: Locator = page
+        .getByRole("row")
+        .filter({ has: page.getByTestId("cloud-change-ai") });
+
+      await expect(aiRows).toHaveCount(2);
+
+      for (const index of [0, 1]) {
+        const row: Locator = aiRows.nth(index);
+
+        await expect(row.getByTestId("cloud-change-title-value")).toHaveText([
+          "ecs:UpdateService",
+          "checkout",
+        ]);
+        await expect(row.getByTestId("cloud-change-title")).toHaveText(
+          "ecs:UpdateService on checkout",
+        );
+        await expect(row.getByText("Deploy", { exact: true })).toBeVisible();
+        await expect(row).not.toContainText("rolled back");
+      }
+    }
 
     await expect(
       fix.getByRole("link", { name: "Fix for incident #18" }),
@@ -3420,9 +3904,61 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
       }
 
       await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+      /*
+       * The table fits its card: in German at 1280, beside a 12-hour time
+       * and "Konfigurationsänderung", the By column's 10rem floor held it
+       * 16 pixels past its card, and the Region scrolled (#5704's review).
+       */
+      if (isDesktop()) {
+        expect(
+          await page
+            .getByTestId("table-scroll")
+            .evaluate((element: HTMLElement): number => {
+              return element.scrollWidth - element.clientWidth;
+            }),
+        ).toBeLessThanOrEqual(1);
+      }
+
       await shoot(page, `account-changes-ai-${language}`);
     });
   }
+});
+
+/*
+ * #5704's review: a browser set to US English reads times on a 12-hour
+ * clock, each time wider by its AM or PM. In German at 1280, beside
+ * "Konfigurationsänderung", the By column's 10rem floor then held the table
+ * 16 pixels past its card, and the Region scrolled. Its 7rem floor lets it
+ * fit (CloudChangesTable's CLOUD_CHANGE_BY_CONTENT_CLASS_NAME).
+ */
+test.describe("an account's Changes in German, on a 12-hour clock", () => {
+  test.use({ locale: "en-US" });
+
+  test("the table fits its card at 1280: no column scrolls past it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "A phone draws each change as a card.");
+
+    await openAccounts(page, `${AI_CHANGES_PATH}&lang=de`);
+    await waitForAiLines(page);
+
+    // The times are on a 12-hour clock.
+    await expect(
+      page.locator("tbody tr").first().locator("td").nth(1),
+    ).toHaveText(/\b(AM|PM)$/);
+    expect(
+      await page
+        .getByTestId("table-scroll")
+        .evaluate((element: HTMLElement): number => {
+          return element.scrollWidth - element.clientWidth;
+        }),
+    ).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-changes-ai-de-12-hour");
+  });
 });
 
 /*
@@ -3486,7 +4022,34 @@ test.describe("where Google Cloud's agent runs", () => {
     await expect(hostChoice(page)).toContainText(
       "A Cloud Run service with CPU always allocated: about $45 a month. For a project that allows no VM an external IP address.",
     );
+    // Running it somewhere else: the image in Google Cloud, with its variables...
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+    ).toHaveText(wordIn({}, GCP_ELSEWHERE, { image: AGENT_IMAGE }));
+    // ...and its two identities: Token Creator on the write account, as the command makes them.
+    await expect(
+      setupDialog(page)
+        .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+        .locator("li"),
+    ).toHaveText([
+      GCP_ELSEWHERE_OWN,
+      wordIn({}, GCP_ELSEWHERE_WRITE, {
+        writeAccount: "oneuptime-ai-agent-write",
+      }),
+    ]);
+    await expect
+      .poll(async () => {
+        return await elsewhereNameLines(page);
+      })
+      .toEqual([
+        { name: AGENT_IMAGE, lines: 1 },
+        { name: "oneuptime-ai-agent-write", lines: 1 },
+      ]);
     await shoot(page, "account-ai-setup-gcp-host");
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+      .scrollIntoViewIfNeeded();
+    await shoot(page, "account-ai-setup-gcp-elsewhere");
 
     // Cloud Run: its command, its price and its logs.
     await setupDialog(page)
@@ -3544,6 +4107,47 @@ test.describe("where Google Cloud's agent runs", () => {
         wordIn(locale, "A small VM"),
       );
       expect(wordIn(locale, "A small VM")).not.toBe("A small VM");
+      // Running it somewhere else, in the language's words, with the names as they are.
+      await expect(
+        setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+      ).toHaveText(
+        wordIn(locale, GCP_ELSEWHERE, {
+          image: nameIn(locale, AGENT_IMAGE),
+        }),
+      );
+      const identities: Locator = setupDialog(page).getByTestId(
+        "cloud-ai-agent-setup-elsewhere-identities",
+      );
+      await expect(
+        identities.locator("xpath=preceding-sibling::p[1]"),
+      ).toHaveText(wordIn(locale, ELSEWHERE_IDENTITIES));
+      await expect(identities.locator("li")).toHaveText([
+        wordIn(locale, GCP_ELSEWHERE_OWN),
+        wordIn(locale, GCP_ELSEWHERE_WRITE, {
+          writeAccount: nameIn(locale, "oneuptime-ai-agent-write"),
+        }),
+      ]);
+      // The names are code, as the changes' names above them are, and each whole on its line.
+      await expect(
+        setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere-name"),
+      ).toHaveText([AGENT_IMAGE, "oneuptime-ai-agent-write"]);
+      await expect
+        .poll(async () => {
+          return await elsewhereNameLines(page);
+        })
+        .toEqual([
+          { name: AGENT_IMAGE, lines: 1 },
+          { name: "oneuptime-ai-agent-write", lines: 1 },
+        ]);
+
+      for (const english of [
+        GCP_ELSEWHERE,
+        ELSEWHERE_IDENTITIES,
+        GCP_ELSEWHERE_OWN,
+        GCP_ELSEWHERE_WRITE,
+      ]) {
+        expect(wordIn(locale, english)).not.toBe(english);
+      }
       await expect(hostChoice(page)).toContainText(
         wordIn(
           locale,
@@ -3553,8 +4157,77 @@ test.describe("where Google Cloud's agent runs", () => {
       );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `account-ai-setup-gcp-${language}`);
+      await identities.scrollIntoViewIfNeeded();
+      await shoot(page, `account-ai-setup-gcp-elsewhere-${language}`);
     });
   }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Azure's agent runs as two identities: its Container App's own, which
+ * only reads, and the write identity oneuptime-ai-agent-write, which its
+ * changes run as. The command makes both, and running the agent somewhere
+ * else says what it needs, as the command makes it (#6156).
+ * ---------------------------------------------------------------------------
+ */
+test.describe("Azure's agent: an identity that reads, and one for changes", () => {
+  test("the command makes the write identity, and running it somewhere else needs both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it says: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AZURE_ACCOUNT}?state=connected`,
+    );
+    await openSetup(page);
+
+    // The write identity, attached to the agent's Container App with its own.
+    const command: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-command",
+    );
+    await expect(command).toContainText(
+      'az identity create --subscription "$SUBSCRIPTION" --name oneuptime-ai-agent-write',
+    );
+    await expect(command).toContainText(
+      "--system-assigned --user-assigned /subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write",
+    );
+
+    await setupDialog(page)
+      .getByRole("button", { name: "More fields" })
+      .click();
+    // The variables name it, by resource ID, as the agent asks for its token.
+    await expect(setupDialog(page)).toContainText(
+      "ONEUPTIME_AI_AZURE_WRITE_IDENTITY=/subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write",
+    );
+    // Running it somewhere else: the image in Azure, over those variables...
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+    ).toHaveText(
+      `Deploy the image ${AGENT_IMAGE} your own way in Azure, with these variables:`,
+    );
+    // ...and its two identities: one of its own that only reads, and the write identity attached.
+    const identities: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-elsewhere-identities",
+    );
+    await expect(
+      identities.locator("xpath=preceding-sibling::p[1]"),
+    ).toHaveText(ELSEWHERE_IDENTITIES);
+    await expect(identities.locator("li")).toHaveText([
+      "A managed identity of its own that only reads.",
+      "The write identity oneuptime-ai-agent-write, attached where the agent runs, which holds the permissions of the changes AI may make.",
+    ]);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere-name"),
+    ).toHaveText([AGENT_IMAGE, "oneuptime-ai-agent-write"]);
+
+    await identities.scrollIntoViewIfNeeded();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-azure-elsewhere");
+  });
 });
 
 /*
@@ -3614,6 +4287,15 @@ function streamCommand(page: Page): Locator {
 function streamLine(page: Page): Locator {
   return page.getByTestId("cloud-connection-stream");
 }
+
+// One part of the open streaming dialog, by its test id's last word.
+function streamPart(page: Page, name: string): Locator {
+  return streamDialog(page).getByTestId(`cloud-stream-${name}`);
+}
+
+// The rows after AWS's: the Azure subscription, then the Google Cloud project.
+const AZURE_ROW: number = 1;
+const GCP_ROW: number = 2;
 
 test.describe("streaming an AWS account's metrics and logs", () => {
   test("from the AWS row: one question, three steps, and the command waits for its key", async ({
@@ -3903,20 +4585,41 @@ test.describe("streaming an AWS account's metrics and logs", () => {
     await expect(streamLine(page)).toHaveCount(0);
   });
 
-  test("only an AWS account streams, and a OneUptime that is not on HTTPS says why it cannot", async ({
+  test("each cloud streams from its own row, and a OneUptime that is not on HTTPS says why Firehose and Pub/Sub cannot deliver", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, "state=connected");
 
-    // Contoso production, the Azure subscription, is the second row.
-    await openRowMenu(page, 1);
+    // Contoso production, the Azure subscription, streams its metrics and logs.
+    await openRowMenu(page, AZURE_ROW);
     await expect(page.getByRole("menuitem", { name: "Test" })).toBeVisible();
     await expect(
       page.getByRole("menuitem", { name: "Stream metrics and logs" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "Stream logs" }),
+    ).toHaveCount(0);
+    // Nothing streams yet: nothing to stop.
+    await expect(
+      page.getByRole("menuitem", { name: "Stop streaming" }),
     ).toHaveCount(0);
     await page.keyboard.press("Escape");
+
+    // The Google Cloud project streams its logs: Cloud Monitoring pushes no metrics.
+    await openRowMenu(page, GCP_ROW);
+    await expect(
+      page.getByRole("menuitem", { name: "Stream metrics and logs" }),
+    ).toHaveCount(0);
+    await page.getByRole("menuitem", { name: "Stream logs" }).click();
+    await expect(streamDialog(page)).toHaveAttribute("data-provider", "gcp");
+    await expect(streamPart(page, "problem")).toContainText(
+      "Pub/Sub pushes to https:// addresses only, and this OneUptime is not served over HTTPS.",
+    );
+    await expect(streamCommand(page)).toHaveCount(0);
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
 
     await openRowMenu(page, 0);
     await page
@@ -4003,5 +4706,1187 @@ test.describe("streaming an AWS account's metrics and logs", () => {
     );
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "stream-dialog-fa");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Streaming an Azure subscription's metrics and resource logs - Azure
+ * Monitor's diagnostic settings send them to event hubs OneUptime reads
+ * every minute - and a Google Cloud project's logs, pushed through Pub/Sub,
+ * from their rows: each dialog's one question and three steps, the
+ * subscriptions or the projects under More fields, reading turned on or a
+ * key made, the first events waited for, why a read failed or a push was
+ * refused, and Stop streaming with the command that deletes what each
+ * command made. Their resources' pages gain the Logs their streams give.
+ * ---------------------------------------------------------------------------
+ */
+
+const AZURE_CONNECTION: string = "20000000-0000-4000-8000-000000000002";
+const GCP_CONNECTION: string = "20000000-0000-4000-8000-000000000003";
+// Contoso production's subscription, and another to stream beside it.
+const AZURE_SUBSCRIPTION: string = "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b";
+const AZURE_OTHER_SUBSCRIPTION: string = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
+const PUBSUB_ENDPOINT: string =
+  "https://oneuptime.example.com/telemetry/gcp-pubsub/v1/logs";
+// What Pub/Sub signs the Google Cloud connection's pushes as.
+const PUSH_SERVICE_ACCOUNT: string =
+  "oneuptime-push-20000000@acme-prod.iam.gserviceaccount.com";
+// The fixture's Azure and Google Cloud resources (Fixture.js OTHER_CLOUD_RESOURCES).
+const AZURE_WEB_APP: string = "40000000-0000-4000-8000-000000000101";
+const AZURE_VM: string = "40000000-0000-4000-8000-000000000102";
+const GCE_INSTANCE: string = "40000000-0000-4000-8000-000000000103";
+const GCE_GROUP: string = "40000000-0000-4000-8000-000000000104";
+
+interface StreamStart {
+  id: string;
+  hostSubscriptionId: string;
+}
+
+// Every time reading an Azure connection's event hubs was turned on, and where.
+async function streamStarts(page: Page): Promise<Array<StreamStart>> {
+  return (
+    (await fixture(page)) as unknown as { streamStarts: Array<StreamStart> }
+  ).streamStarts;
+}
+
+async function openRowStreaming(
+  page: Page,
+  data: {
+    query: string;
+    row: number;
+    action: string;
+    locale?: Record<string, string> | undefined;
+  },
+): Promise<void> {
+  await open(page, data.query);
+  await openRowMenu(page, data.row);
+  await page
+    .getByRole("menuitem", { name: wordIn(data.locale || {}, data.action) })
+    .click();
+  await expect(streamDialog(page)).toBeVisible();
+}
+
+async function deliverFrom(page: Page, provider: string): Promise<void> {
+  await page.evaluate((cloud: string) => {
+    (
+      window as unknown as {
+        __cloudConnectFixture: { deliver: (provider: string) => void };
+      }
+    ).__cloudConnectFixture.deliver(cloud);
+  }, provider);
+}
+
+test.describe("streaming an Azure subscription and a Google Cloud project", () => {
+  test("the list: each cloud's row says how its stream is doing, in its own cloud's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(
+      page,
+      "state=connected&https=1&stream=receiving&azurestream=failing&gcpstream=waiting",
+    );
+
+    // AWS's, Azure's and Google Cloud's rows, in that order.
+    const lines: Locator = streamLine(page);
+    await expect(lines).toHaveCount(3);
+    await expect(lines.nth(0)).toHaveText("Streaming");
+    await expect(lines.nth(1)).toHaveText("Stream failing");
+    await expect(lines.nth(1)).toHaveAttribute(
+      "title",
+      /^The event hubs could not be read, /,
+    );
+    await expect(lines.nth(2)).toHaveText("Stream waiting");
+    await expect(lines.nth(2)).toHaveAttribute(
+      "title",
+      /^Waiting for the first push\. Pub\/Sub pushes a log within a minute/,
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-clouds-list");
+  });
+
+  test("Azure: one question, three steps; a connection that has read no subscription asks for them under the question, and reading turns on where the command makes the event hubs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected",
+      row: AZURE_ROW,
+      action: "Stream metrics and logs",
+    });
+
+    await expect(
+      dialog(page).getByRole("heading", { name: "Stream metrics and logs" }),
+    ).toBeVisible();
+    await expect(streamDialog(page)).toHaveAttribute("data-provider", "azure");
+
+    // One question, three answers, metrics by default.
+    const question: Locator = streamDialog(page).getByRole("radiogroup", {
+      name: "What should it stream?",
+    });
+    await expect(question.getByRole("radio")).toHaveCount(3);
+    await expect(
+      question.getByRole("radio", { name: /^Metrics Every key metric/ }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    // Three numbered steps: reading, the command, the first events.
+    for (const [index, title] of [
+      [1, "Turn on reading"],
+      [2, "Run this in Azure Cloud Shell"],
+      [3, "Wait for the first events"],
+    ] as Array<[number, string]>) {
+      await expect(
+        streamDialog(page).getByTestId(`setup-guide-step-${index}`),
+      ).toContainText(title);
+    }
+
+    // Its last read reached no subscription: no command, nothing to read yet.
+    await expect(streamPart(page, "problem")).toHaveText(
+      "List at least one subscription to stream from.",
+    );
+    await expect(streamCommand(page)).toHaveCount(0);
+    await expect(streamPart(page, "start-reading")).toBeDisabled();
+
+    // So the dialog asks for them under its question, not under More fields.
+    const asked: Locator = streamPart(page, "subscriptions-asked");
+    await expect(asked).toBeVisible();
+    await expect(asked).toContainText(
+      "Subscription IDs, separated by commas: this connection has read none yet.",
+    );
+    await expect(streamPart(page, "more-fields")).not.toContainText(
+      "Subscriptions",
+    );
+    await asked
+      .getByLabel("Subscriptions")
+      .fill(`${AZURE_SUBSCRIPTION}, ${AZURE_OTHER_SUBSCRIPTION}`);
+
+    // Turn on reading starts where its step's words start.
+    const [words, button]: Array<FrameBox> = await boxesInOneFrame([
+      streamPart(page, "start").locator("p").first(),
+      streamPart(page, "start-reading"),
+    ]);
+    expect(Math.abs(button!.x - words!.x)).toBeLessThanOrEqual(1);
+
+    await streamPart(page, "more-fields")
+      .getByRole("button", { name: "More fields" })
+      .click();
+
+    // The connection's own app; the first subscription holds the event hubs.
+    await expect(streamPart(page, "problem")).toHaveCount(0);
+    await expect(streamCommand(page)).toContainText(
+      "local APP='00001111-aaaa-2222-bbbb-3333cccc4444'",
+    );
+    await expect(streamCommand(page)).toContainText(
+      `local HOST='${AZURE_SUBSCRIPTION}'`,
+    );
+    await expect(streamCommand(page)).toContainText(
+      `for SUB in '${AZURE_SUBSCRIPTION}' '${AZURE_OTHER_SUBSCRIPTION}'; do`,
+    );
+    await expect(streamPart(page, "open-shell")).toHaveAttribute(
+      "href",
+      "https://shell.azure.com",
+    );
+    await expect(streamPart(page, "resource-group")).toContainText(
+      "oneuptime-stream-20000000",
+    );
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "no-key",
+    );
+    // Nothing was asked of the server yet.
+    expect(await streamStarts(page)).toEqual([]);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-azure-dialog");
+
+    await streamPart(page, "start-reading").click();
+
+    await expect(streamPart(page, "reading")).toContainText(
+      `OneUptime reads the event hubs in subscription ${AZURE_SUBSCRIPTION} every minute.`,
+    );
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "waiting",
+    );
+    expect(await streamStarts(page)).toEqual([
+      { id: AZURE_CONNECTION, hostSubscriptionId: AZURE_SUBSCRIPTION },
+    ]);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await streamPart(page, "reading").scrollIntoViewIfNeeded();
+    await shoot(page, "stream-azure-reading");
+
+    // Closed: the row says the stream waits for its first events.
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
+    await expect(streamLine(page)).toHaveText("Stream waiting");
+    await expect(streamLine(page)).toHaveAttribute("data-state", "waiting");
+  });
+
+  test("Azure: opened while reading is on, it starts where the event hubs are read; the first events say what came from which region", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it says: a desktop's.");
+
+    await openRowStreaming(page, {
+      query: "state=connected&azurestream=reading",
+      row: AZURE_ROW,
+      action: "Stream metrics and logs",
+    });
+
+    await expect(streamPart(page, "reading")).toContainText(AZURE_SUBSCRIPTION);
+    await expect(streamPart(page, "start-reading")).toHaveCount(0);
+    await expect(streamCommand(page)).toContainText(
+      `local HOST='${AZURE_SUBSCRIPTION}'`,
+    );
+
+    const live: Locator = streamPart(page, "live");
+    await expect(live).toHaveAttribute("data-state", "waiting");
+    await expect(live).toContainText("Waiting for the first events.");
+
+    // Azure Monitor sent them: the next read of the event hubs finds them.
+    await deliverFrom(page, "azure");
+
+    // The dialog asks every five seconds: nothing to press.
+    await expect(live).toHaveAttribute("data-state", "receiving", {
+      timeout: 12000,
+    });
+    await expect(live).toContainText("Receiving. The last events came");
+    const sources: Locator = streamPart(page, "sources");
+    await expect(sources).toContainText(
+      "Metrics of 3 resource types from westeurope",
+    );
+    await expect(sources).toContainText(
+      "Logs of 2 categories from northeurope",
+    );
+    await expect(
+      dialog(page).getByTestId("modal-footer-close-button"),
+    ).toHaveText("Done");
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-azure-receiving");
+
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(streamLine(page)).toHaveText("Streaming");
+  });
+
+  test("Azure: event hubs its app may not read: the row says the stream fails, and the dialog says why and what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected&azurestream=failing");
+
+    await expect(streamLine(page)).toHaveText("Stream failing");
+    await expect(streamLine(page)).toHaveAttribute(
+      "title",
+      /The connection's app may not read the event hubs\./,
+    );
+
+    await openRowMenu(page, AZURE_ROW);
+    await page
+      .getByRole("menuitem", { name: "Stream metrics and logs" })
+      .click();
+    const live: Locator = streamPart(page, "live");
+    await expect(live).toHaveAttribute("data-state", "refused");
+    await expect(live).toContainText("The event hubs could not be read");
+    await expect(live).toContainText(
+      "it gives the app the Azure Event Hubs Data Receiver role on its resource group",
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-azure-failing");
+  });
+
+  test("Azure: Stop streaming asks first, and hands over the command that deletes the diagnostic settings, then the event hubs' group", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected&azurestream=receiving");
+
+    await expect(streamLine(page)).toHaveText("Streaming");
+
+    await openRowMenu(page, AZURE_ROW);
+    await page.getByRole("menuitem", { name: "Stop streaming" }).click();
+
+    await expect(dialog(page)).toContainText(
+      "OneUptime stops reading the event hubs of Contoso production at once",
+    );
+    const command: Locator = dialog(page).getByTestId(
+      "cloud-connection-stop-streaming",
+    );
+    await expect(command).toContainText(
+      "The event hubs and the diagnostic settings stay in Azure, and Azure bills them, until they are deleted.",
+    );
+    // Where its event hubs are read: the only subscription it knows.
+    await expect(command).toContainText(
+      `for SUB in '${AZURE_SUBSCRIPTION}'; do`,
+    );
+    await expect(command).toContainText(
+      'az monitor diagnostic-settings delete --name OneUptime-20000000 --resource "$ID"',
+    );
+    await expect(command).toContainText(
+      'az group delete --subscription "$SUB" --name oneuptime-stream-20000000 --yes --no-wait',
+    );
+    // Twenty lines, drawn 240px tall at most: the question and its buttons stay in view.
+    const [codeBox]: Array<FrameBox> = await boxesInOneFrame([
+      command.locator("pre").locator(".."),
+    ]);
+    expect(codeBox!.height).toBeLessThanOrEqual(241);
+    await expect(submit(page)).toBeInViewport();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-azure-stop");
+
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+    expect((await streamState(page)).streamStops).toEqual([AZURE_CONNECTION]);
+    // Read no more: the row says nothing of a stream.
+    await expect(streamLine(page)).toHaveCount(0);
+  });
+
+  test("Google Cloud: Stream logs, which logs, three steps; the key goes in the command, and More fields names the account its pushes are signed as", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected&https=1",
+      row: GCP_ROW,
+      action: "Stream logs",
+    });
+
+    await expect(
+      dialog(page).getByRole("heading", { name: "Stream logs" }),
+    ).toBeVisible();
+    await expect(streamDialog(page)).toHaveAttribute("data-provider", "gcp");
+    // The connection is turned off: what Pub/Sub pushes is refused until it is on.
+    await expect(streamPart(page, "turned-off")).toContainText(
+      "This connection is turned off, so what Pub/Sub pushes is refused.",
+    );
+
+    // One question, three answers, warnings and errors by default.
+    const question: Locator = streamDialog(page).getByRole("radiogroup", {
+      name: "Which logs should it stream?",
+    });
+    await expect(question.getByRole("radio")).toHaveCount(3);
+    await expect(
+      question.getByRole("radio", { name: /^Warnings and errors/ }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    for (const [index, title] of [
+      [1, "Make a stream key"],
+      [2, "Run this in Google Cloud Shell"],
+      [3, "Wait for the first push"],
+    ] as Array<[number, string]>) {
+      await expect(
+        streamDialog(page).getByTestId(`setup-guide-step-${index}`),
+      ).toContainText(title);
+    }
+
+    // The topic in the project of the connection's service account; a sink in each project it reads.
+    await expect(streamCommand(page)).toContainText(
+      "local PROJECT='acme-prod'",
+    );
+    await expect(streamCommand(page)).toContainText(
+      `local ENDPOINT='${PUBSUB_ENDPOINT}'`,
+    );
+    await expect(streamCommand(page)).toContainText(
+      "local FILTER='severity>=WARNING'",
+    );
+    await expect(streamCommand(page)).toContainText(
+      "local STREAM_KEY='<YOUR_STREAM_KEY>'",
+    );
+    await expect(streamCommand(page)).toContainText(
+      "for SOURCE in 'acme-prod'; do",
+    );
+    await expect(streamPart(page, "needs-key")).toBeVisible();
+    await expect(streamPart(page, "open-shell")).toHaveAttribute(
+      "href",
+      "https://shell.cloud.google.com/?show=terminal",
+    );
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "no-key",
+    );
+    expect((await streamState(page)).streamKeys).toEqual([]);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-gcp-dialog");
+
+    await streamPart(page, "make-key").click();
+
+    await expect(streamPart(page, "key-made")).toContainText(
+      "Key made. The command below holds it, and it is shown only here",
+    );
+    await expect(streamCommand(page)).toContainText(
+      `local STREAM_KEY='oucs_${GCP_CONNECTION}_`,
+    );
+    await expect(streamCommand(page)).not.toContainText("<YOUR_STREAM_KEY>");
+    await expect(streamPart(page, "needs-key")).toHaveCount(0);
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "waiting",
+    );
+    expect((await streamState(page)).streamKeys).toEqual([GCP_CONNECTION]);
+
+    // Another way: the endpoint, the account the pushes are signed as, the key as their audience.
+    await streamPart(page, "more-fields")
+      .getByRole("button", { name: "More fields" })
+      .click();
+    await expect(streamPart(page, "projects")).toHaveValue("acme-prod");
+    await expect(streamPart(page, "push-endpoint")).toContainText(
+      PUBSUB_ENDPOINT,
+    );
+    await expect(streamPart(page, "push-service-account")).toContainText(
+      PUSH_SERVICE_ACCOUNT,
+    );
+    await expect(streamPart(page, "audience")).toContainText(
+      `oucs_${GCP_CONNECTION}_`,
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await streamPart(page, "elsewhere").scrollIntoViewIfNeeded();
+    await shoot(page, "stream-gcp-key-made");
+
+    // Closed: the row says the stream waits for its first push.
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
+    await expect(streamLine(page)).toHaveText("Stream waiting");
+  });
+
+  test("Google Cloud: a filter of one's own goes in each sink, and none written stops the command; every log leaves out the Data Access audit logs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it does: a desktop's.");
+
+    await openRowStreaming(page, {
+      query: "state=connected&https=1",
+      row: GCP_ROW,
+      action: "Stream logs",
+    });
+
+    await streamDialog(page)
+      .getByRole("radio", { name: /^A filter of your own/ })
+      .click();
+    await expect(streamPart(page, "problem")).toHaveText(
+      "Write the filter, in the Cloud Logging query language.",
+    );
+    await expect(streamCommand(page)).toHaveCount(0);
+
+    await streamPart(page, "filter").fill(
+      'resource.type="cloud_run_revision" AND severity>=ERROR',
+    );
+    await expect(streamPart(page, "problem")).toHaveCount(0);
+    await expect(streamCommand(page)).toContainText(
+      `local FILTER='resource.type="cloud_run_revision" AND severity>=ERROR'`,
+    );
+    await shoot(page, "stream-gcp-filter");
+
+    await streamDialog(page)
+      .getByRole("radio", { name: /^Every log/ })
+      .click();
+    await expect(streamPart(page, "filter")).toHaveCount(0);
+    await expect(streamCommand(page)).toContainText(
+      `local FILTER='NOT log_id("cloudaudit.googleapis.com/data_access")'`,
+    );
+  });
+
+  test("Google Cloud: a push not signed for the connection: the row says it was refused, and the dialog says why and what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected&https=1&gcpstream=refused");
+
+    await expect(streamLine(page)).toHaveText("Stream refused");
+    await expect(streamLine(page)).toHaveAttribute(
+      "title",
+      /A push was not signed by Google for this connection's push service account\./,
+    );
+
+    await openRowMenu(page, GCP_ROW);
+    await page.getByRole("menuitem", { name: "Stream logs" }).click();
+    const live: Locator = streamPart(page, "live");
+    await expect(live).toHaveAttribute("data-state", "refused");
+    await expect(live).toContainText("The last push was refused");
+    await expect(live).toContainText(
+      "it sets the push subscription to sign as that service account",
+    );
+    // A key made before cannot be shown again: a new one, to run it again.
+    await expect(streamPart(page, "make-key")).toHaveText("Make a new key");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-gcp-refused");
+  });
+
+  test("Google Cloud: the first push says which logs came from where; Stop streaming hands over the command that deletes the sinks, the subscription, the topic and the push service account", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected&https=1&gcpstream=waiting",
+      row: GCP_ROW,
+      action: "Stream logs",
+    });
+
+    const live: Locator = streamPart(page, "live");
+    await expect(live).toHaveAttribute("data-state", "waiting");
+    await expect(live).toContainText("Waiting for the first push.");
+
+    await deliverFrom(page, "gcp");
+
+    await expect(live).toHaveAttribute("data-state", "receiving", {
+      timeout: 12000,
+    });
+    await expect(live).toContainText("Receiving. The last push came");
+    // A project's logs: the project is named beside the region.
+    await expect(streamPart(page, "sources")).toContainText(
+      "Entries of 3 logs from europe-west1 (acme-prod)",
+    );
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-gcp-receiving");
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(streamLine(page)).toHaveText("Streaming");
+
+    await openRowMenu(page, GCP_ROW);
+    await page.getByRole("menuitem", { name: "Stop streaming" }).click();
+
+    await expect(dialog(page)).toContainText(
+      "Every stream key of Google Cloud acme-prod stops working at once, and what Pub/Sub pushes is refused from now on.",
+    );
+    const command: Locator = dialog(page).getByTestId(
+      "cloud-connection-stop-streaming",
+    );
+    await expect(command).toContainText(
+      "The log sinks, the topic and its push subscription stay in Google Cloud, and Pub/Sub keeps pushing, until they are deleted.",
+    );
+    await expect(command).toContainText("for SOURCE in 'acme-prod'; do");
+    await expect(command).toContainText(
+      'gcloud logging sinks delete oneuptime-stream-20000000 --project "$SOURCE" --quiet',
+    );
+    await expect(command).toContainText(
+      "gcloud pubsub subscriptions delete oneuptime-stream-20000000-push --project 'acme-prod' --quiet",
+    );
+    await expect(command).toContainText(
+      "gcloud pubsub topics delete oneuptime-stream-20000000 --project 'acme-prod' --quiet",
+    );
+    await expect(command).toContainText(
+      `gcloud iam service-accounts delete '${PUSH_SERVICE_ACCOUNT}' --project 'acme-prod' --quiet`,
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-gcp-stop");
+
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+    expect((await streamState(page)).streamStops).toEqual([GCP_CONNECTION]);
+    await expect(streamLine(page)).toHaveCount(0);
+  });
+
+  test("a web app's page and a Compute Engine instance's have their streamed Logs; a virtual machine's and an instance group's have none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "The side menu beside the page: a desktop's.");
+
+    for (const [id, name, hasLogs] of [
+      [AZURE_WEB_APP, "checkout-web", true],
+      [GCE_INSTANCE, "orders-worker-1", true],
+      [AZURE_VM, "build-agent-1", false],
+      [GCE_GROUP, "orders-workers", false],
+    ] as Array<[string, string, boolean]>) {
+      await openAccounts(page, `${RESOURCE_PATH}/${id}?state=connected`);
+      // Drawn once the resource is read, and its menu with it.
+      await expect(cardTitled(page, "Details")).toBeVisible();
+      await expect(page.getByText(name).first()).toBeVisible();
+      await expect(
+        sideMenu(page).getByRole("link", { name: "Metrics", exact: true }),
+      ).toBeVisible();
+
+      const logs: Locator = sideMenu(page).getByRole("link", {
+        name: "Logs",
+        exact: true,
+      });
+
+      if (hasLogs) {
+        await expect(logs).toHaveAttribute(
+          "href",
+          `${RESOURCE_PATH}/${id}/logs`,
+        );
+      } else {
+        await expect(logs).toHaveCount(0);
+      }
+
+      if (id === AZURE_WEB_APP) {
+        await shoot(page, "stream-azure-web-app-menu");
+      }
+    }
+  });
+
+  test("dark and German: the Azure dialog reads in German, and fits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected&azurestream=receiving&theme=dark&lang=de",
+      row: AZURE_ROW,
+      action: "Stream metrics and logs",
+      locale: GERMAN,
+    });
+
+    expect(wordIn(GERMAN, "Turn on reading")).not.toBe("Turn on reading");
+    await expect(
+      streamDialog(page).getByTestId("setup-guide-step-1"),
+    ).toContainText(wordIn(GERMAN, "Turn on reading"));
+    await expect(
+      streamDialog(page).getByTestId("setup-guide-step-3"),
+    ).toContainText(wordIn(GERMAN, "Wait for the first events"));
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "receiving",
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-azure-dialog-dark-de");
+  });
+
+  test("Persian: the Google Cloud dialog is laid out right to left, the command and the filter left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected&https=1&lang=fa",
+      row: GCP_ROW,
+      action: "Stream logs",
+      locale: PERSIAN,
+    });
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    expect(wordIn(PERSIAN, "Wait for the first push")).not.toBe(
+      "Wait for the first push",
+    );
+    await expect(
+      streamDialog(page).getByTestId("setup-guide-step-3"),
+    ).toContainText(wordIn(PERSIAN, "Wait for the first push"));
+    // Code reads left to right on every page, and so does a Cloud Logging query.
+    await expect(streamCommand(page).locator("pre").first()).toHaveCSS(
+      "direction",
+      "ltr",
+    );
+    await streamDialog(page)
+      .getByRole("radio", {
+        name: new RegExp(`^${wordIn(PERSIAN, "A filter of your own")}`),
+      })
+      .click();
+    await expect(streamPart(page, "filter")).toHaveAttribute("dir", "ltr");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-gcp-dialog-fa");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A cloud resource's Logs page with what an AWS connection's stream
+ * delivered from the resource's log group, as the Firehose ingest writes it
+ * (CloudConnect/StreamedLogs.js, which stamps the rows with the log group
+ * rules themselves): orders-db's PostgreSQL log of the last hour - each
+ * line's severity as its level says it, the chart and the facets of only
+ * its rows, a row's attributes - and nightly-export, a function that
+ * stopped three days ago, whose last runs a person finds by choosing a
+ * longer range. Its empty list says what is true of the account: how to
+ * start streaming, or, once it streams, that nothing came in the range.
+ * Every read is the resource's own, and modelled; the page fits at 1280,
+ * 1024 and 768 beside the side menu and on a phone, dark, in German and in
+ * Persian.
+ * ---------------------------------------------------------------------------
+ */
+
+const ORDERS_DB_ARN: string = "arn:aws:rds:eu-west-1:123456789012:db:orders-db";
+const NIGHTLY_EXPORT_ARN: string =
+  "arn:aws:lambda:us-east-1:123456789012:function:nightly-export";
+const STORED_RESOURCE_ID: string = "resource.cloud.resource_id";
+// What an empty list says before the account streams, and once it does.
+const NO_STREAMED_LOGS: string =
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.";
+const NO_LOGS_IN_RANGE: string =
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.";
+
+interface LogRead {
+  kind: string;
+  attributes: Record<string, string>;
+  facetKeys?: Array<string>;
+}
+
+interface LogsState {
+  logReads: Array<LogRead>;
+  unhandled: Array<Record<string, unknown>>;
+  realtime: Array<{ model: string; eventType?: string }>;
+}
+
+async function logsState(page: Page): Promise<LogsState> {
+  return (await fixture(page)) as unknown as LogsState;
+}
+
+async function openLogs(
+  page: Page,
+  resourceId: string,
+  query: string,
+): Promise<void> {
+  await openAccounts(page, `${RESOURCE_PATH}/${resourceId}/logs?${query}`);
+  await expect(page.getByTestId("logs-viewer-list")).toBeVisible();
+}
+
+// The list's rows, without a row's opened details.
+function logRows(page: Page): Locator {
+  return page.getByTestId("logs-table").locator("tbody tr[aria-selected]");
+}
+
+function facetValue(page: Page, value: string): Locator {
+  return page.locator(`[data-testid="facet-value-row"][data-value="${value}"]`);
+}
+
+// One attribute of an opened row: its key, then its value.
+function attributeRow(page: Page, key: string): Locator {
+  return page
+    .locator("li")
+    .filter({ has: page.locator(`span[title="${key}"]`) });
+}
+
+async function chooseRange(page: Page, label: string): Promise<void> {
+  await page.getByTestId("log-time-range-picker-button").click();
+  await page
+    .getByTestId("log-time-range-picker-dropdown")
+    .getByRole("button", { name: label, exact: true })
+    .click();
+}
+
+// Every read of the page names the resource's own id, and none is unmodelled.
+async function expectOnlyItsOwnReads(page: Page, arn: string): Promise<void> {
+  const state: LogsState = await logsState(page);
+
+  expect(state.unhandled).toEqual([]);
+
+  const scoped: Array<LogRead> = state.logReads.filter(
+    (read: LogRead): boolean => {
+      return read.kind !== "/telemetry/logs/get-attributes";
+    },
+  );
+
+  expect(
+    scoped.map((read: LogRead): string => {
+      return read.kind;
+    }),
+  ).toEqual(
+    expect.arrayContaining([
+      "list",
+      "/telemetry/logs/histogram",
+      "/telemetry/logs/facets",
+    ]),
+  );
+  for (const read of scoped) {
+    expect({ kind: read.kind, attributes: read.attributes }).toEqual({
+      kind: read.kind,
+      attributes: { [STORED_RESOURCE_ID]: arn },
+    });
+  }
+  // The live tail listens; the fixture never sends on it.
+  expect(state.realtime.length).toBeGreaterThan(0);
+}
+
+// The list's header as it is drawn: each column's title, in its drawn case.
+async function drawnHeaders(page: Page): Promise<Array<string>> {
+  return await page
+    .getByTestId("logs-table")
+    .locator("thead th")
+    .evaluateAll((cells: Array<Element>): Array<string> => {
+      return cells
+        .map((cell: Element): string => {
+          return (
+            (cell.querySelector("span") as HTMLElement | null)?.innerText || ""
+          ).trim();
+        })
+        .filter(Boolean);
+    });
+}
+
+/*
+ * How the line under "No logs found" reads against the list behind it:
+ * its WCAG contrast ratio, from the colours the browser draws.
+ */
+async function emptyHintContrast(page: Page): Promise<number> {
+  return await page
+    .getByTestId("logs-table-empty")
+    .evaluate((empty: Element): number => {
+      const lines: NodeListOf<HTMLElement> = empty.querySelectorAll("p");
+      const hint: HTMLElement = lines[lines.length - 1]!;
+
+      const channels: (color: string) => Array<number> = (
+        color: string,
+      ): Array<number> => {
+        const canvas: HTMLCanvasElement = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const context: CanvasRenderingContext2D = canvas.getContext("2d")!;
+        context.fillStyle = color;
+        context.fillRect(0, 0, 1, 1);
+        return Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+      };
+      const luminance: (color: string) => number = (color: string): number => {
+        const [red, green, blue] = channels(color).map(
+          (channel: number): number => {
+            const value: number = channel / 255;
+            return value <= 0.03928
+              ? value / 12.92
+              : Math.pow((value + 0.055) / 1.055, 2.4);
+          },
+        );
+        return 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
+      };
+
+      let behind: Element | null = hint;
+      let background: string = "rgba(0, 0, 0, 0)";
+      while (behind) {
+        background = getComputedStyle(behind).backgroundColor;
+        if (background !== "rgba(0, 0, 0, 0)" && background !== "transparent") {
+          break;
+        }
+        behind = behind.parentElement;
+      }
+
+      const text: number = luminance(getComputedStyle(hint).color);
+      const back: number = luminance(background);
+      return (Math.max(text, back) + 0.05) / (Math.min(text, back) + 0.05);
+    });
+}
+
+test.describe("a cloud resource's streamed Logs", () => {
+  test("a database's Logs: its log group's rows, each line's severity as its level says, and nothing else's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, ORDERS_DB, "state=connected&stream=receiving");
+
+    const rows: Locator = logRows(page);
+    await expect(rows).toHaveCount(20);
+    // Newest first: the checkpoint a couple of minutes ago.
+    await expect(rows.first()).toContainText("checkpoint starting: time");
+    await expect(rows.first()).toContainText(/information/i);
+
+    // The level RDS for PostgreSQL writes after its prefix, read as the row's severity.
+    for (const [line, severity] of [
+      ["deadlock detected", /error/i],
+      ['password authentication failed for user "report_ro"', /fatal/i],
+      ["there is no transaction in progress", /warning/i],
+      ["canceling statement due to statement timeout", /error/i],
+    ] as Array<[string, RegExp]>) {
+      await expect(rows.filter({ hasText: line })).toContainText(severity);
+    }
+    // A DETAIL line goes with the line before it: none of its own.
+    await expect(rows.filter({ hasText: "Process 24102 waits" })).toContainText(
+      /unspecified/i,
+    );
+
+    // The chip names the database, never its ARN.
+    await expect(page.getByTestId("locked-filter-chip-value")).toHaveText(
+      "orders-db",
+    );
+
+    /*
+     * Every header of the list in one case: Time and Severity are sort
+     * buttons, which once kept the case they are written in beside
+     * SERVICE and MESSAGE.
+     */
+    expect(await drawnHeaders(page)).toEqual([
+      "TIME",
+      "SERVICE",
+      "SEVERITY",
+      "MESSAGE",
+    ]);
+
+    /*
+     * Each line stays readable where the list draws it: never narrower than
+     * 8rem (a phone once squeezed it to a letter a line, every row a screen
+     * tall), and - beside the side menu at 1280 - inside the list, though
+     * RDS opens every line with one long run of time, client, user and
+     * process that once pushed it past the list's edge.
+     */
+    const lines: Array<Locator> = await rows.locator("p[title]").all();
+    expect(lines).toHaveLength(20);
+    await expect
+      .poll(async (): Promise<string> => {
+        const [list, ...boxes] = await boxesInOneFrame([
+          page.getByTestId("logs-viewer-list"),
+          ...lines,
+        ]);
+        const narrowest: number = Math.min(
+          ...boxes.map((box: FrameBox): number => {
+            return box.width;
+          }),
+        );
+        const furthest: number = Math.max(
+          ...boxes.map((box: FrameBox): number => {
+            return box.x + box.width;
+          }),
+        );
+        const tallest: number = Math.max(
+          ...boxes.map((box: FrameBox): number => {
+            return box.height;
+          }),
+        );
+
+        if (narrowest < 127) {
+          return `a line ${narrowest}px wide`;
+        }
+        if (isDesktop() && furthest > list!.x + list!.width + 1) {
+          return `a line past the list's edge by ${furthest - list!.x - list!.width}px`;
+        }
+        if (tallest > 420) {
+          return `a line ${tallest}px tall`;
+        }
+        return "readable";
+      })
+      .toBe("readable");
+
+    if (isDesktop()) {
+      // Its facets count only its rows.
+      for (const [severity, count] of [
+        ["Information", "12"],
+        ["Error", "3"],
+        ["Unspecified", "3"],
+        ["Fatal", "1"],
+        ["Warning", "1"],
+      ]) {
+        await expect(
+          facetValue(page, severity!).getByTestId("facet-value-count"),
+        ).toHaveText(count!);
+      }
+      // The connection's telemetry service, which the stream writes into.
+      await expect(page.getByText("AWS 123456789012").first()).toBeVisible();
+    }
+
+    await expectOnlyItsOwnReads(page, ORDERS_DB_ARN);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs");
+  });
+
+  test("a row opens on what the stream stamped: the account, Region, log group and the database's id - and no App Platforms platform", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "A row's attributes: a desktop's.");
+
+    await openLogs(page, ORDERS_DB, "state=connected&stream=receiving");
+    await logRows(page).filter({ hasText: "deadlock detected" }).click();
+
+    for (const [key, value] of [
+      [STORED_RESOURCE_ID, ORDERS_DB_ARN],
+      ["resource.cloud.account.id", "123456789012"],
+      ["resource.cloud.region", "eu-west-1"],
+      ["resource.cloud.provider", "aws"],
+      ["resource.aws.log.group.name", "/aws/rds/instance/orders-db/postgresql"],
+      ["resource.service.name", "AWS 123456789012"],
+      ["aws.log.stream.name", "orders-db.0"],
+    ]) {
+      await expect(attributeRow(page, key!)).toContainText(value!);
+    }
+    // A database is no App Platforms platform: its logs are its own.
+    await expect(attributeRow(page, "resource.cloud.platform")).toHaveCount(0);
+
+    expect((await logsState(page)).unhandled).toEqual([]);
+    await shoot(page, "resource-logs-row");
+  });
+
+  test("a function that stopped: nothing in the past hour, said as it is, and its last runs over the past week", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, NIGHTLY_EXPORT, "state=connected&stream=receiving");
+
+    // Its account streams: the list says nothing came in this range, and what to check.
+    const empty: Locator = page.getByTestId("logs-table-empty");
+    await expect(empty).toContainText(NO_LOGS_IN_RANGE);
+    await expect(empty).not.toContainText(NO_STREAMED_LOGS);
+    // What to do reads as text should: at least 4.5:1 against the list.
+    expect(await emptyHintContrast(page)).toBeGreaterThanOrEqual(4.5);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs-empty-range");
+
+    await chooseRange(page, "Past 1 Week");
+
+    const rows: Locator = logRows(page);
+    await expect(rows).toHaveCount(11);
+    await expect(
+      rows.filter({ hasText: "Task timed out after 900.00 seconds" }),
+    ).toContainText(/error/i);
+    await expect(
+      rows.filter({ hasText: "the bucket is throttling writes" }),
+    ).toContainText(/warning/i);
+    // Lambda's own START and REPORT lines say no level.
+    await expect(
+      rows.filter({ hasText: "START RequestId" }).first(),
+    ).toContainText(/unspecified/i);
+
+    await expectOnlyItsOwnReads(page, NIGHTLY_EXPORT_ARN);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs-function");
+  });
+
+  test("a function's rows are the function's in Serverless too: faas.name and its FaaS platform", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "A row's attributes: a desktop's.");
+
+    await openLogs(page, NIGHTLY_EXPORT, "state=connected&stream=receiving");
+    await chooseRange(page, "Past 1 Week");
+    await logRows(page)
+      .filter({ hasText: "Task timed out after 900.00 seconds" })
+      .click();
+
+    await expect(attributeRow(page, STORED_RESOURCE_ID)).toContainText(
+      NIGHTLY_EXPORT_ARN,
+    );
+    await expect(attributeRow(page, "resource.faas.name")).toContainText(
+      "nightly-export",
+    );
+    await expect(attributeRow(page, "resource.cloud.platform")).toContainText(
+      "aws_lambda",
+    );
+    await expect(attributeRow(page, "resource.cloud.region")).toContainText(
+      "us-east-1",
+    );
+  });
+
+  test("before its account streams, an empty list says how to start", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, NIGHTLY_EXPORT, "state=connected");
+
+    const empty: Locator = page.getByTestId("logs-table-empty");
+    await expect(empty).toContainText(NO_STREAMED_LOGS);
+    await expect(empty).not.toContainText(NO_LOGS_IN_RANGE);
+    expect((await logsState(page)).unhandled).toEqual([]);
+  });
+
+  test("beside the side menu at 1024 and 768: nothing scrolls the page sideways, and each row keeps its time and severity", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "Beside the side menu: a desktop's widths.");
+
+    for (const width of [1024, 768]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openLogs(page, ORDERS_DB, "state=connected&stream=receiving");
+
+      const first: Locator = logRows(page).first();
+      await expect(first).toBeVisible();
+      await expect(first).toContainText("Nov");
+      await expect(sideMenu(page)).toBeVisible();
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `resource-logs-${width}`);
+    }
+  });
+
+  test("dark and German: its chip, its chart and its empty sentence in German, and it fits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(
+      page,
+      ORDERS_DB,
+      "state=connected&stream=receiving&theme=dark&lang=de",
+    );
+
+    await expect(logRows(page)).toHaveCount(20);
+    await expect(page.getByTestId("locked-filter-chip-value")).toHaveText(
+      "orders-db",
+    );
+    // The chip's key and the chart's title, in German.
+    expect(wordIn(GERMAN, "Resource")).not.toBe("Resource");
+    await expect(
+      page.getByText(`${wordIn(GERMAN, "Resource")}:`),
+    ).toBeVisible();
+    await expect(page.getByText(wordIn(GERMAN, "Log Volume"))).toBeVisible();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs-dark-de");
+
+    // An empty range, in German too.
+    await openLogs(
+      page,
+      NIGHTLY_EXPORT,
+      "state=connected&stream=receiving&theme=dark&lang=de",
+    );
+    expect(wordIn(GERMAN, NO_LOGS_IN_RANGE)).not.toBe(NO_LOGS_IN_RANGE);
+    await expect(page.getByTestId("logs-table-empty")).toContainText(
+      wordIn(GERMAN, NO_LOGS_IN_RANGE),
+    );
+    // The header in German capitals, and the line readable in the dark.
+    expect(await drawnHeaders(page)).toEqual(
+      ["Time", "Service", "Severity", "Message"].map(
+        (title: string): string => {
+          return wordIn(GERMAN, title).toLocaleUpperCase("de");
+        },
+      ),
+    );
+    expect(await emptyHintContrast(page)).toBeGreaterThanOrEqual(4.5);
+    await shoot(page, "resource-logs-empty-dark-de");
+  });
+
+  test("Persian: laid out right to left, each line read left to right as it was written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, ORDERS_DB, "state=connected&stream=receiving&lang=fa");
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(logRows(page)).toHaveCount(20);
+    // A line of a database's log keeps its own direction on a Persian page.
+    const line: Locator = logRows(page)
+      .filter({ hasText: "deadlock detected" })
+      .locator("bdi")
+      .first();
+    await expect(line).toHaveAttribute("dir", "ltr");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs-fa");
+
+    await openLogs(
+      page,
+      NIGHTLY_EXPORT,
+      "state=connected&stream=receiving&lang=fa",
+    );
+    expect(wordIn(PERSIAN, NO_LOGS_IN_RANGE)).not.toBe(NO_LOGS_IN_RANGE);
+    await expect(page.getByTestId("logs-table-empty")).toContainText(
+      wordIn(PERSIAN, NO_LOGS_IN_RANGE),
+    );
+    /*
+     * It sends the reader where the Persian Dashboard's own menu says:
+     * its words for Cloud > Connect and for the row's Stream metrics and
+     * logs, never the English menu inside a Persian sentence.
+     */
+    await expect(page.getByTestId("logs-table-empty")).toContainText(
+      `${wordIn(PERSIAN, "Cloud")} > ${wordIn(PERSIAN, "Connect")}`,
+    );
+    await expect(page.getByTestId("logs-table-empty")).toContainText(
+      wordIn(PERSIAN, "Stream metrics and logs"),
+    );
+    await expect(page.getByTestId("logs-table-empty")).not.toContainText(
+      "Cloud >",
+    );
+    await shoot(page, "resource-logs-empty-fa");
   });
 });

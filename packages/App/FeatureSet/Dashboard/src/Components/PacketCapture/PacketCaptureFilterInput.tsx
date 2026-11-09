@@ -267,11 +267,7 @@ const PacketCaptureFilterInput: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && props.error !== build.error ? (
-        <FieldError
-          message={props.error}
-          className="text-xs text-red-600"
-          announce="none"
-        />
+        <FieldError message={props.error} className="text-xs" announce="none" />
       ) : (
         <></>
       )}

@@ -2,21 +2,55 @@ import {
   CLOUD_AI_AGENT_ASK_FIRST_DESCRIPTION,
   CLOUD_AI_AGENT_ASK_FIRST_TITLE,
   CLOUD_AI_AGENT_CONNECT_POLL_INTERVAL_MS,
+  CLOUD_AI_AGENT_ELSEWHERE_IDENTITIES_TEXT,
+  CLOUD_AI_AGENT_ELSEWHERE_TEXTS,
   CLOUD_AI_AGENT_FIX_SAFE_DESCRIPTION,
   CLOUD_AI_AGENT_FIX_SAFE_TITLE,
+  CLOUD_AI_AGENT_KEY_NOTE,
+  CLOUD_AI_AGENT_MAKING_KEY_TEXT,
   CLOUD_SHELL_NAMES,
+  CloudAiAgentElsewhereTexts,
   CloudAiAgentProtectedTargetsProblem,
   CloudAiAgentSetupChoices,
   GCP_HOST_DESCRIPTIONS,
   GCP_HOST_TITLES,
+  getCloudAiAgentElsewhereValues,
   getCloudAiAgentLogsCommand,
   getCloudAiAgentSetupOptions,
   getDefaultCloudAiAgentSetupChoices,
   getProtectedTargetsProblem,
+  isCloudAiAgentKeyFailureRetryable,
   parseProtectedTargets,
+  readCloudAiAgentKeyAnswer,
 } from "./CloudAiAgentSetup";
+import {
+  CLOUD_AI_AGENT_ORGANIZATION_COST_TEXT,
+  CLOUD_AI_AGENT_ORGANIZATION_DIALOG_DESCRIPTION,
+  CLOUD_AI_AGENT_ORGANIZATION_INSTANCES_TEXT,
+  CLOUD_AI_AGENT_ORGANIZATION_KEY_NOTE,
+  CLOUD_AI_AGENT_ORGANIZATION_MAKING_KEYS_TEXT,
+  CLOUD_AI_AGENT_ORGANIZATION_NO_KEYS_TEXT,
+  CLOUD_AI_AGENT_ORGANIZATION_SKIPPED,
+  CLOUD_AI_AGENT_ORGANIZATION_STEP_DESCRIPTION,
+  CLOUD_AI_AGENT_ORGANIZATION_STEP_TITLE,
+  CLOUD_AI_AGENT_ORGANIZATION_WAIT_TITLE,
+  CLOUD_AI_AGENT_SCOPE_ACCOUNT,
+  CLOUD_AI_AGENT_SCOPE_ACCOUNT_DESCRIPTION,
+  CLOUD_AI_AGENT_SCOPE_ACCOUNT_TITLE,
+  CLOUD_AI_AGENT_SCOPE_ORGANIZATION,
+  CLOUD_AI_AGENT_SCOPE_ORGANIZATION_DESCRIPTION,
+  CLOUD_AI_AGENT_SCOPE_ORGANIZATION_TITLE,
+  CLOUD_AI_AGENT_SCOPE_QUESTION,
+  CloudAiAgentSetupScope,
+  canSetUpCloudAiAgentOrganization,
+  getCloudAiAgentOrganizationSetupOptions,
+  isEveryCloudOrganizationAgentConnected,
+  readCloudOrganizationKeysForSetup,
+} from "./CloudAiAgentOrganization";
+import CloudAiAgentOrganizationAccounts from "./CloudAiAgentOrganizationAccounts";
 import { ResourceAiAgentDescriptor } from "../ResourceAiAgent/ResourceAiAgentDescriptors";
 import {
+  RESOURCE_AI_ACCESS_AGENT_KEY_ROUTE,
   RESOURCE_AI_ACCESS_STATUS_ROUTE,
   getResourceAiAccessRequestBody,
   getResourceAutomaticRemediation,
@@ -30,24 +64,38 @@ import AutomaticRemediationNote from "../AiAccess/AutomaticRemediationNote";
 import useAiAgentAccessStatus, {
   AiAgentAccessStatusRead,
 } from "../AiAccess/useAiAgentAccessStatus";
-import IngestionKeySelector from "../Telemetry/IngestionKeySelector";
 import { getSetupGuideOneUptimeUrl } from "../SetupGuide/SetupGuide";
 import SetupGuideOptionPicker from "../SetupGuide/SetupGuideOptionPicker";
 import SetupGuideSteps, {
   SetupGuideStepView,
 } from "../SetupGuide/SetupGuideSteps";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
-import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONObject } from "Common/Types/JSON";
 import {
   CloudAiAgentEnvironmentVariable,
+  CloudAiAgentOrganizationSetupOptions,
   CloudAiAgentSetupOptions,
+  describeCloudAiAgentOrganizationSetupProblem,
   describeCloudAiAgentSetupProblem,
+  getAwsOrganizationCloudAiAgentInstancesCommand,
+  getAwsOrganizationCloudAiAgentSetupCommand,
   getCloudAiAgentChangeOperations,
   getCloudAiAgentEnvironment,
-  getCloudAiAgentImage,
   getCloudAiAgentSetupCommand,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
+import {
+  CloudOrganizationKeys,
+  CloudOrganizationSkippedAccount,
+  CloudOrganizationView,
+  RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
+  RESOURCE_AI_ACCESS_ORGANIZATION_PATH,
+  parseCloudOrganizationKeys,
+  parseCloudOrganizationView,
+} from "Common/Types/CloudConnection/CloudOrganizationAgents";
 import {
   CloudAiAgentCostEstimate,
   estimateCloudAiAgentMonthlyCost,
@@ -64,7 +112,10 @@ import {
   GCP_CLOUD_AI_AGENT_HOSTS,
   GcpCloudAiAgentHost,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
-import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import {
@@ -74,7 +125,8 @@ import {
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -91,11 +143,19 @@ import React, {
  * "Let AI fix problems" on a cloud account, laid out as every "connect
  * this" guide in the product is (Add Host, the agents' setup guides): the
  * guide's one question on top - how far may AI go - then numbered steps:
- * choose the key the agent connects with, run one command in the cloud's
- * own shell (it creates the Cloud AI agent's role and starts the agent),
- * and wait for it to connect. Nothing is pasted back: the agent connects
- * on its own, and the last step says Connected when it does. Every other
- * setting has a safe default and is folded under More fields.
+ * run one command in the cloud's own shell (it creates the Cloud AI agent's
+ * role and starts the agent), and wait for it to connect. Nothing is pasted
+ * back: the agent connects on its own, and the last step says Connected
+ * when it does. Every other setting has a safe default and is folded under
+ * More fields.
+ *
+ * The command carries a key made for this account's agent alone
+ * (Types/CloudConnection/CloudAiAgentKey), made as the dialog opens: it
+ * connects that agent and nothing else, never sends telemetry, and works
+ * for a day until the agent connects with it. The agent's key so far keeps
+ * working until then, so opening the dialog disconnects nothing. Only the
+ * people who may set the agent up get a key; anyone else is told why where
+ * the command would be.
  *
  * Changing how far AI may go is running the updated command: the agent's
  * own settings decide, as for every AI agent, and the final say stays in
@@ -108,9 +168,22 @@ import React, {
  * by default (about $10 a month), or Cloud Run (about $45) for a project
  * that allows no VM an external address. The cost line and the logs
  * command follow the answer, and Change starts from where the agent runs.
+ *
+ * An AWS account of an AWS Organization one connection reads is also asked
+ * which accounts: this one, or every account of the organization
+ * (CloudAiAgentOrganization). For the organization the dialog asks for a
+ * key for each account's agent - each made as this account's is, for the
+ * same people - writes one command for the management account's CloudShell
+ * (a StackSet), names the accounts it could make no key for, and waits for
+ * every account's agent, listing each with whether it connected.
  */
 
 export const CLOUD_AI_AGENT_SETUP_TEST_ID: string = "cloud-ai-agent-setup";
+
+// What the dialog does, for this account alone.
+const CLOUD_AI_AGENT_ACCOUNT_DIALOG_DESCRIPTION: string = translationKey(
+  "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.",
+);
 
 // The question's two answers, as the option picker keys them.
 const ASK_FIRST: string = "ask-first";
@@ -180,6 +253,30 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
   );
 };
 
+/*
+ * A name "Run the agent somewhere else" says to use as written - the
+ * image, the write role, identity or account: code, as the changes' names
+ * above it are, and whole on its line when it fits one, never broken at a
+ * hyphen ("oneuptime-ai-agent-" / "write" on a phone). Only a name longer
+ * than the whole line breaks, at the line's end.
+ */
+interface ElsewhereNameProps {
+  name: string;
+}
+
+const ElsewhereName: FunctionComponent<ElsewhereNameProps> = (
+  props: ElsewhereNameProps,
+): ReactElement => {
+  return (
+    <code
+      className="inline-block max-w-full break-all font-mono"
+      data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-elsewhere-name`}
+    >
+      {props.name}
+    </code>
+  );
+};
+
 const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -192,14 +289,118 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
       accountId: props.accountId,
     });
   });
-  const [ingestionKey, setIngestionKey] =
-    useState<TelemetryIngestionKey | null>(null);
+  /*
+   * The key made for this agent as the dialog opened, why there is none,
+   * and whether asking again may get one (a refusal never does).
+   */
+  const [agentKey, setAgentKey] = useState<string>("");
+  const [keyError, setKeyError] = useState<string>("");
+  const [canRetryKey, setCanRetryKey] = useState<boolean>(false);
+  const [isMakingKey, setIsMakingKey] = useState<boolean>(true);
+  const [keyRequest, setKeyRequest] = useState<number>(0);
   const [isAiLogReadEnabled, setIsAiLogReadEnabled] = useState<boolean>(
     props.isAiLogReadEnabled,
   );
   const [isSavingLogs, setIsSavingLogs] = useState<boolean>(false);
   const [logsError, setLogsError] = useState<string>("");
   const [pollToken, setPollToken] = useState<number>(0);
+  // An AWS Organization's account: this account alone, or every account.
+  const [scope, setScope] = useState<CloudAiAgentSetupScope>(
+    CLOUD_AI_AGENT_SCOPE_ACCOUNT,
+  );
+  /*
+   * The organization's keys - asked for the first time every account is
+   * chosen, and with Try again - why there are none, and whether asking
+   * again may get them.
+   */
+  const [organizationKeys, setOrganizationKeys] =
+    useState<CloudOrganizationKeys | null>(null);
+  const [organizationKeyError, setOrganizationKeyError] = useState<string>("");
+  const [canRetryOrganizationKeys, setCanRetryOrganizationKeys] =
+    useState<boolean>(false);
+  const [isMakingOrganizationKeys, setIsMakingOrganizationKeys] =
+    useState<boolean>(false);
+  const [organizationKeyRequest, setOrganizationKeyRequest] =
+    useState<number>(0);
+  const isOrganizationScope: boolean =
+    scope === CLOUD_AI_AGENT_SCOPE_ORGANIZATION;
+
+  /*
+   * One key per opening (and per Try again): the route makes it, and it is
+   * shown here alone, in the command.
+   */
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    setIsMakingKey(true);
+    setKeyError("");
+    setCanRetryKey(false);
+
+    const makeKey: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              RESOURCE_AI_ACCESS_AGENT_KEY_ROUTE,
+            ),
+            data: getResourceAiAccessRequestBody(
+              props.descriptor,
+              props.cloudAccountId.toString(),
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (!isCurrent) {
+          return;
+        }
+
+        if (response instanceof HTTPErrorResponse) {
+          setKeyError(API.getFriendlyMessage(response));
+          setCanRetryKey(
+            isCloudAiAgentKeyFailureRetryable(response.statusCode),
+          );
+          return;
+        }
+
+        const key: string | null = readCloudAiAgentKeyAnswer({
+          answer: response.data,
+          cloudAccountId: props.cloudAccountId.toString(),
+        });
+
+        if (!key) {
+          setCanRetryKey(true);
+          setKeyError(
+            translator.translateText(
+              translationKey(
+                "OneUptime did not send a key for this agent. Try again.",
+              ),
+            ) || "OneUptime did not send a key for this agent. Try again.",
+          );
+          return;
+        }
+
+        setAgentKey(key);
+      } catch (error) {
+        if (isCurrent) {
+          // No answer at all: the network, which may pass.
+          setKeyError(API.getFriendlyMessage(error));
+          setCanRetryKey(true);
+        }
+      } finally {
+        if (isCurrent) {
+          setIsMakingKey(false);
+        }
+      }
+    };
+
+    makeKey().catch(() => {
+      // handled inside makeKey
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [keyRequest]);
 
   // While the dialog is open, ask every few seconds whether the agent connected.
   useEffect(() => {
@@ -226,6 +427,104 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     });
   const status: ResourceAiAccessStatus | null = read.status || props.status;
   const isConnected: boolean = Boolean(status?.agent?.isOnline);
+
+  /*
+   * The organization an AWS account is in, if any: read as the dialog
+   * opens, and every few seconds while every account is chosen, for which
+   * agents connected.
+   */
+  const organizationRead: AiAgentAccessStatusRead<CloudOrganizationView> =
+    useAiAgentAccessStatus<CloudOrganizationView>({
+      route: RESOURCE_AI_ACCESS_ORGANIZATION_PATH,
+      body: getResourceAiAccessRequestBody(
+        props.descriptor,
+        props.cloudAccountId.toString(),
+      ),
+      parse: parseCloudOrganizationView,
+      refreshToken: isOrganizationScope ? pollToken + 1 : 0,
+      isEnabled: props.provider === CloudProvider.AWS,
+    });
+  const organizationView: CloudOrganizationView | null =
+    props.provider === CloudProvider.AWS ? organizationRead.status : null;
+  const canChooseOrganization: boolean = canSetUpCloudAiAgentOrganization({
+    provider: props.provider,
+    view: organizationView,
+  });
+  const isOrganization: boolean = isOrganizationScope && canChooseOrganization;
+
+  // Every account's key, once every account is chosen (and with Try again).
+  useEffect(() => {
+    if (!isOrganization || organizationKeys) {
+      return undefined;
+    }
+
+    let isCurrent: boolean = true;
+
+    setIsMakingOrganizationKeys(true);
+    setOrganizationKeyError("");
+    setCanRetryOrganizationKeys(false);
+
+    const makeKeys: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
+            ),
+            data: getResourceAiAccessRequestBody(
+              props.descriptor,
+              props.cloudAccountId.toString(),
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (!isCurrent) {
+          return;
+        }
+
+        if (response instanceof HTTPErrorResponse) {
+          setOrganizationKeyError(API.getFriendlyMessage(response));
+          setCanRetryOrganizationKeys(
+            isCloudAiAgentKeyFailureRetryable(response.statusCode),
+          );
+          return;
+        }
+
+        const keys: CloudOrganizationKeys | null = parseCloudOrganizationKeys(
+          response.data,
+        );
+
+        if (!keys) {
+          setCanRetryOrganizationKeys(true);
+          setOrganizationKeyError(
+            translator.translateText(
+              CLOUD_AI_AGENT_ORGANIZATION_NO_KEYS_TEXT,
+            ) || CLOUD_AI_AGENT_ORGANIZATION_NO_KEYS_TEXT,
+          );
+          return;
+        }
+
+        setOrganizationKeys(keys);
+      } catch (error) {
+        if (isCurrent) {
+          setOrganizationKeyError(API.getFriendlyMessage(error));
+          setCanRetryOrganizationKeys(true);
+        }
+      } finally {
+        if (isCurrent) {
+          setIsMakingOrganizationKeys(false);
+        }
+      }
+    };
+
+    makeKeys().catch(() => {
+      // handled inside makeKeys
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isOrganization, organizationKeyRequest]);
   /*
    * The project's own switches: the agent's answer below decides how a fix
    * runs, but the project fixes new incidents and alerts only while these
@@ -242,13 +541,11 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     host: HOST,
     isHttps: HTTP_PROTOCOL === Protocol.HTTPS,
   });
-  const ingestionKeyValue: string = ingestionKey?.secretKey?.toString() || "";
-
   const options: CloudAiAgentSetupOptions = getCloudAiAgentSetupOptions({
     provider: props.provider,
     choices,
     oneuptimeUrl,
-    ingestionKey: ingestionKeyValue,
+    agentKey,
     cloudAccountId: props.cloudAccountId.toString(),
     accountId: props.accountId,
   });
@@ -260,13 +557,9 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     });
   let problem: string | null = null;
 
-  if (!ingestionKeyValue) {
-    problem =
-      translator.translateText(
-        translationKey(
-          "Pick the telemetry ingestion key the agent connects with.",
-        ),
-      ) || "Pick the telemetry ingestion key the agent connects with.";
+  if (!agentKey) {
+    // Said where the command goes: making it, or why there is no key.
+    problem = keyError || null;
   } else if (protectedProblem?.kind === "unreadable") {
     problem = translator.translateTemplate(
       "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes.",
@@ -280,7 +573,46 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   } else {
     problem = describeCloudAiAgentSetupProblem(options);
   }
-  const command: string = problem ? "" : getCloudAiAgentSetupCommand(options);
+  // Written only from a key, and only when nothing is wrong with the choices.
+  const command: string =
+    agentKey && !problem ? getCloudAiAgentSetupCommand(options) : "";
+
+  /*
+   * Every account of the organization: written from every account's own
+   * key, with the same choices, once nothing is wrong with them.
+   */
+  const usableOrganizationKeys: CloudOrganizationKeys | null =
+    readCloudOrganizationKeysForSetup({
+      keys: organizationKeys,
+      view: organizationView,
+    });
+  let organizationProblem: string | null = null;
+  let organizationCommand: string = "";
+
+  if (isOrganization) {
+    if (!usableOrganizationKeys) {
+      organizationProblem = organizationKeyError || null;
+    } else if (protectedProblem) {
+      // Said in the reader's language, as for one account.
+      organizationProblem = problem;
+    } else {
+      const organizationOptions: CloudAiAgentOrganizationSetupOptions =
+        getCloudAiAgentOrganizationSetupOptions({
+          choices,
+          oneuptimeUrl,
+          keys: usableOrganizationKeys,
+        });
+
+      organizationProblem =
+        describeCloudAiAgentOrganizationSetupProblem(organizationOptions);
+      organizationCommand = organizationProblem
+        ? ""
+        : getAwsOrganizationCloudAiAgentSetupCommand(organizationOptions);
+    }
+  }
+
+  const skippedAccounts: Array<CloudOrganizationSkippedAccount> =
+    usableOrganizationKeys?.skipped || [];
   const cost: CloudAiAgentCostEstimate = estimateCloudAiAgentMonthlyCost(
     props.provider,
     choices.gcpHost,
@@ -322,9 +654,28 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     setIsSavingLogs(false);
   };
 
-  const environment: Array<CloudAiAgentEnvironmentVariable> = problem
-    ? []
-    : getCloudAiAgentEnvironment(options);
+  const environment: Array<CloudAiAgentEnvironmentVariable> = command
+    ? getCloudAiAgentEnvironment(options)
+    : [];
+
+  /*
+   * What "Run the agent somewhere else" says on this cloud, and the names
+   * it fills in: the image in its first line, the write role, identity or
+   * account in its last.
+   */
+  const elsewhereTexts: CloudAiAgentElsewhereTexts =
+    CLOUD_AI_AGENT_ELSEWHERE_TEXTS[props.provider];
+  const elsewhereNames: Record<string, string> = getCloudAiAgentElsewhereValues(
+    props.provider,
+  );
+  const elsewhereImage: string = elsewhereNames["image"] || "";
+  const elsewhereWriteSlots: Record<string, ReactElement> = {};
+
+  for (const [placeholder, name] of Object.entries(elsewhereNames)) {
+    if (placeholder !== "image") {
+      elsewhereWriteSlots[placeholder] = <ElsewhereName name={name} />;
+    }
+  }
 
   /*
    * What More fields holds, as its folded line lists it - and what of it is
@@ -390,32 +741,169 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  const steps: Array<SetupGuideStepView> = [
+  const organizationSteps: Array<SetupGuideStepView> = [
     {
-      title:
-        translator.translateText(translationKey("Choose an ingestion key")) ||
-        "Choose an ingestion key",
+      title: translator.translateTemplate(
+        CLOUD_AI_AGENT_ORGANIZATION_STEP_TITLE,
+        {
+          shell,
+          account: organizationView?.managementAccountId || "",
+        },
+        // The shell's Latin name and the account id keep their places in Persian.
+        { setsValuesApart: true },
+      ),
       description:
         translator.translateText(
-          translationKey(
-            "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.",
-          ),
+          CLOUD_AI_AGENT_ORGANIZATION_STEP_DESCRIPTION,
         ) || undefined,
       content: (
-        <div data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-key`}>
-          <IngestionKeySelector
-            endpointLabel={translationKey("OneUptime URL")}
-            endpointValue={oneuptimeUrl}
-            keyTypeFilter={TelemetryIngestionKeyType.Server}
-            newKeyName={translationKey("Cloud AI agent key")}
-            hideValues={true}
-            onSelectedKeyChange={(key: TelemetryIngestionKey | null) => {
-              setIngestionKey(key);
-            }}
-          />
+        <div className="space-y-2">
+          {organizationCommand ? (
+            <div
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-organization-command`}
+            >
+              <CodeBlock language="bash" code={organizationCommand} />
+            </div>
+          ) : isMakingOrganizationKeys ? (
+            <p
+              className="text-sm text-gray-500"
+              role="status"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-making-organization-keys`}
+            >
+              {translator.translateText(
+                CLOUD_AI_AGENT_ORGANIZATION_MAKING_KEYS_TEXT,
+              ) || CLOUD_AI_AGENT_ORGANIZATION_MAKING_KEYS_TEXT}
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+              <p
+                className="min-w-0 flex-1 text-sm text-amber-700"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-organization-problem`}
+              >
+                {organizationProblem}
+              </p>
+              {organizationKeyError && canRetryOrganizationKeys ? (
+                <Button
+                  title="Try again"
+                  icon={IconProp.Refresh}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-organization-keys-try-again`}
+                  onClick={() => {
+                    setOrganizationKeyRequest((request: number) => {
+                      return request + 1;
+                    });
+                  }}
+                />
+              ) : (
+                <></>
+              )}
+            </div>
+          )}
+          {/*
+           * The accounts the reader may not edit: no key was made for
+           * them, so the command leaves them out - said with their names.
+           */}
+          {skippedAccounts.length > 0 ? (
+            <div
+              className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-organization-skipped`}
+            >
+              <p className="text-xs text-amber-900">
+                {translator.translatePlural(
+                  CLOUD_AI_AGENT_ORGANIZATION_SKIPPED,
+                  skippedAccounts.length,
+                  { count: translator.formatNumber(skippedAccounts.length) },
+                )}
+              </p>
+              <ul className="mt-1 space-y-0.5 text-xs text-amber-900">
+                {skippedAccounts.map(
+                  (account: CloudOrganizationSkippedAccount): ReactElement => {
+                    return (
+                      <li key={account.cloudAccountId} className="min-w-0">
+                        <bdi>{account.name}</bdi>{" "}
+                        <span dir="ltr" className="font-mono">
+                          ({account.accountId})
+                        </span>
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+            </div>
+          ) : (
+            <></>
+          )}
+          {organizationCommand ? (
+            <p
+              className="text-xs text-gray-500"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-organization-key-note`}
+            >
+              {translator.translateText(CLOUD_AI_AGENT_ORGANIZATION_KEY_NOTE) ||
+                CLOUD_AI_AGENT_ORGANIZATION_KEY_NOTE}
+            </p>
+          ) : (
+            <></>
+          )}
+          <p
+            className="text-xs text-gray-500"
+            data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-organization-cost`}
+          >
+            {translator.translateTemplate(
+              CLOUD_AI_AGENT_ORGANIZATION_COST_TEXT,
+              { usd: String(cost.usd) },
+            )}
+          </p>
         </div>
       ),
     },
+    {
+      title:
+        translator.translateText(CLOUD_AI_AGENT_ORGANIZATION_WAIT_TITLE) ||
+        CLOUD_AI_AGENT_ORGANIZATION_WAIT_TITLE,
+      content: (
+        <div className="space-y-3">
+          {organizationView ? (
+            <CloudAiAgentOrganizationAccounts
+              view={organizationView}
+              currentCloudAccountId={props.cloudAccountId.toString()}
+              skippedCloudAccountIds={skippedAccounts.map(
+                (account: CloudOrganizationSkippedAccount): string => {
+                  return account.cloudAccountId;
+                },
+              )}
+            />
+          ) : (
+            <></>
+          )}
+          {/*
+           * Where to look when an account's agent does not connect: its
+           * stack, as the StackSet lists them in the management account.
+           */}
+          {isEveryCloudOrganizationAgentConnected(organizationView) ? (
+            <></>
+          ) : (
+            <div
+              className="space-y-1"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-organization-instances-command`}
+            >
+              <p className="text-xs text-gray-500">
+                {translator.translateText(
+                  CLOUD_AI_AGENT_ORGANIZATION_INSTANCES_TEXT,
+                )}
+              </p>
+              <CodeBlock
+                language="bash"
+                code={getAwsOrganizationCloudAiAgentInstancesCommand()}
+              />
+            </div>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  const steps: Array<SetupGuideStepView> = [
     {
       title: translator.translateTemplate("Run this in {{shell}}", { shell }),
       description:
@@ -430,13 +918,57 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
             <div data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-command`}>
               <CodeBlock language="bash" code={command} />
             </div>
-          ) : (
+          ) : isMakingKey ? (
             <p
-              className="text-sm text-amber-700"
-              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-problem`}
+              className="text-sm text-gray-500"
+              role="status"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-making-key`}
             >
-              {problem}
+              {translator.translateText(CLOUD_AI_AGENT_MAKING_KEY_TEXT) ||
+                CLOUD_AI_AGENT_MAKING_KEY_TEXT}
             </p>
+          ) : (
+            <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+              <p
+                className="min-w-0 flex-1 text-sm text-amber-700"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-problem`}
+              >
+                {problem}
+              </p>
+              {/*
+               * A key that could not be made for a reason that may pass (no
+               * answer, a server error): asked for again. A refusal says who
+               * may set the agent up, which asking again never changes, so
+               * it stands alone.
+               */}
+              {keyError && canRetryKey ? (
+                <Button
+                  title="Try again"
+                  icon={IconProp.Refresh}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-key-try-again`}
+                  onClick={() => {
+                    setKeyRequest((request: number) => {
+                      return request + 1;
+                    });
+                  }}
+                />
+              ) : (
+                <></>
+              )}
+            </div>
+          )}
+          {command ? (
+            <p
+              className="text-xs text-gray-500"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-key-note`}
+            >
+              {translator.translateText(CLOUD_AI_AGENT_KEY_NOTE) ||
+                CLOUD_AI_AGENT_KEY_NOTE}
+            </p>
+          ) : (
+            <></>
           )}
           <p
             className="text-xs text-gray-500"
@@ -544,15 +1076,80 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Let AI fix problems"
+      /* Every account of the organization: the dialog says so, as its steps do. */
       description={translator.translateTemplate(
-        "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.",
+        isOrganization
+          ? CLOUD_AI_AGENT_ORGANIZATION_DIALOG_DESCRIPTION
+          : CLOUD_AI_AGENT_ACCOUNT_DIALOG_DESCRIPTION,
         { shell },
       )}
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
-      closeButtonText={isConnected ? "Done" : "Close"}
+      closeButtonText={
+        (
+          isOrganization
+            ? isEveryCloudOrganizationAgentConnected(organizationView)
+            : isConnected
+        )
+          ? "Done"
+          : "Close"
+      }
     >
       <div className="space-y-6" data-testid={CLOUD_AI_AGENT_SETUP_TEST_ID}>
+        {/*
+         * An AWS account of an organization: which accounts, before how
+         * far AI may go - the command and its steps follow the answer.
+         */}
+        {canChooseOrganization && organizationView ? (
+          <div data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-scope`}>
+            <SetupGuideOptionPicker
+              label={
+                translator.translateText(CLOUD_AI_AGENT_SCOPE_QUESTION) ||
+                CLOUD_AI_AGENT_SCOPE_QUESTION
+              }
+              options={[
+                {
+                  key: CLOUD_AI_AGENT_SCOPE_ACCOUNT,
+                  label:
+                    translator.translateText(
+                      CLOUD_AI_AGENT_SCOPE_ACCOUNT_TITLE,
+                    ) || CLOUD_AI_AGENT_SCOPE_ACCOUNT_TITLE,
+                  description: translator.translateTemplate(
+                    CLOUD_AI_AGENT_SCOPE_ACCOUNT_DESCRIPTION,
+                    { account: props.accountId },
+                    { setsValuesApart: true },
+                  ),
+                },
+                {
+                  key: CLOUD_AI_AGENT_SCOPE_ORGANIZATION,
+                  label:
+                    translator.translateText(
+                      CLOUD_AI_AGENT_SCOPE_ORGANIZATION_TITLE,
+                    ) || CLOUD_AI_AGENT_SCOPE_ORGANIZATION_TITLE,
+                  description: translator.translateTemplate(
+                    CLOUD_AI_AGENT_SCOPE_ORGANIZATION_DESCRIPTION,
+                    {
+                      count: `${translator.formatNumber(
+                        organizationView.accounts.length,
+                      )}${organizationView.isTruncated ? "+" : ""}`,
+                    },
+                  ),
+                },
+              ]}
+              selectedKey={scope}
+              onSelect={(key: string) => {
+                setScope(
+                  key === CLOUD_AI_AGENT_SCOPE_ORGANIZATION
+                    ? CLOUD_AI_AGENT_SCOPE_ORGANIZATION
+                    : CLOUD_AI_AGENT_SCOPE_ACCOUNT,
+                );
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+
         {/*
          * The guide's one question, above its steps, as "What does the
          * host run?" sits above Add Host's: the command is written from
@@ -608,7 +1205,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
           />
         </div>
 
-        <SetupGuideSteps steps={steps} />
+        <SetupGuideSteps steps={isOrganization ? organizationSteps : steps} />
 
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
@@ -807,11 +1404,18 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                   translationKey("Run the agent somewhere else"),
                 )}
               </p>
-              <p className="text-xs text-gray-600">
-                {translator.translateTemplate(
-                  "Deploy the image {{image}} your own way, with these variables and a role that holds the enabled changes' permissions.",
-                  { image: getCloudAiAgentImage() },
-                )}
+              {/*
+               * The image, with the variables under this line - and the
+               * cloud it must run in, where its identities come from.
+               */}
+              <p
+                className="text-xs text-gray-600"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-elsewhere`}
+              >
+                <TranslatedSentence
+                  template={elsewhereTexts.deploy}
+                  slots={{ image: <ElsewhereName name={elsewhereImage} /> }}
+                />
               </p>
               {environment.length > 0 ? (
                 <CodeBlock
@@ -827,6 +1431,28 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
               ) : (
                 <></>
               )}
+              {/*
+               * Its two identities, one a line, as the setup command makes
+               * them: its own, which changes nothing, and the write role,
+               * identity or account each change runs as.
+               */}
+              <p className="text-xs text-gray-600">
+                {translator.translateText(
+                  CLOUD_AI_AGENT_ELSEWHERE_IDENTITIES_TEXT,
+                )}
+              </p>
+              <ul
+                className="list-disc space-y-1 ps-5 text-xs leading-5 text-gray-600"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-elsewhere-identities`}
+              >
+                <li>{translator.translateText(elsewhereTexts.ownIdentity)}</li>
+                <li>
+                  <TranslatedSentence
+                    template={elsewhereTexts.writeIdentity}
+                    slots={elsewhereWriteSlots}
+                  />
+                </li>
+              </ul>
             </div>
           </div>
         </FoldedSection>

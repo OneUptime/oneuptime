@@ -20,12 +20,15 @@ flowchart TB
     open -->|Ja| join["Tritt ihr bei"]
     open -->|Nein| reopen(["Eine behobene im<br/>Wiederöffnungsfenster?"])
     reopen -->|Ja| reopened["Öffnet sie wieder"]
-    reopen -->|Nein| created["Öffnet eine<br/>neue Episode"]
+    reopen -->|Nein| enough(["Genug passende<br/>Warnungen laufen?"])
+    enough -->|Ja| created["Öffnet eine neue Episode<br/>mit ihnen allen"]
+    enough -->|Noch nicht| waits["Wartet für sich"]
 ```
 
 - **Die Bedingungen der Regel** entscheiden, für welche Warnungen sie gilt. Eine Regel ohne Bedingungen gilt für jede neue Warnung.
 - **Der Gruppierungsschlüssel** entscheidet, welche Warnungen sich eine Episode teilen: die mit demselben Monitor, demselben Schweregrad, demselben Titel oder der Mischung, nach der die Regel gruppiert. Eine Regel, die nach nichts gruppiert, legt jede Warnung, auf die sie zutrifft, in eine einzige Episode.
 - **Das Zeitfenster** entscheidet, wie lange eine Episode Warnungen aufnimmt. Ist es eingeschaltet, tritt eine Warnung nur bei, wenn sie innerhalb des Fensters nach der letzten Warnung der Episode eintrifft. Ist es ausgeschaltet, treten passende Warnungen bei, bis die Episode behoben ist.
+- **Auf weitere Warnungen warten** entscheidet, wann eine neue Episode geöffnet wird. Ist es ausgeschaltet, womit eine neue Regel beginnt, öffnet die erste passende Warnung eine. Ist es eingeschaltet, wartet eine Warnung für sich, bis die von Ihnen eingestellte Anzahl passender Warnungen ihrer Gruppe läuft, und dann öffnet sich eine Episode mit ihnen allen. Siehe [Eine Episode nur für mehrere Warnungen öffnen](#eine-episode-nur-für-mehrere-warnungen-öffnen).
 
 Gruppiert wird, wenn eine Warnung erstellt wird. Eine Regel, die Sie heute hinzufügen, gruppiert die danach erstellten Warnungen; die bereits vorhandenen gruppiert sie nicht neu.
 
@@ -72,10 +75,21 @@ Alles Weitere, was eine Regel kann, ist unter **Weitere Felder** am Ende des Sch
 | Gruppe                                | Einstellungen                                                                                              |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Bereitschaft & Eigentümerschaft**   | **Bereitschaftsrichtlinien**, die laufen, wenn die Regel eine Episode öffnet, und **Episoden-Eigentümer**. |
-| **Episodenlebenszyklus**              | **Kürzlich behobene Episoden wieder öffnen**, **Vor dem Beheben einer Episode warten** und **Ruhige Episoden beheben**, jeweils ein Schalter mit seinen Minuten. |
+| **Episodenlebenszyklus**              | **Auf weitere Warnungen warten**, ein Schalter mit einer Anzahl, dann **Kürzlich behobene Episoden wieder öffnen**, **Vor dem Beheben einer Episode warten** und **Ruhige Episoden beheben**, jeweils ein Schalter mit seinen Minuten. |
 | **Details**                           | Die **Beschreibung** der Regel, die **Episodentitelvorlage**, die **Episodenbeschreibungsvorlage** und **Episoden-Beschriftungen**. |
 
 Regeln werden von oben nach unten geprüft, und der erste Treffer gewinnt: Ziehen Sie eine Regel, um ihren Platz zu ändern. Setzen Sie spezifische Regeln über allgemeine. Die Spalte **Gruppierung** der Liste sagt in einem Satz, was jede Regel tut, etwa „Eine Episode pro Monitor“.
+
+### Eine Episode nur für mehrere Warnungen öffnen
+
+**Auf weitere Warnungen warten** unter **Episodenlebenszyklus** hält eine einzelne Warnung aus einer Episode heraus. Schalten Sie es ein und legen Sie fest, wie viele: **Episode öffnen, sobald 3 passende Warnungen laufen**, von 2 bis 100.
+
+- **Bis dahin wartet jede Warnung für sich.** Eine Warnung, die keine offene Episode ihrer Gruppe zum Beitreten und keine behobene zum Wiederöffnen findet, öffnet nichts und führt nur ihre eigenen Bereitschaftsrichtlinien aus, wie eine Warnung, auf die keine Regel zutrifft.
+- **Dann öffnet sich eine Episode mit ihnen allen.** Die Warnung, mit der die Anzahl erreicht ist, öffnet die Episode mit jeder Warnung, die gewartet hat. Die Episode übernimmt Titel, Monitor und Schweregrad von der ersten von ihnen und steigt auf den schwersten Schweregrad, und die Warnungen danach treten ihr wie gewohnt bei.
+- **Nur laufende Warnungen zählen.** Eine zwischendurch behobene ist vorbei, sodass ein Monitor, der immer wieder ausfällt und sich erholt, nie von sich aus eine Episode öffnet. Solange **Nur Warnungen gruppieren, die kurz nacheinander eintreffen** eingeschaltet ist, müssen die Warnungen außerdem innerhalb seines Fensters zueinander eingetroffen sein.
+- **Es zählt pro Gruppe.** Mit **Alles zusammen** zählen alle passenden Warnungen, sodass sich eine Episode nur bei einem Ausfall öffnet, der mehrere Monitore zugleich auslöst. Mit **Überwachung** öffnet sich die Episode eines Monitors, sobald dieser Monitor mehrere laufende Warnungen hat.
+
+Die Spalte **Gruppierung** der Liste sagt „Öffnet eine Episode, sobald 3 passende Warnungen laufen“. Über die API und Terraform heißt es `enableMinimumAlertCount` und `minimumAlertCount`.
 
 ## Episodentitel
 
@@ -117,6 +131,7 @@ flowchart TB
 
 - **Eine neue Episode** führt die **Bereitschaftsrichtlinien** der Regel aus, dazu die jeder passenden Regel auf dem Tab **Episodenregeln** unter **Warnungen → Regeln → Bereitschaftsregeln**.
 - **Eine Warnung, die einer offenen Episode beitritt,** führt nur ihre eigenen Richtlinien aus. Die der Episode laufen nicht noch einmal.
+- **Eine Warnung, die auf weitere Warnungen wartet,** führt ebenfalls nur ihre eigenen Richtlinien aus. Ist **Auf weitere Warnungen warten** eingeschaltet und sind die Richtlinien der Regel die einzigen, die alarmieren, alarmiert eine einzelne Warnung niemanden, bis genug von ihnen laufen.
 - **Wer auf die Alarmierung einer Episode antwortet,** bestätigt die Episode und damit jede Warnung in ihr.
 
 > [!TIP]
@@ -161,6 +176,8 @@ Eine Episode, die Sie erstellen, hat keine Gruppierungsregel, deshalb zeigt die 
 | **Erweitert** | **Audit-Protokolle**, **Episode löschen** |
 
 **Entwickler** und **Erweitert** sind zunächst eingeklappt. In der **Übersicht** nennt die Kopfzeile die **Eigentümer** der Episode, Teams zuerst, und die erste Kachel, **Erstellt**, sagt, wann die Episode entstand – **Automatisch**, wenn eine Gruppierungsregel sie eröffnet hat. Die Karte **Hergang** führt die Seite an – die Beschreibung der Episode und ihre **Grundursache** –, dann folgen **Warnungen in dieser Episode** und der **Episoden-Feed**, neben der Karte **Episodendetails**: Nummer, Status, Schweregrad, Anzahl der Warnungen, Gruppierungsregel und Bereitschaftsrichtlinien. Ihr Kopfbereich hat **Bestätigen** und **Beheben**, und **Episode verschieben nach** im Menü **⋯**.
+
+Die Seite **Grundursache** zeigt neben der Grundursache die Metriken hinter der Episode: die ihrer ersten Warnung, der am frühesten erstellten, so wie die Telemetriekarte ihrer **Übersicht** sie zeigt, rund um den Beginn der Episode und mit ihren Zeitpunkten markiert, sodass Sie sie über jeden Zeitraum rund um die Episode lesen können, während Sie festhalten, warum sie eingetreten ist. Hat diese Warnung keine Momentaufnahme einer Metrikprüfung behalten (etwa eine, die von Hand für einen Metrik-Monitor erstellt wurde), zeigt die Seite die Metriken dieses Monitors so, wie der Monitor sie jetzt liest, und sagt das.
 
 **Warnungen → Aktive Episoden** listet die Episoden, die noch nicht behoben sind, und das Abzeichen daneben zählt sie.
 

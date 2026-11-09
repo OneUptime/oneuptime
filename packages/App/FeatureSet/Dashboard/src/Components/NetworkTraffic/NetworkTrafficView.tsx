@@ -29,6 +29,11 @@ import {
   readNetworkTrafficUsageFilters,
   toMerakiUrlParams,
 } from "./Meraki/MerakiUrlState";
+import { hasMerakiTraffic } from "./Meraki/MerakiTrafficRows";
+import {
+  readRememberedTrafficSide,
+  rememberTrafficSide,
+} from "./Meraki/TrafficSideMemory";
 import {
   formatBitsPerSecond,
   formatTrafficBytes,
@@ -111,6 +116,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -133,6 +139,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * THE TRAFFIC PAGE - a device's, a site's, or the whole network's.
@@ -165,10 +172,18 @@ import React, {
  * connection read it from the Meraki dashboard API - uplinks, applications,
  * clients - with nothing set up on the devices (MerakiTrafficView). When
  * the page has both, a switch in the header picks one, and it is kept in
- * the URL (MerakiUrlState); a page with Meraki traffic and no flow records
- * opens on Meraki, and every other page opens as it did before. The whole
- * network's page lists the connections at its foot, and its set-up guide
- * offers to connect one.
+ * the URL (MerakiUrlState). Which side a page opens on (issue #5762,
+ * MerakiUrlState.pickTrafficSide): the one a link names; else the one the
+ * reader last picked on this kind of page in this project
+ * (TrafficSideMemory); else Meraki when Meraki reported traffic of the page
+ * in its time range, the flow records otherwise. Once open, the page stays
+ * on its side while the range changes, unless the reader switches. The
+ * whole network's page lists the connections at its foot, and its set-up
+ * guide offers to connect one.
+ *
+ * A device's page in a project that reads Meraki has the switch even before
+ * the device has Meraki traffic: its Meraki side says the device is not
+ * linked to a Meraki appliance, and links it (MerakiDeviceAppliance).
  */
 
 export type NetworkTrafficScope =
@@ -194,6 +209,13 @@ interface LoadedTraffic {
   // The view the summary answers; while the next loads, what is on screen.
   view: NetworkTrafficViewState;
 }
+
+/*
+ * How long after a link is made or undone the page reads its traffic once
+ * more: the traffic already stored is filed under the device in the
+ * background, within seconds.
+ */
+export const APPLIANCE_REFILE_REREAD_MS: number = 5000;
 
 export const TRAFFIC_HELP: {
   sources: string;
@@ -402,6 +424,20 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   const [usageError, setUsageError] = useState<string>("");
   const [isConnectOpen, setIsConnectOpen] = useState<boolean>(false);
   const [connectionsRefreshKey, setConnectionsRefreshKey] = useState<number>(0);
+  /*
+   * The side the reader picked last on this kind of page (TrafficSideMemory),
+   * read once; and the side this page settled on by itself, once both of its
+   * sources answered - kept while the range changes, so the page never jumps
+   * from one side to the other under the reader.
+   */
+  const projectId: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString() || undefined;
+  const [rememberedSource] = useState<TrafficSide | null>(
+    (): TrafficSide | null => {
+      return readRememberedTrafficSide(projectId, scope.kind);
+    },
+  );
+  const [settledSource, setSettledSource] = useState<TrafficSide | null>(null);
 
   // Only the newest fetch lands: a drag and a double-click can overlap.
   const latestFetchRef: React.MutableRefObject<number> = useRef<number>(0);
@@ -412,6 +448,12 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     Navigation.setQueryString(
       toMerakiUrlParams({ source: next, filters: usageFilters }),
     );
+  };
+
+  // The reader's own pick: shown, kept in the URL, and remembered.
+  const pickSource: (next: TrafficSide) => void = (next: TrafficSide): void => {
+    setSource(next);
+    rememberTrafficSide(projectId, scope.kind, next);
   };
 
   const setUsageFilters: (next: NetworkTrafficUsageFilters) => void = (
@@ -868,7 +910,9 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
         ) : exporterLabel.name ? (
           <Fragment>
             <TrafficAddressText address={row.exporterIp} />
-            <span aria-hidden="true"> · </span>
+            <span aria-hidden="true">
+              <InlineSeparator />
+            </span>
             {translator.translateText("Not a device yet")}
           </Fragment>
         ) : (
@@ -1096,13 +1140,103 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   })();
 
   const isMerakiAvailable: boolean = Boolean(usage?.isAvailable);
+  // A device's page with nothing of Meraki's yet, offered to be linked.
+  const isMerakiOffered: boolean =
+    scope.kind === "device" &&
+    !isMerakiAvailable &&
+    Boolean(usage?.deviceAppliance);
+  const merakiHasTraffic: boolean = Boolean(
+    usage && usage.isAvailable && hasMerakiTraffic(usage),
+  );
   const hasFlowRecords: boolean = Boolean(summary) && !needsSetup;
+  // Both sources answered: the page can settle on a side.
+  const isSideDecided: boolean =
+    isUsageSettled && (Boolean(summary) || (!isLoading && Boolean(error)));
+  const sideInputs: {
+    isMerakiAvailable: boolean;
+    isMerakiOffered: boolean;
+    merakiHasTraffic: boolean;
+    hasFlows: boolean;
+  } = {
+    isMerakiAvailable,
+    isMerakiOffered,
+    merakiHasTraffic,
+    hasFlows: hasFlowRecords,
+  };
+  const settlingSource: TrafficSide = pickTrafficSide({
+    picked: null,
+    remembered: rememberedSource,
+    ...sideInputs,
+  });
+
+  useEffect(() => {
+    if (isSideDecided && settledSource === null) {
+      setSettledSource(settlingSource);
+    }
+  }, [isSideDecided, settlingSource, settledSource]);
+
   const side: TrafficSide = pickTrafficSide({
     picked: pickedSource,
-    isMerakiAvailable,
-    hasFlows: hasFlowRecords,
+    remembered: rememberedSource || settledSource,
+    ...sideInputs,
   });
   const isMerakiShown: boolean = isUsageSettled && side === TrafficSide.Meraki;
+
+  /*
+   * The page's request as a whole list reads it: whose traffic, and the
+   * time range as of when the list opens.
+   */
+  const getUsageRequest: () => NetworkTrafficUsageRequest =
+    (): NetworkTrafficUsageRequest => {
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(view.range);
+      const request: NetworkTrafficUsageRequest = {
+        startTime: OneUptimeDate.toString(dateRange.startValue),
+        endTime: OneUptimeDate.toString(dateRange.endValue),
+        filters: usageFilters,
+      };
+
+      if (scope.kind === "device") {
+        request.networkDeviceId = scope.networkDeviceId.toString();
+      } else if (scope.kind === "site") {
+        request.networkSiteId = scope.networkSiteId.toString();
+      }
+
+      return request;
+    };
+
+  /*
+   * A link to an appliance made or undone: read again now, and once more a
+   * moment later, when the traffic already stored has been filed.
+   */
+  const refileTimerRef: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (refileTimerRef.current) {
+        clearTimeout(refileTimerRef.current);
+      }
+    };
+  }, []);
+
+  // The page's traffic read once more, as it stands.
+  const readAgain: () => void = (): void => {
+    setRefreshKey((key: number) => {
+      return key + 1;
+    });
+  };
+
+  const onApplianceChanged: () => void = (): void => {
+    readAgain();
+
+    if (refileTimerRef.current) {
+      clearTimeout(refileTimerRef.current);
+    }
+
+    refileTimerRef.current = setTimeout(readAgain, APPLIANCE_REFILE_REREAD_MS);
+  };
 
   /*
    * Connecting Meraki is for who may add a connection (project owners and
@@ -1115,41 +1249,42 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     { singularName: MERAKI_CONNECTION_NAME },
   );
 
-  const sourceSwitch: ReactElement = isMerakiAvailable ? (
-    <div
-      className="inline-flex rounded-md bg-gray-50 p-0.5 ring-1 ring-gray-200"
-      role="group"
-      aria-label={translator.translateText("Show traffic from")}
-      data-testid="traffic-source-switch"
-    >
-      {[TrafficSide.Flows, TrafficSide.Meraki].map(
-        (option: TrafficSide): ReactElement => {
-          return (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={side === option}
-              className={`rounded px-2.5 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                side === option
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-900"
-              }`}
-              onClick={() => {
-                setSource(option);
-              }}
-              data-testid={`traffic-source-${option}`}
-            >
-              {option === TrafficSide.Meraki
-                ? translator.translateText("Meraki")
-                : translator.translateText("Flows")}
-            </button>
-          );
-        },
-      )}
-    </div>
-  ) : (
-    <></>
-  );
+  const sourceSwitch: ReactElement =
+    isMerakiAvailable || isMerakiOffered ? (
+      <div
+        className="inline-flex rounded-md bg-gray-50 p-0.5 ring-1 ring-gray-200"
+        role="group"
+        aria-label={translator.translateText("Show traffic from")}
+        data-testid="traffic-source-switch"
+      >
+        {[TrafficSide.Flows, TrafficSide.Meraki].map(
+          (option: TrafficSide): ReactElement => {
+            return (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={side === option}
+                className={`rounded px-2.5 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  side === option
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
+                onClick={() => {
+                  pickSource(option);
+                }}
+                data-testid={`traffic-source-${option}`}
+              >
+                {option === TrafficSide.Meraki
+                  ? translator.translateText("Meraki")
+                  : translator.translateText("Flows")}
+              </button>
+            );
+          },
+        )}
+      </div>
+    ) : (
+      <></>
+    );
 
   const headerElement: ReactElement = (
     <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1175,8 +1310,14 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
           headerElement={headerElement}
           hasFlows={hasFlowRecords}
           onShowFlows={() => {
-            setSource(TrafficSide.Flows);
+            pickSource(TrafficSide.Flows);
           }}
+          getRequest={getUsageRequest}
+          networkDeviceId={
+            scope.kind === "device" ? scope.networkDeviceId : undefined
+          }
+          onApplianceChanged={onApplianceChanged}
+          onReadAgain={readAgain}
         />
       ) : (
         <Fragment>

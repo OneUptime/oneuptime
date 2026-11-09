@@ -25,10 +25,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * overviews (TelemetrySnapshotPanel) and the companion tabs every snapshot
  * card carries (TelemetryCompanionSignalTabs).
  *
- * - The primary metric chart is pinned to the window the monitor
- *   evaluated. A drag zooms the whole snapshot (the companion tabs are
- *   handed the slice; see TelemetrySnapshotZoomAcrossTabs.test), and a
- *   double-click or Reset zoom returns to that window.
+ * - A metric snapshot is the metric investigation (issue #5954): it
+ *   charts the range around the event's start (an episode panel handed no
+ *   start anchors on the end of what the monitor evaluated). A drag zooms
+ *   the whole card (the companion tabs are handed the slice; see
+ *   TelemetrySnapshotZoomAcrossTabs.test), and a double-click or Reset zoom
+ *   returns to the range picked before.
  * - A zoom made inside a companion tab stays the companion's own. The same
  *   card opens inside the investigation drawer, over pages whose charts
  *   zoom the page: none of that page's zoom may reach a companion (no
@@ -36,11 +38,18 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   no retiming the page from the companion metric card), while the
  *   host's own primary element keeps whatever zoom the host gives it.
  *
+ * - A logs, traces or exceptions snapshot holds a time range of its own
+ *   (issue #6251): what the monitor saw until the reader picks another
+ *   range around the event. Untouched, its explorer is handed the stored
+ *   query itself, and offered the card's zoom over that window; a snapshot
+ *   that kept no window shows its query as it always did, with no picker
+ *   and no zoom; the card names its range in the reader's words.
+ *
  * MetricView and EmbeddedMetricCard are real; MetricCharts is stood in for
  * by buttons that call exactly the handlers MetricView hands the charts.
  * The log / trace / exception viewers are stood in for by what matters
- * here: the zoom they would see, and the Reset zoom their time picker
- * (TelemetryTimeRangePicker) renders from it.
+ * here: what they are handed, the zoom they would see, and the Reset zoom
+ * their time picker (TelemetryTimeRangePicker) renders from it.
  */
 
 const fetchResultsMock: MockFunction = getJestMockFunction();
@@ -59,6 +68,8 @@ interface MockChartsProps {
 const mockChartsByMetric: Record<string, MockChartsProps> = {};
 // The zoom each stood-in viewer saw, by viewer.
 const mockViewerZoom: Record<string, unknown> = {};
+// What each stood-in viewer was last handed, by viewer.
+const mockViewerProps: Record<string, Record<string, unknown>> = {};
 
 const MOCK_DRAG: { start: Date; end: Date } = {
   start: new Date("2026-09-14T17:50:00.000Z"),
@@ -127,11 +138,12 @@ jest.mock(
 
 function mockViewer(name: string): {
   __esModule: boolean;
-  default: () => React.ReactElement;
+  default: (props: Record<string, unknown>) => React.ReactElement;
 } {
   return {
     __esModule: true,
-    default: (): React.ReactElement => {
+    default: (props: Record<string, unknown>): React.ReactElement => {
+      mockViewerProps[name] = props;
       const zoomContext: { useChartTimeRangeZoom: () => unknown } =
         jest.requireActual(
           "../../../UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext",
@@ -234,6 +246,8 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import TelemetrySnapshotPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetrySnapshotPanel";
+import { EventMetricSubject } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventMetricInvestigation";
+import { getTimeRangeButtonLabel } from "../../../UI/Components/Date/TimeRangePickerDropdown";
 import TelemetryCompanionSignalTabs from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetryCompanionSignalTabs";
 import {
   ChartTimeRangeZoomContextValue,
@@ -244,7 +258,6 @@ import ResetTimeRangeZoomButton, {
   RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID,
 } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
-import OneUptimeDate from "../../../Types/Date";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import ObjectID from "../../../Types/ObjectID";
@@ -363,6 +376,8 @@ function logSnapshotQuery(): TelemetryQuery {
 beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
+  // The investigation keeps what the reader changed in the page's URL.
+  window.history.replaceState({}, "", "/");
   fetchResultsMock.mockReset();
   analyticsGetListMock.mockReset();
   for (const key of Object.keys(mockChartsByMetric)) {
@@ -370,6 +385,9 @@ beforeEach(() => {
   }
   for (const key of Object.keys(mockViewerZoom)) {
     delete mockViewerZoom[key];
+  }
+  for (const key of Object.keys(mockViewerProps)) {
+    delete mockViewerProps[key];
   }
   fetchResultsMock.mockImplementation(() => {
     return Promise.resolve([{ data: [], truncated: false }]);
@@ -384,7 +402,11 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe("the episode overview's snapshot panel: the primary metric chart", () => {
+describe("the episode overview's snapshot panel: a metric snapshot's investigation", () => {
+  // Thirty minutes either side of the end of what the monitor evaluated.
+  const AROUND_START_START: Date = new Date("2026-09-14T17:30:00.000Z");
+  const AROUND_START_END: Date = new Date("2026-09-14T18:30:00.000Z");
+
   function renderPanel(telemetryQuery: TelemetryQuery): RenderResult {
     return render(
       <TelemetrySnapshotPanel
@@ -396,18 +418,25 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
     );
   }
 
-  test("charts the snapshot window and offers a drag, with no reset yet", async () => {
+  function pickedRange(): string {
+    return (
+      screen.getByTestId("metric-investigation-time-button").textContent || ""
+    );
+  }
+
+  test("charts the range around the start and offers a drag, with no reset yet", async () => {
     renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
     expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-      windowOf(SNAPSHOT_START, SNAPSHOT_END),
+      windowOf(AROUND_START_START, AROUND_START_END),
     );
+    expect(pickedRange()).toContain("Around the start");
     expect(chartsOf(PRIMARY_METRIC).onTimeRangeSelect).toBeInstanceOf(Function);
     expect(chartsOf(PRIMARY_METRIC).onTimeRangeReset).toBeUndefined();
   });
 
-  test("a drag zooms the chart; the badge keeps naming the snapshot window", async () => {
+  test("a drag zooms the chart; the picker names the slice, with Reset zoom beside it", async () => {
     renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
@@ -418,17 +447,13 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
         windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
       );
     });
-    expect(
-      screen.getByText(
-        OneUptimeDate.getInBetweenDatesAsFormattedString(SNAPSHOT),
-      ),
-    ).toBeInTheDocument();
+    expect(pickedRange()).not.toContain("Around the start");
     expect(
       screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
     ).toBeVisible();
   });
 
-  test("a double-click returns to the snapshot window", async () => {
+  test("a double-click returns to the range around the start", async () => {
     renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
@@ -442,7 +467,7 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
 
     await waitFor(() => {
       expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-        windowOf(SNAPSHOT_START, SNAPSHOT_END),
+        windowOf(AROUND_START_START, AROUND_START_END),
       );
     });
     expect(
@@ -450,7 +475,7 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
     ).toBeNull();
   });
 
-  test("Reset zoom returns to the snapshot window too", async () => {
+  test("Reset zoom returns to it too", async () => {
     renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
@@ -461,12 +486,12 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
 
     await waitFor(() => {
       expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-        windowOf(SNAPSHOT_START, SNAPSHOT_END),
+        windowOf(AROUND_START_START, AROUND_START_END),
       );
     });
   });
 
-  test("a stored snapshot whose bounds came back as ISO strings zooms and resets to the same instants", async () => {
+  test("a stored snapshot whose bounds came back as ISO strings anchors, zooms and resets to the same instants", async () => {
     renderPanel(
       metricSnapshotQuery(
         new InBetween<Date>(
@@ -476,6 +501,10 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
       ),
     );
     await chartsSettled(PRIMARY_METRIC);
+
+    expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
+      windowOf(AROUND_START_START, AROUND_START_END),
+    );
 
     await press(`Drag across ${PRIMARY_METRIC}`);
     await waitFor(() => {
@@ -487,7 +516,7 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
 
     await waitFor(() => {
       expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-        windowOf(SNAPSHOT_START, SNAPSHOT_END),
+        windowOf(AROUND_START_START, AROUND_START_END),
       );
     });
   });
@@ -530,7 +559,7 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
     );
   });
 
-  test("a different snapshot window ends the zoom and charts that window", async () => {
+  test("a different snapshot window keeps the reader's zoom, and a reset goes around its new start", async () => {
     const result: RenderResult = renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
@@ -554,14 +583,27 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
       />,
     );
 
+    // The zoom is the reader's pick, not the record's.
+    expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
+      windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
+    );
+
+    fireEvent.click(
+      await screen.findByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
+    );
+
+    /*
+     * Around the new start, cut at now: a moment after NOW, as the waits
+     * above move the fake clock on by a few ticks.
+     */
     await waitFor(() => {
-      expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-        windowOf(nextStart, nextEnd),
-      );
+      const [startMs, endMs]: [number, number] =
+        lastFetchedWindowFor(PRIMARY_METRIC)!;
+
+      expect(startMs).toBe(new Date("2026-09-14T18:15:00.000Z").getTime());
+      expect(endMs).toBeGreaterThanOrEqual(NOW.getTime());
+      expect(endMs - NOW.getTime()).toBeLessThan(60 * 1000);
     });
-    expect(
-      screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
-    ).toBeNull();
   });
 
   test.each([
@@ -762,4 +804,275 @@ describe("the companion tabs inside a page that zooms (the investigation drawer'
       "2026-09-14T14:00:00.000Z/2026-09-14T15:00:00.000Z",
     );
   });
+});
+
+describe("the snapshot panel: a logs, traces or exceptions snapshot's time range (issue #6251)", () => {
+  const PRIMARIES: Array<[string, TelemetryType, string, string, string]> = [
+    ["Logs", TelemetryType.Log, "time", "logs", "logQuery"],
+    ["Traces", TelemetryType.Trace, "startTime", "traces", "spanQuery"],
+    [
+      "Exceptions",
+      TelemetryType.Exception,
+      "time",
+      "exceptions",
+      "exceptionInstanceQuery",
+    ],
+  ];
+
+  function stored(
+    telemetryType: TelemetryType,
+    field: string,
+    window: InBetween<Date> | null,
+  ): TelemetryQuery {
+    return {
+      telemetryType: telemetryType,
+      telemetryQuery: (window
+        ? { [field]: window, severityText: "Error" }
+        : { severityText: "Error" }) as never,
+      metricViewData: null,
+    };
+  }
+
+  function windowLabel(window: InBetween<Date>): string {
+    return getTimeRangeButtonLabel({
+      range: TimeRange.CUSTOM,
+      startAndEndDate: window,
+    });
+  }
+
+  function pickerButton(): HTMLElement {
+    return screen.getByTestId("metric-investigation-time-button");
+  }
+
+  test.each(PRIMARIES)(
+    "%s: untouched, the explorer is handed the stored query itself, and offered the card's zoom over what the monitor saw",
+    async (
+      _name: string,
+      telemetryType: TelemetryType,
+      field: string,
+      viewer: string,
+      queryProp: string,
+    ) => {
+      const telemetryQuery: TelemetryQuery = stored(
+        telemetryType,
+        field,
+        SNAPSHOT,
+      );
+
+      render(
+        <TelemetrySnapshotPanel
+          telemetryQuery={telemetryQuery}
+          snapshotWindow={SNAPSHOT}
+          seriesSummary=""
+          eventNoun="incident"
+        />,
+      );
+      await screen.findByTestId(`viewer-${viewer}`);
+
+      // The very object the page stored: nothing for the explorer to redo.
+      expect(mockViewerProps[viewer]![queryProp]).toBe(
+        telemetryQuery.telemetryQuery,
+      );
+      const zoom: {
+        isZoomed: boolean;
+        timeRange: { range: string; startAndEndDate: InBetween<Date> };
+      } = mockViewerZoom[viewer] as never;
+      expect(zoom.isZoomed).toBe(false);
+      expect(zoom.timeRange.range).toBe(TimeRange.CUSTOM);
+      expect(zoom.timeRange.startAndEndDate.startValue.getTime()).toBe(
+        SNAPSHOT_START.getTime(),
+      );
+      expect(zoom.timeRange.startAndEndDate.endValue.getTime()).toBe(
+        SNAPSHOT_END.getTime(),
+      );
+      expect(pickerButton()).toHaveTextContent("What the monitor saw");
+      expect(pickerButton()).toHaveAttribute("title", windowLabel(SNAPSHOT));
+    },
+  );
+
+  test.each(PRIMARIES)(
+    "%s: a snapshot that kept no window shows its query as it always did, with no picker and no zoom",
+    async (
+      _name: string,
+      telemetryType: TelemetryType,
+      field: string,
+      viewer: string,
+      queryProp: string,
+    ) => {
+      const telemetryQuery: TelemetryQuery = stored(telemetryType, field, null);
+
+      render(
+        <TelemetrySnapshotPanel
+          telemetryQuery={telemetryQuery}
+          snapshotWindow={null}
+          seriesSummary=""
+          eventNoun="incident"
+        />,
+      );
+      await screen.findByTestId(`viewer-${viewer}`);
+
+      expect(mockViewerProps[viewer]![queryProp]).toBe(
+        telemetryQuery.telemetryQuery,
+      );
+      expect(mockViewerZoom[viewer]).toBeNull();
+      expect(
+        screen.queryByTestId("metric-investigation-time-button"),
+      ).toBeNull();
+      // No other tabs either: there is no window to scope them to.
+      expect(screen.queryByRole("tab")).toBeNull();
+      expect(window.location.search).toBe("");
+    },
+  );
+
+  test("a stored window whose bounds came back as ISO strings is named in real dates", async () => {
+    const isoWindow: InBetween<Date> = new InBetween<Date>(
+      SNAPSHOT_START.toISOString() as unknown as Date,
+      SNAPSHOT_END.toISOString() as unknown as Date,
+    );
+
+    render(
+      <TelemetrySnapshotPanel
+        telemetryQuery={stored(TelemetryType.Log, "time", isoWindow)}
+        snapshotWindow={isoWindow}
+        seriesSummary=""
+        eventNoun="incident"
+      />,
+    );
+    await screen.findByTestId("viewer-logs");
+
+    expect(pickerButton()).toHaveAttribute("title", windowLabel(SNAPSHOT));
+    fireEvent.click(pickerButton());
+    const evaluated: HTMLElement = screen.getByTestId(
+      "metric-investigation-time-moment-evaluated",
+    );
+    expect(evaluated).toHaveTextContent(windowLabel(SNAPSHOT));
+    expect(evaluated.textContent).not.toContain("Invalid Date");
+  });
+
+  test.each([
+    [
+      "an incident's",
+      "incident",
+      EventMetricSubject.Incident,
+      "Around this incident",
+    ],
+    ["an alert's", "alert", EventMetricSubject.Alert, "Around this alert"],
+    ["an incident episode's", "incident", undefined, "Around this episode"],
+    [
+      "an alert episode's",
+      "alert",
+      EventMetricSubject.AlertEpisode,
+      "Around this episode",
+    ],
+  ])(
+    "%s card offers the ranges around it under its own heading",
+    async (
+      _name: string,
+      eventNoun: string,
+      subject: EventMetricSubject | undefined,
+      heading: string,
+    ) => {
+      render(
+        <TelemetrySnapshotPanel
+          telemetryQuery={stored(TelemetryType.Log, "time", SNAPSHOT)}
+          snapshotWindow={SNAPSHOT}
+          seriesSummary=""
+          eventNoun={eventNoun as "incident" | "alert"}
+          subject={subject}
+        />,
+      );
+      await screen.findByTestId("viewer-logs");
+
+      fireEvent.click(pickerButton());
+
+      expect(
+        within(
+          screen.getByTestId("metric-investigation-time-dropdown"),
+        ).getByText(heading),
+      ).toBeVisible();
+    },
+  );
+
+  test("the ranges are anchored on the start the page hands over", async () => {
+    render(
+      <TelemetrySnapshotPanel
+        telemetryQuery={stored(TelemetryType.Log, "time", SNAPSHOT)}
+        snapshotWindow={SNAPSHOT}
+        seriesSummary=""
+        eventNoun="incident"
+        startedAt={new Date("2026-09-14T18:05:00.000Z")}
+      />,
+    );
+    await screen.findByTestId("viewer-logs");
+
+    fireEvent.click(pickerButton());
+    fireEvent.click(screen.getByText("The hour before it started"));
+
+    await waitFor(() => {
+      const query: Record<string, unknown> = mockViewerProps["logs"]![
+        "logQuery"
+      ] as Record<string, unknown>;
+      const window: InBetween<Date> = query["time"] as InBetween<Date>;
+      expect([
+        window.startValue.toISOString(),
+        window.endValue.toISOString(),
+      ]).toEqual(["2026-09-14T17:05:00.000Z", "2026-09-14T18:05:00.000Z"]);
+      // Every other filter of the stored query is kept.
+      expect(query["severityText"]).toBe("Error");
+    });
+  });
+
+  test.each([
+    ["Logs", TelemetryType.Log, "time", "incident", "Logs for this incident."],
+    ["Logs", TelemetryType.Log, "time", "alert", "Logs for this alert."],
+    [
+      "Spans",
+      TelemetryType.Trace,
+      "startTime",
+      "incident",
+      "Spans for this incident.",
+    ],
+    [
+      "Spans",
+      TelemetryType.Trace,
+      "startTime",
+      "alert",
+      "Spans for this alert.",
+    ],
+    [
+      "Exceptions",
+      TelemetryType.Exception,
+      "time",
+      "incident",
+      "Exceptions related to this incident.",
+    ],
+    [
+      "Exceptions",
+      TelemetryType.Exception,
+      "time",
+      "alert",
+      "Exceptions for this alert.",
+    ],
+  ])(
+    "the %s card of %s says what it lists: %s",
+    async (
+      title: string,
+      telemetryType: TelemetryType,
+      field: string,
+      eventNoun: string,
+      description: string,
+    ) => {
+      render(
+        <TelemetrySnapshotPanel
+          telemetryQuery={stored(telemetryType, field, SNAPSHOT)}
+          snapshotWindow={SNAPSHOT}
+          seriesSummary=""
+          eventNoun={eventNoun as "incident" | "alert"}
+        />,
+      );
+
+      expect(await screen.findByText(description)).toBeVisible();
+      expect(screen.getAllByText(title).length).toBeGreaterThan(0);
+    },
+  );
 });

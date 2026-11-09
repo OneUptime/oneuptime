@@ -2,6 +2,8 @@
 
 **Queues** gives every message queue, topic and subscription your applications use its own page: which services publish to it and which consume from it, how many messages go through, how many fail and how long processing takes, its traces and metrics — and, once the broker's own metrics reach OneUptime, its backlog, consumer lag, dead letters and throttling. Queues have labels, owners, label and owner rules and archiving, like every other resource. Open them under **Products → Resources → Queues**.
 
+**Queues → Topology** draws how messages flow between your services: each queue between the services that publish to it and those that consume from it. Each line shows its message rate, error rate and p95 time, counted as the queue's **Producers** and **Consumers** cards count them, and once a broker's metrics reach OneUptime its queues show their consumer lag or backlog and their dead letters. Search the map, filter it by broker or keep only what needs attention. A queue's own **Topology** tab draws where its messages come from and where they go.
+
 :::cards
 - [Instrumenting applications](#instrumenting-applications): The messaging spans your OpenTelemetry instrumentation already sends.
 - [Broker health metrics](#broker-health-metrics): Backlog, lag and dead letters from your broker, system by system.
@@ -213,6 +215,10 @@ builder.Services.AddOpenTelemetry()
 A broker knows what no application can see: how many messages are waiting, how far each consumer group is behind, what went to a dead-letter queue. Each section below has the collector configuration for one system — a complete OpenTelemetry Collector config ending in the OTLP exporter that sends to OneUptime. Put a telemetry ingestion key (**Project Settings → Telemetry & APM → Ingestion Keys**) in `x-oneuptime-token`, replace `https://oneuptime.com` with your own host if you self-host, and run it with `otel/opentelemetry-collector-contrib` 0.161.0 or later (every config here is validated against 0.161.0). Recent collectors log that `otlphttp` is deprecated in favour of `otlp_http`; both names are the same exporter. To collect several systems, merge their receivers into one collector.
 
 Each queue's **Broker health** section charts the metrics listed for its system — a gauge as its value, a count per period summed per interval, a counter as a rate per second — combining a queue's series the way each metric needs (a RabbitMQ queue's ready and unacknowledged messages add up; the consumer group furthest behind is the lag). Everything the collector sends is also in the **Metrics** explorer. While no listed metric has arrived for a queue, the section shows where that system's metrics come from, with a link to its section here.
+
+Where no traced application publishes to or consumes from a queue, its **Published**, **Consumed** and **Errors** tiles and its **Messages** chart read the broker's own counts instead — messages in, messages out, and its errors added up, with throttled requests counted apart under **Errors** — and each says so under its number. A queue with spans keeps them, since they say which service did what. **p95 processing time** comes from consumer traces alone, because no broker measures how long a consumer takes with a message: without them it reads **Needs consumer traces**.
+
+The **Broker metrics** card at the top of the section lists every metric charted for the queue's system: whether it arrived for the queue in the selected range, when it last did, and why each other one did not. A count can have nothing to report (no throttled request is good news); a level the broker reports all the time and that never arrives is one the collector does not ask for, and the card gives the lines its configuration needs; a metric can stop arriving. For a Service Bus or Event Hubs queue none of whose metrics arrives, the card also reads what its namespace sends instead (see [Broker health stays empty](#broker-health-stays-empty)).
 
 ### Amazon SNS
 
@@ -617,6 +623,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -648,6 +655,7 @@ Azure Monitor has no consumer-lag metric for Event Hubs: its `ConsumerLag` exist
 | `azure_usererrors_total` | User errors | Count per period |
 | `azure_quotaexceedederrors_total` | Quota exceeded errors | Count per period |
 | `azure_throttledrequests_total` | Throttled requests | Count per period |
+| `azure_size_average` | Size | Gauge |
 
 ### Azure Service Bus
 
@@ -677,6 +685,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -684,6 +694,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -706,13 +717,17 @@ service:
 - The metrics find their queue or topic by the namespace (`name`) and the entity (`EntityName`); the SDKs' spans name the same namespace as `<namespace>.servicebus.windows.net`. A span on `orders/Subscriptions/billing` or `orders/$DeadLetterQueue` belongs to `orders`, like the metrics.
 - `maximum_number_of_records_per_resource` is how many series Azure returns per metric and namespace, 10 unless you raise it: keep it above your number of queues and topics — the error metrics split each entity further by result — or the rest go unreported.
 - Azure Monitor does not split by topic subscription: a topic's counts cover all its subscriptions.
-- The `metrics` list collects exactly what the queue page charts, each with the one aggregation it charts; add a metric (`ScheduledMessages`, `Size`, …) to collect it too.
+- The `metrics` list collects exactly what the queue page charts, each with the one aggregation it charts; add a metric (`IncomingRequests`, `Messages`, …) to collect it too. A collector whose list predates `ScheduledMessages`, `Size` or `ServerSendLatency` sends none of them: the queue's **Broker metrics** card names the lines to add.
+- Only this receiver splits the metrics by queue and topic. A [connected Azure subscription](/docs/telemetry/cloud-accounts) and a diagnostic setting that exports metrics both send the namespace's totals, with no `EntityName`, so none of them reaches a queue: the namespace's own page under **Cloud → All Resources** has the subscription's, and a queue's **Broker metrics** card says why its own are missing.
+- None of these metrics depends on the namespace's tier. `ServerSendLatency` is reported per send, so a queue nothing sent to in the range has none.
 - The receiver lists your namespaces once a day, so a new namespace can take up to 24 hours to appear.
 
 | Metric | Shown as | Type |
 | --- | --- | --- |
 | `azure_activemessages_average` | Active messages | Gauge |
 | `azure_deadletteredmessages_average` | Dead-lettered messages | Gauge |
+| `azure_scheduledmessages_average` | Scheduled messages | Gauge |
+| `azure_size_average` | Size | Gauge |
 | `azure_incomingmessages_total` | Incoming messages | Count per period |
 | `azure_outgoingmessages_total` | Outgoing messages | Count per period |
 | `azure_completemessage_total` | Completed messages | Count per period |
@@ -720,6 +735,7 @@ service:
 | `azure_servererrors_total` | Server errors | Count per period |
 | `azure_usererrors_total` | User errors | Count per period |
 | `azure_throttledrequests_total` | Throttled requests | Count per period |
+| `azure_serversendlatency_average` | Server send latency | Gauge |
 
 ### BullMQ
 
@@ -1046,6 +1062,10 @@ When its spans do name it, create it by hand with the same system and destinatio
 - The receiver does not report it. Kafka reports a consumer group's lag only after the group commits an offset; RabbitMQ reports only the queues of virtual hosts its user has access to, and logs no error for the rest (see [RabbitMQ](#rabbitmq)); RabbitMQ's counters appear with the first activity; Azure Monitor returns 10 queues per metric and namespace unless `maximum_number_of_records_per_resource` is raised; Cloud Monitoring reads only the types in `metrics_list`.
 - It is late. `aws_cloudwatch` waits `delay` (10 minutes) for CloudWatch to publish, so its points arrive 11 to 17 minutes late, and Pub/Sub's metrics arrive minutes late.
 - The system has no charted metrics: Azure Event Grid, NATS, JMS brokers other than ActiveMQ and BullMQ (see their sections). Their metrics are in the **Metrics** explorer.
+- Open the queue's **Broker metrics** card: it lists which metrics arrive and why the others do not. For a Service Bus or Event Hubs queue none of whose metrics arrives, it also says what the namespace sends instead, one of three things.
+- **Nothing from the namespace**: no collector reads it, or every read fails. Give the receiver's service principal the **Monitoring Reader** role, and look in the collector's log for `AuthorizationFailed` or `401`: an expired client secret stops every read.
+- **Totals only**: a [connected Azure subscription](/docs/telemetry/cloud-accounts) or a diagnostic setting sends the namespace's metrics for the namespace as a whole, with no queue or topic in them. Read the namespace with the `azure_monitor` receiver as well, which splits them by `EntityName`.
+- **Other queues only**: metrics arrive for other queues and topics of the namespace, not this one. The receiver's `maximum_number_of_records_per_resource` (10 unless you raise it) left it out: raise it above the number of queues and topics in the namespace.
 
 ### Two queues for one destination
 

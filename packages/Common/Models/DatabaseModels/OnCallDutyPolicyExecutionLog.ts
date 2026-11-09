@@ -1669,4 +1669,57 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     nullable: true,
   })
   public pageMessage?: string = undefined;
+
+  /*
+   * Whether this run pages its people as observers (OnCallObserverPage):
+   * they are kept informed, and answering their page only says they have
+   * seen it - the record is not acknowledged, nobody else's page stops, and
+   * nobody becomes its Incident Commander. Set as the run is created - by an
+   * on-call rule that pages as observers, a workflow's page step, a page
+   * from Slack or Microsoft Teams, or whoever executes a policy on a record
+   * from the Dashboard or the API - and never changed after. False for every
+   * run that existed before, which all paged responders.
+   *
+   * Read on a relation too: it is what a page is, for the people it paged,
+   * and the mobile app's My Pages reads it through each person's own page
+   * (UserOnCallLog.onCallDutyPolicyExecutionLog) to say "FYI (observer)".
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.CreateProjectOnCallDutyPolicyExecutionLog,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    canReadOnRelationQuery: true,
+    title: "Paged as Observers",
+    description:
+      "Whether this run pages its people as observers: they are kept informed, and acknowledging their page only says they have seen it - the incident or alert is not acknowledged, and nobody else's page stops.",
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isObserverPage?: boolean = undefined;
 }

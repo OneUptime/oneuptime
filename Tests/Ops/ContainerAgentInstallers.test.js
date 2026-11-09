@@ -540,7 +540,7 @@ describe("DockerSwarmAgent install.sh: where its files come from", () => {
       expect(result.output).toContain("Downloading them from GitHub instead.");
       expect(result.requested.slice(1)).toEqual(
         FILES.map((file) => {
-          return `https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/${file}`;
+          return `https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/DockerSwarmAgent/${file}`;
         }),
       );
       for (const file of FILES) {

@@ -557,9 +557,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "It can only post plain HTTP",
     "It needs `opentelemetry-sdk` and `opentelemetry-exporter-otlp` in each service",
     "AI investigations are on by default.",
-    "AI > Agent",
-    "AI > Insights",
-    "AI > Logs",
     "It reads, until you say otherwise.",
     "The credential is the hard limit.",
     "Secrets stay out.",
@@ -739,6 +736,13 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Pulsar's per-consumer series are left out of charts",
     "Azure Storage Queues have no per-queue metrics.",
     "RocketMQ's retry and system topics are not filtered out of broker metrics.",
+    /*
+     * The three things a namespace can send instead, which the Broker
+     * metrics card tells apart ("Broker health stays empty").
+     */
+    "Nothing from the namespace",
+    "Totals only",
+    "Other queues only",
   ],
 };
 

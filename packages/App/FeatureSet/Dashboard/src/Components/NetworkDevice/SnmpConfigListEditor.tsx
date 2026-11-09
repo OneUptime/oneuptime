@@ -643,7 +643,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
       {props.error && (
         <FieldError
           message={props.error}
-          className="mt-2 text-sm text-red-600"
+          className="mt-2 text-sm"
           announce="none"
         />
       )}

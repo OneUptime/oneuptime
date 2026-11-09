@@ -882,8 +882,14 @@ const AIInsightViewPage: FunctionComponent<
                   buttonStyle={ButtonStyleType.PRIMARY}
                   buttonSize={ButtonSize.Small}
                   tooltip={[
-                    "Opens the telemetry slice this insight was detected on.",
-                    formatDroppedScopeHint(investigationLink.dropped),
+                    translator.translateText(
+                      "Opens the telemetry slice this insight was detected on.",
+                    ) ||
+                      "Opens the telemetry slice this insight was detected on.",
+                    formatDroppedScopeHint(
+                      investigationLink.dropped,
+                      translator,
+                    ),
                   ]
                     .filter((sentence: string) => {
                       return sentence.length > 0;
@@ -1094,7 +1100,7 @@ const AIInsightViewPage: FunctionComponent<
                       )}
                     </div>
                     {isTriageFailed && triageRun?.errorMessage ? (
-                      <p className="mt-2 text-xs text-red-500">
+                      <p className="mt-2 text-xs text-red-700">
                         {triageRun.errorMessage}
                       </p>
                     ) : (

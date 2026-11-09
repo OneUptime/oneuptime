@@ -146,6 +146,12 @@ export interface CustomChannelPageInput {
   escalationRule?: CustomChannelReference | undefined;
   // A page again: the record was acknowledged a while ago, and is still not resolved.
   isPageAgain: boolean;
+  /*
+   * An observer's page (OnCallObserverPage): the person is kept informed
+   * while others respond. Acknowledging it only says they have seen it -
+   * the record is not acknowledged - and there is nothing to escalate.
+   */
+  isObserverPage?: boolean | undefined;
   actions: CustomChannelActionLinks;
 }
 
@@ -254,6 +260,7 @@ export const buildCustomChannelPagePayload: (
     onCallPolicy: toReferenceJson(input.onCallPolicy),
     escalationRule: toReferenceJson(input.escalationRule),
     isPageAgain: input.isPageAgain,
+    isObserverPage: input.isObserverPage === true,
     actions: {
       [CustomChannelAction.Acknowledge]:
         input.actions[CustomChannelAction.Acknowledge],
@@ -291,6 +298,7 @@ export const buildCustomChannelTestPayload: (
     onCallPolicy: null,
     escalationRule: null,
     isPageAgain: false,
+    isObserverPage: false,
     actions: null,
   };
 };
@@ -328,6 +336,7 @@ export const buildCustomChannelNotificationPayload: (
     onCallPolicy: null,
     escalationRule: null,
     isPageAgain: false,
+    isObserverPage: false,
     actions: null,
     notificationType: input.notificationType,
     url: input.url || null,

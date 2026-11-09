@@ -108,6 +108,10 @@ OneUptime 從 Microsoft Graph 讀取每個人的 Copilot 互動記錄：他們�
 
 這些工具沒有 OneUptime 可用來讀取員工聊天的 API，或者需要其他途徑。
 
+### Cursor
+
+Cursor 的 Admin API 提供按人員的使用量和成本，而不是對話，因此 Cursor 團隊使用它的管理員 API 金鑰作為 [提供者帳戶](/docs/telemetry/ai-provider-accounts#cursor) 連線。在 Enterprise 方案中，它的 OpenTelemetry Export 還會即時傳送使用量：請參閱 [Cursor](/docs/telemetry/cursor)。
+
 ### ChatGPT Enterprise
 
 OpenAI 只會應要求為工作區開放其 Compliance API，且沒有公開其記錄包含哪些內容，因此 OneUptime 目前還無法讀取 ChatGPT Enterprise 的聊天。把你的 OpenAI 組織作為 [提供者帳戶](/docs/telemetry/ai-provider-accounts#openai) 連線，可以看到它的 API 使用量和成本，但其中不包含 ChatGPT。
@@ -146,7 +150,7 @@ Claude Code、Codex、Gemini CLI、GitHub Copilot 和 Cursor 會傳送自己的 
 
 :::cards
 - [AI / LLM 可觀測性](/docs/telemetry/ai-llm-observability): 閱讀和重新播放對話，並在回答出問題時收到通知。
-- [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts): 你的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 帳戶的使用量和成本。
+- [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts): 你的 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 和 Cursor 帳戶的使用量和成本。
 - [AI 程式設計助理](/docs/telemetry/ai-coding-assistants): 程式設計工具上每位工程師的支出。
 - [資料保留](/docs/telemetry/data-retention): 對話會保留多久。
 :::

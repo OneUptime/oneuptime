@@ -50,7 +50,7 @@ Wanneer je lid wordt van een project, staan deze gebeurtenissen aan, per e-mail.
 | **Incidenten** | **Incident aangemaakt**, **Incidentstatus gewijzigd**, **Incidentherinnering**, **SLA van incident geschonden**, **Incidentepisode aangemaakt**, **Status van incidentepisode gewijzigd**, **Incident toegevoegd aan incidentepisode** | **Incidentnotitie geplaatst**, **Toegevoegd als eigenaar van incident**, **Toegewezen aan een incident**, **Notitie bij incidentepisode geplaatst**, **Toegevoegd als eigenaar van incidentepisode** |
 | **Waarschuwingen** | **Waarschuwing aangemaakt**, **Status van waarschuwing gewijzigd**, **Waarschuwingsherinnering**, **Waarschuwingsepisode aangemaakt**, **Status van waarschuwingsepisode gewijzigd**, **Waarschuwing toegevoegd aan waarschuwingsepisode** | **Notitie bij waarschuwing geplaatst**, **Toegevoegd als eigenaar van waarschuwing**, **Notitie bij waarschuwingsepisode geplaatst**, **Toegevoegd als eigenaar van waarschuwingsepisode** |
 | **Bewaking** | **Sondestatus gewijzigd voor uw monitor**, **Monitor heeft geen actieve sondes**, **SLO-status gewijzigd**, **Toegevoegd als eigenaar van SLO**, **Uitzondering aan mij toegewezen**, **Sondestatus gewijzigd**, **Toegevoegd als eigenaar van sonde** | **Monitor aangemaakt**, **Monitorstatus gewijzigd**, **Toegevoegd als eigenaar van monitor**, **Status van AI-agent gewijzigd**, **Toegevoegd als eigenaar van AI-agent** |
-| **Statuspagina's** | Geen | **Statuspagina aangemaakt**, **Statuspagina-aankondiging geplaatst**, **Toegevoegd als eigenaar van statuspagina** |
+| **Statuspagina's** | **Mijn openbare notitie goedgekeurd of afgewezen**, en ook per push: **Openbare notitie wacht op mijn goedkeuring** | **Statuspagina aangemaakt**, **Statuspagina-aankondiging geplaatst**, **Toegevoegd als eigenaar van statuspagina** |
 | **Geplande onderhoud** | **Onderhoudsherinnering** | **Onderhoudsgebeurtenis aangemaakt**, **Onderhoudsstatus gewijzigd**, **Onderhoudsnotitie geplaatst**, **Toegevoegd als eigenaar van onderhoud** |
 | **Bereikbaarheid** | **U gaat in bereikbaarheid**, **U bent de volgende voor bereikbaarheid**, **U gaat uit bereikbaarheid**, **Toegevoegd aan bereikbaarheidsbeleid**, **Verwijderd uit bereikbaarheidsbeleid**, **Gemiste oproep**, en ook per push: **Voordat mijn oproepdienst begint**, **Mijn komende oproepdienst wordt opnieuw toegewezen** | Geen |
 | **Beveiliging** | Ook per push: **Nieuwe beveiligingszaak** (zaken met prioriteit High en Kritiek), **Beveiligingszaak aan mij toegewezen**, **Playbookstap wacht op mijn goedkeuring**, **Reactiedoel van een beveiligingszaak**, **Aan mij toegewezen taak van een beveiligingszaak**, **Hunt heeft beveiligingsgebeurtenissen gevonden** | Geen |
@@ -76,6 +76,15 @@ Het tabblad **Beveiliging** gaat over de beveiligingszaken die je kunt zien:
 - **Playbookstap wacht op mijn goedkeuring** vraagt je een playbookstap goed te keuren of af te wijzen op een zaak waarop je stappen mag goedkeuren.
 
 Zie [Beveiligingszaken](/docs/telemetry/security-cases#meldingen).
+
+## Goedkeuring van openbare notities
+
+De kaart **Goedkeuring van openbare notities**, op het tabblad **Statuspagina's**, gaat over openbare notities die op goedkeuring wachten voordat ze worden gepubliceerd, in een project dat daarom vraagt:
+
+- **Openbare notitie wacht op mijn goedkeuring** vertelt je dat een openbare notitie, of een bewerking ervan, wacht op een stap die jij goedkeurt, bij naam of via een team. Je wordt niet gevraagd naar een notitie die je zelf verstuurde, of naar een stap na een stap die je goedkeurde. Naar elke stap word je één keer gevraagd: wanneer de notitie die stap bereikt, of wanneer je een van de goedkeurders ervan wordt terwijl de notitie wacht, omdat de goedkeuringsstappen veranderden of je lid werd van een team dat een stap noemt. Hij staat bij het begin aan per e-mail en per push, en **Email Rollup** houdt hem nooit tegen: de klanten voor wie de notitie is geschreven, wachten erop.
+- **Mijn openbare notitie goedgekeurd of afgewezen** vertelt je dat een notitie die je ter goedkeuring verstuurde, is goedgekeurd en gepubliceerd, of afgewezen, met de reden. Hij staat bij het begin aan per e-mail.
+
+Zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).
 
 ## Minder e-mails
 

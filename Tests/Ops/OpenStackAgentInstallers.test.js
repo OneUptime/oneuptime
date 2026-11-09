@@ -1597,6 +1597,182 @@ describe("bring your own exporter", () => {
     ).toBe("''");
   });
 
+  /*
+   * README.md, "Your own exporter": what it tells people to put in .env for an AI agent with a
+   * credential of its own. Read from there, so what it says to write is what a re-run keeps. The
+   * AI agent logs in at OPENSTACK_AUTH_URL, and without it says it "needs a Keystone to log in to".
+   */
+  describe("the AI agent's own credential, as the README sets it", () => {
+    function readmeSettings() {
+      const section = agentFile("README.md").split(
+        "- **Your own exporter.**",
+      )[1];
+      const settings = {};
+      for (const line of section.match(/```bash\n([\s\S]*?)```/)[1].split("\n")) {
+        if (line.trim()) {
+          const at = line.indexOf("=");
+          settings[line.slice(0, at).trim()] = line.slice(at + 1);
+        }
+      }
+      return settings;
+    }
+
+    function asTheReadmeSays(dir, env = {}) {
+      const first = ownExporter(dir, env);
+      expect(first.status).toBe(0);
+      fs.appendFileSync(
+        path.join(first.installDir, ".env"),
+        `${Object.entries(readmeSettings())
+          .map(([name, value]) => {
+            return `${name}=${value}`;
+          })
+          .join("\n")}\n`,
+      );
+      return first;
+    }
+
+    test("the README names the Keystone it logs in to", () => {
+      expect(readmeSettings()).toMatchObject({
+        COMPOSE_PROFILES: "openstack-ai-agent",
+        OPENSTACK_AI_CLOUDS_FILE: "/dev/null",
+        OPENSTACK_AUTH_URL: "https://keystone.example.com:5000",
+      });
+    });
+
+    test("a re-run keeps every setting it names, and asks nothing", () => {
+      const dir = scratch();
+      asTheReadmeSays(dir);
+
+      // No input at all: any prompt would read EOF and stop the script.
+      const run = install(dir);
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject(readmeSettings());
+    });
+
+    test("nothing logs in here for it, and no clouds.yaml appears", () => {
+      const dir = scratch();
+      asTheReadmeSays(dir);
+
+      const run = install(dir);
+
+      expect(run.curlLog).not.toContain("/auth/tokens");
+      expect(fs.existsSync(path.join(run.installDir, "clouds.yaml"))).toBe(
+        false,
+      );
+    });
+
+    test("a re-run of a re-run changes nothing", () => {
+      const dir = scratch();
+      asTheReadmeSays(dir);
+      const second = install(dir);
+      expect(second.status).toBe(0);
+
+      const third = install(dir);
+
+      expect(third.status).toBe(0);
+      expect(third.envFile).toBe(second.envFile);
+    });
+
+    test("the address is kept as written: the AI agent adds /v3 itself, and this script reads it for nothing", () => {
+      const dir = scratch();
+      asTheReadmeSays(dir);
+
+      const run = install(dir);
+
+      expect(composeReadAll(run.envFile).OPENSTACK_AUTH_URL).toBe(
+        "https://keystone.example.com:5000",
+      );
+    });
+
+    test("so is the CA it mounts, for a cloud with its own", () => {
+      const dir = scratch();
+      const first = asTheReadmeSays(dir);
+      fs.appendFileSync(
+        path.join(first.installDir, ".env"),
+        "OPENSTACK_CA_FILE=./ca.pem\nONEUPTIME_AI_OPENSTACK_CA_FILE=/etc/openstack/ca.pem\n",
+      );
+
+      const run = install(dir);
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject({
+        OPENSTACK_CA_FILE: "./ca.pem",
+        ONEUPTIME_AI_OPENSTACK_CA_FILE: "/etc/openstack/ca.pem",
+      });
+    });
+
+    test("an exporter without --multi-cloud has the same AI agent, and keeps the same settings", () => {
+      const dir = scratch();
+      const first = install(dir, {
+        input: answers(URL, KEY, "prod"),
+        env: {
+          OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "10.0.0.254:9198",
+          OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+        },
+      });
+      expect(first.status).toBe(0);
+      fs.appendFileSync(
+        path.join(first.installDir, ".env"),
+        `${Object.entries(readmeSettings())
+          .map(([name, value]) => {
+            return `${name}=${value}`;
+          })
+          .join("\n")}\n`,
+      );
+
+      const run = install(dir);
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject(readmeSettings());
+    });
+
+    test("an agent that moved to its own exporter keeps the address it had, and asks Keystone nothing", () => {
+      const dir = scratch();
+      const first = install(dir, { input: FRESH });
+      expect(first.status).toBe(0);
+      const logins = keystoneRequests(dir).length;
+
+      const run = install(dir, { env: { OPENSTACK_EXPORTER_ADDRESS: OWN } });
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile).OPENSTACK_AUTH_URL).toBe(AUTH_URL);
+      expect(keystoneRequests(dir).length).toBe(logins);
+    });
+
+    test("and an agent nobody set one for still has none", () => {
+      const run = ownExporter(scratch());
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile).OPENSTACK_AUTH_URL).toBe("");
+      expect(composeReadAll(run.envFile).OPENSTACK_CA_FILE).toBe("");
+    });
+
+    (HAS_COMPOSE || IN_CI ? test : test.skip)(
+      "as the real Docker Compose reads it: the AI agent gets the address, and no clouds.yaml (required in CI)",
+      () => {
+        const dir = scratch();
+        asTheReadmeSays(dir);
+        const run = install(dir);
+        expect(run.status).toBe(0);
+
+        const config = realComposeConfig(run.installDir);
+
+        expect(Object.keys(config.services).sort()).toEqual([
+          "oneuptime-openstack-agent",
+          "oneuptime-openstack-ai-agent",
+        ]);
+        expect(
+          serviceEnvironment(config, "oneuptime-openstack-ai-agent"),
+        ).toMatchObject({
+          OPENSTACK_AUTH_URL: "https://keystone.example.com:5000",
+          ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID: "...",
+          ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET: "...",
+        });
+      },
+    );
+  });
+
   test("asks for no credential, asks Keystone nothing, writes no clouds.yaml, and turns the profile off", () => {
     const dir = scratch();
     const run = ownExporter(dir);
@@ -1759,6 +1935,538 @@ describe("an exporter already running without --multi-cloud, as Kolla-Ansible ru
       "Started without --multi-cloud, as Kolla-Ansible starts it? Set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS instead.",
     );
   });
+});
+
+/*
+ * The largest clouds' path: "To turn it on, in .env", which is a hand edit of an agent
+ * installed like any other. A re-run is how that agent upgrades, so it keeps reading the
+ * databases, and every series still arrives once. This reads the block from the docs, so
+ * what the docs say to write is what a re-run keeps.
+ */
+describe("the database path, as the docs turn it on", () => {
+  const PAGE = path.join(
+    REPO_ROOT,
+    "packages/App/FeatureSet/Docs/Content/en/telemetry/openstack-very-large-clouds.md",
+  );
+  const DATABASE_TARGETS = "[openstack-database-exporter:9180]";
+  const BOTH_EXPORTERS = "openstack-database-exporter,openstack-ai-agent";
+  const FIRST_INSTALL = answers(
+    URL,
+    KEY,
+    "prod",
+    AUTH_URL,
+    "RegionOne",
+    "",
+    APP_ID,
+    APP_SECRET,
+    "",
+  );
+
+  function docsBlock() {
+    const section = fs
+      .readFileSync(PAGE, "utf8")
+      .split("## The database path\n")[1];
+    return section.match(/```bash\n([\s\S]*?)```/)[1];
+  }
+
+  function docsSettings() {
+    const settings = {};
+    for (const line of docsBlock().split("\n")) {
+      if (line && !line.startsWith("#")) {
+        const at = line.indexOf("=");
+        settings[line.slice(0, at)] = line.slice(at + 1);
+      }
+    }
+    return settings;
+  }
+
+  // An agent installed as anyone's is, and then moved to the database path by hand.
+  function movedToTheDatabasePath(dir, block = docsBlock()) {
+    const first = install(dir, { input: FIRST_INSTALL });
+    expect(first.status).toBe(0);
+    const envPath = path.join(first.installDir, ".env");
+    fs.appendFileSync(envPath, block);
+    return {
+      ...first,
+      envPath,
+      editedEnv: fs.readFileSync(envPath, "utf8"),
+    };
+  }
+
+  test("the docs' block names the empty list and the database exporter, what a re-run stopped on", () => {
+    expect(docsSettings().OPENSTACK_EXPORTER_CLOUDS).toBe("[]");
+    expect(docsSettings().OPENSTACK_DATABASE_EXPORTER_TARGETS).toBe(
+      DATABASE_TARGETS,
+    );
+  });
+
+  test("a re-run asks nothing, and keeps every setting the docs name", () => {
+    const dir = scratch();
+    movedToTheDatabasePath(dir);
+
+    // No input at all: any prompt would read EOF and stop the script.
+    const run = install(dir);
+
+    expect(run.status).toBe(0);
+    expect(run.output).not.toContain("names no region");
+    expect(composeReadAll(run.envFile)).toMatchObject(docsSettings());
+  });
+
+  test("it starts what the path runs, and never the exporter that reads the APIs", () => {
+    const dir = scratch();
+    movedToTheDatabasePath(dir);
+
+    const run = install(dir);
+
+    expect(composeReadAll(run.envFile).COMPOSE_PROFILES).toBe(BOTH_EXPORTERS);
+    expect(composeCalls(run.docker).slice(-2)).toEqual([
+      { cwd: fs.realpathSync(run.installDir), args: "compose pull" },
+      {
+        cwd: fs.realpathSync(run.installDir),
+        args: "compose up -d --force-recreate",
+      },
+    ]);
+  });
+
+  test("an agent that turned it on before the docs named the AI agent gets the AI agent, which has a clouds.yaml to read", () => {
+    const dir = scratch();
+    movedToTheDatabasePath(
+      dir,
+      docsBlock().replace(
+        `COMPOSE_PROFILES=${BOTH_EXPORTERS}`,
+        "COMPOSE_PROFILES=openstack-database-exporter",
+      ),
+    );
+
+    const run = install(dir);
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile).COMPOSE_PROFILES).toBe(BOTH_EXPORTERS);
+  });
+
+  test("the credential is checked as on any upgrade, and clouds.yaml stays as it is", () => {
+    const dir = scratch();
+    const moved = movedToTheDatabasePath(dir);
+
+    const run = install(dir);
+
+    expect(run.status).toBe(0);
+    expect(keystoneRequests(dir).length).toBe(2);
+    expect(run.output).toContain("Keystone accepted the credential.");
+    expect(run.cloudsText).toBe(moved.cloudsText);
+    expect(backupsIn(run.installDir)).toEqual([]);
+  });
+
+  test("a credential Keystone refuses stops it, and the agent stays as it is", () => {
+    const dir = scratch();
+    const moved = movedToTheDatabasePath(dir);
+    fs.writeFileSync(path.join(dir, "keystone.answer"), "401");
+    const callsBefore = composeCalls(readIfExists(path.join(dir, "docker.log")));
+
+    const run = install(dir);
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain("Keystone refused this credential");
+    expect(run.envFile).toBe(moved.editedEnv);
+    expect(composeCalls(run.docker)).toEqual(callsBefore);
+  });
+
+  test("a re-run of a re-run changes nothing", () => {
+    const dir = scratch();
+    movedToTheDatabasePath(dir);
+    const second = install(dir);
+    expect(second.status).toBe(0);
+
+    const third = install(dir);
+
+    expect(third.status).toBe(0);
+    expect(third.envFile).toBe(second.envFile);
+    expect(third.cloudsText).toBe(second.cloudsText);
+    expect(backupsIn(third.installDir)).toEqual([]);
+  });
+
+  test("it says what the agent reads, and from where", () => {
+    const dir = scratch();
+    movedToTheDatabasePath(dir);
+
+    const run = install(dir);
+
+    expect(run.output).toContain(
+      `NOTE: the agent reads this cloud from its databases, at ${DATABASE_TARGETS}, for region RegionOne.`,
+    );
+    expect(run.output).toContain(
+      "From the APIs it reads only what a database cannot say, in [RegionOne]:",
+    );
+    expect(run.output).not.toContain("the agent reads your exporter");
+  });
+
+  test("a database's password is kept as written, and reaches no program", () => {
+    const dir = scratch();
+    const url = `mysql+pymysql://oneuptime:pa$w'o"rd#1@db.example:3306/nova`;
+    movedToTheDatabasePath(
+      dir,
+      docsBlock()
+        .split("\n")
+        .filter((line) => {
+          return !line.startsWith("NOVA_DATABASE_URL=");
+        })
+        .join("\n"),
+    );
+    fs.appendFileSync(
+      path.join(dir, "agent", ".env"),
+      // As Compose reads a double-quoted value: $$ for a $, and a backslash before the other two.
+      `NOVA_DATABASE_URL="${url.replace(/[\\"$]/g, (character) => {
+        return character === "$" ? "$$" : `\\${character}`;
+      })}"\n`,
+    );
+
+    const run = install(dir);
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile).NOVA_DATABASE_URL).toBe(url);
+    expect(mode(path.join(run.installDir, ".env"))).toBe(0o600);
+    expect(run.output).not.toContain("oneuptime:pa");
+    expect(run.docker).not.toContain("oneuptime:pa");
+    expect(run.curlLog).not.toContain("oneuptime:pa");
+    expect(readIfExists(path.join(dir, "env-at-up.txt"))).not.toContain(
+      "oneuptime:pa",
+    );
+  });
+
+  test("the entries to read may be written with or without brackets, and a new one goes in clouds.yaml", () => {
+    const dir = scratch();
+    movedToTheDatabasePath(
+      dir,
+      docsBlock().replace(
+        "OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]",
+        "OPENSTACK_WORKER_STATE_CLOUDS='RegionOne, RegionTwo'",
+      ),
+    );
+
+    const run = install(dir);
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile).OPENSTACK_WORKER_STATE_CLOUDS).toBe(
+      "[RegionOne,RegionTwo]",
+    );
+    expect(Object.keys(yaml.load(run.cloudsText).clouds)).toEqual([
+      "RegionOne",
+      "RegionTwo",
+    ]);
+    expect(backupsIn(run.installDir).length).toBe(1);
+  });
+
+  test("an entry the catalog does not list is refused, as a region is", () => {
+    const dir = scratch();
+    const moved = movedToTheDatabasePath(
+      dir,
+      docsBlock().replace(
+        "OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]",
+        "OPENSTACK_WORKER_STATE_CLOUDS=[regionone]",
+      ),
+    );
+
+    const run = install(dir);
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain(
+      'this cloud\'s service catalog has no region "regionone"',
+    );
+    expect(run.envFile).toBe(moved.editedEnv);
+  });
+
+  test("a target gets its brackets, and one the collector's container cannot reach is refused", () => {
+    const bare = scratch();
+    movedToTheDatabasePath(bare);
+    const kept = install(bare, {
+      env: {
+        OPENSTACK_DATABASE_EXPORTER_TARGETS: "openstack-database-exporter:9180",
+      },
+    });
+    expect(kept.status).toBe(0);
+    expect(composeReadAll(kept.envFile).OPENSTACK_DATABASE_EXPORTER_TARGETS).toBe(
+      DATABASE_TARGETS,
+    );
+
+    const local = scratch();
+    const moved = movedToTheDatabasePath(local);
+    const refused = install(local, {
+      env: { OPENSTACK_DATABASE_EXPORTER_TARGETS: "localhost:9180" },
+    });
+    expect(refused.status).not.toBe(0);
+    expect(refused.output).toContain("OPENSTACK_DATABASE_EXPORTER_TARGETS is");
+    expect(refused.envFile).toBe(moved.editedEnv);
+  });
+
+  describe("with the APIs read as well", () => {
+    test("every series would arrive twice, so it is refused, and how to choose is said", () => {
+      const dir = scratch();
+      const moved = movedToTheDatabasePath(
+        dir,
+        docsBlock().replace(
+          "OPENSTACK_EXPORTER_CLOUDS=[]",
+          "OPENSTACK_EXPORTER_CLOUDS=[RegionOne]",
+        ),
+      );
+
+      const run = install(dir);
+
+      expect(run.status).not.toBe(0);
+      expect(run.output).toContain("every series would arrive twice");
+      expect(run.output).toContain("OPENSTACK_EXPORTER_CLOUDS=[]");
+      expect(run.output).toContain("Nothing was installed or changed.");
+      expect(run.envFile).toBe(moved.editedEnv);
+    });
+
+    test("so is a region exported on a re-run, which the upgrade section says adds one", () => {
+      const dir = scratch();
+      const moved = movedToTheDatabasePath(dir);
+
+      const run = install(dir, {
+        env: { OPENSTACK_EXPORTER_CLOUDS: "RegionTwo" },
+      });
+
+      expect(run.status).not.toBe(0);
+      expect(run.output).toContain("every series would arrive twice");
+      expect(run.envFile).toBe(moved.editedEnv);
+    });
+  });
+
+  test("no target and no region reads nothing at all, which is still refused, and the path is named", () => {
+    const run = install(scratch(), {
+      input: answers(URL, KEY, "prod", AUTH_URL),
+      env: { OPENSTACK_EXPORTER_CLOUDS: "[]" },
+    });
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain(
+      "Error: OPENSTACK_EXPORTER_CLOUDS names no region.",
+    );
+    expect(run.output).toContain("OPENSTACK_DATABASE_EXPORTER_TARGETS");
+    expect(run.envFile).toBe("");
+  });
+
+  describe("on a first install, from the environment", () => {
+    const FROM_THE_DOCS = {
+      OPENSTACK_DATABASE_EXPORTER_TARGETS: DATABASE_TARGETS,
+      OPENSTACK_APPLICATION_CREDENTIAL_ID: APP_ID,
+      OPENSTACK_APPLICATION_CREDENTIAL_SECRET: APP_SECRET,
+    };
+
+    test("the entries to read are the regions, nothing asks for one, and the path's exporters start", () => {
+      const run = install(scratch(), {
+        input: answers(URL, KEY, "prod", AUTH_URL),
+        env: {
+          ...FROM_THE_DOCS,
+          OPENSTACK_EXPORTER_CLOUDS: "[]",
+          OPENSTACK_WORKER_STATE_CLOUDS: "[RegionOne]",
+        },
+      });
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject({
+        OPENSTACK_EXPORTER_CLOUDS: "[]",
+        OPENSTACK_WORKER_STATE_CLOUDS: "[RegionOne]",
+        OPENSTACK_DATABASE_EXPORTER_TARGETS: DATABASE_TARGETS,
+        OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+        COMPOSE_PROFILES: BOTH_EXPORTERS,
+      });
+      expect(Object.keys(yaml.load(run.cloudsText).clouds)).toEqual([
+        "RegionOne",
+      ]);
+    });
+
+    test("left unset, the regions list is the empty list the path needs", () => {
+      const run = install(scratch(), {
+        input: answers(URL, KEY, "prod", AUTH_URL),
+        env: {
+          ...FROM_THE_DOCS,
+          OPENSTACK_WORKER_STATE_CLOUDS: "RegionTwo",
+        },
+      });
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject({
+        OPENSTACK_EXPORTER_CLOUDS: "[]",
+        OPENSTACK_WORKER_STATE_CLOUDS: "[RegionTwo]",
+        OPENSTACK_CONTROL_PLANE_REGION: "RegionTwo",
+      });
+    });
+
+    test("with no entries named, it asks which region the databases are in, and says what goes unread", () => {
+      const run = install(scratch(), {
+        input: answers(URL, KEY, "prod", AUTH_URL, "RegionTwo"),
+        env: FROM_THE_DOCS,
+      });
+
+      expect(run.status).toBe(0);
+      const written = composeReadAll(run.envFile);
+      expect(written).toMatchObject({
+        OPENSTACK_EXPORTER_CLOUDS: "[]",
+        OPENSTACK_CONTROL_PLANE_REGION: "RegionTwo",
+      });
+      expect(written.OPENSTACK_WORKER_STATE_CLOUDS).toBeUndefined();
+      expect(Object.keys(yaml.load(run.cloudsText).clouds)).toEqual([
+        "RegionTwo",
+      ]);
+      expect(run.output).toContain(
+        "Nothing says whether each Nova worker is alive, or how full each storage pool is",
+      );
+      expect(run.output).toContain("such as [RegionTwo]");
+    });
+  });
+
+  test("with no entries named, a re-run keeps that, on the region it already reads", () => {
+    const dir = scratch();
+    const moved = movedToTheDatabasePath(
+      dir,
+      docsBlock()
+        .split("\n")
+        .filter((line) => {
+          return !line.startsWith("OPENSTACK_WORKER_STATE_CLOUDS=");
+        })
+        .join("\n"),
+    );
+
+    const run = install(dir);
+
+    expect(run.status).toBe(0);
+    const written = composeReadAll(run.envFile);
+    expect(written.OPENSTACK_WORKER_STATE_CLOUDS).toBeUndefined();
+    expect(written.OPENSTACK_CONTROL_PLANE_REGION).toBe("RegionOne");
+    expect(written.OPENSTACK_EXPORTER_CLOUDS).toBe("[]");
+    expect(run.cloudsText).toBe(moved.cloudsText);
+    expect(run.output).toContain(
+      "Nothing says whether each Nova worker is alive",
+    );
+  });
+
+  test("each project's quotas, once asked for, are read for the entries it names", () => {
+    const dir = scratch();
+    movedToTheDatabasePath(dir);
+
+    const run = install(dir, { env: { OPENSTACK_COLLECT_QUOTAS: "true" } });
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile)).toMatchObject({
+      COMPOSE_PROFILES: `${BOTH_EXPORTERS},openstack-quotas`,
+      OPENSTACK_QUOTA_CLOUDS: "[RegionOne]",
+      OPENSTACK_EXPORTER_CLOUDS: "[]",
+    });
+  });
+
+  describe("with its exporters somewhere else", () => {
+    test("a target that isn't this file's exporter starts neither, and the AI agent stays on clouds.yaml", () => {
+      const dir = scratch();
+      movedToTheDatabasePath(
+        dir,
+        docsBlock()
+          .replace(
+            `COMPOSE_PROFILES=${BOTH_EXPORTERS}`,
+            "COMPOSE_PROFILES=openstack-ai-agent",
+          )
+          .replace(DATABASE_TARGETS, "[10.0.0.9:9180]"),
+      );
+
+      const run = install(dir);
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject({
+        OPENSTACK_DATABASE_EXPORTER_TARGETS: "[10.0.0.9:9180]",
+        COMPOSE_PROFILES: "openstack-ai-agent",
+      });
+    });
+
+    test("your own exporter's agent asks for no credential, and writes no clouds.yaml", () => {
+      const run = install(scratch(), {
+        input: answers(URL, KEY, "prod"),
+        env: {
+          OPENSTACK_EXPORTER_ADDRESS: "10.0.0.5:9180",
+          OPENSTACK_DATABASE_EXPORTER_TARGETS: DATABASE_TARGETS,
+          OPENSTACK_WORKER_STATE_CLOUDS: "[RegionOne]",
+        },
+      });
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject({
+        OPENSTACK_EXPORTER_CLOUDS: "[]",
+        COMPOSE_PROFILES: "openstack-database-exporter",
+      });
+      expect(fs.existsSync(path.join(run.installDir, "clouds.yaml"))).toBe(
+        false,
+      );
+      expect(run.curlLog).not.toContain("/auth/tokens");
+      expect(run.output).not.toContain("the agent reads your exporter");
+    });
+  });
+
+  test("the exporter started ahead of reading it keeps its profile, beside what reads the APIs", () => {
+    const dir = scratch();
+    const first = install(dir, { input: FIRST_INSTALL });
+    expect(first.status).toBe(0);
+    fs.appendFileSync(
+      path.join(first.installDir, ".env"),
+      "COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent,openstack-database-exporter\n",
+    );
+
+    const run = install(dir);
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile)).toMatchObject({
+      OPENSTACK_EXPORTER_CLOUDS: "[RegionOne]",
+      COMPOSE_PROFILES:
+        "openstack-database-exporter,openstack-exporter,openstack-ai-agent",
+    });
+  });
+
+  test("an agent not on the path gains none of its settings", () => {
+    const dir = scratch();
+    const first = install(dir, { input: FIRST_INSTALL });
+    const run = install(dir);
+
+    expect(run.envFile).toBe(first.envFile);
+    for (const name of [
+      "OPENSTACK_DATABASE_EXPORTER_TARGETS",
+      "OPENSTACK_WORKER_STATE_CLOUDS",
+    ]) {
+      expect(composeReadAll(run.envFile)[name]).toBeUndefined();
+    }
+    expect(composeReadAll(run.envFile).COMPOSE_PROFILES).toBe(
+      "openstack-exporter,openstack-ai-agent",
+    );
+    expect(run.output).not.toContain("from its databases");
+  });
+
+  (HAS_COMPOSE || IN_CI ? test : test.skip)(
+    "as the real Docker Compose reads it: the path's exporters and the AI agent, and no exporter of the APIs (required in CI)",
+    () => {
+      const dir = scratch();
+      movedToTheDatabasePath(dir);
+      const run = install(dir);
+      expect(run.status).toBe(0);
+
+      const config = realComposeConfig(run.installDir);
+
+      expect(Object.keys(config.services).sort()).toEqual([
+        "oneuptime-openstack-agent",
+        "oneuptime-openstack-ai-agent",
+        "openstack-database-exporter",
+        "openstack-worker-state-exporter",
+      ]);
+      expect(
+        serviceEnvironment(config, "oneuptime-openstack-agent"),
+      ).toMatchObject({
+        OPENSTACK_EXPORTER_CLOUDS: "[]",
+        OPENSTACK_DATABASE_EXPORTER_TARGETS: DATABASE_TARGETS,
+        OPENSTACK_WORKER_STATE_CLOUDS: "[RegionOne]",
+        OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+      });
+      expect(
+        serviceEnvironment(config, "openstack-database-exporter")
+          .NOVA_DATABASE_URL,
+      ).toBe(docsSettings().NOVA_DATABASE_URL);
+    },
+  );
 });
 
 describe("what the cloud stands on, as lists of targets", () => {
@@ -2276,7 +2984,7 @@ describe("install.sh, as the upgrade", () => {
 describe("where its files come from", () => {
   const SERVED = `${URL}/install/${INSTALL_NAME}`;
   const GITHUB =
-    "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/OpenStackAgent";
+    "https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/OpenStackAgent";
 
   function downloads(dir) {
     return readIfExists(path.join(dir, "curl.log"))

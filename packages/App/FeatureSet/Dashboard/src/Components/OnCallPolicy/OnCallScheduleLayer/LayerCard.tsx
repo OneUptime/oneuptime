@@ -38,6 +38,7 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -510,7 +511,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
             {currentAndNext.next && (
               <>
                 <span className="max-sm:hidden text-gray-300 sm:inline">
-                  &middot;
+                  <InlineSeparator markOnly />
                 </span>
                 <span
                   data-testid="layer-card-up-next"

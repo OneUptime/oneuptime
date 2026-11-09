@@ -1,8 +1,11 @@
 import OneUptimeDate, { CalendarUnit } from "../../Types/Date";
-import EventInterval from "../../Types/Events/EventInterval";
 import Recurring from "../../Types/Events/Recurring";
 import StatusPageReportPeriodType from "../../Types/StatusPage/StatusPageReportPeriodType";
 import Timezone from "../../Types/Timezone";
+import StatusPageReportText, {
+  StatusPageReportPeriodTextSource,
+  StatusPageReportPeriodTexts,
+} from "./ReportText";
 
 /*
  * The exact stretch of time one scheduled status page report covers, plus the
@@ -14,7 +17,8 @@ import Timezone from "../../Types/Timezone";
  * gets emailed. That is the whole point of the calendar option - a report is no
  * longer "whatever the last 30 days happened to be when the cron fired".
  */
-export interface StatusPageReportPeriod {
+export interface StatusPageReportPeriod
+  extends StatusPageReportPeriodTextSource {
   // Inclusive. The first instant the report measures.
   startDate: Date;
   // Inclusive. The last instant the report measures.
@@ -23,6 +27,12 @@ export interface StatusPageReportPeriod {
   numberOfDays: number;
   // The zone every boundary above was resolved in.
   timezone: Timezone;
+  /*
+   * How the window was cut - the rolling days, or the calendar unit and how
+   * many of them (intervalType, intervalCount) - so the two texts below can
+   * be written again in a reader's language (StatusPageReportText).
+   */
+  periodType: StatusPageReportPeriodType;
   /*
    * The `report.reportDates` template variable. Rolling windows keep the exact
    * shape they have always had ("30 days (Jun 29, 2026 - Jul 29, 2026)") so
@@ -95,14 +105,30 @@ export default class StatusPageReportPeriodUtil {
       numberOfDays,
     );
 
-    return {
+    return this.withTexts({
       startDate: startDate,
       endDate: endDate,
       numberOfDays: numberOfDays,
       timezone: data.timezone,
-      reportDates: `${numberOfDays} days (${this.formatDay(startDate, data.timezone)} - ${this.formatDay(endDate, data.timezone)})`,
-      periodName:
-        numberOfDays === 1 ? "the last day" : `the last ${numberOfDays} days`,
+      periodType: StatusPageReportPeriodType.Rolling,
+    });
+  }
+
+  /*
+   * A window with its two texts, in English: the period's name and its
+   * dates (StatusPageReportText.getPeriodTexts, which writes them in a
+   * reader's language too).
+   */
+  private static withTexts(
+    window: Omit<StatusPageReportPeriod, "reportDates" | "periodName">,
+  ): StatusPageReportPeriod {
+    const texts: StatusPageReportPeriodTexts =
+      StatusPageReportText.getPeriodTexts(window);
+
+    return {
+      ...window,
+      reportDates: texts.reportDates,
+      periodName: texts.periodName,
     };
   }
 
@@ -148,7 +174,12 @@ export default class StatusPageReportPeriodUtil {
 
     const endDate: Date = new Date(endExclusive.getTime() - 1);
 
-    return {
+    /*
+     * Only a single-unit period has a name a reader already knows ("July
+     * 2026"); anything spanning several units, and an hourly period, reads
+     * as its dates (StatusPageReportText.getPeriodTexts).
+     */
+    return this.withTexts({
       startDate: startDate,
       endDate: endDate,
       numberOfDays: Math.max(
@@ -159,48 +190,10 @@ export default class StatusPageReportPeriodUtil {
         ),
       ),
       timezone: data.timezone,
-      reportDates: `${this.formatDay(startDate, data.timezone)} - ${this.formatDay(endDate, data.timezone)}`,
-      periodName: this.getCalendarPeriodName({
-        intervalType: recurring.intervalType,
-        intervalCount: intervalCount,
-        startDate: startDate,
-        endDate: endDate,
-        timezone: data.timezone,
-      }),
-    };
-  }
-
-  private static getCalendarPeriodName(data: {
-    intervalType: EventInterval;
-    intervalCount: number;
-    startDate: Date;
-    endDate: Date;
-    timezone: Timezone;
-  }): string {
-    /*
-     * Only a single-unit period has a name a reader already knows ("July 2026").
-     * Anything spanning several units, and hourly periods, are clearer as an
-     * explicit range.
-     */
-    if (data.intervalCount === 1) {
-      if (data.intervalType === EventInterval.Month) {
-        return this.format(data.startDate, "MMMM YYYY", data.timezone);
-      }
-
-      if (data.intervalType === EventInterval.Year) {
-        return this.format(data.startDate, "YYYY", data.timezone);
-      }
-
-      if (data.intervalType === EventInterval.Week) {
-        return `the week of ${this.formatDay(data.startDate, data.timezone)}`;
-      }
-
-      if (data.intervalType === EventInterval.Day) {
-        return this.formatDay(data.startDate, data.timezone);
-      }
-    }
-
-    return `${this.formatDay(data.startDate, data.timezone)} - ${this.formatDay(data.endDate, data.timezone)}`;
+      periodType: StatusPageReportPeriodType.PreviousCalendarPeriod,
+      intervalType: recurring.intervalType,
+      intervalCount: intervalCount,
+    });
   }
 
   /*
@@ -216,21 +209,5 @@ export default class StatusPageReportPeriodUtil {
     }
 
     return Math.floor(value);
-  }
-
-  private static formatDay(date: Date, timezone: Timezone): string {
-    return this.format(date, "MMM D, YYYY", timezone);
-  }
-
-  private static format(
-    date: Date,
-    format: string,
-    timezone: Timezone,
-  ): string {
-    return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
-      date: date,
-      format: format,
-      timezone: timezone,
-    });
   }
 }

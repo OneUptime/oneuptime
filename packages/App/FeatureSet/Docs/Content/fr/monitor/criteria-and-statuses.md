@@ -88,10 +88,23 @@ flowchart TB
 - **Un à la fois.** Tant qu'un incident déclaré par un critère est encore ouvert, le même critère qui correspond à nouveau n'en déclare pas d'autre. Les alertes fonctionnent de la même façon. Un moniteur qui regroupe par hôte ou par champ de la charge utile en garde un ouvert par hôte ou par valeur, et un critère de moniteur d'e-mails entrants avec **Ouvrir un nouvel incident pour chaque e-mail** en ouvre un par e-mail.
 - **La fermeture.** Lors d'une vérification suivante où un autre critère correspond, ou aucun, un incident dont le critère a **Résoudre automatiquement l'incident** activé est résolu, de même qu'une alerte avec **Résoudre automatiquement l'alerte**. Les deux se trouvent sous **Plus de champs** dans l'incident ou l'alerte, et les critères avec lesquels démarre un nouveau moniteur les ont activés.
 - **Plusieurs sondes.** Un moniteur vérifié par plus d'une sonde ne change que lorsque ses sondes sont d'accord. Voir [Comment les critères sont évalués](/docs/monitor/create-monitor#comment-les-critères-sont-évalués).
-- **Un moniteur parent en panne.** Sur la page **Configuration → Dépendances** d'un moniteur, **Dépend des moniteurs** nomme les moniteurs dont il dépend. Tant que l'un d'eux est dans un statut listé dans **Suppress When Parent Status Is** (n'importe quel statut hors ligne, si ce champ reste vide), le moniteur n'ouvre ni incident ni alerte. Son statut change toujours, et ce qui est ouvert se résout toujours.
+- **Un moniteur parent en panne.** Sur la page **Configuration → Dépendances** d'un moniteur, **Dépend des moniteurs** nomme les moniteurs dont il dépend. Tant que l'un d'eux est dans un statut listé dans **Suspendre quand le statut du parent est** (n'importe quel statut hors ligne, si ce champ reste vide), le moniteur n'ouvre ni incident ni alerte. Son statut change toujours, et ce qui est ouvert se résout toujours.
 - **La maintenance planifiée.** Un moniteur pris dans un événement de maintenance en cours n'est pas vérifié, donc ses critères ne s'exécutent pas. Voir [Vue d'ensemble de la maintenance planifiée](/docs/scheduled-maintenance/index).
 
 Pour voir comment une vérification a été jugée, ouvrez la **Vue d'ensemble** du moniteur : la carte **Résumé du moniteur** montre quel critère a correspondu et ce que chacun a fait, y compris un incident ignoré parce qu'un autre était déjà ouvert.
+
+## Ce qu'un incident ou une alerte conserve de la vérification
+
+Un incident ou une alerte qu'un moniteur ouvre conserve la vérification qui l'a ouvert, pour que vous puissiez voir pourquoi bien après la disparition des journaux du moniteur. Sous sa cause racine, la section **Détails de l'évaluation** nomme le critère qui a correspondu et, pour chaque filtre qui a correspondu, ce que la vérification a trouvé. **Afficher les détails** ajoute le reste des éléments, les filtres qui n'ont pas correspondu et la vérification elle-même : la requête, quand elle a eu lieu, depuis quelle sonde et ce qui a été renvoyé. Ce qu'un filtre a trouvé peut être :
+
+- **Le champ.** L'endroit d'un corps JSON où un filtre **Corps de la réponse** a correspondu, par exemple `checks[1].status`, ou l'en-tête dans lequel un filtre **Response Header Value** a correspondu.
+- **Les valeurs.** Ce que contenait chaque valeur lue par une **JavaScript Expression** lors de son évaluation, par exemple `responseBody.status = "down"`.
+- **Un extrait.** Un court passage de la réponse autour de la correspondance, mise en évidence : jamais le corps entier.
+
+Les secrets et les données personnelles sont masqués avant que quoi que ce soit ne soit conservé : les en-têtes comme `Authorization`, `Cookie` et `Set-Cookie`, les champs dont le nom dit `password`, `token`, `key`, `session` ou `email`, et le texte qui ressemble à un jeton bearer, un JWT, un numéro de carte ou une adresse e-mail. L'URL de la requête est celle avec laquelle le moniteur a été configuré : `{{monitorSecrets.NAME}}` reste un nom, et une valeur de requête secrète est masquée. Un incident ou une alerte ouverts à la main, ou avant que les détails de l'évaluation ne soient conservés, n'en ont pas.
+
+> [!TIP]
+> Lorsque les réponses d'un moniteur de site web ou d'API sont sensibles en elles-mêmes, désactivez **Conserver le contenu de la réponse dans les incidents et alertes** dans la carte **Contenu de la réponse** de sa page **Avancé → Paramètres**. Ses incidents et alertes conservent alors les filtres qui ont correspondu, le code de statut et le temps de réponse, et aucune partie de la réponse. Un moniteur de requêtes entrantes a le même interrupteur pour les requêtes qu'il reçoit : **Conserver le contenu de la requête dans les incidents et alertes**, dans la carte **Contenu de la requête**. L'interrupteur s'applique aux incidents et alertes ouverts après sa modification.
 
 ## Modifier les critères d'un moniteur
 

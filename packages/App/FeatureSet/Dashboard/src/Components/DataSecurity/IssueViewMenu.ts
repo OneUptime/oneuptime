@@ -4,7 +4,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 /*
  * A data security issue's own menu, as data: its Overview - what is wrong,
  * why it matters and how to fix it - and its Timeline, then, under
- * Advanced (folded by its title, as every record's is), Delete Issue.
+ * Advanced (folded by its title, as every record's is), who accepted,
+ * assigned or resolved it (Audit Logs) and Delete Issue.
  *
  * An issue is opened by checks and worked on its own pages, never set up
  * as code, so it has no Developer section; its API and MCP tools are on
@@ -43,6 +44,11 @@ export const DATA_SECURITY_ISSUE_MENU: Array<IssueViewMenuSection> = [
   {
     title: "Advanced",
     items: [
+      {
+        page: PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS,
+        title: "Audit Logs",
+        icon: IconProp.List,
+      },
       {
         page: PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE,
         title: "Delete Issue",

@@ -1142,27 +1142,48 @@ const COMPANION_TABS: string = readSource(
   "Telemetry",
   "TelemetryCompanionSignalTabs.tsx",
 );
+// The logs, traces or exceptions card of every event page (issue #6251).
+const SNAPSHOT_PANEL: string = readSource(
+  "Components",
+  "Telemetry",
+  "TelemetrySnapshotPanel.tsx",
+);
 
 describe("page and card wiring", () => {
   test.each([
     ["incident", INCIDENT_VIEW, "incident"],
     ["alert", ALERT_VIEW, "alert"],
   ])(
-    "%s page routes its snapshot through the shared tabbed card",
+    "%s page routes its snapshot through the shared card",
     (_name: string, source: string, eventNoun: string) => {
-      expect(source).toContain("<TelemetryCompanionSignalTabs");
-      expect(source).toContain("telemetryQuery={telemetryQuery}");
-      /*
-       * The window the snapshot shows: the page's snapshot window, or the
-       * slice a drag on its metric chart zoomed the whole snapshot to.
-       */
-      expect(source).toContain("snapshotWindow: telemetrySnapshotWindow,");
-      expect(source).toContain("snapshotWindow={snapshotZoom.window}");
-      expect(source).toContain("snapshotWindowAlert={snapshotWindowAlert}");
-      expect(source).toContain(`eventNoun="${eventNoun}"`);
-      expect(source).toContain("primarySignalElement={");
+      const card: string = source.slice(
+        source.indexOf("<TelemetrySnapshotPanel"),
+      );
+
+      expect(source).toContain("<TelemetrySnapshotPanel");
+      expect(card).toContain("telemetryQuery={telemetryQuery}");
+      // The window the monitor evaluated, as the page read it.
+      expect(card).toContain("snapshotWindow={telemetrySnapshotWindow}");
+      expect(card).toContain(`eventNoun="${eventNoun}"`);
+      // The tabs are the card's: no page draws them itself any more.
+      expect(source).not.toContain("<TelemetryCompanionSignalTabs");
     },
   );
+
+  test("the shared card routes the snapshot through the tabbed card, on the window it shows", () => {
+    expect(SNAPSHOT_PANEL).toContain("<TelemetryCompanionSignalTabs");
+    expect(SNAPSHOT_PANEL).toContain("telemetryQuery={telemetryQuery}");
+    /*
+     * The window the card shows: what the monitor saw, a range the reader
+     * picked, or the slice a drag zoomed the whole card to.
+     */
+    expect(SNAPSHOT_PANEL).toContain(
+      "snapshotWindow={hasWindow ? time.window : props.snapshotWindow}",
+    );
+    expect(SNAPSHOT_PANEL).toContain("snapshotWindowAlert={timeRangeControls}");
+    expect(SNAPSHOT_PANEL).toContain("eventNoun={eventNoun}");
+    expect(SNAPSHOT_PANEL).toContain("primarySignalElement={");
+  });
 
   test("the card derives companions with the shared pure util", () => {
     expect(COMPANION_TABS).toContain("deriveCompanionSignalQueries({");
@@ -1210,8 +1231,9 @@ describe("page and card wiring", () => {
 
     // Both counts read that filtered state, and so does the chart plan.
     expect(COMPANION_TABS).toContain("if (metricNames.length === 0) {");
-    expect(COMPANION_TABS).toContain(
-      "Showing ${chartPlan.queryConfigs.length} of ${metricNames.length} metrics.",
+    // Counted by the names found, in the reader's own forms (#6028).
+    expect(COMPANION_TABS).toMatch(
+      /translator\.translatePlural\(\s*COMPANION_METRICS_SHOWN,\s*metricNames\.length,\s*\{ shown: translator\.formatNumber\(chartPlan\.queryConfigs\.length\) \},?\s*\)/,
     );
     expect(COMPANION_TABS).toContain("metricNames: metricNames || [],");
   });
@@ -1220,5 +1242,31 @@ describe("page and card wiring", () => {
     expect(COMPANION_TABS).toContain(
       "if (tabs.length <= 1) { return props.primarySignalElement; }",
     );
+  });
+});
+
+/*
+ * The telemetry ingestion budget series (issue #5917) are keyed to the
+ * project, not to any service an incident is about, so they never chart as
+ * an incident's companions either.
+ */
+describe("excludeReservedCompanionMetricNames and the ingestion budget series", () => {
+  test("drops every ingestion budget series, in any case or padding, and keeps the rest in order", () => {
+    expect(
+      excludeReservedCompanionMetricNames([
+        "web_vital.lcp",
+        "oneuptime.telemetry.budget.used.bytes",
+        " OneUptime.Telemetry.Budget.Used.Percent ",
+        "oneuptime.telemetry.budget.dropped.bytes",
+        "oneuptime.telemetry.budget.throttled.requests",
+        "http.server.duration",
+      ]),
+    ).toEqual(["web_vital.lcp", "http.server.duration"]);
+  });
+
+  test("keeps a near miss", () => {
+    expect(
+      excludeReservedCompanionMetricNames(["oneuptime.telemetry.budgets"]),
+    ).toEqual(["oneuptime.telemetry.budgets"]);
   });
 });

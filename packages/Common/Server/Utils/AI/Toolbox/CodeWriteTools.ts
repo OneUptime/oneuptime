@@ -16,14 +16,22 @@ import CodeHostWriters, {
 import {
   CodeHostBranch,
   CodeHostCommitMade,
+  CodeHostFileContent,
+  CodeHostFileExpected,
   CodeHostFileWrite,
   CodeHostOpenedPullRequest,
 } from "../../CodeRepository/CodeHost/CodeHostTypes";
+import CodeHostFilesMovedError from "../../CodeRepository/CodeHost/CodeHostFilesMovedError";
+import {
+  truncateLongText,
+  truncateShortText,
+} from "../../Database/TruncateColumnValue";
 import OpenPullRequestCap, {
   OpenPullRequestCapDecision,
 } from "../CodeFix/OpenPullRequestCap";
 import {
   ObservabilityTool,
+  PreparedMutation,
   ToolArgs,
   ToolContext,
   ToolExecutionResult,
@@ -37,13 +45,38 @@ import {
   aiActionSentence,
   aiActionTerm,
 } from "../../../../Types/AI/AIActionWords";
-import { resolveTargetRepository } from "./CodeTools";
+import { readRepositoryFile, resolveTargetRepository } from "./CodeTools";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import {
   CodeHost,
   CodeHostFacts,
 } from "../../../../Types/CodeRepository/CodeHost";
+import { CODE_CHANGE_PROPOSED_ON_KEY } from "../../../../Types/CodeRepository/CodeChangeProposedOnKey";
+import {
+  CodeChangeProposedOn,
+  CodeFileProposedOn,
+  findCodeFilesChangedSinceProposed,
+  readCodeChangeProposedOn,
+} from "../../../../Types/CodeRepository/CodeFileSeen";
+import {
+  CodeChangeKind,
+  CodeFileNow,
+  CodeFilesReadNow,
+  CodeFileTextNow,
+  UnseenCodeChange,
+  describeChangedSinceProposed,
+  findCodeFilesValuesHidden,
+  findUnseenCodeChange,
+  getCodeChangeProposedOn,
+  getCodeChangesHoldingPlaceholders,
+  getCodeFilesSeenFromWrite,
+  readCodeFileTextsNow,
+  readCodeFileVersionsNow,
+  readCodeFilesNow,
+} from "./CodeFilesSeen";
+import { describeCodeFilesUnseenForReviewer } from "./CodeChangeReviewerNote";
+import logger from "../../Logger";
 
 /*
  * Tools that let the chat agent WRITE code: commit to a branch, and open a
@@ -365,10 +398,272 @@ function describeChanges(changes: Array<CodeHostFileWrite>): string {
     .join("\n");
 }
 
+/*
+ * WHAT A CODE CHANGE WOULD WRITE OVER THAT ASK AI NEVER SAW (issue #6313).
+ *
+ * Each file is written whole, from what read_code_file showed the model,
+ * and the commit is made on the branch as the branch is when it runs: a
+ * change pushed to a file after the read, or the branch's own version of a
+ * file read on another branch, is undone by it. So before the card is
+ * shown, the prepare reads each file the change writes on the branch the
+ * commit lands on - a pull request's base, the default branch - and holds
+ * it to what the conversation showed the model (ToolContext.recordsSeen,
+ * CodeFilesSeen), never to anything the model says:
+ *   - the card names the files the change would write over unseen, before
+ *     anyone approves it, and nothing more when there are none;
+ *   - in Auto-run, where nobody approves, such a change is not made: the
+ *     model is told to read the files again (notRunWithoutApproval);
+ *   - what the card was shown on goes into the arguments that run, over
+ *     whatever the model sent there: approved after a file changed again,
+ *     the change is not made (holdToWhatTheCardShowed).
+ *
+ * And held to what it writes (issue #6364): the model was shown what looks
+ * like a secret or personal data as a placeholder ("[redacted-ip]"), so a
+ * file it writes with more of a placeholder than the branch's file has
+ * writes the placeholder where the value was. Only such a file's text is
+ * read, beside the versions; the card says so, and in Auto-run the change
+ * is not made - reading again never shows the model the value.
+ *
+ * Reads only, and never throws for the model's mistakes or the host's:
+ * running the change says why it cannot be made. A caller that keeps no
+ * record of what the model saw gets the card as it always was.
+ */
+async function prepareCodeChange(data: {
+  change: CodeChangeKind;
+  args: JSONObject;
+  ctx: ToolContext;
+}): Promise<PreparedMutation> {
+  const prepared: JSONObject = { ...data.args };
+
+  // OneUptime's alone: whatever the model sent there is dropped.
+  delete prepared[CODE_CHANGE_PROPOSED_ON_KEY];
+
+  if (!data.ctx.recordsSeen) {
+    return { arguments: prepared };
+  }
+
+  try {
+    const changes: Array<CodeHostFileWrite> = parseFileChanges(data.args);
+    const repository: CodeRepository = await resolveTargetRepository(
+      data.ctx,
+      data.args,
+    );
+
+    assertChatWritesToRepository(repository);
+    await assertMayChangeRepository({ ctx: data.ctx, repository });
+
+    const writer: CodeHostWriter = await openWriter({
+      ctx: data.ctx,
+      repository,
+    });
+
+    /*
+     * The branch the commit lands on: the one named - once it is one chat
+     * may write to - or the default branch a pull request starts from.
+     */
+    let branchName: string | undefined = undefined;
+
+    if (data.change === CodeChangeKind.Commit) {
+      branchName = ToolArgs.getString(data.args, "branchName");
+
+      if (branchName) {
+        await assertBranchIsWritable({ repository, writer, branchName });
+      }
+    } else {
+      branchName = (await writer.getDefaultBranchName()) || undefined;
+    }
+
+    if (!branchName || !repository.id) {
+      return { arguments: prepared };
+    }
+
+    const readOnBranchName: string = branchName;
+
+    // The versions of every file, and the text of each written with a placeholder in it, read at once.
+    const [files, texts]: [Array<CodeFileNow>, Map<string, CodeFileTextNow>] =
+      await Promise.all([
+        readCodeFilesNow({
+          writer,
+          branchName,
+          filePaths: changes.map((change: CodeHostFileWrite): string => {
+            return change.filePath;
+          }),
+        }),
+        readCodeFileTextsNow({
+          filePaths: getCodeChangesHoldingPlaceholders(changes),
+          read: async (filePath: string): Promise<string | null> => {
+            const file: CodeHostFileContent | null = await readRepositoryFile({
+              ctx: data.ctx,
+              repository,
+              branchName: readOnBranchName,
+              filePath,
+            });
+
+            return file ? file.content : null;
+          },
+        }),
+      ]);
+
+    const unseen: UnseenCodeChange | null = findUnseenCodeChange({
+      change: data.change,
+      recordsSeen: data.ctx.recordsSeen,
+      repositoryId: repository.id.toString(),
+      branchName,
+      files,
+      valuesHidden: findCodeFilesValuesHidden({ changes, texts }),
+    });
+
+    prepared[CODE_CHANGE_PROPOSED_ON_KEY] = getCodeChangeProposedOn({
+      branchName,
+      files,
+      unseen: unseen ? unseen.findings : [],
+    }) as unknown as JSONObject;
+
+    return {
+      arguments: prepared,
+      ...(unseen
+        ? {
+            description: unseen.lines,
+            notRunWithoutApproval: unseen.notRunWithoutApproval,
+          }
+        : {}),
+    };
+  } catch (error) {
+    logger.debug(
+      `Ask AI could not check a code change before showing it; running it says why: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+
+    return { arguments: prepared };
+  }
+}
+
+// What an approved change was held to: its card's files, and each as the approval read it again.
+interface HeldChange {
+  proposedOn: CodeChangeProposedOn;
+  /*
+   * Each file as the approval read it again (issue #6331): the version the
+   * commit itself is then held to, so a push between that read and the
+   * commit is refused by the host, never written over.
+   */
+  expected: Array<CodeHostFileExpected>;
+}
+
+/*
+ * An approved change is made only on the files its card was shown on: one
+ * that changed on the branch since - or can no longer be read there - is
+ * no longer what the card said, so nothing is written. What the card was
+ * shown on is OneUptime's (the prepare); a file it could not read is held
+ * to nothing, as the card said.
+ */
+async function holdToWhatTheCardShowed(data: {
+  change: CodeChangeKind;
+  args: JSONObject;
+  writer: CodeHostWriter;
+  branchName: string;
+  changes: Array<CodeHostFileWrite>;
+}): Promise<HeldChange | null> {
+  const proposedOn: CodeChangeProposedOn | null = readCodeChangeProposedOn(
+    data.args[CODE_CHANGE_PROPOSED_ON_KEY],
+  );
+
+  if (!proposedOn) {
+    return null;
+  }
+
+  const held: CodeChangeProposedOn = {
+    ...proposedOn,
+    files: proposedOn.files.filter((file: CodeFileProposedOn): boolean => {
+      return data.changes.some((change: CodeHostFileWrite): boolean => {
+        return change.filePath === file.filePath;
+      });
+    }),
+  };
+
+  if (held.files.length === 0) {
+    return { proposedOn, expected: [] };
+  }
+
+  const now: CodeFilesReadNow = await readCodeFileVersionsNow({
+    writer: data.writer,
+    branchName: data.branchName,
+    filePaths: held.files.map((file: CodeFileProposedOn): string => {
+      return file.filePath;
+    }),
+  });
+
+  const changed: Array<string> = findCodeFilesChangedSinceProposed({
+    proposedOn: held,
+    now: now.files,
+  });
+
+  if (changed.length > 0) {
+    throw new BadDataException(
+      describeChangedSinceProposed({
+        change: data.change,
+        branchName: data.branchName,
+        filePaths: changed,
+      }),
+    );
+  }
+
+  return { proposedOn, expected: now.versions };
+}
+
+/*
+ * The commit of an approved change, held to the files as the approval read
+ * them again (issue #6331): a push that landed between that read and the
+ * commit - a teammate's, CI's, a merge queue's - makes the host refuse it,
+ * and nothing is written. Said as the approval's own refusal says it:
+ * read the files again, and propose the change again. A change held to
+ * nothing - a caller that keeps no record, a card that could not check its
+ * files - is written as the branch has it, as it always was.
+ */
+async function commitHeldToTheRead(data: {
+  change: CodeChangeKind;
+  writer: CodeHostWriter;
+  // The branch the commit is made on: the one named, or a pull request's new one.
+  branchName: string;
+  // The branch the files were read on: the same, or the pull request's base.
+  readOnBranchName: string;
+  changes: Array<CodeHostFileWrite>;
+  commitMessage: string;
+  held: HeldChange | null;
+}): Promise<CodeHostCommitMade> {
+  try {
+    return await data.writer.commitFiles({
+      branchName: data.branchName,
+      files: data.changes,
+      commitMessage: data.commitMessage,
+      ...(data.held && data.held.expected.length > 0
+        ? { expected: data.held.expected }
+        : {}),
+    });
+  } catch (error) {
+    if (error instanceof CodeHostFilesMovedError) {
+      throw new BadDataException(
+        describeChangedSinceProposed({
+          change: data.change,
+          branchName: data.readOnBranchName,
+          filePaths:
+            error.filePaths.length > 0
+              ? error.filePaths
+              : data.changes.map((change: CodeHostFileWrite): string => {
+                  return change.filePath;
+                }),
+        }),
+      );
+    }
+
+    throw error;
+  }
+}
+
 export const CommitCodeToBranchTool: ObservabilityTool = {
   name: "commit_code_to_branch",
   description:
-    "Commit file changes to an EXISTING branch of a connected repository on GitHub, GitLab, Forgejo or Gitea. Never commits to the default or a protected branch — those are refused. Use this only when the user names a branch to commit onto; otherwise prefer open_code_pull_request. Read each file with read_code_file first: content replaces the whole file.",
+    "Commit file changes to an EXISTING branch of a connected repository on GitHub, GitLab, Forgejo or Gitea. Never commits to the default or a protected branch — those are refused. Use this only when the user names a branch to commit onto; otherwise prefer open_code_pull_request. Read each file on that branch first, with read_code_file and branchName: content replaces the whole file.",
   isMutation: true,
   inputSchema: {
     type: "object",
@@ -405,6 +700,17 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
         aiActionTerm(AI_ACTION_TERMS.aBranch),
     });
   },
+  // What the commit would write over that Ask AI never saw on the branch (issue #6313).
+  prepareMutation: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<PreparedMutation> => {
+    return await prepareCodeChange({
+      change: CodeChangeKind.Commit,
+      args,
+      ctx,
+    });
+  },
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -436,10 +742,23 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
 
     await assertBranchIsWritable({ repository, writer, branchName });
 
-    const commit: CodeHostCommitMade = await writer.commitFiles({
-      branchName: branchName,
-      files: changes,
-      commitMessage: commitMessage,
+    // Only on the files the card was shown on (issue #6313), as the approval read them (issue #6331).
+    const held: HeldChange | null = await holdToWhatTheCardShowed({
+      change: CodeChangeKind.Commit,
+      args,
+      writer,
+      branchName,
+      changes,
+    });
+
+    const commit: CodeHostCommitMade = await commitHeldToTheRead({
+      change: CodeChangeKind.Commit,
+      writer,
+      branchName,
+      readOnBranchName: branchName,
+      changes,
+      commitMessage,
+      held,
     });
 
     return {
@@ -454,6 +773,17 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
       citationLabel: `Commit ${commit.commitSha.slice(0, 7)} on ${branchName} (${changes.length} file${changes.length === 1 ? "" : "s"})`,
       redactionCount: 0,
       isTruncated: false,
+      // Ask AI now knows each file on the branch as it wrote it (issue #6313).
+      ...(repository.id
+        ? {
+            recordSeen: getCodeFilesSeenFromWrite({
+              repositoryId: repository.id.toString(),
+              branchName,
+              files: changes,
+              commitSha: commit.commitSha,
+            }),
+          }
+        : {}),
     };
   },
 };
@@ -461,7 +791,7 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
 export const OpenCodePullRequestTool: ObservabilityTool = {
   name: "open_code_pull_request",
   description:
-    "Propose a code change: creates a new branch off the default branch, commits the changes, and opens a pull request (a merge request on GitLab), ready for review, for a human to review and merge. Works in repositories on GitHub, GitLab, Forgejo and Gitea. This is the safe, preferred way to change code from chat — it never writes to the default branch and never merges. Read each file with read_code_file first: content replaces the whole file.",
+    "Propose a code change: creates a new branch off the default branch, commits the changes, and opens a pull request (a merge request on GitLab), ready for review, for a human to review and merge. Works in repositories on GitHub, GitLab, Forgejo and Gitea. This is the safe, preferred way to change code from chat — it never writes to the default branch and never merges. Read each file on the default branch with read_code_file first: content replaces the whole file.",
   isMutation: true,
   inputSchema: {
     type: "object",
@@ -496,6 +826,24 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       title:
         ToolArgs.getString(args, "title") ||
         aiActionTerm(AI_ACTION_TERMS.untitled),
+    });
+  },
+  /*
+   * What the pull request would write over that Ask AI never saw on the
+   * default branch it starts from (issue #6313). A person reviews its diff
+   * before it merges, but a diff that takes a teammate's change out again
+   * reads like part of the fix, so it is treated as a commit is: the card
+   * names the files, Auto-run does not open it, and approved anyway, the
+   * pull request says so for its reviewer.
+   */
+  prepareMutation: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<PreparedMutation> => {
+    return await prepareCodeChange({
+      change: CodeChangeKind.PullRequest,
+      args,
+      ctx,
     });
   },
   execute: async (
@@ -557,6 +905,18 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       );
     }
 
+    // Only on the files the card was shown on (issue #6313), as the approval read them (issue #6331).
+    const held: HeldChange | null = await holdToWhatTheCardShowed({
+      change: CodeChangeKind.PullRequest,
+      args,
+      writer,
+      branchName: baseBranchName,
+      changes,
+    });
+    const proposedOn: CodeChangeProposedOn | null = held
+      ? held.proposedOn
+      : null;
+
     const headBranchName: string = buildAiBranchName(title);
 
     const created: boolean = await writer.createBranch({
@@ -570,18 +930,41 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       );
     }
 
-    await writer.commitFiles({
+    /*
+     * The new branch starts as the base is now: a push to the base after
+     * the approval read it, to a file this writes, is on it too - and the
+     * commit, held to that read, is refused rather than undo it in the diff.
+     */
+    const commit: CodeHostCommitMade = await commitHeldToTheRead({
+      change: CodeChangeKind.PullRequest,
+      writer,
       branchName: headBranchName,
-      files: changes,
+      readOnBranchName: baseBranchName,
+      changes,
       commitMessage: ToolArgs.getString(args, "commitMessage") || title,
+      held,
     });
+
+    /*
+     * Approved although its card said it writes over what Ask AI never
+     * read: whoever reviews it may never have seen the card, so the pull
+     * request says it too.
+     */
+    const reviewerNote: string | null = proposedOn
+      ? describeCodeFilesUnseenForReviewer({
+          baseBranchName: baseBranchName,
+          findings: proposedOn.unseen,
+        })
+      : null;
 
     const pullRequest: CodeHostOpenedPullRequest = await writer.openPullRequest(
       {
         baseBranchName: baseBranchName,
         headBranchName: headBranchName,
         title: title,
-        body: `${description}\n\n---\n_Proposed by OneUptime AI from a chat conversation. Review carefully before merging: this change was written by an agent that reads production telemetry._`,
+        body: `${description}\n\n---\n_Proposed by OneUptime AI from a chat conversation. Review carefully before merging: this change was written by an agent that reads production telemetry._${
+          reviewerNote ? `\n\n${reviewerNote}` : ""
+        }`,
       },
     );
     const label: string = getPullRequestLabel(
@@ -609,8 +992,18 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
     const record: AIAgentTaskPullRequest = new AIAgentTaskPullRequest();
     record.projectId = ctx.projectId;
     record.codeRepositoryId = repository.id!;
-    record.title = title;
-    record.description = description;
+
+    /*
+     * The row keeps a copy of the title and description, cut to fit their
+     * columns as CodeFixPullRequestRecord cuts a worker's: the title is
+     * ShortText (100 characters), the description LongText (500), and
+     * DatabaseService refuses anything longer. The model writes both, and a
+     * description that explains the change and cites its evidence often runs
+     * past 500. Copied whole, it got the row refused after the pull request
+     * was already open. The pull request itself keeps both whole.
+     */
+    record.title = truncateShortText(title);
+    record.description = truncateLongText(description);
     record.pullRequestId = pullRequest.id;
     record.pullRequestNumber = pullRequest.number;
     record.pullRequestState = pullRequest.state;
@@ -643,6 +1036,17 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       citationLabel: `${writer.provider === CodeRepositoryType.GitLab ? "MR" : "PR"} ${label}: ${title}`,
       redactionCount: 0,
       isTruncated: false,
+      // Ask AI now knows each file on the new branch as it wrote it (issue #6313).
+      ...(repository.id
+        ? {
+            recordSeen: getCodeFilesSeenFromWrite({
+              repositoryId: repository.id.toString(),
+              branchName: headBranchName,
+              files: changes,
+              commitSha: commit.commitSha,
+            }),
+          }
+        : {}),
     };
   },
 };

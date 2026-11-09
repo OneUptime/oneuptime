@@ -47,6 +47,8 @@ Allez dans **Cloud → Connecter**, et sur la ligne du compte AWS choisissez **D
 
 Pour les journaux, indiquez les **Groupes de journaux** un par ligne, par nom dans la **Région** à côté ou par ARN dans leur propre région, ou choisissez **Tous les groupes de journaux du compte, y compris les nouveaux**. Une commande abonne au plus 50 groupes de journaux par nom, dans au plus 10 régions.
 
+AWS n'autorise qu'un abonnement aux journaux à l'échelle du compte par région et deux filtres d'abonnement par groupe de journaux. Avant de déployer quoi que ce soit, la commande vérifie les deux : si un autre outil, comme un SIEM, occupe déjà l'abonnement à l'échelle du compte d'une région, ou si un groupe de journaux que vous avez nommé n'existe pas ou a déjà deux filtres d'abonnement, elle dit lequel et ne met rien en place.
+
 ### Créer une clé de flux
 
 Choisissez **Créer une clé de flux**. La clé n'est affichée que cette fois, dans la commande : OneUptime n'en conserve que le SHA-256.
@@ -66,6 +68,7 @@ La fenêtre demande toutes les quelques secondes ce qui est arrivé. Firehose li
 | --- | --- |
 | **Toutes les métriques, pas seulement les métriques clés** | Diffuse toutes les métriques que CloudWatch possède pour le compte, y compris les vôtres. AWS facture chaque mise à jour de métrique qu'envoie un flux, cela peut donc coûter bien plus cher |
 | **Régions** | D'où diffuser : au départ, les régions où la connexion a trouvé des ressources. Laissé vide, la commande diffuse depuis la région d'AWS CloudShell. Au plus 30 |
+| **Tous les comptes de l'organisation** | Pour une connexion qui lit une AWS Organization : la commande, exécutée dans son compte de gestion, crée aussi les mêmes piles dans chaque compte membre via un StackSet, et dans les comptes qui rejoignent l'organisation plus tard. Tous les groupes de journaux ou aucun : les groupes nommés appartiennent à un seul compte |
 | **Configurer autrement** | Les points de terminaison des métriques et des journaux et la clé, pour configurer les flux avec Terraform ou la console |
 
 **Télécharger le modèle** enregistre le modèle que la commande déploie, pour le déployer à votre façon.
@@ -77,6 +80,7 @@ La fenêtre demande toutes les quelques secondes ce qui est arrivé. Firehose li
 | Métriques | Sur les ressources cloud qu'elles mesurent, avec les noms et attributs que leur donnent les lectures de la connexion |
 | Journaux | Dans l'explorateur de journaux, sous le service de télémétrie de la connexion, avec le compte, la région et le groupe de journaux comme attributs |
 | Journaux d'un groupe de journaux qu'AWS nomme d'après une ressource | Sur cette ressource aussi : sa page dans Cloud reçoit un onglet **Journaux** |
+| Journaux d'un service App Runner, d'un environnement Elastic Beanstalk ou d'une tâche ou d'un cluster ECS | Sur son environnement dans Plateformes d'applications aussi : son onglet **Journaux** |
 
 Un groupe de journaux est classé sous une ressource quand AWS l'a nommé d'après elle :
 
@@ -93,8 +97,11 @@ Un groupe de journaux est classé sous une ressource quand AWS l'a nommé d'apr�
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Chaque journal porte l'ID de la ressource dans `cloud.resource_id`, et les journaux d'une fonction Lambda portent aussi `faas.name`, ils apparaissent donc également sur la fonction dans Serverless. Un groupe de journaux d'un autre nom est diffusé quand même, sous son compte et sa région. La gravité d'un journal est celle qu'indique son message, à la manière de Lambda.
+Chaque journal porte l'ID de la ressource dans `cloud.resource_id`, et les journaux d'une fonction Lambda portent aussi `faas.name`, ils apparaissent donc également sur la fonction dans Serverless. Un groupe de journaux d'un autre nom est diffusé quand même, sous son compte et sa région. La gravité d'un journal est celle qu'indique son message, à la manière de Lambda, de PostgreSQL ou de MySQL.
+
+Les journaux d'un service App Runner, d'un environnement Elastic Beanstalk et d'un cluster ECS portent aussi `cloud.platform`, tout comme ceux d'une tâche ECS, issus du groupe de journaux que la console ECS nomme `/ecs/<task-definition-family>`, avec `aws.ecs.task.family`. Avec le compte et la région, ils arrivent ainsi sur leur environnement dans Plateformes d'applications, qui apparaît avec eux si aucune application ne lui a encore rien envoyé. Ils ne créent aucune application : une application est nommée par sa propre télémétrie, comme l'explique [Environnements cloud](/docs/telemetry/cloud-environments).
 
 ## Ce que crée la pile
 
@@ -127,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Pour une connexion qui lit une AWS Organization, exécutez la commande de la boîte de dialogue dans le compte de gestion : si l'organisation était diffusée, elle supprime aussi les piles de chaque compte membre et le StackSet.
 :::
 
 Pour changer ce qu'une pile diffuse, ouvrez de nouveau **Diffuser les métriques et les journaux**, choisissez **Créer une nouvelle clé** et exécutez la nouvelle commande. La clé qu'elle remplace fonctionne encore 24 heures, si bien qu'aucune livraison n'est refusée pendant la mise à jour des piles. Au plus 3 clés remplacées fonctionnent en même temps.
@@ -166,6 +175,10 @@ Vérifiez que la commande s'est terminée dans chaque région, sans erreur : `aw
 
 :::details La connexion indique Flux refusé
 La fenêtre et l'infobulle de la ligne disent pourquoi. Une mauvaise clé signifie que les piles tournent avec une clé qui ne fonctionne plus : créez une nouvelle clé et exécutez de nouveau la commande. Firehose continue d'envoyer ce qu'il conserve, et c'est accepté dès que la clé est la bonne.
+:::
+
+:::details La commande indique `Nothing was set up`
+Les lignes au-dessus disent pourquoi, chacune avec sa région ou son groupe de journaux. Si un autre outil occupe l'abonnement aux journaux à l'échelle du compte d'une région, nommez plutôt les groupes de journaux à diffuser, ou supprimez la stratégie de cet outil. Si un groupe de journaux a déjà deux filtres d'abonnement, supprimez-en un ou laissez le groupe de côté. Si le groupe de journaux n'existe pas, vérifiez son nom et sa région, ou donnez son ARN. Exécutez ensuite la commande à nouveau.
 :::
 
 :::details Les journaux d'une fonction Lambda n'apparaissent pas sur sa page

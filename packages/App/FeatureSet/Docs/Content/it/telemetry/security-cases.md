@@ -306,11 +306,12 @@ Un playbook disabilitato non viene eseguito né da solo né a mano.
 | Automazione | Run a workflow | Avvia un flusso di lavoro di OneUptime con il caso come input |
 | Automazione | Run a runbook | Avvia uno dei tuoi runbook di OneUptime con il caso come input |
 | Automazione | Fix the code with AI | Chiede a OneUptime AI una pull request che corregga le eccezioni sollevate dalle richieste del caso |
+| Controllo del flusso | Ferma l'esecuzione | Termina l'esecuzione lì, come completata: i passaggi successivi non vengono eseguiti |
 
 Un playbook ha al massimo 25 passi. Vengono eseguiti in ordine, ciascuno quando il precedente è terminato. Ogni passo può anche:
 
 - **Richiede approvazione**: fermare l'esecuzione prima del passo finché qualcuno non lo approva sul caso. Gli otto passi che tagliano fuori qualcuno si fermano sempre, a meno che un Security Admin non lo disattivi. **Run a runbook**, **Post a status page announcement** e i due passi degli archivi dati partono con l'approvazione attiva, perché eseguono comandi sui tuoi sistemi, parlano ai tuoi clienti o cambiano le impostazioni di un cloud; chi aggiunge il passo può disattivarla.
-- **Esegui questo passaggio**: **Sempre**, o solo dopo un risultato di un passo precedente, come **Controlla le entità nella threat intel** che trova un'entità nota come dannosa; vedi [Diramare in base al risultato di un passo](#diramare-in-base-al-risultato-di-un-passo).
+- **Esegui questo passaggio**: **Sempre**, o solo dopo risultati di passi precedenti, come **Controlla le entità nella threat intel** che trova un'entità nota come dannosa; vedi [Diramare in base al risultato di un passo](#diramare-in-base-al-risultato-di-un-passo).
 - **Continua se fallisce**: eseguire il passo successivo anche se questo non riesce. Se è disattivato, un passo non riuscito ferma l'esecuzione. Si trova in **Altri campi**, insieme a **Esegui questo passaggio**.
 
 ### Diramare in base al risultato di un passo
@@ -324,6 +325,12 @@ Un playbook ha al massimo 25 passi. Vengono eseguiti in ordine, ciascuno quando 
 | Qualsiasi altro passo | È riuscito, e non è riuscito quando ha **Continua se fallisce** attivo |
 
 Due passi che attendono risultati opposti dello stesso passo sono un se e un altrimenti: sospendere un utente solo quando la threat intel lo conosce, e altrimenti aggiungere un'attività per confermare con lui l'accesso. Quando il passo atteso finisce in un altro modo, il passo che attende viene saltato, e l'esecuzione dice il perché sotto di esso; lo stesso vale per un passo che attende uno che è stato saltato. La scheda di un passo dice cosa attende, e un passo atteso da un altro non può essere spostato sotto di esso né eliminato finché quell'altro non viene eseguito in un altro modo. Il modello **Escala gli indicatori noti come dannosi** alza la priorità e lo stato di un caso solo quando la threat intel ha trovato corrispondenze, e un passo salvato con il vecchio interruttore della threat intel lo mantiene come **Solo se un controllo precedente della threat intel ha trovato un'entità nota come dannosa**.
+
+Un passo può attendere fino a cinque risultati: scegli ciascuno in **Esegui questo passaggio**, e **Esegui quando** chiede come leggerli, **Quando sono avvenuti tutti** o **Quando ne è avvenuto uno qualsiasi**. Sospendere un utente solo quando la threat intel lo conosce e la sua attività è stata trovata, o chiamare la reperibilità quando una delle due ricerche ha trovato qualcosa. Un passo che attende tutti i suoi risultati non può attendere due risultati dello stesso passo, come trovato e non trovato nulla, perché nessuna esecuzione li ha entrambi.
+
+### Fermare l'esecuzione
+
+**Ferma l'esecuzione**, in **Controllo del flusso**, termina l'esecuzione dove si trova, come completata: i passi successivi vengono saltati, ciascuno dicendo dove l'esecuzione si è fermata, e l'esecuzione riesce. Con **Esegui questo passaggio**, si ferma solo dopo un risultato: fermarsi quando la threat intel non ha trovato nulla di noto come dannoso, e altrimenti lasciare che vengano eseguiti i passi di contenimento sotto di esso. Ciò che scrivi in **Motivo dell'arresto** viene indicato nella cronologia del caso quando l'esecuzione si ferma lì. Non ha nulla da approvare e non fallisce mai, quindi non ha né **Richiede approvazione** né **Continua se fallisce**, e nessun passo può attenderlo. Uno che viene sempre eseguito termina ogni esecuzione, quindi può essere solo l'ultimo passo.
 
 ### Rispondere con OneUptime
 
@@ -394,7 +401,7 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Eventi di sicurezza
 | Queued | In attesa di un worker |
 | In esecuzione | Sta eseguendo i suoi passi |
 | Waiting for Approval | Ferma prima di un passo che richiede approvazione |
-| Riuscito | Ogni passo è stato eseguito, o saltato |
+| Riuscito | Ogni passo è stato eseguito, o saltato, oppure un passo **Ferma l'esecuzione** l'ha terminata |
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |
 
@@ -454,6 +461,10 @@ Il caso non riguarda nessun utente né host, per esempio solo un indirizzo, oppu
 
 :::details È stato saltato un passo che gira solo dopo un altro
 Il passo che attende è finito in un altro modo, o è stato saltato a sua volta: per esempio non ha trovato nulla di noto come dannoso, mentre il passo attende un'entità nota come dannosa. Apri l'esecuzione sul caso: il passo saltato dice quale passo attendeva, e quale risultato. Per cambiarlo, modifica il passo e apri **Altri campi**.
+:::
+
+:::details Un'esecuzione è finita prima dei suoi ultimi passi
+È stato eseguito un passo **Ferma l'esecuzione**: il risultato che attende è arrivato, oppure viene sempre eseguito. Apri l'esecuzione sul caso: i passi successivi dicono dove l'esecuzione si è fermata, e il passo di arresto dice perché se gli hai dato un motivo. Per cambiare quando si ferma, modifica il passo e apri **Altri campi**.
 :::
 
 :::details Uno stato o una priorità non si può eliminare né archiviare

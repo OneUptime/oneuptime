@@ -53,6 +53,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * App Platforms' Overview, the page the product opens on: how the apps on
@@ -224,7 +225,7 @@ const PlatformGroupRows: FunctionComponent<{
             {group.providerLabel ? (
               <>
                 <bdi>{group.providerLabel}</bdi>
-                {" · "}
+                <InlineSeparator />
               </>
             ) : (
               <></>

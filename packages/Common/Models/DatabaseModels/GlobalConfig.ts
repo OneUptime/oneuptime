@@ -5,11 +5,13 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import Email from "../../Types/Email";
+import MailgunRegion from "../../Types/Email/MailgunRegion";
 import MailTransportType from "../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
@@ -29,9 +31,19 @@ import {
 } from "../../Types/CallAndSMS/CallAndSmsProvider";
 import { Column, Entity } from "typeorm";
 
+/*
+ * How the OneUptime server sends its own email (Admin Dashboard > Settings >
+ * Email): its Custom SMTP settings (an SMTP server, or Microsoft Graph), or
+ * a provider's HTTP API with the settings named for it below. Never set, it
+ * sends through Custom SMTP.
+ */
 export enum EmailServerType {
   Sendgrid = "Sendgrid",
   CustomSMTP = "Custom SMTP",
+  AmazonSES = "Amazon SES",
+  Mailgun = "Mailgun",
+  Postmark = "Postmark",
+  Resend = "Resend",
 }
 
 @TableMetadata({
@@ -429,7 +441,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     allowedValues: Object.values(MailTransportType),
     title: "SMTP Transport",
     description:
-      "How OneUptime delivers mail using the global SMTP config. 'SMTP' uses the host/port. 'Microsoft Graph' sends via the Microsoft Graph REST API.",
+      "How OneUptime delivers mail using the global SMTP config. 'SMTP' uses the host/port. 'Microsoft Graph' sends via the Microsoft Graph REST API. Any other value is read as 'SMTP': the providers with an HTTP API of their own are Email Server Types, each with its own settings.",
     defaultValue: MailTransportType.SMTP,
   })
   @Column({
@@ -964,7 +976,8 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.ShortText,
     allowedValues: Object.values(EmailServerType),
     title: "Email Server Type",
-    description: "Email Server Type",
+    description:
+      "How the server sends its own email: through its Custom SMTP settings (an SMTP server, or Microsoft Graph), or through SendGrid, Amazon SES, Mailgun, Postmark or Resend with the settings named for it. Custom SMTP when not set.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -1024,6 +1037,302 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: true,
   })
   public sendgridFromName?: string = undefined;
+
+  /*
+   * THE PROVIDERS THE SERVER CAN SEND ITS OWN EMAIL THROUGH BY THEIR HTTP
+   * API (Email Server Type: Amazon SES, Mailgun, Postmark or Resend), each
+   * with its own key and its own sender, as SendGrid's above: switching the
+   * Email Server Type keeps each provider's settings as they were. Every
+   * key is encrypted at rest.
+   */
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Amazon SES Access Key ID",
+    description:
+      "The access key ID of an IAM user or role allowed to send with Amazon SES (ses:SendEmail).",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public amazonSesAccessKeyId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Amazon SES Secret Access Key",
+    description:
+      "The secret access key that goes with the Amazon SES access key ID. Encrypted at rest.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public amazonSesSecretAccessKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Amazon SES Region",
+    description:
+      "The AWS Region the sender identity is verified in, such as us-east-1.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public amazonSesRegion?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: "Amazon SES From Email",
+    description:
+      "The address emails sent through Amazon SES come from: a verified identity, or an address at a verified domain.",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public amazonSesFromEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Amazon SES From Name",
+    description: "The name emails sent through Amazon SES come from.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public amazonSesFromName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Mailgun API Key",
+    description:
+      "A Mailgun API key, or a sending API key for the domain. Encrypted at rest.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public mailgunApiKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Mailgun Domain",
+    description:
+      "The Mailgun sending domain mail goes out from, such as mg.example.com.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public mailgunDomain?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(MailgunRegion),
+    title: "Mailgun Region",
+    description:
+      "The region the Mailgun domain was created in: US or EU. US when not set.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public mailgunRegion?: MailgunRegion = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: "Mailgun From Email",
+    description:
+      "The address emails sent through Mailgun come from, at the Mailgun domain.",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public mailgunFromEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Mailgun From Name",
+    description: "The name emails sent through Mailgun come from.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public mailgunFromName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Postmark Server API Token",
+    description:
+      "The API token of the Postmark server that sends, from its API Tokens tab. Encrypted at rest.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public postmarkServerToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: "Postmark From Email",
+    description:
+      "The address emails sent through Postmark come from: a confirmed sender signature, or an address at a verified domain.",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public postmarkFromEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Postmark From Name",
+    description: "The name emails sent through Postmark come from.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public postmarkFromName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Resend API Key",
+    description: "A Resend API key with sending access. Encrypted at rest.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public resendApiKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: "Resend From Email",
+    description:
+      "The address emails sent through Resend come from, at a domain verified in Resend.",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public resendFromEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Resend From Name",
+    description: "The name emails sent through Resend come from.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public resendFromName?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1639,6 +1948,30 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   public monitorMetricRetentionInDays?: number = undefined;
 
+  /*
+   * How long the daily telemetry usage rows (TelemetryUsageBilling) are kept,
+   * with billing on or off. Empty is 120 days; whatever is saved is held to
+   * 30 days and more, up to three years (getTelemetryUsageRetentionInDays in
+   * Common/Types/Telemetry/TelemetryUsage), so a day still inside metering's
+   * one-week catch-up is never deleted and counted again.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Telemetry Usage Retention Days",
+    description:
+      "Number of days to keep the daily telemetry usage of every project (Project Settings > Telemetry & APM > Usage). Usage older than this is deleted. From 30 to 1095; default is 120 days.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public telemetryUsageRetentionInDays?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -2055,4 +2388,271 @@ export default class GlobalConfig extends GlobalConfigModel {
     default: 10,
   })
   public postgresRetainedWalLimitInGb?: number = undefined;
+
+  /*
+   * Telemetry ingestion budgets: the default every project gets, per signal
+   * (TelemetryIngestionBudget). A project's own budget, set by the master
+   * admin on the project (Project.<signal>DailyIngestionBudgetInGB), wins
+   * over these; an ingestion key's own budget subdivides the project's.
+   * Empty is no limit, which is how every installation starts. Read by the
+   * ingest path through TelemetryIngestionBudgetSettings' one-minute cache.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Logs Daily Budget (GB)",
+    description:
+      "The most logs each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Traces Daily Budget (GB)",
+    description:
+      "The most traces each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Metrics Daily Budget (GB)",
+    description:
+      "The most metrics each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Profiles Daily Budget (GB)",
+    description:
+      "The most profiles each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Security Events Daily Budget (GB)",
+    description:
+      "The most security events each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Logs Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send logs, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Traces Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send traces, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Metrics Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send metrics, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Profiles Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send profiles, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Security Events Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send security events, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Ingestion Budget Warning Threshold (%)",
+    description:
+      "Projects are warned when they have used this percent of a daily ingestion budget, from 1 to 99. Leave empty for 80.",
+    example: 80,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public telemetryIngestionBudgetWarningPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Ingestion Budget Reset Time",
+    description:
+      "When each budget day starts again, as HH:MM on the 24-hour clock in the reset time zone. Leave empty for 00:00.",
+    example: "00:00",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public telemetryIngestionBudgetResetTime?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Ingestion Budget Reset Time Zone",
+    description:
+      "The IANA time zone of the reset time, for example UTC, Europe/Berlin or America/New_York. Leave empty for UTC.",
+    example: "UTC",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public telemetryIngestionBudgetResetTimezone?: string = undefined;
 }

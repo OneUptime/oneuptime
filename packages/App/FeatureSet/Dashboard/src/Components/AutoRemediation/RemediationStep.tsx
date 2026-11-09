@@ -61,6 +61,7 @@ import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import { useAiSwitchState } from "../../Utils/UseAiOffered";
 import AiCardStep from "../AI/AiCardStep";
 import InvestigationNotice, {
+  noticeDoneIcon,
   noticeFailedIcon,
 } from "../AI/InvestigationNotice";
 import { InvestigationStatusIndicator } from "../AI/InvestigationStatusBadge";
@@ -71,6 +72,10 @@ import useAiLaneSwitchStates, {
 import RemediationCodeFix from "./RemediationCodeFix";
 import RemediationTrackRecordLine from "./RemediationTrackRecordLine";
 import {
+  getRemediationFixActGate,
+  getRemediationFixWhoMayAct,
+} from "./RemediationFixActGate";
+import {
   parseRemediationTrackRecord,
   RemediationTrackRecord,
 } from "Common/Types/AutoRemediation/RemediationTrackRecord";
@@ -78,13 +83,18 @@ import RemediationFixFact, {
   RemediationFixFactVisual,
 } from "./RemediationFixFact";
 import {
+  getRemediationFixApprovals,
   getRemediationFixFailedCount,
   getRemediationFixStepKey,
   getRemediationFixSteps,
+  RemediationFixApprovals,
   RemediationFixStep,
   RemediationFixStepKind,
   sortRemediationFixesOldestFirst,
 } from "./RemediationFixSteps";
+import useTwoApprovalsRule from "./useTwoApprovalsRule";
+import { getRiskierRemediationCommands } from "Common/Types/AutoRemediation/RemediationApprovals";
+import UserUtil from "Common/UI/Utils/User";
 import RemediationFixStepList, {
   getRemediationFixStepDetailsId,
 } from "./RemediationFixStepList";
@@ -108,6 +118,8 @@ import {
   REMEDIATION_TRY_AGAIN_BUTTON,
   REMEDIATION_TRY_AGAIN_FAILED,
   REMEDIATION_TRY_AGAIN_HINT,
+  REMEDIATION_ALREADY_APPROVED_FIRST_REFUSED,
+  REMEDIATION_TWO_APPROVALS_COPY,
 } from "./RemediationStepCopy";
 import {
   canOfferRemediationTryAgain,
@@ -242,10 +254,13 @@ function StatusFact({
   status,
   isCommandPlan,
   isUnapprovable,
+  isWaitingForSecondApproval,
 }: {
   status: AutoRemediationSuggestionStatus;
   isCommandPlan?: boolean | undefined;
   isUnapprovable?: boolean | undefined;
+  // A riskier fix whose first of two approvals is in (RemediationFixSteps).
+  isWaitingForSecondApproval?: boolean | undefined;
 }): ReactElement {
   const visual: RemediationFixFactVisual = isUnapprovable
     ? UNAPPROVABLE_PLAN_VISUAL
@@ -258,7 +273,10 @@ function StatusFact({
       : isCommandPlan &&
           status === AutoRemediationSuggestionStatus.NoneApplicable
         ? translationKey("No safe fix found")
-        : visual.label;
+        : isWaitingForSecondApproval &&
+            status === AutoRemediationSuggestionStatus.Suggested
+          ? REMEDIATION_TWO_APPROVALS_COPY.waitingForSecondApproval
+          : visual.label;
   return (
     <RemediationFixFact
       visual={visual}
@@ -409,6 +427,36 @@ function VerificationFact({
 
 const POLL_INTERVAL_MS: number = 15 * 1000;
 
+// Who is reading the card, or "" when it cannot be told.
+function readReaderUserId(): string {
+  try {
+    return UserUtil.getUserId()?.toString() || "";
+  } catch {
+    return "";
+  }
+}
+
+/*
+ * A riskier fix that waits for approval - a command plan holding a riskier
+ * change, or one somebody approved first - for which the project's
+ * two-approvals rule is worth reading.
+ */
+function isRiskierFixWaiting(suggestion: AutoRemediationSuggestion): boolean {
+  if (
+    suggestion.status !== AutoRemediationSuggestionStatus.Suggested ||
+    suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
+  ) {
+    return false;
+  }
+
+  return (
+    Boolean(suggestion.firstApprovedByUserId) ||
+    getRiskierRemediationCommands(
+      AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null),
+    ).length > 0
+  );
+}
+
 export type RemediationSuggestionAction = "approve" | "dismiss" | "dry-run";
 
 // The suggestion has left "waiting": someone approved it, or it ran unattended.
@@ -470,6 +518,27 @@ export function getActionErrorTitle(
     );
   }
   return translationKey("Could not save your action");
+}
+
+/*
+ * Whether a refused Approve is the person who gave a riskier fix its first
+ * approval pressing again (two people must approve it, and RemediationApproval
+ * refuses the same person's second press with ALREADY_APPROVED_FIRST_MESSAGE)
+ * - from a tab opened before their approval, or after they approved in a
+ * chat. Their approval stands and nothing went wrong, so the card says so
+ * in one calm line instead of a refusal (#6148's follow-up, UI review: the
+ * red headline and the server's sentence repeated the step above twice).
+ * Told apart by the server's own words, so a refusal for any other reason -
+ * the cluster's remediation turned off meanwhile - still reads as one.
+ */
+export function isAlreadyApprovedFirstRefusal(
+  action: RemediationSuggestionAction | null,
+  refusal: string,
+): boolean {
+  return (
+    action === "approve" &&
+    refusal.trim() === REMEDIATION_ALREADY_APPROVED_FIRST_REFUSED
+  );
 }
 
 // How each step status's tone is marked: with the investigation's marks.
@@ -560,6 +629,43 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   const tryAgainButtonId: string = useId();
   // What each folded fix's Review and approve opens is named after this.
   const fixDetailsIdPrefix: string = useId();
+  /*
+   * Whether the reader may approve a fix that waits, as the server asks
+   * (RemediationFixActGate): someone it certainly refuses reads that a
+   * fix needs approval - never their approval - on the pill and on the
+   * fix. Until the permission snapshot lands, theirs: the buttons stay.
+   */
+  const mayApproveFixes: boolean = !getRemediationFixWhoMayAct(
+    getRemediationFixActGate("approveOrDismiss"),
+  );
+  /*
+   * A riskier fix two people must approve (Project
+   * .requireTwoApprovalsForRiskierFixes): who is reading - the one who
+   * approved it first is told why approving again does nothing - and the
+   * project's rule, read only while a riskier fix waits, so the first
+   * approver's press says "Approve" rather than "Approve & Run".
+   */
+  const readerUserId: string = readReaderUserId();
+  /*
+   * Moved after every Approve, so the rule is read again with the fixes
+   * (useTwoApprovalsRule): the server read it as it is now.
+   */
+  const [twoApprovalsRuleReadCount, setTwoApprovalsRuleReadCount] =
+    useState<number>(0);
+  const isTwoApprovalsRuleOn: boolean | undefined = useTwoApprovalsRule(
+    suggestions.some((suggestion: AutoRemediationSuggestion): boolean => {
+      return isRiskierFixWaiting(suggestion);
+    }),
+    twoApprovalsRuleReadCount,
+  );
+  /*
+   * The fix whose Approve this reader just pressed turned out to be the
+   * first of two approvals: its button is gone and nothing ran, so a screen
+   * reader is told what happened (each fix's status line, below), as the
+   * steps show it on screen.
+   */
+  const [firstApprovalPressedId, setFirstApprovalPressedId] =
+    useState<string>("");
   const stepHeadingRef: React.RefObject<HTMLHeadingElement> =
     useRef<HTMLHeadingElement>(null);
   // The fix in the code the investigation recommends, once read.
@@ -693,6 +799,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                * dismissed it (RemediationFixSteps).
                */
               approvedAt: true,
+              approvedByUserId: true,
               approvedByUser: {
                 _id: true,
                 name: true,
@@ -700,6 +807,18 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               },
               // The card, Slack or Microsoft Teams: said beside who approved it.
               approvedFrom: true,
+              /*
+               * The first of two approvals, where a riskier fix needs two:
+               * who gave it, when and where.
+               */
+              firstApprovedAt: true,
+              firstApprovedByUserId: true,
+              firstApprovedByUser: {
+                _id: true,
+                name: true,
+                email: true,
+              },
+              firstApprovedFrom: true,
               dismissedAt: true,
               dismissedByUser: {
                 _id: true,
@@ -956,6 +1075,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     setActionError("");
     setFailedAction(null);
     setFailedSuggestionId("");
+    setFirstApprovalPressedId("");
     setBusySuggestionId(suggestionId);
     setBusyAction(action);
 
@@ -975,17 +1095,25 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         throw response;
       }
 
-      /*
-       * Approved: the fix's run step opens as it appears, so the reader who
-       * pressed Approve & Run watches its commands run and their output
-       * come in, without a second press.
-       */
       if (action === "approve") {
-        setExpandedIds((previous: Set<string>): Set<string> => {
-          const next: Set<string> = new Set<string>(previous);
-          next.add(getRemediationFixStepKey(suggestionId, "run"));
-          return next;
-        });
+        if (response.data?.["isWaitingForSecondApproval"] === true) {
+          /*
+           * The first of two approvals: recorded, and nothing runs until
+           * someone else approves it too (RemediationApproval).
+           */
+          setFirstApprovalPressedId(suggestionId);
+        } else {
+          /*
+           * Approved: the fix's run step opens as it appears, so the reader
+           * who pressed Approve & Run watches its commands run and their
+           * output come in, without a second press.
+           */
+          setExpandedIds((previous: Set<string>): Set<string> => {
+            const next: Set<string> = new Set<string>(previous);
+            next.add(getRemediationFixStepKey(suggestionId, "run"));
+            return next;
+          });
+        }
       }
     } catch (err) {
       /*
@@ -1013,6 +1141,16 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         setActionError(refusal);
         setFailedAction(action);
         setFailedSuggestionId(suggestionId);
+      }
+      /*
+       * The server read the project's two-approvals rule as it is now: the
+       * card reads it again too, so a rule flipped on another screen since
+       * this page opened shows the fix as the server counts its approvals.
+       */
+      if (action === "approve") {
+        setTwoApprovalsRuleReadCount((count: number): number => {
+          return count + 1;
+        });
       }
       setBusySuggestionId("");
       setBusyAction(null);
@@ -1192,9 +1330,36 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
    */
   const renderActionError: (
     statusAfterReload: AutoRemediationSuggestionStatus | undefined,
+    isFirstApprovedByReader?: boolean | undefined,
   ) => ReactElement = (
     statusAfterReload: AutoRemediationSuggestionStatus | undefined,
+    isFirstApprovedByReader?: boolean | undefined,
   ): ReactElement => {
+    /*
+     * The first approver pressing again: their approval stands, so one calm
+     * line says so (isAlreadyApprovedFirstRefusal). The steps above say the
+     * rest - "You approved it first. It runs once someone else approves it
+     * too." - so the server's sentence is added only where they cannot
+     * (the fix is gone from the step, or not read as the reader's yet).
+     */
+    if (isAlreadyApprovedFirstRefusal(failedAction, actionError)) {
+      return (
+        <InvestigationNotice
+          role="status"
+          testId="remediation-already-approved"
+          indicator={noticeDoneIcon}
+          title={REMEDIATION_TWO_APPROVALS_COPY.alreadyApprovedTitle}
+          onDismiss={() => {
+            setActionError("");
+          }}
+        >
+          {isFirstApprovedByReader
+            ? undefined
+            : translator.translateText(actionError)}
+        </InvestigationNotice>
+      );
+    }
+
     return (
       <InvestigationNotice
         role="alert"
@@ -1349,7 +1514,22 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     const steps: Array<RemediationFixStep> = getRemediationFixSteps({
       suggestion,
       translator,
+      mayApprove: mayApproveFixes,
+      isTwoApprovalsRuleOn,
+      readerUserId,
     });
+    /*
+     * A riskier fix two people must approve: the first approval runs
+     * nothing, so its press says "Approve"; the person who gave it is
+     * offered no Approve at all, and the step above says why.
+     */
+    const approvals: RemediationFixApprovals = getRemediationFixApprovals({
+      suggestion,
+      isTwoApprovalsRuleOn,
+      readerUserId,
+    });
+    const isFirstOfTwoApprovals: boolean =
+      approvals.needsTwoApprovals && !approvals.isWaitingForSecondApproval;
     const stepsIdPrefix: string = `${fixDetailsIdPrefix}-${suggestionId}`;
     const getStepKey: (kind: RemediationFixStepKind) => string = (
       kind: RemediationFixStepKind,
@@ -1361,9 +1541,18 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     ): boolean => {
       return expandedIds.has(getStepKey(kind));
     };
+    // The fix ran, or is running: its commands are read where they ran.
+    const hasRunStep: boolean = steps.some(
+      (step: RemediationFixStep): boolean => {
+        return step.kind === "run";
+      },
+    );
 
     // What can be done with the fix now.
     const canApprove: boolean = isRemediationFixApprovable(suggestion);
+    // The reader's own approval would add nothing: theirs is the first of two.
+    const canApproveNow: boolean =
+      canApprove && !approvals.isFirstApprovedByReader;
     const canDismiss: boolean =
       status === AutoRemediationSuggestionStatus.Suggested ||
       status === AutoRemediationSuggestionStatus.Planning;
@@ -1390,10 +1579,28 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         (mcpPlan && mcpPlan.calls.length > 0),
     );
     const isReviewed: boolean = !hasPlanToReview || isStepOpen("plan");
-    const isReviewToggleShown: boolean = canApprove && hasPlanToReview;
-    const isApproveShown: boolean = canApprove && isReviewed;
-    const isDryRunShown: boolean = Boolean(dryRunTitle) && isReviewed;
-    const isDismissShown: boolean = canDismiss && (!canApprove || isReviewed);
+    /*
+     * Approve & Run, its dry run and Dismiss fix are for someone who may
+     * start runbook executions, as the server asks (RemediationFixActGate).
+     * A reader the permission snapshot certainly refuses sees none of them -
+     * nor Review and approve, which leads to them: the plan step still opens
+     * on its own line - and a quiet line in their place saying who may act.
+     */
+    const whoMayAct: string | undefined =
+      canApprove || canDismiss
+        ? getRemediationFixWhoMayAct(
+            getRemediationFixActGate(
+              canApprove ? "approveOrDismiss" : "dismiss",
+            ),
+          )
+        : undefined;
+    const mayAct: boolean = !whoMayAct;
+    const isReviewToggleShown: boolean =
+      mayAct && canApproveNow && hasPlanToReview;
+    const isApproveShown: boolean = mayAct && canApproveNow && isReviewed;
+    const isDryRunShown: boolean = mayAct && Boolean(dryRunTitle) && isReviewed;
+    const isDismissShown: boolean =
+      mayAct && canDismiss && (!canApproveNow || isReviewed);
     const hasButtons: boolean =
       isApproveShown || isDryRunShown || isDismissShown || canViewExecution;
     const planDetailsId: string = getRemediationFixStepDetailsId(
@@ -1454,6 +1661,12 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                 plan={plan}
                 suggestionStatus={status}
                 isUnapprovable={isUnapprovablePlan}
+                /*
+                 * A step's pull request to the code is under the step as it
+                 * ran once the fix has a run step, and only there: with both
+                 * steps open, it was said twice.
+                 */
+                suggestionId={hasRunStep ? undefined : suggestionId}
               />
             ) : (
               <></>
@@ -1469,7 +1682,12 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
       if (kind === "run") {
         if (plan) {
-          return <RemediationCommandRunList plan={plan} />;
+          return (
+            <RemediationCommandRunList
+              plan={plan}
+              suggestionId={suggestionId}
+            />
+          );
         }
 
         if (mcpPlan) {
@@ -1494,6 +1712,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         (!isUnapprovablePlan &&
           !isReviewToggleShown &&
           !hasButtons &&
+          !whoMayAct &&
           !isActionErrorOnThisFix)
       ) {
         return null;
@@ -1518,7 +1737,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           >
             {isApproveShown ? (
               <Button
-                title="Approve & Run"
+                title={isFirstOfTwoApprovals ? "Approve" : "Approve & Run"}
                 icon={IconProp.Check}
                 buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
                 buttonSize={ButtonSize.Small}
@@ -1663,6 +1882,31 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           )}
 
           {/*
+            Who may approve or dismiss the fix, in place of the buttons the
+            reader may not press: a mark, the sentence, and what would let
+            them, quiet, like the note over Approve & Run.
+          */}
+          {whoMayAct ? (
+            <div
+              data-testid="remediation-fix-who-may-act"
+              className="flex items-start gap-1.5 text-xs leading-5 text-gray-500"
+            >
+              <Icon
+                icon={IconProp.Lock}
+                className="mt-0.5 h-3.5 w-3.5 flex-none text-gray-400"
+              />
+              <span
+                data-testid="remediation-fix-who-may-act-words"
+                className="min-w-0"
+              >
+                {whoMayAct}
+              </span>
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {/*
             What approving does, right over Approve & Run: it runs exactly
             what the opened plan step shows, under the reader's name.
           */}
@@ -1672,7 +1916,11 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                 data-testid="remediation-approval-note"
                 className="text-xs leading-5 text-gray-500"
               >
-                {translator.translateText(REMEDIATION_APPROVAL_NOTE)}
+                {translator.translateText(
+                  isFirstOfTwoApprovals
+                    ? REMEDIATION_TWO_APPROVALS_COPY.firstApprovalNote
+                    : REMEDIATION_APPROVAL_NOTE,
+                )}
               </p>
               {renderButtons("mt-2")}
             </div>
@@ -1684,7 +1932,11 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
             A refused press says why right under the buttons that were
             pressed, headed by what really happened to the fix.
           */}
-          {isActionErrorOnThisFix ? renderActionError(status) : <></>}
+          {isActionErrorOnThisFix ? (
+            renderActionError(status, approvals.isFirstApprovedByReader)
+          ) : (
+            <></>
+          )}
         </div>
       );
     };
@@ -1730,6 +1982,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               status={status}
               isCommandPlan={isCommandPlan || isMcpFix}
               isUnapprovable={isUnapprovablePlan}
+              isWaitingForSecondApproval={approvals.isWaitingForSecondApproval}
             />
             {suggestion.verificationStatus ? (
               <VerificationFact
@@ -1765,6 +2018,27 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           renderDetails={renderStepDetails}
           renderActions={renderStepActions}
         />
+
+        {/*
+          Said to a screen reader when this reader's Approve was the first
+          of two: the button it pressed is gone and nothing ran, while the
+          steps above say so on screen. Always in the page, so what it
+          says is announced the moment it changes; empty once the fix moves
+          on (approved a second time, or dismissed).
+        */}
+        <div
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+          data-testid="remediation-fix-announcement"
+        >
+          {firstApprovalPressedId === suggestionId &&
+          approvals.isFirstApprovedByReader
+            ? translator.translateText(
+                REMEDIATION_TWO_APPROVALS_COPY.youApprovedFirst,
+              )
+            : ""}
+        </div>
       </div>
     );
   };
@@ -1794,7 +2068,10 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   );
   const fixes: Array<RemediationFixFacts> = suggestions.map(
     (suggestion: AutoRemediationSuggestion): RemediationFixFacts => {
-      return getRemediationFixFacts(suggestion);
+      return getRemediationFixFacts(suggestion, {
+        isTwoApprovalsRuleOn,
+        readerUserId,
+      });
     },
   );
   const isWaiting: boolean =
@@ -1811,6 +2088,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     investigationStage: props.investigationStage,
     codeFix,
     isOffByChoice: foldState.kind === "off",
+    mayApprove: mayApproveFixes,
   });
   const updateGate: PermissionGateResult = PermissionGate.check(
     incidentIdString ? new Incident() : new Alert(),

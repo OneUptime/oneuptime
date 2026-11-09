@@ -1,6 +1,6 @@
 # OpenStack-overvåking
 
-En OpenStack-monitor overvåker én sky - API-ene, arbeiderne bak dem, hypervisorer, instanser, nettverk, lagringspooler og prosjektkvoter - og varsler deg når et API slutter å svare, en arbeider går ned, en hypervisor ikke har mer å gi eller en pool fylles opp. Den leser `openstack_*`-seriene som OneUptime OpenStack Agent samler inn fra openstack-exporter.
+En OpenStack-monitor overvåker én sky - API-ene, arbeiderne bak dem, hypervisorer, instanser, nettverk, lagringspooler og prosjektkvoter - og varsler deg når et API slutter å svare, en arbeider går ned, en hypervisor ikke har mer å gi eller en pool fylles opp. Den leser `openstack_*`-seriene som OneUptime OpenStack Agent samler inn fra openstack-exporter, eller en sonde samler inn fra skyens API-er.
 
 :::cards
 - [Opprett monitoren](#opprett-en-openstack-monitor): Seks steg i dashbordet.
@@ -29,7 +29,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Samle inn skyens metrikker** med OpenStack Agent. Skyens **Dokumentasjon**-side, under **Produkter → Infrastruktur → OpenStack**, veileder deg gjennom installasjonen.
+- **Samle inn skyens metrikker** med OpenStack Agent, eller [en sonde](/docs/telemetry/openstack-agentless). **Dokumentasjon**, under **Produkter → Infrastruktur → OpenStack**, veileder deg gjennom installasjonen av agenten.
 - **Sjekk at skyen er registrert.** Den vises under **Produkter → Infrastruktur → OpenStack**, oppkalt etter agentens `OPENSTACK_CLOUD_NAME`, etter første innsamling.
 
 ## Opprett en OpenStack-monitor

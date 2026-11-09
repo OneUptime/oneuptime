@@ -35,7 +35,7 @@ Gå till **Schemalagt underhåll → Alla händelser** och klicka på **Skapa sc
 
 ### Säg vad som händer och när
 
-Skriv en **Titel**, och lägg till en **Beskrivning** om det hjälper: den är Markdown, och den visas på dina statussidor. **Börjar den** är redan nästa hela timme enligt din klocka, och **Slutar den** en timme senare; ändra dem bara när de är fel. Flyttar du **Börjar den** flyttas **Slutar den** med, så att fönstret behåller sin längd. **Ägare** och **Etiketter** väntar under **Fler fält**, hopfällda.
+Skriv en **Titel**, och lägg till en **Beskrivning** om det hjälper: den är Markdown, och den visas på dina statussidor. **Börjar den** är redan nästa hela timme enligt din klocka, och **Slutar den** en timme senare; ändra dem bara när de är fel. Flyttar du **Börjar den** flyttas **Slutar den** med, så att fönstret behåller sin längd. **Ägare**, **Etiketter** och **Dataobserverbarhet Databaser** väntar under **Fler fält**, hopfällda.
 
 ### Välj vad det påverkar
 
@@ -70,12 +70,12 @@ Ingenting skickas förrän du väljer en statussida: en händelse som inte visas
 
 Två saker fyller i formuläret åt dig medan du arbetar:
 
-- **Länkade resurser.** När du väljer en monitor läggs de värdar, kluster, tjänster och andra resurser den är länkad till under **Andra påverkade resurser**, och en rad under fältet nämner dem. Ta bort dem du inte vill ha. Molnresurser läggs inte till: en underhållshändelse innehåller inga.
+- **Länkade resurser.** När du väljer en monitor läggs de värdar, kluster, tjänster och andra resurser den är länkad till under **Andra påverkade resurser**, och en rad under fältet nämner dem. Ta bort dem du inte vill ha. Molnresurser läggs också till: medan händelsen pågår öppnar deras monitorer ingen incident och inget larm.
 - **Föreslagna statussidor.** Under **Visa händelse på dessa statussidor** föreslås de sidor som visar dina monitorer: klicka på en sidas namn för att lägga till den, eller på **Lägg till alla**. Ingenting väljs åt dig. Se [Schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser).
 
 ## Börja från en resurs eller en mall
 
-På fliken **Schemalagt underhåll** för en värd, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, ett OpenStack-moln, en lagringsenhet, en IoT-flotta, en databas, en tjänst eller en nätverksplats öppnar **Skapa schemalagt underhållsevenemang** samma formulär med den resursen redan vald under **Andra påverkade resurser**, och fliken listar de händelser som påverkar den. Fliken för ett inventarieobjekt väljer den värd, tjänst eller det Kubernetes-kluster som objektet pekar på.
+På fliken **Schemalagt underhåll** för en värd, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, ett OpenStack-moln, en lagringsenhet, en IoT-flotta, en databas, en molnresurs, en tjänst eller en nätverksplats öppnar **Skapa schemalagt underhållsevenemang** samma formulär med den resursen redan vald under **Andra påverkade resurser**, och fliken listar de händelser som påverkar den. Fliken för ett inventarieobjekt väljer den värd, tjänst eller det Kubernetes-kluster som objektet pekar på.
 
 **Skapa från mall**, bredvid knappen för att skapa, ber dig att **Välj mall för schemalagt underhåll** och öppnar sedan formuläret ifyllt från mallen. Se [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates).
 
@@ -113,20 +113,20 @@ Allt i formuläret kan ändras på händelsens egna sidor, utom de tre prenumera
 
 | För att ändra                               | Gå till                                                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titeln, fönstret eller etiketterna          | **Redigera** på kortet **Maintenance Details** i dess **Översikt**, steget **Händelse** |
+| Titeln, fönstret eller etiketterna          | **Redigera** på kortet **Underhållsdetaljer** i dess **Översikt**, steget **Händelse** |
 | Statussidorna, när den publiceras, eller påminnelserna | Samma **Redigera**, steget **Statussidor**                           |
 | Monitorerna, deras status eller andra resurser | **Redigera** på kortet **Berörda resurser**                                 |
 | Beskrivningen                               | **Beskrivning** i dess sidomeny                                                |
 | Ägarna                                      | **Ägare** i dess sidomeny                                                      |
 
-**Ändra övervakningsstatus till** kan ändras tills händelsen börjar. Därefter visar kortet den skrivskyddad, eftersom monitorerna redan har den statusen. En redigering lägger till en post i **Schemalagd Underhåll Flöde** som nämner vad den ändrade; att spara utan ändringar lägger inte till någon.
+**Ändra övervakningsstatus till** kan ändras tills händelsen börjar. Därefter visar kortet den skrivskyddad, eftersom monitorerna redan har den statusen. En redigering lägger till en post i **Flöde för schemalagt underhåll** som nämner vad den ändrade; att spara utan ändringar lägger inte till någon.
 
 ## Skriv anteckningar medan arbetet pågår
 
-- **Offentliga anteckningar** är uppdateringar till dina kunder: de visas på händelsens statussidor, och var och en kan meddela deras prenumeranter med **Notify status page subscribers**.
+- **Offentliga anteckningar** är uppdateringar till dina kunder: de visas på händelsens statussidor, och var och en kan meddela deras prenumeranter med **Avisera statussidans prenumeranter**.
 - **Privata anteckningar** är bara för ditt team.
 
-Skriv en på händelsens sida **Offentliga anteckningar** eller **Privata anteckningar**, eller från menyn **Åtgärder** i **Schemalagd Underhåll Flöde** med **Add Public Note** eller **Lägg till privat anteckning**. Samma meny kör en runbook med **Execute Runbook**. En anteckningsmall fyller i text som ditt team ofta skriver: se [Underhållsregler och inställningar](/docs/scheduled-maintenance/settings#anteckningsmallar).
+Skriv en på händelsens sida **Offentliga anteckningar** eller **Privata anteckningar**, eller från menyn **Åtgärder** i **Flöde för schemalagt underhåll** med **Lägg till offentlig anteckning** eller **Lägg till privat anteckning**. Samma meny kör en runbook med **Kör runbook**. En anteckningsmall fyller i text som ditt team ofta skriver: se [Underhållsregler och inställningar](/docs/scheduled-maintenance/settings#anteckningsmallar).
 
 ## Skapa händelser från kod
 

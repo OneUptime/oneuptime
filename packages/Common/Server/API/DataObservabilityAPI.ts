@@ -45,6 +45,7 @@ import DataAssetService, {
   Service as DataAssetServiceType,
 } from "../Services/DataAssetService";
 import DataStoreService from "../Services/DataStoreService";
+import AuditLogService from "../Services/AuditLogService";
 import ProbeService from "../Services/ProbeService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { queueTableHealthCollection } from "../Utils/DataObservability/DataObservabilityJobs";
@@ -210,7 +211,11 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.storeWatch(":id"),
       OPERATE_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         const store: DataStore = await DataObservabilityAPI.readStore(
           projectId,
           req,
@@ -226,6 +231,19 @@ export default class DataObservabilityAPI extends BaseAPI<
               ? { nextTableHealthCollectionAt: OneUptimeDate.getCurrentDate() }
               : {}),
           } as never,
+        });
+
+        /*
+         * Written round the hooks, so recorded here: who started or stopped
+         * watching the store's tables. When it is collected next is
+         * OneUptime's own.
+         */
+        await AuditLogService.recordUpdate({
+          model: new DataStore(),
+          before: store,
+          updatedFields: { isTableHealthEnabled: isWatched },
+          itemId: store.id!,
+          props,
         });
 
         return {};
@@ -259,6 +277,8 @@ export default class DataObservabilityAPI extends BaseAPI<
           projectId,
           alertId: DataObservabilityAPI.readId(req),
           userId: props.userId || null,
+          // The alert it resolves is theirs in the audit log.
+          props: props,
           ...(typeof body["feedback"] === "string"
             ? { feedback: body["feedback"] }
             : {}),
@@ -607,10 +627,14 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.dataProductBadgeReset(":id"),
       OPERATE_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         const product: DataProduct | null = await DataProductService.findOneBy({
           query: { _id: DataObservabilityAPI.readId(req), projectId },
-          select: { _id: true },
+          select: { _id: true, projectId: true, name: true, badgeToken: true },
           props: { isRoot: true },
         });
 
@@ -623,6 +647,20 @@ export default class DataObservabilityAPI extends BaseAPI<
         await DataProductService.updateColumnsByIdWithoutHooks({
           id: product.id,
           data: { badgeToken } as never,
+        });
+
+        /*
+         * Who reset the badge's link, and when: the old link stops showing
+         * the badge. The token is OneUptime's to write and a secret, so the
+         * entry says it changed, never what it is.
+         */
+        await AuditLogService.recordUpdate({
+          model: new DataProduct(),
+          before: product,
+          updatedFields: { badgeToken },
+          itemId: product.id,
+          props,
+          includeColumns: ["badgeToken"],
         });
 
         return { badgeToken };
@@ -854,7 +892,11 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.storagePathsSave(":id"),
       CONNECT_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         const dataStoreId: ObjectID = DataObservabilityAPI.readId(req);
         const store: DataStore | null = await DataStoreService.findOneBy({
           query: {
@@ -863,7 +905,14 @@ export default class DataObservabilityAPI extends BaseAPI<
             isArchived: false,
             kind: new Includes([...OBJECT_STORE_KINDS]),
           },
-          select: { _id: true, name: true, kind: true },
+          select: {
+            _id: true,
+            projectId: true,
+            name: true,
+            kind: true,
+            watchedPaths: true,
+            isTableHealthEnabled: true,
+          },
           props: { isRoot: true },
         });
 
@@ -886,6 +935,18 @@ export default class DataObservabilityAPI extends BaseAPI<
                 }
               : {}),
           } as never,
+        });
+
+        // Written round the hooks, so recorded here: who set which paths to watch.
+        await AuditLogService.recordUpdate({
+          model: new DataStore(),
+          before: store,
+          updatedFields: {
+            watchedPaths,
+            ...(watchedPaths ? { isTableHealthEnabled: true } : {}),
+          },
+          itemId: store.id,
+          props,
         });
 
         /*
@@ -1416,7 +1477,17 @@ export default class DataObservabilityAPI extends BaseAPI<
         projectId,
         kind: new Includes([...COLLECTABLE_KINDS, ...OBJECT_STORE_KINDS]),
       },
-      select: { _id: true, scanProbeId: true },
+      /*
+       * Its name, and whether its tables are watched, for the audit log's
+       * entry when that is what the request changes.
+       */
+      select: {
+        _id: true,
+        projectId: true,
+        name: true,
+        scanProbeId: true,
+        isTableHealthEnabled: true,
+      },
       props: { isRoot: true },
     });
 

@@ -33,9 +33,9 @@ Båda arbetsflödena anropar [Opsgenie Alert API](https://docs.opsgenie.com/docs
 ## Spara API-nyckeln
 
 :::steps
-1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**.
+1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Ge den namnet `OPSGENIE_KEY` och klicka på **Nästa**.
-3. Klistra in API-nyckeln i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+3. Klistra in API-nyckeln i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 :::
 
 En hemlig variabel ersätts med `[REDACTED]` i körningsloggar, så nyckeln syns aldrig i en körning.

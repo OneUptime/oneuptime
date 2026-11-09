@@ -16,6 +16,7 @@ import {
   GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  RESOURCE_COSTS_FIELD_KEY,
   getCloudConnectionDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
@@ -43,6 +44,7 @@ import {
   GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
 import { GCP_HOST_TITLES } from "../../../FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetup";
+import { buildCloudAiAgentKey } from "Common/Types/CloudConnection/CloudAiAgentKey";
 import {
   AWS_GET_METRIC_DATA_USD_PER_THOUSAND_METRICS,
   AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION,
@@ -56,6 +58,36 @@ import {
   CLOUD_COST_PACE_DAYS,
   CLOUD_SAVINGS_INTERVAL_MS,
 } from "Common/Types/Cloud/CloudCost";
+import {
+  CLOUD_COMMITMENT_KINDS,
+  CLOUD_COMMITMENT_WINDOW_DAYS,
+  CloudCommitmentKind,
+  getCloudCommitmentKindLabel,
+} from "Common/Types/Cloud/CloudCommitments";
+import { ELASTIC_BEANSTALK_ENVIRONMENT_TAG } from "Common/Types/Cloud/CloudPlatformCosts";
+import {
+  CLOUD_COST_ANOMALY_ACCOUNT_RATIO,
+  CLOUD_COST_ANOMALY_BASELINE_DAYS,
+  CLOUD_COST_ANOMALY_DAYS_JUDGED,
+  CLOUD_COST_ANOMALY_MIN_HISTORY_DAYS,
+  CLOUD_COST_ANOMALY_MIN_INCREASE,
+  CLOUD_COST_ANOMALY_MIN_SHARE_PERCENT,
+  CLOUD_COST_ANOMALY_SERVICE_RATIO,
+} from "Common/Types/Cloud/CloudCostAnomaly";
+import {
+  CLOUD_RIGHT_SIZING_CPU_HOT_PERCENT,
+  CLOUD_RIGHT_SIZING_CPU_PEAK_PERCENT,
+  CLOUD_RIGHT_SIZING_CPU_TARGET_PERCENT,
+  CLOUD_RIGHT_SIZING_MAX_STEPS_DOWN,
+  CLOUD_RIGHT_SIZING_MEMORY_HOT_PERCENT,
+  CLOUD_RIGHT_SIZING_MEMORY_TARGET_PERCENT,
+  CLOUD_RIGHT_SIZING_MIN_OBSERVED_HOURS,
+  CLOUD_RIGHT_SIZING_PROFILES,
+  CLOUD_RIGHT_SIZING_WINDOW_DAYS,
+  CLOUD_SAVINGS_SOURCE_ONEUPTIME,
+  CloudRightSizingProfile,
+  RIGHT_SIZING_TITLE,
+} from "Common/Types/Cloud/CloudRightSizing";
 import {
   AWS_ORGANIZATION_ACTION_GROUP,
   AWS_READ_ONLY_ACTION_GROUPS,
@@ -120,7 +152,20 @@ const SOURCES: Record<string, string> = {
   costWindow: "packages/Common/Types/Cloud/CloudCost.ts",
   budgetJob:
     "packages/App/FeatureSet/Workers/Jobs/Cloud/EvaluateCloudBudgets.ts",
+  budgetEvaluator: `${SERVER}/Utils/CloudConnection/CloudBudgetEvaluator.ts`,
   gcpCosts: `${SERVER}/Utils/CloudConnection/Gcp/GcpCosts.ts`,
+  costsView: `${DASHBOARD}/Components/Cloud/CloudCostsView.tsx`,
+  unusualDays: `${DASHBOARD}/Components/Cloud/CloudUnusualDaysCard.tsx`,
+  unusualDayMarkers: `${DASHBOARD}/Components/Cloud/CloudUnusualDayMarkers.ts`,
+  breakdownCard: `${DASHBOARD}/Components/Cloud/CloudCostBreakdownCard.tsx`,
+  breakdown: `${DASHBOARD}/Components/Cloud/CloudCostBreakdown.ts`,
+  commitmentsCard: `${DASHBOARD}/Components/Cloud/CloudCommitmentsCard.tsx`,
+  savingsPage: `${DASHBOARD}/Pages/Cloud/Savings.tsx`,
+  accountCostsPage: `${DASHBOARD}/Pages/Cloud/Accounts/View/Costs.tsx`,
+  awsResourceCosts: `${SERVER}/Utils/CloudConnection/Aws/AwsResourceCosts.ts`,
+  awsCommitments: `${SERVER}/Utils/CloudConnection/Aws/AwsCommitments.ts`,
+  gcpCommitments: `${SERVER}/Utils/CloudConnection/Gcp/GcpCosts.ts`,
+  cliReadme: "packages/CLI/README.md",
 };
 
 const BASH_FENCE: RegExp = /```bash\n([\s\S]*?)\n```/g;
@@ -129,6 +174,26 @@ const HEADING_ANCHOR: RegExp = /#([a-z0-9-]+)$/;
 
 function source(name: string): string {
   return fs.readFileSync(path.join(REPO_DIR, SOURCES[name] as string), "utf8");
+}
+
+/*
+ * A migration by its name, whatever timestamp it is numbered with: a merge
+ * may renumber it past another task's.
+ */
+function migrationSource(name: string): string {
+  const directory: string = path.join(
+    REPO_DIR,
+    SERVER,
+    "Infrastructure/Postgres/SchemaMigrations",
+  );
+  const files: Array<string> = fs
+    .readdirSync(directory)
+    .filter((file: string): boolean => {
+      return file.endsWith(`-${name}.ts`);
+    });
+
+  expect(files).toHaveLength(1);
+  return fs.readFileSync(path.join(directory, files[0] as string), "utf8");
 }
 
 const PAGE: string = readPage("en", CLOUD_ACCOUNTS);
@@ -301,8 +366,10 @@ describe("Connect a Cloud Account", () => {
     expect(CLOUD_COSTS_INTERVAL_MS).toBe(12 * 60 * 60 * 1000);
     expect(CLOUD_SAVINGS_INTERVAL_MS).toBe(24 * 60 * 60 * 1000);
     expect(PAGE).toContain(
-      "Costs are read twice a day, and the ways to spend less once a day.",
+      "Costs are read twice a day, and the ways to spend less and the commitments once a day.",
     );
+    // The commitments are read with the ways to spend less: the savings lane.
+    expect(source("lanes")).toContain("keepCommitments(");
   });
 
   it("names What to read as the form asks it, and the limits a connection reads to", () => {
@@ -524,7 +591,7 @@ describe("Cloud Costs and Savings", () => {
     );
   });
 
-  it("is where the Dashboard's cost and savings steps link, on each cloud's heading", () => {
+  it("is where the Dashboard's cost and savings steps link, on each cloud's heading, and where turning on AWS's costs per resource is", () => {
     const words: string = source("costWords");
     const anchors: Set<string> = anchorsOf("en", CLOUD_COSTS);
     const links: Array<string> = Array.from(
@@ -534,7 +601,20 @@ describe("Cloud Costs and Savings", () => {
     });
 
     expect(links.sort()).toEqual(
-      ["amazon-web-services", "google-cloud", "microsoft-azure"].sort(),
+      [
+        "amazon-web-services",
+        "costs-per-resource",
+        "google-cloud",
+        "microsoft-azure",
+      ].sort(),
+    );
+    // Costs per resource is its own heading, under AWS's section.
+    expect(costsSection("Amazon Web Services")).toContain(
+      "### Costs per resource",
+    );
+    // Commitments link where costs do: each cloud's own section.
+    expect(source("commitmentsCard")).toContain(
+      "COST_SETUP_DOCS_PATHS[row.account.provider as CloudProvider]",
     );
     // Savings link where costs do: each cloud's own section.
     expect(words).toContain(
@@ -633,6 +713,7 @@ describe("Cloud Costs and Savings", () => {
       "Account",
       "Alert At",
       "Alert When On Course To Pass",
+      "Alert On Unusual Days",
       "Alert Severity",
       "On-Call Policies",
     ]) {
@@ -648,6 +729,363 @@ describe("Cloud Costs and Savings", () => {
     );
     expect(source("sideMenu")).toContain('title: "Budgets"');
     expect(COSTS_PAGE).toContain("**Cloud → Spend → Budgets**");
+  });
+
+  it("says what makes a day unusual as findCloudCostAnomalies judges it, where Costs lists it and when a budget tells it", () => {
+    const unusual: string = costsSection("Budgets").replace(/\s+/g, " ");
+
+    expect(CLOUD_COST_ANOMALY_DAYS_JUDGED).toBe(14);
+    expect(CLOUD_COST_ANOMALY_BASELINE_DAYS).toBe(14);
+    expect(unusual).toContain(
+      "each of an account's last 14 full days is held to the 14 days before it.",
+    );
+    expect(CLOUD_COST_ANOMALY_SERVICE_RATIO).toBe(2);
+    expect(CLOUD_COST_ANOMALY_ACCOUNT_RATIO).toBe(1.5);
+    expect(unusual).toContain(
+      "A day is unusual when a service cost twice its usual day or more, or the whole account one and a half times its usual day or more.",
+    );
+    expect(CLOUD_COST_ANOMALY_MIN_INCREASE).toBe(10);
+    expect(CLOUD_COST_ANOMALY_MIN_SHARE_PERCENT).toBe(5);
+    expect(unusual).toContain(
+      "at least 10 more than usual, in the account's currency, and at least 5% of the account's usual day",
+    );
+    expect(CLOUD_COST_ANOMALY_MIN_HISTORY_DAYS).toBe(7);
+    expect(unusual).toContain(
+      "A day's usual is the median of the 14 days before it, so one spike moves it little, and an account is judged only once it has a week of costs.",
+    );
+
+    // Costs lists them, under the daily spend: the card's own title.
+    expect(source("unusualDays")).toContain(
+      'UNUSUAL_DAYS_TITLE: string = translationKey("Unusual days");',
+    );
+    const view: string = source("costsView");
+    expect(view.indexOf("<CloudUnusualDaysCard")).toBeGreaterThan(
+      view.indexOf("<CloudDailySpendCard"),
+    );
+    expect(unusual).toContain(
+      "**Cloud → Spend → Costs** marks the unusual days on the daily spend, above their bars, and lists them under it. Over every account, each mark opens its account's **Costs**.",
+    );
+    // The chart draws the card's own rows, and a mark opens the account's Costs.
+    expect(view).toContain("markers={markers}");
+    expect(view).toContain("getCloudUnusualDayMarkers({");
+    expect(source("unusualDayMarkers")).toContain(
+      "RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS]",
+    );
+
+    // A budget tells each account's day once, the day it began, a week back at most.
+    const evaluator: string = source("budgetEvaluator");
+    expect(evaluator).toContain(
+      "export const CLOUD_BUDGET_ANOMALY_MAX_AGE_DAYS: number = 7;",
+    );
+    expect(evaluator).toContain("getStartedCloudCostAnomalies(");
+    expect(unusual).toContain(
+      "A spike that goes on for days is reported on the day it began, and a day more than a week old is not reported.",
+    );
+
+    /*
+     * A budget made before them keeps alerting as it did: the column comes
+     * in false for the rows already there, and defaults to true after.
+     */
+    const migration: string = migrationSource(
+      "AddCloudRightSizingEvidenceAndBudgetUnusualDays",
+    );
+    expect(migration).toContain(
+      'ADD "alertOnAnomaly" boolean NOT NULL DEFAULT false',
+    );
+    expect(migration).toContain(
+      'ALTER COLUMN "alertOnAnomaly" SET DEFAULT true',
+    );
+    expect(migration.indexOf("DEFAULT false")).toBeLessThan(
+      migration.indexOf("SET DEFAULT true"),
+    );
+    expect(source("budgets")).toContain("alertOnAnomaly: true,");
+    expect(unusual).toContain(
+      "A budget made before these alerts existed does not raise them until you edit it and turn them on.",
+    );
+    expect(unusual).toContain("[Unusual days](#unusual-days)");
+    expect(anchorsOf("en", CLOUD_COSTS).has("unusual-days")).toBe(true);
+  });
+
+  it("says how OneUptime sizes a resource no recommender speaks for, as CloudRightSizing sizes it", () => {
+    const savings: string = costsSection("Ways to spend less").replace(
+      /\s+/g,
+      " ",
+    );
+
+    expect(CLOUD_RIGHT_SIZING_WINDOW_DAYS).toBe(14);
+    expect(savings).toContain(
+      "the CPU and memory readings its connection took over the last 14 days",
+    );
+    expect(CLOUD_RIGHT_SIZING_MAX_STEPS_DOWN).toBe(2);
+    expect(CLOUD_RIGHT_SIZING_CPU_TARGET_PERCENT).toBe(60);
+    expect(CLOUD_RIGHT_SIZING_CPU_PEAK_PERCENT).toBe(100);
+    expect(CLOUD_RIGHT_SIZING_MEMORY_TARGET_PERCENT).toBe(70);
+    expect(savings).toContain(
+      "**Over-provisioned** when the size half as big, or a quarter, would still have room: on the smaller size, its CPU's 95th percentile would be at most 60%, its highest CPU reading at most 100%, and its memory's peak at most 70% when its memory is read.",
+    );
+    expect(CLOUD_RIGHT_SIZING_CPU_HOT_PERCENT).toBe(85);
+    expect(CLOUD_RIGHT_SIZING_MEMORY_HOT_PERCENT).toBe(90);
+    expect(savings).toContain(
+      "**Under-provisioned** when its CPU's 95th percentile is 85% or more, or its memory's peak 90% or more: the size twice as big.",
+    );
+    expect(CLOUD_RIGHT_SIZING_MIN_OBSERVED_HOURS).toBe(6 * 24);
+    expect(savings).toContain(
+      "A resource is sized once it has 6 days of readings.",
+    );
+    expect(RIGHT_SIZING_TITLE).toBe("Right-sizing");
+    expect(savings).toContain(`**${RIGHT_SIZING_TITLE}**`);
+    expect(savings).toContain(
+      `with ${CLOUD_SAVINGS_SOURCE_ONEUPTIME} as its source`,
+    );
+
+    // Every kind of resource it sizes is named, and none it does not.
+    const named: Record<string, string> = {
+      "AWS::EC2::Instance": "EC2 instances",
+      "AWS::RDS::DBInstance": "RDS databases",
+      "AWS::ElastiCache::CacheCluster": "ElastiCache clusters",
+      "AWS::ElastiCache::ReplicationGroup": "ElastiCache clusters",
+      "Microsoft.Compute/virtualMachines": "virtual machines",
+      "Microsoft.DBforPostgreSQL/flexibleServers":
+        "PostgreSQL and MySQL flexible servers",
+      "Microsoft.DBforMySQL/flexibleServers":
+        "PostgreSQL and MySQL flexible servers",
+      "Microsoft.Web/serverfarms": "App Service plans",
+      gce_instance: "Compute Engine VMs",
+      cloudsql_database: "Cloud SQL instances",
+    };
+    expect(
+      CLOUD_RIGHT_SIZING_PROFILES.map(
+        (profile: CloudRightSizingProfile): string => {
+          return profile.type;
+        },
+      ).sort(),
+    ).toEqual(Object.keys(named).sort());
+    for (const words of Object.values(named)) {
+      expect(savings).toContain(words);
+    }
+  });
+
+  it("says how AWS's costs per resource are turned on and read, as the setting and the read do it", () => {
+    const aws: string = costsSection("Amazon Web Services").replace(
+      /\s+/g,
+      " ",
+    );
+    const field: { title: string; isAdvanced?: boolean | undefined } =
+      definition(CloudProvider.AWS).configFields.find(
+        (entry: { key: string }): boolean => {
+          return entry.key === RESOURCE_COSTS_FIELD_KEY;
+        },
+      )!;
+    const read: string = source("awsResourceCosts");
+
+    // The setting, under the form's fold, by the title the form draws.
+    expect(field.title).toBe("Costs per resource");
+    expect(field.isAdvanced).toBe(true);
+    expect(aws).toContain("### Costs per resource");
+    expect(aws).toContain(
+      `under **${MORE_FIELDS_SECTION_TITLE}** turn on **${field.title}**`,
+    );
+    // AWS alone: Azure and Google Cloud have no such setting.
+    for (const provider of [CloudProvider.Azure, CloudProvider.GCP]) {
+      expect(
+        definition(provider).configFields.some(
+          (entry: { key: string }): boolean => {
+            return entry.key === RESOURCE_COSTS_FIELD_KEY;
+          },
+        ),
+      ).toBe(false);
+    }
+
+    // The action, as the access gets it.
+    expect(AWS_READ_ONLY_ACTIONS).toContain("ce:GetCostAndUsageWithResources");
+    expect(aws).toContain("`ce:GetCostAndUsageWithResources`");
+    expect(read).toContain(
+      'AWS_RESOURCE_COST_ACTION: string =\n  "ce:GetCostAndUsageWithResources";',
+    );
+
+    // The 14 days Cost Explorer keeps, then the last three, once a day.
+    expect(read).toContain("export const AWS_RESOURCE_COST_DAYS: number = 14;");
+    expect(read).toContain(
+      "export const AWS_RESOURCE_COST_RECENT_DAYS: number = 3;",
+    );
+    expect(read).toContain(
+      "export const AWS_RESOURCE_COSTS_INTERVAL_MS: number = 24 * 60 * 60 * 1000;",
+    );
+    expect(aws).toContain(
+      "for the last 14 days, once resource-level data is turned on",
+    );
+    expect(aws).toContain(
+      "once a day: the 14 days the first time, then the last three again",
+    );
+    // What to turn on, as the read's own word for a refusal says it.
+    expect(read).toContain(
+      "Turn on resource-level data at daily granularity in the AWS Billing and Cost Management console's Cost Management preferences",
+    );
+    expect(aws).toContain(
+      "open Cost Management preferences and turn on resource-level data at daily granularity",
+    );
+    expect(read).toContain("AWS prepares it within 48 hours.");
+    expect(aws).toContain("AWS prepares it within 48 hours.");
+    // An older connection's role needs the action: its command again.
+    expect(aws).toContain(
+      "A connection made before needs its setup command run again, which adds the action.",
+    );
+    expect(read).toContain("Run the setup command again to allow it.");
+  });
+
+  it("says how each cloud's commitments are read and shown, as the readers and the card do it", () => {
+    const aws: string = costsSection("Amazon Web Services").replace(
+      /\s+/g,
+      " ",
+    );
+    const savings: string = costsSection("Ways to spend less").replace(
+      /\s+/g,
+      " ",
+    );
+    const card: string = source("commitmentsCard");
+
+    // Read with the four actions the access gets, four requests a day.
+    expect(source("awsCommitments")).toContain(
+      'export const AWS_COMMITMENT_ACTIONS: ReadonlyArray<string> = [\n  "ce:GetSavingsPlansCoverage",\n  "ce:GetSavingsPlansUtilization",\n  "ce:GetReservationCoverage",\n  "ce:GetReservationUtilization",\n];',
+    );
+    for (const action of [
+      "ce:GetSavingsPlansCoverage",
+      "ce:GetSavingsPlansUtilization",
+      "ce:GetReservationCoverage",
+      "ce:GetReservationUtilization",
+    ]) {
+      expect(AWS_READ_ONLY_ACTIONS).toContain(action);
+      expect(aws).toContain(`\`${action}\``);
+    }
+    expect(aws).toContain("the commitments are read with four a day");
+    expect(COSTS_PAGE).toContain("it adds the four actions they are read with");
+
+    // Over the last 30 days, on Savings and an account's Costs.
+    expect(CLOUD_COMMITMENT_WINDOW_DAYS).toBe(30);
+    expect(savings).toContain("### Commitments");
+    expect(savings).toContain(
+      "**Cloud → Spend → Savings** and an account's **Costs** show how much of the last 30 days' spend each account's commitments paid for, and how much of them was used, a line for each kind:",
+    );
+    expect(card).toContain(
+      'COMMITMENTS_TITLE: string = translationKey("Commitments")',
+    );
+    expect(source("savingsPage")).toContain("<CloudCommitmentsCard");
+    expect(source("accountCostsPage")).toContain("<CloudCommitmentsCard");
+
+    // Each cloud's kinds, by the names the card draws them with.
+    const kinds: Record<string, Array<string>> = {
+      [CloudProvider.AWS]: ["Savings Plans", "Reserved Instances"],
+      [CloudProvider.Azure]: ["savings plans", "reservations"],
+      [CloudProvider.GCP]: ["committed use discounts"],
+    };
+    for (const provider of [
+      CloudProvider.AWS,
+      CloudProvider.Azure,
+      CloudProvider.GCP,
+    ]) {
+      expect(
+        CLOUD_COMMITMENT_KINDS[provider].map(
+          (kind: CloudCommitmentKind): string => {
+            return getCloudCommitmentKindLabel({ provider, kind });
+          },
+        ),
+      ).toEqual(
+        (kinds[provider] as Array<string>).map((name: string): string => {
+          return provider === CloudProvider.AWS
+            ? name
+            : name.charAt(0).toUpperCase() + name.slice(1);
+        }),
+      );
+      for (const name of kinds[provider] as Array<string>) {
+        expect(savings).toContain(name);
+      }
+    }
+
+    // Google Cloud's export does not say what went unused: neither does the card.
+    expect(card).toContain('"Utilization not reported"');
+    expect(savings).toContain(
+      "The export does not say how much of a commitment went unused, so how much is used is not shown.",
+    );
+    // An organization's management account reads them for every account.
+    expect(card).toContain('"Every account of the organization"');
+    expect(savings).toContain(
+      "An organization's management account reads them for every account of the organization.",
+    );
+    // Never added together across kinds.
+    expect(card).toContain("so they are never added together");
+    expect(savings).toContain("kinds are never added together");
+  });
+
+  it("says what Costs breaks the spend down by, as its breakdown card does", () => {
+    const where: string = costsSection("Where the money goes").replace(
+      /\s+/g,
+      " ",
+    );
+    const card: string = source("breakdownCard");
+    const options: string = source("breakdown");
+
+    // The card's own title is the section's.
+    expect(card).toContain(
+      'BREAKDOWN_TITLE: string = translationKey("Where the money goes");',
+    );
+    for (const [label, value] of [
+      ["Environments", "environment"],
+      ["Apps", "app"],
+      ["Tags", "tag"],
+    ]) {
+      expect(options).toContain(
+        `{ label: translationKey("${label}"), value: "${value}" }`,
+      );
+    }
+    expect(where).toContain(
+      "**Cloud → Spend → Costs** breaks a period's spend down by service, Region, account or resource, and three more ways:",
+    );
+    // An Elastic Beanstalk environment's resources, by the tag AWS gives them.
+    expect(ELASTIC_BEANSTALK_ENVIRONMENT_TAG).toBe(
+      "elasticbeanstalk:environment-name",
+    );
+    expect(where).toContain(
+      "an Elastic Beanstalk environment's resources by the tag AWS gives them",
+    );
+    expect(card).toContain(
+      "Amazon ECS bills its tasks and App Service its plans, so their apps' costs stay their environment's.",
+    );
+    expect(where).toContain(
+      "Amazon ECS bills its tasks and App Service its plans, so their apps' costs stay their environment's.",
+    );
+    // Tags: kept as read, and on AWS only with Costs per resource.
+    expect(card).toContain(
+      '"Each cost keeps the tags it had when it was read."',
+    );
+    expect(card).toContain(
+      '"AWS costs carry tags once Costs per resource is turned on in their connection\'s settings."',
+    );
+    expect(where).toContain(
+      "A cost keeps the tags it had when it was read: a Google Cloud billing export's labels, else the tags of the resource it is billed to, which on AWS needs Costs per resource.",
+    );
+    // The rest, under the list.
+    expect(options).toContain(
+      '"{{amount}} is not in an App Platforms environment."',
+    );
+    expect(where).toContain(
+      "Under the list, the card says what the rest came to: what is in no environment, what an environment is billed as a whole, or what does not carry the tag.",
+    );
+    // Read again once, as far back as a first read.
+    expect(source("lanes")).toContain(
+      "export const CLOUD_COSTS_READ_VERSION: number = 2;",
+    );
+    expect(where).toContain(
+      "Costs read before tags were kept are read again once, as far back as a first read, so their tags fill in.",
+    );
+  });
+
+  it("names the MCP server and the CLI's command an AI agent or a script manages budgets with", () => {
+    const budgets: string = costsSection("Budgets");
+
+    expect(budgets).toContain("[MCP server](/docs/ai/mcp-server)");
+    expect(budgets).toContain("`oneuptime cloud-budget`");
+    expect(source("cliReadme")).toContain("`cloud-budget`");
+    expect(readPage("en", "ai/mcp-server")).toContain("| Cloud Budget |");
   });
 
   it("names Cloud's pages as the side menu draws them: the Spend pages under their section", () => {
@@ -868,7 +1306,10 @@ describe("Let AI fix problems", () => {
     const options: CloudAiAgentSetupOptions = {
       provider: CloudProvider.GCP,
       oneuptimeUrl: "https://oneuptime.com",
-      ingestionKey: "ingestion-key",
+      agentKey: buildCloudAiAgentKey({
+        cloudAccountId: "11111111-1111-1111-1111-111111111111",
+        secret: "a".repeat(64),
+      }),
       cloudAccountId: "11111111-1111-1111-1111-111111111111",
       accountId: "my-project",
       fixesMode: "RequireApproval",

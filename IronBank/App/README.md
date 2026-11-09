@@ -32,7 +32,7 @@ by digest, onto Iron Bank's Node.js 26 image. Both images are Node.js 26 on
 Alpine 3.24. It then adds `bash`, `curl` and the PostgreSQL clients that backups
 use from Alpine's repositories, and sets the release's environment, user and
 start command. The source is
-[IronBank/App](https://github.com/OneUptime/oneuptime/tree/master/IronBank/App)
+[IronBank/App](https://github.com/OneUptime/oneuptime/tree/main/IronBank/App)
 in OneUptime's repository.
 
 ## Running it
@@ -54,7 +54,7 @@ helm install my-oneuptime oneuptime/oneuptime \
 | Port | 3002 (HTTP) |
 | User | `node` (UID 1000) |
 | Health | `GET /status/live` and `GET /status/ready` |
-| Configuration | Environment variables: see OneUptime's [`config.example.env`](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) |
+| Configuration | Environment variables: see OneUptime's [`config.example.env`](https://github.com/OneUptime/oneuptime/blob/main/config.example.env) |
 
 Documentation: [oneuptime.com/docs](https://oneuptime.com/docs).
 

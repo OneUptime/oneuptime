@@ -70,13 +70,24 @@ import {
 } from "../CloudConnectorTypes";
 import GcpCostClient, {
   GCP_COST_RECOMMENDERS,
+  GcpCommitmentRow,
   GcpRecommenderPlace,
   describeGcpCostFailure,
   getGcpPlaces,
   isValidGcpBillingExportTable,
   readGcpRecommendation,
+  summarizeGcpCommitmentRows,
 } from "./GcpCosts";
-import { CloudCostState } from "../../../../Types/Cloud/CloudCost";
+import {
+  CLOUD_COST_DEFAULT_CURRENCY,
+  CloudCostState,
+} from "../../../../Types/Cloud/CloudCost";
+import {
+  CLOUD_COMMITMENT_WINDOW_DAYS,
+  CloudCommitmentKindFigures,
+  CloudCommitmentSummary,
+  getCloudCommitmentWindow,
+} from "../../../../Types/Cloud/CloudCommitments";
 import GcpInventoryClient, {
   GCP_INVENTORY_TYPES,
   GcpAsset,
@@ -837,7 +848,144 @@ export default class GcpCloudConnector implements CloudConnector {
       });
     }
 
+    result.commitments = await this.readCommitments({
+      settings,
+      client,
+      projects,
+      now,
+    });
+
+    for (const entry of result.commitments.slice(0, 1)) {
+      if (entry.summary.state !== CloudCostState.Reading) {
+        result.warnings.push(entry.summary.message || "");
+      }
+    }
+
     return result;
+  }
+
+  /*
+   * How much of each project's spend its committed use discounts cover,
+   * from the billing export (GcpCosts' commitments query): one query for
+   * every project. Without a billing export there is nothing to read, and
+   * the projects say how to choose one.
+   */
+  private async readCommitments(data: {
+    settings: CloudConnectionSettings;
+    client: GcpCostClient;
+    projects: Array<string>;
+    now: Date;
+  }): Promise<Array<{ accountId: string; summary: CloudCommitmentSummary }>> {
+    const table: string = readCloudSetting(
+      data.settings.config,
+      GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
+    );
+    const base: Omit<CloudCommitmentSummary, "state" | "kinds" | "currency"> = {
+      days: CLOUD_COMMITMENT_WINDOW_DAYS,
+      readAt: data.now.toISOString(),
+    };
+    const eachProject: (failure: {
+      state: CloudCostState;
+      message: string;
+    }) => Array<{
+      accountId: string;
+      summary: CloudCommitmentSummary;
+    }> = (failure: {
+      state: CloudCostState;
+      message: string;
+    }): Array<{ accountId: string; summary: CloudCommitmentSummary }> => {
+      return data.projects.map((accountId: string) => {
+        return {
+          accountId,
+          summary: {
+            ...base,
+            state: failure.state,
+            message: failure.message,
+            currency: CLOUD_COST_DEFAULT_CURRENCY,
+            kinds: [],
+          },
+        };
+      });
+    };
+
+    if (!table || !isValidGcpBillingExportTable(table)) {
+      return eachProject({
+        state: CloudCostState.NotSetUp,
+        message:
+          "Committed use discounts are read from your billing export to BigQuery. Name its table under the connection's More fields.",
+      });
+    }
+
+    const queryProject: string =
+      GcpCloudConnector.readKey(
+        readCloudSetting(data.settings.secrets, "serviceAccountJson"),
+      ).projectId ||
+      data.projects[0] ||
+      "";
+    const window: { start: Date; end: Date } = getCloudCommitmentWindow(
+      data.now,
+    );
+
+    try {
+      const read: { rows: Array<GcpCommitmentRow>; complete: boolean } =
+        await data.client.readCommitments({
+          queryProject,
+          table,
+          start: window.start,
+          end: window.end,
+        });
+
+      if (!read.complete) {
+        return eachProject({
+          state: CloudCostState.Failed,
+          message:
+            "The commitments query took longer than one read waits: it is run again tomorrow.",
+        });
+      }
+
+      return data.projects.map((accountId: string) => {
+        const summary: {
+          currency: string;
+          figures: CloudCommitmentKindFigures;
+        } = summarizeGcpCommitmentRows(
+          read.rows.filter((row: GcpCommitmentRow): boolean => {
+            return row.projectId === accountId;
+          }),
+        );
+
+        return {
+          accountId,
+          summary: {
+            ...base,
+            state: CloudCostState.Reading,
+            currency: summary.currency,
+            kinds: [summary.figures],
+          },
+        };
+      });
+    } catch (error) {
+      if (
+        error instanceof LlmProviderError &&
+        error.kind === CloudConnectionFailureKind.Authentication
+      ) {
+        throw error;
+      }
+
+      return eachProject(
+        error instanceof CloudReadBudgetSpent
+          ? {
+              state: CloudCostState.Failed,
+              message:
+                "The read reached its limit before the commitments: they are read again tomorrow.",
+            }
+          : describeGcpCostFailure({
+              error,
+              what: "costs",
+              table,
+              queryProject,
+            }),
+      );
+    }
   }
 
   /*

@@ -33,6 +33,7 @@ import IncidentGroupingEngineService from "../../../Server/Services/IncidentGrou
 import IncidentLabelRuleEngineService from "../../../Server/Services/IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "../../../Server/Services/IncidentOnCallRuleEngineService";
 import { OnCallRulePagingHold } from "../../../Server/Utils/OnCall/OnCallRulePagingHold";
+import { OnCallRulesPaging } from "../../../Server/Utils/OnCall/OnCallRulePageAs";
 import IncidentOwnerRuleEngineService from "../../../Server/Services/IncidentOwnerRuleEngineService";
 import IncidentPostmortemStatusService from "../../../Server/Services/IncidentPostmortemStatusService";
 import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentPrivacyRuleEngineService";
@@ -2210,11 +2211,16 @@ describe("a policy an on-call rule holds until working hours", () => {
           .spyOn(engine as Record<string, AnyFunction>, method)
           .mockImplementation((async (
             record: unknown,
-          ): Promise<Map<string, OnCallRulePagingHold>> => {
+          ): Promise<OnCallRulesPaging> => {
             probes.onCallRules.push(record);
-            return new Map<string, OnCallRulePagingHold>([
-              [DATABASE_POLICY_ID, HOLD],
-            ]);
+            // What the rules page (OnCallRulePageAs): one held, nothing as observers.
+            return {
+              addedPolicyIds: [],
+              observerPolicyIds: [],
+              holds: new Map<string, OnCallRulePagingHold>([
+                [DATABASE_POLICY_ID, HOLD],
+              ]),
+            };
           }) as never);
       },
     });

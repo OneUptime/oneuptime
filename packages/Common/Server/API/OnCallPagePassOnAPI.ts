@@ -10,10 +10,16 @@ import Express, {
 import Response from "../Utils/Response";
 import OnCallPagePassOn from "../Utils/OnCall/OnCallPagePassOn";
 import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import OnCallObserverPageSeen from "../Utils/OnCall/OnCallObserverPageSeen";
 import {
   ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE,
   OnCallPageAgainAcknowledgeAnswer,
 } from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import {
+  ON_CALL_OBSERVER_PAGE_SEEN_ROUTE,
+  OnCallObserverOpenPagesAnswer,
+  OnCallObserverPageSeenAnswer,
+} from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -337,6 +343,105 @@ router.post(
             recordType: record.recordType,
             recordId: record.recordId,
           }),
+      };
+
+      Response.setNoCacheHeaders(res);
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        answer as unknown as JSONObject,
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * GET  /on-call-page/seen/<record type>/<record id>
+ *   The signed-in person's pages as an observer about the record that they
+ *   can still say they have seen (OnCallObserverPageSeen): { pages: [...] }.
+ *   Empty for everybody else - every visit of the record's screen in the
+ *   mobile app asks, so it is cheap.
+ *
+ * POST the same route
+ *   Says they have seen them, as each page's link, a call's 1 or a text
+ *   would: the record is not acknowledged, and nobody else's page stops.
+ *   { seen: N }, 0 when there was none to answer. Only their own pages, in
+ *   the project they are signed in to.
+ */
+router.get(
+  `${ON_CALL_OBSERVER_PAGE_SEEN_ROUTE}/:recordType/:recordId`,
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const caller: { userId: ObjectID; projectId: ObjectID } =
+        readCaller(props);
+
+      const record: {
+        recordType: OnCallPageRecordType;
+        recordId: ObjectID;
+      } = readRecord(req);
+
+      const answer: OnCallObserverOpenPagesAnswer = {
+        pages: await OnCallObserverPageSeen.getOpenPagesForRecord({
+          userId: caller.userId,
+          projectId: caller.projectId,
+          recordType: record.recordType,
+          recordId: record.recordId,
+        }),
+      };
+
+      Response.setNoCacheHeaders(res);
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        answer as unknown as JSONObject,
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  `${ON_CALL_OBSERVER_PAGE_SEEN_ROUTE}/:recordType/:recordId`,
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const caller: { userId: ObjectID; projectId: ObjectID } =
+        readCaller(props);
+
+      const record: {
+        recordType: OnCallPageRecordType;
+        recordId: ObjectID;
+      } = readRecord(req);
+
+      const answer: OnCallObserverPageSeenAnswer = {
+        seen: await OnCallObserverPageSeen.markPagesSeenForRecord({
+          userId: caller.userId,
+          projectId: caller.projectId,
+          recordType: record.recordType,
+          recordId: record.recordId,
+        }),
       };
 
       Response.setNoCacheHeaders(res);

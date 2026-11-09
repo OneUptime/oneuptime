@@ -60,6 +60,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   scope: AuditLogExportScope;
@@ -233,6 +234,8 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
           config: true,
           isEnabled: true,
           startsAt: true,
+          // The edit form shows the version the export sends, and keeps it.
+          schemaVersion: true,
           lastAttemptAt: true,
           lastExportedAt: true,
           lastError: true,
@@ -448,7 +451,12 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
                                 {index === 0
                                   ? translator.translateText(part)
                                   : part}
-                                {isLast ? "" : " ·"}
+                                {isLast ? null : (
+                                  <>
+                                    {" "}
+                                    <InlineSeparator markOnly />
+                                  </>
+                                )}
                               </span>
                               {isLast ? "" : " "}
                             </Fragment>

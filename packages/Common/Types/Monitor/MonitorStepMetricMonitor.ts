@@ -16,9 +16,34 @@ export default interface MonitorStepMetricMonitor {
    * monitor behaving exactly as before.
    */
   telemetryServiceIds?: Array<ObjectID> | undefined;
+  /*
+   * Read each query as ONE value over the whole window - the sum, the
+   * average, the highest or the lowest of every point in it, as its
+   * aggregation says - and compute the formulas from those values, instead
+   * of one value a minute. Absent (false) on every monitor that does not
+   * ask for it, which reads its window a minute at a time, as before.
+   *
+   * What it is for: counts and shares of counts, read the same whatever
+   * period their points stand for. A cloud's failed requests over its
+   * requests, read a minute at a time, is the share of each minute that
+   * has points: an AWS read-only connection writes one point per
+   * CloudWatch period of five minutes, a streamed one a point a minute,
+   * and CloudWatch writes no point at all for a period with no failure -
+   * so a quiet window with one bad minute reads as the bad minute. Read
+   * whole, it is the window's own share, and a count is the window's
+   * total, on either connection (CloudAlertTemplates).
+   */
+  aggregatesWholeWindow?: boolean | undefined;
 }
 
 export class MonitorStepMetricMonitorUtil {
+  // Whether the step reads its window as one value per query (above).
+  public static aggregatesWholeWindow(
+    monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined | null,
+  ): boolean {
+    return monitorStepMetricMonitor?.aggregatesWholeWindow === true;
+  }
+
   public static getDefault(): MonitorStepMetricMonitor {
     return {
       metricViewConfig: {

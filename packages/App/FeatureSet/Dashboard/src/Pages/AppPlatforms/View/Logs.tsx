@@ -28,6 +28,32 @@ import {
   getCloudResourceAttributeFilters,
   isCloudResourceScoped,
 } from "../Utils/CloudResourceTelemetryScope";
+import { AWS_LOG_GROUP_PLATFORMS } from "Common/Types/Cloud/CloudLogGroups";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * What an environment's Logs tab says while it has no logs: how logs reach
+ * it. An app's logs reach it with the environment's three attributes; on
+ * App Runner, Elastic Beanstalk and ECS (AWS_LOG_GROUP_PLATFORMS) the
+ * platform's own CloudWatch Logs reach it too, once the account's
+ * connection streams them (CloudLogGroups gives them cloud.platform).
+ */
+export const CLOUD_ENVIRONMENT_NO_LOGS: string = translationKey(
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes.",
+);
+export const CLOUD_ENVIRONMENT_NO_LOGS_OR_STREAM: string = translationKey(
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.",
+);
+
+export function getCloudEnvironmentNoLogsMessage(
+  cloudPlatform: string | null | undefined,
+): string {
+  return (AWS_LOG_GROUP_PLATFORMS as ReadonlyArray<string>).includes(
+    cloudPlatform || "",
+  )
+    ? CLOUD_ENVIRONMENT_NO_LOGS_OR_STREAM
+    : CLOUD_ENVIRONMENT_NO_LOGS;
+}
 
 const CloudResourceLogs: FunctionComponent<
   PageComponentProps
@@ -138,7 +164,9 @@ const CloudResourceLogs: FunctionComponent<
         attributeFilterDisplayKeys={attributeFilterDisplayKeys}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes."
+        noLogsMessage={getCloudEnvironmentNoLogsMessage(
+          cloudResource.cloudPlatform,
+        )}
       />
     </Fragment>
   );

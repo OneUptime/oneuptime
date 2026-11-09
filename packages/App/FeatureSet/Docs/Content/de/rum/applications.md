@@ -23,7 +23,7 @@ flowchart TB
 ```
 
 - Der `service.name` ist die Identität der Anwendung und wird ohne Rücksicht auf Groß- und Kleinschreibung verglichen: `Storefront-Web` und `storefront-web` sind eine Anwendung.
-- Ein neuer `service.name` beginnt eine neue Anwendung. Die alte behält ihren Verlauf und wird **Getrennt**, die neue beginnt leer, und beide werden nie zusammengeführt.
+- Ein neuer `service.name` beginnt eine neue Anwendung. Die alte behält ihren Verlauf und zeigt **Kein aktueller Datenverkehr**, sobald ihre Daten ausbleiben, die neue beginnt leer, und beide werden nie zusammengeführt.
 - Verwenden Sie einen `service.name` pro App, nicht einen pro Umgebung. Unterscheiden Sie Umgebungen mit einer Beschriftung wie `oneuptime.label.env=production`, damit sie sich eine Anwendung und einen Verlauf teilen.
 
 ### Eine Anwendung umbenennen
@@ -52,13 +52,19 @@ Danach öffnet sich die Einrichtungsanleitung der Anwendung von selbst, mit dem 
 
 Hat das Projekt bereits eine Anwendung mit diesem `service.name`, ob entdeckt, früher hinzugefügt oder archiviert, sagt das Formular das, statt eine zweite anzulegen.
 
-## Verbindungsstatus
+## Status
 
-Eine Anwendung zeigt **Verbunden**, solange Telemetrie eintrifft, und **Getrennt** nach 15 Minuten ohne Telemetrie. OpenTelemetry-Telemetrie und Datenverkehr der Sitzungswiedergabe zählen beide.
+Der **Status** einer Anwendung sagt, ob ihre Daten eintreffen, und beim Darüberfahren mit der Maus, was er bedeutet. OpenTelemetry-Telemetrie und Datenverkehr der Sitzungswiedergabe zählen beide.
+
+| Status | Bedeutung |
+| --- | --- |
+| **Empfängt Daten** | In den letzten 15 Minuten ist Telemetrie eingetroffen. |
+| **Kein aktueller Datenverkehr** | Früher ist Telemetrie eingetroffen, in den letzten 15 Minuten aber keine. Eine App sendet nur Daten, solange Menschen sie nutzen. Das ist also normal, wenn sie niemand nutzt, etwa über Nacht. |
+| **Warten auf Daten** | Noch ist nichts eingetroffen: Die Anwendung wurde von Hand angelegt, und ihre App hat noch nichts gesendet. Ihre **Übersicht** zeigt, wie Sie sie einrichten. |
 
 **Zuletzt gesehen** wird alle paar Minuten aktualisiert statt bei jedem Batch, kann dem Live-Verkehr also um bis zu etwa fünf Minuten hinterherhinken; die 15 Minuten lassen dafür Raum. Zeit, in der OneUptime selbst ausgefallen war oder seine Ingest-Warteschlange aufholte, zählt nicht dazu.
 
-**Getrennt** ist für sich allein kein Fehler: Ein internes Werkzeug ohne Besucher über Nacht ist tatsächlich getrennt. Wenn Menschen die App benutzen, lesen Sie [RUM-Fehlerbehebung](/docs/rum/troubleshooting).
+**Kein aktueller Datenverkehr** ist kein Fehler. Wenn Menschen die App gerade nutzen, steht auf der **Übersicht** der Anwendung, was zu prüfen ist, und [RUM-Fehlerbehebung](/docs/rum/troubleshooting) geht jede Prüfung durch.
 
 ## Beschriftungen
 
@@ -180,5 +186,5 @@ Beschränken Sie einen selbst gebauten Monitor auf die Anwendung, damit ein Back
 - [Sitzungswiedergabe](/docs/telemetry/session-replay): Aufzeichnen, was Benutzer sahen, mit eigener Richtlinie und Aufbewahrung.
 - [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules): Beide Regelformulare, Schritt für Schritt.
 - [Regeln auf vorhandene Ressourcen anwenden](/docs/configuration/run-rules-now): Eine neue Regel auf Ihre vorhandenen Anwendungen anwenden.
-- [RUM-Fehlerbehebung](/docs/rum/troubleshooting): Wenn eine Anwendung fehlt, leer ist oder getrennt ist.
+- [RUM-Fehlerbehebung](/docs/rum/troubleshooting): Wenn eine Anwendung fehlt oder leer ist oder keinen aktuellen Datenverkehr zeigt, obwohl Menschen sie nutzen.
 :::

@@ -47,6 +47,8 @@ Vai in **Cloud → Collega** e, nella riga dell'account AWS, scegli **Trasmetti 
 
 Per i log, indica i **Gruppi di log** uno per riga, per nome nella **Regione** accanto o per ARN nella loro regione, oppure scegli **Tutti i gruppi di log dell'account, anche quelli nuovi**. Un comando sottoscrive al massimo 50 gruppi di log per nome, in al massimo 10 regioni.
 
+AWS consente una sola sottoscrizione ai log a livello di account per regione e due filtri di sottoscrizione per gruppo di log. Prima di distribuire qualsiasi cosa, il comando controlla entrambe le cose: se un altro strumento, come un SIEM, occupa già la sottoscrizione a livello di account di una regione, o un gruppo di log che hai indicato non esiste o ha già due filtri di sottoscrizione, dice quale e non configura nulla.
+
 ### Creare una chiave del flusso
 
 Scegli **Crea una chiave del flusso**. La chiave viene mostrata solo questa volta, nel comando: OneUptime ne conserva solo lo SHA-256.
@@ -66,6 +68,7 @@ La finestra chiede ogni pochi secondi cosa è arrivato. Firehose consegna entro 
 | --- | --- |
 | **Tutte le metriche, non solo quelle chiave** | Trasmette tutte le metriche che CloudWatch ha per l'account, comprese le tue. AWS addebita ogni aggiornamento di metrica che un flusso invia, quindi può costare molte volte di più |
 | **Regioni** | Da dove trasmettere: all'inizio, le regioni in cui la connessione ha trovato risorse. Se lasciato vuoto, il comando trasmette dalla regione di AWS CloudShell. Al massimo 30 |
+| **Tutti gli account dell'organizzazione** | Per una connessione che legge una AWS Organization: il comando, eseguito nel suo account di gestione, crea gli stessi stack anche in ogni account membro tramite uno StackSet, e negli account che entrano in seguito. Tutti i gruppi di log o nessuno: i gruppi con nome appartengono a un solo account |
 | **Configuralo in un altro modo** | Gli endpoint delle metriche e dei log e la chiave, per configurare i flussi con Terraform o la console |
 
 **Scarica il modello** salva il modello che il comando distribuisce, per distribuirlo a modo tuo.
@@ -77,6 +80,7 @@ La finestra chiede ogni pochi secondi cosa è arrivato. Firehose consegna entro 
 | Metriche | Sulle risorse cloud che misurano, con i nomi e gli attributi che danno loro le letture della connessione |
 | Log | Nell'esploratore dei log, sotto il servizio di telemetria della connessione, con l'account, la regione e il gruppo di log come attributi |
 | Log di un gruppo di log che AWS chiama come una risorsa | Anche su quella risorsa: la sua pagina in Cloud ottiene una scheda **Registri** |
+| Log di un servizio App Runner, di un ambiente Elastic Beanstalk o di un task o un cluster ECS | Anche sul suo ambiente in Piattaforme applicative: la sua scheda **Registri** |
 
 Un gruppo di log viene archiviato sotto una risorsa quando AWS gli ha dato il nome di una:
 
@@ -93,8 +97,11 @@ Un gruppo di log viene archiviato sotto una risorsa quando AWS gli ha dato il no
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Ogni log porta l'ID della risorsa come `cloud.resource_id`, e i log di una funzione Lambda portano anche `faas.name`, così compaiono anche sulla funzione in Serverless. Un gruppo di log con un altro nome viene trasmesso lo stesso, sotto il suo account e la sua regione. La gravità di un log è quella che indica il suo messaggio, come la scrive Lambda.
+Ogni log porta l'ID della risorsa come `cloud.resource_id`, e i log di una funzione Lambda portano anche `faas.name`, così compaiono anche sulla funzione in Serverless. Un gruppo di log con un altro nome viene trasmesso lo stesso, sotto il suo account e la sua regione. La gravità di un log è quella che indica il suo messaggio, come la scrive Lambda, PostgreSQL o MySQL.
+
+Anche i log di un servizio App Runner, di un ambiente Elastic Beanstalk e di un cluster ECS portano `cloud.platform`, e così quelli di un task ECS, dal gruppo di log che la console ECS chiama `/ecs/<task-definition-family>`, con `aws.ecs.task.family`. Con l'account e la regione, questo li porta sul loro ambiente in Piattaforme applicative, che compare con loro se nessuna app vi ha ancora inviato dati. Non creano nessuna app: un'app prende il nome dalla sua telemetria, come spiega [Ambienti cloud](/docs/telemetry/cloud-environments).
 
 ## Cosa crea lo stack
 
@@ -127,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Per una connessione che legge una AWS Organization, esegui il comando della finestra di dialogo nell'account di gestione: se l'organizzazione era trasmessa, elimina anche gli stack di ogni account membro e lo StackSet.
 :::
 
 Per cambiare ciò che uno stack trasmette, apri di nuovo **Trasmetti metriche e log**, scegli **Crea una nuova chiave** ed esegui il nuovo comando. La chiave che sostituisce continua a funzionare per 24 ore, così nessuna consegna viene rifiutata mentre gli stack si aggiornano. Al massimo 3 chiavi sostituite funzionano contemporaneamente.
@@ -166,6 +175,10 @@ Controlla che il comando sia terminato in ogni regione senza errori: `aws cloudf
 
 :::details La connessione dice Flusso rifiutato
 La finestra e il tooltip della riga dicono perché. Una chiave sbagliata significa che gli stack funzionano con una chiave che non funziona più: crea una nuova chiave ed esegui di nuovo il comando. Firehose continua a inviare ciò che conserva, e viene accettato appena la chiave è giusta.
+:::
+
+:::details Il comando dice `Nothing was set up`
+Le righe sopra dicono perché, ciascuna con la sua regione o il suo gruppo di log. Se un altro strumento occupa la sottoscrizione ai log a livello di account di una regione, indica invece i gruppi di log da trasmettere, oppure rimuovi la policy di quello strumento. Se un gruppo di log ha già due filtri di sottoscrizione, rimuovine uno o lascia fuori il gruppo. Se il gruppo di log non esiste, controlla il suo nome e la sua regione, oppure indica il suo ARN. Poi esegui di nuovo il comando.
 :::
 
 :::details I log di una funzione Lambda non compaiono sulla sua pagina

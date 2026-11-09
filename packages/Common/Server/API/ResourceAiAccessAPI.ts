@@ -23,6 +23,7 @@ import AIRunType from "../../Types/AI/AIRunType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { AiActivityInsights } from "../../Types/AI/AiActivityInsights";
 import {
+  RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
   RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
@@ -38,6 +39,8 @@ import {
 } from "../../Types/AI/ResourceAiAccessApi";
 import {
   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
+  getCloudAiAgentKeyEditRefusal,
+  getCloudAiAgentKeyRefusal,
   getResourceAgentName,
   getResourceAiAgentResetEditRefusal,
   getResourceAiAgentResetRefusal,
@@ -45,8 +48,23 @@ import {
 } from "../../Types/AI/ResourceAiAccessPermissions";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
+  isCloudAiResourceType,
   parseAiResourceType,
 } from "../../Types/ResourceAiAgent/AiResourceType";
+import { CloudAiAgentKeyResponse } from "../../Types/CloudConnection/CloudAiAgentKey";
+import {
+  CLOUD_ORGANIZATION_MAX_ACCOUNTS,
+  CloudOrganizationAccountKey,
+  CloudOrganizationKeys,
+  CloudOrganizationSkippedAccount,
+  CloudOrganizationView,
+  RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
+  RESOURCE_AI_ACCESS_ORGANIZATION_PATH,
+} from "../../Types/CloudConnection/CloudOrganizationAgents";
+import CloudAccount from "../../Models/DatabaseModels/CloudAccount";
+import CloudOrganizationAgents, {
+  CloudOrganizationOfAccount,
+} from "../Utils/CloudConnection/CloudOrganizationAgents";
 import {
   DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS,
   ResourceAiAccessGap,
@@ -149,9 +167,33 @@ const router: ExpressRouter = Express.getRouter();
  *   POST /resource-ai-access/reset-agent  { resourceType, resourceId }
  *     Forgets the key of the resource's AI agent, so whatever holds it is
  *     locked out and the real agent registers afresh within a few minutes.
+ *     A cloud account's Cloud AI agent also loses every key of its
+ *     account's, and the project's ingestion key no longer connects it: it
+ *     stays out until its setup command runs again, with a new key.
  *     For the people who may loosen AI access
  *     (RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS) and may edit THIS resource
  *     (decided for its row, as the test's edit access is).
+ *
+ *   POST /resource-ai-access/agent-key    { resourceType, resourceId }
+ *     A cloud account only: a new key for its Cloud AI agent, which its
+ *     setup command carries (Types/CloudConnection/CloudAiAgentKey). Shown
+ *     this once and kept only as a hash; it connects that account's agent
+ *     and nothing else, and the agent's key so far keeps working until it
+ *     connects. For the people who may reset the agent, by the same two
+ *     checks.
+ *
+ *   POST /resource-ai-access/organization { resourceType, resourceId }
+ *     An AWS account only: the AWS Organization its cloud connection reads,
+ *     if any - its management account, and its accounts the caller may read
+ *     with where each one's Cloud AI agent is (Types/CloudConnection/
+ *     CloudOrganizationAgents). Same read gate as the status.
+ *
+ *   POST /resource-ai-access/organization-agent-keys { resourceType, resourceId }
+ *     An AWS account of an organization only: a new key for each account's
+ *     Cloud AI agent, for the organization's setup command (a StackSet) to
+ *     carry - each made as one account's is, for the people who may make
+ *     one: the caller must be allowed it for this account, and every other
+ *     account they may not edit is named with why instead of getting one.
  *
  *   POST /resource-ai-access/logs         { resourceType, resourceId }
  *     Everything AI did on the resource, newest first, as summaries: the AI
@@ -464,6 +506,49 @@ async function assertCanChangeResourceToResetAgent(data: {
     if (error instanceof NotAuthorizedException) {
       throw new NotAuthorizedException(
         getResourceAiAgentResetEditRefusal(data.resource.resourceType),
+      );
+    }
+
+    throw error;
+  }
+}
+
+/*
+ * Who may make a key for a cloud account's Cloud AI agent: the people who
+ * may reset it - one of RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS (a labelled
+ * block refuses, as for a reset) and an edit of this very account. The key
+ * sets the agent up, with the fixes its command writes.
+ */
+async function assertCanMakeCloudAiAgentKey(data: {
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  resource: AccessibleResource;
+}): Promise<void> {
+  if (
+    !data.props.isRoot &&
+    !data.props.isMasterAdmin &&
+    !CallerPermission.holdsAnyOf(
+      data.props,
+      RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
+      { projectId: data.projectId, labelledBlocksRefuse: true },
+    )
+  ) {
+    throw new NotAuthorizedException(
+      getCloudAiAgentKeyRefusal(data.resource.resourceType),
+    );
+  }
+
+  try {
+    await ResourceAiAccessService.assertCallerMayChangeResource({
+      props: data.props,
+      projectId: data.projectId,
+      resourceType: data.resource.resourceType,
+      resourceId: data.resource.id,
+    });
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      throw new NotAuthorizedException(
+        getCloudAiAgentKeyEditRefusal(data.resource.resourceType),
       );
     }
 
@@ -1148,11 +1233,12 @@ router.post(
         );
       }
 
+      // Recorded on the resource's Audit Logs as theirs.
       await ResourceAiAgentService.resetAgent({
         projectId: tenantId,
         resourceType: resource.resourceType,
         resourceId: resource.id,
-        userId: props.userId,
+        props: props,
       });
 
       const status: ResourceAiAccessStatus | null =
@@ -1164,9 +1250,298 @@ router.post(
 
       Response.sendJsonObjectResponse(req, res, {
         ok: true,
-        message: `The ${agentName} was reset. It reconnects on its own within a few minutes.`,
+        message: getResetAgentMessage({
+          resourceType: resource.resourceType,
+          agentName,
+        }),
         ...(status ? { status: status as unknown as JSONObject } : {}),
       });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * What Reset agent answers: a Cloud AI agent stays out until its setup
+ * command runs again, with a new key of its account's; any other agent
+ * registers again on its own.
+ */
+export function getResetAgentMessage(data: {
+  resourceType: AiResourceType;
+  agentName: string;
+}): string {
+  if (isCloudAiResourceType(data.resourceType)) {
+    return `The ${data.agentName} was reset, and its key no longer works. Run its setup command again to connect it: Change on this page shows it, with a new key.`;
+  }
+
+  return `The ${data.agentName} was reset. It reconnects on its own within a few minutes.`;
+}
+
+router.post(
+  RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const resource: AccessibleResource = await findAccessibleResource({
+        req,
+        props,
+        tenantId,
+      });
+
+      if (!isCloudAiResourceType(resource.resourceType)) {
+        throw new BadDataException(
+          `Only a cloud account's Cloud AI agent connects with a key of its own. The ${getResourceAgentName(
+            resource.resourceType,
+          )} connects with the telemetry ingestion key its collector uses.`,
+        );
+      }
+
+      await assertCanMakeCloudAiAgentKey({
+        props,
+        projectId: tenantId,
+        resource,
+      });
+
+      const key: CloudAiAgentKeyResponse =
+        await CloudAccountService.makeAiAgentKey({
+          cloudAccountId: resource.id,
+          userId: props.userId,
+          now: OneUptimeDate.getCurrentDate(),
+          // In the account's audit log, as theirs.
+          props: props,
+        });
+
+      Response.sendJsonObjectResponse(req, res, key as unknown as JSONObject);
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+// How many accounts' keys the organization's route makes at once.
+const ORGANIZATION_KEYS_AT_ONCE: number = 8;
+
+/*
+ * One account's key, made as its own dialog would make it - the caller
+ * must be allowed it for that account - or the account with why not.
+ */
+async function makeOrganizationAccountKey(data: {
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  account: CloudAccount;
+  now: Date;
+}): Promise<CloudOrganizationAccountKey | CloudOrganizationSkippedAccount> {
+  const named: { cloudAccountId: string; accountId: string; name: string } = {
+    cloudAccountId: data.account.id!.toString(),
+    accountId: data.account.accountId || "",
+    name: data.account.name || data.account.accountId || "",
+  };
+
+  try {
+    await assertCanMakeCloudAiAgentKey({
+      props: data.props,
+      projectId: data.projectId,
+      resource: {
+        resourceType: AiResourceType.AwsAccount,
+        id: data.account.id!,
+        name: named.name,
+      },
+    });
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      return { ...named, reason: error.message };
+    }
+
+    throw error;
+  }
+
+  const key: CloudAiAgentKeyResponse = await CloudAccountService.makeAiAgentKey(
+    {
+      cloudAccountId: data.account.id!,
+      userId: data.props.userId,
+      now: data.now,
+      // In each account's audit log, as theirs.
+      props: data.props,
+    },
+  );
+
+  return {
+    ...named,
+    agentKey: key.agentKey,
+    worksUntilConnectedBy: key.worksUntilConnectedBy,
+  };
+}
+
+// The account a request names, as an AWS account of an organization.
+async function findOrganizationOf(data: {
+  tenantId: ObjectID;
+  resource: AccessibleResource;
+}): Promise<CloudOrganizationOfAccount> {
+  if (data.resource.resourceType !== AiResourceType.AwsAccount) {
+    throw new BadDataException(
+      "Only an AWS account's Cloud AI agent is set up in every account of an organization at once.",
+    );
+  }
+
+  const organization: CloudOrganizationOfAccount | null =
+    await CloudOrganizationAgents.findOrganization({
+      projectId: data.tenantId,
+      cloudAccountId: data.resource.id,
+    });
+
+  if (!organization) {
+    throw new BadDataException(
+      "This AWS account's cloud connection reads this account alone, not an AWS Organization, so its agent is set up on its own.",
+    );
+  }
+
+  return organization;
+}
+
+router.post(
+  RESOURCE_AI_ACCESS_ORGANIZATION_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const resource: AccessibleResource = await findAccessibleResource({
+        req,
+        props,
+        tenantId,
+      });
+
+      const view: CloudOrganizationView =
+        resource.resourceType === AiResourceType.AwsAccount
+          ? await CloudOrganizationAgents.getView({
+              projectId: tenantId,
+              cloudAccountId: resource.id,
+              props,
+              now: OneUptimeDate.getCurrentDate(),
+            })
+          : {
+              isOrganization: false,
+              managementAccountId: null,
+              accounts: [],
+              isTruncated: false,
+            };
+
+      Response.sendJsonObjectResponse(req, res, view as unknown as JSONObject);
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+router.post(
+  RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const resource: AccessibleResource = await findAccessibleResource({
+        req,
+        props,
+        tenantId,
+      });
+
+      // The bar of one account's key, for the account the dialog is on.
+      await assertCanMakeCloudAiAgentKey({
+        props,
+        projectId: tenantId,
+        resource,
+      });
+
+      const organization: CloudOrganizationOfAccount = await findOrganizationOf(
+        { tenantId, resource },
+      );
+      const accounts: Array<CloudAccount> = (
+        await CloudOrganizationAgents.findAccounts({
+          projectId: tenantId,
+          connectionId: organization.connectionId,
+          props,
+        })
+      )
+        .filter((account: CloudAccount): boolean => {
+          return Boolean(account.id && account.accountId);
+        })
+        .slice(0, CLOUD_ORGANIZATION_MAX_ACCOUNTS);
+      const keys: Array<CloudOrganizationAccountKey> = [];
+      const skipped: Array<CloudOrganizationSkippedAccount> = [];
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      // Each account as its own dialog would make its key: a few at a time, in order.
+      for (
+        let start: number = 0;
+        start < accounts.length;
+        start += ORGANIZATION_KEYS_AT_ONCE
+      ) {
+        const made: Array<
+          CloudOrganizationAccountKey | CloudOrganizationSkippedAccount
+        > = await Promise.all(
+          accounts
+            .slice(start, start + ORGANIZATION_KEYS_AT_ONCE)
+            .map(
+              (
+                account: CloudAccount,
+              ): Promise<
+                CloudOrganizationAccountKey | CloudOrganizationSkippedAccount
+              > => {
+                return makeOrganizationAccountKey({
+                  props,
+                  projectId: tenantId,
+                  account,
+                  now,
+                });
+              },
+            ),
+        );
+
+        for (const one of made) {
+          if ("agentKey" in one) {
+            keys.push(one);
+          } else {
+            skipped.push(one);
+          }
+        }
+      }
+
+      const answer: CloudOrganizationKeys = {
+        managementAccountId: organization.managementAccountId,
+        keys,
+        skipped,
+      };
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        answer as unknown as JSONObject,
+      );
       return;
     } catch (err) {
       next(err);

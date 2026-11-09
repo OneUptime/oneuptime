@@ -45,6 +45,18 @@ import { ActiveMonitorLimitAlert } from "../Monitor/ActiveMonitorLimitNotice";
 export interface ComponentProps {
   selectedRecommendations: Array<MonitorRecommendation>;
   resourceLabel: string;
+  /*
+   * What the panel says the batch is, when it is not monitors on one
+   * resource: a cloud account's are on many of its resources. Already in
+   * the reader's language.
+   */
+  description?: string | undefined;
+  /*
+   * Each monitor's name in the list of monitors to create, in the order of
+   * selectedRecommendations, when the batch spans resources and a
+   * recommendation's name alone would list "High CPU" forty times.
+   */
+  monitorNames?: Array<string> | undefined;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
   incidentSeverityOptions: Array<MonitorRecommendationSeverityOption>;
@@ -205,6 +217,10 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
   const warningCount: number =
     props.selectedRecommendations.length - criticalCount;
 
+  /*
+   * Looked up here: BasicRadioButtons draws an option's words as it is
+   * handed them, so every language read these three in English.
+   */
   const modeOptions: Array<BasicRadioButtonOption> = [
     {
       title: "Create an alert",
@@ -224,7 +240,15 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
         "One breach opens an alert and an incident. Two records to resolve — pick this only if your workflow needs both.",
       value: MonitorRecommendationNotificationMode.Both,
     },
-  ];
+  ].map((option: BasicRadioButtonOption): BasicRadioButtonOption => {
+    return {
+      ...option,
+      title: translator.translateText(option.title) || option.title,
+      description: option.description
+        ? translator.translateText(option.description) || option.description
+        : undefined,
+    };
+  });
 
   type RenderSeverityRowFunction = (data: {
     severity: MonitorRecommendationSeverity;
@@ -320,10 +344,13 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
         { one: "Create {{count}} Monitor", other: "Create {{count}} Monitors" },
         props.selectedRecommendations.length,
       )}
-      description={translator.translateTemplate(
-        "These monitors will be created on this {{resourceName}}. Everything below applies to every monitor in this batch.",
-        { resourceName: resourceName },
-      )}
+      description={
+        props.description ||
+        translator.translateTemplate(
+          "These monitors will be created on this {{resourceName}}. Everything below applies to every monitor in this batch.",
+          { resourceName: resourceName },
+        )
+      }
       size={SideOverSize.Medium}
       submitButtonText={props.isCreating ? "Creating..." : "Create Monitors"}
       submitButtonIsLoading={props.isCreating}
@@ -583,15 +610,17 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
         >
           <ul className="max-h-56 divide-y divide-gray-100 overflow-y-auto">
             {props.selectedRecommendations.map(
-              (recommendation: MonitorRecommendation) => {
+              (recommendation: MonitorRecommendation, index: number) => {
                 return (
                   <li
-                    key={recommendation.recommendationId}
-                    className="flex items-center justify-between px-1 py-2 text-sm text-gray-700"
+                    key={`${recommendation.recommendationId}-${index}`}
+                    className="flex items-center justify-between gap-3 px-1 py-2 text-sm text-gray-700"
                   >
-                    <span>{recommendation.name}</span>
+                    <span className="min-w-0 break-words">
+                      {props.monitorNames?.[index] || recommendation.name}
+                    </span>
                     <span
-                      className={`text-xs ${
+                      className={`flex-none text-xs ${
                         recommendation.severity === "Critical"
                           ? "text-red-600"
                           : "text-amber-600"

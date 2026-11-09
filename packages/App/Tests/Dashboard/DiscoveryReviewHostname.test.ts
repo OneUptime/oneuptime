@@ -227,13 +227,18 @@ function readRunnerCode(): string {
 const PTR_NAME_NORMALISED: RegExp =
   /normalizeReverseDnsName\(\s*entry\.dnsHostname\s*,?\s*\)/;
 
-// The runner's collision retry: the fallback name, from the host and the scan, created.
+/*
+ * The runner's collision retry: the fallback name, from the host and the
+ * scan, created. A device from the Discovered Devices list (issue #5775)
+ * has no scan, and is named by what discovery knows of it instead - the
+ * scan's host keeps this rule.
+ */
 const RUNNER_COLLISION_RETRY: RegExp =
-  /attempted\s*=\s*build\(\s*buildFallbackDeviceName\(\s*host\s*,\s*state\.scan\s*,?\s*\)\s*,?\s*\);\s*try\s*\{\s*created\s*=\s*await\s+NetworkDeviceService\.create\(/;
+  /attempted\s*=\s*build\(\s*(?:facts\s*\?[\s\S]*?:\s*)?buildFallbackDeviceName\(\s*host\s*,\s*state\.scan!?\s*,?\s*\)\s*,?\s*\);\s*try\s*\{\s*created\s*=\s*await\s+NetworkDeviceService\.create\(/;
 
 // The device the runner builds, from the host and the scan it read.
 const RUNNER_BUILDS_FROM_SCAN: RegExp =
-  /buildNetworkDeviceFromDiscoveredHost\(\{[^}]*?host:\s*host\s*,\s*scan:\s*state\.scan\s*,?\s*\}\)/;
+  /buildNetworkDeviceFromDiscoveredHost\(\{[^}]*?host:\s*host\s*,\s*scan:\s*state\.scan!?\s*,?\s*\}\)/;
 
 // Every call that names a device.
 const NAMING_CALL: RegExp =
@@ -310,10 +315,11 @@ const ADDRESS_LINE: RegExp =
 
 /*
  * One extra name on that line: rendered only when its identifier holds
- * something, and separated from what precedes it by a middle dot.
+ * something, and separated from what precedes it by the reader's separator
+ * (InlineSeparator: a middle dot, a bullet on a Persian page).
  */
 const SECONDARY_NAME_SPAN: RegExp =
-  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s*>\s*\{" · "\}\s*\{\1\}\s*<\/span>\s*\)\s*\}/g;
+  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s*>\s*<InlineSeparator\s*\/>\s*\{\1\}\s*<\/span>\s*\)\s*\}/g;
 
 /*
  * The one thing on that line that is not a name: the "NetBIOS name" hint
@@ -325,7 +331,7 @@ const SECONDARY_NAME_SPAN: RegExp =
  * language.
  */
 const NETBIOS_HINT_SPAN: RegExp =
-  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title=\{translator\.translateText\(\s*"([^"]+)"\s*,?\s*\)\}\s*>\s*\{" · "\}\s*\{translator\.translateText\(\s*"NetBIOS name"\s*,?\s*\)\}\s*<\/span>\s*\)\s*\}/;
+  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title=\{translator\.translateText\(\s*"([^"]+)"\s*,?\s*\)\}\s*>\s*<InlineSeparator\s*\/>\s*\{translator\.translateText\(\s*"NetBIOS name"\s*,?\s*\)\}\s*<\/span>\s*\)\s*\}/;
 
 let cachedRowNameSource: RowNameSource | null = null;
 
@@ -2357,7 +2363,11 @@ describe("the host list wires the row to the shared recipe", () => {
     expect(namingCalls.length).toBeGreaterThanOrEqual(2);
 
     for (const args of namingCalls) {
-      expect(["host,state.scan", "host,data.scan"]).toContain(args);
+      expect([
+        "host,state.scan",
+        "host,state.scan!",
+        "host,data.scan",
+      ]).toContain(args);
     }
 
     // The scan the runner reads carries the naming choice.

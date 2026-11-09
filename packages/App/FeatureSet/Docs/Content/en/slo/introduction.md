@@ -84,7 +84,7 @@ Everything about how the SLO measures starts from a default that you change late
 | Downtime statuses | Every non-operational status in the project | **Settings** → **Downtime Calculation** |
 | Multi-monitor mode | **Any Monitor Down** | **Settings** → **Downtime Calculation** |
 | Evaluation | On | **Settings** → **Evaluation** |
-| Burn rate rules | A **Fast burn** and a **Slow burn** rule, scaled to the window | **Burn Rate Rules** |
+| Burn rate rules | A **Fast burn**, a **Slow burn** and a **Slow leak** rule, scaled to the window | **Burn Rate Rules** |
 
 ## What an SLO is made of
 
@@ -141,7 +141,7 @@ A turned-off or archived SLO is not evaluated, so its status stays where it was;
 The **SLOs** page lists every SLO that is not archived, with its status, SLI, budget left, burn rate, target, window, monitors, labels and owners.
 
 - The tiles above the list count SLOs by status: **Healthy**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **Paused** and **Disabled**. They show once there is an SLO that is not archived. Click a tile to show only those SLOs, and click it again to show them all.
-- Select SLOs to add or remove labels and owners, enable or disable them, archive them or delete them, all at once.
+- Select SLOs to add or remove labels and owners, enable or disable them, give them the [recommended burn rate rules](/docs/slo/burn-rate-alerts#add-them-to-many-slos-at-once) they are missing, archive them or delete them, all at once.
 - The side menu's **Settings** section holds **Label Rules** and **Owner Rules**, which label new SLOs and give them owners: see [Label and Owner Rules](/docs/slo/label-and-owner-rules).
 - The side menu's **Advanced** section holds **Archived**, the list of archived SLOs.
 
@@ -153,18 +153,19 @@ Open an SLO to see its pages in the side menu:
 | --- | --- |
 | **Overview** | The status, the headline numbers, the error budget burn-down, recent activity, open alerts and incidents, and the burn rate rules. |
 | **Metrics** | The SLO's `oneuptime.slo.*` metrics, its long-range error budget history, and metrics of the incidents and alerts that affect it. See [SLO Metrics and Dashboards](/docs/slo/metrics). |
-| **Incidents** | The incidents its burn rate rules declared. The badge counts the open ones. |
-| **Alerts** | The alerts its burn rate rules raised. The badge counts the open ones. |
+| **Incidents** | The incidents its burn rate rules and error budget policy declared. The badge counts the open ones. |
+| **Alerts** | The alerts its burn rate rules and error budget policy raised. The badge counts the open ones. |
 | **Feed** | What happened to the SLO, as a timeline. See [SLO Feed and Audit Logs](/docs/slo/feed-and-audit-logs). |
 | **Monitors** | The monitors it measures, and whether a person or a rule attached each one. |
 | **Monitor Rules** | The rules that attach matching monitors. |
 | **Burn Rate Rules** | The rules that raise alerts and declare incidents when the budget burns too fast. |
+| **Error Budget Policy** | What the team agreed to do as the error budget runs down, and the alerts and incidents each tier of the policy raises. See [Error Budget Policy](/docs/slo/error-budget-policy). |
 | **Owners** | The users and teams who hear about its status changes. |
 | **Settings** | The objective, compliance period, downtime calculation, evaluation switch and archive card. |
 | **Audit Logs** | Who changed the SLO, its rules and its owners, and when. |
 | **Delete SLO** | Deletes the SLO for good, and resolves the burn rate alerts and incidents it had open. |
 
-**Monitors** sits in a **Configuration** section, **Monitor Rules** and **Burn Rate Rules** in a **Rules** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. All three start folded, as does a **Developer** section for managing the SLO from code: click a section's title to open it.
+**Monitors** sits in a **Configuration** section, **Monitor Rules**, **Burn Rate Rules** and **Error Budget Policy** in a **Rules** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. All three start folded, as does a **Developer** section for managing the SLO from code: click a section's title to open it.
 
 When something stops an SLO from measuring, a banner at the top of each of its pages says what is wrong and links to the page that fixes it: see [Troubleshooting](#troubleshooting).
 
@@ -176,13 +177,15 @@ The **Overview** answers "are we within budget?", from top to bottom:
 - **The headline numbers**:
   - **SLI**: the share of good time in the window, and how far above or below the target it is.
   - **Error budget left**: a percentage, a duration such as "12m 30s left of 43m 12s", and a bar with a tick at the at-risk threshold. Once the budget is overspent it says **Budget exceeded** and how far over it is.
-  - **Burn rate**: how fast the budget is being spent over the last 60 minutes, the lookback the default fast-burn rule uses. It turns amber above 1× and red, with **Rule threshold reached**, at the lowest threshold of the SLO's enabled burn rate rules.
+  - **Burn rate**: how fast the budget is being spent over the last 60 minutes, the lookback the default fast-burn rule uses. It turns amber above 1× and red, with **Rule threshold reached**, at the lowest threshold of the SLO's enabled burn rate rules that look back 6 hours or less. An hour says little about a rule that looks back days, such as **Slow leak**, so it is not compared with one.
   - **Budget runway**: how long the budget lasts at that pace. See [Error Budgets](/docs/slo/error-budget#budget-runway).
 - **Error budget burn-down**: the budget left across the current window. See [Error Budgets](/docs/slo/error-budget#error-budget-burn-down).
 - **Recent activity**: the latest items of the SLO's feed.
 - **SLO Details**: the name, description and labels, the only settings edited on the Overview.
 - **Open alerts & incidents**: what the burn rate rules have open right now.
-- **Burn rate rules**: each enabled rule's threshold beside the current burn rate, and what the rule declares.
+- **Burn rate rules**: each enabled rule's threshold beside the current burn rate, for rules that look back 6 hours or less, and what the rule declares.
+
+When the SLO is in a tier of its error budget policy, the **Overview** also shows that tier and what the team agreed to do in it: see [Error Budget Policy](/docs/slo/error-budget-policy).
 
 ### Settings
 

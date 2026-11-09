@@ -24,7 +24,7 @@ import {
   keepOpenStackCheckCredentialKind,
 } from "./OpenStackCheckFormFields";
 import {
-  OPENSTACK_LIFECYCLE_CHECK_STATEMENT,
+  OPENSTACK_LIFECYCLE_CHECK_FORM_DESCRIPTION,
   isOpenStackCheckConnectionNeeded,
 } from "./OpenStackChecksView";
 
@@ -228,7 +228,7 @@ export const OpenStackLifecycleCheckFormModal: FunctionComponent<
         modelIdToEdit={props.saved.id}
         name={title}
         title={title}
-        description={OPENSTACK_LIFECYCLE_CHECK_STATEMENT}
+        description={OPENSTACK_LIFECYCLE_CHECK_FORM_DESCRIPTION}
         modalWidth={ModalWidth.Medium}
         submitButtonText={isOn ? "Save Changes" : "Turn On the Lifecycle Check"}
         onClose={props.onClose}
@@ -257,7 +257,7 @@ export const OpenStackLifecycleCheckFormModal: FunctionComponent<
       modelType={OpenStackCloudCheck}
       name={title}
       title={title}
-      description={OPENSTACK_LIFECYCLE_CHECK_STATEMENT}
+      description={OPENSTACK_LIFECYCLE_CHECK_FORM_DESCRIPTION}
       modalWidth={ModalWidth.Medium}
       submitButtonText="Turn On the Lifecycle Check"
       onClose={props.onClose}

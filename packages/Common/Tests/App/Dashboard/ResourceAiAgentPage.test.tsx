@@ -143,6 +143,7 @@ const DOCKER: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
 const STATUS_ROUTE: string = "/resource-ai-access/status";
 const TEST_ROUTE: string = "/resource-ai-access/test";
 const RESET_ROUTE: string = "/resource-ai-access/reset-agent";
+const AGENT_KEY_ROUTE: string = "/resource-ai-access/agent-key";
 
 const SETTINGS_CARD_TITLE: string = "What AI may do";
 const GAPS_CARD_TITLE: string = "Needs attention";
@@ -284,6 +285,14 @@ function serve(
         return handlers.reset
           ? await handlers.reset()
           : new HTTPResponse<JSONObject>(200, { ok: true }, {});
+      }
+      // A cloud account's setup command: a key made for its agent alone.
+      if (url.endsWith(AGENT_KEY_ROUTE)) {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { agentKey: `ouca_${RESOURCE_ID}_${"a".repeat(64)}` },
+          {},
+        );
       }
       return statusResponse(status);
     },
@@ -2889,6 +2898,102 @@ describe("Test connection", () => {
     );
   });
 
+  /*
+   * cloud whoami answers a sentence a line, its verdict at the line's end
+   * ("Write identity: ..., which the agent signs in as for each change
+   * (the agent can NOT sign in as it, so every change fails: ...)"): a
+   * cloud account's output wraps, so the verdict is read without
+   * scrolling sideways. Another agent's test prints tables (docker node
+   * ls, pvesh), which keep their columns and scroll.
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: cloud whoami's output wraps its long lines, so each line's verdict is in sight",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const verdict: string =
+        "Write identity: oneuptime-ai-agent-write (resource group oneuptime-ai-agent), which the agent signs in as for each change (the agent can NOT sign in as it, so every change fails: the managed identity endpoint answered HTTP 400 and no token of the write identity oneuptime-ai-agent-write.)";
+      const running: ResourceAiAccessStatus = makeStatus({
+        resourceType: type,
+        aiSettingsSource: "agent_configuration",
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        gaps: [],
+        isRemediationReady: true,
+        agent: makeAgent({
+          posture: makePosture({ resourceType: type, allowWrites: true }),
+        }),
+      });
+
+      serve(running, {
+        test: async (): Promise<HTTPResponse<JSONObject>> => {
+          return new HTTPResponse<JSONObject>(
+            200,
+            {
+              ok: true,
+              message: "The Cloud AI agent answered.",
+              results: [
+                {
+                  command: "cloud whoami",
+                  succeeded: true,
+                  exitCode: 0,
+                  output: `Cloud: Azure\n${verdict}`,
+                  errorMessage: null,
+                },
+              ],
+              status: running as unknown as JSONObject,
+            },
+            {},
+          );
+        },
+      });
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      await pickAgentAction(TEST_ACTION_TEST_ID);
+
+      const output: HTMLElement = await findTestId(
+        "ai-agent-test-result-output",
+      );
+
+      expect(output.tagName).toBe("PRE");
+      expect(output).toHaveTextContent(verdict);
+      expect(output).toHaveClass("whitespace-pre-wrap", "break-words");
+    },
+  );
+
+  test("another agent's test output keeps its columns: it scrolls, never wraps", async () => {
+    serve(makeStatus(), {
+      test: async (): Promise<HTTPResponse<JSONObject>> => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          {
+            ok: true,
+            message: "docker version worked.",
+            results: [
+              {
+                command: "docker version",
+                succeeded: true,
+                exitCode: 0,
+                output: "Client: Docker Engine - Community\n Version: 27.3.1",
+                errorMessage: null,
+              },
+            ],
+            status: makeStatus() as unknown as JSONObject,
+          },
+          {},
+        );
+      },
+    });
+    openAgentPage();
+
+    await pickAgentAction(TEST_ACTION_TEST_ID);
+
+    const output: HTMLElement = await findTestId("ai-agent-test-result-output");
+
+    expect(output).toHaveClass("overflow-auto");
+    expect(output).not.toHaveClass("whitespace-pre-wrap");
+    expect(output).not.toHaveClass("break-words");
+  });
+
   test("a refused test says what it needs, not what the server says about settings", async () => {
     serve(makeStatus(), {
       test: async (): Promise<HTTPErrorResponse> => {
@@ -3529,6 +3634,14 @@ describe("every resource type", () => {
       fireEvent.click(screen.getByTestId("ai-agent-cloud-set-up"));
 
       expect(await findTestId("cloud-ai-agent-setup")).toBeInTheDocument();
+      // Its setup command's key is made for this account as it opens.
+      await waitFor(() => {
+        expect(postsTo(AGENT_KEY_ROUTE)).toHaveLength(1);
+      });
+      expect(postsTo(AGENT_KEY_ROUTE)[0]!["data"]).toEqual({
+        resourceType: type,
+        resourceId: RESOURCE_ID,
+      });
     },
   );
 
@@ -3875,15 +3988,23 @@ describe("every resource type", () => {
       const confirm: HTMLElement = await findDialogTitled(
         "Reset the AI agent?",
       );
+      /*
+       * A cloud account's agent comes back only with a new key, which its
+       * setup command carries: the dialog says so before, the notice after.
+       */
       expect(confirm).toHaveTextContent(
-        `This revokes the ${descriptor.agentName}'s key.`,
+        descriptor.isCloudAccount
+          ? `This revokes the ${descriptor.agentName}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.`
+          : `This revokes the ${descriptor.agentName}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.`,
       );
       expect(postsTo(RESET_ROUTE)).toHaveLength(0);
 
       fireEvent.click(within(confirm).getByText("Reset agent"));
 
       expect(await findTestId("ai-agent-action-notice")).toHaveTextContent(
-        `The ${descriptor.agentName} was reset.`,
+        descriptor.isCloudAccount
+          ? `The ${descriptor.agentName} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.`
+          : `The ${descriptor.agentName} was reset. It reconnects on its own within a few minutes.`,
       );
       expect(postsTo(RESET_ROUTE)).toHaveLength(1);
       expect(postsTo(RESET_ROUTE)[0]!["data"]).toEqual({

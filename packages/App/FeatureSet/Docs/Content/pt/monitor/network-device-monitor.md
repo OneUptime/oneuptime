@@ -66,7 +66,7 @@ O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, *
 
 | Seção | Páginas |
 | --- | --- |
-| **Topologia** | **Topologia do dispositivo**, **Endpoints**, **Matriz de latência**, **Links do site**, **Links do dispositivo** |
+| **Topologia** | **Topologia do dispositivo**, **Dispositivos descobertos**, **Matriz de latência**, **Links do site**, **Links do dispositivo** |
 | **Regras** | **Regras de importação automática**, **Regras de atribuição de sites**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de links** |
 | **Configurações** | **Políticas de alerta**, **Credenciais SNMP**, **Funções de dispositivo**, **Tipos de site**, **Nomes de endereço**, **Modelos de coleta de OID** |
 | **Avançado** | **Walk SNMP**, **Dispositivos arquivados** |
@@ -790,12 +790,12 @@ As páginas **Incidentes** e **Alertas** do dispositivo, em **Atividade** no men
 
 ### Padrões de campos personalizados
 
-Se o seu projeto define campos personalizados de monitor — fabricante, item de configuração, serviço responsável, o que o seu CMDB precisar —, um modelo de monitor pode preenchê-los. Abra o modelo em **Monitores → Configurações → Modelos** e defina os **Custom Field Defaults** dele.
+Se o seu projeto define campos personalizados de monitor — fabricante, item de configuração, serviço responsável, o que o seu CMDB precisar —, um modelo de monitor pode preenchê-los. Abra o modelo em **Monitores → Configurações → Modelos** e defina os **Valores padrão de campos personalizados** dele.
 
 Todo monitor criado a partir desse modelo depois disso carrega esses valores: os que você cria com **Criar Monitor a partir de Modelo**, e os que uma regra de importação automática ou uma política de alertas cria quando uma [varredura de descoberta](#descobrir-dispositivos-com-uma-varredura-de-rede) traz mil dispositivos de uma vez.
 
 - Um campo deixado em branco no modelo não é um padrão: cada monitor continua respondendo por ele, então um modelo pode definir o fabricante para uma frota inteira de switches enquanto o item de configuração continua sendo de cada dispositivo.
-- Os padrões valem quando um monitor é criado, não para monitores que já existem. **Sync Custom Fields to Linked Monitors**, no mesmo cartão, os leva para os monitores existentes. Ele sobrescreve os campos que o modelo define, incluindo valores digitados à mão, e a confirmação dele nomeia esses campos antes; os campos que o modelo deixa em branco nunca são tocados.
+- Os padrões valem quando um monitor é criado, não para monitores que já existem. **Sincronizar campos personalizados com os monitores vinculados**, no mesmo cartão, os leva para os monitores existentes. Ele sobrescreve os campos que o modelo define, incluindo valores digitados à mão, e a confirmação dele nomeia esses campos antes; os campos que o modelo deixa em branco nunca são tocados.
 
 Um simples **Sincronizar a partir do Modelo** não mexe nos campos personalizados: enviar critérios ou um intervalo nunca regrava os valores dos seus monitores.
 
@@ -974,7 +974,18 @@ Para o mapa se preencher:
 - Ative o LLDP, ou o CDP nos dispositivos Cisco, nos próprios dispositivos.
 - Em uma rede Meraki, conecte o painel. Uma [conexão Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) desenha os cabos que o Meraki conhece, incluindo os de um MX que só responde a ping.
 
-Clique em um par não gerenciado e **Add to Monitoring** o registra como dispositivo consultado pela sonda. Ele assume a sonda em que os vizinhos dele concordam, então recebe ping desde a primeira sondagem, e você pode adicionar credenciais depois se ele tiver SNMP.
+Clique em um par não gerenciado e **Adicionar ao monitoramento** o registra como dispositivo consultado pela sonda. Ele assume a sonda em que os vizinhos dele concordam, então recebe ping desde a primeira sondagem, e você pode adicionar credenciais depois se ele tiver SNMP.
+
+### Dispositivos descobertos
+
+**Rede → Topologia → Dispositivos descobertos** lista todos os dispositivos que seus switches, roteadores e controladores de rede viram, monitorados ou não. Ela abre em **Não monitorado**, os dispositivos sobre os quais ainda falta decidir; **Monitorado**, **Oculto no mapa** e **Todos** mostram os demais. O botão **Dispositivos descobertos** do mapa a abre e diz quantos dispositivos não são monitorados; no mapa de um site, ele abre a lista desse site. O **Nome** de um dispositivo é a classificação que você deu a ele com **Editar classificação**, senão o nome do host, o endereço IP ou o endereço MAC dele, nunca o fabricante. Ao lado ficam **Endereço IP**, **Endereço MAC**, **Fornecedor**, **Visto em** (o switch, a porta dele e a VLAN), **Visto pela última vez** e **Estado**: **Monitorado**, com um link para o dispositivo, **Somente descoberto**, **Oculto no mapa** ou **Não visto recentemente**. A busca encontra um dispositivo pelo nome, endereço IP, fornecedor ou endereço MAC, com ou sem separadores. Nada sai da lista sozinho: **Visto pela última vez** diz quando um dispositivo esteve lá pela última vez.
+
+Selecione dispositivos, ou todos os que correspondem à busca, e então:
+
+- **Adicionar ao monitoramento** os importa como os hosts de uma varredura são importados (veja [Importar o que uma varredura encontrou](#importar-o-que-uma-varredura-encontrou)), com as mesmas escolhas: com que frequência são verificados e se cada um recebe um monitor de um modelo de monitor. Uma **Função do dispositivo** diz o que eles são, e um **Perfil de credenciais SNMP** os consulta; sem perfil, um dispositivo recebe ping e é consultado com o perfil padrão do site dele quando o site tem um. Cada dispositivo entra no site em que foi visto, mantém o endereço MAC com que foi visto e é consultado pela sonda do switch que o viu. Dispositivos já monitorados ficam de fora, assim como um dispositivo que ainda não tem endereço IP, até que a tabela ARP de um roteador ou um controlador de rede informe um: a janela cita os dois, com o motivo. Nada é adicionado duas vezes: um dispositivo cujo endereço MAC já pertence a um dispositivo do projeto, ou cujo endereço IP já pertence a um dispositivo do site dele, mostra **Já adicionado**. A importação roda no servidor, então você pode fechar a janela: a lista mostra a importação até ela terminar.
+- **Ocultar do mapa** os tira do mapa de topologia para todos no projeto, depois que você confirma. Nada é excluído, e um dispositivo monitorado nunca é ocultado: o mapa o desenha como o dispositivo que ele é, e o monitoramento dele não muda. **Mostrar no mapa** os traz de volta, e **Mostrá-los**, ao lado da contagem de nós ocultos do mapa, mostra de novo de uma só vez todos os nós ocultos do projeto.
+
+Os botões de uma linha fazem o mesmo para um único dispositivo. No mapa, o endereço IP de um nó aparece sob o nome dele, e a busca também encontra um nó pelo endereço IP ou pelo endereço MAC, do jeito que um switch o tenha escrito. Clique em um dispositivo descoberto no mapa e o painel dele oferece **Adicionar ao monitoramento**, que o adiciona da mesma forma, além de **Ocultar do mapa**.
 
 ### Escolher o layout com que o mapa abre
 
@@ -1018,7 +1029,7 @@ Para isso, o mapa precisa saber qual MAC aprendido é o do dispositivo. Há duas
 
 O switch do qual o dispositivo depende também precisa de **Collect Connected Endpoints** ativado: é de lá que vem a porta. Os endereços são associados dentro do site do dispositivo, já que toda filial tem um `10.0.0.5`; um MAC corresponde seja qual for o site.
 
-Uma [conexão Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) faz tudo isso sem nada para ativar. A lista de clientes do Meraki diz em qual switch e porta cada cliente está, então um dispositivo é posicionado assim que esse switch é um dispositivo de rede aqui, no mesmo site. A lista também dá ao dispositivo seu endereço MAC, e o nome que o Meraki dá a um cliente aparece na coluna **Nome do host** em **Endpoints**. Ela é lida a cada duas horas, então um dispositivo novo pode levar esse tempo para aparecer. Enquanto o Meraki informa um cliente, a porta dele prevalece sobre uma tabela de encaminhamento lida por varredura, porque o Meraki distingue uma porta de acesso de um uplink. Um cliente Wi-Fi só é posicionado no ponto de acesso quando é um dispositivo daqui: os telefones de uma rede de convidados ficam fora do mapa.
+Uma [conexão Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) faz tudo isso sem nada para ativar. A lista de clientes do Meraki diz em qual switch e porta cada cliente está, então um dispositivo é posicionado assim que esse switch é um dispositivo de rede aqui, no mesmo site. A lista também dá ao dispositivo seu endereço MAC, e o nome que o Meraki dá a um cliente é o nome do dispositivo em **Dispositivos descobertos** e no mapa, a menos que você lhe dê uma classificação própria. Ela é lida a cada duas horas, então um dispositivo novo pode levar esse tempo para aparecer. Enquanto o Meraki informa um cliente, a porta dele prevalece sobre uma tabela de encaminhamento lida por varredura, porque o Meraki distingue uma porta de acesso de um uplink. Um cliente Wi-Fi só é posicionado no ponto de acesso quando é um dispositivo daqui: os telefones de uma rede de convidados ficam fora do mapa.
 
 A visão geral do dispositivo tem um cartão **Conectado a** que indica o switch, a porta e a VLAN. Um switch, roteador ou firewall que informa seus vizinhos por LLDP ou CDP os lista ali no lugar: a própria porta, o vizinho (um link quando é um dispositivo daqui) e a porta na outra ponta, com **Abrir o mapa** ao lado. No mapa, o painel do dispositivo mostra o mesmo em **Conectado a**, e o painel do enlace diz que ele foi aprendido da tabela de encaminhamento do switch. A visão Parent-Child desenha o dispositivo abaixo do switch dele. Um enlace que você desenhou à mão em **Links do dispositivo** para o mesmo par se funde com o aprendido em vez de duplicá-lo: a porta aprendida substitui uma digitada errado, e um pai que você definiu no enlace desenhado à mão é mantido.
 

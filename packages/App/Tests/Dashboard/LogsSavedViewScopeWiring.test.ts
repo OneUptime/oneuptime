@@ -128,10 +128,10 @@ function findViewerUses(): Array<ViewerUse> {
  * about. Each says why.
  */
 const MOMENT_PANELS: Record<string, string> = {
-  [path.join("Pages", "Incidents", "View", "Index.tsx")]:
-    "an incident's logs, pinned to the window the monitor evaluated",
-  [path.join("Pages", "Alerts", "View", "Index.tsx")]:
-    "an alert's logs, pinned to the window the monitor evaluated",
+  [path.join("Components", "OpenStack", "OpenStackRequestTrail.tsx")]:
+    "The lines of one request across a cloud's services: one moment, which no saved view would find again.",
+  [path.join("Components", "OpenStack", "Part", "OpenStackPartLogs.tsx")]:
+    "One part's own lines on that part's page, around what happened to it. The views people keep are of the cloud, on its Logs page.",
   [path.join("Components", "Traces", "TraceDetail", "TraceSignals.tsx")]:
     "the logs of one trace, and of its pod",
   [path.join("Components", "Exceptions", "ExceptionLogs.tsx")]:
@@ -139,7 +139,7 @@ const MOMENT_PANELS: Record<string, string> = {
   [path.join("Components", "Monitor", "LogMonitor", "LogMonitorPreview.tsx")]:
     "the preview of a monitor being set up",
   [path.join("Components", "Telemetry", "TelemetrySnapshotPanel.tsx")]:
-    "an incident's or alert's telemetry snapshot",
+    "an incident's, alert's or episode's logs, over the window the monitor evaluated or a range around it the reader picks",
   [path.join("Components", "Telemetry", "TelemetryCompanionSignalTabs.tsx")]:
     "the logs beside another signal's snapshot",
   [path.join("Pages", "DockerSwarm", "View", "TaskDetail.tsx")]:

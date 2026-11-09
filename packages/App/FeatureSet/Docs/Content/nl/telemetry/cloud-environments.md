@@ -4,6 +4,8 @@ Een **Cloud-omgeving** is de plek waar je containers draaien op een beheerd clou
 
 Omgevingen staan in App-platforms, een eigen product: **App-platforms → Overzicht** groepeert ze per platform en toont eerst de omgevingen die stil zijn gevallen, **App-platforms → Alle apps** toont elke app die erin draait, en **App-platforms → Alle omgevingen** toont ze allemaal. De resources in je cloudaccounts, zoals virtuele machines, buckets en beheerde databases, staan in Cloud: zie [Cloud-resources](/docs/telemetry/cloud-resources).
 
+Om de omgevingen of apps van één cloudaccount te zien, filter je **Alle omgevingen** of **Alle apps** met de filterchip **Cloud-account**: die toont elk account waarin de omgevingen staan, onder de cloud ervan, en houdt de accounts die je kiest, of alle andere. Op **Cloud → Overzicht** telt de kaart **App-platforms** de omgevingen en apps in je verbonden cloudaccounts, en elk getal opent zijn lijst met de chip al ingesteld op die accounts. Verwijder de chip om de hele lijst te zien.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Taken op Fargate of EC2, met CPU en geheugen per taak.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Services en jobs, ook vermeld als serverless functies.
@@ -32,6 +34,7 @@ flowchart TB
 - **De omgeving bundelt alles.** Elke workload met hetzelfde platform, hetzelfde account en dezelfde regio komt in één omgeving terecht. De services houden hun eigen rijen onder **Services**.
 - **Elke draaiende taak is een instantie.** Het tabblad **Instanties** van de omgeving toont de draaiende taken, instanties of replica's, met live CPU en geheugen waar het platform die kan leveren.
 - **Elke service is een app.** Een ECS-service, een Cloud Run-service of een Container App is een app van zijn omgeving, en OneUptime bewaart de revisies die hij draait: zie [Apps en implementaties](#apps-en-implementaties).
+- **Gestreamde CloudWatch-logboeken tellen ook mee.** Een AWS-account dat [zijn CloudWatch-logboeken streamt](/docs/telemetry/cloud-streaming), zet de logboeken van zijn App Runner-services, Elastic Beanstalk-omgevingen, en ECS-taken en -clusters op het tabblad **Logboeken** van hun omgeving, en de omgeving verschijnt met ze als nog geen app ernaar heeft gerapporteerd. Ze maken geen app: een app wordt genoemd naar zijn eigen telemetrie.
 
 ## Voordat je begint
 
@@ -118,7 +121,7 @@ Het eerste attribuut dat de telemetrie draagt, geeft de app zijn naam, dus een a
 - **Beide zijn wijzigingen.** Elk is een stippellijn in de grafieken van de app en de omgeving, een regel in de **Feed** van de omgeving en een [wijzigingsgebeurtenis](/docs/telemetry/change-events) die OneUptime AI leest als het een incident in de omgeving onderzoekt. **Recente implementaties** onder **App-platforms → Overzicht** toont de nieuwste.
 - **Per app worden hoogstens 12 nieuwe revisies per uur vastgelegd.** Een `service.version` die bij elke build verandert, zou anders elke minuut een implementatie zijn.
 
-De pagina van een app heeft een **Overzicht** met zijn aanvragen, fouten, latentie, instanties en de revisies die nu draaien, een tabblad **Revisies** met de cijfers van elke revisie, en de tabbladen **Instanties**, **Logboeken** en **Traces**, gefilterd op de app. **Waarschuwingen instellen** opent de aanbevolen monitors van de service van de app, onder **Services**.
+De pagina van een app heeft een **Overzicht** met zijn aanvragen, fouten, latentie, instanties en de revisies die nu draaien, een tabblad **Revisies** met de cijfers van elke revisie, de tabbladen **Instanties**, **Logboeken** en **Traces**, gefilterd op de app, en een tabblad **Aanbevelingen** met de monitors die OneUptime ervoor aanbeveelt: mislukte bewerkingen, foutpieken, verkeer dat stopt en trage aanvragen, gelezen uit de eigen spans van de app en zijn `http.server.request.duration`, elk gekoppeld aan de omgeving van de app. **Waarschuwingen instellen** opent dat tabblad; voor een app waarvan de naam te lang is om zijn telemetrie op te filteren, opent het in plaats daarvan de aanbevolen monitors van de service van de app, onder **Services**.
 
 Een app die 30 dagen niets stuurt, wordt met zijn revisies verwijderd, net als een revisie die 30 dagen door geen instantie wordt gemeld, tenzij de app hem nog draait. Bij een zelf gehoste OneUptime stelt `CLOUD_APP_RETENTION_DAYS` die 30 in.
 

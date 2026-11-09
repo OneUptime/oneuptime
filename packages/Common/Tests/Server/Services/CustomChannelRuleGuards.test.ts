@@ -48,10 +48,10 @@ describe("the method columns", () => {
     ).toContain("customNotificationChannelId");
   });
 
-  test("there are ten", () => {
+  test("there are eleven", () => {
     expect(
       UserNotificationRuleAdminService.getNotificationMethodIdColumns(),
-    ).toHaveLength(10);
+    ).toHaveLength(11);
   });
 });
 

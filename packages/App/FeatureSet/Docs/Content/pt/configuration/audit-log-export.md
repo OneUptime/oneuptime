@@ -121,7 +121,7 @@ A **Credencial**, como `Bearer <token>`, é enviada no cabeçalho que você esco
 Cada entrada é uma mensagem RFC 5424 para o **Host** e a **Porta**, por TLS na porta `6514`, a menos que **Protocolo** diga TCP, com facility 13 (log audit) e severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
 As mensagens são delimitadas por contagem de octetos (RFC 5425), a menos que **Delimitação** diga uma mensagem por linha. Um receptor cujo certificado foi assinado por uma CA privada precisa do certificado dessa CA em **Certificado da CA**. Os dois ficam em **Mais campos**.
@@ -132,7 +132,7 @@ Cada entrada é um objeto JSON, com as chaves sempre nesta ordem:
 
 | Chave | O que contém |
 | --- | --- |
-| `schemaVersion` | `1`. Uma mudança no esquema vem com uma nova versão. |
+| `schemaVersion` | `2` para uma exportação nova, `1` para uma salva antes da versão 2. Uma versão só acrescenta chaves. |
 | `id` | O id da entrada. A mesma entrada enviada duas vezes tem o mesmo id. |
 | `createdAt` | Quando a alteração foi registrada, em UTC. |
 | `projectId` | O projeto em que a alteração foi feita. |
@@ -143,11 +143,22 @@ Cada entrada é um objeto JSON, com as chaves sempre nesta ordem:
 | `apiKeyId`, `apiKeyName` | A chave de API com que foi feita, se houver. |
 | `mcpOAuthGrantId`, `mcpClientName` | O cliente MCP pelo qual foi feita, se houver. |
 | `workflowId`, `workflowName` | O workflow que a fez, se houver. |
-| `changes` | Cada campo alterado: `field`, com `oldValue` e `newValue`. |
+| `changes` | Cada campo alterado: `field`, com `oldValue` e `newValue`, e na versão 2 `summary`. |
 
 Um arquivo contém uma entrada por linha, compactado com gzip, e é arquivado pela hora da primeira entrada: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Cada `oldValue` e `newValue` é o valor do campo: texto, um número, `true` ou `false`, ou JSON para uma configuração formada por várias partes. Um número de telefone, um endereço de e-mail ou uma URL é o seu texto, como `+14155550100`, e uma porta é o seu número.
+
 Chaves, tokens e senhas nunca saem: são registrados como `[REDACTED]`, e os campos que ninguém pode ler ficam fora de todas as entradas.
+
+## Versões do registro
+
+| Versão | O que envia |
+| --- | --- |
+| `2` | Cada alteração traz também `summary`: o que mudou, nas linhas que o registro de auditoria mostra, como `Added "Send Email" (send-email-1)` para um passo de um fluxo de trabalho ou o caminho que mudou no JSON, ou então `null`. As linhas nomeiam configurações e caminhos, nunca valores. |
+| `1` | A entrada como foi enviada no início, sem `summary`. Os passos de um fluxo de trabalho saem como o seu tamanho antes e depois, como `3 steps and 2 connections`. |
+
+Uma exportação nova envia a versão 2. Uma exportação salva antes da versão 2 continua enviando a versão 1, então o que a lê não precisa mudar nada: quando estiver pronto para `summary`, clique em **Editar** na exportação e escolha a versão 2 em **Versão do registro**, em **Mais campos**. A versão vale para as entradas enviadas a partir daí, e cada entrada informa a sua em `schemaVersion`.
 
 ## Quando as entradas são enviadas
 

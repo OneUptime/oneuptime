@@ -83,7 +83,7 @@ OneUptime은 텔레메트리가 도착할 때 호출한 사람과 그 팀을 열
 
 | 열 | 키(우선순위순) |
 | --- | --- |
-| 직원 | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| 직원 | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | 팀 / 비용 센터 | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | 모델 | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime은 토큰을 `gen_ai.client.token.usage`, `gen_ai.client.token.count`,
 수치를 읽기 전에 알아 둘 두 가지가 있습니다.
 
 - **`gemini_cli.token.usage`는 의도적으로 제외합니다.** Gemini CLI는 토큰을 자체 메트릭과 `gen_ai.client.token.usage`로 두 번 보내므로, 둘 다 읽으면 두 배가 됩니다. 토큰은 `gen_ai.client.token.usage`를 통해 한 번만 셉니다. Gemini CLI는 비용 메트릭을 보내지 않으므로, 각 호출에 가격을 매기려면 트레이스를 켜세요.
-- **입력과 출력 토큰만 셉니다.** 토큰 종류는 `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type`, `token_type`에서 읽으며, `input`과 `output`(또는 이전의 `prompt`와 `completion`)만 셉니다. 캐시 읽기와 쓰기, Codex의 `total`(다른 값의 반복), `reasoning_output`(`output`의 일부)은 제외하므로, 메트릭에서 얻은 합계는 도구가 보내는 모든 값의 합보다 작습니다.
+- **입력과 출력 토큰만 셉니다.** 토큰 종류는 `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type`, `token_type`에서 읽으며, `input`과 `output`(또는 이전의 `prompt`와 `completion`)만 세고, Claude Code의 `cacheRead`와 `cacheCreation`은 그 `input`에 빠져 있으므로 입력으로 셉니다. 그 밖의 캐시 읽기와 쓰기, Codex의 `total`(다른 값의 반복), `reasoning_output`(`output`의 일부)은 제외하므로, 메트릭에서 얻은 합계는 도구가 보내는 모든 값의 합보다 작습니다.
 
 ## 사용량 탭
 
@@ -188,7 +188,7 @@ Codex는 기본적으로 메트릭을 OpenAI에도 보냅니다. [OpenAI Codex](
 
 ## OneUptime이 아직 하지 않는 것
 
-- **코딩 도구의 관리 API 커넥터는 없습니다.** OneUptime은 도구 뒤에 있는 OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정을 읽지만([AI 공급자 계정](/docs/telemetry/ai-provider-accounts)), Cursor의 Admin API, GitHub의 Copilot 청구, Windsurf나 JetBrains의 API는 읽지 않습니다.
+- **코딩 도구의 관리 API 커넥터는 Cursor 것뿐입니다.** OneUptime은 도구 뒤에 있는 OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정과 Cursor 팀의 Admin API를 읽지만([AI 공급자 계정](/docs/telemetry/ai-provider-accounts)), GitHub의 Copilot 청구, Windsurf나 JetBrains의 API는 읽지 않습니다.
 - **도구가 보고하지 않으면 비용은 추정치입니다.** 보고된 비용은 그대로 쓰고, 그렇지 않으면 OneUptime이 정가로 토큰 가격을 계산합니다. Cursor의 `cursor.cost.usage`도 그 자체가 추정치입니다.
 - **로그 레코드의 신원은 읽지 않습니다.** Codex가 로그에만 보내는 `user.email`은 지출에 연결되지 않습니다.
 - **Cursor의 `cursor.user.email`은 아직 읽지 않으므로**, Cursor 사용자는 정수 `cursor.user.id`로 표시됩니다.
@@ -201,7 +201,7 @@ Codex는 기본적으로 메트릭을 OpenAI에도 보냅니다. [OpenAI Codex](
 
 1. **Gemini CLI** (사용하는 사람이 있다면). 설정 없이 `user.email`을 보내므로, 귀속이 처음부터 끝까지 작동하는 것을 보여 줍니다. 비용 메트릭을 보내지 않으므로 트레이스도 켜세요.
 2. **Claude Code**: 전체 머신에 관리 설정 파일 하나, 수고 없이 얻는 `user.email`, 실제 비용 메트릭, 그리고 개발자별 수락률, 커밋, 풀 리퀘스트, 코드 줄 수.
-3. **Cursor** (Enterprise 요금제): Cursor 대시보드의 화면 하나로 끝나고 개발자 머신은 건드리지 않지만, 사람은 정수로 들어옵니다.
+3. **Cursor** (Enterprise 요금제): Cursor 대시보드의 화면 하나로 끝나고 개발자 머신은 건드리지 않지만, 사람은 정수로 들어옵니다. Teams 요금제이거나 Cursor가 사람별로 청구한 금액이 필요하면, 내보내기와 함께든 따로든 관리자 API 키를 [공급자 계정](/docs/telemetry/ai-provider-accounts#cursor)으로 연결하세요.
 4. **Copilot과 Codex**: 둘 다 머신마다 신원을 설정해야 합니다. 머신을 프로비저닝할 때 설정하세요. 신원 없이 들어온 호출은 나중에 귀속할 수 없습니다.
 5. **LiteLLM 게이트웨이** (그 밖의 모든 것). 직원마다 가상 키 하나씩을 씁니다.
 

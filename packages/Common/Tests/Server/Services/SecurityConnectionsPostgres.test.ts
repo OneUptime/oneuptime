@@ -78,6 +78,7 @@ const TABLES: Array<string> = [
   "DockerHost",
   "PodmanHost",
   "KubernetesCluster",
+  "OpenStackCloud",
   "NetworkDevice",
   "CloudResource",
   "Monitor",

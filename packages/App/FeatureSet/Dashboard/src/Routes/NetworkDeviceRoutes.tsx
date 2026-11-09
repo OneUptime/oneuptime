@@ -30,6 +30,7 @@ import NetworkDeviceMonitors from "../Pages/NetworkDevice/View/Monitors";
 import NetworkDeviceIncidents from "../Pages/NetworkDevice/View/Incidents";
 import NetworkDeviceAlerts from "../Pages/NetworkDevice/View/Alerts";
 import NetworkDeviceLogs from "../Pages/NetworkDevice/View/Logs";
+import NetworkDeviceSecurityEvents from "../Pages/NetworkDevice/View/SecurityEvents";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
 import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/OwnerRules";
 import NetworkDeviceSettingsLabelRules from "../Pages/NetworkDevice/Settings/LabelRules";
@@ -42,6 +43,7 @@ import NetworkDeviceSettingsSnmpCredentialProfiles from "../Pages/NetworkDevice/
 import NetworkDeviceSettingsAlertPolicies from "../Pages/NetworkDevice/Settings/AlertPolicies";
 import NetworkDeviceSettings from "../Pages/NetworkDevice/View/Settings";
 import NetworkDeviceDelete from "../Pages/NetworkDevice/View/Delete";
+import NetworkDeviceAuditLogs from "../Pages/NetworkDevice/View/AuditLogs";
 import NetworkDeviceLabelRule from "Common/Models/DatabaseModels/NetworkDeviceLabelRule";
 import NetworkDeviceOwnerRule from "Common/Models/DatabaseModels/NetworkDeviceOwnerRule";
 import NetworkDeviceModel from "Common/Models/DatabaseModels/NetworkDevice";
@@ -489,6 +491,20 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <NetworkDeviceSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_OWNERS)}
           element={
             <NetworkDeviceOwners
@@ -507,6 +523,20 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.NETWORK_DEVICE_VIEW_SETTINGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <NetworkDeviceAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

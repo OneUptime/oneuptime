@@ -1,6 +1,6 @@
 # AI-udbyderkonti
 
-Se, hvad dine konti hos AI-udbydere har brugt, og hvad det har kostet, uden at ændre dine apps. Forbind en konto hos OpenAI, Anthropic, Azure OpenAI og Microsoft Foundry, Amazon Bedrock eller Google Vertex AI med legitimationsoplysninger, der kun kan læse, så læser OneUptime dens forbrug hvert 15. minut ind i **Forbrug**, **Budgetter** og metrikker, du kan alarmere på.
+Se, hvad dine konti hos AI-udbydere har brugt, og hvad det har kostet, uden at ændre dine apps. Forbind en konto hos OpenAI, Anthropic, Azure OpenAI og Microsoft Foundry, Amazon Bedrock eller Google Vertex AI med legitimationsoplysninger, der kun kan læse, så læser OneUptime dens forbrug hvert 15. minut ind i **Forbrug**, **Budgetter** og metrikker, du kan alarmere på. Et Cursor-team forbindes på samme måde, med sin administrator-API-nøgle, og læses hver time.
 
 :::cards
 - [Forbind en konto](#forbind-en-konto): Vælg udbyderen, indsæt legitimationsoplysningerne, test dem og forbind.
@@ -11,7 +11,7 @@ Se, hvad dine konti hos AI-udbydere har brugt, og hvad det har kostet, uden at �
 
 ## Sådan virker det
 
-Hvert 15. minut beder OneUptime hver forbundet konto om dens forbrug pr. UTC-døgn og gemmer det som tre metrikker i forbindelsens egen tjeneste. Hver læsning tager dagene siden sidste læsning og igen de sidste 3 dage, i dag medregnet, fordi udbyderne bliver ved med at lægge til i dag og retter de netop forløbne dage.
+Hvert 15. minut beder OneUptime hver forbundet konto om dens forbrug pr. UTC-døgn og gemmer det som tre metrikker i forbindelsens egen tjeneste. Hver læsning tager dagene siden sidste læsning og igen de sidste 3 dage, i dag medregnet, fordi udbyderne bliver ved med at lægge til i dag og retter de netop forløbne dage. Et Cursor-team læses i stedet hver time, time for time: se [Cursor](#cursor).
 
 ```mermaid title="Fra en udbyderkonto til Forbrug og Budgetter"
 flowchart TB
@@ -49,7 +49,7 @@ Under **Test** klikker du på **Test forbindelse**. OneUptime læser forbruget f
 Klik på **Forbind**. Den første læsning starter inden for et minut og henter de sidste 30 dage.
 :::
 
-Forbundne konti står under felterne med deres **Status** og **Senest læst**. **Læs nu** læser med det samme, **Test** tjekker de gemte indstillinger igen, **Slå fra** stopper læsningen og beholder det læste, og **Rediger** ændrer indstillingerne: en hemmelighed, der lades tom, beholder den gemte. **Vis fejl** viser, hvorfor en læsning fejlede, uden nogen hemmelighed.
+Forbundne konti står under felterne med deres **Status** og **Senest læst**. **Læs nu** læser med det samme, **Test** tjekker de gemte indstillinger igen, **Slå fra** stopper læsningen og beholder det læste, og **Rediger** ændrer indstillingerne: en hemmelighed, der lades tom, beholder den gemte. **Vis fejl** viser, hvorfor en læsning fejlede, uden nogen hemmelighed. Status for en konto, der virker, nævner den seneste dag med forbrug eller, når læsningerne ikke fandt noget, den første læste dag; en Azure-forbindelse, der ikke finder nogen ressource, siger det.
 
 ## Hvad hver udbyder giver
 
@@ -60,10 +60,11 @@ Forbundne konti står under felterne med deres **Status** og **Senest læst**. *
 | Azure OpenAI og Microsoft Foundry | Anslået ud fra tokens | Ressource og model | En app med Monitoring Reader |
 | Amazon Bedrock | Anslået ud fra tokens | Region og model | En adgangsnøgle, der læser CloudWatch |
 | Google Vertex AI | Anslået ud fra tokens | Region og model | En tjenestekonto med Monitoring Viewer |
+| Cursor | Det, Cursor rapporterer | Person, model og tjenestekonto, pr. time | Et teams administrator-API-nøgle |
 
 Alle udbydere undtagen Anthropic tæller også forespørgsler: Anthropics forbrugsrapport har ingen. En anslået omkostning bruger prislisten fra [Hvad et kald koster](/docs/telemetry/ai-llm-observability#hvad-et-kald-koster) og dine egne priser fra **Priser** og er markeret som et skøn. En model, prislisten ikke kender, har ingen omkostning, før du sætter en pris på den der.
 
-Ingen af disse legitimationsoplysninger kan kalde en model: hver af dem læser forbrug, omkostninger eller metrikker og intet andet.
+Ingen af disse legitimationsoplysninger kan kalde en model: hver af dem læser forbrug, omkostninger eller metrikker og intet andet. Cursors administrator-API-nøgle er undtagelsen: den kan også ændre nogle teamindstillinger, såsom forbrugsgrænser, og OneUptime læser kun med den.
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ Opret i projektet en tjenestekonto med rollen Monitoring Viewer og en JSON-nøgl
 Udfyld **Projekt-ID**, og indsæt hele nøglefilen som **Tjenestekontonøgle (JSON)**.
 :::
 
+## Cursor
+
+OneUptime læser dit Cursor-team med en administrator-API-nøgle: hver anmodning fra dets medlemmer, med model, tokens og det, Cursor tog for den, lagt sammen pr. time, person, model og tjenestekonto, og hvor mange af medlemmerne der brugte Cursor de seneste 7 dage. En anmodning lavet med en tjenestekonto vises under kontoens navn som dens API-nøgle. Der er ingen prompts, kode eller svar: Cursors Admin API har ingen.
+
+:::steps
+### Opret en administrator-API-nøgle i Cursor
+
+Åbn Settings, Cursor Admin API Keys i Cursors dashboard, og opret en nøgle. Kun en teamadministrator kan det, og nøglen følger med Teams- og Enterprise-abonnementerne. Den begynder med `crsr_`.
+
+### Forbind Cursor
+
+Indsæt nøglen som **Administrator-API-nøgle**. Testen viser også teamets **Medlemmer** og som **Personer**, hvor mange af dem der brugte Cursor.
+:::
+
+Cursor lægger sit forbrug sammen time for time og beder om at blive læst højst én gang i timen, så OneUptime læser et Cursor-team hver time og gemmer dets forbrug pr. time. Hver læsning tager timerne siden den forrige og de 3 timer før dem igen, fordi Cursor tilføjer anmodninger sent, og læser en dag igen i sin helhed, når 6 timer af den næste er gået. Den første læsning går 30 dage tilbage, nyeste først, én dag ad gangen: et travlt team kræver nogle læsninger med et minuts mellemrum, og dets linje viser **Læser stadig tidligere forbrug**, indtil de er færdige.
+
+Med Enterprise-abonnementet kan Cursor også sende sit forbrug, mens det sker, med sin OpenTelemetry Export: se [Cursor](/docs/telemetry/cursor). De to holdes adskilt: denne konto vises under **Udbyderkonti**, eksporten under **Dine AI-kald**, aldrig lagt sammen, og et budget tæller den ene af dem.
+
 ## Se forbruget
 
 Åbn **Forbrug**, og vælg **Udbyderkonti**. Her ser du de omkostninger, tokens og forespørgsler, dine konti rapporterede for tidsrummet, rangeret efter **Model**, **Person**, **Udbyder**, **Projekt eller ressource**, **API-nøgle** eller **Forbindelse**. Tidsrummet starter ved midnat UTC på sin første dag, fordi udbyderne rapporterer hele dage.
@@ -157,7 +176,7 @@ Hver kontos forbrug gemmes som tre metrikker, som du kan vise på et [dashboard]
 | `oneuptime.llm.provider.tokens` | En dags tokens efter `gen_ai.token.type`: `input` (cachede tokens medregnet), `output`, `cache_read` og `cache_write` |
 | `oneuptime.llm.provider.requests` | En dags forespørgsler |
 
-Hvert punkt får tidsstemplet for starten af sit UTC-døgn. Det bærer `oneuptime.llm.connection.id` og `oneuptime.llm.connection.name` og det, udbyderen nævner: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` og `oneuptime.llm.provider.api_key`. En anslået omkostning bærer `oneuptime.llm.cost.estimated`.
+Hvert punkt får tidsstemplet for starten af sit UTC-døgn. Det bærer `oneuptime.llm.connection.id` og `oneuptime.llm.connection.name` og det, udbyderen nævner: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` og `oneuptime.llm.provider.api_key`. En anslået omkostning bærer `oneuptime.llm.cost.estimated`. Et Cursor-teams punkter rummer hver en times forbrug, tidsstemplet ved starten af deres UTC-time.
 
 ## Hvornår der læses
 
@@ -168,6 +187,9 @@ Hvert punkt får tidsstemplet for starten af sit UTC-døgn. Det bærer `oneuptim
 | Efter at en nøgle eller tilladelse er afvist | 60 minutter senere |
 | Efter enhver anden fejl | 15 minutter senere |
 | Slået fra | Ingen, før den slås til igen |
+| Et Cursor-teams næste | Hver time |
+| En Cursor-læsning, der stoppede undervejs | Et minut senere |
+| Et Cursor-teams, efter enhver fejl | 60 minutter senere |
 
 En plan uden telemetrifunktioner læser intet. At fjerne en forbindelse stopper dens læsninger og beholder det, den har læst, indtil tjenestens opbevaring fjerner det.
 
@@ -185,8 +207,24 @@ Tjek, at du har kopieret det hele, at den ikke er tilbagekaldt, og at det er den
 Giv dem den rolle, denne side nævner for udbyderen: Monitoring Reader på Azure-abonnementet, de to CloudWatch-handlinger i AWS, Monitoring Viewer på Google Cloud-projektet.
 :::
 
+:::details Cursor accepterede nøglen, men den må ikke læse teamets forbrug
+Brug en administrator-API-nøgle fra et team på Teams- eller Enterprise-abonnementet: en teamadministrator opretter den i Cursors dashboard under Settings, Cursor Admin API Keys. Test så igen.
+:::
+
+:::details Cursor bad OneUptime om at sætte farten ned
+Cursors Admin API tager imod 20 anmodninger i minuttet fra et team, 60 for forbrugshændelser, delt med alle værktøjer, der læser det. OneUptime venter et minut én gang og fortsætter. Afviser Cursor stadig, beholder læsningen det, den har læst fuldt ud, og fortsætter et minut senere; en læsning, der intet fik, prøver igen en time senere.
+:::
+
 :::details Testen lykkes, men der vises intet for i dag
 Udbyderne rapporterer en dags forbrug minutter til timer senere og retter det i en dag eller to. De næste læsninger henter det.
+:::
+
+:::details Kontoen virker, men dens status siger intet forbrug
+Dens læsninger fandt intet siden den nævnte dag. OpenAIs rapporter tæller de API-kald, der er foretaget med den organisations nøgler, ikke Azure OpenAI eller ChatGPT. En Azure-forbindelse læser kun de ressourcer, dens app kan se: giv appen Monitoring Reader der, hvor de ligger.
+:::
+
+:::details Konti er forbundet, men Samtaler og Kald er tomme
+En konto bringer forbrug og omkostninger pr. dag, aldrig et kald eller en samtale: de kommer fra dine apps. Se [Tjek, hvad der kommer ind](/docs/telemetry/ai-llm-observability#tjek-hvad-der-kommer-ind).
 :::
 
 :::details Omkostningen afviger fra fakturaen

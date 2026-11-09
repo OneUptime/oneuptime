@@ -6,6 +6,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import Query from "../../Types/Database/Query";
 import ObjectID from "../../../Types/ObjectID";
 import TelemetryExceptionService from "../../Services/TelemetryExceptionService";
+import AuditLogService from "../../Services/AuditLogService";
 import TelemetryExceptionActivityService, {
   TelemetryExceptionActivityEntry,
 } from "../../Services/TelemetryExceptionActivityService";
@@ -22,6 +23,14 @@ import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import logger from "../Logger";
+import {
+  ExceptionTakeIn,
+  ExceptionTakeInStatement,
+  NOTHING_TAKEN_IN,
+  getTakeBackStatement,
+  getTakeInStatement,
+  takeIn,
+} from "./ExceptionTakeIn";
 import { EntityManager } from "typeorm";
 
 /*
@@ -52,12 +61,36 @@ import { EntityManager } from "typeorm";
  * (getSurvivorSeenAfterUnmerge): its own occurrences keep its fingerprint in
  * ClickHouse, and each merged one keeps its own seen times.
  *
+ * What the survivor takes in is added up by ExceptionTakeIn, which the
+ * merge of two copies of one exception shares: when the two copies of a
+ * resource a race made twice merge, an exception both had becomes one the
+ * same way (ExceptionTwinMerge, in DuplicateRowMerge).
+ *
  * Only exceptions of one service merge, so the survivor's page, which reads
  * its occurrences by service, shows them all. Both need permission to edit
  * exceptions, checked on each row as an edit of it would be. Merging again
  * what is already merged into the survivor, or unmerging what is not merged,
  * changes nothing.
+ *
+ * Once a merge or an unmerge commits, the project's audit log gets one
+ * Update entry for each exception it moved, by the person who asked: what
+ * it was merged into before and after (recordInAuditLog). The statements
+ * here are raw SQL, so DatabaseService's audit hook never sees them.
  */
+
+// What the audit log's entries for one merge or unmerge write at once.
+const AUDIT_LOG_ENTRIES_AT_ONCE: number = 10;
+
+/*
+ * One exception a merge or an unmerge moved: the exception it was merged
+ * into before and after, null for none.
+ */
+export interface ExceptionMergedIntoChange {
+  projectId: string;
+  telemetryExceptionId: string;
+  from: string | null;
+  to: string | null;
+}
 
 // The most exceptions one request merges.
 export const MAX_EXCEPTIONS_MERGED_AT_ONCE: number = 20;
@@ -223,26 +256,6 @@ function sameId(
   b: string | null | undefined,
 ): boolean {
   return Boolean(a) && Boolean(b) && a!.toLowerCase() === b!.toLowerCase();
-}
-
-function earliest(a: Date | null, b: Date | null): Date | null {
-  if (!a) {
-    return b;
-  }
-  if (!b) {
-    return a;
-  }
-  return new Date(a).getTime() <= new Date(b).getTime() ? a : b;
-}
-
-function latest(a: Date | null, b: Date | null): Date | null {
-  if (!a) {
-    return b;
-  }
-  if (!b) {
-    return a;
-  }
-  return new Date(a).getTime() >= new Date(b).getTime() ? a : b;
 }
 
 export default class TelemetryExceptionMerge {
@@ -447,6 +460,8 @@ export default class TelemetryExceptionMerge {
     const userId: string | null = data.props.userId?.toString() || null;
     // What the merge did, for each exception's activity, once it commits.
     const activity: Array<TelemetryExceptionActivityEntry> = [];
+    // And for the audit log: every exception it moved, from where to where.
+    const mergedInto: Array<ExceptionMergedIntoChange> = [];
 
     const mergeResult: ExceptionMergeResult =
       await TelemetryExceptionService.executeTransaction(
@@ -478,12 +493,8 @@ export default class TelemetryExceptionMerge {
             merged: [],
           };
 
-          let addedCount: number = 0;
-          let firstSeenAt: Date | null = null;
-          let lastSeenAt: Date | null = null;
-          let firstSeenInRelease: string = "";
-          let lastSeenInRelease: string = "";
-          let unhandled: boolean = false;
+          // What the survivor takes in, from every one merged now.
+          let takenIn: ExceptionTakeIn = NOTHING_TAKEN_IN;
 
           for (const mergedId of mergedIds) {
             const merged: LockedRow | undefined = rows.find(
@@ -534,26 +545,8 @@ export default class TelemetryExceptionMerge {
               0,
             );
 
-            addedCount += merged.occuranceCount;
-            firstSeenAt = earliest(firstSeenAt, merged.firstSeenAt);
-
-            if (
-              merged.firstSeenInRelease &&
-              sameDate(firstSeenAt, merged.firstSeenAt)
-            ) {
-              firstSeenInRelease = merged.firstSeenInRelease;
-            }
-
-            lastSeenAt = latest(lastSeenAt, merged.lastSeenAt);
-
-            if (
-              merged.lastSeenInRelease &&
-              sameDate(lastSeenAt, merged.lastSeenAt)
-            ) {
-              lastSeenInRelease = merged.lastSeenInRelease;
-            }
-
-            unhandled = unhandled || merged.unhandled;
+            // Its whole count: its own, and its members' that come along.
+            takenIn = takeIn(takenIn, merged);
 
             await manager.query(
               `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = $1, "mergedAt" = now(), "mergedByUserId" = $2, "occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $3), "updatedAt" = now() WHERE "_id" = $4`,
@@ -590,6 +583,13 @@ export default class TelemetryExceptionMerge {
                 activityType: TelemetryExceptionActivityType.MergedInto,
                 relatedTelemetryExceptionId: survivor.id,
               });
+
+              mergedInto.push({
+                projectId: moved.projectId,
+                telemetryExceptionId: moved.id,
+                from: moved.mergedIntoId,
+                to: survivor.id,
+              });
             }
           }
 
@@ -600,29 +600,15 @@ export default class TelemetryExceptionMerge {
               },
             )
           ) {
+            const takeInStatement: ExceptionTakeInStatement =
+              getTakeInStatement({
+                exceptionId: survivor.id,
+                takenIn: takenIn,
+              });
+
             await manager.query(
-              `UPDATE "TelemetryException" SET
-              "occuranceCount" = COALESCE("occuranceCount", 0) + $1,
-              "firstSeenInRelease" = CASE
-                WHEN $2::text <> '' AND ("firstSeenAt" IS NULL OR $3::timestamptz < "firstSeenAt") THEN $2::text
-                ELSE "firstSeenInRelease" END,
-              "lastSeenInRelease" = CASE
-                WHEN $4::text <> '' AND ("lastSeenAt" IS NULL OR $5::timestamptz > "lastSeenAt") THEN $4::text
-                ELSE "lastSeenInRelease" END,
-              "firstSeenAt" = LEAST("firstSeenAt", $3::timestamptz),
-              "lastSeenAt" = GREATEST("lastSeenAt", $5::timestamptz),
-              "unhandled" = COALESCE("unhandled", false) OR $6::boolean,
-              "updatedAt" = now()
-            WHERE "_id" = $7`,
-              [
-                addedCount,
-                firstSeenInRelease,
-                firstSeenAt,
-                lastSeenInRelease,
-                lastSeenAt,
-                unhandled,
-                survivor.id,
-              ],
+              takeInStatement.query,
+              takeInStatement.parameters,
             );
           }
 
@@ -650,6 +636,11 @@ export default class TelemetryExceptionMerge {
     await TelemetryExceptionActivityService.record({
       entries: activity,
       actor: TelemetryExceptionActivityService.getActor(data.props),
+    });
+
+    await TelemetryExceptionMerge.recordInAuditLog({
+      changes: mergedInto,
+      props: data.props,
     });
 
     return mergeResult;
@@ -705,6 +696,8 @@ export default class TelemetryExceptionMerge {
 
     // The project of the exception unmerged, as its locked row holds it.
     let unmergedProjectId: string | null = null as string | null;
+    // What it was merged into, as its locked row held it.
+    let unmergedFrom: string | null = null as string | null;
 
     /*
      * When the survivor's own occurrences were seen, read before the rows
@@ -779,9 +772,15 @@ export default class TelemetryExceptionMerge {
             );
           } else {
             // Merged into another one meanwhile: its count is taken back off.
+            const takeBackStatement: ExceptionTakeInStatement =
+              getTakeBackStatement({
+                exceptionId: lockedMerged.mergedIntoId,
+                occuranceCount: lockedMerged.occuranceCount,
+              });
+
             await manager.query(
-              `UPDATE "TelemetryException" SET "occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $1), "updatedAt" = now() WHERE "_id" = $2`,
-              [lockedMerged.occuranceCount, lockedMerged.mergedIntoId],
+              takeBackStatement.query,
+              takeBackStatement.parameters,
             );
           }
 
@@ -791,6 +790,7 @@ export default class TelemetryExceptionMerge {
           );
 
           unmergedProjectId = lockedMerged.projectId;
+          unmergedFrom = lockedMerged.mergedIntoId;
 
           return {
             telemetryExceptionId: lockedMerged.id,
@@ -837,14 +837,86 @@ export default class TelemetryExceptionMerge {
       });
     }
 
+    if (
+      unmergeResult.outcome === ExceptionUnmergeOutcome.Unmerged &&
+      unmergedProjectId &&
+      unmergedFrom
+    ) {
+      await TelemetryExceptionMerge.recordInAuditLog({
+        changes: [
+          {
+            projectId: unmergedProjectId,
+            telemetryExceptionId: unmergeResult.telemetryExceptionId,
+            from: unmergedFrom,
+            to: null,
+          },
+        ],
+        props: data.props,
+      });
+    }
+
     return unmergeResult;
   }
-}
 
-function sameDate(a: Date | null, b: Date | null): boolean {
-  return (
-    Boolean(a) &&
-    Boolean(b) &&
-    new Date(a!).getTime() === new Date(b!).getTime()
-  );
+  /*
+   * The project's audit log, once a merge or an unmerge has committed: an
+   * Update entry for each exception it moved, by the person who asked (the
+   * request's props), with the exception it was merged into before and
+   * after - its id, or none. A merge enters each exception merged, and each
+   * one that came along with it; an unmerge, the one taken out.
+   *
+   * The statements above are raw SQL, so DatabaseService's audit hook never
+   * runs, and only OneUptime writes the column, so the audit defaults leave
+   * it out of every entry (AuditLogCoverage): includeColumns lets it into
+   * these, and only these. When it was merged and by whom are not recorded
+   * - the entry's own time and actor say both - and nor is anything the
+   * merge moved in the counts (occurrences, first and last seen), which stay
+   * OneUptime's own. The exception merged into gets no entry: nothing about
+   * it changed that a person sets, and its page lists what was merged into
+   * it, with who merged each.
+   *
+   * Like every audit write, it never fails the merge it records
+   * (AuditLogService).
+   */
+  public static async recordInAuditLog(data: {
+    changes: Array<ExceptionMergedIntoChange>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    for (
+      let start: number = 0;
+      start < data.changes.length;
+      start += AUDIT_LOG_ENTRIES_AT_ONCE
+    ) {
+      await Promise.all(
+        data.changes
+          .slice(start, start + AUDIT_LOG_ENTRIES_AT_ONCE)
+          .map(async (change: ExceptionMergedIntoChange): Promise<void> => {
+            const exceptionId: ObjectID = new ObjectID(
+              change.telemetryExceptionId,
+            );
+            const before: TelemetryException = new TelemetryException(
+              exceptionId,
+            );
+            before.projectId = new ObjectID(change.projectId);
+
+            if (change.from) {
+              before.mergedIntoTelemetryExceptionId = new ObjectID(change.from);
+            }
+
+            await AuditLogService.recordUpdate({
+              model: new TelemetryException(),
+              before,
+              updatedFields: {
+                mergedIntoTelemetryExceptionId: change.to
+                  ? new ObjectID(change.to)
+                  : null,
+              } as unknown as JSONObject,
+              itemId: exceptionId,
+              props: data.props,
+              includeColumns: ["mergedIntoTelemetryExceptionId"],
+            });
+          }),
+      );
+    }
+  }
 }

@@ -13,11 +13,16 @@ import {
   readCloudConnectionReadSummary,
 } from "Common/Types/CloudConnection/CloudConnectionTest";
 import { getAwsCloudStreamDeleteCommand } from "Common/Types/CloudConnection/CloudStreamTemplate";
+import { getAwsOrganizationManagementAccountId } from "Common/Types/CloudConnection/CloudOrganizationAgents";
+import { getAwsCloudStreamOrganizationDeleteCommand } from "Common/Types/CloudConnection/CloudStreamOrganization";
 import OneUptimeDate from "Common/Types/Date";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import {
+  ActionButtonPlacement,
+  RowActionConfirmation,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
@@ -50,11 +55,17 @@ import {
   getLastReadKey,
   hasCloudConnectionReadEnded,
   readCloudConnectionNow,
+  readCloudStreamHostSubscription,
   stopCloudStreaming,
 } from "./CloudConnectApi";
 import CloudConnectionLogo from "./CloudConnectionLogo";
 import CloudConnectionTestDialog from "./CloudConnectionTestDialog";
+import { getAzureStreamStopCommand } from "./CloudStreamAzureSetup";
+import CloudStreamAzureDialog from "./CloudStreamAzureDialog";
 import CloudStreamDialog from "./CloudStreamDialog";
+import { CLOUD_STREAM_COMMAND_MAX_HEIGHT } from "./CloudStreamParts";
+import { getGcpStreamStopCommand } from "./CloudStreamGcpSetup";
+import CloudStreamGcpDialog from "./CloudStreamGcpDialog";
 import {
   CloudStreamStatusWords,
   getCloudStreamStackRegions,
@@ -77,6 +88,7 @@ import {
   getCloudRegionNames,
   getResourceCountWords,
 } from "./CloudConnectionWords";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The project's cloud connections, a row each, in three columns: the
@@ -88,8 +100,10 @@ import {
  *
  * What can be done with a connection: read it now (the row then says it
  * is reading, and the list catches up by itself when the read ends), test
- * it, see why it failed, stream an AWS account's metrics and logs (and
- * stop), turn it off or on, edit or remove it. A
+ * it, see why it failed, stream its metrics and logs - an AWS account's
+ * through Firehose, an Azure subscription's through event hubs OneUptime
+ * reads, a Google Cloud project's logs through Pub/Sub - and stop, turn it
+ * off or on, edit or remove it. A
  * connection waiting for its first read is watched the same way, quietly:
  * its row shows what the read found once it ends. Create and
  * edit go through CloudConnectionFormModal (opened by the page): its
@@ -126,7 +140,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
   const [testItem, setTestItem] = useState<CloudConnection | null>(null);
   const [testRun, setTestRun] = useState<number>(0);
   const [errorItem, setErrorItem] = useState<CloudConnection | null>(null);
-  // The AWS connection whose streaming dialog is open.
+  // The connection whose streaming dialog is open, of whichever cloud.
   const [streamItem, setStreamItem] = useState<CloudConnection | null>(null);
   const [notice, setNotice] = useState<
     { type: AlertType; text: string } | undefined
@@ -364,6 +378,133 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // The streaming dialog closes: what it saw arrive, in the row too.
+  const closeStreamDialog: () => void = (): void => {
+    setStreamItem(null);
+    refresh();
+  };
+
+  /*
+   * Stop streaming asks first, in its cloud's words: what stops at once,
+   * what stays in the cloud - and is billed - until it is deleted, and the
+   * command, for the cloud's own shell, that deletes it.
+   */
+  const getStopStreamingConfirmation: (
+    item: CloudConnection,
+  ) => RowActionConfirmation = (
+    item: CloudConnection,
+  ): RowActionConfirmation => {
+    const connectionId: string = item.id?.toString() || "";
+    const name: string = item.name || "";
+    let description: string;
+    let stays: string | undefined;
+    let command: string;
+    /*
+     * A connection that reads an AWS Organization may stream every account
+     * of it: its command, for the management account, deletes that
+     * account's stacks and, when there is one, the StackSet's.
+     */
+    let isOrganization: boolean = false;
+
+    if (item.provider === CloudProvider.Azure) {
+      description = translator.translateTemplate(
+        "OneUptime stops reading the event hubs of {{name}} at once, and the connection reads all its metrics on its schedule again. What was read stays.",
+        { name },
+      );
+      stays = translator.translateText(
+        translationKey(
+          "The event hubs and the diagnostic settings stay in Azure, and Azure bills them, until they are deleted. To delete them, run this in Azure Cloud Shell:",
+        ),
+      );
+      // The subscription its event hubs are read in, then the ones it reads.
+      command = getAzureStreamStopCommand({
+        connectionId,
+        hostSubscriptionId: readCloudStreamHostSubscription(item.streamState),
+        config: item.config,
+        lastPullResult: item.lastPullResult,
+      });
+    } else if (item.provider === CloudProvider.GCP) {
+      description = translator.translateTemplate(
+        "Every stream key of {{name}} stops working at once, and what Pub/Sub pushes is refused from now on. What was delivered stays.",
+        { name },
+      );
+      stays = translator.translateText(
+        translationKey(
+          "The log sinks, the topic and its push subscription stay in Google Cloud, and Pub/Sub keeps pushing, until they are deleted. To delete them, run this in Google Cloud Shell:",
+        ),
+      );
+      command = getGcpStreamStopCommand({
+        connectionId,
+        config: item.config,
+        lastPullResult: item.lastPullResult,
+      });
+    } else {
+      // Where its streams delivered from, then where the read found resources.
+      const regions: Array<string> = getCloudStreamStackRegions({
+        streamSummary: item.streamSummary,
+        lastPullResult: item.lastPullResult,
+      });
+      const managementAccountId: string | null =
+        getAwsOrganizationManagementAccountId(item.config);
+
+      isOrganization = Boolean(managementAccountId);
+      description = translator.translateTemplate(
+        "Every stream key of {{name}} stops working at once, and the connection reads all its metrics on its schedule again. What was delivered stays.",
+        { name },
+      );
+      // One paragraph that ends at the command: for an organization, where to run it.
+      stays = managementAccountId
+        ? translator.translateTemplate(
+            "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, the member accounts' too, run this in AWS CloudShell in the management account {{account}}:",
+            { account: managementAccountId },
+            { setsValuesApart: true },
+          )
+        : translator.translateText(
+            translationKey(
+              "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
+            ),
+          );
+      command = managementAccountId
+        ? getAwsCloudStreamOrganizationDeleteCommand({ connectionId, regions })
+        : getAwsCloudStreamDeleteCommand({ connectionId, regions });
+    }
+
+    return {
+      title: "Stop streaming",
+      description,
+      submitButtonText: "Stop streaming",
+      submitButtonType: ButtonStyleType.DANGER,
+      details: (
+        <div
+          className="space-y-2"
+          data-testid="cloud-connection-stop-streaming"
+        >
+          <p
+            className="text-sm text-gray-700"
+            data-testid={
+              isOrganization
+                ? "cloud-connection-stop-streaming-organization"
+                : undefined
+            }
+          >
+            {stays}
+          </p>
+          {/*
+           * As tall as the streaming dialog's command at most: Azure's runs
+           * to twenty lines, and the question and its buttons stay in view
+           * with it. Its copy button takes it all.
+           */}
+          <CodeBlock
+            code={command}
+            language="bash"
+            wrapLongLines={true}
+            maxHeight={CLOUD_STREAM_COMMAND_MAX_HEIGHT}
+          />
+        </div>
+      ),
+    };
+  };
+
   return (
     <Fragment>
       <div className="space-y-6">
@@ -399,6 +540,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
             lastError: true,
             streamKeyCreatedAt: true,
             streamSummary: true,
+            streamState: true,
           }}
           onFetchSuccess={(
             data: Array<CloudConnection>,
@@ -545,18 +687,43 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
             /*
              * An AWS account's CloudWatch metrics and logs, delivered by
              * Amazon Data Firehose within minutes of CloudWatch having them
-             * (CloudStreamDialog) - and the way to stop.
+             * (CloudStreamDialog); an Azure subscription's, sent to event
+             * hubs OneUptime reads every minute (CloudStreamAzureDialog);
+             * a Google Cloud project's logs, pushed through Pub/Sub as they
+             * are written (CloudStreamGcpDialog) - and the way to stop.
              */
             {
               title: "Stream metrics and logs",
               icon: IconProp.Signal,
               buttonStyleType: ButtonStyleType.OUTLINE,
               isVisible: (item: CloudConnection): boolean => {
-                return item.provider === CloudProvider.AWS;
+                return (
+                  item.provider === CloudProvider.AWS ||
+                  item.provider === CloudProvider.Azure
+                );
               },
               disabled: !props.updateGate.isAllowed,
               tooltip: props.updateGate.isAllowed
-                ? "Have Amazon Data Firehose deliver its CloudWatch metrics and logs within minutes."
+                ? "Have the cloud send its metrics and logs within minutes, between reads."
+                : props.updateGate.disabledReason,
+              onClick: (
+                item: CloudConnection,
+                onCompleteAction: VoidFunction,
+              ): void => {
+                setStreamItem(item);
+                onCompleteAction();
+              },
+            },
+            {
+              title: "Stream logs",
+              icon: IconProp.Signal,
+              buttonStyleType: ButtonStyleType.OUTLINE,
+              isVisible: (item: CloudConnection): boolean => {
+                return item.provider === CloudProvider.GCP;
+              },
+              disabled: !props.updateGate.isAllowed,
+              tooltip: props.updateGate.isAllowed
+                ? "Have Cloud Logging push its logs through Pub/Sub as they are written."
                 : props.updateGate.disabledReason,
               onClick: (
                 item: CloudConnection,
@@ -572,50 +739,18 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
               buttonStyleType: ButtonStyleType.OUTLINE,
               isVisible: (item: CloudConnection): boolean => {
                 return (
-                  item.provider === CloudProvider.AWS &&
+                  (item.provider === CloudProvider.AWS ||
+                    item.provider === CloudProvider.Azure ||
+                    item.provider === CloudProvider.GCP) &&
                   Boolean(item.streamKeyCreatedAt)
                 );
               },
               disabled: !props.updateGate.isAllowed,
               tooltip: props.updateGate.isAllowed
-                ? "Refuse what its streams deliver from now on."
+                ? "Stop taking what its streams send from now on."
                 : props.updateGate.disabledReason,
               getConfirmation: (item: CloudConnection) => {
-                return {
-                  title: "Stop streaming",
-                  description: translator.translateTemplate(
-                    "Every stream key of {{name}} stops working at once, and the connection reads all its metrics on its schedule again. What was delivered stays.",
-                    { name: item.name || "" },
-                  ),
-                  submitButtonText: "Stop streaming",
-                  submitButtonType: ButtonStyleType.DANGER,
-                  details: (
-                    <div
-                      className="space-y-2"
-                      data-testid="cloud-connection-stop-streaming"
-                    >
-                      <p className="text-sm text-gray-700">
-                        {translator.translateText(
-                          translationKey(
-                            "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
-                          ),
-                        )}
-                      </p>
-                      <CodeBlock
-                        code={getAwsCloudStreamDeleteCommand({
-                          connectionId: item.id?.toString() || "",
-                          // Where its streams delivered from, then where the read found resources.
-                          regions: getCloudStreamStackRegions({
-                            streamSummary: item.streamSummary,
-                            lastPullResult: item.lastPullResult,
-                          }),
-                        })}
-                        language="bash"
-                        wrapLongLines={true}
-                      />
-                    </div>
-                  ),
-                };
+                return getStopStreamingConfirmation(item);
               },
               onClick: async (
                 item: CloudConnection,
@@ -725,7 +860,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                           {cloud || ""}
                           {accounts.length > 0 ? (
                             <span data-testid="cloud-connection-accounts">
-                              {cloud ? " · " : ""}
+                              {cloud ? <InlineSeparator /> : null}
                               {accounts.join(", ")}
                             </span>
                           ) : (
@@ -755,8 +890,11 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                   getCloudConnectionDefinition(item.provider);
                 // How its streams are doing: nothing while it streams nothing.
                 const stream: CloudStreamStatusWords | null =
-                  item.provider === CloudProvider.AWS
+                  item.provider === CloudProvider.AWS ||
+                  item.provider === CloudProvider.Azure ||
+                  item.provider === CloudProvider.GCP
                     ? getCloudStreamStatusWords({
+                        provider: item.provider,
                         streamKeyCreatedAt: item.streamKeyCreatedAt,
                         streamSummary: item.streamSummary,
                         now: new Date(),
@@ -926,17 +1064,29 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {streamItem && (
+      {streamItem && streamItem.provider === CloudProvider.Azure ? (
+        <CloudStreamAzureDialog
+          key={streamItem.id?.toString()}
+          connection={streamItem}
+          onClose={closeStreamDialog}
+          onChanged={refresh}
+        />
+      ) : streamItem && streamItem.provider === CloudProvider.GCP ? (
+        <CloudStreamGcpDialog
+          key={streamItem.id?.toString()}
+          connection={streamItem}
+          onClose={closeStreamDialog}
+          onChanged={refresh}
+        />
+      ) : streamItem ? (
         <CloudStreamDialog
           key={streamItem.id?.toString()}
           connection={streamItem}
-          onClose={(): void => {
-            setStreamItem(null);
-            // What the dialog saw arrive, in the row too.
-            refresh();
-          }}
+          onClose={closeStreamDialog}
           onChanged={refresh}
         />
+      ) : (
+        <></>
       )}
 
       {testItem && (

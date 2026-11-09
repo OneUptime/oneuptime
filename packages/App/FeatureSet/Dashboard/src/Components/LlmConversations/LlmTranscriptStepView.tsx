@@ -15,6 +15,7 @@ import {
   LlmEvaluationResult,
 } from "Common/Types/Telemetry/LlmAnswerIssue";
 import { LlmCallKind } from "Common/Types/Telemetry/LlmCallKind";
+import { getLlmProviderTitle } from "Common/Types/Telemetry/LlmProviders";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
@@ -29,6 +30,7 @@ import {
   prettyLlmJson,
   truncateLlmText,
 } from "./LlmConversationFormat";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * One moment of a conversation, drawn the way a chat reads:
@@ -282,7 +284,7 @@ const AnswerMeta: FunctionComponent<{
             <React.Fragment key={index}>
               {index > 0 ? (
                 <span className="text-gray-300" aria-hidden="true">
-                  ·
+                  <InlineSeparator markOnly />
                 </span>
               ) : (
                 <></>
@@ -324,7 +326,7 @@ const AnswerMeta: FunctionComponent<{
                   {translator.translateText("Provider")}
                 </dt>
                 <dd className="font-medium text-gray-800">
-                  {step.call.provider}
+                  {getLlmProviderTitle(step.call.provider)}
                 </dd>
               </div>
             ) : (

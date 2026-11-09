@@ -1,3 +1,4 @@
+import AuditLogService from "../../../../Server/Services/AuditLogService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import RunbookExecutionService from "../../../../Server/Services/RunbookExecutionService";
 import RunbookRuleEngineService from "../../../../Server/Services/RunbookRuleEngineService";
@@ -12,7 +13,9 @@ import RunbookStarter, {
 } from "../../../../Server/Utils/Runbook/RunbookStarter";
 import Runbook from "../../../../Models/DatabaseModels/Runbook";
 import RunbookExecution from "../../../../Models/DatabaseModels/RunbookExecution";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
+import UserType from "../../../../Types/UserType";
 import RunbookExecutionStatus from "../../../../Types/Runbook/RunbookExecutionStatus";
 import { RunbookStepExecutionState } from "../../../../Types/Runbook/RunbookStepExecution";
 import RunbookStepExecutionStatus from "../../../../Types/Runbook/RunbookStepExecutionStatus";
@@ -514,5 +517,82 @@ describe("the rule engine's start path", () => {
 
     expect(queued).toHaveLength(1);
     expect(enqueued).toHaveLength(0);
+  });
+});
+
+/*
+ * Whose the run's start is in the audit log (issue #6283). Every start was
+ * written as plain root, so a run a person started - the fix they approved,
+ * the run they asked OneUptime AI for - was System's, and kept only when
+ * the project stores system events. Driven through the real create path,
+ * so what the person is credited with and what the run still names are
+ * what DatabaseService really hands the audit log and stores.
+ */
+describe("whose a run's start is in the audit log", () => {
+  function recordedCreates(): Array<DatabaseCommonInteractionProps> {
+    return (
+      getJestSpyOn(AuditLogService, "recordCreate").mock.calls as Array<
+        Array<{ props: DatabaseCommonInteractionProps }>
+      >
+    ).map((call: Array<{ props: DatabaseCommonInteractionProps }>) => {
+      return call[0]!.props;
+    });
+  }
+
+  beforeEach(() => {
+    getJestSpyOn(AuditLogService, "recordCreate").mockResolvedValue(
+      undefined as never,
+    );
+  });
+
+  test("a run a person started is theirs, and still names them as who triggered it", async () => {
+    for (const trigger of [
+      RunbookTriggerType.AutoRemediation,
+      RunbookTriggerType.AI,
+      RunbookTriggerType.SecurityPlaybook,
+    ]) {
+      await start({ trigger, triggeredByUserId: new ObjectID(USER_ID) });
+    }
+
+    expect(recordedCreates()).toHaveLength(3);
+
+    for (const props of recordedCreates()) {
+      expect(props.isRoot).toBe(true);
+      expect(String(props.userId)).toBe(USER_ID);
+      expect(props.userType).toBe(UserType.User);
+      // No project on the request, so the person the run names stays.
+      expect(props.tenantId).toBeUndefined();
+    }
+
+    for (const run of writtenRuns()) {
+      expect(String(run["triggeredByUserId"])).toBe(USER_ID);
+    }
+  });
+
+  test("a run nobody started by hand is OneUptime's own: a system event", async () => {
+    for (const trigger of UNATTENDED_RUNBOOK_TRIGGER_TYPES) {
+      await start({ trigger });
+    }
+
+    await start({ trigger: RunbookTriggerType.Rule });
+
+    expect(recordedCreates().length).toBeGreaterThan(0);
+
+    for (const props of recordedCreates()) {
+      expect(props).toEqual({ isRoot: true });
+    }
+  });
+
+  test("the props of a start, by whether a person started it", () => {
+    expect(
+      RunbookStarterClass.getCreateProps({
+        triggeredByUserId: new ObjectID(USER_ID),
+      }),
+    ).toEqual({
+      isRoot: true,
+      userId: new ObjectID(USER_ID),
+      userType: UserType.User,
+    });
+    expect(RunbookStarterClass.getCreateProps({})).toEqual({ isRoot: true });
   });
 });

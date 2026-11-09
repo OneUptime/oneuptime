@@ -17,6 +17,7 @@ import {
   TelemetryItemLabels,
   getTelemetryItemLabels,
 } from "./TelemetryItemLabel";
+import InlineSeparator from "../../InlineSeparator/InlineSeparator";
 
 export const TELEMETRY_RESULT_TOTAL_TEST_ID: string = "telemetry-result-total";
 
@@ -107,7 +108,7 @@ const TelemetryResultTotal: FunctionComponent<TelemetryResultTotalProps> = (
           }}
         />
         <span className="text-gray-400">
-          {" · "}
+          <InlineSeparator />
           {translator.translateText(UNAVAILABLE_EXPLANATION[reason])}
         </span>
       </>

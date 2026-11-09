@@ -2119,7 +2119,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
       "Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example).",
     );
     expect(page).toContain(
-      "https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md",
+      "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md",
     );
   });
 
@@ -2197,7 +2197,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
         exists: sourceExists(`HelmChart/Docs/${guide}`),
       }).toEqual({ guide, exists: true });
       expect(page).toContain(
-        `https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/${guide}`,
+        `https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/${guide}`,
       );
     }
   });

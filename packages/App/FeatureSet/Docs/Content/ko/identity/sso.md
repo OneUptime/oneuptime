@@ -36,8 +36,8 @@ OneUptime은 IdP가 보내는 어설션에서 몇 가지만 읽습니다.
 | --- | --- |
 | 서명 | 공급자의 **공개 인증서**와 대조합니다. 응답은 서명되어 있어야 하며 암호화되어 있으면 안 됩니다. |
 | Issuer | 공급자의 **발급자**와 정확히 일치해야 합니다. |
-| Audience | 공급자의 **Identifier (Entity ID)** 값이어야 합니다. IdP가 다른 애플리케이션용으로 만든 응답은 거부됩니다. |
-| Recipient 및 Destination | 공급자의 **Reply URL**, 곧 응답을 보낸 주소여야 합니다. |
+| Audience | 공급자의 **식별자(Entity ID)** 값이어야 합니다. IdP가 다른 애플리케이션용으로 만든 응답은 거부됩니다. |
+| Recipient 및 Destination | 공급자의 **회신 URL**, 곧 응답을 보낸 주소여야 합니다. |
 | `NotBefore` 및 `NotOnOrAfter` | 응답은 이 값들이 허용하는 동안에만, 그리고 발급 후 10분 이내에만 받아들여지며, 서로 맞지 않는 시계를 위해 3분의 여유가 있습니다. |
 | Name ID | 그 사람의 이메일 주소입니다. 유효한 이메일 주소여야 합니다. |
 | 이름 특성 | 그 사람의 이름으로, OneUptime이 계정을 만들 때 사용합니다. 표시 이름(`displayName` 또는 `http://schemas.microsoft.com/identity/claims/displayname`)이나 이름과 성(`firstName`과 `lastName`, 또는 Microsoft Entra ID가 기본으로 보내는 `givenname` 및 `surname` 클레임)입니다. 선택 사항입니다. |
@@ -73,9 +73,9 @@ SSO 공급자를 추가할 권한(**프로젝트 소유자**, **프로젝트 관
    - 나머지는 **추가 필드**에 이미 채워져 있습니다. **서명 방법**(`RSA-SHA256`), **다이제스트 방법**(`SHA256`), 설명("Sign in with"와 이름)입니다. ID 공급자에서 필요한 경우에만 변경하세요
 
 3. **OneUptime SSO 메타데이터 가져오기**
-   - 저장하면 **SSO Configuration** 대화 상자가 열립니다. **SSO 구성 보기** 버튼으로 다시 열 수 있습니다
-   - **Identifier (Entity ID)** 값을 복사합니다. 예를 들면 `https://oneuptime.com/<project-id>/<provider-id>`이며, IdP 구성에 필요합니다
-   - **Reply URL (Assertion Consumer Service URL)** 값을 복사합니다. 예를 들면 `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>`이며, IdP 구성에 필요합니다
+   - 저장하면 **SSO 구성** 대화 상자가 열립니다. **SSO 구성 보기** 버튼으로 다시 열 수 있습니다
+   - **식별자(Entity ID)** 값을 복사합니다. 예를 들면 `https://oneuptime.com/<project-id>/<provider-id>`이며, IdP 구성에 필요합니다
+   - **회신 URL(Assertion Consumer Service URL)** 값을 복사합니다. 예를 들면 `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>`이며, IdP 구성에 필요합니다
    - 새 공급자는 꺼진 상태로 시작합니다. IdP에 이 두 값을 등록한 후 공급자를 편집하여 **활성화됨**을 켜세요
 
 4. **공급자 테스트**
@@ -85,7 +85,7 @@ SSO 공급자를 추가할 권한(**프로젝트 소유자**, **프로젝트 관
 
 ## ID 공급자별 가이드
 
-사용하는 ID 공급자를 고르세요. 각 가이드는 IdP의 값을 가져와 OneUptime에서 공급자를 만든 다음, OneUptime의 **Identifier (Entity ID)** 값과 **Reply URL** 값을 IdP에 넘겨줍니다.
+사용하는 ID 공급자를 고르세요. 각 가이드는 IdP의 값을 가져와 OneUptime에서 공급자를 만든 다음, OneUptime의 **식별자(Entity ID)** 값과 **회신 URL** 값을 IdP에 넘겨줍니다.
 
 :::tabs
 @tab Keycloak
@@ -114,15 +114,15 @@ Keycloak은 널리 쓰이는 오픈 소스 ID 및 액세스 관리 솔루션입�
    - **공개 인증서**: 전용 `BEGIN CERTIFICATE` 줄과 `END CERTIFICATE` 줄 사이에 넣은 인증서
    - **서명 방법**과 **다이제스트 방법**: **추가 필드**에 이미 설정되어 있습니다(`RSA-SHA256`과 `SHA256`)
 
-   저장한 다음, 열리는 대화 상자에서 **Identifier (Entity ID)** 값과 **Reply URL (Assertion Consumer Service URL)** 값을 복사합니다.
+   저장한 다음, 열리는 대화 상자에서 **식별자(Entity ID)** 값과 **회신 URL(Assertion Consumer Service URL)** 값을 복사합니다.
 
 3. **Keycloak 클라이언트 만들기**
 
    Keycloak에서 렐름의 **Clients**를 열고 클라이언트를 만들거나 기존 클라이언트를 편집합니다.
    - **Client Protocol**(클라이언트 유형): `saml`
-   - **Client ID**: OneUptime의 **Identifier (Entity ID)** 값
+   - **Client ID**: OneUptime의 **식별자(Entity ID)** 값
    - **Root URL**과 **Valid Redirect URIs**: OneUptime URL
-   - **Assertion Consumer Service POST Binding URL**: OneUptime의 **Reply URL (Assertion Consumer Service URL)** 값
+   - **Assertion Consumer Service POST Binding URL**: OneUptime의 **회신 URL(Assertion Consumer Service URL)** 값
 
 4. **클라이언트 설정 조정**
 
@@ -159,13 +159,13 @@ Microsoft Entra ID(이전 이름 Azure AD / Active Directory)는 Microsoft의 �
    - **공개 인증서**: `BEGIN CERTIFICATE` 줄과 `END CERTIFICATE` 줄을 포함한 Base64 인증서
    - **서명 방법**과 **다이제스트 방법**: **추가 필드**에 이미 설정되어 있습니다(`RSA-SHA256`과 `SHA256`)
 
-   저장한 다음, 열리는 대화 상자에서 **Identifier (Entity ID)** 값과 **Reply URL (Assertion Consumer Service URL)** 값을 복사합니다.
+   저장한 다음, 열리는 대화 상자에서 **식별자(Entity ID)** 값과 **회신 URL(Assertion Consumer Service URL)** 값을 복사합니다.
 
 4. **Entra ID에 OneUptime의 URL 넘겨주기**
 
    **Basic SAML Configuration**에서 **Edit**를 클릭하고 다음을 설정합니다.
-   - **Identifier (Entity ID)**: OneUptime의 **Identifier (Entity ID)** 값
-   - **Reply URL (Assertion Consumer Service URL)**: OneUptime의 **Reply URL** 값
+   - **Identifier (Entity ID)**: OneUptime의 **식별자(Entity ID)** 값
+   - **Reply URL (Assertion Consumer Service URL)**: OneUptime의 **회신 URL** 값
 
    **Save**를 클릭합니다.
 
@@ -211,18 +211,18 @@ Okta는 SAML SSO를 지원하는 널리 쓰이는 ID 플랫폼입니다. 관리�
    - **공개 인증서**: `BEGIN CERTIFICATE` 줄과 `END CERTIFICATE` 줄을 포함한 인증서
    - **서명 방법**과 **다이제스트 방법**: **추가 필드**에 이미 설정되어 있습니다(`RSA-SHA256`과 `SHA256`)
 
-   저장한 다음, 열리는 대화 상자에서 **Identifier (Entity ID)** 값과 **Reply URL (Assertion Consumer Service URL)** 값을 복사합니다.
+   저장한 다음, 열리는 대화 상자에서 **식별자(Entity ID)** 값과 **회신 URL(Assertion Consumer Service URL)** 값을 복사합니다.
 
 4. **Okta에 OneUptime의 URL 넘겨주기**
 
    Okta Integration Network에서 추가한 애플리케이션이라면 **General** 탭의 **App Settings**에서 **Edit**를 클릭하고 다음을 설정합니다.
-   - **OneUptime Project ID**와 **OneUptime SSO Provider ID**: OneUptime의 **Identifier (Entity ID)** 값인 `https://oneuptime.com/<project-id>/<provider-id>`에 들어 있는 두 ID
+   - **OneUptime Project ID**와 **OneUptime SSO Provider ID**: OneUptime의 **식별자(Entity ID)** 값인 `https://oneuptime.com/<project-id>/<provider-id>`에 들어 있는 두 ID
 
    **Save**를 클릭하고, **Sign On** 탭에서 **Application username format**이 `Email`인지 확인합니다.
 
    직접 만든 애플리케이션이라면 **General** 탭에서 **SAML Settings**의 **Edit**와 **Next**를 클릭한 다음 다음을 설정합니다.
-   - **Single sign-on URL**: OneUptime의 **Reply URL (Assertion Consumer Service URL)** 값
-   - **Audience URI (SP Entity ID)**: OneUptime의 **Identifier (Entity ID)** 값
+   - **Single sign-on URL**: OneUptime의 **회신 URL(Assertion Consumer Service URL)** 값
+   - **Audience URI (SP Entity ID)**: OneUptime의 **식별자(Entity ID)** 값
 
    선택적으로, 이름이 `firstName`이고 값이 `user.firstName`인 attribute statement와 이름이 `lastName`이고 값이 `user.lastName`인 attribute statement를 추가하면 새 계정에 그 사람의 이름이 들어갑니다. **Next**를 클릭한 다음 **Finish**를 클릭합니다.
 
@@ -239,7 +239,7 @@ OneUptime의 SSO는 SAML 2.0을 사용하며 규격을 준수하는 모든 ID �
 
 :::steps
 1. ID 공급자의 **로그인 URL**(SSO 엔드포인트), **발급자**(엔티티 ID), **공개 인증서**(X.509 서명 인증서)를 가져옵니다. 애플리케이션을 만들어야만 IdP가 이 값을 보여 준다면, OneUptime 주소를 임시 URL로 사용해 애플리케이션을 만드세요.
-2. OneUptime에서 이 값으로 공급자를 만들고, **SSO Configuration** 대화 상자(또는 **SSO 구성 보기**)에서 **Identifier (Entity ID)** 값과 **Reply URL (Assertion Consumer Service URL)** 값을 복사합니다.
+2. OneUptime에서 이 값으로 공급자를 만들고, **SSO 구성** 대화 상자(또는 **SSO 구성 보기**)에서 **식별자(Entity ID)** 값과 **회신 URL(Assertion Consumer Service URL)** 값을 복사합니다.
 3. ID 공급자의 SAML 애플리케이션에서 **Assertion Consumer Service URL / Reply URL**과 **Entity ID / Audience URI**를 OneUptime의 값으로, **Name ID Format**을 이메일 주소로 설정합니다.
 4. **서명 방법**(`RSA-SHA256`)과 **다이제스트 방법**(`SHA256`)은 **추가 필드**에 이미 설정되어 있습니다. ID 공급자가 다른 방식으로 서명하는 경우에만 변경하세요
 5. 공급자의 **활성화됨**을 켜고 **Test Single Sign On (SSO)** 카드의 링크로 테스트합니다.
@@ -255,13 +255,13 @@ OneUptime의 SSO는 SAML 2.0을 사용하며 규격을 준수하는 모든 ID �
 2. OneUptime에서 **프로젝트 설정** > **보안** > **SSO**로 이동하여 SAML 공급자 아래의 **OIDC 공급자 추가**를 클릭합니다.
 3. **이름**(로그인 페이지에 표시되는 이름), **발급자 URL**, **클라이언트 ID**, **클라이언트 시크릿**을 입력합니다. **발급자 URL**에 공급자의 검색 URL을 붙여 넣어도 됩니다.
 4. **로그인** 단계에서 **팀**은 프로젝트의 멤버 팀으로 시작합니다. 처음 로그인하는 사람은 이 팀에 합류합니다. 나머지는 **추가 필드**에 이미 채워져 있습니다. **검색 URL**(발급자 뒤에 `/.well-known/openid-configuration`을 붙인 값), **범위**(`openid email profile`), `email`과 `name` 클레임 이름, 설명("Sign in with"와 이름)입니다. 공급자에서 필요한 경우에만 변경하세요. 내가 다른 사람을 초대할 수 있는 팀만 허용됩니다. 내가 가진 것보다 더 많은 액세스 권한을 주는 팀은 **팀** 아래에 표시됩니다.
-5. 저장합니다. **OIDC Configuration** 대화 상자가 열리고 **Redirect URI**가 표시됩니다. 이 값을 앱의 허용된 리디렉션 URI에 추가하세요. 새 공급자는 꺼진 상태로 시작하므로, 그다음 공급자를 편집하여 **활성화됨**을 켭니다.
+5. 저장합니다. **OIDC 구성** 대화 상자가 열리고 **Redirect URI**가 표시됩니다. 이 값을 앱의 허용된 리디렉션 URI에 추가하세요. 새 공급자는 꺼진 상태로 시작하므로, 그다음 공급자를 편집하여 **활성화됨**을 켭니다.
 6. 프로젝트에 SSO를 필수로 지정하기 전에 **Test Single Sign On (SSO)** 카드의 링크를 열고 공급자를 골라 그 공급자로 로그인해 보세요.
 :::
 
 ## SSO 사용자의 역할과 팀
 
-OneUptime은 ID 공급자의 역할이나 그룹을 가져오지 않습니다. 사람이 할 수 있는 일은 그 사람이 속한 팀에서 결정됩니다. 공급자는 새로 온 사람을 자신의 **팀**에 추가하고, 팀과 그 권한은 [사용자, 팀 및 권한](/docs/permissions/index)에서 설명하는 대로 OneUptime에서 관리합니다. 팀 멤버 구성을 ID 공급자와 맞춰 두려면 [SCIM](/docs/identity/scim)을 사용하세요.
+OneUptime은 ID 공급자의 역할이나 그룹을 가져오지 않습니다. 사람이 할 수 있는 일은 그 사람이 속한 팀에서 결정됩니다. 공급자는 새로 온 사람을 자신의 **팀**에 추가하고, 팀과 그 권한은 [사용자, 팀 및 권한](/docs/permissions/index)에서 설명하는 대로 OneUptime에서 관리합니다. 팀 멤버 구성을 ID 공급자와 맞춰 두려면 [SCIM](/docs/identity/scim)을 사용하세요. 로그인할 때 참여하는 각 팀은 해당 팀의 **감사 로그** 페이지에 로그인한 사람의 변경으로 기록됩니다.
 
 공급자의 팀이 그 공급자로 로그인하는 사람이 할 수 있는 일을 결정하므로, 공급자는 저장하는 사람이 다른 사람을 초대할 수 있는 팀으로만 저장할 수 있습니다. 저장할 때마다 팀을 다시 확인합니다. 내가 가진 것보다 더 많은 액세스 권한을 주는 팀이 있는 공급자는 프로젝트 소유자처럼 그 팀을 포괄하는 액세스 권한을 가진 사람만 변경할 수 있습니다. 이 확인이 도입되기 전에 저장된 공급자는 계속 사람들을 자신의 팀으로 로그인시킵니다. 공급자를 편집할 수 있는 사람은 누구나 여전히 공급자를 끌 수 있으므로 즉시 멈출 수 있습니다.
 
@@ -342,11 +342,11 @@ IdP 어설션의 발급자가 공급자의 **발급자**와 다릅니다. IdP에
 :::
 
 :::details "SAML Audience does not match"
-응답의 audience가 이 공급자의 **Identifier (Entity ID)** 값이 아닙니다. IdP가 다른 애플리케이션용으로 응답을 만들었습니다. IdP에서 애플리케이션의 entity ID를 **SSO 구성 보기**의 **Identifier (Entity ID)** 값으로 설정하세요. Keycloak에서는 **Client ID**, Entra ID에서는 **Identifier (Entity ID)** 항목, Okta에서는 **Audience URI (SP Entity ID)** 항목입니다. OneUptime 주소만(예: `https://oneuptime.com`) entity ID로 설정된 IdP는 계속 작동합니다.
+응답의 audience가 이 공급자의 **식별자(Entity ID)** 값이 아닙니다. IdP가 다른 애플리케이션용으로 응답을 만들었습니다. IdP에서 애플리케이션의 entity ID를 **SSO 구성 보기**의 **식별자(Entity ID)** 값으로 설정하세요. Keycloak에서는 **Client ID**, Entra ID에서는 **Identifier (Entity ID)** 항목, Okta에서는 **Audience URI (SP Entity ID)** 항목입니다. OneUptime 주소만(예: `https://oneuptime.com`) entity ID로 설정된 IdP는 계속 작동합니다.
 :::
 
 :::details "SAML Recipient does not match"
-응답의 recipient가 이 공급자의 **Reply URL**이 아닙니다. 응답이 다른 주소로 보내졌습니다. IdP에서 애플리케이션의 reply URL을 **SSO 구성 보기**의 **Reply URL (Assertion Consumer Service URL)** 값으로 설정하세요. Keycloak에서는 **Assertion Consumer Service POST Binding URL**, Entra ID에서는 **Reply URL (Assertion Consumer Service URL)** 항목, Okta에서는 **Single sign-on URL** 항목입니다. "SAML Destination does not match"도 원인과 해결 방법이 같습니다.
+응답의 recipient가 이 공급자의 **회신 URL**이 아닙니다. 응답이 다른 주소로 보내졌습니다. IdP에서 애플리케이션의 reply URL을 **SSO 구성 보기**의 **회신 URL(Assertion Consumer Service URL)** 값으로 설정하세요. Keycloak에서는 **Assertion Consumer Service POST Binding URL**, Entra ID에서는 **Reply URL (Assertion Consumer Service URL)** 항목, Okta에서는 **Single sign-on URL** 항목입니다. "SAML Destination does not match"도 원인과 해결 방법이 같습니다.
 :::
 
 :::details "SAML response has expired"
@@ -378,7 +378,7 @@ Entra ID의 **Identifier (Entity ID)** 값이 OneUptime의 값과 일치하지 �
 :::
 
 :::details Okta: 404 또는 audience 불일치
-Okta의 **Single sign-on URL**은 OneUptime의 **Reply URL**과, **Audience URI**는 OneUptime의 **Identifier (Entity ID)** 값과 정확히 같아야 합니다. 두 값 모두 임시 값을 대체했는지 확인하세요.
+Okta의 **Single sign-on URL**은 OneUptime의 **회신 URL**과, **Audience URI**는 OneUptime의 **식별자(Entity ID)** 값과 정확히 같아야 합니다. 두 값 모두 임시 값을 대체했는지 확인하세요.
 :::
 
 :::details 사용자가 애플리케이션에 할당되지 않음

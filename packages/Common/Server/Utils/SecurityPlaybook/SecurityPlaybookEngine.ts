@@ -24,6 +24,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SecurityPlaybookActionDefinition,
+  SecurityPlaybookActionType,
   actsOnSecurityEntities,
   getSecurityPlaybookAction,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
@@ -32,6 +33,7 @@ import SecurityPlaybookRunStatus, {
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   SecurityPlaybookStep,
+  StopRunConfig,
   doesStepNeedApproval,
   parseSecurityPlaybookSteps,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
@@ -53,6 +55,7 @@ import {
   playbookFinishedMarkdown,
   playbookInterruptedMarkdown,
   playbookStepMarkdown,
+  playbookStoppedMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 
@@ -88,12 +91,17 @@ export function getStepTitle(step: SecurityPlaybookStep): string {
  * status it writes afterwards is a compare-and-set from Running, so a
  * cancellation is never written over.
  *
- * A step that waits on an earlier step's result (runIf) runs only when that
- * step ended with it, and is skipped before it does anything else - asks
- * for an approval, picks a target - saying which result it waited on
+ * A step that waits on earlier steps' results (runIf) runs only when they
+ * ended with them - all of them, or any one for a step that said any - and
+ * is skipped before it does anything else - asks for an approval, picks a
+ * target - saying which results it waited on
  * (evaluateSecurityPlaybookStepCondition). That is how a playbook branches:
  * contain only what threat intel knows is bad, and leave a task to check
  * the rest.
+ *
+ * A Stop step that runs ends the run there, as done: the steps after it are
+ * skipped, saying where it stopped, and the case is told why when the step
+ * says.
  *
  * A step marked "needs approval" - and every containment step a Security
  * Admin did not let run without it - stops the run in Waiting for Approval
@@ -351,6 +359,22 @@ export default class SecurityPlaybookEngine {
           threatIntelMatched,
         });
         continue;
+      }
+
+      // The run's own step: it ends the run here, as done.
+      if (step.action === SecurityPlaybookActionType.StopRun) {
+        await this.stopRun({
+          runId,
+          projectId,
+          securityCaseId,
+          playbookName,
+          step,
+          index,
+          steps,
+          results,
+          threatIntelMatched,
+        });
+        return;
       }
 
       if (
@@ -622,6 +646,72 @@ export default class SecurityPlaybookEngine {
         markdown: playbookFinishedMarkdown({
           playbookName,
           ...counts,
+        }),
+      },
+    });
+  }
+
+  /*
+   * A Stop step's turn: the step is done, the steps after it are skipped
+   * saying where the run stopped, and the run ends as done - told on the
+   * case with the step's reason, when it gives one.
+   */
+  private static async stopRun(data: {
+    runId: ObjectID;
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    playbookName: string;
+    step: SecurityPlaybookStep;
+    index: number;
+    steps: Array<SecurityPlaybookStep>;
+    results: Array<SecurityPlaybookStepResult>;
+    threatIntelMatched: boolean;
+  }): Promise<void> {
+    const { results } = data;
+    const now: string = OneUptimeDate.getCurrentDate().toISOString();
+    const stepNumber: number = data.index + 1;
+    const reason: string = (
+      (data.step.config as unknown as StopRunConfig).reason || ""
+    ).trim();
+
+    results[data.index] = {
+      ...results[data.index]!,
+      status: SecurityPlaybookStepStatus.Succeeded,
+      startedAt: now,
+      completedAt: now,
+      message: clampStepResultText(reason || undefined),
+    };
+
+    for (
+      let later: number = data.index + 1;
+      later < data.steps.length;
+      later++
+    ) {
+      results[later] = {
+        ...results[later]!,
+        status: SecurityPlaybookStepStatus.Skipped,
+        completedAt: now,
+        message: `Skipped: the run stopped at step ${stepNumber}.`,
+      };
+    }
+
+    await this.saveProgress({
+      runId: data.runId,
+      results,
+      currentStepIndex: data.steps.length,
+      threatIntelMatched: data.threatIntelMatched,
+    });
+
+    await this.finishRun({
+      runId: data.runId,
+      status: SecurityPlaybookRunStatus.Succeeded,
+      feed: {
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+        markdown: playbookStoppedMarkdown({
+          playbookName: data.playbookName,
+          stepNumber,
+          reason: reason || undefined,
         }),
       },
     });

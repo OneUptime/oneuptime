@@ -31,7 +31,7 @@ flowchart TB
 
 ## Amazon Web Services
 
-La connexion lit les coûts avec `ce:GetCostAndUsage` et les recommandations avec `cost-optimization-hub:ListRecommendations`. Chacun demande d'abord d'activer quelque chose dans le compte :
+La connexion lit les coûts avec `ce:GetCostAndUsage`, ses engagements avec `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetReservationCoverage` et `ce:GetReservationUtilization`, et les recommandations avec `cost-optimization-hub:ListRecommendations`. Cost Explorer et Cost Optimization Hub doivent d'abord être activés dans le compte :
 
 :::steps
 ### Activer Cost Explorer
@@ -43,7 +43,13 @@ Ouvrez Cost Explorer une fois dans la console AWS Billing and Cost Management : 
 Ouvrez Cost Optimization Hub dans la même console et activez-le, pour l'organisation depuis son compte de gestion ou pour le compte seul. Ses recommandations arrivent en moins d'un jour.
 :::
 
-Cost Explorer facture $0.01 par requête, et une lecture des coûts en fait quelques-unes. Cost Optimization Hub est gratuit.
+Cost Explorer facture $0.01 par requête : une lecture des coûts en fait quelques-unes, et les engagements sont lus avec quatre par jour. Cost Optimization Hub est gratuit.
+
+### Coûts par ressource
+
+Cost Explorer indique aussi ce que coûte chaque ressource, sur les 14 derniers jours, une fois les données au niveau des ressources activées. Dans la console AWS Billing and Cost Management, ouvrez les préférences Cost Management et activez les données au niveau des ressources avec une granularité quotidienne, pour l'organisation depuis son compte de gestion. AWS les prépare en 48 heures.
+
+Modifiez ensuite la connexion sous **Cloud → Connecter**, et sous **Plus de champs** activez **Coûts par ressource**. La connexion les lit avec `ce:GetCostAndUsageWithResources` une fois par jour : les 14 jours la première fois, puis les trois derniers à nouveau, avec quelques requêtes à chaque fois. Ce qu'elle lit reste avec les coûts du compte après que Cost Explorer l'a oublié. Une connexion créée avant doit relancer sa commande de configuration, qui ajoute l'action.
 
 ## Microsoft Azure
 
@@ -79,6 +85,25 @@ L'export détaillé indique la ressource à laquelle correspond chaque coût ; l
 
 **Cloud → Dépenses → Économies** liste chaque recommandation, la plus grosse économie d'abord : quoi faire, sur quelle ressource, ce qui changerait et ce qu'elle fait économiser par mois. Le bandeau du dessus les additionne, au total et par type : une taille plus petite, une ressource inactive, un engagement. Une recommandation renvoie vers la page de sa ressource quand OneUptime possède la ressource.
 
+### Redimensionnement d'après les propres relevés de OneUptime
+
+Une ressource pour laquelle aucun moteur de recommandation ne se prononce, parce qu'il n'est pas activé, ne couvre pas son type ou la juge trop récente, est dimensionnée par OneUptime d'après les relevés de CPU et de mémoire que sa connexion a pris au cours des 14 derniers jours. OneUptime dimensionne les instances EC2, les bases de données RDS et les clusters ElastiCache sur AWS, les machines virtuelles, les serveurs flexibles PostgreSQL et MySQL et les plans App Service sur Azure, ainsi que les VM Compute Engine et les instances Cloud SQL sur Google Cloud :
+
+- **Surdimensionné** quand la taille deux fois plus petite, ou quatre fois plus petite, aurait encore de la marge : sur la plus petite taille, le 95e centile de son CPU serait d'au plus 60 %, son relevé de CPU le plus haut d'au plus 100 % et le pic de sa mémoire d'au plus 70 % quand sa mémoire est lue.
+- **Sous-dimensionné** quand le 95e centile de son CPU atteint 85 % ou plus, ou le pic de sa mémoire 90 % ou plus : la taille deux fois plus grande.
+
+Une ressource est dimensionnée dès qu'elle a 6 jours de relevés. Sa page montre son **Redimensionnement** à côté de ce qu'elle coûte, et une ressource surdimensionnée figure sous **Cloud → Dépenses → Économies**, avec OneUptime comme source. Ce qu'un changement fait économiser est sa part de ce que la ressource a coûté sur les 30 derniers jours : on le connaît donc dès que votre cloud facture la ressource par son nom. L'export détaillé d'Azure et de Google Cloud le fait, et AWS aussi une fois Coûts par ressource activé. Une instance EC2 ne signale sa mémoire qu'avec l'agent CloudWatch, et une VM Compute Engine qu'avec l'Ops Agent : sans lui, elle est dimensionnée d'après son seul CPU. Les tailles burstables, comme t3, la série B et e2-micro, ne sont jamais dimensionnées.
+
+### Engagements
+
+**Cloud → Dépenses → Économies** et les **Coûts** d'un compte montrent quelle part des dépenses des 30 derniers jours les engagements de chaque compte ont payée, et quelle part de ceux-ci a été utilisée, une ligne par type :
+
+- AWS : Savings Plans et instances réservées, depuis Cost Explorer. Le compte de gestion d'une organisation les lit pour chaque compte de l'organisation.
+- Azure : plans d'économies et réservations, depuis Cost Management, en coût amorti.
+- Google Cloud : remises sur engagement d'utilisation, depuis votre export de facturation. L'export ne dit pas quelle part d'un engagement est restée inutilisée, donc la part utilisée n'est pas affichée.
+
+Un compte sans engagement indique ce qui a tourné au tarif à la demande et qu'un engagement paierait moins cher. Les chiffres de chaque type sont ceux de son cloud, et les types ne sont jamais additionnés : une réservation et un Savings Plan peuvent tous deux compter les dépenses d'une même machine comme les leurs à couvrir.
+
 ## Budgets
 
 :::steps
@@ -88,17 +113,35 @@ Dans **Cloud → Dépenses → Budgets**, créez un budget : son **Montant mensu
 
 ### Choisir quand il alerte
 
-**Alerter à** prend les parts du budget auxquelles alerter, en pourcentage : 80 et 100 pour commencer. **Alerter si un dépassement se profile** alerte aussi, une fois par mois, quand le rythme de la dernière semaine ferait dépasser le budget au mois. **Gravité de l'alerte** et **Politiques d'astreinte** disent la gravité des alertes et qui est prévenu.
+**Alerter à** prend les parts du budget auxquelles alerter, en pourcentage : 80 et 100 pour commencer. **Alerter si un dépassement se profile** alerte aussi, une fois par mois, quand le rythme de la dernière semaine ferait dépasser le budget au mois. **Alerter en cas de jour inhabituel** alerte aussi le lendemain d'un jour qui a coûté bien plus que d'habitude : voir [Jours inhabituels](#jours-inhabituels). **Gravité de l'alerte** et **Politiques d'astreinte** disent la gravité des alertes et qui est prévenu.
 :::
 
 Un budget est vérifié après chaque lecture des coûts et toutes les heures. Quand les dépenses du mois franchissent un seuil, une alerte est levée pour lui, la plus haute si une lecture en franchit plusieurs à la fois, et un nouveau mois résout les alertes du mois précédent. Un budget ne compte que les comptes facturés dans sa devise.
 
+Les agents d'IA peuvent créer et modifier des budgets via le [serveur MCP](/docs/ai/mcp-server), et les scripts avec la commande `oneuptime cloud-budget` de la CLI : voir [Opérations sur les ressources](/docs/cli/resource-operations).
+
+### Jours inhabituels
+
+Après chaque lecture, chacun des 14 derniers jours complets d'un compte est comparé aux 14 jours qui le précèdent. Un jour est inhabituel quand un service a coûté le double de sa journée habituelle ou plus, ou le compte entier une fois et demie sa journée habituelle ou plus. Dans les deux cas, il faut au moins 10 de plus que d'habitude, dans la devise du compte, et au moins 5 % de la journée habituelle du compte, pour que quelques centimes ne passent jamais pour un pic. La valeur habituelle d'un jour est la médiane des 14 jours qui le précèdent, si bien qu'un pic isolé la fait peu bouger, et un compte n'est jugé qu'une fois qu'il a une semaine de coûts.
+
+**Cloud → Dépenses → Coûts** marque les jours inhabituels sur les dépenses quotidiennes, au-dessus de leurs barres, et les liste en dessous. Sur tous les comptes, chaque marque ouvre les **Coûts** de son compte. Un budget qui inclut le compte lève une alerte pour chaque compte et chaque jour, le lendemain, en nommant chaque service qui a coûté trop. Un pic qui dure plusieurs jours est signalé le jour où il a commencé, et un jour vieux de plus d'une semaine n'est pas signalé. Un budget créé avant ces alertes ne les lève pas tant que vous ne le modifiez pas pour les activer.
+
+## Où va l'argent
+
+**Cloud → Dépenses → Coûts** ventile les dépenses d'une période par service, région, compte ou ressource, et de trois autres façons :
+
+- Par environnement des plateformes d'applications : le service de plateforme de chaque environnement dans son compte et sa région, comme Amazon ECS ou Cloud Run, et les ressources d'un environnement Elastic Beanstalk par l'étiquette qu'AWS leur donne.
+- Par application : ce qu'une plateforme facture nommément à une application, comme un service Cloud Run ou une Container App. Amazon ECS facture ses tâches et App Service ses plans : les coûts de leurs applications restent ceux de leur environnement.
+- Par étiquette : chaque valeur de l'étiquette que vous choisissez. Un coût conserve les étiquettes qu'il avait lors de sa lecture : les libellés d'un export de facturation Google Cloud, sinon les étiquettes de la ressource à laquelle il est facturé, ce qui demande Coûts par ressource sur AWS.
+
+Sous la liste, la carte indique à combien s'élève le reste : ce qui n'est dans aucun environnement, ce qui est facturé à un environnement dans son ensemble, ou ce qui ne porte pas l'étiquette. Les coûts lus avant que les étiquettes soient conservées sont relus une fois, aussi loin qu'une première lecture, pour que leurs étiquettes se complètent.
+
 ## Ce que vous voyez dans OneUptime
 
 - **La vue d'ensemble de Cloud.** **Cloud → Vue d'ensemble** montre les dépenses du mois face à celles du mois dernier au même jour, les services qui coûtent le plus et les plus gros moyens de dépenser moins, à côté de ce qui demande votre attention.
-- **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours et ventile une période par service, région, compte ou ressource. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
-- **Les coûts d'un compte.** Les **Coûts** d'un compte montrent la même chose pour ce seul compte, avec ses moyens de dépenser moins.
-- **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins.
+- **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours en marquant ceux qui ont coûté bien plus que d'habitude, liste ces jours et ventile une période par service, région, compte, ressource, environnement des plateformes d'applications, application ou étiquette. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
+- **Les coûts d'un compte.** Les **Coûts** d'un compte montrent la même chose pour ce seul compte, avec ses engagements et ses moyens de dépenser moins.
+- **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins et son redimensionnement.
 
 ## Dépannage
 
@@ -108,6 +151,14 @@ La connexion ne peut pas encore lire les coûts du compte. Exécutez de nouveau 
 
 :::details Un compte indique Non configuré
 Son cloud n'a pas encore de coûts à fournir. Sur AWS, activez Cost Explorer ; sur Google Cloud, indiquez la table de l'export dans **Table de l'export de facturation**. Les premiers montants arrivent avec la lecture suivante, en moins de 12 heures.
+:::
+
+:::details Coûts par ressource indique Non configuré
+Les données au niveau des ressources ne sont pas activées pour le compte. Activez-les avec une granularité quotidienne dans les préférences Cost Management de la console AWS Billing and Cost Management, depuis le compte de gestion de l'organisation pour ses membres. AWS les prépare en 48 heures, et la lecture du lendemain les prend.
+:::
+
+:::details Les engagements indiquent Autorisation requise
+La connexion ne peut pas encore lire les Savings Plans et les réservations du compte. Relancez sa commande de configuration depuis **Cloud → Connecter** : elle ajoute les quatre actions avec lesquelles ils sont lus.
 :::
 
 :::details Les montants laissent un compte de côté

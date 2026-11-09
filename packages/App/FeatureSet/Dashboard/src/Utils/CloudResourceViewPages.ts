@@ -39,10 +39,13 @@ export enum CloudResourceViewTab {
   Feed = "feed",
   Incidents = "incidents",
   Alerts = "alerts",
+  ScheduledMaintenance = "scheduled-maintenance",
   Changes = "changes",
+  Recommendations = "recommendations",
   Documentation = "documentation",
   Settings = "settings",
   Owners = "owners",
+  AuditLogs = "audit-logs",
   Delete = "delete",
   DeveloperTerraform = "developer-terraform",
   DeveloperApi = "developer-api",
@@ -67,10 +70,13 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
   [CloudResourceViewTab.Feed]: "feed",
   [CloudResourceViewTab.Incidents]: "incidents",
   [CloudResourceViewTab.Alerts]: "alerts",
+  [CloudResourceViewTab.ScheduledMaintenance]: "scheduled-maintenance",
   [CloudResourceViewTab.Changes]: "changes",
+  [CloudResourceViewTab.Recommendations]: "recommendations",
   [CloudResourceViewTab.Documentation]: "documentation",
   [CloudResourceViewTab.Settings]: "settings",
   [CloudResourceViewTab.Owners]: "owners",
+  [CloudResourceViewTab.AuditLogs]: "audit-logs",
   [CloudResourceViewTab.Delete]: "delete",
   [CloudResourceViewTab.DeveloperTerraform]: "developer/terraform",
   [CloudResourceViewTab.DeveloperApi]: "developer/api",
@@ -82,7 +88,9 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
  * An environment's pages, in App Platforms. It has the apps that run in it,
  * the telemetry they send - logs, traces and the running instances - and no
  * Changes: those are what a cloud account's activity log records about its
- * resources.
+ * resources. No Recommendations either: those are monitors over the metrics
+ * a cloud account's connection reads about a resource
+ * (Common/Types/Monitor/CloudAlertTemplates).
  */
 export const ENVIRONMENT_VIEW_PAGES: Readonly<
   Partial<Record<CloudResourceViewTab, string>>
@@ -104,6 +112,8 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.Settings]:
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS,
   [CloudResourceViewTab.Owners]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS,
+  [CloudResourceViewTab.AuditLogs]:
+    PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS,
   [CloudResourceViewTab.Delete]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE,
   [CloudResourceViewTab.DeveloperTerraform]: getDeveloperDocsPageKey(
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
@@ -126,9 +136,12 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
 /*
  * A resource's pages, in Cloud. Its metrics are what its provider publishes
  * about it, so it has no traces or instances of its own; it has the Changes
- * its account's activity log records, and the logs an AWS connection's
- * stream delivers from the log group AWS names after it (CloudLogGroups) -
- * its side menu shows Logs only for a kind of resource a log group names.
+ * its account's activity log records, the logs an AWS connection's stream
+ * delivers from the log group AWS names after it (CloudLogGroups) - its side
+ * menu shows Logs only for a kind of resource a log group names - the
+ * monitors OneUptime recommends for it, from the metrics its connection
+ * reads (Recommendations), and the scheduled maintenance events that hold
+ * it, which silence those monitors while they are in progress.
  */
 export const RESOURCE_VIEW_PAGES: Readonly<
   Partial<Record<CloudResourceViewTab, string>>
@@ -139,11 +152,16 @@ export const RESOURCE_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.Feed]: PageMap.CLOUD_RESOURCE_VIEW_FEED,
   [CloudResourceViewTab.Incidents]: PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS,
   [CloudResourceViewTab.Alerts]: PageMap.CLOUD_RESOURCE_VIEW_ALERTS,
+  [CloudResourceViewTab.ScheduledMaintenance]:
+    PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE,
   [CloudResourceViewTab.Changes]: PageMap.CLOUD_RESOURCE_VIEW_CHANGES,
+  [CloudResourceViewTab.Recommendations]:
+    PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
   [CloudResourceViewTab.Documentation]:
     PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION,
   [CloudResourceViewTab.Settings]: PageMap.CLOUD_RESOURCE_VIEW_SETTINGS,
   [CloudResourceViewTab.Owners]: PageMap.CLOUD_RESOURCE_VIEW_OWNERS,
+  [CloudResourceViewTab.AuditLogs]: PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS,
   [CloudResourceViewTab.Delete]: PageMap.CLOUD_RESOURCE_VIEW_DELETE,
   [CloudResourceViewTab.DeveloperTerraform]: getDeveloperDocsPageKey(
     PageMap.CLOUD_RESOURCE_VIEW,

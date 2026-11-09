@@ -7,7 +7,7 @@ Et SLO fører to optegnelser over sin historik, og de svarer på forskellige sp�
 | | **Feed** | **Auditlogs** |
 | --- | --- | --- |
 | Svarer på | Hvad der er sket med SLO'et | Hvem der ændrede hvad, og hvornår |
-| Registrerer | Statusændringer, forbrugsrateadvarsler og -hændelser, og ændringer af SLO'et, dets regler, monitorer og ejere | Hver ændring, som personer har lavet i SLO'et, dets forbrugsrateregler, monitorregler og ejere, med den gamle og den nye værdi |
+| Registrerer | Statusændringer, skift af niveau i fejlbudgetpolitikken, advarsler og hændelser fra forbrugsrateregler og politikniveauer, og ændringer af SLO'et, dets regler, monitorer og ejere | Hver ændring, som personer har lavet i SLO'et, dets forbrugsrateregler, monitorregler, niveauer i fejlbudgetpolitikken og ejere, med den gamle og den nye værdi |
 | Medtager OneUptimes eget arbejde | Ja: evalueringer og monitorregler, der tilknytter monitorer | Kun med **Gem systemhændelser** slået til |
 | Abonnementer | Alle abonnementer | Enterprise-abonnementet på OneUptime Cloud eller Enterprise Edition på en selvhostet installation |
 | Opbevares | Tre år på OneUptime Cloud | 7 dage som standard, op til 180 |
@@ -32,9 +32,14 @@ Feedet ligger på SLO'ets side **Feed**, og dets nyeste elementer under **Senest
 | SLO aktiveret eller deaktiveret | Evalueringen slås til eller fra. |
 | SLO arkiveret eller gendannet | SLO'et arkiveres eller fjernes fra arkivet. |
 | Status ændret | En evaluering flytter SLO'et til en ny status. Viser den SLI, det fejlbudget, den forbrugsrate og den risikotærskel, der forklarer den, og årsagen ved **Sat på pause** eller **Forkert konfigureret**. |
+| Niveau i fejlbudgetpolitikken skiftet | En evaluering flytter SLO'et ind i et niveau i dets fejlbudgetpolitik, til et andet niveau eller ud af alle niveauer. Viser det niveau, det forlod, og det niveau, det gik ind i, det resterende budget, og hvad teamet har aftalt at gøre i det nye niveau, og siger, når skiftet frøs udrulninger eller tillod dem igen. Se [Fejlbudgetpolitik](/docs/slo/error-budget-policy). |
+| Udrulninger frosset eller tilladt igen | Nogen har slået **Frys udrulninger** til eller fra for det niveau, SLO'et er i, og den næste evaluering frøs udrulninger eller tillod dem igen. Når et skift af niveau gør det, siger elementet for det skift det i stedet. Se [Udrulningsspærre](/docs/slo/error-budget-policy#udrulningsspærre). |
 | Forbrugsrateadvarsel udløst | En forbrugsrateregel opretter en advarsel. Linker til den og viser de forbrugsrater, der udløste den. |
 | Forbrugsratehændelse erklæret | En forbrugsrateregel erklærer en hændelse. Linker til den og viser de forbrugsrater, der udløste den. |
 | Forbrugsrateadvarsel eller -hændelse løst | En regels advarsel eller hændelse lukkes: løst automatisk eller manuelt, mens automatisk løsning var slået fra. |
+| Advarsel fra fejlbudgetpolitikken udløst | Et niveau i fejlbudgetpolitikken opretter en advarsel. Linker til den. |
+| Hændelse fra fejlbudgetpolitikken erklæret | Et niveau i fejlbudgetpolitikken erklærer en hændelse. Linker til den. |
+| Advarsel eller hændelse fra fejlbudgetpolitikken løst | Et niveaus advarsel eller hændelse lukkes: afløst af et mere alvorligt niveau, løst automatisk eller manuelt, mens automatisk løsning var slået fra. |
 | Forbrugsrateregel tilføjet, ændret eller fjernet | Nogen opretter, redigerer eller sletter en forbrugsrateregel. Et nyt SLO's standardregler står i stedet i dets element "SLO oprettet". |
 | Monitorregel tilføjet, ændret eller fjernet | Nogen opretter, redigerer eller sletter en monitorregel. En gemning, der ikke ændrer noget af betydning, offentliggøres ikke. |
 | Monitorer tilknyttet eller frakoblet | Monitorer føjes til SLO'et eller fjernes fra det, manuelt eller af en monitorregel. Lange lister nævner de første monitorer "og N mere". |
@@ -55,6 +60,7 @@ SLO'ets side **Auditlogs** viser ændringer i:
 
 - selve SLO'et: dets oplysninger, indstillinger, etiketter, monitorer og arkivering;
 - dets forbrugsrateregler;
+- dets niveauer i fejlbudgetpolitikken;
 - dets monitorregler;
 - dets ejerbrugere og ejerteams.
 
@@ -62,7 +68,7 @@ SLO'ets side **Auditlogs** viser ændringer i:
 
 To ting er udeladt:
 
-- **Evalueringsresultater.** SLI'en, fejlbudgettet, forbrugsraten, status og evalueringstiderne ændrer sig med få minutters mellemrum. Deres historik findes på **Oversigt**, siden **Metrikker** og i **Feed**.
+- **Evalueringsresultater.** SLI'en, fejlbudgettet, forbrugsraten, status og evalueringstiderne ændrer sig med få minutters mellemrum. Deres historik findes på **Oversigt**, siden **Metrikker** og i **Feed**. Det niveau i fejlbudgetpolitikken, som SLO'et er i, og om dets udrulninger er tilladt, er undtagelsen: En ændring af et af dem registreres som en ændring, OneUptime selv har lavet.
 - **Ændringer, som OneUptime selv laver**, som en monitorregel, der tilknytter eller frakobler en monitor, medmindre **Gem systemhændelser** er slået til for projektet. **Feed** registrerer tilknytninger og frakoblinger af monitorer under alle omstændigheder.
 
 ### Slå auditlogs til

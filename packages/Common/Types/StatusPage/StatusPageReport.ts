@@ -26,6 +26,12 @@ export interface StatusPageReportItem {
   uptimePercentAsString: string;
   downtimeInHoursAndMinutes: string;
   /*
+   * The downtime above in whole minutes, rounded up as it is written: what
+   * a report in a subscriber's language writes its duration from
+   * (Utils/StatusPage/ReportText).
+   */
+  downtimeInMinutes?: number | undefined;
+  /*
    * The group this resource is attached to directly. Empty string when the
    * resource is not in any group (it renders above the groups on the live page).
    */
@@ -46,6 +52,8 @@ export interface StatusPageReportGroupMetrics {
   uptimePercent: number;
   uptimePercentAsString: string;
   downtimeInHoursAndMinutes: string;
+  // The downtime above in whole minutes, as StatusPageReportItem's.
+  downtimeInMinutes?: number | undefined;
   totalIncidentCount: number;
 }
 
@@ -100,6 +108,8 @@ export interface StatusPageReport {
   totalIncidents: number;
   averageUptimePercent: string;
   totalDowntimeInHoursAndMinutes: string;
+  // The total downtime above in whole minutes, as StatusPageReportItem's.
+  totalDowntimeInMinutes?: number | undefined;
   resources: Array<StatusPageReportItem>;
   groups: Array<StatusPageReportGroup>;
   // Resources that are not in any group, in status page order.

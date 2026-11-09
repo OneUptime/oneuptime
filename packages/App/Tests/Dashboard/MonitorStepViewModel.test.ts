@@ -11,6 +11,7 @@ import Dictionary from "Common/Types/Dictionary";
 import IP from "Common/Types/IP/IP";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import { DatabaseMetricGroup } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
@@ -32,6 +33,9 @@ import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeTyp
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
+import MonitorStepMetricQueries, {
+  MonitorStepMetricReads,
+} from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import {
   buildDictionaryValue,
   DictionaryEntryValue,
@@ -1885,6 +1889,232 @@ describe("MonitorStepViewModel metric helpers", () => {
       MonitorType.Manual,
     ]) {
       expect(MonitorStepViewModel.hasMetricPreview(monitorType)).toBe(false);
+    }
+  });
+});
+
+/*
+ * The criteria page's chart preview charts what the monitor evaluates
+ * (issue #5759). An infrastructure monitor's queries name only the metric:
+ * the worker narrows each one to the resource the monitor watches, so the
+ * queries charted as saved show that metric across every resource in the
+ * project.
+ */
+describe("MonitorStepViewModel.getEvaluatedMetricsViewConfig", () => {
+  const METRIC_BACKED_TYPES_BUILT_HERE: Array<MonitorType> = [
+    MonitorType.Metrics,
+    MonitorType.Kubernetes,
+    MonitorType.Docker,
+    MonitorType.Podman,
+    MonitorType.Host,
+    MonitorType.Proxmox,
+    MonitorType.OpenStack,
+    MonitorType.VMware,
+    MonitorType.DockerSwarm,
+    MonitorType.Ceph,
+    MonitorType.IoTDevice,
+  ];
+
+  const attributesOf: (config: MetricsViewConfig) => Array<unknown> = (
+    config: MetricsViewConfig,
+  ): Array<unknown> => {
+    return config.queryConfigs.map(
+      (queryConfig: MetricQueryConfigData): unknown => {
+        return queryConfig.metricQueryData.filterData.attributes;
+      },
+    );
+  };
+
+  const evaluated: (
+    monitorType: MonitorType,
+    monitorStep: MonitorStep | undefined,
+  ) => MetricsViewConfig = (
+    monitorType: MonitorType,
+    monitorStep: MonitorStep | undefined,
+  ): MetricsViewConfig => {
+    return MonitorStepViewModel.getEvaluatedMetricsViewConfig({
+      monitorType,
+      monitorStep,
+    });
+  };
+
+  // Issue #6266: the criteria page's Metric Preview of a service-limited monitor.
+  it("reads a Metrics monitor limited to some services for those services only", () => {
+    const services: Array<string> = [
+      "44444444-4444-4444-8444-444444444444",
+      "55555555-5555-4555-8555-555555555555",
+    ];
+
+    const config: MetricsViewConfig = evaluated(
+      MonitorType.Metrics,
+      buildStep({
+        metricMonitor: {
+          telemetryServiceIds: services as never,
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past15Minutes,
+        },
+      }),
+    );
+
+    expect(
+      config.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
+        return queryConfig.metricQueryData.filterData.telemetryServiceIds;
+      }),
+    ).toEqual(
+      METRIC_VIEW_CONFIG.queryConfigs.map(() => {
+        return services;
+      }),
+    );
+
+    // One read for every service carries no service filter, as before.
+    const everyService: MetricsViewConfig = evaluated(
+      MonitorType.Metrics,
+      buildStep({
+        metricMonitor: {
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past15Minutes,
+        },
+      }),
+    );
+    for (const queryConfig of everyService.queryConfigs) {
+      expect(Object.keys(queryConfig.metricQueryData.filterData)).not.toContain(
+        "telemetryServiceIds",
+      );
+    }
+  });
+
+  it("narrows a Host monitor's queries to its host, named as the worker resolves it", () => {
+    const config: MetricsViewConfig = evaluated(
+      MonitorType.Host,
+      buildStep({
+        hostMonitor: {
+          hostIdentifier: "  Web-1 ",
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past15Minutes,
+        },
+      }),
+    );
+
+    expect(attributesOf(config)).toEqual([
+      { "resource.host.name": "web-1" },
+      { "resource.host.name": "web-1" },
+    ]);
+    // The formula reads the narrowed queries, and is charted as written.
+    expect(config.formulaConfigs).toEqual(METRIC_VIEW_CONFIG.formulaConfigs);
+  });
+
+  it("narrows a Kubernetes monitor's queries to its cluster and resource filters", () => {
+    const config: MetricsViewConfig = evaluated(
+      MonitorType.Kubernetes,
+      buildStepForMonitorType(MonitorType.Kubernetes),
+    );
+
+    expect(config.queryConfigs).toHaveLength(2);
+    for (const attributes of attributesOf(config)) {
+      expect(attributes).toMatchObject({
+        "resource.k8s.cluster.name": "prod-cluster",
+        "resource.k8s.namespace.name": "payments",
+      });
+    }
+  });
+
+  it("narrows a Proxmox monitor's queries to its cluster and guest", () => {
+    for (const attributes of attributesOf(
+      evaluated(
+        MonitorType.Proxmox,
+        buildStepForMonitorType(MonitorType.Proxmox),
+      ),
+    )) {
+      expect(attributes).toMatchObject({
+        "resource.proxmox.cluster.name": "pve-cluster",
+        id: "qemu/100",
+      });
+    }
+  });
+
+  it("reads every metric-backed type as the overview's Metrics card does, and narrows every infrastructure one", () => {
+    for (const monitorType of METRIC_BACKED_TYPES_BUILT_HERE) {
+      const monitorStep: MonitorStep = buildStepForMonitorType(monitorType);
+      const reads: MonitorStepMetricReads | null =
+        MonitorStepMetricQueries.getReads({ monitorType, monitorStep });
+
+      expect({ monitorType, read: reads !== null }).toEqual({
+        monitorType,
+        read: true,
+      });
+
+      const config: MetricsViewConfig = evaluated(monitorType, monitorStep);
+
+      expect(config).toEqual({
+        queryConfigs: reads!.queryConfigs,
+        formulaConfigs: reads!.formulaConfigs,
+      });
+
+      if (monitorType !== MonitorType.Metrics) {
+        expect({
+          monitorType,
+          narrowed:
+            JSON.stringify(config) !==
+            JSON.stringify(
+              MonitorStepViewModel.getMetricsViewConfig(monitorStep),
+            ),
+        }).toEqual({ monitorType, narrowed: true });
+      }
+    }
+  });
+
+  it("keeps a Metrics monitor's queries as written, read for the services it is limited to", () => {
+    const monitorStep: MonitorStep = buildStepForMonitorType(
+      MonitorType.Metrics,
+    );
+    const written: MetricsViewConfig =
+      MonitorStepViewModel.getMetricsViewConfig(monitorStep);
+    const services: Array<string> = (
+      monitorStep.data!.metricMonitor!.telemetryServiceIds || []
+    ).map((serviceId: unknown): string => {
+      return String(serviceId);
+    });
+
+    // The step this suite builds is limited to a service (issue #6266).
+    expect(services.length).toBeGreaterThan(0);
+    expect(evaluated(MonitorType.Metrics, monitorStep)).toEqual({
+      ...written,
+      queryConfigs: written.queryConfigs.map(
+        (queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
+          return {
+            ...queryConfig,
+            metricQueryData: {
+              ...queryConfig.metricQueryData,
+              filterData: {
+                ...queryConfig.metricQueryData.filterData,
+                telemetryServiceIds: services,
+              },
+            },
+          };
+        },
+      ),
+    });
+  });
+
+  it("falls back to the step's own config for a type that is not metric-backed, and to nothing without a step", () => {
+    expect(
+      evaluated(MonitorType.API, buildStepForMonitorType(MonitorType.API)),
+    ).toEqual({ queryConfigs: [], formulaConfigs: [] });
+
+    expect(evaluated(MonitorType.Host, undefined)).toEqual({
+      queryConfigs: [],
+      formulaConfigs: [],
+    });
+  });
+
+  it("leaves the saved step as it was", () => {
+    for (const monitorType of METRIC_BACKED_TYPES_BUILT_HERE) {
+      const monitorStep: MonitorStep = buildStepForMonitorType(monitorType);
+      const before: string = JSON.stringify(monitorStep.data);
+
+      evaluated(monitorType, monitorStep);
+
+      expect(JSON.stringify(monitorStep.data)).toBe(before);
     }
   });
 });

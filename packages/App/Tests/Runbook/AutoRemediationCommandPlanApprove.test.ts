@@ -603,14 +603,22 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       },
     );
 
-    test("reads the project as root, by the SUGGESTION's project id, for Enable AI alone", async () => {
+    test("reads the project as root, by the SUGGESTION's project id, for Enable AI and the two-approvals rule alone", async () => {
       await callRoute({ uri: APPROVE_ROUTE });
 
       expect(projectFindSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           id: PROJECT_ID,
-          // Exactly: the retired switches are never selected.
-          select: { _id: true, enableAi: true },
+          /*
+           * Exactly: the retired switches are never selected. Whether a
+           * riskier fix needs two people's approval (#6148's follow-up) is
+           * read with Enable AI, as the approval is made.
+           */
+          select: {
+            _id: true,
+            enableAi: true,
+            requireTwoApprovalsForRiskierFixes: true,
+          },
           props: expect.objectContaining({ isRoot: true }),
         }),
       );
@@ -1070,6 +1078,176 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       expect(executeApprovedPlanMock).not.toHaveBeenCalled();
       expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
       expect(incidentFeedSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Two people approve a riskier fix (#6148's follow-up): where the project
+   * asks for it, the route's approval of a plan holding a riskier change is
+   * recorded as the first of two and runs nothing; the person who gave it
+   * is refused a second time; someone else's approval runs it; and with
+   * the rule off the plan runs on one approval, as before.
+   */
+  describe("POST /auto-remediation/approve — two people approve a riskier plan", () => {
+    const CLUSTER_ID: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    const AGENT_ID: ObjectID = new ObjectID(
+      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    );
+    const OTHER_USER_ID: ObjectID = new ObjectID(
+      "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    );
+
+    function riskierPlanJson(): JSONObject {
+      return {
+        commands: [
+          validCommandJson({
+            stepType: RunbookStepType.Kubectl,
+            runnerId: AGENT_ID.toString(),
+            runnerNameSnapshot: KUBERNETES_AI_AGENT_DISPLAY_NAME,
+            kubernetesClusterId: CLUSTER_ID.toString(),
+            kubernetesClusterNameSnapshot: "prod-us",
+            kubectlTier: KubectlCommandTier.RiskyWrite,
+            command: "kubectl scale deployment/web --replicas=0 -n web",
+          }),
+        ],
+      } as JSONObject;
+    }
+
+    let firstSpy: jest.SpyInstance;
+    let secondSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      jest
+        .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
+        .mockResolvedValue({
+          clusterId: CLUSTER_ID.toString(),
+          clusterName: "prod-us",
+          clusterIdentifier: "prod-us",
+          runner: {
+            id: AGENT_ID.toString(),
+            name: KUBERNETES_AI_AGENT_DISPLAY_NAME,
+            kind: "ai_agent",
+            isOnline: true,
+            canRunAiCommands: true,
+            posture: { inCluster: true, allowWrites: true },
+          },
+          aiAgent: null,
+          automaticInvestigation: { incidents: false, alerts: false },
+          accessMethod: "in_cluster",
+          kubectlAllowlist: [],
+          isInvestigationEnabled: true,
+          isInvestigationReady: true,
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          isRemediationReady: true,
+          gaps: [],
+          evaluatedAt: "2026-01-01T00:00:00.000Z",
+        } as KubernetesClusterAiAccessStatus);
+      jest
+        .spyOn(KubernetesClusterAiAccessService, "assertCallerMayChangeCluster")
+        .mockResolvedValue(undefined);
+      firstSpy = jest
+        .spyOn(AutoRemediationSuggestionService, "attemptFirstApproval")
+        .mockResolvedValue(1);
+      secondSpy = jest
+        .spyOn(AutoRemediationSuggestionService, "attemptSecondApproval")
+        .mockResolvedValue(1);
+      projectFindSpy.mockResolvedValue(
+        fakeProject({ requireTwoApprovalsForRiskierFixes: true }),
+      );
+    });
+
+    test("the first approval is recorded as the approver's, from the Dashboard, and nothing runs", async () => {
+      mockSuggestion({ commandPlan: riskierPlanJson() });
+
+      const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(firstSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          suggestionId: SUGGESTION_ID,
+          set: expect.objectContaining({
+            firstApprovedByUserId: USER_ID.toString(),
+            firstApprovedFrom: "Dashboard",
+          }),
+        }),
+      );
+      expect(casSpy).not.toHaveBeenCalled();
+      expect(secondSpy).not.toHaveBeenCalled();
+      expect(executeApprovedPlanMock).not.toHaveBeenCalled();
+      expect(sendJsonObjectResponseMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        {
+          suggestionId: SUGGESTION_ID.toString(),
+          status: AutoRemediationSuggestionStatus.Suggested,
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          isWaitingForSecondApproval: true,
+        },
+      );
+      expect(incidentFeedSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          feedInfoInMarkdown: expect.stringContaining(
+            "It holds a riskier change, so it runs once someone else approves it too.",
+          ),
+        }),
+      );
+    });
+
+    test("the person who approved first is refused a second time, and nothing is claimed", async () => {
+      mockSuggestion({
+        commandPlan: riskierPlanJson(),
+        firstApprovedByUserId: USER_ID,
+      });
+
+      const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+      expect((result.thrownToNext as BadDataException).message).toBe(
+        "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
+      );
+      expect(firstSpy).not.toHaveBeenCalled();
+      expect(secondSpy).not.toHaveBeenCalled();
+      expectNoClaimAndNoExecution();
+    });
+
+    test("someone else's approval is the second: claimed after the first approver's, and run", async () => {
+      mockSuggestion({
+        commandPlan: riskierPlanJson(),
+        firstApprovedByUserId: OTHER_USER_ID,
+      });
+
+      const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(secondSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          suggestionId: SUGGESTION_ID,
+          firstApprovedByUserId: OTHER_USER_ID.toString(),
+          set: expect.objectContaining({
+            status: AutoRemediationSuggestionStatus.Approved,
+            approvedByUserId: USER_ID.toString(),
+          }),
+        }),
+      );
+      expect(casSpy).not.toHaveBeenCalled();
+      expect(executeApprovedPlanMock).toHaveBeenCalledWith({
+        suggestionId: SUGGESTION_ID,
+      });
+    });
+
+    test("with the rule off, a riskier plan runs on one approval (negative control)", async () => {
+      projectFindSpy.mockResolvedValue(
+        fakeProject({ requireTwoApprovalsForRiskierFixes: false }),
+      );
+      mockSuggestion({ commandPlan: riskierPlanJson() });
+
+      const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(firstSpy).not.toHaveBeenCalled();
+      expect(casSpy).toHaveBeenCalledTimes(1);
+      expect(executeApprovedPlanMock).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -1,3 +1,4 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
 import AlignItem from "../../Types/AlignItem";
 import { Logger } from "../../Utils/Logger";
 import useTranslateValue from "../../Utils/Translation";
@@ -662,7 +663,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
             <div
               className={`${alignClassName} ${DETAIL_FIELD_DESCRIPTION_CLASS_NAME}`}
             >
-              {translatedDescription}
+              {readAsWritten(translatedDescription, translator.language)}
             </div>
           )}
         </div>

@@ -52,6 +52,7 @@ import {
   matchResourceId,
   readCloudEndpointHosts,
   readRecordAddresses,
+  readSecurityEventLogResources,
   readSecurityLogResource,
   recordReportsAddress,
   wasLookedUpEverywhere,
@@ -125,6 +126,7 @@ describe("the kinds and reasons", () => {
       SecurityConnectionKind.DockerHost,
       SecurityConnectionKind.PodmanHost,
       SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.OpenStackCloud,
       SecurityConnectionKind.NetworkDevice,
       SecurityConnectionKind.CloudResource,
       SecurityConnectionKind.ServerlessFunction,
@@ -1104,6 +1106,7 @@ describe("the kinds each value is looked up among", () => {
       SecurityConnectionKind.DockerHost,
       SecurityConnectionKind.PodmanHost,
       SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.OpenStackCloud,
       SecurityConnectionKind.NetworkDevice,
       SecurityConnectionKind.CloudResource,
       SecurityConnectionKind.Monitor,
@@ -1331,6 +1334,70 @@ describe("readSecurityLogResource", () => {
           "33333333-3333-4333-8333-333333333333",
       }),
     ).toBeNull();
+  });
+});
+
+/*
+ * An event read from a network device's syslog (issue #5769) is connected
+ * to the device itself, beside the service its syslog was sent under: the
+ * device's id is on every line ingest matched to it, and on every event the
+ * log scan read from one.
+ */
+describe("readSecurityEventLogResources", () => {
+  const DEVICE_ID: string = "55555555-5555-4555-8555-555555555555";
+  const SERVICE_ID: string = "33333333-3333-4333-8333-333333333333";
+
+  test("the record its line was sent under, then the device it came from", () => {
+    expect(
+      readSecurityEventLogResources({
+        [SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]: SERVICE_ID,
+        [SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE]: "OpenTelemetry",
+        "networkDevice.id": DEVICE_ID,
+        "networkDevice.name": "core-fw-01",
+      }),
+    ).toEqual([
+      { type: "OpenTelemetry", id: SERVICE_ID },
+      { type: "NetworkDevice", id: DEVICE_ID },
+    ]);
+  });
+
+  test("a device's line without a record it was sent under is the device's alone", () => {
+    expect(
+      readSecurityEventLogResources({ "networkDevice.id": ` ${DEVICE_ID} ` }),
+    ).toEqual([{ type: "NetworkDevice", id: DEVICE_ID }]);
+  });
+
+  test("a line from no device is the record it was sent under, as before", () => {
+    expect(
+      readSecurityEventLogResources({
+        [SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]: SERVICE_ID,
+        [SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE]: "Host",
+      }),
+    ).toEqual([{ type: "Host", id: SERVICE_ID }]);
+  });
+
+  test("the device is listed once, whichever way it was named", () => {
+    expect(
+      readSecurityEventLogResources({
+        [SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]: DEVICE_ID,
+        [SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE]: "NetworkDevice",
+        "networkDevice.id": DEVICE_ID.toUpperCase(),
+      }),
+    ).toEqual([{ type: "NetworkDevice", id: DEVICE_ID }]);
+  });
+
+  test.each([
+    ["no attributes", undefined],
+    ["null", null],
+    ["another source's event", { "host.name": "web-01" }],
+    ["a device id that is not one", { "networkDevice.id": "router-1" }],
+    ["a number for a device id", { "networkDevice.id": 7 }],
+  ])("%s has none", (_case: string, attributes: unknown) => {
+    expect(
+      readSecurityEventLogResources(
+        attributes as Parameters<typeof readSecurityEventLogResources>[0],
+      ),
+    ).toEqual([]);
   });
 });
 

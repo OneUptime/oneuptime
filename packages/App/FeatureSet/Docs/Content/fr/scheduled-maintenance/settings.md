@@ -20,7 +20,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | **Règles d'étiquettes** | Ajoute des étiquettes aux événements qui correspondent.        |
 | **Règles de rappel** | Rappelle l'événement aux propriétaires à intervalle régulier jusqu'à ce qu'il soit achevé. |
 
-La section **Paramètres** contient **État de l'événement**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles d'événement**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier** et **Numérotation**. **Paramètres du calendrier** est traité dans [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#calendriers-externes), le reste ci-dessous.
+La section **Paramètres** contient **État de l'événement**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles d'événement**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Approbation des notes publiques**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier** et **Numérotation**. **Paramètres du calendrier** est traité dans [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#calendriers-externes), le reste ci-dessous.
 
 La section **Espace de travail** contient les règles Slack et Microsoft Teams qui publient les événements dans des canaux. Voir [Slack](/docs/workspace-connections/slack#règles-de-notification) et [Microsoft Teams](/docs/workspace-connections/microsoft-teams#règles-de-notification).
 
@@ -93,6 +93,10 @@ Ces rappels sont pour votre équipe. Les rappels que reçoivent les abonnés de 
 ### Modèles de notes
 
 **Maintenance planifiée → Paramètres → Modèles de notes** contient des textes prêts à l'emploi pour les mises à jour de maintenance. La carte **Modèles de notes publiques ou privées pour les événements de maintenance planifiée** les liste ; **Créer : Modèle de note de maintenance planifiée** demande un **Nom du modèle**, une **Description du modèle** et la **Note**. Un modèle est proposé quand quelqu'un écrit une note publique ou privée sur un événement, et quand quelqu'un change son état, et son texte peut être modifié avant publication. Contrairement aux modèles de notes d'incident, les modèles de notes de maintenance ne remplissent aucune variable.
+
+### Approbation des notes publiques
+
+**Maintenance planifiée → Paramètres → Approbation des notes publiques** fait approuver les notes publiques des événements de maintenance planifiée avant leur publication. Elle fonctionne comme la page des incidents, avec son propre interrupteur et ses propres étapes : activez **Exiger une approbation avant la publication des notes publiques** et choisissez qui approuve sous **Qui approuve**. Ainsi, les notes de maintenance peuvent exiger une approbation alors que celles des incidents non, ou être approuvées par d'autres personnes. Seuls **Propriétaire du projet** et **Administrateur du projet** peuvent la modifier. Voir [Approbation des notes publiques](/docs/incidents/settings#approbation-des-notes-publiques) pour les étapes, et [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques) pour ce que fait une note pendant qu'elle attend.
 
 ### Champs personnalisés
 

@@ -1,5 +1,6 @@
 import AppLink from "../../AppLink/AppLink";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
+import { getChangeEventTypeLabel } from "../../Metrics/Utils/UseEventTimeReferenceLines";
 import {
   SECURITY_CASE_CONTEXT_TEST_IDS,
   STORY_CASE_OPENED,
@@ -66,6 +67,7 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import TableEmptyState, {
   TableEmptyStateKind,
@@ -73,7 +75,12 @@ import TableEmptyState, {
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { getCloudChangeTitle } from "Common/Utils/Telemetry/CloudChangeTitle";
+import {
+  ChangeTitleDirection,
+  getChangeTitleDirection,
+  getCloudChangeTitle,
+  getCloudHealthTitle,
+} from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -145,6 +152,36 @@ function sourceNames(
   );
 }
 
+// What the server calls a change it was given no kind for (SecurityCaseStory).
+const STORY_CHANGE_WITHOUT_KIND: string = "change";
+
+/*
+ * The state an item's pill names: a change by its kind, as the Changes
+ * lists and the chart markers name it ("Config change", in the reader's
+ * language) - the story used to draw the stored code, "config-change" -
+ * and an incident's, an alert's or a playbook run's state as it is called.
+ * A kind of change those lists do not name is the sender's own word
+ * ("release"), drawn as written; a change sent with no kind has no pill:
+ * the label above its title already says it is a change event.
+ */
+export function getStoryItemStateLabel(
+  item: Pick<SecurityCaseStoryItemJson, "kind" | "stateName">,
+): string {
+  const stateName: string = (item.stateName || "").trim();
+
+  if (item.kind !== SecurityCaseStoryItemKind.Change) {
+    return stateName;
+  }
+
+  const label: string = getChangeEventTypeLabel(stateName);
+
+  if (label !== getChangeEventTypeLabel(undefined)) {
+    return label;
+  }
+
+  return stateName.toLowerCase() === STORY_CHANGE_WITHOUT_KIND ? "" : stateName;
+}
+
 // What an item says, as its title: its source's words, or the case's step.
 function useItemTitle(item: SecurityCaseStoryItemJson): string {
   const translator: Translator = useTranslator();
@@ -163,6 +200,13 @@ function useItemTitle(item: SecurityCaseStoryItemJson): string {
   // An operation a cloud account recorded, in the reader's language.
   if (item.kind === SecurityCaseStoryItemKind.Change && item.cloudChange) {
     return getCloudChangeTitle(item.cloudChange, translator, {
+      setsValuesApart: true,
+    });
+  }
+
+  // What a cloud published about its health, its frame and state in the reader's language.
+  if (item.kind === SecurityCaseStoryItemKind.Change && item.cloudHealth) {
+    return getCloudHealthTitle(item.cloudHealth, translator, {
       setsValuesApart: true,
     });
   }
@@ -225,17 +269,37 @@ const StoryItemFacts: FunctionComponent<{
   const translator: Translator = useTranslator();
   const item: SecurityCaseStoryItemJson = props.item;
   const facts: Array<ReactElement> = [];
+  /*
+   * Each value set apart from its line (setsValuesApart): a time, a name
+   * or a count in Latin letters keeps its place in a Persian line.
+   */
   const until: string | null = item.endTime
-    ? translator.translateTemplate(STORY_UNTIL, {
-        time: OneUptimeDate.getLocalHourAndMinuteFromDate(item.endTime),
-      })
+    ? translator.translateTemplate(
+        STORY_UNTIL,
+        { time: OneUptimeDate.getLocalHourAndMinuteFromDate(item.endTime) },
+        { setsValuesApart: true },
+      )
     : null;
+
+  /*
+   * "413 events like this · until 11:51": the separator the reader's
+   * language sets facts apart with - a bullet on a Persian page, where a
+   * middle dot beside Persian digits reads as a zero (InlineSeparator).
+   */
+  const untilPart: ReactElement = until ? (
+    <>
+      <InlineSeparator />
+      {until}
+    </>
+  ) : (
+    <></>
+  );
 
   if (item.kind === SecurityCaseStoryItemKind.Events && (item.count || 0) > 1) {
     facts.push(
       <span key="count">
         {translator.translatePlural(STORY_EVENTS_IN_RUN, item.count || 0)}
-        {until ? ` · ${until}` : ""}
+        {untilPart}
       </span>,
     );
   }
@@ -244,7 +308,7 @@ const StoryItemFacts: FunctionComponent<{
     facts.push(
       <span key="fired">
         {translator.translatePlural(STORY_FIRED, item.count || 1)}
-        {until ? ` · ${until}` : ""}
+        {untilPart}
       </span>,
     );
   }
@@ -269,10 +333,18 @@ const StoryItemFacts: FunctionComponent<{
             to={recordRoute}
             className="text-gray-700 hover:text-indigo-700 hover:underline"
           >
-            {translator.translateTemplate(STORY_ON_RECORD, { name })}
+            {translator.translateTemplate(
+              STORY_ON_RECORD,
+              { name },
+              { setsValuesApart: true },
+            )}
           </AppLink>
         ) : (
-          translator.translateTemplate(STORY_ON_RECORD, { name })
+          translator.translateTemplate(
+            STORY_ON_RECORD,
+            { name },
+            { setsValuesApart: true },
+          )
         )}
       </span>,
     );
@@ -286,6 +358,7 @@ const StoryItemFacts: FunctionComponent<{
             ? STORY_WRITTEN_BY
             : STORY_STARTED_BY,
           { name: item.actorName },
+          { setsValuesApart: true },
         )}
       </span>,
     );
@@ -306,10 +379,14 @@ const StoryItemFacts: FunctionComponent<{
 
             return (
               <span key={entry.outcome || "none"} className="whitespace-nowrap">
-                {translator.translateTemplate(STORY_OUTCOME_TALLY, {
-                  label,
-                  count: translator.formatNumber(entry.count),
-                })}
+                {translator.translateTemplate(
+                  STORY_OUTCOME_TALLY,
+                  {
+                    label,
+                    count: translator.formatNumber(entry.count),
+                  },
+                  { setsValuesApart: true },
+                )}
               </span>
             );
           },
@@ -341,14 +418,28 @@ const StoryItem: FunctionComponent<{
   const translator: Translator = useTranslator();
   const item: SecurityCaseStoryItemJson = props.item;
   const title: string = useItemTitle(item);
+  /*
+   * A change worded in the reader's language reads their way - a Persian
+   * health event right to left, though it starts with "AWS Health:" - and
+   * every other title its own (getChangeTitleDirection).
+   */
+  const titleDirection: ChangeTitleDirection =
+    item.kind === SecurityCaseStoryItemKind.Change
+      ? getChangeTitleDirection({
+          facts: item.cloudChange,
+          health: item.cloudHealth,
+          translator,
+        })
+      : "auto";
   const titleRoute: Route | null = getStoryItemTitleRoute(item);
   const tone: ReturnType<typeof getStoryItemTone> = getStoryItemTone(item);
   const outcome: SecurityEventRequestOutcome | null =
     isSecurityEventRequestOutcome(item.requestOutcome)
       ? item.requestOutcome
       : null;
+  const stateLabel: string = getStoryItemStateLabel(item);
   const titleText: ReactElement = (
-    <bdi>
+    <bdi dir={titleDirection}>
       {item.number ? (
         <span className="font-medium text-gray-500">{item.number} </span>
       ) : (
@@ -403,9 +494,9 @@ const StoryItem: FunctionComponent<{
           ) : (
             <></>
           )}
-          {item.stateName && !outcome ? (
+          {stateLabel && !outcome ? (
             <Pill
-              text={item.stateName}
+              text={stateLabel}
               color={item.stateColor ? new Color(item.stateColor) : Gray500}
               size={PillSize.Small}
             />
@@ -575,14 +666,18 @@ const SecurityCaseStory: FunctionComponent<ComponentProps> = (
               className="h-3.5 w-3.5 shrink-0 text-gray-400"
             />
             <span>
-              {translator.translateTemplate(STORY_WINDOW, {
-                start: OneUptimeDate.getDateAsLocalShortDateTimeString(
-                  story.windowStart,
-                ),
-                end: OneUptimeDate.getDateAsLocalShortDateTimeString(
-                  story.windowEnd,
-                ),
-              })}
+              {translator.translateTemplate(
+                STORY_WINDOW,
+                {
+                  start: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                    story.windowStart,
+                  ),
+                  end: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                    story.windowEnd,
+                  ),
+                },
+                { setsValuesApart: true },
+              )}
             </span>
           </div>
         ) : (

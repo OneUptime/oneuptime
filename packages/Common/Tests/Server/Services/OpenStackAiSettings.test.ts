@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
 import ResourceAiAccessService, {
   ResourceAiAccessProjectGates,
@@ -200,8 +201,9 @@ describe("what a person may set", () => {
 
 describe("what an agent reports", () => {
   test("its write switch alone turns nothing on: an agent's defaults are not a choice", async () => {
-    const update: jest.SpiedFunction<typeof OpenStackCloudService.updateOneBy> =
-      jest.spyOn(OpenStackCloudService, "updateOneBy").mockResolvedValue(1);
+    const update: SpyInstance<typeof OpenStackCloudService.updateOneBy> = jest
+      .spyOn(OpenStackCloudService, "updateOneBy")
+      .mockResolvedValue(1);
 
     const applied: ResourceAiAgentSettingsApplied | null =
       await ResourceAiAgentService.applyReportedAiSettings({
@@ -224,9 +226,9 @@ describe("what an agent reports", () => {
   )(
     "a configuration that names %s is the second opt-in",
     async (fixes: AgentAiFixesMode) => {
-      const update: jest.SpiedFunction<
-        typeof OpenStackCloudService.updateOneBy
-      > = jest.spyOn(OpenStackCloudService, "updateOneBy").mockResolvedValue(1);
+      const update: SpyInstance<typeof OpenStackCloudService.updateOneBy> = jest
+        .spyOn(OpenStackCloudService, "updateOneBy")
+        .mockResolvedValue(1);
 
       const applied: ResourceAiAgentSettingsApplied | null =
         await ResourceAiAgentService.applyReportedAiSettings({
@@ -240,8 +242,9 @@ describe("what an agent reports", () => {
   );
 
   test("a configuration that says off takes a mode on the row back to off", async () => {
-    const update: jest.SpiedFunction<typeof OpenStackCloudService.updateOneBy> =
-      jest.spyOn(OpenStackCloudService, "updateOneBy").mockResolvedValue(1);
+    const update: SpyInstance<typeof OpenStackCloudService.updateOneBy> = jest
+      .spyOn(OpenStackCloudService, "updateOneBy")
+      .mockResolvedValue(1);
 
     const applied: ResourceAiAgentSettingsApplied | null =
       await ResourceAiAgentService.applyReportedAiSettings({
@@ -262,8 +265,9 @@ describe("what an agent reports", () => {
   });
 
   test("its investigation setting still counts", async () => {
-    const update: jest.SpiedFunction<typeof OpenStackCloudService.updateOneBy> =
-      jest.spyOn(OpenStackCloudService, "updateOneBy").mockResolvedValue(1);
+    const update: SpyInstance<typeof OpenStackCloudService.updateOneBy> = jest
+      .spyOn(OpenStackCloudService, "updateOneBy")
+      .mockResolvedValue(1);
 
     const applied: ResourceAiAgentSettingsApplied | null =
       await ResourceAiAgentService.applyReportedAiSettings({
@@ -284,8 +288,9 @@ describe("what an agent reports", () => {
 
 describe("a first connection", () => {
   test("turns investigation on, and never fixes, whatever the agent allows", async () => {
-    const update: jest.SpiedFunction<typeof OpenStackCloudService.updateOneBy> =
-      jest.spyOn(OpenStackCloudService, "updateOneBy").mockResolvedValue(1);
+    const update: SpyInstance<typeof OpenStackCloudService.updateOneBy> = jest
+      .spyOn(OpenStackCloudService, "updateOneBy")
+      .mockResolvedValue(1);
 
     const applied: ResourceAiAgentDefaultsApplied =
       await ResourceAiAgentService.applyFirstConnectionDefaults({

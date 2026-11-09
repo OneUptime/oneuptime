@@ -728,4 +728,50 @@ export default class CloudAccount extends BaseModel {
     nullable: true,
   })
   public aiAccessConfiguredAt?: Date = undefined;
+
+  /*
+   * When someone last reset this account's AI agent (Reset agent, on its AI
+   * agent page): every key of its Cloud AI agent stopped working at once,
+   * and the agent stays disconnected until its setup command runs again with
+   * a new one. Only the server writes it, as the reset is made, and the
+   * reset's audit log entry names it (issue #6302): the agent's own row is
+   * what the agent reports, which the audit log leaves out.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Agent Reset At",
+    description:
+      "When this account's Cloud AI agent was last reset: every key it had stopped working, and it stays disconnected until its setup command runs again. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAgentResetAt?: Date = undefined;
+
+  /*
+   * The SHA-256 of the keys this account's Cloud AI agent may connect with
+   * (Types/CloudConnection/CloudAiAgentKey): the agent's own, the ones made
+   * for a setup command that has not connected yet, and whether the
+   * project's ingestion key may still connect it. The keys themselves are
+   * never stored, and even their hashes are nobody's to read: the key route
+   * and Reset agent write this column, registration reads it. Empty for an
+   * account whose agent was set up before agents had keys of their own.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "AI Agent Keys",
+    description:
+      "SHA-256 of the keys the account's Cloud AI agent connects with, and of the ones made for a setup command. Server only; never readable.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public aiAgentKeys?: JSONObject = undefined;
 }

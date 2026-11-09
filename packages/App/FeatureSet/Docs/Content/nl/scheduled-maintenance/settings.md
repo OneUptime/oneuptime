@@ -20,7 +20,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De s
 | **Labelregels**    | Voegt labels toe aan passende gebeurtenissen.                       |
 | **Herinneringsregels** | Herinnert eigenaren met een interval tot een gebeurtenis voltooid is. |
 
-De sectie **Instellingen** bevat **Status gebeurtenis**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Gebeurtenis-sjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen** en **Nummering**. **Agenda-instellingen** wordt behandeld in [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#externe-agendas), de rest hieronder.
+De sectie **Instellingen** bevat **Status gebeurtenis**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Gebeurtenis-sjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen** en **Nummering**. **Agenda-instellingen** wordt behandeld in [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#externe-agendas), de rest hieronder.
 
 De sectie **Werkruimte** bevat de Slack- en Microsoft Teams-regels die gebeurtenissen in kanalen plaatsen. Zie [Slack](/docs/workspace-connections/slack#meldingsregels) en [Microsoft Teams](/docs/workspace-connections/microsoft-teams#meldingsregels).
 
@@ -92,7 +92,11 @@ Deze herinneringen zijn voor je team. De herinneringen die de abonnees van je st
 
 ### Notitiesjablonen
 
-**Geplande onderhoud → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor onderhoudsupdates. De kaart **Openbare of privénotitiesjablonen voor geplande onderhoudsevenementen** toont ze; **Gepland Onderhoud Notitie Sjabloon aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een openbare of privénotitie bij een gebeurtenis schrijft en wanneer iemand haar status wijzigt, en de tekst kan vóór het plaatsen worden bewerkt. Anders dan notitiesjablonen voor incidenten vullen notitiesjablonen voor onderhoud geen variabelen in.
+**Geplande onderhoud → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor onderhoudsupdates. De kaart **Openbare of privénotitiesjablonen voor geplande onderhoudsevenementen** toont ze; **Notitiesjabloon voor gepland onderhoud aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een openbare of privénotitie bij een gebeurtenis schrijft en wanneer iemand haar status wijzigt, en de tekst kan vóór het plaatsen worden bewerkt. Anders dan notitiesjablonen voor incidenten vullen notitiesjablonen voor onderhoud geen variabelen in.
+
+### Goedkeuring van openbare notities
+
+**Geplande onderhoud → Instellingen → Goedkeuring van openbare notities** laat de openbare notities van geplande onderhoudsevenementen goedkeuren voordat ze worden gepubliceerd. De pagina werkt zoals die van de incidenten, met een eigen schakelaar en eigen stappen: zet **Goedkeuring vereisen voordat openbare notities worden gepubliceerd** aan en kies onder **Wie keurt goed** wie goedkeurt. Zo kunnen onderhoudsnotities goedkeuring nodig hebben terwijl incidentnotities dat niet hebben, of door andere mensen worden goedgekeurd. Alleen **Projecteigenaar** en **Projectbeheerder** kunnen haar wijzigen. Zie [Goedkeuring van openbare notities](/docs/incidents/settings#goedkeuring-van-openbare-notities) voor de stappen, en [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities) voor wat een notitie doet terwijl ze wacht.
 
 ### Aangepaste velden
 

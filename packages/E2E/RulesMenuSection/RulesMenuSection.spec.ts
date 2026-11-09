@@ -15,9 +15,9 @@ import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
  *
  * A status page's and an SLO's side menus in a browser, around their real
  * view layouts (RulesMenuSection/Fixture): a status page keeps its Monitor
- * Rules in a Rules section right below Resources, an SLO its Monitor Rules
- * and Burn Rate Rules in a Rules section right below Configuration, and both
- * sections start folded.
+ * Rules in a Rules section right below Resources, an SLO its Monitor Rules,
+ * Burn Rate Rules and Error Budget Policy in a Rules section right below
+ * Configuration, and both sections start folded.
  *
  * jsdom applies no CSS, so the jest suites (StatusPageRulesMenu,
  * SloViewSideMenu and RulesMenuSections in packages/Common) can only read the
@@ -440,7 +440,7 @@ test.describe("a status page's side menu", () => {
 });
 
 test.describe("an SLO's side menu", () => {
-  test("on the Overview, Configuration, Rules and Management are folded; Rules holds both rules pages", async ({
+  test("on the Overview, Configuration, Rules and Management are folded; Rules holds both rules pages and the error budget policy", async ({
     page,
   }: {
     page: Page;
@@ -450,6 +450,10 @@ test.describe("an SLO's side menu", () => {
     const monitors: Locator = link(menu, `${SLO_PATH}/monitors`);
     const monitorRules: Locator = link(menu, `${SLO_PATH}/monitor-rules`);
     const burnRateRules: Locator = link(menu, `${SLO_PATH}/burn-rate-rules`);
+    const errorBudgetPolicy: Locator = link(
+      menu,
+      `${SLO_PATH}/error-budget-policy`,
+    );
 
     expect(await sectionTitles(menu)).toEqual(SLO_SECTIONS);
     await expectOpen(menu, "Overview");
@@ -462,6 +466,7 @@ test.describe("an SLO's side menu", () => {
     await expect(monitors).toBeHidden();
     await expect(monitorRules).toBeHidden();
     await expect(burnRateRules).toBeHidden();
+    await expect(errorBudgetPolicy).toBeHidden();
 
     await screenshot(page, "slo-overview");
 
@@ -470,12 +475,17 @@ test.describe("an SLO's side menu", () => {
     await expectOpen(menu, "Rules");
     await expect(monitorRules).toBeVisible();
     await expect(burnRateRules).toBeVisible();
+    await expect(errorBudgetPolicy).toBeVisible();
     expect(await topOf(monitorRules)).toBeLessThan(await topOf(burnRateRules));
+    expect(await topOf(burnRateRules)).toBeLessThan(
+      await topOf(errorBudgetPolicy),
+    );
 
     const body: Locator = await sectionBody(menu, "Rules");
     await expect(body.locator("a")).toHaveText([
       "Monitor Rules",
       "Burn Rate Rules",
+      "Error Budget Policy",
     ]);
 
     // The monitors stay under Configuration, which is still folded.
@@ -692,6 +702,7 @@ test.describe("in German and in dark mode", () => {
     await expect((await sectionBody(menu, "Regeln")).locator("a")).toHaveText([
       "Monitor-Regeln",
       "Burn-Rate-Regeln",
+      "Fehlerbudget-Richtlinie",
     ]);
   });
 

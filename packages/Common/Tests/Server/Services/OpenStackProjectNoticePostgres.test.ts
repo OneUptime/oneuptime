@@ -67,7 +67,7 @@ import API from "../../../Utils/API";
  *
  * Mail and webhooks are stood in for, and what they were asked to send is what is checked.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS"] === "true"
     ? describe
     : describe.skip;

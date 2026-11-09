@@ -10,15 +10,18 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import MessageQueues from "../Pages/MessageQueue/MessageQueues";
 import MessageQueueArchived from "../Pages/MessageQueue/Archived";
 import MessageQueueProductDocumentation from "../Pages/MessageQueue/Documentation";
+import MessageQueueTopology from "../Pages/MessageQueue/Topology";
 import MessageQueueLabelRules from "../Pages/MessageQueue/Settings/LabelRules";
 import MessageQueueOwnerRules from "../Pages/MessageQueue/Settings/OwnerRules";
 import MessageQueueOverview from "../Pages/MessageQueue/View/Overview";
+import MessageQueueViewTopology from "../Pages/MessageQueue/View/Topology";
 import MessageQueueTraces from "../Pages/MessageQueue/View/Traces";
 import MessageQueueMetrics from "../Pages/MessageQueue/View/Metrics";
 import MessageQueueOwners from "../Pages/MessageQueue/View/Owners";
 import MessageQueueSettings from "../Pages/MessageQueue/View/Settings";
 import MessageQueueDocumentation from "../Pages/MessageQueue/View/Documentation";
 import MessageQueueDelete from "../Pages/MessageQueue/View/Delete";
+import MessageQueueAuditLogs from "../Pages/MessageQueue/View/AuditLogs";
 import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabelRule";
 import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import MessageQueueModel from "Common/Models/DatabaseModels/MessageQueue";
@@ -37,6 +40,15 @@ const MessageQueueRoutes: FunctionComponent<ComponentProps> = (
             <MessageQueues
               {...props}
               pageRoute={RouteMap[PageMap.MESSAGE_QUEUES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_TOPOLOGY] || ""}
+          element={
+            <MessageQueueTopology
+              {...props}
+              pageRoute={RouteMap[PageMap.MESSAGE_QUEUES_TOPOLOGY] as Route}
             />
           }
         />
@@ -152,6 +164,18 @@ const MessageQueueRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY,
+          )}
+          element={
+            <MessageQueueViewTopology
+              {...props}
+              pageRoute={RouteMap[PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MESSAGE_QUEUE_VIEW_TRACES)}
           element={
             <MessageQueueTraces
@@ -202,6 +226,20 @@ const MessageQueueRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <MessageQueueAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

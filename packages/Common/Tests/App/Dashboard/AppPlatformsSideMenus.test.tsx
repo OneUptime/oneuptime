@@ -172,6 +172,7 @@ describe("an environment's menu", () => {
     ]);
     expect(linksIn("Advanced")).toEqual([
       { title: "Owners", href: `${ENVIRONMENT_PATH}/owners` },
+      { title: "Audit Logs", href: `${ENVIRONMENT_PATH}/audit-logs` },
       { title: "Delete Environment", href: `${ENVIRONMENT_PATH}/delete` },
     ]);
 
@@ -191,6 +192,7 @@ describe("an environment's menu", () => {
     ["/traces", "Traces"],
     ["/instances", "Instances"],
     ["/settings", "Settings"],
+    ["/audit-logs", "Audit Logs"],
     ["/delete", "Delete Environment"],
   ])("on %s, %s is the page lit", async (suffix: string, title: string) => {
     goTo(`${ENVIRONMENT_PATH}${suffix}`);

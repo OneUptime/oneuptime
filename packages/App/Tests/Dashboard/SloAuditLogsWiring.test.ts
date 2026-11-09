@@ -14,6 +14,7 @@ import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
@@ -98,6 +99,12 @@ describe("SLO-family resource metadata", () => {
     {
       model: new ServiceLevelObjectiveBurnRateRule() as BaseModel,
       page: PageMap.SLO_VIEW_BURN_RATE_RULES,
+      childPage: undefined,
+    },
+    // A tier is edited in place on the SLO's Error Budget Policy page.
+    {
+      model: new ServiceLevelObjectiveErrorBudgetPolicyTier() as BaseModel,
+      page: PageMap.SLO_VIEW_ERROR_BUDGET_POLICY,
       childPage: undefined,
     },
     {
@@ -279,6 +286,9 @@ describe("getResourceLink", () => {
   const burnRateRuleMeta: ResourceMeta = getResourceMeta(
     new ServiceLevelObjectiveBurnRateRule().singularName!,
   );
+  const policyTierMeta: ResourceMeta = getResourceMeta(
+    new ServiceLevelObjectiveErrorBudgetPolicyTier().singularName!,
+  );
   const ownerTeamMeta: ResourceMeta = getResourceMeta(
     new ServiceLevelObjectiveOwnerTeam().singularName!,
   );
@@ -362,6 +372,23 @@ describe("getResourceLink", () => {
           rootResourceId: SLO_ID,
         }),
       ).toEqual({ page: PageMap.SLO_VIEW_BURN_RATE_RULES, modelId: SLO_ID });
+    },
+  );
+
+  test.each(["Create", "Update", "Delete"])(
+    "an error budget policy tier's %s entry opens its SLO's Error Budget Policy page: a tier has no page of its own",
+    (action: string) => {
+      expect(
+        getResourceLink({
+          meta: policyTierMeta,
+          action,
+          resourceId: RULE_ID,
+          rootResourceId: SLO_ID,
+        }),
+      ).toEqual({
+        page: PageMap.SLO_VIEW_ERROR_BUDGET_POLICY,
+        modelId: SLO_ID,
+      });
     },
   );
 

@@ -125,6 +125,7 @@ import DropLegacyHuntressTables from "./DropLegacyHuntressTables";
 import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
+import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -159,6 +160,7 @@ import AddUserIdToExceptionInstance from "./AddUserIdToExceptionInstance";
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
+import AddTagsColumnToCloudCost from "./AddTagsColumnToCloudCost";
 import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
@@ -838,6 +840,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddProcessColumnsToSecurityEvent(),
   /*
+   * Cloud costs keep their tags (CloudCostV1.tags): a Google Cloud billing
+   * export's labels, else the tags of the resource a cost is billed to, so
+   * Cloud > Costs breaks the spend down by a tag. Metadata-only and
+   * idempotent; rows written before it read no tags. No ordering
+   * requirement, so it sits above the runbook moves, which keep their
+   * places before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new AddTagsColumnToCloudCost(),
+  /*
    * Postmortem statuses (Incidents > Postmortems): every project from before
    * them gets the four a new project starts with, then every incident the
    * status its postmortem is in - Completed when published on a status page,
@@ -943,6 +955,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new AddNetworkTrafficUsageUplinkHealthColumns(),
+  /*
+   * Whom OneUptime asked to approve each step of a public note is recorded
+   * since #6353 (PublicNoteApprovalRequest): the notes already waiting take
+   * the people their step asks now as asked, without asking anybody, so the
+   * first change of their approvers asks only those who are new. After
+   * AddPublicNoteApprovalRequest1809063230000; Postgres-only and
+   * idempotent, with no order of its own, so it sits above the runbook
+   * moves, which keep the places right before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RecordApproversAskedAboutWaitingPublicNotes(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

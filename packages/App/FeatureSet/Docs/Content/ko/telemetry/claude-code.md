@@ -161,7 +161,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 표준 속성은 `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email`, `terminal.type`과 `OTEL_RESOURCE_ATTRIBUTES`입니다. 일부는 끌 수 있습니다. [메트릭 양 줄이기](#메트릭-양-줄이기)를 참조하세요.
 
-- 캐시 토큰 종류는 카멜 표기법으로 `cacheRead`와 `cacheCreation`입니다. OneUptime의 토큰 합계는 `input`과 `output`만 셉니다.
+- 캐시 토큰 종류는 카멜 표기법으로 `cacheRead`와 `cacheCreation`입니다. Claude Code의 `input`에는 이들이 빠져 있으므로 OneUptime은 이들도 입력 토큰으로 셉니다.
 - 비용과 토큰 메트릭에서 자체 에이전트와 MCP 서버, 서드파티 플러그인과 스킬의 이름은 `OTEL_LOG_TOOL_DETAILS=1`을 설정하지 않으면(Claude Code 2.1.273 이상) `custom` 또는 `third-party`로 표시됩니다.
 
 ## 이벤트
@@ -220,7 +220,7 @@ Claude Code는 기본적으로 델타 메트릭을 보냅니다. 각 데이터 �
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-`cumulative`는 조직의 모든 익스포터가 사용할 때만 고정하고, 한 조직 안에서 두 가지를 섞지 마세요.
+`cumulative`는 조직의 모든 익스포터가 사용할 때만 고정하고, 한 조직 안에서 두 가지를 섞지 마세요. OneUptime의 사용량 탭과 예산은 둘 다 셉니다. 델타는 포인트를 더하고, 누적 카운터는 기간 동안 늘어난 양을 셉니다.
 
 ## 트레이스(베타)
 

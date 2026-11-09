@@ -1304,12 +1304,12 @@ describe("a cloud resource's facts", () => {
           "oneuptime.resource.id": CLOUD_ID,
         },
       },
-      // A health event's title is its provider's: no facts.
+      // A health event, as AWS Health's connector titles it: its own facts.
       {
         _id: "cloud-3",
         time: new Date("2026-10-25T09:40:00.000Z"),
         eventType: "provider-event",
-        title: "AWS Health: ELB operational issue (open)",
+        title: "AWS Health: ELASTICLOADBALANCING operational issue (open)",
         attributes: {
           "oneuptime.change.source": "cloud-health",
           "oneuptime.cloud.operation":
@@ -1354,8 +1354,15 @@ describe("a cloud resource's facts", () => {
       {
         id: "cloud-3",
         time: "2026-10-25T09:40:00.000Z",
-        title: "AWS Health: ELB operational issue (open)",
+        title: "AWS Health: ELASTICLOADBALANCING operational issue (open)",
         eventType: "provider-event",
+        // Its frame, state and kind of event are worded from these on the page.
+        cloudHealth: {
+          source: "aws",
+          event: "ELASTICLOADBALANCING operational issue",
+          status: "open",
+          awsEventTypeCode: "AWS_ELASTICLOADBALANCING_OPERATIONAL_ISSUE",
+        },
       },
     ]);
   });
@@ -1412,6 +1419,8 @@ describe("what an incident or alert a case or a detection opens is linked to", (
       [SecurityConnectionKind.PodmanHost]: AiAffectedResourceKind.PodmanHost,
       [SecurityConnectionKind.KubernetesCluster]:
         AiAffectedResourceKind.KubernetesCluster,
+      [SecurityConnectionKind.OpenStackCloud]:
+        AiAffectedResourceKind.OpenStackCloud,
       [SecurityConnectionKind.NetworkDevice]:
         AiAffectedResourceKind.NetworkDevice,
       [SecurityConnectionKind.CloudResource]:

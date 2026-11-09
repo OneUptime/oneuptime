@@ -110,6 +110,7 @@ import ProjectAiDailyLimits, {
 } from "../../Types/AI/ProjectAiDailyLimits";
 import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
 import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
+import { DefaultTableColumnsUtil } from "../../Types/Table/DefaultTableColumns";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import { getRiskCaseThresholdError } from "../../Utils/SecurityCase/SecurityEntityRiskScore";
 import NumberPrefixUtil, {
@@ -176,6 +177,11 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import ActiveMonitorLimitUtil from "../../Types/Monitor/ActiveMonitorLimit";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
+import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
+import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngestionBudgetSettings";
+import TelemetryIngestionBudgetValidation, {
+  isTelemetryIngestionBudgetColumnTouched,
+} from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
 import { IsNull, Repository, UpdateResult } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
@@ -708,6 +714,35 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
   }
 
+  /*
+   * The columns the project's lists show everyone who has not chosen their
+   * own (Project.defaultTableColumns): lists' keys to layouts of column ids,
+   * within DefaultTableColumnsUtil's limits, stored tidied (each id once, no
+   * empty layout) - or nothing, null or an object with no layout, stored as
+   * null, which hands every list back its own columns. Anything else is
+   * refused with what is wrong, never stored for the lists to ignore later.
+   * A write that leaves it out is not judged on it.
+   */
+  public applyDefaultTableColumnsRules(data: {
+    defaultTableColumns?: unknown;
+  }): void {
+    if (data.defaultTableColumns === undefined) {
+      return;
+    }
+
+    const problem: string | null = DefaultTableColumnsUtil.getProblem(
+      data.defaultTableColumns,
+    );
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    data.defaultTableColumns = DefaultTableColumnsUtil.toJSON(
+      DefaultTableColumnsUtil.parse(data.defaultTableColumns),
+    );
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -728,6 +763,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       data.data as { defaultNetworkTopologyLayout?: unknown },
+    );
+    this.applyDefaultTableColumnsRules(
+      data.data as { defaultTableColumns?: unknown },
     );
 
     if (data.props.userId) {
@@ -1177,6 +1215,17 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.invalidateAuditLogSettingsCache(updateData, updatedItemIds);
 
     /*
+     * A project's ingestion budget changed: this server's ingest reads it
+     * again at once, every other server within
+     * TelemetryIngestionBudgetSettings' minute.
+     */
+    if (isTelemetryIngestionBudgetColumnTouched(updateData)) {
+      for (const projectId of updatedItemIds) {
+        TelemetryIngestionBudgetSettings.clearProjectCache(projectId);
+      }
+    }
+
+    /*
      * The active monitor limit is read and cached with the plan
      * (getCurrentPlan): a new one - a reseller's change of tier, or a master
      * admin's edit - holds this server's monitor creates at once, and every
@@ -1392,12 +1441,25 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(updateBy.data);
     this.applyNextNumberRules(updateBy.data);
     this.applyAiDailyLimitRules(updateBy.data);
+
+    /*
+     * The project's ingestion budgets, which only a master admin writes (the
+     * columns' update list is empty): valid values, 0 meaning "no limit for
+     * this project".
+     */
+    TelemetryIngestionBudgetValidation.applyBudgetColumnRules(
+      updateBy.data as unknown as Record<string, unknown>,
+      { allowZero: true },
+    );
     this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       updateBy.data as { securityRiskCaseThreshold?: unknown },
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       updateBy.data as { defaultNetworkTopologyLayout?: unknown },
+    );
+    this.applyDefaultTableColumnsRules(
+      updateBy.data as { defaultTableColumns?: unknown },
     );
 
     await this.assertAuditLogSettingsChangeIsLicensed({
@@ -1413,6 +1475,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
       },
     });
 
+    // Public note approval turns on only with somebody to approve.
+    await this.assertPublicNoteApprovalCanTurnOn(updateBy);
+
     if (IsBillingEnabled) {
       if (
         updateBy.data.paymentProviderPlanId &&
@@ -1426,6 +1491,48 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward: [] };
+  }
+
+  /*
+   * Turning on a project's public note approval needs an approval step
+   * that names somebody (PublicNoteApprovalPolicy.assertCanTurnOn): read
+   * only when the write turns one of its switches on, for the projects the
+   * update writes - the ones its caller may write, in its own window - with
+   * the update held to them, so no project is turned on that was not
+   * checked, and none the update does not write is asked about.
+   */
+  private async assertPublicNoteApprovalCanTurnOn(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (
+      updateBy.data.requireApprovalForIncidentPublicNotes !== true &&
+      updateBy.data.requireApprovalForScheduledMaintenancePublicNotes !== true
+    ) {
+      return;
+    }
+
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+      },
+    );
+
+    await PublicNoteApprovalPolicy.assertCanTurnOn({
+      projectIds: projects
+        .map((project: Model): ObjectID | undefined => {
+          return project.id || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+      written: {
+        requireApprovalForIncidentPublicNotes:
+          updateBy.data.requireApprovalForIncidentPublicNotes,
+        requireApprovalForScheduledMaintenancePublicNotes:
+          updateBy.data.requireApprovalForScheduledMaintenancePublicNotes,
+      },
+    });
   }
 
   /*

@@ -1021,7 +1021,7 @@ export default class Host extends BaseModel {
     modelType: OpenStackCloud,
     title: "OpenStack Cloud",
     description:
-      "Optional link to the OpenStack cloud this host belongs to: it is one of the cloud's hypervisors, or it runs inside one of its instances. Linked at ingest when exactly one part of a cloud in the same project matches, or chosen by someone when more than one could. Best effort, and never overwrites a value already set.",
+      "The OpenStack cloud this host belongs to, as one of its hypervisors or inside one of its instances. Linked at ingest when exactly one part matches.",
   })
   @ManyToOne(
     () => {
@@ -1914,6 +1914,41 @@ export default class Host extends BaseModel {
     nullable: true,
   })
   public aiAccessConfiguredAt?: Date = undefined;
+
+  /*
+   * When someone last reset this host's AI agent (Reset agent, on its AI
+   * agent page): the Host AI agent's key stopped working at once, and the
+   * agent registers again by itself. Only the server writes it, as the reset
+   * is made, and the reset's audit log entry names it (issue #6302): the
+   * agent's own row is what the agent reports, which the audit log leaves
+   * out.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Agent Reset At",
+    description:
+      "When this host's AI agent was last reset: its key stopped working at once, and it registers again by itself. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAgentResetAt?: Date = undefined;
 
   /*
    * The collector OneUptime manages on this host (the one-command install:

@@ -9,6 +9,8 @@ import {
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AuditLogService from "./AuditLogService";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
@@ -42,6 +44,18 @@ import CloudAccountFeedService from "./CloudAccountFeedService";
 import { CloudAccountFeedEventType } from "../../Models/DatabaseModels/CloudAccountFeed";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudConnection from "../../Models/DatabaseModels/CloudConnection";
+import {
+  CLOUD_AI_AGENT_PENDING_KEY_LIFETIME_MS,
+  CloudAiAgentKeyRecord,
+  CloudAiAgentKeyResponse,
+  CloudAiAgentKeyTaken,
+  CloudAiAgentKeys,
+  addCloudAiAgentKey,
+  readCloudAiAgentKeys,
+  revokeCloudAiAgentKeys,
+  useCloudAiAgentKey,
+} from "../../Types/CloudConnection/CloudAiAgentKey";
+import CloudAiAgentKeyHashing from "../Utils/CloudConnection/CloudAiAgentKeyHashing";
 
 // The cloud account's AI resource type, by its cloud.
 export function getCloudAccountAiResourceType(
@@ -727,6 +741,247 @@ export class Service extends ProjectReferencesService<Model> {
 
     return summary;
   }
+
+  /*
+   * ------------------------------------------------------------------
+   * The Cloud AI agent's keys (Types/CloudConnection/CloudAiAgentKey)
+   * ------------------------------------------------------------------
+   *
+   * Each write reads the keys, works out the new ones and writes them only
+   * if they are still what was read (one compare-and-set statement); one
+   * that finds them changed reads them again. So two admins making a key at
+   * the same moment both keep theirs, and a key connecting while another
+   * is made loses neither. At most CLOUD_AI_AGENT_KEY_WRITE_ATTEMPTS tries,
+   * which only a run of writes at the very same instant can use up.
+   */
+
+  // The account a key names, with its keys, as root; null when it is gone.
+  public async findAccountOfAgentKey(cloudAccountId: ObjectID): Promise<{
+    account: Model;
+    keys: CloudAiAgentKeys | null;
+  } | null> {
+    const account: Model | null = await this.findOneById({
+      id: cloudAccountId,
+      select: {
+        _id: true,
+        projectId: true,
+        provider: true,
+        accountId: true,
+        name: true,
+        aiAgentKeys: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!account || !account.id || !account.projectId) {
+      return null;
+    }
+
+    return { account, keys: readCloudAiAgentKeys(account.aiAgentKeys) };
+  }
+
+  /*
+   * A new key for the account's Cloud AI agent: returned this once and kept
+   * only as its SHA-256, pending until an agent connects with it. The
+   * agent's key so far keeps working. The caller has checked the account is
+   * the project's and the person may set its agent up. Who made it is in
+   * the account's audit log (recordAiAgentKeysChange).
+   */
+  public async makeAiAgentKey(data: {
+    cloudAccountId: ObjectID;
+    userId?: ObjectID | undefined;
+    now: Date;
+    // Who made it, as the audit log records it: the route's props.
+    props?: DatabaseCommonInteractionProps | undefined;
+  }): Promise<CloudAiAgentKeyResponse> {
+    const generated: { key: string; hash: string } =
+      CloudAiAgentKeyHashing.generate(data.cloudAccountId);
+    const record: CloudAiAgentKeyRecord = {
+      hash: generated.hash,
+      madeAt: data.now.toISOString(),
+      ...(data.userId
+        ? { madeByUserId: data.userId.toString().toLowerCase() }
+        : {}),
+    };
+
+    for (
+      let attempt: number = 1;
+      attempt <= CLOUD_AI_AGENT_KEY_WRITE_ATTEMPTS;
+      attempt++
+    ) {
+      const found: { account: Model; keys: CloudAiAgentKeys | null } | null =
+        await this.findAccountOfAgentKey(data.cloudAccountId);
+
+      if (!found) {
+        throw new BadDataException("The cloud account no longer exists.");
+      }
+
+      const next: CloudAiAgentKeys = addCloudAiAgentKey({
+        keys: found.keys,
+        record,
+        now: data.now,
+      });
+
+      if (
+        await this.writeAiAgentKeys({
+          cloudAccountId: data.cloudAccountId,
+          next,
+          read: found.account.aiAgentKeys,
+        })
+      ) {
+        await this.recordAiAgentKeysChange({
+          before: found.account,
+          written: next,
+          props: data.props,
+        });
+
+        return {
+          agentKey: generated.key,
+          worksUntilConnectedBy: new Date(
+            data.now.getTime() + CLOUD_AI_AGENT_PENDING_KEY_LIFETIME_MS,
+          ).toISOString(),
+        };
+      }
+    }
+
+    throw new BadDataException(
+      "Other keys were being made for this account's Cloud AI agent at the same moment. Open the dialog again.",
+    );
+  }
+
+  /*
+   * An agent registered with one of the account's keys: a pending one
+   * becomes the agent's key, and the key it replaces stops working. True
+   * when the key may connect the agent (it is the agent's key, or a pending
+   * one that still works), false when it was replaced or revoked a moment
+   * ago, since it was read.
+   */
+  public async useAiAgentKey(data: {
+    cloudAccountId: ObjectID;
+    hash: string;
+    now: Date;
+  }): Promise<CloudAiAgentKeyTaken> {
+    const unusable: CloudAiAgentKeyTaken = {
+      isUsable: false,
+      isNewKey: false,
+      replacedAgentKey: false,
+    };
+
+    for (
+      let attempt: number = 1;
+      attempt <= CLOUD_AI_AGENT_KEY_WRITE_ATTEMPTS;
+      attempt++
+    ) {
+      const found: { account: Model; keys: CloudAiAgentKeys | null } | null =
+        await this.findAccountOfAgentKey(data.cloudAccountId);
+
+      if (!found || !found.keys) {
+        return unusable;
+      }
+
+      if (found.keys.current && found.keys.current.hash === data.hash) {
+        return { isUsable: true, isNewKey: false, replacedAgentKey: false };
+      }
+
+      const next: CloudAiAgentKeys | null = useCloudAiAgentKey({
+        keys: found.keys,
+        hash: data.hash,
+        now: data.now,
+      });
+
+      if (!next || !next.current) {
+        return unusable;
+      }
+
+      if (
+        await this.writeAiAgentKeys({
+          cloudAccountId: data.cloudAccountId,
+          next,
+          read: found.account.aiAgentKeys,
+        })
+      ) {
+        return {
+          isUsable: true,
+          isNewKey: true,
+          replacedAgentKey: found.keys.current !== null,
+          ...(next.current.madeByUserId
+            ? { madeByUserId: next.current.madeByUserId }
+            : {}),
+        };
+      }
+    }
+
+    return unusable;
+  }
+
+  /*
+   * Reset agent: every key of the account's Cloud AI agent stops working at
+   * once, and the project's ingestion key no longer connects it either. A
+   * new key from its setup command connects it again.
+   */
+  public async revokeAiAgentKeys(data: {
+    cloudAccountId: ObjectID;
+    now: Date;
+  }): Promise<void> {
+    await this.updateColumnsByIdWithoutHooks({
+      id: data.cloudAccountId,
+      data: {
+        aiAgentKeys: revokeCloudAiAgentKeys({
+          now: data.now,
+        }) as unknown as JSONObject,
+      } as never,
+    });
+  }
+
+  /*
+   * A key made for the account's Cloud AI agent, in the project's audit log
+   * (issue #6302): who made one, and when - a key that connects an agent
+   * which runs operations in the account. The keys' column is nobody's to
+   * read, and is written round DatabaseService's hooks, which never record
+   * it, so it is named here as what the person did: recorded as changed,
+   * never with a key or a hash in the entry. An agent connecting with its
+   * key is what the agent does, and is not recorded. Without a person
+   * (props) there is nothing to record.
+   */
+  private async recordAiAgentKeysChange(data: {
+    before: Model;
+    written: CloudAiAgentKeys;
+    props?: DatabaseCommonInteractionProps | undefined;
+  }): Promise<void> {
+    if (!data.props || !data.before.id) {
+      return;
+    }
+
+    await AuditLogService.recordUpdate({
+      model: new Model(),
+      before: data.before,
+      updatedFields: {
+        aiAgentKeys: data.written,
+      } as unknown as JSONObject,
+      itemId: data.before.id,
+      props: data.props,
+      includeColumns: ["aiAgentKeys"],
+    });
+  }
+
+  // Writes the keys only over the very value they were worked out from.
+  private async writeAiAgentKeys(data: {
+    cloudAccountId: ObjectID;
+    next: CloudAiAgentKeys;
+    read: JSONObject | undefined;
+  }): Promise<boolean> {
+    return await this.compareAndSetColumnsByIdWithoutHooks({
+      id: data.cloudAccountId,
+      // JSON columns make the typed partial too deep for TypeScript.
+      data: { aiAgentKeys: data.next as unknown as JSONObject } as never,
+      expectedData: {
+        aiAgentKeys: (data.read ?? null) as unknown as JSONObject,
+      } as never,
+    });
+  }
 }
+
+// How many times a write of an account's agent keys is tried.
+export const CLOUD_AI_AGENT_KEY_WRITE_ATTEMPTS: number = 5;
 
 export default new Service();

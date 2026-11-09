@@ -1,3 +1,6 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import Link from "../Link/Link";
 import { DetailSideLink } from "./Field";
 import useTranslateValue from "../../Utils/Translation";
@@ -51,6 +54,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const translatedTitle: string | undefined = translateString(props.title);
   const translatedDescription: string | ReactElement | undefined =
     translateValue(props.description);
@@ -104,7 +108,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
         <p
           className={`${props.alignClassName} ${FIELD_LABEL_DESCRIPTION_CLASS_NAME}`}
         >
-          {translatedDescription}
+          {readAsWritten(translatedDescription, translator.language)}
         </p>
       )}
     </div>

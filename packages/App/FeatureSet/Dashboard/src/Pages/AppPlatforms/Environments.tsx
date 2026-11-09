@@ -50,6 +50,11 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  APP_PLATFORMS_ENVIRONMENTS_TABLE_ID,
+  getEnvironmentsCloudAccountFacet,
+} from "../../Components/AppPlatforms/AppPlatformsAccountFacet";
+import { fetchEnvironmentCloudAccountOptions } from "../../Components/AppPlatforms/AppPlatformsAccountOptions";
 
 /*
  * Options for the Platform filter. The label carries the raw cloud.platform
@@ -114,9 +119,12 @@ const AppPlatformEnvironments: FunctionComponent<
     });
 
   /*
-   * The Owner and Labels chips above the table: an environment can be found by the
-   * person or the team that owns it - the server answers the Owner chip in
-   * the list's own query - and the Owners column shows who that is.
+   * The Owner, Labels and Cloud Account chips above the table: an
+   * environment can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is; or by the account it runs in, which is how
+   * Cloud's Overview links here to the environments of the accounts it
+   * reads (AppPlatformsAccountFacet).
    */
   const {
     getOwnersForResource,
@@ -128,11 +136,14 @@ const AppPlatformEnvironments: FunctionComponent<
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<CloudResource>({
-    persistKey: "cloud-resources-table",
+    persistKey: APP_PLATFORMS_ENVIRONMENTS_TABLE_ID,
     ownerUserModelType: CloudResourceOwnerUser,
     ownerTeamModelType: CloudResourceOwnerTeam,
     resourceIdField: "cloudResourceId",
     showLabelsFacet: true,
+    extraFacets: [
+      getEnvironmentsCloudAccountFacet(fetchEnvironmentCloudAccountOptions),
+    ],
   });
 
   if (firstRecordWatch.error) {
@@ -173,8 +184,8 @@ const AppPlatformEnvironments: FunctionComponent<
         })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        id="cloud-resources-table"
-        userPreferencesKey="cloud-resources-table"
+        id={APP_PLATFORMS_ENVIRONMENTS_TABLE_ID}
+        userPreferencesKey={APP_PLATFORMS_ENVIRONMENTS_TABLE_ID}
         // The list is of environments: not the model's "No cloud resources yet".
         noItemsMessage="No cloud environments yet."
         query={mergeFiltersIntoQuery({
@@ -258,13 +269,6 @@ const AppPlatformEnvironments: FunctionComponent<
               cloudRegion: true,
             },
             title: "Cloud Region",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              cloudAccountId: true,
-            },
-            title: "Cloud Account",
             type: FieldType.Text,
           },
           {

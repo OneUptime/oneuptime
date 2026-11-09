@@ -101,6 +101,8 @@ const MAYA_ARN: string = `arn:aws:iam::${ACCOUNT}:user/maya.lopez`;
 
 const AZURE_SUB: string = "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0";
 const AZURE_AGENT_OID: string = "9f3c2b1a-0d4e-4f5a-8b6c-7d8e9f0a1b2c";
+// The write identity each change of the agent's runs as.
+const AZURE_WRITE_OID: string = "6d5c4b3a-2f1e-4d0c-9b8a-7f6e5d4c3b2a";
 const GCP_PROJECT: string = "acme-prod";
 
 const AT: Date = new Date("2026-11-03T10:00:00.000Z");
@@ -315,18 +317,59 @@ describe("who the account's Cloud AI agent is", () => {
     ).toEqual([]);
   });
 
-  test("Google Cloud: its setup's service account in this project, and the one it reports", () => {
+  test("Azure: the write identity's object id too, once the agent reports it - each once", () => {
+    expect(
+      getCloudAiAgentPrincipals({
+        provider: CloudProvider.Azure,
+        accountId: AZURE_SUB,
+        posture: posture({
+          azurePrincipalId: AZURE_AGENT_OID,
+          azureWriteIdentity: `/subscriptions/${AZURE_SUB}/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write`,
+          azureWritePrincipalId: AZURE_WRITE_OID.toUpperCase(),
+        }),
+      }).azurePrincipalIds,
+    ).toEqual([AZURE_AGENT_OID, AZURE_WRITE_OID]);
+    // Before a change or Test connection taught the agent its object id: its own alone.
+    expect(
+      getCloudAiAgentPrincipals({
+        provider: CloudProvider.Azure,
+        accountId: AZURE_SUB,
+        posture: posture({
+          azurePrincipalId: AZURE_AGENT_OID,
+          azureWritePrincipalId: null,
+        }),
+      }).azurePrincipalIds,
+    ).toEqual([AZURE_AGENT_OID]);
+    // Where both are one identity (a machine with only the write identity), it is named once.
+    expect(
+      getCloudAiAgentPrincipals({
+        provider: CloudProvider.Azure,
+        accountId: AZURE_SUB,
+        posture: posture({
+          azurePrincipalId: AZURE_WRITE_OID,
+          azureWritePrincipalId: AZURE_WRITE_OID,
+        }),
+      }).azurePrincipalIds,
+    ).toEqual([AZURE_WRITE_OID]);
+  });
+
+  test("Google Cloud: its setup's two service accounts in this project, and the ones it reports", () => {
     expect(
       getCloudAiAgentPrincipals({
         provider: CloudProvider.GCP,
         accountId: GCP_PROJECT,
         posture: posture({
           gcpServiceAccount: "Team-AI@acme-prod.iam.gserviceaccount.com",
+          gcpWriteServiceAccount:
+            "Team-AI-Write@acme-prod.iam.gserviceaccount.com",
         }),
       }).gcpServiceAccounts,
     ).toEqual([
       "oneuptime-ai-agent@acme-prod.iam.gserviceaccount.com",
+      // Its changes run as the write account, with a token for each change.
+      "oneuptime-ai-agent-write@acme-prod.iam.gserviceaccount.com",
       "team-ai@acme-prod.iam.gserviceaccount.com",
+      "team-ai-write@acme-prod.iam.gserviceaccount.com",
     ]);
   });
 });
@@ -480,6 +523,34 @@ describe("whether the agent made a change", () => {
         }),
       ),
     ).toBe(false);
+
+    // Its changes run as its write identity: the caller is that one's object id.
+    const withWriteIdentity: CloudAiAgentPrincipals = getCloudAiAgentPrincipals(
+      {
+        provider: CloudProvider.Azure,
+        accountId: AZURE_SUB,
+        posture: posture({
+          azurePrincipalId: AZURE_AGENT_OID,
+          azureWritePrincipalId: AZURE_WRITE_OID,
+        }),
+      },
+    );
+
+    expect(
+      isCloudAiAgentChange(azureChange(AZURE_WRITE_OID), withWriteIdentity),
+    ).toBe(true);
+    expect(
+      isCloudAiAgentChange(azureChange(AZURE_AGENT_OID), withWriteIdentity),
+    ).toBe(true);
+    expect(isCloudAiAgentChange(azureChange(AZURE_WRITE_OID), azure)).toBe(
+      false,
+    );
+    expect(
+      isCloudAiAgentChange(
+        azureChange("11111111-2222-4333-8444-555555555555"),
+        withWriteIdentity,
+      ),
+    ).toBe(false);
   });
 
   test("Google Cloud: the principal is the agent's service account", () => {
@@ -505,9 +576,24 @@ describe("whether the agent made a change", () => {
         gcp,
       ),
     ).toBe(true);
+    // A change made with the write account's token for it: the agent's change too.
+    expect(
+      isCloudAiAgentChange(
+        gcpChange("oneuptime-ai-agent-write@acme-prod.iam.gserviceaccount.com"),
+        gcp,
+      ),
+    ).toBe(true);
     expect(
       isCloudAiAgentChange(
         gcpChange("oneuptime-ai-agent@other-project.iam.gserviceaccount.com"),
+        gcp,
+      ),
+    ).toBe(false);
+    expect(
+      isCloudAiAgentChange(
+        gcpChange(
+          "oneuptime-ai-agent-write@other-project.iam.gserviceaccount.com",
+        ),
         gcp,
       ),
     ).toBe(false);

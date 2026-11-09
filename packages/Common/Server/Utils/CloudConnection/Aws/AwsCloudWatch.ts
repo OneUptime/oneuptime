@@ -19,7 +19,8 @@ import { AwsCredentials, sendAwsRequest } from "./AwsApi";
  *                    NextToken } -> { Metrics: [{ Namespace, MetricName,
  *                    Dimensions: [{ Name, Value }] }], NextToken }
  *                    Free within the account's million free API calls a
- *                    month.
+ *                    month. Without RecentlyActive it lists every series
+ *                    that reported in the last two weeks.
  *   GetMetricData  { MetricDataQueries: [{ Id, MetricStat: { Metric,
  *                    Period, Stat }, ReturnData }], StartTime, EndTime,
  *                    ScanBy, NextToken } -> { MetricDataResults: [{ Id,
@@ -114,8 +115,10 @@ function readDimensions(value: unknown): Array<AwsMetricDimension> {
 
 /*
  * The metrics of a namespace (and a name, when given) that reported in the
- * last three hours. firstPageOnly answers "does the namespace have any" in
- * one call.
+ * last three hours - or, with includeQuiet, in the last two weeks, for a
+ * namespace whose metrics are published a few times a day
+ * (AwsNamespaceKeyMetrics.isListedWhenQuiet). firstPageOnly answers "does
+ * the namespace have any" in one call.
  */
 export async function listMetrics(
   options: AwsCloudWatchOptions,
@@ -123,6 +126,7 @@ export async function listMetrics(
     namespace: string;
     metricName?: string | undefined;
     firstPageOnly?: boolean | undefined;
+    includeQuiet?: boolean | undefined;
   },
 ): Promise<Array<AwsListedMetric>> {
   const metrics: Array<AwsListedMetric> = [];
@@ -131,8 +135,11 @@ export async function listMetrics(
   for (let page: number = 0; page < MAX_LIST_PAGES; page++) {
     const payload: JSONObject = {
       Namespace: data.namespace,
-      RecentlyActive: "PT3H",
     };
+
+    if (!data.includeQuiet) {
+      payload["RecentlyActive"] = "PT3H";
+    }
 
     if (data.metricName) {
       payload["MetricName"] = data.metricName;

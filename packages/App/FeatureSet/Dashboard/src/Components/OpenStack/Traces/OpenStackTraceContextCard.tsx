@@ -9,6 +9,7 @@ import {
   OpenStackTraceRequest,
   OpenStackTraceRequestMatch,
 } from "Common/Utils/OpenStack/OpenStackTraceLogs";
+import { OpenStackTraceSource } from "Common/Utils/OpenStack/OpenStackTraces";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   OpenStackTraceContext,
@@ -48,7 +49,23 @@ const KIND_LABELS: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.Project]: translationKey("Project"),
 };
 
+const NATIVE_OVER_RPC_WORDS: string = translationKey(
+  "OpenStack's own tracing, with nothing signed. A trace follows a request over RPC and stops at an HTTP call to another service, so what Neutron, Glance or Keystone did for this request is not in it.",
+);
+const NATIVE_OVER_HTTP_WORDS: string = translationKey(
+  "OpenStack's own tracing, with nothing signed. This trace goes on across HTTP calls, because this cloud has the guide's line in keystoneauth.",
+);
+const REQUESTS_NAMED_WORDS: string = translationKey(
+  "This trace's spans name their requests, so nothing here is a guess.",
+);
+const REQUESTS_GUESSED_WORDS: string = translationKey(
+  "No span holds a request ID and no log line holds a trace's, so these are found by what the two have in common.",
+);
+
 const MATCH_WORDS: Record<OpenStackTraceRequestMatch, string> = {
+  [OpenStackTraceRequestMatch.NamedBySpan]: translationKey(
+    "A span in this trace holds this request's ID.",
+  ),
   [OpenStackTraceRequestMatch.NamesInstance]: translationKey(
     "Its lines name an instance this trace touched.",
   ),
@@ -220,6 +237,18 @@ const OpenStackTraceContextCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {context.sources.includes(OpenStackTraceSource.Native) ? (
+          <Row title="Sent by" testId="openstack-trace-source">
+            {translator.translateText(
+              context.carriedOverHttp
+                ? NATIVE_OVER_HTTP_WORDS
+                : NATIVE_OVER_RPC_WORDS,
+            )}
+          </Row>
+        ) : (
+          <></>
+        )}
+
         {context.leftOut.length > 0 ? (
           <Row title="Not in this trace" testId="openstack-trace-left-out">
             <ul className="flex flex-wrap gap-x-4 gap-y-1">
@@ -245,7 +274,15 @@ const OpenStackTraceContextCard: FunctionComponent<ComponentProps> = (
           <Row title="In the logs" testId="openstack-trace-requests">
             <p className="text-gray-500">
               {translator.translateText(
-                "No span holds a request ID and no log line holds a trace's, so these are found by what the two have in common.",
+                context.requests.some(
+                  (request: OpenStackTraceRequest): boolean => {
+                    return (
+                      request.match === OpenStackTraceRequestMatch.NamedBySpan
+                    );
+                  },
+                )
+                  ? REQUESTS_NAMED_WORDS
+                  : REQUESTS_GUESSED_WORDS,
               )}
             </p>
             <ul className="mt-1 space-y-1">

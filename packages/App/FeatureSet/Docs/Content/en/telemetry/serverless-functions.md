@@ -189,6 +189,8 @@ Once the function sends a span, a log or a metric, it appears under **Serverless
 - **Instances**: a live list of the `faas.instance` values the function reports.
 - Full **Logs**, **Traces** and **Metrics** pages scoped to this function.
 
+A function shows **Receiving data** while its telemetry arrives and **No recent invocations** after 15 minutes without any, which is normal between runs: a function sends telemetry only while it runs. One added through the API shows **Waiting for data** until its first telemetry arrives.
+
 ## Label functions and assign owners
 
 A resource attribute that starts with `oneuptime.label.` becomes a project label on the function: `oneuptime.label.team=payments` adds the label `team:payments`. Add the attributes to `OTEL_RESOURCE_ATTRIBUTES`:
@@ -215,8 +217,8 @@ Check, in order:
 The function's **Overview**, **Logs**, **Traces** and **Metrics** show telemetry whose `faas.name` equals the function's name exactly, case included. A function named by a FaaS `cloud.platform` and its `service.name` needs no `faas.name` of its own: OneUptime writes the `service.name` onto the telemetry as `faas.name` as it arrives. Telemetry stored before OneUptime began filling in `faas.name` is not updated and stays out of the pages: invoke the function to send new telemetry. Also check the time range at the top of the page.
 :::
 
-:::details The function shows as Disconnected
-A function turns Disconnected when OneUptime has received nothing from it for 15 minutes; OneUptime checks every 5 minutes, and time it was not receiving data itself does not count. A function that runs only now and then is Disconnected between runs: it turns Connected again with its next telemetry.
+:::details The function shows No recent invocations
+A function shows **No recent invocations** when OneUptime has received nothing from it for 15 minutes; OneUptime checks every 5 minutes, and time it was not receiving data itself does not count. That is normal for a function that runs only now and then: it shows **Receiving data** again with its next telemetry. If the function is being invoked, go through the checks for a function that does not appear, above.
 :::
 
 ## Next steps

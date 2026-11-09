@@ -396,6 +396,7 @@ export default class OpenStackProjectNotice extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    secret: true,
     title: "Preview Token",
     description:
       "Given with a preview and handed back to turn the notice on, so nothing can be turned on without one having been asked for. Used by OneUptime only.",

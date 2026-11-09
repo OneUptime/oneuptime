@@ -362,8 +362,10 @@ export interface NoAccessStateInput {
   /*
    * What would let the viewer read the list, already in the reader's
    * language: PermissionGate.getNeededPermissionsSentence of the table's
-   * read permissions ("You need this permission: Read Monitor."), the words
-   * every lock in the product uses. Empty when there is nothing to name.
+   * read permissions of its kind (getReadPermissionsOfItsKind: "You need
+   * this permission: Read Monitor.", and Read Probe alone of the 22 that
+   * read probes), the words every lock in the product uses. Empty when
+   * there is nothing to name.
    */
   neededPermissions: string;
   translate: TranslateFunction;

@@ -227,10 +227,19 @@ describe("the sentences come out whole in the reader's language", () => {
     ).toBe("N'a fonctionné aucune des deux fois où il a été exécuté ici");
   });
 
-  test("Russian: 21 is in its one form, 22 in the general one, each reading right", () => {
+  /*
+   * Russian puts 21 in its "one" form. A one form written for an English
+   * one that names no count ("Worked the one time it ran here before") is
+   * said for one only: 21 reads the general form, which names the count
+   * (Translator's findPlural, #6149's follow-up), as 22 does.
+   */
+  test("Russian: one reads its one form; 21 and 22 the general one, each naming its count", () => {
+    expect(
+      describeRemediationTrackRecord(trackRecord(1, 0), translatorFor("ru")),
+    ).toBe("Помогало каждый раз, когда запускалось здесь раньше");
     expect(
       describeRemediationTrackRecord(trackRecord(21, 0), translatorFor("ru")),
-    ).toBe("Помогало каждый раз, когда запускалось здесь раньше");
+    ).toBe("Помогло при каждом запуске здесь раньше, запусков: 21");
     expect(
       describeRemediationTrackRecord(trackRecord(22, 0), translatorFor("ru")),
     ).toBe("Помогло при каждом запуске здесь раньше, запусков: 22");

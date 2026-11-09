@@ -86,7 +86,7 @@ OneUptime finder applikationen ud fra `service.name` uden hensyn til store og sm
 
 Tallene kommer fra de spans, din instrumentering sender. **Sideindlæsninger** tæller det `documentLoad`-span, som sideindlæsningsinstrumenteringen registrerer ved hver fuld indlæsning, så et ruteskift i en single-page-app er ikke en sideindlæsning.
 
-En applikation viser **Forbundet**, så længe der kommer telemetri, og **Afbrudt** efter 15 minutter uden. Tid, hvor OneUptime selv var nede eller var ved at indhente sin indtagelseskø, tæller ikke med i de 15 minutter.
+En applikation viser **Modtager data**, så længe der kommer telemetri, og **Ingen nylig trafik** efter 15 minutter uden, hvilket er normalt, mens ingen bruger appen. En applikation, der er tilføjet manuelt, viser **Venter på data**, indtil dens første data kommer. Tid, hvor OneUptime selv var nede eller var ved at indhente sin indtagelseskø, tæller ikke med i de 15 minutter.
 
 ## Kom i gang
 

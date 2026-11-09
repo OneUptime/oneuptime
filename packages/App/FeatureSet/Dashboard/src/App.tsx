@@ -33,6 +33,7 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import usePermissionSnapshot from "Common/UI/Utils/UsePermissionSnapshot";
 import BlockedProject from "Common/UI/Utils/BlockedProject";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -319,6 +320,9 @@ const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(location);
   Navigation.setParams(useParams());
+
+  // Every page's gates read the snapshot that lands after they drew.
+  usePermissionSnapshot();
 
   const [isLoading, setLoading] = useState<boolean>(true);
   const [showProjectModal, setShowProjectModal] = useState<boolean>(false);

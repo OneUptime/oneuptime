@@ -187,7 +187,9 @@ describe("what the walk reads", () => {
       "OpenStackServicesComputeDown.png",
       "OpenStackTopology.png",
       "OpenStackTopologyComputeDown.png",
+      "OpenStackTraceNative.png",
       "OpenStackTraces.png",
+      "OpenStackTracesNative.png",
     ]);
     // The size the docs' screenshots are, read from one of them: a PNG's header says.
     const png = fs.readFileSync(

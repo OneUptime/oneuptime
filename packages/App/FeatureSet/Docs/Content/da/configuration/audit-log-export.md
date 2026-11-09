@@ -121,7 +121,7 @@ OneUptime sender hver batch med POST til **URL**, som et JSON-array (`applicatio
 Hver post er én RFC 5424-meddelelse til **Vært** og **Port**, over TLS på port `6514`, medmindre **Protokol** angiver TCP, med facility 13 (log audit) og severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
 Meddelelser adskilles med oktettælling (RFC 5425), medmindre **Meddelelsesadskillelse** angiver én meddelelse pr. linje. En modtager, hvis certifikat en privat CA har signeret, skal have den CA's certifikat i **CA-certifikat**. Begge venter under **Flere felter**.
@@ -132,7 +132,7 @@ Hver post er ét JSON-objekt, med nøglerne altid i denne rækkefølge:
 
 | Nøgle | Hvad den indeholder |
 | --- | --- |
-| `schemaVersion` | `1`. En ændring af skemaet kommer med en ny version. |
+| `schemaVersion` | `2` for en ny eksport, `1` for en, der blev gemt før version 2. En version tilføjer kun nøgler. |
 | `id` | Postens id. Den samme post, sendt to gange, har det samme id. |
 | `createdAt` | Hvornår ændringen blev registreret, i UTC. |
 | `projectId` | Det projekt, ændringen blev foretaget i. |
@@ -143,11 +143,22 @@ Hver post er ét JSON-objekt, med nøglerne altid i denne rækkefølge:
 | `apiKeyId`, `apiKeyName` | Den API-nøgle, den blev foretaget med, hvis nogen. |
 | `mcpOAuthGrantId`, `mcpClientName` | Den MCP-klient, den blev foretaget gennem, hvis nogen. |
 | `workflowId`, `workflowName` | Det workflow, der foretog den, hvis nogen. |
-| `changes` | Hvert ændret felt: `field`, med `oldValue` og `newValue`. |
+| `changes` | Hvert ændret felt: `field`, med `oldValue` og `newValue`, og i version 2 `summary`. |
 
 En fil rummer én post pr. linje, komprimeret med gzip, og arkiveres under timen for dens første post: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Hver `oldValue` og `newValue` er feltets værdi: tekst, et tal, `true` eller `false` eller JSON for en indstilling, der består af flere dele. Et telefonnummer, en e-mailadresse eller en URL er sin tekst, såsom `+14155550100`, og en port er sit nummer.
+
 Nøgler, tokens og adgangskoder forlader aldrig OneUptime: De registreres som `[REDACTED]`, og felter, som ingen må læse, udelades af alle poster.
+
+## Postversioner
+
+| Version | Hvad den sender |
+| --- | --- |
+| `2` | Hver ændring har også `summary`: hvad der ændrede sig, i de linjer auditloggen viser, for eksempel `Added "Send Email" (send-email-1)` for et workflows trin eller stien, der ændrede sig i JSON, ellers `null`. Linjerne nævner indstillinger og stier, aldrig værdier. |
+| `1` | Posten, som den først blev sendt, uden `summary`. Et workflows trin sendes som deres størrelse før og efter, for eksempel `3 steps and 2 connections`. |
+
+En ny eksport sender version 2. En eksport, der blev gemt før version 2, bliver ved med at sende version 1, så det, der læser den, behøver ingen ændring: Når det er klar til `summary`, så klik på **Rediger** ved eksporten, og vælg version 2 i **Postversion** under **Flere felter**. Versionen gælder for de poster, der sendes fra da af, og hver post angiver sin egen i `schemaVersion`.
 
 ## Hvornår poster sendes
 

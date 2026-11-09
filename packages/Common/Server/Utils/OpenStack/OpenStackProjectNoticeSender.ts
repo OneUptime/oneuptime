@@ -23,10 +23,12 @@ import {
   writeOpenStackProjectNotice,
 } from "../../../Utils/OpenStack/OpenStackProjectNoticeText";
 import IncidentService from "../../Services/IncidentService";
+import IncidentStateService from "../../Services/IncidentStateService";
 import MailService from "../../Services/MailService";
 import OpenStackProjectNoticeDeliveryService from "../../Services/OpenStackProjectNoticeDeliveryService";
 import OpenStackProjectNoticeService from "../../Services/OpenStackProjectNoticeService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import BlockedProjectNotifications from "../Notification/BlockedProjectNotifications";
@@ -205,15 +207,38 @@ export default class OpenStackProjectNoticeSender {
         query: { _id: QueryHelper.any(incidentIds) },
         select: {
           _id: true,
-          currentIncidentState: { isResolvedState: true },
+          projectId: true,
+          currentIncidentStateId: true,
         },
         skip: 0,
         limit: incidentIds.length,
         props: { isRoot: true },
       });
 
+      // A project's own states after Resolved count too: its list of states says.
+      const resolvedStates: Map<string, Array<ObjectID>> = new Map();
+
       for (const incident of incidents) {
-        if (!incident.currentIncidentState?.isResolvedState) {
+        const projectId: string = incident.projectId?.toString() || "";
+
+        if (!resolvedStates.has(projectId)) {
+          resolvedStates.set(
+            projectId,
+            incident.projectId
+              ? await IncidentStateService.getResolvedIncidentStateIds(
+                  incident.projectId,
+                )
+              : [],
+          );
+        }
+
+        if (
+          !resolvedStates.get(projectId)!.some((state: ObjectID): boolean => {
+            return (
+              state.toString() === incident.currentIncidentStateId?.toString()
+            );
+          })
+        ) {
           over.delete(idOf(incident));
         }
       }
@@ -225,21 +250,39 @@ export default class OpenStackProjectNoticeSender {
           query: { _id: QueryHelper.any(maintenanceIds) },
           select: {
             _id: true,
-            currentScheduledMaintenanceState: {
-              isEndedState: true,
-              isResolvedState: true,
-            },
+            projectId: true,
+            currentScheduledMaintenanceStateId: true,
           },
           skip: 0,
           limit: maintenanceIds.length,
           props: { isRoot: true },
         });
 
-      for (const event of events) {
-        const state: ScheduledMaintenance["currentScheduledMaintenanceState"] =
-          event.currentScheduledMaintenanceState;
+      // Whether an event is over is its project's list of states' to say, too.
+      const overStates: Map<string, Array<ObjectID>> = new Map();
 
-        if (!state?.isEndedState && !state?.isResolvedState) {
+      for (const event of events) {
+        const projectId: string = event.projectId?.toString() || "";
+
+        if (!overStates.has(projectId)) {
+          overStates.set(
+            projectId,
+            event.projectId
+              ? await ScheduledMaintenanceStateService.getOverScheduledMaintenanceStateIds(
+                  event.projectId,
+                )
+              : [],
+          );
+        }
+
+        if (
+          !overStates.get(projectId)!.some((state: ObjectID): boolean => {
+            return (
+              state.toString() ===
+              event.currentScheduledMaintenanceStateId?.toString()
+            );
+          })
+        ) {
           over.delete(idOf(event));
         }
       }

@@ -1,6 +1,6 @@
 # Dépannage RUM
 
-Lorsqu'une application RUM manque, est vide ou affiche **Déconnecté**, parcourez cette page dans l'ordre. Chaque vérification écarte une partie du chemin entre votre application et OneUptime, dans l'ordre où ces problèmes surviennent d'habitude.
+Lorsqu'une application RUM manque ou est vide, ou affiche **Aucun trafic récent** alors que des gens l'utilisent, parcourez cette page dans l'ordre. Chaque vérification écarte une partie du chemin entre votre application et OneUptime, dans l'ordre où ces problèmes surviennent d'habitude.
 
 :::cards
 - [Vérifier la clé](#vérifier-la-clé): La vérification la plus rapide, et tout ce qui suit en dépend.
@@ -109,6 +109,33 @@ L'application existe, mais ses pages n'affichent rien.
 - **Attendez quelques minutes.** L'ingestion passe par une file, et **Dernière fois vu** est actualisé toutes les quelques minutes plutôt qu'à chaque lot.
 - **Vérifiez le projet.** Une clé écrit dans son propre projet : la télémétrie envoyée avec la clé d'un autre projet est là-bas, pas ici.
 
+## Les exceptions ou les journaux sont vides
+
+Les chargements de page et les requêtes arrivent, mais **Exceptions** ou **Journaux** restent vides. Le SDK OpenTelemetry pour navigateur envoie de lui-même des traces des chargements de page et des requêtes, mais aucune exception et aucun journal : une application peut donc sembler connectée alors que ces deux-là restent vides pour de bon.
+
+Le graphique vide de la **Vue d'ensemble** de l'application indique de quel cas il s'agit, et la **Vérification de la configuration** de sa page **Documentation** liste chaque type de télémétrie avec le moment où le plus récent est arrivé :
+
+| Le graphique indique | Ce que cela signifie |
+| --- | --- |
+| **Les exceptions ne sont pas configurées** ou **Les journaux ne sont pas configurés** | Cette application n'en a encore jamais envoyé. **Configurer les exceptions** ou **Configurer les journaux** affiche le code qui les envoie, avec votre URL et votre clé déjà renseignées. |
+| **Aucune exception sur cette période** ou **Aucun journal sur cette période** | Il en est déjà arrivé, et le graphique indique la date de la dernière arrivée. Choisissez la période plus longue qu'il propose. |
+| **Rien n'est encore arrivé de cette application** | Aucune télémétrie n'arrive : commencez par [Vérifier la clé](#vérifier-la-clé). |
+| **Le SDK OpenTelemetry ne remonte rien** | Seule la relecture de session remonte des données de cette application : configurez le SDK comme dans [Configuration navigateur](/docs/rum/browser-setup). |
+
+Les exceptions ont besoin d'un gestionnaire d'erreurs, car le SDK ne capture pas les erreurs non interceptées : [Signaler les erreurs non interceptées](/docs/rum/browser-setup#signaler-les-erreurs-non-interceptées) donne le code. Une erreur qu'une error boundary ou un `try`/`catch` intercepte n'atteint jamais la fenêtre : enregistrez-la là où vous la traitez, avec `span.recordException`.
+
+Les journaux ont besoin d'un pipeline de journaux et de code qui écrit des entrées de journal, car un `LoggerProvider` seul n'envoie rien : [Ajouter journaux et métriques](/docs/rum/browser-setup#ajouter-journaux-et-métriques) donne les deux. Construisez le pipeline avec la même `resource` que vos traces, sinon les journaux sont classés sous un service backend.
+
+Quand les chargements de page arrivent, la clé, ses origines autorisées et votre Content Security Policy laissent aussi passer les exceptions et les journaux, tant que l'exportateur de journaux utilise la même clé et le même hôte. Un gestionnaire d'erreurs qui n'a encore rien intercepté n'envoie rien, exactement comme un gestionnaire jamais ajouté : levez une erreur de test depuis la console du navigateur pour distinguer les deux :
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+En moins d'une minute, elle apparaît dans la **Vue d'ensemble** de l'application, sous **Exceptions**.
+
 ## La page Clients est vide
 
 La page **Clients** liste `browser.platform` sur le web et `device.model.identifier` sur mobile. Deux raisons pour lesquelles elle reste vide alors que tout le reste fonctionne :
@@ -120,15 +147,15 @@ La page **Clients** liste `browser.platform` sur le web et `device.model.identif
 
 La carte ne se remplit qu'à partir des métriques que votre application envoie : les traces seules ne la remplissent jamais. Vérifiez que vous exportez bien des métriques, que leurs noms sont de ceux que OneUptime lit, et qu'elles figurent sur la page **Métriques** de l'application. [La carte affiche « No web vitals reported yet »](/docs/rum/web-vitals#dépannage) passe en revue chaque vérification, y compris les valeurs perdues quand un visiteur ferme l'onglet avant l'export suivant.
 
-## L'état indique Déconnecté alors que des gens utilisent l'application
+## L'état indique Aucun trafic récent alors que des gens utilisent l'application
 
-Une application passe à **Déconnecté** après 15 minutes sans télémétrie. Si des gens utilisent l'application :
+Une application affiche **Aucun trafic récent** après 15 minutes sans télémétrie. Si des gens utilisent l'application :
 
 - **Un échantillonneur écarte peut-être tout.** Vérifiez que vous n'avez pas défini un échantillonneur toujours désactivé, ou un ratio très bas.
 - **L'application n'envoie peut-être de la télémétrie que lors de certaines interactions**, et personne ne les a utilisées pendant ce temps.
 - **La clé a peut-être été révoquée ou désactivée** après votre déploiement : relancez la [vérification de la clé](#vérifier-la-clé).
 
-Une application interne ou à faible trafic sans visiteurs la nuit est réellement déconnectée. Ce n'est pas une panne.
+Une application interne ou à faible trafic sans visiteurs la nuit affiche elle aussi **Aucun trafic récent**. C'est normal, ce n'est pas une panne.
 
 ## Problèmes de relecture de session
 

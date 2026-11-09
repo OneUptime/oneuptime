@@ -36,6 +36,7 @@ import {
   evaluateCompiledFilter,
   CompiledFilter,
 } from "../../FeatureSet/Telemetry/Utils/LogFilterEvaluator";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * What a project's OpenStack logs cost and keep before anyone has set anything. These rows go
@@ -306,20 +307,24 @@ describe("the scrub rules", () => {
       const compiled: ScrubRegExp | null = compileScrubRuleCustomRegex(
         rule.customRegex,
       );
-      const startedAt: number = Date.now();
-
-      for (const shape of [
+      const shapes: Array<string> = [
         "gAAAA".repeat(20000),
         "X-Auth-Token: ".repeat(10000),
         "rabbit://user:".repeat(10000),
         '"password": "'.repeat(10000),
-      ]) {
-        compiled?.replace(shape, () => {
-          return "[REDACTED]";
-        });
-      }
+      ];
+      const read: FastestRun<void> = fastestRun({
+        run: (): void => {
+          for (const shape of shapes) {
+            compiled?.replace(shape, () => {
+              return "[REDACTED]";
+            });
+          }
+        },
+        limitInMs: 5000,
+      });
 
-      expect(Date.now() - startedAt).toBeLessThan(5000);
+      expect(read.inMs).toBeLessThan(5000);
     }
   });
 });

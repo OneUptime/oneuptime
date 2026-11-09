@@ -13,7 +13,7 @@ Click a template to see what it does: its trigger, the blocks it is made of, and
 
 Workflows are created switched off, so their trigger doesn't start them until you turn them on. A new workflow opens in the **Builder**, the canvas where you design it.
 
-You can also describe a workflow to Ask AI and let it build one for you. It finds the trigger and the steps, sets them up and connects them, and asks you to approve the workflow before it is saved. A new workflow starts turned off: read it in the Builder, fill in any password, token or webhook URL it left for you, because Ask AI never asks for those in the conversation, and then turn it on yourself. Ask AI can change a workflow the same way. Asked from a workflow's page, "this workflow" means that one. It saves as you, so it can only do what you can do in the Builder, and the Builder shows its changes as soon as they are saved.
+You can also describe a workflow to Ask AI and let it build one for you. It finds the trigger and the steps, sets them up and connects them, and asks you to approve the workflow before it is saved. A new workflow starts turned off: read it in the Builder, fill in any password, token or webhook URL it left for you, because Ask AI never asks for those in the conversation, and then turn it on yourself. Ask AI can change a workflow the same way. Asked from a workflow's page, "this workflow" means that one. It saves as you, so it can only do what you can do in the Builder, and the Builder shows its changes as soon as they are saved. If the workflow is saved while Ask AI's change waits for your approval, by you in the Builder or by someone else, approving it keeps what was saved. When the two changes are to different steps, Ask AI makes its change on top of what was saved, and says so. When they touch the same step, nothing is changed: Ask AI says the workflow changed and proposes its change again on the workflow as it is now. Ask AI writes a change from the workflow as it last read it. If the workflow was saved after that, and the change would undo some of what was saved, the card says so before you approve it and names the steps, for example "This change undoes what was saved after Ask AI read the workflow: Send Message to Slack." To keep what was saved, skip the change and ask Ask AI to read the workflow again. Moving cards never counts, and nor does a setting changed on a step that Ask AI's change leaves as it is. If Ask AI never read the workflow's steps, the card says that too. In Auto-run, where nobody approves actions, Ask AI does not make such a change: it reads the workflow again and makes its change on the workflow as it is now.
 
 ## The canvas
 
@@ -21,7 +21,9 @@ A workflow from scratch opens with a single dashed block reading **Choose what s
 
 Every workflow has exactly one **trigger** at the top. Everything else is a **component** that does something. To change the trigger, delete it: the dashed placeholder comes back in its place, and clicking it lets you pick another. Deleting a block deletes its lines too, so connect the new trigger to the first block again.
 
-Changes save automatically. A pill in the toolbar tracks it: **Saving…** while the change is in flight, then **Saved**, or **Could not save** if it didn't work. The canvas has no Save button and no separate publish step.
+Changes save automatically, a moment after you make them. A pill in the toolbar tracks it: **Saving…** while the change is on its way, then **Saved**. If a change could not be saved, the pill says **Could not save**, with the reason when you hover it, and **Try again** beside it. Your changes stay on the canvas meanwhile, and the next change you make tries again. Leaving the page before a change is saved asks you first. The canvas has no Save button and no separate publish step. A mistake is saved too, so the Builder keeps every change you can take back: see [Undo, redo and version history](#undo-redo-and-version-history).
+
+Two people can have the same workflow open. If someone else saves it after you opened it, in another Builder or through the API, the Builder does not save your change over theirs: the pill says **Not saved**, and a dialog lists what they changed. **Show their changes** puts their version on the canvas, and **Undo** brings yours back. **Keep mine** saves your version, and theirs stays in the version history. Nothing is lost either way.
 
 ## Add blocks
 
@@ -169,6 +171,26 @@ To pause a workflow without deleting it, switch **Enabled** off. Its trigger sto
 - To delete a block, click it and use **Delete** at the bottom of its settings dialog. Selecting a block or a line and pressing Backspace also removes it.
 - There's no way to duplicate a single block. **Duplicate Workflow** on the workflow's **Settings** page copies the whole thing. The copy's name is filled in, numbered past the project's workflows ("Nightly Sync" is copied as "Nightly Sync 2"), and the copy opens, disabled.
 - Stack blocks top to bottom so they read in the direction they run — inputs are on the top edge, outputs on the bottom, so the flow naturally goes downward.
+
+## Undo, redo and version history
+
+Every change you make on the canvas can be taken back, even though it was saved straight away.
+
+- **Undo** and **Redo** are at the start of the toolbar. Hover either one to see what it would take back or make again, and which block that is. Each change is one step: adding, deleting or moving a block, connecting or disconnecting two blocks, and saving a block's settings. Dragging a block is one step, however far you drag it.
+- The keyboard works too: ⌘Z on a Mac, or Ctrl+Z, undoes, and ⇧⌘Z, Ctrl+Shift+Z or Ctrl+Y redoes. While you type in a field or a code editor, the same keys undo your typing instead.
+- An undo is saved like any other change. Undo goes back over what you did since you opened the Builder; the version history goes back further.
+
+**Version history**, in the toolbar, lists every saved version of the workflow, newest first: who saved it, when, and what it changed, such as `Added "Send Email" (send-email-1)`. The changes you save within 10 minutes of each other are one version, so a version is a piece of work rather than every click. Changes made through the API are versions too, and each change Ask AI makes is a version of its own, saying Ask AI made it for you. Restoring the version before it takes back exactly what Ask AI did. When Ask AI's change was made on top of a change you had not seen yet, the Builder shows them as two steps: Undo takes back Ask AI's change alone, and the change saved before it is the next step back.
+
+To go back to an earlier version:
+
+:::steps
+1. Click **Version history** in the toolbar.
+2. Click **Preview** on the version. The preview lists what restoring it would change, and shows the version on a canvas of its own. Click a block on it to read its settings.
+3. Click **Restore this version**. The version goes back on the canvas and is saved straight away.
+:::
+
+Restoring is a change like any other. It is saved as a new version that says which version it restored, so you can undo it, or restore the version you had before. Anyone who can open the workflow can see its history; restoring a version takes permission to edit the workflow. The newest 100 versions of each workflow are kept.
 
 ## Next steps
 

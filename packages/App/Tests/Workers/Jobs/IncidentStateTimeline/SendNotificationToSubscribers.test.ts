@@ -2913,3 +2913,89 @@ describe("IncidentStateTimeline, in the subscriber's language", () => {
     expect(sentSms()[0]).toContain("インシデント");
   });
 });
+
+/*
+ * A CUSTOM TEMPLATE'S VALUES, IN ITS PAGE'S LANGUAGE.
+ *
+ * A custom template is the team's own text, written once: the values of
+ * OneUptime's own words it is filled with - its default state and severity
+ * names, "None" for no resources - are in the page's default language
+ * (SubscriberTemplateValues, through IncidentTemplateVariableBuilder),
+ * whoever reads it. A project's own names read as written, and a page with
+ * no default language reads in English.
+ */
+describe("IncidentStateTimeline custom templates, in the page's language", () => {
+  const pageIn: (language: string) => StatusPage = (
+    language: string,
+  ): StatusPage => {
+    const page: StatusPage = statusPage({ withCustomSmtpAndSms: true });
+    page.defaultLanguage = language;
+    return page;
+  };
+
+  const withSeverity: (name: string) => Incident = (name: string): Incident => {
+    const row: Incident = incident();
+    row.incidentSeverity!.name = name;
+    return row;
+  };
+
+  test("OneUptime's default state and severity names are the page's language's, on every channel", async () => {
+    pendingTimelines = [stateTimeline({ stateName: "Resolved" })];
+    storeIncidents([withSeverity("Major Incident")]);
+    useCustomTemplatesOnEveryChannel([pageIn("nl")]);
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["incidentState"]).toBe("Opgelost");
+      expect(call.variables["incidentSeverity"]).toBe("Belangrijk incident");
+      expect(call.variables["incidentTitle"]).toBe(INCIDENT_TITLE);
+    }
+  });
+
+  test("a project's own state and severity names read as written", async () => {
+    pendingTimelines = [stateTimeline({ stateName: "monitoring" })];
+    useCustomTemplatesOnEveryChannel([pageIn("nl")]);
+
+    await runJob();
+
+    for (const call of compileCalls()) {
+      expect(call.variables["incidentState"]).toBe("monitoring");
+      expect(call.variables["incidentSeverity"]).toBe(INCIDENT_SEVERITY);
+    }
+  });
+
+  test("a resource list that lists none reads 'None' in the page's language", async () => {
+    pendingTimelines = [stateTimeline()];
+    useCustomTemplatesOnEveryChannel([pageIn("sv")]);
+    // The page's one resource has no name to list.
+    const unnamed: StatusPageResource = resource();
+    unnamed.displayName = "";
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+      unnamed,
+    ] as never);
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["resourcesAffected"]).toBe("Inga");
+    }
+  });
+
+  test("a page without a default language fills them in English", async () => {
+    pendingTimelines = [stateTimeline({ stateName: "Resolved" })];
+    storeIncidents([withSeverity("Major Incident")]);
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    for (const call of compileCalls()) {
+      expect(call.variables["incidentState"]).toBe("Resolved");
+      expect(call.variables["incidentSeverity"]).toBe("Major Incident");
+    }
+  });
+});

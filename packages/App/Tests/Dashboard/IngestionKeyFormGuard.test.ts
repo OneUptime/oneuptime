@@ -263,7 +263,6 @@ describe("Telemetry ingestion key create form", () => {
       ).toEqual(
         [
           "Components/AI/Connect/LlmAppsPath.tsx",
-          "Components/Cloud/CloudAiAgentSetupModal.tsx",
           "Components/DataObservability/ConnectSyncToolModal.tsx",
           "Components/SecurityEvents/SecurityEventsSetupGuide.tsx",
           "Components/SetupGuide/SetupGuideCard.tsx",
@@ -293,10 +292,16 @@ describe("Telemetry ingestion key create form", () => {
       expect(read("Components/AI/Connect/LlmAppsPath.tsx")).toContain(
         "keyTypeFilter={TelemetryIngestionKeyType.Server}",
       );
-      // The Cloud AI agent registers with its key from the customer's cloud.
-      expect(read("Components/Cloud/CloudAiAgentSetupModal.tsx")).toContain(
-        "keyTypeFilter={TelemetryIngestionKeyType.Server}",
+      /*
+       * The Cloud AI agent connects with a key made for its account's agent
+       * alone, never an ingestion key: its dialog asks for that key, and
+       * offers no ingestion key to pick.
+       */
+      const cloudAgentDialog: string = read(
+        "Components/Cloud/CloudAiAgentSetupModal.tsx",
       );
+      expect(cloudAgentDialog).not.toContain("IngestionKeySelector");
+      expect(cloudAgentDialog).toContain("RESOURCE_AI_ACCESS_AGENT_KEY_ROUTE");
       expect(read("Components/Telemetry/Documentation.tsx")).toMatch(
         /isBrowserSdkGuide\s*\?\s*TelemetryIngestionKeyType\.Browser\s*:\s*TelemetryIngestionKeyType\.Server/,
       );

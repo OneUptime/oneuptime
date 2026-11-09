@@ -1,6 +1,6 @@
 # RUM-feilsøking
 
-Når en RUM-applikasjon mangler, er tom eller viser **Frakoblet**, går du gjennom denne siden i rekkefølge. Hver sjekk utelukker en del av veien mellom appen din og OneUptime, i den rekkefølgen disse problemene vanligvis oppstår.
+Når en RUM-applikasjon mangler eller er tom, eller viser **Ingen nylig trafikk** mens folk bruker den, går du gjennom denne siden i rekkefølge. Hver sjekk utelukker en del av veien mellom appen din og OneUptime, i den rekkefølgen disse problemene vanligvis oppstår.
 
 :::cards
 - [Sjekk nøkkelen](#sjekk-nøkkelen): Den raskeste sjekken, og alt annet avhenger av den.
@@ -109,6 +109,33 @@ Applikasjonen finnes, men sidene viser ingenting.
 - **Vent noen minutter.** Inntak går gjennom en kø, og **Sist sett** oppdateres med noen minutters mellomrom i stedet for ved hver batch.
 - **Sjekk prosjektet.** En nøkkel skriver til sitt eget prosjekt, så telemetri som sendes med et annet prosjekts nøkkel, ligger der og ikke her.
 
+## Unntak eller logger er tomme
+
+Sideinnlastinger og forespørsler kommer inn, men **Unntak** eller **Logger** forblir tomme. OpenTelemetry-SDK-et for nettleser sender av seg selv spor av sideinnlastinger og forespørsler, men ingen unntak og ingen logger, så en applikasjon kan se tilkoblet ut mens disse to forblir tomme for godt.
+
+Det tomme diagrammet på applikasjonens **Oversikt** sier hvilket tilfelle det er, og **Oppsettsjekk** på siden **Dokumentasjon** viser hver type telemetri med når den nyeste kom inn:
+
+| Diagrammet sier | Hva det betyr |
+| --- | --- |
+| **Unntak er ikke satt opp** eller **Logger er ikke satt opp** | Ingen har noen gang kommet fra denne appen. **Sett opp unntak** eller **Sett opp logger** viser koden som sender dem, med URL-en og nøkkelen din allerede fylt inn. |
+| **Ingen unntak i dette tidsrommet** eller **Ingen logger i dette tidsrommet** | Noen kom tidligere, og diagrammet sier når den siste kom. Velg det lengre tidsrommet det tilbyr. |
+| **Ingenting har kommet fra denne appen ennå** | Ingen telemetri av noe slag kommer inn: start med [Sjekk nøkkelen](#sjekk-nøkkelen). |
+| **OpenTelemetry SDK-et rapporterer ikke** | Bare øktavspilling rapporterer fra denne appen: sett opp SDK-et som i [Nettleseroppsett](/docs/rum/browser-setup). |
+
+Unntak trenger en feilhåndterer, fordi SDK-et ikke fanger ufangede feil: [Rapporter ufangede feil](/docs/rum/browser-setup#rapporter-ufangede-feil) har koden. En feil som en error boundary eller en `try`/`catch` håndterer, når aldri vinduet, så registrer den der du håndterer den, med `span.recordException`.
+
+Logger trenger en loggpipeline og kode som skriver loggposter, fordi en `LoggerProvider` alene ikke sender noe: [Legg til logger og målinger](/docs/rum/browser-setup#legg-til-logger-og-målinger) har begge deler. Bygg pipelinen med samme `resource` som sporene dine, ellers arkiveres loggene under en backend-tjeneste.
+
+Når sideinnlastinger kommer inn, slipper nøkkelen, de tillatte opprinnelsene og Content Security Policy-en din også gjennom unntak og logger, så lenge loggeksportøren bruker samme nøkkel og vert. En feilhåndterer som ennå ikke har fanget noe, sender ingenting, akkurat som en som aldri ble lagt til, så kast en testfeil fra nettleserens konsoll for å skille de to:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Innen ett minutt står den på applikasjonens **Oversikt**, under **Unntak**.
+
 ## Siden Klienter er tom
 
 Siden **Klienter** viser `browser.platform` på web og `device.model.identifier` på mobil. To grunner til at den forblir tom selv når alt annet virker:
@@ -120,15 +147,15 @@ Siden **Klienter** viser `browser.platform` på web og `device.model.identifier`
 
 Kortet fylles bare med målingene appen din sender, så spor alene fyller det aldri. Sjekk at du eksporterer målinger, at navnene deres er blant dem OneUptime leser, og at de vises på applikasjonens side **Målinger**. [Kortet sier «No web vitals reported yet»](/docs/rum/web-vitals#feilsøking) går gjennom hver sjekk, inkludert verdier som går tapt når en besøkende lukker fanen før neste eksport.
 
-## Statusen sier Frakoblet mens folk bruker appen
+## Statusen sier Ingen nylig trafikk mens folk bruker appen
 
-En applikasjon går over til **Frakoblet** etter 15 minutter uten telemetri. Hvis folk bruker appen:
+En applikasjon viser **Ingen nylig trafikk** etter 15 minutter uten telemetri. Hvis folk bruker appen:
 
 - **En sampler kaster kanskje alt.** Sjekk at du ikke har satt en sampler som alltid er av, eller et svært lavt forhold.
 - **Appen sender kanskje bare telemetri ved enkelte interaksjoner**, og ingen brukte dem i det tidsrommet.
 - **Nøkkelen kan ha blitt tilbakekalt eller deaktivert** etter utrullingen: kjør [nøkkelsjekken](#sjekk-nøkkelen) på nytt.
 
-En intern app eller en app med lite trafikk uten besøkende om natten er virkelig frakoblet. Det er ikke en feil.
+En intern app eller en app med lite trafikk uten besøkende om natten viser også **Ingen nylig trafikk**. Det er normalt, ikke en feil.
 
 ## Problemer med øktavspilling
 

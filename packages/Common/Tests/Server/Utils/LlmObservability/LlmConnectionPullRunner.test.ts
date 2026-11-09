@@ -825,3 +825,614 @@ describe("LlmConnectionPullRunner.loadProjectPrices", () => {
     ]);
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * What a provider account's reads have covered (#5776)
+ * ---------------------------------------------------------------------------
+ *
+ * After the first read, a provider account reads only the last few days, so
+ * a read that found nothing said "No usage yet" about an account that had
+ * spent money all month. Each read now keeps, on its result, the newest day
+ * any read found usage on and the first day ever read; the Connect page
+ * says "No usage since <day>" or "Last usage <day>" from them.
+ */
+function usageRecord(overrides: Partial<LlmUsageRecord>): LlmUsageRecord {
+  return {
+    day: new Date("2026-10-19T00:00:00Z"),
+    model: "gpt-4o",
+    person: "",
+    project: "",
+    apiKey: "",
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    requests: 0,
+    costUsd: 0,
+    ...overrides,
+  };
+}
+
+const WINDOW: LlmUsageWindow = {
+  startDay: new Date("2026-10-16T00:00:00Z"),
+  endDay: new Date("2026-10-20T00:00:00Z"),
+};
+
+describe("LlmConnectionPullRunner.getUsageCoverage", () => {
+  test("a first read: read since its window's first day, usage on its newest day with any", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: undefined,
+        window: WINDOW,
+        records: [
+          usageRecord({
+            day: new Date("2026-10-17T00:00:00Z"),
+            inputTokens: 10,
+          }),
+          usageRecord({ day: new Date("2026-10-18T00:00:00Z"), requests: 2 }),
+          usageRecord({ day: new Date("2026-10-16T00:00:00Z"), costUsd: 1 }),
+        ],
+      }),
+    ).toEqual({
+      newestUsageDay: "2026-10-18T00:00:00.000Z",
+      readSince: "2026-10-16T00:00:00.000Z",
+    });
+  });
+
+  test.each([
+    ["input tokens", { inputTokens: 1 }],
+    ["output tokens", { outputTokens: 1 }],
+    ["requests", { requests: 1 }],
+    ["cost", { costUsd: 0.01 }],
+  ])(
+    "a day with only %s is a day with usage",
+    (_name: string, overrides: Partial<LlmUsageRecord>) => {
+      expect(
+        LlmConnectionPullRunner.getUsageCoverage({
+          previous: undefined,
+          window: WINDOW,
+          records: [usageRecord(overrides)],
+        }).newestUsageDay,
+      ).toBe("2026-10-19T00:00:00.000Z");
+    },
+  );
+
+  test("a row of zeros is not usage: an account the provider lists with nothing used", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: undefined,
+        window: WINDOW,
+        records: [
+          usageRecord({ day: new Date("2026-10-19T00:00:00Z") }),
+          usageRecord({
+            day: new Date("2026-10-18T00:00:00Z"),
+            cacheReadTokens: 50,
+          }),
+        ],
+      }).newestUsageDay,
+    ).toBeUndefined();
+  });
+
+  test("a read that found nothing keeps the day an earlier read found usage on", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: {
+          kind: "usage",
+          newestUsageDay: "2026-09-30T00:00:00.000Z",
+          readSince: "2026-09-01T00:00:00.000Z",
+        },
+        window: WINDOW,
+        records: [],
+      }),
+    ).toEqual({
+      newestUsageDay: "2026-09-30T00:00:00.000Z",
+      readSince: "2026-09-01T00:00:00.000Z",
+    });
+  });
+
+  test("a newer day with usage replaces the earlier one; an older one does not", () => {
+    const previous: JSONObject = {
+      newestUsageDay: "2026-10-18T00:00:00.000Z",
+      readSince: "2026-10-01T00:00:00.000Z",
+    };
+
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous,
+        window: WINDOW,
+        records: [
+          usageRecord({
+            day: new Date("2026-10-19T00:00:00Z"),
+            outputTokens: 4,
+          }),
+        ],
+      }).newestUsageDay,
+    ).toBe("2026-10-19T00:00:00.000Z");
+
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous,
+        window: WINDOW,
+        records: [
+          usageRecord({
+            day: new Date("2026-10-16T00:00:00Z"),
+            outputTokens: 4,
+          }),
+        ],
+      }).newestUsageDay,
+    ).toBe("2026-10-18T00:00:00.000Z");
+  });
+
+  test("read since is the earliest day any read covered", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: { readSince: "2026-10-18T00:00:00.000Z" },
+        window: WINDOW,
+        records: [],
+      }).readSince,
+    ).toBe("2026-10-16T00:00:00.000Z");
+
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: { readSince: "2026-08-01T00:00:00.000Z" },
+        window: WINDOW,
+        records: [],
+      }).readSince,
+    ).toBe("2026-08-01T00:00:00.000Z");
+  });
+
+  test("a usage day is the day it started, whatever time of day the provider stamped", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: undefined,
+        window: WINDOW,
+        records: [
+          usageRecord({
+            day: new Date("2026-10-19T13:45:00Z"),
+            inputTokens: 1,
+          }),
+        ],
+      }).newestUsageDay,
+    ).toBe("2026-10-19T00:00:00.000Z");
+  });
+
+  test.each([
+    ["nothing", null],
+    ["a result of another kind", { kind: "chat", importedTurns: 4 }],
+    [
+      "values that are not days",
+      { newestUsageDay: "yesterday", readSince: 12 },
+    ],
+    ["empty values", { newestUsageDay: "", readSince: "" }],
+  ])(
+    "an earlier result with %s is read as no coverage, never thrown",
+    (_name: string, previous: JSONObject | null) => {
+      expect(
+        LlmConnectionPullRunner.getUsageCoverage({
+          previous,
+          window: WINDOW,
+          records: [],
+        }),
+      ).toEqual({
+        newestUsageDay: undefined,
+        readSince: "2026-10-16T00:00:00.000Z",
+      });
+    },
+  );
+});
+
+describe("LlmConnectionPullRunner.run - what a provider account's reads have covered", () => {
+  test("a read keeps the newest day with usage and the first day read on its result", async () => {
+    await run();
+
+    expect(lastRecord()["lastPullResult"]).toMatchObject({
+      kind: "usage",
+      newestUsageDay: "2026-10-19T00:00:00.000Z",
+      readSince: "2026-10-16T00:00:00.000Z",
+    });
+  });
+
+  test("a read that finds nothing keeps what earlier reads covered", async () => {
+    connection.lastPullResult = {
+      status: "success",
+      kind: "usage",
+      newestUsageDay: "2026-09-12T00:00:00.000Z",
+      readSince: "2026-09-01T00:00:00.000Z",
+    };
+    connector = usageConnector(async () => {
+      return { records: [], requestCount: 2, warnings: [] };
+    });
+
+    await run();
+
+    expect(lastRecord()["lastPullResult"]).toMatchObject({
+      status: "success",
+      kind: "usage",
+      newestUsageDay: "2026-09-12T00:00:00.000Z",
+      readSince: "2026-09-01T00:00:00.000Z",
+    });
+  });
+
+  test("a read that never found usage says so by leaving the day out", async () => {
+    connector = usageConnector(async () => {
+      return { records: [], requestCount: 2, warnings: [] };
+    });
+
+    await run();
+
+    const result: JSONObject = lastRecord()["lastPullResult"] as JSONObject;
+
+    expect(result["readSince"]).toBe("2026-10-16T00:00:00.000Z");
+    expect(Object.keys(result)).not.toContain("newestUsageDay");
+  });
+
+  test("the earlier result is read with the connection", async () => {
+    const findOneById: jest.SpiedFunction<
+      typeof LlmObservabilityConnectionService.findOneById
+    > = jest.spyOn(LlmObservabilityConnectionService, "findOneById");
+
+    await run();
+
+    const select: JSONObject = (
+      findOneById.mock.calls[0]![0] as unknown as { select: JSONObject }
+    ).select;
+
+    expect(select["lastPullResult"]).toBe(true);
+  });
+
+  test("a provider read resource by resource says how many resources it read", async () => {
+    connector = usageConnector(async () => {
+      return {
+        records: [],
+        requestCount: 1,
+        warnings: [],
+        resources: 0,
+      };
+    });
+
+    await run();
+
+    expect(lastRecord()["lastPullResult"]).toMatchObject({ resources: 0 });
+
+    connector = usageConnector(async () => {
+      return {
+        records: [],
+        requestCount: 3,
+        warnings: [],
+        resources: 2,
+      };
+    });
+
+    await run();
+
+    expect(lastRecord()["lastPullResult"]).toMatchObject({ resources: 2 });
+  });
+
+  test("a provider that reports one account says nothing about resources", async () => {
+    await run();
+
+    expect(
+      Object.keys(lastRecord()["lastPullResult"] as JSONObject),
+    ).not.toContain("resources");
+  });
+
+  test("a failed read keeps nothing new about coverage", async () => {
+    connection.lastPullResult = {
+      status: "success",
+      kind: "usage",
+      newestUsageDay: "2026-09-12T00:00:00.000Z",
+      readSince: "2026-09-01T00:00:00.000Z",
+    };
+    connector = usageConnector(async () => {
+      throw LlmProviderError.from({
+        error: new Error("Data source responded with HTTP 503: down"),
+        step: "usage report",
+        providerTitle: "OpenAI",
+      });
+    });
+
+    await run();
+
+    const result: JSONObject = lastRecord()["lastPullResult"] as JSONObject;
+
+    expect(result["status"]).toBe("failed");
+    expect(Object.keys(result)).not.toContain("newestUsageDay");
+  });
+});
+
+/*
+ * A provider read by the hour (Cursor): it plans its own window from where
+ * the last read got to, can stop part way, and says what its past 7 days
+ * add up to from what is stored - a read covers a few hours, not the week.
+ */
+describe("LlmConnectionPullRunner.run - a provider read by the hour", () => {
+  const HOURLY_STATE: JSONObject = {
+    windowEnd: "2026-10-19T14:00:00.000Z",
+    pendingWindows: [
+      { start: "2026-09-20T00:00:00.000Z", end: "2026-10-01T00:00:00.000Z" },
+    ],
+    settledDay: "2026-10-18T00:00:00.000Z",
+    membersDay: "2026-10-19",
+  };
+  const PLANNED: LlmUsageWindow = {
+    startDay: new Date("2026-10-19T11:00:00Z"),
+    endDay: new Date("2026-10-19T15:00:00Z"),
+  };
+  const NEXT_STATE: JSONObject = {
+    windowEnd: "2026-10-19T15:00:00.000Z",
+    pendingWindows: [
+      { start: "2026-10-19T11:00:00.000Z", end: "2026-10-19T12:00:00.000Z" },
+      { start: "2026-09-20T00:00:00.000Z", end: "2026-10-01T00:00:00.000Z" },
+    ],
+    settledDay: "2026-10-18T00:00:00.000Z",
+    membersDay: "2026-10-19",
+  };
+
+  let plans: Array<JSONObject>;
+  let reads: Array<{
+    window: LlmUsageWindow;
+    options: LlmConnectorCallOptions;
+  }>;
+  let totals: jest.SpiedFunction<typeof LlmProviderUsageWriter.readUsageTotals>;
+
+  function hourlyConnector(result: Partial<LlmUsageFetchResult>): LlmConnector {
+    return {
+      provider: LlmConnectionProvider.Cursor,
+      kind: LlmConnectionKind.ProviderAccount,
+      validateSettings: () => {},
+      testConnection: async () => {
+        throw new Error("not used");
+      },
+      planUsageWindow: (data: JSONObject): LlmUsageWindow => {
+        plans.push(data);
+        return PLANNED;
+      },
+      fetchUsage: async (
+        _settings: LlmConnectionSettings,
+        window: LlmUsageWindow,
+        options: LlmConnectorCallOptions,
+      ): Promise<LlmUsageFetchResult> => {
+        reads.push({ window, options });
+        return {
+          records: [
+            usageRecord({
+              day: new Date("2026-10-19T14:00:00Z"),
+              person: "ana@sysnetix.com",
+              model: "claude-4.5-sonnet",
+              inputTokens: 160,
+              outputTokens: 20,
+              requests: 1,
+              costUsd: 0.02,
+            }),
+          ],
+          requestCount: 200,
+          warnings: [],
+          bucket: "hour",
+          coveredWindow: {
+            startDay: new Date("2026-10-19T12:00:00Z"),
+            endDay: new Date("2026-10-19T15:00:00Z"),
+          },
+          complete: false,
+          nextState: NEXT_STATE,
+          members: 40,
+          activeMembers: 12,
+          ...result,
+        } as LlmUsageFetchResult;
+      },
+    } as unknown as LlmConnector;
+  }
+
+  beforeEach(() => {
+    plans = [];
+    reads = [];
+    connection.provider = LlmConnectionProvider.Cursor;
+    connection.name = "Cursor";
+    connection.pullState = { ...HOURLY_STATE, junk: 1 };
+    connector = hourlyConnector({});
+    totals = jest
+      .spyOn(LlmProviderUsageWriter, "readUsageTotals")
+      .mockResolvedValue({
+        inputTokens: 52000000,
+        outputTokens: 1800000,
+        requests: 8200,
+        costUsd: 412.35,
+        daysWithUsage: 6,
+      });
+  });
+
+  test("it plans from where the last read got to, and writes only the hours it read, by the hour", async () => {
+    const outcome: LlmConnectionPullOutcome = await run();
+
+    expect(plans).toHaveLength(1);
+    expect(plans[0]).toMatchObject({ now: NOW, backfillDays: 30 });
+    expect(plans[0]!["state"]).toMatchObject(HOURLY_STATE);
+    expect(reads[0]!.window).toEqual(PLANNED);
+    expect(reads[0]!.options.state).toMatchObject(HOURLY_STATE);
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.window).toEqual({
+      startDay: new Date("2026-10-19T12:00:00Z"),
+      endDay: new Date("2026-10-19T15:00:00Z"),
+    });
+    expect((writes[0] as unknown as { bucket: string }).bucket).toBe("hour");
+    expect(writes[0]!.target).toMatchObject({
+      connectionName: "Cursor",
+      genAiProviderName: "cursor",
+      costIsEstimated: false,
+    });
+    expect(outcome.status).toBe("partial");
+  });
+
+  test("a read that stopped part way: partial, what is left kept, and read again in a minute", async () => {
+    await run();
+
+    expect(lastRecord()).toMatchObject({
+      lastSuccessfulPullAt: NOW,
+      lastError: null,
+      pullState: NEXT_STATE,
+      nextPullAt: new Date(NOW.getTime() + MINUTE),
+    });
+  });
+
+  test("what it used is its past 7 days as stored, with the team's people", async () => {
+    await run();
+
+    expect(totals).toHaveBeenCalledTimes(1);
+    expect(totals.mock.calls[0]![0]).toMatchObject({
+      startTime: new Date("2026-10-13T00:00:00Z"),
+      endTime: new Date(NOW.getTime() + 1),
+    });
+    expect(lastRecord()["lastPullResult"]).toMatchObject({
+      status: "partial",
+      kind: "usage",
+      days: 7,
+      bucket: "hour",
+      hoursRead: 3,
+      complete: false,
+      daysWithUsage: 6,
+      inputTokens: 52000000,
+      outputTokens: 1800000,
+      requests: 8200,
+      costUsd: 412.35,
+      members: 40,
+      activeMembers: 12,
+      requestCount: 200,
+      // A day start, though the read began at noon.
+      readSince: "2026-10-19T00:00:00.000Z",
+      newestUsageDay: "2026-10-19T00:00:00.000Z",
+    });
+  });
+
+  test("a read that finished is read again in an hour, and keeps the last count of people it did not make", async () => {
+    connection.lastPullResult = {
+      status: "success",
+      kind: "usage",
+      members: 40,
+      activeMembers: 12,
+      readSince: "2026-09-20T00:00:00.000Z",
+    };
+    connector = hourlyConnector({
+      complete: true,
+      members: undefined,
+      activeMembers: undefined,
+      nextState: { windowEnd: "2026-10-19T15:00:00.000Z" },
+    });
+
+    const outcome: LlmConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    const data: JSONObject = lastRecord();
+    expect(data["nextPullAt"]).toEqual(new Date(NOW.getTime() + 60 * MINUTE));
+    expect(data["lastPullResult"]).toMatchObject({
+      status: "success",
+      complete: true,
+      members: 40,
+      activeMembers: 12,
+      readSince: "2026-09-20T00:00:00.000Z",
+    });
+  });
+
+  test("a provider read by the day reads no totals back", async () => {
+    connection.provider = LlmConnectionProvider.OpenAI;
+    connector = usageConnector(async () => {
+      return { records: [], requestCount: 1, warnings: [] };
+    });
+
+    await run();
+
+    expect(totals).not.toHaveBeenCalled();
+    const result: JSONObject = lastRecord()["lastPullResult"] as JSONObject;
+    expect(Object.keys(result)).not.toContain("bucket");
+    expect(Object.keys(result)).not.toContain("members");
+  });
+});
+
+describe("LlmConnectionPullRunner - an hourly read's resume point and people", () => {
+  test("ranges still to read, the day settled and the day people were counted are read back; anything else is dropped", () => {
+    const state: JSONObject = LlmConnectionPullRunner.readPullState({
+      windowEnd: "2026-10-19T15:00:00.000Z",
+      pendingWindows: [
+        { start: "2026-09-20T00:00:00.000Z", end: "2026-10-01T00:00:00.000Z" },
+        { start: "soon", end: "2026-10-01T00:00:00.000Z" },
+        { start: 5, end: "2026-10-01T00:00:00.000Z" },
+        "nope",
+        null,
+      ],
+      settledDay: "2026-10-18T00:00:00.000Z",
+      membersDay: "2026-10-19",
+    }) as unknown as JSONObject;
+
+    expect(state).toEqual({
+      cursor: undefined,
+      windowStart: undefined,
+      windowEnd: "2026-10-19T15:00:00.000Z",
+      pageToken: undefined,
+      nextIndex: undefined,
+      pendingWindows: [
+        { start: "2026-09-20T00:00:00.000Z", end: "2026-10-01T00:00:00.000Z" },
+      ],
+      settledDay: "2026-10-18T00:00:00.000Z",
+      membersDay: "2026-10-19",
+    });
+
+    const odd: JSONObject = LlmConnectionPullRunner.readPullState({
+      pendingWindows: "all of them",
+      settledDay: 3,
+      membersDay: "",
+    }) as unknown as JSONObject;
+
+    expect(Object.keys(odd)).not.toContain("pendingWindows");
+    expect(Object.keys(odd)).not.toContain("settledDay");
+    expect(Object.keys(odd)).not.toContain("membersDay");
+  });
+
+  test("a read's people: its own count, else the last one kept, never a made-up number", () => {
+    const fetched: LlmUsageFetchResult = {
+      records: [],
+      requestCount: 0,
+      warnings: [],
+    };
+
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({
+        previous: { members: 9, activeMembers: 3 },
+        fetched: { ...fetched, members: 40.4, activeMembers: 12 },
+      }),
+    ).toEqual({ members: 40, activeMembers: 12 });
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({
+        previous: { members: 9, activeMembers: 3 },
+        fetched: { ...fetched, members: 40 },
+      }),
+    ).toEqual({ members: 40, activeMembers: undefined });
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({
+        previous: { members: 9, activeMembers: 3 },
+        fetched,
+      }),
+    ).toEqual({ members: 9, activeMembers: 3 });
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({
+        previous: { members: "many", activeMembers: -1 },
+        fetched,
+      }),
+    ).toEqual({ members: undefined, activeMembers: undefined });
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({ previous: null, fetched }),
+    ).toEqual({ members: undefined, activeMembers: undefined });
+  });
+
+  test("read since is a day start, for a read by the hour that began mid-day", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: undefined,
+        window: {
+          startDay: new Date("2026-10-04T15:00:00Z"),
+          endDay: new Date("2026-10-19T15:00:00Z"),
+        },
+        records: [],
+      }).readSince,
+    ).toBe("2026-10-04T00:00:00.000Z");
+  });
+});

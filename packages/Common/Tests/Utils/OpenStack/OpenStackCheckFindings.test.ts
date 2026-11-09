@@ -6,6 +6,7 @@ import {
   OpenStackLifecycleStep,
 } from "../../../Types/OpenStack/OpenStackCheck";
 import {
+  OpenStackCheckFaultFinding,
   OpenStackCheckFindings,
   getOpenStackCheckFindings,
   isOpenStackCheckMonitor,
@@ -183,7 +184,7 @@ describe("what an API check's incident says", () => {
   });
 
   test("the service that failed, what was asked, and what it said", () => {
-    const line: ReturnType<typeof findings> = findings({
+    const line: OpenStackCheckFaultFinding | undefined = findings({
       metric: OpenStackCheckMetric.ApiSuccess,
       labels: { ...LABELS, service_type: "compute" },
     })?.lines[0];
@@ -197,7 +198,7 @@ describe("what an API check's incident says", () => {
   });
 
   test("a certificate, when it ends and who gave it", () => {
-    const line: ReturnType<typeof findings> = findings({
+    const line: OpenStackCheckFaultFinding | undefined = findings({
       metric: OpenStackCheckMetric.CertificateExpiry,
       labels: { ...LABELS, host: "cloud.example.com", port: "443" },
     })?.lines[0];

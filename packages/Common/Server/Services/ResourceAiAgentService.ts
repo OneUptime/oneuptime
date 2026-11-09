@@ -17,6 +17,7 @@ import OpenStackCloudFeedService from "./OpenStackCloudFeedService";
 import OpenStackCloudService from "./OpenStackCloudService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import TelemetryIngestionKeyService from "./TelemetryIngestionKeyService";
 import UserService from "./UserService";
 import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import VMwareVCenterService from "./VMwareVCenterService";
@@ -32,6 +33,7 @@ import { PodmanHostFeedEventType } from "../../Models/DatabaseModels/PodmanHostF
 import { OpenStackCloudFeedEventType } from "../../Models/DatabaseModels/OpenStackCloudFeed";
 import { ProxmoxClusterFeedEventType } from "../../Models/DatabaseModels/ProxmoxClusterFeed";
 import Model from "../../Models/DatabaseModels/ResourceAiAgent";
+import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import { VMwareVCenterFeedEventType } from "../../Models/DatabaseModels/VMwareVCenterFeed";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import { CloudAccountFeedEventType } from "../../Models/DatabaseModels/CloudAccountFeed";
@@ -39,7 +41,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { Blue500, Green500 } from "../../Types/BrandColors";
+import { Amber500, Blue500, Green500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -56,8 +58,18 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import {
+  CLOUD_AI_AGENT_INGESTION_KEY_REFUSED_MESSAGE,
+  CLOUD_AI_AGENT_KEY_REFUSED_MESSAGE,
+  CloudAiAgentKeyMatch,
+  CloudAiAgentKeyTaken,
+  CloudAiAgentKeys,
+  isOwnCloudAiAgentKeyRequired,
+} from "../../Types/CloudConnection/CloudAiAgentKey";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AiAgentResetAuditLog from "../Utils/AI/ResourceAccess/AiAgentResetAuditLog";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
@@ -290,6 +302,29 @@ export type ResourceAiAgentRegistrationAdmission =
   | "signed_off"
   | "offline"
   | "unresponsive";
+
+/*
+ * A Cloud AI agent that registered with its cloud account's own key
+ * (Types/CloudConnection/CloudAiAgentKey) rather than the project's
+ * telemetry ingestion key: which account's key it was, and which of the
+ * account's keys (the agent's own, or one made for a setup command that has
+ * not connected yet).
+ */
+export interface ResourceAiAgentRegistrationKey {
+  cloudAccountId: ObjectID;
+  // The SHA-256 of the key presented.
+  keyHash: string;
+  match: CloudAiAgentKeyMatch;
+}
+
+/*
+ * How a Cloud AI agent's registration came in, for what is kept of a
+ * refused one: with its account's own key, or the project's ingestion key.
+ */
+interface CloudRegistrationContext {
+  isOwnKey: boolean;
+  agentVersion?: string | undefined;
+}
 
 export interface ResourceAiAgentRegistrationResult {
   agentId: ObjectID;
@@ -1147,6 +1182,16 @@ export class Service extends DatabaseService<Model> {
    * defaults (applyFirstConnectionDefaults). It never deletes, unbinds or
    * rebinds anything, and writes ONE feed item when a resource's agent
    * first connects.
+   *
+   * A Cloud AI agent that came with its account's own key
+   * (cloudAiAgentKey) registers that account's agent and nothing else: the
+   * key's account is its pin, whatever the body says, and the agent's own
+   * cloud must say it runs there. A pending key becomes the agent's key
+   * once the registration is admitted, and the key it replaces stops
+   * working. One that came with the project's ingestion key is refused for
+   * an account whose agent connects with a key of its own
+   * (agent_key_required). A refused Cloud AI agent is noted on the account
+   * it was set up for (recordRefusedCloudRegistration).
    */
   @CaptureSpan()
   public async register(data: {
@@ -1162,10 +1207,22 @@ export class Service extends DatabaseService<Model> {
     posture?: unknown;
     // The TelemetryIngestionKey the request was admitted with, when known.
     ingestionKeyId?: ObjectID | undefined;
+    // A Cloud AI agent's own key, when it came with one instead.
+    cloudAiAgentKey?: ResourceAiAgentRegistrationKey | undefined;
   }): Promise<ResourceAiAgentRegistrationResult> {
     const resourceType: AiResourceType = this.getValidResourceType(
       data.resourceType,
     );
+
+    // A Cloud AI agent's key connects a Cloud AI agent, and nothing else.
+    if (data.cloudAiAgentKey && !isCloudAiResourceType(resourceType)) {
+      throw new ResourceAiAgentRegistrationRefusedException({
+        reason: "resource_type_invalid",
+        message: `This key was made for a cloud account's Cloud AI agent, and connects no ${describeResourceInSentence(
+          resourceType,
+        )}'s agent. Set ${RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV} to the cloud of the account it was made for, or give the agent the telemetry ingestion key its collector uses.`,
+      });
+    }
 
     const identifier: string = this.getValidResourceIdentifier({
       resourceType,
@@ -1186,8 +1243,15 @@ export class Service extends DatabaseService<Model> {
       projectId: data.projectId,
       resourceType,
       identifier,
-      resourceId: data.resourceId,
+      // A Cloud AI agent's own key pins the one account it may connect.
+      resourceId: data.cloudAiAgentKey
+        ? data.cloudAiAgentKey.cloudAccountId.toString()
+        : data.resourceId,
       posture,
+      cloudRegistration: {
+        isOwnKey: Boolean(data.cloudAiAgentKey),
+        agentVersion,
+      },
     });
 
     const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[resourceType];
@@ -1206,6 +1270,10 @@ export class Service extends DatabaseService<Model> {
 
     let agentId: ObjectID;
     let admission: ResourceAiAgentRegistrationAdmission;
+    let keyTaken: CloudAiAgentKeyTaken | null = null;
+    // The ingestion key the agent connected with so far, read before it is re-keyed.
+    const previousIngestionKeyId: ObjectID | null =
+      (existing && existing.registeredWithIngestionKeyId) || null;
 
     if (existing && existing.id) {
       admission = await this.admitReRegistration({
@@ -1214,6 +1282,13 @@ export class Service extends DatabaseService<Model> {
         resourceType,
         identifier,
         projectId: data.projectId,
+      });
+
+      // Admitted: the agent's own key, checked again, or a new one taken.
+      keyTaken = await this.takeCloudAiAgentKey({
+        key: data.cloudAiAgentKey,
+        resource,
+        now,
       });
 
       await this.updateOneById({
@@ -1237,6 +1312,12 @@ export class Service extends DatabaseService<Model> {
         projectId: data.projectId,
         resourceType,
         identifier,
+      });
+
+      keyTaken = await this.takeCloudAiAgentKey({
+        key: data.cloudAiAgentKey,
+        resource,
+        now,
       });
 
       const row: Model = new Model();
@@ -1311,6 +1392,15 @@ export class Service extends DatabaseService<Model> {
       });
     } else if (Service.didApplyDefaults(defaultsApplied)) {
       await this.writeDefaultsFeedItem({ resource, posture, defaultsApplied });
+    }
+
+    if (keyTaken && keyTaken.isNewKey) {
+      await this.writeNewKeyFeedItem({
+        resource,
+        keyTaken,
+        previousIngestionKeyId,
+        isFirstConnection: admission === "created",
+      });
     }
 
     this.decideAgainOnceConnected({
@@ -1902,11 +1992,18 @@ export class Service extends DatabaseService<Model> {
     identifier: string;
     resourceId: unknown;
     posture: ResourceAiAgentPosture;
+    cloudRegistration?: CloudRegistrationContext | undefined;
   }): Promise<ResourceAiAgentResource> {
     const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
 
     if (isCloudAiResourceType(data.resourceType)) {
-      const cloudAccountId: ObjectID = await this.resolveCloudAccountId(data);
+      const cloudAccountId: ObjectID = await this.resolveCloudAccountId({
+        projectId: data.projectId,
+        resourceType: data.resourceType,
+        identifier: data.identifier,
+        resourceId: data.resourceId,
+        registration: data.cloudRegistration || { isOwnKey: false },
+      });
 
       const cloudAccount: ResourceAiAgentResource | null =
         await this.findResource({
@@ -2137,16 +2234,24 @@ export class Service extends DatabaseService<Model> {
    * an agent in an account no connection reads is refused, and says so.
    *
    * The setup command also pins the account it was written for
-   * (ONEUPTIME_AI_CLOUD_ACCOUNT_ID, sent as resourceId). The cloud still
+   * (ONEUPTIME_AI_CLOUD_ACCOUNT_ID, sent as resourceId) - and a key of the
+   * account's own names it, whatever the body says. The cloud still
    * decides: an agent whose cloud names another account is refused, and
-   * the account it was meant for keeps the reason (aiAccessLastError), so
-   * its page says why its agent never connected.
+   * the account it was meant for keeps the reason (aiAccessLastError) and
+   * says so on its feed (recordRefusedCloudRegistration), so its page says
+   * why its agent never connected.
+   *
+   * An agent that came with the project's ingestion key is refused for an
+   * account whose agent connects with a key of its own (since its first
+   * connection with one, or Reset agent): agent_key_required, noted on the
+   * account the same way.
    */
   private async resolveCloudAccountId(data: {
     projectId: ObjectID;
     resourceType: AiResourceType;
     identifier: string;
     resourceId: unknown;
+    registration: CloudRegistrationContext;
   }): Promise<ObjectID> {
     const provider: CloudCatalogProvider | null = getCloudCatalogProvider(
       data.resourceType,
@@ -2211,9 +2316,11 @@ export class Service extends DatabaseService<Model> {
           : ""
       }. Deploy it in ${intended}, or run the command shown on ${noun} ${identifier}'s own page.`;
 
-      await this.recordCloudAccountRegistrationError({
+      await this.recordRefusedCloudRegistration({
         cloudAccountId: meantFor.id,
         message,
+        reportedIdentity: `${noun} ${identifier}`,
+        registration: data.registration,
       });
 
       throw new ResourceAiAgentRegistrationRefusedException({
@@ -2229,33 +2336,141 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    /*
+     * The project's ingestion key, for an account whose agent connects with
+     * a key of its own: never again. Read fresh, so a key that connected a
+     * moment ago, or Reset agent, holds at once.
+     */
+    if (!data.registration.isOwnKey) {
+      const keys: CloudAiAgentKeys | null =
+        (await CloudAccountService.findAccountOfAgentKey(account.id))?.keys ||
+        null;
+
+      if (isOwnCloudAiAgentKeyRequired(keys)) {
+        await this.recordRefusedCloudRegistration({
+          cloudAccountId: account.id,
+          message: CLOUD_AI_AGENT_INGESTION_KEY_REFUSED_MESSAGE,
+          reportedIdentity: `${noun} ${identifier}`,
+          registration: data.registration,
+        });
+
+        throw new ResourceAiAgentRegistrationRefusedException({
+          reason: "agent_key_required",
+          message: CLOUD_AI_AGENT_INGESTION_KEY_REFUSED_MESSAGE,
+        });
+      }
+    }
+
     await this.clearCloudAccountRegistrationError(account.id);
 
     return account.id;
   }
 
-  // Keeps why an agent set up for this account could not connect.
-  private async recordCloudAccountRegistrationError(data: {
+  /*
+   * A Cloud AI agent was refused: the account it was set up for keeps why
+   * (aiAccessLastError, which its AI agent page and card show) and says so
+   * on its feed, so an admin sees an agent that keeps knocking. Once for
+   * each reason: a refusal the account already shows is not written again,
+   * however often the agent retries (every few minutes, for as long as it
+   * runs). The words are the refusal's and what the agent reported - never
+   * a key, which no refusal holds. Best-effort: recording a refusal never
+   * turns it into a 500.
+   */
+  private async recordRefusedCloudRegistration(data: {
     cloudAccountId: ObjectID;
     message: string;
+    reportedIdentity: string;
+    registration: CloudRegistrationContext;
   }): Promise<void> {
+    const kept: string =
+      `${CLOUD_AGENT_REGISTRATION_ERROR_PREFIX}${data.message}`.substring(
+        0,
+        ColumnLength.LongText,
+      );
+
     try {
+      const account: CloudAccount | null = await CloudAccountService.findOneBy({
+        query: { _id: data.cloudAccountId.toString() },
+        select: { _id: true, projectId: true, aiAccessLastError: true },
+        props: { isRoot: true },
+      });
+
+      if (
+        !account ||
+        !account.projectId ||
+        account.aiAccessLastError === kept
+      ) {
+        return;
+      }
+
       await CloudAccountService.updateOneById({
         id: data.cloudAccountId,
-        data: {
-          aiAccessLastError:
-            `${CLOUD_AGENT_REGISTRATION_ERROR_PREFIX}${data.message}`.substring(
-              0,
-              ColumnLength.LongText,
-            ),
-        } as never,
+        data: { aiAccessLastError: kept } as never,
         props: { isRoot: true },
+      });
+
+      await CloudAccountFeedService.createCloudAccountFeedItem({
+        cloudAccountId: data.cloudAccountId,
+        projectId: account.projectId,
+        cloudAccountFeedEventType:
+          CloudAccountFeedEventType.CloudAccountUpdated,
+        displayColor: Amber500,
+        feedInfoInMarkdown:
+          mdText`⚠️ OneUptime refused a Cloud AI agent that tried to connect as this account's agent: ${data.message}`.toString(),
+        moreInformationInMarkdown: FeedMarkdown.join(
+          [
+            mdText`**Where it says it runs**: ${data.reportedIdentity}`,
+            mdText`**Connected with**: ${
+              data.registration.isOwnKey
+                ? "a key made for this account's agent"
+                : "the project's telemetry ingestion key"
+            }`,
+            mdText`**Agent version**: ${data.registration.agentVersion || "unknown"}`,
+          ],
+          "\n\n",
+        ).toString(),
       });
     } catch (error) {
       logger.error(
         `ResourceAiAgent: could not record why a Cloud AI agent could not connect to cloud account ${data.cloudAccountId.toString()}: ${error}`,
       );
     }
+  }
+
+  /*
+   * The account's key a Cloud AI agent registered with, once its
+   * registration is admitted: the agent's key, read again (Reset agent may
+   * have revoked it since it was checked), or a pending one, which becomes
+   * the agent's key - the key it replaces stops working. A key that no
+   * longer works is refused like any wrong key (401). Null for a
+   * registration with the project's ingestion key.
+   */
+  private async takeCloudAiAgentKey(data: {
+    key: ResourceAiAgentRegistrationKey | undefined;
+    resource: ResourceAiAgentResource;
+    now: Date;
+  }): Promise<CloudAiAgentKeyTaken | null> {
+    if (!data.key) {
+      return null;
+    }
+
+    if (data.key.cloudAccountId.toString() !== data.resource.id.toString()) {
+      throw new NotAuthenticatedException(CLOUD_AI_AGENT_KEY_REFUSED_MESSAGE);
+    }
+
+    const taken: CloudAiAgentKeyTaken = await CloudAccountService.useAiAgentKey(
+      {
+        cloudAccountId: data.key.cloudAccountId,
+        hash: data.key.keyHash,
+        now: data.now,
+      },
+    );
+
+    if (!taken.isUsable) {
+      throw new NotAuthenticatedException(CLOUD_AI_AGENT_KEY_REFUSED_MESSAGE);
+    }
+
+    return taken;
   }
 
   // Clears that reason once an agent of the account connects.
@@ -3025,14 +3240,20 @@ export class Service extends DatabaseService<Model> {
    * (an agent that registered with a leaked ingestion key) is locked out
    * the same way; rotating that ingestion key keeps it out. The caller
    * checks the user may do this (see the resource AI access API).
+   *
+   * The reset is recorded on the resource, by whoever reset it
+   * (AiAgentResetAuditLog): the agent's own row is what it reports, which
+   * the audit log leaves out.
    */
   @CaptureSpan()
   public async resetAgent(data: {
     projectId: ObjectID;
     resourceType: AiResourceType;
     resourceId: ObjectID;
-    userId?: ObjectID | undefined;
+    // Who reset it: the route's props. None for OneUptime's own reset.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
+    const userId: ObjectID | undefined = data.props?.userId || undefined;
     const info: AiResourceTypeInfo | undefined = isAiResourceType(
       data.resourceType,
     )
@@ -3066,15 +3287,39 @@ export class Service extends DatabaseService<Model> {
       props: { isRoot: true },
     });
 
+    const resetAt: Date = OneUptimeDate.getCurrentDate();
+
+    /*
+     * A Cloud AI agent comes back only with a new key of its account's:
+     * every key it had stops working, and the project's ingestion key no
+     * longer connects it either.
+     */
+    const isCloudAgent: boolean = isCloudAiResourceType(data.resourceType);
+
+    if (isCloudAgent) {
+      await CloudAccountService.revokeAiAgentKeys({
+        cloudAccountId: data.resourceId,
+        now: resetAt,
+      });
+    }
+
+    // On the resource's own Audit Logs, by whoever reset it.
+    await AiAgentResetAuditLog.record({
+      service: Service.getResourceBinding(data.resourceType).getService(),
+      resourceId: data.resourceId,
+      resetAt: resetAt,
+      props: data.props,
+    });
+
     logger.info(
       `ResourceAiAgent: the ${info.agentDisplayName} of ${info.displayName} ${data.resourceId.toString()} in project ${data.projectId.toString()} was reset${
-        data.userId ? ` by user ${data.userId.toString()}` : ""
+        userId ? ` by user ${userId.toString()}` : ""
       }.`,
     );
 
-    const resetBy: MarkdownText = data.userId
+    const resetBy: MarkdownText = userId
       ? await this.getUserMarkdownForFeed({
-          userId: data.userId,
+          userId: userId,
           projectId: data.projectId,
         })
       : FeedMarkdown.empty();
@@ -3083,12 +3328,18 @@ export class Service extends DatabaseService<Model> {
       resourceId: data.resourceId,
       projectId: data.projectId,
       displayColor: Blue500,
-      feedInfoInMarkdown: mdText`🔄 The ${info.agentDisplayName} was reset${
-        !resetBy.isEmpty() ? mdText` by **${resetBy}**` : ""
-      }. It reconnects on its own within a few minutes.`.toString(),
+      feedInfoInMarkdown: isCloudAgent
+        ? mdText`🔄 The ${info.agentDisplayName} was reset${
+            !resetBy.isEmpty() ? mdText` by **${resetBy}**` : ""
+          }. Its key no longer works, and it stays disconnected until its setup command runs again: Change on the ${describeResourceInSentence(
+            data.resourceType,
+          )}'s AI agent page shows it, with a new key.`.toString()
+        : mdText`🔄 The ${info.agentDisplayName} was reset${
+            !resetBy.isEmpty() ? mdText` by **${resetBy}**` : ""
+          }. It reconnects on its own within a few minutes.`.toString(),
       moreInformationInMarkdown:
         mdText`**Agent**: ${info.agentDisplayName} (${agent.id.toString()})`.toString(),
-      ...(data.userId ? { userId: data.userId } : {}),
+      ...(userId ? { userId: userId } : {}),
     });
   }
 
@@ -3202,6 +3453,97 @@ export class Service extends DatabaseService<Model> {
     }
 
     return mdText`Set with **${AI_INVESTIGATION_ENV}** and **${AI_FIXES_ENV}** where the agent runs. The ${data.noun}'s AI agent page shows them, with how to change them.`.toString();
+  }
+
+  /*
+   * A Cloud AI agent connected with a key made for it since it last did -
+   * its setup command ran again: the key it replaced, or the project's
+   * ingestion key, no longer connects it. Nothing for an account's first
+   * agent, whose connected item says it connected.
+   *
+   * An agent moving over from the ingestion key leaves that key behind,
+   * and it still sends telemetry for the whole project: Show details names
+   * it (never its secret), so whoever made it for the agent alone knows
+   * which one to delete.
+   */
+  private async writeNewKeyFeedItem(data: {
+    resource: ResourceAiAgentResource;
+    keyTaken: CloudAiAgentKeyTaken;
+    // The ingestion key the agent connected with before, when it did.
+    previousIngestionKeyId: ObjectID | null;
+    isFirstConnection: boolean;
+  }): Promise<void> {
+    if (
+      data.isFirstConnection &&
+      !data.keyTaken.replacedAgentKey &&
+      !data.previousIngestionKeyId
+    ) {
+      return;
+    }
+
+    const info: AiResourceTypeInfo =
+      AI_RESOURCE_TYPE_INFO[data.resource.resourceType];
+    const madeBy: MarkdownText = data.keyTaken.madeByUserId
+      ? await this.getUserMarkdownForFeed({
+          userId: new ObjectID(data.keyTaken.madeByUserId),
+          projectId: data.resource.projectId,
+        })
+      : FeedMarkdown.empty();
+    const made: MarkdownText = !madeBy.isEmpty()
+      ? mdText`, made by **${madeBy}**`
+      : FeedMarkdown.empty();
+
+    const leftBehind: string | undefined =
+      !data.keyTaken.replacedAgentKey && data.previousIngestionKeyId
+        ? await this.describeIngestionKeyLeftBehind(data.previousIngestionKeyId)
+        : undefined;
+
+    await Service.getResourceBinding(data.resource.resourceType).writeFeedItem({
+      resourceId: data.resource.id,
+      projectId: data.resource.projectId,
+      displayColor: Blue500,
+      feedInfoInMarkdown: data.keyTaken.replacedAgentKey
+        ? mdText`🔑 The ${info.agentDisplayName} connected with a new key${made}. The key it connected with before no longer works.`.toString()
+        : mdText`🔑 The ${info.agentDisplayName} now connects with a key of its own${made}, which connects this agent and nothing else. The project's telemetry ingestion key no longer connects it.`.toString(),
+      ...(leftBehind ? { moreInformationInMarkdown: leftBehind } : {}),
+    });
+  }
+
+  /*
+   * The ingestion key a Cloud AI agent no longer connects with, by its name
+   * (never its secret), with what to do about it: it still sends telemetry
+   * for the whole project. Undefined when it is gone or cannot be read - the
+   * agent connected all the same.
+   */
+  private async describeIngestionKeyLeftBehind(
+    ingestionKeyId: ObjectID,
+  ): Promise<string | undefined> {
+    try {
+      const key: TelemetryIngestionKey | null =
+        await TelemetryIngestionKeyService.findOneById({
+          id: ingestionKeyId,
+          select: { _id: true, name: true },
+          props: { isRoot: true },
+        });
+      const name: string = (key?.name || "").trim();
+
+      if (!name) {
+        return undefined;
+      }
+
+      return FeedMarkdown.join(
+        [
+          mdText`**Ingestion key it connected with before**: ${name}`,
+          mdText`That key still sends telemetry for the whole project. If nothing else uses it, delete it under Project Settings → Telemetry & APM → Ingestion Keys.`,
+        ],
+        "\n\n",
+      ).toString();
+    } catch (error) {
+      logger.error(
+        `ResourceAiAgent: could not read the ingestion key ${ingestionKeyId.toString()} a Cloud AI agent connected with before: ${error}`,
+      );
+      return undefined;
+    }
   }
 
   // The first successful registration of a resource's agent. Best-effort.

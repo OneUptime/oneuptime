@@ -1,5 +1,9 @@
 import { SecurityEntity } from "./SecurityEntity";
-import type { CloudChangeTitleFacts } from "../../Utils/Telemetry/CloudChangeTitle";
+import type { SecurityEventScope } from "../SecurityEvent/SecurityEventScope";
+import type {
+  CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
+} from "../../Utils/Telemetry/CloudChangeTitle";
 
 /*
  * SECURITY CONNECTIONS: where the users, hosts and addresses Security Events
@@ -199,6 +203,23 @@ export const RESOURCE_SECURITY_WINDOW_IN_DAYS: number = 7;
 export const RESOURCE_SECURITY_MAX_CASES: number = 3;
 
 /*
+ * What a record's own Security Events page reads under (issue #5769): the
+ * scope every list, count, chart and facet on it carries
+ * (Types/SecurityEvent/SecurityEventScope), the record's name for the
+ * page's locked chip, and the identities the scope searches for.
+ */
+export interface ResourceSecurityScopeJson {
+  kind: SecurityConnectionKind;
+  id: string;
+  name: string;
+  // The record's exact identities, as searched for: names folded, public addresses its own.
+  values: Array<string>;
+  // Searched for by the events read from its logs alone.
+  isSearchedByLogs: boolean;
+  scope: SecurityEventScope;
+}
+
+/*
  * The attributes every event read from a log line carries about the log's
  * own resource - the row the log was sent under (a Service, a Host, a
  * Kubernetes cluster...) - so the event is connected to it exactly, whatever
@@ -247,6 +268,12 @@ export interface SecurityConnectionChangeJson {
    * change.
    */
   cloudChange?: CloudChangeTitleFacts | undefined;
+  /*
+   * What a cloud's health event's title is worded from - its source, the
+   * event and the state its provider reports - likewise. Left out for any
+   * other change.
+   */
+  cloudHealth?: CloudHealthTitleFacts | undefined;
 }
 
 // One on-call schedule a member is on, and whether they are on call for it now.

@@ -35,6 +35,7 @@ export interface RecordedScene {
 
 export interface RecordedSpan {
   driverService: string;
+  scopeName: string;
   block: JSONObject;
   wire: JSONObject;
   traceId: string;
@@ -164,6 +165,7 @@ export function readRecordedSpans(otlp: JSONObject): Array<RecordedSpan> {
       for (const span of scopeBlock["spans"] as Array<JSONObject>) {
         spans.push({
           driverService: resource["service.name"] as string,
+          scopeName: (scopeBlock["scope"] as JSONObject)["name"] as string,
           block: block,
           wire: span,
           traceId: span["traceId"] as string,

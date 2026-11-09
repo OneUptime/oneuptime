@@ -33,6 +33,8 @@ import {
   parseKubernetesAgentPosture,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AiAgentResetAuditLog from "../Utils/AI/ResourceAccess/AiAgentResetAuditLog";
 import {
   AGENT_AI_FIXES_LABELS,
   AgentAiSettings,
@@ -2143,13 +2145,19 @@ export class Service extends DatabaseService<Model> {
    * back by itself within a few minutes. Whoever else held the key (a pod
    * that registered with a leaked ingestion key) is locked out the same
    * way; rotating that ingestion key keeps it out.
+   *
+   * The reset is recorded on the cluster, by whoever reset it
+   * (AiAgentResetAuditLog): the agent's own row is what it reports, which
+   * the audit log leaves out.
    */
   @CaptureSpan()
   public async resetAgent(data: {
     projectId: ObjectID;
     kubernetesClusterId: ObjectID;
-    userId?: ObjectID | undefined;
+    // Who reset it: the route's props. None for OneUptime's own reset.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
+    const userId: ObjectID | undefined = data.props?.userId || undefined;
     const agent: Model | null = await this.findForCluster({
       projectId: data.projectId,
       kubernetesClusterId: data.kubernetesClusterId,
@@ -2170,15 +2178,23 @@ export class Service extends DatabaseService<Model> {
       props: { isRoot: true },
     });
 
+    // On the cluster's own Audit Logs, by whoever reset it.
+    await AiAgentResetAuditLog.record({
+      service: KubernetesClusterService,
+      resourceId: data.kubernetesClusterId,
+      resetAt: OneUptimeDate.getCurrentDate(),
+      props: data.props,
+    });
+
     logger.info(
       `KubernetesAiAgent: the Kubernetes AI agent of cluster ${data.kubernetesClusterId.toString()} in project ${data.projectId.toString()} was reset${
-        data.userId ? ` by user ${data.userId.toString()}` : ""
+        userId ? ` by user ${userId.toString()}` : ""
       }.`,
     );
 
-    const resetBy: MarkdownText = data.userId
+    const resetBy: MarkdownText = userId
       ? await this.getUserMarkdownForFeed({
-          userId: data.userId,
+          userId: userId,
           projectId: data.projectId,
         })
       : FeedMarkdown.empty();
@@ -2195,7 +2211,7 @@ export class Service extends DatabaseService<Model> {
         }. It reconnects on its own within a few minutes.`.toString(),
       moreInformationInMarkdown:
         mdText`**Agent**: ${KUBERNETES_AI_AGENT_DISPLAY_NAME} (${agent.id.toString()})`.toString(),
-      ...(data.userId ? { userId: data.userId } : {}),
+      ...(userId ? { userId: userId } : {}),
     });
   }
 

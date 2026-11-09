@@ -73,6 +73,7 @@ import {
 } from "./OpenStackPartRoutes";
 import useIsOpenStackProbeCollected from "./UseIsOpenStackProbeCollected";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * Availability zones and aggregates: hypervisors, what they can give, and how they are
@@ -130,7 +131,7 @@ const WORDS: Record<OpenStackHostGroupKind, HostGroupWords> = {
     ),
     singularName: translationKey("aggregate"),
     emptyMessage: translationKey(
-      "No host aggregates reported. Hypervisors say which aggregates they are in, and none here is in one, which is usual for a cloud that doesn't split its hosts.",
+      "No host aggregates reported. Hypervisors say which aggregates they are in, and none here is, which is usual for a cloud that doesn't split its hosts.",
     ),
     notFound: translationKey(
       "This aggregate is not in this cloud's inventory. No hypervisor says it is in it.",
@@ -201,7 +202,7 @@ function hypervisorsText(
       ),
     );
   }
-  return parts.join(", ");
+  return joinList(parts);
 }
 
 function toResource(

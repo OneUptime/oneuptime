@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import TeamOwnedRuleKinds from "../../../../Types/TeamOwnedRule/TeamOwnedRuleKinds";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
@@ -216,8 +217,18 @@ const PEOPLE_PICKER_FIELD_TYPE: string = "FormFieldSchemaType.PeoplePicker";
 
 const CREATOR_TEAMS_PICKER_KEY: string = "creatorTeamsPicker";
 
+/*
+ * The teams that alone may change the rule (RuleOwningTeams), last under
+ * More fields, on a rule teams can own (TEAM_OWNED_RULE_KINDS): an incident
+ * owner rule. The picker's own key, which the form reads.
+ */
+const RULE_OWNING_TEAMS_KEYS: Array<string> = ["ruleOwningTeams"];
+
 const fieldKey: FieldKeyFunction = (field: FormFieldFacts): string => {
-  if (field.fieldType !== PEOPLE_PICKER_FIELD_TYPE) {
+  if (
+    field.fieldType !== PEOPLE_PICKER_FIELD_TYPE ||
+    RULE_OWNING_TEAMS_KEYS.includes(field.key)
+  ) {
     return field.key;
   }
 
@@ -276,6 +287,14 @@ const OWNER_ACTION_KEYS: Array<string> = [
  */
 type ActionKeysFunction = (form: FormFacts) => Array<string>;
 
+const owningTeamsKeysOf: (form: FormFacts) => Array<string> = (
+  form: FormFacts,
+): Array<string> => {
+  return TeamOwnedRuleKinds.getKindOfRule(form.modelType?.name)
+    ? RULE_OWNING_TEAMS_KEYS
+    : [];
+};
+
 const actionKeysOf: ActionKeysFunction = (form: FormFacts): Array<string> => {
   const [picker, ...rest]: Array<string> = isLabelRuleForm(form)
     ? LABEL_ACTION_KEYS
@@ -286,6 +305,7 @@ const actionKeysOf: ActionKeysFunction = (form: FormFacts): Array<string> => {
     ...inheritColumnsOf(form),
     ...creatorTeamColumnsOf(form),
     ...rest,
+    ...owningTeamsKeysOf(form),
   ];
 };
 
@@ -301,10 +321,19 @@ const actionFieldsCallOf: ActionFieldsCallFunction = (
   const model: string = form.modelType!.name;
   const kind: string = isLabelRuleForm(form) ? "Label" : "Owner";
 
-  // An incident's or alert's owner rule, with its Creator's Team.
+  /*
+   * An incident's or alert's owner rule, with its Creator's Team - and, on a
+   * rule teams can own, the teams that alone may change it after them
+   * (getOwnerRuleOwningTeamsFields), folded under the same More fields.
+   */
   if (creatorTeamColumnsOf(form).length > 0) {
+    const owningTeams: string =
+      owningTeamsKeysOf(form).length > 0
+        ? `\\.\\.\\.getOwnerRuleOwningTeamsFields<${model}>\\( ?${model}OwningTeam,? ?\\), `
+        : "";
+
     return new RegExp(
-      `\\.\\.\\.getCreatorTeamOwnerRuleActionFields<${model}>\\( ?"(${CREATOR_TEAM_RECORDS.join("|")})",? ?\\), \\]\\}`,
+      `\\.\\.\\.getCreatorTeamOwnerRuleActionFields<${model}>\\( ?"(${CREATOR_TEAM_RECORDS.join("|")})",? ?\\), ${owningTeams}\\]\\}`,
     );
   }
 
@@ -315,7 +344,8 @@ const actionFieldsCallOf: ActionFieldsCallFunction = (
   }
 
   return new RegExp(
-    `\\.\\.\\.get${kind}RuleActionFields<${model}>\\(\\), \\]\\}`,
+    // An OpenStack rule's project or domain folds after them, on the same step.
+    `\\.\\.\\.get${kind}RuleActionFields<${model}>\\(\\), (?:\\.\\.\\.getOpenStackRuleScopeFields<${model}>\\("(?:labels|owners)"\\), )?\\]\\}`,
   );
 };
 
@@ -538,9 +568,12 @@ describe("every label and owner rule form", () => {
         },
       );
 
-      const moreFields: Array<string> = isLabelRuleForm(form)
-        ? ["description"]
-        : ["notifyOwners", "description"];
+      const moreFields: Array<string> = [
+        ...(isLabelRuleForm(form)
+          ? ["description"]
+          : ["notifyOwners", "description"]),
+        ...owningTeamsKeysOf(form),
+      ];
 
       expect({
         form: describeForm(form),

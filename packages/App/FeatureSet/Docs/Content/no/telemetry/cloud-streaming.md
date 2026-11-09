@@ -47,6 +47,8 @@ Gå til **Sky → Koble til**, og velg **Strøm målinger og logger** i raden ti
 
 For logger oppgir du **Logggrupper**, én per linje, med navn i **Region** ved siden av eller med ARN i sin egen region, eller du velger **Alle kontoens logggrupper, også nye**. Én kommando abonnerer på høyst 50 logggrupper med navn, i høyst 10 regioner.
 
+AWS tillater ett kontoomfattende loggabonnement per region og to abonnementsfiltre per logggruppe. Før kommandoen ruller ut noe, sjekker den begge deler: hvis et annet verktøy, for eksempel en SIEM, allerede har en regions kontoomfattende abonnement, eller en logggruppe du har oppgitt, ikke finnes eller allerede har to abonnementsfiltre, sier den hvilken og setter ikke opp noe.
+
 ### Lag en strømnøkkel
 
 Velg **Lag en strømnøkkel**. Nøkkelen vises bare denne ene gangen, i kommandoen: OneUptime lagrer bare SHA-256-en dens.
@@ -66,6 +68,7 @@ Dialogen spør med noen sekunders mellomrom hva som har kommet. Firehose leverer
 | --- | --- |
 | **Alle målinger, ikke bare nøkkelmålingene** | Strømmer alle målinger CloudWatch har for kontoen, også dine egne. AWS fakturerer hver måleoppdatering en strøm sender, så det kan koste mange ganger mer |
 | **Regioner** | Hvor det strømmes fra: først regionene der tilkoblingen fant ressurser. Står feltet tomt, strømmer kommandoen fra AWS CloudShells egen region. Høyst 30 |
+| **Alle kontoer i organisasjonen** | For en tilkobling som leser en AWS Organization: kommandoen, kjørt i administrasjonskontoen, lager også de samme stakkene i hver medlemskonto gjennom et StackSet, og i kontoer som blir med senere. Alle logggrupper eller ingen: navngitte logggrupper tilhører én konto |
 | **Sett det opp på en annen måte** | Endepunktene for målinger og logger og nøkkelen, for å sette opp strømmene med Terraform eller konsollen |
 
 **Last ned malen** lagrer malen kommandoen ruller ut, så du kan rulle den ut på din egen måte.
@@ -77,6 +80,7 @@ Dialogen spør med noen sekunders mellomrom hva som har kommet. Firehose leverer
 | Målinger | På skyressursene de måler, med navnene og attributtene tilkoblingens lesinger gir dem |
 | Logger | I loggutforskeren, under tilkoblingens telemetritjeneste, med konto, region og logggruppe som attributter |
 | Logger fra en logggruppe som AWS navngir etter en ressurs | Også på den ressursen: siden dens i Sky får en fane **Logger** |
+| Logger fra en App Runner-tjeneste, et Elastic Beanstalk-miljø eller en ECS-oppgave eller -klynge | Også på miljøet i App-plattformer: fanen **Logger** |
 
 En logggruppe arkiveres under en ressurs når AWS har navngitt den etter en:
 
@@ -93,8 +97,11 @@ En logggruppe arkiveres under en ressurs når AWS har navngitt den etter en:
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Hver logg bærer ressursens ID som `cloud.resource_id`, og loggene til en Lambda-funksjon bærer også `faas.name`, så de vises også på funksjonen under Serverless. En logggruppe med et annet navn strømmes likevel, under sin konto og region. Alvorlighetsgraden til en logg er den meldingen oppgir, slik Lambda skriver den.
+Hver logg bærer ressursens ID som `cloud.resource_id`, og loggene til en Lambda-funksjon bærer også `faas.name`, så de vises også på funksjonen under Serverless. En logggruppe med et annet navn strømmes likevel, under sin konto og region. Alvorlighetsgraden til en logg er den meldingen oppgir, slik Lambda, PostgreSQL eller MySQL skriver den.
+
+Logger fra en App Runner-tjeneste, et Elastic Beanstalk-miljø og en ECS-klynge bærer også `cloud.platform`, og det gjør også loggene til en ECS-oppgave, fra logggruppen ECS-konsollen kaller `/ecs/<task-definition-family>`, med `aws.ecs.task.family`. Med kontoen og regionen havner de dermed på miljøet sitt i App-plattformer, som dukker opp med dem hvis ingen app har rapportert til det ennå. De lager ingen app: en app får navn etter sin egen telemetri, slik [Skymiljøer](/docs/telemetry/cloud-environments) forklarer.
 
 ## Hva stakken oppretter
 
@@ -127,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+For en tilkobling som leser en AWS Organization, kjører du dialogens kommando i administrasjonskontoen: Hvis organisasjonen ble strømmet, sletter den også stakkene i hver medlemskonto og StackSet.
 :::
 
 For å endre hva en stakk strømmer, åpner du **Strøm målinger og logger** igjen, velger **Lag en ny nøkkel** og kjører den nye kommandoen. Nøkkelen den erstatter, virker i 24 timer til, så ingen levering avvises mens stakkene oppdateres. Høyst 3 erstattede nøkler virker samtidig.
@@ -166,6 +175,10 @@ Sjekk at kommandoen ble ferdig i hver region uten feil: `aws cloudformation desc
 
 :::details Tilkoblingen sier Strøm avvist
 Dialogen og radens verktøytips sier hvorfor. En feil nøkkel betyr at stakkene kjører med en nøkkel som ikke virker lenger: lag en ny nøkkel og kjør kommandoen igjen. Firehose fortsetter å sende det den holder på, og det tas imot så snart nøkkelen er riktig.
+:::
+
+:::details Kommandoen sier `Nothing was set up`
+Linjene over sier hvorfor, hver med sin region eller logggruppe. Når et annet verktøy har en regions kontoomfattende loggabonnement, oppgir du i stedet logggruppene som skal strømmes, eller fjerner verktøyets policy. Når en logggruppe allerede har to abonnementsfiltre, fjerner du ett av dem eller utelater gruppen. Når logggruppen ikke finnes, sjekker du navnet og regionen, eller oppgir ARN-en. Kjør deretter kommandoen på nytt.
 :::
 
 :::details Loggene til en Lambda-funksjon vises ikke på siden dens

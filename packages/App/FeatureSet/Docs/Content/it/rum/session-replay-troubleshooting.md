@@ -402,11 +402,11 @@ Apri gli strumenti per sviluppatori del browser nella scheda della dashboard (F1
 
 Le registrazioni di un portale fatte prima che OneUptime caricasse questi file durante la riproduzione, quelle che mostravano la barra offline a ogni riproduzione, ora si riproducono anch'esse con la barra nascosta, purché il foglio di stile che indicano sia ancora servito: non c'è nulla da cambiare in una registrazione.
 
-## L'app RUM dice «Disconnesso»
+## L'app RUM dice «Nessun traffico recente»
 
-L'etichetta di stato e **Visto l'ultima volta** nella pagina dell'applicazione riportano quando è arrivata l'ultima volta telemetria per quell'applicazione. La riproduzione delle sessioni conta: sia un registratore che recupera la sua policy sia un frammento accettato li aggiornano, quindi un'applicazione strumentata solo con lo snippet della riproduzione resta Connesso. Nelle versioni precedenti contava solo la telemetria RUM di OpenTelemetry, quindi un'applicazione solo con la riproduzione mostrava «Disconnesso» con un Visto l'ultima volta di giorni prima mentre i suoi registratori funzionavano perfettamente.
+L'etichetta di stato e **Visto l'ultima volta** nella pagina dell'applicazione riportano quando è arrivata l'ultima volta telemetria per quell'applicazione. La riproduzione delle sessioni conta: sia un registratore che recupera la sua policy sia un frammento accettato li aggiornano, quindi un'applicazione strumentata solo con lo snippet della riproduzione mostra **Riceve dati** mentre le persone usano il sito. Nelle versioni precedenti contava solo la telemetria RUM di OpenTelemetry, quindi un'applicazione solo con la riproduzione sembrava inattiva, con un Visto l'ultima volta di giorni prima, mentre i suoi registratori funzionavano perfettamente.
 
-Quindi «Connesso» significa che *qualcosa* sta riportando dati — non che lo stia facendo tutto. Le visualizzazioni di pagina, il tasso di errori, la durata p95 e i client vengono dall'SDK OpenTelemetry per browser, che si installa a parte; quando segnano zero mentre arrivano registrazioni, la pagina Panoramica dell'applicazione lo dice chiaramente.
+Quindi **Riceve dati** significa che *qualcosa* sta riportando dati — non che lo stia facendo tutto. Le visualizzazioni di pagina, il tasso di errori, la durata p95 e i client vengono dall'SDK OpenTelemetry per browser, che si installa a parte; quando segnano zero mentre arrivano registrazioni, la pagina Panoramica dell'applicazione lo dice chiaramente.
 
 ## La telemetria RUM è separata
 

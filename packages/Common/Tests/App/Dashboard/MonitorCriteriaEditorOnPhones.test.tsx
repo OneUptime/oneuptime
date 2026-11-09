@@ -43,9 +43,9 @@ import {
  * Actions section and the action's own box - each a frame with padding -
  * and its description editor was 166px wide inside its fold, a sixth.
  *
- * Now, on a phone, the step's cards are sections of the page's card
- * (CardSectionsOnPhones, held to it in Common's suite), and the criteria's
- * box is the one frame round its fields: Filters, Actions and Settings, a
+ * Now the step's cards are sections of the page's card at every width
+ * (CardFormSections, held to it in Common's suite), and on a phone the
+ * criteria's box is the one frame round its fields: Filters, Actions and Settings, a
  * filter's box and an action's box each reach out over the 12px the box
  * around them pads by, a band as wide as the criteria's box. From sm up
  * nothing changes: every band is the box it was, class for class.

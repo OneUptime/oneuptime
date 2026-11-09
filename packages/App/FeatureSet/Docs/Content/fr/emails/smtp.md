@@ -6,6 +6,8 @@ Envoyez les e-mails de OneUptime par votre propre serveur de messagerie. Un proj
 - **OAuth 2.0** : pour Microsoft 365 et Google Workspace, où l'authentification de base est souvent désactivée.
 - **Aucun** : pour les serveurs relais qui n'exigent pas d'authentification.
 
+Pour envoyer par Amazon SES, SendGrid, Mailgun, Postmark ou Resend plutôt que par un serveur de messagerie, voir [Fournisseurs d'e-mail](/docs/emails/email-providers).
+
 ```mermaid title="Quel serveur de messagerie envoie quoi"
 flowchart TB
     SP["E-mail d'une<br/>page de statut"] --> Q{"Configuration<br/>SMTP personnalisée<br/>choisie pour la page ?"}
@@ -17,7 +19,7 @@ flowchart TB
 Sur une installation auto-hébergée, le serveur de messagerie de OneUptime est celui défini dans l'Admin Dashboard. Une page de statut choisit sa configuration SMTP sur sa page **Paramètres des abonnés**, dans la carte **SMTP personnalisé**.
 
 :::cards
-- [Ajouter un serveur de messagerie](#ajouter-un-serveur-smtp): Deux étapes, tout le reste est replié.
+- [Ajouter un serveur de messagerie](#ajouter-un-serveur-smtp): Quelques étapes, tout le reste est replié.
 - [Microsoft 365](#configuration-de-microsoft-365): OAuth avec un enregistrement d'application Entra.
 - [Google Workspace](#configuration-de-google-workspace): OAuth avec un compte de service.
 - [Dépannage](#dépannage): Les erreurs courantes et leur signification.
@@ -25,7 +27,7 @@ Sur une installation auto-hébergée, le serveur de messagerie de OneUptime est 
 
 ## Ajouter un serveur SMTP
 
-Ajoutez le serveur de messagerie d'un projet dans **Paramètres du projet > Notifications > Paramètres de notification**, dans la carte **Configurations SMTP personnalisées**, sous **Plus de paramètres**. Sur une installation auto-hébergée, le serveur par lequel OneUptime envoie lui-même se définit dans **Admin Dashboard > Paramètres > Notifications > E-mails**, dans la carte **Paramètres e-mail et SMTP personnalisés**. Les deux formulaires demandent les mêmes informations, en deux étapes.
+Ajoutez le serveur de messagerie d'un projet dans **Paramètres du projet > Notifications > Paramètres de notification**, dans la carte **Configurations SMTP personnalisées**, sous **Plus de paramètres**. Sur une installation auto-hébergée, le serveur par lequel OneUptime envoie lui-même se définit dans **Admin Dashboard > Paramètres > Notifications > E-mails**, dans la carte **Paramètres e-mail et SMTP personnalisés**. Les deux formulaires demandent le serveur et l'expéditeur ; le formulaire d'un projet demande d'abord son **Fournisseur**.
 
 :::steps
 ### Ouvrir le formulaire
@@ -37,13 +39,17 @@ Dans **Paramètres du projet > Notifications > Paramètres de notification**, ou
 Dans l'Admin Dashboard, ouvrez **Paramètres**, puis **Notifications > E-mails** dans le menu latéral (**Notifications** est replié au départ). Dans la carte **Paramètres du serveur de messagerie**, cliquez sur **Modifier le serveur** et réglez **Type de serveur de messagerie** sur `Custom SMTP`. Cliquez ensuite sur **Modifier la config SMTP** dans la carte **Paramètres e-mail et SMTP personnalisés**, qui apparaît en dessous.
 :::
 
+### Choisir le fournisseur
+
+Le formulaire d'un projet s'ouvre sur l'étape **Fournisseur** : saisissez le **Nom**, et laissez **Serveur SMTP** choisi pour envoyer par un serveur de messagerie. Pour envoyer plutôt par Microsoft Graph ou par un [fournisseur d'e-mail](/docs/emails/email-providers), choisissez-le ici. La **Description**, une note pour votre équipe, est repliée sous **Plus de champs**. Le formulaire de l'instance n'a pas d'étape **Fournisseur**.
+
 ### Remplir l'étape Serveur
 
-À l'étape **Serveur**, saisissez le **Nom** (configurations de projet uniquement), le **Nom d'hôte**, le **Port** (une nouvelle configuration de projet commence avec `587`), le **Nom d'utilisateur** et le **Mot de passe**.
+À l'étape **Serveur**, saisissez le **Nom d'hôte**, le **Port** (une nouvelle configuration de projet commence avec `587`), le **Nom d'utilisateur** et le **Mot de passe**.
 
 ### Vérifier Plus de champs
 
-Tout le reste est replié sous **Plus de champs**, à la fin de l'étape **Serveur**. Tant qu'il est replié, son en-tête indique comment les e-mails sont envoyés, par exemple « Les e-mails sont envoyés par SMTP, avec une connexion par nom d'utilisateur et mot de passe. TLS est obligatoire. » Ne l'ouvrez que si vous devez changer l'un des paramètres du tableau ci-dessous.
+Les autres paramètres du serveur sont repliés sous **Plus de champs**, à la fin de l'étape **Serveur**. Tant qu'il est replié, son en-tête indique comment les e-mails sont envoyés, par exemple « Les e-mails sont envoyés par SMTP, avec une connexion par nom d'utilisateur et mot de passe. TLS est obligatoire. » Ne l'ouvrez que si vous devez changer l'un des paramètres du tableau ci-dessous. Sur le formulaire d'un projet, les champs OAuth ont leur propre étape **OAuth**, après **Serveur**.
 
 ### Remplir l'étape Expéditeur
 
@@ -60,13 +66,13 @@ Voici les paramètres sous **Plus de champs** :
 
 | Champ | Ce qu'il fait |
 | --- | --- |
-| **Transport** | `SMTP` (par défaut), ou `Microsoft Graph` pour un locataire Microsoft 365 où SMTP AUTH est désactivé. Choisir Microsoft Graph masque le nom d'hôte, le port, le nom d'utilisateur et le mot de passe, et affiche les champs OAuth. |
+| **Transport** | `SMTP` (par défaut), ou `Microsoft Graph` pour un locataire Microsoft 365 où SMTP AUTH est désactivé. Choisir Microsoft Graph masque le nom d'hôte, le port, le nom d'utilisateur et le mot de passe, et affiche les champs OAuth. Sur le formulaire de l'instance uniquement : un projet choisit plutôt son **Fournisseur**. |
 | **Exiger TLS** | Activé pour une nouvelle configuration de projet. N'envoyer des e-mails que via une connexion chiffrée avec un certificat valide. Lorsque cette option est désactivée, le certificat n'est pas vérifié. Le port 465 est toujours chiffré. Lorsque cette option est désactivée, les e-mails sur les autres ports ne sont chiffrés que si le serveur le propose. |
 | **Type d'authentification** | `Username and Password` (par défaut), `OAuth`, ou `None` pour un relais qui ne demande pas de connexion. |
-| **Champs OAuth** | **Type de fournisseur OAuth**, **ID client OAuth**, **Secret client OAuth**, **URL du jeton OAuth** et **Portée OAuth**, affichés dès qu'OAuth ou Microsoft Graph est choisi. |
-| **Description** | Une note pour votre équipe (configurations de projet uniquement). |
+| **Champs OAuth** | **Type de fournisseur OAuth**, **ID client OAuth**, **Secret client OAuth**, **URL du jeton OAuth** et **Portée OAuth**, affichés dès qu'OAuth ou Microsoft Graph est choisi. Le formulaire d'un projet les demande à son étape **OAuth**. |
+| **Description** | Une note pour votre équipe (configurations de projet uniquement), à l'étape **Fournisseur**. |
 
-**Microsoft Graph.** Ouvrez **Plus de champs**, réglez **Transport** sur `Microsoft Graph` et renseignez une application Azure qui a l'autorisation d'application **Mail.Send** : son ID client et son secret client, l'URL de jeton `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` et la portée `https://graph.microsoft.com/.default`. Les e-mails partent de la boîte aux lettres de l'**E-mail de l'expéditeur**, qui doit être une boîte aux lettres sous licence de votre locataire.
+**Microsoft Graph.** Sur le formulaire d'un projet, choisissez `Microsoft Graph` comme **Fournisseur** ; sur le formulaire de l'instance, ouvrez **Plus de champs** et réglez **Transport** sur `Microsoft Graph`. Renseignez ensuite une application Azure qui a l'autorisation d'application **Mail.Send** : son ID client et son secret client, l'URL de jeton `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` et la portée `https://graph.microsoft.com/.default`. Les e-mails partent de la boîte aux lettres de l'**E-mail de l'expéditeur**, qui doit être une boîte aux lettres sous licence de votre locataire.
 
 > [!NOTE]
 > Sur OneUptime Cloud, le serveur de messagerie d'un projet doit être joignable par Internet : un hôte qui se résout en une adresse privée ou interne est refusé. Sur une installation auto-hébergée, les adresses privées sont autorisées sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true` ; les adresses de bouclage et lien-local sont toujours refusées. Le serveur de messagerie propre à l'instance n'est pas vérifié ainsi.
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: Envoyer l'e-mail
 ```
 
-Le **Type d'authentification** et les champs OAuth se trouvent sous **Plus de champs**, à l'étape Serveur du formulaire. Pour vous connecter avec OAuth, renseignez :
+Le **Type d'authentification** se trouve sous **Plus de champs**, à l'étape Serveur du formulaire. Les champs OAuth s'y trouvent aussi sur le formulaire de l'instance, et à l'étape **OAuth** sur celui d'un projet. Pour vous connecter avec OAuth, renseignez :
 
 | Champ | Description |
 | --- | --- |
@@ -309,6 +315,7 @@ Vérifiez l'**E-mail de l'expéditeur** : votre serveur doit autoriser l'envoi d
 ## Étapes suivantes
 
 :::cards
+- [Fournisseurs d'e-mail](/docs/emails/email-providers): Envoyer plutôt par Amazon SES, SendGrid, Mailgun, Postmark ou Resend.
 - [Regroupement des notifications](/docs/emails/notification-rollup): Comment OneUptime regroupe les rafales d'e-mails envoyés aux propriétaires.
 - [Abonnés et annonces](/docs/status-pages/subscribers): Envoyer les e-mails aux abonnés d'une page de statut par une configuration SMTP du projet.
 :::

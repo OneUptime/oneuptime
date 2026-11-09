@@ -100,7 +100,7 @@ PostgreSQL پیکربندی و وضعیت عملیاتی شما را نگه می
 | درگاه ورودی | `nginx` | حجم درخواست‌ها |
 | telemetry writer، وقتی روشن است | `telemetryWriter` | نه با بار: هر درج تله‌متری را به‌صورت دسته‌ای در ClickHouse می‌نویسد، پس اندازه‌اش بر پایهٔ ظرفیت ClickHouse تعیین می‌شود |
 
-چارت **KEDA** را همراه دارد تا برنامه، workerها، کاوشگرها و Runner سراسری بتوانند بر پایهٔ عقب‌ماندگی صف خود مقیاس بگیرند. `keda.enabled` را همراه `keda.enabled` خود هر سرویس روشن کنید (برای نمونه `app.keda.enabled`). روی خوشه‌ای که هنوز KEDA ندارد، نخستین نصب یک دور اضافه لازم دارد: [راهنمای KEDA](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md) چارت را ببینید. سرویس‌هایی که KEDA آن‌ها را مدیریت نمی‌کند می‌توانند به‌جای آن از مقیاس‌دهندهٔ خودکار مبتنی بر CPU یا حافظه (`autoscaling`) استفاده کنند.
+چارت **KEDA** را همراه دارد تا برنامه، workerها، کاوشگرها و Runner سراسری بتوانند بر پایهٔ عقب‌ماندگی صف خود مقیاس بگیرند. `keda.enabled` را همراه `keda.enabled` خود هر سرویس روشن کنید (برای نمونه `app.keda.enabled`). روی خوشه‌ای که هنوز KEDA ندارد، نخستین نصب یک دور اضافه لازم دارد: [راهنمای KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) چارت را ببینید. سرویس‌هایی که KEDA آن‌ها را مدیریت نمی‌کند می‌توانند به‌جای آن از مقیاس‌دهندهٔ خودکار مبتنی بر CPU یا حافظه (`autoscaling`) استفاده کنند.
 
 ## سطح‌های آغازین
 
@@ -130,7 +130,7 @@ PostgreSQL پیکربندی و وضعیت عملیاتی شما را نگه می
 | **Valkey** | چارت از آن رونوشت نمی‌گیرد. OneUptime را به یک Redis یا Valkey مدیریت‌شدهٔ بیرونی با جابه‌جایی خودکار هنگام خرابی (`externalValkey`) وصل کنید. OneUptime به یک میزبان و پورت وصل می‌شود، پس از نقطهٔ پایانی اصلی سرویس استفاده کنید، نه نقطهٔ پایانی حالت خوشه‌ای. |
 
 > [!WARNING]
-> روشن کردن هر یک از این اپراتورها برای یک نصب موجود، یک پایگاه دادهٔ تازه و خالی راه می‌اندازد: هیچ‌کدام داده‌های پایگاه دادهٔ تک‌نمونه‌ای را که جایگزین می‌کند کپی نمی‌کند. داده‌های خود را همان‌طور که راهنماهای چارت شرح می‌دهند منتقل کنید – برای [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) و برای [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
+> روشن کردن هر یک از این اپراتورها برای یک نصب موجود، یک پایگاه دادهٔ تازه و خالی راه می‌اندازد: هیچ‌کدام داده‌های پایگاه دادهٔ تک‌نمونه‌ای را که جایگزین می‌کند کپی نمی‌کند. داده‌های خود را همان‌طور که راهنماهای چارت شرح می‌دهند منتقل کنید – برای [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) و برای [ClickHouse](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
 
 ## مدت نگهداری و اثر آن بر فضای ذخیره‌سازی
 

@@ -385,6 +385,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/slo/burn-rate-alerts",
       },
       {
+        title: "Error Budget Policy",
+        url: "/docs/slo/error-budget-policy",
+      },
+      {
         title: "SLO Metrics and Dashboards",
         url: "/docs/slo/metrics",
       },
@@ -701,6 +705,16 @@ const DocsNav: NavGroup[] = [
         title: "Data Retention",
         url: "/docs/telemetry/data-retention",
       },
+      // How much of it each project and service sends, on every install.
+      {
+        title: "Telemetry Usage",
+        url: "/docs/telemetry/usage",
+      },
+      // How much of it each project and ingestion key may send in a day.
+      {
+        title: "Ingestion Budgets",
+        url: "/docs/telemetry/ingestion-budgets",
+      },
       {
         title: "Continuous Profiling",
         url: "/docs/telemetry/profiles",
@@ -881,6 +895,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "Stream CloudWatch Metrics and Logs",
         url: "/docs/telemetry/cloud-streaming",
+      },
+      {
+        title: "Stream Azure Monitor Metrics and Logs",
+        url: "/docs/telemetry/cloud-streaming-azure",
+      },
+      {
+        title: "Stream Google Cloud Logs",
+        url: "/docs/telemetry/cloud-streaming-google-cloud",
       },
     ],
   },
@@ -1584,6 +1606,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "SMTP",
         url: "/docs/emails/smtp",
+      },
+      {
+        title: "Email Providers",
+        url: "/docs/emails/email-providers",
       },
       {
         title: "Notification Rollup",

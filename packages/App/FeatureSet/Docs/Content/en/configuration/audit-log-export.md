@@ -121,7 +121,7 @@ The **Credential**, such as `Bearer <token>`, is sent in the **Header name** you
 Each entry is one RFC 5424 message to the **Host** and **Port**, over TLS on port `6514` unless **Protocol** says TCP, with facility 13 (log audit) and severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
 Messages are framed by octet counting (RFC 5425) unless **Framing** says one message per line. A receiver whose certificate a private CA signed needs that CA's certificate in **CA certificate**. Both wait under **More fields**.
@@ -132,7 +132,7 @@ Every entry is one JSON object, its keys always in this order:
 
 | Key | What it holds |
 | --- | --- |
-| `schemaVersion` | `1`. A change to the schema comes with a new version. |
+| `schemaVersion` | `2` for a new export, `1` for one saved before version 2. A version only ever adds keys. |
 | `id` | The entry's id. The same entry sent twice has the same id. |
 | `createdAt` | When the change was recorded, in UTC. |
 | `projectId` | The project the change was made in. |
@@ -143,11 +143,22 @@ Every entry is one JSON object, its keys always in this order:
 | `apiKeyId`, `apiKeyName` | The API key it was made with, if any. |
 | `mcpOAuthGrantId`, `mcpClientName` | The MCP client it was made through, if any. |
 | `workflowId`, `workflowName` | The workflow that made it, if any. |
-| `changes` | Each field changed: `field`, with `oldValue` and `newValue`. |
+| `changes` | Each field changed: `field`, with `oldValue` and `newValue`, and in version 2 `summary`. |
 
 A file holds one entry per line, compressed with gzip, and is filed by the hour of its first entry: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Each `oldValue` and `newValue` is the field's value: text, a number, `true` or `false`, or JSON for a setting with several parts. A phone number, an email address or a URL is its text, such as `+14155550100`, and a port is its number.
+
 Keys, tokens and passwords never leave: they are recorded as `[REDACTED]`, and fields nobody may read are left out of every entry.
+
+## Record versions
+
+| Version | What it sends |
+| --- | --- |
+| `2` | Each change also carries `summary`: what changed, in the lines the audit log shows, such as `Added "Send Email" (send-email-1)` for a workflow's step or the path that changed in JSON, or `null`. The lines name settings and paths, never values. |
+| `1` | The entry as it was first sent, without `summary`. A workflow's steps go out as their size before and after, such as `3 steps and 2 connections`. |
+
+A new export sends version 2. An export saved before version 2 keeps sending version 1, so whatever reads it needs no change: when it is ready for `summary`, click **Edit** on the export and choose version 2 in **Record version**, under **More fields**. The version applies to the entries sent from then on, and each entry names its own in `schemaVersion`.
 
 ## When entries are sent
 

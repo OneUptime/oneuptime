@@ -4,6 +4,8 @@ Et **Skymiljø** er stedet der containerne dine kjører på en administrert skyp
 
 Miljøer vises i App-plattformer, et eget produkt: **App-plattformer → Oversikt** grupperer dem etter plattform og viser de som har blitt stille først, **App-plattformer → Alle apper** viser hver app som kjører i dem, og **App-plattformer → Alle miljøer** viser alle. Ressursene i skykontoene dine, som virtuelle maskiner, bøtter og administrerte databaser, finnes i Sky: se [Skyressurser](/docs/telemetry/cloud-resources).
 
+For å se miljøene eller appene til én skykonto, filtrer **Alle miljøer** eller **Alle apper** med filterbrikken **Skykonto**: Den viser hver konto miljøene ligger i, under sin sky, og beholder kontoene du velger, eller alle de andre. På **Sky → Oversikt** teller kortet **App-plattformer** miljøene og appene i de tilkoblede skykontoene dine, og hvert tall åpner listen sin med brikken allerede satt til de kontoene. Fjern brikken for å se hele listen.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Oppgaver på Fargate eller EC2, med CPU og minne per oppgave.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Tjenester og jobber, også oppført som serverløse funksjoner.
@@ -32,6 +34,7 @@ flowchart TB
 - **Miljøet samler alt.** Hver arbeidsbelastning med samme plattform, konto og region havner i ett miljø. Tjenestene beholder sine egne rader under **Tjenester**.
 - **Hver kjørende oppgave er en instans.** Fanen **Instanser** i miljøet viser de kjørende oppgavene, instansene eller replikaene, med CPU og minne i sanntid der plattformen kan levere dem.
 - **Hver tjeneste er en app.** En ECS-tjeneste, en Cloud Run-tjeneste eller en Container App er en app i miljøet sitt, og OneUptime tar vare på revisjonene den kjører: se [Apper og utrullinger](#apper-og-utrullinger).
+- **Strømmede CloudWatch-logger teller også.** En AWS-konto som [strømmer CloudWatch-loggene sine](/docs/telemetry/cloud-streaming), legger loggene fra App Runner-tjenestene, Elastic Beanstalk-miljøene og ECS-oppgavene og -klyngene sine på fanen **Logger** i miljøet deres, og miljøet dukker opp med dem hvis ingen app har rapportert til det ennå. De lager ingen app: en app får navn etter sin egen telemetri.
 
 ## Før du begynner
 
@@ -118,7 +121,7 @@ Det første attributtet telemetrien bærer, navngir appen, så en app på en pla
 - **Begge er endringer.** Hver er en stiplet linje i diagrammene til appen og miljøet, en linje i miljøets **Feed** og en [endringshendelse](/docs/telemetry/change-events) som OneUptime AI leser når den undersøker en hendelse i miljøet. **Nylige utrullinger** under **App-plattformer → Oversikt** viser de nyeste.
 - **Det registreres høyst 12 nye revisjoner av en app i timen.** En `service.version` som endres med hvert bygg, ville ellers vært en utrulling i minuttet.
 
-Siden til en app har en **Oversikt** med forespørslene, feilene, latensen, instansene og revisjonene som kjører nå, en fane **Revisjoner** med tallene for hver revisjon, og fanene **Instanser**, **Logger** og **Spor**, filtrert til appen. **Sett opp varsler** åpner de anbefalte monitorene for appens tjeneste under **Tjenester**.
+Siden til en app har en **Oversikt** med forespørslene, feilene, latensen, instansene og revisjonene som kjører nå, en fane **Revisjoner** med tallene for hver revisjon, fanene **Instanser**, **Logger** og **Spor**, filtrert til appen, og en fane **Anbefalinger** med monitorene OneUptime anbefaler for den: mislykkede operasjoner, feilutbrudd, trafikk som stopper og trege forespørsler, lest fra appens egne spans og dens `http.server.request.duration`, hver knyttet til appens miljø. **Sett opp varsler** åpner den; for en app med et navn som er for langt til å filtrere telemetrien etter, åpner den i stedet de anbefalte monitorene for appens tjeneste under **Tjenester**.
 
 En app som ikke sender noe på 30 dager, fjernes sammen med revisjonene sine, og det samme gjør en revisjon som ingen instans rapporterer på 30 dager, med mindre appen fortsatt kjører den. På en selvdriftet OneUptime setter `CLOUD_APP_RETENTION_DAYS` de 30.
 

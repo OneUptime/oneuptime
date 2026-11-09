@@ -341,9 +341,7 @@ test.describe("a busy cloud", () => {
 
     await page.getByRole("button", { name: "About Health" }).hover();
     await expect(
-      tooltipSaying(
-        "A service someone disabled on purpose never counts against it",
-      ),
+      tooltipSaying("A service disabled on purpose never counts"),
     ).toBeVisible();
 
     await page.getByRole("button", { name: "About Data status" }).hover();

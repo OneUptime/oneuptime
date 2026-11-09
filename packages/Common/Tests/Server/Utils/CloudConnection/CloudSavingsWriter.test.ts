@@ -13,6 +13,9 @@ import CloudSavingsWriter, {
   getSavingResourceKey,
 } from "../../../../Server/Utils/CloudConnection/CloudSavingsWriter";
 import LessThan from "../../../../Types/BaseDatabase/LessThan";
+import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
+import { CLOUD_SAVINGS_SOURCE_ONEUPTIME } from "../../../../Types/Cloud/CloudRightSizing";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { CloudSavingKind } from "../../../../Types/Cloud/CloudCost";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import ObjectID from "../../../../Types/ObjectID";
@@ -210,6 +213,99 @@ describe("keeping the ways to spend less in step", () => {
     expect(JSON.stringify(query["cloudAccountId"])).not.toContain(
       OTHER_ROW.toString(),
     );
+    // OneUptime's own right-sizing is never the recommender's to remove.
+    expect(query["source"]).toEqual(
+      new NotEqual<string>(CLOUD_SAVINGS_SOURCE_ONEUPTIME),
+    );
+  });
+
+  test("what each account holds, for its summary: every row of it, OneUptime's right-sizing too, read a page at a time", async () => {
+    const pages: Array<Array<CloudCostRecommendation>> = [
+      Array.from({ length: LIMIT_MAX }, (_value: unknown, index: number) => {
+        const row: CloudCostRecommendation = new CloudCostRecommendation();
+        row.cloudAccountId = index % 2 === 0 ? ACCOUNT_ROW : OTHER_ROW;
+        row.monthlySavings = 1;
+        row.currency = "USD";
+        row.kind = CloudSavingKind.Rightsize;
+        return row;
+      }),
+      [
+        Object.assign(new CloudCostRecommendation(), {
+          cloudAccountId: ACCOUNT_ROW,
+          monthlySavings: 140.25,
+          currency: "EUR",
+          kind: CloudSavingKind.Idle,
+        }),
+        // A row of no account is no account's.
+        Object.assign(new CloudCostRecommendation(), {
+          monthlySavings: 9,
+          currency: "USD",
+          kind: CloudSavingKind.Rightsize,
+        }),
+      ],
+    ];
+    const asked: Array<{ skip: number; query: Record<string, unknown> }> = [];
+
+    jest
+      .spyOn(CloudCostRecommendationService, "findBy")
+      .mockImplementation(
+        async (input: {
+          skip?: unknown;
+          query: unknown;
+        }): Promise<Array<CloudCostRecommendation>> => {
+          const skip: number = Number(input.skip) || 0;
+          asked.push({
+            skip,
+            query: input.query as Record<string, unknown>,
+          });
+          return pages[skip / LIMIT_MAX] || [];
+        },
+      );
+
+    const held: Map<
+      string,
+      Array<{ monthlySavings: number; currency: string; kind: CloudSavingKind }>
+    > = await CloudSavingsWriter.loadSavingsByAccount({
+      projectId: PROJECT,
+      cloudAccountIds: [ACCOUNT_ROW, OTHER_ROW],
+    });
+
+    expect(
+      asked.map((entry: { skip: number }) => {
+        return entry.skip;
+      }),
+    ).toEqual([0, LIMIT_MAX]);
+    expect(asked[0]!.query["projectId"]).toEqual(PROJECT);
+    expect(JSON.stringify(asked[0]!.query["cloudAccountId"])).toContain(
+      OTHER_ROW.toString(),
+    );
+    expect(held.get(ACCOUNT_ROW.toString())).toHaveLength(LIMIT_MAX / 2 + 1);
+    expect(held.get(OTHER_ROW.toString())).toHaveLength(LIMIT_MAX / 2);
+    expect(held.get(ACCOUNT_ROW.toString())!.slice(-1)).toEqual([
+      { monthlySavings: 140.25, currency: "EUR", kind: CloudSavingKind.Idle },
+    ]);
+    expect(Array.from(held.keys()).sort()).toEqual(
+      [ACCOUNT_ROW.toString(), OTHER_ROW.toString()].sort(),
+    );
+  });
+
+  test("no account, no read", async () => {
+    let reads: number = 0;
+    jest
+      .spyOn(CloudCostRecommendationService, "findBy")
+      .mockImplementation(async (): Promise<Array<CloudCostRecommendation>> => {
+        reads++;
+        return [];
+      });
+    expect(
+      (
+        await CloudSavingsWriter.loadSavingsByAccount({
+          projectId: PROJECT,
+          cloudAccountIds: [],
+        })
+      ).size,
+    ).toBe(0);
+    expect(reads).toBe(0);
   });
 
   test("an account keeps its largest recommendations, at most its cap", async () => {

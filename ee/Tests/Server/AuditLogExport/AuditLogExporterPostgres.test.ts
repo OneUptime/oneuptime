@@ -44,6 +44,8 @@ import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLog
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import { JSONObject } from "Common/Types/JSON";
+import { AuditLogExportRecord } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import {
   installFakeEnterpriseModuleWithFeatures,
   uninstallEnterpriseModule,
@@ -648,6 +650,66 @@ describePostgres("the audit log exporter against a migrated Postgres", () => {
     await exporter().exportAll();
 
     expect(webhook.deliveredIds()).toEqual([recent, old, recent]);
+  });
+
+  /*
+   * Issue #6247, on the real table: a new export is saved sending the
+   * newest record version; one saved before there was a choice holds the
+   * column's default - what the migration gave every such row - is sent as
+   * version 1, and switched through the service sends version 2 from its
+   * next batch.
+   */
+  test("a new export sends the newest record version; one saved before holds the column's default, 1, until it is switched", async () => {
+    const id: ObjectID = await createExport({
+      projectId: PROJECT_A,
+      destinationType: AuditLogExportDestinationType.Webhook,
+      startsAt: new Date("2026-10-24T10:00:00.000Z"),
+    });
+    const workflowSave: JSONObject = {
+      field: "graph",
+      oldValue: "1 step and no connections",
+      newValue: "2 steps and 1 connection",
+      summary: ['Added "Log" (log-1)'],
+    };
+
+    expect((await storedRow(id))["schemaVersion"]).toBe(2);
+
+    // As the migration left every export saved before it.
+    await database.query(
+      `UPDATE "${schema}"."AuditLogExport" SET "schemaVersion" = DEFAULT WHERE "_id" = $1`,
+      [id.toString()],
+    );
+    expect((await storedRow(id))["schemaVersion"]).toBe(1);
+
+    auditLog.add({
+      createdAt: "2026-10-24T10:30:00.000Z",
+      changes: [workflowSave],
+    });
+    await exporter().exportAll();
+
+    const first: AuditLogExportRecord = webhook.batches[0]!.records[0]!;
+
+    expect(first.schemaVersion).toBe(1);
+    expect(first.changes[0]).not.toHaveProperty("summary");
+
+    await AuditLogExportService.updateOneById({
+      id,
+      data: { schemaVersion: 2 },
+      props: { ...ROOT, tenantId: new ObjectID(PROJECT_A) },
+    });
+    expect((await storedRow(id))["schemaVersion"]).toBe(2);
+
+    auditLog.add({
+      createdAt: "2026-10-24T10:31:00.000Z",
+      changes: [workflowSave],
+    });
+    await exporter().exportAll();
+
+    const last: AuditLogExportRecord =
+      webhook.batches[webhook.batches.length - 1]!.records[0]!;
+
+    expect(last.schemaVersion).toBe(2);
+    expect(last.changes[0]!.summary).toEqual(['Added "Log" (log-1)']);
   });
 
   test("a paused export keeps its place and is not sent", async () => {

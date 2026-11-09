@@ -360,6 +360,7 @@ const OpenStackCloudServices: FunctionComponent<
         <>
           <div className="mb-4 max-w-md">
             <Input
+              isSearchOrFilter={true}
               value={search}
               onChange={(value: string) => {
                 setSearch(value);

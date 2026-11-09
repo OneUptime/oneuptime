@@ -273,6 +273,8 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
             placeholder={translator.translateText(picker.placeholder)}
             ariaLabel={translator.translateText(kind.label)}
             dataTestId="code-context-record"
+            // What is added: Add waits for one, so none is never a choice.
+            isClearable={false}
             value={recordId || null}
             onChange={(
               value: DropdownValue | Array<DropdownValue> | null,
@@ -514,6 +516,8 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
                   placeholder={translator.translateText("Pick a service")}
                   ariaLabel={translator.translateText("Service")}
                   dataTestId="code-context-profile-service"
+                  // Required, unlike the logs' "Any service".
+                  isClearable={false}
                   value={serviceId || null}
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,

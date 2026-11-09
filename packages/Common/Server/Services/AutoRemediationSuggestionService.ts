@@ -57,6 +57,18 @@ export interface SuggestionTransitionSet {
   runbookTrackRecord?: JSONObject | undefined;
 }
 
+/*
+ * The first of the two approvals a riskier fix needs where the project asks
+ * two people to approve one (Project.requireTwoApprovalsForRiskierFixes):
+ * who gave it (as ObjectID.toString(), like every id this update sets),
+ * when, and where.
+ */
+export interface FirstApprovalSet {
+  firstApprovedByUserId: string;
+  firstApprovedAt: Date;
+  firstApprovedFrom: AutoRemediationApprovalSource;
+}
+
 // What the outcome verifier may set when a verification concludes.
 export interface VerificationTransitionSet {
   verificationStatus: AutoRemediationVerificationStatus;
@@ -169,6 +181,78 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Records the first of two approvals (RemediationApproval): one
+   * conditional UPDATE whose WHERE carries both what makes it the first -
+   * the fix still waits for approval, and nobody approved it first yet - so
+   * of two first approvals at once exactly one is recorded, and the other
+   * person's press is read again as the second. The status stays
+   * Suggested: nothing runs on one approval. Returns the rows changed; 0
+   * means the fix moved on, or someone approved it first meanwhile.
+   */
+  @CaptureSpan()
+  public async attemptFirstApproval(data: {
+    suggestionId: ObjectID;
+    set: FirstApprovalSet;
+  }): Promise<number> {
+    const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set(data.set as unknown as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.suggestionId.toString() })
+      .andWhere('"status" = :status', {
+        status: AutoRemediationSuggestionStatus.Suggested,
+      })
+      .andWhere('"firstApprovedByUserId" IS NULL')
+      .andWhere('"deletedAt" IS NULL');
+
+    const result: UpdateResult = await queryBuilder.execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * The second of two approvals: attemptStatusTransition's claim
+   * (Suggested -> Approved, once), guarded as well on the first approval
+   * being the one the approver was shown and on it being someone else's -
+   * the WHERE says both, so neither a first approval taken back nor the
+   * first approver's own second press can ever run the fix. Returns the
+   * rows changed; 0 means someone else acted on the fix first.
+   */
+  @CaptureSpan()
+  public async attemptSecondApproval(data: {
+    suggestionId: ObjectID;
+    firstApprovedByUserId: string;
+    set: SuggestionTransitionSet;
+  }): Promise<number> {
+    const approverId: string | undefined = data.set.approvedByUserId;
+
+    if (
+      !approverId ||
+      approverId.toLowerCase() === data.firstApprovedByUserId.toLowerCase()
+    ) {
+      return 0;
+    }
+
+    const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set(data.set as unknown as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.suggestionId.toString() })
+      .andWhere('"status" = :fromStatus', {
+        fromStatus: AutoRemediationSuggestionStatus.Suggested,
+      })
+      .andWhere('"firstApprovedByUserId" = :firstApprovedByUserId', {
+        firstApprovedByUserId: data.firstApprovedByUserId,
+      })
+      .andWhere('"firstApprovedByUserId" <> :approverId', { approverId })
+      .andWhere('"deletedAt" IS NULL');
+
+    const result: UpdateResult = await queryBuilder.execute();
+
+    return result.affected || 0;
+  }
+
+  /*
    * The verification twin of attemptStatusTransition: one conditional
    * UPDATE guarded on the expected current verificationStatus, so
    * concurrent verifier sweeps (multiple Workers replicas) settle each
@@ -180,10 +264,25 @@ export class Service extends DatabaseService<Model> {
     fromVerificationStatus: AutoRemediationVerificationStatus;
     set: VerificationTransitionSet;
   }): Promise<number> {
+    /*
+     * Held to what each column takes, as every raw write path must
+     * (truncateStringColumnsToMaxLength): this UPDATE skips the checks a
+     * service write makes, and verificationNote (varchar(500)) quotes the
+     * command and the values a GitOps controller put back, which can run
+     * longer. Unheld, Postgres refused the UPDATE, and each sweep refused it
+     * again: the verification stayed Pending, with no post, no auto-resolve
+     * and no rollback.
+     */
+    const set: VerificationTransitionSet =
+      this.truncateStringColumnsToMaxLength({ ...data.set } as Record<
+        string,
+        unknown
+      >) as unknown as VerificationTransitionSet;
+
     const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
       .createQueryBuilder()
       .update(Model)
-      .set(data.set as QueryDeepPartialEntity<Model>)
+      .set(set as QueryDeepPartialEntity<Model>)
       .where('"_id" = :id', { id: data.suggestionId.toString() })
       .andWhere('"verificationStatus" = :fromVerificationStatus', {
         fromVerificationStatus: data.fromVerificationStatus,

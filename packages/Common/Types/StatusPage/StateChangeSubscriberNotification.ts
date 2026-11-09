@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import ObjectID from "../ObjectID";
 import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotificationStatus";
 
 /*
@@ -102,6 +103,31 @@ export default class StateChangeSubscriberNotification {
     return {
       status: StatusPageSubscriberNotificationStatus.Pending,
     };
+  }
+
+  /*
+   * Whether the note a state change posts will wait for approval, so it is
+   * not the message subscribers get about the change: the project asks for
+   * its public notes of this kind to be approved (PublicNoteApproval). A
+   * change with no project to ask about is not held. `isApprovalRequired`
+   * reads the project's switch (PublicNoteApprovalPolicy.isRequired).
+   */
+  public static async isPublicNoteHeldForApproval<TEventType>(data: {
+    projectId: ObjectID | undefined | null;
+    eventType: TEventType;
+    isApprovalRequired: (query: {
+      projectId: ObjectID;
+      eventType: TEventType;
+    }) => Promise<boolean>;
+  }): Promise<boolean> {
+    if (!data.projectId) {
+      return false;
+    }
+
+    return await data.isApprovalRequired({
+      projectId: data.projectId,
+      eventType: data.eventType,
+    });
   }
 
   // Writes getDecision's answer onto the state change about to be created.

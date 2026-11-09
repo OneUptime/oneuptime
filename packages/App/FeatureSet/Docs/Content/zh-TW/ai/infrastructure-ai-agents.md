@@ -64,7 +64,7 @@ Kubernetes 叢集有自己的代理程式，也就是 Kubernetes AI 代理程式
 | AWS 帳戶 | `aws` | 雲端 AI 代理程式 | `AWS_ACCOUNT_ID`（空白時使用它所執行的帳戶） | `cloud`——固定目錄中的一項操作，從不執行 `aws` 指令 | AWS API，使用它自己的 IAM 角色 |
 | Azure 訂用帳戶 | `azure` | 雲端 AI 代理程式 | `AZURE_SUBSCRIPTION_ID`（由其設定指令設定） | `cloud`——固定目錄中的一項操作，從不執行 `az` 指令 | Azure Resource Manager，以其 Container App 的受控識別存取 |
 | Google Cloud 專案 | `gcp`（或 `google-cloud`） | 雲端 AI 代理程式 | `GOOGLE_CLOUD_PROJECT`（空白時使用它所執行的專案） | `cloud`——固定目錄中的一項操作，從不執行 `gcloud` 指令 | Google Cloud API，以它自己的服務帳戶存取 |
-| OpenStack 雲端 | `openstack` | OpenStack AI 代理程式 | `OPENSTACK_CLOUD_NAME` | `openstack` 指令，傳送到雲端的 API（代理程式中沒有 `openstack` 執行檔）——它只讀取，沒有任何會變更雲端的指令 |
+| OpenStack 雲端 | `openstack` | OpenStack AI 代理程式 | `OPENSTACK_CLOUD_NAME` | `openstack` 指令，傳送到雲端的 API（代理程式中沒有 `openstack` 執行檔）。在你選擇啟用[修復](#openstack-雲端上的修正)之前，它只讀取 | 雲端的 API，使用 `clouds.yaml` 中的應用程式憑證 |
 
 資料庫伺服器：資料庫 AI 代理程式提供 PostgreSQL、MySQL（以及 MariaDB 和 Percona Server）、Redis（以及 Valkey、KeyDB 和 Dragonfly）和 MongoDB 的診斷。對於任何其他引擎，它不會執行任何內容，並在資料庫的 AI 代理程式頁面上說明這一點。
 
@@ -87,7 +87,7 @@ AI 代理程式頁面上代理程式狀態旁 **⋯** 選單中的 **測試連�
 
 在 Docker Swarm 的工作節點上，`docker node ls` 會失敗：Docker Swarm AI 代理程式必須在管理節點上執行。在工作節點上啟動的代理程式，在其節點成為管理節點之前不會向叢集註冊，而 Docker Swarm 安裝程式會在不是管理節點的節點上略過它。
 
-在雲端帳戶上，`cloud whoami` 會顯示雲端 AI 代理程式所操作的帳戶和它登入所用的身分、它是否可以變更任何內容、它可以進行的變更，以及它要求的標籤（如果有）。
+在雲端帳戶上，`cloud whoami` 會顯示雲端 AI 代理程式所操作的帳戶和它登入所用的身分、它是否可以變更任何內容、它可以進行的變更，以及它要求的標籤（如果有）。在 Azure 和 Google Cloud 上，它還會說明其變更以哪個身分執行，以及代理程式能否以該身分登入。
 
 ## 安裝 AI 代理程式
 
@@ -154,10 +154,20 @@ AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案旁邊沒有可供代理�
 | 雲端 | 在何處執行 | 指令建立的內容 |
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AWS 帳戶 | AWS CloudShell | 一個 CloudFormation 堆疊 `oneuptime-ai-agent`，它執行一個 ECS Fargate 任務。其任務角色只能擔任寫入角色 `OneUptimeAiAgentWrite`，該角色具有已開啟變更的權限。它連線時使用的金鑰保存在 Secrets Manager 中，只有 ECS 會讀取。 |
-| Azure 訂用帳戶 | Azure Cloud Shell | 資源群組 `oneuptime-ai-agent` 中的一個 Container App `oneuptime-ai-agent`。其受控識別在訂用帳戶上具有一個自訂角色，含已開啟變更的權限。它連線時使用的金鑰保存為 Container Apps 祕密。 |
-| Google Cloud 專案 | Google Cloud Shell | 一台執行 Container-Optimized OS 的 `e2-micro` 類型 Compute Engine 虛擬機器 `oneuptime-ai-agent`，位於沒有任何防火牆規則的專用網路中，因此任何東西都無法連線到它。它以服務帳戶 `oneuptime-ai-agent` 的身分執行，該服務帳戶在專案上具有一個自訂角色，含已開啟變更的權限。它連線時使用的金鑰保存在 Secret Manager 中，只有該服務帳戶可以讀取。虛擬機器每次啟動時讀取該金鑰，從不將其保存在磁碟或中繼資料中。在 **更多欄位** 的 **代理程式的執行位置** 中，可以改為選擇一律分配 CPU 的 Cloud Run 服務，適用於不允許任何虛擬機器擁有外部 IP 位址的專案。 |
+| Azure 訂用帳戶 | Azure Cloud Shell | 資源群組 `oneuptime-ai-agent` 中的一個 Container App `oneuptime-ai-agent`，其本身的受控識別只能讀取。每項變更都以另一個使用者指派的受控識別 `oneuptime-ai-agent-write` 執行；它在訂用帳戶上具有一個自訂角色，含已開啟變更的權限，並且只附加到代理程式的 Container App 上：代理程式為每項變更要求它的權杖。它連線時使用的金鑰保存為 Container Apps 祕密。 |
+| Google Cloud 專案 | Google Cloud Shell | 一台執行 Container-Optimized OS 的 `e2-micro` 類型 Compute Engine 虛擬機器 `oneuptime-ai-agent`，位於沒有任何防火牆規則的專用網路中，因此任何東西都無法連線到它。它以服務帳戶 `oneuptime-ai-agent` 的身分執行，該服務帳戶只能讀取。每項變更都以第二個服務帳戶 `oneuptime-ai-agent-write` 的身分執行，該帳戶在專案上具有一個自訂角色，含已開啟變更的權限；代理程式只為這一項變更要求它的權杖，有效期 15 分鐘。它連線時使用的金鑰保存在 Secret Manager 中，只有代理程式自己的服務帳戶可以讀取，再次執行該指令會銷毀金鑰的舊版本。虛擬機器每次啟動時讀取該金鑰，從不將其保存在磁碟或中繼資料中。在 **更多欄位** 的 **代理程式的執行位置** 中，可以改為選擇一律分配 CPU 的 Cloud Run 服務，適用於不允許任何虛擬機器擁有外部 IP 位址的專案。 |
+
+要在其他地方執行代理程式，請使用 **更多欄位** 中列出的變數部署其映像檔，並給它與指令相同的東西：
+
+- **AWS：** 一個只能擔任寫入角色 `OneUptimeAiAgentWrite` 的角色，寫入角色信任該角色並具有已開啟變更的權限。
+- **Azure：** 一個唯讀的專屬受控識別，以及附加到其執行位置的寫入識別 `oneuptime-ai-agent-write`。
+- **Google Cloud：** 一個唯讀的服務帳戶，以及它對寫入服務帳戶 `oneuptime-ai-agent-write` 的 Service Account Token Creator（`roles/iam.serviceAccountTokenCreator`）角色。
 
 該指令只在為其撰寫的帳戶中有效：在 AWS 上，如果 Shell 登入的是另一個帳戶，它不會建立任何內容；Azure 和 Google Cloud 的指令則會在每次呼叫時指明其訂用帳戶或專案。它會設定 `ONEUPTIME_AI_INVESTIGATION=true`、依您的回答設定 `ONEUPTIME_AI_FIXES`、設定 `ONEUPTIME_AI_ALLOW_WRITES=true`，並將 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 設為為其撰寫指令的帳戶。代理程式依其雲端所回報的所在帳戶註冊，從不向 OneUptime 新增帳戶：如果在與其指令不同的帳戶中啟動，它會被拒絕，為其撰寫指令的帳戶會在其頁面上說明原因；如果在專案的任何連線都不讀取的帳戶中啟動，它同樣會被拒絕，其日誌會說明這一點。
+
+該指令包含一個僅為此帳戶的代理程式建立的金鑰，位於 `ONEUPTIME_AI_AGENT_KEY` 中，而不是專案的遙測擷取金鑰：它只連線該代理程式，不連線其他任何東西，也不傳送遙測資料。在代理程式用它連線之前，它在一天內有效，之後請再次開啟 **讓 AI 修正問題** 取得新金鑰；代理程式一旦用它連線，之前的金鑰即失效。只有可以重設代理程式並編輯該帳戶的人才能取得金鑰。在這些金鑰之前設定的代理程式會繼續使用擷取金鑰連線，直到再次執行其設定指令；此後，擷取金鑰將無法再連線它。帳戶的 **動態** 會顯示代理程式何時使用新金鑰連線以及由誰建立，並記錄被 OneUptime 拒絕的代理程式及其自稱的執行位置。在這些金鑰之前設定的代理程式改用自己的金鑰時，該項目還會列出它之前用來連線的擷取金鑰：該金鑰仍會為整個專案傳送遙測資料，如果它是專為此代理程式建立的，請將其刪除。
+
+**AWS Organization 的所有帳戶。** 對於讀取 AWS Organization 的連線所找到的 AWS 帳戶，**讓 AI 修正問題** 也會詢問 **哪些帳戶？** 選擇 **組織的所有帳戶** 會產生一條在組織管理帳戶的 AWS CloudShell 中執行的指令。CloudFormation StackSet `oneuptime-ai-agent` 會在每個成員帳戶中設定同樣的代理程式，角色相同，因此最小權限也相同；由於成員帳戶可能沒有預設 VPC，代理程式執行於一個不允許任何流量進入的專屬小型網路中。StackSets 從不部署到管理帳戶，因此管理帳戶會取得自己的堆疊 `oneuptime-ai-agent`。每個代理程式仍使用自己帳戶的金鑰連線：對話方塊會為你可以編輯的每個帳戶建立金鑰，並列出被排除的帳戶；每個成員帳戶的堆疊都將自己的金鑰作為參數保存，在金鑰所屬帳戶以外的帳戶中執行的代理程式會被拒絕。所有代理程式都執行於 US East (N. Virginia)，即 `us-east-1`（在 AWS GovCloud 和中國則為 CloudShell 本身所在區域），因此從任何區域再次執行該指令都會更新同一個 StackSet。對話方塊會列出每個帳戶及其代理程式的狀態：**已連線**、**離線** 或 **等待中**，`aws cloudformation list-stack-instances` 可顯示每個成員帳戶的堆疊。之後加入組織的帳戶還沒有金鑰：在 OneUptime 讀取到它之後再次執行該指令即可。要移除這些代理程式，請先用 `aws cloudformation delete-stack-instances --no-retain-stacks` 刪除 StackSet 的堆疊，再刪除 StackSet 和管理帳戶的堆疊。
 
 要變更任何內容，請再次執行該指令：再次開啟 **讓 AI 修正問題**，或在帳戶的 **AI 代理程式** 頁面上選擇 **變更**，然後執行它寫出的指令。角色一律只具有已開啟的變更。雲端帳戶的 **人工智慧** 區段有兩個頁面：**日誌** 和 **AI 代理程式**；代理程式的費用請見 [連線雲端帳戶](/docs/telemetry/cloud-accounts#讓-ai-修正問題)。在 **活動** 下，帳戶的 **動態** 會記錄代理程式的連線或重設，以及對 OneUptime AI 在其中可以做什麼的每一次變更，並記下變更者。
 
@@ -167,11 +177,13 @@ AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案旁邊沒有可供代理�
 
 如果收集器仍在使用預設名稱（`docker-host`、`podman-host`、`docker-swarm`、`proxmox-cluster`、`vmware-vcenter`、`ceph`、`openstack`），那麼以該預設值安裝的每個資源都會回報到 OneUptime 中的同一個資源，而給它的指令可能會抵達其中任何一個。代理程式會在日誌中對此發出警告；請在收集器和代理程式上為每個資源設定唯一的名稱。
 
-它使用專案的遙測擷取金鑰進行驗證——`ONEUPTIME_API_KEY`、`ONEUPTIME_TELEMETRY_INGESTION_KEY` 和 `ONEUPTIME_SERVICE_TOKEN` 中第一個已設定的值，收集器已經設定了它們——並取得自己的金鑰。它的所有呼叫都是傳送到 `<ONEUPTIME_URL>/resource-ai-agent-ingest/…` 的 HTTPS `POST`：它在啟動時註冊一次，每 30 秒傳送一次心跳（在最後一次心跳後的 5 分鐘內都算在線上），每 3 秒要求一次工作，並在停止時登出。當第一個代理程式在線上時，具有相同識別的第二個代理程式會被拒絕：正常停止的容器會登出，因此取代它的代理程式會立即被接受，而在當機或被 kill 之後，從第一次被拒絕起，舊代理程式只要 40 秒內沒有傳送任何請求，取代者就會接替它。如果 10 分鐘後仍被拒絕，表示另一個正在執行的代理程式在使用相同的識別：代理程式會記錄一則說明此情況的錯誤，並改為每 5 分鐘才要求一次，直到您為每個資源設定各自的名稱或停止另一個代理程式。一個專案最多容納 250 個資源 AI 代理程式，每小時最多註冊 30 個新代理程式。達到 250 個後，7 天內沒有消息的代理程式會被移除，為新代理程式騰出空間（資源會保留其 AI 設定，這樣的代理程式回來後只需重新註冊）。
+它使用 `ONEUPTIME_AI_AGENT_KEY`、`ONEUPTIME_API_KEY`、`ONEUPTIME_TELEMETRY_INGESTION_KEY` 和 `ONEUPTIME_SERVICE_TOKEN` 中第一個已設定的值進行驗證——對雲端 AI 代理程式來說是其設定指令設定的專屬金鑰，否則是收集器已經設定的專案遙測擷取金鑰——並取得自己的金鑰。它的所有呼叫都是傳送到 `<ONEUPTIME_URL>/resource-ai-agent-ingest/…` 的 HTTPS `POST`：它在啟動時註冊一次，每 30 秒傳送一次心跳（在最後一次心跳後的 5 分鐘內都算在線上），每 3 秒要求一次工作，並在停止時登出。當第一個代理程式在線上時，具有相同識別的第二個代理程式會被拒絕：正常停止的容器會登出，因此取代它的代理程式會立即被接受，而在當機或被 kill 之後，從第一次被拒絕起，舊代理程式只要 40 秒內沒有傳送任何請求，取代者就會接替它。如果 10 分鐘後仍被拒絕，表示另一個正在執行的代理程式在使用相同的識別：代理程式會記錄一則說明此情況的錯誤，並改為每 5 分鐘才要求一次，直到您為每個資源設定各自的名稱或停止另一個代理程式。一個專案最多容納 250 個資源 AI 代理程式，每小時最多註冊 30 個新代理程式。達到 250 個後，7 天內沒有消息的代理程式會被移除，為新代理程式騰出空間（資源會保留其 AI 設定，這樣的代理程式回來後只需重新註冊）。
 
 **調查** 對每個資源從一開始就是開啟的，因此代理程式一連線，OneUptime AI 就會透過它進行調查。除此之外，AI 可以在資源上做什麼由代理程式自己的設定決定（請參閱 [AI 可以做什麼，由代理程式設定](#ai-可以做什麼由代理程式設定)）。兩個設定都沒有指定的代理程式會使用其預設值：它為自己的資源開啟 **調查**，如果允許寫入（`ONEUPTIME_AI_ALLOW_WRITES=true`），就將 **修正** 設為 **請求核准**，否則設為 **關閉**。這些預設值只適用於沒有人在 AI 代理程式頁面上選擇過 AI 設定的資源：有人在那裡儲存的設定會維持不變，直到代理程式的組態指定它們，所以有人關閉了 **調查** 開關的資源會保持關閉。早於這些設定的代理程式不會回報其中任何一個，而是像以前一樣由 AI 代理程式頁面設定。
 
 AI 代理程式頁面同一個 **⋯** 選單中的 **重設代理程式** 會在您確認後讓 OneUptime 忘記代理程式的金鑰；持有該金鑰的任何對象都會被拒於門外，真正的代理程式會在幾分鐘內重新註冊。代理程式需要與其映像檔版本相同或更新的 OneUptime 伺服器。
+
+雲端 AI 代理程式不會自行重新註冊：**⋯** 選單中的 **重設代理程式** 也會撤銷其設定指令中包含的金鑰，因此在您再次執行該指令之前，它會保持中斷。帳戶的 **AI 代理程式** 頁面上的 **變更** 會顯示該指令，並附帶新的金鑰。
 
 ### AI 可以做什麼，由代理程式設定
 
@@ -245,7 +257,7 @@ Podman 主機透過 Podman 的 Docker 相容 API 執行相同的 `docker` CLI �
 - 雲端不一定會執行、但目錄中有列出時才可用的服務：Manila 的 `openstack share list --all-projects --limit 50`、`openstack share service list` 和 `openstack share pool list`；Designate 的 `openstack zone list --all-projects --limit 50`，以及某個區域的記錄集 `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects`；Swift 的 `openstack container list`，它只會列出此憑證自己專案的內容；Trove 的 `openstack database instance list`，列出每個專案的執行個體，只有管理員才可以；以及 Gnocchi 的待處理量與處理程序的 `openstack metric status`。
 - 雲端的整體樣貌：`openstack endpoint list`、`openstack service list`、`openstack region list`、`openstack project list`、`openstack domain list`，以及帶 ID 的 `project show`。
 - 跨租戶的列表必須寫 `--limit N`，最多 200，並以 `--marker ID` 繼續。其他每個列表除非另有說明，否則在 100 列時停止，並會告知還有更多。代理程式絕不會自行追蹤 `next` 連結。
-- 從不允許：任何會變更雲端的內容——根本沒有這樣的指令可執行——Keystone 的使用者、憑證、角色指派和權杖、主控台與主控台日誌、Barbican 的機密，以及 `--os-cloud` 和其他所有登入或端點選項。
+- 從不允許：任何會變更雲端的內容——只有[修復](#openstack-雲端上的修正)才會這樣做——Keystone 的使用者、憑證、角色指派和權杖、主控台與主控台日誌、Barbican 的機密，以及 `--os-cloud` 和其他所有登入或端點選項。
 
 執行個體的 `user_data`、其管理員密碼、映像檔的 `direct_url`、磁碟區的 `provider_auth`，以及其他任何標為機密的內容，在輸出抵達模型或日誌之前都會被遮蔽。
 
@@ -304,6 +316,8 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 
 在您開啟之前，修正一直是關閉的，開啟需要代理程式上的兩項設定：將 `ONEUPTIME_AI_FIXES` 設為 `off` 以外的模式（請參閱 [AI 可以做什麼，由代理程式設定](#ai-可以做什麼由代理程式設定)），以及 `ONEUPTIME_AI_ALLOW_WRITES=true`（請參閱 [代理程式上的寫入權限](#代理程式上的寫入權限)）。只有其中一項不會改變任何事。早於 `ONEUPTIME_AI_FIXES` 的代理程式會改為從資源的 AI 代理程式頁面取得 **修正**。修正還需要為專案啟用 AI（專案設定 → 人工智慧 → AI Features 下的 **啟用 AI**），除非有人關閉了它，否則它是啟用的。關閉它會立即停止 OneUptime AI 傳送的每一個指令，包括已核准計畫的下一個指令和回復；只有代理程式狀態旁 **⋯** 選單中的 **測試連線** 仍會執行。新內容是否會被修正，取決於兩個專案開關：**自動修正新事件** （在 **事件 → 人工智慧 → 設定** 上）和 **自動修正新警示** （在 **警示 → 人工智慧 → 設定** 上）預設關閉，在其中一個開啟之前，不會修正該類別的任何新內容。**修正** 一列位於 **AI 代理程式** 頁面，會顯示兩者的狀態，並為每個關閉的開關提供連結。
 
+當 **啟用 AI** 被關閉時已持有命令的代理程式，會在下一次心跳時被告知停止：尚未開始的命令不會開始，雲端 AI 代理程式也永遠不會傳送尚未傳送的變更。
+
 ### 修正模式
 
 修正具有與 Kubernetes 叢集上相同的四種模式——`ONEUPTIME_AI_FIXES` 將它們寫作 `off`、`ask-for-approval`、`automatic` 和 `bypass-approval`：
@@ -327,6 +341,8 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 | **Denied** | 其他一切——尤其是任何會執行程式碼、刪除資料、讀取憑證或原則不認得的內容 | 從不執行，即使有人核准也不執行 |
 
 有些風險較高的變更在包括略過核准在內的每種模式下都 **始終需要人**，任何允許清單項目都改變不了這一點——它們在下方的表格中有相應標示。
+
+專案還可以要求由兩人核准包含風險較高變更的修正：請參閱 [風險較高的修正由兩人核准](/docs/ai/ai-sre#風險較高的修正由兩人核准)。
 
 ### Docker 與 Podman 主機上的修正
 
@@ -424,16 +440,18 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 
 | 變更 | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | 安全：ECS 服務 | 風險較高：App Service 或 Function App、Container App | — |
-| `start-instance` | 安全：EC2 執行個體、RDS 執行個體 | 安全：虛擬機器 | 安全：Compute Engine 虛擬機器 |
-| `scale-out` | 安全：ECS 服務、Auto Scaling 群組 | 安全：App Service 方案、虛擬機器擴展集 | 安全：Cloud Run 服務、代管執行個體群組 |
-| `scale-in` | 風險較高：ECS 服務、Auto Scaling 群組 | 風險較高：App Service 方案、虛擬機器擴展集 | 風險較高：Cloud Run 服務、代管執行個體群組 |
+| `restart-service` | 安全：ECS 服務；風險較高：App Runner 服務、Elastic Beanstalk 環境 | 風險較高：App Service 或 Function App、Container App、容器群組 | — |
+| `start-instance` | 安全：EC2 執行個體、RDS 執行個體 | 安全：虛擬機器、容器群組 | 安全：Compute Engine 虛擬機器 |
+| `scale-out` | 安全：ECS 服務、Auto Scaling 群組 | 安全：App Service 方案、虛擬機器擴展集 | 安全：Cloud Run 服務、代管執行個體群組、App Engine 服務 |
+| `scale-in` | 風險較高：ECS 服務、Auto Scaling 群組 | 風險較高：App Service 方案、虛擬機器擴展集 | 風險較高：Cloud Run 服務、代管執行個體群組、App Engine 服務 |
 | `reboot-instance` | 風險較高：EC2 執行個體、RDS 執行個體 | 風險較高：虛擬機器、PostgreSQL 彈性伺服器、MySQL 彈性伺服器 | 風險較高：Compute Engine 虛擬機器、Cloud SQL 執行個體 |
-| `roll-back-service` | 風險較高：ECS 服務、Lambda 別名 | 風險較高：App Service 或 Function App、Container App | 風險較高：Cloud Run 服務 |
+| `roll-back-service` | 風險較高：ECS 服務、Lambda 別名 | 風險較高：App Service 或 Function App、Container App | 風險較高：Cloud Run 服務、App Engine 服務 |
 | `set-concurrency` | 風險較高：Lambda 函式 | — | 風險較高：Cloud Run 服務 |
 | `fail-over-database` | 始終需要人：Aurora 叢集、RDS 執行個體 | 始終需要人：SQL 容錯移轉群組 | 始終需要人：Cloud SQL 執行個體 |
-| `stop-instance` | 始終需要人：EC2 執行個體 | 始終需要人：虛擬機器 | 始終需要人：Compute Engine 虛擬機器 |
+| `stop-instance` | 始終需要人：EC2 執行個體 | 始終需要人：虛擬機器、容器群組 | 始終需要人：Compute Engine 虛擬機器 |
 | `redrive-queue` | 始終需要人：SQS 佇列 | — | — |
+
+**持久的修正。** 對於程式碼宣告的變更，例如擴縮、並行或復原，步驟下方的 **向程式碼開啟提取要求** 可以讓修正持久生效。OneUptime 會依據資源的標籤和存放庫中的檔案，在連線到 Code 的存放庫中尋找程式碼，在開啟任何內容之前先詢問使用哪個存放庫，然後在那裡啟動一個工作，在程式碼中做同樣的變更，可以與即時變更並行，也可以取代它。之後，步驟會顯示提取要求的狀態並附上連結；事件或警示的動態，以及它的 Slack 和 Microsoft Teams 頻道，會說明是誰提出的要求，並在提取要求開啟後附上連結。
 
 `scale-out` 不會超出群組的最大值，在平台未設定最大值時最多將數量加倍；`scale-in` 從不會低於最小值，也不會降到零。`roll-back-service` 會回到先前執行的版本，或回到 `--to` 指定的版本；在 App Service 上，它會把部署位置（`--slot`）交換回來。完整寫出來，一項變更是這樣的：`cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`。
 
@@ -501,7 +519,7 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 - **主機：** 每個 OneUptime 單元（`oneuptime-*`，包括主機 AI 代理程式自己的單元）、OpenTelemetry 收集器（`otelcol-contrib.service`、`otelcol.service`）、代理程式執行所在的 Docker 引擎（`docker.service`、`docker.socket`、`containerd.service`），以及代理程式自己的處理程序和其上層處理程序。
 - **Proxmox：** 代理程式無法判斷自己在哪個客體中執行。如果它在同一叢集的虛擬機器或容器中執行，請把該 VMID 加入 `ONEUPTIME_AI_PROTECTED_TARGETS`；對 VMware 上代理程式所在的虛擬機器也這樣做。
 - **OpenStack 雲端：** 代理程式無法判斷自己在哪個執行個體中執行。如果它在同一個雲端上執行，請把該執行個體以 `instance:<id>` 的形式加入 `ONEUPTIME_AI_PROTECTED_TARGETS`。在雲端上，這份清單由您掌握，它凌駕於所有其他設定之上，包括人的核准。
-- **雲端帳戶：** 其設定指令建立的一切：在 AWS 上是 `oneuptime-ai-agent` 堆疊、其 ECS 叢集和服務，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 資源群組；在 Google Cloud 上是 `oneuptime-ai-agent` 虛擬機器或 Cloud Run 服務及其服務帳戶。
+- **雲端帳戶：** 其設定指令建立的一切：在 AWS 上是 `oneuptime-ai-agent` 堆疊（在組織的成員帳戶中，是組織的 StackSet 建立的 `StackSet-oneuptime-ai-agent-*` 堆疊）、其 ECS 叢集和服務，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 資源群組，以及其中的寫入識別 `oneuptime-ai-agent-write`；在 Google Cloud 上是 `oneuptime-ai-agent` 虛擬機器或 Cloud Run 服務及其服務帳戶 `oneuptime-ai-agent` 和 `oneuptime-ai-agent-write`。
 
 ## 憑證與最小權限
 
@@ -515,10 +533,10 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 | Ceph 叢集 | 其專用用戶端 `client.oneuptime-ai` 的金鑰圈和一個最小的 `ceph.conf`，掛載在 `/etc/ceph`（`CEPH_CLIENT_ID`、`CEPH_CONF`、`CEPH_KEYRING`） | `mon 'allow r' mgr 'allow r' osd 'allow r'`——從不使用管理員金鑰圈 | 讀取 caps 加上恰好對應所需修正的 `allow command` 項目（Ceph 代理程式的 README 列出了它們） |
 | 資料庫伺服器 | `DATABASE_USERNAME` / `DATABASE_PASSWORD`（收集器的登入），或設定時使用 `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`；`DATABASE_ENDPOINT` 和 TLS 設定 | 收集器的監控登入（在 PostgreSQL 上為 `pg_monitor`） | 代理程式專用、可以向其他工作階段傳送訊號的登入：`pg_signal_backend`（PostgreSQL）、`CONNECTION_ADMIN`（MySQL 8）、`+client\|kill`（Redis ACL）、`killop` 動作（MongoDB） |
 | 主機 | 無：它在主機的命名空間中以 root 身分特權執行 | 不要設定 `ONEUPTIME_AI_ALLOW_WRITES` | 用 `ONEUPTIME_AI_WRITE_TARGETS` 指定 AI 可以變更的單元 |
-| 雲端帳戶 | 其執行所在位置的身分：在 AWS 上是其 ECS 任務的角色，該角色只能擔任 `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 中的寫入角色；在 Azure 上是其 Container App 的受控識別；在 Google Cloud 上是其虛擬機器或 Cloud Run 服務執行時使用的服務帳戶 | 無：OneUptime 透過帳戶的唯讀連線讀取帳戶 | 其設定指令寫出的角色：已開啟變更的權限及其所需的讀取權限，僅此而已。在 AWS 上，每項變更都會擔任 `OneUptimeAiAgentWrite`，並附帶只針對該資源上這一項變更的工作階段原則 |
+| 雲端帳戶 | 其執行所在位置的身分：在 AWS 上是其 ECS 任務的角色，該角色只能擔任 `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 中的寫入角色；在 Azure 上是其 Container App 本身的受控識別，只能讀取，以及附加到同一 Container App 的 `ONEUPTIME_AI_AZURE_WRITE_IDENTITY` 中的寫入識別；在 Google Cloud 上是其虛擬機器或 Cloud Run 服務執行時使用的服務帳戶，該服務帳戶只能讀取，以及要求 `ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT` 中寫入服務帳戶的權杖 | 無：OneUptime 透過帳戶的唯讀連線讀取帳戶 | 其設定指令寫出的角色：已開啟變更的權限及其所需的讀取權限，僅此而已。在 AWS 上，每項變更都會擔任 `OneUptimeAiAgentWrite`，並附帶只針對該資源上這一項變更的工作階段原則；在 Google Cloud 上，每項變更都以 `oneuptime-ai-agent-write` 的身分執行，使用僅用於該項變更、有效期 15 分鐘的權杖；在 Azure 上，每項變更都以 `oneuptime-ai-agent-write` 的身分執行，代理程式只為該項變更以它的身分登入。Azure 不會給受控識別比其角色範圍更窄或有效期更短的權杖，而透過 Privileged Identity Management 進行的限時存取需要 Microsoft Entra ID P2，因此進行變更的常設權限放在代理程式只用於變更的身分上，絕不放在它用於讀取的身分上 |
 | OpenStack 雲端 | 用於變更：`ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` 和 `_SECRET`，這是它自己專用的應用程式憑證：[指南](/docs/telemetry/openstack#用於變更的憑證) 說明如何建立。用於讀取：收集器的匯出程式所讀取的 `clouds.yaml` 中的應用程式憑證（`OS_CLIENT_CONFIG_FILE`、`OPENSTACK_EXPORTER_CLOUDS`，或以 `ONEUPTIME_AI_OPENSTACK_CLOUD` 指定另一個項目），或在設定時使用 `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET`，並搭配 `OPENSTACK_AUTH_URL`；`ONEUPTIME_AI_OPENSTACK_REGION`、`ONEUPTIME_AI_OPENSTACK_INTERFACE`、`ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
-各收集器的 README 中有確切的指令：用於 Proxmox 修正權杖的 `pveum` 指令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)）、vSphere 修正角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)）、Ceph 的讀取和修正 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)），以及各引擎的資料庫授權（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)）。雲端 AI 代理程式的角色由其設定指令寫出：關閉某項變更並再次執行該指令，其權限就會從角色中移除。
+各收集器的 README 中有確切的指令：用於 Proxmox 修正權杖的 `pveum` 指令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)）、vSphere 修正角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)）、Ceph 的讀取和修正 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)），以及各引擎的資料庫授權（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)）。雲端 AI 代理程式的角色由其設定指令寫出：關閉某項變更並再次執行該指令，其權限就會從角色中移除。
 
 ## 安全性模型
 
@@ -576,6 +594,8 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `ONEUPTIME_AI_AGENT_RESOURCE_TYPE is not set`（或其他必要設定） | 在代理程式與收集器共用的 `.env` 中設定它，然後執行 `docker compose up -d`。 |
 | `This OneUptime server does not have the resource AI agent API` | 升級 OneUptime，或執行與您的伺服器相符的代理程式映像檔版本。代理程式每 5 分鐘會再檢查一次。 |
 | `OneUptime refused the agent's API key` | 使用專案中未固定的遙測擷取金鑰。 |
+| `OneUptime refused the agent's key (ONEUPTIME_AI_AGENT_KEY)` | 雲端 AI 代理程式的金鑰已被更新的金鑰取代、被（帳戶 **AI 代理程式** 頁面 **⋯** 選單中的）**重設代理程式** 撤銷，或在建立後一天內未被使用：請從該頁面上的 **變更** 再次執行其設定指令。 |
+| `OneUptime refused the project's telemetry ingestion key for this Cloud AI agent` | 在其金鑰之前設定的代理程式仍在使用擷取金鑰連線：請再次執行其設定指令，並停止舊代理程式。 |
 | `OneUptime refused the registration: …` | 閱讀這一行的其餘部分：未知的資源類型、空白或過長的識別、另一個專案的 `DATABASE_SERVER_ID`，或專案的代理程式數量上限。雲端 AI 代理程式在專案的任何連線都不讀取的帳戶中，或在與其指令不同的帳戶中，也會被拒絕。 |
 | `Waiting for this …'s previous AI agent to go offline` | 舊容器沒有登出（當機或被 kill），因此舊代理程式 40 秒內沒有傳送任何請求後，新代理程式就會接替它。如果持續更久：表示另一個代理程式正在使用這個識別。 |
 | 提示名稱是收集器預設值的警告 | 在收集器和代理程式上為資源設定唯一的名稱。 |
@@ -590,14 +610,15 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `Killed (timeout …)` | 資源沒有及時回應；如果完全沒有輸出，表示代理程式無法存取它——請檢查兩者之間的網路。 |
 | Proxmox、vCenter、Ceph 或資料庫回報缺少某項權限、角色或 cap 的錯誤 | 憑證是不可逾越的上限：授予訊息中指出的內容（請參閱 [憑證與最小權限](#憑證與最小權限)），或把該變更留給人處理。 |
 | `The Cloud AI agent could not check its cloud: …` | 它的角色、受控識別或服務帳戶已不存在或缺少某項權限，或者它無法連到其雲端的 API：請從帳戶頁面再次執行設定指令。 |
+| `The agent could not ask … to sign in as the write …` | 在 Azure 上，寫入識別 `oneuptime-ai-agent-write` 沒有附加到代理程式執行的位置，或已不存在；在 Google Cloud 上，代理程式本身的服務帳戶還不能要求 `oneuptime-ai-agent-write` 的權杖（新的授權可能需要幾分鐘才會生效），或該帳戶已不存在。請在帳戶的 **AI 代理程式** 頁面上透過 **變更** 再次執行設定指令。 |
 | `cloud … is not one of the changes this agent may make` | 在 **讓 AI 修正問題** 的 **更多欄位** 下開啟該變更，然後再次執行指令：這也會為代理程式的角色授予該變更的權限。 |
 | `the agent only changes resources that carry the …` | 為資源加上 `oneuptime-ai=allow` 標籤（在 Google Cloud 上為 label），或重新設定代理程式但不使用該標籤。 |
 
-[Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) 和 [資料庫](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) 代理程式的 README，以及 [主機 AI 代理程式](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent) 的 README，都有針對其自身連線錯誤的疑難排解表格。
+[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent) 和 [資料庫](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) 代理程式的 README，以及 [主機 AI 代理程式](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent) 的 README，都有針對其自身連線錯誤的疑難排解表格。
 
 ## 不涵蓋的內容
 
-Kubernetes 叢集使用 Kubernetes AI 代理程式。一個雲端 AI 代理程式服務一個 AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案，而且沒有針對整個 AWS Organization 的代理程式：讀取組織或租用戶的連線，需要在 AI 應修正的每個帳戶、訂用帳戶或專案中各有一個代理程式。對以程式碼宣告之資源的修正一律只是一項提議：OneUptime AI 不會針對該程式碼開啟提取要求。IoT 裝置群和網路裝置沒有 AI 代理程式：對它們執行操作需要裝置憑證，而 OneUptime AI 只透過您執行的 Runner 使用這些憑證。
+Kubernetes 叢集使用 Kubernetes AI 代理程式。一個雲端 AI 代理程式服務一個 AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案。AWS Organization 只需一個指令即可在其每個帳戶中各設定一個代理程式（請參閱[在雲端帳戶中](#在雲端帳戶中)），但讀取 Azure 租用戶或 Google Cloud 組織的連線，需要在 AI 應修正的每個訂用帳戶或專案中各設定一個代理程式。針對宣告資源之程式碼的提取要求，只有在有人提出要求時才會開啟，且只在連線到 Code 的存放庫中、只針對程式碼宣告的變更：重新啟動不會留下任何下次 apply 需要復原的內容。IoT 裝置群和網路裝置沒有 AI 代理程式：對它們執行操作需要裝置憑證，而 OneUptime AI 只透過您執行的 Runner 使用這些憑證。
 
 ## 後續步驟
 

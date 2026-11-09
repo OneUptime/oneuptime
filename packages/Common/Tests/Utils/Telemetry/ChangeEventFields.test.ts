@@ -31,6 +31,7 @@ describe("change event wire values", () => {
       "remediation",
       "runbook",
       "provider-event",
+      "openstack-event",
       "custom",
     ]);
   });
@@ -45,6 +46,7 @@ describe("change event wire values", () => {
       "runbook",
       "cloud",
       "cloud-health",
+      "openstack",
     ]);
     expect(Object.values(ChangeEventStatus)).toEqual([
       "succeeded",

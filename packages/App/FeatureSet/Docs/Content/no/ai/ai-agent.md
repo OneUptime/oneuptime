@@ -221,11 +221,19 @@ Til en utrulling leverer den, står det **Merget, venter på et deploy** ved ret
 | **GitHub** | OneUptime GitHub App, installert på repositoriene den velger. | Alt på denne siden, med kommandoer fra GitHub (se [GitHub App](/docs/ai/github-app)) og en check på hver [produksjonsgjennomgang](#produksjonsgjennomgang-av-pull-requests). |
 | **GitLab**, på GitLab.com eller ditt eget | Et tilgangstoken: et personlig token, et gruppe- eller prosjekttoken med omfangene `api` og `write_repository`, og minst rollen Developer. | Oppgaver og rettelser, hver endring i en merge request; [produksjonsgjennomganger](#produksjonsgjennomgang-av-pull-requests); grenvelgeren; koden en stakksporing eller en profil går gjennom; commitene i en utrulling; om en rettelse ble slått sammen, og hva produksjonen viste når den var rullet ut. |
 | **Forgejo eller Gitea**, på Codeberg eller ditt eget | Et tilgangstoken med lese- og skrivetilgang til repositorier og saker, og lesetilgang til brukeren. | Det samme som på GitLab, hver endring i en pull request. |
-| **Hvilken som helst Git-server**, over HTTPS | Adressen du kloner repositoriet med, et brukernavn og et passord eller tilgangstoken som kan lese repositoriet og pushe til det. | AI kloner repositoriet og pusher hver endring til en ny gren, som svaret dens nevner: du åpner pull requesten. På Bitbucket og Azure DevOps lenker den til der du åpner den. |
+| **Hvilken som helst Git-server**, over HTTPS | Adressen du kloner repositoriet med, et brukernavn og et passord eller tilgangstoken som kan lese repositoriet og pushe til det. | AI kloner repositoriet og pusher hver endring til en ny gren, som svaret dens nevner: du åpner pull requesten. På Bitbucket og Azure DevOps lenker den til der du åpner den. På Azure DevOps (Services, eller Server 2019 og nyere) leser OneUptime også koden, med de samme påloggingsopplysningene: koden en stakksporing eller en profil går gjennom, og filene OneUptime AI leser. |
 
 Kommandoer fra kommentarer trenger GitHub App, så foreløpig fungerer de bare i GitHub-repositorier, og repositoriets **Innstillinger** sier det. En Git-server har ingen pull requests, så den har heller ingen produksjonsgjennomgang.
 
 For GitLab, Forgejo eller Gitea skriver du inn serverens adresse (GitLab.com og Codeberg er fylt inn) og tokenet, og velger repositoriene som skal kobles til: listen viser bare dem tokenet kan pushe til, og senere kan flere kobles til med det samme tokenet. OneUptime sjekker hvert token hos serveren før det lagrer det, lagrer det kryptert og viser det aldri igjen. Repositoriets **Innstillinger** viser serveren, kontoen og tokenets siste tegn, med **Erstatt tilgangstoken**. Når serveren avviser et utløpt eller tilbakekalt token, viser repositoriene **Token avvist**, og AI slutter å jobbe i dem, helt til en erstatning av tokenet kobler til hvert repositorium som bruker det, igjen. På et GitLab-repositorium sier innstillingene merge requests, slik GitLab gjør: **Merge requests**, **AI-rettings-merge requests** og **Maks. åpne rettings-merge requests**.
+
+### Logg på en Git-server
+
+OneUptime logger på et repositorium på en hvilken som helst Git-server med brukernavnet og passordet eller tilgangstokenet som repositoriet er koblet til med. Med mindre bare dine egne Runnere når serveren, sjekker OneUptime dem før det kobler til repositoriet, ved å be serveren om grenene til repositoriet: forespørselen hver kloning starter med. En Runner sender dem på samme måte, med Gits første forespørsel til serveren, som HTTP Basic, så en server som først tilbyr Windows-pålogging, som Azure DevOps Server, også tar imot et personlig tilgangstoken. Git får dem gjennom miljøet sitt, bare for den ene serveren: aldri på kommandolinjen sin, og aldri i klonens `.git/config`, der kodeagenten jobber.
+
+### Hva AI leser i et Git-repositorium
+
+En Git-server har ikke noe API som filene i et repositorium kan leses gjennom, så OneUptime leser bare grenene til et repositorium på en slik server, for grenvelgeren. Azure DevOps er unntaket: på Azure DevOps Services, og på Azure DevOps Server 2019 og nyere, leser OneUptime også koden i et repositorium, gjennom Azure DevOps' eget API og med de samme påloggingsopplysningene. [Spør AI](/docs/ai/ask-ai) og [AI-undersøkelser](/docs/ai/ai-sre) leser koden i GitHub-, GitLab-, Forgejo-, Gitea- og Azure DevOps-repositorier; spurt om koden i et annet Git-repositorium sier de at de ikke kan åpne den. En oppgave i Kode virker likevel i et Git-repositorium: Runneren kloner det, AI leser og endrer koden i klonen og pusher endringen til en ny gren.
 
 ### En Git-server på et privat nettverk
 
@@ -313,7 +321,7 @@ Mens rettingen er på, setter en undersøkelse som ender med en sikker, underbyg
 Alt annet er som med knappen:
 
 - Pull requesten åpnes klar for gjennomgang, skrevet ut fra den publiserte analysen, og trenger et tilkoblet repositorium, et av dem de samsvarende reglene nevner når de nevner noen, og en Runner som er tilkoblet for å jobbe i det: den repositoriet velger, eller en global Runner.
-- Den teller mot signalets daglige grense for rettingsoppgaver (**Daily Incident AI Fix Task Limit** eller **Daily Alert AI Fix Task Limit**, under **Flere innstillinger** på AI-innstillingssiden) og mot repositoriets tak på åpne pull requests, når en av dem er satt. Når de ikke er satt, begrenser ingen av dem noe.
+- Den teller mot signalets daglige grense for rettingsoppgaver (**Daglig grense for AI-rettingsoppgaver for hendelser** eller **Daglig grense for AI-rettingsoppgaver for varsler**, under **Flere innstillinger** på AI-innstillingssiden) og mot repositoriets tak på åpne pull requests, når en av dem er satt. Når de ikke er satt, begrenser ingen av dem noe.
 - Hver utløser ser først etter en rettingsoppgave som allerede står i kø eller kjører for den samme hendelsen eller det samme varselet, slik at en automatisk utløser og et klikk normalt blir én oppgave, ikke to pull requests. Kontrollen er en lesing før skrivingen, ikke en lås, så to utløsere i nøyaktig samme øyeblikk kan fortsatt begge slippe gjennom.
 - Kjøringen skrives av systemet, krediteres ingen, og ingenting merges av seg selv.
 
@@ -329,6 +337,10 @@ En kjøring der heartbeat har vært stille i mer enn 12 minutter, avsluttes med 
 
 :::details Ingen Runner plukker opp oppgaven
 En oppgave som venter i mer enn 30 minutter mens Runneren som skal ta den, ikke er tilkoblet - den repositoriet velger, prosjektets standard-Runner for et repositorium som ikke velger noen, eller en global Runner - feiler med en melding som sier hvilken, slik at den aldri vises som pågående for alltid. En Runner som ikke tar koderettinger, regnes som ikke tilkoblet: en som er startet med `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, eller en global Runner som er eldre enn 14.0.94. Kode sier det før du ber om en oppgave. Når en Runner er tilkoblet, men opptatt, venter oppgaver i kø på tur. En Runner som er eldre enn Kode, får aldri en forespørsel fra Kode: oppdater en Runner du kjører selv, sammen med serveren.
+:::
+
+:::details Serveren avviser påloggingsopplysningene
+Oppgaven feiler og sier hvilken server som avviste påloggingsopplysningene OneUptime logget på med, og hvilket repositorium den ikke kunne klone eller pushe grenen sin til. Den prøves ikke på nytt på repositoriets standardgren: på en server der folk logger på med Windows-kontoer, som Azure DevOps Server, kan enda en avvist pålogging telle mot at kontoen låses. På GitHub sjekker du at OneUptime GitHub App fortsatt er installert med tilgang til repositoriet. Andre steder sjekker du at brukernavnet og passordet eller tokenet fortsatt kan lese repositoriet og pushe til det, og gir det nye med **Erstatt tilgangstoken** på repositoriets side **Innstillinger**. Prøv deretter oppgaven på nytt.
 :::
 
 ## Personvern

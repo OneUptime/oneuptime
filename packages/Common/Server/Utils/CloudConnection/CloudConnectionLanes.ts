@@ -3,16 +3,23 @@ import SecurityTelemetrySource from "../../../Models/DatabaseModels/SecurityTele
 import {
   CLOUD_COSTS_INTERVAL_MS,
   CLOUD_SAVINGS_INTERVAL_MS,
-  CLOUD_COST_DEFAULT_CURRENCY,
   CloudAccountCostSummary,
   CloudAccountSavingsSummary,
   CloudCostState,
+  CloudResourceCostsStatus,
+  CloudSavingKind,
+  getCloudCostResourceKey,
   getCloudCostWindow,
   readCloudAccountCostSummary,
   readCloudAccountSavingsSummary,
   summarizeCloudAccountSavings,
 } from "../../../Types/Cloud/CloudCost";
+import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import {
+  RESOURCE_COSTS_FIELD_KEY,
+  isCloudConnectionResourceCostsOn,
+} from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
@@ -29,6 +36,9 @@ import CloudCostWriter, { CloudCostWriteResult } from "./CloudCostWriter";
 import CloudSavingsWriter, {
   CloudSavingsWriteResult,
 } from "./CloudSavingsWriter";
+import CloudRightSizingWriter, {
+  CloudRightSizingWriteResult,
+} from "./CloudRightSizingWriter";
 import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
 } from "./CloudConnectionResourceSync";
@@ -41,11 +51,13 @@ import {
   CloudConnectorTransport,
   CloudChangesResult,
   CloudCostAccountOutcome,
+  CloudCostRecord,
   CloudCostsResult,
   CloudInventoryAccount,
   CloudInventoryResult,
   CloudReadBudget,
   CloudSavingsResult,
+  readCloudSetting,
 } from "./CloudConnectorTypes";
 import CloudChangeRecorder, {
   CloudChangeRecordOutcome,
@@ -130,6 +142,56 @@ export const CLOUD_SAVINGS_MAX_DURATION_MS: number = 120 * 1000;
 export const CLOUD_COSTS_RETRY_MS: number = 60 * 60 * 1000;
 
 /*
+ * Which reading of the costs this is (CloudConnectionPullState.costsVersion).
+ * 2: each cost keeps its tags. A connection whose costs were read by an
+ * older one reads them as far back as a first read does, once, so the
+ * days already kept take their tags too.
+ */
+export const CLOUD_COSTS_READ_VERSION: number = 2;
+
+/*
+ * The costs given the tags OneUptime holds for the resources they are
+ * billed to (its inventory's), where the cloud's billing gave them none of
+ * its own - a Google Cloud billing export's labels are its own.
+ */
+export function tagCloudCostRecords(data: {
+  records: Array<CloudCostRecord>;
+  provider: string;
+  resources: Array<{
+    providerResourceId: string;
+    cloudTags: Record<string, string>;
+  }>;
+}): Array<CloudCostRecord> {
+  const tagsByKey: Map<string, Record<string, string>> = new Map();
+
+  for (const resource of data.resources) {
+    const key: string = getCloudCostResourceKey(
+      data.provider,
+      resource.providerResourceId,
+    );
+
+    if (key && Object.keys(resource.cloudTags || {}).length > 0) {
+      tagsByKey.set(key, resource.cloudTags);
+    }
+  }
+
+  return data.records.map((record: CloudCostRecord): CloudCostRecord => {
+    if (
+      !record.resourceId ||
+      (record.tags && Object.keys(record.tags).length > 0)
+    ) {
+      return record;
+    }
+
+    const tags: Record<string, string> | undefined = tagsByKey.get(
+      record.resourceId,
+    );
+
+    return tags ? { ...record, tags } : record;
+  });
+}
+
+/*
  * How long a lane may run: its own limit, or what is left before the
  * read's deadline when that is sooner - 0 when too little is left to start.
  */
@@ -170,6 +232,8 @@ export interface CloudSavingsLaneOutcome {
   warnings: Array<string>;
   // Recommendations the accounts read now have.
   recommendations: number;
+  // Right-sizings OneUptime worked out itself, kept beside them.
+  rightSized?: number | undefined;
 }
 
 export interface CloudInventoryLaneOutcome {
@@ -510,6 +574,16 @@ export default class CloudConnectionLanes {
     return isOlderThan(state.costsReadAt, CLOUD_COSTS_INTERVAL_MS, now);
   }
 
+  /*
+   * Whether a read of costs goes back as far as a first read: never read,
+   * or read by an older reading of the costs (CLOUD_COSTS_READ_VERSION).
+   */
+  public static isFirstCostsRead(state: CloudConnectionPullState): boolean {
+    return (
+      !state.costsReadAt || (state.costsVersion || 1) < CLOUD_COSTS_READ_VERSION
+    );
+  }
+
   public static isSavingsDue(
     state: CloudConnectionPullState,
     now: Date,
@@ -612,18 +686,19 @@ export default class CloudConnectionLanes {
       return { ran: false, warnings: [], rowsWritten: 0, accountsRead: 0 };
     }
 
-    const window: { start: Date; end: Date } = getCloudCostWindow({
+    let window: { start: Date; end: Date } = getCloudCostWindow({
       now: data.now,
-      isFirstRead: !data.state.costsReadAt,
+      isFirstRead: CloudConnectionLanes.isFirstCostsRead(data.state),
     });
 
     let read: CloudCostsResult;
+    let linked: Awaited<
+      ReturnType<typeof CloudConnectionResourceSync.loadLinked>
+    > = [];
 
     try {
       // A cost given by resource but not by Region takes its resource's.
-      const linked: Awaited<
-        ReturnType<typeof CloudConnectionResourceSync.loadLinked>
-      > = await CloudConnectionResourceSync.loadLinked({
+      linked = await CloudConnectionResourceSync.loadLinked({
         projectId: data.projectId,
         connectionId: data.connectionId,
       });
@@ -668,6 +743,35 @@ export default class CloudConnectionLanes {
     let rowsWritten: number = 0;
     let accountsRead: number = 0;
 
+    /*
+     * A connector that read further back than asked (AWS's first read of
+     * costs per resource) covers more days: the writer brings those in line.
+     */
+    if (
+      read.window &&
+      read.window.start.getTime() < window.start.getTime() &&
+      read.window.end.getTime() === window.end.getTime()
+    ) {
+      window = { start: read.window.start, end: read.window.end };
+    }
+
+    // Whether the connection reads costs per resource (AWS's setting).
+    const isResourceCostsOn: boolean =
+      data.provider === CloudProvider.AWS &&
+      isCloudConnectionResourceCostsOn(
+        readCloudSetting(data.settings.config, RESOURCE_COSTS_FIELD_KEY),
+      );
+    const resourceStatuses: Map<string, CloudResourceCostsStatus> = new Map();
+
+    for (const outcome of read.resourceCosts || []) {
+      resourceStatuses.set(
+        outcome.accountId.trim().toLowerCase(),
+        outcome.message
+          ? { state: outcome.state, message: outcome.message }
+          : { state: outcome.state },
+      );
+    }
+
     try {
       const rows: Map<string, CloudAccount> =
         await CloudConnectionLanes.loadAccountRows({
@@ -686,7 +790,12 @@ export default class CloudConnectionLanes {
           accountRows: CloudConnectionLanes.toRowIds(rows),
         },
         window,
-        records: read.records,
+        // Each cost with its resource's tags, where its billing named none.
+        records: tagCloudCostRecords({
+          records: read.records,
+          provider: data.provider,
+          resources: linked,
+        }),
         accountsRead: readAccounts,
         now: data.now,
       });
@@ -745,6 +854,19 @@ export default class CloudConnectionLanes {
           continue;
         }
 
+        /*
+         * Whether its costs per resource could be read: this read's word,
+         * else - read once a day - the last one's, while the setting is on.
+         */
+        const resources: CloudResourceCostsStatus | undefined =
+          resourceStatuses.get(outcome.accountId.trim().toLowerCase()) ||
+          (isResourceCostsOn
+            ? readCloudAccountCostSummary(row.costSummary)?.resources
+            : undefined);
+
+        // Left out when the setting is off: nothing to say of resources.
+        summary = { ...summary, resources };
+
         await CloudAccountService.updateOneById({
           id: row.id,
           data: {
@@ -764,6 +886,12 @@ export default class CloudConnectionLanes {
     }
 
     data.state.costsReadAt = data.now.toISOString();
+    data.state.costsVersion = CLOUD_COSTS_READ_VERSION;
+
+    // The costs per resource read, now kept: read again a day later.
+    if (read.resourceCostsReadAt) {
+      data.state.resourceCostsReadAt = read.resourceCostsReadAt;
+    }
 
     // The project's budgets, against what its accounts cost now.
     try {
@@ -876,9 +1004,49 @@ export default class CloudConnectionLanes {
       });
 
       /*
-       * Each account's summary: what its recommendations save now, or -
-       * when they could not be read - what it had, with why.
+       * OneUptime's own right-sizing, from its readings of the CPU and
+       * memory of what no recommender speaks for: after the recommender,
+       * so a resource it now covers is left to it. Never throws.
        */
+      const rightSizing: CloudRightSizingWriteResult =
+        await CloudRightSizingWriter.run({
+          projectId: data.projectId,
+          connectionId: data.connectionId,
+          provider: data.provider,
+          accountRows: CloudConnectionLanes.toRowIds(rows),
+          now: data.now,
+        });
+
+      /*
+       * Each account's summary, from every way to spend less it now holds:
+       * its recommender's and OneUptime's own. One whose recommender could
+       * not be read keeps what it had - its rows stay - with why.
+       */
+      const stored: Map<
+        string,
+        Array<{
+          monthlySavings: number;
+          currency: string;
+          kind: CloudSavingKind;
+        }>
+      > = await CloudSavingsWriter.loadSavingsByAccount({
+        projectId: data.projectId,
+        cloudAccountIds: read.accounts
+          .map((outcome: CloudCostAccountOutcome): ObjectID | null => {
+            return rows.get(outcome.accountId.trim().toLowerCase())?.id || null;
+          })
+          .filter((id: ObjectID | null): boolean => {
+            return Boolean(id);
+          }) as Array<ObjectID>,
+      });
+
+      // Each account's commitments, as this read found them.
+      const commitments: Map<string, CloudCommitmentSummary> = new Map();
+
+      for (const entry of read.commitments || []) {
+        commitments.set(entry.accountId.trim().toLowerCase(), entry.summary);
+      }
+
       for (const outcome of read.accounts) {
         const accountKey: string = outcome.accountId.trim().toLowerCase();
         const row: CloudAccount | undefined = rows.get(accountKey);
@@ -887,22 +1055,25 @@ export default class CloudConnectionLanes {
           continue;
         }
 
-        const previous: CloudAccountSavingsSummary | null =
-          readCloudAccountSavingsSummary(row.savingsSummary);
+        const figures: CloudAccountSavingsSummary =
+          summarizeCloudAccountSavings({
+            savings: stored.get(row.id.toString()) || [],
+            now: data.now,
+          });
+        const kept: CloudCommitmentSummary | undefined =
+          CloudConnectionLanes.keepCommitments({
+            read: commitments.get(accountKey),
+            previous: readCloudAccountSavingsSummary(row.savingsSummary)
+              ?.commitments,
+          });
+        const withCommitments: CloudAccountSavingsSummary = kept
+          ? { ...figures, commitments: kept }
+          : figures;
         const summary: CloudAccountSavingsSummary =
           outcome.state === CloudCostState.Reading
-            ? summarizeCloudAccountSavings({
-                savings: written.savingsByAccount.get(accountKey) || [],
-                now: data.now,
-              })
+            ? withCommitments
             : {
-                ...(previous || {
-                  count: 0,
-                  monthlySavings: 0,
-                  byKind: {},
-                  currency: CLOUD_COST_DEFAULT_CURRENCY,
-                  readAt: data.now.toISOString(),
-                }),
+                ...withCommitments,
                 state: outcome.state,
                 message: outcome.message,
               };
@@ -922,6 +1093,7 @@ export default class CloudConnectionLanes {
         ran: true,
         warnings,
         recommendations: written.created + written.updated,
+        rightSized: rightSizing.kept,
       };
     } catch (error) {
       warnings.push(
@@ -932,6 +1104,35 @@ export default class CloudConnectionLanes {
 
       return { ran: true, warnings, recommendations: 0 };
     }
+  }
+
+  /*
+   * An account's commitments after a read: what the read found - or, when
+   * it could not read them, the figures it had, saying why they are not
+   * new - or, with nothing read for the account this time (an organization's
+   * member, whose are its management account's), what it had.
+   */
+  public static keepCommitments(data: {
+    read: CloudCommitmentSummary | undefined;
+    previous: CloudCommitmentSummary | undefined;
+  }): CloudCommitmentSummary | undefined {
+    if (!data.read) {
+      return data.previous;
+    }
+
+    if (
+      data.read.state === CloudCostState.Reading ||
+      !data.previous ||
+      data.previous.kinds.length === 0
+    ) {
+      return data.read;
+    }
+
+    return {
+      ...data.previous,
+      state: data.read.state,
+      message: data.read.message,
+    };
   }
 
   /*
@@ -950,6 +1151,12 @@ export default class CloudConnectionLanes {
         ? CLOUD_COSTS_INTERVAL_MS
         : CLOUD_SAVINGS_INTERVAL_MS;
 
+    /*
+     * A connection's very first read that failed stays one: it goes back as
+     * far when tried again. One read by an older reading of the costs is
+     * tried again within the hour, as any other, and still reads as far
+     * back when it is (its costsVersion is not moved on).
+     */
     if (!state[key] && key === "costsReadAt") {
       return;
     }

@@ -34,7 +34,7 @@ Gå til **Brugerindstillinger → Notifikationsindstillinger**. Fanerne er **Hæ
 
 ### Find begivenheden
 
-Hver fane har et eller flere kort, som **Hændelse Episoder** på fanen **Hændelser**. Hver række er en begivenhed, med en linje, der siger, hvornår den sendes.
+Hver fane har et eller flere kort, som **Hændelsesepisoder** på fanen **Hændelser**. Hver række er en begivenhed, med en linje, der siger, hvornår den sendes.
 
 ### Klik på en kanal
 
@@ -50,7 +50,7 @@ Når du bliver medlem af et projekt, er disse begivenheder slået til, via e-mai
 | **Hændelser** | **Hændelse oprettet**, **Hændelsestilstand ændret**, **Påmindelse om hændelse**, **Hændelsens SLA overskredet**, **Hændelsesepisode oprettet**, **Tilstand for hændelsesepisode ændret**, **Hændelse tilføjet til hændelsesepisode** | **Hændelsesnote oprettet**, **Tilføjet som hændelsesejer**, **Tildelt en hændelse**, **Note til hændelsesepisode oprettet**, **Tilføjet som ejer af hændelsesepisode** |
 | **Advarsler** | **Advarsel oprettet**, **Advarselstilstand ændret**, **Påmindelse om advarsel**, **Advarselsepisode oprettet**, **Tilstand for advarselsepisode ændret**, **Advarsel tilføjet til advarselsepisode** | **Advarselsnote offentliggjort**, **Tilføjet som advarselsejer**, **Note til advarselsepisode offentliggjort**, **Tilføjet som ejer af advarselsepisode** |
 | **Overvågning** | **Sondestatus ændret for din overvågning**, **Overvågning har ingen aktive sonder**, **SLO-status ændret**, **Tilføjet som SLO-ejer**, **Undtagelse tildelt mig**, **Sondestatus ændret**, **Tilføjet som sondeejer** | **Overvågning oprettet**, **Overvågningsstatus ændret**, **Tilføjet som overvågningsejer**, **AI-agentstatus ændret**, **Tilføjet som AI-agentejer** |
-| **Statussider** | Ingen | **Statusside oprettet**, **Statusside-meddelelse offentliggjort**, **Tilføjet som statussideejer** |
+| **Statussider** | **Min offentlige note godkendt eller afvist**, og også via push: **Offentlig note venter på min godkendelse** | **Statusside oprettet**, **Statusside-meddelelse offentliggjort**, **Tilføjet som statussideejer** |
 | **Planlagt vedligeholdelse** | **Påmindelse om vedligeholdelse** | **Vedligeholdelseshændelse oprettet**, **Vedligeholdelsestilstand ændret**, **Vedligeholdelsesnote oprettet**, **Tilføjet som vedligeholdelsesejer** |
 | **Vagt** | **Du går på vagt**, **Du er den næste på vagt**, **Du går af vagt**, **Tilføjet til vagtordningspolitik**, **Fjernet fra vagtordningspolitik**, **Ubesvaret opkald**, og også via push: **Før min vagt starter**, **Min kommende vagt bliver tildelt en anden** | Ingen |
 | **Sikkerhed** | Også via push: **Ny sikkerhedssag** (sager med prioritet High og Kritisk), **Sikkerhedssag tildelt mig**, **Playbook-trin venter på min godkendelse**, **Responsmål for sikkerhedssag**, **Opgave i sikkerhedssag tildelt mig**, **En hunt fandt sikkerhedsbegivenheder** | Ingen |
@@ -76,6 +76,15 @@ Fanen **Sikkerhed** handler om de sikkerhedssager, du kan se:
 - **Playbook-trin venter på min godkendelse** beder dig godkende eller afvise et playbook-trin på en sag, hvor du må godkende trin.
 
 Se [Sikkerhedssager](/docs/telemetry/security-cases#notifikationer).
+
+## Godkendelse af offentlige noter
+
+Kortet **Godkendelse af offentlige noter** på fanen **Statussider** handler om offentlige noter, der venter på godkendelse, før de offentliggøres, i et projekt, der kræver det:
+
+- **Offentlig note venter på min godkendelse** fortæller dig, at en offentlig note, eller en redigering af en, venter på et trin, du godkender, ved navn eller gennem et team. Du bliver ikke spurgt om en note, du selv har sendt, eller om et trin efter et, du har godkendt. Du bliver spurgt om hvert trin én gang: når noten når det, eller når du bliver en af dets godkendere, mens noten venter, fordi godkendelsestrinnene blev ændret, eller du kom med i et team, et trin nævner. Den er fra start slået til via e-mail og push, og **Email Rollup** holder den aldrig tilbage: de kunder, noten er skrevet til, venter på den.
+- **Min offentlige note godkendt eller afvist** fortæller dig, at en note, du sendte til godkendelse, blev godkendt og offentliggjort, eller afvist, med begrundelsen. Den er fra start slået til via e-mail.
+
+Se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter).
 
 ## Færre e-mails
 

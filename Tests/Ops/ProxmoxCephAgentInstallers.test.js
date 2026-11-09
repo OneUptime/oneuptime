@@ -1218,7 +1218,7 @@ describe.each([["proxmox"], ["ceph"]])(
         : ["ceph-prod", "mon1:9283", "n"];
     const FRESH = answers(URL, KEY, ...REST);
     const SERVED = `${URL}/install/${AGENTS[agent].installName}`;
-    const GITHUB = `https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${AGENTS[agent].dir}`;
+    const GITHUB = `https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/${AGENTS[agent].dir}`;
 
     function downloads(dir) {
       return readIfExists(path.join(dir, "curl.log"))

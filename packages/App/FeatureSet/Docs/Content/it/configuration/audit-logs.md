@@ -71,49 +71,39 @@ Una modifica di queste impostazioni vale entro un minuto.
 
 Filtra per **Tipo di risorsa**, **Nome della risorsa**, **Azione**, **Email utente** o **Ora**. Una modifica elenca solo i campi cambiati, prima e dopo, e un salvataggio che non cambia nulla non aggiunge alcuna voce.
 
+Una risorsa senza un nome proprio prende il nome da ciò che la nomina in OneUptime: un'eccezione dal suo tipo e dall'inizio del suo messaggio, con identificatori, indirizzi e tutto ciò che sembra un segreto mascherati, un'esecuzione di un runbook dal suo runbook, il numero di telefono di una politica chiamate in arrivo dal numero stesso, e un modello o un dominio dal proprio nome.
+
 Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anche una propria pagina **Registri di audit**, in una sezione chiusa del loro menu laterale come **Avanzato**. Elenca solo le voci di quella risorsa, con quelle di ciò che le appartiene: la pagina di uno SLO mostra anche le sue regole e i suoi proprietari.
 
 ## Che cosa viene registrato
 
-| Risorsa | **Tipo di risorsa** nel registro |
+Viene registrato tutto ciò che le persone creano, modificano o eliminano in un progetto: monitor, incidenti, avvisi, pagine di stato, workflow e i loro passaggi, code, dashboard, criteri di reperibilità, team e chi ne fa parte, chiavi API e ogni impostazione. **Tipo di risorsa** indica di che cosa tratta una voce, per esempio `Monitor`, `Workflow` o `Queue`.
+
+| Non registrato | Perché |
 | --- | --- |
-| Monitor | `Monitor` |
-| Incidenti | `Incident` |
-| Avvisi | `Alert` |
-| Pagine di stato | `Status Page` |
-| Eventi di manutenzione pianificata | `Scheduled Maintenance Event` |
-| Criteri di reperibilità | `On-Call Policy` |
-| SLO | `Service Level Objective` |
-| Le regole e i proprietari di uno SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Team | `Team` |
-| Ruoli personalizzati, e i team e le chiavi API che ne ricevono uno | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Etichette | `Label` |
-| Stati e gravità degli incidenti | `Incident State`, `Incident Severity` |
-| Stati e gravità degli avvisi | `Alert State`, `Alert Severity` |
-| Stati del monitor | `Monitor Status` |
-| Stati della manutenzione programmata | `Scheduled Maintenance State` |
-| Ruoli incidente | `Incident Role` |
-| Stati del post-mortem | `Postmortem Status` |
-| Chiavi API | `API Key` |
-| Client MCP che le persone collegano | `MCP Client Authorization` |
-| Elementi dell'inventario | `Inventory Item` |
-| Configurazioni del collector | `Collector Config` |
-| vCenter | `vCenter` |
-| Cloud OpenStack, e i controlli eseguiti su di essi | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Catture dei pacchetti, e i loro download | `Packet Capture` |
-| Casi di sicurezza con le loro priorità e i loro stati, playbook e le loro esecuzioni, entità protette, criticità delle entità, e il rischio di un'entità quando qualcuno lo azzera | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Eccezioni delle regole | `Rule Exception` |
-| Elenchi di controllo | `Watchlist` |
-| Valori dell'elenco di controllo | `Watchlist Value` |
-| Cacce | `Hunt` |
-| Attività e prove dei casi di sicurezza | `Security Case Task`, `Security Case Evidence` |
-| Gli archivi dati e i loro risultati, e i problemi, le impostazioni, le impostazioni dei controlli, i tipi di dati personalizzati e le regole di residenza di Sicurezza dei dati | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Impostazioni di Osservabilità dei dati | `Data Observability Setting` |
-| Esportazioni del registro di audit | `Audit Log Export` |
+| Registri dei messaggi | Ognuno è già la traccia di un'email, un SMS, una chiamata, una notifica push o un messaggio di chat che OneUptime ha inviato o ricevuto. |
+| Tracce delle esecuzioni | Ognuna è già la traccia di un'esecuzione di workflow, un'escalation di reperibilità, una scansione, un'importazione o un'esecuzione di IA. |
+| Ciò che riportano agenti e telemetria | Le risorse scoperte, le letture e l'utilizzo cambiano a ogni rapporto, non perché qualcuno li abbia modificati. |
+| Feed di attività | Un feed mostra modifiche che il registro di audit registra già. |
+| Lo stato di lavoro di OneUptime | Sessioni, job in coda e altri stati che OneUptime conserva mentre lavora. |
+| La configurazione delle notifiche di una persona | Gli indirizzi, i numeri e le regole di reperibilità personali di ogni persona sono solo suoi. |
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.
 
-Altri dati non sono nel registro di audit, come chi fa parte di un team o un permesso aggiunto da solo a un team. I campi che nessuno può leggere sono esclusi da ogni voce, e chiavi, token e password vengono registrati come `[REDACTED]`: la voce mostra che sono cambiati, mai il loro valore.
+I campi che scrive solo OneUptime, come quando un host è stato visto l'ultima volta, sono esclusi da ogni voce, così come i campi che nessuno può leggere. Quando OneUptime ne scrive uno perché qualcuno gliel'ha chiesto, come unire un'eccezione a un'altra o reimpostare l'URL di un webhook, la voce lo registra come una modifica di quella persona. Chiavi, token e password vengono registrati come `[REDACTED]`: la voce mostra che sono cambiati, mai il loro valore. I passaggi di un workflow vengono registrati come ciò che è cambiato, con i nomi delle impostazioni di un passaggio ma mai ciò che vi è stato scritto, e lo spostamento di un passaggio sull'area di lavoro non viene registrato.
+
+Ciò che OneUptime fa perché qualcuno gliel'ha chiesto è registrato anch'esso come modifica di quella persona, che il progetto memorizzi o no gli eventi di sistema:
+
+- Avviare, approvare, completare, saltare e annullare un'esecuzione di un runbook. I suoi passaggi sono registrati come ciò che è stato fatto a ciascuno, ad esempio `Approved "Restart the API" (step 3)`, mai con ciò che un passaggio ha stampato.
+- Ciò che una regola cambia quando qualcuno la esegue: le etichette e i proprietari che aggiunge, i record che una regola di privacy rende privati, i dispositivi che una regola di assegnazione del sito sposta, i dispositivi e i monitor che una regola di importazione automatica crea, e ciò che una regola dei monitor di una pagina di stato o di uno SLO cambia nella sua pagina o nel suo SLO.
+- Acquistare, associare e rilasciare il numero di telefono di una politica chiamate in arrivo.
+- Risolvere un avviso sui dati che qualcuno segna come previsto o come non un problema.
+- Reimpostare il link di un feed di calendario.
+- I team a cui qualcuno si unisce accedendo con SSO.
+
+Ciò che una regola fa da sé è una modifica di OneUptime stesso, registrata con **Memorizza eventi di sistema** attivo: le etichette e i proprietari che una regola aggiunge quando viene creato un record, e un record che rende privato in quel momento; i dispositivi e i monitor che una regola di importazione automatica crea da nuovi risultati di scansione; e ciò che una regola dei monitor di una pagina di stato o di uno SLO cambia quando si salva una regola, un monitor o un'etichetta.
+
+La reimpostazione dell'agente IA di un host, di un cluster o di un account cloud è registrata nella pagina **Registri di audit** della risorsa stessa, come la modifica di `aiAgentResetAt` fatta da chi l'ha reimpostato: chi, e quando. Lo stesso vale per la creazione di una chiave per l'agente IA di un account cloud: le chiavi risultano modificate, mai con una chiave o un hash. Ciò che un agente segnala quando si connette e si fa sentire resta escluso, come prima.
 
 ## Per quanto tempo restano le voci
 

@@ -223,7 +223,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/keystone
 curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/placement.yaml
 ```
 
-Cinder용 파일은 없습니다. Cinder의 `os-services`와 `scheduler-stats/get_pools`는 기록된 다섯 릴리스 모두에서 이 역할에 `403 User does not have admin privileges`로 응답합니다. 정책을 통과한 뒤 Cinder 자체 코드가 admin 컨텍스트를 요구하기 때문이므로, 어떤 재정의로도 열 수 없습니다.
+Cinder용 파일은 없습니다. Cinder의 `os-services`와 `scheduler-stats/get_pools`는 기록된 클라우드 다섯 곳 모두에서 이 역할에 `403 User does not have admin privileges`로 응답합니다. 정책을 통과한 뒤 Cinder 자체 코드가 admin 컨텍스트를 요구하기 때문이므로, 어떤 재정의로도 열 수 없습니다.
 
 **재정의를 다시 제거하려면 파일을 비우고(`{}`) 절대 삭제하지 마세요.** Flamingo(2025.2)와 Epoxy(2025.1)에서는 oslo.policy가 이미 읽은 정책 파일이 사라지면 모든 검사에서 예외를 발생시키므로, 해당 서비스가 모든 요청에 실패합니다. 그 서비스가 Keystone이면 토큰 검증이 중단되어 클라우드 전체가 `503`으로 응답합니다. 이미 그렇게 되었다면 서비스를 재시작하세요.
 
@@ -246,7 +246,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 
 - **에이전트를 통해서는 인스턴스가 전혀 보이지 않습니다.** exporter가 Nova에 모든 프로젝트의 서버를 요청하는데 Nova가 일반 reader를 거부하여 그 읽기 전체가 실패합니다. 이 에이전트 없이 수집하는 OneUptime 프로브만 프로젝트 하나의 인스턴스를 나열할 수 있습니다.
 - **쓰기가 가능할 수 있습니다.** Cinder의 `enforce_new_defaults`가 꺼져 있는 클라우드에서는 일반 `reader`도 자기 프로젝트에 볼륨을 만들 수 있습니다. Epoxy, Flamingo, Gazpacho에서는 만들었고(`202`), Hibiscus에서는 거부되었는데(`403`) DevStack이 그 릴리스에서만 `enforce_new_defaults`를 켜기 때문입니다. Cinder 자체의 기본값은 꺼짐입니다.
-- **Placement가 응답하지 않는 것으로 읽힙니다.** Placement에 하는 모든 호출이 거부되고, exporter는 이를 Placement가 중지된 경우와 같은 방식으로 보고합니다. 기록된 다섯 릴리스 모두에서 `openstack_placement_up 0`입니다. 페이지는 이 자격 증명에 막혀 있는 다른 항목을 근거로 이를 구별해 안내합니다. 그러나 [Placement API Down](/docs/monitor/openstack-monitor#사전-구성-알림-템플릿) 템플릿은 구별하지 못하므로, 이 단계에서는 그 템플릿을 제외하세요.
+- **Placement가 응답하지 않는 것으로 읽힙니다.** Placement에 하는 모든 호출이 거부되고, exporter는 이를 Placement가 중지된 경우와 같은 방식으로 보고합니다. 기록된 클라우드 다섯 곳 모두에서 `openstack_placement_up 0`입니다. 페이지는 이 자격 증명에 막혀 있는 다른 항목을 근거로 이를 구별해 안내합니다. 그러나 [Placement API Down](/docs/monitor/openstack-monitor#사전-구성-알림-템플릿) 템플릿은 구별하지 못하므로, 이 단계에서는 그 템플릿을 제외하세요.
 :::
 
 ### 에이전트 설치 및 시작
@@ -354,7 +354,7 @@ Docker 없이 설치했다면 `systemctl status oneuptime-openstack-agent oneupt
 
 ## 환경 변수
 
-설치 스크립트는 이 값을 `/opt/oneuptime-openstack-agent/.env`에 씁니다. Docker Compose 설치는 `docker-compose.yml` 옆의 `.env`에서 읽습니다. 값을 변경한 후에는 해당 폴더에서 `docker compose up -d`를 실행하세요. 자격 증명은 `clouds.yaml`에만 있습니다.
+설치 스크립트는 이 값을 `/opt/oneuptime-openstack-agent/.env`에 씁니다. Docker Compose 설치는 `docker-compose.yml` 옆의 `.env`에서 읽습니다. 값을 변경한 후에는 해당 폴더에서 `docker compose up -d`를 실행하거나, Docker 없이 설치했다면 `sudo systemctl restart oneuptime-openstack-agent`를 실행하세요. 자격 증명은 `clouds.yaml`에만 있습니다.
 
 | 변수 | 필수 | 설명 |
 | --- | --- | --- |
@@ -450,7 +450,7 @@ collector는 exporter의 `/probe?cloud=<region>&include_services=<service>`를 �
 | 속성 | 의미 |
 | --- | --- |
 | `openstack.cloud.name` | 클라우드 이름, 리소스 속성 |
-| `oneuptime.agent.version` | 에이전트 파일이 고정한 collector 버전, 리소스 속성 |
+| `oneuptime.agent.version` | 에이전트 파일의 버전, 리소스 속성: 파일이 고정한 collector 버전이며, 해당 collector에서 파일이 바뀔 때마다 마지막 숫자가 올라갑니다 |
 | `openstack.region.name` | `clouds.yaml` 항목 이름에서 가져온 리전, 각 데이터포인트에 붙음 |
 | `openstack_service` | 작업이 담당하는 OpenStack 서비스(`compute`, `network`, ...), 각 데이터포인트에 붙음 |
 
@@ -468,7 +468,7 @@ collector는 exporter의 `/probe?cloud=<region>&include_services=<service>`를 �
 | 클라우드가 실행하지 않을 수 있는 서비스 | 켜짐 | 클라우드에 있는 경우 로드 밸런서, 베어메탈, 스택, 클러스터, 공유, DNS, 오브젝트 스토리지, 데이터베이스, Gnocchi | 해당 서비스가 없는 클라우드는 5분마다 로그인 한 번을 부담. Designate는 스크레이프마다 영역당 호출 한 번이므로 영역 수에 따라 증가 |
 | 스크레이프 주기 | 2분과 5분 | 더 최신의 데이터 또는 더 적은 부하 | 두 배 자주 하면 API 호출도 두 배. 느린 스크레이프가 이전 스크레이프 위에 쌓이지 않도록 각 `scrape_timeout`을 `scrape_interval`보다 작게 유지하세요 |
 
-**프로젝트 할당량:** `OPENSTACK_COLLECT_QUOTAS=true`로 `install.sh`를 다시 실행하세요. 다른 것은 읽지 않는 두 번째 exporter인 `openstack-quota-exporter`가 시작되고, collector가 한 시간에 한 번 `openstack_nova_limits_*`, `openstack_neutron_quota_*`, `openstack_cinder_limits_*`, `openstack_cinder_volume_type_quota_gigabytes`를 요청합니다. 이 값들은 천천히 바뀌고, exporter는 어느 작업이 요청하든 같은 것을 읽기 때문에, 더 드물게 읽으려면 전용 exporter가 필요합니다. 사용자의 exporter에는 그런 기능이 없으므로 에이전트는 스크레이프할 때마다 exporter가 내주는 값을 읽습니다.
+**프로젝트 할당량:** `OPENSTACK_COLLECT_QUOTAS=true`로 `install.sh`를 다시 실행하세요. Docker Compose 설치에서는 `.env`의 `COMPOSE_PROFILES`에 `openstack-quotas`를 추가하고, `OPENSTACK_QUOTA_CLOUDS`를 `OPENSTACK_EXPORTER_CLOUDS`에 있는 값과 같게 설정하세요. 어느 쪽이든 다른 것은 읽지 않는 두 번째 exporter인 `openstack-quota-exporter`가 시작되고, collector가 한 시간에 한 번 `openstack_nova_limits_*`, `openstack_neutron_quota_*`, `openstack_cinder_limits_*`, `openstack_cinder_volume_type_quota_gigabytes`를 요청합니다. 이 값들은 천천히 바뀌고, exporter는 어느 작업이 요청하든 같은 것을 읽기 때문에, 더 드물게 읽으려면 전용 exporter가 필요합니다. 사용자의 exporter에는 그런 기능이 없으므로 에이전트는 스크레이프할 때마다 exporter가 내주는 값을 읽습니다.
 
 **느린 메트릭:** 원하는 항목의 `--disable-metric` 줄을 `docker-compose.yml`의 exporter `command`에서 삭제하세요. Docker 없이 설치했다면 `oneuptime-openstack-exporter.service`의 `ExecStart`에서 삭제합니다. 비용은 스크레이프마다 프로젝트당 호출 한 번입니다.
 
@@ -523,7 +523,7 @@ collector는 exporter의 `/probe?cloud=<region>&include_services=<service>`를 �
 
 ## 용량
 
-"이걸 수용할 수 있나?"는 OpenStack 운영자가 가장 자주 받는 질문인데, Nova의 여유 수치로는 답할 수 없습니다. 할당 비율, 예약, 단편화가 모두 영향을 주기 때문에, 클라우드에 vCPU가 수천 개 남아 있어도 큰 인스턴스 하나를 둘 공간은 없을 수 있습니다. 클라우드의 **용량** 페이지는 각 플레이버를 몇 개 더 만들 수 있는지와 무엇이 부족한지를 가장 빨리 부족해지는 순서로 보여 줍니다. 2분마다 계산한 요약 하나를 읽으므로, 호스트 5,000대인 클라우드도 한 대인 클라우드만큼 빠르게 로드됩니다. 플레이버 표의 **CSV 내보내기**로 페이지의 모든 내용을 내려받을 수 있습니다.
+"이걸 수용할 수 있나?"는 OpenStack 운영자가 가장 자주 받는 질문인데, Nova의 여유 수치로는 답할 수 없습니다. 할당 비율, 예약, 단편화가 모두 영향을 주기 때문에, 클라우드에 vCPU가 수천 개 남아 있어도 큰 인스턴스 하나를 둘 공간은 없을 수 있습니다. 클라우드의 **용량** 페이지는 각 플레이버를 몇 개 더 만들 수 있는지와 무엇이 부족한지를 가장 빨리 부족해지는 순서로 보여 줍니다. 2분마다 계산한 요약 하나를 읽으므로, 로드하는 양이 호스트 수에 따라 늘어나지 않습니다. 플레이버 표의 **CSV 내보내기**로 페이지의 모든 내용을 내려받을 수 있습니다.
 
 여기 있는 모든 값은 할당 기준입니다. 얼마나 바쁜지가 아니라 무엇이 약속되었는지를 나타냅니다. 유휴 인스턴스도 할당량 전부를 차지합니다.
 
@@ -562,7 +562,7 @@ nova-manage placement audit --verbose --delete
 
 ## 지출
 
-프라이빗 클라우드에도 비용이 들며, 운영하는 사람은 누가 무엇을 쓰는지, 무엇을 회수할 수 있는지 질문을 받습니다. 클라우드의 **지출** 페이지는 규모와 관계없이 어떤 클라우드에서든 이 두 가지에 답하며, 별도 설정 없이 작동합니다. 계획에 쓸 수 있는 사용량과 추정치를 보여 줍니다. OneUptime은 누구에게도 청구서를 발행하지 않으며, 여기 있는 어떤 금액도 테넌트가 내야 하는 금액이 아닙니다.
+프라이빗 클라우드에도 비용이 들며, 운영하는 사람은 누가 무엇을 쓰는지, 무엇을 회수할 수 있는지 질문을 받습니다. 클라우드의 **지출** 페이지는 이 두 가지에 답하며, 별도 설정 없이 작동합니다. 계획에 쓸 수 있는 사용량과 추정치를 보여 줍니다. OneUptime은 누구에게도 청구서를 발행하지 않으며, 여기 있는 어떤 금액도 테넌트가 내야 하는 금액이 아닙니다.
 
 맨 위에 **이번 달과 지난달 비교**가 있고, 그 아래에 증가 중인 항목, 그다음 프로젝트별로 큰 순서대로 **CSV 내보내기**와 함께 나옵니다. 도메인과 어떤 플레이버와 볼륨 유형에서 얼마나 사용했는지는 그 아래에 있습니다. 프로젝트 자체 페이지에는 이번 달의 항목별 내역과 그 이전 달이 있습니다.
 
@@ -573,7 +573,7 @@ nova-manage placement audit --verbose --delete
 이 숫자가 의미하는 바는 다음과 같습니다.
 
 - **리사이즈는 시간을 한 플레이버에서 다른 플레이버로 옮기고**, 삭제는 시간을 멈춥니다. 변경은 그것을 보여 주는 첫 읽기부터 집계되므로 각각 최대 15분 어긋날 수 있습니다. 그보다 짧게 존재한 인스턴스는 한 번도 관측되지 않을 수 있습니다.
-- **구성 요소는 인벤토리에서 사라질 때까지 집계되며**, 사라진 뒤 [stale 기간](#환경-변수)까지 지속될 수 있습니다. 차례대로 읽는 대규모 클라우드에서는 변경이 반영되기까지 자기 차례가 올 때까지 걸립니다.
+- **구성 요소는 인벤토리에서 사라질 때까지 집계되며**, 사라진 뒤 최대 15분까지 지속될 수 있습니다. 차례대로 읽는 대규모 클라우드에서는 변경이 반영되기까지 자기 차례가 올 때까지 걸립니다.
 - **인스턴스는 배치된 시점부터 삭제될 때까지 플레이버를 점유합니다.** 중지된 인스턴스도 Nova가 호스트에 vCPU와 메모리를 확보해 두므로 별도의 줄로 계속 집계됩니다. 호스트에 도달하지 못한 인스턴스와 호스트에서 shelve된 인스턴스는 집계되지 않습니다.
 - **오류 상태이거나 아직 생성 중인 볼륨 또는 스냅샷은 집계되지 않습니다.** 전체적으로 그 뒤에 공간이 없기 때문입니다.
 - **OneUptime이 읽지 않은 시간은 추측하지 않습니다.** 한 시간보다 긴 공백은 마지막 한 시간만 집계하며, 페이지에 집계되지 않은 시간이 몇 시간인지 표시됩니다.
@@ -689,7 +689,7 @@ vCPU 두 개, 디스크 하나, 네트워크 인터페이스 하나를 가진 �
 | `prometheus-libvirt-exporter`, 매분 읽기 | 30 | 1,800 | 131,400,000 | 1,314,000,000 |
 | Ceilometer의 exporter, 매분 읽기에 5분마다 폴링 | 24 | 864 | 63,072,000 | 630,720,000 |
 
-디스크가 하나 늘 때마다 어느 쪽이든 시리즈 12개가, 인터페이스가 하나 늘 때마다 4개가 추가됩니다. libvirt에서는 vCPU가 하나 늘 때마다 1개가 추가됩니다. 에이전트의 collector는 이들을 내보내는 동안 메모리에 보관하므로, 대규모 클라우드에서는 기본값 512MiB보다 더 필요할 수 있습니다. 클라우드의 **문서** 아래에 있는 가이드의 계산기가 사용자 규모의 클라우드에 대해 이 비용을 환산해 줍니다.
+디스크가 하나 늘 때마다 어느 쪽이든 시리즈 12개가, 인터페이스가 하나 늘 때마다 4개가 추가됩니다. libvirt에서는 vCPU가 하나 늘 때마다 1개가 추가됩니다. 에이전트의 collector는 이들을 내보내는 동안 메모리에 보관하므로, 대규모 클라우드에서는 기본값 512MiB보다 더 필요할 수 있습니다. **OpenStack → 문서** 아래에 있는 가이드의 계산기가 사용자 규모의 클라우드에 대해 이 비용을 환산해 줍니다.
 
 ## 프로젝트와 도메인
 
@@ -957,7 +957,7 @@ Gnocchi를 실행하는 클라우드에는 **서비스**에 Gnocchi의 API가 �
 
 exporter는 admin만 사용할 수 있는 Gnocchi의 status를 읽습니다. Gnocchi는 그보다 낮은 권한을 거부하고, exporter는 거부를 Gnocchi가 중지된 것과 똑같이 읽습니다. `openstack_gnocchi_up`이 0으로 읽힙니다. 그래서 Gnocchi를 한 번도 읽은 적 없는 자격 증명에는 Gnocchi가 중단되었다고 하지 않고 이 사실을 알려 주며, 해당 알림도 제안하지 않습니다. 프로브는 둘을 구별합니다. Gnocchi가 응답했으므로 API는 정상으로 읽히고, 연결 테스트에 거부되었다고 표시됩니다.
 
-**Gnocchi Backlog Growing**은 최근 두 시간을 지나는 직선을 읽습니다. 바쁜 클라우드의 백로그는 0으로 읽히는 일이 없으므로, 크더라도 줄어드는 중이면 괜찮고, 줄어들지 않는 것이 이 알림이 알리는 대상입니다. 러너는 measure 10개 수준의 백로그에만 도달했으므로, 이 직선은 가상의 숫자로만 확인되었습니다.
+**Gnocchi Backlog Growing**은 최근 두 시간을 지나는 직선을 읽습니다. 바쁜 클라우드의 백로그는 0으로 읽히는 일이 없으므로, 크더라도 줄어드는 중이면 괜찮고, 줄어들지 않는 것이 이 알림이 알리는 대상입니다. 테스트 클라우드는 measure 10개 수준의 백로그에만 도달했으므로, 이 직선은 가상의 숫자로만 확인되었습니다.
 
 ## Swift
 
@@ -976,9 +976,9 @@ Swift가 거부하는 자격 증명은 프록시가 중지된 경우처럼 `open
 
 중지된 객체 서버는 exporter가 알려 주는 것을 전혀 바꾸지 않습니다(기록됨). Swift의 목록은 계정 및 컨테이너 서버에서 나오고 프록시는 계속 응답하기 때문입니다. 각 스토리지 서버가 자체 `/recon`을 통해 알려 주는 것만 이를 알려 주는데, 이는 Keystone 카탈로그에 없습니다.
 
-그래서 프로브는 사용자가 지정한 곳에서 이를 읽습니다. **데이터 수집** 카드의 **기본값 외에 읽는 항목** 아래에 각 스토리지 서버의 `/recon` 포트를 `host:port`로 나열하세요. 수집할 때마다 서버당 호출 5번이 들며 서버로는 어떤 자격 증명도 전송되지 않습니다. 그러면 **Swift Storage Server Not Answering**, **Swift Rings Differ**, **Swift Replication Stale**과 이들의 종합 결과를 Swift 자체 페이지에서 볼 수 있습니다. 기록에는 읽을 서버가 하나뿐이었으므로 링이 서로 다른 경우는 가상의 숫자로만 확인되었습니다. 러너에서 몇 분마다 끝나는 복제가 오래된 경우도 마찬가지입니다.
+그래서 프로브는 사용자가 지정한 곳에서 이를 읽습니다. **데이터 수집** 카드의 **기본값 외에 읽는 항목** 아래에 각 스토리지 서버의 `/recon` 포트를 `host:port`로 나열하세요. 수집할 때마다 서버당 호출 5번이 들며 서버로는 어떤 자격 증명도 전송되지 않습니다. 그러면 **Swift Storage Server Not Answering**, **Swift Rings Differ**, **Swift Replication Stale**과 이들의 종합 결과를 Swift 자체 페이지에서 볼 수 있습니다. 기록에는 읽을 서버가 하나뿐이었으므로 링이 서로 다른 경우는 가상의 숫자로만 확인되었습니다. 테스트 클라우드에서 몇 분마다 끝나는 복제가 오래된 경우도 마찬가지입니다.
 
-**Object Container Growth Forecast**는 각 컨테이너의 최근 한 주를 지나는 직선을 읽고 한 주 앞을 내다봅니다. Swift는 여기서 클라우드에 얼마나 여유가 있는지 알려 주지 않으므로 1 TiB 기준선은 무언가 깨지는 지점이 아니라 알아 두어야 할 지점입니다. 클라우드에 맞게 변경하세요. 한 주 분량의 증가를 담은 러너는 없으므로 가상의 숫자로만 확인되었습니다.
+**Object Container Growth Forecast**는 각 컨테이너의 최근 한 주를 지나는 직선을 읽고 한 주 앞을 내다봅니다. Swift는 여기서 클라우드에 얼마나 여유가 있는지 알려 주지 않으므로 1 TiB 기준선은 무언가 깨지는 지점이 아니라 알아 두어야 할 지점입니다. 클라우드에 맞게 변경하세요. 한 주 분량의 증가를 담은 테스트 클라우드는 없으므로 가상의 숫자로만 확인되었습니다.
 
 ## Barbican
 
@@ -1204,7 +1204,7 @@ CADF 이벤트에는 보관하면 안 되는 내용이 있을 수 있습니다. 
 
 ## 컨트롤 플레인 요청 추적
 
-"인스턴스 부팅에 왜 4분이 걸리나?"라는 질문은 Nova, Neutron, Keystone, Glance를 가로지르며, 로그는 조각만 보여 줍니다. 트레이스는 시간이 어디에 쓰였는지 보여 줍니다. OpenStack에서 이를 만드는 방법은 [OSProfiler](https://docs.openstack.org/osprofiler/latest/)이며, OneUptime은 OSProfiler가 보내는 것을 [트레이스](/docs/telemetry/traces-explorer)에서 클라우드의 구성 요소 및 로그와 연결해 보여 줍니다.
+"인스턴스 부팅에 왜 4분이 걸리나?"라는 질문은 Nova, Neutron, Keystone, Glance를 가로지르며, 로그는 조각만 보여 줍니다. 트레이스는 시간이 어디에 쓰였는지 보여 줍니다. OpenStack에서 이를 만드는 방법은 [OSProfiler](https://docs.openstack.org/osprofiler/latest/)이며, OneUptime은 OSProfiler가 보내는 것을 [트레이스](/docs/telemetry/traces-explorer)에서 클라우드의 구성 요소 및 로그와 연결해 보여 줍니다. 2026.2에는 서명이 필요 없는 [OpenStack 자체 추적](#openstack-자체-추적)도 있습니다.
 
 무엇을 켜는 것인지 분명히 알아 두세요.
 
@@ -1221,6 +1221,7 @@ CADF 이벤트에는 보관하면 안 되는 내용이 있을 수 있습니다. 
 - [트레이스 켜기](#트레이스-켜기): collector, 라이브러리, 설정입니다.
 - [요청 추적](#요청-추적): 사용자 클라우드용 명령과 그 트레이스가 있는 곳입니다.
 - [추적 비용](#추적-비용): 집계한 것과 아무도 측정하지 않은 것입니다.
+- [OpenStack 자체 추적](#openstack-자체-추적): 2026.2에서 서명 없이 모든 API 요청을 추적합니다.
 :::
 
 ### 트레이스가 보여 주는 것
@@ -1349,7 +1350,7 @@ OSProfiler와 oslo.log는 서로를 모르기 때문에, 어떤 스팬에도 요
 
 ### 추적 비용
 
-요청이 서명되기 전에는 없습니다. OSProfiler를 켜 두고 서명된 것이 없으면 요청당 비용은 헤더 검사 한 번이 실패하는 정도입니다. 서명된 요청의 비용에 대해서는 OpenStack도 [수치를 제시하지 않으며](https://docs.openstack.org/osprofiler/latest/user/integration.html) 우리도 그렇습니다. 아무도 측정하지 않았기 때문입니다. 서명된 요청은 거치는 모든 서비스에서 더 많은 작업을 하고, 각 서비스에서 모든 스팬을 HTTP로 전송하며, 사용자의 키를 컨텍스트에 담아 메시지 버스로 전달합니다. 일반 트래픽이 아니라 조사하려는 요청에만 서명하세요.
+OSProfiler만 쓸 때는 요청이 서명되기 전에는 없습니다. OSProfiler를 켜 두고 서명된 것이 없으면 요청당 비용은 헤더 검사 한 번이 실패하는 정도입니다. 서명된 요청의 비용에 대해서는 OpenStack도 [수치를 제시하지 않으며](https://docs.openstack.org/osprofiler/latest/user/integration.html) 우리도 그렇습니다. 아무도 측정하지 않았기 때문입니다. 서명된 요청은 거치는 모든 서비스에서 더 많은 작업을 하고, 각 서비스에서 모든 스팬을 HTTP로 전송하며, 사용자의 키를 컨텍스트에 담아 메시지 버스로 전달합니다. 일반 트래픽이 아니라 조사하려는 요청에만 서명하세요.
 
 집계된 것은 한 머신의 DevStack에서 서명된 부팅이 보내는 양입니다.
 
@@ -1363,6 +1364,8 @@ OSProfiler와 oslo.log는 서로를 모르기 때문에, 어떤 스팬에도 요
 
 collector를 중지해도 서명된 부팅은 정상 동작했고 스팬만 손실되었으므로, 추적이 요청을 방해하지 않았습니다.
 
+2026.2에서 아직 eventlet으로 실행되는 `cinder-volume`이 재시작 후 코어 하나를 통째로 소모한 적이 있었습니다. 대부분 OSProfiler의 드라이버를 켠 상태였고 한 번은 끈 상태였습니다. 한 번 더 재시작하면 해소되었습니다. 이유는 모르므로 머신이 과열되면 먼저 이곳을 살펴보세요.
+
 ### 스팬에 담기는 것
 
 OSProfiler의 드라이버는 추적된 호출에 전달된 것을 Python이 출력하는 형식 그대로 스팬에 복사합니다. 인스턴스의 admin 비밀번호와 user data, 볼륨의 연결 정보가 여기에 해당합니다. collector는 머신을 떠나기 전에 `args`, `kwargs`, `result`, `db.params`를 제거하고, OneUptime은 다른 경로로 온 스팬에 대해 도착할 때 이를 제거합니다. 이를 끄는 설정은 없습니다. `trace_sqlalchemy`의 구문은 플레이스홀더 상태로 보관되며 값은 보관되지 않습니다.
@@ -1371,7 +1374,57 @@ OSProfiler의 드라이버는 추적된 호출에 전달된 것을 Python이 출
 
 ### 일정에 따른 트레이스
 
-트레이스는 요청이 서명될 때만 존재하므로, 여기에는 클라우드를 자동으로 추적하는 것이 없습니다. [라이프사이클 점검](#라이프사이클-점검)은 키를 받으면 자신의 쓰기에 서명하고 단계마다 별도의 트레이스를 만들므로, 이 점검이 본 느린 부팅에는 트레이스가 있습니다. 키는 OneUptime이 보관하는 유일한 곳이며 암호화되고 쓰기 전용이며 해당 점검 전용입니다.
+OSProfiler만 쓸 때 트레이스는 요청이 서명될 때만 존재하므로, 여기에는 클라우드를 자동으로 추적하는 것이 없습니다. [라이프사이클 점검](#라이프사이클-점검)은 키를 받으면 자신의 쓰기에 서명하고 단계마다 별도의 트레이스를 만들므로, 이 점검이 본 느린 부팅에는 트레이스가 있습니다. 키는 OneUptime이 보관하는 유일한 곳이며 암호화되고 쓰기 전용이며 해당 점검 전용입니다.
+
+### OpenStack 자체 추적
+
+2026.2에서는 oslo.messaging 18.3.1과 oslo.middleware 8.2.0이 서명된 것이 없어도 모든 API 요청을 추적합니다. 이전 릴리스에는 없습니다. [위의 단계](#트레이스-켜기)는 그대로 유지하세요. 각 서비스가 트레이스를 보낼 트레이서를 갖게 하는 것이 OSProfiler의 드라이버이며, 이것이 없으면 oslo.messaging이 호출마다 `has no attribute 'trace_exporter'` 오류로 실패합니다.
+
+각 서비스의 구성에 `[profiler]` 옆에 다음을 추가하세요.
+
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+`nova.conf`, `neutron.conf`, `cinder.conf`, `glance-api.conf`에 다음을 추가하세요. `service_name`은 해당 API 자체의 이름이고, `otlp_endpoint`는 collector의 `connection_string`이 가리키는 주소입니다.
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+이 API들 각각의 paste 파일에 다음 필터를 추가하고, 각 파이프라인의 `osprofiler` 바로 앞에 `otel_tracing`을 넣으세요. 그런 다음 재시작하세요.
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+이제 트레이스는 RPC를 거치는 요청을 따라갑니다. 부팅은 `nova-api`에서 `nova-conductor`와 `nova-scheduler`를 거쳐 `nova-compute`에 이르는 하나의 트레이스이며, 이 스팬에는 해당 로그에 있는 요청 ID가 담겨 있으므로 [로그](#트레이스에서-로그로)를 추측 없이 찾을 수 있습니다. HTTP 호출은 넘어가지 못하므로 Nova가 Neutron에 요청하는 것은 별도의 트레이스입니다. `keystone`과 Placement에는 필터를 추가할 파이프라인이 없고 `cinder-volume`도 여기서는 아무것도 보내지 않으며, 클라우드가 둘 중 무엇을 보내고 있는지는 **트레이스** 페이지에 나옵니다.
+
+트레이스가 HTTP 호출도 넘어가게 하려면 각 서비스가 실행되는 곳의 keystoneauth에 한 줄을 추가하세요. 이는 사용자 머신에 있는 OpenStack 코드의 변경이므로 업그레이드할 때마다 직접 유지해야 합니다.
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+그러면 부팅의 트레이스는 `nova-api`가 요청하는 Neutron과 Glance까지 가로지릅니다. `nova-compute`는 인스턴스를 자체 스레드에서 만드는데, 이 스레드는 같은 요청 ID로 새 트레이스를 시작하므로 여기서 Neutron에 요청하는 것은 부팅의 트레이스에 들어가지 않습니다.
+
+DevStack 한 대에서 든 비용입니다. 컴퓨트 노드 하나와 읽는 쪽 하나였습니다. 바쁜 클라우드가 아니며, API 세 개는 노이즈와 구별될 만큼 느려지지 않았습니다.
+
+| 40번 읽은 값 또는 측정값 | 끔 | 켬 |
+| --- | --- | --- |
+| `GET /servers`, 절반이 응답한 시간 | 48 ms | 32 ms |
+| `GET /v2.0/networks`, 절반이 응답한 시간 | 16 ms | 18 ms |
+| `GET /v2/images`, 절반이 응답한 시간 | 5 ms | 8 ms |
+| 조용한 이 분 동안의 CPU, 모든 서비스 합계 | 3.0 s | 3.9 s |
+
+부팅 한 번은 약 220개의 스팬을 만들고, collector는 그중 약 110개, 약 75KB를 전달합니다. 유휴 상태의 1분은 약 33개를 만들고 약 2개를 전달하는데, 실패한 것이 없으면 `nova-compute`가 conductor에 객체를 읽거나 저장하라고 요청하는 스팬을 버리기 때문입니다. 이것이 부팅의 RPC 스팬 대부분이자 유휴 클라우드 스팬의 거의 전부입니다. 이를 유지하려면 collector 파이프라인에서 `filter/nova-object-calls`를 빼세요.
+
+이는 2026.2의 DevStack에서 실제 부팅부터 실행 중인 OneUptime까지 돌려 본 결과이며, 다른 곳에서는 해 보지 않았습니다.
 
 ## 외부에서 클라우드 점검
 
@@ -1477,21 +1530,11 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
-### OpenStack 자체 추적
-
-2026.2의 oslo.middleware 8.2.0과 oslo.messaging 18.3.1은 서명된 것이 없어도 추적할 수 있으므로, 언젠가는 상시 피드가 될 수 있습니다. 직접 실행해 보았지만 OneUptime은 아직 이를 읽지 않습니다. 현재 배포된 상태로는 서비스 간 요청을 따라가지 못하기 때문입니다.
-
-- oslo.messaging 단독으로는 아무것도 보내지 않으며, 호출마다 `has no attribute 'trace_exporter'`를 기록합니다.
-- 각 API의 파이프라인에 oslo.middleware의 필터를 추가하면 API 호출 하나가 각각 별도의 트레이스가 됩니다. 부팅 한 번이 트레이스 83개를 만들었고 서비스 둘을 가로지르는 것은 없었는데, 나가는 HTTP 호출에서 트레이스를 전달하는 것이 없기 때문입니다. Keystone과 Placement에는 필터를 추가할 파이프라인이 없습니다.
-- 이 스팬에는 요청 ID가 없으며, RPC 스팬에는 있습니다.
-
-이를 켜더라도 해당 스팬은 collector를 거쳐 이 클라우드의 **트레이스** 페이지에 자체 이름으로 도달합니다.
-
 ## AI 에이전트
 
 에이전트의 `docker-compose.yml`은 **OpenStack AI 에이전트**인 `oneuptime-openstack-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)도 실행합니다. OneUptime AI가 이 클라우드의 인시던트나 알림을 조사하는 동안 이를 통해 읽기 전용 `openstack` 명령을 실행하고 (`openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list`) 실행한 명령을 인용합니다. 에이전트에는 `openstack` 바이너리도 셸도 없습니다. 각 명령은 해당 명령에 응답하는 서비스에 대한 `GET` 하나로 바뀌어 에이전트 자체 자격 증명으로 전송됩니다. 에이전트는 collector가 보고하는 것과 같은 `OPENSTACK_CLOUD_NAME`으로 등록되므로 이 클라우드를 담당합니다.
 
-- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 이를 사용해 이 클라우드의 인시던트와 알림을 조사하며, 클라우드의 **개요**에 에이전트의 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하세요. **AI > 에이전트**에 에이전트의 상태, **연결 테스트**, **에이전트 재설정**, 설치 안내가 있고, **AI > 인사이트**에 수행한 작업, **AI > 로그**에 실행한 명령이 있습니다.
+- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 이를 사용해 이 클라우드의 인시던트와 알림을 조사하며, 클라우드의 **개요**에 에이전트의 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하세요. **AI → AI 에이전트**에 에이전트의 상태, **연결 테스트**, **에이전트 재설정**, 설치 안내가 있고, **AI → 인사이트**에 수행한 작업, **AI → 로그**에 실행한 명령이 있습니다.
 - **별도 지정이 없는 한 읽기만 합니다.** 수정은 두 번 선택해야 켜지며 전용 자격 증명을 사용합니다. [수정](#수정)을 참고하세요. Keystone의 사용자, 자격 증명, 역할 할당, 콘솔, 게스트가 출력한 내용, Barbican의 시크릿은 읽기든 변경이든 접근할 수 없습니다.
 - **자격 증명이 확실한 한계입니다.** exporter가 읽는 `clouds.yaml`의 자격 증명을 사용하므로, [에이전트가 볼 범위 선택](#에이전트가-볼-범위-선택)에서 고른 단계가 허용하는 범위만 봅니다. 그 자격 증명을 액세스 규칙으로 만들었다면 현재의 [규칙](https://oneuptime.com/install/openstack-agent/access/application-credential-access-rules.json)으로 새로 만드세요. 에이전트용 `GET` 경로(인스턴스의 작업, 네트워크, 서브넷, 라우터, 유동 IP, 포트, 이미지 하나)가 몇 개 추가되었으며, 기존 규칙도 나머지에는 그대로 작동합니다. 전용 자격 증명을 쓰려면 `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, `OPENSTACK_AUTH_URL`을 설정하고, 자체 exporter처럼 에이전트 옆에 `clouds.yaml`이 없으면 `OPENSTACK_AI_CLOUDS_FILE=/dev/null`도 설정하세요.
 - **시크릿은 제외됩니다.** 인스턴스의 `user_data`와 admin 비밀번호, 이미지의 `direct_url`, 볼륨의 `provider_auth`, 그리고 모든 AI 에이전트가 마스킹하는 일반 시크릿은 출력이 모델이나 로그에 도달하기 전에 제거됩니다.
@@ -1558,9 +1601,9 @@ Nova는 다른 프로젝트의 인스턴스를 정책을 통과한 뒤 자체 �
 
    액세스 규칙을 쓰려면 Nova(`compute`)와 Neutron(`network`)에서 keystonemiddleware용 `service_type`을 설정하고 각각 재시작해야 합니다.
 
-3. **액세스 규칙이 볼 수 없는 것을 위한 정책 파일.** `POST /servers/{id}/action`은 시작과 강제 삭제가 같은 경로입니다. `access/policy/write-nova.yaml`은 `oneuptime_remediation` 역할에서 에이전트가 절대 수행하지 않는 해당 경로의 모든 작업을 빼앗고, 다른 사람의 기본값은 그대로 둡니다. 그러면 탈취된 자격 증명은 시작, 재부팅, 이동, 대피만 할 수 있고 다른 것은 할 수 없습니다.
+3. **액세스 규칙이 볼 수 없는 것을 위한 정책 파일.** `POST /servers/{id}/action`은 시작과 강제 삭제가 같은 경로입니다. `https://oneuptime.com/install/openstack-agent/access/policy/write-nova.yaml`은 `oneuptime_remediation` 역할에서 에이전트가 절대 수행하지 않는 해당 경로의 모든 작업을 빼앗고, 다른 사람의 기본값은 그대로 둡니다. 그러면 탈취된 자격 증명은 시작, 재부팅, 이동, 대피만 할 수 있고 다른 것은 할 수 없습니다.
 
-그런 다음 에이전트에 ID와 secret을 지정하고 재시작하세요.
+그런 다음 에이전트의 `.env`에 ID와 secret을 넣고 `docker compose up -d`를 실행하세요.
 
 ```bash
 ONEUPTIME_AI_ALLOW_WRITES=true
@@ -1612,7 +1655,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 ## 에이전트 업그레이드
 
-에이전트는 파일이 고정한 collector 버전을 **에이전트 버전**으로 보고합니다. 이 OneUptime이 더 새로운 버전을 고정하면 그 옆에 경고 표시가 나타납니다. 이를 선택하면 다음 명령이 표시됩니다.
+에이전트는 파일의 버전을 **에이전트 버전**으로 보고합니다. 이는 파일이 고정한 collector 버전이며, 해당 collector에서 파일이 바뀔 때마다 마지막 숫자가 올라갑니다. 이 버전이 이 OneUptime 릴리스가 고정한 버전보다 오래되면 그 옆에 경고 표시가 나타납니다. 이를 선택하면 다음 명령이 표시됩니다.
 
 collector 이미지는 `docker-compose.yml`에 고정되어 있고 설정은 그 옆의 파일이므로, pull만으로는 에이전트가 앞으로 나아가지 않습니다. `install.sh`를 다시 실행하세요(Docker 없이 설치했다면 `sudo`로). 기존 `.env`의 모든 값과 `clouds.yaml`의 자격 증명을 재사용하고(다시 묻지 않음), Keystone으로 자격 증명을 확인하고, 에이전트의 파일을 새로 고치고(수정한 파일은 `<file>.bak.<timestamp>`로 보관됨), 이미지를 pull하고, collector가 새 설정을 읽도록 에이전트를 다시 만듭니다.
 
@@ -1663,7 +1706,7 @@ sudo userdel oneuptime-openstack
 
 ## 인터넷 없이 사용
 
-에어 갭 뒤의 에이전트는 외부에서 세 가지가 필요합니다. 설치 스크립트와 그 파일(사용자의 OneUptime이 제공), `docker-compose.yml`이 실행하는 이미지(사용자 쪽 레지스트리로 복사), 그리고 그 외에는 없습니다. 에이전트는 사용자의 OneUptime URL로만 전송하고 사용자의 클라우드만 읽습니다.
+에어 갭 뒤의 에이전트는 외부에서 두 가지가 필요합니다. 설치 스크립트와 그 파일(사용자의 OneUptime이 제공), 그리고 `docker-compose.yml`이 실행하는 이미지(사용자 쪽 레지스트리로 복사)입니다. 에이전트는 사용자의 OneUptime URL로만 전송하고 사용자의 클라우드만 읽습니다.
 
 이미지는 `docker-compose.yml`에 고정되어 있으므로 미러링하는 것이 곧 에이전트가 실행하는 것입니다.
 

@@ -17,15 +17,55 @@ import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBi
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import TelemetryUsageOverview from "Common/UI/Components/TelemetryUsage/TelemetryUsageOverview";
+import {
+  fetchProjectTelemetryUsage,
+  getTelemetryUsageResourceRoute,
+} from "../../Components/TelemetryUsage/ProjectTelemetryUsage";
+import ModelTableColumn from "Common/UI/Components/ModelTable/Column";
+import TelemetryIngestionBudgetStatusCard from "Common/UI/Components/TelemetryIngestionBudget/TelemetryIngestionBudgetStatusCard";
+import { fetchProjectTelemetryIngestionBudgetStatus } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 
 export type ComponentProps = PageComponentProps;
 
+/*
+ * Project Settings > Telemetry & APM > Usage: how much telemetry the project
+ * sends, on every install - with billing on, and where it is off and usage
+ * is counted at no cost (TelemetryUsageBillingService). It was Billing and
+ * Invoices > Usage History, the one place usage was shown, and only where
+ * billing was on; this page is that page, at the same address.
+ *
+ * The overview first - each day by signal, each resource with the
+ * retention it is kept for - then the daily rows themselves. What usage
+ * cost is shown only where billing is on, to whoever reads billing: the
+ * overview's server leaves it out otherwise, and the rows' Total Cost
+ * column is drawn only with billing on, and only for whoever may read it
+ * (ModelTable leaves out a column its reader may not read).
+ */
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
   return (
     <Fragment>
+      {/*
+       * Today's ingestion budgets, first: they are counted as telemetry
+       * arrives, while the usage below is counted once a day has ended.
+       * Nothing at all on a project with no budget, which is most of them.
+       */}
+      <TelemetryIngestionBudgetStatusCard
+        fetchStatus={fetchProjectTelemetryIngestionBudgetStatus}
+        hideWhenUnbudgeted={true}
+      />
+
+      <TelemetryUsageOverview
+        projectId={ProjectUtil.getCurrentProjectId()!.toString()}
+        fetchUsage={fetchProjectTelemetryUsage}
+        getResourceRoute={getTelemetryUsageResourceRoute}
+      />
+
       <ModelTable<TelemetryUsageBilling>
         modelType={TelemetryUsageBilling}
         id="usage-history-table"
@@ -34,14 +74,15 @@ const Settings: FunctionComponent<ComponentProps> = (
           tableId: "settings-usage-history-table",
         }}
         isDeleteable={false}
-        name="Settings > Billing > Usage History"
+        name="Settings > Telemetry > Usage"
         isEditable={false}
         isCreateable={false}
         isViewable={false}
         cardProps={{
           title: "Telemetry Usage History",
-          description:
-            "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.",
+          description: BILLING_ENABLED
+            ? "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates."
+            : "How much telemetry each service sent each day, and how long it is kept.",
         }}
         noItemsMessage={
           "No usage yet. Each day's usage shows up after the day ends."
@@ -214,20 +255,25 @@ const Settings: FunctionComponent<ComponentProps> = (
               );
             },
           },
-          {
-            field: {
-              totalCostInUSD: true,
-            },
-            title: "Total Cost",
-            type: FieldType.Text,
-            getElement: (item: TelemetryUsageBilling) => {
-              return (
-                <div>{`${Currency.convertToDecimalPlaces(
-                  (item["totalCostInUSD"] as Decimal).value as number,
-                )} USD`}</div>
-              );
-            },
-          },
+          // What it cost: only where billing is on, and for whoever reads billing.
+          ...(BILLING_ENABLED
+            ? [
+                {
+                  field: {
+                    totalCostInUSD: true,
+                  },
+                  title: "Total Cost",
+                  type: FieldType.Text,
+                  getElement: (item: TelemetryUsageBilling) => {
+                    return (
+                      <div>{`${Currency.convertToDecimalPlaces(
+                        (item["totalCostInUSD"] as Decimal).value as number,
+                      )} USD`}</div>
+                    );
+                  },
+                } as ModelTableColumn<TelemetryUsageBilling>,
+              ]
+            : []),
         ]}
       />
     </Fragment>

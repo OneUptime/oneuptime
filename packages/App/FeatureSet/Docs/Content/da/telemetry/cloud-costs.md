@@ -31,7 +31,7 @@ flowchart TB
 
 ## Amazon Web Services
 
-Forbindelsen læser omkostninger med `ce:GetCostAndUsage` og anbefalinger med `cost-optimization-hub:ListRecommendations`. Hver af dem kræver, at noget først slås til i kontoen:
+Forbindelsen læser omkostninger med `ce:GetCostAndUsage`, sine forpligtelser med `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetReservationCoverage` og `ce:GetReservationUtilization` og anbefalinger med `cost-optimization-hub:ListRecommendations`. Cost Explorer og Cost Optimization Hub skal først slås til i kontoen:
 
 :::steps
 ### Slå Cost Explorer til
@@ -43,7 +43,13 @@ Forbindelsen læser omkostninger med `ce:GetCostAndUsage` og anbefalinger med `c
 Åbn Cost Optimization Hub i den samme konsol og tilmeld dig, for organisationen fra dens administrationskonto eller kun for kontoen. Dens anbefalinger kommer inden for en dag.
 :::
 
-Cost Explorer tager $0.01 for hver forespørgsel, og en læsning af omkostningerne laver nogle få. Cost Optimization Hub er gratis.
+Cost Explorer tager $0.01 for hver forespørgsel: en læsning af omkostningerne laver nogle få, og forpligtelserne læses med fire om dagen. Cost Optimization Hub er gratis.
+
+### Omkostninger pr. ressource
+
+Cost Explorer oplyser også, hvad hver ressource koster, for de sidste 14 dage, når data på ressourceniveau er slået til. Åbn Cost Management-præferencerne i AWS-konsollen Billing and Cost Management, og slå data på ressourceniveau til med daglig granularitet, for organisationen fra dens administrationskonto. AWS forbereder dem inden for 48 timer.
+
+Rediger derefter forbindelsen under **Cloud → Forbind**, og slå **Omkostninger pr. ressource** til under **Flere felter**. Forbindelsen læser dem med `ce:GetCostAndUsageWithResources` én gang om dagen: de 14 dage første gang, derefter de sidste tre igen, med nogle få forespørgsler hver gang. Det, den læser, bliver ved kontoens omkostninger, efter at Cost Explorer har glemt det. En forbindelse, der er oprettet før, skal have sin opsætningskommando kørt igen, som tilføjer handlingen.
 
 ## Microsoft Azure
 
@@ -79,6 +85,25 @@ Den detaljerede eksport nævner den ressource, hver omkostning gælder; standard
 
 **Cloud → Forbrug → Besparelser** viser hver anbefaling, den største besparelse først: hvad der skal gøres, ved hvilken ressource, hvad der ville ændre sig, og hvad den sparer om måneden. Båndet over den lægger dem sammen, i alt og efter type: en mindre størrelse, en ressource, der står ubrugt, en forpligtelse. En anbefaling linker til siden for dens ressource, når OneUptime har ressourcen.
 
+### Størrelsestilpasning ud fra OneUptimes egne målinger
+
+En ressource, som ingen anbefalingstjeneste udtaler sig om, fordi den ikke er slået til, ikke dækker dens type eller finder den for ny, får sin størrelse vurderet af OneUptime ud fra de CPU- og hukommelsesmålinger, som dens forbindelse har taget de sidste 14 dage. OneUptime vurderer EC2-instanser, RDS-databaser og ElastiCache-klynger på AWS, virtuelle maskiner, fleksible PostgreSQL- og MySQL-servere og App Service-planer på Azure samt Compute Engine-VM'er og Cloud SQL-instanser på Google Cloud:
+
+- **Overprovisioneret**, når den halvt så store størrelse, eller en fjerdedel, stadig ville have plads: på den mindre størrelse ville CPU'ens 95. percentil højst være 60 %, dens højeste CPU-måling højst 100 % og hukommelsens top højst 70 %, når hukommelsen læses.
+- **Underprovisioneret**, når CPU'ens 95. percentil er 85 % eller mere, eller hukommelsens top 90 % eller mere: den dobbelt så store størrelse.
+
+En ressource vurderes, så snart den har 6 dages målinger. Dens side viser dens **Størrelsestilpasning** ved siden af, hvad den koster, og en overprovisioneret står under **Cloud → Forbrug → Besparelser** med OneUptime som kilde. Det, en ændring sparer, er dens andel af det, ressourcen kostede de sidste 30 dage, så det kendes, så snart din cloud fakturerer ressourcen ved navn: Azures og Google Clouds detaljerede eksport gør det, og AWS gør det, når Omkostninger pr. ressource er slået til. En EC2-instans rapporterer kun sin hukommelse med CloudWatch-agenten og en Compute Engine-VM kun med Ops Agent: uden den vurderes den alene ud fra sin CPU. Burstable størrelser som t3, B-serien og e2-micro vurderes aldrig.
+
+### Forpligtelser
+
+**Cloud → Forbrug → Besparelser** og en kontos **Omkostninger** viser, hvor meget af de seneste 30 dages forbrug hver kontos forpligtelser betalte, og hvor meget af dem der blev brugt, en linje for hver slags:
+
+- AWS: Savings Plans og Reserved Instances, fra Cost Explorer. En organisations administrationskonto læser dem for hver konto i organisationen.
+- Azure: besparelsesplaner og reservationer, fra Cost Management, i amortiseret omkostning.
+- Google Cloud: rabatter for forpligtet brug, fra din faktureringseksport. Eksporten oplyser ikke, hvor meget af en forpligtelse der forblev ubrugt, så hvor meget der bruges, vises ikke.
+
+En konto uden forpligtelser viser, hvad der kørte til on demand-priser, som en forpligtelse ville betale billigere. Hver slags tal er dens clouds egne, og slags lægges aldrig sammen: en reservation og en Savings Plan kan begge tælle den samme maskines forbrug som deres at dække.
+
 ## Budgetter
 
 :::steps
@@ -88,17 +113,35 @@ Under **Cloud → Forbrug → Budgetter** opretter du et budget: dets **Månedli
 
 ### Vælg, hvornår det advarer
 
-**Advar ved** tager de andele af budgettet, der skal advares ved, i procent: 80 og 100 til at begynde med. **Advar, når det er på vej til at blive overskredet** advarer også, én gang om måneden, når tempoet i den sidste uge ville bringe måneden over budgettet. **Advarselsalvor** og **Vagtpolitikker** angiver, hvor alvorlige advarslerne er, og hvem der tilkaldes.
+**Advar ved** tager de andele af budgettet, der skal advares ved, i procent: 80 og 100 til at begynde med. **Advar, når det er på vej til at blive overskredet** advarer også, én gang om måneden, når tempoet i den sidste uge ville bringe måneden over budgettet. **Advar ved usædvanlige dage** advarer også dagen efter en dag, der kostede langt mere end normalt: se [Usædvanlige dage](#usædvanlige-dage). **Advarselsalvor** og **Vagtpolitikker** angiver, hvor alvorlige advarslerne er, og hvem der tilkaldes.
 :::
 
 Et budget kontrolleres efter hver læsning af omkostningerne og hver time. Når månedens forbrug passerer en tærskel, oprettes der én advarsel for den, den højeste, når en læsning passerer flere på én gang, og en ny måned løser den forrige måneds advarsler. Et budget tæller kun de konti, der faktureres i dets valuta.
 
+AI-agenter kan oprette og ændre budgetter via [MCP-serveren](/docs/ai/mcp-server), og scripts med CLI'ens kommando `oneuptime cloud-budget`: se [Ressourceoperationer](/docs/cli/resource-operations).
+
+### Usædvanlige dage
+
+Efter hver læsning holdes hver af en kontos sidste 14 hele dage op mod de 14 dage før den. En dag er usædvanlig, når en tjeneste kostede det dobbelte af sin normale dag eller mere, eller hele kontoen halvanden gang sin normale dag eller mere. I begge tilfælde skal det være mindst 10 mere end normalt i kontoens valuta og mindst 5 % af kontoens normale dag, så nogle få øre aldrig tæller som en top. En dags normale værdi er medianen af de 14 dage før den, så en enkelt top flytter den lidt, og en konto vurderes først, når den har en uges omkostninger.
+
+**Cloud → Forbrug → Omkostninger** markerer de usædvanlige dage på det daglige forbrug, over deres søjler, og viser dem nedenunder. På tværs af alle konti åbner hver markering sin kontos **Omkostninger**. Et budget, der medregner kontoen, opretter én advarsel for hver konto og dag, dagen efter, og nævner hver tjeneste, der lå højt. En top, der varer i dagevis, meldes den dag, den begyndte, og en dag, der er mere end en uge gammel, meldes ikke. Et budget, der blev oprettet, før disse advarsler fandtes, opretter dem ikke, før du redigerer det og slår dem til.
+
+## Hvor pengene går hen
+
+**Cloud → Forbrug → Omkostninger** opdeler en periodes forbrug efter tjeneste, region, konto eller ressource og på tre måder mere:
+
+- Efter miljø i app-platforme: hvert miljøs platformtjeneste i dets konto og region, såsom Amazon ECS eller Cloud Run, og et Elastic Beanstalk-miljøs ressourcer efter det tag, AWS giver dem.
+- Efter app: det, en platform fakturerer en app ved navn, såsom en Cloud Run-tjeneste eller en Container App. Amazon ECS fakturerer sine opgaver og App Service sine planer, så deres apps' omkostninger forbliver deres miljøs.
+- Efter tag: hver værdi af det tag, du vælger. En omkostning beholder de tags, den havde, da den blev læst: etiketterne fra en faktureringseksport fra Google Cloud, ellers tags fra den ressource, den faktureres til, hvilket på AWS kræver Omkostninger pr. ressource.
+
+Under listen fortæller kortet, hvad resten beløb sig til: det, der ikke er i noget miljø, det, der faktureres til et miljø som helhed, eller det, der ikke har tagget. Omkostninger, der blev læst, før tags blev gemt, læses igen én gang, så langt tilbage som en første læsning, så deres tags bliver udfyldt.
+
 ## Det, du ser i OneUptime
 
 - **Clouds oversigt.** **Cloud → Oversigt** viser månedens forbrug over for sidste måneds på samme dag, de dyreste tjenester og de største måder at bruge mindre på, ved siden af det, der kræver opmærksomhed.
-- **Hver dags forbrug.** **Cloud → Forbrug → Omkostninger** tegner hver af de sidste 30 dage og opdeler en periode efter tjeneste, region, konto eller ressource. De konti, hvis omkostninger ikke læses, vises nedenunder, hver med årsagen.
-- **En kontos omkostninger.** En kontos **Omkostninger** viser det samme for kontoen alene, med dens måder at bruge mindre på.
-- **En ressources omkostning.** En ressources side viser, hvad den har kostet i denne måned og de sidste 30 dage, når dens cloud fakturerer den ved navn, med dens måder at bruge mindre på.
+- **Hver dags forbrug.** **Cloud → Forbrug → Omkostninger** tegner hver af de sidste 30 dage og markerer de dage, der kostede langt mere end normalt, viser de dage og opdeler en periode efter tjeneste, region, konto, ressource, miljø i app-platforme, app eller tag. De konti, hvis omkostninger ikke læses, vises nedenunder, hver med årsagen.
+- **En kontos omkostninger.** En kontos **Omkostninger** viser det samme for kontoen alene, med dens forpligtelser og dens måder at bruge mindre på.
+- **En ressources omkostning.** En ressources side viser, hvad den har kostet i denne måned og de sidste 30 dage, når dens cloud fakturerer den ved navn, med dens måder at bruge mindre på og dens størrelsestilpasning.
 
 ## Fejlfinding
 
@@ -108,6 +151,14 @@ Forbindelsen må endnu ikke læse kontoens omkostninger. Kør dens opsætningsko
 
 :::details En konto siger Ikke sat op
 Dens cloud har endnu ingen omkostninger at give. På AWS skal du slå Cost Explorer til; på Google Cloud skal du angive eksportens tabel under **Tabel for faktureringseksport**. De første beløb kommer med den næste læsning, inden for 12 timer.
+:::
+
+:::details Omkostninger pr. ressource siger Ikke sat op
+Data på ressourceniveau er ikke slået til for kontoen. Slå det til med daglig granularitet i Cost Management-præferencerne i AWS-konsollen Billing and Cost Management, for en organisations medlemmer fra dens administrationskonto. AWS forbereder det inden for 48 timer, og næste dags læsning tager det med.
+:::
+
+:::details Forpligtelserne siger Kræver tilladelse
+Forbindelsen må endnu ikke læse kontoens Savings Plans og reservationer. Kør dens opsætningskommando igen fra **Cloud → Forbind**: den tilføjer de fire handlinger, de læses med.
 :::
 
 :::details Beløbene udelader en konto

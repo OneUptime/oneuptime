@@ -1,9 +1,9 @@
 restart-1/devstack@neutron-api.service.txt
-83225 is
-Process 83225: neutron-apiuWSGI worker 2
+83199 is
+Process 83199: neutron-apiuWSGI worker 2
 Python v3.12.3 (/usr/bin/uwsgi-core)
 
-Thread 83225 (idle): "uWSGIWorker2Core0"
+Thread 83199 (idle): "uWSGIWorker2Core0"
     ThreadPoolExecutor.submit (concurrent/futures/thread.py:165)
     get_aggregated_resources (resources/__init__.py:636)
     _get_process_dependent_resource (resources/__init__.py:611)

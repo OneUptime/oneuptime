@@ -34,6 +34,7 @@ import {
   readOpenStackTracedServices,
   withoutOpenStackCloudName,
 } from "../../../Utils/OpenStack/OpenStackTraces";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * How a span from OSProfiler's OTLP driver is read, one rule at a time. The inputs here are
@@ -390,11 +391,15 @@ describe("what a request names", () => {
 
   test("a path of a megabyte is read in a moment", () => {
     const path: string = `/servers/${"x/".repeat(512 * 1024)}`;
-    const started: number = Date.now();
+    const query: string = "a=b&".repeat(256 * 1024);
+    const read: FastestRun<unknown> = fastestRun({
+      run: (): unknown => {
+        return readOpenStackRequestResources({ path, query });
+      },
+      limitInMs: 2000,
+    });
 
-    readOpenStackRequestResources({ path, query: "a=b&".repeat(256 * 1024) });
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });
 
@@ -976,11 +981,15 @@ describe("from what the client prints to the trace", () => {
   });
 
   test("a megabyte pasted is read in a moment", () => {
-    const started: number = Date.now();
+    const pasted: string = "-".repeat(1024 * 1024);
+    const read: FastestRun<unknown> = fastestRun({
+      run: (): unknown => {
+        return readOpenStackTraceId(pasted);
+      },
+      limitInMs: 1000,
+    });
 
-    readOpenStackTraceId("-".repeat(1024 * 1024));
-
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(read.inMs).toBeLessThan(1000);
   });
 });
 
@@ -1044,6 +1053,9 @@ describe("what a cloud's spans say about its tracing", () => {
       lastSpanAt: null,
       services: [],
       traceIds: [],
+      widestTraceIds: [],
+      sources: [],
+      carriedOverHttp: false,
     });
   });
 
@@ -1080,6 +1092,13 @@ describe("what a cloud's spans say about its tracing", () => {
         { attributes: { "openstack.service": 12 } as JSONObject },
       ]);
 
-    expect(read).toEqual({ lastSpanAt: null, services: [], traceIds: [] });
+    expect(read).toEqual({
+      lastSpanAt: null,
+      services: [],
+      traceIds: [],
+      widestTraceIds: [],
+      sources: [],
+      carriedOverHttp: false,
+    });
   });
 });

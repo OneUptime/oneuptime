@@ -1,4 +1,8 @@
 import Text from "../../Types/Text";
+import {
+  ON_CALL_OBSERVER_PAGE_SMS_ACTION,
+  ON_CALL_OBSERVER_PAGE_SMS_LEAD,
+} from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import { toGsm7Text, toOneLine } from "./Gsm7Text";
 import { countSmsSegments, SmsSegmentCount } from "./SmsSegments";
 
@@ -181,6 +185,13 @@ export interface OnCallPageSmsInput {
    * about. Never cut.
    */
   lead?: string | null | undefined;
+  /*
+   * An observer's page (OnCallObserverPage): the text says it is for their
+   * information - "FYI (observer)" after the product, unless a person's page
+   * says who paged them as an observer - and its link marks the page seen
+   * ("Mark seen:") rather than acknowledging or escalating it. Never cut.
+   */
+  isObserverPage?: boolean | undefined;
   // What the send path does to the text before the provider gets it.
   sentAs?: ((text: string) => string) | undefined;
 }
@@ -206,6 +217,8 @@ interface PageParts {
   isPageAgain: boolean;
   // Who paged whom, for a page a person asked for. Empty for none.
   lead: string;
+  // An observer's page: for their information, and its link marks it seen.
+  isObserverPage: boolean;
 }
 
 // A value on one line, in the characters an SMS carries cheaply.
@@ -269,7 +282,9 @@ const compose: (
 ): string => {
   let head: string = parts.lead
     ? `${parts.productName}: ${parts.lead} about ${parts.what}`
-    : `${parts.productName}: ${parts.what}`;
+    : parts.isObserverPage
+      ? `${parts.productName} ${ON_CALL_OBSERVER_PAGE_SMS_LEAD}: ${parts.what}`
+      : `${parts.productName}: ${parts.what}`;
 
   if (parts.number) {
     head += ` ${parts.number}`;
@@ -295,7 +310,11 @@ const compose: (
     sentence += ".";
   }
 
-  return `${sentence} ${ON_CALL_PAGE_SMS_ACTION} ${parts.link}`;
+  return `${sentence} ${
+    parts.isObserverPage
+      ? ON_CALL_OBSERVER_PAGE_SMS_ACTION
+      : ON_CALL_PAGE_SMS_ACTION
+  } ${parts.link}`;
 };
 
 /*
@@ -384,6 +403,7 @@ export const buildOnCallPageSms: (
     link: input.link.trim(),
     isPageAgain: input.isPageAgain === true,
     lead: toSmsValue(input.lead),
+    isObserverPage: input.isObserverPage === true,
   };
 
   const wholeTitle: string = parts.title.join("");

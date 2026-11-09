@@ -526,7 +526,12 @@ describe("what a search matches", () => {
 
   test("a search for alert finds the alert templates: the two Alerts ones, then the eight Jira ones, the six Dynamics 365 ones, the three Zabbix ones, the Datadog and the New Relic one - and last the one that pages about a new alert", () => {
     expect(searchIds("alert")).toEqual([
-      ...ids(getTemplatesInView(WorkflowTemplateCategory.Alerts)),
+      // Filed under Alerts, but its name never says the word: it comes after those that do.
+      ...ids(getTemplatesInView(WorkflowTemplateCategory.Alerts)).filter(
+        (id: string): boolean => {
+          return id !== "openstack-compute-down-propose-disabling";
+        },
+      ),
       ...ALERT_JIRA_IDS,
       ...ALERT_DYNAMICS_IDS,
       ...ALERT_ZABBIX_IDS,
@@ -537,6 +542,7 @@ describe("what a search matches", () => {
        */
       "datadog-create-alert-from-monitor",
       "new-relic-create-alert-from-issue",
+      "openstack-compute-down-propose-disabling",
       // Its page opens an alert, which its description says: found, after the templates named for alerts.
       "webhook-page-users",
     ]);

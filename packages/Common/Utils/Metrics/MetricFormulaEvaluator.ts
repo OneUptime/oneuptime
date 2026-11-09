@@ -263,6 +263,156 @@ export default class MetricFormulaEvaluator {
   }
 
   /**
+   * Whether a formula's value grows with how long a stretch each point
+   * covers. A query read as a sum or a count does: its value over an hour
+   * is about sixty of its values over a minute. "a / b * 100" over two of
+   * them does not - a share of two counts is the same share over a minute
+   * or an hour - and neither does anything over averages or gauges.
+   *
+   * `variableScales` says whether each variable (lowercase) grows so, or
+   * null when it cannot tell. The formula is read as a product of powers of
+   * its variables: it holds at any bucket width when the powers of the
+   * growing ones cancel out (false), and grows when they do not, or when a
+   * sum mixes them (true). Null for a formula that cannot be read, or that
+   * names a variable the callback cannot tell about.
+   */
+  public static scalesWithBucketWidth(input: {
+    formula: string;
+    variableScales: (variable: string) => boolean | null;
+  }): boolean | null {
+    const trimmedFormula: string = (input.formula || "").trim();
+
+    if (!trimmedFormula) {
+      return null;
+    }
+
+    let rpn: Array<Token>;
+
+    try {
+      rpn = MetricFormulaEvaluator.toRpn(trimmedFormula);
+    } catch {
+      return null;
+    }
+
+    /*
+     * Each value on the stack: the power of the bucket width it grows with
+     * (NaN when it is a mix that grows, but not as one power), and its
+     * value when it is a constant.
+     */
+    interface Scaling {
+      power: number;
+      constant: number | null;
+    }
+
+    const stack: Array<Scaling> = [];
+
+    for (const token of rpn) {
+      if (token.type === TokenType.Number) {
+        stack.push({ power: 0, constant: parseFloat(token.value) });
+        continue;
+      }
+
+      if (token.type === TokenType.Variable) {
+        const scales: boolean | null = input.variableScales(
+          token.value.toLowerCase(),
+        );
+
+        if (scales === null) {
+          return null;
+        }
+
+        stack.push({ power: scales ? 1 : 0, constant: null });
+        continue;
+      }
+
+      const operatorValue: Operator = token.value as Operator;
+
+      if (operatorValue === "u-" || operatorValue === "u+") {
+        const operand: Scaling | undefined = stack.pop();
+
+        if (!operand) {
+          return null;
+        }
+
+        stack.push({
+          power: operand.power,
+          constant:
+            operand.constant === null
+              ? null
+              : operatorValue === "u-"
+                ? -operand.constant
+                : operand.constant,
+        });
+        continue;
+      }
+
+      const right: Scaling | undefined = stack.pop();
+      const left: Scaling | undefined = stack.pop();
+
+      if (!right || !left) {
+        return null;
+      }
+
+      const bothConstant: boolean =
+        left.constant !== null && right.constant !== null;
+
+      switch (operatorValue) {
+        case "+":
+        case "-":
+          stack.push({
+            power: left.power === right.power ? left.power : Number.NaN,
+            constant: bothConstant
+              ? operatorValue === "+"
+                ? left.constant! + right.constant!
+                : left.constant! - right.constant!
+              : null,
+          });
+          break;
+        case "*":
+          stack.push({
+            power: left.power + right.power,
+            constant: bothConstant ? left.constant! * right.constant! : null,
+          });
+          break;
+        case "/":
+          stack.push({
+            power: left.power - right.power,
+            constant:
+              bothConstant && right.constant !== 0
+                ? left.constant! / right.constant!
+                : null,
+          });
+          break;
+        case "%":
+          stack.push({
+            power: right.constant !== null ? left.power : Number.NaN,
+            constant: null,
+          });
+          break;
+        case "^":
+          stack.push({
+            power:
+              right.constant !== null
+                ? left.power * right.constant
+                : Number.NaN,
+            constant: null,
+          });
+          break;
+        default:
+          return null;
+      }
+    }
+
+    const result: Scaling | undefined = stack[0];
+
+    if (stack.length !== 1 || !result) {
+      return null;
+    }
+
+    return result.power !== 0;
+  }
+
+  /**
    * Validate a formula's syntax without evaluating it. Returns `null`
    * when valid, otherwise a human-readable error message.
    */

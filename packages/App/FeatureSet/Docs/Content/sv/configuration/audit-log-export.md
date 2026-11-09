@@ -121,7 +121,7 @@ OneUptime skickar varje batch med POST till **URL**, som en JSON-array (`applica
 Varje post är ett RFC 5424-meddelande till **Värd** och **Port**, över TLS på port `6514` om inte **Protokoll** anger TCP, med facility 13 (log audit) och severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
 Meddelanden avgränsas med oktetträkning (RFC 5425), om inte **Meddelandeavgränsning** anger ett meddelande per rad. En mottagare vars certifikat en privat CA har signerat behöver den CA:ns certifikat i **CA-certifikat**. Båda väntar under **Fler fält**.
@@ -132,7 +132,7 @@ Varje post är ett JSON-objekt, med nycklarna alltid i den här ordningen:
 
 | Nyckel | Vad den innehåller |
 | --- | --- |
-| `schemaVersion` | `1`. En ändring av schemat kommer med en ny version. |
+| `schemaVersion` | `2` för en ny export, `1` för en som sparades före version 2. En version lägger bara till nycklar. |
 | `id` | Postens ID. Samma post, skickad två gånger, har samma ID. |
 | `createdAt` | När ändringen registrerades, i UTC. |
 | `projectId` | Projektet där ändringen gjordes. |
@@ -143,11 +143,22 @@ Varje post är ett JSON-objekt, med nycklarna alltid i den här ordningen:
 | `apiKeyId`, `apiKeyName` | API-nyckeln den gjordes med, om någon. |
 | `mcpOAuthGrantId`, `mcpClientName` | MCP-klienten den gjordes genom, om någon. |
 | `workflowId`, `workflowName` | Arbetsflödet som gjorde den, om något. |
-| `changes` | Varje ändrat fält: `field`, med `oldValue` och `newValue`. |
+| `changes` | Varje ändrat fält: `field`, med `oldValue` och `newValue`, och i version 2 `summary`. |
 
 En fil har en post per rad, komprimerad med gzip, och arkiveras under timmen för sin första post: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Varje `oldValue` och `newValue` är fältets värde: text, ett tal, `true` eller `false`, eller JSON för en inställning som består av flera delar. Ett telefonnummer, en e-postadress eller en URL är sin text, till exempel `+14155550100`, och en port är sitt nummer.
+
 Nycklar, tokens och lösenord lämnar aldrig OneUptime: De registreras som `[REDACTED]`, och fält som ingen får läsa utelämnas ur varje post.
+
+## Postversioner
+
+| Version | Vad den skickar |
+| --- | --- |
+| `2` | Varje ändring har också `summary`: vad som ändrades, i de rader granskningsloggen visar, till exempel `Added "Send Email" (send-email-1)` för ett steg i ett arbetsflöde eller sökvägen som ändrades i JSON, annars `null`. Raderna nämner inställningar och sökvägar, aldrig värden. |
+| `1` | Posten som den först skickades, utan `summary`. Ett arbetsflödes steg skickas som deras storlek före och efter, till exempel `3 steps and 2 connections`. |
+
+En ny export skickar version 2. En export som sparades före version 2 fortsätter att skicka version 1, så det som läser den behöver ingen ändring: När det är redo för `summary` klickar du på **Redigera** vid exporten och väljer version 2 i **Postversion** under **Fler fält**. Versionen gäller de poster som skickas från och med då, och varje post anger sin egen i `schemaVersion`.
 
 ## När poster skickas
 

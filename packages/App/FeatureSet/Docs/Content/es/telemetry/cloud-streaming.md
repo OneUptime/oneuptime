@@ -47,6 +47,8 @@ Ve a **Nube → Conectar** y, en la fila de la cuenta de AWS, elige **Transmitir
 
 Para los registros, indica los **Grupos de registros** uno por línea, por nombre en la **Región** de al lado o por ARN en su propia región, o elige **Todos los grupos de registros de la cuenta, también los nuevos**. Un comando suscribe como máximo 50 grupos de registros por nombre, en como máximo 10 regiones.
 
+AWS permite una sola suscripción de registros para toda la cuenta por región y dos filtros de suscripción por grupo de registros. Antes de desplegar nada, el comando comprueba ambas cosas: si otra herramienta, como un SIEM, ya tiene la suscripción de toda la cuenta de una región, o un grupo de registros que indicaste no existe o ya tiene dos filtros de suscripción, dice cuál y no configura nada.
+
 ### Crear una clave de flujo
 
 Elige **Crear una clave de flujo**. La clave solo se muestra esta vez, en el comando: OneUptime solo guarda su SHA-256.
@@ -66,6 +68,7 @@ El cuadro pregunta cada pocos segundos qué ha llegado. Firehose entrega a los p
 | --- | --- |
 | **Todas las métricas, no solo las clave** | Transmite todas las métricas que CloudWatch tiene para la cuenta, incluidas las tuyas. AWS factura cada actualización de métrica que envía un flujo, así que puede costar muchas veces más |
 | **Regiones** | Desde dónde transmitir: al principio, las regiones en las que la conexión encontró recursos. Si se deja vacío, el comando transmite desde la región de AWS CloudShell. Como máximo 30 |
+| **Todas las cuentas de la organización** | Para una conexión que lee una AWS Organization: el comando, ejecutado en su cuenta de administración, también crea las mismas pilas en cada cuenta miembro mediante un StackSet, y en las cuentas que se unan después. Todos los grupos de registros o ninguno: los grupos con nombre son de una sola cuenta |
 | **Configurarlo de otra forma** | Los endpoints de métricas y de registros y la clave, para configurar los flujos con Terraform o la consola |
 
 **Descargar la plantilla** guarda la plantilla que despliega el comando, para desplegarla a tu manera.
@@ -77,6 +80,7 @@ El cuadro pregunta cada pocos segundos qué ha llegado. Firehose entrega a los p
 | Métricas | En los recursos en la nube que miden, con los nombres y atributos que les dan las lecturas de la conexión |
 | Registros | En el explorador de registros, bajo el servicio de telemetría de la conexión, con la cuenta, la región y el grupo de registros como atributos |
 | Registros de un grupo de registros que AWS nombra por un recurso | También en ese recurso: su página en la Nube gana una pestaña **Registros** |
+| Registros de un servicio de App Runner, un entorno de Elastic Beanstalk o una tarea o un clúster de ECS | También en su entorno en Plataformas de aplicaciones: su pestaña **Registros** |
 
 Un grupo de registros se archiva bajo un recurso cuando AWS le dio el nombre de uno:
 
@@ -93,8 +97,11 @@ Un grupo de registros se archiva bajo un recurso cuando AWS le dio el nombre de 
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Cada registro lleva el ID del recurso como `cloud.resource_id`, y los registros de una función Lambda llevan además `faas.name`, así que también aparecen en la función en Serverless. Un grupo de registros con otro nombre se transmite igualmente, bajo su cuenta y su región. La gravedad de un registro es la que indica su mensaje, tal como la escribe Lambda.
+Cada registro lleva el ID del recurso como `cloud.resource_id`, y los registros de una función Lambda llevan además `faas.name`, así que también aparecen en la función en Serverless. Un grupo de registros con otro nombre se transmite igualmente, bajo su cuenta y su región. La gravedad de un registro es la que indica su mensaje, tal como la escribe Lambda, PostgreSQL o MySQL.
+
+Los registros de un servicio de App Runner, un entorno de Elastic Beanstalk y un clúster de ECS llevan además `cloud.platform`, y también los de una tarea de ECS, del grupo de registros que la consola de ECS llama `/ecs/<task-definition-family>`, con `aws.ecs.task.family`. Con la cuenta y la región, eso los lleva a su entorno en Plataformas de aplicaciones, que aparece con ellos si ninguna aplicación le ha informado todavía. No crean ninguna aplicación: una aplicación se nombra por su propia telemetría, como explica [Entornos en la nube](/docs/telemetry/cloud-environments).
 
 ## Qué crea la pila
 
@@ -127,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Para una conexión que lee una AWS Organization, ejecute el comando del cuadro de diálogo en la cuenta de administración: si se transmitía la organización, también elimina las pilas de cada cuenta miembro y el StackSet.
 :::
 
 Para cambiar lo que transmite una pila, vuelve a abrir **Transmitir métricas y registros**, elige **Crear una clave nueva** y ejecuta el nuevo comando. La clave que reemplaza sigue funcionando 24 horas, así que no se rechaza ninguna entrega mientras se actualizan las pilas. Como máximo 3 claves reemplazadas funcionan a la vez.
@@ -166,6 +175,10 @@ Comprueba que el comando terminó en cada región sin errores: `aws cloudformati
 
 :::details La conexión dice Flujo rechazado
 El cuadro y la información emergente de la fila dicen por qué. Una clave incorrecta significa que las pilas funcionan con una clave que ya no sirve: crea una clave nueva y vuelve a ejecutar el comando. Firehose sigue enviando lo que guarda, y se acepta en cuanto la clave es la correcta.
+:::
+
+:::details El comando dice `Nothing was set up`
+Las líneas de arriba dicen por qué, cada una con su región o su grupo de registros. Si otra herramienta tiene la suscripción de registros de toda la cuenta de una región, indica en su lugar los grupos de registros que quieres transmitir, o quita la política de esa herramienta. Si un grupo de registros ya tiene dos filtros de suscripción, quita uno o deja fuera el grupo. Si el grupo de registros no existe, comprueba su nombre y su región, o indica su ARN. Después, vuelve a ejecutar el comando.
 :::
 
 :::details Los registros de una función Lambda no aparecen en su página

@@ -1042,6 +1042,132 @@ describe("a root that marks its keys", () => {
     ).toBe("keys");
   });
 
+  /*
+   * Issue #6191: a RUM application's pill says what is true - Receiving
+   * data, No recent traffic, Waiting for data - and its tooltip what that
+   * means, in the reader's language. The stored values the status is read
+   * from ("connected", "disconnected") are never words a reader sees.
+   */
+  test("RumApplicationStatus gives the locales its three statuses and what each means, and none of its stored values", () => {
+    const file: string = "packages/Common/Types/Rum/RumApplicationStatus.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+
+    expect([...textsOf(result)].sort()).toEqual(
+      [
+        "Receiving data",
+        "No recent traffic",
+        "Waiting for data",
+        "Data has arrived from this application in the last 15 minutes.",
+        "Nothing has arrived in the last 15 minutes. An application sends data only while people use it, so this is normal when nobody is, for example overnight. If people are using it right now, its Overview lists what to check.",
+        "Nothing has arrived from this application yet. Add the OpenTelemetry SDK or the Session Replay snippet to your app; its Documentation tab shows how.",
+      ].sort(),
+    );
+    for (const unmarked of [
+      "connected",
+      "disconnected",
+      "active",
+      "Disconnected",
+      "receiving-data",
+      "no-recent-traffic",
+      "waiting-for-data",
+      "positive",
+      "neutral",
+    ]) {
+      expect(textsOf(result)).not.toContain(unmarked);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
+  /*
+   * Issues #6269 and #6270: a serverless function's pill and a service's
+   * say what is true - Receiving data, No recent invocations or No recent
+   * data, Waiting for data - and their tooltips what that means, in the
+   * reader's language. The values they are read from ("connected",
+   * "disconnected") and the statuses' own names are never words a reader
+   * sees.
+   */
+  test("ServerlessFunctionStatus gives the locales its three statuses and what each means, and none of its stored values", () => {
+    const file: string =
+      "packages/Common/Types/Serverless/ServerlessFunctionStatus.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+
+    expect([...textsOf(result)].sort()).toEqual(
+      [
+        "Receiving data",
+        "No recent invocations",
+        "Waiting for data",
+        "Data has arrived from this function in the last 15 minutes.",
+        "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.",
+        "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.",
+      ].sort(),
+    );
+    for (const unmarked of [
+      "connected",
+      "disconnected",
+      "active",
+      "Disconnected",
+      "receiving-data",
+      "no-recent-invocations",
+      "waiting-for-data",
+      "positive",
+      "neutral",
+    ]) {
+      expect(textsOf(result)).not.toContain(unmarked);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
+  test("ServiceTelemetryStatus gives the locales its three statuses and what each means, and none of its names", () => {
+    const file: string =
+      "packages/Common/Types/Service/ServiceTelemetryStatus.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+
+    expect([...textsOf(result)].sort()).toEqual(
+      [
+        "Receiving data",
+        "No recent data",
+        "Waiting for data",
+        "Data has arrived from this service in the last 30 minutes.",
+        "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.",
+        "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.",
+      ].sort(),
+    );
+    for (const unmarked of [
+      "receiving-data",
+      "no-recent-data",
+      "waiting-for-data",
+      "positive",
+      "neutral",
+    ]) {
+      expect(textsOf(result)).not.toContain(unmarked);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
   test("TraceSpanType gives the locales its sentences and none of its names", () => {
     const file: string = "packages/Common/Types/Telemetry/TraceSpanType.ts";
     const result: SourceScanResult = scanSourceRoots(
@@ -1315,7 +1441,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, what each of the traces explorer's span types is, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, and the curated metrics' names", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, what each of the traces explorer's span types is, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, what each managed app platform is, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, and the curated metrics' names", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1370,15 +1496,28 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Host/HostHealth.ts",
       // A database's status and reasons - not its alert templates' ids.
       "keys packages/Common/Types/DatabaseServer/DatabaseHealth.ts",
+      // A RUM application's status and what each means - not its stored values.
+      "keys packages/Common/Types/Rum/RumApplicationStatus.ts",
+      // A serverless function's and a service's status - not their stored values.
+      "keys packages/Common/Types/Serverless/ServerlessFunctionStatus.ts",
+      "keys packages/Common/Types/Service/ServiceTelemetryStatus.ts",
       // Where a database or a queue was found, and what kind of cloud resource one is.
       "keys packages/Common/Types/DatabaseServer/DatabaseServerDiscoverySource.ts",
       "keys packages/Common/Models/DatabaseModels/MessageQueue.ts",
       "keys packages/Common/Types/Cloud/CloudResourceCatalog.ts",
+      // What each managed app platform is, under its name in the environment guide's picker.
+      "keys packages/Common/Types/Cloud/CloudPlatform.ts",
       // A cloud resource's status by its key metrics, and the kinds of saving the clouds recommend.
       "keys packages/Common/Types/Cloud/CloudResourceHealth.ts",
       "keys packages/Common/Types/Cloud/CloudCost.ts",
+      // What each cloud calls its commitments, on the Commitments card.
+      "keys packages/Common/Types/Cloud/CloudCommitments.ts",
+      // A resource's right-sizing from OneUptime's own readings: its verdict and why.
+      "keys packages/Common/Types/Cloud/CloudRightSizing.ts",
       // A cloud change's title in the reader's language - only its frame.
       "keys packages/Common/Utils/Telemetry/CloudChangeTitle.ts",
+      // A health event's description: OneUptime's sentences, never the provider's words.
+      "keys packages/Common/Utils/Telemetry/CloudHealthDescription.ts",
       // The column titles of OneUptime AI's tables - not its prompts.
       "keys packages/Common/Server/Utils/AI/Toolbox",
       // What an AI action's approval card says, and the kinds of resource it names.

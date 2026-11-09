@@ -21,6 +21,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { PublicNoteApprovalStatus } from "../../Types/StatusPage/PublicNoteApproval";
 import {
   Column,
   Entity,
@@ -816,4 +817,185 @@ export default class IncidentEpisodePublicNote extends BaseModel {
     nullable: true,
   })
   public savedFromChatMessage?: JSONObject = undefined;
+
+  /*
+   * Whether the note is published: shown on status pages, sent to
+   * subscribers, posted to chat channels and handed to workflows. False
+   * while it waits for approval, and after it is rejected, when its project
+   * asks for public notes to be approved (Types/StatusPage/PublicNoteApproval).
+   * True for every other note, as every note was before approval existed.
+   * Written by OneUptime alone: only an approval publishes a note.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentEpisodePublicNote,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    computed: true,
+    required: true,
+    isDefaultValueColumn: true,
+    defaultValue: true,
+    title: "Is Published",
+    description:
+      "Whether this note is published: shown on status pages and sent to subscribers. False while it waits for approval, or after it was rejected, when the project asks for public notes to be approved.",
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isPublished?: boolean = undefined;
+
+  /*
+   * Where the note stands in its project's approval
+   * (PublicNoteApprovalStatus): empty for a note that needed none. On a
+   * published note, Waiting for Approval or Rejected is about an edit of it
+   * (pendingNote). Written by OneUptime: as a note or an edit is sent for
+   * approval - so an editor's write sets it, never what they send - and as
+   * an approver decides.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentEpisodePublicNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentEpisodePublicNote,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    computed: true,
+    required: false,
+    allowedValues: Object.values(PublicNoteApprovalStatus),
+    title: "Approval Status",
+    description:
+      "Where this note stands in the project's public note approval: WaitingForApproval, Approved or Rejected. Empty for a note that needed no approval. On a published note, WaitingForApproval or Rejected is about an edit of it (pendingNote).",
+    example: "WaitingForApproval",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+  })
+  public approvalStatus?: PublicNoteApprovalStatus = undefined;
+
+  /*
+   * The note's round of approval (PublicNoteApprovalRound): when it was
+   * sent and by whom, each step's approval and a rejection's reason.
+   * Written by OneUptime, as approvalStatus is.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentEpisodePublicNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentEpisodePublicNote,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    computed: true,
+    required: false,
+    title: "Approval",
+    description:
+      "This note's approval so far: when it was sent for approval and by whom (submittedAt, submittedByUserId), whether it is an edit of the published note (isEdit), each step's approval (approvals: stepId, userId, at, comment) and a rejection (rejection: userId, at, reason).",
+    example: {
+      submittedAt: "2026-10-08T10:07:00.000Z",
+      submittedByUserId: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+      isEdit: false,
+      approvals: [
+        {
+          stepId: "a1b2c3d4-e5f6-4890-abcd-ef1234567890",
+          userId: "7c8d9e0f-a1b2-4c4d-9e5f-8a9b0c1d2e3f",
+          at: "2026-10-08T10:12:00.000Z",
+        },
+      ],
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public approval?: JSONObject = undefined;
+
+  /*
+   * An edit of this published note that waits for approval: the status
+   * page keeps showing `note` - the note as it was approved - and the edit
+   * takes its place once it is approved. Empty when no edit waits. Written
+   * by OneUptime: an editor's change of a published note's text lands here
+   * while the project asks for public notes to be approved.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentEpisodePublicNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentEpisodePublicNote,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Markdown,
+    computed: true,
+    required: false,
+    title: "Edit Waiting for Approval",
+    description:
+      "An edit of this published note that waits for approval, in markdown. Status pages show the note as it was approved until the edit is approved. Empty when no edit waits.",
+    example:
+      "## Update - Fix Deployed\n\nWe have deployed a fix and are watching the results.",
+  })
+  @Column({
+    type: ColumnType.Markdown,
+    nullable: true,
+  })
+  public pendingNote?: string = undefined;
 }

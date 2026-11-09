@@ -161,7 +161,7 @@ Chaque métrique est un compteur, et porte les attributs standard en plus des si
 
 Les attributs standard sont `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` et `terminal.type`, plus vos `OTEL_RESOURCE_ATTRIBUTES`. Certains peuvent être désactivés : voir [Limiter le volume des métriques](#limiter-le-volume-des-métriques).
 
-- Les types de jetons de cache sont en camelCase : `cacheRead` et `cacheCreation`. Les totaux de jetons de OneUptime ne comptent que `input` et `output`.
+- Les types de jetons de cache sont en camelCase : `cacheRead` et `cacheCreation`. L'`input` de Claude Code les omet, donc OneUptime les compte aussi comme jetons en entrée.
 - Sur les métriques de coût et de jetons, les noms de vos propres agents et serveurs MCP, ainsi que des plugins et skills tiers, valent `custom` ou `third-party` sauf si `OTEL_LOG_TOOL_DETAILS=1` est défini (Claude Code 2.1.273 ou plus récent).
 
 ## Événements
@@ -220,7 +220,7 @@ Claude Code envoie par défaut des métriques delta : chaque point est l'augment
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Ne fixez `cumulative` que si chaque exportateur de votre organisation l'utilise, et ne mélangez pas les deux dans une flotte.
+Ne fixez `cumulative` que si chaque exportateur de votre organisation l'utilise, et ne mélangez pas les deux dans une flotte. L'onglet Utilisation et les budgets de OneUptime comptent les deux : un delta en additionnant ses points, un compteur cumulatif d'après ce dont il a augmenté sur la période.
 
 ## Traces (bêta)
 

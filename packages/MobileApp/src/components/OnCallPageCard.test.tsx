@@ -3,6 +3,7 @@ import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, expect, test, jest as jestGlobal } from "@jest/globals";
 import OnCallPageCard, {
+  getPageStatus,
   getPageSubject,
   type PageSubject,
 } from "./OnCallPageCard";
@@ -223,6 +224,83 @@ describe("OnCallPageCard status", () => {
 
     expect(screen.getByText("Database")).toBeTruthy();
     expect(screen.queryByText("Direct page")).toBeNull();
+  });
+});
+
+/*
+ * An observer's page (oncall/observerPage.ts) was answered by saying they
+ * had seen it - its record was not acknowledged by that. So it says FYI
+ * (observer), then Seen or Not seen yet, and never Acknowledged; nothing is
+ * required of an observer, so not seen yet is no warning.
+ */
+describe("OnCallPageCard, an observer's page", () => {
+  test("says FYI (observer), in the server's words, before what came of it", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page({ isObserverPage: true })} />);
+
+    expect(screen.getByTestId("page-observer-log-1")).toBeTruthy();
+    expect(screen.getByText("FYI (observer)")).toBeTruthy();
+  });
+
+  test("not answered yet, it says Not seen yet - never 'Not acknowledged' - and is no warning", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page({ isObserverPage: true })} />);
+
+    expect(screen.getByText("Not seen yet")).toBeTruthy();
+    expect(screen.queryByText("Not acknowledged")).toBeNull();
+    expect(getPageStatus(page({ isObserverPage: true })).tone).toBe("info");
+  });
+
+  test("answered, it says Seen - never Acknowledged", async (): Promise<void> => {
+    await render(
+      <OnCallPageCard
+        page={page({
+          isObserverPage: true,
+          acknowledgedAt: new Date().toISOString(),
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Seen")).toBeTruthy();
+    expect(screen.queryByText("Acknowledged")).toBeNull();
+  });
+
+  test("a failed notification and an escalated page say so, as a responder's do", () => {
+    expect(
+      getPageStatus(page({ isObserverPage: true, status: "Error" })).label,
+    ).toBe("Failed to notify");
+    expect(
+      getPageStatus(page({ isObserverPage: true, status: "Passed On" })).label,
+    ).toBe("Escalated");
+  });
+
+  test("a screen reader hears it too", async (): Promise<void> => {
+    await render(
+      <OnCallPageCard
+        page={page({ isObserverPage: true })}
+        onPress={(): void => {
+          return undefined;
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Replica lag. FYI (observer). Not seen yet.",
+      }),
+    ).toBeTruthy();
+  });
+
+  test("a responder's page says nothing of the kind, as before", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page()} />);
+
+    expect(screen.queryByTestId("page-observer-log-1")).toBeNull();
+    expect(screen.queryByText("FYI (observer)")).toBeNull();
+    expect(getPageStatus(page())).toEqual({
+      label: "Not acknowledged",
+      tone: "warning",
+    });
+    expect(
+      getPageStatus(page({ acknowledgedAt: new Date().toISOString() })),
+    ).toEqual({ label: "Acknowledged", tone: "success" });
   });
 });
 

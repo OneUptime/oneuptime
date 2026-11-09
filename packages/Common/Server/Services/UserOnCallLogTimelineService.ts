@@ -24,6 +24,11 @@ import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
 import OneUptimeDate from "../../Types/Date";
+import {
+  OnCallObserverPageRecordKind,
+  getOnCallObserverPageSeenMessage,
+  isOnCallObserverPage,
+} from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -234,7 +239,35 @@ export class Service extends DatabaseService<Model> {
           ? "Alert Episode"
           : "Alert";
 
-    const statusMessage: string = `${entityLabel} acknowledged by ${user.name} (${user.email})`;
+    /*
+     * An observer's page (OnCallObserverPage) is answered by saying they
+     * have seen it, and that is all it does: the record is not
+     * acknowledged, nobody else's page stops, nobody becomes its Incident
+     * Commander, and no acknowledgement timeout starts. Read from the run,
+     * whoever asks: every way of answering a page reaches here.
+     */
+    const isObserverPage: boolean = page.onCallDutyPolicyExecutionLogId
+      ? isOnCallObserverPage(
+          await OnCallDutyPolicyExecutionLogService.findOneById({
+            id: page.onCallDutyPolicyExecutionLogId,
+            select: {
+              _id: true,
+              isObserverPage: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          }),
+        )
+      : false;
+
+    const statusMessage: string = isObserverPage
+      ? getOnCallObserverPageSeenMessage({
+          kind: entityLabel.toLowerCase() as OnCallObserverPageRecordKind,
+          userName: user.name?.toString() || "",
+          userEmail: user.email?.toString() || "",
+        })
+      : `${entityLabel} acknowledged by ${user.name} (${user.email})`;
 
     await UserOnCallLogService.updateOneById({
       id: page.userOnCallLogId,
@@ -277,6 +310,11 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+
+    // An observer saw it: nothing else moves (see above).
+    if (isObserverPage) {
+      return;
+    }
 
     /*
      * The record itself is acknowledged only when it is not already -

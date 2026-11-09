@@ -212,6 +212,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * A resource's AI agent page (AI → AI agent): whether OneUptime AI can reach
@@ -1738,7 +1739,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               ].map((part: ReactElement, index: number): ReactElement => {
                 return (
                   <Fragment key={`meta-${index}`}>
-                    {index > 0 ? " · " : ""}
+                    {index > 0 ? <InlineSeparator /> : null}
                     {part}
                   </Fragment>
                 );
@@ -1871,7 +1872,24 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                         <></>
                       )}
                       {row.output ? (
-                        <pre className="mt-2 max-h-72 overflow-auto rounded border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-800">
+                        /*
+                         * A cloud account's agent answers cloud whoami with
+                         * a sentence a line ("Write identity: ..., (the
+                         * agent can NOT sign in as it, so every change
+                         * fails: ...)"), whose verdict comes at its end:
+                         * wrapped, so it is read without scrolling sideways.
+                         * Other agents' test commands print tables (docker
+                         * node ls, pvesh), which keep their columns and
+                         * scroll.
+                         */
+                        <pre
+                          className={`mt-2 max-h-72 overflow-auto rounded border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-800${
+                            descriptor.isCloudAccount
+                              ? " whitespace-pre-wrap break-words"
+                              : ""
+                          }`}
+                          data-testid="ai-agent-test-result-output"
+                        >
                           {row.output}
                         </pre>
                       ) : (
@@ -2148,10 +2166,21 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
       {isConfirmingReset ? (
         <ConfirmModal
           title="Reset the AI agent?"
-          description={translator.translateTemplate(
-            "This revokes the {{agentName}}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.",
-            { agentName: translatableTerm(descriptor.agentName) },
-          )}
+          description={
+            /*
+             * A Cloud AI agent comes back only with a new key of its
+             * account's, which its setup command carries: say so before.
+             */
+            descriptor.isCloudAccount
+              ? translator.translateTemplate(
+                  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.",
+                  { agentName: translatableTerm(descriptor.agentName) },
+                )
+              : translator.translateTemplate(
+                  "This revokes the {{agentName}}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.",
+                  { agentName: translatableTerm(descriptor.agentName) },
+                )
+          }
           submitButtonText="Reset agent"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isActing}
@@ -2168,10 +2197,15 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                   resourceId: modelId,
                 });
               },
-              notice: translator.translateTemplate(
-                "The {{agent}} was reset. It reconnects on its own within a few minutes.",
-                { agent: translatableTerm(descriptor.agentName) },
-              ),
+              notice: descriptor.isCloudAccount
+                ? translator.translateTemplate(
+                    "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.",
+                    { agent: translatableTerm(descriptor.agentName) },
+                  )
+                : translator.translateTemplate(
+                    "The {{agent}} was reset. It reconnects on its own within a few minutes.",
+                    { agent: translatableTerm(descriptor.agentName) },
+                  ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction

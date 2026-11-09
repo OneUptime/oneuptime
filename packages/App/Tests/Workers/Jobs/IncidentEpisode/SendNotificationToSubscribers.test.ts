@@ -2672,3 +2672,63 @@ describe("IncidentEpisode:SendNotificationToSubscribers subscribers who picked a
     expect(emailsSentTo()).toEqual(page.told);
   });
 });
+
+/*
+ * A CUSTOM TEMPLATE'S VALUES, IN ITS PAGE'S LANGUAGE: OneUptime's default
+ * severity names are in the page's default language
+ * (SubscriberTemplateValues), a project's own as written, English for a
+ * page with no default language.
+ */
+describe("IncidentEpisode custom templates, in the page's language", () => {
+  const pageIn: (language: string) => StatusPage = (
+    language: string,
+  ): StatusPage => {
+    const page: StatusPage = statusPage({ withCustomSmtpAndSms: true });
+    page.defaultLanguage = language;
+    return page;
+  };
+
+  const withSeverity: (name: string) => IncidentEpisode = (
+    name: string,
+  ): IncidentEpisode => {
+    const row: IncidentEpisode = episode();
+    row.incidentSeverity!.name = name;
+    return row;
+  };
+
+  test("a default severity name is the page's language's, on every channel", async () => {
+    pendingEpisodes = [withSeverity("Minor Incident")];
+    useCustomTemplatesOnEveryChannel([pageIn("es")]);
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call.variables["episodeSeverity"]).toBe("Incidente menor");
+      expect(call.variables["episodeTitle"]).toBe(EPISODE_TITLE);
+    }
+  });
+
+  test("a project's own severity name reads as written", async () => {
+    pendingEpisodes = [episode()];
+    useCustomTemplatesOnEveryChannel([pageIn("es")]);
+
+    await runJob();
+
+    for (const call of compileCalls()) {
+      expect(call.variables["episodeSeverity"]).toBe(SEVERITY);
+    }
+  });
+
+  test("a page without a default language fills it in English", async () => {
+    pendingEpisodes = [withSeverity("Minor Incident")];
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    for (const call of compileCalls()) {
+      expect(call.variables["episodeSeverity"]).toBe("Minor Incident");
+    }
+  });
+});

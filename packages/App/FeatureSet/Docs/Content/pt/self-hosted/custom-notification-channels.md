@@ -79,6 +79,7 @@ Cada acionamento é uma solicitação `POST` com um corpo JSON:
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ Cada acionamento é uma solicitação `POST` com um corpo JSON:
 | `recordType`, `record` | Do que trata o acionamento: um `incident`, `alert`, `incidentEpisode` ou `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | A política e o nível que acionaram a pessoa |
 | `isPageAgain` | `true` quando o registro foi confirmado há algum tempo e ainda não está resolvido |
+| `isObserverPage` | `true` quando a pessoa é acionada como observadora: mantida informada enquanto outras pessoas respondem. Confirmar o aviso só indica que o viu |
 | `actions` | Os links que o seu serviço chama para [agir sobre o acionamento](#agir-sobre-um-acionamento) |
 
 Um acionamento para várias pessoas é uma solicitação por pessoa, cada uma com os links da própria pessoa, para que o OneUptime saiba quem respondeu. O título, a mensagem e a descrição juntos são limitados a 16.384 caracteres; uma descrição mais longa é cortada e termina com "… (truncated — see OneUptime for the full text)".
@@ -170,6 +172,7 @@ Uma notificação vai para cada canal ativado, como uma solicitação por canal,
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

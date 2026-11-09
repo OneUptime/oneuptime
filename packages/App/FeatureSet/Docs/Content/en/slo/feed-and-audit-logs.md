@@ -7,7 +7,7 @@ An SLO keeps two records of its history, and they answer different questions. Th
 | | **Feed** | **Audit Logs** |
 | --- | --- | --- |
 | Answers | What happened to the SLO | Who changed what, and when |
-| Records | Status changes, burn rate alerts and incidents, and changes to the SLO, its rules, monitors and owners | Every change people made to the SLO, its burn rate rules, monitor rules and owners, with old and new values |
+| Records | Status changes, error budget policy tier changes, the alerts and incidents of burn rate rules and policy tiers, and changes to the SLO, its rules, monitors and owners | Every change people made to the SLO, its burn rate rules, monitor rules, error budget policy tiers and owners, with old and new values |
 | Includes OneUptime's own work | Yes: evaluations and monitor rules attaching monitors | Only with **Store System Events** on |
 | Plans | Every plan | The Enterprise plan on OneUptime Cloud, or the Enterprise Edition on a self-hosted installation |
 | Kept | Three years on OneUptime Cloud | 7 days by default, up to 180 |
@@ -32,9 +32,14 @@ The feed is on the SLO's **Feed** page, and its latest items are under **Recent 
 | SLO enabled or disabled | Evaluation is turned on or off. |
 | SLO archived or restored | The SLO is archived or unarchived. |
 | Status changed | An evaluation moves the SLO to a new status. Shows the SLI, error budget, burn rate and at-risk threshold behind it, and the reason for **Paused** or **Misconfigured**. |
+| Error budget policy tier changed | An evaluation moves the SLO into a tier of its error budget policy, to another tier, or out of every tier. Shows the tier it left and the tier it entered, the budget left, and what the team agreed to do in the new tier, and says when the change froze deployments or allowed them again. See [Error Budget Policy](/docs/slo/error-budget-policy). |
+| Deployments frozen or allowed again | Someone switched **Freeze Deployments** on or off for the tier the SLO is in, and the next evaluation froze deployments or allowed them again. A tier change that does it says so in its own item instead. See [Deployment gate](/docs/slo/error-budget-policy#deployment-gate). |
 | Burn rate alert raised | A burn rate rule creates an alert. Links to it and shows the burn rates that fired it. |
 | Burn rate incident declared | A burn rate rule declares an incident. Links to it and shows the burn rates that fired it. |
 | Burn rate alert or incident resolved | A rule's alert or incident closes: resolved automatically, or by hand while auto-resolve was off. |
+| Error budget policy alert raised | A tier of the error budget policy creates an alert. Links to it. |
+| Error budget policy incident declared | A tier of the error budget policy declares an incident. Links to it. |
+| Error budget policy alert or incident resolved | A tier's alert or incident closes: superseded by a more severe tier, resolved automatically, or by hand while auto-resolve was off. |
 | Burn rate rule added, changed or removed | Someone creates, edits or deletes a burn rate rule. The default rules of a new SLO are in its "SLO created" item instead. |
 | Monitor rule added, changed or removed | Someone creates, edits or deletes a monitor rule. A save that changes nothing that matters is not posted. |
 | Monitors attached or detached | Monitors are added to or removed from the SLO, by hand or by a monitor rule. Long lists name the first few monitors "and N more". |
@@ -55,6 +60,7 @@ The SLO's **Audit Logs** page lists changes made to:
 
 - the SLO itself: its details, settings, labels, monitors and archiving;
 - its burn rate rules;
+- its error budget policy tiers;
 - its monitor rules;
 - its owner users and owner teams.
 
@@ -62,7 +68,7 @@ Changes to rules and owners are recorded against the rule or owner and roll up t
 
 Two things are left out:
 
-- **Evaluation results.** The SLI, error budget, burn rate, status and evaluation times change every few minutes. Their history is on the **Overview**, the **Metrics** page and the **Feed**.
+- **Evaluation results.** The SLI, error budget, burn rate, status and evaluation times change every few minutes. Their history is on the **Overview**, the **Metrics** page and the **Feed**. The error budget policy tier the SLO is in, and whether its deployments are allowed, are the exception: a change of either is recorded as a change OneUptime made itself.
 - **Changes OneUptime makes itself**, such as a monitor rule attaching or detaching a monitor, unless **Store System Events** is on for the project. The **Feed** records monitor attaches and detaches either way.
 
 ### Turn audit logs on

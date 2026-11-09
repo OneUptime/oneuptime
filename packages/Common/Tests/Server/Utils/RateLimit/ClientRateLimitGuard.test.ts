@@ -49,6 +49,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "test emails per signed-in user",
   "packages/Common/Server/Middleware/SubscriberNotificationPreviewRateLimit.ts":
     "previews per signed-in user",
+  "packages/Common/Server/Utils/OpenStack/OpenStackEventRecorder.ts":
+    "feed lines per OpenStack cloud per hour",
   "packages/Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter.ts":
     "telemetry per ingestion key",
   "packages/Common/Server/Utils/Telemetry/TelemetryWriterShedMetrics.ts":
@@ -60,7 +62,7 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
   "packages/App/FeatureSet/Workers/Jobs/Rum/FinalizeSessions.ts":
     "the project a worker run starts from",
   "packages/Common/Server/Infrastructure/GlobalCache.ts":
-    "the counters its callers name: certificate orders, production review AI reads and cloud live reads, below",
+    "the counters its callers name: certificate orders, production review AI reads, cloud live reads and Cloud AI agent registrations, below",
   "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts":
     "OneUptime AI's production review reads per repository and day",
   "packages/Common/Server/Utils/Greenlock/CertificateOrder.ts":
@@ -73,6 +75,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "deploys and rollouts recorded per service or workload and hour",
   "packages/Common/Server/Utils/CloudConnection/LiveRead/CloudLiveReadRateLimit.ts":
     "OneUptime AI's live reads per cloud account and minute",
+  "packages/Common/Server/Utils/CloudConnection/CloudAiAgentKeyAuthentication.ts":
+    "Cloud AI agent registrations per cloud account and minute, counted once its key is right",
   "packages/Common/Server/Utils/Form/FormFileAllowance.ts":
     "megabytes of files a form takes in per hour, every address together",
   "packages/Common/Server/API/MattermostAPI.ts":

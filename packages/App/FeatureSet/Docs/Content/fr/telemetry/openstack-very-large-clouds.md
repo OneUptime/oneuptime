@@ -1,6 +1,6 @@
 # Très grands clouds OpenStack
 
-Ce que coûte un cloud de n'importe quelle taille avant que vous n'installiez quoi que ce soit : à quel point la supervision pèse sur son plan de contrôle, la quantité de données qu'elle envoie, et ce que OneUptime fait différemment à mesure qu'un cloud grandit. Presque aucun cloud n'a besoin de tout cela : les valeurs par défaut de l'[agent OpenStack](/docs/telemetry/openstack) et d'une [sonde](/docs/telemetry/openstack-agentless) tiennent jusqu'à des milliers d'instances sans rien configurer.
+Ce que coûte un cloud de n'importe quelle taille avant que vous n'installiez quoi que ce soit : à quel point la supervision pèse sur son plan de contrôle, la quantité de données qu'elle envoie, et ce que OneUptime fait différemment à mesure qu'un cloud grandit. Presque aucun cloud ne devrait avoir besoin de tout cela : d'après les chiffres ci-dessous, les valeurs par défaut de l'[agent OpenStack](/docs/telemetry/openstack) et d'une [sonde](/docs/telemetry/openstack-agentless) tiennent jusqu'à des milliers d'instances sans rien configurer.
 
 :::cards
 - [La charge sur votre plan de contrôle](#la-charge-sur-votre-plan-de-contrôle): Des requêtes par minute et par service, à chaque taille.
@@ -46,21 +46,21 @@ L'exportateur de l'agent se connecte et lit chaque liste en entier à chaque scr
 
 | Cloud | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hyperviseurs, 100 instances, 20 projets | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hyperviseurs, 20 000 instances, 1 000 projets | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5 000 hyperviseurs, 200 000 instances, 10 000 projets | 3,4 | 106 | 7 501 | 43,5 | 57 | 0,4 |
+| 10 hyperviseurs, 100 instances, 20 projets | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hyperviseurs, 20 000 instances, 1 000 projets | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5 000 hyperviseurs, 200 000 instances, 10 000 projets | 5,2 | 106 | 7 501 | 43,5 | 57 | 0,4 |
 
 Ces chiffres sont comptés à partir du code source de l'exportateur, et l'exportateur n'a pas été exécuté à ces tailles. Un scrape dispose de 110 secondes : un Placement qui répond en 20 ms manque donc de temps vers 1 800 hyperviseurs, et Nova, à une seconde par page, vers 110 000 instances. Au-delà, un scrape de ces services échoue, même demandé avec douceur. Au-delà de ces tailles, utilisez le [chemin par la base de données](#le-chemin-par-la-base-de-données), ou une sonde.
 
 ### Quand une API ralentit
 
-Une sonde surveille le temps de réponse habituel de chaque service, et lorsqu'une réponse prend trois fois ce temps et au moins une seconde, ou cinq secondes quelle que soit la norme, elle attend aussi longtemps que cette réponse a pris avant d'interroger de nouveau ce service. Plusieurs lectures qui attendent en même temps passent à tour de rôle, de sorte qu'une pause ne se termine pas en rafale. Un service qui continue de répondre `429` ou `503` est laissé tranquille pendant une minute, puis deux, puis quatre, jusqu'à une demi-heure. Rien d'autre n'est retenu : chaque service est interrogé séparément.
+Une sonde surveille le temps de réponse habituel de chaque service, et se retient lorsqu'une réponse est lente ou refusée : [Ce que cela coûte à votre cloud](/docs/telemetry/openstack-agentless#ce-que-cela-coûte-à-votre-cloud) dit de combien. Plusieurs lectures qui attendent en même temps passent à tour de rôle, de sorte qu'une pause ne se termine pas en rafale. Rien d'autre n'est retenu : chaque service est interrogé séparément.
 
 La carte **Collecte des données** du cloud l'indique tant que cela dure, service par service : la lenteur de sa réponse la plus lente, et la durée pendant laquelle la sonde s'est retenue. L'exportateur de l'agent ne peut pas faire cela. Un scrape s'exécute en entier, à son intervalle : augmentez `scrape_interval` et `scrape_timeout` pour ce job afin de ménager un service.
 
 ## Les données envoyées
 
-Les séries d'un cloud découlent de ses effectifs. Le calculateur de la page **Documentation** d'un cloud dans OneUptime le détermine à partir de trois nombres. Pour le calculer vous-même, pour une région :
+Les séries d'un cloud découlent de ses effectifs. Le calculateur sous **OpenStack → Documentation** dans OneUptime le détermine à partir de trois nombres. Pour le calculer vous-même, pour une région :
 
 | Séries | Combien |
 | --- | --- |
@@ -72,7 +72,7 @@ Les séries d'un cloud découlent de ses effectifs. Le calculateur de la page **
 | Décomptes du mode synthèse, lorsqu'il est activé | Un par statut et un par projet : environ 6 plus les projets |
 | Keystone, Glance | Projets, domaines et 9, et 2 par image plus 5. Une sonde en ajoute 3 pour chacun de Heat et Magnum, que le cloud les exécute ou non |
 
-Les lignes de chaque scrape sont ce qui vous est facturé : les cinq premières lignes arrivent toutes les 2 minutes, 720 fois par jour, et la dernière toutes les 5 minutes, 288 fois. Le prix est celui de votre facture, [par Go selon la durée de conservation](/docs/telemetry/openstack#ce-que-cela-coûte). La facture lit la taille réelle de chaque ligne, et ce calcul se fait à 1 024 octets par ligne, ce à quoi la facturation de OneUptime se rabat lorsqu'elle n'a pas de taille pour une ligne. Une ligne avec beaucoup de labels, comme celle d'une instance, coûte davantage, et une sans label coûte moins.
+Les lignes de chaque scrape sont ce qui vous est facturé : les cinq premières lignes arrivent toutes les 2 minutes, 720 fois par jour, et la dernière toutes les 5 minutes, 288 fois. Le prix est celui de votre facture, [par Go selon la durée de conservation](/docs/telemetry/data-retention#ce-que-coûte-la-rétention). La facture lit la taille réelle de chaque ligne, et ce calcul se fait à 1 024 octets par ligne, ce à quoi la facturation de OneUptime se rabat lorsqu'elle n'a pas de taille pour une ligne. Une ligne avec beaucoup de labels, comme celle d'une instance, coûte davantage, et une sans label coûte moins.
 
 | Cloud | Séries | Go par jour, toutes les séries | Go par jour, en mode synthèse | Un mois conservé 15 jours, en mode synthèse |
 | --- | --- | --- | --- | --- |
@@ -114,7 +114,7 @@ Un agent lit un cloud quel que soit son nombre de régions, et c'est par là qu'
 - **Chaque couple région-service appartient à un seul agent.** Une ligne est la même ligne quel que soit le nombre d'agents qui la signalent, mais les séries de chaque agent sont stockées et facturées.
 - **Keystone appartient à un seul agent.** Il est unique pour tout le cloud, quelle que soit la région qui l'interroge.
 
-**Un agent par région** est ce que veulent la plupart des clouds. Ne listez que les entrées de cette région dans `clouds.yaml` et `OPENSTACK_EXPORTER_CLOUDS`. Seul le premier agent conserve Keystone :
+**Un agent par région** est ce que veulent la plupart des clouds. Ne listez que les entrées de cette région dans `clouds.yaml` et `OPENSTACK_EXPORTER_CLOUDS`. Seul le premier agent conserve Keystone. Un agent qui définit `OPENSTACK_AGENT_SERVICES` ne lit que ce qu'il nomme : ajoutez donc tout autre service que votre cloud exécute, comme `load-balancer` :
 
 ```bash
 # On the agent for RegionOne, in .env
@@ -133,7 +133,7 @@ OPENSTACK_AGENT_SERVICES=compute|placement|network|volume|image
 # Nova and Placement, which take the most
 OPENSTACK_AGENT_SERVICES=compute|placement
 
-# And everything else
+# And the rest: add any other service you run, such as load-balancer
 OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 ```
 
@@ -155,7 +155,7 @@ Au-delà de **1 500 hyperviseurs ou 100 000 instances**, l'agent peut lire les b
 **Pour l'activer**, dans `.env` :
 
 ```bash
-COMPOSE_PROFILES=openstack-database-exporter
+COMPOSE_PROFILES=openstack-database-exporter,openstack-ai-agent
 # Read from the databases, and from nowhere else: with the two together every series arrives twice.
 OPENSTACK_EXPORTER_CLOUDS=[]
 OPENSTACK_DATABASE_EXPORTER_TARGETS=[openstack-database-exporter:9180]
@@ -190,7 +190,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 
 ## À quoi la plus grande taille a été soumise
 
-Le vrai collecteur a lu une API simulée de 5 000 hyperviseurs, 200 000 instances et 10 000 projets toutes les deux minutes pendant 60 minutes, sur une vraie horloge. Ce qu'il a envoyé est passé par le vrai pliage et les vraies écritures dans un vrai Postgres, avec les lectures de la Vue d'ensemble et le balayage des lignes périmées s'exécutant à côté toutes les 30 secondes, et 200 instances qui changent à chaque collecte. Chaque budget ci-dessous est vérifié par une assertion, et une exécution qui en manque un échoue.
+Le vrai collecteur a lu une API simulée de 5 000 hyperviseurs, 200 000 instances et 10 000 projets toutes les deux minutes pendant 60 minutes, sur une vraie horloge. Ce qu'il a envoyé est passé par la vraie ingestion et les vraies écritures dans un vrai Postgres, avec les lectures de la Vue d'ensemble et le balayage des lignes périmées s'exécutant à côté toutes les 30 secondes, et 200 instances qui changent à chaque collecte. Chaque budget ci-dessous est vérifié par une assertion, et une exécution qui en manque un échoue.
 
 | Quoi | Budget | Mesuré |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ La marge n'est pas large sur une machine aussi occupée. Une heure antérieure, 
 
 ## Ce que lisent les pages
 
-Les pages d'un grand cloud se lisent aussi vite que celles d'un petit, car aucune ne lit tout le cloud.
+Les pages d'un grand cloud lisent à peine plus que celles d'un petit, car aucune ne lit tout le cloud.
 
 | Page | Ce qu'elle lit |
 | --- | --- |

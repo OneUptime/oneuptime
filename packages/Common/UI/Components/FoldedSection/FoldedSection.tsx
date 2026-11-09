@@ -1,3 +1,4 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
 import IconProp from "../../../Types/Icon/IconProp";
 import bringIntoView from "../../Utils/BringIntoView";
 import { getListSeparator } from "../../Utils/ListSeparator";
@@ -25,6 +26,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import InlineSeparator from "../InlineSeparator/InlineSeparator";
 
 /*
  * A fold: options most people never need, out of the way until someone
@@ -453,7 +455,7 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
                     aria-hidden="true"
                     className="pe-0.5 ps-1.5 text-gray-400"
                   >
-                    ·
+                    <InlineSeparator markOnly />
                   </span>
                 ) : (
                   <></>
@@ -498,7 +500,10 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
                   data-testid="folded-section-description"
                 >
                   {typeof props.description === "string"
-                    ? translate(props.description)
+                    ? readAsWritten(
+                        translate(props.description),
+                        translator.language,
+                      )
                     : props.description}
                 </span>
               ) : (
@@ -610,7 +615,10 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
               data-testid="folded-section-description"
             >
               {typeof props.description === "string"
-                ? translate(props.description)
+                ? readAsWritten(
+                    translate(props.description),
+                    translator.language,
+                  )
                 : props.description}
             </span>
           ) : (

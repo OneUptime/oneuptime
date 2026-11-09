@@ -67,7 +67,7 @@ flowchart TB
 
 ### इसे AI से जनरेट करें
 
-**Generate with AI** पर क्लिक करें। **Generate Postmortem with AI** डायलॉग **टेम्पलेट चुनें** में एक रूपरेखा देता है: **Standard Postmortem**, **Detailed Technical Postmortem** या **Brief Postmortem**, फिर आपके अपने पोस्टमॉर्टम टेम्पलेट। **Template Preview** रूपरेखा दिखाता है, और जनरेट करने से पहले आप उसे बदल सकते हैं।
+**Generate with AI** पर क्लिक करें। **एआई से पोस्टमॉर्टम बनाएँ** डायलॉग **टेम्पलेट चुनें** में एक रूपरेखा देता है: **Standard Postmortem**, **Detailed Technical Postmortem** या **Brief Postmortem**, फिर आपके अपने पोस्टमॉर्टम टेम्पलेट। **Template Preview** रूपरेखा दिखाता है, और जनरेट करने से पहले आप उसे बदल सकते हैं।
 
 डायलॉग के नीचे **Generate with AI** पर क्लिक करें। OneUptime AI घटना को पढ़ता है (उसका विवरण, मूल कारण और समाधान, उसकी स्थिति टाइमलाइन, उसके सार्वजनिक और निजी नोट, उसके Slack या Microsoft Teams चैनल के संदेश, और [उसकी कॉल](/docs/workspace-connections/video-calls#कॉल-ट्रांसक्रिप्ट) पर कही गई बातें) और आपकी रूपरेखा में पोस्टमॉर्टम लिखता है। फिर एडिटर उसी के साथ खुलता है।
 

@@ -10,11 +10,13 @@ import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
+import { ColumnAccessControl as BaseColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
@@ -35,6 +37,29 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+
+/*
+ * Who reads and writes a project's telemetry ingestion budgets: its members
+ * and its telemetry roles read them (the Usage page shows them); only a
+ * master admin writes them, so a project cannot raise the budget the
+ * instance admin set for it.
+ */
+const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
+  create: [],
+  read: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.ReadProject,
+    Permission.UnAuthorizedSsoUser,
+    Permission.ProjectUser,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.TelemetryViewer,
+  ],
+  update: [],
+};
 
 @EnableDocumentation({
   isMasterAdminApiDocs: true,
@@ -2458,6 +2483,53 @@ export default class Project extends TenantModel {
   public enableAutomaticAlertRemediation?: boolean = undefined;
 
   /*
+   * Two people approve a riskier fix (#6148's follow-up, which #5519
+   * proposed): with this on, a fix OneUptime AI proposes that holds a
+   * riskier change (a RiskyWrite command, on a Kubernetes cluster or on a
+   * resource, a cloud account included) runs only once two different people
+   * approve it - on the incident's or alert's AI card, or from the fix's
+   * Slack or Microsoft Teams message. The first approval is recorded on the
+   * fix (AutoRemediationSuggestion.firstApprovedBy*), and the second, by
+   * someone else, runs it. RemediationApproval.approve decides it on the
+   * server, so every way to approve reaches the same rule.
+   *
+   * Off by default, for new projects too, and never among the switches a
+   * new project starts with on: a team that wants it turns it on. It is a
+   * rule on who approves, not an AI feature - Enable AI stays the one
+   * switch that turns OneUptime AI on and off. Project owners and admins
+   * change it, as they change whether new incidents and alerts are fixed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Two Approvals for Riskier Fixes",
+    description:
+      "When enabled, a fix OneUptime AI proposes that holds a riskier change runs only once two different people approve it. Off by default.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public requireTwoApprovalsForRiskierFixes?: boolean = undefined;
+
+  /*
    * Drafting a postmortem when an incident resolves used to ride on
    * enableAutomaticIncidentInvestigation. It is its own switch now, on for
    * new projects like the rest. The migration that added it copied each
@@ -2674,6 +2746,48 @@ export default class Project extends TenantModel {
     length: ColumnLength.ShortText,
   })
   public defaultNetworkTopologyLayout?: string = undefined;
+
+  /*
+   * The columns each of the project's lists shows, and their order, for
+   * everyone who has not chosen columns of their own for it: a list's key
+   * (a ModelTable's userPreferencesKey) to { order, hidden } column ids
+   * (Types/Table/DefaultTableColumns). A Project Owner or Admin sets a
+   * list's from its Customize Columns ("Show these columns to everyone in
+   * this project"); a person's own choice wins over it, and Reset to
+   * default brings them back to it. Empty: every list shows its own
+   * columns, as it always did. Refused by ProjectService unless it reads as
+   * layouts, and read through DefaultTableColumnsUtil.parse. It comes with
+   * the project list the Dashboard reads as it starts, so a list draws the
+   * project's columns from its first paint.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Default Table Columns",
+    description:
+      "The columns each list shows, and their order, for everyone in the project who has not chosen their own: a list's key to its column ids in order and the ones hidden. Empty: every list shows its own columns.",
+    example:
+      '{"incidents-table": {"order": ["incidentNumber", "title", "currentIncidentState"], "hidden": ["labels"]}}',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public defaultTableColumns?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [Permission.User],
@@ -4727,4 +4841,246 @@ export default class Project extends TenantModel {
     default: false,
   })
   public recordAndTranscribeIncidentCalls?: boolean = undefined;
+
+  /*
+   * Public Note Approval (Incidents > Settings > Public Note Approval): a
+   * public note on an incident or an episode waits for the project's
+   * approvers before anything outside the team sees it
+   * (Types/StatusPage/PublicNoteApproval). Off by default, for new projects
+   * too: a project that never turns it on posts public notes as before.
+   * Project Owner or Project Admin, like the other switches of how a
+   * project's incidents behave; turning it on needs an approval step that
+   * names somebody (ProjectService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Approval for Incident Public Notes",
+    description:
+      "When enabled, a public note on an incident or an incident episode is published - shown on status pages, sent to subscribers and posted to chat channels - only once the project's incident approvers approve it (PublicNoteApprovalStep). Edits of published notes wait for approval too. Off by default. Turning it on needs at least one approval step.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public requireApprovalForIncidentPublicNotes?: boolean = undefined;
+
+  // The same, for scheduled maintenance events' public notes.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Approval for Scheduled Maintenance Public Notes",
+    description:
+      "When enabled, a public note on a scheduled maintenance event is published - shown on status pages, sent to subscribers and posted to chat channels - only once the project's scheduled maintenance approvers approve it (PublicNoteApprovalStep). Edits of published notes wait for approval too. Off by default. Turning it on needs at least one approval step.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public requireApprovalForScheduledMaintenancePublicNotes?: boolean =
+    undefined;
+
+  /*
+   * Telemetry ingestion budgets for this project, per signal
+   * (TelemetryIngestionBudget): set by the master admin only (Admin
+   * Dashboard > Projects > the project > Ingestion Budgets), so `create` and
+   * `update` are empty - the project's own admins can see the budget they
+   * are held to but cannot raise it. Empty is the instance default
+   * (GlobalConfig), 0 is no limit for this project. Read by the ingest path
+   * through TelemetryIngestionBudgetSettings' one-minute cache, which
+   * ProjectService clears on this server when one changes.
+   */
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Logs Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most logs this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Traces Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most traces this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Metrics Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most metrics this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Profiles Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most profiles this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Security Events Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most security events this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Logs Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send logs, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Traces Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send traces, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Metrics Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send metrics, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Profiles Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send profiles, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Security Events Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send security events, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsIngestionRateLimitInMBPerSecond?: number = undefined;
 }

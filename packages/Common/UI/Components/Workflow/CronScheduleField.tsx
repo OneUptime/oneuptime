@@ -30,6 +30,7 @@ import React, {
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import InlineSeparator from "../InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   initialValue?: string | null | undefined;
@@ -439,7 +440,9 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
                   >
                     {translator.translateText("Change")}
                   </InsertValueButton>
-                  <span className="text-gray-300">·</span>
+                  <span className="text-gray-300">
+                    <InlineSeparator markOnly />
+                  </span>
                   <button
                     type="button"
                     className="text-xs font-medium text-gray-500 hover:text-gray-700"
@@ -496,11 +499,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
       )}
 
       {props.error && (
-        <FieldError
-          message={props.error}
-          className="text-xs text-red-600"
-          announce="none"
-        />
+        <FieldError message={props.error} className="text-xs" announce="none" />
       )}
     </div>
   );

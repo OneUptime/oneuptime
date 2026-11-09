@@ -59,6 +59,7 @@ import {
   getTelemetryAiLogVerdict,
   getTelemetryAiLogVerdictRunIds,
 } from "./TelemetryAiCopy";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * A telemetry product's AI → Logs - the Profiler's first: everything
@@ -216,7 +217,7 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
             {translator.translateText(TELEMETRY_AI_LOG_KIND_LABELS[entry.kind])}
           </span>
           <span aria-hidden="true" className="px-1.5 text-gray-300">
-            &middot;
+            <InlineSeparator markOnly />
           </span>
           <Link
             to={getTelemetryAiInsightRoute(props.lane, entry.insight.id)}
@@ -532,7 +533,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
         </div>
 
         {loadMoreError ? (
-          <p className="text-center text-sm text-red-500" role="alert">
+          <p className="text-center text-sm text-red-700" role="alert">
             {translator.translateTemplate(couldNotLoad, {
               error: loadMoreError,
             })}

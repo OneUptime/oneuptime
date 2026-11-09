@@ -5,6 +5,7 @@ import WorkingHours, {
 import OnCallRuleWhenToPage from "Common/Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
 import { JSONObject } from "Common/Types/JSON";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * AN ON-CALL RULE'S WORKING HOURS, IN THE READER'S WORDS.
@@ -195,17 +196,18 @@ export const describeDays: (
     runs.push([day]);
   }
 
-  return runs
-    .map((run: Array<number>): string => {
+  // The days' names joined as they are written: "دوشنبه، چهارشنبه" in Persian.
+  return joinList(
+    runs.map((run: Array<number>): string => {
       if (run.length >= 3) {
         return `${name(run[0]!)}${WORKING_HOURS_RANGE_DASH}${name(
           run[run.length - 1]!,
         )}`;
       }
 
-      return run.map(name).join(", ");
-    })
-    .join(", ");
+      return joinList(run.map(name));
+    }),
+  );
 };
 
 // From one time to another: "09:00–17:00", or "9:00 AM – 5:00 PM".
@@ -241,8 +243,8 @@ const describeSpan: (
   }
 
   // Hours over several days say where each begins and ends: "Fri 17:00 – Mon 09:00".
-  return span.days
-    .map((day: number): string => {
+  return joinList(
+    span.days.map((day: number): string => {
       const endDay: number = (day + span.endsDaysLater) % 7;
 
       return `${describeDays([day], options.translator)} ${formatClock(
@@ -252,8 +254,8 @@ const describeSpan: (
         span.to,
         options,
       )}`;
-    })
-    .join(", ");
+    }),
+  );
 };
 
 /*

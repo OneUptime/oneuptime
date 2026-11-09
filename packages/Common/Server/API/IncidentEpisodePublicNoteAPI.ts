@@ -15,6 +15,7 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
+import PublicNoteApprovalRoutes from "./PublicNoteApprovalRoutes";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class IncidentEpisodePublicNoteAPI extends BaseAPI<
@@ -35,6 +36,15 @@ export default class IncidentEpisodePublicNoteAPI extends BaseAPI<
         }
       },
     );
+
+    // Approve, reject, send again and withdraw an edit (PublicNoteApprovalRoutes).
+    PublicNoteApprovalRoutes.register({
+      router: this.router,
+      basePath: new this.entityType().getCrudApiPath()?.toString() || "",
+      getHost: () => {
+        return IncidentEpisodePublicNoteService.getApprovalHost();
+      },
+    });
   }
 
   private async getAttachment(

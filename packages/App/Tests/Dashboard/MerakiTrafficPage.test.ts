@@ -207,27 +207,65 @@ function usage(
   };
 }
 
+/*
+ * Issue #5762: a page with both sources opens on Meraki when Meraki
+ * reported traffic of it, where #5225 opened it on its flows; a side the
+ * reader picked is remembered for this kind of page, and wins while it has
+ * something to show; a link that names a side wins over both.
+ */
 describe("which side a page opens on", () => {
+  const F: TrafficSide = TrafficSide.Flows;
+  const M: TrafficSide = TrafficSide.Meraki;
+
   test.each([
-    // [picked, Meraki available, has flows, shown]
-    [null, false, true, TrafficSide.Flows],
-    [null, false, false, TrafficSide.Flows],
-    [TrafficSide.Meraki, false, true, TrafficSide.Flows],
-    [null, true, true, TrafficSide.Flows],
-    [null, true, false, TrafficSide.Meraki],
-    [TrafficSide.Meraki, true, true, TrafficSide.Meraki],
-    [TrafficSide.Flows, true, false, TrafficSide.Flows],
+    /*
+     * [picked, remembered, Meraki available, Meraki offered, Meraki traffic, flows, shown]
+     * No Meraki side: the flows, whatever was picked or remembered.
+     */
+    [null, null, false, false, false, true, F],
+    [null, null, false, false, false, false, F],
+    [M, M, false, false, false, true, F],
+    // The new default: Meraki when it reports, even beside flow records.
+    [null, null, true, false, true, true, M],
+    [null, null, true, false, true, false, M],
+    // Meraki with nothing in the window: the flows, when there are any.
+    [null, null, true, false, false, true, F],
+    // Neither: Meraki, which says it waits for its first read.
+    [null, null, true, false, false, false, M],
+    // A link that names a side wins.
+    [F, null, true, false, true, true, F],
+    [M, null, true, false, false, true, M],
+    [F, M, true, false, true, true, F],
+    // The side remembered wins, while it has something to show.
+    [null, F, true, false, true, true, F],
+    [null, F, true, false, true, false, M],
+    [null, M, true, false, false, true, M],
+    // A device not linked yet: the link offer only where there are no flows.
+    [null, null, false, true, false, false, M],
+    [null, null, false, true, false, true, F],
+    [null, M, false, true, false, true, F],
+    [M, null, false, true, false, true, M],
   ])(
-    "picked %p, Meraki %p, flows %p: %p",
+    "picked %p, remembered %p, Meraki %p, offered %p, Meraki traffic %p, flows %p: %p",
     (
       picked: TrafficSide | null,
+      remembered: TrafficSide | null,
       isMerakiAvailable: boolean,
+      isMerakiOffered: boolean,
+      merakiHasTraffic: boolean,
       hasFlows: boolean,
       shown: TrafficSide,
     ) => {
-      expect(pickTrafficSide({ picked, isMerakiAvailable, hasFlows })).toBe(
-        shown,
-      );
+      expect(
+        pickTrafficSide({
+          picked,
+          remembered,
+          isMerakiAvailable,
+          isMerakiOffered,
+          merakiHasTraffic,
+          hasFlows,
+        }),
+      ).toBe(shown);
     },
   );
 });

@@ -4,6 +4,7 @@ import {
   getBulkStateChangeNoteFieldKey,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/BulkStateChange";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import StateChangeSubscriberNotification, {
   StateChangeNotificationColumns,
   StateChangeSubscriberNotificationDecision,
@@ -310,5 +311,81 @@ describe("StateChangeSubscriberNotification.applyToStateChange", () => {
         StatusPageSubscriberNotificationStatus.Pending,
       subscriberNotificationStatusMessage: "Set by the caller.",
     });
+  });
+});
+
+/*
+ * Issue #5720: a note that waits for approval tells nobody until it is
+ * published, and never if it is rejected. So when a state change comes with
+ * a note the project holds for approval, the note is not the message
+ * subscribers get about the change: the change tells them itself.
+ */
+describe("StateChangeSubscriberNotification.isPublicNoteHeldForApproval", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "7d0b4c6e-0f0a-4f3e-9d0c-1b2a3c4d5e6f",
+  );
+
+  test("asks the project's switch for the kind of note, and answers it", async () => {
+    for (const isRequired of [true, false]) {
+      const asked: Array<{ projectId: ObjectID; eventType: string }> = [];
+
+      const held: boolean =
+        await StateChangeSubscriberNotification.isPublicNoteHeldForApproval({
+          projectId: PROJECT_ID,
+          eventType: "Incident",
+          isApprovalRequired: async (query: {
+            projectId: ObjectID;
+            eventType: string;
+          }): Promise<boolean> => {
+            asked.push(query);
+            return isRequired;
+          },
+        });
+
+      expect(held).toBe(isRequired);
+      expect(asked).toEqual([{ projectId: PROJECT_ID, eventType: "Incident" }]);
+    }
+  });
+
+  test("a change with no project to ask about is not held, and asks nothing", async () => {
+    for (const projectId of [undefined, null]) {
+      let askedTimes: number = 0;
+
+      expect(
+        await StateChangeSubscriberNotification.isPublicNoteHeldForApproval({
+          projectId,
+          eventType: "ScheduledMaintenance",
+          isApprovalRequired: async (): Promise<boolean> => {
+            askedTimes++;
+            return true;
+          },
+        }),
+      ).toBe(false);
+      expect(askedTimes).toBe(0);
+    }
+  });
+
+  test("a held note leaves the change to tell subscribers itself", async () => {
+    const held: boolean =
+      await StateChangeSubscriberNotification.isPublicNoteHeldForApproval({
+        projectId: PROJECT_ID,
+        eventType: "Incident",
+        isApprovalRequired: async (): Promise<boolean> => {
+          return true;
+        },
+      });
+    const stateChange: StateChangeNotificationColumns = {
+      shouldStatusPageSubscribersBeNotified: true,
+    };
+
+    StateChangeSubscriberNotification.applyToStateChange({
+      stateChange,
+      hasPublicNote: !held,
+      skippedMessage: SKIPPED_MESSAGE,
+    });
+
+    expect(stateChange.subscriberNotificationStatus).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
   });
 });

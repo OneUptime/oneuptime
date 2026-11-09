@@ -6,8 +6,10 @@ import { OpenStackLogAttribute } from "./OpenStackLogs";
  *
  * Nothing the driver sends holds a request ID, and no log line holds a trace's ID: OSProfiler
  * and oslo.log do not know each other. So a trace's requests are found by what the two have
- * in common, and how sure that is, is said with each:
+ * in common, and how sure that is, is said with each. oslo.messaging's spans do name theirs,
+ * and then nothing needs finding:
  *
+ *   named-by-span    a span of this trace holds this request's ID.
  *   names-instance   a line of the same moments that names an instance the trace touched.
  *                    A boot's lines name their instance all the way down, and only that
  *                    instance's request does, so this is as good as an ID.
@@ -23,6 +25,7 @@ import { OpenStackLogAttribute } from "./OpenStackLogs";
  */
 
 export enum OpenStackTraceRequestMatch {
+  NamedBySpan = "named-by-span",
   NamesInstance = "names-instance",
   SameCall = "same-call",
   SameMoment = "same-moment",
@@ -56,6 +59,7 @@ const MAX_REQUESTS: number = 8;
 const MAX_BODY_READ: number = 4096;
 
 const MATCH_ORDER: ReadonlyArray<OpenStackTraceRequestMatch> = [
+  OpenStackTraceRequestMatch.NamedBySpan,
   OpenStackTraceRequestMatch.NamesInstance,
   OpenStackTraceRequestMatch.SameCall,
   OpenStackTraceRequestMatch.SameMoment,
@@ -111,6 +115,8 @@ export function joinOpenStackTraceToRequests(data: {
 }): Array<OpenStackTraceRequest> {
   const instanceIds: Set<string> = new Set<string>();
   const services: Set<string> = new Set<string>();
+  // Which requests the trace's own spans name, and where they did.
+  const named: Map<string, { services: Set<string>; at: number }> = new Map();
 
   for (const span of data.spans) {
     const instance: unknown = span.attributes["openstack.instance_id"];
@@ -121,6 +127,22 @@ export function joinOpenStackTraceToRequests(data: {
 
     if (span.service) {
       services.add(span.service);
+    }
+
+    const requestId: unknown =
+      span.attributes[OpenStackLogAttribute.GlobalRequestId] ||
+      span.attributes[OpenStackLogAttribute.RequestId];
+
+    if (typeof requestId === "string" && requestId) {
+      const known: { services: Set<string>; at: number } = named.get(
+        requestId,
+      ) || { services: new Set<string>(), at: readTime(span.startAt) };
+
+      if (span.service) {
+        known.services.add(span.service);
+      }
+
+      named.set(requestId, known);
     }
   }
 
@@ -133,6 +155,7 @@ export function joinOpenStackTraceToRequests(data: {
       at: number;
     }
   > = new Map();
+  const heldByLines: Set<string> = new Set<string>();
 
   for (const row of data.logs) {
     const rootId: string = readText(row, OpenStackLogAttribute.RequestRootId);
@@ -143,10 +166,14 @@ export function joinOpenStackTraceToRequests(data: {
 
     const service: string = readText(row, OpenStackLogAttribute.Service);
     const instance: string = readText(row, OpenStackLogAttribute.InstanceId);
+    const requestId: string = readText(row, OpenStackLogAttribute.RequestId);
     const time: number = readTime(row.time);
     let match: OpenStackTraceRequestMatch | null = null;
 
-    if (instance && instanceIds.has(instance)) {
+    if (named.has(rootId) || named.has(requestId)) {
+      match = OpenStackTraceRequestMatch.NamedBySpan;
+      heldByLines.add(named.has(rootId) ? rootId : requestId);
+    } else if (instance && instanceIds.has(instance)) {
       match = OpenStackTraceRequestMatch.NamesInstance;
     } else if (service && services.has(service)) {
       const body: string = (row.body || "").slice(0, MAX_BODY_READ);
@@ -189,6 +216,26 @@ export function joinOpenStackTraceToRequests(data: {
 
     known.at = known.at && time ? Math.min(known.at, time) : known.at || time;
     byRoot.set(rootId, known);
+  }
+
+  // Once a span names a request, a line that only shares its moments is someone else's guess.
+  if (named.size > 0) {
+    for (const [rootId, known] of byRoot) {
+      if (known.match !== OpenStackTraceRequestMatch.NamedBySpan) {
+        byRoot.delete(rootId);
+      }
+    }
+  }
+
+  // A request the spans name stands with no line of it read, because no line was needed.
+  for (const [requestId, known] of named) {
+    if (!heldByLines.has(requestId)) {
+      byRoot.set(requestId, {
+        match: OpenStackTraceRequestMatch.NamedBySpan,
+        services: known.services,
+        at: known.at,
+      });
+    }
   }
 
   return Array.from(byRoot.entries())

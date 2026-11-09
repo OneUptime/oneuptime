@@ -741,7 +741,7 @@ mkdir -p "$INSTALL_DIR/systemd"
 # stops the install, and every file must arrive as plain text, wherever it
 # comes from. Every agent's install.sh has this same block.
 AGENT_FILES_PATH="install/database-agent"
-AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent"
+AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/DatabaseAgent"
 AGENT_FILES_URL=""
 AGENT_FILE_ANSWER=""
 

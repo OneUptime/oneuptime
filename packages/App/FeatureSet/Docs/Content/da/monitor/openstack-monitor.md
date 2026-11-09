@@ -1,6 +1,6 @@
 # OpenStack-monitor
 
-En OpenStack-monitor overvåger én cloud - dens API'er, de workers der ligger bag dem, hypervisorer, instanser, netværk, lagerpuljer og projektkvoter - og giver dig besked, når et API holder op med at svare, en worker går ned, en hypervisor ikke har mere plads at give, eller en pulje løber fuld. Den læser de `openstack_*`-serier, som OneUptime OpenStack Agent indsamler fra openstack-exporter.
+En OpenStack-monitor overvåger én cloud - dens API'er, de workers der ligger bag dem, hypervisorer, instanser, netværk, lagerpuljer og projektkvoter - og giver dig besked, når et API holder op med at svare, en worker går ned, en hypervisor ikke har mere plads at give, eller en pulje løber fuld. Den læser de `openstack_*`-serier, som OneUptime OpenStack Agent indsamler fra openstack-exporter, eller en probe indsamler fra cloudens API'er.
 
 :::cards
 - [Opret monitoren](#opret-en-openstack-monitor): Seks trin i dashboardet.
@@ -29,7 +29,7 @@ flowchart TB
 
 ## Før du begynder
 
-- **Indsaml cloudets metrikker** med OpenStack Agent. Cloudets side **Dokumentation** under **Produkter → Infrastruktur → OpenStack** guider dig gennem installationen.
+- **Indsaml cloudets metrikker** med OpenStack Agent eller [en probe](/docs/telemetry/openstack-agentless). **Dokumentation** under **Produkter → Infrastruktur → OpenStack** guider dig gennem installationen af agenten.
 - **Kontrollér, at cloudet er registreret.** Det vises under **Produkter → Infrastruktur → OpenStack**, opkaldt efter agentens `OPENSTACK_CLOUD_NAME`, efter den første indsamling.
 
 ## Opret en OpenStack-monitor

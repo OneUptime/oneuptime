@@ -157,7 +157,9 @@ export const RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT: number = 3877;
  *                VM, unit, ... names) a write may touch. Empty or unset means
  *                any target except the agent's protected ones.
  * API_KEY:       the first non-empty of these authenticates registration
- *                (the collectors already set one of them).
+ *                (the collectors already set one of them). A Cloud AI
+ *                agent's setup command sets the first, its cloud account's
+ *                own key, instead of an ingestion key.
  */
 export const RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV: string =
   "ONEUPTIME_AI_AGENT_RESOURCE_TYPE";
@@ -166,7 +168,10 @@ export const RESOURCE_AI_AGENT_RESOURCE_NAME_ENV: string =
 export const RESOURCE_AI_ALLOW_WRITES_ENV: string = "ONEUPTIME_AI_ALLOW_WRITES";
 export const RESOURCE_AI_WRITE_TARGETS_ENV: string =
   "ONEUPTIME_AI_WRITE_TARGETS";
+// A Cloud AI agent's own key (Types/CloudConnection/CloudAiAgentKey).
+export const RESOURCE_AI_AGENT_KEY_ENV: string = "ONEUPTIME_AI_AGENT_KEY";
 export const RESOURCE_AI_AGENT_API_KEY_ENVS: ReadonlyArray<string> = [
+  RESOURCE_AI_AGENT_KEY_ENV,
   "ONEUPTIME_API_KEY",
   "ONEUPTIME_TELEMETRY_INGESTION_KEY",
   "ONEUPTIME_SERVICE_TOKEN",
@@ -189,6 +194,17 @@ export const RESOURCE_AI_AGENT_API_KEY_ENVS: ReadonlyArray<string> = [
  * AWS_WRITE_ROLE_ARN: AWS only: the role the agent assumes for each change,
  *                    with a session policy that allows only that change's
  *                    actions on its one resource.
+ * GCP_WRITE_SERVICE_ACCOUNT: Google Cloud only: the service account each
+ *                    change runs as, through a token the agent asks for that
+ *                    one change, for 15 minutes; the agent's own account
+ *                    then only reads. Unset (an agent set up before), its
+ *                    own account makes the changes.
+ * AZURE_WRITE_IDENTITY: Azure only: the resource ID of the user-assigned
+ *                    managed identity each change runs as, attached where
+ *                    the agent runs; the agent asks for its token for each
+ *                    change, and its own identity then only reads. Unset
+ *                    (an agent set up before), its own identity makes the
+ *                    changes.
  * Protected targets (ONEUPTIME_AI_PROTECTED_TARGETS) take the agent's own
  * service, roles and stack on top of what an operator lists.
  */
@@ -200,6 +216,10 @@ export const RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV: string =
   "ONEUPTIME_AI_CLOUD_REQUIRED_TAG";
 export const RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV: string =
   "ONEUPTIME_AI_AWS_WRITE_ROLE_ARN";
+export const RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV: string =
+  "ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT";
+export const RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV: string =
+  "ONEUPTIME_AI_AZURE_WRITE_IDENTITY";
 export const RESOURCE_AI_PROTECTED_TARGETS_ENV: string =
   "ONEUPTIME_AI_PROTECTED_TARGETS";
 /*
@@ -610,8 +630,10 @@ export interface ResourceAiAccessStatus {
 /*
  * Wire protocol (agent <-> server). Every path is relative to
  * RESOURCE_AI_AGENT_INGEST_PATH and every body is JSON; registration
- * authenticates with the ingestion key header, every other route with the
- * agentId/agentKey pair registration returned.
+ * authenticates with the key in the x-oneuptime-token header (the project's
+ * telemetry ingestion key, or a Cloud AI agent's own key, which names its
+ * cloud account), every other route with the agentId/agentKey pair
+ * registration returned.
  *
  *   POST /register        ResourceAiAgentRegisterRequest -> ResourceAiAgentRegisterResponse,
  *                         or 403 {message, reason: ResourceAiAgentRegistrationRefusalReason,
@@ -623,7 +645,10 @@ export interface ResourceAiAccessStatus {
  *                         "AiInvestigation" or "AiRemediation", stepId, stepType
  *                         "ResourceCommand", timeoutInMs, leaseExpiresAt) and
  *                         payload: ResourceCommandJobPayload
- *   POST /job/:id/heartbeat {agentId, agentKey} -> {status: "ok"}; 404 means the lease is lost
+ *   POST /job/:id/heartbeat {agentId, agentKey} -> {status: "ok"}, or {status: "ok",
+ *                         stop: true, reason} when the agent must stop the command
+ *                         (Enable AI was turned off since the claim); 404 means the
+ *                         lease is lost
  *   POST /job/:id/result  {agentId, agentKey, success, exitCode?, output, errorMessage?}
  *                         (no exitCode means the command never ran)
  *   POST /disconnect      {agentId, agentKey} -> {status: "ok"}
@@ -669,13 +694,19 @@ export interface ResourceAiAgentRegisterResponse {
  * agent_cap_reached:           the project hit the agent row cap or the
  *                              hourly new-agent brake. Needs an operator (or
  *                              time).
+ * agent_key_required:          a Cloud AI agent came with the project's
+ *                              telemetry ingestion key, and its cloud account's
+ *                              agent connects with a key of its own (since one
+ *                              connected, or the agent was reset). Needs an
+ *                              operator: run the setup command again.
  */
 export type ResourceAiAgentRegistrationRefusalReason =
   | "resource_type_invalid"
   | "resource_identifier_invalid"
   | "resource_not_found"
   | "previous_instance_online"
-  | "agent_cap_reached";
+  | "agent_cap_reached"
+  | "agent_key_required";
 
 // The refusals that clear without anyone doing anything; retrying is right.
 export const TRANSIENT_RESOURCE_AI_AGENT_REGISTRATION_REFUSALS: ReadonlyArray<ResourceAiAgentRegistrationRefusalReason> =

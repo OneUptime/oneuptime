@@ -39,6 +39,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export {
   FILTER_OPERATOR_LABELS,
@@ -576,15 +577,28 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                * Spaces rather than margins around the dot, so the words
                * read "Monitor · ..." aloud and under the pointer too.
                */}
-              <span className="text-indigo-300">{" · "}</span>
+              <span className="text-indigo-300">
+                <InlineSeparator />
+              </span>
+              {/*
+               * What is picked, set apart from the chip's name: an account
+               * id after a Persian name ("4109-2277-8841") kept its digit
+               * groups in the wrong order, and a Latin name its words.
+               */}
               <span className="font-semibold">
-                {isEmptyOperator
-                  ? translator.translateText(FILTER_OPERATOR_LABELS[operator])
-                  : operator === "is_not"
-                    ? translator.translateTemplate("not {{value}}", {
-                        value: displayValue,
-                      })
-                    : displayValue}
+                {isEmptyOperator ? (
+                  translator.translateText(FILTER_OPERATOR_LABELS[operator])
+                ) : operator === "is_not" ? (
+                  translator.translateTemplate(
+                    "not {{value}}",
+                    {
+                      value: displayValue,
+                    },
+                    { setsValuesApart: true },
+                  )
+                ) : (
+                  <bdi data-testid="filter-chip-value">{displayValue}</bdi>
+                )}
               </span>
             </span>
           </>

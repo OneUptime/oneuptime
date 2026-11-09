@@ -385,7 +385,7 @@ eBPF इंस्ट्रूमेंटेशन भी चालू होन
 | `kubeStateMetrics.enabled` | `false` | kube-state-metrics से क्लस्टर की स्थिति। |
 | `aiAgent.enabled` | `true` | Kubernetes AI एजेंट। यह क्या कर सकता है, इसके लिए देखें [Kubernetes AI एजेंट](/docs/telemetry/kubernetes-agent#kubernetes-ai-एजेंट)। |
 
-चार्ट का [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) हर विकल्प को सूचीबद्ध करता है और समझाता है, और [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent) फ़िल्टरिंग, सैंपलिंग और डेटा की मात्रा कम रखने को कवर करता है।
+चार्ट का [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/kubernetes-agent/values.yaml) हर विकल्प को सूचीबद्ध करता है और समझाता है, और [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent) फ़िल्टरिंग, सैंपलिंग और डेटा की मात्रा कम रखने को कवर करता है।
 
 ## अपग्रेड करना
 

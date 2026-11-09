@@ -189,6 +189,8 @@ az functionapp config appsettings set \
 - **執行個體**：函式回報的 `faas.instance` 值的即時清單。
 - 限定於該函式的完整 **日誌**、**追蹤** 和 **指標** 頁面。
 
+函式的遙測資料持續到達時顯示 **正在接收資料** ；15 分鐘內沒有任何遙測資料時顯示 **近期無呼叫** ，這在兩次執行之間是正常的：函式只在執行時傳送遙測資料。透過 API 新增的函式在收到第一批遙測資料之前顯示 **正在等待資料** 。
+
 ## 為函式加上標籤並指派擁有者
 
 以 `oneuptime.label.` 開頭的資源屬性會成為函式上的專案標籤：`oneuptime.label.team=payments` 會新增標籤 `team:payments`。將這些屬性加到 `OTEL_RESOURCE_ATTRIBUTES`：
@@ -215,8 +217,8 @@ OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=paymen
 函式的 **概覽**、**日誌**、**追蹤** 和 **指標** 顯示的是 `faas.name` 與函式名稱完全相同（包括大小寫）的遙測資料。透過 FaaS 類型的 `cloud.platform` 及其 `service.name` 命名的函式不需要自己的 `faas.name`：OneUptime 會在遙測資料送達時，將 `service.name` 作為 `faas.name` 寫入其中。在 OneUptime 開始填入 `faas.name` 之前儲存的遙測資料不會更新，也不會出現在頁面中：請叫用函式以傳送新的遙測資料。也請檢查頁面頂端的時間範圍。
 :::
 
-:::details 函式顯示為已中斷連線
-當 OneUptime 在 15 分鐘內沒有從函式收到任何資料時，函式會變為已中斷連線；OneUptime 每 5 分鐘檢查一次，而且它自身未在接收資料的時間不計入。只是偶爾執行的函式在兩次執行之間處於已中斷連線狀態：收到它的下一批遙測資料後，它會重新變為已連線。
+:::details 函式顯示「近期無呼叫」
+當 OneUptime 在 15 分鐘內沒有從函式收到任何資料時，函式會顯示 **近期無呼叫** ；OneUptime 每 5 分鐘檢查一次，而且它自身未在接收資料的時間不計入。對於只是偶爾執行的函式，這是正常的：收到它的下一批遙測資料後，它會重新顯示 **正在接收資料** 。如果函式正在被呼叫，請依上文中函式未出現時的檢查項目逐一檢查。
 :::
 
 ## 後續步驟

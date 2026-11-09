@@ -41,12 +41,12 @@ Het scherm is in tweeën verdeeld:
 
 | Deel | Wat het bevat |
 | ---- | ------------- |
-| **Groepsnavigator** (links) | Elke groep op de pagina, als boom, met een vak **Search groups...** erboven en een telling eronder, zoals `3 groups · 12 resources`. Een lange lijst eindigt met een knop **Show N more of M**. |
+| **Groepsnavigator** (links) | Elke groep op de pagina, als boom, met een vak **Groepen zoeken...** erboven en een telling eronder, zoals `3 groups · 12 resources`. Een lange lijst eindigt met een knop **Show N more of M**. |
 | **Bovenaan de pagina** | De eerste rij van de navigator: resources zonder groep, die bezoekers als eerste zien, boven elke groep. Op een pagina zonder groepen heet het rechterdeelvenster in plaats daarvan **Alle resources**. |
-| **Resourcedeelvenster** (rechts) | De resources van de geselecteerde groep. De kop ervan bevat **Edit Group**, de primaire knop **Monitor toevoegen** en een menu **Meer acties**. |
-| Kaartkop | **New Group**, en een menu met drie puntjes met **Import groups from CSV** en **Vernieuwen**. |
+| **Resourcedeelvenster** (rechts) | De resources van de geselecteerde groep. De kop ervan bevat **Groep bewerken**, de primaire knop **Monitor toevoegen** en een menu **Meer acties**. |
+| Kaartkop | **Nieuwe groep**, en een menu met drie puntjes met **Groepen importeren uit CSV** en **Vernieuwen**. |
 
-**Lege toestanden vertellen u wat u moet doen.** Een lege groep toont **No monitors here yet** met **Monitor toevoegen**, **Add Multiple** en, alleen zolang de pagina helemaal geen groepen heeft, **Create a Group**. Een zoekopdracht zonder resultaat toont **Geen resources komen overeen met uw zoekopdracht**.
+**Lege toestanden vertellen u wat u moet doen.** Een lege groep toont **Hier nog geen monitors** met **Monitor toevoegen**, **Meerdere toevoegen** en, alleen zolang de pagina helemaal geen groepen heeft, **Een groep aanmaken**. Een zoekopdracht zonder resultaat toont **Geen resources komen overeen met uw zoekopdracht**.
 
 ## Een monitor toevoegen
 
@@ -75,11 +75,11 @@ Klik op **Monitor toevoegen**. De rij verschijnt in de groep en op de statuspagi
 In een rastergroep vraagt het dialoogvenster boven **Meer velden** ook om de rij en de kolom waarin de monitor komt; zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling).
 
 > [!TIP]
-> Om meerdere controles als één rij te tonen, voegt u een [monitorgroep](/docs/monitor/monitor-groups) toe. Met de schakelaar **Monitorgroepen** aan (**Projectinstellingen** > **Geavanceerd** > **Functievlaggen**, die wordt opgeslagen zodra u hem omzet) staat onder de keuzelijst een link **Add a Monitor Group instead.** Klik erop en **Monitor** wordt **Monitor Groep** (**Selecteer monitorgroep**); **Add a Monitor instead.** zet het terug.
+> Om meerdere controles als één rij te tonen, voegt u een [monitorgroep](/docs/monitor/monitor-groups) toe. Met de schakelaar **Monitorgroepen** aan (**Projectinstellingen** > **Geavanceerd** > **Functievlaggen**, die wordt opgeslagen zodra u hem omzet) staat onder de keuzelijst een link **Voeg in plaats daarvan een monitorgroep toe.** Klik erop en **Monitor** wordt **Monitorgroep** (**Selecteer monitorgroep**); **Voeg in plaats daarvan een monitor toe.** zet het terug.
 
 ### Meerdere tegelijk toevoegen
 
-**Add Multiple** (ook **Add multiple monitors** in het menu **Meer acties**) opent **Add Multiple Monitors**. Ook dat is één pagina: een meervoudige selectie **Monitoren**, dan dezelfde ingeklapte **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die u kiest. Elke resource neemt de weergavenaam en beschrijving van zijn monitor over, en **Monitoren toevoegen** voegt ze allemaal toe. Zo vult u het snelst een nieuwe pagina.
+**Meerdere toevoegen** (ook **Meerdere monitors toevoegen** in het menu **Meer acties**) opent **Meerdere monitors toevoegen**. Ook dat is één pagina: een meervoudige selectie **Monitoren**, dan dezelfde ingeklapte **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die u kiest. Elke resource neemt de weergavenaam en beschrijving van zijn monitor over, en **Monitoren toevoegen** voegt ze allemaal toe. Zo vult u het snelst een nieuwe pagina.
 
 De meervoudige selectie heeft een tabblad **Labels**: klik op een label en elke monitor met dat label wordt in één keer geselecteerd.
 
@@ -124,7 +124,7 @@ De meeste groepen hebben alleen een naam nodig.
 :::steps
 ### Klikken op New Group
 
-**Create New Status Page Group** opent: twee velden, daarna twee ingeklapte secties.
+**Nieuwe groep voor statuspagina aanmaken** opent: twee velden, daarna twee ingeklapte secties.
 
 ### De groep een naam geven
 
@@ -132,14 +132,14 @@ Typ de **Groepsnaam**: de sectiekop die bezoekers zien.
 
 ### Hem nesten, als hij in een andere groep thuishoort
 
-Kies een **Parent Group**, of laat het op **No parent group (top level)**. **Add a sub group** in de menu's van een groep vult dit voor u in.
+Kies een **Bovenliggende groep**, of laat het op **Geen bovenliggende groep (hoogste niveau)**. **Een subgroep toevoegen** in de menu's van een groep vult dit voor u in.
 
 ### De groep maken
 
-Klik op **Create Status Page Group**. De groep verschijnt in de navigator, klaar voor monitoren.
+Klik op **Groep voor statuspagina aanmaken**. De groep verschijnt in de navigator, klaar voor monitoren.
 :::
 
-De twee velden zijn **Groepsnaam** (`name`) en **Parent Group** (`parentStatusPageGroupId`). De twee ingeklapte secties bevatten de rest:
+De twee velden zijn **Groepsnaam** (`name`) en **Bovenliggende groep** (`parentStatusPageGroupId`). De twee ingeklapte secties bevatten de rest:
 
 - **Indeling**: de ingeklapte kop zegt **Lijst** of **Raster**. Ze bevat **Weergavemodus** en de assen van een raster (zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling)), en ze klapt bij een rastergroep vanzelf open.
 - **Meer velden**: de exemplaren op groepsniveau van de resource-opties:
@@ -148,22 +148,22 @@ De twee velden zijn **Groepsnaam** (`name`) en **Parent Group** (`parentStatusPa
   - **Huidige groepsstatus weergeven** (`showCurrentStatus`): standaard aan. Toont een status naast de groepskop.
   - **Uptime % weergeven** (`showUptimePercent`): standaard uit, met **Selecteer uptime-precisie** zodra het aan staat.
 
-Om een groep te wijzigen, gebruikt u **Edit Group** in de kop van het deelvenster, of **Edit group** in het rijmenu van de navigator: **Edit Status Page Group** opent, met een knop **Wijzigingen opslaan**. De kop van het deelvenster toont labels voor de instellingen die aan staan (**Raster**, **Collapsed by default**, **Uptime %**), zodat u ziet hoe een groep is ingesteld zonder het formulier te openen.
+Om een groep te wijzigen, gebruikt u **Groep bewerken** in de kop van het deelvenster, of **Edit group** in het rijmenu van de navigator: **Groep van statuspagina bewerken** opent, met een knop **Wijzigingen opslaan**. De kop van het deelvenster toont labels voor de instellingen die aan staan (**Raster**, **Standaard ingeklapt**, **Uptime %**), zodat u ziet hoe een groep is ingesteld zonder het formulier te openen.
 
 ### Een groep beheren
 
 | Waar | Acties |
 | ----- | ------- |
 | Het rijmenu van de navigator | **Edit group**, **Omhoog**, **Omlaag**, **ID weergeven**, **Delete group** |
-| Het menu **Meer acties** van het deelvenster | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Vernieuwen**, **Delete this group** |
+| Het menu **Meer acties** van het deelvenster | **Deze groep bewerken**, **Een subgroep toevoegen**, **Groep omhoog verplaatsen**, **Groep omlaag verplaatsen**, **Groeps-ID tonen**, **Vernieuwen**, **Deze groep verwijderen** |
 
-Een groep die zonder naam is opgeslagen, verschijnt als **Untitled group**, een goed teken dat u iets wilde typen.
+Een groep die zonder naam is opgeslagen, verschijnt als **Groep zonder titel**, een goed teken dat u iets wilde typen.
 
 ## Groepen nesten
 
-Groepen zijn te nesten: stel **Parent Group** in op de onderliggende groep, of gebruik **Add a sub group inside this group** in de navigator. De helptekst van het formulier beschrijft de vorm waarvoor het bedoeld is (iets als Bedrijfsonderdelen › Regio › Markt), en elk niveau toont de samengevatte status en uptime van alles eronder.
+Groepen zijn te nesten: stel **Bovenliggende groep** in op de onderliggende groep, of gebruik **Add a sub group inside this group** in de navigator. De helptekst van het formulier beschrijft de vorm waarvoor het bedoeld is (iets als Bedrijfsonderdelen › Regio › Markt), en elk niveau toont de samengevatte status en uptime van alles eronder.
 
-Wanneer een groep onderliggende groepen heeft, toont het resourcedeelvenster een rij labels **Sub groups** die rechtstreeks naar elke onderliggende groep leidt, zodat u door de hiërarchie loopt zonder terug te gaan naar de navigator.
+Wanneer een groep onderliggende groepen heeft, toont het resourcedeelvenster een rij labels **Subgroepen** die rechtstreeks naar elke onderliggende groep leidt, zodat u door de hiërarchie loopt zonder terug te gaan naar de navigator.
 
 Nesten loont op grote pagina's: een hostingprovider met regio's binnen producten, of een retailer met markten binnen bedrijfsonderdelen. Op een pagina met twaalf monitoren is één plat niveau vriendelijker.
 
@@ -188,7 +188,7 @@ Kies **Raster** en er verschijnen nog vier velden:
 Elke monitor in een rastergroep staat in een cel, dus **Monitor toevoegen** en het bulkvenster vragen naast de monitor ook om de rij en de kolom, met uw eigen aslabels.
 
 > [!IMPORTANT]
-> Stel de assen in voordat u monitoren toevoegt. Een rastergroep zonder rijen of kolommen toont een melding dat er nog nergens een monitor kan staan, met een knop **Set up the grid** die het groepsformulier op de sectie **Indeling** opent, en de knop **Monitor toevoegen** ervan verdwijnt tot u dat hebt gedaan.
+> Stel de assen in voordat u monitoren toevoegt. Een rastergroep zonder rijen of kolommen toont een melding dat er nog nergens een monitor kan staan, met een knop **Het raster instellen** die het groepsformulier op de sectie **Indeling** opent, en de knop **Monitor toevoegen** ervan verdwijnt tot u dat hebt gedaan.
 
 ## Volgorde bepalen van wat bezoekers zien
 
@@ -196,8 +196,8 @@ De volgorde bepaalt u zelf, niet het alfabet:
 
 | Wat | Hoe u het herschikt |
 | ---- | ----------------- |
-| Resources binnen een groep | Sleep een rij. Het deelvenster zegt het: **Drag a row to change the order visitors see**. |
-| Groepen ten opzichte van elkaar | **Omhoog** / **Omlaag** in het rijmenu van de navigator, of **Move group up** / **Move group down** in **Meer acties**. |
+| Resources binnen een groep | Sleep een rij. Het deelvenster zegt het: **Sleep een rij om de volgorde te wijzigen die bezoekers zien**. |
+| Groepen ten opzichte van elkaar | **Omhoog** / **Omlaag** in het rijmenu van de navigator, of **Groep omhoog verplaatsen** / **Groep omlaag verplaatsen** in **Meer acties**. |
 | Resources zonder groep | Die staan in **Bovenaan de pagina** en verschijnen altijd boven elke groep, dus zet daar wat iedereen als eerste controleert. |
 
 **Twee gevallen waarin slepen uit staat.** Zoeken met het vak **Search in {group}...** zet herschikken uit (het deelvenster zegt `N of M shown · drag to reorder is off while filtering`), dus maak eerst de zoekopdracht leeg. En rastergroepen worden nooit door slepen herschikt, omdat de plaats van een monitor uit zijn rij en kolom volgt.
@@ -230,12 +230,12 @@ Daarna draait een regel opnieuw voor een monitor telkens wanneer er een wordt aa
 
 ## Groepen importeren uit CSV
 
-Een diepe hiërarchie met de hand opbouwen is omslachtig. **Import groups from CSV**, in het menu met drie puntjes van de kaartkop, opent het dialoogvenster **Import Groups from CSV**.
+Een diepe hiërarchie met de hand opbouwen is omslachtig. **Groepen importeren uit CSV**, in het menu met drie puntjes van de kaartkop, opent het dialoogvenster **Groepen importeren uit CSV**.
 
 :::steps
 ### Het sjabloon downloaden
 
-Klik op **Download CSV Template** om `status-page-groups-template.csv` te krijgen.
+Klik op **CSV-sjabloon downloaden** om `status-page-groups-template.csv` te krijgen.
 
 ### Het invullen
 
@@ -243,11 +243,11 @@ Eén rij per groep. Alleen `name` is verplicht; de kolommen staan hieronder.
 
 ### Uploaden en een voorbeeld bekijken
 
-Klik op **Choose CSV File**, kies uw bestand en dan **Preview Import** om te controleren wat er wordt aangemaakt voordat er iets wordt weggeschreven.
+Klik op **CSV-bestand kiezen**, kies uw bestand en dan **Voorbeeld van import** om te controleren wat er wordt aangemaakt voordat er iets wordt weggeschreven.
 
 ### Importeren
 
-Voer de import uit. Een tabel **Import results** toont elke rij als **Aangemaakt**, **Mislukt** of **Overgeslagen**, met de reden, zodat een foute rij nooit stilletjes verdwijnt.
+Voer de import uit. Een tabel **Importresultaten** toont elke rij als **Aangemaakt**, **Mislukt** of **Overgeslagen**, met de reden, zodat een foute rij nooit stilletjes verdwijnt.
 :::
 
 | Kolom | Wat het instelt |
@@ -265,7 +265,7 @@ Voer de import uit. Een tabel **Import results** toont elke rij als **Aangemaakt
 | `columnAxisLabel` | De naam van de kolomdimensie, voor een rastergroep. |
 | `columnAxisValues` | De kolomwaarden, voor een rastergroep. |
 
-De import maakt groepen aan, geen resources: voeg daarna monitoren toe met **Monitor toevoegen**, **Add Multiple** of een monitorregel.
+De import maakt groepen aan, geen resources: voeg daarna monitoren toe met **Monitor toevoegen**, **Meerdere toevoegen** of een monitorregel.
 
 ## Problemen oplossen
 
@@ -278,7 +278,7 @@ Controleer of de monitor is gearchiveerd: de rij van een gearchiveerde monitor w
 :::
 
 :::details Er is geen knop Monitor toevoegen in een rastergroep
-Het raster heeft nog geen rijen of kolommen. Klik op **Set up the grid**, voeg de aswaarden toe in de sectie **Indeling**, en **Monitor toevoegen** komt terug.
+Het raster heeft nog geen rijen of kolommen. Klik op **Het raster instellen**, voeg de aswaarden toe in de sectie **Indeling**, en **Monitor toevoegen** komt terug.
 :::
 
 :::details Ik kan geen rijen slepen

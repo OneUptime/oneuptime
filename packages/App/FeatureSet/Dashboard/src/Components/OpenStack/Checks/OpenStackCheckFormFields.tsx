@@ -482,7 +482,7 @@ export const OpenStackLifecycleOptionsField: FunctionComponent<
       <Toggle
         title={translator.translateText("Ping it on a floating IP")}
         description={translator.translateText(
-          "Also creates a floating IP and a security group that lets a ping in, and pings the server from the probe. The probe has to be able to reach your floating IPs.",
+          "Also creates a floating IP and a security group that lets a ping in, and pings the server from the probe, which has to reach your floating IPs.",
         )}
         value={Boolean(options.isFloatingIpEnabled)}
         dataTestId="openstack-lifecycle-option-floating-ip"
@@ -670,7 +670,7 @@ export function getOpenStackLifecycleCheckFormFields(
       required: false,
       hasNothingStoredWhenEditing: false,
       description:
-        "One of the hmac_keys in your services' [profiler] config. With it, each step's writes are signed, so a slow boot has a trace. Encrypted and never shown again.",
+        "One of the hmac_keys in your services' [profiler] config, which signs each step's writes, so a slow boot has a trace. Encrypted and never shown again.",
       dataTestId: "openstack-lifecycle-osprofiler-key",
       autoComplete: "new-password",
       collapsibleSection: more,

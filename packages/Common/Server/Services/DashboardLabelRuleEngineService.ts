@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Dashboard from "../../Models/DatabaseModels/Dashboard";
 import DashboardLabelRule from "../../Models/DatabaseModels/DashboardLabelRule";
@@ -94,6 +96,7 @@ class DashboardLabelRuleEngineServiceClass
       return await this.applyRules({
         dashboard: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running dashboard label rules: ${error}`, {
@@ -109,6 +112,8 @@ class DashboardLabelRuleEngineServiceClass
   private async applyRules(data: {
     dashboard: Dashboard;
     rules: Array<DashboardLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { dashboard, rules } = data;
 
@@ -189,11 +194,12 @@ class DashboardLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await DashboardService.getRepository()
-      .createQueryBuilder()
-      .relation(Dashboard, "labels")
-      .of(dashboard.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: DashboardService,
+      resourceId: dashboard.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory dashboard.labels so a downstream owner-rule engine in

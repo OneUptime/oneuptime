@@ -13,8 +13,7 @@ const StorageArrayAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Storage Array Audit Logs"
       description="All changes made to this storage array."
-      resourceType="Storage Array"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

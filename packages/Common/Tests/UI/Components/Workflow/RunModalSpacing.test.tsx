@@ -119,7 +119,7 @@ describe("the Run Workflow panel", () => {
 
   test.each(WIDTHS)(
     "ends a manual trigger's form 24px above the footer, like every side panel, at %ipx",
-    (width: number) => {
+    async (width: number) => {
       renderRunModal(triggerNode(ComponentID.Manual));
 
       // The form's own content: its heading, description and fields.
@@ -127,7 +127,8 @@ describe("the Run Workflow panel", () => {
         name: "Run Manual",
       }).parentElement!;
 
-      expect(screen.getByRole("textbox")).toBeInTheDocument();
+      // The form's code editor is a file of its own, which arrives a moment later.
+      expect(await screen.findByRole("textbox")).toBeInTheDocument();
       expect(resolveSpaceBelowInPx(form, scrollContainer(), width)).toBe(
         BOTTOM_SPACE_IN_PX,
       );

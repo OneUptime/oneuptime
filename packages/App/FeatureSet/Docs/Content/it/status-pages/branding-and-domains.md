@@ -29,16 +29,18 @@ Il branding era un tempo diviso tra schermate separate **Branding essenziale**, 
 
 ### Logo e immagine di copertina
 
-La prima scheda, **Logo e immagine di copertina**, ha un pulsante **Edit Images** che apre due passaggi:
+La prima scheda, **Logo e immagine di copertina**, ha un pulsante **Modifica immagini** che apre due passaggi:
 
 | Passaggio | Campi |
 | ---- | ------ |
-| **Logo** | Il caricamento del logo (segnaposto `Upload logo`), **Logo per il tema scuro** (segnaposto `Upload logo for the dark theme`), un logo facoltativo pensato per uno sfondo scuro, e **Logo Alt Text** (segnaposto `Logo of My Company`). Lasciate vuoto il testo alternativo e verrà usato il titolo della pagina di stato. |
-| **Immagine di copertina** | **Copertina**, un caricamento (segnaposto `Upload cover image`) per l'ampio banner dietro l'intestazione, e **Cover Image Alt Text**. Lasciate vuoto il testo alternativo se la copertina è puramente decorativa. |
+| **Logo** | Il caricamento del logo (segnaposto `Upload logo`), **Logo per il tema scuro** (segnaposto `Upload logo for the dark theme`), un logo facoltativo pensato per uno sfondo scuro, e **Testo alternativo del logo** (segnaposto `Logo of My Company`). Lasciate vuoto il testo alternativo e verrà usato il titolo della pagina di stato. |
+| **Immagine di copertina** | **Copertina**, un caricamento (segnaposto `Upload cover image`) per l'ampio banner dietro l'intestazione, e **Testo alternativo dell'immagine di copertina**. Lasciate vuoto il testo alternativo se la copertina è puramente decorativa. |
 
 Il logo, il logo per il tema scuro, l'immagine di copertina e la favicon sono file caricati nel progetto stesso della pagina di stato, e questo viene verificato a ogni salvataggio, dalla dashboard, dall'API, da Terraform o da un workflow. Un file caricato in un altro progetto viene rifiutato con le stesse parole di un file che non esiste più: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." oppure "The favicon's file could not be found. Upload the favicon again." Caricare di nuovo l'immagine dalla pagina risolve il problema.
 
 La vostra pagina di stato mostra solo immagini del proprio progetto; un'immagine che non può mostrare viene omessa, come se la pagina non ne avesse. La dashboard, l'API e Terraform leggono le immagini della pagina allo stesso modo: un'immagine di un altro progetto torna come nessuna immagine. Le email che la pagina invia (agli iscritti, e agli utenti privati riguardo al loro accesso) mostrano il suo logo allo stesso modo: un logo che la pagina non può mostrare viene omesso anche da esse, invece di comparire come immagine rotta.
+
+Queste email portano il logo al loro interno, quindi si vede anche dove un client di posta non carica immagini da internet o non riesce a raggiungere OneUptime: un logo PNG, JPEG, GIF, WebP o SVG entra come un'immagine delle dimensioni dell'intestazione dell'email. Un logo SVG le cui parole sono testo, e non forme, viene invece mostrato dal suo indirizzo, perché il server non ha alcun font con cui disegnare le parole: convertite il testo in tracciati nel vostro strumento di progettazione, oppure caricate un PNG.
 
 ### Tema
 
@@ -75,7 +77,7 @@ La tabella **Link intestazione** contiene i link nell'intestazione della pagina 
 
 ### Footer
 
-- **Informazioni sul copyright**: **Edit Copyright** apre un campo, **Informazioni sul copyright**, con il segnaposto `Acme, Inc.`.
+- **Informazioni sul copyright**: **Modifica copyright** apre un campo, **Informazioni sul copyright**, con il segnaposto `Acme, Inc.`.
 - **Link del footer**: la stessa coppia **Titolo** e **Collegamento** dei link dell'intestazione, ordinati trascinandoli e aggiunti con **Aggiungi: Link del footer**.
 
 I link dell'intestazione servono alla navigazione; quelli del footer alle clausole, come note legali, privacy e termini.
@@ -86,7 +88,7 @@ L'ultima sezione della pagina è chiusa in **Altre impostazioni**, perché pochi
 
 **Colori del grafico della cronologia.** Oltre al **Tema**, sono le uniche impostazioni di colore integrate di una pagina di stato. Ogni barra della cronologia uptime è un giorno.
 
-- **Colore predefinito della barra**: **Edit Default Bar Color** apre il selettore **Colore predefinito della barra**. È il colore di un giorno a cui non corrisponde alcuna regola per il colore delle barre. Ogni nuova pagina di stato parte con il verde.
+- **Colore predefinito della barra**: **Modifica colore predefinito della barra** apre il selettore **Colore predefinito della barra**. È il colore di un giorno a cui non corrisponde alcuna regola per il colore delle barre. Ogni nuova pagina di stato parte con il verde.
 - **Regole per il colore delle barre**: una tabella ordinata di regole che ordinate trascinandole. Ogni regola ha **Quando la % di uptime è maggiore o uguale a** e **Quindi, usa questo colore della barra**; le colonne della tabella dicono `When Uptime Percent >=` e `Then, Bar Color is`. Le regole vengono controllate dall'alto, e la prima raggiunta dall'uptime di un giorno ne stabilisce il colore, quindi tenete le percentuali più alte sopra quelle più basse: una regola sotto un'altra con percentuale uguale o inferiore non colora mai un giorno. Il colore di una nuova regola è già scelto, uno che le altre regole non usano ancora; scegliete invece quello che volete.
 - **Anteprima dei colori delle barre**: ogni colore che un giorno può assumere, come lo vede la maggior parte delle persone (**Visione dei colori completa**) e come lo vedono le persone con daltonismo rosso-verde (**Deuteranopia (rosso-verde)**, **Protanopia (rosso-verde)**). Avvisa quando due colori sembrano uguali a loro e quando una regola non colora mai un giorno.
 
@@ -153,7 +155,7 @@ Su OneUptime Cloud, aggiungerne o modificarne uno richiede il piano **Growth**. 
 
 Per impostazione predefinita, una pagina di stato è raggiungibile all'URL di anteprima mostrato nella sua schermata **Panoramica**. Per portarla sul vostro nome host, andate in **Pagine di stato → la vostra pagina → Branding → Domini personalizzati** (`{id}/domains`).
 
-La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Nessun dominio personalizzato trovato**, con **Crea: Pagina di stato Dominio** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
+La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Nessun dominio personalizzato trovato**, con **Crea: Dominio della pagina di stato** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
 
 Portare la pagina sul vostro dominio richiede tre passaggi, e solo i primi due spettano a voi:
 
@@ -195,7 +197,7 @@ statusPage:
 :::steps
 #### Aprire Crea: Pagina di stato Dominio
 
-In **Domini personalizzati**, fate clic su **Crea: Pagina di stato Dominio**. La finestra di dialogo è una sola pagina.
+In **Domini personalizzati**, fate clic su **Crea: Dominio della pagina di stato**. La finestra di dialogo è una sola pagina.
 
 #### Inserire il sottodominio
 
@@ -211,7 +213,7 @@ In **Dominio** (segnaposto `Select domain`), scegliete uno dei vostri domini ver
 
 #### Creare il dominio
 
-Fate clic su **Crea: Pagina di stato Dominio**. La finestra di dialogo si chiude e si apre la **Configurazione DNS** del nuovo dominio, con il record da aggiungere.
+Fate clic su **Crea: Dominio della pagina di stato**. La finestra di dialogo si chiude e si apre la **Configurazione DNS** del nuovo dominio, con il record da aggiungere.
 :::
 
 Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungete quel dominio ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.

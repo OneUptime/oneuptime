@@ -296,7 +296,7 @@ Os modelos cobrem os casos comuns. Para montar um sentido você mesmo, ou mudá-
 
 O Jira Cloud aceita autenticação Basic montada a partir do e-mail da conta e de um token de API, codificados juntos, como em [O que os modelos pedem](#o-que-os-modelos-pedem).
 
-1. Vá para **Fluxos de trabalho → Variáveis globais** e clique em **Criar: Fluxo de trabalho Variável**. Dê o nome `JIRA_AUTH`, cole o valor codificado em **Conteúdo**, ative **Segredo** e crie-a.
+1. Vá para **Fluxos de trabalho → Variáveis globais** e clique em **Criar: Variável do fluxo de trabalho**. Dê o nome `JIRA_AUTH`, cole o valor codificado em **Conteúdo**, ative **Segredo** e crie-a.
 2. Crie uma segunda variável, `JIRA_URL`, com `https://your-domain.atlassian.net` sem barra no final, e deixe **Segredo** desativado.
 
 Qualquer bloco pode então enviar `Basic {{global.variables.JIRA_AUTH}}` como cabeçalho `Authorization`, e o token nunca aparece no workflow nem nas execuções dele. Com um token com escopos, `JIRA_URL` passa a ser `https://api.atlassian.com/ex/jira/<cloudId>`, e cada caminho abaixo se apoia nela sem mudanças.

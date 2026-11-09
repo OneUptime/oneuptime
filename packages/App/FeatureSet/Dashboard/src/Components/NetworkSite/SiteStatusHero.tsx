@@ -33,6 +33,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -422,7 +423,9 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
                   count: translator.formatNumber(data.devicesUp),
                 })}
               </span>
-              <span className="text-gray-400"> · </span>
+              <span className="text-gray-400">
+                <InlineSeparator />
+              </span>
               <span
                 className={
                   data.devicesDown > 0
@@ -450,7 +453,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
 
         <div>
           <SiteHeroTileTitle
-            title="Endpoints"
+            title="Discovered Devices"
             description={NETWORK_SITE_METRIC_DESCRIPTIONS.endpoints}
           />
           <div className="mt-1.5 text-2xl font-semibold text-gray-900">

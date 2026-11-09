@@ -32,6 +32,11 @@ import {
   FAAS_CLOUD_PLATFORM_VALUES,
   FaasCloudPlatform,
 } from "../../../Types/Cloud/CloudPlatform";
+import {
+  SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES,
+  SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_LABEL,
+  SERVERLESS_FUNCTION_RECEIVING_DATA_LABEL,
+} from "../../../Types/Serverless/ServerlessFunctionStatus";
 
 /*
  * The serverless guide asks where the functions run, then shows only that
@@ -129,9 +134,12 @@ const settingsStep: (guide: SetupGuideContent) => SetupGuideStep = (
  * wrap-regex rule rejects `/.../.test(line)`.
  */
 const VARIABLE_LINE: RegExp = /^[A-Z][A-Z0-9_]*=/;
-// The function disconnect sweep: 15 minutes of time OneUptime was receiving.
-const FUNCTION_DISCONNECT_AFTER_15_MINUTES: RegExp =
-  /markDisconnectedFunctions[\s\S]*?ReceivingCoverage\.getSilenceCutoff\(\{\s*silenceInMinutes: 15,/;
+/*
+ * The function sweep: the status module's minutes (15) of time OneUptime
+ * was receiving, after which the status reads No recent invocations.
+ */
+const FUNCTION_QUIET_AFTER_STATUS_MINUTES: RegExp =
+  /markDisconnectedFunctions[\s\S]*?ReceivingCoverage\.getSilenceCutoff\(\{\s*silenceInMinutes: SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES,/;
 const REFERENCE_ROW: RegExp = /^\| `[A-Z_]+` \|/;
 
 // The NAME=value lines of the code blocks in a piece of markdown.
@@ -566,13 +574,51 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: ServerlessPlatform) => {
     expect(labelLine.includes(AZURE_RESOURCE_ATTRIBUTES)).toBe(isAzure);
   });
 
-  test("troubleshooting covers the key, a missing function, empty tabs and disconnects", () => {
+  test("troubleshooting covers the key, a missing function, empty tabs and a quiet status", () => {
     expect(topicTitles(guide.troubleshooting)).toEqual([
       "The key check returns 401",
       "The function does not appear under Serverless Functions",
       "The function is listed, but its tabs are empty",
-      'The function shows as "Disconnected"',
+      'Status shows "No recent invocations" while the function runs',
     ]);
+  });
+
+  /*
+   * Issue #6269: a function sends telemetry only while it runs, so one
+   * nothing has invoked for fifteen minutes is idle, not disconnected. The
+   * guide names the status the list and the Overview draw, says when it
+   * turns and that it is normal, and sends a function that is being invoked
+   * to the checks that find a broken export.
+   */
+  test("a quiet function is told it is idle, in the status's own words, never Disconnected", () => {
+    const quiet: SetupGuideTopic | undefined = guide.troubleshooting?.find(
+      (topic: SetupGuideTopic): boolean => {
+        return topic.title.includes(
+          SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_LABEL,
+        );
+      },
+    );
+    const whatYouGet: SetupGuideTopic | undefined = guide.advanced?.find(
+      (topic: SetupGuideTopic): boolean => {
+        return topic.title === "What you get";
+      },
+    );
+
+    expect(quiet?.markdown).toBe(
+      "Status turns to **No recent invocations** after 15 minutes without telemetry. That is expected while nothing invokes the function: it only sends telemetry while it runs, and its next batch turns it back to **Receiving data**. If it is being invoked, work through **The function does not appear under Serverless Functions** above.",
+    );
+    expect(quiet?.markdown).toContain(
+      `after ${SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES} minutes`,
+    );
+    expect(whatYouGet?.markdown).toContain(
+      `A function shows **${SERVERLESS_FUNCTION_RECEIVING_DATA_LABEL}** while its telemetry arrives, and **${SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_LABEL}** after ${SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES} minutes without any, which is normal between runs: it sends telemetry only while it runs.`,
+    );
+    // The topic it sends a busy function to is one of this guide's.
+    expect(topicTitles(guide.troubleshooting)).toContain(
+      "The function does not appear under Serverless Functions",
+    );
+    expect(getSetupGuideMarkdown(guide)).not.toMatch(/disconnect/i);
+    expect(getSetupGuideMarkdown(guide)).not.toMatch(/\bConnected\b/);
   });
 
   test("a missing function is traced back to what this platform needs", () => {
@@ -1029,12 +1075,13 @@ describe("what the guide says matches the product", () => {
     }
   });
 
-  test("a function is marked disconnected after 15 minutes without telemetry", () => {
+  test("a function turns quiet after the status module's 15 minutes without telemetry", () => {
     const service: string = read(
       "packages/Common/Server/Services/ServerlessFunctionService.ts",
     );
     // 15 minutes of time OneUptime was receiving (issue #2825).
-    expect(service).toMatch(FUNCTION_DISCONNECT_AFTER_15_MINUTES);
+    expect(service).toMatch(FUNCTION_QUIET_AFTER_STATUS_MINUTES);
+    expect(SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES).toBe(15);
   });
 
   test("label and owner rules exist and run when a function is created", () => {

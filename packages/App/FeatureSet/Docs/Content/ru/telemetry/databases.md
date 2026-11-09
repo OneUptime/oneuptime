@@ -211,7 +211,7 @@ OneUptime Database Agent — это преднастроенный OpenTelemetry
 
 **Один агент отслеживает один сервер баз данных.** Идентификация проставляется на всё, что отправляет агент, поэтому запускайте один агент (один каталог установки) на сервер и по одному на реплику, если хотите видеть реплики на отдельных страницах.
 
-Агент находится в [каталоге DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent): `docker-compose.yml`, по одной конфигурации коллектора на приёмник (`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh` и юнит systemd. Форк или совместимая замена запускает конфигурацию своего семейства и сообщает собственное имя: `DATABASE_SYSTEM=mariadb` запускает `configs/mysql.yaml`, и база данных отображается как MariaDB.
+Агент находится в [каталоге DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent): `docker-compose.yml`, по одной конфигурации коллектора на приёмник (`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh` и юнит systemd. Форк или совместимая замена запускает конфигурацию своего семейства и сообщает собственное имя: `DATABASE_SYSTEM=mariadb` запускает `configs/mysql.yaml`, и база данных отображается как MariaDB.
 
 ### Перед началом
 

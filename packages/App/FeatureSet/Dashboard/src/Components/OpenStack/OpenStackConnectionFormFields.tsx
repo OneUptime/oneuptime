@@ -44,6 +44,7 @@ import {
   validateOpenStackOptions,
   validateOpenStackRegions,
 } from "./OpenStackProbeCollectionView";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The fields of a cloud a probe collects: connecting a new one (Connect Cloud, on the clouds
@@ -133,7 +134,7 @@ function getKeystoneFields(data: {
       required: true,
       placeholder: "https://keystone.example.com:5000/v3",
       description:
-        "The auth_url from your clouds.yaml or openrc file. It has to be HTTPS: for a cloud whose APIs only speak plain HTTP, turn on TLS, or use the OpenStack agent.",
+        "The auth_url from your clouds.yaml or openrc file. It has to be HTTPS: if your APIs only speak plain HTTP, turn on TLS or use the OpenStack agent.",
       dataTestId: "openstack-auth-url",
       customValidation: (values: CloudValues): string | null => {
         return validateOpenStackAuthUrl(
@@ -332,7 +333,7 @@ function getCertificatesAndRegionsFields(
       fieldType: FormFieldSchemaType.CustomComponent,
       required: false,
       description:
-        "Leave empty if the probe trusts every API's certificate. For a cloud with its own certificate authority, test the connection to see each certificate and trust it.",
+        "Leave empty if the probe trusts every API's certificate. For a cloud with its own authority, test the connection to see each certificate and trust it.",
       getCustomElement: (
         _values: CloudValues,
         props: CustomElementProps,
@@ -447,7 +448,7 @@ function getAdvancedFields(
       fieldType: FormFieldSchemaType.Dropdown,
       required: false,
       description:
-        "Which of the catalog's addresses the probe uses for each service. Most probes sit where public answers. One in the control plane's own network may want internal.",
+        "The catalog address the probe uses for each service. Most probes sit where public answers. One in the control plane's own network may want internal.",
       dropdownOptions: OPENSTACK_ENDPOINT_INTERFACES.map(
         (value: OpenStackEndpointInterface) => {
           return { label: value, value: value };
@@ -516,7 +517,7 @@ function getAdvancedFields(
           return (options.translator.translateText(title) as string) || title;
         });
 
-        return on.length > 0 ? on.join(", ") : null;
+        return on.length > 0 ? joinList(on) : null;
       },
       collapsibleSection: advancedSection,
     },

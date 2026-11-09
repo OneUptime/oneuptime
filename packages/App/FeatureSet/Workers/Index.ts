@@ -373,6 +373,8 @@ import "./Jobs/IoT/CleanupStaleResources";
 // Cloud environment disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Cloud/CleanupStaleResources";
 import "./Jobs/Cloud/ReadCloudConnections";
+// Azure connections' streams: their event hubs read every minute.
+import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
 import "./Jobs/DataSecurity/DataSecurityJobs";
 import "./Jobs/DataObservability/DataObservabilityJobs";
@@ -423,6 +425,16 @@ import "./Jobs/Rum/ProcessSessionErasureRequests";
  * budget about to run out can alert instead of recordings silently stopping.
  */
 import "./Jobs/Rum/PublishSessionReplayBudgetMetrics";
+
+/*
+ * Telemetry usage on every install: counted where billing is off (billing
+ * counts it where it is on), and deleted past the instance's usage
+ * retention either way.
+ */
+import "./Jobs/TelemetryUsage/MeterTelemetryUsage";
+import "./Jobs/TelemetryUsage/DeleteOldTelemetryUsage";
+// Telemetry ingestion budgets as metrics, and the owners' warning emails.
+import "./Jobs/TelemetryIngestionBudget/PublishTelemetryIngestionBudgetMetrics";
 
 /*
  * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry

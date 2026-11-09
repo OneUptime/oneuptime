@@ -57,6 +57,49 @@ export interface AddableColumnsConfig<
   maxResults?: number | undefined;
 }
 
+// What Save was asked to do besides keeping the columns for the viewer.
+export interface ColumnCustomizationSaveOptions {
+  /*
+   * "Show these columns to everyone in this project": the columns become
+   * the project's default for this list (ModelTable/ProjectDefaultColumns).
+   */
+  isForEveryone: boolean;
+}
+
+/*
+ * The project's default columns for this list - where there is a project -
+ * and what the viewer may do with them.
+ */
+export interface ColumnCustomizationProjectDefault {
+  // The project keeps default columns for this list.
+  hasDefault: boolean;
+  // The viewer sees them: they have picked no columns of their own.
+  isFollowed: boolean;
+  // The viewer may set them, and take them away (Project Owner, Admin).
+  canChange: boolean;
+  // Takes the list's default away: everyone sees the list's own columns.
+  onRemove: () => void;
+}
+
+export const COLUMN_CUSTOMIZATION_EVERYONE_TEST_ID: string =
+  "column-customization-everyone";
+
+export const COLUMN_CUSTOMIZATION_REMOVE_DEFAULT_TEST_ID: string =
+  "column-customization-remove-default";
+
+export const COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_NOTE_TEST_ID: string =
+  "column-customization-project-default-note";
+
+/*
+ * Where the picker says what the project's default columns mean for the
+ * reader - an Owner's or Admin's box to show the columns to everyone, or
+ * anyone else's note that what they save is theirs alone - in one panel of
+ * one look, under the list, so either reads as a word about everyone's
+ * columns rather than another hint on how to arrange one's own.
+ */
+export const COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_PANEL_CLASS_NAME: string =
+  "rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5";
+
 export interface ComponentProps<
   TBaseModel extends BaseModel | AnalyticsBaseModel,
 > {
@@ -64,9 +107,15 @@ export interface ComponentProps<
   columns: Array<CustomizableColumn<TBaseModel>>;
   // Optional pool of columns the viewer can add. Omit to hide the whole section.
   addableColumns?: AddableColumnsConfig<TBaseModel> | undefined;
-  onSave: (columns: Array<CustomizableColumn<TBaseModel>>) => void;
+  onSave: (
+    columns: Array<CustomizableColumn<TBaseModel>>,
+    options: ColumnCustomizationSaveOptions,
+  ) => void;
   onClose: () => void;
-  // Drop the stored layout and go back to what the table ships with.
+  /*
+   * Drop the viewer's own layout: back to the project's default for the
+   * list, or what the table ships with where there is none.
+   */
   onReset: () => void;
   title?: string | undefined;
   description?: string | undefined;
@@ -75,6 +124,12 @@ export interface ComponentProps<
    * its place in the footer.
    */
   isDefaultLayout?: boolean | undefined;
+  // The project's default columns for this list. Omitted: no project.
+  projectDefault?: ColumnCustomizationProjectDefault | undefined;
+  // The project's default is being saved or taken away: the buttons wait.
+  isSaving?: boolean | undefined;
+  // Why the project's default could not be saved, as the server said.
+  error?: string | undefined;
 }
 
 type ColumnCustomizationModalFunction = <
@@ -124,6 +179,12 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
     [...props.columns],
   );
   const [searchText, setSearchText] = useState<string>("");
+  /*
+   * Whether Save also makes the columns everyone's - off each time the
+   * picker opens: a person arranging their own list never changes everyone
+   * else's by a box left ticked.
+   */
+  const [isForEveryone, setIsForEveryone] = useState<boolean>(false);
 
   const visibleCount: number = useMemo(() => {
     return entries.filter((entry: CustomizableColumn<TBaseModel>) => {
@@ -659,7 +720,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
       if (config.errorMessage) {
         return (
           <p
-            className="px-3 py-4 text-sm text-red-500"
+            className="px-3 py-4 text-sm text-red-700"
             data-testid="add-column-error"
           >
             {config.errorMessage}
@@ -810,6 +871,92 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
     );
   };
 
+  /*
+   * ---------------------------------------------------------------------
+   * The project's default columns for this list
+   * ---------------------------------------------------------------------
+   *
+   * A Project Owner or Admin may make the columns everyone's: whoever has
+   * not picked their own for this list sees them. They are told what
+   * ticking it does - replace the list's default where it has one - and
+   * may take a default away. Anyone else seeing the project's default is
+   * told so, and that what they save is theirs alone.
+   */
+  const getProjectDefaultSection: () => ReactElement = (): ReactElement => {
+    const projectDefault: ColumnCustomizationProjectDefault | undefined =
+      props.projectDefault;
+
+    if (!projectDefault) {
+      return <></>;
+    }
+
+    if (!projectDefault.canChange) {
+      if (!projectDefault.hasDefault || !projectDefault.isFollowed) {
+        return <></>;
+      }
+
+      return (
+        <div
+          className={`${COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_PANEL_CLASS_NAME} flex items-start gap-2.5`}
+          data-testid={COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_NOTE_TEST_ID}
+        >
+          <Icon
+            icon={IconProp.UserGroup}
+            className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+          />
+          <p className="text-sm text-gray-600">
+            {translator.translateText(
+              "These are this project's default columns for this list. Changes you save are only for you.",
+            )}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={`${COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_PANEL_CLASS_NAME} space-y-2`}
+      >
+        <CheckboxElement
+          title="Show these columns to everyone in this project"
+          description={
+            projectDefault.hasDefault
+              ? "Replaces this list's default columns. Anyone who picked their own keeps theirs."
+              : "Anyone who hasn't picked their own columns for this list sees these."
+          }
+          value={isForEveryone}
+          disabled={Boolean(props.isSaving)}
+          dataTestId={COLUMN_CUSTOMIZATION_EVERYONE_TEST_ID}
+          onChange={(value: boolean) => {
+            setIsForEveryone(value);
+          }}
+        />
+        {projectDefault.hasDefault ? (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-gray-200 pt-2 text-xs text-gray-500">
+            <span>
+              {translator.translateText(
+                "This list has default columns for everyone in this project.",
+              )}
+            </span>
+            <Button
+              title="Remove default"
+              buttonSize={ButtonSize.ExtraSmall}
+              buttonStyle={ButtonStyleType.LINK}
+              className="text-xs"
+              dataTestId={COLUMN_CUSTOMIZATION_REMOVE_DEFAULT_TEST_ID}
+              disabled={Boolean(props.isSaving)}
+              onClick={() => {
+                projectDefault.onRemove();
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Modal
       title={props.title || "Customize Columns"}
@@ -821,19 +968,30 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
       submitButtonText="Save"
       closeButtonText="Cancel"
       onClose={props.onClose}
+      isLoading={props.isSaving}
+      error={props.error}
       onSubmit={() => {
-        props.onSave(entries);
+        props.onSave(entries, { isForEveryone: isForEveryone });
       }}
       leftFooterElement={
         props.isDefaultLayout ? (
           <></>
         ) : (
+          /*
+           * Back to what the viewer would see had they picked nothing: the
+           * project's default columns for the list, where it keeps them.
+           */
           <Button
-            title="Reset to default"
+            title={
+              props.projectDefault?.hasDefault
+                ? "Reset to project default"
+                : "Reset to default"
+            }
             icon={IconProp.Refresh}
             buttonSize={ButtonSize.Normal}
             buttonStyle={ButtonStyleType.NORMAL}
             dataTestId="column-customization-reset"
+            disabled={Boolean(props.isSaving)}
             onClick={() => {
               props.onReset();
             }}
@@ -927,6 +1085,8 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
         </p>
 
         {getAddColumnSection()}
+
+        {getProjectDefaultSection()}
       </div>
     </Modal>
   );

@@ -67,6 +67,8 @@ O menu lateral de um serviço tem cinco seções:
 | **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o serviço gerenciado por código. Começa recolhida. |
 | **Avançado** | **Configurações**, **Registros de auditoria** e **Excluir serviço**. **Avançado** começa recolhido: expanda-o primeiro. |
 
+Ao lado do nome, a **Visão geral** de um serviço mostra se a telemetria dele está chegando: **Recebendo dados** enquanto algo chegou nos últimos 30 minutos, **Sem dados recentes** quando nada mais chega e **Aguardando dados** antes da primeira telemetria. Um serviço que só envia spans enquanto atende requisições mostra **Sem dados recentes** sempre que ninguém o chama, então isso sozinho não é uma falha.
+
 Os proprietários importam além da página: uma função cujo escopo é Owned lê a telemetria dos serviços que pertencem a você ou às suas equipes. Veja [Telemetria](/docs/permissions/index#telemetria).
 
 ## Alterar um serviço
@@ -110,6 +112,10 @@ Verifique se a telemetria dele traz um `service.name`. A telemetria de um navega
 
 :::details Visto pela última vez está atrasado
 **Visto pela última vez** é atualizado cerca de uma vez por minuto, não a cada lote, então pode ficar cerca de um minuto atrás da telemetria em tempo real.
+:::
+
+:::details Um serviço mostra "Sem dados recentes"
+Nada chegou dele nos últimos 30 minutos. Isso é esperado para um serviço que só envia telemetria enquanto atende requisições, quando ninguém o chama. Se ele deveria estar atendendo requisições, verifique se está em execução, se o exportador do OpenTelemetry dele alcança o OneUptime e se ele ainda informa o mesmo `service.name`: um nome novo cria um serviço novo.
 :::
 
 ## Próximos passos

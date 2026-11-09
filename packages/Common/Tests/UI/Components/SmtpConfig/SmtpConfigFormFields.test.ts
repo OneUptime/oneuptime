@@ -1,7 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
-import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
+import GlobalConfig, {
+  EmailServerType,
+} from "../../../../Models/DatabaseModels/GlobalConfig";
 import ProjectSmtpConfig from "../../../../Models/DatabaseModels/ProjectSmtpConfig";
-import MailTransportType from "../../../../Types/Email/MailTransportType";
+import MailTransportType, {
+  API_KEY_MAIL_TRANSPORTS,
+} from "../../../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../../../Types/Email/SMTPAuthenticationType";
 import Field, {
@@ -16,12 +20,25 @@ import {
 } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { getCreateFormColumnDefault } from "../../../../UI/Components/Forms/Utils/CreateFormDefaults";
 import {
+  AMAZON_SES_REGION_INVALID,
   DEFAULT_SMTP_PORT,
+  EMAIL_PROVIDER_CHOICES,
+  EMAIL_PROVIDER_DESCRIPTION,
+  EMAIL_PROVIDER_KEY_COLUMNS,
+  GLOBAL_EMAIL_PROVIDERS,
+  GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS,
+  GLOBAL_EMAIL_PROVIDER_TRANSPORTS,
   GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+  GlobalEmailProviderMissingSetting,
+  GlobalEmailProviderTransport,
   IMPLICIT_TLS_SMTP_PORT,
+  MAILGUN_DOMAIN_INVALID,
+  MAILGUN_REGION_CHOICES,
   PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES,
   PROJECT_SMTP_CONFIG_FORM_COLUMNS,
+  PROVIDER_FROM_EMAIL_DESCRIPTION,
   SMTP_FROM_EMAIL_DESCRIPTION,
+  SMTP_OAUTH_SCOPE_DESCRIPTION,
   SMTP_PASSWORD_DESCRIPTION,
   SMTP_PORT_DESCRIPTION,
   SMTP_REQUIRE_TLS_DESCRIPTION,
@@ -42,8 +59,20 @@ import {
   SMTP_TRANSPORT_DESCRIPTION,
   SMTP_USERNAME_DESCRIPTION,
   SmtpConfigFormColumns,
+  getAmazonSesFormFields,
+  getColumnsTransportIgnores,
+  getEmailProviderTitle,
+  getGlobalEmailProviderCard,
+  getGlobalEmailProviderFormFields,
+  getGlobalEmailProviderFormSteps,
+  getGlobalEmailProviderMissingSetting,
   getGlobalSmtpConfigFormFields,
+  getMailgunFormFields,
+  getPostmarkFormFields,
   getProjectSmtpConfigFormFields,
+  getProjectSmtpConfigFormSteps,
+  getResendFormFields,
+  getSendGridFormFields,
   getSmtpAdvancedSummary,
   getSmtpAuthType,
   getSmtpConfigFormSteps,
@@ -58,27 +87,35 @@ import {
   showsSmtpPassword,
   showsSmtpServerFields,
   showsSmtpUsername,
-  withoutValuesGraphIgnores,
+  withoutValuesTransportIgnores,
 } from "../../../../UI/Components/SmtpConfig/SmtpConfigFormFields";
+import MailgunRegion from "../../../../Types/Email/MailgunRegion";
+import type { CardSelectOption } from "../../../../UI/Components/CardSelect/CardSelect";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Port from "../../../../Types/Port";
 import type { RadioButton } from "../../../../UI/Components/RadioButtons/GroupRadioButtons";
 
 /*
- * The one builder behind both mail server forms - a project's Custom SMTP
- * config (Settings > Notification Settings) and the Admin Dashboard's
- * instance server (Settings > Email > Host Settings) - create and edit
- * alike:
+ * The builder behind every mail server form - a project's Custom SMTP
+ * config (Settings > Notification Settings), the Admin Dashboard's
+ * instance server (Settings > Email > Host Settings) and the instance's
+ * provider cards (Amazon SES, Mailgun, Postmark, Resend) - create and edit
+ * alike.
  *
- *   Server   Name (a project's config), Hostname, Port, Username,
- *            Password, then one folded Advanced section: Transport,
- *            Require TLS, Authentication Type, the OAuth fields and (a
- *            project's config) the Description;
- *   Sender   From Email, From Name.
+ * A project's config asks for its provider first, then that provider's
+ * step alone, then the sender:
  *
- * Only the layout changed: the columns each form writes, and what each one
- * starts as, are pinned here, so an existing config keeps saving what it
- * holds.
+ *   Provider     Name, the provider (a card each), the Description folded;
+ *   Server       SMTP only: Hostname, Port, Username, Password, and the
+ *                folded TLS and sign-in type;
+ *   OAuth        Microsoft Graph, or SMTP with OAuth: the OAuth grant (SMTP
+ *                only) and the OAuth app;
+ *   Amazon SES, SendGrid, Mailgun, Postmark, Resend   each provider's key;
+ *   Sender       From Email, From Name.
+ *
+ * The instance's server keeps Server - its transport folded under Advanced
+ * - then Sender. The columns each form writes, and what each starts as, are
+ * pinned here, so an existing config keeps saving what it holds.
  */
 
 type Values = Record<string, unknown>;
@@ -140,8 +177,72 @@ function shownKeys<TEntity>(
     .map(keyOf);
 }
 
+// The steps a form shows for these values, by id, in order.
+function shownSteps<TEntity>(
+  steps: Array<FormStep<TEntity>>,
+  values: Values,
+): Array<string> {
+  return steps
+    .filter((step: FormStep<TEntity>): boolean => {
+      return (
+        !step.showIf || step.showIf(values as unknown as FormValues<TEntity>)
+      );
+    })
+    .map((step: FormStep<TEntity>): string => {
+      return step.id;
+    });
+}
+
+/*
+ * What a project's form shows for these values: the fields on the steps it
+ * shows, each shown by its own showIf - as BasicForm shows them.
+ */
+function projectShows(values: Values): Array<string> {
+  const steps: Array<string> = shownSteps(PROJECT_STEPS, values);
+
+  return PROJECT_FIELDS.filter((field: Field<ProjectSmtpConfig>): boolean => {
+    return (
+      steps.includes(field.stepId || "") &&
+      (!field.showIf ||
+        field.showIf(values as unknown as FormValues<ProjectSmtpConfig>))
+    );
+  }).map(keyOf);
+}
+
+/*
+ * The rows a step takes on screen: every field, but fields next to each
+ * other in one folded section are its one header (FormStepsScan's rule).
+ */
+function rowsOn<TEntity>(
+  fields: Array<Field<TEntity>>,
+  stepId: string,
+): number {
+  let rows: number = 0;
+  let previous: string | undefined = undefined;
+
+  for (const field of fields) {
+    if (field.stepId !== stepId) {
+      continue;
+    }
+
+    const section: string | undefined = field.collapsibleSection?.id;
+
+    if (section !== undefined && section === previous) {
+      continue;
+    }
+
+    rows++;
+    previous = section;
+  }
+
+  return rows;
+}
+
 const PROJECT_FIELDS: Array<Field<ProjectSmtpConfig>> =
   getProjectSmtpConfigFormFields();
+
+const PROJECT_STEPS: Array<FormStep<ProjectSmtpConfig>> =
+  getProjectSmtpConfigFormSteps();
 
 const GLOBAL_FIELDS: Array<Field<GlobalConfig>> =
   getGlobalSmtpConfigFormFields();
@@ -152,10 +253,18 @@ const PROJECT: SmtpConfigFormColumns<ProjectSmtpConfig> =
 const GLOBAL: SmtpConfigFormColumns<GlobalConfig> =
   GLOBAL_SMTP_CONFIG_FORM_COLUMNS;
 
-describe("the steps", () => {
-  test("are Server, then Sender, on both forms", () => {
-    const steps: Array<FormStep<ProjectSmtpConfig>> =
-      getSmtpConfigFormSteps<ProjectSmtpConfig>();
+const PROVIDER_STEPS: Array<[MailTransportType, string, string]> = [
+  [MailTransportType.AmazonSES, "amazon-ses", "Amazon SES"],
+  [MailTransportType.SendGrid, "sendgrid", "SendGrid"],
+  [MailTransportType.Mailgun, "mailgun", "Mailgun"],
+  [MailTransportType.Postmark, "postmark", "Postmark"],
+  [MailTransportType.Resend, "resend", "Resend"],
+];
+
+describe("the instance's steps", () => {
+  test("are Server, then Sender", () => {
+    const steps: Array<FormStep<GlobalConfig>> =
+      getSmtpConfigFormSteps<GlobalConfig>();
 
     expect(steps).toEqual([
       { title: "Server", id: "server" },
@@ -170,55 +279,196 @@ describe("the steps", () => {
     }
 
     // A fresh list per form, so no form can change another's.
-    expect(getSmtpConfigFormSteps<ProjectSmtpConfig>()).not.toBe(steps);
-    expect(getSmtpConfigFormSteps<GlobalConfig>()).toEqual(steps);
+    expect(getSmtpConfigFormSteps<GlobalConfig>()).not.toBe(steps);
   });
 
   test("every field is on one of them", () => {
-    for (const fields of [
-      PROJECT_FIELDS as Array<Field<unknown>>,
-      GLOBAL_FIELDS as Array<Field<unknown>>,
-    ]) {
-      for (const field of fields) {
-        expect([SMTP_SERVER_STEP_ID, SMTP_SENDER_STEP_ID]).toContain(
-          field.stepId,
-        );
-      }
+    for (const field of GLOBAL_FIELDS) {
+      expect([SMTP_SERVER_STEP_ID, SMTP_SENDER_STEP_ID]).toContain(
+        field.stepId,
+      );
+    }
+  });
+});
+
+describe("a project's steps", () => {
+  test("the provider, the step of each provider, then the sender", () => {
+    expect(
+      PROJECT_STEPS.map((step: FormStep<ProjectSmtpConfig>) => {
+        return [step.id, step.title];
+      }),
+    ).toEqual([
+      ["provider", "Provider"],
+      ["server", "Server"],
+      ["oauth", "OAuth"],
+      ["amazon-ses", "Amazon SES"],
+      ["sendgrid", "SendGrid"],
+      ["mailgun", "Mailgun"],
+      ["postmark", "Postmark"],
+      ["resend", "Resend"],
+      ["sender", "Sender"],
+    ]);
+
+    // A fresh list per form.
+    expect(getProjectSmtpConfigFormSteps()).not.toBe(PROJECT_STEPS);
+  });
+
+  test("a provider's step is titled by its name, never looked up: Resend is interface text too", () => {
+    for (const step of PROJECT_STEPS) {
+      expect({ id: step.id, isName: Boolean(step.isTitleProductName) }).toEqual(
+        {
+          id: step.id,
+          isName: PROVIDER_STEPS.some(
+            ([, id]: [MailTransportType, string, string]): boolean => {
+              return id === step.id;
+            },
+          ),
+        },
+      );
+    }
+  });
+
+  test("every field is on one of them", () => {
+    const ids: Array<string> = PROJECT_STEPS.map(
+      (step: FormStep<ProjectSmtpConfig>): string => {
+        return step.id;
+      },
+    );
+
+    for (const field of PROJECT_FIELDS) {
+      expect(ids).toContain(field.stepId);
+    }
+  });
+
+  test.each([
+    [{}, ["provider", "server", "sender"]],
+    [
+      { transportType: MailTransportType.SMTP },
+      ["provider", "server", "sender"],
+    ],
+    [
+      {
+        transportType: MailTransportType.SMTP,
+        authType: SMTPAuthenticationType.OAuth,
+      },
+      ["provider", "server", "oauth", "sender"],
+    ],
+    [
+      { transportType: MailTransportType.MicrosoftGraph },
+      ["provider", "oauth", "sender"],
+    ],
+    [
+      { transportType: MailTransportType.AmazonSES },
+      ["provider", "amazon-ses", "sender"],
+    ],
+    [
+      // A sign-in left on OAuth from before asks for no OAuth app.
+      {
+        transportType: MailTransportType.SendGrid,
+        authType: SMTPAuthenticationType.OAuth,
+      },
+      ["provider", "sendgrid", "sender"],
+    ],
+    [
+      { transportType: MailTransportType.Mailgun },
+      ["provider", "mailgun", "sender"],
+    ],
+    [
+      { transportType: MailTransportType.Postmark },
+      ["provider", "postmark", "sender"],
+    ],
+    [
+      { transportType: MailTransportType.Resend },
+      ["provider", "resend", "sender"],
+    ],
+  ])("%j walks %j", (values: Values, steps: Array<string>) => {
+    expect(shownSteps(PROJECT_STEPS, values)).toEqual(steps);
+  });
+
+  test("no step shows more than five rows", () => {
+    for (const step of PROJECT_STEPS) {
+      expect({ step: step.id, rows: rowsOn(PROJECT_FIELDS, step.id) }).toEqual({
+        step: step.id,
+        rows: expect.any(Number),
+      });
+      expect(rowsOn(PROJECT_FIELDS, step.id)).toBeLessThanOrEqual(5);
+      expect(rowsOn(PROJECT_FIELDS, step.id)).toBeGreaterThan(0);
     }
   });
 });
 
 describe("a project's Custom SMTP config", () => {
-  test("asks on Server for its name, the server and the sign-in", () => {
-    expect(openOn(PROJECT_FIELDS, "server")).toEqual([
+  test("asks on Provider for its name and the provider, the description folded", () => {
+    expect(openOn(PROJECT_FIELDS, "provider")).toEqual([
       "name",
+      "transportType",
+    ]);
+    expect(foldedOn(PROJECT_FIELDS, "provider")).toEqual(["description"]);
+  });
+
+  test("offers each provider as a card, two to a row, SMTP Server to start", () => {
+    const provider: Field<ProjectSmtpConfig> = fieldFor(
+      PROJECT_FIELDS,
+      "transportType",
+    );
+
+    expect(provider.title).toBe("Provider");
+    expect(provider.fieldType).toBe(FormFieldSchemaType.CardSelect);
+    expect(provider.cardSelectOptions).toBe(EMAIL_PROVIDER_CHOICES);
+    expect(provider.cardSelectMaxColumns).toBe(2);
+    expect(provider.required).toBe(true);
+    expect(provider.defaultValue).toBe(MailTransportType.SMTP);
+    expect(provider.description).toBe(EMAIL_PROVIDER_DESCRIPTION);
+    expect(provider.collapsibleSection).toBeUndefined();
+  });
+
+  test("asks on Server for the server and the sign-in, TLS and the sign-in type folded", () => {
+    expect(openOn(PROJECT_FIELDS, "server")).toEqual([
       "hostname",
       "port",
       "username",
       "password",
     ]);
+    expect(foldedOn(PROJECT_FIELDS, "server")).toEqual(["secure", "authType"]);
   });
 
-  test("folds the transport, TLS, sign-in type, OAuth and description under Advanced", () => {
-    expect(foldedOn(PROJECT_FIELDS, "server")).toEqual([
-      "transportType",
-      "secure",
-      "authType",
+  test("asks on OAuth for the grant and the app", () => {
+    expect(openOn(PROJECT_FIELDS, "oauth")).toEqual([
       "oauthProviderType",
       "clientId",
       "clientSecret",
       "tokenUrl",
       "scope",
-      "description",
     ]);
+    expect(foldedOn(PROJECT_FIELDS, "oauth")).toEqual([]);
   });
+
+  test.each([
+    [
+      "amazon-ses",
+      ["amazonSesAccessKeyId", "amazonSesSecretAccessKey", "amazonSesRegion"],
+    ],
+    ["sendgrid", ["sendgridApiKey"]],
+    ["mailgun", ["mailgunApiKey", "mailgunDomain", "mailgunRegion"]],
+    ["postmark", ["postmarkServerToken"]],
+    ["resend", ["resendApiKey"]],
+  ])(
+    "asks on %s for its key and nothing else",
+    (step: string, keys: Array<string>) => {
+      expect(openOn(PROJECT_FIELDS, step)).toEqual(keys);
+      expect(foldedOn(PROJECT_FIELDS, step)).toEqual([]);
+    },
+  );
 
   test("asks on Sender who the mail comes from", () => {
     expect(openOn(PROJECT_FIELDS, "sender")).toEqual(["fromEmail", "fromName"]);
     expect(foldedOn(PROJECT_FIELDS, "sender")).toEqual([]);
+    expect(fieldFor(PROJECT_FIELDS, "fromEmail").description).toBe(
+      PROVIDER_FROM_EMAIL_DESCRIPTION,
+    );
   });
 
-  test("writes every column the old six-step form wrote, and nothing else", () => {
+  test("writes every column the old form wrote, each provider's own, and nothing else", () => {
     expect(PROJECT_FIELDS.map(keyOf).sort()).toEqual(
       [
         "name",
@@ -235,10 +485,30 @@ describe("a project's Custom SMTP config", () => {
         "clientSecret",
         "tokenUrl",
         "scope",
+        "amazonSesAccessKeyId",
+        "amazonSesSecretAccessKey",
+        "amazonSesRegion",
+        "sendgridApiKey",
+        "mailgunApiKey",
+        "mailgunDomain",
+        "mailgunRegion",
+        "postmarkServerToken",
+        "resendApiKey",
         "fromEmail",
         "fromName",
       ].sort(),
     );
+  });
+
+  test("names a column of its own model for every field", () => {
+    const model: ProjectSmtpConfig = new ProjectSmtpConfig();
+
+    for (const field of PROJECT_FIELDS) {
+      expect({
+        column: keyOf(field),
+        isColumn: Boolean(model.getTableColumnMetadata(keyOf(field))),
+      }).toEqual({ column: keyOf(field), isColumn: true });
+    }
   });
 
   test("starts a new config on port 587, a create form's own start", () => {
@@ -287,6 +557,261 @@ describe("a project's Custom SMTP config", () => {
 
     expect(description.required).toBe(false);
     expect(description.collapsibleSection).toBeDefined();
+    expect(description.collapsibleSection!.openWhenConfigured).toBe(false);
+  });
+
+  test("requires what the mail service cannot send without, on the step it is asked", () => {
+    const required: Array<string> = PROJECT_FIELDS.filter(
+      (field: Field<ProjectSmtpConfig>): boolean => {
+        return Boolean(field.required);
+      },
+    ).map((field: Field<ProjectSmtpConfig>): string => {
+      return `${field.stepId}:${keyOf(field)}`;
+    });
+
+    expect(required).toEqual([
+      "provider:name",
+      "provider:transportType",
+      "server:hostname",
+      "server:port",
+      "server:authType",
+      "oauth:oauthProviderType",
+      "oauth:clientId",
+      "oauth:clientSecret",
+      "oauth:tokenUrl",
+      "oauth:scope",
+      "amazon-ses:amazonSesAccessKeyId",
+      "amazon-ses:amazonSesSecretAccessKey",
+      "amazon-ses:amazonSesRegion",
+      "sendgrid:sendgridApiKey",
+      "mailgun:mailgunApiKey",
+      "mailgun:mailgunDomain",
+      "mailgun:mailgunRegion",
+      "postmark:postmarkServerToken",
+      "resend:resendApiKey",
+      "sender:fromEmail",
+      "sender:fromName",
+    ]);
+
+    // A server that needs no password is the Authentication type's None.
+    expect(fieldFor(PROJECT_FIELDS, "username").required).toBe(false);
+    expect(fieldFor(PROJECT_FIELDS, "password").required).toBe(false);
+  });
+
+  test("asks the OAuth grant only of SMTP: Microsoft Graph always uses Client Credentials", () => {
+    const grant: Field<ProjectSmtpConfig> = fieldFor(
+      PROJECT_FIELDS,
+      "oauthProviderType",
+    );
+
+    expect(
+      grant.showIf!({
+        transportType: MailTransportType.SMTP,
+        authType: SMTPAuthenticationType.OAuth,
+      } as unknown as FormValues<ProjectSmtpConfig>),
+    ).toBe(true);
+    expect(
+      grant.showIf!({
+        transportType: MailTransportType.MicrosoftGraph,
+      } as unknown as FormValues<ProjectSmtpConfig>),
+    ).toBe(false);
+  });
+});
+
+describe("the providers' cards", () => {
+  test("one for every transport, SMTP Server first and Microsoft Graph last", () => {
+    expect(
+      EMAIL_PROVIDER_CHOICES.map((choice: CardSelectOption): string => {
+        return choice.value;
+      }),
+    ).toEqual([
+      MailTransportType.SMTP,
+      MailTransportType.AmazonSES,
+      MailTransportType.SendGrid,
+      MailTransportType.Mailgun,
+      MailTransportType.Postmark,
+      MailTransportType.Resend,
+      MailTransportType.MicrosoftGraph,
+    ]);
+    expect(
+      [...EMAIL_PROVIDER_CHOICES]
+        .map((choice: CardSelectOption): string => {
+          return choice.value;
+        })
+        .sort(),
+    ).toEqual(Object.values(MailTransportType).sort());
+  });
+
+  test("each provider is named as its maker writes it, a name never looked up", () => {
+    for (const [transport, , name] of PROVIDER_STEPS) {
+      const choice: CardSelectOption = EMAIL_PROVIDER_CHOICES.find(
+        (candidate: CardSelectOption): boolean => {
+          return candidate.value === transport;
+        },
+      )!;
+
+      expect(choice.title).toBe(name);
+      expect(choice.isTitleProductName).toBe(true);
+      expect(getEmailProviderTitle(transport)).toBe(name);
+    }
+
+    // The two that are interface text: looked up.
+    expect(EMAIL_PROVIDER_CHOICES[0]!.title).toBe("SMTP Server");
+    expect(EMAIL_PROVIDER_CHOICES[0]!.isTitleProductName).toBeUndefined();
+    expect(getEmailProviderTitle(undefined)).toBe("SMTP Server");
+    expect(getEmailProviderTitle(MailTransportType.MicrosoftGraph)).toBe(
+      "Microsoft Graph",
+    );
+  });
+
+  test("each card says in one sentence what it sends with, by an icon of its own", () => {
+    const icons: Set<string> = new Set<string>();
+
+    for (const choice of EMAIL_PROVIDER_CHOICES) {
+      expect(choice.description).toMatch(/^[A-Z].*\.$/);
+      expect(choice.description.split(". ")).toHaveLength(1);
+      // No provider's logo: OneUptime's own icons, one a provider.
+      expect(choice.logo).toBeUndefined();
+      icons.add(choice.icon);
+    }
+
+    expect(icons.size).toBe(EMAIL_PROVIDER_CHOICES.length);
+  });
+
+  test("the columns each provider keeps its key in", () => {
+    expect(EMAIL_PROVIDER_KEY_COLUMNS).toEqual({
+      [MailTransportType.AmazonSES]: [
+        "amazonSesAccessKeyId",
+        "amazonSesSecretAccessKey",
+        "amazonSesRegion",
+      ],
+      [MailTransportType.SendGrid]: ["sendgridApiKey"],
+      [MailTransportType.Mailgun]: [
+        "mailgunApiKey",
+        "mailgunDomain",
+        "mailgunRegion",
+      ],
+      [MailTransportType.Postmark]: ["postmarkServerToken"],
+      [MailTransportType.Resend]: ["resendApiKey"],
+    });
+
+    expect(Object.keys(EMAIL_PROVIDER_KEY_COLUMNS).sort()).toEqual(
+      [...API_KEY_MAIL_TRANSPORTS].sort(),
+    );
+  });
+});
+
+describe("each provider's fields", () => {
+  test("every key is entered as a secret, never spell-checked", () => {
+    for (const key of [
+      "amazonSesSecretAccessKey",
+      "sendgridApiKey",
+      "mailgunApiKey",
+      "postmarkServerToken",
+      "resendApiKey",
+    ]) {
+      const field: Field<ProjectSmtpConfig> = fieldFor(PROJECT_FIELDS, key);
+
+      expect({ key, type: field.fieldType }).toEqual({
+        key,
+        type: FormFieldSchemaType.EncryptedText,
+      });
+      expect(field.disableSpellCheck).toBe(true);
+      expect(String(field.description)).toContain("stored encrypted");
+    }
+  });
+
+  test("Amazon SES: an AWS Region code, checked as it is typed", () => {
+    const region: Field<ProjectSmtpConfig> = fieldFor(
+      PROJECT_FIELDS,
+      "amazonSesRegion",
+    );
+    const check: (value: unknown) => string | null = (
+      value: unknown,
+    ): string | null => {
+      return region.customValidation!({
+        amazonSesRegion: value,
+      } as unknown as FormValues<ProjectSmtpConfig>);
+    };
+
+    expect(region.placeholder).toBe("us-east-1");
+    expect(check("us-east-1")).toBeNull();
+    expect(check("eu-central-2")).toBeNull();
+    expect(check("us-gov-west-1")).toBeNull();
+    // Empty is the required check's to say.
+    expect(check("")).toBeNull();
+    expect(check("us-east")).toBe(AMAZON_SES_REGION_INVALID);
+    expect(check("email.us-east-1.amazonaws.com")).toBe(
+      AMAZON_SES_REGION_INVALID,
+    );
+  });
+
+  test("Mailgun: a domain, checked as it is typed, and its region, US to start", () => {
+    const domain: Field<ProjectSmtpConfig> = fieldFor(
+      PROJECT_FIELDS,
+      "mailgunDomain",
+    );
+    const check: (value: unknown) => string | null = (
+      value: unknown,
+    ): string | null => {
+      return domain.customValidation!({
+        mailgunDomain: value,
+      } as unknown as FormValues<ProjectSmtpConfig>);
+    };
+
+    expect(check("mg.example.com")).toBeNull();
+    expect(check("")).toBeNull();
+    expect(check("https://mg.example.com")).toBe(MAILGUN_DOMAIN_INVALID);
+    expect(check("mg.example.com/../v4")).toBe(MAILGUN_DOMAIN_INVALID);
+
+    const region: Field<ProjectSmtpConfig> = fieldFor(
+      PROJECT_FIELDS,
+      "mailgunRegion",
+    );
+
+    expect(region.fieldType).toBe(FormFieldSchemaType.RadioButton);
+    expect(region.radioButtonOptions).toBe(MAILGUN_REGION_CHOICES);
+    expect(region.defaultValue).toBe(MailgunRegion.US);
+    expect(
+      MAILGUN_REGION_CHOICES.map((choice: RadioButton): string => {
+        return `${choice.value}: ${choice.description}`;
+      }),
+    ).toEqual([
+      "US: Sent through api.mailgun.net.",
+      "EU: Sent through api.eu.mailgun.net.",
+    ]);
+  });
+
+  test("each provider's fields are the same on a project's form and the instance's card", () => {
+    const describeField: (field: Field<unknown>) => Record<string, unknown> = (
+      field: Field<unknown>,
+    ): Record<string, unknown> => {
+      return {
+        key: keyOf(field),
+        title: field.title,
+        description: field.description,
+        placeholder: field.placeholder,
+        fieldType: field.fieldType,
+        required: field.required,
+        stepId: field.stepId,
+      };
+    };
+
+    for (const [factory, step] of [
+      [getAmazonSesFormFields, "amazon-ses"],
+      [getSendGridFormFields, "sendgrid"],
+      [getMailgunFormFields, "mailgun"],
+      [getPostmarkFormFields, "postmark"],
+      [getResendFormFields, "resend"],
+    ] as Array<[() => Array<Field<unknown>>, string]>) {
+      expect(factory().map(describeField)).toEqual(
+        (PROJECT_FIELDS as Array<Field<unknown>>)
+          .filter((field: Field<unknown>): boolean => {
+            return field.stepId === step;
+          })
+          .map(describeField),
+      );
+    }
   });
 });
 
@@ -398,7 +923,7 @@ describe("both forms", () => {
     expect(PROJECT.configDescription).toBe("description");
   });
 
-  test("lay the same fields out the same way, in the same words", () => {
+  test("ask for a mail server and its sign-in in the same words", () => {
     const describeField: (field: Field<unknown>) => Record<string, unknown> = (
       field: Field<unknown>,
     ): Record<string, unknown> => {
@@ -408,39 +933,71 @@ describe("both forms", () => {
         placeholder: field.placeholder,
         fieldType: field.fieldType,
         required: field.required,
-        stepId: field.stepId,
-        folded: Boolean(field.collapsibleSection),
         defaultValue: field.defaultValue,
       };
     };
 
-    const projectShared: Array<Record<string, unknown>> = (
-      PROJECT_FIELDS as Array<Field<unknown>>
-    )
-      .filter((field: Field<unknown>): boolean => {
-        return !["name", "description"].includes(keyOf(field));
-      })
-      .map(describeField);
+    for (const key of [
+      "hostname",
+      "port",
+      "username",
+      "password",
+      "secure",
+      "authType",
+      "oauthProviderType",
+      "clientId",
+      "clientSecret",
+      "tokenUrl",
+      "scope",
+      "fromName",
+    ] as Array<keyof SmtpConfigFormColumns<ProjectSmtpConfig>>) {
+      expect({
+        key,
+        ...describeField(
+          fieldFor(PROJECT_FIELDS, String(PROJECT[key])) as Field<unknown>,
+        ),
+      }).toEqual({
+        key,
+        ...describeField(
+          fieldFor(GLOBAL_FIELDS, String(GLOBAL[key])) as Field<unknown>,
+        ),
+      });
+    }
 
-    expect(projectShared).toEqual(
-      (GLOBAL_FIELDS as Array<Field<unknown>>).map(describeField),
+    // The scope each OAuth app takes, Microsoft Graph's first, each written whole.
+    expect(fieldFor(GLOBAL_FIELDS, "smtpScope").description).toBe(
+      SMTP_OAUTH_SCOPE_DESCRIPTION,
     );
+    expect(
+      SMTP_OAUTH_SCOPE_DESCRIPTION.startsWith(
+        "Microsoft Graph: https://graph.microsoft.com/.default.",
+      ),
+    ).toBe(true);
+    expect(SMTP_OAUTH_SCOPE_DESCRIPTION).toContain(
+      "Microsoft 365 SMTP: https://outlook.office365.com/.default.",
+    );
+    expect(SMTP_OAUTH_SCOPE_DESCRIPTION).toContain(
+      "Google: https://mail.google.com/",
+    );
+    // App's ShortDescriptionsGuard holds field descriptions to 150 characters.
+    expect(SMTP_OAUTH_SCOPE_DESCRIPTION.length).toBeLessThanOrEqual(150);
   });
 
-  test("fold their options into one section, folded on create and edit, after the open fields", () => {
-    for (const fields of [
-      PROJECT_FIELDS as Array<Field<unknown>>,
-      GLOBAL_FIELDS as Array<Field<unknown>>,
-    ]) {
+  test("fold their options into one section each, folded on create and edit", () => {
+    for (const [fields, step] of [
+      [GLOBAL_FIELDS, "server"],
+      [PROJECT_FIELDS, "server"],
+      [PROJECT_FIELDS, "provider"],
+    ] as Array<[Array<Field<unknown>>, string]>) {
       const folded: Array<Field<unknown>> = fields.filter(
         (field: Field<unknown>): boolean => {
-          return Boolean(field.collapsibleSection);
+          return field.stepId === step && Boolean(field.collapsibleSection);
         },
       );
       const section: FormFieldCollapsibleSection<unknown> =
         folded[0]!.collapsibleSection!;
 
-      // One section object, handed to every folded field.
+      // One section object, handed to every folded field of the step.
       for (const field of folded) {
         expect(field.collapsibleSection).toBe(section);
       }
@@ -449,52 +1006,44 @@ describe("both forms", () => {
       expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
       expect(section.openWhenConfigured).toBe(false);
 
-      // Next to each other, at the end of the Server step.
-      const firstFolded: number = fields.indexOf(folded[0]!);
-      const lastFolded: number = fields.indexOf(folded[folded.length - 1]!);
+      // Next to each other, the step's last fields.
+      const onStep: Array<Field<unknown>> = fields.filter(
+        (field: Field<unknown>): boolean => {
+          return field.stepId === step;
+        },
+      );
 
-      expect(lastFolded - firstFolded + 1).toBe(folded.length);
-      expect(
-        fields.slice(lastFolded + 1).every((field: Field<unknown>) => {
-          return field.stepId === SMTP_SENDER_STEP_ID;
-        }),
-      ).toBe(true);
+      expect(onStep.slice(onStep.length - folded.length)).toEqual(folded);
     }
   });
 
-  test("require what the mail service cannot send without", () => {
-    const required: (fields: Array<Field<unknown>>) => Array<string> = (
-      fields: Array<Field<unknown>>,
-    ): Array<string> => {
-      return fields
+  test("the instance requires what the mail service cannot send without", () => {
+    expect(
+      (GLOBAL_FIELDS as Array<Field<unknown>>)
         .filter((field: Field<unknown>): boolean => {
           return Boolean(field.required);
         })
-        .map(keyOf);
-    };
-
-    expect(required(PROJECT_FIELDS as Array<Field<unknown>>)).toEqual([
-      "name",
-      "hostname",
-      "port",
-      "transportType",
-      "authType",
-      "oauthProviderType",
-      "clientId",
-      "clientSecret",
-      "tokenUrl",
-      "scope",
-      "fromEmail",
-      "fromName",
+        .map(keyOf),
+    ).toEqual([
+      "smtpHost",
+      "smtpPort",
+      "smtpTransportType",
+      "smtpAuthType",
+      "smtpOAuthProviderType",
+      "smtpClientId",
+      "smtpClientSecret",
+      "smtpTokenUrl",
+      "smtpScope",
+      "smtpFromEmail",
+      "smtpFromName",
     ]);
-
-    // A server that needs no password is the Authentication type's None.
-    expect(fieldFor(PROJECT_FIELDS, "username").required).toBe(false);
-    expect(fieldFor(PROJECT_FIELDS, "password").required).toBe(false);
   });
 
   test("start each choice where the mail service reads an empty one", () => {
     expect(fieldFor(PROJECT_FIELDS, "transportType").defaultValue).toBe(
+      MailTransportType.SMTP,
+    );
+    expect(fieldFor(GLOBAL_FIELDS, "smtpTransportType").defaultValue).toBe(
       MailTransportType.SMTP,
     );
     expect(fieldFor(PROJECT_FIELDS, "authType").defaultValue).toBe(
@@ -509,44 +1058,48 @@ describe("both forms", () => {
    * Transport, Authentication Type and OAuth Provider Type were dropdowns
    * whose one description named every answer; they are the answers
    * themselves now, the default first, each with one line saying when to
-   * pick it. The values are the ones the API, Terraform and the mail
-   * service always read.
+   * pick it. On a project's form the transport is the Provider's cards.
    */
   test("offer the transport, sign-in and OAuth grant as plain answers, each with its line, the default first", () => {
-    for (const fields of [PROJECT_FIELDS, GLOBAL_FIELDS] as Array<
-      Array<Field<unknown>>
-    >) {
-      const transport: Field<unknown> = fields.find(
-        (field: Field<unknown>): boolean => {
-          return field.title === "Transport";
-        },
-      ) as Field<unknown>;
-      const authType: Field<unknown> = fields.find(
-        (field: Field<unknown>): boolean => {
-          return field.title === "Authentication Type";
-        },
-      ) as Field<unknown>;
-      const grant: Field<unknown> = fields.find(
-        (field: Field<unknown>): boolean => {
-          return field.title === "OAuth Provider Type";
-        },
-      ) as Field<unknown>;
+    const pairs: Array<[Field<unknown>, Array<RadioButton>]> = [
+      [
+        fieldFor(GLOBAL_FIELDS, "smtpTransportType") as Field<unknown>,
+        SMTP_TRANSPORT_CHOICES,
+      ],
+      [
+        fieldFor(GLOBAL_FIELDS, "smtpAuthType") as Field<unknown>,
+        SMTP_AUTH_TYPE_CHOICES,
+      ],
+      [
+        fieldFor(GLOBAL_FIELDS, "smtpOAuthProviderType") as Field<unknown>,
+        SMTP_OAUTH_PROVIDER_TYPE_CHOICES,
+      ],
+      [
+        fieldFor(PROJECT_FIELDS, "authType") as Field<unknown>,
+        SMTP_AUTH_TYPE_CHOICES,
+      ],
+      [
+        fieldFor(PROJECT_FIELDS, "oauthProviderType") as Field<unknown>,
+        SMTP_OAUTH_PROVIDER_TYPE_CHOICES,
+      ],
+    ];
 
-      for (const [field, choices] of [
-        [transport, SMTP_TRANSPORT_CHOICES],
-        [authType, SMTP_AUTH_TYPE_CHOICES],
-        [grant, SMTP_OAUTH_PROVIDER_TYPE_CHOICES],
-      ] as Array<[Field<unknown>, Array<RadioButton>]>) {
-        expect(field.fieldType).toBe(FormFieldSchemaType.RadioButton);
-        expect(field.radioButtonOptions).toBe(choices);
-        expect(field.dropdownOptions).toBeUndefined();
-        expect(field.defaultValue).toBe(choices[0]!.value);
-      }
-
-      expect(transport.description).toBe(SMTP_TRANSPORT_DESCRIPTION);
-      expect(authType.description).toBe(SMTP_AUTH_TYPE_DESCRIPTION);
-      expect(grant.description).toBe(SMTP_OAUTH_PROVIDER_TYPE_DESCRIPTION);
+    for (const [field, choices] of pairs) {
+      expect(field.fieldType).toBe(FormFieldSchemaType.RadioButton);
+      expect(field.radioButtonOptions).toBe(choices);
+      expect(field.dropdownOptions).toBeUndefined();
+      expect(field.defaultValue).toBe(choices[0]!.value);
     }
+
+    expect(fieldFor(GLOBAL_FIELDS, "smtpTransportType").description).toBe(
+      SMTP_TRANSPORT_DESCRIPTION,
+    );
+    expect(fieldFor(PROJECT_FIELDS, "authType").description).toBe(
+      SMTP_AUTH_TYPE_DESCRIPTION,
+    );
+    expect(fieldFor(PROJECT_FIELDS, "oauthProviderType").description).toBe(
+      SMTP_OAUTH_PROVIDER_TYPE_DESCRIPTION,
+    );
 
     const values: (choices: Array<RadioButton>) => Array<string> = (
       choices: Array<RadioButton>,
@@ -556,6 +1109,7 @@ describe("both forms", () => {
       });
     };
 
+    // The instance's Custom SMTP settings: a mail server, or Microsoft Graph.
     expect(values(SMTP_TRANSPORT_CHOICES)).toEqual([
       MailTransportType.SMTP,
       MailTransportType.MicrosoftGraph,
@@ -586,9 +1140,10 @@ describe("both forms", () => {
       SMTP_TRANSPORT_DESCRIPTION,
       SMTP_AUTH_TYPE_DESCRIPTION,
       SMTP_OAUTH_PROVIDER_TYPE_DESCRIPTION,
+      EMAIL_PROVIDER_DESCRIPTION,
     ]) {
       expect(description).not.toMatch(
-        /Microsoft Graph|Client Credentials|JWT Bearer|Pick|Choose|Select/,
+        /Microsoft Graph|Client Credentials|JWT Bearer|Amazon SES|SendGrid|Pick|Choose|Select/,
       );
     }
   });
@@ -632,13 +1187,22 @@ describe("both forms", () => {
       SMTP_PASSWORD_DESCRIPTION,
     );
     expect(fieldFor(PROJECT_FIELDS, "transportType").description).toBe(
-      SMTP_TRANSPORT_DESCRIPTION,
+      EMAIL_PROVIDER_DESCRIPTION,
     );
+    // A project's sender is any provider's; the instance's, a mail server's or Graph's.
     expect(fieldFor(PROJECT_FIELDS, "fromEmail").description).toBe(
+      PROVIDER_FROM_EMAIL_DESCRIPTION,
+    );
+    expect(fieldFor(GLOBAL_FIELDS, "smtpFromEmail").description).toBe(
       SMTP_FROM_EMAIL_DESCRIPTION,
     );
     // Not "Email used to log in to this SMTP Server": it is not.
-    expect(SMTP_FROM_EMAIL_DESCRIPTION).not.toContain("log in");
+    for (const description of [
+      SMTP_FROM_EMAIL_DESCRIPTION,
+      PROVIDER_FROM_EMAIL_DESCRIPTION,
+    ]) {
+      expect(description).not.toContain("log in");
+    }
     // OAuth signs in as the mailbox that sends, as the old form said.
     expect(SMTP_USERNAME_DESCRIPTION).toContain(
       "With OAuth, enter the email address of the mailbox that sends.",
@@ -653,45 +1217,34 @@ describe("what each transport and sign-in shows", () => {
     name: string;
     values: Values;
     project: Array<string>;
-    global: Array<string>;
   }> = [
     {
       name: "SMTP with a username and password (a new config)",
       values: {},
       project: [
         "name",
+        "transportType",
+        "description",
         "hostname",
         "port",
         "username",
         "password",
-        "transportType",
         "secure",
         "authType",
-        "description",
         "fromEmail",
         "fromName",
       ],
-      global: [
-        "smtpHost",
-        "smtpPort",
-        "smtpUsername",
-        "smtpPassword",
-        "smtpTransportType",
-        "isSMTPSecure",
-        "smtpAuthType",
-        "smtpFromEmail",
-        "smtpFromName",
-      ],
     },
     {
-      name: "SMTP with OAuth: the mailbox to sign in as, no password, the OAuth app",
+      name: "SMTP with OAuth: the mailbox to sign in as, no password, the OAuth grant and app",
       values: { authType: SMTPAuthenticationType.OAuth },
       project: [
         "name",
+        "transportType",
+        "description",
         "hostname",
         "port",
         "username",
-        "transportType",
         "secure",
         "authType",
         "oauthProviderType",
@@ -699,27 +1252,24 @@ describe("what each transport and sign-in shows", () => {
         "clientSecret",
         "tokenUrl",
         "scope",
-        "description",
         "fromEmail",
         "fromName",
       ],
-      global: [],
     },
     {
       name: "SMTP without signing in: no username or password",
       values: { authType: SMTPAuthenticationType.None },
       project: [
         "name",
+        "transportType",
+        "description",
         "hostname",
         "port",
-        "transportType",
         "secure",
         "authType",
-        "description",
         "fromEmail",
         "fromName",
       ],
-      global: [],
     },
     {
       name: "Microsoft Graph: no hostname, port, username, password or TLS - the OAuth app instead",
@@ -727,15 +1277,14 @@ describe("what each transport and sign-in shows", () => {
       project: [
         "name",
         "transportType",
+        "description",
         "clientId",
         "clientSecret",
         "tokenUrl",
         "scope",
-        "description",
         "fromEmail",
         "fromName",
       ],
-      global: [],
     },
     {
       name: "Microsoft Graph, whatever sign-in an older config kept",
@@ -746,49 +1295,130 @@ describe("what each transport and sign-in shows", () => {
       project: [
         "name",
         "transportType",
+        "description",
         "clientId",
         "clientSecret",
         "tokenUrl",
         "scope",
-        "description",
         "fromEmail",
         "fromName",
       ],
-      global: [],
+    },
+    {
+      name: "Amazon SES: its access key and Region, and nothing of a mail server",
+      values: {
+        transportType: MailTransportType.AmazonSES,
+        authType: SMTPAuthenticationType.OAuth,
+      },
+      project: [
+        "name",
+        "transportType",
+        "description",
+        "amazonSesAccessKeyId",
+        "amazonSesSecretAccessKey",
+        "amazonSesRegion",
+        "fromEmail",
+        "fromName",
+      ],
+    },
+    {
+      name: "SendGrid: its API key",
+      values: { transportType: MailTransportType.SendGrid },
+      project: [
+        "name",
+        "transportType",
+        "description",
+        "sendgridApiKey",
+        "fromEmail",
+        "fromName",
+      ],
+    },
+    {
+      name: "Mailgun: its API key, domain and region",
+      values: { transportType: MailTransportType.Mailgun },
+      project: [
+        "name",
+        "transportType",
+        "description",
+        "mailgunApiKey",
+        "mailgunDomain",
+        "mailgunRegion",
+        "fromEmail",
+        "fromName",
+      ],
+    },
+    {
+      name: "Postmark: its server API token",
+      values: { transportType: MailTransportType.Postmark },
+      project: [
+        "name",
+        "transportType",
+        "description",
+        "postmarkServerToken",
+        "fromEmail",
+        "fromName",
+      ],
+    },
+    {
+      name: "Resend: its API key",
+      values: { transportType: MailTransportType.Resend },
+      project: [
+        "name",
+        "transportType",
+        "description",
+        "resendApiKey",
+        "fromEmail",
+        "fromName",
+      ],
     },
   ];
 
   test.each(CASES)("$name", ({ values, project }: (typeof CASES)[number]) => {
-    expect(shownKeys(PROJECT_FIELDS, values)).toEqual(project);
+    expect(projectShows(values)).toEqual(project);
   });
 
-  test("the instance form shows the same, by its own columns", () => {
-    for (const item of CASES) {
-      const globalValues: Values = {};
-
-      for (const [key, value] of Object.entries(item.values)) {
-        globalValues[
-          GLOBAL[key as keyof SmtpConfigFormColumns<GlobalConfig>] as string
-        ] = value;
-      }
-
-      const expected: Array<string> = item.project
-        .filter((key: string): boolean => {
-          return key !== "name" && key !== "description";
-        })
-        .map((key: string): string => {
-          return GLOBAL[
-            key as keyof SmtpConfigFormColumns<GlobalConfig>
-          ] as string;
-        });
-
-      expect({
-        name: item.name,
-        shown: shownKeys(GLOBAL_FIELDS, globalValues),
-      }).toEqual({ name: item.name, shown: expected });
-    }
-
-    expect(shownKeys(GLOBAL_FIELDS, {})).toEqual(CASES[0]!.global);
+  test("the instance's form shows a mail server's fields, Microsoft Graph's OAuth app in their place", () => {
+    expect(shownKeys(GLOBAL_FIELDS, {})).toEqual([
+      "smtpHost",
+      "smtpPort",
+      "smtpUsername",
+      "smtpPassword",
+      "smtpTransportType",
+      "isSMTPSecure",
+      "smtpAuthType",
+      "smtpFromEmail",
+      "smtpFromName",
+    ]);
+    expect(
+      shownKeys(GLOBAL_FIELDS, { smtpAuthType: SMTPAuthenticationType.OAuth }),
+    ).toEqual([
+      "smtpHost",
+      "smtpPort",
+      "smtpUsername",
+      "smtpTransportType",
+      "isSMTPSecure",
+      "smtpAuthType",
+      "smtpOAuthProviderType",
+      "smtpClientId",
+      "smtpClientSecret",
+      "smtpTokenUrl",
+      "smtpScope",
+      "smtpFromEmail",
+      "smtpFromName",
+    ]);
+    expect(
+      shownKeys(GLOBAL_FIELDS, {
+        smtpTransportType: MailTransportType.MicrosoftGraph,
+      }),
+    ).toEqual([
+      "smtpTransportType",
+      "smtpClientId",
+      "smtpClientSecret",
+      "smtpTokenUrl",
+      "smtpScope",
+      "smtpFromEmail",
+      "smtpFromName",
+    ]);
   });
 
   test("reads a dropdown that holds the option it was picked as", () => {
@@ -816,7 +1446,13 @@ describe("what each transport and sign-in shows", () => {
     ).toBe(SMTPAuthenticationType.None);
   });
 
-  test("reads an empty or unknown value the way the mail service does", () => {
+  test("reads every transport as itself, and an empty or unknown one as SMTP, the way the mail service does", () => {
+    for (const transport of Object.values(MailTransportType)) {
+      expect(getSmtpTransport({ transportType: transport }, PROJECT)).toBe(
+        transport,
+      );
+    }
+
     for (const empty of [undefined, null, "", "Carrier Pigeon"]) {
       expect(getSmtpTransport({ transportType: empty }, PROJECT)).toBe(
         MailTransportType.SMTP,
@@ -833,63 +1469,145 @@ describe("what each transport and sign-in shows", () => {
     expect(showsSmtpOAuthProviderType({}, PROJECT)).toBe(false);
     expect(showsSmtpOAuthCredentials({}, PROJECT)).toBe(false);
   });
+
+  test("an API provider shows no mail server and no OAuth app, whatever sign-in a config kept", () => {
+    for (const transport of API_KEY_MAIL_TRANSPORTS) {
+      const values: Values = {
+        transportType: transport,
+        authType: SMTPAuthenticationType.OAuth,
+      };
+
+      expect(showsSmtpServerFields(values, PROJECT)).toBe(false);
+      expect(showsSmtpUsername(values, PROJECT)).toBe(false);
+      expect(showsSmtpPassword(values, PROJECT)).toBe(false);
+      expect(showsSmtpOAuthProviderType(values, PROJECT)).toBe(false);
+      expect(showsSmtpOAuthCredentials(values, PROJECT)).toBe(false);
+    }
+  });
 });
 
-describe("what a new Microsoft Graph config is created with", () => {
+describe("what a new config is created with", () => {
   function projectConfig(values: Record<string, unknown>): ProjectSmtpConfig {
     const config: ProjectSmtpConfig = new ProjectSmtpConfig();
     Object.assign(config, values);
     return config;
   }
 
+  // What a form can hold after its provider was changed a few times.
   const TYPED: Record<string, unknown> = {
-    name: "Microsoft 365",
+    name: "Alerts",
     hostname: "smtp.office365.com",
     port: 587,
     username: "alerts@example.com",
     password: "an-old-password",
     clientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
     clientSecret: "graph-client-secret",
+    tokenUrl: "https://login.microsoftonline.com/tenant/oauth2/v2.0/token",
+    scope: "https://graph.microsoft.com/.default",
+    oauthProviderType: OAuthProviderType.ClientCredentials,
+    amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+    amazonSesSecretAccessKey: "ses-secret",
+    amazonSesRegion: "us-east-1",
+    sendgridApiKey: "SG.key",
+    mailgunApiKey: "key-mailgun",
+    mailgunDomain: "mg.example.com",
+    mailgunRegion: MailgunRegion.EU,
+    postmarkServerToken: "pm-token",
+    resendApiKey: "re_key",
     fromEmail: "alerts@example.com",
     fromName: "Example Alerts",
   };
 
-  test("are the hostname, port, username and password, which Graph never uses", () => {
-    expect(getSmtpServerColumnsGraphIgnores(PROJECT)).toEqual([
-      "hostname",
-      "port",
-      "username",
-      "password",
-    ]);
+  const SERVER_COLUMNS: Array<string> = [
+    "hostname",
+    "port",
+    "username",
+    "password",
+  ];
+
+  const OAUTH_COLUMNS: Array<string> = [
+    "clientId",
+    "clientSecret",
+    "tokenUrl",
+    "scope",
+    "oauthProviderType",
+  ];
+
+  const KEY_COLUMNS: Array<string> = Object.values(
+    EMAIL_PROVIDER_KEY_COLUMNS,
+  ).flatMap((columns: ReadonlyArray<string> | undefined): Array<string> => {
+    return [...(columns || [])];
+  });
+
+  function keptOf(transport: MailTransportType | undefined): Array<string> {
+    const config: ProjectSmtpConfig = withoutValuesTransportIgnores(
+      projectConfig({ ...TYPED, transportType: transport }),
+      PROJECT,
+    );
+
+    return Object.keys(TYPED).filter((key: string): boolean => {
+      return (config as unknown as Record<string, unknown>)[key] !== undefined;
+    });
+  }
+
+  test("Microsoft Graph and the API providers never use the hostname, port, username or password", () => {
+    expect(getSmtpServerColumnsGraphIgnores(PROJECT)).toEqual(SERVER_COLUMNS);
     expect(getSmtpServerColumnsGraphIgnores(GLOBAL)).toEqual([
       "smtpHost",
       "smtpPort",
       "smtpUsername",
       "smtpPassword",
     ]);
-
-    // Exactly the fields the form hides once Graph is picked.
-    const hiddenByGraph: Array<string> = PROJECT_FIELDS.filter(
-      (field: Field<ProjectSmtpConfig>): boolean => {
-        return Boolean(
-          field.showIf &&
-            !field.collapsibleSection &&
-            !field.showIf({
-              transportType: MailTransportType.MicrosoftGraph,
-            } as unknown as FormValues<ProjectSmtpConfig>),
-        );
-      },
-    ).map(keyOf);
-
-    expect(hiddenByGraph).toEqual(getSmtpServerColumnsGraphIgnores(PROJECT));
   });
 
-  test("leaves them out of a Graph config, and keeps everything else", () => {
-    const config: ProjectSmtpConfig = withoutValuesGraphIgnores(
-      projectConfig({
-        ...TYPED,
-        transportType: MailTransportType.MicrosoftGraph,
-      }),
+  test("an SMTP config keeps its server and OAuth app, and no provider's key", () => {
+    for (const transport of [MailTransportType.SMTP, undefined]) {
+      expect(keptOf(transport).sort()).toEqual(
+        Object.keys(TYPED)
+          .filter((key: string): boolean => {
+            return !KEY_COLUMNS.includes(key);
+          })
+          .sort(),
+      );
+    }
+  });
+
+  test("a Microsoft Graph config keeps its OAuth app, and no server or provider's key", () => {
+    expect(keptOf(MailTransportType.MicrosoftGraph).sort()).toEqual(
+      Object.keys(TYPED)
+        .filter((key: string): boolean => {
+          return !SERVER_COLUMNS.includes(key) && !KEY_COLUMNS.includes(key);
+        })
+        .sort(),
+    );
+  });
+
+  test.each(API_KEY_MAIL_TRANSPORTS)(
+    "a %s config keeps its own key alone: no server, OAuth app or other provider's key",
+    (transport: MailTransportType) => {
+      const own: ReadonlyArray<string> =
+        EMAIL_PROVIDER_KEY_COLUMNS[transport] || [];
+
+      expect(keptOf(transport).sort()).toEqual(
+        Object.keys(TYPED)
+          .filter((key: string): boolean => {
+            return (
+              !SERVER_COLUMNS.includes(key) &&
+              !OAUTH_COLUMNS.includes(key) &&
+              (!KEY_COLUMNS.includes(key) || own.includes(key))
+            );
+          })
+          .sort(),
+      );
+      expect(getColumnsTransportIgnores(transport, PROJECT)).not.toContain(
+        "fromEmail",
+      );
+    },
+  );
+
+  test("what is left is what the API takes", () => {
+    const config: ProjectSmtpConfig = withoutValuesTransportIgnores(
+      projectConfig({ ...TYPED, transportType: MailTransportType.Mailgun }),
       PROJECT,
     );
 
@@ -898,45 +1616,25 @@ describe("what a new Microsoft Graph config is created with", () => {
       ProjectSmtpConfig,
     ) as Record<string, unknown>;
 
-    for (const key of ["hostname", "port", "username", "password"]) {
-      expect({ key, inJson: key in json }).toEqual({ key, inJson: false });
-    }
-
     expect({
       name: json["name"],
       transportType: json["transportType"],
-      clientId: json["clientId"],
-      clientSecret: json["clientSecret"],
+      mailgunApiKey: json["mailgunApiKey"],
+      mailgunDomain: json["mailgunDomain"],
+      mailgunRegion: json["mailgunRegion"],
       fromName: json["fromName"],
+      password: json["password"],
+      resendApiKey: json["resendApiKey"],
     }).toEqual({
-      name: "Microsoft 365",
-      transportType: MailTransportType.MicrosoftGraph,
-      clientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
-      clientSecret: "graph-client-secret",
+      name: "Alerts",
+      transportType: MailTransportType.Mailgun,
+      mailgunApiKey: "key-mailgun",
+      mailgunDomain: "mg.example.com",
+      mailgunRegion: MailgunRegion.EU,
       fromName: "Example Alerts",
+      password: undefined,
+      resendApiKey: undefined,
     });
-  });
-
-  test("leaves an SMTP config, or one with no transport picked, as it is", () => {
-    for (const transportType of [MailTransportType.SMTP, undefined]) {
-      const config: ProjectSmtpConfig = projectConfig({
-        ...TYPED,
-        transportType,
-      });
-
-      expect(withoutValuesGraphIgnores(config, PROJECT)).toBe(config);
-      expect({
-        hostname: String(config.hostname),
-        port: Number(config.port),
-        username: config.username,
-        password: config.password,
-      }).toEqual({
-        hostname: "smtp.office365.com",
-        port: 587,
-        username: "alerts@example.com",
-        password: "an-old-password",
-      });
-    }
   });
 
   test("reads the instance's own columns too", () => {
@@ -947,7 +1645,7 @@ describe("what a new Microsoft Graph config is created with", () => {
       smtpClientId: "client",
     };
 
-    withoutValuesGraphIgnores(values as unknown as GlobalConfig, GLOBAL);
+    withoutValuesTransportIgnores(values as unknown as GlobalConfig, GLOBAL);
 
     expect(values).toEqual({
       smtpTransportType: MailTransportType.MicrosoftGraph,
@@ -956,12 +1654,188 @@ describe("what a new Microsoft Graph config is created with", () => {
   });
 });
 
+describe("the instance's provider cards", () => {
+  test("Amazon SES, Mailgun, Postmark and Resend are Email Server Types of their own", () => {
+    expect([...GLOBAL_EMAIL_PROVIDER_TRANSPORTS]).toEqual([
+      MailTransportType.AmazonSES,
+      MailTransportType.Mailgun,
+      MailTransportType.Postmark,
+      MailTransportType.Resend,
+    ]);
+    expect([...GLOBAL_EMAIL_PROVIDERS]).toEqual([
+      {
+        serverType: EmailServerType.AmazonSES,
+        transport: MailTransportType.AmazonSES,
+      },
+      {
+        serverType: EmailServerType.Mailgun,
+        transport: MailTransportType.Mailgun,
+      },
+      {
+        serverType: EmailServerType.Postmark,
+        transport: MailTransportType.Postmark,
+      },
+      {
+        serverType: EmailServerType.Resend,
+        transport: MailTransportType.Resend,
+      },
+    ]);
+  });
+
+  test("each Email Server Type's card is its provider's card, for its own value", () => {
+    for (const provider of GLOBAL_EMAIL_PROVIDERS) {
+      const card: CardSelectOption = getGlobalEmailProviderCard(
+        provider.serverType,
+      )!;
+      const projectCard: CardSelectOption = EMAIL_PROVIDER_CHOICES.find(
+        (choice: CardSelectOption): boolean => {
+          return choice.value === provider.transport;
+        },
+      )!;
+
+      expect(card).toEqual({ ...projectCard, value: provider.serverType });
+    }
+
+    // Custom SMTP and SendGrid have cards of the page's own.
+    expect(
+      getGlobalEmailProviderCard(EmailServerType.CustomSMTP),
+    ).toBeUndefined();
+    expect(
+      getGlobalEmailProviderCard(EmailServerType.Sendgrid),
+    ).toBeUndefined();
+  });
+
+  test.each(GLOBAL_EMAIL_PROVIDER_TRANSPORTS)(
+    "%s: its own step, then the sender in its own columns",
+    (transport: GlobalEmailProviderTransport) => {
+      const steps: Array<FormStep<GlobalConfig>> =
+        getGlobalEmailProviderFormSteps(transport);
+      const fields: Array<Field<GlobalConfig>> =
+        getGlobalEmailProviderFormFields(transport);
+      const projectStep: FormStep<ProjectSmtpConfig> = PROJECT_STEPS.find(
+        (step: FormStep<ProjectSmtpConfig>): boolean => {
+          return step.title === transport;
+        },
+      )!;
+
+      expect(
+        steps.map((step: FormStep<GlobalConfig>) => {
+          return [step.id, step.title, Boolean(step.isTitleProductName)];
+        }),
+      ).toEqual([
+        [projectStep.id, transport, true],
+        ["sender", "Sender", false],
+      ]);
+
+      expect(openOn(fields, projectStep.id)).toEqual(
+        openOn(PROJECT_FIELDS, projectStep.id),
+      );
+      expect(openOn(fields, "sender")).toEqual([
+        GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport].fromEmail,
+        GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport].fromName,
+      ]);
+
+      const model: GlobalConfig = new GlobalConfig();
+
+      for (const field of fields) {
+        expect({
+          column: keyOf(field),
+          isColumn: Boolean(model.getTableColumnMetadata(keyOf(field))),
+        }).toEqual({ column: keyOf(field), isColumn: true });
+      }
+    },
+  );
+
+  test("says what a card still needs, the key first, then where it sends from, then the address", () => {
+    const missing: (
+      transport: GlobalEmailProviderTransport,
+      values: Values,
+    ) => GlobalEmailProviderMissingSetting | null = (
+      transport: GlobalEmailProviderTransport,
+      values: Values,
+    ): GlobalEmailProviderMissingSetting | null => {
+      return getGlobalEmailProviderMissingSetting(transport, values);
+    };
+
+    expect(missing(MailTransportType.AmazonSES, {})).toBe(
+      GlobalEmailProviderMissingSetting.AccessKey,
+    );
+    expect(
+      missing(MailTransportType.AmazonSES, { amazonSesAccessKeyId: "AKIA" }),
+    ).toBe(GlobalEmailProviderMissingSetting.AccessKey);
+    expect(
+      missing(MailTransportType.AmazonSES, {
+        amazonSesAccessKeyId: "AKIA",
+        amazonSesSecretAccessKey: "secret",
+        amazonSesRegion: "not a region",
+      }),
+    ).toBe(GlobalEmailProviderMissingSetting.Region);
+    expect(
+      missing(MailTransportType.AmazonSES, {
+        amazonSesAccessKeyId: "AKIA",
+        amazonSesSecretAccessKey: "secret",
+        amazonSesRegion: "eu-west-1",
+      }),
+    ).toBe(GlobalEmailProviderMissingSetting.FromEmail);
+    expect(
+      missing(MailTransportType.AmazonSES, {
+        amazonSesAccessKeyId: "AKIA",
+        amazonSesSecretAccessKey: "secret",
+        amazonSesRegion: "eu-west-1",
+        amazonSesFromEmail: "alerts@example.com",
+      }),
+    ).toBeNull();
+
+    expect(missing(MailTransportType.Mailgun, {})).toBe(
+      GlobalEmailProviderMissingSetting.ApiKey,
+    );
+    expect(
+      missing(MailTransportType.Mailgun, {
+        mailgunApiKey: "key",
+        mailgunDomain: "not a domain",
+      }),
+    ).toBe(GlobalEmailProviderMissingSetting.Domain);
+    expect(
+      missing(MailTransportType.Mailgun, {
+        mailgunApiKey: "key",
+        mailgunDomain: "mg.example.com",
+        mailgunFromEmail: "alerts@mg.example.com",
+      }),
+    ).toBeNull();
+
+    expect(
+      missing(MailTransportType.Postmark, { postmarkServerToken: " " }),
+    ).toBe(GlobalEmailProviderMissingSetting.ServerToken);
+    expect(
+      missing(MailTransportType.Postmark, {
+        postmarkServerToken: "token",
+        postmarkFromEmail: "alerts@example.com",
+      }),
+    ).toBeNull();
+
+    expect(missing(MailTransportType.Resend, {})).toBe(
+      GlobalEmailProviderMissingSetting.ApiKey,
+    );
+    expect(missing(MailTransportType.Resend, { resendApiKey: "re_key" })).toBe(
+      GlobalEmailProviderMissingSetting.FromEmail,
+    );
+    // A From Name left blank is the product's name, as the mail service sends it.
+    expect(
+      missing(MailTransportType.Resend, {
+        resendApiKey: "re_key",
+        resendFromEmail: "alerts@example.com",
+      }),
+    ).toBeNull();
+  });
+});
+
 describe("the folded Advanced header", () => {
   const summaryOf: (values: Values) => Array<string> | undefined = (
     values: Values,
   ): Array<string> | undefined => {
-    return fieldFor(PROJECT_FIELDS, "transportType").collapsibleSection!
-      .getSummary!(values as unknown as FormValues<ProjectSmtpConfig>);
+    return fieldFor(PROJECT_FIELDS, "secure").collapsibleSection!.getSummary!(
+      values as unknown as FormValues<ProjectSmtpConfig>,
+    );
   };
 
   test("says a new config sends over SMTP with the username and password, and requires TLS", () => {
