@@ -1,3 +1,4 @@
+import ar from "../Locales/ar.json";
 import da from "../Locales/da.json";
 import de from "../Locales/de.json";
 import en from "../Locales/en.json";
@@ -74,6 +75,7 @@ export const SERVER_LOCALES: Readonly<
   "zh-TW": zhTW,
   hi: hi,
   fa: fa,
+  ar: ar,
 };
 
 const translators: Map<string, Translator> = new Map<string, Translator>();

@@ -53,6 +53,7 @@ const LANGUAGES: Array<string> = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
 
 // Where a language's label for the password inflects the field's word.

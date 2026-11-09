@@ -1,4 +1,4 @@
-import { getEnglishOf } from "./DateLanguage";
+import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import {
   FIRST_STRONG_ISOLATE,
   getReadingDirection,
@@ -572,7 +572,11 @@ const DOT_ZEROS: ReadonlyArray<string> = ["\u{06F0}", "\u{0660}"];
 
 const dotZeroCache: Map<string, boolean> = new Map<string, boolean>();
 
-// Whether `language` writes its zero as a dot, as Persian does ("۰").
+/*
+ * Whether `language` writes its zero as a dot, as Persian does ("۰"). Arabic
+ * writes Latin digits in OneUptime (DateLanguage's LATIN_DIGIT_LANGUAGES), so
+ * its zero is a "0" and its line takes the middle dot.
+ */
 export const writesZeroAsADot: (language: string | undefined) => boolean = (
   language: string | undefined,
 ): boolean => {
@@ -586,7 +590,7 @@ export const writesZeroAsADot: (language: string | undefined) => boolean = (
   let isDot: boolean = false;
 
   try {
-    isDot = DOT_ZEROS.includes((0).toLocaleString(code));
+    isDot = DOT_ZEROS.includes((0).toLocaleString(getNumberLocale(code)));
   } catch {
     isDot = false;
   }
@@ -801,7 +805,8 @@ export const createTranslator: (
 
   const formatNumber: (value: number) => string = (value: number): string => {
     try {
-      return value.toLocaleString(activeLanguage);
+      // In the digits the language writes: Latin ones in Arabic too.
+      return value.toLocaleString(getNumberLocale(activeLanguage));
     } catch {
       return value.toLocaleString();
     }
@@ -913,6 +918,7 @@ const getEnglishTranslator: () => Translator = (): Translator => {
 
 // How a language separates a list's items, where it is not a comma.
 const LIST_SEPARATORS: Record<string, string> = {
+  ar: "، ",
   fa: "، ",
   ja: "、",
   zh: "、",
@@ -920,7 +926,7 @@ const LIST_SEPARATORS: Record<string, string> = {
 
 /*
  * What a language puts between two items of a list with no "and" or "or":
- * ", " in most, "، " in Persian, "、" in Japanese and Chinese. For a list
+ * ", " in most, "، " in Persian and Arabic, "、" in Japanese and Chinese. For a list
  * drawn item by item (IsolatedTextList), which formatList cannot join.
  */
 export const getListSeparator: (language: string | undefined) => string = (

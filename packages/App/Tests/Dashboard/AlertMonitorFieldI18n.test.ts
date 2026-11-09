@@ -203,8 +203,8 @@ describe("Alert page, Affected Resources card: Monitor field translations", () =
       REUSED_KEYS.length + NEW_KEYS.length,
     );
 
-    // Exactly 17 Dashboard locales: English and the sixteen translations.
-    expect(localeFiles.length).toBe(17);
+    // Exactly 18 Dashboard locales: English and the seventeen translations.
+    expect(localeFiles.length).toBe(18);
   });
 
   test("the Monitor and picker fields render exactly these strings", () => {

@@ -172,6 +172,13 @@ const OTHER_LANGUAGES: Array<string> = LANGUAGES.filter(
   },
 );
 
+// The languages the docs are written in: every one but Arabic, for now.
+const DOCS_LANGUAGES: Array<string> = LANGUAGES.filter(
+  (language: string): boolean => {
+    return fs.existsSync(path.join(DOCS_DIR, language));
+  },
+);
+
 const LOCALES: Record<string, Locale> = {};
 for (const language of LANGUAGES) {
   LOCALES[language] = JSON.parse(
@@ -338,8 +345,8 @@ afterEach(() => {
 });
 
 describe("the zoom hints and the empty chart, in the Dashboard's locales", () => {
-  test("every Dashboard language is read: English and the 16 others", () => {
-    expect(LANGUAGES).toHaveLength(17);
+  test("every Dashboard language is read: English and the 17 others", () => {
+    expect(LANGUAGES).toHaveLength(18);
   });
 
   test("each is a key of the Dashboard's English, drawn as itself", () => {
@@ -398,7 +405,15 @@ describe("the zoom hints and the empty chart, in the Dashboard's locales", () =>
     },
   );
 
-  test.each(LANGUAGES)(
+  test("the docs are read in every language they are written in", () => {
+    expect(
+      LANGUAGES.filter((language: string): boolean => {
+        return !DOCS_LANGUAGES.includes(language);
+      }),
+    ).toEqual(["ar"]);
+  });
+
+  test.each(DOCS_LANGUAGES)(
     "%s's docs quote the way back as the charts draw it",
     (language: string) => {
       const page: string = fs.readFileSync(

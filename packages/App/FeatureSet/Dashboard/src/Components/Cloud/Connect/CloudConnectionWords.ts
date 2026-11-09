@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
@@ -107,7 +108,10 @@ function numberIn(value: number, fractionDigits?: number): TemplateValue {
           };
 
     try {
-      return value.toLocaleString(translator.language, options);
+      return value.toLocaleString(
+        getNumberLocale(translator.language),
+        options,
+      );
     } catch {
       return value.toLocaleString("en-US", options);
     }

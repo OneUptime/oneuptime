@@ -897,7 +897,7 @@ describe("the questions follow the record", () => {
         return file.endsWith(".json") && file !== "en.json";
       });
 
-    expect(locales).toHaveLength(16);
+    expect(locales).toHaveLength(17);
 
     const readLocale: (file: string) => JSONObject = (
       file: string,
