@@ -33,6 +33,22 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
           }}
           icon={IconProp.Info}
         />
+        {/*
+         * What the project sends, on every install: its members see the same
+         * under Project Settings > Telemetry & APM > Usage.
+         */}
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.telemetryUsage"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROJECT_TELEMETRY_USAGE] as Route,
+              {
+                modelId: props.modelId,
+              },
+            ),
+          }}
+          icon={IconProp.ChartBar}
+        />
       </SideMenuSection>
 
       <SideMenuSection title={t("sideMenu.members")}>

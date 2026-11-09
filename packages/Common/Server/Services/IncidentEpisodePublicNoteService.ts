@@ -4,9 +4,11 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import {
   DatabaseTriggerType,
   OnCreate,
+  OnDelete,
   OnFind,
   OnUpdate,
 } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/IncidentEpisodePublicNote";
@@ -43,6 +45,7 @@ import { JSONObject } from "../../Types/JSON";
 import Color from "../../Types/Color";
 import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
 import PublicNoteApprovalEngine, {
+  PublicNoteApprovalDelete,
   PublicNoteApprovalHost,
   PublicNoteApprovalKind,
   PublicNoteApprovalRecordInfo,
@@ -600,6 +603,46 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}${approvedBy}
         }),
       },
     });
+  }
+
+  /*
+   * A delete of notes reads the chat copies of their approval messages
+   * first - the database deletes them with the notes - and replaces them in
+   * the background once it is done, saying the note was deleted
+   * (PublicNoteApprovalEngine.beforeDelete, afterDelete).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const onDelete: OnDelete<Model> = await super.onBeforeDelete(deleteBy);
+
+    return {
+      deleteBy: onDelete.deleteBy,
+      carryForward: {
+        publicNoteApproval: await PublicNoteApprovalEngine.beforeDelete({
+          host: this.getApprovalKind(),
+          deleteBy: onDelete.deleteBy,
+        }),
+      },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    PublicNoteApprovalEngine.afterDelete({
+      delete: (
+        onDelete.carryForward as {
+          publicNoteApproval?: PublicNoteApprovalDelete;
+        } | null
+      )?.publicNoteApproval,
+      deletedIds: deletedIds,
+    });
+
+    return onDelete;
   }
 
   @CaptureSpan()

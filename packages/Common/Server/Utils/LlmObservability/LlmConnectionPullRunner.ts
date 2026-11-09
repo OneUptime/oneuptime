@@ -13,6 +13,7 @@ import {
 import {
   LlmChatTurn,
   LlmConnectionPullState,
+  LlmUsageRecord,
 } from "../../../Types/LlmObservability/LlmConnectionRecords";
 import { LlmConnectionFailureKind } from "../../../Types/LlmObservability/LlmConnectionTest";
 import ObjectID from "../../../Types/ObjectID";
@@ -125,6 +126,18 @@ export interface LlmConnectionPullOutcome {
   error?: string | undefined;
 }
 
+/*
+ * What a provider account's reads have covered so far, kept on its last
+ * read's result so the connection can say more than what its last read -
+ * a few days, after the first - found: the newest day it ever read usage
+ * on, and the first day it read (reads since then found nothing newer when
+ * newestUsageDay is absent). Both are ISO day starts.
+ */
+export interface LlmUsageCoverage {
+  newestUsageDay: string | undefined;
+  readSince: string;
+}
+
 export default class LlmConnectionPullRunner {
   public static async isTelemetryAllowed(
     projectId: ObjectID,
@@ -210,6 +223,54 @@ export default class LlmConnectionPullRunner {
       pageToken: read("pageToken"),
       nextIndex:
         Number.isInteger(nextIndex) && nextIndex >= 0 ? nextIndex : undefined,
+    };
+  }
+
+  /*
+   * The newest day with usage - this read's, or the one an earlier read
+   * found when it is newer - and the first day ever read. A day has usage
+   * when it used tokens, made requests or cost money.
+   */
+  public static getUsageCoverage(data: {
+    previous: JSONObject | undefined | null;
+    window: LlmUsageWindow;
+    records: Array<LlmUsageRecord>;
+  }): LlmUsageCoverage {
+    const previous: JSONObject =
+      data.previous && typeof data.previous === "object" ? data.previous : {};
+
+    const readDay: (value: unknown) => number = (value: unknown): number => {
+      if (typeof value !== "string" || !value) {
+        return 0;
+      }
+
+      const time: number = Date.parse(value);
+      return Number.isFinite(time) ? time : 0;
+    };
+
+    let newest: number = readDay(previous["newestUsageDay"]);
+
+    for (const record of data.records) {
+      const used: boolean =
+        record.inputTokens > 0 ||
+        record.outputTokens > 0 ||
+        (record.requests || 0) > 0 ||
+        (record.costUsd || 0) > 0;
+
+      if (used && record.day.getTime() > newest) {
+        newest = LlmUsageDays.startOfUtcDay(record.day).getTime();
+      }
+    }
+
+    const previousSince: number = readDay(previous["readSince"]);
+    const since: number =
+      previousSince > 0
+        ? Math.min(previousSince, data.window.startDay.getTime())
+        : data.window.startDay.getTime();
+
+    return {
+      newestUsageDay: newest > 0 ? new Date(newest).toISOString() : undefined,
+      readSince: new Date(since).toISOString(),
     };
   }
 
@@ -312,6 +373,7 @@ export default class LlmConnectionPullRunner {
           storeConversationText: true,
           serviceId: true,
           pullState: true,
+          lastPullResult: true,
         },
         props: { isRoot: true },
       });
@@ -416,11 +478,26 @@ export default class LlmConnectionPullRunner {
           });
 
         nextState = { cursor: LlmUsageDays.startOfUtcDay(now).toISOString() };
+
+        const coverage: LlmUsageCoverage =
+          LlmConnectionPullRunner.getUsageCoverage({
+            previous: connection.lastPullResult,
+            window,
+            records: fetched.records,
+          });
+
         outcome = {
           status: "success",
           result: {
             kind: "usage",
             days: LlmUsageDays.daysBetween(window.startDay, window.endDay),
+            ...(coverage.newestUsageDay
+              ? { newestUsageDay: coverage.newestUsageDay }
+              : {}),
+            readSince: coverage.readSince,
+            ...(fetched.resources !== undefined
+              ? { resources: fetched.resources }
+              : {}),
             daysWithUsage: written.daysWithUsage,
             series: written.seriesCount,
             pointsWritten: written.pointsWritten,

@@ -113,7 +113,7 @@ De applicatie bestaat, maar de pagina's ervan tonen niets.
 
 Paginaladingen en verzoeken komen binnen, maar **Uitzonderingen** of **Logboeken** blijven leeg. De OpenTelemetry-browser-SDK verstuurt uit zichzelf traces van paginaladingen en verzoeken, maar geen uitzonderingen en geen logs, dus een applicatie kan verbonden lijken terwijl deze twee voorgoed leeg blijven.
 
-De lege grafiek op het **Overzicht** van de applicatie zegt welk geval het is, en de **Installatiecontrole** op de pagina **Documentatie** ervan toont elke soort telemetrie met wanneer de nieuwste binnenkwam:
+De lege grafiek op het **Overzicht** van de applicatie zegt welk geval het is, en de **Configuratiecontrole** op de pagina **Documentatie** ervan toont elke soort telemetrie met wanneer de nieuwste binnenkwam:
 
 | De grafiek zegt | Wat het betekent |
 | --- | --- |

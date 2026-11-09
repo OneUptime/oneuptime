@@ -7,12 +7,14 @@ import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
+import { getLlmProviderStoredValues } from "../../../Types/Telemetry/LlmProviders";
 import AggregateBy from "../../Types/AnalyticsDatabase/AggregateBy";
 import LlmCostBudgetService from "../../Services/LlmCostBudgetService";
 import MetricService from "../../Services/MetricService";
@@ -147,8 +149,15 @@ export default class LlmCostBudgetEvaluator {
         data.budget.serviceId;
     }
 
+    /*
+     * Every spelling the provider is stored under: ingest stores the
+     * conventions' name (azure.ai.openai), and calls ingested before it did
+     * keep what their instrumentation sent (az.ai.openai, OpenAI).
+     */
     if (data.budget.llmSystem) {
-      (query as Record<string, unknown>)["llmSystem"] = data.budget.llmSystem;
+      (query as Record<string, unknown>)["llmSystem"] = new Includes(
+        getLlmProviderStoredValues(data.budget.llmSystem),
+      );
     }
 
     if (data.budget.llmModel) {

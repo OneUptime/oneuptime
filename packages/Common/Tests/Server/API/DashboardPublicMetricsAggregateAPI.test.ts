@@ -134,7 +134,11 @@ describe("DashboardAPI public metrics-aggregate", () => {
 
   /*
    * A stored chart widget, shaped the way the canvas persists it: the query
-   * lives under `arguments.metricQueryConfigs[].metricQueryData`.
+   * lives under `arguments.metricQueryConfigs[].metricQueryData`. A widget
+   * with the table's own settings - its group-by attributes, its
+   * widget-level attribute filters - is a table: a public dashboard serves
+   * a widget only the settings its type has (issue #6338), and a chart has
+   * neither, so no chart draws with them.
    */
   const buildViewConfig: BuildViewConfigFunction = (
     widgets: Array<MetricWidgetSpec>,
@@ -159,7 +163,10 @@ describe("DashboardAPI public metrics-aggregate", () => {
           return {
             _type: "DashboardComponent",
             componentId: ObjectID.generate().toString(),
-            componentType: DashboardComponentType.Chart,
+            componentType:
+              widget.groupByAttributes || widget.attributeFilters
+                ? DashboardComponentType.Table
+                : DashboardComponentType.Chart,
             topInDashboardUnits: index,
             leftInDashboardUnits: 0,
             widthInDashboardUnits: 12,
@@ -1830,10 +1837,15 @@ describe("DashboardAPI public metrics-aggregate", () => {
 
   describe("stored config shapes", () => {
     it("collects group-by keys from every shape the widgets persist", async () => {
+      /*
+       * The table's own shapes are a table's: a public dashboard serves a
+       * widget only the settings its type has (issue #6338).
+       */
       const shapes: Array<{ label: string; config: JSONObject }> = [
         {
           label: "table widget groupByAttributes",
           config: {
+            componentType: DashboardComponentType.Table,
             arguments: {
               groupByAttributes: [{ key: "shape.key" }],
               metricQueryConfigs: [
@@ -1845,6 +1857,7 @@ describe("DashboardAPI public metrics-aggregate", () => {
         {
           label: "table widget groupByAttributeKeys",
           config: {
+            componentType: DashboardComponentType.Table,
             arguments: {
               groupByAttributeKeys: ["shape.key"],
               metricQueryConfigs: [
@@ -3404,9 +3417,18 @@ describe("DashboardAPI public metrics-aggregate", () => {
               }),
               ...variableKeys,
             ]);
+            /*
+             * A widget's `groupBy` counts where the page reads it, in one of
+             * its queries. A table here has none: its `groupBy` is put beside
+             * its settings, where no board reads it, so a public dashboard
+             * does not serve it (issue #6338), and no route reads it either.
+             */
             const groupsByAttributes: boolean = drawn.some(
               (widget: GeneratedWidget): boolean => {
-                return widget.groupsByAttributes;
+                return (
+                  widget.groupsByAttributes &&
+                  widget.componentType !== DashboardComponentType.Table
+                );
               },
             );
 

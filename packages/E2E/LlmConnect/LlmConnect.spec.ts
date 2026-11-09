@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -47,6 +48,8 @@ interface FixtureState {
   tests: Array<{ body: Record<string, unknown> }>;
   readNows: Array<string>;
   spanLists: Array<Record<string, unknown>>;
+  setupChecks: Array<Record<string, unknown>>;
+  metricUsages: Array<Record<string, unknown>>;
 }
 
 async function open(page: Page, query: string = ""): Promise<void> {
@@ -533,7 +536,10 @@ test.describe("the list of connections", () => {
   }) => {
     await open(page, "state=connected&way=providers");
 
-    await expect(page.getByText("OpenAI production")).toBeVisible();
+    // The list's own row: the setup check above names the account too.
+    await expect(
+      panel(page, "providers").getByText("OpenAI production"),
+    ).toBeVisible();
     await expect(page.getByText("Working").first()).toBeVisible();
     await expect(
       panel(page, "providers").getByText("Not working").first(),
@@ -633,7 +639,9 @@ test.describe("a connection that is off", () => {
   }) => {
     await open(page, "state=off&way=providers");
 
-    await expect(page.getByText("Bedrock us-east-1")).toBeVisible();
+    await expect(
+      panel(page, "providers").getByText("Bedrock us-east-1"),
+    ).toBeVisible();
     await expect(
       panel(page, "providers").getByText("Off", { exact: true }),
     ).toBeVisible();
@@ -657,6 +665,185 @@ test.describe("a connection that is off", () => {
         data: { isEnabled: true },
       },
     ]);
+  });
+});
+
+/*
+ * #5776: provider accounts connected and working, and empty conversations,
+ * with nothing on the page to say why. The Setup check at the top of
+ * Connect says what each way is bringing in right now.
+ */
+test.describe("the setup check", () => {
+  /*
+   * A new project: one line, not three groups of "none connected" over the
+   * three ways that say the same right under it - which stay in view.
+   */
+  test("nothing set up: one line, and the three ways right under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+
+    const check: Locator = page.getByTestId("llm-setup-check");
+
+    await expect(check.getByText("Setup check", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("llm-setup-check-quiet")).toHaveText(
+      "Nothing is coming in yet. Pick a way below to bring AI in.",
+    );
+
+    for (const group of ["apps", "accounts", "tools"]) {
+      await expect(page.getByTestId(`llm-setup-check-${group}`)).toHaveCount(0);
+    }
+
+    for (const key of ["apps", "providers", "tools"]) {
+      await expect(way(page, key)).toBeInViewport();
+    }
+
+    // The check reads the project, not a view's window.
+    const state: FixtureState = await fixture(page);
+    expect(state.setupChecks).toEqual([{}]);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "connect-setup-check-empty");
+  });
+
+  test("provider accounts connected and no app sending: each account's line, and the way to send calls", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    const accounts: Locator = page.getByTestId("llm-setup-check-accounts");
+
+    await expect(
+      page.getByTestId("llm-setup-check-line-apps-none"),
+    ).toBeVisible();
+    await expect(page.getByTestId("llm-setup-check-apps-action")).toHaveText(
+      "Send your app's AI calls",
+    );
+
+    const openai: Locator = accounts.getByTestId(
+      "llm-setup-check-connection-20000000-0000-4000-8000-000000000001",
+    );
+    await expect(openai).toContainText("OpenAI production");
+    await expect(openai).toContainText("Last used");
+    // An account that works and has usage is one line.
+    await expect(openai).not.toContainText(
+      "Azure OpenAI and ChatGPT use are not in it.",
+    );
+
+    const foundry: Locator = accounts.getByTestId(
+      "llm-setup-check-connection-20000000-0000-4000-8000-000000000002",
+    );
+    // What failed in the product's words, and what to do - not Azure's JSON.
+    await expect(foundry).toContainText(
+      "The credential works, but it may not read what this connection needs.",
+    );
+    await expect(foundry).toContainText(
+      "Give it the role or scope the setup guide names, then test again.",
+    );
+    await expect(foundry).not.toContainText("AuthorizationFailed");
+    await expect(
+      foundry.getByTestId(
+        "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000002",
+      ),
+    ).toHaveAttribute("data-tone", "error");
+
+    await expect(
+      page.getByTestId(
+        "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000003",
+      ),
+    ).toHaveAttribute("data-tone", "waiting");
+    await expect(page.getByTestId("llm-setup-check-tools")).toContainText(
+      "Waiting for the first read",
+    );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "connect-setup-check-connected");
+  });
+
+  /*
+   * A connection is a row: its name and how it stands side by side where
+   * the card is wide, so a busy project's accounts read as a list; the
+   * status under the name on a phone. The next step sits under what it
+   * answers, in line with the text.
+   */
+  test("a connection's name and status share a row on a desktop, and stack on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    const row: Locator = page.getByTestId(
+      "llm-setup-check-connection-20000000-0000-4000-8000-000000000001",
+    );
+    const boxes: Array<FrameBox> = await boxesInOneFrame([
+      row.getByTestId("llm-setup-check-connection-name"),
+      row.getByTestId(
+        "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000001",
+      ),
+    ]);
+    const name: FrameBox = boxes[0]!;
+    const status: FrameBox = boxes[1]!;
+
+    if (test.info().project.name === "phone") {
+      expect(status.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+    } else {
+      expect(Math.abs(status.y - name.y)).toBeLessThanOrEqual(4);
+      expect(status.x).toBeGreaterThan(name.x + name.width);
+    }
+
+    const apps: Locator = page.getByTestId("llm-setup-check-apps");
+    const [finding, action] = await boxesInOneFrame([
+      apps.getByTestId("llm-setup-check-line-apps-none"),
+      apps.getByTestId("llm-setup-check-apps-action"),
+    ]);
+
+    // Under the finding, at every width.
+    expect(action!.y).toBeGreaterThanOrEqual(finding!.y + finding!.height - 1);
+  });
+
+  test("apps sending AI calls: how many, through which provider, and nothing to open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=done");
+
+    const apps: Locator = page.getByTestId("llm-setup-check-apps");
+
+    await expect(apps).toContainText("AI calls in the past 7 days, from");
+    await expect(apps).toContainText("Through OpenAI.");
+    await expect(apps).toContainText(
+      "Prompts and answers recorded on 100% of answers.",
+    );
+    await expect(page.getByTestId("llm-setup-check-apps-action")).toHaveCount(
+      0,
+    );
+
+    await shoot(page, "connect-setup-check-done");
+  });
+
+  test("Check again reads it again", async ({ page }: { page: Page }) => {
+    await open(page, "state=connected");
+
+    await expect(
+      page.getByTestId("llm-setup-check-line-apps-none"),
+    ).toBeVisible();
+
+    await page
+      .getByTestId("llm-setup-check")
+      .getByRole("button", { name: "Check again" })
+      .click();
+
+    await expect
+      .poll(async () => {
+        return (await fixture(page)).setupChecks.length;
+      })
+      .toBe(2);
   });
 });
 

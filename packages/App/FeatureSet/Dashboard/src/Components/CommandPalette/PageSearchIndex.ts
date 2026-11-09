@@ -527,6 +527,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               },
             ],
           },
+          /*
+           * On every install, billing on or off. It was Billing and Invoices
+           * > Usage History: still found by that name.
+           */
+          {
+            page: PageMap.SETTINGS_USAGE_HISTORY,
+            title: "Usage",
+            icon: IconProp.ChartBar,
+            keywords: [
+              "usage history",
+              "telemetry usage",
+              "data ingested",
+              "how much data",
+              "gb per day",
+            ],
+            settings: ["Telemetry Usage History"],
+          },
         ],
       },
       {
@@ -775,13 +792,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "Customer Balance",
               "Cancel Plan",
             ],
-          },
-          {
-            page: PageMap.SETTINGS_USAGE_HISTORY,
-            title: "Usage History",
-            icon: IconProp.ChartBar,
-            keywords: ["usage", "data ingested"],
-            settings: ["Telemetry Usage History"],
           },
           {
             page: PageMap.SETTINGS_BILLING_INVOICES,

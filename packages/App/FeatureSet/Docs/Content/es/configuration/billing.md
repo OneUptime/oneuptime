@@ -106,7 +106,7 @@ Cuando su banco todavía procesa un pago, OneUptime lo indica: algunos bancos ta
 
 ## Historial de uso
 
-**Ajustes del proyecto → Facturación y facturas → Historial de uso** muestra la telemetría que envió el proyecto, una fila por producto, servicio y día:
+**Ajustes del proyecto → Telemetría y APM → Uso** muestra cuánta telemetría envió el proyecto, por día, señal y recurso: consulte [Uso de telemetría](/docs/telemetry/usage). En OneUptime Cloud, su lista **Historial de uso de telemetría** también indica cuánto costó cada día, una fila por producto, servicio y día:
 
 | Columna | Qué muestra |
 | --- | --- |
@@ -117,7 +117,7 @@ Cuando su banco todavía procesa un pago, OneUptime lo indica: algunos bancos ta
 | **Retención de datos (en días)** | Cuánto tiempo se conserva. |
 | **Costo total** | Lo que costó, en dólares estadounidenses. |
 
-El uso de un día aparece cuando el día termina. Filtre por **Producto**, **Día** o **Servicio** para encontrar lo que creció.
+El uso de un día aparece cuando el día termina, a más tardar hacia las 08:00 UTC del día siguiente. Filtre por **Producto**, **Día** o **Servicio** para encontrar lo que creció.
 
 ## Saldos prepagados
 
@@ -188,8 +188,8 @@ Un proyecto con facturas sin pagar queda inactivo, y se elimina si siguen sin pa
 El proyecto aún no tiene método de pago. Añada uno y después cambie el plan.
 :::
 
-:::details El historial de uso está vacío
-El uso se cuenta por día, y un día aparece cuando termina. Un proyecto que no envió telemetría no tiene filas.
+:::details La lista Historial de uso de telemetría está vacía
+El uso se cuenta por día, y un día aparece cuando termina, a más tardar hacia las 08:00 UTC del día siguiente. Un proyecto que no envió telemetría no tiene filas.
 :::
 
 ## Próximos pasos

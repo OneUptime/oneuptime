@@ -8,9 +8,8 @@ import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { JSONObject, JSONValue, ObjectType } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
-import ObjectID from "../../../Types/ObjectID";
 import PublicDashboardSloWidget, {
   PublicDashboardSloWidgetConfig,
   PublicDashboardSloWidgetTargetKind,
@@ -31,6 +30,7 @@ import DashboardModelQueryInterpolation, {
 } from "../../../Utils/Dashboard/ModelQueryVariableInterpolation";
 import DashboardVariableInterpolation from "../../../Utils/Dashboard/VariableInterpolation";
 import DashboardLabelVariable from "../../../Utils/Dashboard/LabelVariable";
+import DashboardWidgetIds from "../../../Utils/Dashboard/DashboardWidgetIds";
 import {
   STORAGE_ARRAY_HARDWARE_UNHEALTHY_FILTER,
   STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
@@ -1131,10 +1131,9 @@ export default class PublicDashboardResourceListPolicy {
           argumentsObject,
           "labelIds",
         ),
-        labelVariableId: PublicDashboardResourceListPolicy.optionalString(
+        labelVariableId: PublicDashboardResourceListPolicy.optionalVariableId(
           argumentsObject,
           "labelVariableId",
-          false,
         ),
         variables,
       });
@@ -1937,10 +1936,9 @@ export default class PublicDashboardResourceListPolicy {
           argumentsObject,
           "labelIds",
         ),
-        labelVariableId: PublicDashboardResourceListPolicy.optionalString(
+        labelVariableId: PublicDashboardResourceListPolicy.optionalVariableId(
           argumentsObject,
           "labelVariableId",
-          false,
         ),
         variables,
       });
@@ -2060,31 +2058,36 @@ export default class PublicDashboardResourceListPolicy {
   /*
    * One value of a list a widget filters by, as the page filters by it:
    * text, or an id stored as an ObjectID (`{"_type": "ObjectID", "value":
-   * ...}`), which the page holds as the ObjectID it revives to - or as that
-   * JSON, for a widget it draws from its stored JSON - and filters by as the
-   * id it names (issue #6315). Null for anything else - a number, a list, a
-   * query operator, a date - in either encoding, which is refused as before.
+   * ...}`), revived or left as that JSON (issue #6315) - read by the one
+   * reader every board reads a widget's ids with (DashboardWidgetIds, issue
+   * #6328). Null for anything else - a number, a list, a query operator, a
+   * date - in either encoding, which is refused as before.
    */
   private static readListValue(item: unknown): string | null {
-    if (typeof item === "string") {
-      return item;
+    return DashboardWidgetIds.readId(item);
+  }
+
+  /*
+   * The id of the variable a widget follows, as the page reads it: text, or
+   * an ObjectID stored as its JSON (DashboardWidgetIds, issue #6328). Left
+   * out, null or empty is none; anything else that names no id is refused,
+   * as a typed value in a text setting is.
+   */
+  private static optionalVariableId(
+    object: Record<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const value: unknown = object[key];
+    if (value === undefined || value === null || value === "") {
+      return undefined;
     }
 
-    if (item instanceof ObjectID) {
-      return item.toString();
+    const id: string | null = DashboardWidgetIds.readId(value);
+    if (id === null) {
+      throw new BadDataException(`Dashboard widget ${key} must be a string.`);
     }
 
-    if (
-      item !== null &&
-      typeof item === "object" &&
-      !Array.isArray(item) &&
-      (item as JSONObject)["_type"] === ObjectType.ObjectID &&
-      typeof (item as JSONObject)["value"] === "string"
-    ) {
-      return (item as JSONObject)["value"] as string;
-    }
-
-    return null;
+    return id.length > 0 ? id : undefined;
   }
 
   private static optionalString(

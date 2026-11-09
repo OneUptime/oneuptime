@@ -88,8 +88,8 @@ beforeEach(() => {
   startWorld();
 });
 
-afterEach(() => {
-  restoreWorld();
+afterEach(async () => {
+  await restoreWorld();
 });
 
 describe("Approve", () => {
@@ -460,7 +460,7 @@ describe("pressed too late: news, never an error", () => {
 
     expect(pressed.outcome).toBe(PublicNoteApprovalPressOutcome.News);
     expect(pressed.answer.markdown).toBe(
-      `This public note on ${RECORD_LINK} no longer waits for approval, so nothing was decided.`,
+      `📄 This public note on ${RECORD_LINK} was published without approval, so nothing was decided: public notes no longer need approval.`,
     );
     expect(world.writes).toEqual([]);
   });

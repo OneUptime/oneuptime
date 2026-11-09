@@ -106,7 +106,7 @@ Als uw bank een betaling nog verwerkt, meldt OneUptime dat: sommige banken doen 
 
 ## Gebruiksgeschiedenis
 
-**Projectinstellingen → Facturering en facturen → Gebruiksgeschiedenis** toont de telemetrie die het project heeft verstuurd, één rij per product, service en dag:
+**Projectinstellingen → Telemetrie & APM → Gebruik** toont hoeveel telemetrie het project heeft verstuurd, per dag, signaal en resource: zie [Telemetriegebruik](/docs/telemetry/usage). Op OneUptime Cloud vermeldt de lijst **Geschiedenis van telemetriegebruik** daar ook wat elke dag kostte, één rij per product, service en dag:
 
 | Kolom | Wat die toont |
 | --- | --- |
@@ -117,7 +117,7 @@ Als uw bank een betaling nog verwerkt, meldt OneUptime dat: sommige banken doen 
 | **Gegevensbewaring (in dagen)** | Hoe lang het wordt bewaard. |
 | **Totale kosten** | Wat het kostte, in Amerikaanse dollars. |
 
-Het gebruik van een dag verschijnt zodra de dag voorbij is. Filter op **Product**, **Dag** of **Service** om te vinden wat is gegroeid.
+Het gebruik van een dag verschijnt zodra de dag voorbij is, uiterlijk rond 08:00 UTC de volgende dag. Filter op **Product**, **Dag** of **Service** om te vinden wat is gegroeid.
 
 ## Vooruitbetaalde saldi
 
@@ -188,8 +188,8 @@ Een project met onbetaalde facturen wordt inactief, en wordt verwijderd als ze o
 Het project heeft nog geen betaalmethode. Voeg er een toe en wijzig daarna het abonnement.
 :::
 
-:::details De gebruiksgeschiedenis is leeg
-Gebruik wordt per dag geteld, en een dag verschijnt zodra die voorbij is. Een project dat geen telemetrie heeft verstuurd, heeft geen rijen.
+:::details Geschiedenis van telemetriegebruik is leeg
+Gebruik wordt per dag geteld, en een dag verschijnt zodra die voorbij is, uiterlijk rond 08:00 UTC de volgende dag. Een project dat geen telemetrie heeft verstuurd, heeft geen rijen.
 :::
 
 ## Volgende stappen

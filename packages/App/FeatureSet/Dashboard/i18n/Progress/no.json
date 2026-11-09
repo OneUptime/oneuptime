@@ -353,6 +353,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} SLO",
     "{{count}} VM",
     "{{count}} alarm",
     "{{count}} app",

@@ -108,10 +108,10 @@ Cursor が話すのは HTTP 上の OTLP で、バイナリの protobuf のみで
 
 ## 従業員への帰属
 
-**Cursor は人を `cursor.user.id` で示します。これは Cursor にしか名前に変換できない整数で、クラウドエージェントでは省かれることがよくあります。** OneUptime はこれを従業員として、`cursor.team.id` をチームとして読み取るため、 **使用量** タブでは設定なしで人とチームをランキングできますが、人は整数で表示されます。
+**Cursor は人を `cursor.user.id` で示します。これは Cursor にしか名前に変換できない整数で、クラウドエージェントでは省かれることがよくあります。** OneUptime は、Cursor が送る場合は `cursor.user.email` を、送らない場合は `cursor.user.id` を従業員として、`cursor.team.id` をチームとして読み取るため、 **使用量** タブでは設定なしで人とチームをランキングできます。メールアドレスのない人は整数で表示されます。
 
 - どちらもリソース属性 (`resource.cursor.user.id`、`resource.cursor.team.id`) として届き、OneUptime はそれを読み取ります。
-- Cursor は `cursor.user.email` も送れますが、OneUptime はまだ読み取らないため、Cursor では従業員のメールアドレスの列は空のままです。
+- `cursor.user.email` は `cursor.user.id` より先に読み取られるため、Cursor がメールアドレスで示す人はメールアドレスで表示されます。
 - `gen_ai.user`、`llm.user`、LiteLLM のエンドユーザー ID が従業員として読み取られることはありません。これらは社員ではなく顧客を示します。[従業員とチームへの帰属](/docs/telemetry/ai-coding-assistants#従業員とチームへの帰属)を参照してください。
 
 ### 使用量タブでの Cursor の表示
@@ -120,7 +120,7 @@ Cursor はメトリクスを送り、GenAI スパンは送りません。メト�
 
 | 内訳 | Cursor の場合 |
 | --- | --- |
-| **従業員** | はい。`cursor.user.id` 別 |
+| **従業員** | はい。`cursor.user.email` 別、なければ `cursor.user.id` 別 |
 | **チーム** | はい。`cursor.team.id` 別 |
 | **モデル** | はい。`cursor.model.name` 別 |
 | **プロバイダー** | いいえ。Cursor はどのプロバイダーが呼び出しを処理したかを伝えない |
@@ -167,7 +167,7 @@ Cursor は自社のサーバーから接続します。OTLP エンドポイン�
 :::
 
 :::details 人が数字で表示される
-それは `cursor.user.id` で、現在 OneUptime が Cursor から読み取る唯一の人の ID です。Cursor の Admin API を使って名前と対応付けてください。
+それは `cursor.user.id` で、Cursor が `cursor.user.email` を送らないときに読み取られます。Cursor の Admin API を使って名前と対応付けてください。
 :::
 
 ## 次のステップ

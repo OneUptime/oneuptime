@@ -1058,6 +1058,58 @@ describe("query_slos — recommended burn-rate rules the SLO is missing", () => 
       "which of OneUptime's recommended burn-rate rules (Fast burn, Slow burn, Slow leak) the SLO is missing",
     );
   });
+
+  /*
+   * A team that wants Slow leak everywhere asks how to add it to all its
+   * SLOs: the model is told the SLO list's Bulk Actions do that, not only
+   * each SLO's own page.
+   */
+  test("says the missing rules can be added to many SLOs at once from the SLO list", async () => {
+    const result: ToolExecutionResult = await detailWith([
+      ruleWith("Fast burn", 60),
+      ruleWith("Slow burn", 360),
+    ]);
+
+    expect(result.dataForLlm).toContain(
+      "Anyone who can create SLO burn rate rules can add it on the SLO's Burn Rate Rules page with Add recommended rules, or add the missing recommended rules to many SLOs at once by selecting them on the SLO list and choosing Add recommended rules under Bulk Actions.",
+    );
+    expect(result.dataForLlm).not.toContain("unarchive the SLO first");
+  });
+
+  test("an archived SLO is told to be unarchived first: neither its page nor the SLO list offers the rules", async () => {
+    const slo: ServiceLevelObjective = buildSlo();
+    slo.isArchived = true;
+
+    const result: ToolExecutionResult = await detailWith(
+      [ruleWith("Fast burn", 60), ruleWith("Slow burn", 360)],
+      slo,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "Note: this SLO does not have this burn-rate rule OneUptime recommends for every SLO",
+    );
+    expect(result.dataForLlm).toContain(
+      "This SLO is archived, so its rules never fire and neither its Burn Rate Rules page nor the SLO list offers it: unarchive the SLO first, then add it on its Burn Rate Rules page with Add recommended rules.",
+    );
+    expect(result.dataForLlm).not.toContain("under Bulk Actions");
+  });
+
+  test("speaks of every missing rule in the plural, live or archived", async () => {
+    const live: ToolExecutionResult = await detailWith([]);
+
+    expect(live.dataForLlm).toContain(
+      "Anyone who can create SLO burn rate rules can add them on the SLO's Burn Rate Rules page with Add recommended rules",
+    );
+
+    const slo: ServiceLevelObjective = buildSlo();
+    slo.isArchived = true;
+
+    const archived: ToolExecutionResult = await detailWith([], slo);
+
+    expect(archived.dataForLlm).toContain(
+      "neither its Burn Rate Rules page nor the SLO list offers them: unarchive the SLO first, then add them",
+    );
+  });
 });
 
 describe("query_slos — error budget policy", () => {

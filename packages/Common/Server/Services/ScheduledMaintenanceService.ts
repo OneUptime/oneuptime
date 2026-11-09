@@ -6,6 +6,10 @@ import ScheduledMaintenanceMeasurementService from "./ScheduledMaintenanceMeasur
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import PublicNoteApprovalEngine, {
+  PublicNoteApprovalDelete,
+  PublicNoteKind,
+} from "../Utils/Notes/PublicNoteApprovalEngine";
 import ProjectReferencesService from "./ProjectReferencesService";
 import ScheduledMaintenanceCustomField from "../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
@@ -1773,6 +1777,14 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
     return {
       carryForward: {
         scheduledMaintenanceEvents: scheduledMaintenanceEvents,
+        /*
+         * The chat copies of the approval messages of their public notes,
+         * which the database deletes with them: replaced once they are gone.
+         */
+        publicNoteApproval: await PublicNoteApprovalEngine.beforeRecordsDelete({
+          kind: PublicNoteKind.ScheduledMaintenance,
+          records: scheduledMaintenanceEvents,
+        }),
       },
       deleteBy: deleteBy,
     };
@@ -1783,6 +1795,16 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
     onDelete: OnDelete<Model>,
     deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
+    // Their public notes' approval messages say the notes were deleted.
+    PublicNoteApprovalEngine.afterRecordsDelete({
+      delete: (
+        onDelete.carryForward as {
+          publicNoteApproval?: PublicNoteApprovalDelete;
+        } | null
+      )?.publicNoteApproval,
+      deletedIds: deletedIds,
+    });
+
     if (onDelete.carryForward?.scheduledMaintenanceEvents) {
       // The events the delete removed, of those onBeforeDelete read.
       for (const scheduledMaintenanceEvent of Service.getRowsDeleted<Model>({

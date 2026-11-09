@@ -49,7 +49,7 @@ Under **Test** klikker du på **Test forbindelse**. OneUptime læser forbruget f
 Klik på **Forbind**. Den første læsning starter inden for et minut og henter de sidste 30 dage.
 :::
 
-Forbundne konti står under felterne med deres **Status** og **Senest læst**. **Læs nu** læser med det samme, **Test** tjekker de gemte indstillinger igen, **Slå fra** stopper læsningen og beholder det læste, og **Rediger** ændrer indstillingerne: en hemmelighed, der lades tom, beholder den gemte. **Vis fejl** viser, hvorfor en læsning fejlede, uden nogen hemmelighed.
+Forbundne konti står under felterne med deres **Status** og **Senest læst**. **Læs nu** læser med det samme, **Test** tjekker de gemte indstillinger igen, **Slå fra** stopper læsningen og beholder det læste, og **Rediger** ændrer indstillingerne: en hemmelighed, der lades tom, beholder den gemte. **Vis fejl** viser, hvorfor en læsning fejlede, uden nogen hemmelighed. Status for en konto, der virker, nævner den seneste dag med forbrug eller, når læsningerne ikke fandt noget, den første læste dag; en Azure-forbindelse, der ikke finder nogen ressource, siger det.
 
 ## Hvad hver udbyder giver
 
@@ -187,6 +187,14 @@ Giv dem den rolle, denne side nævner for udbyderen: Monitoring Reader på Azure
 
 :::details Testen lykkes, men der vises intet for i dag
 Udbyderne rapporterer en dags forbrug minutter til timer senere og retter det i en dag eller to. De næste læsninger henter det.
+:::
+
+:::details Kontoen virker, men dens status siger intet forbrug
+Dens læsninger fandt intet siden den nævnte dag. OpenAIs rapporter tæller de API-kald, der er foretaget med den organisations nøgler, ikke Azure OpenAI eller ChatGPT. En Azure-forbindelse læser kun de ressourcer, dens app kan se: giv appen Monitoring Reader der, hvor de ligger.
+:::
+
+:::details Konti er forbundet, men Samtaler og Kald er tomme
+En konto bringer forbrug og omkostninger pr. dag, aldrig et kald eller en samtale: de kommer fra dine apps. Se [Tjek, hvad der kommer ind](/docs/telemetry/ai-llm-observability#tjek-hvad-der-kommer-ind).
 :::
 
 :::details Omkostningen afviger fra fakturaen

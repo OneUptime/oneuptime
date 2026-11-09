@@ -53,7 +53,7 @@ Et offentlig dashbord:
 
 Behandle deling av et dashbord som publisering av en nettside. Alle widgets på det blir lesbare for alle med lenken. Se hva som er på lerretet før du deler det.
 
-Hver widget publiserer bare det den tegner, og bare for ressursene den er rettet mot. En SLO-widget publiserer for eksempel nøkkeltallene til det SLO-et, men aldri definisjonen: se [SLO](/docs/dashboards/widgets#slo). Widgets med en ekstern **Data Source** er unntaket: de fjernes helt fra et offentlig dashbord i stedet for å gjengis, fordi konfigurasjonen deres er selve spørringen. Noen få andre widgets kan ikke vises uten en pålogget økt, og sier det på sin plass: [På et offentlig dashbord](/docs/dashboards/widgets#på-et-offentlig-dashbord) viser hvilke.
+Hver widget publiserer bare det den tegner, og bare for ressursene den er rettet mot. En SLO-widget publiserer for eksempel nøkkeltallene til det SLO-et, men aldri definisjonen: se [SLO](/docs/dashboards/widgets#slo). Widgets med en ekstern **Data Source** er unntaket: de fjernes helt fra et offentlig dashbord i stedet for å gjengis, fordi konfigurasjonen deres er selve spørringen. Noen få andre widgets kan ikke vises uten en pålogget økt, og sier det på sin plass: [På et offentlig dashbord](/docs/dashboards/widgets#på-et-offentlig-dashbord) viser hvilke. De publiserer bare tittelen sin, aldri søkene og filtrene de leser dataene sine med. Også variabler publiserer bare det velgerne deres viser: spørringen til en eldre spørringsvariabel publiseres aldri.
 
 ## Deling med passord
 

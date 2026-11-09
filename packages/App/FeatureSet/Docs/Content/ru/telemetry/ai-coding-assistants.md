@@ -83,7 +83,7 @@ Copilot экспортирует OpenTelemetry только из агентны�
 
 | Колонка | Ключи, от предпочтительного |
 | --- | --- |
-| Сотрудник | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Сотрудник | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Команда / центр затрат | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Модель | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime также читает токены из `gen_ai.client.token.usage`,
 Две вещи, которые нужно знать, прежде чем читать цифры:
 
 - **`gemini_cli.token.usage` пропускается намеренно.** Gemini CLI отправляет свои токены дважды, как собственную метрику и как `gen_ai.client.token.usage`, и чтение обеих удвоило бы их. Его токены считаются один раз, через `gen_ai.client.token.usage`. Gemini CLI не отправляет метрику стоимости: включите его трассировки, чтобы у каждого вызова была цена.
-- **Считаются только входные и выходные токены.** Тип токена читается из `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` или `token_type`, и учитываются только `input` и `output` (или старые `prompt` и `completion`). Чтение и запись кэша, `total` у Codex (повторяющий остальные) и `reasoning_output` (часть `output`) пропускаются, поэтому итог из метрик меньше суммы всего, что отправляет инструмент.
+- **Считаются только входные и выходные токены.** Тип токена читается из `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` или `token_type`, и учитываются только `input` и `output` (или старые `prompt` и `completion`), а `cacheRead` и `cacheCreation` у Claude Code — как входные, поскольку его `input` их не включает. Остальные чтение и запись кэша, `total` у Codex (повторяющий остальные) и `reasoning_output` (часть `output`) пропускаются, поэтому итог из метрик меньше суммы всего, что отправляет инструмент.
 
 ## Вкладка Использование
 

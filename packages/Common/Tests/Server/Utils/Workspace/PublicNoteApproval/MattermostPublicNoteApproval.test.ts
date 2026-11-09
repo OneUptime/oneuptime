@@ -47,12 +47,19 @@ import {
   OTHER_PROJECT_ID,
   PROJECT_ID,
   SUPPORT,
+  ReplacedMessage,
   encodedValue,
+  keepCopies,
+  keptCopies,
+  replacedCopies,
   restoreWorld,
+  sentTo,
+  settled,
   startWorld,
   storedRound,
   world,
 } from "./PublicNoteApprovalChatWorld";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
 /*
  * APPROVE AND REJECT IN MATTERMOST (#6289): a public note's approval
@@ -180,8 +187,8 @@ beforeEach(() => {
     .mockResolvedValue(undefined as never) as AnySpy;
 });
 
-afterEach(() => {
-  restoreWorld();
+afterEach(async () => {
+  await restoreWorld();
 });
 
 describe("the buttons of a direct message", () => {
@@ -357,7 +364,7 @@ describe("Approve", () => {
     const answer: MattermostPressAnswer = await approve(BOB, value);
 
     expect(answer.ephemeral_text).toBe(
-      `This public note on [Incident INC-42](${NOTES_URL}) no longer waits for approval, so nothing was decided.`,
+      `📄 This public note on [Incident INC-42](${NOTES_URL}) was published without approval, so nothing was decided: public notes no longer need approval.`,
     );
     expect(world.writes).toEqual([]);
   });
@@ -650,5 +657,70 @@ describe("a Mattermost account not connected yet", () => {
     );
     expect(answer.ephemeral_text).toContain("press the button again");
     expect(world.writes).toEqual([]);
+  });
+});
+
+/*
+ * ONCE IT IS DECIDED, EVERY COPY SAYS SO (#6317): the presser's own post and
+ * every other approver's, edited in place - what happened, the link to the
+ * note, and no Approve or Reject - beside the answer only the presser sees.
+ */
+describe("every copy of the message, the presser's own too, once it is decided", () => {
+  function expectReplacedWith(pattern: RegExp): void {
+    for (const replaced of world.replaced) {
+      expect(replaced.workspaceType).toBe(WorkspaceType.Mattermost);
+      expect(replaced.markdown).toMatch(pattern);
+      expect(
+        replaced.buttons.map((button: ReplacedMessage["buttons"][number]) => {
+          return button.actionId;
+        }),
+      ).toEqual([SlackActionType.OpenInOneUptime]);
+    }
+  }
+
+  test("Approve: answered only to the presser, and their post and the other approver's say who approved it and who is next", async () => {
+    await keepCopies([BOB, DAVE], [WorkspaceType.Mattermost]);
+
+    const answer: MattermostPressAnswer = await approve(BOB);
+    await settled();
+
+    expect(answer.ephemeral_text).toContain(
+      "✅ You approved a **public note**",
+    );
+    expect(replacedCopies()).toEqual(["Bob:Mattermost", "Dave:Mattermost"]);
+    expectReplacedWith(
+      /^✅ This public note on \[Incident INC-42\]\([^)]+\) was approved for step 1 of 2 \(Support\) by \*\*Bob\*\* at \{\{TIME\([^)]+\)\}\}\. It waits for step 2 of 2 \(Legal\): Carol\.$/,
+    );
+    // Each post edited in its own direct message.
+    expect(
+      world.replaced
+        .map((replaced: ReplacedMessage): string => {
+          return replaced.messageId;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        sentTo(BOB, WorkspaceType.Mattermost).messageId,
+        sentTo(DAVE, WorkspaceType.Mattermost).messageId,
+      ].sort(),
+    );
+    expect(keptCopies()).toEqual([]);
+  });
+
+  test("Reject, submitted with its reason: every post says who rejected it", async () => {
+    await keepCopies([BOB, DAVE], [WorkspaceType.Mattermost]);
+
+    await MattermostActions.handleDialogSubmission(
+      rejectSubmission(DAVE, encodedValue(), {
+        [PUBLIC_NOTE_REJECT_REASON_FIELD]: "Not yet.",
+      }),
+    );
+    await settled();
+
+    expect(replacedCopies()).toEqual(["Bob:Mattermost", "Dave:Mattermost"]);
+    expectReplacedWith(
+      /^↩️ This public note on \[Incident INC-42\]\([^)]+\) was rejected by \*\*Dave\*\* at \{\{TIME\([^)]+\)\}\}\. It is not published\.$/,
+    );
+    expect(keptCopies()).toEqual([]);
   });
 });

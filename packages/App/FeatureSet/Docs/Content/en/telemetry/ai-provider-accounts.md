@@ -49,7 +49,7 @@ On **Test**, click **Test connection**. OneUptime reads the last 7 days of usage
 Click **Connect**. The first read starts within a minute and brings in the last 30 days.
 :::
 
-Connected accounts are listed under the tiles, with their **Status** and **Last read**. **Read now** reads at once, **Test** checks the stored settings again, **Turn off** stops reading and keeps what was read, and **Edit** changes the settings: a secret left blank keeps the stored one. **View error** shows why a read failed, with any secret removed.
+Connected accounts are listed under the tiles, with their **Status** and **Last read**. **Read now** reads at once, **Test** checks the stored settings again, **Turn off** stops reading and keeps what was read, and **Edit** changes the settings: a secret left blank keeps the stored one. **View error** shows why a read failed, with any secret removed. A working account's status names the last day it had usage or, when its reads found none, the first day they read; an Azure connection that finds no resource says so.
 
 ## What each provider gives
 
@@ -187,6 +187,14 @@ Give it the role this page names for the provider: Monitoring Reader on the Azur
 
 :::details The test passes, but nothing shows for today
 Providers report a day's usage minutes to hours after it happens, and correct it for a day or two. The next reads bring it in.
+:::
+
+:::details The account works, but its status says no usage
+Its reads found none since the day named. OpenAI's reports count the API calls made with that organization's keys, not Azure OpenAI or ChatGPT. An Azure connection reads only the resources its app can see: give the app Monitoring Reader where they are.
+:::
+
+:::details Accounts are connected, but Conversations and Calls are empty
+An account brings usage and cost by day, never a call or a conversation: those come from your apps. See [Check what is arriving](/docs/telemetry/ai-llm-observability#check-what-is-arriving).
 :::
 
 :::details The cost differs from the invoice

@@ -108,10 +108,10 @@ Cada registro carrega estes atributos de recurso:
 
 ## Atribuição a funcionários
 
-**O Cursor identifica uma pessoa por `cursor.user.id`, um número inteiro que só o Cursor consegue transformar em um nome, e muitas vezes o omite para agentes na nuvem.** O OneUptime o lê como o funcionário, e `cursor.team.id` como a equipe, então a aba **Uso** ordena pessoas e equipes sem configuração, mas as pessoas aparecem como números inteiros.
+**O Cursor identifica uma pessoa por `cursor.user.id`, um número inteiro que só o Cursor consegue transformar em um nome, e muitas vezes o omite para agentes na nuvem.** O OneUptime lê `cursor.user.email` como o funcionário quando o Cursor o envia, `cursor.user.id` quando não, e `cursor.team.id` como a equipe, então a aba **Uso** ordena pessoas e equipes sem configuração; pessoas sem e-mail aparecem como números inteiros.
 
 - Os dois chegam como atributos de recurso (`resource.cursor.user.id`, `resource.cursor.team.id`), que o OneUptime lê.
-- O Cursor também pode enviar `cursor.user.email`, mas o OneUptime ainda não o lê, então a coluna de e-mail do funcionário fica vazia para o Cursor.
+- `cursor.user.email` é lido antes de `cursor.user.id`, então uma pessoa que o Cursor identifica por e-mail aparece pelo e-mail.
 - `gen_ai.user`, `llm.user` e os ids de usuário final do LiteLLM nunca são lidos como o funcionário: eles identificam seus clientes, não sua equipe. Veja [Atribuição a funcionários e equipes](/docs/telemetry/ai-coding-assistants#atribuição-a-funcionários-e-equipes).
 
 ### Onde o Cursor aparece na aba Uso
@@ -120,7 +120,7 @@ O Cursor envia métricas e nenhum span GenAI, e as métricas só completam os sp
 
 | Divisão | Para o Cursor |
 | --- | --- |
-| **Funcionário** | Sim, por `cursor.user.id` |
+| **Funcionário** | Sim, por `cursor.user.email`, senão `cursor.user.id` |
 | **Equipe** | Sim, por `cursor.team.id` |
 | **Modelo** | Sim, por `cursor.model.name` |
 | **Provedor** | Não: o Cursor nunca diz qual provedor atendeu uma chamada |
@@ -167,7 +167,7 @@ O projeto também recebe spans GenAI com custo, então as métricas do Cursor n�
 :::
 
 :::details As pessoas aparecem como números
-Isso é `cursor.user.id`: o único id de pessoa que o OneUptime lê do Cursor hoje. Associe-o a nomes com a Admin API do Cursor.
+Isso é `cursor.user.id`, lido quando o Cursor não envia `cursor.user.email`. Associe-o a nomes com a Admin API do Cursor.
 :::
 
 ## Próximos passos

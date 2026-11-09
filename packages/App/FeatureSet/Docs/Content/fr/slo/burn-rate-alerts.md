@@ -88,6 +88,35 @@ Les SLO créés avant l'arrivée de Slow leak n'ont que Fast burn et Slow burn :
 
 Une règle compte comme présente quand le SLO a une règle du même nom, ou une règle avec la même fenêtre longue, qu'elle soit activée ou non. Une règle par défaut que vous avez renommée ou ajustée n'est donc jamais ajoutée deux fois. Pour que la note cesse de proposer une règle par défaut dont vous ne voulez pas, gardez la règle et désactivez-la au lieu de la supprimer. Il vous faut la permission de créer des règles de taux de consommation de SLO. Chaque règle ajoutée ainsi est publiée dans le fil d'activité du SLO et enregistrée dans ses journaux d'audit, comme une règle que vous créez vous-même.
 
+### Les ajouter à plusieurs SLO à la fois
+
+Pour donner les règles recommandées à de nombreux SLO, partez de la liste des SLO plutôt que de la page de chaque SLO.
+
+:::steps
+#### Sélectionner les SLO
+
+Ouvrez **SLOs** et sélectionnez les SLO à mettre à jour. Pour prendre tous les SLO qu'affiche un filtre, sélectionnez toute la page, puis toutes les correspondances que la liste propose.
+
+#### Choisir l'action groupée
+
+Ouvrez **Actions groupées** et choisissez **Ajouter les règles recommandées**.
+
+#### Vérifier ce qui sera ajouté, puis confirmer
+
+Avant tout ajout, la confirmation compte combien des SLO sélectionnés reçoivent chaque règle, adaptée à leur propre fenêtre. Quand des SLO aux fenêtres différentes reçoivent une règle sous des formes différentes, comme Slow leak sur un SLO de 7 jours et sur un SLO de 30 jours, elle liste chaque forme avec son seuil, ses fenêtres et les SLO qui la reçoivent. Elle indique aussi combien ont déjà toutes les règles recommandées, et combien n'ont pas pu être lus. Cliquez sur **Ajouter les règles recommandées** pour les ajouter.
+:::
+
+Chaque SLO ne reçoit que les règles qui lui manquent, exactement comme sa propre page **Règles de taux de consommation** les ajouterait : la même vérification de ce qui compte comme présent, et un élément dans le fil d'activité et une entrée dans les journaux d'audit pour chaque règle. Le résultat indique, pour chaque SLO, si des règles ont été ajoutées, s'il avait déjà toutes les règles recommandées, ou s'il n'a pas été modifié et pourquoi, par exemple pour un SLO que vous n'avez pas le droit de modifier. Un SLO qui n'est pas modifié n'empêche jamais les autres de l'être, et relancer l'action sur les mêmes SLO n'ajoute rien. Les SLO archivés ne figurent pas dans la liste et ne se voient jamais proposer les règles, car ils ne sont pas évalués : désarchivez d'abord le SLO.
+
+Des scripts peuvent faire de même par l'API, avec une [clé d'API](/docs/api-reference/api-reference) du projet. Les requêtes pour un seul SLO attendent `{ "serviceLevelObjectiveId": "..." }` et renvoient les règles dans `rules`. Les requêtes groupées attendent `{ "serviceLevelObjectiveIds": ["..."] }`, avec 100 SLO au plus par requête, et renvoient une entrée pour chaque SLO dans `results`, dans l'ordre demandé :
+
+| Requête | Ce qu'elle fait |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | Liste les règles recommandées qui manquent au SLO. Elle n'enregistre rien. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | Les ajoute, et liste ce qu'elle a ajouté. La relancer n'ajoute rien. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | Indique ce qui manque à chaque SLO : `Missing` avec les règles, `NothingMissing`, ou `Refused` pour un SLO que vous n'avez pas le droit de lire. Elle n'enregistre rien. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | Ajoute ce qui manque à chaque SLO, un SLO après l'autre : `Added` avec les règles, `NothingMissing`, `Refused`, ou `Failed` avec les règles ajoutées avant l'échec. La relancer n'ajoute que ce qui manque encore. |
+
 ## Créer ou modifier une règle
 
 Il vous faut la permission de créer des règles de taux de consommation de SLO.

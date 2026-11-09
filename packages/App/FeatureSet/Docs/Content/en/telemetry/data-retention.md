@@ -93,10 +93,11 @@ Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Pro
 | Session replays | 7 days unless changed | The RUM application's replay policy: see [Managing Applications](/docs/rum/applications#session-replay-retention). |
 | Monitor logs, one row per check | 1 day unless changed | On a self-hosted installation, **Monitor Log Retention (Days)** in the Admin Dashboard |
 | Monitor metrics, and the metrics SLOs record | 30 days unless changed | On a self-hosted installation, **Monitor Metric Retention (Days)** in the Admin Dashboard |
+| [Telemetry usage](/docs/telemetry/usage), one count per resource, signal and day | 120 days unless changed | On a self-hosted installation, **Telemetry Usage Retention (Days)** in the Admin Dashboard |
 
 ## What retention costs
 
-- **On OneUptime Cloud**, telemetry is billed per GB ingested, and the per-GB price includes 15 days of retention. Longer retention costs proportionally more: 30 days costs twice as much per GB as 15. Shorter retention costs proportionally less, but retention under 7 days is billed as 7 days. **Project Settings → Billing and Invoices → Usage History** shows, day by day, how much each service sent and how long it is kept.
+- **On OneUptime Cloud**, telemetry is billed per GB ingested, and the per-GB price includes 15 days of retention. Longer retention costs proportionally more: 30 days costs twice as much per GB as 15. Shorter retention costs proportionally less, but retention under 7 days is billed as 7 days. **Project Settings → Telemetry & APM → Usage** shows, day by day, how much each service sent and how long it is kept.
 - **When you self-host**, telemetry lives in ClickHouse, and retention multiplies its disk. See [Sizing](/docs/installation/sizing#retention-and-how-it-affects-storage).
 
 Telemetry you do not need costs nothing if it is never stored: [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules) drop it as it arrives.

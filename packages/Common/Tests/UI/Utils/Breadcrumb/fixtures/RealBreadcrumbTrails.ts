@@ -2872,7 +2872,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/settings/usage-history",
-    titles: ["Project", "Settings", "Usage History"],
+    titles: ["Project", "Settings", "Usage"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",

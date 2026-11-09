@@ -1,7 +1,17 @@
 import { expect, jest } from "@jest/globals";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
+import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspacePublicNoteApprovalMessage from "../../../../../Models/DatabaseModels/WorkspacePublicNoteApprovalMessage";
 import TeamService from "../../../../../Server/Services/TeamService";
 import WorkspaceNotificationLogService from "../../../../../Server/Services/WorkspaceNotificationLogService";
+import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
+import WorkspacePublicNoteApprovalMessageService from "../../../../../Server/Services/WorkspacePublicNoteApprovalMessageService";
+import { WorkspaceSentDirectMessage } from "../../../../../Server/Services/WorkspaceUserNotificationService";
+import MattermostUtil from "../../../../../Server/Utils/Workspace/Mattermost/Mattermost";
+import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
+import { WorkspaceMessageLocation } from "../../../../../Server/Utils/Workspace/WorkspaceBase";
+import WorkspacePublicNoteApprovalMessages from "../../../../../Server/Utils/Workspace/WorkspacePublicNoteApprovalMessages";
 import PublicNoteApprovalEngine, {
   PublicNoteApprovalHost,
   PublicNoteKind,
@@ -24,6 +34,13 @@ import PublicNoteApproval, {
   PublicNoteApprovalStatus,
   PublicNoteApprovalStepRule,
 } from "../../../../../Types/StatusPage/PublicNoteApproval";
+import {
+  WorkspaceMessageBlock,
+  WorkspaceMessagePayloadButton,
+  WorkspacePayloadButtons,
+  WorkspacePayloadMarkdown,
+} from "../../../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import { getJestSpyOn } from "../../../../Spy";
 
 /*
@@ -90,6 +107,38 @@ export const SUBMITTED_AT: string = "2026-11-07T09:00:00.000Z";
 
 export const NOTE_TEXT: string = "We are looking into the checkout errors.";
 
+/*
+ * The workspaces the project is connected to, as each names itself: the
+ * Slack workspace, the Microsoft 365 tenant, the Mattermost team.
+ */
+export const WORKSPACES: Record<WorkspaceType, string> = {
+  [WorkspaceType.Slack]: "T0TEAM",
+  [WorkspaceType.MicrosoftTeams]: "tenant-xyz",
+  [WorkspaceType.Mattermost]: "t".repeat(26),
+};
+
+export const CHATS: Array<WorkspaceType> = [
+  WorkspaceType.Slack,
+  WorkspaceType.MicrosoftTeams,
+  WorkspaceType.Mattermost,
+];
+
+export const TEAMS_SERVICE_URL: string =
+  "https://smba.trafficmanager.net/teams/";
+
+// A copy of an approval message the chat took the edit of.
+export interface ReplacedMessage {
+  workspaceType: WorkspaceType;
+  authToken: string;
+  projectId: string;
+  location: WorkspaceMessageLocation;
+  messageId: string;
+  markdown: string;
+  text: string | undefined;
+  buttons: Array<WorkspaceMessagePayloadButton>;
+  blocks: Array<WorkspaceMessageBlock>;
+}
+
 export interface StoredNote {
   _id: string;
   version: number;
@@ -131,6 +180,33 @@ export interface ChatWorld {
    * write clears it, and is held to the version actually stored.
    */
   readsAsOf: StoredNote | null;
+  // The approval messages kept, as the table holds them.
+  kept: Array<WorkspacePublicNoteApprovalMessage>;
+  // Every edit a chat took: the copies replaced, in order.
+  replaced: Array<ReplacedMessage>;
+  // Every edit asked of a chat, taken or refused.
+  editsAsked: Array<{ workspaceType: WorkspaceType; messageId: string }>;
+  /*
+   * The project's connection to each chat, by "<project>|<chat>": its token
+   * and the workspace it is connected to. None: not connected.
+   */
+  connections: Record<
+    string,
+    { authToken: string; workspaceProjectId: string } | null
+  >;
+  // What a chat answers an edit with instead of taking it, by chat.
+  editErrors: Partial<Record<WorkspaceType, unknown>>;
+  // An edit a chat never answers: it hangs (a press must not wait on it).
+  editsHang: boolean;
+  // What lets the hanging edits go, once a test is done with them.
+  releaseHangingEdits: Array<() => void>;
+  // The incident the note is on, as messages name it; null once it is gone.
+  record: {
+    label: string;
+    title: string;
+    url: string;
+    notesUrl: string;
+  } | null;
 }
 
 export let world: ChatWorld;
@@ -226,6 +302,30 @@ function fakeService(): unknown {
         ? snapshot()
         : null;
     },
+    // Who may edit the note: its readers, as the world has it.
+    findOneUpdatableById: async (find: {
+      id: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<unknown> => {
+      return world.exists &&
+        find.id.toString() === world.stored._id &&
+        (find.props.isRoot ||
+          world.readers.has(find.props.userId?.toString() || ""))
+        ? { _id: world.stored._id }
+        : null;
+    },
+    getUnwrittenByIdError: async (): Promise<Error> => {
+      return new NotAuthorizedException(
+        "You do not have Edit Incident Public Note permission.",
+      );
+    },
+    // The rows an edit, or a delete, of the note writes: the note itself.
+    findRowsAndHoldUpdateToThem: async (): Promise<Array<unknown>> => {
+      return world.exists ? [snapshot()] : [];
+    },
+    findRowsAndHoldDeleteToThem: async (): Promise<Array<unknown>> => {
+      return world.exists ? [snapshot()] : [];
+    },
     updateOneBy: async (update: {
       query: { _id: string; version: number };
       data: Record<string, unknown>;
@@ -270,12 +370,7 @@ export function host(): PublicNoteApprovalHost<IncidentPublicNote> {
     parentIdColumn: "incidentId",
     recordNoun: "incident",
     getRecord: async () => {
-      return {
-        label: "Incident INC-42",
-        title: "Checkout is down",
-        url: "https://oneuptime.example/dashboard/p/incidents/i",
-        notesUrl: NOTES_URL,
-      };
+      return world.record ? { ...world.record } : null;
     },
     addFeedItem: async (data: {
       markdown: { toString: () => string };
@@ -343,6 +438,320 @@ export function encodedValue(
   return WorkspacePublicNoteApproval.encodeValue(buttonValue(overrides));
 }
 
+// Where a copy for `userId` lands in each chat, as the chat says.
+export function sentTo(
+  userId: string,
+  workspaceType: WorkspaceType,
+  overrides: Partial<WorkspaceSentDirectMessage> = {},
+): WorkspaceSentDirectMessage {
+  // The end of the id: what tells people apart in the world.
+  const short: string = userId.slice(-8);
+
+  const where: Record<WorkspaceType, WorkspaceSentDirectMessage> = {
+    [WorkspaceType.Slack]: {
+      workspaceType: WorkspaceType.Slack,
+      workspaceProjectId: WORKSPACES[WorkspaceType.Slack],
+      channelId: `D0${short.toUpperCase()}`,
+      messageId: `1700000000.${short}`,
+    },
+    [WorkspaceType.MicrosoftTeams]: {
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      workspaceProjectId: WORKSPACES[WorkspaceType.MicrosoftTeams],
+      channelId: `a:1personal-${short}`,
+      messageId: `1:activity-${short}`,
+      serviceUrl: TEAMS_SERVICE_URL,
+    },
+    [WorkspaceType.Mattermost]: {
+      workspaceType: WorkspaceType.Mattermost,
+      workspaceProjectId: WORKSPACES[WorkspaceType.Mattermost],
+      channelId: `${short}${"c".repeat(26 - short.length)}`,
+      messageId: `${short}${"p".repeat(26 - short.length)}`,
+    },
+  };
+
+  return { ...where[workspaceType], ...overrides };
+}
+
+/*
+ * The copies of the approval message the note waits for now - or one with
+ * `value`'s overrides - sent to each of `userIds` in each of `chats`, and
+ * kept as WorkspaceUserNotificationService hands them over once sent.
+ */
+export async function keepCopies(
+  userIds: Array<string>,
+  chats: Array<WorkspaceType> = CHATS,
+  value: Partial<PublicNoteApprovalButtonValue> = {},
+): Promise<void> {
+  for (const userId of userIds) {
+    for (const workspaceType of chats) {
+      await WorkspacePublicNoteApprovalMessages.keep({
+        value: buttonValue(value),
+        userId: new ObjectID(userId),
+        sent: sentTo(userId, workspaceType),
+      });
+    }
+  }
+
+  await settled();
+}
+
+// Waits for the copies being replaced in the background.
+export async function settled(): Promise<void> {
+  await WorkspacePublicNoteApprovalMessages.settle();
+}
+
+// The copies still kept: those that still ask, by whom and in which chat.
+export function keptCopies(): Array<string> {
+  return world.kept
+    .map((kept: WorkspacePublicNoteApprovalMessage): string => {
+      return `${NAMES[kept.userId!.toString()] || kept.userId!.toString()}:${kept.workspaceType}`;
+    })
+    .sort();
+}
+
+// The copies replaced, by whom (their channel) and in which chat.
+export function replacedCopies(): Array<string> {
+  return world.replaced
+    .map((replaced: ReplacedMessage): string => {
+      const kept: string | undefined = Object.keys(NAMES).find(
+        (userId: string): boolean => {
+          return (
+            sentTo(userId, replaced.workspaceType).messageId ===
+            replaced.messageId
+          );
+        },
+      );
+
+      return `${kept ? NAMES[kept] : replaced.messageId}:${replaced.workspaceType}`;
+    })
+    .sort();
+}
+
+// What one chat's copies were replaced with: one text for them all.
+export function replacedWith(workspaceType?: WorkspaceType): Array<string> {
+  return Array.from(
+    new Set<string>(
+      world.replaced
+        .filter((replaced: ReplacedMessage): boolean => {
+          return !workspaceType || replaced.workspaceType === workspaceType;
+        })
+        .map((replaced: ReplacedMessage): string => {
+          return replaced.markdown;
+        }),
+    ),
+  );
+}
+
+function connectionKey(projectId: unknown, workspaceType: unknown): string {
+  return `${String(projectId).toLowerCase()}|${String(workspaceType)}`;
+}
+
+// The project connected to `workspaceType`'s workspace `workspaceProjectId`.
+export function connect(
+  workspaceType: WorkspaceType,
+  workspaceProjectId: string | null,
+  projectId: ObjectID = PROJECT_ID,
+): void {
+  world.connections[connectionKey(projectId, workspaceType)] =
+    workspaceProjectId === null
+      ? null
+      : {
+          authToken: `token-of-${projectId.toString().slice(0, 8)}-${workspaceType}`,
+          workspaceProjectId: workspaceProjectId,
+        };
+}
+
+function copyOf(
+  row: WorkspacePublicNoteApprovalMessage,
+): WorkspacePublicNoteApprovalMessage {
+  return Object.assign(new WorkspacePublicNoteApprovalMessage(), row);
+}
+
+function installKeptMessages(): void {
+  getJestSpyOn(
+    WorkspacePublicNoteApprovalMessageService,
+    "create",
+  ).mockImplementation((async (data: {
+    data: WorkspacePublicNoteApprovalMessage;
+  }) => {
+    const row: WorkspacePublicNoteApprovalMessage = copyOf(data.data);
+    row.id = ObjectID.generate();
+    world.kept.push(row);
+    return copyOf(row);
+  }) as never);
+
+  const matching: (
+    row: WorkspacePublicNoteApprovalMessage,
+    data: { projectId: ObjectID; noteColumn: string },
+  ) => boolean = (
+    row: WorkspacePublicNoteApprovalMessage,
+    data: { projectId: ObjectID; noteColumn: string },
+  ): boolean => {
+    return (
+      row.projectId?.toString().toLowerCase() ===
+        data.projectId.toString().toLowerCase() &&
+      Boolean((row as unknown as Record<string, unknown>)[data.noteColumn])
+    );
+  };
+
+  getJestSpyOn(
+    WorkspacePublicNoteApprovalMessageService,
+    "findForNotes",
+  ).mockImplementation((async (data: {
+    projectId: ObjectID;
+    noteColumn: string;
+    noteIds: Array<ObjectID>;
+  }) => {
+    const ids: Array<string> = data.noteIds.map((id: ObjectID): string => {
+      return id.toString().toLowerCase();
+    });
+
+    return world.kept
+      .filter((row: WorkspacePublicNoteApprovalMessage): boolean => {
+        return (
+          matching(row, data) &&
+          ids.includes(
+            String(
+              (row as unknown as Record<string, unknown>)[data.noteColumn],
+            ).toLowerCase(),
+          )
+        );
+      })
+      .map(copyOf);
+  }) as never);
+
+  getJestSpyOn(
+    WorkspacePublicNoteApprovalMessageService,
+    "findForRecords",
+  ).mockImplementation((async (data: {
+    projectId: ObjectID;
+    noteColumn: string;
+    recordIds: Array<ObjectID>;
+  }) => {
+    const ids: Array<string> = data.recordIds.map((id: ObjectID): string => {
+      return id.toString().toLowerCase();
+    });
+
+    return world.kept
+      .filter((row: WorkspacePublicNoteApprovalMessage): boolean => {
+        return (
+          matching(row, data) &&
+          ids.includes(String(row.recordId).toLowerCase())
+        );
+      })
+      .map(copyOf);
+  }) as never);
+
+  getJestSpyOn(
+    WorkspacePublicNoteApprovalMessageService,
+    "claim",
+  ).mockImplementation((async (data: { id: ObjectID; projectId: ObjectID }) => {
+    const index: number = world.kept.findIndex(
+      (row: WorkspacePublicNoteApprovalMessage): boolean => {
+        return (
+          row.id?.toString() === data.id.toString() &&
+          row.projectId?.toString().toLowerCase() ===
+            data.projectId.toString().toLowerCase()
+        );
+      },
+    );
+
+    if (index < 0) {
+      return false;
+    }
+
+    world.kept.splice(index, 1);
+    return true;
+  }) as never);
+
+  getJestSpyOn(
+    WorkspaceProjectAuthTokenService,
+    "getProjectAuth",
+  ).mockImplementation((async (data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+  }) => {
+    const connection: { authToken: string; workspaceProjectId: string } | null =
+      world.connections[connectionKey(data.projectId, data.workspaceType)] ||
+      null;
+
+    if (!connection) {
+      return null;
+    }
+
+    return {
+      authToken: connection.authToken,
+      workspaceProjectId: connection.workspaceProjectId,
+      workspaceType: data.workspaceType,
+      miscData: {},
+    } as unknown as WorkspaceProjectAuthToken;
+  }) as never);
+
+  installChatEdits(WorkspaceType.Slack, SlackUtil);
+  installChatEdits(WorkspaceType.MicrosoftTeams, MicrosoftTeamsUtil);
+  installChatEdits(WorkspaceType.Mattermost, MattermostUtil);
+}
+
+// One chat's edit of a message it holds: recorded, refused or left hanging.
+function installChatEdits(workspaceType: WorkspaceType, util: unknown): void {
+  getJestSpyOn(util, "updateMessage").mockImplementation((async (data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }) => {
+    world.editsAsked.push({
+      workspaceType: workspaceType,
+      messageId: data.messageId,
+    });
+
+    if (world.editsHang) {
+      // Not answered until the test is over.
+      await new Promise<void>((release: () => void): void => {
+        world.releaseHangingEdits.push(release);
+      });
+    }
+
+    // Read once: a test may answer each edit in its own way.
+    const refusal: unknown = world.editErrors[workspaceType];
+
+    if (refusal !== undefined) {
+      throw refusal;
+    }
+
+    world.replaced.push({
+      workspaceType: workspaceType,
+      authToken: data.authToken,
+      projectId: data.projectId.toString(),
+      location: data.location,
+      messageId: data.messageId,
+      markdown: data.messageBlocks
+        .filter((block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadMarkdown";
+        })
+        .map((block: WorkspaceMessageBlock): string => {
+          return (block as WorkspacePayloadMarkdown).text;
+        })
+        .join("\n\n"),
+      text: data.text,
+      buttons: data.messageBlocks
+        .filter((block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadButtons";
+        })
+        .flatMap(
+          (
+            block: WorkspaceMessageBlock,
+          ): Array<WorkspaceMessagePayloadButton> => {
+            return (block as WorkspacePayloadButtons).buttons;
+          },
+        ),
+      blocks: data.messageBlocks,
+    });
+  }) as never);
+}
+
 /*
  * A new world: Alice's note waiting for Support, then Legal; everyone may
  * read it; nobody is on a team. Every outside call the engine makes is the
@@ -366,7 +775,26 @@ export function startWorld(): void {
     told: [],
     logged: [],
     readsAsOf: null,
+    kept: [],
+    replaced: [],
+    editsAsked: [],
+    connections: {},
+    editErrors: {},
+    editsHang: false,
+    releaseHangingEdits: [],
+    record: {
+      label: "Incident INC-42",
+      title: "Checkout is down",
+      url: "https://oneuptime.example/dashboard/p/incidents/i",
+      notesUrl: NOTES_URL,
+    },
   };
+
+  for (const workspaceType of CHATS) {
+    connect(workspaceType, WORKSPACES[workspaceType]);
+  }
+
+  installKeptMessages();
 
   getJestSpyOn(
     WorkspacePublicNoteApprovalActions,
@@ -458,6 +886,17 @@ export function startWorld(): void {
   }) as never);
 }
 
-export function restoreWorld(): void {
+/*
+ * Waits for the copies still being replaced in the background - nothing of
+ * a test is left running into the next - then puts everything back.
+ */
+export async function restoreWorld(): Promise<void> {
+  world.editsHang = false;
+
+  for (const release of world.releaseHangingEdits.splice(0)) {
+    release();
+  }
+
+  await settled();
   jest.restoreAllMocks();
 }
