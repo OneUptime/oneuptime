@@ -245,31 +245,32 @@ Det er **Dine AI-kald**. Vælg **Udbyderkonti** i stedet for at se, hvad dine fo
 
 Personer og teams kommer fra identitetsattributter på kaldet: se [Tildeling til medarbejdere og teams](/docs/telemetry/ai-coding-assistants#tildeling-til-medarbejdere-og-teams).
 
-### Spans kommer først, metrikker udfylder hullerne
+### Hver tjeneste tælles ud fra det, den sender
 
-GenAI-spans bærer modellen, tokens og omkostningerne for ét kald, så hvor de findes, besvarer de alt. Nogle værktøjer udgiver token- og omkostningsmetrikker og ingen GenAI-spans, som de fleste kodeassistenter. OneUptime læser kun de metrikker for et tal, som spans ikke rapporterede noget for, og lægger aldrig de to sammen: mange instrumenteringer sender begge for det samme kald, og at lægge dem sammen ville tælle hver dollar to gange.
+AI-forbrug kommer i to former. GenAI-spans er AI-kald: ét pr. kald, med dets model, tokens og omkostninger. GenAI-metrikker er forbrugsmetrikker: tællere for tokens og omkostninger, som de fleste kodeassistenter sender i stedet for spans, og som nogle instrumenteringer sender ved siden af deres spans, for de samme kald. At lægge begge sammen ville tælle de kald to gange, så OneUptime tæller hver tjeneste ud fra én af dem: dens tokens fra dens AI-kald, når de rapporterer tokens, ellers fra dens forbrugsmetrikker, og dens omkostninger på samme måde, for sig. En kodeassistent, der kun sender metrikker, tælles dermed ved siden af de apps, der sender spans, i samme projekt, og en app, der sender begge dele, tælles én gang.
 
-```mermaid title="Hvor et tal på fanen Forbrug kommer fra"
+```mermaid title="Hvor en tjenestes tokens eller omkostninger kommer fra"
 flowchart TB
-    spans{"Rapporterer<br/>GenAI-spans det?"}
-    spans -->|"Ja"| fromSpans["Vist<br/>fra spans"]
-    spans -->|"Nej"| metrics{"Rapporterer<br/>GenAI-metrikker det?"}
-    metrics -->|"Ja"| fromMetrics["Vist fra metrikker,<br/>markeret med<br/>fra GenAI-metrikker"]
-    metrics -->|"Nej"| nothing["Intet<br/>at vise"]
+    spans{"Rapporterer dens<br/>AI-kald det?"}
+    spans -->|"Ja"| fromSpans["Talt fra<br/>AI-kald"]
+    spans -->|"Nej"| metrics{"Rapporterer dens<br/>forbrugsmetrikker det?"}
+    metrics -->|"Ja"| fromMetrics["Talt fra<br/>forbrugsmetrikker"]
+    metrics -->|"Nej"| nothing["Intet<br/>at tælle"]
 ```
 
-| Hvor | Hvad der falder tilbage på metrikker | Hvornår |
+| Hvor | Fra AI-kald | Fra forbrugsmetrikker |
 | --- | --- | --- |
-| Input- og outputtokens | Begge totaler | Spans' tokentotaler er begge 0 |
-| Omkostninger (USD) | Omkostningerne, med Codex' omkostninger i mikro-USD omregnet til USD | Spans' omkostningstotal er 0 |
-| LLM-kald | Intet: kun spans | — |
-| Tabellerne **Medarbejder**, **Team**, **Model** | Omkostninger, og tokens hvor metrikkerne tæller dem; cellen for kald viser `—` | Den tabel fandt ingen rækker fra spans |
-| Tabellerne **Udbyder**, **Applikation / Tjeneste** | Intet: kun spans | — |
-| Samtaler | Intet: samtaler bygges ud fra spans | — |
+| Input- og outputtokens | Hvert modelkalds tokens, én gang | En tjenestes tokens, når dens AI-kald ikke rapporterer nogen |
+| Omkostninger (USD) | Hvert modelkalds omkostninger, én gang | En tjenestes omkostninger, når dens AI-kald ikke rapporterer nogen, med Codex' omkostninger i mikro-USD omregnet til USD |
+| LLM-kald | Hvert AI-kald, som **Kald** viser dem | Aldrig: en metrik tæller ingen kald |
+| Tabellerne **Medarbejder**, **Team**, **Model**, **Udbyder**, **Applikation / Tjeneste** | Hver rækkes kald, tokens og omkostninger | Tokens og omkostninger for de tjenester, der tælles fra metrikker, under den person, det team, den model eller den udbyder, som deres punkter nævner |
+| Samtaler | Bygget ud fra AI-kald | Aldrig |
 
-Et tal fra metrikker er markeret med **fra GenAI-metrikker**, fordi det ikke har matchende rækker under **Kald**. Så snart dine GenAI-spans rapporterer et tal, vises et værktøj, der kun sender metrikker, altså ikke med sin andel. For at se sådan et værktøjs forbrug for sig sender du det til et projekt for sig selv, hvor der ikke ankommer GenAI-spans.
+Under hvert tal siger fanen Forbrug, hvor det kommer fra: **Fra AI-kald**, **Fra forbrugsmetrikker** eller **Fra AI-kald og forbrugsmetrikker**, når nogle tjenester sendte kald og andre metrikker. En tabelrække, der er talt fra forbrugsmetrikker, siger det under sit navn, og dens celle for kald viser `—`, når den ikke har noget AI-kald, fordi en metrik ikke har detaljer pr. kald; tabellens overskrift nævner de tjenester, der er talt fra forbrugsmetrikker. En forbrugsmetrik, der ikke nævner nogen tjeneste, tælles under **Ukendt tjeneste**, én tjeneste som enhver anden. Hvis din rolle må læse traces, men ikke metrikker, udelades forbrugsmetrikkerne, og tabellen siger det.
 
-En token- eller omkostningsmetrik er en tæller. En deltatællers punkter lægges sammen; en kumulativ tæller, standarden i OpenTelemetry-SDK'erne, tæller, hvor meget den voksede i tidsrummet, hver serie for sig, så en løbende total, der eksporteres hvert minut, tælles én gang. Budgetter tæller GenAI-metrikker på samme måde.
+Hvert modelkald tælles én gang. En agentkørsel, eller et frameworks span omkring SDK'ets eget span, gentager ofte tokens og omkostninger for kaldene i den: et spans tokens, eller dets omkostninger, udelades, hvor som helst et kald i det rapporterer dem, og en agentkørsel beholder sine egne tal, når intet kald i den gør det. Budgetter og listen **Samtaler** tæller på samme måde, mens **Kald** viser hvert span med dets egne tal.
+
+En token- eller omkostningsmetrik er en tæller. En deltatællers punkter lægges sammen; en kumulativ tæller, standarden i OpenTelemetry-SDK'erne, tæller, hvor meget den voksede i tidsrummet, hver serie for sig, så en løbende total, der eksporteres hvert minut, tælles én gang, og et fald læses som en genstart fra 0, sådan som Prometheus' `increase()` læser det. Budgetter tæller GenAI-metrikker på samme måde.
 
 ## Hvad et kald koster
 
@@ -283,7 +284,7 @@ For selv at prissætte en model (en forhandlet pris, en fine-tune eller en model
 
 ## Daglige omkostningsbudgetter
 
-Et budget følger én dags forbrug i USD over UTC-døgnet. Hvert 15. minut lægger OneUptime dagens AI-forbrug sammen (fra spans, eller fra GenAI-omkostningsmetrikker, når intet span rapporterede noget), viser det på budgettet og udgiver to metrikker. Et budget, hvis **Tæl udgifter fra** er **Udbyderkonti**, tæller i stedet, hvad dine forbundne konti blev faktureret: se [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts#budgetter-og-alarmer).
+Et budget følger én dags forbrug i USD over UTC-døgnet. Hvert 15. minut lægger OneUptime dagens AI-forbrug sammen (hver tjeneste fra dens AI-kald, eller fra dens omkostningsmetrikker, når dens kald ikke rapporterer nogen omkostninger), viser det på budgettet og udgiver to metrikker. Et budget, hvis **Tæl udgifter fra** er **Udbyderkonti**, tæller i stedet, hvad dine forbundne konti blev faktureret: se [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts#budgetter-og-alarmer).
 
 | Metrik | Hvad den er |
 | --- | --- |
@@ -380,8 +381,12 @@ Kaldene bærer intet samtale-id. Sæt `gen_ai.conversation.id` eller `session.id
 Modellen er ikke i den indbyggede prisliste, eller spannet nævner ingen model. Tilføj modellens priser på fanen **Priser**; kald, der ankommer derefter, bliver prissat. Et Azure OpenAI-kald prissættes efter den model, der betjente det, `gen_ai.response.model`: nævner dets span ingen, så prissæt deploymentens navn.
 :::
 
-:::details Fanen Forbrug siger fra GenAI-metrikker og viser `—` for kald
-Tallene kommer fra et værktøj, der sender metrikker og ingen GenAI-spans, som en kodeassistent. En metrik bærer omkostninger og tokens, men ingen detaljer pr. kald, så cellerne for kald forbliver tomme. Se [Spans kommer først, metrikker udfylder hullerne](#spans-kommer-først-metrikker-udfylder-hullerne).
+:::details Fanen Forbrug siger Fra forbrugsmetrikker og viser `—` for kald
+Tallene kommer fra en tjeneste, der sender metrikker og ingen GenAI-spans, som en kodeassistent. En metrik bærer omkostninger og tokens, men ingen detaljer pr. kald, så cellerne for kald forbliver tomme. Se [Hver tjeneste tælles ud fra det, den sender](#hver-tjeneste-tælles-ud-fra-det-den-sender).
+:::
+
+:::details Omkostningerne på fanen Forbrug er lavere end omkostningerne under Kald lagt sammen
+Nogle spans gentager tokens og omkostninger for kaldene i dem, som en agentkørsel eller et frameworks span omkring SDK'ets eget span. **Kald** viser hvert span med dets egne tal, mens fanen Forbrug, budgetter og listen **Samtaler** tæller hvert modelkald én gang.
 :::
 
 :::details En budgetmonitor skifter frem og tilbage mellem to tilstande

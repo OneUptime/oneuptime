@@ -64,7 +64,7 @@ export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
 
 ### データが届くことを確認する
 
-**メトリクス** を開いて `claude_code.token.usage` を探し、次に **製品 → AI / LLM** を開いて **使用量** に移動します。自分のメールアドレスの下にコストが表示され、 **GenAI メトリクスから** と示されます。
+**メトリクス** を開いて `claude_code.token.usage` を探し、次に **製品 → AI / LLM** を開いて **使用量** に移動します。自分のメールアドレスの下にコストが表示され、 **使用量メトリクスから** と示されます。
 :::
 
 メトリクスとイベントを別々の送信先に送るには、代わりに `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` と `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` を完全なパス (`https://oneuptime.com/otlp/v1/metrics`、`https://oneuptime.com/otlp/v1/logs`) で設定します。
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 **製品 → AI / LLM → 使用量** では、`claude_code.cost.usage` が **従業員** 、 **チーム** 、 **モデル** の表に、`claude_code.token.usage` がトークンの合計に使われます。表示内容は 2 つのルールで決まります。
 
-- **メトリクスはスパンを補うもので、スパンに加算されることはありません。** 同じプロジェクトが自社アプリからコスト付きの GenAI スパンを受け取っていると、Claude Code の支出は表示されません。Claude Code は専用のプロジェクトに送ってください。[スパンが優先され、メトリクスが補う](/docs/telemetry/ai-llm-observability#スパンが優先されメトリクスが補う)を参照してください。
-- **メトリクスからの行はコストだけを持ちます。** 呼び出しとトークンのセルは `—` を表示し、 **プロバイダー** と **アプリケーション / サービス** の表は空のままです。メトリクスはプロバイダーを示さず、どの OneUptime サービスにも属さないためです。
+- **Claude Code はアプリと並べて数えられます。** メトリクスは Claude Code 自身のサービスの下に届くため、その支出は、アプリが同じプロジェクトに送る AI 呼び出しに加算されます。トレース (ベータ) を有効にする場合は、全員について有効にしてください。それ以降、Claude Code はトレースだけから一度だけ数えられます。[各サービスは送信するデータから数えられる](/docs/telemetry/ai-llm-observability#各サービスは送信するデータから数えられる)を参照してください。
+- **メトリクスからの行は呼び出しを示しません。** 名前の下に **使用量メトリクスから** と表示され、呼び出しのセルは `—` を表示し、 **プロバイダー** の表では **帰属なし** の下に入ります。メトリクスはプロバイダーを示さないためです。
 
 開発者ごとの承認率、コード行数、コミット、プルリクエストや、`query_source` 別の支出など、それ以外のものはすべて、以下のメトリクスから [ダッシュボード](/docs/dashboards/index)にグラフ化し、[メトリクス モニター](/docs/monitor/metrics-monitor)でアラートを設定します。
 

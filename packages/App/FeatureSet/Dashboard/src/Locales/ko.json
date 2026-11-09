@@ -47133,5 +47133,10 @@
   "trace scrub rules": "트레이스 스크럽 규칙",
   "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "사용량이 많은 팀은 테스트에서 요청 수만 셉니다. 비용, 토큰, 사람은 첫 번째 읽기 후에 표시됩니다.",
   "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise는 OpenTelemetry Export로 팀의 사용량을 발생하는 대로 보낼 수도 있습니다.",
-  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "사용량이 생기면 바로 표시됩니다. 팀에서 Cursor를 사용 중이라면 키가 올바른 팀에 속하는지 확인하세요."
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "사용량이 생기면 바로 표시됩니다. 팀에서 Cursor를 사용 중이라면 키가 올바른 팀에 속하는지 확인하세요.",
+  "From AI calls": "AI 호출 기준",
+  "From AI calls and usage metrics": "AI 호출 및 사용량 메트릭 기준",
+  "From usage metrics": "사용량 메트릭 기준",
+  "Services counted from usage metrics: {{services}}": "사용량 메트릭으로 집계한 서비스: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "사용량 메트릭은 제외되었습니다. 내 역할로는 메트릭을 읽을 수 없습니다."
 }

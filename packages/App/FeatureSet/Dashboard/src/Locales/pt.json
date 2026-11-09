@@ -47133,5 +47133,10 @@
   "trace scrub rules": "regras de mascaramento de traces",
   "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "Em uma equipe com muito uso, o teste conta só as requisições. Custo, tokens e pessoas chegam com a primeira leitura.",
   "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "O Cursor Enterprise também pode enviar o uso da equipe à medida que acontece, com o seu OpenTelemetry Export.",
-  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "O uso aparece assim que houver algum. Se a sua equipe usa o Cursor, verifique se a chave pertence à equipe certa."
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "O uso aparece assim que houver algum. Se a sua equipe usa o Cursor, verifique se a chave pertence à equipe certa.",
+  "From AI calls": "Das chamadas de IA",
+  "From AI calls and usage metrics": "Das chamadas de IA e das métricas de uso",
+  "From usage metrics": "Das métricas de uso",
+  "Services counted from usage metrics: {{services}}": "Serviços contados pelas métricas de uso: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "As métricas de uso ficam de fora: sua função não pode ler métricas."
 }

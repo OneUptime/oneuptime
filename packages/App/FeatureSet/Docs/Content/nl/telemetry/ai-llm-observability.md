@@ -245,31 +245,32 @@ Dit zijn **Je AI-aanroepen**. Kies in plaats daarvan **Provideraccounts** om te 
 
 Personen en teams komen uit identiteitsattributen op de aanroep: zie [Toewijzing aan medewerkers en teams](/docs/telemetry/ai-coding-assistants#toewijzing-aan-medewerkers-en-teams).
 
-### Spans eerst, metrieken vullen aan
+### Elke service wordt geteld uit wat hij stuurt
 
-GenAI-spans dragen het model, de tokens en de kosten van één aanroep, dus waar ze bestaan, beantwoorden ze alles. Sommige tools publiceren token- en kostenmetrieken en geen GenAI-spans, zoals de meeste codeerassistenten. OneUptime leest die metrieken alleen voor een getal waarvoor de spans niets meldden, en telt de twee nooit bij elkaar op: veel instrumentaties sturen beide voor dezelfde aanroep, en optellen zou elke dollar twee keer tellen.
+AI-gebruik komt in twee vormen binnen. GenAI-spans zijn AI-aanroepen: één per aanroep, met het model, de tokens en de kosten ervan. GenAI-metrieken zijn gebruiksmetrieken: tellers van tokens en kosten die de meeste codeerassistenten in plaats van spans sturen, en sommige instrumentaties naast hun spans, voor dezelfde aanroepen. Beide optellen zou die aanroepen dubbel tellen, dus telt OneUptime elke service uit één van de twee: zijn tokens uit zijn AI-aanroepen als die tokens melden, anders uit zijn gebruiksmetrieken, en zijn kosten op dezelfde manier, apart. Een codeerassistent die alleen metrieken stuurt, wordt zo naast de apps geteld die spans sturen, in hetzelfde project, en een app die beide stuurt, één keer.
 
-```mermaid title="Waar een getal op het tabblad Gebruik vandaan komt"
+```mermaid title="Waar de tokens of kosten van een service vandaan komen"
 flowchart TB
-    spans{"Melden GenAI-spans<br/>het?"}
-    spans -->|"Ja"| fromSpans["Getoond<br/>uit spans"]
-    spans -->|"Nee"| metrics{"Melden de<br/>GenAI-metrieken het?"}
-    metrics -->|"Ja"| fromMetrics["Getoond uit metrieken,<br/>gemarkeerd met<br/>uit GenAI-metrieken"]
-    metrics -->|"Nee"| nothing["Niets<br/>te tonen"]
+    spans{"Melden zijn<br/>AI-aanroepen het?"}
+    spans -->|"Ja"| fromSpans["Geteld uit<br/>AI-aanroepen"]
+    spans -->|"Nee"| metrics{"Melden zijn<br/>gebruiksmetrieken het?"}
+    metrics -->|"Ja"| fromMetrics["Geteld uit<br/>gebruiksmetrieken"]
+    metrics -->|"Nee"| nothing["Niets<br/>te tellen"]
 ```
 
-| Waar | Wat terugvalt op metrieken | Wanneer |
+| Waar | Uit AI-aanroepen | Uit gebruiksmetrieken |
 | --- | --- | --- |
-| Invoer- en uitvoertokens | Beide totalen | De tokentotalen van de spans zijn allebei 0 |
-| Kosten (USD) | De kosten, met de micro-USD-kosten van Codex omgerekend naar USD | Het kostentotaal van de spans is 0 |
-| LLM-aanroepen | Niets: alleen spans | — |
-| Tabellen **Medewerker**, **Team**, **Model** | Kosten, en tokens waar de metrieken ze tellen; de cel voor aanroepen toont `—` | Die tabel vond geen spanrijen |
-| Tabellen **Provider**, **Applicatie / Service** | Niets: alleen spans | — |
-| Gesprekken | Niets: gesprekken worden uit spans opgebouwd | — |
+| Invoer- en uitvoertokens | De tokens van elke modelaanroep, één keer | De tokens van een service, als zijn AI-aanroepen er geen melden |
+| Kosten (USD) | De kosten van elke modelaanroep, één keer | De kosten van een service, als zijn AI-aanroepen er geen melden, met de micro-USD-kosten van Codex omgerekend naar USD |
+| LLM-aanroepen | Elke AI-aanroep, zoals **Aanroepen** ze toont | Nooit: een metriek telt geen aanroepen |
+| Tabellen **Medewerker**, **Team**, **Model**, **Provider**, **Applicatie / Service** | De aanroepen, tokens en kosten van elke rij | De tokens en kosten van de services die uit metrieken worden geteld, onder de persoon, het team, het model of de provider die hun punten noemen |
+| Gesprekken | Opgebouwd uit AI-aanroepen | Nooit |
 
-Een getal uit metrieken is gemarkeerd met **uit GenAI-metrieken**, omdat het geen bijbehorende rijen heeft onder **Aanroepen**. Zodra je GenAI-spans dus een getal melden, verschijnt het aandeel van een tool die alleen metrieken stuurt niet. Om de uitgaven van zo'n tool apart te zien, stuur je hem naar een eigen project, waar geen GenAI-spans binnenkomen.
+Onder elk getal zegt het tabblad Gebruik waar het vandaan komt: **Uit AI-aanroepen**, **Uit gebruiksmetrieken**, of **Uit AI-aanroepen en gebruiksmetrieken** als sommige services aanroepen en andere metrieken stuurden. Een tabelrij die uit gebruiksmetrieken is geteld, zegt dat onder haar naam, en haar cel voor aanroepen toont `—` als ze geen AI-aanroep heeft, omdat een metriek geen details per aanroep heeft; de kop van de tabel noemt de services die uit gebruiksmetrieken zijn geteld. Een gebruiksmetriek die geen service noemt, wordt geteld onder **Onbekende service**, een service als elke andere. Als je rol traces mag lezen maar geen metrieken, worden de gebruiksmetrieken weggelaten, en de tabel zegt dat.
 
-Een token- of kostenmetriek is een teller. De punten van een deltateller worden opgeteld; een cumulatieve teller, de standaard van de OpenTelemetry-SDK's, telt hoeveel hij in de periode groeide, elke reeks apart, dus een lopend totaal dat elke minuut wordt geëxporteerd, telt één keer. Budgetten tellen GenAI-metrieken op dezelfde manier.
+Elke modelaanroep wordt één keer geteld. Een agentrun, of de span van een framework rond de eigen span van de SDK, herhaalt vaak de tokens en kosten van de aanroepen erbinnen: de tokens van een span, of zijn kosten, worden weggelaten overal waar een aanroep erbinnen ze meldt, en een agentrun houdt zijn eigen getallen als geen aanroep erbinnen ze meldt. Budgetten en de lijst **Gesprekken** tellen op dezelfde manier, terwijl **Aanroepen** elke span met zijn eigen getallen toont.
+
+Een token- of kostenmetriek is een teller. De punten van een deltateller worden opgeteld; een cumulatieve teller, de standaard van de OpenTelemetry-SDK's, telt hoeveel hij in de periode groeide, elke reeks apart, zodat een lopend totaal dat elke minuut wordt geëxporteerd één keer wordt geteld, en een daling wordt gelezen als een herstart vanaf 0, zoals `increase()` van Prometheus die leest. Budgetten tellen GenAI-metrieken op dezelfde manier.
 
 ## Wat een aanroep kost
 
@@ -283,7 +284,7 @@ Om zelf een model te prijzen (een onderhandeld tarief, een fine-tune of een mode
 
 ## Dagelijkse kostenbudgetten
 
-Een budget volgt de uitgaven van één dag, in USD, over de UTC-dag. Elke 15 minuten telt OneUptime de AI-uitgaven van die dag op (uit spans, of uit GenAI-kostenmetrieken als geen enkele span uitgaven meldde), toont ze op het budget en publiceert twee metrieken. Een budget waarvan **Uitgaven tellen vanuit** op **Provideraccounts** staat, telt in plaats daarvan wat je gekoppelde accounts in rekening kregen: zie [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts#budgetten-en-alarmen).
+Een budget volgt de uitgaven van één dag, in USD, over de UTC-dag. Elke 15 minuten telt OneUptime de AI-uitgaven van die dag op (elke service uit zijn AI-aanroepen, of uit zijn kostenmetrieken als zijn aanroepen geen kosten melden), toont ze op het budget en publiceert twee metrieken. Een budget waarvan **Uitgaven tellen vanuit** op **Provideraccounts** staat, telt in plaats daarvan wat je gekoppelde accounts in rekening kregen: zie [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts#budgetten-en-alarmen).
 
 | Metriek | Wat het is |
 | --- | --- |
@@ -380,8 +381,12 @@ De aanroepen dragen geen gespreks-id. Zet `gen_ai.conversation.id` of `session.i
 Het model staat niet in de ingebouwde prijslijst, of de span noemt geen model. Voeg de prijzen van het model toe op het tabblad **Prijzen**; aanroepen die daarna binnenkomen, krijgen een prijs. Een aanroep naar Azure OpenAI krijgt de prijs van het model dat hem bediende, `gen_ai.response.model`: noemt zijn span er geen, geef dan de naam van de deployment een prijs.
 :::
 
-:::details Het tabblad Gebruik zegt uit GenAI-metrieken en toont `—` voor aanroepen
-De getallen komen van een tool die metrieken stuurt en geen GenAI-spans, zoals een codeerassistent. Een metriek draagt kosten en tokens maar geen details per aanroep, dus de cellen voor aanroepen blijven leeg. Zie [Spans eerst, metrieken vullen aan](#spans-eerst-metrieken-vullen-aan).
+:::details Het tabblad Gebruik zegt Uit gebruiksmetrieken en toont `—` voor aanroepen
+De getallen komen van een service die metrieken en geen GenAI-spans stuurt, zoals een codeerassistent. Een metriek draagt kosten en tokens, maar geen details per aanroep, dus blijven de cellen voor aanroepen leeg. Zie [Elke service wordt geteld uit wat hij stuurt](#elke-service-wordt-geteld-uit-wat-hij-stuurt).
+:::
+
+:::details De kosten op het tabblad Gebruik zijn lager dan de kosten in Aanroepen bij elkaar
+Sommige spans herhalen de tokens en kosten van de aanroepen erbinnen, zoals een agentrun of de span van een framework rond de eigen span van de SDK. **Aanroepen** toont elke span met zijn eigen getallen, terwijl het tabblad Gebruik, budgetten en de lijst **Gesprekken** elke modelaanroep één keer tellen.
 :::
 
 :::details Een budgetmonitor schiet heen en weer tussen twee toestanden

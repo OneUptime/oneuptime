@@ -30,6 +30,12 @@ export interface LlmTileProps {
   label: string;
   value: string;
   hint?: string | undefined;
+  /*
+   * The hint wraps onto more lines instead of being cut short: for a hint
+   * whose last words carry its meaning ("From AI calls and usage metrics"
+   * on a phone).
+   */
+  wrapHint?: boolean | undefined;
   icon: IconProp;
   iconClassName: string;
   iconTileClassName: string;
@@ -71,7 +77,9 @@ export const LlmTile: FunctionComponent<LlmTileProps> = (
         )}
         {props.hint && !props.isLoading ? (
           <div
-            className="mt-0.5 truncate text-xs text-gray-500"
+            className={`mt-0.5 text-xs text-gray-500 ${
+              props.wrapHint ? "break-words" : "truncate"
+            }`}
             data-testid={`${props.dataTestId}-hint`}
           >
             {props.hint}

@@ -245,31 +245,32 @@ These are **Your AI calls**. Pick **Provider accounts** instead to see what your
 
 People and teams come from identity attributes on the call: see [Employee and team attribution](/docs/telemetry/ai-coding-assistants#employee-and-team-attribution).
 
-### Spans come first, metrics fill in
+### Each service is counted from what it sends
 
-GenAI spans carry the model, tokens and cost of one call, so where they exist they answer everything. Some tools publish token and cost metrics and no GenAI spans, such as most coding assistants. OneUptime reads those metrics only for a figure the spans reported nothing for, and never adds the two together: many instrumentations send both for the same call, and adding them would count every dollar twice.
+AI usage arrives in two forms. GenAI spans are AI calls: one per call, with its model, tokens and cost. GenAI metrics are usage metrics: counters of tokens and cost, which most coding assistants send instead of spans, and some instrumentations send beside their spans, for the same calls. Adding the two up would count those calls twice, so OneUptime counts each service from one of them: its tokens from its AI calls when they report tokens, and from its usage metrics when they do not, and its cost the same way, on its own. A coding assistant that sends only metrics is then counted beside the apps that send spans, in the same project, and an app that sends both is counted once.
 
-```mermaid title="Where a figure on the Usage tab comes from"
+```mermaid title="Where a service's tokens or cost come from"
 flowchart TB
-    spans{"GenAI spans<br/>report it?"}
-    spans -->|"Yes"| fromSpans["Shown<br/>from spans"]
-    spans -->|"No"| metrics{"GenAI metrics<br/>report it?"}
-    metrics -->|"Yes"| fromMetrics["Shown from metrics,<br/>marked from<br/>GenAI metrics"]
-    metrics -->|"No"| nothing["Nothing<br/>to show"]
+    spans{"Its AI calls<br/>report it?"}
+    spans -->|"Yes"| fromSpans["Counted<br/>from AI calls"]
+    spans -->|"No"| metrics{"Its usage metrics<br/>report it?"}
+    metrics -->|"Yes"| fromMetrics["Counted from<br/>usage metrics"]
+    metrics -->|"No"| nothing["Nothing<br/>to count"]
 ```
 
-| Where | What falls back to metrics | When |
+| Where | From AI calls | From usage metrics |
 | --- | --- | --- |
-| Input and output tokens | Both totals | The spans' token totals are both 0 |
-| Cost (USD) | The cost, with Codex's micro-USD cost scaled to USD | The spans' cost total is 0 |
-| LLM calls | Nothing: spans only | — |
-| **Employee**, **Team**, **Model** tables | Cost, and tokens where the metrics count them; the calls cell shows `—` | That table found no span rows |
-| **Provider**, **Application / Service** tables | Nothing: spans only | — |
-| Conversations | Nothing: conversations are built from spans | — |
+| Input and output tokens | Each model call's tokens, once | A service's tokens, when its AI calls report none |
+| Cost (USD) | Each model call's cost, once | A service's cost, when its AI calls report none, with Codex's micro-USD cost scaled to USD |
+| LLM calls | Every AI call, as **Calls** lists them | Never: a metric counts no calls |
+| **Employee**, **Team**, **Model**, **Provider**, **Application / Service** tables | Each row's calls, tokens and cost | The tokens and cost of the services counted from metrics, under the person, team, model or provider their points name |
+| Conversations | Built from AI calls | Never |
 
-A figure taken from metrics is marked **from GenAI metrics**, because it has no matching rows in **Calls**. So once your GenAI spans report a figure, a metrics-only tool's share of it does not show. To see such a tool's spend on its own, send it to a project of its own, where no GenAI spans arrive.
+Under each figure, the Usage tab says where it came from: **From AI calls**, **From usage metrics**, or **From AI calls and usage metrics** when some services sent calls and others metrics. A table row counted from usage metrics says so under its name, and its calls cell shows `—` when it has no AI call, because a metric has no per-call detail; the table's header names the services counted from usage metrics. A usage metric that names no service is counted under **Unknown Service**, one service like any other. If your role can read traces but not metrics, the usage metrics are left out, and the table says so.
 
-A token or cost metric is a counter. A delta counter's points are added up; a cumulative counter, the OpenTelemetry SDKs' default, counts what it grew by in the time range, each series on its own, so a running total exported every minute is counted once. Budgets count GenAI metrics the same way.
+Each model call is counted once. An agent run, or a framework's span around the SDK's own span, often repeats the tokens and cost of the calls inside it: a span's tokens, or its cost, are left out wherever a call inside it reports them, and an agent run keeps its own figures when no call inside it does. Budgets and the **Conversations** list count the same way, while **Calls** lists every span with its own figures.
+
+A token or cost metric is a counter. A delta counter's points are added up; a cumulative counter, the OpenTelemetry SDKs' default, counts what it grew by in the time range, each series on its own, so a running total exported every minute is counted once, and a drop is read as a restart from 0, the way Prometheus's `increase()` reads it. Budgets count GenAI metrics the same way.
 
 ## What a call costs
 
@@ -283,7 +284,7 @@ To price a model yourself (a negotiated rate, a fine-tune or a model you host), 
 
 ## Daily cost budgets
 
-A budget tracks one day's spend, in USD, over the UTC day. Every 15 minutes OneUptime adds up the day's AI spend (from spans, or from GenAI cost metrics when no span reported any), shows it on the budget, and publishes two metrics. A budget whose **Count spend from** is **Provider accounts** counts what your connected accounts were billed instead: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#budgets-and-alerts).
+A budget tracks one day's spend, in USD, over the UTC day. Every 15 minutes OneUptime adds up the day's AI spend (each service from its AI calls, or from its cost metrics when its calls report no cost), shows it on the budget, and publishes two metrics. A budget whose **Count spend from** is **Provider accounts** counts what your connected accounts were billed instead: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#budgets-and-alerts).
 
 | Metric | What it is |
 | --- | --- |
@@ -380,8 +381,12 @@ The calls carry no conversation id. Set `gen_ai.conversation.id` or `session.id`
 The model is not in the built-in price list, or the span names no model. Add the model's prices on the **Pricing** tab; calls that arrive after that are priced. An Azure OpenAI call is priced by the model that served it, `gen_ai.response.model`: when its span names none, price the deployment's name.
 :::
 
-:::details The Usage tab says from GenAI metrics and shows `—` for calls
-The figures come from a tool that sends metrics and no GenAI spans, such as a coding assistant. A metric carries cost and tokens but no per-call detail, so the calls cells stay empty. See [Spans come first, metrics fill in](#spans-come-first-metrics-fill-in).
+:::details The Usage tab says From usage metrics and shows `—` for calls
+The figures come from a service that sends metrics and no GenAI spans, such as a coding assistant. A metric carries cost and tokens but no per-call detail, so the calls cells stay empty. See [Each service is counted from what it sends](#each-service-is-counted-from-what-it-sends).
+:::
+
+:::details The Usage tab's cost is less than the costs in Calls add up to
+Some spans repeat the tokens and cost of the calls inside them, such as an agent run, or a framework's span around the SDK's own span. **Calls** lists every span with its own figures, while the Usage tab, budgets and the **Conversations** list count each model call once.
 :::
 
 :::details A budget monitor flaps between two states

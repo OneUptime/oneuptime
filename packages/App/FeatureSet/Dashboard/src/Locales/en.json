@@ -47133,5 +47133,10 @@
   "trace scrub rules": "trace scrub rules",
   "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.",
   "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.",
-  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team."
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.",
+  "From AI calls": "From AI calls",
+  "From AI calls and usage metrics": "From AI calls and usage metrics",
+  "From usage metrics": "From usage metrics",
+  "Services counted from usage metrics: {{services}}": "Services counted from usage metrics: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Usage metrics are left out: your role cannot read metrics."
 }

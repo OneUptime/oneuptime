@@ -47133,5 +47133,10 @@
   "trace scrub rules": "scrubregels voor traces",
   "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "Bij een druk team telt de test alleen de aanvragen. Kosten, tokens en personen komen met de eerste leesactie.",
   "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise kan het gebruik van het team ook sturen zodra het ontstaat, met zijn OpenTelemetry Export.",
-  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "Gebruik verschijnt zodra er gebruik is. Als je team Cursor gebruikt, controleer dan of de sleutel bij het juiste team hoort."
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "Gebruik verschijnt zodra er gebruik is. Als je team Cursor gebruikt, controleer dan of de sleutel bij het juiste team hoort.",
+  "From AI calls": "Uit AI-aanroepen",
+  "From AI calls and usage metrics": "Uit AI-aanroepen en gebruiksmetrieken",
+  "From usage metrics": "Uit gebruiksmetrieken",
+  "Services counted from usage metrics: {{services}}": "Services geteld uit gebruiksmetrieken: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Gebruiksmetrieken zijn weggelaten: je rol kan geen metrieken lezen."
 }

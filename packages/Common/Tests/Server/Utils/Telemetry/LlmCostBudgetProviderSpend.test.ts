@@ -26,13 +26,19 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  */
 
 jest.mock("../../../../Server/Services/SpanService", () => {
-  return { __esModule: true, default: { aggregateBy: jest.fn() } };
+  return { __esModule: true, default: { executeQuery: jest.fn() } };
 });
 
 jest.mock("../../../../Server/Services/MetricService", () => {
   return {
     __esModule: true,
-    default: { insertJsonRows: jest.fn(), aggregateBy: jest.fn() },
+    default: {
+      insertJsonRows: jest.fn(),
+      // The provider accounts' bill (LlmProviderSpend).
+      aggregateBy: jest.fn(),
+      // The usage metrics the coding tools send (LlmMetricUsageReader).
+      executeQuery: jest.fn(),
+    },
   };
 });
 
@@ -45,12 +51,22 @@ jest.mock("../../../../Server/Utils/Telemetry/Telemetry", () => {
 
 type MockedFn = jest.Mock;
 
-const spans: { aggregateBy: MockedFn } = SpanService as unknown as {
-  aggregateBy: MockedFn;
+const spans: { executeQuery: MockedFn } = SpanService as unknown as {
+  executeQuery: MockedFn;
 };
-const metrics: { aggregateBy: MockedFn } = MetricService as unknown as {
-  aggregateBy: MockedFn;
-};
+const metrics: { aggregateBy: MockedFn; executeQuery: MockedFn } =
+  MetricService as unknown as {
+    aggregateBy: MockedFn;
+    executeQuery: MockedFn;
+  };
+
+function answer(data: Array<Record<string, unknown>>): unknown {
+  return {
+    json: async (): Promise<{ data: Array<Record<string, unknown>> }> => {
+      return { data: data };
+    },
+  };
+}
 
 const NOW: Date = new Date(Date.UTC(2026, 9, 19, 14, 30, 0));
 const DAY_START: Date = new Date(Date.UTC(2026, 9, 19, 0, 0, 0));
@@ -76,7 +92,22 @@ interface AggregateCall {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  spans.aggregateBy.mockResolvedValue({ data: [{ value: 999 }] } as never);
+  // An app's AI calls cost $999 today; the coding tools' metrics nothing.
+  spans.executeQuery.mockResolvedValue(
+    answer([
+      {
+        serviceKey: "a1000000000000000000000000000001",
+        groupKey: "",
+        calls: 12,
+        erroredCalls: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: 999,
+      },
+    ]) as never,
+  );
+  metrics.executeQuery.mockResolvedValue(answer([]) as never);
   metrics.aggregateBy.mockResolvedValue({ data: [] } as never);
 });
 
@@ -94,7 +125,9 @@ describe("A budget on the provider accounts", () => {
       }),
     ).resolves.toEqual({ spendInUSD: 14.75, source: "providers" });
 
-    expect(spans.aggregateBy).not.toHaveBeenCalled();
+    // Never the AI calls, nor the usage metrics: the bill holds those calls.
+    expect(spans.executeQuery).not.toHaveBeenCalled();
+    expect(metrics.executeQuery).not.toHaveBeenCalled();
 
     const call: AggregateCall = metrics.aggregateBy.mock
       .calls[0]![0] as AggregateCall;

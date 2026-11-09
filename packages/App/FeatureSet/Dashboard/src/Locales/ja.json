@@ -47133,5 +47133,10 @@
   "trace scrub rules": "トレースのスクラブルール",
   "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "利用の多いチームでは、テストはリクエスト数だけを数えます。コスト、トークン、ユーザーは最初の読み取り後に表示されます。",
   "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise は、OpenTelemetry Export でチームの使用量を発生時に送信することもできます。",
-  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "使用量は発生するとすぐに表示されます。チームで Cursor を使っている場合は、キーが正しいチームのものか確認してください。"
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "使用量は発生するとすぐに表示されます。チームで Cursor を使っている場合は、キーが正しいチームのものか確認してください。",
+  "From AI calls": "AI 呼び出しから",
+  "From AI calls and usage metrics": "AI 呼び出しと使用量メトリクスから",
+  "From usage metrics": "使用量メトリクスから",
+  "Services counted from usage metrics: {{services}}": "使用量メトリクスから集計したサービス: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "使用量メトリクスは含まれていません。あなたのロールではメトリクスを読めません。"
 }

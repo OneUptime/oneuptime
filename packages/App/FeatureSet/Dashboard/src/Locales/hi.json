@@ -47133,5 +47133,10 @@
   "trace scrub rules": "ट्रेस स्क्रब नियमों",
   "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "ज़्यादा उपयोग वाली टीम का परीक्षण केवल अनुरोध गिनता है। लागत, टोकन और लोग पहली रीडिंग के साथ आते हैं।",
   "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise अपने OpenTelemetry Export से टीम का उपयोग, जैसे-जैसे होता है, वैसे-वैसे भी भेज सकता है।",
-  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "उपयोग होते ही दिखने लगता है। अगर आपकी टीम Cursor का उपयोग करती है, तो जाँचें कि कुंजी सही टीम की है।"
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "उपयोग होते ही दिखने लगता है। अगर आपकी टीम Cursor का उपयोग करती है, तो जाँचें कि कुंजी सही टीम की है।",
+  "From AI calls": "AI कॉल से",
+  "From AI calls and usage metrics": "AI कॉल और उपयोग मेट्रिक्स से",
+  "From usage metrics": "उपयोग मेट्रिक्स से",
+  "Services counted from usage metrics: {{services}}": "उपयोग मेट्रिक्स से गिनी गई सेवाएं: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "उपयोग मेट्रिक्स शामिल नहीं हैं: आपकी भूमिका मेट्रिक्स नहीं पढ़ सकती।"
 }

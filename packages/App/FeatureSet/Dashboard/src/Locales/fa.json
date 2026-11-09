@@ -47133,5 +47133,10 @@
   "trace scrub rules": "قواعد پالایش ترِیس",
   "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "آزمایش یک تیم پرکار فقط درخواست‌ها را می‌شمارد. هزینه، توکن‌ها و افراد با نخستین خواندن می‌رسند.",
   "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise می‌تواند مصرف تیم را همان لحظه که رخ می‌دهد، با OpenTelemetry Export خود نیز بفرستد.",
-  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "مصرف به محض وجود نمایش داده می‌شود. اگر تیم شما از Cursor استفاده می‌کند، بررسی کنید که کلید به تیم درست تعلق داشته باشد."
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "مصرف به محض وجود نمایش داده می‌شود. اگر تیم شما از Cursor استفاده می‌کند، بررسی کنید که کلید به تیم درست تعلق داشته باشد.",
+  "From AI calls": "از فراخوانی‌های هوش مصنوعی",
+  "From AI calls and usage metrics": "از فراخوانی‌های هوش مصنوعی و متریک‌های مصرف",
+  "From usage metrics": "از متریک‌های مصرف",
+  "Services counted from usage metrics: {{services}}": "سرویس‌هایی که از متریک‌های مصرف شمرده شدند: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "متریک‌های مصرف کنار گذاشته شده‌اند: نقش شما نمی‌تواند متریک‌ها را بخواند."
 }

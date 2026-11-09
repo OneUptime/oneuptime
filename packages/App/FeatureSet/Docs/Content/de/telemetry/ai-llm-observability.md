@@ -245,31 +245,32 @@ Das sind **Deine KI-Aufrufe**. Wählen Sie stattdessen **Anbieterkonten**, um zu
 
 Personen und Teams kommen aus Identitätsattributen des Aufrufs: siehe [Zuordnung zu Mitarbeitern und Teams](/docs/telemetry/ai-coding-assistants#zuordnung-zu-mitarbeitern-und-teams).
 
-### Spans zuerst, Metriken springen ein
+### Jeder Dienst wird aus dem gezählt, was er sendet
 
-GenAI-Spans tragen Modell, Tokens und Kosten eines Aufrufs, wo es sie gibt, beantworten sie also alles. Manche Tools veröffentlichen Token- und Kostenmetriken und keine GenAI-Spans, etwa die meisten Coding-Assistenten. OneUptime liest diese Metriken nur für eine Zahl, zu der die Spans nichts gemeldet haben, und addiert beide nie: Viele Instrumentierungen senden beides für denselben Aufruf, und die Summe würde jeden Dollar doppelt zählen.
+KI-Nutzung kommt in zwei Formen an. GenAI-Spans sind KI-Aufrufe: einer pro Aufruf, mit Modell, Tokens und Kosten. GenAI-Metriken sind Nutzungsmetriken: Zähler für Tokens und Kosten, die die meisten Coding-Assistenten statt Spans senden und manche Instrumentierungen neben ihren Spans, für dieselben Aufrufe. Beides zu addieren würde diese Aufrufe doppelt zählen, also zählt OneUptime jeden Dienst aus einem von beiden: seine Tokens aus seinen KI-Aufrufen, wenn sie Tokens melden, und sonst aus seinen Nutzungsmetriken, und seine Kosten genauso, für sich. Ein Coding-Assistent, der nur Metriken sendet, wird so neben den Apps gezählt, die Spans senden, im selben Projekt, und eine App, die beides sendet, einmal.
 
-```mermaid title="Woher eine Zahl im Tab Nutzung kommt"
+```mermaid title="Woher die Tokens oder Kosten eines Dienstes kommen"
 flowchart TB
-    spans{"Melden GenAI-<br/>Spans sie?"}
-    spans -->|"Ja"| fromSpans["Aus Spans<br/>gezeigt"]
-    spans -->|"Nein"| metrics{"Melden GenAI-<br/>Metriken sie?"}
-    metrics -->|"Ja"| fromMetrics["Aus Metriken gezeigt,<br/>markiert mit<br/>aus GenAI-Metriken"]
-    metrics -->|"Nein"| nothing["Nichts<br/>zu zeigen"]
+    spans{"Melden seine<br/>KI-Aufrufe sie?"}
+    spans -->|"Ja"| fromSpans["Aus KI-Aufrufen<br/>gezählt"]
+    spans -->|"Nein"| metrics{"Melden seine<br/>Nutzungsmetriken sie?"}
+    metrics -->|"Ja"| fromMetrics["Aus Nutzungs-<br/>metriken gezählt"]
+    metrics -->|"Nein"| nothing["Nichts<br/>zu zählen"]
 ```
 
-| Wo | Was auf Metriken zurückfällt | Wann |
+| Wo | Aus KI-Aufrufen | Aus Nutzungsmetriken |
 | --- | --- | --- |
-| Eingabe- und Ausgabe-Tokens | Beide Summen | Die Token-Summen der Spans sind beide 0 |
-| Kosten (USD) | Die Kosten, mit den Mikro-USD-Kosten von Codex in USD umgerechnet | Die Kostensumme der Spans ist 0 |
-| LLM-Aufrufe | Nichts: nur Spans | — |
-| Tabellen **Mitarbeiter**, **Team**, **Modell** | Kosten und Tokens, wo die Metriken sie zählen; die Zelle für Aufrufe zeigt `—` | Die Tabelle fand keine Span-Zeilen |
-| Tabellen **Anbieter**, **Anwendung / Dienst** | Nichts: nur Spans | — |
-| Unterhaltungen | Nichts: Unterhaltungen entstehen aus Spans | — |
+| Eingabe- und Ausgabe-Tokens | Die Tokens jedes Modellaufrufs, einmal | Die Tokens eines Dienstes, wenn seine KI-Aufrufe keine melden |
+| Kosten (USD) | Die Kosten jedes Modellaufrufs, einmal | Die Kosten eines Dienstes, wenn seine KI-Aufrufe keine melden, mit den Mikro-USD-Kosten von Codex in USD umgerechnet |
+| LLM-Aufrufe | Jeder KI-Aufruf, wie **Aufrufe** sie auflistet | Nie: Eine Metrik zählt keine Aufrufe |
+| Tabellen **Mitarbeiter**, **Team**, **Modell**, **Anbieter**, **Anwendung / Dienst** | Aufrufe, Tokens und Kosten jeder Zeile | Tokens und Kosten der aus Metriken gezählten Dienste, unter der Person, dem Team, dem Modell oder dem Anbieter, den ihre Punkte nennen |
+| Unterhaltungen | Aus KI-Aufrufen gebaut | Nie |
 
-Eine aus Metriken genommene Zahl ist mit **aus GenAI-Metriken** markiert, weil sie keine passenden Zeilen in **Aufrufe** hat. Sobald Ihre GenAI-Spans also eine Zahl melden, erscheint der Anteil eines reinen Metrik-Tools daran nicht. Um die Ausgaben eines solchen Tools für sich zu sehen, senden Sie es in ein eigenes Projekt, in dem keine GenAI-Spans ankommen.
+Unter jeder Zahl sagt der Tab Nutzung, woher sie kommt: **Aus KI-Aufrufen**, **Aus Nutzungsmetriken** oder **Aus KI-Aufrufen und Nutzungsmetriken**, wenn manche Dienste Aufrufe und andere Metriken gesendet haben. Eine aus Nutzungsmetriken gezählte Tabellenzeile sagt es unter ihrem Namen, und ihre Zelle für Aufrufe zeigt `—`, wenn sie keinen KI-Aufruf hat, weil eine Metrik keine Details pro Aufruf hat; der Kopf der Tabelle nennt die aus Nutzungsmetriken gezählten Dienste. Eine Nutzungsmetrik, die keinen Dienst nennt, wird unter **Unbekannter Dienst** gezählt, einem Dienst wie jedem anderen. Wenn Ihre Rolle Traces lesen darf, aber keine Metriken, bleiben die Nutzungsmetriken weg, und die Tabelle sagt es.
 
-Eine Token- oder Kostenmetrik ist ein Zähler. Die Punkte eines Delta-Zählers werden addiert; ein kumulativer Zähler, der Standard der OpenTelemetry-SDKs, zählt, um wie viel er im Zeitraum gewachsen ist, jede Serie für sich, sodass eine jede Minute exportierte laufende Summe einmal gezählt wird. Budgets zählen GenAI-Metriken genauso.
+Jeder Modellaufruf wird einmal gezählt. Ein Agentenlauf oder der Span eines Frameworks um den eigenen Span des SDKs wiederholt oft die Tokens und Kosten der Aufrufe darin: Die Tokens eines Spans oder seine Kosten bleiben weg, wo immer ein Aufruf darin sie meldet, und ein Agentenlauf behält seine eigenen Zahlen, wenn kein Aufruf darin welche meldet. Budgets und die Liste **Unterhaltungen** zählen genauso, während **Aufrufe** jeden Span mit seinen eigenen Zahlen auflistet.
+
+Eine Token- oder Kostenmetrik ist ein Zähler. Die Punkte eines Delta-Zählers werden addiert; ein kumulativer Zähler, der Standard der OpenTelemetry-SDKs, zählt, um wie viel er im Zeitraum gewachsen ist, jede Serie für sich, sodass eine jede Minute exportierte laufende Summe einmal gezählt wird, und ein Rückgang gilt als Neustart bei 0, so wie `increase()` von Prometheus ihn liest. Budgets zählen GenAI-Metriken genauso.
 
 ## Was ein Aufruf kostet
 
@@ -283,7 +284,7 @@ Um ein Modell selbst zu bepreisen (ein ausgehandelter Tarif, ein Fine-Tune oder 
 
 ## Tägliche Kostenbudgets
 
-Ein Budget verfolgt die Ausgaben eines Tages in USD, über den UTC-Tag. Alle 15 Minuten addiert OneUptime die KI-Ausgaben des Tages (aus Spans oder, wenn kein Span welche gemeldet hat, aus GenAI-Kostenmetriken), zeigt sie am Budget und veröffentlicht zwei Metriken. Ein Budget, dessen **Ausgaben zählen aus** auf **Anbieterkonten** steht, zählt stattdessen, was Ihren verbundenen Konten berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#budgets-und-alarme).
+Ein Budget verfolgt die Ausgaben eines Tages in USD, über den UTC-Tag. Alle 15 Minuten addiert OneUptime die KI-Ausgaben des Tages (jeden Dienst aus seinen KI-Aufrufen oder, wenn seine Aufrufe keine Kosten melden, aus seinen Kostenmetriken), zeigt sie am Budget und veröffentlicht zwei Metriken. Ein Budget, dessen **Ausgaben zählen aus** auf **Anbieterkonten** steht, zählt stattdessen, was Ihren verbundenen Konten berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#budgets-und-alarme).
 
 | Metrik | Was sie ist |
 | --- | --- |
@@ -380,8 +381,12 @@ Die Aufrufe tragen keine Unterhaltungs-ID. Setzen Sie `gen_ai.conversation.id` o
 Das Modell steht nicht in der integrierten Preisliste, oder der Span nennt kein Modell. Fügen Sie die Preise des Modells im Tab **Preise** hinzu; Aufrufe, die danach ankommen, werden bepreist. Ein Aufruf an Azure OpenAI wird nach dem Modell bepreist, das ihn bedient hat, `gen_ai.response.model`: Nennt sein Span keines, bepreisen Sie den Namen des Deployments.
 :::
 
-:::details Der Tab Nutzung sagt aus GenAI-Metriken und zeigt `—` bei Aufrufen
-Die Zahlen stammen von einem Tool, das Metriken und keine GenAI-Spans sendet, etwa einem Coding-Assistenten. Eine Metrik trägt Kosten und Tokens, aber keine Details pro Aufruf, daher bleiben die Zellen der Aufrufe leer. Siehe [Spans zuerst, Metriken springen ein](#spans-zuerst-metriken-springen-ein).
+:::details Der Tab Nutzung zeigt Aus Nutzungsmetriken und `—` für Aufrufe
+Die Zahlen kommen von einem Dienst, der Metriken und keine GenAI-Spans sendet, etwa einem Coding-Assistenten. Eine Metrik trägt Kosten und Tokens, aber keine Details pro Aufruf, also bleiben die Zellen für Aufrufe leer. Siehe [Jeder Dienst wird aus dem gezählt, was er sendet](#jeder-dienst-wird-aus-dem-gezählt-was-er-sendet).
+:::
+
+:::details Die Kosten im Tab Nutzung sind kleiner als die Summe der Kosten unter Aufrufe
+Manche Spans wiederholen die Tokens und Kosten der Aufrufe darin, etwa ein Agentenlauf oder der Span eines Frameworks um den eigenen Span des SDKs. **Aufrufe** listet jeden Span mit seinen eigenen Zahlen auf, während der Tab Nutzung, Budgets und die Liste **Unterhaltungen** jeden Modellaufruf einmal zählen.
 :::
 
 :::details Ein Budget-Monitor springt zwischen zwei Zuständen hin und her

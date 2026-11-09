@@ -47133,5 +47133,10 @@
   "trace scrub rules": "追踪清理规则",
   "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "使用量大的团队，测试只统计请求数。费用、Token 和人员会在首次读取后显示。",
   "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise 还可以通过其 OpenTelemetry Export 实时发送团队的用量。",
-  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "一有用量就会显示。如果你的团队在使用 Cursor，请检查密钥是否属于正确的团队。"
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "一有用量就会显示。如果你的团队在使用 Cursor，请检查密钥是否属于正确的团队。",
+  "From AI calls": "来自 AI 调用",
+  "From AI calls and usage metrics": "来自 AI 调用和用量指标",
+  "From usage metrics": "来自用量指标",
+  "Services counted from usage metrics: {{services}}": "按用量指标统计的服务：{{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "未计入用量指标：你的角色无法读取指标。"
 }
