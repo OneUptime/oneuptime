@@ -83,7 +83,7 @@ Sur un point de métrique, la liste est plus courte et commence par l'e-mail, ca
 
 | Colonne | Clés, de la préférée à la moins préférée |
 | --- | --- |
-| Employé | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Employé | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Équipe / centre de coûts | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Modèle | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime lit aussi les jetons depuis `gen_ai.client.token.usage`, `gen_ai.clien
 Deux choses à savoir avant de lire les chiffres :
 
 - **`gemini_cli.token.usage` est laissée de côté exprès.** Gemini CLI envoie ses jetons deux fois, comme sa propre métrique et comme `gen_ai.client.token.usage`, et lire les deux les doublerait. Ses jetons sont comptés une fois, via `gen_ai.client.token.usage`. Gemini CLI n'envoie aucune métrique de coût : activez ses traces pour que chaque appel soit tarifé.
-- **Seuls les jetons en entrée et en sortie sont comptés.** Le type de jeton est lu depuis `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` ou `token_type`, et seuls `input` et `output` (ou les anciens `prompt` et `completion`) comptent. Les lectures et écritures de cache, le `total` de Codex (qui répète les autres) et `reasoning_output` (une partie de `output`) sont laissés de côté, si bien qu'un total issu des métriques est plus petit que la somme de tout ce qu'envoie un outil.
+- **Seuls les jetons en entrée et en sortie sont comptés.** Le type de jeton est lu depuis `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` ou `token_type`, et seuls `input` et `output` (ou les anciens `prompt` et `completion`) comptent, avec `cacheRead` et `cacheCreation` de Claude Code en entrée, puisque son `input` les omet. Les autres lectures et écritures de cache, le `total` de Codex (qui répète les autres) et `reasoning_output` (une partie de `output`) sont laissés de côté, si bien qu'un total issu des métriques est plus petit que la somme de tout ce qu'envoie un outil.
 
 ## L'onglet Utilisation
 

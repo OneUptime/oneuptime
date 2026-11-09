@@ -1,15 +1,26 @@
 import ServiceLevelObjectiveBurnRateRuleAPI, {
   SLO_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE,
+  SLO_BULK_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE,
+  SLO_BULK_RECOMMENDED_BURN_RATE_RULES_ROUTE,
   SLO_RECOMMENDED_BURN_RATE_RULES_ROUTE,
   readServiceLevelObjectiveId,
+  readServiceLevelObjectiveIds,
 } from "../../../Server/API/ServiceLevelObjectiveBurnRateRuleAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import ServiceLevelObjectiveBurnRateRuleService, {
   SLO_NOT_FOUND_MESSAGE,
   SloAddedRecommendedRules,
+  SloBulkAddedRecommendedRules,
+  SloBulkMissingRecommendedRules,
   SloMissingRecommendedRules,
 } from "../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import {
+  SLO_BULK_NO_IDS_MESSAGE,
+  SLO_BULK_TOO_MANY_MESSAGE,
+  SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS,
+  SloBulkRecommendedRulesStatus,
+} from "../../../Utils/Slo/SloBulkRecommendedBurnRateRules";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -34,6 +45,11 @@ import {
  *
  *   POST /service-level-objective-burn-rate-rule/recommended-rules
  *   POST /service-level-objective-burn-rate-rule/recommended-rules/add
+ *
+ * and for many SLOs at once, as the SLO list's Bulk Actions ask:
+ *
+ *   POST /service-level-objective-burn-rate-rule/recommended-rules/bulk
+ *   POST /service-level-objective-burn-rate-rule/recommended-rules/bulk/add
  *
  * Who may ask (the first: whoever may read SLO burn rate rules; the second:
  * whoever may create them - a person or an API key of the project, and never
@@ -80,6 +96,11 @@ const LOW_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 
 const PREVIEW: string = `/service-level-objective-burn-rate-rule${SLO_RECOMMENDED_BURN_RATE_RULES_ROUTE}`;
 const ADD: string = `/service-level-objective-burn-rate-rule${SLO_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE}`;
+const BULK: string = `/service-level-objective-burn-rate-rule${SLO_BULK_RECOMMENDED_BURN_RATE_RULES_ROUTE}`;
+const BULK_ADD: string = `/service-level-objective-burn-rate-rule${SLO_BULK_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE}`;
+
+const SLO_2: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
+const SLO_3: ObjectID = new ObjectID("88888888-8888-4888-8888-888888888888");
 
 const SLOW_LEAK: SloRecommendedBurnRateRule = getSloRecommendedBurnRateRules({
   windowDays: 30,
@@ -108,6 +129,8 @@ let props: DatabaseCommonInteractionProps;
 let next: jest.Mock;
 let previewSpy: jest.SpyInstance;
 let addSpy: jest.SpyInstance;
+let bulkPreviewSpy: jest.SpyInstance;
+let bulkAddSpy: jest.SpyInstance;
 const res: ExpressResponse = {} as ExpressResponse;
 
 function withPermissions(
@@ -216,7 +239,91 @@ beforeEach(() => {
         },
       ],
     } as SloAddedRecommendedRules);
+
+  bulkPreviewSpy = jest
+    .spyOn(
+      ServiceLevelObjectiveBurnRateRuleService,
+      "getMissingRecommendedRulesForMany",
+    )
+    .mockResolvedValue([
+      {
+        serviceLevelObjectiveId: SLO_ID,
+        status: SloBulkRecommendedRulesStatus.Missing,
+        rules: [{ recommended: SLOW_LEAK, alertSeverity: lowSeverity() }],
+        message: null,
+      },
+      {
+        serviceLevelObjectiveId: SLO_2,
+        status: SloBulkRecommendedRulesStatus.NothingMissing,
+        rules: [],
+        message: null,
+      },
+      {
+        serviceLevelObjectiveId: SLO_3,
+        status: SloBulkRecommendedRulesStatus.Refused,
+        rules: [],
+        message: SLO_NOT_FOUND_MESSAGE,
+      },
+    ] as Array<SloBulkMissingRecommendedRules>);
+
+  bulkAddSpy = jest
+    .spyOn(
+      ServiceLevelObjectiveBurnRateRuleService,
+      "addMissingRecommendedRulesToMany",
+    )
+    .mockResolvedValue([
+      {
+        serviceLevelObjectiveId: SLO_ID,
+        status: SloBulkRecommendedRulesStatus.Added,
+        rules: [
+          {
+            recommended: SLOW_LEAK,
+            alertSeverity: lowSeverity(),
+            ruleId: RULE_ID,
+          },
+        ],
+        message: null,
+      },
+      {
+        serviceLevelObjectiveId: SLO_2,
+        status: SloBulkRecommendedRulesStatus.NothingMissing,
+        rules: [],
+        message: null,
+      },
+      {
+        serviceLevelObjectiveId: SLO_3,
+        status: SloBulkRecommendedRulesStatus.Failed,
+        rules: [
+          {
+            recommended: SLOW_LEAK,
+            alertSeverity: null,
+            ruleId: null,
+          },
+        ],
+        message: "Database down.",
+      },
+    ] as Array<SloBulkAddedRecommendedRules>);
 });
+
+function bulkBody(...ids: Array<ObjectID>): {
+  serviceLevelObjectiveIds: Array<string>;
+} {
+  return {
+    serviceLevelObjectiveIds: ids.map((id: ObjectID): string => {
+      return id.toString();
+    }),
+  };
+}
+
+function manyIds(count: number): Array<string> {
+  const ids: Array<string> = [];
+
+  for (let index: number = 0; index < count; index++) {
+    ids.push(ObjectID.generate().toString());
+  }
+
+  return ids;
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -225,7 +332,7 @@ afterEach(() => {
 
 describe("the routes", () => {
   test("sit beside the rule table's CRUD path, behind the user middleware only - as the CRUD create is, so an API key may call them", () => {
-    for (const uri of [PREVIEW, ADD]) {
+    for (const uri of [PREVIEW, ADD, BULK, BULK_ADD]) {
       expect(routeOf(uri).handlers).toHaveLength(2);
       expect(routeOf(uri).handlers[0]).toBe(UserMiddleware.getUserMiddleware);
     }
@@ -236,11 +343,27 @@ describe("the routes", () => {
     expect(ADD).toBe(
       "/service-level-objective-burn-rate-rule/recommended-rules/add",
     );
+    expect(BULK).toBe(
+      "/service-level-objective-burn-rate-rule/recommended-rules/bulk",
+    );
+    expect(BULK_ADD).toBe(
+      "/service-level-objective-burn-rate-rule/recommended-rules/bulk/add",
+    );
   });
 
-  test("are not taken for a rule's own routes: neither path ends like /:id/get-item, /:id/update-item or /:id/delete-item", () => {
-    for (const uri of [PREVIEW, ADD]) {
+  test("are not taken for a rule's own routes: no path ends like /:id/get-item, /:id/update-item or /:id/delete-item", () => {
+    for (const uri of [PREVIEW, ADD, BULK, BULK_ADD]) {
       expect(uri).not.toMatch(/\/(get-item|update-item|delete-item)$/);
+    }
+  });
+
+  test("are each served once", () => {
+    for (const uri of [PREVIEW, ADD, BULK, BULK_ADD]) {
+      expect(
+        recordedRoutes.filter((item: { uri: string }): boolean => {
+          return item.uri === uri;
+        }),
+      ).toHaveLength(1);
     }
   });
 });
@@ -510,6 +633,435 @@ describe("reading the SLO a request names", () => {
       expect(() => {
         return readServiceLevelObjectiveId(body);
       }).toThrow(BadDataException);
+    }
+  });
+});
+
+const SLOW_LEAK_RULE_JSON: JSONObject = {
+  name: "Slow leak",
+  budgetPercentage: 10,
+  burnRateThreshold: 1,
+  longWindowInMinutes: 4320,
+  shortWindowInMinutes: 360,
+  refireSuppressionMinutes: 1440,
+  alertSeverity: "LeastSevere",
+};
+
+describe("what many SLOs are missing", () => {
+  test("answers each SLO's result, in the order asked: what it is missing with the severity each raises at, nothing, or why not", async () => {
+    await post(BULK, bulkBody(SLO_ID, SLO_2, SLO_3));
+
+    expect(next).not.toHaveBeenCalled();
+    expect(answered()).toEqual({
+      results: [
+        {
+          serviceLevelObjectiveId: SLO_ID.toString(),
+          status: "Missing",
+          rules: [{ ...SLOW_LEAK_RULE_JSON, alertSeverityName: "Low" }],
+          message: null,
+        },
+        {
+          serviceLevelObjectiveId: SLO_2.toString(),
+          status: "NothingMissing",
+          rules: [],
+          message: null,
+        },
+        {
+          serviceLevelObjectiveId: SLO_3.toString(),
+          status: "Refused",
+          rules: [],
+          message: SLO_NOT_FOUND_MESSAGE,
+        },
+      ],
+    });
+    expect(bulkAddSpy).not.toHaveBeenCalled();
+    expect(addSpy).not.toHaveBeenCalled();
+  });
+
+  test("asks the service about the SLOs the body names, each once, as the caller", async () => {
+    await post(BULK, {
+      serviceLevelObjectiveIds: [
+        ` ${SLO_ID.toString()} `,
+        SLO_2.toString(),
+        SLO_ID.toString().toUpperCase(),
+      ],
+    });
+
+    expect(bulkPreviewSpy).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      serviceLevelObjectiveIds: Array<ObjectID>;
+      props: DatabaseCommonInteractionProps;
+    } = bulkPreviewSpy.mock.calls[0]![0] as {
+      serviceLevelObjectiveIds: Array<ObjectID>;
+      props: DatabaseCommonInteractionProps;
+    };
+
+    expect(
+      asked.serviceLevelObjectiveIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([SLO_ID.toString(), SLO_2.toString()]);
+    expect(asked.props).toBe(props);
+  });
+
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ReadServiceLevelObjectiveBurnRateRule,
+  ])(
+    "%s may ask: it reads SLO burn rate rules",
+    async (permission: Permission) => {
+      withPermissions([permission]);
+
+      await post(BULK, bulkBody(SLO_ID));
+
+      expect(next).not.toHaveBeenCalled();
+      expect(bulkPreviewSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("a role that reads SLOs but not their burn rate rules may not ask", async () => {
+    withPermissions([Permission.ReadServiceLevelObjective]);
+
+    await post(BULK, bulkBody(SLO_ID));
+
+    expect(refusal().message).toContain("read SLO burn rate rules");
+    expect(bulkPreviewSpy).not.toHaveBeenCalled();
+  });
+
+  test("a team that blocks reading the rules may not ask", async () => {
+    withPermissions(
+      [Permission.ReadServiceLevelObjectiveBurnRateRule],
+      [Permission.ReadServiceLevelObjectiveBurnRateRule],
+    );
+
+    await post(BULK, bulkBody(SLO_ID));
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(bulkPreviewSpy).not.toHaveBeenCalled();
+  });
+
+  test("an API key of the project that reads the rules may ask", async () => {
+    props = { tenantId: PROJECT, userType: UserType.API };
+    withPermissions([Permission.ReadServiceLevelObjectiveBurnRateRule]);
+
+    await post(BULK, bulkBody(SLO_ID));
+
+    expect(next).not.toHaveBeenCalled();
+    expect(bulkPreviewSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a request with no credentials, in no project, or of another project is refused before anything is read", async () => {
+    props = { tenantId: PROJECT };
+
+    await post(BULK, bulkBody(SLO_ID));
+
+    expect(refusal()).toBeInstanceOf(Error);
+
+    next = jest.fn();
+    props = { userId: USER, userType: UserType.User };
+
+    await post(BULK, bulkBody(SLO_ID));
+
+    expect(refusal()).toBeInstanceOf(Error);
+
+    next = jest.fn();
+    props = {
+      userId: USER,
+      userType: UserType.User,
+      tenantId: new ObjectID("66666666-6666-4666-8666-666666666666"),
+    };
+    withPermissions([Permission.ReadServiceLevelObjectiveBurnRateRule]);
+
+    await post(BULK, bulkBody(SLO_ID));
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(bulkPreviewSpy).not.toHaveBeenCalled();
+  });
+
+  test("a refusal from the service reaches the caller", async () => {
+    bulkPreviewSpy.mockRejectedValue(new Error("severities down"));
+
+    await post(BULK, bulkBody(SLO_ID));
+
+    expect(refusal().message).toBe("severities down");
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["no body", undefined, SLO_BULK_NO_IDS_MESSAGE],
+    ["no list", {}, SLO_BULK_NO_IDS_MESSAGE],
+    [
+      "one id, not in a list",
+      { serviceLevelObjectiveIds: SLO_ID.toString() },
+      SLO_BULK_NO_IDS_MESSAGE,
+    ],
+    [
+      "an empty list",
+      { serviceLevelObjectiveIds: [] },
+      SLO_BULK_NO_IDS_MESSAGE,
+    ],
+    [
+      "an id that is not one",
+      { serviceLevelObjectiveIds: [SLO_ID.toString(), "slo-2"] },
+      SLO_BULK_NO_IDS_MESSAGE,
+    ],
+    [
+      "an id that is not text",
+      { serviceLevelObjectiveIds: [7] },
+      SLO_BULK_NO_IDS_MESSAGE,
+    ],
+    [
+      "more than one request may name",
+      {
+        serviceLevelObjectiveIds: manyIds(
+          SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS + 1,
+        ),
+      },
+      SLO_BULK_TOO_MANY_MESSAGE,
+    ],
+  ])(
+    "%s is refused as bad data before anything is asked",
+    async (_label: string, body: unknown, message: string) => {
+      await post(BULK, body);
+
+      expect(refusal()).toEqual(new BadDataException(message));
+      expect(bulkPreviewSpy).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("adding the missing recommended rules to many SLOs", () => {
+  test("adds them as the caller and answers each SLO's result, in the order asked, with each new rule's id", async () => {
+    await post(BULK_ADD, bulkBody(SLO_ID, SLO_2, SLO_3));
+
+    expect(next).not.toHaveBeenCalled();
+    expect(bulkAddSpy).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      serviceLevelObjectiveIds: Array<ObjectID>;
+      props: DatabaseCommonInteractionProps;
+    } = bulkAddSpy.mock.calls[0]![0] as {
+      serviceLevelObjectiveIds: Array<ObjectID>;
+      props: DatabaseCommonInteractionProps;
+    };
+
+    expect(asked.props).toBe(props);
+    expect(
+      asked.serviceLevelObjectiveIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([SLO_ID.toString(), SLO_2.toString(), SLO_3.toString()]);
+
+    expect(answered()).toEqual({
+      results: [
+        {
+          serviceLevelObjectiveId: SLO_ID.toString(),
+          status: "Added",
+          rules: [
+            {
+              ...SLOW_LEAK_RULE_JSON,
+              alertSeverityName: "Low",
+              id: RULE_ID.toString(),
+            },
+          ],
+          message: null,
+        },
+        {
+          serviceLevelObjectiveId: SLO_2.toString(),
+          status: "NothingMissing",
+          rules: [],
+          message: null,
+        },
+        {
+          // What went in before it failed, and why it failed.
+          serviceLevelObjectiveId: SLO_3.toString(),
+          status: "Failed",
+          rules: [{ ...SLOW_LEAK_RULE_JSON, alertSeverityName: null }],
+          message: "Database down.",
+        },
+      ],
+    });
+    expect(bulkPreviewSpy).not.toHaveBeenCalled();
+    expect(addSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.CreateServiceLevelObjectiveBurnRateRule,
+  ])(
+    "%s may add them: it creates SLO burn rate rules",
+    async (permission: Permission) => {
+      withPermissions([permission]);
+
+      await post(BULK_ADD, bulkBody(SLO_ID));
+
+      expect(next).not.toHaveBeenCalled();
+      expect(bulkAddSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("a role that only reads the rules may not add them", async () => {
+    withPermissions([Permission.ReadServiceLevelObjectiveBurnRateRule]);
+
+    await post(BULK_ADD, bulkBody(SLO_ID));
+
+    expect(refusal().message).toContain("create SLO burn rate rules");
+    expect(bulkAddSpy).not.toHaveBeenCalled();
+  });
+
+  test("a team that blocks creating rules may not add them, whatever else it may do", async () => {
+    withPermissions(
+      [Permission.CreateServiceLevelObjectiveBurnRateRule],
+      [Permission.CreateServiceLevelObjectiveBurnRateRule],
+    );
+
+    await post(BULK_ADD, bulkBody(SLO_ID));
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(bulkAddSpy).not.toHaveBeenCalled();
+  });
+
+  test("a credential issued for reading only may not add them", async () => {
+    props.isReadOnlyCredential = true;
+
+    await post(BULK_ADD, bulkBody(SLO_ID));
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(bulkAddSpy).not.toHaveBeenCalled();
+  });
+
+  test("an API key that may create rules may add them", async () => {
+    props = { tenantId: PROJECT, userType: UserType.API };
+    withPermissions([Permission.CreateServiceLevelObjectiveBurnRateRule]);
+
+    await post(BULK_ADD, bulkBody(SLO_ID));
+
+    expect(next).not.toHaveBeenCalled();
+    expect(bulkAddSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a request in no project, or of another project, is refused before anything is added", async () => {
+    props = { userId: USER, userType: UserType.User };
+
+    await post(BULK_ADD, bulkBody(SLO_ID));
+
+    expect(refusal()).toBeInstanceOf(Error);
+
+    next = jest.fn();
+    props = {
+      userId: USER,
+      userType: UserType.User,
+      tenantId: new ObjectID("66666666-6666-4666-8666-666666666666"),
+    };
+    withPermissions([Permission.CreateServiceLevelObjectiveBurnRateRule]);
+
+    await post(BULK_ADD, bulkBody(SLO_ID));
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(bulkAddSpy).not.toHaveBeenCalled();
+  });
+
+  test("more SLOs than one request may name are refused before anything is added; as many as it may name are added to", async () => {
+    await post(BULK_ADD, {
+      serviceLevelObjectiveIds: manyIds(
+        SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS + 1,
+      ),
+    });
+
+    expect(refusal()).toEqual(new BadDataException(SLO_BULK_TOO_MANY_MESSAGE));
+    expect(bulkAddSpy).not.toHaveBeenCalled();
+
+    next = jest.fn();
+
+    await post(BULK_ADD, {
+      serviceLevelObjectiveIds: manyIds(
+        SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS,
+      ),
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(
+      (
+        bulkAddSpy.mock.calls[0]![0] as {
+          serviceLevelObjectiveIds: Array<ObjectID>;
+        }
+      ).serviceLevelObjectiveIds,
+    ).toHaveLength(SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS);
+  });
+
+  test("a body that names no SLO is refused before anything is added", async () => {
+    await post(BULK_ADD, { serviceLevelObjectiveIds: ["  "] });
+
+    expect(refusal()).toEqual(new BadDataException(SLO_BULK_NO_IDS_MESSAGE));
+    expect(bulkAddSpy).not.toHaveBeenCalled();
+  });
+
+  test("a refusal from the service reaches the caller", async () => {
+    bulkAddSpy.mockRejectedValue(
+      new BadDataException("Project ID is required."),
+    );
+
+    await post(BULK_ADD, bulkBody(SLO_ID));
+
+    expect(refusal()).toBeInstanceOf(BadDataException);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+});
+
+describe("reading the SLOs a bulk request names", () => {
+  test("takes each id trimmed, once, in the order first named, whatever its case", () => {
+    expect(
+      readServiceLevelObjectiveIds({
+        serviceLevelObjectiveIds: [
+          ` ${SLO_2.toString()}`,
+          SLO_ID.toString(),
+          SLO_2.toString().toUpperCase(),
+          SLO_3.toString(),
+        ],
+      }).map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      }),
+    ).toEqual([SLO_2.toString(), SLO_ID.toString(), SLO_3.toString()]);
+  });
+
+  test("counts the list as it was sent: more entries than the cap are refused, repeats or not", () => {
+    const ids: Array<string> = manyIds(
+      SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS,
+    );
+
+    expect(
+      readServiceLevelObjectiveIds({ serviceLevelObjectiveIds: ids }),
+    ).toHaveLength(SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS);
+
+    expect(() => {
+      return readServiceLevelObjectiveIds({
+        serviceLevelObjectiveIds: [...ids, ids[0]!],
+      });
+    }).toThrow(new BadDataException(SLO_BULK_TOO_MANY_MESSAGE));
+  });
+
+  test("refuses anything but a list of SLO ids", () => {
+    for (const body of [
+      null,
+      undefined,
+      "ids",
+      [SLO_ID.toString()],
+      {},
+      { serviceLevelObjectiveIds: null },
+      { serviceLevelObjectiveIds: {} },
+      { serviceLevelObjectiveIds: [] },
+      { serviceLevelObjectiveIds: [null] },
+      { serviceLevelObjectiveIds: [{ id: SLO_ID.toString() }] },
+      { serviceLevelObjectiveIds: [SLO_ID.toString(), "slo-1"] },
+      // The one-SLO routes' body is not a bulk one.
+      { serviceLevelObjectiveId: SLO_ID.toString() },
+    ]) {
+      expect(() => {
+        return readServiceLevelObjectiveIds(body);
+      }).toThrow(new BadDataException(SLO_BULK_NO_IDS_MESSAGE));
     }
   });
 });

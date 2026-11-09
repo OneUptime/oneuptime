@@ -88,6 +88,35 @@ SLOs, die erstellt wurden, bevor es Slow leak gab, haben nur Fast burn und Slow 
 
 Eine Regel gilt als vorhanden, wenn das SLO eine Regel mit demselben Namen hat oder eine mit demselben langen Zeitfenster, ob sie ein- oder ausgeschaltet ist. Eine Standardregel, die Sie umbenannt oder angepasst haben, wird also nie doppelt hinzugefügt. Damit der Hinweis eine Standardregel, die Sie nicht möchten, nicht mehr anbietet, behalten Sie die Regel und deaktivieren Sie sie, statt sie zu löschen. Sie brauchen die Berechtigung, SLO-Burn-Rate-Regeln zu erstellen. Jede so hinzugefügte Regel erscheint im Feed des SLO und wird in seinen Audit-Protokollen festgehalten, wie eine Regel, die Sie selbst erstellen.
 
+### Die Regeln zu vielen SLOs auf einmal hinzufügen
+
+Um vielen SLOs die empfohlenen Regeln zu geben, beginnen Sie in der SLO-Liste statt auf der eigenen Seite jedes einzelnen SLO.
+
+:::steps
+#### Die SLOs auswählen
+
+Öffnen Sie **SLOs** und wählen Sie die SLOs aus, die Sie aktualisieren möchten. Um jedes SLO zu erfassen, das ein Filter zeigt, wählen Sie die ganze Seite aus und dann alle Treffer, die die Liste anbietet.
+
+#### Die Massenaktion wählen
+
+Öffnen Sie **Massenaktionen** und wählen Sie **Empfohlene Regeln hinzufügen**.
+
+#### Prüfen, was hinzugefügt wird, und bestätigen
+
+Bevor etwas hinzugefügt wird, zählt die Bestätigung, wie viele der ausgewählten SLOs jede Regel bekommen, angepasst an ihre eigenen Zeitfenster. Bekommen SLOs mit verschiedenen Zeitfenstern eine Regel in verschiedenen Varianten, etwa Slow leak bei einem 7-Tage- und bei einem 30-Tage-SLO, listet sie jede Variante mit ihrem Schwellenwert, ihren Zeitfenstern und den SLOs auf, die sie bekommen. Außerdem zeigt sie, wie viele schon alle empfohlenen Regeln haben und wie viele nicht gelesen werden konnten. Klicken Sie auf **Empfohlene Regeln hinzufügen**, um sie hinzuzufügen.
+:::
+
+Jedes SLO bekommt nur die Regeln, die ihm fehlen, genau so, wie seine eigene Seite **Burn-Rate-Regeln** sie hinzufügen würde: mit derselben Prüfung, was als vorhanden gilt, und mit einem Feed-Eintrag und einem Eintrag in den Audit-Protokollen für jede Regel. Das Ergebnis zeigt für jedes SLO, ob Regeln hinzugefügt wurden, ob es schon alle empfohlenen Regeln hatte oder ob es unverändert blieb und warum, etwa bei einem SLO, das Sie nicht ändern dürfen. Ein SLO, das unverändert bleibt, hält die anderen nie auf, und ein zweiter Durchlauf mit denselben SLOs fügt nichts hinzu. Archivierte SLOs stehen nicht in der Liste und bekommen die Regeln nie angeboten, weil sie nicht ausgewertet werden: Holen Sie ein SLO zuerst aus dem Archiv.
+
+Skripte können dasselbe über die API tun, mit einem [API-Schlüssel](/docs/api-reference/api-reference) des Projekts. Die Anfragen für ein einzelnes SLO erwarten `{ "serviceLevelObjectiveId": "..." }` und antworten mit den Regeln in `rules`. Die Massenanfragen erwarten `{ "serviceLevelObjectiveIds": ["..."] }`, höchstens 100 SLOs pro Anfrage, und antworten mit einem Eintrag für jedes SLO in `results`, in der angefragten Reihenfolge:
+
+| Anfrage | Was sie tut |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | Listet die empfohlenen Regeln auf, die dem SLO fehlen. Dabei wird nichts gespeichert. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | Fügt sie hinzu und listet auf, was hinzugefügt wurde. Eine erneute Anfrage fügt nichts hinzu. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | Sagt, was jedem SLO fehlt: `Missing` mit den Regeln, `NothingMissing` oder `Refused` für ein SLO, das Sie nicht lesen dürfen. Dabei wird nichts gespeichert. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | Fügt hinzu, was jedem SLO fehlt, ein SLO nach dem anderen: `Added` mit den Regeln, `NothingMissing`, `Refused` oder `Failed` mit den Regeln, die vor dem Fehler hinzugefügt wurden. Eine erneute Anfrage fügt nur hinzu, was noch fehlt. |
+
 ## Eine Regel erstellen oder bearbeiten
 
 Sie brauchen die Berechtigung, SLO-Burn-Rate-Regeln zu erstellen.

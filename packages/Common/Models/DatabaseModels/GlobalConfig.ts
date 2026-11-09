@@ -1947,6 +1947,30 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   public monitorMetricRetentionInDays?: number = undefined;
 
+  /*
+   * How long the daily telemetry usage rows (TelemetryUsageBilling) are kept,
+   * with billing on or off. Empty is 120 days; whatever is saved is held to
+   * 30 days and more, up to three years (getTelemetryUsageRetentionInDays in
+   * Common/Types/Telemetry/TelemetryUsage), so a day still inside metering's
+   * one-week catch-up is never deleted and counted again.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Telemetry Usage Retention Days",
+    description:
+      "Number of days to keep the daily telemetry usage of every project (Project Settings > Telemetry & APM > Usage). Usage older than this is deleted. From 30 to 1095; default is 120 days.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public telemetryUsageRetentionInDays?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

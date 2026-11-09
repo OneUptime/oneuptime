@@ -32,12 +32,12 @@ flowchart LR
 | --- | --- | --- |
 | **Base** | **Progetto**, **Etichette** | [I dettagli del progetto](#i-dettagli-del-progetto), [Etichette](#etichette) |
 | **Area di lavoro** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videochiamate** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videochiamate](/docs/workspace-connections/video-calls) |
-| **Telemetria e APM** | **Chiavi di acquisizione**, **Conservazione dei dati** | [Chiavi di acquisizione](/docs/telemetry/ingestion-keys), [Conservazione dei dati](/docs/telemetry/data-retention) |
+| **Telemetria e APM** | **Chiavi di acquisizione**, **Conservazione dei dati**, **Utilizzo** | [Chiavi di acquisizione](/docs/telemetry/ingestion-keys), [Conservazione dei dati](/docs/telemetry/data-retention), [Utilizzo della telemetria](/docs/telemetry/usage) |
 | **Notifiche** | **Impostazioni notifiche**, **Registri di notifica**, **App mobili** | [Notifiche](#notifiche) |
 | **IA** | **Funzionalità IA**, **Provider LLM**, **Server MCP esterni**, **Crediti IA**, **Registri IA**, **Server MCP** | [Provider LLM](/docs/ai/llm-provider), [Server MCP esterni](/docs/ai/external-mcp-servers), [Server MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controllo-dei-costi) |
 | **Avanzato** | **Domini**, **Chiavi API**, **Flag delle funzionalità**, **Importa da un altro strumento** | [Domini personalizzati](/docs/status-pages/branding-and-domains#domini-personalizzati), [Chiavi API](/docs/permissions/index#chiavi-api), [Flag delle funzionalità](#flag-delle-funzionalità), [Migrare da Opsgenie](/docs/moving-to-oneuptime/opsgenie) e le altre guide alla migrazione |
 | **Sicurezza** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
-| **Fatturazione e fatture** | **Fatturazione**, **Cronologia utilizzo**, **Fatture** | [Fatturazione e utilizzo](/docs/configuration/billing) |
+| **Fatturazione e fatture** | **Fatturazione**, **Fatture** | [Fatturazione e utilizzo](/docs/configuration/billing) |
 | **Registri di audit** | **Registri di audit**, **Impostazioni**, **Esporta** | [Registri di audit](/docs/configuration/audit-logs), [Esportazione del registro di audit](/docs/configuration/audit-log-export) |
 | **Zona pericolosa** | **Zona pericolosa** | [Eliminare il progetto](#eliminare-il-progetto) |
 

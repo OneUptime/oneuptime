@@ -83,7 +83,7 @@ På et datapunkt for en metrik er listen kortere og begynder med e-mailen, fordi
 
 | Kolonne | Nøgler, den foretrukne først |
 | --- | --- |
-| Medarbejder | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Medarbejder | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Team / omkostningssted | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Model | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime læser også tokens fra `gen_ai.client.token.usage`, `gen_ai.client.to
 To ting, du skal vide, før du læser tallene:
 
 - **`gemini_cli.token.usage` er udeladt med vilje.** Gemini CLI sender sine tokens to gange, som sin egen metrik og som `gen_ai.client.token.usage`, og at læse begge ville fordoble dem. Dets tokens tælles én gang, gennem `gen_ai.client.token.usage`. Gemini CLI sender ingen omkostningsmetrik: slå dets traces til, så hvert kald bliver prissat.
-- **Kun input- og outputtokens tælles.** Tokentypen læses fra `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` eller `token_type`, og kun `input` og `output` (eller de ældre `prompt` og `completion`) tæller. Cachelæsninger og -skrivninger, Codex' `total` (som gentager de andre) og `reasoning_output` (en del af `output`) udelades, så en total fra metrikker er mindre end summen af alt, hvad et værktøj sender.
+- **Kun input- og outputtokens tælles.** Tokentypen læses fra `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` eller `token_type`, og kun `input` og `output` (eller de ældre `prompt` og `completion`) tæller, med Claude Codes `cacheRead` og `cacheCreation` som input, da dets `input` udelader dem. Andre cachelæsninger og -skrivninger, Codex' `total` (som gentager de andre) og `reasoning_output` (en del af `output`) udelades, så en total fra metrikker er mindre end summen af alt, hvad et værktøj sender.
 
 ## Fanen Forbrug
 

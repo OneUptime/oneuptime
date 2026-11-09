@@ -1516,6 +1516,9 @@ jobs:
           # routers at once, the OIDs compared, Collect on every device that
           # answers, the CSV, the walk read back, at 1280 and 390 pixels, dark
           # and German) joined it beside SNMP Walk on 2026-11-03: 21.6.
+          # SLO Burn Rate grew by the SLO list's Add recommended rules (3
+          # tests, about 0.2 minutes locally: the confirmation, the add and a
+          # second run, and a phone's width) on 2026-11-08: 1.9, so 21.8.
           - group: 17
             suites: >-
               test-snmp-walk-ui

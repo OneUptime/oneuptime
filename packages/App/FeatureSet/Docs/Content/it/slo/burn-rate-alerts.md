@@ -88,6 +88,35 @@ Gli SLO creati prima che esistesse Slow leak hanno solo Fast burn e Slow burn: a
 
 Una regola conta come presente quando lo SLO ha una regola con lo stesso nome, o una con la stessa finestra lunga, che sia attiva o no. Così una regola predefinita che hai rinominato o regolato non viene mai aggiunta due volte. Perché la nota smetta di proporre una regola predefinita che non vuoi, tieni la regola e disabilitala invece di eliminarla. Ti serve il permesso di creare regole del tasso di consumo degli SLO. Ogni regola aggiunta così viene pubblicata nel feed dello SLO e registrata nei suoi registri di audit, come una regola che crei tu.
 
+### Aggiungerle a molti SLO in una volta
+
+Per dare le regole consigliate a molti SLO, parti dall'elenco degli SLO invece che dalla pagina di ogni singolo SLO.
+
+:::steps
+#### Selezionare gli SLO
+
+Apri **SLOs** e seleziona gli SLO da aggiornare. Per prendere tutti gli SLO mostrati da un filtro, seleziona l'intera pagina, poi tutte le corrispondenze che l'elenco propone.
+
+#### Scegliere l'azione di massa
+
+Apri **Azioni di massa** e scegli **Aggiungi regole consigliate**.
+
+#### Controllare cosa aggiunge e confermare
+
+Prima di aggiungere qualsiasi cosa, la conferma conta quanti degli SLO selezionati ricevono ciascuna regola, adattata alle loro finestre. Quando più SLO con finestre diverse ricevono una regola in varianti diverse, come Slow leak su uno SLO di 7 giorni e su uno di 30 giorni, elenca ogni variante con la sua soglia, le sue finestre e gli SLO che la ricevono. Dice anche quanti hanno già tutte le regole consigliate e quanti non è stato possibile leggere. Fai clic su **Aggiungi regole consigliate** per aggiungerle.
+:::
+
+Ogni SLO riceve solo le regole che gli mancano, esattamente come le aggiungerebbe la sua pagina **Regole di tasso di consumo**: lo stesso controllo di cosa conta come presente, e un elemento del feed e una voce nei registri di audit per ogni regola. Il risultato dice, per ogni SLO, se sono state aggiunte regole, se aveva già tutte le regole consigliate oppure se non è stato modificato e perché, per esempio uno SLO che non puoi modificare. Uno SLO non modificato non blocca mai gli altri, e ripetere l'azione sugli stessi SLO non aggiunge nulla. Gli SLO archiviati non compaiono nell'elenco e le regole non vengono mai proposte per loro, perché non vengono valutati: prima annulla l'archiviazione dello SLO.
+
+Gli script possono fare lo stesso tramite l'API, con una [chiave API](/docs/api-reference/api-reference) del progetto. Le richieste per un solo SLO accettano `{ "serviceLevelObjectiveId": "..." }` e rispondono con le regole in `rules`. Le richieste di massa accettano `{ "serviceLevelObjectiveIds": ["..."] }`, al massimo 100 SLO per richiesta, e rispondono con una voce per ogni SLO in `results`, nell'ordine richiesto:
+
+| Richiesta | Cosa fa |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | Elenca le regole consigliate che mancano allo SLO. Non salva nulla. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | Le aggiunge ed elenca cosa ha aggiunto. Ripetere la richiesta non aggiunge nulla. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | Dice cosa manca a ogni SLO: `Missing` con le regole, `NothingMissing` o `Refused` per uno SLO che non puoi leggere. Non salva nulla. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | Aggiunge ciò che manca a ogni SLO, uno SLO dopo l'altro: `Added` con le regole, `NothingMissing`, `Refused` o `Failed` con le regole aggiunte prima dell'errore. Ripetere la richiesta aggiunge solo ciò che manca ancora. |
+
 ## Creare o modificare una regola
 
 Ti serve il permesso di creare regole del tasso di consumo degli SLO.

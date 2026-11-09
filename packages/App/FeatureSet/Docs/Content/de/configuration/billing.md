@@ -106,7 +106,7 @@ Wenn Ihre Bank eine Zahlung noch verarbeitet, sagt OneUptime das: Manche Banken 
 
 ## Nutzungsverlauf
 
-**Projekteinstellungen → Abrechnung und Rechnungen → Nutzungsverlauf** zeigt die Telemetrie, die das Projekt gesendet hat, eine Zeile pro Produkt, Dienst und Tag:
+**Projekteinstellungen → Telemetrie & APM → Nutzung** zeigt, wie viel Telemetrie das Projekt gesendet hat, nach Tag, Signal und Ressource: siehe [Telemetrie-Nutzung](/docs/telemetry/usage). In OneUptime Cloud sagt die Liste **Telemetrie-Nutzungsverlauf** dort auch, was jeder Tag gekostet hat, eine Zeile pro Produkt, Dienst und Tag:
 
 | Spalte | Was sie zeigt |
 | --- | --- |
@@ -117,7 +117,7 @@ Wenn Ihre Bank eine Zahlung noch verarbeitet, sagt OneUptime das: Manche Banken 
 | **Datenaufbewahrung (in Tagen)** | Wie lange sie aufbewahrt wird. |
 | **Gesamtkosten** | Was sie gekostet hat, in US-Dollar. |
 
-Die Nutzung eines Tages erscheint, sobald der Tag vorbei ist. Filtern Sie nach **Produkt**, **Tag** oder **Dienst**, um zu finden, was gewachsen ist.
+Die Nutzung eines Tages erscheint, sobald der Tag vorbei ist, bis etwa 08:00 UTC am nächsten Tag. Filtern Sie nach **Produkt**, **Tag** oder **Dienst**, um zu finden, was gewachsen ist.
 
 ## Vorausbezahltes Guthaben
 
@@ -188,8 +188,8 @@ Ein Projekt mit unbezahlten Rechnungen wird inaktiv und gelöscht, wenn sie unbe
 Das Projekt hat noch keine Zahlungsmethode. Fügen Sie eine hinzu und ändern Sie dann den Tarif.
 :::
 
-:::details Der Nutzungsverlauf ist leer
-Die Nutzung wird pro Tag gezählt, und ein Tag erscheint, sobald er vorbei ist. Ein Projekt, das keine Telemetrie gesendet hat, hat keine Zeilen.
+:::details Der Telemetrie-Nutzungsverlauf ist leer
+Die Nutzung wird pro Tag gezählt, und ein Tag erscheint, sobald er vorbei ist, bis etwa 08:00 UTC am nächsten Tag. Ein Projekt, das keine Telemetrie gesendet hat, hat keine Zeilen.
 :::
 
 ## Nächste Schritte

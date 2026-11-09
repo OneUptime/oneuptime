@@ -83,7 +83,7 @@ OneUptime هنگام رسیدن تله‌متری، شخصی را که فراخ�
 
 | ستون | کلیدها، به ترتیب اولویت |
 | --- | --- |
-| کارمند | `user.email`، `user.id`، `user.account_uuid`، `user.account_id`، `cursor.user.id` |
+| کارمند | `user.email`، `cursor.user.email`، `user.id`، `user.account_uuid`، `user.account_id`، `cursor.user.id` |
 | تیم / مرکز هزینه | `team.id`، `team`، `cost_center`، `department`، `cursor.team.id` |
 | مدل | `gen_ai.request.model`، `model`، `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime همچنین توکن‌ها را از `gen_ai.client.token.usage`، `
 دو نکته پیش از خواندن عددها:
 
 - **`gemini_cli.token.usage` عمداً کنار گذاشته می‌شود.** Gemini CLI توکن‌هایش را دو بار می‌فرستد، به‌صورت متریک خودش و به‌صورت `gen_ai.client.token.usage`، و خواندن هر دو آن‌ها را دو برابر می‌کند. توکن‌هایش یک بار، از راه `gen_ai.client.token.usage`، شمرده می‌شوند. Gemini CLI هیچ متریک هزینه‌ای نمی‌فرستد: ترِیس‌هایش را روشن کنید تا هر فراخوانی قیمت‌گذاری شود.
-- **فقط توکن‌های ورودی و خروجی شمرده می‌شوند.** نوع توکن از `gen_ai.token.type`، `llm.token.type`، `type`، `cursor.token.type` یا `token_type` خوانده می‌شود و فقط `input` و `output` (یا `prompt` و `completion` قدیمی‌تر) شمرده می‌شوند. خواندن و نوشتن cache، `total` در Codex (که بقیه را تکرار می‌کند) و `reasoning_output` (بخشی از `output`) کنار گذاشته می‌شوند، پس مجموعی که از متریک‌ها می‌آید از جمع همهٔ چیزهایی که یک ابزار می‌فرستد کوچک‌تر است.
+- **فقط توکن‌های ورودی و خروجی شمرده می‌شوند.** نوع توکن از `gen_ai.token.type`، `llm.token.type`، `type`، `cursor.token.type` یا `token_type` خوانده می‌شود و فقط `input` و `output` (یا `prompt` و `completion` قدیمی‌تر) شمرده می‌شوند، همراه با `cacheRead` و `cacheCreation` در Claude Code به‌عنوان ورودی، چون `input` آن این‌ها را کنار می‌گذارد. دیگر خواندن‌ها و نوشتن‌های cache، `total` در Codex (که بقیه را تکرار می‌کند) و `reasoning_output` (بخشی از `output`) کنار گذاشته می‌شوند، پس مجموعی که از متریک‌ها می‌آید از جمع همهٔ چیزهایی که یک ابزار می‌فرستد کوچک‌تر است.
 
 ## زبانهٔ مصرف
 

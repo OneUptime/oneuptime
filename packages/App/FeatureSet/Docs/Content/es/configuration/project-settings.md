@@ -32,12 +32,12 @@ flowchart LR
 | --- | --- | --- |
 | **Básico** | **Proyecto**, **Etiquetas** | [Los detalles del proyecto](#los-detalles-del-proyecto), [Etiquetas](#etiquetas) |
 | **Espacio de trabajo** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videollamadas** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videollamadas](/docs/workspace-connections/video-calls) |
-| **Telemetría y APM** | **Claves de ingesta**, **Retención de datos** | [Claves de ingesta](/docs/telemetry/ingestion-keys), [Retención de datos](/docs/telemetry/data-retention) |
+| **Telemetría y APM** | **Claves de ingesta**, **Retención de datos**, **Uso** | [Claves de ingesta](/docs/telemetry/ingestion-keys), [Retención de datos](/docs/telemetry/data-retention), [Uso de telemetría](/docs/telemetry/usage) |
 | **Notificaciones** | **Ajustes de notificaciones**, **Registros de notificación**, **Aplicaciones móviles** | [Notificaciones](#notificaciones) |
 | **IA** | **Funciones de IA**, **Proveedores de LLM**, **Servidores MCP externos**, **Créditos de IA**, **Registros de IA**, **Servidor MCP** | [Proveedores de LLM](/docs/ai/llm-provider), [Servidores MCP externos](/docs/ai/external-mcp-servers), [Servidor MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#control-de-costes) |
 | **Avanzado** | **Dominios**, **Claves de API**, **Feature flags**, **Importar desde otra herramienta** | [Dominios personalizados](/docs/status-pages/branding-and-domains#dominios-personalizados), [Claves de API](/docs/permissions/index#claves-de-api), [Feature flags](#feature-flags), [Migrar desde Opsgenie](/docs/moving-to-oneuptime/opsgenie) y las demás guías de migración |
 | **Seguridad** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
-| **Facturación y facturas** | **Facturación**, **Historial de uso**, **Facturas** | [Facturación y uso](/docs/configuration/billing) |
+| **Facturación y facturas** | **Facturación**, **Facturas** | [Facturación y uso](/docs/configuration/billing) |
 | **Registros de auditoría** | **Registros de auditoría**, **Ajustes**, **Exportar** | [Registros de auditoría](/docs/configuration/audit-logs), [Exportación del registro de auditoría](/docs/configuration/audit-log-export) |
 | **Zona de peligro** | **Zona de peligro** | [Eliminar el proyecto](#eliminar-el-proyecto) |
 

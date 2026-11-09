@@ -2,6 +2,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import StatusPageMonitorRule from "../../Models/DatabaseModels/StatusPageMonitorRule";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
@@ -13,6 +14,7 @@ import MonitorService from "./MonitorService";
 import StatusPageMonitorRuleService from "./StatusPageMonitorRuleService";
 import StatusPageResourceService from "./StatusPageResourceService";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleRunWriteProps } from "../Utils/Rules/RuleRun/RuleApplication";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /**
@@ -103,17 +105,30 @@ const RULE_SELECT: {
  *
  *   - the rule side (the rule was created or edited) -> syncResourcesForRule
  *   - the monitor side (its labels or name changed)  -> syncRulesForMonitor
+ *
+ * Who the page's changes are by (issue #6324). Every write is root - who may
+ * run a rule is asked at its route (RuleRunPermission) - and a sync that
+ * follows a save names nobody: OneUptime's own, a system event. A rule's Run
+ * now names who ran it, and every resource its sync adds, moves or removes,
+ * those another rule takes over when it lets a monitor go included, is
+ * written on their behalf (RuleRunWriteProps), so the audit log records the
+ * page's changes as theirs. HookFreeWritesAreRecorded.test.ts holds every
+ * write Run now reaches to this.
  */
 export class StatusPageMonitorRuleEngineServiceClass {
   /**
    * Re-evaluates one rule against every monitor in its project. Use when the
    * rule itself changed — it is the authoritative, self-healing path and
    * repairs any drift it finds.
+   *
+   * `props` is who ran the rule, for its Run now: what the sync writes is
+   * theirs in the audit log. A sync after the rule is saved passes none.
    */
   @CaptureSpan()
   @RuleEvaluation()
   public async syncResourcesForRule(data: {
     statusPageMonitorRuleId: ObjectID;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<StatusPageMonitorRuleSyncResult> {
     const rule: StatusPageMonitorRule | null =
       await StatusPageMonitorRuleService.findOneById({
@@ -148,6 +163,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
        * silently revert per-resource tweaks at a surprising moment.
        */
       reconcileOwnedResources: true,
+      props: data.props,
     });
 
     /*
@@ -158,12 +174,16 @@ export class StatusPageMonitorRuleEngineServiceClass {
      *
      * Bounded: syncRulesForMonitor only calls writeMembership, never back into
      * this method, so there is no cycle.
+     *
+     * By whoever ran the rule, too: the monitor moving to another rule's
+     * place is part of what their run changed on the page.
      */
     for (const monitorId of result.monitorIdsReleased) {
       try {
         await this.syncRulesForMonitor({
           monitorId: new ObjectID(monitorId),
           projectId: rule.projectId,
+          props: data.props,
         });
       } catch (error) {
         logger.error(
@@ -180,12 +200,16 @@ export class StatusPageMonitorRuleEngineServiceClass {
    * Re-evaluates every rule in the project against a single monitor. Use when
    * the monitor changed: it costs one query per project regardless of how many
    * monitors the rules match.
+   *
+   * `props` is who ran a rule whose Run now let the monitor go (see
+   * syncResourcesForRule); a monitor's own change passes none.
    */
   @CaptureSpan()
   @RuleEvaluation()
   public async syncRulesForMonitor(data: {
     monitorId: ObjectID;
     projectId?: ObjectID | undefined;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<Array<StatusPageMonitorRuleSyncResult>> {
     const monitor: Monitor | null = await MonitorService.findOneById({
       id: data.monitorId,
@@ -273,6 +297,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
               restrictToMonitorId: monitor.id,
               skipAdds: skipAdds,
               skipRemoves: !skipAdds,
+              props: data.props,
             });
 
           if (
@@ -303,6 +328,10 @@ export class StatusPageMonitorRuleEngineServiceClass {
   /**
    * Removes every resource a rule added, without touching anything else on the
    * page. Called before the rule row goes away so deleting a rule undoes it.
+   *
+   * OneUptime's own, as root with nobody named: what deleting a rule takes
+   * off the page follows from the rule's delete, which the audit log records
+   * as whoever deleted it.
    */
   @CaptureSpan()
   public async removeResourcesAddedByRule(data: {
@@ -529,6 +558,8 @@ export class StatusPageMonitorRuleEngineServiceClass {
    * `reconcileOwnedResources` additionally drags resources the rule already
    * owns back into line with the rule — see reconcileResource. Only the
    * rule-side entry point asks for it.
+   *
+   * `props` is who ran the rule (Run now): every write is on their behalf.
    */
   private async writeMembership(data: {
     rule: StatusPageMonitorRule;
@@ -537,6 +568,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
     reconcileOwnedResources?: boolean | undefined;
     skipAdds?: boolean | undefined;
     skipRemoves?: boolean | undefined;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<StatusPageMonitorRuleSyncResult> {
     const { rule, matchedMonitors, restrictToMonitorId } = data;
 
@@ -620,9 +652,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
 
         await StatusPageResourceService.deleteOneById({
           id: resource.id,
-          props: {
-            isRoot: true,
-          },
+          props: RuleRunWriteProps.get(data.props),
         });
 
         statusPageResourceIdsRemoved.push(resource.id.toString());
@@ -646,7 +676,11 @@ export class StatusPageMonitorRuleEngineServiceClass {
           continue;
         }
 
-        await this.createResource({ rule: rule, monitor: monitor });
+        await this.createResource({
+          rule: rule,
+          monitor: monitor,
+          props: data.props,
+        });
         monitorIdsAdded.push(monitorId);
       }
     }
@@ -664,7 +698,13 @@ export class StatusPageMonitorRuleEngineServiceClass {
           continue;
         }
 
-        if (await this.reconcileResource({ rule: rule, resource: resource })) {
+        if (
+          await this.reconcileResource({
+            rule: rule,
+            resource: resource,
+            props: data.props,
+          })
+        ) {
           statusPageResourceIdsUpdated.push(resource.id.toString());
         }
       }
@@ -705,6 +745,8 @@ export class StatusPageMonitorRuleEngineServiceClass {
   private async reconcileResource(data: {
     rule: StatusPageMonitorRule;
     resource: StatusPageResource;
+    // Who ran the rule (Run now); none for a sync after a save.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<boolean> {
     const { rule, resource } = data;
 
@@ -745,9 +787,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
     await StatusPageResourceService.updateOneById({
       id: resource.id,
       data: desired as never,
-      props: {
-        isRoot: true,
-      },
+      props: RuleRunWriteProps.get(data.props),
     });
 
     return true;
@@ -756,6 +796,8 @@ export class StatusPageMonitorRuleEngineServiceClass {
   private async createResource(data: {
     rule: StatusPageMonitorRule;
     monitor: Monitor;
+    // Who ran the rule (Run now); none for a sync after a save.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     const { rule, monitor } = data;
 
@@ -788,9 +830,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
 
     await StatusPageResourceService.create({
       data: resource,
-      props: {
-        isRoot: true,
-      },
+      props: RuleRunWriteProps.get(data.props),
     });
   }
 }

@@ -161,7 +161,7 @@ Varje mätvärde är en räknare och bär standardattributen utöver sina egna.
 
 Standardattributen är `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` och `terminal.type`, plus dina `OTEL_RESOURCE_ATTRIBUTES`. Några av dem kan stängas av: se [Håll nere volymen av mätvärden](#håll-nere-volymen-av-mätvärden).
 
-- Cachetokentyperna är i camelCase: `cacheRead` och `cacheCreation`. OneUptimes tokentotaler räknar bara `input` och `output`.
+- Cachetokentyperna är i camelCase: `cacheRead` och `cacheCreation`. Claude Codes `input` utelämnar dem, så OneUptime räknar dem också som indatatokens.
 - På kostnads- och tokenmätvärdena står namnen på dina egna agenter och MCP-servrar, och på plugins och skills från tredje part, som `custom` eller `third-party`, om inte `OTEL_LOG_TOOL_DETAILS=1` är satt (Claude Code 2.1.273 eller senare).
 
 ## Händelser
@@ -220,7 +220,7 @@ Claude Code skickar deltamätvärden som standard: varje datapunkt är ökningen
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Lås `cumulative` bara om varje exportör i din organisation använder det, och blanda inte de två i en flotta.
+Lås `cumulative` bara om varje exportör i din organisation använder det, och blanda inte de två i en flotta. OneUptimes flik Användning och budgetar räknar båda: en delta genom att lägga ihop dess punkter, en kumulativ räknare efter hur mycket den växte under perioden.
 
 ## Traces (beta)
 

@@ -825,3 +825,318 @@ describe("LlmConnectionPullRunner.loadProjectPrices", () => {
     ]);
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * What a provider account's reads have covered (#5776)
+ * ---------------------------------------------------------------------------
+ *
+ * After the first read, a provider account reads only the last few days, so
+ * a read that found nothing said "No usage yet" about an account that had
+ * spent money all month. Each read now keeps, on its result, the newest day
+ * any read found usage on and the first day ever read; the Connect page
+ * says "No usage since <day>" or "Last usage <day>" from them.
+ */
+function usageRecord(overrides: Partial<LlmUsageRecord>): LlmUsageRecord {
+  return {
+    day: new Date("2026-10-19T00:00:00Z"),
+    model: "gpt-4o",
+    person: "",
+    project: "",
+    apiKey: "",
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    requests: 0,
+    costUsd: 0,
+    ...overrides,
+  };
+}
+
+const WINDOW: LlmUsageWindow = {
+  startDay: new Date("2026-10-16T00:00:00Z"),
+  endDay: new Date("2026-10-20T00:00:00Z"),
+};
+
+describe("LlmConnectionPullRunner.getUsageCoverage", () => {
+  test("a first read: read since its window's first day, usage on its newest day with any", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: undefined,
+        window: WINDOW,
+        records: [
+          usageRecord({
+            day: new Date("2026-10-17T00:00:00Z"),
+            inputTokens: 10,
+          }),
+          usageRecord({ day: new Date("2026-10-18T00:00:00Z"), requests: 2 }),
+          usageRecord({ day: new Date("2026-10-16T00:00:00Z"), costUsd: 1 }),
+        ],
+      }),
+    ).toEqual({
+      newestUsageDay: "2026-10-18T00:00:00.000Z",
+      readSince: "2026-10-16T00:00:00.000Z",
+    });
+  });
+
+  test.each([
+    ["input tokens", { inputTokens: 1 }],
+    ["output tokens", { outputTokens: 1 }],
+    ["requests", { requests: 1 }],
+    ["cost", { costUsd: 0.01 }],
+  ])(
+    "a day with only %s is a day with usage",
+    (_name: string, overrides: Partial<LlmUsageRecord>) => {
+      expect(
+        LlmConnectionPullRunner.getUsageCoverage({
+          previous: undefined,
+          window: WINDOW,
+          records: [usageRecord(overrides)],
+        }).newestUsageDay,
+      ).toBe("2026-10-19T00:00:00.000Z");
+    },
+  );
+
+  test("a row of zeros is not usage: an account the provider lists with nothing used", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: undefined,
+        window: WINDOW,
+        records: [
+          usageRecord({ day: new Date("2026-10-19T00:00:00Z") }),
+          usageRecord({
+            day: new Date("2026-10-18T00:00:00Z"),
+            cacheReadTokens: 50,
+          }),
+        ],
+      }).newestUsageDay,
+    ).toBeUndefined();
+  });
+
+  test("a read that found nothing keeps the day an earlier read found usage on", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: {
+          kind: "usage",
+          newestUsageDay: "2026-09-30T00:00:00.000Z",
+          readSince: "2026-09-01T00:00:00.000Z",
+        },
+        window: WINDOW,
+        records: [],
+      }),
+    ).toEqual({
+      newestUsageDay: "2026-09-30T00:00:00.000Z",
+      readSince: "2026-09-01T00:00:00.000Z",
+    });
+  });
+
+  test("a newer day with usage replaces the earlier one; an older one does not", () => {
+    const previous: JSONObject = {
+      newestUsageDay: "2026-10-18T00:00:00.000Z",
+      readSince: "2026-10-01T00:00:00.000Z",
+    };
+
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous,
+        window: WINDOW,
+        records: [
+          usageRecord({
+            day: new Date("2026-10-19T00:00:00Z"),
+            outputTokens: 4,
+          }),
+        ],
+      }).newestUsageDay,
+    ).toBe("2026-10-19T00:00:00.000Z");
+
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous,
+        window: WINDOW,
+        records: [
+          usageRecord({
+            day: new Date("2026-10-16T00:00:00Z"),
+            outputTokens: 4,
+          }),
+        ],
+      }).newestUsageDay,
+    ).toBe("2026-10-18T00:00:00.000Z");
+  });
+
+  test("read since is the earliest day any read covered", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: { readSince: "2026-10-18T00:00:00.000Z" },
+        window: WINDOW,
+        records: [],
+      }).readSince,
+    ).toBe("2026-10-16T00:00:00.000Z");
+
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: { readSince: "2026-08-01T00:00:00.000Z" },
+        window: WINDOW,
+        records: [],
+      }).readSince,
+    ).toBe("2026-08-01T00:00:00.000Z");
+  });
+
+  test("a usage day is the day it started, whatever time of day the provider stamped", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: undefined,
+        window: WINDOW,
+        records: [
+          usageRecord({
+            day: new Date("2026-10-19T13:45:00Z"),
+            inputTokens: 1,
+          }),
+        ],
+      }).newestUsageDay,
+    ).toBe("2026-10-19T00:00:00.000Z");
+  });
+
+  test.each([
+    ["nothing", null],
+    ["a result of another kind", { kind: "chat", importedTurns: 4 }],
+    [
+      "values that are not days",
+      { newestUsageDay: "yesterday", readSince: 12 },
+    ],
+    ["empty values", { newestUsageDay: "", readSince: "" }],
+  ])(
+    "an earlier result with %s is read as no coverage, never thrown",
+    (_name: string, previous: JSONObject | null) => {
+      expect(
+        LlmConnectionPullRunner.getUsageCoverage({
+          previous,
+          window: WINDOW,
+          records: [],
+        }),
+      ).toEqual({
+        newestUsageDay: undefined,
+        readSince: "2026-10-16T00:00:00.000Z",
+      });
+    },
+  );
+});
+
+describe("LlmConnectionPullRunner.run - what a provider account's reads have covered", () => {
+  test("a read keeps the newest day with usage and the first day read on its result", async () => {
+    await run();
+
+    expect(lastRecord()["lastPullResult"]).toMatchObject({
+      kind: "usage",
+      newestUsageDay: "2026-10-19T00:00:00.000Z",
+      readSince: "2026-10-16T00:00:00.000Z",
+    });
+  });
+
+  test("a read that finds nothing keeps what earlier reads covered", async () => {
+    connection.lastPullResult = {
+      status: "success",
+      kind: "usage",
+      newestUsageDay: "2026-09-12T00:00:00.000Z",
+      readSince: "2026-09-01T00:00:00.000Z",
+    };
+    connector = usageConnector(async () => {
+      return { records: [], requestCount: 2, warnings: [] };
+    });
+
+    await run();
+
+    expect(lastRecord()["lastPullResult"]).toMatchObject({
+      status: "success",
+      kind: "usage",
+      newestUsageDay: "2026-09-12T00:00:00.000Z",
+      readSince: "2026-09-01T00:00:00.000Z",
+    });
+  });
+
+  test("a read that never found usage says so by leaving the day out", async () => {
+    connector = usageConnector(async () => {
+      return { records: [], requestCount: 2, warnings: [] };
+    });
+
+    await run();
+
+    const result: JSONObject = lastRecord()["lastPullResult"] as JSONObject;
+
+    expect(result["readSince"]).toBe("2026-10-16T00:00:00.000Z");
+    expect(Object.keys(result)).not.toContain("newestUsageDay");
+  });
+
+  test("the earlier result is read with the connection", async () => {
+    const findOneById: jest.SpiedFunction<
+      typeof LlmObservabilityConnectionService.findOneById
+    > = jest.spyOn(LlmObservabilityConnectionService, "findOneById");
+
+    await run();
+
+    const select: JSONObject = (
+      findOneById.mock.calls[0]![0] as unknown as { select: JSONObject }
+    ).select;
+
+    expect(select["lastPullResult"]).toBe(true);
+  });
+
+  test("a provider read resource by resource says how many resources it read", async () => {
+    connector = usageConnector(async () => {
+      return {
+        records: [],
+        requestCount: 1,
+        warnings: [],
+        resources: 0,
+      };
+    });
+
+    await run();
+
+    expect(lastRecord()["lastPullResult"]).toMatchObject({ resources: 0 });
+
+    connector = usageConnector(async () => {
+      return {
+        records: [],
+        requestCount: 3,
+        warnings: [],
+        resources: 2,
+      };
+    });
+
+    await run();
+
+    expect(lastRecord()["lastPullResult"]).toMatchObject({ resources: 2 });
+  });
+
+  test("a provider that reports one account says nothing about resources", async () => {
+    await run();
+
+    expect(
+      Object.keys(lastRecord()["lastPullResult"] as JSONObject),
+    ).not.toContain("resources");
+  });
+
+  test("a failed read keeps nothing new about coverage", async () => {
+    connection.lastPullResult = {
+      status: "success",
+      kind: "usage",
+      newestUsageDay: "2026-09-12T00:00:00.000Z",
+      readSince: "2026-09-01T00:00:00.000Z",
+    };
+    connector = usageConnector(async () => {
+      throw LlmProviderError.from({
+        error: new Error("Data source responded with HTTP 503: down"),
+        step: "usage report",
+        providerTitle: "OpenAI",
+      });
+    });
+
+    await run();
+
+    const result: JSONObject = lastRecord()["lastPullResult"] as JSONObject;
+
+    expect(result["status"]).toBe("failed");
+    expect(Object.keys(result)).not.toContain("newestUsageDay");
+  });
+});

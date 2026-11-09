@@ -159,6 +159,13 @@ import {
   AutoImportRuleRunResult,
   MAX_MATCHED_IP_SAMPLE,
 } from "../../../Types/NetworkAutomation/RuleRunResult";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import Permission from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
+import OnBehalfOfProps from "../../../Server/Utils/AuditLog/OnBehalfOfProps";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { afterEach, describe, expect, it, beforeEach } from "@jest/globals";
 
 /*
@@ -5294,5 +5301,382 @@ describe("how often an auto-imported device is polled", () => {
     ).toBe(true);
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(createdDevice(0).pollingIntervalInMinutes).toBe(30);
+  });
+});
+
+/*
+ * WHO THE DEVICES AND MONITORS AN IMPORT CREATES ARE BY (issue #6323).
+ *
+ * Both paths create as root: who may run a rule is asked at its route. Run
+ * Now names who ran it, and every device and monitor it creates is written
+ * on their behalf (RuleRunWriteProps) - root still, with their identity
+ * and none of their permissions - so the audit log records them as theirs,
+ * kept whether or not the project stores system events. What the automatic
+ * sweep imports names nobody, and stays OneUptime's own.
+ */
+describe("who an import's devices and monitors are by (issue #6323)", () => {
+  const RUNNER_ID: ObjectID = new ObjectID(
+    "12121212-1212-4212-8212-121212121212",
+  );
+  const KEY_ID: ObjectID = new ObjectID("34343434-3434-4434-8434-343434343434");
+  const GRANT_ID: ObjectID = new ObjectID(
+    "56565656-5656-4656-8656-565656565656",
+  );
+
+  // A person who ran the rule from the dashboard, as the route has them.
+  const RUNNER: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: RUNNER_ID,
+    userType: UserType.User,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: [{ permission: Permission.ProjectOwner } as never],
+      } as never,
+    },
+    currentPlan: PlanType.Enterprise,
+    isMultiTenantRequest: false,
+  };
+
+  // What each device they import is written with: who they are, as root.
+  const ON_THEIR_BEHALF: DatabaseCommonInteractionProps = {
+    isRoot: true,
+    userId: RUNNER_ID,
+    userType: UserType.User,
+  };
+
+  // And each monitor, which MonitorService creates only in a project.
+  const IN_THE_PROJECT_ON_THEIR_BEHALF: DatabaseCommonInteractionProps = {
+    ...ON_THEIR_BEHALF,
+    tenantId: PROJECT_ID,
+  };
+
+  function runRuleAs(
+    props: DatabaseCommonInteractionProps | undefined,
+    isDryRun: boolean = false,
+  ): Promise<AutoImportRuleRunResult> {
+    return NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans({
+      ruleId: RULE_ID,
+      projectId: PROJECT_ID,
+      isDryRun: isDryRun,
+      props: props,
+    });
+  }
+
+  function deviceCreateProps(): Array<unknown> {
+    return createMock.mock.calls.map((call: Array<any>): unknown => {
+      return call[0].props;
+    });
+  }
+
+  function monitorCreateProps(): Array<unknown> {
+    return monitorCreateMock.mock.calls.map((call: Array<any>): unknown => {
+      return call[0].props;
+    });
+  }
+
+  // A run rule importing two hosts, with a monitor template when asked.
+  function twoHostsToImport(withTemplate: boolean): void {
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule(withTemplate ? { monitorTemplateId: TEMPLATE_ID } : {}),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+    monitorTemplateFindByMock.mockResolvedValue(
+      withTemplate ? [makeTemplate()] : [],
+    );
+    mockRunNowScans([
+      makeScan({
+        discoveredDevices: [
+          makeHost(),
+          makeHost({ ipAddress: "10.0.0.6", sysName: "core-switch-02" }),
+        ],
+      }),
+    ]);
+  }
+
+  describe("Run Now", () => {
+    it("creates each device on the behalf of whoever ran it, carrying nothing they may do", async () => {
+      twoHostsToImport(false);
+
+      const result: AutoImportRuleRunResult = await runRuleAs(RUNNER);
+
+      expect(result.devicesCreated).toBe(2);
+      expect(deviceCreateProps()).toEqual([ON_THEIR_BEHALF, ON_THEIR_BEHALF]);
+
+      for (const props of deviceCreateProps()) {
+        const written: DatabaseCommonInteractionProps =
+          props as DatabaseCommonInteractionProps;
+        // No project on the write: DatabaseService keeps the person it names.
+        expect(written.tenantId).toBeUndefined();
+        expect(written.userTenantAccessPermission).toBeUndefined();
+        expect(written.currentPlan).toBeUndefined();
+      }
+    });
+
+    it("creates each monitor from the rule's template in the rule's project, on their behalf", async () => {
+      twoHostsToImport(true);
+
+      const result: AutoImportRuleRunResult = await runRuleAs(RUNNER);
+
+      expect(result).toMatchObject({ devicesCreated: 2, monitorsCreated: 2 });
+      expect(deviceCreateProps()).toEqual([ON_THEIR_BEHALF, ON_THEIR_BEHALF]);
+      expect(monitorCreateProps()).toEqual([
+        IN_THE_PROJECT_ON_THEIR_BEHALF,
+        IN_THE_PROJECT_ON_THEIR_BEHALF,
+      ]);
+    });
+
+    it("creates a monitor for a device that is already there on their behalf too", async () => {
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+      deviceFindByMock.mockResolvedValue([makeExistingDevice()]);
+      mockRunNowScans([makeScan({ discoveredDevices: [makeHost()] })]);
+
+      const result: AutoImportRuleRunResult = await runRuleAs(RUNNER);
+
+      expect(result).toMatchObject({
+        devicesCreated: 0,
+        hostsSkippedAlreadyRegistered: 1,
+        monitorsCreated: 1,
+      });
+      expect(createMock).not.toHaveBeenCalled();
+      expect(monitorCreateProps()).toEqual([IN_THE_PROJECT_ON_THEIR_BEHALF]);
+    });
+
+    it("retries a name that is taken under the fallback name, on their behalf", async () => {
+      ruleFindOneByMock.mockResolvedValue(makeRule());
+      ruleFindByMock.mockResolvedValue([]);
+      mockRunNowScans([makeScan({ discoveredDevices: [makeHost()] })]);
+      createMock.mockRejectedValueOnce(
+        new BadDataException("A device with this name already exists."),
+      );
+
+      const result: AutoImportRuleRunResult = await runRuleAs(RUNNER);
+
+      expect(result.devicesCreated).toBe(1);
+      expect(createMock).toHaveBeenCalledTimes(2);
+      expect(createdDevice(1).name).not.toBe(createdDevice(0).name);
+      expect(deviceCreateProps()).toEqual([ON_THEIR_BEHALF, ON_THEIR_BEHALF]);
+    });
+
+    it("an API key that runs the rule is credited as the key", async () => {
+      twoHostsToImport(true);
+
+      await runRuleAs({
+        tenantId: PROJECT_ID,
+        userType: UserType.API,
+        apiKeyId: KEY_ID,
+        apiKeyName: "Terraform",
+        userTenantAccessPermission: {},
+      });
+
+      const asTheKey: DatabaseCommonInteractionProps = {
+        isRoot: true,
+        userType: UserType.API,
+        apiKeyId: KEY_ID,
+        apiKeyName: "Terraform",
+      };
+
+      expect(deviceCreateProps()).toEqual([asTheKey, asTheKey]);
+      expect(monitorCreateProps()).toEqual([
+        { ...asTheKey, tenantId: PROJECT_ID },
+        { ...asTheKey, tenantId: PROJECT_ID },
+      ]);
+    });
+
+    it("a dry run by whoever ran it still writes nothing", async () => {
+      twoHostsToImport(true);
+
+      const result: AutoImportRuleRunResult = await runRuleAs(RUNNER, true);
+
+      expect(result).toMatchObject({
+        isDryRun: true,
+        hostsMatched: 2,
+        devicesCreated: 0,
+        monitorsCreated: 0,
+        monitorsWouldCreate: 2,
+      });
+      expect(createMock).not.toHaveBeenCalled();
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+      expect(scanUpdateMock).not.toHaveBeenCalled();
+      expect(semaphoreLockMock).not.toHaveBeenCalled();
+    });
+
+    it("reads as root, as before: who ran it is on the writes only", async () => {
+      twoHostsToImport(true);
+
+      await runRuleAs(RUNNER);
+
+      expect(ruleFindOneByMock.mock.calls[0]![0].props).toEqual({
+        isRoot: true,
+      });
+      expect(scanFindByMock.mock.calls[0]![0].props).toEqual({
+        isRoot: true,
+      });
+      expect(scanFindOneByMock.mock.calls[0]![0].props).toEqual({
+        isRoot: true,
+        ignoreHooks: true,
+      });
+      expect(monitorTemplateFindByMock.mock.calls[0]![0].props).toEqual({
+        isRoot: true,
+      });
+    });
+
+    it("the scan's write-back is the engine's own bookkeeping, carrying no one", async () => {
+      twoHostsToImport(false);
+
+      await runRuleAs(RUNNER);
+
+      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+      expect(Object.keys(scanUpdateMock.mock.calls[0]![0]).sort()).toEqual([
+        "data",
+        "expectedData",
+        "id",
+      ]);
+    });
+
+    it("a run that names nobody is OneUptime's own", async () => {
+      twoHostsToImport(true);
+
+      await runRule(false);
+
+      expect(deviceCreateProps()).toEqual([{ isRoot: true }, { isRoot: true }]);
+      expect(monitorCreateProps()).toEqual([
+        { isRoot: true, tenantId: PROJECT_ID },
+        { isRoot: true, tenantId: PROJECT_ID },
+      ]);
+    });
+  });
+
+  describe("the automatic sweep", () => {
+    it("imports as OneUptime's own: by nobody, a system event", async () => {
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({
+          discoveredDevices: [
+            makeHost(),
+            makeHost({ ipAddress: "10.0.0.6", sysName: "core-switch-02" }),
+          ],
+        }),
+      );
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({ devicesCreated: 2, monitorsCreated: 2 });
+      expect(deviceCreateProps()).toEqual([{ isRoot: true }, { isRoot: true }]);
+      expect(monitorCreateProps()).toEqual([
+        { isRoot: true, tenantId: PROJECT_ID },
+        { isRoot: true, tenantId: PROJECT_ID },
+      ]);
+    });
+
+    it("stays OneUptime's own after someone has run the rule by hand", async () => {
+      // Someone's Run Now first...
+      twoHostsToImport(false);
+      await runRuleAs(RUNNER);
+      expect(deviceCreateProps()).toEqual([ON_THEIR_BEHALF, ON_THEIR_BEHALF]);
+
+      // ...then the sweep, over a new result: nothing of theirs carries over.
+      createMock.mockClear();
+      ruleFindByMock.mockResolvedValue([makeRule()]);
+      deviceFindByMock.mockResolvedValue([]);
+      scanFindOneByMock.mockReset();
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({
+          discoveredDevices: [
+            makeHost({ ipAddress: "10.0.0.7", sysName: "edge-01" }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      expect(deviceCreateProps()).toEqual([{ isRoot: true }]);
+    });
+  });
+
+  /*
+   * Whoever runs the rule - a person, an API key, a member through an MCP
+   * client or Ask AI, a master admin - and whatever else their request
+   * carries, every device the run creates carries exactly who that is, as
+   * root, and every monitor the same in the rule's project. Never their
+   * project, permissions, plan or teams.
+   */
+  it("whoever runs it and whatever their request carries, each write carries only who ran it", async () => {
+    const random: SeededRandom = seededRandom(6323);
+
+    const identities: Array<DatabaseCommonInteractionProps> = [
+      { userId: RUNNER_ID, userType: UserType.User },
+      { userType: UserType.API, apiKeyId: KEY_ID, apiKeyName: "Deploy bot" },
+      {
+        userId: RUNNER_ID,
+        userType: UserType.User,
+        mcpOAuthGrantId: GRANT_ID,
+        mcpClientName: "Claude",
+      },
+      {
+        userId: RUNNER_ID,
+        userType: UserType.User,
+        writeSource: WriteSource.AskAi,
+      },
+      { userId: RUNNER_ID, userType: UserType.MasterAdmin },
+    ];
+
+    const extras: Array<DatabaseCommonInteractionProps> = [
+      { tenantId: PROJECT_ID },
+      { tenantId: new ObjectID("78787878-7878-4878-8878-787878787878") },
+      { isRoot: false },
+      { isMasterAdmin: true },
+      { userTeamIds: [RUNNER_ID] },
+      { currentPlan: PlanType.Free },
+      { isSubscriptionUnpaid: true },
+      { isMultiTenantRequest: false },
+      { isReadOnlyCredential: true },
+      { userTenantAccessPermission: RUNNER.userTenantAccessPermission },
+    ];
+
+    for (let draw: number = 0; draw < 60; draw++) {
+      const identity: DatabaseCommonInteractionProps =
+        identities[random(identities.length)]!;
+      let props: DatabaseCommonInteractionProps = { ...identity };
+
+      for (const extra of extras) {
+        if (random(2) === 1) {
+          props = { ...props, ...extra };
+        }
+      }
+
+      createMock.mockClear();
+      monitorCreateMock.mockClear();
+      twoHostsToImport(random(2) === 1);
+
+      await runRuleAs(props);
+
+      const expected: DatabaseCommonInteractionProps = {
+        isRoot: true,
+        ...identity,
+      };
+
+      expect(OnBehalfOfProps.get(props)).toEqual(expected);
+      expect(createMock).toHaveBeenCalledTimes(2);
+
+      for (const written of deviceCreateProps()) {
+        expect([draw, written]).toEqual([draw, expected]);
+      }
+
+      for (const written of monitorCreateProps()) {
+        expect([draw, written]).toEqual([
+          draw,
+          { ...expected, tenantId: PROJECT_ID },
+        ]);
+      }
+    }
   });
 });

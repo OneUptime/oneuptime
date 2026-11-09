@@ -19,6 +19,11 @@ import {
 } from "../../Components/AI/Connect/LlmConnectWays";
 import LlmOtherAiTools from "../../Components/AI/Connect/LlmOtherAiTools";
 import LlmTellYourPeopleNote from "../../Components/AI/Connect/LlmTellYourPeopleNote";
+import LlmSetupCheckCard from "../../Components/AI/SetupCheck/LlmSetupCheckCard";
+import {
+  LlmServiceNames,
+  useLlmServiceNames,
+} from "../../Components/LlmConversations/useLlmServiceNames";
 import Span from "Common/Models/AnalyticsModels/Span";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import LlmObservabilityConnection from "Common/Models/DatabaseModels/LlmObservabilityConnection";
@@ -76,6 +81,11 @@ import React, {
  * the page suggests the next step: a daily budget.
  *
  * Replaces Setup, whose snippets live on under "Your apps".
+ *
+ * Above the ways, the Setup check (LlmSetupCheckCard) says what each one is
+ * bringing in right now and what is missing - the provider accounts that
+ * read fine while no app sends an AI call, the prompts that are not
+ * recorded, the Azure connection that finds no resource - in one look.
  */
 
 // The facts read when the page opens; undefined is "not known yet".
@@ -120,6 +130,7 @@ const LlmConnectPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const serviceNames: LlmServiceNames = useLlmServiceNames();
   const [way, setWay] = useState<LlmConnectWayKey>(() => {
     return readLlmConnectWay({
       fromAddress: Navigation.getQueryStringByName(LLM_CONNECT_WAY_QUERY_PARAM),
@@ -475,6 +486,16 @@ const LlmConnectPage: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <div className="space-y-6" data-testid="llm-connect-page">
+        <LlmSetupCheckCard
+          onPickWay={(key: LlmConnectWayKey) => {
+            pickWay(key, false);
+          }}
+          serviceName={(serviceId: string): string => {
+            return serviceNames.names.get(serviceId) || "";
+          }}
+          refreshToken={refreshCounter + knownVersion}
+        />
+
         <Card
           title="Connect AI to OneUptime"
           description="Three ways to bring AI in. Use one, two or all three: everything lands in the same Conversations, Usage, Alerts and Budgets."

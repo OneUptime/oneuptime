@@ -108,10 +108,10 @@ Hver post bærer disse ressursattributtene:
 
 ## Tilordning til ansatte
 
-**Cursor nevner en person med `cursor.user.id`, et heltall bare Cursor kan gjøre om til et navn, og utelater det ofte for skyagenter.** OneUptime leser det som den ansatte, og `cursor.team.id` som teamet, så fanen **Forbruk** rangerer personer og team uten oppsett, men personer vises som heltall.
+**Cursor nevner en person med `cursor.user.id`, et heltall bare Cursor kan gjøre om til et navn, og utelater det ofte for skyagenter.** OneUptime leser `cursor.user.email` som den ansatte når Cursor sender den, ellers `cursor.user.id`, og `cursor.team.id` som teamet, så fanen **Forbruk** rangerer personer og team uten oppsett; personer uten e-post vises som heltall.
 
 - Begge kommer inn som ressursattributter (`resource.cursor.user.id`, `resource.cursor.team.id`), som OneUptime leser.
-- Cursor kan også sende `cursor.user.email`, men OneUptime leser den ikke ennå, så den ansattes e-postkolonne forblir tom for Cursor.
+- `cursor.user.email` leses før `cursor.user.id`, så en person Cursor nevner med e-post, vises med e-posten sin.
 - `gen_ai.user`, `llm.user` og LiteLLMs sluttbruker-id-er leses aldri som den ansatte: de nevner kundene dine, ikke de ansatte. Se [Tilordning til ansatte og team](/docs/telemetry/ai-coding-assistants#tilordning-til-ansatte-og-team).
 
 ### Hvor Cursor vises på fanen Forbruk
@@ -120,7 +120,7 @@ Cursor sender målinger og ingen GenAI-spans, og målingene fyller bare hullene 
 
 | Inndeling | For Cursor |
 | --- | --- |
-| **Ansatt** | Ja, etter `cursor.user.id` |
+| **Ansatt** | Ja, etter `cursor.user.email`, ellers `cursor.user.id` |
 | **Team** | Ja, etter `cursor.team.id` |
 | **Modell** | Ja, etter `cursor.model.name` |
 | **Leverandør** | Nei: Cursor sier aldri hvilken leverandør som betjente et kall |
@@ -167,7 +167,7 @@ Prosjektet mottar også GenAI-spans med kostnad, så Cursors målinger leses ikk
 :::
 
 :::details Personer vises som tall
-Det er `cursor.user.id`: den eneste person-id-en OneUptime leser fra Cursor i dag. Knytt den til navn med Cursors Admin API.
+Det er `cursor.user.id`, som leses når Cursor ikke sender `cursor.user.email`. Knytt den til navn med Cursors Admin API.
 :::
 
 ## Neste steg

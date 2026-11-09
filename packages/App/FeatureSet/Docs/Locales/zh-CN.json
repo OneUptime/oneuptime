@@ -286,6 +286,7 @@
     "Topology": "拓扑",
     "Drop Filters & Scrub Rules": "丢弃过滤器与清理规则",
     "Data Retention": "数据保留",
+    "Telemetry Usage": "遥测用量",
     "Serilog (.NET)": "Serilog (.NET)",
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",

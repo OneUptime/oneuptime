@@ -625,6 +625,7 @@
     "{{count}} MB",
     "{{count}} OID",
     "{{count}} Podman",
+    "{{count}} SLO",
     "{{count}} VM",
     "{{count}} app",
     "{{count}} appliance",

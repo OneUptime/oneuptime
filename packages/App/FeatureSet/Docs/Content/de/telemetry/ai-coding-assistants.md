@@ -83,7 +83,7 @@ Auf einem Metrik-Datenpunkt ist die Liste kürzer und beginnt mit der E-Mail, we
 
 | Spalte | Schlüssel, bevorzugte zuerst |
 | --- | --- |
-| Mitarbeiter | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Mitarbeiter | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Team / Kostenstelle | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Modell | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime liest außerdem Tokens aus `gen_ai.client.token.usage`, `gen_ai.client
 Zwei Dinge, bevor Sie die Zahlen lesen:
 
 - **`gemini_cli.token.usage` bleibt absichtlich außen vor.** Gemini CLI sendet seine Tokens zweimal, als eigene Metrik und als `gen_ai.client.token.usage`, und beide zu lesen würde sie verdoppeln. Seine Tokens werden einmal gezählt, über `gen_ai.client.token.usage`. Gemini CLI sendet keine Kostenmetrik: Schalten Sie seine Traces ein, damit jeder Aufruf bepreist wird.
-- **Nur Eingabe- und Ausgabe-Tokens werden gezählt.** Der Token-Typ wird aus `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` oder `token_type` gelesen, und nur `input` und `output` (oder die älteren `prompt` und `completion`) zählen. Cache-Lese- und -Schreibvorgänge, `total` von Codex (das die anderen wiederholt) und `reasoning_output` (Teil von `output`) bleiben außen vor, eine aus Metriken stammende Summe ist also kleiner als die Summe von allem, was ein Tool sendet.
+- **Nur Eingabe- und Ausgabe-Tokens werden gezählt.** Der Token-Typ wird aus `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` oder `token_type` gelesen, und nur `input` und `output` (oder die älteren `prompt` und `completion`) zählen, mit `cacheRead` und `cacheCreation` von Claude Code als Eingabe, da sein `input` sie auslässt. Andere Cache-Lese- und -Schreibvorgänge, `total` von Codex (das die anderen wiederholt) und `reasoning_output` (Teil von `output`) bleiben außen vor, eine aus Metriken stammende Summe ist also kleiner als die Summe von allem, was ein Tool sendet.
 
 ## Der Tab Nutzung
 
