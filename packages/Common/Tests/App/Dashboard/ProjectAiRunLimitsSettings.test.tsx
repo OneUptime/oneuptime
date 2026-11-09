@@ -518,9 +518,9 @@ describe("the Limits per run card", () => {
       { timeout: WAIT_TIMEOUT },
     );
 
-    const grid: HTMLElement | null = within(card)
-      .getAllByTestId("detail-field")[0]!
-      .parentElement as HTMLElement | null;
+    const grid: HTMLElement | null = within(card).getAllByTestId(
+      "detail-field",
+    )[0]!.parentElement as HTMLElement | null;
 
     expect(grid?.className).toMatch(/(^|\s)sm:grid-cols-2(\s|$)/);
     expect(within(card).getAllByTestId("detail-field")).toHaveLength(4);

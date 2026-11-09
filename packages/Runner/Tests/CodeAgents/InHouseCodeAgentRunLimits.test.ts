@@ -642,7 +642,9 @@ describe("the run's time limit", () => {
     expect(lastMessage(requests()[1]).content).toBe(
       `This run has reached its time limit of 120 minutes. ${ANSWER_NOW}`,
     );
-    expect(result.summary).toContain("the time limit of 120 minutes per run");
+    expect(result.summary).toContain(
+      "the default time limit of 120 minutes per run",
+    );
   });
 
   test("with no step time, a task is held to the run's time alone - not to 30 minutes", async () => {

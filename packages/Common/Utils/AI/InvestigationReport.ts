@@ -1611,6 +1611,54 @@ function takeStopNote(data: {
   return (data.lines[index] || "").trim();
 }
 
+/*
+ * A chat answer apart from its stop note (Ask AI, an investigation's
+ * follow-up answers). The chat agent puts the note under the answer as a
+ * paragraph of its own (ChatAgentRunner); a chat draws it as the report
+ * card does - a line of its own, the place it names a link the card
+ * builds - not as the answer's last paragraph in safe mode, where that
+ * link was dotted text that went nowhere. The same rule as a report's:
+ * only the last line with text, in italics from end to end, opening as
+ * OneUptime's notes open, a paragraph of its own and not in code. Without
+ * one, the answer is returned as it came.
+ */
+export interface AnswerStopNoteSplit {
+  // The answer without the note (trimmed at its end), or all of it.
+  answerMarkdown: string;
+  stopNote: string | undefined;
+}
+
+export function splitAnswerStopNote(markdown: string): AnswerStopNoteSplit {
+  const source: string = normaliseLineEndings(markdown);
+  const lines: Array<string> = source.split("\n");
+  const kept: Array<boolean> = lines.map((): boolean => {
+    return true;
+  });
+  const stopNote: string | undefined = takeStopNote({
+    lines,
+    fenced: markFencedLines(lines),
+    kept,
+    end: lines.length,
+  });
+
+  if (!stopNote) {
+    return {
+      answerMarkdown: typeof markdown === "string" ? markdown : "",
+      stopNote: undefined,
+    };
+  }
+
+  return {
+    answerMarkdown: lines
+      .filter((_line: string, index: number): boolean => {
+        return kept[index] === true;
+      })
+      .join("\n")
+      .trimEnd(),
+    stopNote,
+  };
+}
+
 function createEmptyReport(): ParsedInvestigationReport {
   return {
     isStructured: false,

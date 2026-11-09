@@ -10,6 +10,7 @@ import AIAgentRunLimitsHelper, {
   INCIDENT_AI_INVESTIGATION_LIMITS_LOCATION,
 } from "../../../Types/AI/AIAgentRunLimits";
 import {
+  AnswerStopNoteSplit,
   InvestigationReportSection,
   InvestigationReportSectionKind,
   ParsedInvestigationReport,
@@ -17,6 +18,7 @@ import {
   isRunStopNoteLine,
   parseInvestigationReport,
   parseRuledOutCauses,
+  splitAnswerStopNote,
 } from "../../../Utils/AI/InvestigationReport";
 
 /*
@@ -260,7 +262,11 @@ describe("the stop note the server writes is read apart", () => {
         timeLimitSource: AIRunTimeLimitSource.Project,
       }),
     ],
-    ["an incident's time limit", AIRunStopReason.TimeLimit, INCIDENT_TIME_LIMIT],
+    [
+      "an incident's time limit",
+      AIRunStopReason.TimeLimit,
+      INCIDENT_TIME_LIMIT,
+    ],
     [
       "an alert's time limit",
       AIRunStopReason.TimeLimit,
@@ -450,5 +456,164 @@ describe("the report's TL;DR", () => {
         report({ analysis: "", note: stopNote() }),
       ),
     ).toBeNull();
+  });
+});
+
+/*
+ * A CHAT ANSWER A LIMIT STOPPED: the chat agent (ChatAgentRunner) puts the
+ * note under the answer - `${answer}\n\n${note}`, or the note alone when
+ * the run wrote nothing - for Ask AI and an investigation's follow-up
+ * answers. splitAnswerStopNote hands it over apart, for the chat to draw as
+ * the AI card does, by the same rule as a report's note.
+ */
+describe("splitAnswerStopNote", () => {
+  const ANSWER: string =
+    "checkout-api's pool sat at its ceiling of 5 from 14:02 [C1].\n\n- Roll back the 14:00 deploy.\n- Watch /pay for 15 minutes.";
+  const PROJECT_URL: string =
+    "https://oneuptime.example.com/dashboard/5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e/settings/ai-features#LimitsPerRun";
+
+  // The answer exactly as the chat agent finishes it.
+  function stoppedAnswer(answer: string, note: string): string {
+    return answer.trim() ? `${answer}\n\n${note}` : note;
+  }
+
+  test.each([
+    ["model calls", AIRunStopReason.ModelCalls, limits({ maxLlmCalls: 40 })],
+    ["tool calls", AIRunStopReason.ToolCalls, limits({ maxToolCalls: 300 })],
+    ["tokens", AIRunStopReason.Tokens, limits({ maxTokens: 2_000_000 })],
+    ["a loop", AIRunStopReason.Loop, limits({})],
+    [
+      "the default time limit",
+      AIRunStopReason.TimeLimit,
+      limits({ timeLimitSource: AIRunTimeLimitSource.Default }),
+    ],
+    [
+      "the project's time limit",
+      AIRunStopReason.TimeLimit,
+      limits({
+        maxWallClockMs: 45 * MINUTE_MS,
+        timeLimitSource: AIRunTimeLimitSource.Project,
+      }),
+    ],
+    [
+      "a chat app's time limit",
+      AIRunStopReason.TimeLimit,
+      limits({
+        maxWallClockMs: 25 * MINUTE_MS,
+        timeLimitSource: AIRunTimeLimitSource.ChatApp,
+      }),
+    ],
+  ])(
+    "every note the chat agent writes comes apart from its answer: stopped by %s",
+    (_name: string, reason: AIRunStopReason, runLimits: AIAgentRunLimits) => {
+      for (const settingsUrl of [PROJECT_URL, null]) {
+        const note: string = AIAgentRunLimitsHelper.getStopNote({
+          reason,
+          limits: runLimits,
+          settingsUrl,
+        });
+        const split: AnswerStopNoteSplit = splitAnswerStopNote(
+          stoppedAnswer(ANSWER, note),
+        );
+
+        expect(split).toEqual({ answerMarkdown: ANSWER, stopNote: note });
+      }
+    },
+  );
+
+  test("a run that wrote nothing is the note alone, with no answer", () => {
+    const note: string = stopNote(AIRunStopReason.Loop);
+
+    expect(splitAnswerStopNote(stoppedAnswer("", note))).toEqual({
+      answerMarkdown: "",
+      stopNote: note,
+    });
+  });
+
+  test("an answer no limit stopped comes back exactly as it came", () => {
+    for (const answer of [
+      ANSWER,
+      `${ANSWER}\n\n`,
+      "",
+      "_An answer in italics from end to end._",
+    ]) {
+      expect(splitAnswerStopNote(answer)).toEqual({
+        answerMarkdown: answer,
+        stopNote: undefined,
+      });
+    }
+  });
+
+  test("blank lines and Windows line endings around the note do not hide it", () => {
+    const note: string = stopNote();
+    const split: AnswerStopNoteSplit = splitAnswerStopNote(
+      `${ANSWER.replace(/\n/g, "\r\n")}\r\n\r\n  ${note}  \r\n\r\n`,
+    );
+
+    expect(split.stopNote).toBe(note);
+    expect(split.answerMarkdown).toBe(ANSWER);
+  });
+
+  test("a look-alike the model ended its own paragraph with stays its text", () => {
+    const answer: string = `${ANSWER}\n${stopNote()}`;
+
+    expect(splitAnswerStopNote(answer)).toEqual({
+      answerMarkdown: answer,
+      stopNote: undefined,
+    });
+  });
+
+  test("a look-alike inside a code block the answer left open stays in it", () => {
+    const answer: string = `Run this:\n\n\`\`\`\nkubectl get pods\n\n${stopNote()}`;
+
+    expect(splitAnswerStopNote(answer).stopNote).toBeUndefined();
+  });
+
+  test("only the last paragraph is read: a note with text after it stays", () => {
+    const answer: string = `${stopNote()}\n\n${ANSWER}`;
+
+    expect(splitAnswerStopNote(answer)).toEqual({
+      answerMarkdown: answer,
+      stopNote: undefined,
+    });
+  });
+
+  test("the truncation line the chat agent puts before the note stays with the answer", () => {
+    const truncated: string = `${ANSWER}\n\n_[Answer truncated by the output token limit.]_`;
+    const note: string = stopNote(
+      AIRunStopReason.Tokens,
+      limits({ maxTokens: 9 }),
+    );
+    const split: AnswerStopNoteSplit = splitAnswerStopNote(
+      stoppedAnswer(truncated, note),
+    );
+
+    expect(split).toEqual({ answerMarkdown: truncated, stopNote: note });
+  });
+
+  test("whatever it is handed, it answers", () => {
+    for (const value of [undefined, null, 42, {}] as Array<unknown>) {
+      expect(splitAnswerStopNote(value as string)).toEqual({
+        answerMarkdown: "",
+        stopNote: undefined,
+      });
+    }
+  });
+
+  test("an answer of 200,000 lines is read at once", () => {
+    const answer: string = Array.from(
+      { length: 200_000 },
+      (_v: unknown, index: number): string => {
+        return index % 2 === 0 ? `- item ${index}` : "```";
+      },
+    ).join("\n");
+    const started: number = Date.now();
+    const split: AnswerStopNoteSplit = splitAnswerStopNote(
+      `${answer}\n\n${stopNote()}`,
+    );
+
+    expect(Date.now() - started).toBeLessThan(2000);
+    // The fences pair up, so the note is outside them: it comes apart.
+    expect(split.stopNote).toBe(stopNote());
   });
 });

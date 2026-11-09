@@ -1147,9 +1147,7 @@ describe("every stop is covered", () => {
       }),
     );
 
-    expect([...reasons].sort()).toEqual(
-      Object.values(AIRunStopReason).sort(),
-    );
+    expect([...reasons].sort()).toEqual(Object.values(AIRunStopReason).sort());
     expect([...sources].sort()).toEqual(
       Object.values(AIRunTimeLimitSource).sort(),
     );
