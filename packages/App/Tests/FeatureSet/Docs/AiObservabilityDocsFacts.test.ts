@@ -174,8 +174,7 @@ const SOURCES: Record<string, string> = {
     "packages/App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
   conversationService:
     "packages/Common/Server/Services/LlmConversationService.ts",
-  logEventReader:
-    "packages/Common/Server/Utils/Telemetry/LlmLogEventReader.ts",
+  logEventReader: "packages/Common/Server/Utils/Telemetry/LlmLogEventReader.ts",
   moreFieldsTitle:
     "packages/Common/UI/Components/FoldedSection/FoldedSectionTitles.ts",
   llmSpan: "packages/Common/Server/Utils/Telemetry/LlmSpan.ts",

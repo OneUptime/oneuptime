@@ -80,7 +80,9 @@ export function buildSpanLogEventsQuery(data: {
     spanId: data.spanId,
     time: new InBetween<Date>(
       new Date(data.startMs - LLM_LOG_EVENT_BEFORE_CALL_MS),
-      new Date(Math.max(data.endMs, data.startMs) + LLM_LOG_EVENT_AFTER_CALL_MS),
+      new Date(
+        Math.max(data.endMs, data.startMs) + LLM_LOG_EVENT_AFTER_CALL_MS,
+      ),
     ),
   } as Query<Log>;
 }

@@ -453,11 +453,13 @@ export default class LlmConversationService {
      * record without a span id is only given to an answer when it is the
      * one it happened during.
      */
-    const assigned: Map<string, Array<LlmLogEventRecord>> =
-      LlmLogEventsUtil.assignToCalls(
-        data.calls.map(LlmConversationService.toLogEventCall),
-        result.records,
-      );
+    const assigned: Map<
+      string,
+      Array<LlmLogEventRecord>
+    > = LlmLogEventsUtil.assignToCalls(
+      data.calls.map(LlmConversationService.toLogEventCall),
+      result.records,
+    );
 
     for (const call of readable) {
       const records: Array<LlmLogEventRecord> | undefined = assigned.get(

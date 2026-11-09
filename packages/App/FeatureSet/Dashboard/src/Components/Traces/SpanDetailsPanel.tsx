@@ -1072,7 +1072,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               startTimeUnixNano={
                 fullSpan?.startTimeUnixNano ?? span.startTimeUnixNano
               }
-              endTimeUnixNano={fullSpan?.endTimeUnixNano ?? span.endTimeUnixNano}
+              endTimeUnixNano={
+                fullSpan?.endTimeUnixNano ?? span.endTimeUnixNano
+              }
             />
 
             {/* Attributes */}

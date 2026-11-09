@@ -291,24 +291,30 @@ describe("which GenAI log records say what was said", () => {
     GenAiLogEventFixture.PythonOpenAiV2EventsApi,
     GenAiLogEventFixture.PythonGenAiOpenAiEventOnly,
     GenAiLogEventFixture.JavaContent,
-  ])("%s, with content capture on: they do", (fixture: GenAiLogEventFixture) => {
-    const rows: Array<JSONObject> = fixtureRows(fixture);
+  ])(
+    "%s, with content capture on: they do",
+    (fixture: GenAiLogEventFixture) => {
+      const rows: Array<JSONObject> = fixtureRows(fixture);
 
-    expect(rows.length).toBeGreaterThan(0);
-    expect(LlmSetupCheckReader.hasContentInLogRows(rows)).toBe(true);
-  });
+      expect(rows.length).toBeGreaterThan(0);
+      expect(LlmSetupCheckReader.hasContentInLogRows(rows)).toBe(true);
+    },
+  );
 
   test.each([
     GenAiLogEventFixture.JavaScriptNoContent,
     GenAiLogEventFixture.PythonOpenAiV2NoContent,
     GenAiLogEventFixture.JavaNoContent,
-  ])("%s, with content capture off: they do not", (fixture: GenAiLogEventFixture) => {
-    const rows: Array<JSONObject> = fixtureRows(fixture);
+  ])(
+    "%s, with content capture off: they do not",
+    (fixture: GenAiLogEventFixture) => {
+      const rows: Array<JSONObject> = fixtureRows(fixture);
 
-    // The events still arrive - each naming a role, a tool or a choice.
-    expect(rows.length).toBeGreaterThan(0);
-    expect(LlmSetupCheckReader.hasContentInLogRows(rows)).toBe(false);
-  });
+      // The events still arrive - each naming a role, a tool or a choice.
+      expect(rows.length).toBeGreaterThan(0);
+      expect(LlmSetupCheckReader.hasContentInLogRows(rows)).toBe(false);
+    },
+  );
 
   test("one record that says something is enough", () => {
     expect(

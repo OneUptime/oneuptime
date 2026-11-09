@@ -1,7 +1,10 @@
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import LogService from "../../Services/LogService";
-import { DbJSONResponse, Results } from "../../Services/AnalyticsDatabaseService";
+import {
+  DbJSONResponse,
+  Results,
+} from "../../Services/AnalyticsDatabaseService";
 import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
 } from "./TelemetryReadScope";
@@ -193,8 +196,7 @@ export default class LlmLogEventReader {
       let smallestGap: number = Number.POSITIVE_INFINITY;
 
       for (let index: number = 0; index + 1 < merged.length; index++) {
-        const gap: number =
-          merged[index + 1]!.startMs - merged[index]!.endMs;
+        const gap: number = merged[index + 1]!.startMs - merged[index]!.endMs;
 
         if (gap < smallestGap) {
           smallestGap = gap;
@@ -453,8 +455,7 @@ export default class LlmLogEventReader {
     }
 
     for (const spanRecords of bySpan.values()) {
-      const content: LlmCallContent =
-        LlmLogEventsUtil.readContent(spanRecords);
+      const content: LlmCallContent = LlmLogEventsUtil.readContent(spanRecords);
 
       for (let index: number = content.input.length - 1; index >= 0; index--) {
         const message: LlmMessage = content.input[index]!;
