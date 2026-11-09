@@ -13,6 +13,7 @@ import WorkspacePublicNoteApprovalMessageService, {
 import { WorkspaceSentDirectMessage } from "../../Services/WorkspaceUserNotificationService";
 import logger, { EXTERNAL_FAULT, LogAttributes } from "../Logger";
 import { PublicNoteKind } from "../Notes/PublicNoteApprovalEngine";
+import PublicNoteApprovalRequests from "../Notes/PublicNoteApprovalRequests";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import MattermostUtil from "./Mattermost/Mattermost";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
@@ -64,6 +65,12 @@ import WorkspacePublicNoteApprovalActions from "./WorkspacePublicNoteApprovalAct
  *  - A copy sent as the note moved on - its message on its way while
  *    somebody decided - is looked at again as soon as it is kept, and
  *    replaced then.
+ *  - Once who approves changed while the note waits (#6353), a copy that
+ *    asks somebody the step no longer asks - taken off it, or off the team
+ *    it names - says so too ("You are no longer asked to approve ...").
+ *  - A copy replaced takes back its approver's chat request for the step
+ *    (PublicNoteApprovalRequests.releaseChat): should the note come back to
+ *    it, they are asked in chat again, with buttons that say what is true.
  */
 export default class WorkspacePublicNoteApprovalMessages {
   // The passes running in the background, for settle.
@@ -209,14 +216,17 @@ export default class WorkspacePublicNoteApprovalMessages {
   /*
    * Every kept copy of the note's approval message that no longer asks what
    * is true, replaced by what happened; the copies that still ask - the
-   * step the note waits for now - are left as they are. How many were
-   * replaced.
+   * step the note waits for now - are left as they are. With
+   * `askedUserIds`, the people that step asks now, a copy that still asks
+   * but asks somebody else is replaced too: they are no longer asked. How
+   * many were replaced.
    */
   @CaptureSpan()
   public static async replaceOver(data: {
     kind: PublicNoteKind;
     projectId: ObjectID;
     noteId: ObjectID;
+    askedUserIds?: ReadonlyArray<string> | undefined;
   }): Promise<number> {
     const kept: Array<WorkspacePublicNoteApprovalMessage> =
       await WorkspacePublicNoteApprovalMessageService.findForNotes({
@@ -230,6 +240,13 @@ export default class WorkspacePublicNoteApprovalMessages {
     return await WorkspacePublicNoteApprovalMessages.replaceKept({
       kept: kept,
       isClaimed: false,
+      askedUserIds: data.askedUserIds
+        ? new Set<string>(
+            data.askedUserIds.map((userId: string): string => {
+              return userId.toLowerCase();
+            }),
+          )
+        : undefined,
     });
   }
 
@@ -344,13 +361,16 @@ export default class WorkspacePublicNoteApprovalMessages {
   /*
    * Replaces the kept copies whose message no longer asks what is true -
    * all the copies of one message at once: they carry the same value - and
-   * leaves the others. Each copy is claimed first (unless `isClaimed`: its
-   * row is gone already), so only one pass replaces it. How many were
-   * replaced. A group that fails is logged, and the others go on.
+   * leaves the others; with `askedUserIds`, also the copies of a message
+   * that still asks, held by somebody its step no longer asks. Each copy is
+   * claimed first (unless `isClaimed`: its row is gone already), so only one
+   * pass replaces it, and its approver's chat request is taken back. How
+   * many were replaced. A group that fails is logged, and the others go on.
    */
   private static async replaceKept(data: {
     kept: Array<WorkspacePublicNoteApprovalMessage>;
     isClaimed: boolean;
+    askedUserIds?: Set<string> | undefined;
   }): Promise<number> {
     const groups: Map<
       string,
@@ -391,33 +411,80 @@ export default class WorkspacePublicNoteApprovalMessages {
           continue;
         }
 
-        const replacement: PublicNoteApprovalReplacement | null =
+        let replacement: PublicNoteApprovalReplacement | null =
           await WorkspacePublicNoteApprovalActions.getReplacement(group.value);
+        let copies: Array<WorkspacePublicNoteApprovalMessage> = group.kept;
 
-        // Still asks what is true: the step the note waits for now.
+        /*
+         * Still asks what is true - the step the note waits for now - but
+         * maybe of somebody that step no longer asks.
+         */
         if (!replacement) {
-          continue;
+          const askedUserIds: Set<string> | undefined = data.askedUserIds;
+
+          copies = askedUserIds
+            ? group.kept.filter(
+                (kept: WorkspacePublicNoteApprovalMessage): boolean => {
+                  return !askedUserIds.has(
+                    kept.userId?.toString().toLowerCase() || "",
+                  );
+                },
+              )
+            : [];
+
+          if (copies.length === 0) {
+            continue;
+          }
+
+          replacement =
+            await WorkspacePublicNoteApprovalActions.getNoLongerAskedReplacement(
+              group.value,
+            );
+
+          if (!replacement) {
+            continue;
+          }
         }
 
         const message: WorkspaceDirectMessage =
           WorkspacePublicNoteApproval.getReplacementMessage(replacement);
+        // The approvers whose copies this pass took: their chat request goes back.
+        const released: Map<string, ObjectID> = new Map();
 
-        for (const kept of group.kept) {
-          if (
-            !data.isClaimed &&
-            !(await WorkspacePublicNoteApprovalMessages.claim(kept))
-          ) {
-            // Another pass took it: it replaces it.
-            continue;
+        try {
+          for (const kept of copies) {
+            if (
+              !data.isClaimed &&
+              !(await WorkspacePublicNoteApprovalMessages.claim(kept))
+            ) {
+              // Another pass took it: it replaces it.
+              continue;
+            }
+
+            if (kept.userId) {
+              released.set(kept.userId.toString().toLowerCase(), kept.userId);
+            }
+
+            if (
+              await WorkspacePublicNoteApprovalMessages.replaceMessage({
+                kept: kept,
+                message: message,
+              })
+            ) {
+              replaced++;
+            }
           }
-
-          if (
-            await WorkspacePublicNoteApprovalMessages.replaceMessage({
-              kept: kept,
-              message: message,
-            })
-          ) {
-            replaced++;
+        } finally {
+          // A deleted note's requests went with it.
+          if (!data.isClaimed && released.size > 0) {
+            await PublicNoteApprovalRequests.releaseChat({
+              projectId: group.value.projectId,
+              noteId: group.value.noteId,
+              submittedAt: group.value.submittedAt,
+              stepId: group.value.stepId,
+              isFinal: group.value.isFinal,
+              userIds: Array.from(released.values()),
+            });
           }
         }
       } catch (err) {

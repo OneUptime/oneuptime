@@ -8,9 +8,11 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import logger from "../Utils/Logger";
 import PublicNoteApprovalPolicy, {
   PublicNoteApprovalPolicyMessages,
 } from "../Utils/Notes/PublicNoteApprovalPolicy";
+import type { PublicNoteApproverChange } from "../Utils/Notes/PublicNoteApproverChanges";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ProjectReferencesService from "./ProjectReferencesService";
 
@@ -22,6 +24,12 @@ import ProjectReferencesService from "./ProjectReferencesService";
  *
  * The people and teams a step names are the project's own: a person must be
  * a member of it (ProjectReferencesService checks every reference).
+ *
+ * Once steps are written - created, deleted, renamed, reordered, their people
+ * or teams changed - the notes already waiting follow them, in the
+ * background: whoever the step a note waits for now asks, and was not asked
+ * about it yet, is asked (PublicNoteApproverChanges). Nothing of that ever
+ * fails, or holds back, the save.
  */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -54,6 +62,25 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const projectId: ObjectID | undefined =
+      createdItem.projectId || onCreate.createBy.data.projectId;
+    const eventType: PublicNoteApprovalEventType | undefined =
+      createdItem.eventType || onCreate.createBy.data.eventType;
+
+    if (projectId && eventType) {
+      Service.followUpWaitingNotes((changes: ApproverChanges): void => {
+        changes.afterStepsChanged([{ projectId, eventType }]);
+      });
+    }
+
+    return createdItem;
   }
 
   /*
@@ -107,8 +134,29 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Whatever an update wrote - a name, the order, the people or teams - the
+   * notes waiting for its steps' kinds follow it; which projects and kinds
+   * those are is read in the background.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (updatedItemIds.length > 0) {
+      Service.followUpWaitingNotes((changes: ApproverChanges): void => {
+        changes.afterStepsUpdated(updatedItemIds);
+      });
+    }
+
+    return onUpdate;
+  }
+
+  /*
    * While a project asks for its notes of a kind to be approved, a delete
-   * that would leave that kind with no step is refused.
+   * that would leave that kind with no step is refused. The projects and
+   * kinds of the steps it deletes are carried to onDeleteSuccess, whose
+   * waiting notes follow the steps left.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
@@ -176,7 +224,80 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return { deleteBy, carryForward: null };
+    return {
+      deleteBy,
+      carryForward: {
+        publicNoteApproverChanges: Service.getChanges(deleting),
+      },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const changes: Array<PublicNoteApproverChange> =
+      (
+        onDelete.carryForward as
+          | { publicNoteApproverChanges?: Array<PublicNoteApproverChange> }
+          | null
+          | undefined
+      )?.publicNoteApproverChanges || [];
+
+    if (itemIdsBeforeDelete.length > 0 && changes.length > 0) {
+      Service.followUpWaitingNotes((approverChanges: ApproverChanges): void => {
+        approverChanges.afterStepsChanged(changes);
+      });
+    }
+
+    return onDelete;
+  }
+
+  // The projects and kinds of these steps, each once.
+  private static getChanges(
+    steps: Array<Model>,
+  ): Array<PublicNoteApproverChange> {
+    const changes: Map<string, PublicNoteApproverChange> = new Map();
+
+    for (const step of steps) {
+      if (!step.projectId || !step.eventType) {
+        continue;
+      }
+
+      changes.set(
+        `${step.projectId.toString().toLowerCase()}|${step.eventType}`,
+        {
+          projectId: step.projectId,
+          eventType: step.eventType,
+        },
+      );
+    }
+
+    return Array.from(changes.values());
+  }
+
+  /*
+   * Starts following up the notes waiting for the steps, in the background
+   * (PublicNoteApproverChanges): required here, not imported - it reads the
+   * notes' services and their engine, which read this service as they load
+   * (PublicNoteApprovalPolicy). Never fails the save: what cannot even start
+   * is logged.
+   */
+  private static followUpWaitingNotes(
+    start: (changes: ApproverChanges) => void,
+  ): void {
+    try {
+      start(
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("../Utils/Notes/PublicNoteApproverChanges").default,
+      );
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not start asking the new approvers of the public notes waiting for changed approval steps.",
+      );
+      logger.error(error);
+    }
   }
 
   private countOf(
@@ -191,5 +312,8 @@ export class Service extends ProjectReferencesService<Model> {
     }).length;
   }
 }
+
+type ApproverChanges =
+  typeof import("../Utils/Notes/PublicNoteApproverChanges").default;
 
 export default new Service();

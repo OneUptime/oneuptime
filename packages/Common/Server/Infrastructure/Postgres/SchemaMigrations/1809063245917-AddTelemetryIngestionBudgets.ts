@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rewriting its table, and empty is "no limit": nothing changes until an
  * admin sets a budget.
  */
-export class AddTelemetryIngestionBudgets1809063175917
+export class AddTelemetryIngestionBudgets1809063245917
   implements MigrationInterface
 {
-  public name: string = "AddTelemetryIngestionBudgets1809063175917";
+  public name: string = "AddTelemetryIngestionBudgets1809063245917";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

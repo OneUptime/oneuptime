@@ -177,6 +177,21 @@ export const SLA_BREACH_CHANNELS: ReadonlyArray<NotificationSettingChannel> = [
   "alertByCustomChannel",
 ];
 
+/*
+ * Which of the channels a person turned on for an event one notification
+ * goes to (sendUserNotification's `channels`): every one of them, or one
+ * side alone of their chat accounts - Slack, Microsoft Teams, Mattermost -
+ * and the rest: email, SMS, call, push, WhatsApp, Telegram, webhooks and
+ * custom channels. One side alone is for a notification the other side
+ * had already: an approval request asked again in chat only, the message
+ * there having changed (PublicNoteApprovalNotifications).
+ */
+export enum UserNotificationChannels {
+  All = "All",
+  ChatOnly = "ChatOnly",
+  AllButChat = "AllButChat",
+}
+
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
     super(UserNotificationSetting);
@@ -222,6 +237,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             | undefined;
         }
       | undefined;
+    /*
+     * Optional: which of the channels the person turned on this goes to
+     * (UserNotificationChannels). Left out, every one of them.
+     */
+    channels?: UserNotificationChannels | undefined;
     /*
      * Bypasses burst coalescing for this send, before any rollup bookkeeping
      * runs: for a message that is urgent although its event type can be
@@ -291,7 +311,16 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       });
 
     if (notificationSettings) {
-      if (notificationSettings.alertByEmail) {
+      const channels: UserNotificationChannels =
+        data.channels || UserNotificationChannels.All;
+      // Their Slack, Microsoft Teams and Mattermost accounts.
+      const isSentInChat: boolean =
+        channels !== UserNotificationChannels.AllButChat;
+      // Everything else they turned on.
+      const isSentElsewhere: boolean =
+        channels !== UserNotificationChannels.ChatOnly;
+
+      if (isSentElsewhere && notificationSettings.alertByEmail) {
         // get all the emails of the user.
         const userEmails: Array<UserEmail> = await UserEmailService.findBy({
           query: {
@@ -402,7 +431,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           data.projectId,
         );
 
-      if (notificationSettings.alertBySMS) {
+      if (isSentElsewhere && notificationSettings.alertBySMS) {
         const userSmses: Array<UserSMS> = await UserSmsService.findBy({
           query: {
             userId: data.userId,
@@ -468,7 +497,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByWhatsApp) {
+      if (isSentElsewhere && notificationSettings.alertByWhatsApp) {
         const userWhatsApps: Array<UserWhatsApp> =
           await UserWhatsAppService.findBy({
             query: {
@@ -522,7 +551,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByTelegram) {
+      if (isSentElsewhere && notificationSettings.alertByTelegram) {
         const userTelegrams: Array<UserTelegram> =
           await UserTelegramService.findBy({
             query: {
@@ -629,9 +658,10 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       }
 
       if (
-        notificationSettings.alertBySlack ||
-        notificationSettings.alertByMicrosoftTeams ||
-        notificationSettings.alertByMattermost
+        isSentInChat &&
+        (notificationSettings.alertBySlack ||
+          notificationSettings.alertByMicrosoftTeams ||
+          notificationSettings.alertByMattermost)
       ) {
         /*
          * Slack, Microsoft Teams and Mattermost share one derived message:
@@ -830,7 +860,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByCall) {
+      if (isSentElsewhere && notificationSettings.alertByCall) {
         const userCalls: Array<UserCall> = await UserCallService.findBy({
           query: {
             userId: data.userId,
@@ -879,7 +909,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByPush) {
+      if (isSentElsewhere && notificationSettings.alertByPush) {
         logger.debug(
           `Sending push notification to user ${data.userId.toString()} for event ${data.eventType}`,
         );
@@ -904,7 +934,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         });
       }
 
-      if (notificationSettings.alertByWebhook) {
+      if (isSentElsewhere && notificationSettings.alertByWebhook) {
         const userWebhooks: Array<UserWebhook> =
           await UserWebhookService.findBy({
             query: {
@@ -997,7 +1027,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByCustomChannel) {
+      if (isSentElsewhere && notificationSettings.alertByCustomChannel) {
         logger.debug(
           `Sending custom channel notifications to user ${data.userId.toString()} for event ${data.eventType}`,
         );

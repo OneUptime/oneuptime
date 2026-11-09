@@ -109,6 +109,33 @@ L'applicazione esiste, ma le sue pagine non mostrano nulla.
 - **Attendi qualche minuto.** L'acquisizione passa da una coda, e **Visto l'ultima volta** si aggiorna ogni pochi minuti anziché a ogni batch.
 - **Controlla il progetto.** Una chiave scrive nel proprio progetto, quindi la telemetria inviata con la chiave di un altro progetto si trova lì, non qui.
 
+## Le eccezioni o i log sono vuoti
+
+I caricamenti di pagina e le richieste arrivano, ma **Eccezioni** o **Registri** restano vuoti. L'SDK OpenTelemetry per browser invia da solo le tracce dei caricamenti di pagina e delle richieste, ma nessuna eccezione e nessun log, quindi un'applicazione può sembrare collegata mentre questi due restano vuoti per sempre.
+
+Il grafico vuoto nella **Panoramica** dell'applicazione dice di quale caso si tratta, e la **Verifica della configurazione** nella sua pagina **Documentazione** elenca ogni tipo di telemetria con il momento in cui è arrivato il più recente:
+
+| Il grafico dice | Che cosa significa |
+| --- | --- |
+| **Le eccezioni non sono configurate** o **I registri non sono configurati** | Da questa app non ne è mai arrivato nessuno. **Configura le eccezioni** o **Configura i registri** mostra il codice che li invia, con il tuo URL e la tua chiave già inseriti. |
+| **Nessuna eccezione in questo intervallo di tempo** o **Nessun registro in questo intervallo di tempo** | Ne sono arrivati prima, e il grafico dice quando è arrivato l'ultimo. Scegli l'intervallo più lungo che propone. |
+| **Da questa app non è ancora arrivato nulla** | Non arriva telemetria di alcun tipo: inizia da [Verificare la chiave](#verificare-la-chiave). |
+| **L'SDK di OpenTelemetry non sta inviando dati** | Da questa app invia dati solo la riproduzione delle sessioni: configura l'SDK come in [Configurazione browser](/docs/rum/browser-setup). |
+
+Le eccezioni hanno bisogno di un gestore degli errori, perché l'SDK non cattura gli errori non gestiti: [Segnalare gli errori non gestiti](/docs/rum/browser-setup#segnalare-gli-errori-non-gestiti) contiene il codice. Un errore gestito da un error boundary o da un `try`/`catch` non raggiunge mai la finestra, quindi registralo dove lo gestisci, con `span.recordException`.
+
+I log hanno bisogno di una pipeline di log e di codice che scriva record di log, perché un `LoggerProvider` da solo non invia nulla: [Aggiungere log e metriche](/docs/rum/browser-setup#aggiungere-log-e-metriche) contiene entrambi. Costruisci la pipeline con la stessa `resource` delle tue tracce, altrimenti i log vengono archiviati sotto un servizio backend.
+
+Quando arrivano i caricamenti di pagina, la chiave, le sue origini consentite e la tua Content Security Policy lasciano passare anche le eccezioni e i log, purché l'exporter dei log usi la stessa chiave e lo stesso host. Un gestore degli errori che non ha ancora catturato nulla non invia nulla, esattamente come uno mai aggiunto, quindi lancia un errore di prova dalla console del browser per distinguere i due casi:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Entro un minuto compare nella **Panoramica** dell'applicazione, sotto **Eccezioni**.
+
 ## La pagina Client è vuota
 
 La pagina **Client** elenca `browser.platform` sul web e `device.model.identifier` su mobile. Due motivi per cui resta vuota anche quando tutto il resto funziona:

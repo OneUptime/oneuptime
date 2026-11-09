@@ -32,7 +32,8 @@ Der Feed steht auf der Seite **Feed** des SLO, und seine neuesten Einträge steh
 | SLO aktiviert oder deaktiviert | Die Auswertung ein- oder ausgeschaltet wird. |
 | SLO archiviert oder wiederhergestellt | Das SLO archiviert oder aus dem Archiv geholt wird. |
 | Status geändert | Eine Auswertung das SLO in einen neuen Status bringt. Zeigt SLI, Fehlerbudget, Burn-Rate und Risikoschwelle dahinter und den Grund für **Pausiert** oder **Falsch konfiguriert**. |
-| Stufe der Fehlerbudget-Richtlinie gewechselt | Eine Auswertung bringt das SLO in eine Stufe seiner Fehlerbudget-Richtlinie, in eine andere Stufe oder aus jeder Stufe heraus. Zeigt die Stufe, die es verlassen hat, und die, in die es eingetreten ist, das verbleibende Budget und was das Team in der neuen Stufe vereinbart hat. Siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy). |
+| Stufe der Fehlerbudget-Richtlinie gewechselt | Eine Auswertung bringt das SLO in eine Stufe seiner Fehlerbudget-Richtlinie, in eine andere Stufe oder aus jeder Stufe heraus. Zeigt die Stufe, die es verlassen hat, und die, in die es eingetreten ist, das verbleibende Budget und was das Team in der neuen Stufe vereinbart hat, und sagt, wenn der Wechsel Deployments eingefroren oder wieder erlaubt hat. Siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy). |
+| Deployments eingefroren oder wieder erlaubt | Jemand **Deployments einfrieren** für die Stufe, in der das SLO ist, ein- oder ausgeschaltet hat und die nächste Auswertung daraufhin Deployments eingefroren oder wieder erlaubt hat. Ein Stufenwechsel, der das bewirkt, sagt es stattdessen in seinem eigenen Eintrag. Siehe [Deployment-Gate](/docs/slo/error-budget-policy#deployment-gate). |
 | Burn-Rate-Warnung ausgelöst | Eine Burn-Rate-Regel eine Warnung erstellt. Verlinkt sie und zeigt die Burn-Raten, die sie ausgelöst haben. |
 | Burn-Rate-Vorfall gemeldet | Eine Burn-Rate-Regel einen Vorfall meldet. Verlinkt ihn und zeigt die Burn-Raten, die ihn ausgelöst haben. |
 | Burn-Rate-Warnung oder -Vorfall aufgelöst | Die Warnung oder der Vorfall einer Regel geschlossen wird: automatisch aufgelöst oder von Hand, während das automatische Auflösen aus war. |
@@ -67,7 +68,7 @@ Die Seite **Audit-Protokolle** des SLO listet Änderungen an:
 
 Zwei Dinge fehlen:
 
-- **Ergebnisse der Auswertung.** SLI, Fehlerbudget, Burn-Rate, Status und Auswertungszeiten ändern sich alle paar Minuten. Ihr Verlauf steht auf der **Übersicht**, der Seite **Metriken** und im **Feed**. Die Stufe der Fehlerbudget-Richtlinie, in der das SLO ist, ist die Ausnahme: Ein Stufenwechsel wird als Änderung festgehalten, die OneUptime selbst vorgenommen hat.
+- **Ergebnisse der Auswertung.** SLI, Fehlerbudget, Burn-Rate, Status und Auswertungszeiten ändern sich alle paar Minuten. Ihr Verlauf steht auf der **Übersicht**, der Seite **Metriken** und im **Feed**. Die Stufe der Fehlerbudget-Richtlinie, in der das SLO ist, und ob seine Deployments erlaubt sind, sind die Ausnahme: Ändert sich eines davon, wird das als Änderung festgehalten, die OneUptime selbst vorgenommen hat.
 - **Änderungen, die OneUptime selbst vornimmt**, etwa eine Monitor-Regel, die einen Monitor zuordnet oder löst, es sei denn, **Systemereignisse speichern** ist für das Projekt eingeschaltet. Der **Feed** erfasst das Zuordnen und Lösen von Monitoren in jedem Fall.
 
 ### Audit-Protokolle einschalten

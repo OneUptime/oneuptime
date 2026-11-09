@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 Byg dem med det samme `resource`-objekt. En log- eller metrikpipeline, hvis ressource mangler `browser.*`, arkiveres som en separat backend-tjeneste.
 
+En logpipeline sender kun de poster, din kode skriver, så skriv en, hvor der sker noget, der er værd at vide:
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## Endpoint-reference
 
 | Signaltype | Endpoint | Header |

@@ -82,3 +82,15 @@ export const getSloPolicyTierColor: GetSloPolicyTierColorFunction = (
 
   return threshold !== null && threshold <= 0 ? Red : Yellow;
 };
+
+export type GetSloDeploymentGateColorFunction = (isAllowed: boolean) => Color;
+
+/*
+ * The color of the deploy gate, in the same palette: red while deployments
+ * are frozen, like an exhausted budget, and green once they are allowed.
+ */
+export const getSloDeploymentGateColor: GetSloDeploymentGateColorFunction = (
+  isAllowed: boolean,
+): Color => {
+  return isAllowed ? Green : Red;
+};
