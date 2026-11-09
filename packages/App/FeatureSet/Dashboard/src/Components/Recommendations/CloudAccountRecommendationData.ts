@@ -100,28 +100,47 @@ export async function loadCloudAccountRecommendationResources(data: {
 }
 
 export async function loadCloudAccountRecommendationCoverage(): Promise<CloudAccountRecommendationCoverage> {
-  const [monitorList, dismissalList]: [
-    ListResult<Monitor>,
+  return await loadRecommendationCoverage({
+    resourceType: MonitorRecommendationResourceType.CloudResource,
+    monitorTypes: [MonitorType.Metrics],
+  });
+}
+
+/*
+ * What covers a recommendation of a resource type, read once for every
+ * resource of the page: the monitors of the kinds its recommendations make
+ * (a cloud resource's are Metrics monitors; an app's, Traces and Metrics),
+ * and every dismissal of the type - the plan reads those of the page's own
+ * resources (CloudAccountRecommendationPlan.buildGroups), and a list of a
+ * few thousand ids is no query to send.
+ */
+export async function loadRecommendationCoverage(data: {
+  resourceType: MonitorRecommendationResourceType;
+  monitorTypes: Array<MonitorType>;
+}): Promise<CloudAccountRecommendationCoverage> {
+  const [monitorLists, dismissalList]: [
+    Array<ListResult<Monitor>>,
     ListResult<RecommendationDismissal>,
   ] = await Promise.all([
-    ModelAPI.getList<Monitor>({
-      modelType: Monitor,
-      query: { monitorType: MonitorType.Metrics },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: { name: true, monitorSteps: true },
-      sort: { name: SortOrder.Ascending },
-    }),
-    /*
-     * Every cloud resource's dismissals: the plan reads those of the
-     * account's own resources (CloudAccountRecommendationPlan.buildGroups),
-     * and a list of a few thousand ids is no query to send.
-     */
+    Promise.all(
+      data.monitorTypes.map(
+        (monitorType: MonitorType): Promise<ListResult<Monitor>> => {
+          return ModelAPI.getList<Monitor>({
+            modelType: Monitor,
+            query: { monitorType: monitorType },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, monitorSteps: true },
+            sort: { name: SortOrder.Ascending },
+          });
+        },
+      ),
+    ),
     ModelAPI.getList<RecommendationDismissal>({
       modelType: RecommendationDismissal,
       query: {
         recommendationType: RecommendationType.Monitor,
-        resourceType: MonitorRecommendationResourceType.CloudResource,
+        resourceType: data.resourceType,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
@@ -137,7 +156,10 @@ export async function loadCloudAccountRecommendationCoverage(): Promise<CloudAcc
   ]);
 
   return {
-    existingMonitors: monitorList.data
+    existingMonitors: monitorLists
+      .flatMap((monitorList: ListResult<Monitor>): Array<Monitor> => {
+        return monitorList.data;
+      })
       .filter((monitor: Monitor): boolean => {
         return Boolean(monitor.id);
       })

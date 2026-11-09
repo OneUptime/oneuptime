@@ -93,6 +93,14 @@ export function getAppPlatformsBreadcrumbs(
       ["Project", "App Platforms", "View Environment", "Alerts"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "App Platforms", "View Environment", "Scheduled Maintenance"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS,
+      ["Project", "App Platforms", "View Environment", "Recommendations"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION,
       ["Project", "App Platforms", "View Environment", "Documentation"],
     ),

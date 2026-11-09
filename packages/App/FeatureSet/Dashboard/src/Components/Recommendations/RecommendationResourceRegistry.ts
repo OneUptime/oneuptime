@@ -253,16 +253,45 @@ export async function loadCloudAppRecommendationContext(data: {
     unknown
   >;
 
+  return buildCloudAppRecommendationContext({
+    environmentId: data.context.cloudAppEnvironmentId,
+    environment: environment,
+    telemetryAttributes: record["telemetryAttributes"],
+  });
+}
+
+/*
+ * An app's context once its environment is read: the environment it is
+ * linked to, and its telemetry filter - the environment's platform,
+ * account and Region and the app's own attributes, as its Traces tab
+ * filters its spans. Built the same way for an app's own tab
+ * (loadCloudAppRecommendationContext) and for every app of an environment
+ * at once (CloudEnvironmentAppRecommendationData), so a monitor made on
+ * one is recognised as made on the other.
+ */
+export function buildCloudAppRecommendationContext(data: {
+  environmentId: string | null | undefined;
+  environment: {
+    cloudPlatform?: string | null | undefined;
+    cloudAccountId?: string | null | undefined;
+    cloudRegion?: string | null | undefined;
+  } | null;
+  telemetryAttributes: unknown;
+}): MonitorRecommendationContext {
+  const environmentId: string = (data.environmentId || "").trim();
+
   return {
-    ...data.context,
+    cloudAppEnvironmentId: environmentId || null,
     cloudAppTelemetryFilters: getCloudAppTelemetryFilters({
-      environment: {
-        cloudPlatform: environment.cloudPlatform as string | undefined,
-        cloudAccountId: environment.cloudAccountId as string | undefined,
-        cloudRegion: environment.cloudRegion as string | undefined,
-      },
+      environment: data.environment
+        ? {
+            cloudPlatform: data.environment.cloudPlatform || undefined,
+            cloudAccountId: data.environment.cloudAccountId || undefined,
+            cloudRegion: data.environment.cloudRegion || undefined,
+          }
+        : null,
       app: {
-        telemetryAttributes: record["telemetryAttributes"] as
+        telemetryAttributes: data.telemetryAttributes as
           | Record<string, unknown>
           | undefined,
       },

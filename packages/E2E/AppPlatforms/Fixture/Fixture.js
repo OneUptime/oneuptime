@@ -12,6 +12,12 @@
  *
  *   ?state=   (default: six environments on four platforms, two of them
  *             quiet) | empty (no environment yet)
+ *   ?maintenance= held: an event in progress holds checkout's environment
+ *             (so its apps' monitors), and another is scheduled for next
+ *             week, on a status page, with a label and an owner; none by
+ *             default
+ *   ?app=     too-long: checkout runs a third app, whose name was too long
+ *             for ingest to filter its telemetry by
  *   ?lang=    de | fa (Persian, laid out right to left, as production does)
  *   ?theme=   dark adds html.dark (handled by server.js)
  *
@@ -72,6 +78,10 @@ const params = new URLSearchParams(window.location.search);
 const EMPTY = params.get("state") === "empty";
 // Every environment connected: the strip breaks them down by provider.
 const ALL_CONNECTED = params.get("state") === "connected";
+// An event in progress holds checkout's environment, and one is coming.
+const MAINTENANCE_HELD = params.get("maintenance") === "held";
+// checkout runs a third app, one no monitor can watch alone.
+const TOO_LONG_APP = params.get("app") === "too-long";
 const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -259,6 +269,23 @@ const RESOURCE = {
  * environment that never reported has none.
  */
 const ECS_CLUSTER = "arn:aws:ecs:us-east-1:4109-2277-8841:cluster/production";
+
+/*
+ * A batch job of checkout's whose task family name was too long to filter
+ * by: ingest stored no attribute for it (?app=too-long).
+ */
+const TOO_LONG_APP_ROW = {
+  _id: uuid("75000000", 7),
+  projectId: PROJECT_ID,
+  cloudResourceId: uuid("71000000", 1),
+  createdAt: new Date(LOADED_AT - 3 * 24 * HOUR),
+  name: "checkout-nightly-ledger-reconciliation",
+  appKey: "checkout-nightly-ledger-reconciliation",
+  groupName: "production",
+  cloudPlatform: "aws_ecs",
+  telemetryAttributes: {},
+  lastSeenAt: new Date(LOADED_AT - 5 * MINUTE),
+};
 
 function app(number, environmentNumber, fields) {
   return {
@@ -641,11 +668,110 @@ const ALERT_SEVERITIES = [
 
 const MONITORS = [];
 
+/*
+ * The project's scheduled maintenance states, and - with ?maintenance=held -
+ * an event in progress that holds checkout's environment (so its apps'
+ * monitors open nothing while it runs) and one scheduled for next week.
+ */
+const MAINTENANCE_STATES = [
+  {
+    _id: uuid("79400000", 1),
+    name: "Scheduled",
+    order: 1,
+    color: new Color("#6366f1"),
+    isScheduledState: true,
+    isArchived: false,
+  },
+  {
+    _id: uuid("79400000", 2),
+    name: "Ongoing",
+    order: 2,
+    color: new Color("#f59e0b"),
+    isOngoingState: true,
+    isArchived: false,
+  },
+  {
+    _id: uuid("79400000", 3),
+    name: "Completed",
+    order: 3,
+    color: new Color("#10b981"),
+    isEndedState: true,
+    isResolvedState: true,
+    isArchived: false,
+  },
+];
+
+function maintenanceEvent(number, fields) {
+  return {
+    _id: uuid("79500000", number),
+    projectId: PROJECT_ID,
+    scheduledMaintenanceNumber: number,
+    scheduledMaintenanceNumberWithPrefix: `SM-${number}`,
+    monitors: [],
+    cloudResources: [
+      {
+        _id: uuid("71000000", 1),
+        name: "checkout · us-east-1 · 4109-2277-8841",
+        projectId: PROJECT_ID,
+        cloudResourceKind: "environment",
+      },
+    ],
+    labels: [],
+    isVisibleOnStatusPage: true,
+    ...fields,
+  };
+}
+
+const MAINTENANCE_EVENTS =
+  MAINTENANCE_HELD && !EMPTY
+    ? [
+        maintenanceEvent(31, {
+          title: "Move the production cluster to Graviton",
+          startsAt: new Date(LOADED_AT - 20 * MINUTE),
+          endsAt: new Date(LOADED_AT + 40 * MINUTE),
+          currentScheduledMaintenanceStateId: MAINTENANCE_STATES[1]._id,
+          currentScheduledMaintenanceState: MAINTENANCE_STATES[1],
+        }),
+        maintenanceEvent(32, {
+          title: "Rotate the task execution role",
+          startsAt: new Date(LOADED_AT + 7 * 24 * HOUR),
+          endsAt: new Date(LOADED_AT + 7 * 24 * HOUR + HOUR),
+          currentScheduledMaintenanceStateId: MAINTENANCE_STATES[0]._id,
+          currentScheduledMaintenanceState: MAINTENANCE_STATES[0],
+          // A row with something to fold, under the one with nothing.
+          statusPages: [{ _id: uuid("79600000", 1), name: "Checkout status" }],
+          labels: [
+            {
+              _id: uuid("79700000", 1),
+              name: "Production",
+              color: new Color("#6366f1"),
+            },
+          ],
+        }),
+      ]
+    : [];
+
+const MAINTENANCE_OWNER_USERS =
+  MAINTENANCE_HELD && !EMPTY
+    ? [
+        {
+          _id: uuid("79800000", 1),
+          projectId: PROJECT_ID,
+          scheduledMaintenanceId: uuid("79500000", 32),
+          user: {
+            _id: uuid("79900000", 1),
+            name: "Dana Reyes",
+            email: "dana@example.com",
+          },
+        },
+      ]
+    : [];
+
 const TABLES = {
   CloudResource: [...ENVIRONMENTS, RESOURCE],
   Service: SERVICES,
   CloudResourceInstance: [...INSTANCES, ...OTHER_INSTANCES],
-  CloudApp: APPS,
+  CloudApp: TOO_LONG_APP && !EMPTY ? [...APPS, TOO_LONG_APP_ROW] : APPS,
   CloudAppRevision: REVISIONS,
   CloudResourceOwnerRule: OWNER_RULES,
   CloudResourceLabelRule: LABEL_RULES,
@@ -657,6 +783,19 @@ const TABLES = {
   AlertSeverity: ALERT_SEVERITIES,
   RecommendationDismissal: [],
   OnCallDutyPolicy: [],
+  /*
+   * An environment's Scheduled Maintenance tab and its menu's count, and
+   * the notice an app's page and the Overview draw while an event holds it.
+   */
+  ScheduledMaintenance: MAINTENANCE_EVENTS,
+  ScheduledMaintenanceState: MAINTENANCE_STATES,
+  ScheduledMaintenanceOwnerUser: MAINTENANCE_OWNER_USERS,
+  ScheduledMaintenanceOwnerTeam: [],
+  ScheduledMaintenanceCustomField: [],
+  ScheduledMaintenanceNoteTemplate: [],
+  ScheduledMaintenanceTemplate: [],
+  TableView: [],
+  StatusPage: [],
 };
 
 /*
@@ -831,9 +970,6 @@ const EMPTY_TABLES = [
   "KubernetesCluster",
   "LogSavedView",
   "MetricType",
-  // A cloud resource's side menu counts the maintenance that holds it.
-  "ScheduledMaintenance",
-  "ScheduledMaintenanceState",
   // The Incidents and Alerts tabs' create forms.
   "IncidentCustomField",
   "IncidentNoteTemplate",

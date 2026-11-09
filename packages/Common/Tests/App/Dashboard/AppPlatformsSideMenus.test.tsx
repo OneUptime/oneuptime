@@ -120,7 +120,7 @@ describe("the App Platforms product menu", () => {
 });
 
 describe("an environment's menu", () => {
-  test("its apps and instances, its telemetry, its incidents and alerts, its settings - no cloud changes", async () => {
+  test("its recommended monitors, its apps and instances, its telemetry, its incidents, alerts and maintenance, its settings - no cloud changes", async () => {
     goTo(ENVIRONMENT_PATH);
     await renderMenu(
       <AppPlatformEnvironmentViewSideMenu
@@ -137,8 +137,16 @@ describe("an environment's menu", () => {
       "Developer",
       "Advanced",
     ]);
+    /*
+     * The monitors OneUptime recommends for every app it runs, after its
+     * Overview, as a cloud resource's menu has its own.
+     */
     expect(linksIn("Basic")).toEqual([
       { title: "Overview", href: ENVIRONMENT_PATH },
+      {
+        title: "Recommendations",
+        href: `${ENVIRONMENT_PATH}/recommendations`,
+      },
       { title: "Documentation", href: `${ENVIRONMENT_PATH}/documentation` },
     ]);
     // What runs on the platform: its apps, and the tasks that run them.
@@ -153,10 +161,17 @@ describe("an environment's menu", () => {
       { title: "Traces", href: `${ENVIRONMENT_PATH}/traces` },
       { title: "Feed", href: `${ENVIRONMENT_PATH}/feed` },
     ]);
-    // A cloud account's activity log is Cloud's: no Changes here.
+    /*
+     * The maintenance that holds it - which holds its apps' monitors - after
+     * its alerts. A cloud account's activity log is Cloud's: no Changes here.
+     */
     expect(linksIn("Activity")).toEqual([
       { title: "Incidents", href: `${ENVIRONMENT_PATH}/incidents` },
       { title: "Alerts", href: `${ENVIRONMENT_PATH}/alerts` },
+      {
+        title: "Scheduled Maintenance",
+        href: `${ENVIRONMENT_PATH}/scheduled-maintenance`,
+      },
     ]);
     expect(linksIn("Settings")).toEqual([
       { title: "Settings", href: `${ENVIRONMENT_PATH}/settings` },
@@ -191,6 +206,8 @@ describe("an environment's menu", () => {
     ["/logs", "Logs"],
     ["/traces", "Traces"],
     ["/instances", "Instances"],
+    ["/recommendations", "Recommendations"],
+    ["/scheduled-maintenance", "Scheduled Maintenance"],
     ["/settings", "Settings"],
     ["/audit-logs", "Audit Logs"],
     ["/delete", "Delete Environment"],

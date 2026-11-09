@@ -75,7 +75,7 @@ flowchart TB
 
 ## 從資源或範本開始
 
-在主機、Kubernetes、Proxmox、Ceph 或 Docker Swarm 叢集、Docker 或 Podman 主機、vCenter、OpenStack 雲端、儲存陣列、IoT 裝置群、資料庫、雲端資源、服務或網路站點的 **排定維護** 分頁上， **建立排定維護事件** 會開啟同一個表單，並已在 **其他受影響的資源** 下選好該資源；該分頁還會列出影響該資源的事件。資產清冊項目的分頁會選擇該項目指向的主機、服務或 Kubernetes 叢集。
+在主機、Kubernetes、Proxmox、Ceph 或 Docker Swarm 叢集、Docker 或 Podman 主機、vCenter、OpenStack 雲端、儲存陣列、IoT 裝置群、資料庫、雲端資源、應用程式平台環境、服務或網路站點的 **排定維護** 分頁上， **建立排定維護事件** 會開啟同一個表單，並已在 **其他受影響的資源** 下選好該資源；該分頁還會列出影響該資源的事件。資產清冊項目的分頁會選擇該項目指向的主機、服務或 Kubernetes 叢集。
 
 建立按鈕旁邊的 **從範本建立** 會請你 **選擇排定維護範本** ，然後開啟用該範本填好的表單。請參閱 [範本與週期性事件](/docs/scheduled-maintenance/templates)。
 

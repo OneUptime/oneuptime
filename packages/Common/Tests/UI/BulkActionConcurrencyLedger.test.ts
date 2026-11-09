@@ -230,11 +230,11 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Change Postmortem Status: an incident's postmortem status and its feed entry are its own.",
       },
     ],
-  "packages/App/FeatureSet/Dashboard/src/Components/Recommendations/CloudAccountMonitorRecommendations.tsx":
+  "packages/App/FeatureSet/Dashboard/src/Components/Recommendations/GroupedMonitorRecommendations.tsx":
     [
       {
         expression: "1",
-        why: "Add a recommended monitor to a cloud account's resources: one monitor at a time, as a resource's own Recommendations tab creates them, each running the project's label, owner and workspace rules before the next.",
+        why: "Add a recommended monitor to a cloud account's resources or an App Platforms environment's apps: one monitor at a time, as a resource's own Recommendations tab creates them, each running the project's label, owner and workspace rules before the next.",
       },
     ],
   "packages/App/FeatureSet/Dashboard/src/Components/SecurityCase/useSecurityCaseListActions.tsx":

@@ -121,7 +121,7 @@ Den første attribut, telemetrien bærer, navngiver appen, så en app på en pla
 - **Begge er ændringer.** Hver er en stiplet linje i appens og miljøets grafer, en linje i miljøets **Feed** og en [ændringshændelse](/docs/telemetry/change-events), som OneUptime AI læser, når den undersøger en hændelse i miljøet. **Seneste udrulninger** under **App-platforme → Oversigt** viser de nyeste.
 - **Der registreres højst 12 nye revisioner af en app i timen.** En `service.version`, der ændrer sig med hvert build, ville ellers være en udrulning i minuttet.
 
-En apps side har en **Oversigt** med dens anmodninger, fejl, latens, instanser og de revisioner, der kører nu, en fane **Revisioner** med hver revisions tal, fanerne **Instanser**, **Protokoller** og **Spor**, filtreret til appen, og en fane **Anbefalinger** med de monitorer, OneUptime anbefaler til den: mislykkede handlinger, fejlbølger, trafik, der stopper, og langsomme anmodninger, læst fra appens egne spans og dens `http.server.request.duration`, hver knyttet til appens miljø. **Opsæt advarsler** åbner den; for en app, hvis navn er for langt til at filtrere dens telemetri efter, åbner den i stedet de anbefalede monitorer for appens tjeneste under **Tjenester**.
+En apps side har en **Oversigt** med dens anmodninger, fejl, latens, instanser og de revisioner, der kører nu, en fane **Revisioner** med hver revisions tal, fanerne **Instanser**, **Protokoller** og **Spor**, filtreret til appen, og en fane **Anbefalinger** med de monitorer, OneUptime anbefaler til den: mislykkede handlinger, fejlbølger, trafik, der stopper, og langsomme anmodninger, læst fra appens egne spans og dens `http.server.request.duration`, hver knyttet til appens miljø. **Opsæt advarsler** åbner den; for en app, hvis navn er for langt til at filtrere dens telemetri efter, åbner den i stedet de anbefalede monitorer for appens tjeneste under **Tjenester**. Fanen tæller dem, der stadig skal sættes op, og miljøets **Anbefalinger** sætter en op på alle apps på én gang.
 
 En app, der ikke sender noget i 30 dage, fjernes med sine revisioner, og det samme gør en revision, som ingen instans rapporterer i 30 dage, medmindre appen stadig kører den. På en selvhostet OneUptime sætter `CLOUD_APP_RETENTION_DAYS` de 30.
 
@@ -219,6 +219,10 @@ Et miljøs **Oversigt** viser:
 - Fanerne **Protokoller**, **Spor** og **Metrikker**, filtreret til miljøet.
 
 Et miljø, der endnu ikke har sendt noget, viser **Venter**. Et, hvis telemetri stopper i 15 minutter, viser **Afbrudt**, og det næste span, den næste log eller metrik bringer det tilbage til **Forbundet**. Tid, hvor OneUptime selv var nede eller var ved at indhente, tæller ikke med i de 15 minutter.
+
+Et miljøs **Anbefalinger** viser de monitorer, OneUptime anbefaler til dets apps, med de apps, hver er til, og hvor mange der allerede har den: Tilføj en til en app, eller til alle apps, der stadig mangler den, på én gang, og sidemenuen tæller dem, der stadig skal sættes op. En app, hvis navn er for langt til at filtrere dens telemetri efter, eller hvis platform endnu ikke er nævnt af nogen telemetri, tilbydes ingen og nævnes til sidst med årsagen. Hver monitor er knyttet til miljøet.
+
+Dets fane **Planlagt vedligeholdelse** viser de [planlagte vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events), der dækker det, og **Opret planlagt vedligeholdelseshændelse** åbner der formularen med miljøet allerede valgt. Mens en af dem er i gang, åbner de monitorer, der kun læser miljøets telemetri, såsom de anbefalede monitorer for dets apps, ingen hændelse eller advarsel, og dets **Oversigt** og hver apps side siger det, indtil begivenheden slutter.
 
 ### Etiketter og ejere
 

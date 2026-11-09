@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { FrameBox, boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
@@ -1246,13 +1247,14 @@ test.describe("apps and their deploys", () => {
       header.getByRole("link", { name: "checkout-api" }),
     ).toHaveAttribute("href", `${DASHBOARD}/service/${CHECKOUT_SERVICE_ID}`);
 
+    // Recommendations counts the monitors still to set up: all five, yet.
     await expect(page.getByRole("tab")).toHaveText([
       "Overview",
       "Revisions3",
       "Instances",
       "Logs",
       "Traces",
-      "Recommendations",
+      "Recommendations5",
     ]);
 
     // Its numbers, its live tasks, and the revisions they run right now.
@@ -1340,7 +1342,12 @@ test.describe("apps and their deploys", () => {
       await expect(panel.getByText(name, { exact: true })).toBeVisible();
     }
 
-    // Its own row and its environment's, read with the person's rights.
+    /*
+     * Its own row, read with the person's rights: by its page, by its
+     * Recommendations tab, and for the count beside the tab's name, which
+     * says all five are still to set up.
+     */
+    await expect(recommendationsTab).toHaveText("Recommendations5");
     const items: Array<{ modelName: string; id: string }> = (
       await recorded(page)
     ).itemRequests;
@@ -1348,7 +1355,7 @@ test.describe("apps and their deploys", () => {
       items.filter((item: { modelName: string; id: string }): boolean => {
         return item.modelName === "CloudApp";
       }).length,
-    ).toBe(2);
+    ).toBe(3);
     await screenshot(page, "app-platforms-app-recommendations-1280");
 
     await page.setViewportSize(PHONE);
@@ -1382,6 +1389,8 @@ test.describe("apps and their deploys", () => {
 
     // A clean run closes its panel, and the tab reads what covers each again.
     await expect(panel).toContainText("5 of 5 recommended monitors created");
+    // Nothing left to set up: the tab's count is gone, not a "0".
+    await expect(recommendationsTab).toHaveText("Recommendations");
 
     const filter: Record<string, string> = {
       "resource.cloud.platform": "aws_ecs",
@@ -1571,9 +1580,10 @@ test.describe("apps and their deploys", () => {
       "color",
       "rgb(180, 83, 9)",
     );
-    await expect(
-      page.getByRole("button", { name: ROLLBACK_MARKER }),
-    ).toHaveCount(2);
+    // A mark that opens nothing is drawn as an image, not a button.
+    await expect(page.getByRole("img", { name: ROLLBACK_MARKER })).toHaveCount(
+      2,
+    );
     await screenshot(page, "app-platforms-app-rolled-back-1280");
 
     await open(page, `${REPORTS_APP}?tab=Revisions`);
@@ -2575,5 +2585,481 @@ test.describe("in the reader's language", () => {
     ).toBeVisible();
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-app-overview-390-fa");
+  });
+});
+
+/*
+ * An environment's recommended monitors and scheduled maintenance (#6150's
+ * follow-ups): its Recommendations add an app's recommended monitors to
+ * every app at once - each read by the app's own filter and linked to the
+ * environment - and name the apps they leave out; its Scheduled Maintenance
+ * lists and creates the events that hold it, which hold its apps' monitors,
+ * without an Affected Resources column that would only say the environment
+ * again; and while one is in progress, an app's page and the environment's
+ * Overview say so.
+ */
+test.describe("an environment's recommended monitors and scheduled maintenance", () => {
+  const RECOMMENDATIONS: string = `${CHECKOUT}/recommendations`;
+  const SCHEDULED_MAINTENANCE: string = `${CHECKOUT}/scheduled-maintenance`;
+  const TOO_LONG_APP_ID: string = "75000000-0000-4000-8000-000000000007";
+  const HELD_EVENT: string = "Move the production cluster to Graviton";
+
+  // The side menu's entry, with the count it shows.
+  function menuEntry(page: Page, title: string): Locator {
+    return desktopMenu(page).getByRole("link", {
+      name: new RegExp(`^${title}`),
+    });
+  }
+
+  function appsGroup(page: Page): Locator {
+    return page.getByTestId("cloud-environment-recommendation-group-apps");
+  }
+
+  function row(page: Page, templateId: string): Locator {
+    return page.getByTestId(
+      `cloud-environment-recommendation-row-CloudApp:${templateId}`,
+    );
+  }
+
+  function notice(page: Page): Locator {
+    return page.getByTestId("cloud-environment-maintenance-notice");
+  }
+
+  test("Recommendations offer every app's monitors, a row each, and add one to every app at once, linked to the environment", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, RECOMMENDATIONS);
+
+    expect(await trailOf(page)).toEqual([
+      "Project",
+      "App Platforms",
+      CHECKOUT_NAME,
+      "Recommendations",
+    ]);
+    await expect(litEntry(page)).toHaveText(/^Recommendations/);
+    // Five recommended monitors for each of checkout's two apps: ten to set up.
+    await expect(menuEntry(page, "Recommendations")).toHaveText(
+      "Recommendations10",
+    );
+
+    const group: Locator = appsGroup(page);
+    await expect(group.getByRole("heading", { level: 3 })).toHaveText("Apps");
+    await expect(group).toContainText("Recommended for 2 apps");
+    await expect(
+      group.getByTestId(/^cloud-environment-recommendation-row-/),
+    ).toHaveCount(5);
+    await expect(row(page, "cloud-app-failed-operations")).toContainText(
+      "Set up on 0 of 2 apps",
+    );
+
+    // Each row's apps, each with the cluster that tells it apart.
+    await row(page, "cloud-app-failed-operations")
+      .getByRole("button", { name: "Show apps" })
+      .click();
+    const checkoutTarget: Locator = page.getByTestId(
+      `cloud-environment-recommendation-target-CloudApp:cloud-app-failed-operations-${CHECKOUT_APP_ID}`,
+    );
+    await expect(checkoutTarget).toContainText("checkout-api");
+    await expect(checkoutTarget).toContainText("cluster production");
+    await expect(checkoutTarget.getByRole("link")).toHaveAttribute(
+      "href",
+      `${CHECKOUT_APP}?tab=Recommendations`,
+    );
+    await screenshot(page, "app-platforms-environment-recommendations-1280");
+
+    await page
+      .getByTestId(
+        "cloud-environment-recommendation-add-CloudApp:cloud-app-failed-operations",
+      )
+      .click();
+    await expect(
+      page.getByText(
+        "These monitors will be created on 2 apps of this environment. Everything below applies to all of them.",
+      ),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Create Monitors" }).last().click();
+
+    // The run reports each monitor, then closes on Close.
+    const done: Locator = page.getByRole("button", { name: "Close" }).last();
+    await expect(done).toBeEnabled({ timeout: 30000 });
+    await done.click();
+
+    const creates: Array<CreatedMonitor> = (await recorded(page)).creates;
+    expect(
+      creates.map((created: CreatedMonitor): string => {
+        return created.name;
+      }),
+    ).toEqual([
+      "checkout-api - Failed Operations",
+      "inventory - Failed Operations",
+    ]);
+    for (const created of creates) {
+      expect(created.monitorType, created.name).toBe("Traces");
+      // Linked to the environment, where an app's incidents are listed.
+      expect(created.cloudResourceIds, created.name).toEqual([CHECKOUT_ID]);
+      // Read by the app's own filter - so the environment's maintenance holds it.
+      expect(created.scope, created.name).toMatchObject({
+        "resource.cloud.platform": "aws_ecs",
+        "resource.cloud.account.id": "4109-2277-8841",
+        "resource.cloud.region": "us-east-1",
+        "resource.aws.ecs.cluster.arn":
+          "arn:aws:ecs:us-east-1:4109-2277-8841:cluster/production",
+      });
+    }
+    expect(creates[1]!.scope!["resource.aws.ecs.task.family"]).toBe(
+      "inventory",
+    );
+
+    // Made, so no more to set up there - and the menu counts eight.
+    await expect(row(page, "cloud-app-failed-operations")).toHaveCount(0);
+    await expect(menuEntry(page, "Recommendations")).toHaveText(
+      "Recommendations8",
+    );
+
+    /*
+     * An app's own tab counts what is left of its own five: opened from a
+     * row's list, in the page - a reload would forget what was made.
+     */
+    await row(page, "cloud-app-error-burst")
+      .getByRole("button", { name: "Show apps" })
+      .click();
+    await page
+      .getByTestId(
+        `cloud-environment-recommendation-target-CloudApp:cloud-app-error-burst-${CHECKOUT_APP_ID}`,
+      )
+      .getByRole("link")
+      .click();
+    await expect(page.getByTestId("cloud-app-header")).toBeVisible();
+    const appTab: Locator = page.getByRole("tab", { name: /^Recommendations/ });
+    await expect(appTab).toHaveAttribute("aria-selected", "true");
+    await expect(appTab).toHaveText("Recommendations4");
+  });
+
+  test("Add All makes every app's every recommended monitor, and nothing is left to set up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, RECOMMENDATIONS);
+
+    await page
+      .getByTestId("cloud-environment-recommendation-add-all-apps")
+      .click();
+    await page.getByRole("button", { name: "Create Monitors" }).last().click();
+    const done: Locator = page.getByRole("button", { name: "Close" }).last();
+    await expect(done).toBeEnabled({ timeout: 30000 });
+    await done.click();
+
+    await expect(page.getByText("Nothing left to set up here")).toBeVisible();
+    // A cleared count is no badge at all.
+    await expect(menuEntry(page, "Recommendations")).toHaveText(
+      "Recommendations",
+    );
+    expect(
+      new Set(
+        (await recorded(page)).creates.map((created: CreatedMonitor) => {
+          return created.name;
+        }),
+      ).size,
+    ).toBe(10);
+  });
+
+  test("the app no monitor can watch alone is named at the end, by why, a click from its own page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${RECOMMENDATIONS}?app=too-long`);
+
+    // Two apps are offered monitors; the third is left out.
+    await expect(appsGroup(page)).toContainText("Recommended for 2 apps");
+    const leftOut: Locator = page.getByTestId(
+      "cloud-environment-recommendations-not-listed-NotScoped",
+    );
+    await expect(leftOut).toContainText(
+      "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its telemetry is in this environment's tabs.",
+    );
+    const name: Locator = leftOut.getByRole("link", {
+      name: /checkout-nightly-ledger-reconciliation/,
+    });
+    await expect(name).toHaveAttribute(
+      "href",
+      `${CHECKOUT}/apps/${TOO_LONG_APP_ID}?tab=Recommendations`,
+    );
+    await screenshot(
+      page,
+      "app-platforms-environment-recommendations-left-out-1280",
+    );
+
+    await name.click();
+    await expect(
+      page.getByRole("tab", { name: /^Recommendations/ }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("tabpanel")).toContainText(
+      "This app's name is too long to filter its telemetry by",
+    );
+  });
+
+  test("beside the side menu at a tablet's width and on a phone, the page fits, in German and Persian too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(TABLET);
+    await open(page, RECOMMENDATIONS);
+    await expect(appsGroup(page)).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-environment-recommendations-768");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-environment-recommendations-390");
+
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${RECOMMENDATIONS}?lang=de`);
+    await expect(appsGroup(page)).toContainText(
+      GERMAN["Recommended for {{count}} apps"]!.replace("{{count}}", "2"),
+    );
+    await expect(
+      page.getByTestId(
+        "cloud-environment-recommendation-add-CloudApp:cloud-app-error-burst",
+      ),
+    ).toHaveText(GERMAN["Add to {{count}} Apps"]!.replace("{{count}}", "2"));
+    await screenshot(page, "app-platforms-environment-recommendations-1280-de");
+
+    await page.setViewportSize(PHONE);
+    await open(page, `${RECOMMENDATIONS}?lang=fa`);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(appsGroup(page)).toContainText(PERSIAN["Apps"]!);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-environment-recommendations-390-fa");
+  });
+
+  test("Scheduled Maintenance lists the events that hold the environment, without the column that says it again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${SCHEDULED_MAINTENANCE}?maintenance=held`);
+
+    expect(await trailOf(page)).toEqual([
+      "Project",
+      "App Platforms",
+      CHECKOUT_NAME,
+      "Scheduled Maintenance",
+    ]);
+    // The two not over yet: one in progress, one next week.
+    await expect(menuEntry(page, "Scheduled Maintenance")).toHaveText(
+      "Scheduled Maintenance2",
+    );
+
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText(HELD_EVENT);
+    await expect(rows.nth(0)).toContainText("Ongoing");
+    await expect(rows.nth(1)).toContainText("Rotate the task execution role");
+    await expect(page.locator("table thead th")).not.toContainText([
+      "Affected Resources",
+    ]);
+    await expect(page.locator("table thead")).toContainText("Title");
+    // Nor a filter chip that would only offer the environment.
+    await expect(page.getByText("Affected Resources")).toHaveCount(0);
+    await expect(
+      page.getByText(
+        "Planned work on this environment. While an event is in progress, the monitors of its apps open no incidents or alerts.",
+      ),
+    ).toBeVisible();
+
+    /*
+     * Beside the side menu the row fits its card (#6239's review: it ran
+     * 1,420px in a 938px card, when an event ends out of sight): how long
+     * an event lasts goes under when it starts, and its status pages,
+     * labels and owners under its title.
+     */
+    const scrollBox: Locator = page.getByTestId("table-scroll");
+    await expect(scrollBox).toHaveAttribute("data-overflowing", "false");
+    const [endsAtHeader, box]: Array<FrameBox> = await boxesInOneFrame([
+      page.locator("table thead th").filter({ hasText: "Ends At" }),
+      scrollBox,
+    ]);
+    expect(endsAtHeader!.x + endsAtHeader!.width).toBeLessThanOrEqual(
+      box!.x + box!.width + 1,
+    );
+    for (const folded of [
+      "Duration",
+      "Shown on Status Page",
+      "Labels",
+      "Owners",
+    ]) {
+      await expect(
+        page.locator("table thead th").filter({ hasText: folded }),
+      ).toHaveCount(0);
+    }
+    await expect(rows.nth(0)).toContainText("1 hour");
+    // The event on no status page draws no line saying so over a dash.
+    await expect(rows.nth(0).getByText("Shown on Status Page")).toBeHidden();
+    await expect(rows.nth(1).getByText("Shown on Status Page")).toBeVisible();
+    await expect(
+      rows.nth(1).getByText("Checkout status", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      rows.nth(1).getByText("Production", { exact: true }),
+    ).toBeVisible();
+    await expect(rows.nth(1).getByText("DR", { exact: true })).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-environment-maintenance-1280");
+
+    // Create keeps the environment picked.
+    await page
+      .getByRole("button", { name: "Create Scheduled Maintenance Event" })
+      .click();
+    await expect(page.getByTestId("stub-page")).toContainText(
+      `cloudEnvironmentId=${CHECKOUT_ID}`,
+    );
+
+    // Beside the side menu at a tablet's width the list lays out as cards.
+    await page.setViewportSize(TABLET);
+    await open(page, `${SCHEDULED_MAINTENANCE}?maintenance=held`);
+    await expect(page.getByText(HELD_EVENT)).toBeVisible();
+    await expect(
+      page.getByRole("term").filter({ hasText: "Affected Resources" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("term").filter({ hasText: "Title" }),
+    ).toHaveCount(2);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-environment-maintenance-768");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    // A phone's card says when each event starts, not only how long it lasts.
+    await expect(
+      page.getByRole("term").filter({ hasText: "Starts At" }),
+    ).toHaveCount(2);
+    await screenshot(page, "app-platforms-environment-maintenance-390");
+
+    // In German and Persian, the column is left out in their words too.
+    for (const [language, words] of [
+      ["de", GERMAN],
+      ["fa", PERSIAN],
+    ] as Array<[string, Record<string, string>]>) {
+      await page.setViewportSize(LAPTOP);
+      await open(
+        page,
+        `${SCHEDULED_MAINTENANCE}?maintenance=held&lang=${language}`,
+      );
+      await expect(rows).toHaveCount(2);
+      await expect(page.locator("table thead")).not.toContainText(
+        words["Affected Resources"]!,
+      );
+      await expect(page.locator("table thead")).toContainText(words["Title"]!);
+      // Longer words, and the row still fits its card.
+      await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
+      await screenshot(
+        page,
+        `app-platforms-environment-maintenance-1280-${language}`,
+      );
+
+      await page.setViewportSize(PHONE);
+      await expectNoSidewaysScroll(page);
+      await screenshot(
+        page,
+        `app-platforms-environment-maintenance-390-${language}`,
+      );
+    }
+  });
+
+  test("while an event holds the environment, an app's page and the Overview say so; nothing does otherwise", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CHECKOUT_APP}?maintenance=held`);
+
+    await expect(notice(page)).toContainText("Under maintenance");
+    await expect(notice(page)).toContainText(
+      `${HELD_EVENT} covers this app's environment until`,
+    );
+    await expect(notice(page)).toContainText(
+      "Until then, the app's monitors open no incidents or alerts.",
+    );
+    await expect(
+      notice(page).getByRole("link", { name: HELD_EVENT }),
+    ).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/scheduled-maintenance-events/79500000-0000-4000-8000-000000000031`,
+    );
+    // Under the header, before the tabs.
+    const noticeBox: Box = await boxOf(notice(page));
+    const tabsBox: Box = await boxOf(page.getByRole("tablist"));
+    expect(noticeBox.y).toBeLessThan(tabsBox.y);
+    await screenshot(page, "app-platforms-app-maintenance-1280");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-app-maintenance-390");
+
+    // View events opens the environment's Scheduled Maintenance.
+    await page.setViewportSize(LAPTOP);
+    await notice(page).getByRole("link", { name: "View events" }).click();
+    await expect(page).toHaveURL(new RegExp(`${SCHEDULED_MAINTENANCE}$`));
+
+    // The Overview says it of the environment's apps.
+    await open(page, `${CHECKOUT}?maintenance=held`);
+    await expect(notice(page)).toContainText(
+      `${HELD_EVENT} covers this environment until`,
+    );
+    await expect(notice(page)).toContainText(
+      "Until then, the monitors of its apps open no incidents or alerts.",
+    );
+    await screenshot(
+      page,
+      "app-platforms-environment-overview-maintenance-1280",
+    );
+
+    // Another environment's pages, and checkout's with nothing held, say nothing.
+    await open(page, `${REPORTS_APP}?maintenance=held`);
+    await expect(page.getByTestId("cloud-app-header")).toBeVisible();
+    await expect(notice(page)).toHaveCount(0);
+    await open(page, CHECKOUT_APP);
+    await expect(page.getByTestId("cloud-app-header")).toBeVisible();
+    await expect(notice(page)).toHaveCount(0);
+  });
+
+  test("the notice reads in German and in Persian, the event's own title kept whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CHECKOUT_APP}?maintenance=held&lang=de`);
+
+    await expect(notice(page)).toContainText(GERMAN["Under maintenance"]!);
+    await expect(notice(page)).toContainText(
+      `${HELD_EVENT} betrifft die Umgebung dieser App bis`,
+    );
+    await expect(
+      notice(page).getByRole("link", { name: GERMAN["View events"]! }),
+    ).toBeVisible();
+    await screenshot(page, "app-platforms-app-maintenance-1280-de");
+
+    await page.setViewportSize(PHONE);
+    await open(page, `${CHECKOUT_APP}?maintenance=held&lang=fa`);
+    await expect(notice(page)).toContainText(PERSIAN["Under maintenance"]!);
+    await expect(
+      notice(page).locator("bdi", { hasText: HELD_EVENT }),
+    ).toHaveCount(1);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-app-maintenance-390-fa");
   });
 });

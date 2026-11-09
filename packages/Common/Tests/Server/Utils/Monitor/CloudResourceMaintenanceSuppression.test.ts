@@ -697,7 +697,14 @@ describe("MonitorMaintenanceSuppression.getMaintenanceSuppression, for a cloud r
       "select"
     ] as JSONObject;
 
-    expect(select["cloudResources"]).toEqual({ _id: true });
+    // By id; an environment's kind and keys too, which its apps' monitors read it by.
+    expect(select["cloudResources"]).toEqual({
+      _id: true,
+      cloudResourceKind: true,
+      cloudPlatform: true,
+      cloudAccountId: true,
+      cloudRegion: true,
+    });
     expect(select["databaseServers"]).toEqual({ _id: true });
   });
 

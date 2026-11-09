@@ -76,6 +76,12 @@ import Timezone from "../../../Types/Timezone";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import { TableCellContext } from "../../../UI/Components/Table/TableCellContext";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../UI/Components/Table/TableEmptyValue";
+import TableFoldedValues, {
+  TABLE_FOLDED_VALUE_CLASS_NAME,
+  TABLE_FOLDED_VALUE_TEST_ID,
+} from "../../../UI/Components/Table/TableFoldedValues";
 
 const EVENT_ID: ObjectID = new ObjectID("7a7a7a7a-0000-4000-8000-0000000000aa");
 
@@ -479,4 +485,71 @@ describe("the Shown on Status Page cell of the list of events", () => {
       expect(screen.queryByTestId(SHOWS_FROM_TEST_ID)).toBeNull();
     },
   );
+
+  /*
+   * Folded under an event's title (a resource's own tab), the cell is a line
+   * of its own, named "Shown on Status Page": for an event on no page it
+   * drew that name over a dash, as the cell wrapped the dash in a box of its
+   * own, where the line's rule - which leaves out a line with nothing to
+   * say - did not see it.
+   */
+  function renderFolded(event: ScheduledMaintenance): HTMLElement | null {
+    render(
+      <MemoryRouter>
+        <TableCellContext.Provider value={true}>
+          <TableFoldedValues
+            main={<span>Rotate the task execution role</span>}
+            folded={[
+              {
+                title: "Shown on Status Page",
+                content: <ScheduledMaintenanceStatusPagesCell item={event} />,
+                isTitleShown: true,
+              },
+            ]}
+          />
+        </TableCellContext.Provider>
+      </MemoryRouter>,
+    );
+
+    // The line's value, the box the rule reads (jsdom applies no :has()).
+    return screen
+      .getByTestId(TABLE_FOLDED_VALUE_TEST_ID)
+      .querySelector(":scope > div");
+  }
+
+  test("folded under the title, an event on no status page draws the bare dash its line leaves out", () => {
+    expect(TABLE_FOLDED_VALUE_CLASS_NAME).toContain(
+      "[&:has(>div>[data-testid=table-empty-value]:only-child)]:hidden",
+    );
+
+    const value: HTMLElement | null = renderFolded(
+      eventOn({ statusPageNames: [] }),
+    );
+
+    expect(value?.children).toHaveLength(1);
+    expect(value?.firstElementChild).toHaveAttribute(
+      "data-testid",
+      TABLE_EMPTY_VALUE_TEST_ID,
+    );
+  });
+
+  test("folded under the title, an event on a page, or kept to the team until its time, keeps its line", () => {
+    const shown: HTMLElement | null = renderFolded(eventOn({}));
+
+    expect(shown).toHaveTextContent("Acme Public");
+    expect(
+      shown?.querySelector(`[data-testid=${TABLE_EMPTY_VALUE_TEST_ID}]`),
+    ).toBeNull();
+
+    cleanup();
+
+    const waiting: HTMLElement | null = renderFolded(
+      eventOn({ publishOnStatusPageAt: PUBLISH_AT }),
+    );
+
+    expect(waiting).toHaveTextContent("Acme Public");
+    expect(within(waiting!).getByTestId(SHOWS_FROM_TEST_ID)).toHaveTextContent(
+      `Shows from ${shownTime(PUBLISH_AT)}`,
+    );
+  });
 });

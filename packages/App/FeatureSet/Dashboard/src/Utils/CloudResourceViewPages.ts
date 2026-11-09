@@ -86,11 +86,11 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
 
 /*
  * An environment's pages, in App Platforms. It has the apps that run in it,
- * the telemetry they send - logs, traces and the running instances - and no
- * Changes: those are what a cloud account's activity log records about its
- * resources. No Recommendations either: those are monitors over the metrics
- * a cloud account's connection reads about a resource
- * (Common/Types/Monitor/CloudAlertTemplates).
+ * the telemetry they send - logs, traces and the running instances - the
+ * monitors OneUptime recommends for its apps (CloudAppAlertTemplates, every
+ * app at once), and the scheduled maintenance events that hold it, which
+ * hold its apps' monitors while they are in progress. No Changes: those are
+ * what a cloud account's activity log records about its resources.
  */
 export const ENVIRONMENT_VIEW_PAGES: Readonly<
   Partial<Record<CloudResourceViewTab, string>>
@@ -107,6 +107,10 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.Incidents]:
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS,
   [CloudResourceViewTab.Alerts]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS,
+  [CloudResourceViewTab.ScheduledMaintenance]:
+    PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE,
+  [CloudResourceViewTab.Recommendations]:
+    PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS,
   [CloudResourceViewTab.Documentation]:
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION,
   [CloudResourceViewTab.Settings]:

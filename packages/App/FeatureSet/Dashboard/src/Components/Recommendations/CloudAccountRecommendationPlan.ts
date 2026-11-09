@@ -52,6 +52,12 @@ import {
  * on two resources is two different monitors. This module is that join,
  * kept out of the page so it can be tested in a suite with no renderer.
  * React-free, and reads nothing.
+ *
+ * The same join serves an App Platforms environment's Recommendations, one
+ * row per recommendation across the apps it runs
+ * (CloudEnvironmentAppRecommendationPlan): what differs - the catalog's
+ * resource type, how targets group, what a monitor is linked to - is a
+ * RecommendationPlanScope, and a cloud account's is the default.
  */
 
 // One resource of the account, as the page read it.
@@ -60,6 +66,36 @@ export interface CloudAccountRecommendationResource {
   resourceId: string;
   resourceName: string;
   context: MonitorRecommendationContext;
+  /*
+   * What tells it apart from another of its name, drawn beside the name:
+   * an app's cluster ("cluster production"). Absent for a cloud resource,
+   * whose name is its own.
+   */
+  detail?: string | undefined;
+}
+
+// The group a target is in: its resource type, for a cloud account.
+export interface RecommendationPlanGroupIdentity {
+  key: string;
+  provider: string;
+  resourceType: string;
+  label: string;
+}
+
+/*
+ * What a plan is about: the catalog's resource type its targets are, the
+ * group each target is in, and what a monitor made for a target is linked
+ * to - a cloud resource's to itself, an app's to its environment.
+ */
+export interface RecommendationPlanScope {
+  resourceType: MonitorRecommendationResourceType;
+  getGroup: (
+    resource: CloudAccountRecommendationResource,
+  ) => RecommendationPlanGroupIdentity;
+  linkMonitor: (data: {
+    monitor: Monitor;
+    resource: CloudAccountRecommendationResource;
+  }) => void;
 }
 
 // One recommendation for one resource, and where it stands.
@@ -252,6 +288,37 @@ function compareText(a: string, b: string): number {
   return a.localeCompare(b, undefined, { sensitivity: "base" });
 }
 
+/*
+ * A cloud account's: its resources' recommendations by their cloud's
+ * resource type, each type the label the product names it by, each monitor
+ * linked to its own resource (Monitor.cloudResources).
+ */
+export const CLOUD_ACCOUNT_RECOMMENDATION_SCOPE: RecommendationPlanScope = {
+  resourceType: MonitorRecommendationResourceType.CloudResource,
+  getGroup: (
+    resource: CloudAccountRecommendationResource,
+  ): RecommendationPlanGroupIdentity => {
+    return {
+      key: getTypeKey(resource.context),
+      provider: (resource.context.cloudProvider || "").trim(),
+      resourceType: (resource.context.cloudResourceType || "").trim(),
+      label: getCloudResourceTypeDisplayName(
+        resource.context.cloudProvider,
+        resource.context.cloudResourceType,
+      ),
+    };
+  },
+  linkMonitor: (data: {
+    monitor: Monitor;
+    resource: CloudAccountRecommendationResource;
+  }): void => {
+    MonitorRecommendationCreateUtil.linkToCloudResource({
+      monitor: data.monitor,
+      cloudResourceId: new ObjectID(data.resource.resourceId),
+    });
+  },
+};
+
 export default class CloudAccountRecommendationPlan {
   /*
    * The account's recommendations, by resource type: each type the label
@@ -266,7 +333,12 @@ export default class CloudAccountRecommendationPlan {
       monitorSteps: Array<MonitorStep>;
     }>;
     dismissals: Array<RecommendationDismissal>;
+    // A cloud account's when left out.
+    scope?: RecommendationPlanScope | undefined;
   }): Array<CloudAccountRecommendationGroup> {
+    const scope: RecommendationPlanScope =
+      data.scope || CLOUD_ACCOUNT_RECOMMENDATION_SCOPE;
+
     const monitorIdByFingerprint: Map<string, ObjectID> =
       MonitorRecommendationUtil.getMonitorIdByFingerprint(
         data.existingMonitors,
@@ -304,6 +376,7 @@ export default class CloudAccountRecommendationPlan {
       ): number => {
         return (
           compareText(a.resourceName, b.resourceName) ||
+          compareText(a.detail || "", b.detail || "") ||
           compareText(a.resourceId, b.resourceId)
         );
       },
@@ -312,7 +385,7 @@ export default class CloudAccountRecommendationPlan {
     for (const resource of sortedResources) {
       const recommendations: Array<MonitorRecommendation> =
         MonitorRecommendationCatalog.getRecommendations(
-          MonitorRecommendationResourceType.CloudResource,
+          scope.resourceType,
           resource.context,
         );
 
@@ -334,23 +407,23 @@ export default class CloudAccountRecommendationPlan {
           dismissals: dismissalsByResource.get(resource.resourceId) || [],
         });
 
-      const key: string = getTypeKey(resource.context);
-      let group: CloudAccountRecommendationGroup | undefined = groups.get(key);
+      const identity: RecommendationPlanGroupIdentity =
+        scope.getGroup(resource);
+      let group: CloudAccountRecommendationGroup | undefined = groups.get(
+        identity.key,
+      );
 
       if (!group) {
         group = {
-          key: key,
-          provider: (resource.context.cloudProvider || "").trim(),
-          resourceType: (resource.context.cloudResourceType || "").trim(),
-          label: getCloudResourceTypeDisplayName(
-            resource.context.cloudProvider,
-            resource.context.cloudResourceType,
-          ),
+          key: identity.key,
+          provider: identity.provider,
+          resourceType: identity.resourceType,
+          label: identity.label,
           resources: [],
           rows: [],
           counts: { total: 0, available: 0, created: 0, dismissed: 0 },
         };
-        groups.set(key, group);
+        groups.set(identity.key, group);
       }
 
       group.resources.push(resource);
@@ -391,7 +464,7 @@ export default class CloudAccountRecommendationPlan {
     const declaredOrder: Map<string, number> = new Map<string, number>();
 
     MonitorRecommendationCatalog.getAllPossibleRecommendations(
-      MonitorRecommendationResourceType.CloudResource,
+      scope.resourceType,
     ).forEach((recommendation: MonitorRecommendation, index: number): void => {
       declaredOrder.set(recommendation.recommendationId, index);
     });
@@ -482,6 +555,7 @@ export default class CloudAccountRecommendationPlan {
       ): number => {
         return (
           compareText(a.resourceName, b.resourceName) ||
+          compareText(a.detail || "", b.detail || "") ||
           compareText(a.resourceId, b.resourceId)
         );
       },
@@ -566,15 +640,21 @@ export default class CloudAccountRecommendationPlan {
    * One monitor per target, each built for its own resource exactly as its
    * Recommendations tab builds it (MonitorRecommendationCreateUtil
    * .buildMonitor) - named "<resource> - <recommendation>", every five
-   * minutes, with the person's notification settings - and linked to its
-   * resource (Monitor.cloudResources). A target no longer Available is
-   * left out: it was created or dismissed since the page read it.
+   * minutes, with the person's notification settings - and linked as the
+   * scope links it: a cloud resource's to itself (Monitor.cloudResources),
+   * an app's to its environment. A target no longer Available is left out:
+   * it was created or dismissed since the page read it.
    */
   public static buildCreatePlan(data: {
     targets: Array<CloudAccountRecommendationTarget>;
     defaults: CloudAccountRecommendationDefaults;
     notificationSettings: MonitorRecommendationNotificationSettings;
+    // A cloud account's when left out.
+    scope?: RecommendationPlanScope | undefined;
   }): Array<CloudAccountRecommendationPlanItem> {
+    const scope: RecommendationPlanScope =
+      data.scope || CLOUD_ACCOUNT_RECOMMENDATION_SCOPE;
+
     const miscDataProps: JSONObject =
       MonitorRecommendationCreateUtil.buildMiscDataProps(
         data.notificationSettings,
@@ -598,10 +678,7 @@ export default class CloudAccountRecommendationPlan {
         notificationSettings: data.notificationSettings,
       });
 
-      MonitorRecommendationCreateUtil.linkToCloudResource({
-        monitor: monitor,
-        cloudResourceId: new ObjectID(target.resource.resourceId),
-      });
+      scope.linkMonitor({ monitor: monitor, resource: target.resource });
 
       plan.push({
         target: target,
@@ -708,6 +785,12 @@ export default class CloudAccountRecommendationPlan {
         ...row.targets.map(
           (target: CloudAccountRecommendationTarget): string => {
             return target.resource.resourceName;
+          },
+        ),
+        // What tells an app apart from another of its name: its cluster.
+        ...row.targets.map(
+          (target: CloudAccountRecommendationTarget): string => {
+            return target.resource.detail || "";
           },
         ),
       ];

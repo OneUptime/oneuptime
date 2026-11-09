@@ -213,6 +213,22 @@ function isLabelsColumn(title: string | null, fields: Array<string>): boolean {
   );
 }
 
+/*
+ * The list a `columns` attribute is given: the array itself, or the array a
+ * call is handed last - a list that leaves a column out on one page passes
+ * its columns through a function (`columns={columnsOfThisList([...])}`,
+ * ScheduledMaintenanceTable on a resource's own tab).
+ */
+function columnListOf(
+  expression: ts.Expression | undefined,
+): ts.Expression | undefined {
+  if (expression && ts.isCallExpression(expression)) {
+    return expression.arguments[expression.arguments.length - 1];
+  }
+
+  return expression;
+}
+
 // Every column that lists labels, in every table a file declares.
 function labelColumnsIn(fileName: string, text: string): Array<LabelColumn> {
   const source: ts.SourceFile = ts.createSourceFile(
@@ -268,7 +284,7 @@ function labelColumnsIn(fileName: string, text: string): Array<LabelColumn> {
       node.initializer &&
       ts.isJsxExpression(node.initializer)
     ) {
-      consider(node.initializer.expression);
+      consider(columnListOf(node.initializer.expression));
     } else if (
       ts.isPropertyAssignment(node) &&
       propertyName(node.name) === "columns"

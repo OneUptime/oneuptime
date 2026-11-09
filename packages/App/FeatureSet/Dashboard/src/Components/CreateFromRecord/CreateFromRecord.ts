@@ -508,6 +508,14 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
           page: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS,
           title: ALERTS_TAB_TITLE,
         },
+        /*
+         * An event that holds the environment holds its apps' monitors
+         * while it is in progress (MonitorMaintenanceSuppression).
+         */
+        [CreatedRecordKind.ScheduledMaintenance]: {
+          page: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE,
+          title: SCHEDULED_MAINTENANCE_TAB_TITLE,
+        },
       },
     },
     // Only maintenance is attached to a site: incidents and alerts are not.

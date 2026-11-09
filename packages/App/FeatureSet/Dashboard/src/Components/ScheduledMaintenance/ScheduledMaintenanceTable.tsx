@@ -11,6 +11,7 @@ import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Columns from "Common/UI/Components/ModelTable/Columns";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
@@ -105,6 +106,15 @@ export interface ComponentProps {
   disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
   /*
+   * A resource's own Scheduled Maintenance tab, where every event the list
+   * shows holds that resource: its Affected Resources column would only say
+   * the resource again, cut short beside the side menu, and its filter
+   * would only offer it, so the tab leaves both out and lays out its
+   * columns to fit (RESOURCE_TAB_COLUMN_LAYOUT). Every other list keeps
+   * them all.
+   */
+  isResourceOwnTab?: boolean | undefined;
+  /*
    * The events as a list - the default: All Events, Ongoing Events, and a
    * monitor's or a host's Scheduled Maintenance tab - or as a calendar: the
    * Maintenance Calendar page, with Subscribe to calendar (the team's
@@ -114,9 +124,80 @@ export interface ComponentProps {
   view?: ScheduledMaintenanceView | undefined;
 }
 
+// The column a resource's own tab leaves out (isResourceOwnTab).
+export const AFFECTED_RESOURCES_COLUMN_TITLE: string = "Affected Resources";
+
+type ScheduledMaintenanceColumn = Columns<ScheduledMaintenance>[number];
+
+type ResourceTabColumnLayout = Pick<
+  ScheduledMaintenanceColumn,
+  "hideBelowLargeScreen" | "foldInto" | "showTitleWhenFolded" | "hideOnMobile"
+>;
+
+/*
+ * How a resource's own tab lays out its columns, by their titles: beside
+ * the side menu its row did not fit its card even without Affected
+ * Resources - 1,420px of columns in a 938px card at 1280px - and when an
+ * event starts and ends was out of sight to its right. So, as the
+ * incidents list does (TableFit), how long an event lasts goes under when
+ * it starts, and the status pages it is shown on, its labels and its
+ * owners under its title, wherever the row does not fit. Which event, its
+ * state, and when it starts and ends stay columns of their own: what a
+ * team reads a resource's maintenance for - and a phone's card says when
+ * the event starts, not only how long it lasts.
+ */
+export const RESOURCE_TAB_COLUMN_LAYOUT: Readonly<
+  Record<string, ResourceTabColumnLayout>
+> = {
+  "Starts At": { hideOnMobile: false },
+  Duration: { hideBelowLargeScreen: true, foldInto: "startsAt" },
+  // "Acme Status" under a title does not say what it is by itself.
+  "Shown on Status Page": {
+    hideBelowLargeScreen: true,
+    foldInto: "title",
+    showTitleWhenFolded: true,
+  },
+  Labels: { hideBelowLargeScreen: true, foldInto: "title" },
+  Owners: { hideBelowLargeScreen: true, foldInto: "title" },
+};
+
+/*
+ * The list's columns as this list draws them: on a resource's own tab
+ * without Affected Resources, and laid out to fit
+ * (RESOURCE_TAB_COLUMN_LAYOUT); every column as declared otherwise.
+ */
+export function getScheduledMaintenanceColumns(
+  isResourceOwnTab: boolean | undefined,
+  columns: Columns<ScheduledMaintenance>,
+): Columns<ScheduledMaintenance> {
+  if (!isResourceOwnTab) {
+    return columns;
+  }
+
+  return columns
+    .filter((column: ScheduledMaintenanceColumn): boolean => {
+      return column.title !== AFFECTED_RESOURCES_COLUMN_TITLE;
+    })
+    .map((column: ScheduledMaintenanceColumn): ScheduledMaintenanceColumn => {
+      const layout: ResourceTabColumnLayout | undefined =
+        RESOURCE_TAB_COLUMN_LAYOUT[column.title];
+
+      return layout ? { ...column, ...layout } : column;
+    });
+}
+
 const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Its columns as this list draws them (getScheduledMaintenanceColumns).
+  const columnsOfThisList: (
+    columns: Columns<ScheduledMaintenance>,
+  ) => Columns<ScheduledMaintenance> = (
+    columns: Columns<ScheduledMaintenance>,
+  ): Columns<ScheduledMaintenance> => {
+    return getScheduledMaintenanceColumns(props.isResourceOwnTab, columns);
+  };
+
   const [scheduledMaintenanceTemplates, setScheduledMaintenanceTemplates] =
     useState<Array<ScheduledMaintenanceTemplate>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -234,13 +315,18 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         return buildEntityFacetQuery(values, operator, true);
       },
     },
-    buildAffectedResourcesFacet<ScheduledMaintenance>({
-      parentModelType: ScheduledMaintenance,
-      // Only maintenance events can be attached to a network site.
-      includeNetworkSite: true,
-      // A maintenance event holds cloud resources, as incidents and alerts do.
-      includeCloudResource: true,
-    }),
+    // A resource's own tab lists the events that hold it: no chip offering it again.
+    ...(props.isResourceOwnTab
+      ? []
+      : [
+          buildAffectedResourcesFacet<ScheduledMaintenance>({
+            parentModelType: ScheduledMaintenance,
+            // Only maintenance events can be attached to a network site.
+            includeNetworkSite: true,
+            // A maintenance event holds cloud resources, as incidents and alerts do.
+            includeCloudResource: true,
+          }),
+        ]),
   ];
 
   /*
@@ -790,7 +876,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               serviceColor: true,
             },
           }}
-          columns={[
+          columns={columnsOfThisList([
             {
               field: {
                 scheduledMaintenanceNumber: true,
@@ -1064,7 +1150,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 );
               },
             },
-          ]}
+          ])}
         />
       )}
 

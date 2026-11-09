@@ -643,16 +643,25 @@ function attributeSourceOf(table: ListTable, name: string): string {
   return definition;
 }
 
-// The column objects of a table's `columns={[...]}`.
+/*
+ * The column objects of a table's `columns={[...]}` - or of the array a
+ * call is handed last, for a list that leaves a column out on one page
+ * (`columns={columnsOfThisList([...])}`, ScheduledMaintenanceTable on a
+ * resource's own tab).
+ */
 function columnsOf(table: ListTable): Array<ts.ObjectLiteralExpression> {
   const attribute: ts.JsxAttribute | undefined = attributeNamed(
     table.element.attributes,
     "columns",
   );
-  const expression: ts.Expression | undefined =
+  const given: ts.Expression | undefined =
     attribute?.initializer && ts.isJsxExpression(attribute.initializer)
       ? attribute.initializer.expression
       : undefined;
+  const expression: ts.Expression | undefined =
+    given && ts.isCallExpression(given)
+      ? given.arguments[given.arguments.length - 1]
+      : given;
 
   if (!expression || !ts.isArrayLiteralExpression(expression)) {
     return [];

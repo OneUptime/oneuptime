@@ -188,6 +188,11 @@ describe("the records a create page can be opened from", () => {
       CreateFromRecordKind.IoTFleet,
       CreateFromRecordKind.DatabaseServer,
       CreateFromRecordKind.CloudResource,
+      /*
+       * And App Platforms environments: one held holds its apps' monitors
+       * while it is in progress.
+       */
+      CreateFromRecordKind.CloudEnvironment,
       CreateFromRecordKind.NetworkSite,
       CreateFromRecordKind.Service,
     ]);
@@ -596,6 +601,7 @@ describe("a cloud environment and a cloud resource", () => {
     for (const created of [
       CreatedRecordKind.Incident,
       CreatedRecordKind.Alert,
+      CreatedRecordKind.ScheduledMaintenance,
     ]) {
       expect(
         getCreateFromRecordField(
@@ -614,10 +620,55 @@ describe("a cloud environment and a cloud resource", () => {
       });
     }
 
-    // Neither is a maintenance event's.
+    /*
+     * Both are a maintenance event's: an environment's holds its apps'
+     * monitors, a resource's the monitors reading its metrics.
+     */
     expect(
       getCreateFromRecordKinds(CreatedRecordKind.ScheduledMaintenance),
-    ).not.toContain(CreateFromRecordKind.CloudEnvironment);
+    ).toEqual(
+      expect.arrayContaining([
+        CreateFromRecordKind.CloudEnvironment,
+        CreateFromRecordKind.CloudResource,
+      ]),
+    );
+  });
+
+  test("an environment's Scheduled Maintenance tab opens with it picked, and goes back through App Platforms", () => {
+    const address: CreateFromRecordAddress = {
+      kind: CreateFromRecordKind.CloudEnvironment,
+      id: ENVIRONMENT_ID,
+    };
+
+    expect(
+      getCreateFromRecordQuery(CreatedRecordKind.ScheduledMaintenance, address),
+    ).toEqual({ cloudEnvironmentId: ENVIRONMENT_ID });
+    expect(
+      readCreateFromRecord(
+        CreatedRecordKind.ScheduledMaintenance,
+        addressReader({ cloudEnvironmentId: ENVIRONMENT_ID }),
+      ),
+    ).toEqual(address);
+    expect(
+      getCreateFromRecordTrail(address, CreatedRecordKind.ScheduledMaintenance),
+    ).toEqual([
+      { title: PROJECT_CRUMB_TITLE, page: PageMap.HOME },
+      { title: "App Platforms", page: PageMap.APP_PLATFORMS_OVERVIEW },
+      {
+        title: "View Environment",
+        page: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+        modelId: ENVIRONMENT_ID,
+      },
+      {
+        title: "Scheduled Maintenance",
+        page: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE,
+        modelId: ENVIRONMENT_ID,
+      },
+      {
+        title: "New Scheduled Maintenance Event",
+        page: PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
+      },
+    ]);
   });
 
   test("an environment's Incidents tab opens with it picked, and the page reads it back", () => {

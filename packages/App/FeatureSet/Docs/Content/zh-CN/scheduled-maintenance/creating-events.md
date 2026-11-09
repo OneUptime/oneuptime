@@ -75,7 +75,7 @@ flowchart TB
 
 ## 从资源或模板开始
 
-在主机、Kubernetes、Proxmox、Ceph 或 Docker Swarm 集群、Docker 或 Podman 主机、vCenter、OpenStack 云、存储阵列、IoT 设备群、数据库、云资源、服务或网络站点的 **计划维护** 选项卡上， **创建计划维护事件** 会打开同一个表单，并已在 **其他受影响的资源** 下选好该资源；该选项卡还会列出影响该资源的事件。资产清单项的选项卡会选择该项指向的主机、服务或 Kubernetes 集群。
+在主机、Kubernetes、Proxmox、Ceph 或 Docker Swarm 集群、Docker 或 Podman 主机、vCenter、OpenStack 云、存储阵列、IoT 设备群、数据库、云资源、应用平台环境、服务或网络站点的 **计划维护** 选项卡上， **创建计划维护事件** 会打开同一个表单，并已在 **其他受影响的资源** 下选好该资源；该选项卡还会列出影响该资源的事件。资产清单项的选项卡会选择该项指向的主机、服务或 Kubernetes 集群。
 
 创建按钮旁边的 **从模板创建** 会让你 **选择计划维护模板** ，然后打开用该模板填好的表单。请参阅 [模板与周期性事件](/docs/scheduled-maintenance/templates)。
 

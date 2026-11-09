@@ -46,31 +46,39 @@ const ScheduledMaintenanceStatusPagesCell: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const waitingPublishAt: Date | null = getWaitingPublishAt(props.item);
+  const statusPages: ReactElement = (
+    <StatusPagesElement statusPages={props.item.statusPages || []} />
+  );
+
+  /*
+   * Nothing to say under the pages: the pages alone, so that a row on none
+   * draws the table's bare dash, which a folded column's line leaves out
+   * (TableFoldedValues) rather than naming the column over a dash.
+   */
+  if (!waitingPublishAt) {
+    return statusPages;
+  }
 
   return (
     <div>
-      <StatusPagesElement statusPages={props.item.statusPages || []} />
-      {waitingPublishAt ? (
-        <p
-          className="mt-1 flex items-center gap-1 text-xs text-gray-500"
-          data-testid={SHOWS_FROM_TEST_ID}
-        >
-          <Icon
-            icon={IconProp.Clock}
-            className="h-3.5 w-3.5 shrink-0 text-gray-400"
+      {statusPages}
+      <p
+        className="mt-1 flex items-center gap-1 text-xs text-gray-500"
+        data-testid={SHOWS_FROM_TEST_ID}
+      >
+        <Icon
+          icon={IconProp.Clock}
+          className="h-3.5 w-3.5 shrink-0 text-gray-400"
+        />
+        <span>
+          <TranslatedSentence
+            template={SHOWS_FROM_TEXT}
+            slots={{
+              time: <ShowsFromTime date={waitingPublishAt} />,
+            }}
           />
-          <span>
-            <TranslatedSentence
-              template={SHOWS_FROM_TEXT}
-              slots={{
-                time: <ShowsFromTime date={waitingPublishAt} />,
-              }}
-            />
-          </span>
-        </p>
-      ) : (
-        <></>
-      )}
+        </span>
+      </p>
     </div>
   );
 };

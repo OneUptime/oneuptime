@@ -618,7 +618,15 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
   });
 
   it("names the list's columns, in its order", () => {
-    const columns: string = LIST_TABLE.slice(LIST_TABLE.indexOf("columns={["));
+    /*
+     * The list draws them through columnsOfThisList, which leaves Affected
+     * Resources out on a resource's own tab only.
+     */
+    const start: number = LIST_TABLE.indexOf("columns={columnsOfThisList([");
+
+    expect(start).toBeGreaterThan(-1);
+
+    const columns: string = LIST_TABLE.slice(start);
     const titles: Array<string> = quotedTitles(
       columns.slice(0, columns.indexOf("NoTemplatesYetModal")),
     );
@@ -1021,6 +1029,44 @@ describe("what an event affects", () => {
 
     expect(affects).toContain(
       "A telemetry monitor that watches many hosts, clusters, databases or services, one series each, raises no incident or alert for a series whose resource the event covers, while the other series keep alerting.",
+    );
+  });
+
+  /*
+   * An App Platforms environment is held by its platform, account and
+   * Region: a monitor whose every query reads only those - an app's
+   * recommended monitors do - opens nothing while an event holds it, and
+   * the app's page says why under its header.
+   */
+  it("silences the monitors that read only an App Platforms environment it covers, and says so on each app's page", () => {
+    const suppression: string = readCommonSource(
+      "Server/Utils/Monitor/MonitorMaintenanceSuppression.ts",
+    );
+    const identity: string = readCommonSource(
+      "Server/Utils/Monitor/MonitorStepResourceIdentity.ts",
+    );
+
+    expect(suppression).toContain(
+      "cloudEnvironments?: Map<string, string> | undefined;",
+    );
+    expect(suppression).toContain(
+      "suppressingCloudEnvironmentIds?: Array<string> | undefined;",
+    );
+    expect(identity).toContain(
+      "public static getCloudEnvironmentKeysOfQueries(",
+    );
+    expect(
+      readDashboardSource(
+        "Components/AppPlatforms/CloudEnvironmentMaintenanceNotice.tsx",
+      ),
+    ).toContain(
+      "\"{{event}} covers this app's environment until {{time}}. Until then, the app's monitors open no incidents or alerts.\",",
+    );
+    expect(readDashboardSource("Pages/AppPlatforms/View/App.tsx")).toContain(
+      "scope={CloudEnvironmentMaintenanceNoticeScope.App}",
+    );
+    expect(affects).toContain(
+      "When it covers an App Platforms environment, the monitors that read only that environment's telemetry, such as its apps' recommended ones, open none either, and each app's page says why.",
     );
   });
 
@@ -2295,6 +2341,7 @@ describe("starting from a resource or a template", () => {
         CreateFromRecordKind.IoTFleet,
         CreateFromRecordKind.DatabaseServer,
         CreateFromRecordKind.CloudResource,
+        CreateFromRecordKind.CloudEnvironment,
         CreateFromRecordKind.Service,
         CreateFromRecordKind.NetworkSite,
       ].sort(),
@@ -2310,7 +2357,7 @@ describe("starting from a resource or a template", () => {
     }
 
     expect(start).toContain(
-      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
+      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, an App Platforms environment, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
     );
   });
 
