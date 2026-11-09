@@ -42,10 +42,14 @@ import {
   INGEST_REFUSAL_FIXES,
   INGEST_REFUSAL_FIX_LABELS,
   INGEST_SURFACE_LABELS,
+  REFUSALS_RECENT_MS,
+  REFUSAL_REASON_LABELS,
   REFUSAL_REASON_WORDS,
   getIngestRefusalCountText,
+  getIngestRefusalReasonLabel,
   getIngestRefusalReasonText,
   getIngestSurfaceLabel,
+  isIngestRefusalRecent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestRefusalWords";
 import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
 import ObjectID from "../../../Types/ObjectID";
@@ -426,9 +430,15 @@ describe("a refusal row as the Dashboard reads it", () => {
 });
 
 describe("what a refusal says", () => {
-  test("every reason has its sentence, a fix (or none) and every fix a label", () => {
+  test("every reason has its sentence, its few words, a fix (or none) and every fix a label", () => {
     expect(Object.keys(REFUSAL_REASON_WORDS).sort()).toEqual(
       [...ALL_TELEMETRY_INGEST_REFUSAL_REASONS].sort(),
+    );
+    expect(Object.keys(REFUSAL_REASON_LABELS).sort()).toEqual(
+      [...ALL_TELEMETRY_INGEST_REFUSAL_REASONS].sort(),
+    );
+    expect(new Set(Object.values(REFUSAL_REASON_LABELS)).size).toBe(
+      ALL_TELEMETRY_INGEST_REFUSAL_REASONS.length,
     );
     expect(Object.keys(INGEST_REFUSAL_FIXES).sort()).toEqual(
       [...ALL_TELEMETRY_INGEST_REFUSAL_REASONS].sort(),
@@ -483,6 +493,44 @@ describe("what a refusal says", () => {
         localeTranslator("de"),
       ),
     ).not.toBe("This project used up its daily ingestion budget.");
+  });
+
+  test("the key page's few words name no key - the page is the key's - and say what it was, not what it is", () => {
+    expect(
+      getIngestRefusalReasonLabel(
+        TelemetryIngestRefusalReason.KeyDisabled,
+        ENGLISH,
+      ),
+    ).toBe("Key turned off");
+    expect(
+      getIngestRefusalReasonLabel(
+        TelemetryIngestRefusalReason.ProjectDailyBudget,
+        ENGLISH,
+      ),
+    ).toBe("Project's daily ingestion budget used up");
+    expect(
+      getIngestRefusalReasonLabel(
+        TelemetryIngestRefusalReason.KeyExpired,
+        localeTranslator("de"),
+      ),
+    ).toBe("Schlüssel abgelaufen");
+    expect(
+      getIngestRefusalReasonLabel(
+        TelemetryIngestRefusalReason.OriginNotAllowed,
+        localeTranslator("fa"),
+      ),
+    ).not.toMatch(/[A-Za-z]/);
+  });
+
+  test("a refusal of the past day is recent; one older is history", () => {
+    expect(REFUSALS_RECENT_MS).toBe(DAY);
+    expect(
+      isIngestRefusalRecent({ lastRefusedAt: ago(10 * MINUTE) }, NOW),
+    ).toBe(true);
+    expect(isIngestRefusalRecent({ lastRefusedAt: ago(DAY) }, NOW)).toBe(true);
+    expect(isIngestRefusalRecent({ lastRefusedAt: ago(DAY + 1) }, NOW)).toBe(
+      false,
+    );
   });
 
   test("in Persian, the key's Latin name is set apart from the right-to-left sentence", () => {

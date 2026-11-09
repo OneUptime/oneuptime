@@ -12,11 +12,14 @@ import {
 import {
   RumPanelSignal,
   RumSetupCheckLine,
+  RumSetupCheckRefusalNotice,
+  RumSetupCheckRow,
   RumSignalEmptyCopy,
   getRefusalAction,
   getRumSetupCheckLine,
   getRumSignalEmptyCopy,
   getSessionReplaySetupCheckLine,
+  shareRumSetupCheckRefusals,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumSignalWords";
 import { RUM_EMPTY_SIGNALS_DOCS_URL } from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumSignalSetupGuide";
 import { IngestRefusalFact } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestRefusalFacts";
@@ -40,6 +43,8 @@ import { Translator, createTranslator } from "../../../Types/Translator";
  * it right. Partly refused says so only beside telemetry that does
  * arrive. A check that is still loading, or that could not be made, stays
  * what it is - a refusal read alone cannot say the app is fine or not.
+ * Rows refused the same way say why and the fix once, in a notice above
+ * them (shareRumSetupCheckRefusals).
  */
 
 const MINUTE: number = 60 * 1000;
@@ -147,6 +152,8 @@ const REFUSED_LINE: RumSetupCheckLine = {
   detail:
     'The key "Storefront browser key" is turned off, so everything sent with it is refused.',
   action: { kind: "pick-key", label: "Pick another key" },
+  // The refusal it says, for the rows refused the same way to share.
+  refusal: refusal("refused"),
 };
 
 describe("a setup check row whose telemetry is refused", () => {
@@ -164,19 +171,17 @@ describe("a setup check row whose telemetry is refused", () => {
   );
 
   test("partly refused, beside telemetry that arrives: a warning with the reason and its fix", () => {
-    expect(
-      line({
-        state: "receiving",
-        refusal: refusal("partly-refused", {
-          reason: TelemetryIngestRefusalReason.ProjectIngestionRate,
-          lastRefusedAt: ago(5 * MINUTE),
-        }),
-      }),
-    ).toEqual({
+    const partly: RumKindRefusal = refusal("partly-refused", {
+      reason: TelemetryIngestRefusalReason.ProjectIngestionRate,
+      lastRefusedAt: ago(5 * MINUTE),
+    });
+
+    expect(line({ state: "receiving", refusal: partly })).toEqual({
       tone: "warning",
       text: "Arriving, but some are refused. The latest was refused 5 minutes ago.",
       detail: "This project went over its ingestion rate limit.",
       action: { kind: "budgets", label: "See budgets" },
+      refusal: partly,
     });
   });
 
@@ -264,6 +269,160 @@ describe("a setup check row whose telemetry is refused", () => {
     expect(getRefusalAction(refusal("refused"), ENGLISH)).toEqual(
       REFUSED_LINE.action,
     );
+  });
+});
+
+describe("rows refused the same way share one notice", () => {
+  function row(
+    signal: RumSetupCheckRow["signal"],
+    kind: RumKindRefusal | null,
+    state: RumSignalState = "not-arriving",
+  ): RumSetupCheckRow {
+    return {
+      signal,
+      line: line({
+        state,
+        signal: signal === "sessionReplay" ? "traces" : signal,
+        refusal: kind,
+      }),
+    };
+  }
+
+  const ARRIVING: RumSetupCheckRow = {
+    signal: "webVitals",
+    line: { tone: "ok", text: "Arriving. The latest came in 2 minutes ago." },
+  };
+
+  test("one key's one reason on several rows: said once, above them, and the rows say only Refused and when", () => {
+    const rows: Array<RumSetupCheckRow> = [
+      row("traces", refusal("refused")),
+      row("exceptions", refusal("refused")),
+      row(
+        "logs",
+        refusal("refused", { surface: TelemetryIngestSurface.OtelLogs }),
+      ),
+      ARRIVING,
+    ];
+
+    const shared: {
+      notices: Array<RumSetupCheckRefusalNotice>;
+      rows: Array<RumSetupCheckRow>;
+    } = shareRumSetupCheckRefusals(rows);
+
+    expect(shared.notices).toEqual([
+      {
+        tone: "error",
+        text: 'The key "Storefront browser key" is turned off, so everything sent with it is refused.',
+        action: { kind: "pick-key", label: "Pick another key" },
+        signals: ["traces", "exceptions", "logs"],
+      },
+    ]);
+    expect(
+      shared.rows.map((each: RumSetupCheckRow) => {
+        return [each.signal, each.line.detail, each.line.action];
+      }),
+    ).toEqual([
+      ["traces", undefined, undefined],
+      ["exceptions", undefined, undefined],
+      ["logs", undefined, undefined],
+      ["webVitals", undefined, undefined],
+    ]);
+    expect(shared.rows[0]!.line.text).toBe(REFUSED_LINE.text);
+    expect(shared.rows[0]!.line.tone).toBe("error");
+    // Rows that say no refusal are left as they were.
+    expect(shared.rows[3]).toBe(ARRIVING);
+  });
+
+  test("a refusal one row says stays under it", () => {
+    const rows: Array<RumSetupCheckRow> = [
+      row("logs", refusal("refused")),
+      ARRIVING,
+    ];
+
+    const shared: {
+      notices: Array<RumSetupCheckRefusalNotice>;
+      rows: Array<RumSetupCheckRow>;
+    } = shareRumSetupCheckRefusals(rows);
+
+    expect(shared.notices).toEqual([]);
+    expect(shared.rows).toEqual(rows);
+  });
+
+  test("two keys with the same reason are two refusals; a project's reason is one, whichever key it refused", () => {
+    const otherKey: Partial<IngestRefusalFact> = {
+      keyId: "6c3d0000-0000-4000-8000-0000000000b9",
+      keyName: "Checkout browser key",
+    };
+
+    expect(
+      shareRumSetupCheckRefusals([
+        row("traces", refusal("refused")),
+        row("logs", refusal("refused", otherKey)),
+      ]).notices,
+    ).toEqual([]);
+
+    const budget: Partial<IngestRefusalFact> = {
+      reason: TelemetryIngestRefusalReason.ProjectDailyBudget,
+    };
+
+    expect(
+      shareRumSetupCheckRefusals([
+        row("traces", refusal("refused", budget)),
+        row("logs", refusal("refused", { ...budget, ...otherKey })),
+      ]).notices,
+    ).toEqual([
+      {
+        tone: "error",
+        text: "This project used up its daily ingestion budget.",
+        action: { kind: "budgets", label: "See budgets" },
+        signals: ["traces", "logs"],
+      },
+    ]);
+  });
+
+  test("red while any of its rows is refused outright, amber while all of them still arrive in part", () => {
+    const limit: Partial<IngestRefusalFact> = {
+      reason: TelemetryIngestRefusalReason.ProjectIngestionRate,
+    };
+
+    expect(
+      shareRumSetupCheckRefusals([
+        row("traces", refusal("partly-refused", limit), "receiving"),
+        row("logs", refusal("partly-refused", limit), "receiving"),
+      ]).notices[0]?.tone,
+    ).toBe("warning");
+    expect(
+      shareRumSetupCheckRefusals([
+        row("traces", refusal("partly-refused", limit), "receiving"),
+        row("logs", refusal("refused", limit)),
+      ]).notices[0]?.tone,
+    ).toBe("error");
+  });
+
+  test("two shared refusals: two notices, in the order of their first rows; nothing to share, nothing changes", () => {
+    const budget: Partial<IngestRefusalFact> = {
+      reason: TelemetryIngestRefusalReason.PaymentRequired,
+      surface: TelemetryIngestSurface.OtelMetrics,
+    };
+
+    expect(
+      shareRumSetupCheckRefusals([
+        row("traces", refusal("refused")),
+        row("exceptions", refusal("refused")),
+        row("logs", refusal("refused", budget)),
+        row("webVitals", refusal("refused", budget)),
+      ]).notices.map((notice: RumSetupCheckRefusalNotice) => {
+        return notice.signals;
+      }),
+    ).toEqual([
+      ["traces", "exceptions"],
+      ["logs", "webVitals"],
+    ]);
+
+    expect(shareRumSetupCheckRefusals([ARRIVING])).toEqual({
+      notices: [],
+      rows: [ARRIVING],
+    });
   });
 });
 
@@ -361,7 +520,10 @@ describe("the Session Replay row", () => {
   ] as const)(
     "a refused key turns recordings away before the recorder counts: refused wins over %s",
     (state: RecordingHealthState) => {
-      expect(replay({ state, refusal: recordings })).toEqual(REFUSED_LINE);
+      expect(replay({ state, refusal: recordings })).toEqual({
+        ...REFUSED_LINE,
+        refusal: recordings,
+      });
     },
   );
 
@@ -415,6 +577,7 @@ describe("in German and in Persian", () => {
         detail:
           "Der Schlüssel „Storefront browser key“ ist ausgeschaltet, daher wird alles abgelehnt, was damit gesendet wird.",
         action: { kind: "pick-key", label: "Anderen Schlüssel wählen" },
+        refusal: refusal("refused"),
       });
 
       const copy: RumSignalEmptyCopy | null = emptyCopy({

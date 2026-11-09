@@ -63,6 +63,29 @@ export function getIngestionKeyUnusableReason(
   return null;
 }
 
+/*
+ * The keys in the picker's order: those that can send first, then those
+ * everything sent with is refused - still there, and still said why - each
+ * group in the order it came.
+ */
+export function getIngestionKeysUsableFirst(
+  keys: ReadonlyArray<TelemetryIngestionKey>,
+  now: Date,
+): Array<TelemetryIngestionKey> {
+  const isUsable: (key: TelemetryIngestionKey) => boolean = (
+    key: TelemetryIngestionKey,
+  ): boolean => {
+    return getIngestionKeyUnusableReason(key, now) === null;
+  };
+
+  return [
+    ...keys.filter(isUsable),
+    ...keys.filter((key: TelemetryIngestionKey): boolean => {
+      return !isUsable(key);
+    }),
+  ];
+}
+
 const UNUSABLE_KEY_LABELS: Readonly<
   Record<IngestionKeyUnusableReason, string>
 > = {
@@ -188,7 +211,13 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           sort: {},
         });
 
-      setIngestionKeys(result.data);
+      // Keys that can send come first: a refused one is not the first offered.
+      const keys: Array<TelemetryIngestionKey> = getIngestionKeysUsableFirst(
+        result.data,
+        OneUptimeDate.getCurrentDate(),
+      );
+
+      setIngestionKeys(keys);
 
       /*
        * Keep the selection while the reloaded list still has it; otherwise
@@ -198,7 +227,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
        * nothing selected and the snippets on their placeholder.
        */
       setSelectedKeyId((current: string): string => {
-        const isStillListed: boolean = result.data.some(
+        const isStillListed: boolean = keys.some(
           (key: TelemetryIngestionKey): boolean => {
             return key.id?.toString() === current;
           },
@@ -207,15 +236,11 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           return current;
         }
 
-        // A key everything sent with is refused is picked only when it is all there is.
-        const now: Date = OneUptimeDate.getCurrentDate();
-        const usable: TelemetryIngestionKey | undefined = result.data.find(
-          (key: TelemetryIngestionKey): boolean => {
-            return getIngestionKeyUnusableReason(key, now) === null;
-          },
-        );
-
-        return (usable || result.data[0])?.id?.toString() || "";
+        /*
+         * The first key is one that can send: a key everything sent with is
+         * refused is picked only when it is all there is.
+         */
+        return keys[0]?.id?.toString() || "";
       });
     } catch (err) {
       setKeyError(API.getFriendlyErrorMessage(err as Error));

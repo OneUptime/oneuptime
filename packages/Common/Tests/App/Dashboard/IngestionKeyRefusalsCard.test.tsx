@@ -24,10 +24,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * Settings > Telemetry Ingestion Keys > a key > Refused Telemetry (issue
  * #6378), rendered for real with only the API and the router replaced: what
- * the ingest endpoints turned away from this key in the past 30 days - why,
- * where, how many and when, the latest first - with a link where the fix is
- * one of the project's settings, and its own loading, empty and failed
- * states.
+ * OneUptime refused of this key's telemetry in the past 30 days - why,
+ * where, how many and when, the latest first. Each line is headed by its
+ * reason in a few words, without the key's name (the page is the key's);
+ * one refused in the past day is drawn as a problem, an older one as
+ * history. A fix in the project's settings is a link, and the card has its
+ * own loading, empty and failed states.
  */
 
 const KEY_ID: string = "6c3d0000-0000-4000-8000-0000000000a7";
@@ -221,9 +223,12 @@ describe("the key's Refused Telemetry card", () => {
     arrange("pending");
     await renderCard();
 
-    expect(
-      screen.getByTestId("ingestion-key-refusals-loading"),
-    ).toHaveTextContent("Checking…");
+    const loading: HTMLElement = screen.getByTestId(
+      "ingestion-key-refusals-loading",
+    );
+    expect(loading).toHaveTextContent("Checking…");
+    // A clock beside it, as the lines and the other states have their icon.
+    expect(loading.querySelector("svg")).not.toBeNull();
     expect(screen.getByTestId("ingestion-key-refusals")).toHaveAttribute(
       "aria-busy",
       "true",
@@ -242,6 +247,13 @@ describe("the key's Refused Telemetry card", () => {
       "false",
     );
     expect(screen.getByText("Refused Telemetry")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("ingestion-key-refusals")).getByTestId(
+        "card-description",
+      ),
+    ).toHaveTextContent(
+      "Telemetry sent with this key that OneUptime refused in the past 30 days, and why. A refusal shows here within a few minutes.",
+    );
   });
 
   test("one line per reason and endpoint: why, where, how many and when", async () => {
@@ -261,8 +273,9 @@ describe("the key's Refused Telemetry card", () => {
     expect(lines()[0]).toHaveAttribute("data-surface", "otel-logs");
 
     expect(
-      within(lines()[0]!).getByTestId("ingestion-key-refusal-reason"),
-    ).toHaveTextContent("This project used up its daily ingestion budget.");
+      within(lines()[0]!).getByTestId("ingestion-key-refusal-reason")
+        .textContent,
+    ).toBe("Project's daily ingestion budget used up");
     expect(
       within(lines()[0]!).getByTestId("ingestion-key-refusal-detail")
         .textContent,
@@ -276,11 +289,12 @@ describe("the key's Refused Telemetry card", () => {
       )}.`,
     );
 
+    // The page is the key's: its name would only repeat.
     expect(
-      within(lines()[1]!).getByTestId("ingestion-key-refusal-reason"),
-    ).toHaveTextContent(
-      "The key \"Storefront browser key\" doesn't allow the origin the requests came from. Add your site's origin to the key.",
-    );
+      within(lines()[1]!).getByTestId("ingestion-key-refusal-reason")
+        .textContent,
+    ).toBe("Origin not allowed by the key");
+    expect(lines()[1]!.textContent).not.toContain("Storefront browser key");
     expect(
       within(lines()[1]!).getByTestId("ingestion-key-refusal-detail")
         .textContent,
@@ -290,6 +304,35 @@ describe("the key's Refused Telemetry card", () => {
         new Date(),
       )}.`,
     );
+  });
+
+  test("refused in the past day: drawn as a problem; longer ago: as history", async () => {
+    arrange([
+      refusalRow({ reason: "key-disabled", lastRefusedAt: ago(3 * MINUTE_MS) }),
+      refusalRow({
+        reason: "key-expired",
+        firstRefusedAt: ago(9 * DAY_MS),
+        lastRefusedAt: ago(DAY_MS + 5 * MINUTE_MS),
+      }),
+    ]);
+    await renderCard();
+
+    expect(
+      lines().map((line: HTMLElement): Array<string | null> => {
+        return [
+          line.getAttribute("data-recent"),
+          line.querySelector("svg")?.getAttribute("class") || null,
+        ];
+      }),
+    ).toEqual([
+      ["true", expect.stringContaining("text-red-600")],
+      ["false", expect.stringContaining("text-gray-400")],
+    ]);
+    // Told as what it was then, which an old line still is.
+    expect(
+      within(lines()[1]!).getByTestId("ingestion-key-refusal-reason")
+        .textContent,
+    ).toBe("Key expired");
   });
 
   test("a fix in the project's settings is a link; the key's own settings are on this page", async () => {
@@ -348,7 +391,7 @@ describe("the key's Refused Telemetry card", () => {
     expect(
       screen.getByTestId("ingestion-key-refusals-failed"),
     ).toHaveTextContent(
-      "Couldn't load what this key was refused. Try again in a moment.",
+      "Couldn't load the refused telemetry. Try again in a moment.",
     );
 
     fireEvent.click(checkAgain());
@@ -419,26 +462,29 @@ describe("in the reader's language", () => {
 
     expect(screen.queryByText("Refused Telemetry")).toBeNull();
     expect(
-      within(lines()[0]!).getByTestId("ingestion-key-refusal-reason"),
-    ).toHaveTextContent(
-      "Der Schlüssel „Storefront browser key“ ist ausgeschaltet, daher wird alles abgelehnt, was damit gesendet wird.",
-    );
+      within(lines()[0]!).getByTestId("ingestion-key-refusal-reason")
+        .textContent,
+    ).toBe("Schlüssel ausgeschaltet");
+    expect(
+      within(lines()[1]!).getByTestId("ingestion-key-refusal-reason")
+        .textContent,
+    ).toBe("Tägliches Ingestion-Budget des Projekts aufgebraucht");
     expect(
       within(lines()[1]!).getByTestId("ingestion-key-refusal-action"),
     ).toHaveTextContent("Budgets ansehen");
   });
 
-  test("Persian: the key's Latin name set apart, the line's bullet its own, and nothing left in English", async () => {
+  test("Persian: the reason in Persian words alone, the line's bullet its own, and nothing left in English", async () => {
     arrange([refusalRow({ reason: "key-expired", refusedCount: 3 })]);
     await renderCard(within18n("fa"));
 
     const reason: string =
       within(lines()[0]!).getByTestId("ingestion-key-refusal-reason")
         .textContent || "";
-    expect(reason).toContain(
-      `${FIRST_STRONG_ISOLATE}Storefront browser key${POP_DIRECTIONAL_ISOLATE}`,
-    );
-    expect(reason).not.toContain("has expired");
+    expect(reason).not.toBe("");
+    expect(reason).not.toMatch(/[A-Za-z]/);
+    expect(reason).not.toContain(FIRST_STRONG_ISOLATE);
+    expect(reason).not.toContain(POP_DIRECTIONAL_ISOLATE);
 
     const detail: string =
       within(lines()[0]!).getByTestId("ingestion-key-refusal-detail")

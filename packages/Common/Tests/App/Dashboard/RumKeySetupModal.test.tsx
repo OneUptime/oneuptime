@@ -24,7 +24,10 @@ import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.j
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import RumKeySetupModal from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumKeySetupModal";
-import { getIngestionKeyUnusableReason } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeySelector";
+import {
+  getIngestionKeyUnusableReason,
+  getIngestionKeysUsableFirst,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeySelector";
 import { SETUP_GUIDE_API_KEY_PLACEHOLDER } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -40,10 +43,12 @@ import type { Mock } from "jest-mock";
 /*
  * "Pick another key" (issue #6378): what a RUM application sends is refused
  * because its key is turned off or has expired, so the setup check and the
- * empty charts open the application's own setup guide in a dialog, its first
- * step the key. The picker says beside a key's name when it is one of
- * those, never picks one on its own while another key is there, and says
- * under the token what is wrong with it when the reader picks it anyway.
+ * empty charts open a dialog of the steps a new key takes - pick it, put it
+ * where the refused one is, deploy - not the application's whole setup
+ * guide: it is set up already. The picker lists the keys that can send
+ * first, says beside a key's name when it cannot, never picks one of those
+ * on its own while another key is there, and says under the token what is
+ * wrong with it when the reader picks it anyway.
  */
 
 // Rendered as plain text, as in SetupGuideCard.test.tsx.
@@ -141,14 +146,19 @@ function open(
   wrap?: (element: React.ReactElement) => React.ReactElement,
 ): HTMLElement {
   const modal: React.ReactElement = (
-    <RumKeySetupModal
-      appName="storefront-web"
-      clientType={clientType}
-      onClose={onClose}
-    />
+    <RumKeySetupModal clientType={clientType} onClose={onClose} />
   );
   render(wrap ? wrap(modal) : modal);
   return screen.getByTestId("rum-pick-key-setup");
+}
+
+// The guide's step titles, without the "Step 1:" a screen reader hears.
+function stepTitles(): Array<string> {
+  return within(screen.getByTestId("setup-guide-steps"))
+    .getAllByRole("heading", { level: 3 })
+    .map((heading: HTMLElement): string => {
+      return (heading.textContent || "").replace(/^\S+ \d+:\s*/, "");
+    });
 }
 
 function picker(): HTMLElement {
@@ -222,6 +232,34 @@ describe("why a key cannot send", () => {
     ).toBeNull();
   });
 
+  test("the picker lists the keys that can send first, then the refused ones, each in the order they came", () => {
+    const keys: Array<TelemetryIngestionKey> = [
+      makeKey({ id: "off", name: "off", isEnabled: false }),
+      makeKey({ id: "one", name: "one", isEnabled: true }),
+      makeKey({
+        id: "old",
+        name: "old",
+        isEnabled: true,
+        expiresAt: new Date(now.getTime() - DAY_MS),
+      }),
+      makeKey({ id: "two", name: "two" }),
+    ];
+
+    expect(
+      getIngestionKeysUsableFirst(keys, now).map(
+        (key: TelemetryIngestionKey): string | undefined => {
+          return key.name;
+        },
+      ),
+    ).toEqual(["one", "two", "off", "old"]);
+    // The list it was given stays as it was.
+    expect(
+      keys.map((key: TelemetryIngestionKey): string | undefined => {
+        return key.name;
+      }),
+    ).toEqual(["off", "one", "old", "two"]);
+  });
+
   test("turned off says so first; a key whose switch or expiry was not read is fine", () => {
     expect(
       getIngestionKeyUnusableReason(
@@ -245,7 +283,7 @@ describe("why a key cannot send", () => {
 });
 
 describe("the Pick another key dialog", () => {
-  test("is the application's setup guide, its first step the key, named for what it is for", async () => {
+  test("the steps a new key takes, not the whole setup guide: pick it, put it in, deploy", async () => {
     mockKeys([GOOD_KEY]);
     const dialog: HTMLElement = open();
 
@@ -253,15 +291,43 @@ describe("the Pick another key dialog", () => {
       "Pick another key",
     );
     expect(screen.getByTestId("modal-description")).toHaveTextContent(
-      "Pick another key in the first step, or create one. The code under it has that key filled in: put it in your app in place of the refused key.",
+      "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.",
     );
+    // The line the refused key is on, with the picked key in its place.
     await waitFor(() => {
-      expect(dialog.textContent).toContain("secret-key-good");
+      expect(
+        within(screen.getByTestId("setup-guide-step-2")).getByText(
+          /headers: \{ "x-oneuptime-token": "secret-key-good" \},/,
+        ),
+      ).toBeInTheDocument();
     });
-    expect(dialog.textContent).toContain("storefront-web");
+
+    expect(stepTitles()).toEqual([
+      "Choose an ingestion key",
+      "Put it in place of the refused key",
+      "Deploy and check",
+    ]);
+    expect(dialog.textContent).toContain(
+      "Pick a Browser key that is turned on and allows your site's origin, or create one.",
+    );
+    expect(dialog.textContent).toContain(
+      "Your trace exporter in src/telemetry.ts sends with the refused key.",
+    );
+
+    // Nothing of a first setup: no choice of client, no prerequisites, no packages.
+    expect(screen.queryByTestId("setup-guide-options")).toBeNull();
+    expect(screen.queryByTestId("setup-guide-prerequisites")).toBeNull();
+    expect(screen.queryByTestId("setup-guide-advanced")).toBeNull();
+    expect(dialog.textContent).not.toContain("npm install");
+
+    expect(
+      within(screen.getByTestId("setup-guide-links")).getByRole("link", {
+        name: "RUM troubleshooting",
+      }),
+    ).toHaveAttribute("href", "/docs/rum/troubleshooting#check-the-key");
   });
 
-  test("a browser app: Browser keys only; the refused ones say why, and a good one is picked", async () => {
+  test("a browser app: Browser keys only, those that can send listed first, and a good one picked", async () => {
     const getList: Mock<GetList> = mockKeys([
       OFF_KEY,
       EXPIRED_KEY,
@@ -289,24 +355,48 @@ describe("the Pick another key dialog", () => {
     expect(screen.queryByTestId("ingestion-key-unusable")).toBeNull();
 
     expect(await optionLabels()).toEqual([
+      "New Storefront Key",
       "Storefront Browser Key (turned off)",
       "Last Year's Key (expired)",
-      "New Storefront Key",
     ]);
   });
 
-  test("a mobile app asks for Server keys", async () => {
+  test("a mobile app asks for Server keys, and its line is the exporter's headers setting", async () => {
     const getList: Mock<GetList> = mockKeys([OFF_KEY, MOBILE_KEY]);
     const dialog: HTMLElement = open("mobile");
 
+    // The exporter's headers setting, with the picked key in it.
     await waitFor(() => {
-      expect(dialog.textContent).toContain("secret-key-mobile");
+      expect(
+        within(screen.getByTestId("setup-guide-step-2")).getByText(
+          /OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=secret-key-mobile"/,
+        ),
+      ).toBeInTheDocument();
     });
     expect(
       getList.mock.calls.map((call: Array<unknown>): unknown => {
         return (call[0] as ListArguments).query["keyType"];
       }),
     ).toEqual([TelemetryIngestionKeyType.Server]);
+    expect(dialog).toHaveAttribute("data-client", "mobile");
+    expect(stepTitles()).toEqual([
+      "Choose an ingestion key",
+      "Put it in place of the refused key",
+      "Release and check",
+    ]);
+    expect(dialog.textContent).toContain(
+      "Copies already installed keep sending with the refused key until they update.",
+    );
+  });
+
+  test("an unknown client is a browser app", async () => {
+    mockKeys([GOOD_KEY, MOBILE_KEY]);
+    const dialog: HTMLElement = open("");
+
+    await waitFor(() => {
+      expect(dialog.textContent).toContain("secret-key-good");
+    });
+    expect(dialog).toHaveAttribute("data-client", "browser");
   });
 
   test("the refused key picked anyway: the code carries it, and the caution under the token says why it will be refused", async () => {
@@ -390,16 +480,24 @@ describe("in the reader's language", () => {
     });
   }
 
-  test("German: the title, a refused key's label and its caution", async () => {
+  test("German: the title, the steps, a refused key's label and its caution", async () => {
     mockKeys([OFF_KEY]);
     const dialog: HTMLElement = openIn("de");
 
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
       "Anderen Schlüssel wählen",
     );
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "Der Schlüssel, mit dem diese App sendet, ist ausgeschaltet oder abgelaufen",
+    );
     await waitFor(() => {
       expect(dialog.textContent).toContain("secret-key-off");
     });
+    expect(stepTitles()).toEqual([
+      "Aufnahmeschlüssel auswählen",
+      "Anstelle des abgelehnten Schlüssels einsetzen",
+      "Bereitstellen und prüfen",
+    ]);
     expect(screen.getByTestId("ingestion-key-unusable")).toHaveTextContent(
       "Dieser Schlüssel ist ausgeschaltet, daher wird alles abgelehnt, was damit gesendet wird.",
     );
@@ -424,5 +522,16 @@ describe("in the reader's language", () => {
     expect(screen.getByTestId("modal-title")).not.toHaveTextContent(
       "Pick another key",
     );
+
+    // The steps' words are Persian; only the code and its names stay as written.
+    for (const title of stepTitles()) {
+      expect(title).not.toMatch(/[A-Za-z]/);
+    }
+    for (const id of ["setup-guide-step-1", "setup-guide-step-3"]) {
+      expect(
+        within(screen.getByTestId(id)).getByRole("heading", { level: 3 })
+          .nextElementSibling?.textContent,
+      ).not.toMatch(/[A-Za-z]{3,}/);
+    }
   });
 });

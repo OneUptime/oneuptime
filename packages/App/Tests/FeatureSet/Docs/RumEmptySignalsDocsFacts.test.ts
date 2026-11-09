@@ -25,6 +25,7 @@ import {
   SET_UP_EXCEPTIONS,
   SET_UP_LOGS,
 } from "../../../FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumSignalWords";
+import { RUM_CHECK_THE_KEY_DOCS_URL } from "../../../FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumKeySwapGuide";
 import {
   INGEST_REFUSAL_FIX_LABELS,
   REFUSALS_TITLE,
@@ -319,6 +320,20 @@ describe("RUM docs: why Exceptions or Logs are empty (issue #5770)", () => {
         listed: true,
       });
     }
+  });
+
+  test("the Pick another key dialog's help link opens the key check, in every language (issue #6378)", () => {
+    expect(headingLink(RUM_CHECK_THE_KEY_DOCS_URL)).toEqual({
+      page: TROUBLESHOOTING,
+      anchor: "check-the-key",
+    });
+
+    const unanswered: Array<string> = ["en", ...TRANSLATED_LANGUAGES].filter(
+      (language: string): boolean => {
+        return !headingFor(language, TROUBLESHOOTING, "check-the-key");
+      },
+    );
+    expect(unanswered).toEqual([]);
   });
 
   test("its answers send nothing-arrived to the key check and a missing SDK to Browser Setup", () => {

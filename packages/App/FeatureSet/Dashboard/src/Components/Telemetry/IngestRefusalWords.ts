@@ -60,6 +60,49 @@ export const REFUSAL_REASON_WORDS: Readonly<
   ),
 };
 
+/*
+ * The same reasons in a few words, heading each line of the key's own page
+ * (IngestionKeyRefusalsCard): the page is the key's, so its name would only
+ * repeat, and a refusal of days ago is told as what it was then - "Key
+ * turned off" - not as what the key is now.
+ */
+export const REFUSAL_REASON_LABELS: Readonly<
+  Record<TelemetryIngestRefusalReason, string>
+> = {
+  [TelemetryIngestRefusalReason.KeyDisabled]: translationKey("Key turned off"),
+  [TelemetryIngestRefusalReason.KeyExpired]: translationKey("Key expired"),
+  [TelemetryIngestRefusalReason.OriginNotAllowed]: translationKey(
+    "Origin not allowed by the key",
+  ),
+  [TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere]: translationKey(
+    "Endpoint takes only Server keys",
+  ),
+  [TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere]: translationKey(
+    "Endpoint takes only unpinned keys",
+  ),
+  [TelemetryIngestRefusalReason.KeyRequestsPerMinute]: translationKey(
+    "Over the key's limit of requests per minute",
+  ),
+  [TelemetryIngestRefusalReason.KeyDailyBudget]: translationKey(
+    "Key's daily ingestion budget used up",
+  ),
+  [TelemetryIngestRefusalReason.KeyIngestionRate]: translationKey(
+    "Over the key's ingestion rate limit",
+  ),
+  [TelemetryIngestRefusalReason.ProjectDailyBudget]: translationKey(
+    "Project's daily ingestion budget used up",
+  ),
+  [TelemetryIngestRefusalReason.ProjectIngestionRate]: translationKey(
+    "Over the project's ingestion rate limit",
+  ),
+  [TelemetryIngestRefusalReason.PaymentRequired]: translationKey(
+    "No payment method on the project",
+  ),
+  [TelemetryIngestRefusalReason.ProjectBlocked]: translationKey(
+    "Project blocked by an administrator",
+  ),
+};
+
 // What puts a refusal right, as a button names it.
 export const PICK_ANOTHER_KEY: string = translationKey("Pick another key");
 export const OPEN_THE_KEY: string = translationKey("Open the key");
@@ -167,18 +210,33 @@ function translate(translator: Translator, text: string): string {
  */
 export const REFUSALS_LOOKBACK_DAYS: number = 30;
 
+/*
+ * A line whose latest refusal is older than this is history - the key was
+ * put right, or nothing sends with it - and is drawn without the alarm.
+ * The RUM setup check's "arriving" window, a day.
+ */
+export const REFUSALS_RECENT_MS: number = 24 * 60 * 60 * 1000;
+
 export const REFUSALS_TITLE: string = translationKey("Refused Telemetry");
 export const REFUSALS_DESCRIPTION: string = translationKey(
-  "What the ingest endpoints turned away from this key in the past 30 days, and why. Counted as it happens and written every few minutes.",
+  "Telemetry sent with this key that OneUptime refused in the past 30 days, and why. A refusal shows here within a few minutes.",
 );
 export const REFUSALS_NONE: string = translationKey(
   "Nothing sent with this key was refused in the past 30 days.",
 );
 export const REFUSALS_FAILED: string = translationKey(
-  "Couldn't load what this key was refused. Try again in a moment.",
+  "Couldn't load the refused telemetry. Try again in a moment.",
 );
 export const REFUSALS_LOADING: string = translationKey("Checking…");
 export const REFUSALS_CHECK_AGAIN: string = translationKey("Check again");
+
+// Whether a line's latest refusal is recent enough to draw as a problem.
+export function isIngestRefusalRecent(
+  refusal: { lastRefusedAt: Date },
+  now: Date,
+): boolean {
+  return now.getTime() - refusal.lastRefusedAt.getTime() <= REFUSALS_RECENT_MS;
+}
 
 // The reason a refusal was made, as a whole sentence in the reader's language.
 export function getIngestRefusalReasonText(
@@ -194,6 +252,14 @@ export function getIngestRefusalReasonText(
     { key: refusal.keyName || refusal.keyId },
     { setsValuesApart: true },
   );
+}
+
+// The reason in a few words, as the key's own page heads its line.
+export function getIngestRefusalReasonLabel(
+  reason: TelemetryIngestRefusalReason,
+  translator: Translator,
+): string {
+  return translate(translator, REFUSAL_REASON_LABELS[reason]);
 }
 
 // Where a refusal was made, as the key's page names it.

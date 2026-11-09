@@ -27,7 +27,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * like RumSetupCheckCard.test.tsx: the refusal rows the API returns are the
  * project's past day, and the card decides which of them speak for this
  * application, says so on the rows they explain, and offers the fix -
- * another key in a dialog, the key's page, the budgets or Billing.
+ * another key in a dialog, the key's page, the budgets or Billing. Rows
+ * refused the same way share one notice above them, why and the fix said
+ * once; a refusal one row says stays under that row.
  */
 
 const MODEL_ID: string = "84858d6c-2222-4aaa-8bbb-000000000063";
@@ -359,6 +361,27 @@ function rowAction(signal: string): HTMLElement | null {
   return screen.queryByTestId(`rum-setup-check-${signal}-action`);
 }
 
+// The notices above the rows: what several rows share, said once.
+function notices(): Array<HTMLElement> {
+  return screen.queryAllByTestId("rum-setup-check-refusal");
+}
+
+function onlyNotice(): HTMLElement {
+  const all: Array<HTMLElement> = notices();
+  expect(all).toHaveLength(1);
+  return all[0]!;
+}
+
+function noticeText(notice: HTMLElement): string {
+  return (
+    within(notice).getByTestId("rum-setup-check-refusal-text").textContent || ""
+  );
+}
+
+function noticeAction(notice: HTMLElement): HTMLElement | null {
+  return within(notice).queryByTestId("rum-setup-check-refusal-action");
+}
+
 function fromNow(date: Date): string {
   return OneUptimeDate.fromNow(date, new Date());
 }
@@ -441,7 +464,7 @@ describe("the setup check reads what the project's keys were refused", () => {
 });
 
 describe("a refused browser application", () => {
-  test("a turned-off key, nothing arrived since: page loads and exceptions say Refused, why, and offer another key", async () => {
+  test("a turned-off key, nothing arrived since: page loads and exceptions say Refused, and why and the fix are said once above them", async () => {
     const refusal: RefusalRow = refusalRow();
     arrange({ app: silentApp(), refusals: Promise.resolve([refusal]) });
     await renderCard();
@@ -451,34 +474,121 @@ describe("a refused browser application", () => {
       expect(rowText(signal)).toBe(
         `Refused. The latest was refused ${fromNow(refusal.lastRefusedAt)}.`,
       );
-      expect(rowDetail(signal)).toBe(
-        'The key "Storefront browser key" is turned off, so everything sent with it is refused.',
-      );
-      expect(rowAction(signal)).toHaveTextContent("Pick another key");
+      // Not under each row: once, above them.
+      expect(rowDetail(signal)).toBeNull();
+      expect(rowAction(signal)).toBeNull();
     }
+
+    const notice: HTMLElement = onlyNotice();
+    expect(notice).toHaveAttribute("data-tone", "error");
+    expect(notice).toHaveAttribute("data-signals", "traces exceptions");
+    expect(within(notice).getByRole("alert")).toBeInTheDocument();
+    expect(noticeText(notice)).toBe(
+      'The key "Storefront browser key" is turned off, so everything sent with it is refused.',
+    );
+    expect(noticeAction(notice)).toHaveTextContent("Pick another key");
+    // Above the rows, not among them.
+    expect(
+      notice.compareDocumentPosition(row("traces")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     // Only the traces were refused: the logs row is its own answer.
     expect(row("logs")).not.toHaveAttribute("data-tone", "error");
     expect(rowText("logs")).not.toContain("Refused");
 
-    fireEvent.click(rowAction("traces")!);
+    fireEvent.click(noticeAction(notice)!);
     await flush();
 
     const dialog: HTMLElement = screen.getByTestId("rum-pick-key-setup");
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
       "Pick another key",
     );
-    // The guide's first step offers a key that is not refused, and the code carries it.
+    // Its first step offers a key that is not refused, and the line carries it.
     expect(dialog.textContent).toContain(
       '"x-oneuptime-token": "secret-key-new"',
     );
-    expect(dialog.textContent).toContain("storefront-web");
+    expect(dialog).toHaveAttribute("data-client", "browser");
 
     fireEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }),
     );
     await flush();
     expect(screen.queryByTestId("rum-pick-key-setup")).toBeNull();
+  });
+
+  test("everything refused the same way: five rows say Refused, and one notice says why", async () => {
+    HEALTH_STATE = "stale";
+    arrange({
+      app: silentApp(),
+      refusals: Promise.resolve(
+        [
+          TelemetryIngestSurface.OtelTraces,
+          TelemetryIngestSurface.OtelLogs,
+          TelemetryIngestSurface.OtelMetrics,
+          TelemetryIngestSurface.SessionReplay,
+        ].map((surface: string): RefusalRow => {
+          return refusalRow({ surface });
+        }),
+      ),
+    });
+    await renderCard();
+
+    const signals: Array<string> = [
+      "traces",
+      "exceptions",
+      "logs",
+      "webVitals",
+      "sessionReplay",
+    ];
+
+    for (const signal of signals) {
+      expect(row(signal)).toHaveAttribute("data-tone", "error");
+      expect(rowText(signal)).toMatch(/^Refused\. /);
+      expect(rowDetail(signal)).toBeNull();
+      expect(rowAction(signal)).toBeNull();
+    }
+
+    const notice: HTMLElement = onlyNotice();
+    expect(notice).toHaveAttribute("data-signals", signals.join(" "));
+    expect(
+      screen.getAllByText(
+        'The key "Storefront browser key" is turned off, so everything sent with it is refused.',
+      ),
+    ).toHaveLength(1);
+    expect(screen.getAllByText("Pick another key")).toHaveLength(1);
+  });
+
+  test("two reasons: the one several rows share is said above them, the one a single row says stays under it", async () => {
+    arrange({
+      app: silentApp(),
+      refusals: Promise.resolve([
+        refusalRow(),
+        refusalRow({
+          reason: TelemetryIngestRefusalReason.ProjectDailyBudget,
+          surface: TelemetryIngestSurface.OtelLogs,
+          telemetryIngestionKey: {
+            name: "Backend key",
+            keyType: TelemetryIngestionKeyType.Server,
+          },
+        }),
+      ]),
+    });
+    await renderCard();
+
+    const notice: HTMLElement = onlyNotice();
+    expect(notice).toHaveAttribute("data-signals", "traces exceptions");
+
+    expect(row("logs")).toHaveAttribute("data-tone", "error");
+    expect(rowDetail("logs")).toBe(
+      "This project used up its daily ingestion budget.",
+    );
+    expect(
+      within(row("logs")).getByRole("link", { name: "See budgets" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/usage-history`,
+    );
   });
 
   test("the project's daily budget, while logs arrive: partly refused, with the budgets a link away", async () => {
@@ -512,6 +622,8 @@ describe("a refused browser application", () => {
 
     // The traces were not refused: still arriving.
     expect(row("traces")).toHaveAttribute("data-tone", "ok");
+    // One row says it, so it stays under that row.
+    expect(notices()).toHaveLength(0);
   });
 
   test("an origin the key does not allow: the key's own page is the fix", async () => {
@@ -523,11 +635,12 @@ describe("a refused browser application", () => {
     });
     await renderCard();
 
-    expect(rowDetail("traces")).toBe(
+    const notice: HTMLElement = onlyNotice();
+    expect(noticeText(notice)).toBe(
       "The key \"Storefront browser key\" doesn't allow the origin the requests came from. Add your site's origin to the key.",
     );
     expect(
-      within(row("traces")).getByRole("link", { name: "Open the key" }),
+      within(notice).getByRole("link", { name: "Open the key" }),
     ).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/settings/telemetry-ingestion-keys/${KEY_ID}`,
@@ -544,7 +657,7 @@ describe("a refused browser application", () => {
     await renderCard();
 
     expect(
-      within(row("traces")).getByRole("link", { name: "Add a payment method" }),
+      within(onlyNotice()).getByRole("link", { name: "Add a payment method" }),
     ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/settings/billing`);
 
     cleanup();
@@ -556,9 +669,11 @@ describe("a refused browser application", () => {
     });
     await renderCard();
 
-    expect(rowDetail("traces")).toBe(
+    const notice: HTMLElement = onlyNotice();
+    expect(noticeText(notice)).toBe(
       "An administrator blocked this project, so its telemetry is refused.",
     );
+    expect(noticeAction(notice)).toBeNull();
     expect(rowAction("traces")).toBeNull();
   });
 
@@ -577,6 +692,10 @@ describe("a refused browser application", () => {
     expect(row("sessionReplay")).toHaveAttribute("data-tone", "error");
     expect(rowText("sessionReplay")).toMatch(/^Refused\. /);
     expect(row("traces")).not.toHaveAttribute("data-tone", "error");
+    expect(onlyNotice()).toHaveAttribute(
+      "data-signals",
+      "webVitals sessionReplay",
+    );
   });
 });
 
@@ -599,6 +718,7 @@ describe("refusals that are not this application's", () => {
     await renderCard();
 
     expect(everyRow()).toEqual(unrefused);
+    expect(notices()).toHaveLength(0);
   });
 
   test("a key pinned to another application, or an unpinned Server key, says nothing here", async () => {
@@ -685,11 +805,12 @@ describe("a refused mobile application", () => {
     await renderCard("storefront-ios");
 
     expect(row("traces")).toHaveAttribute("data-tone", "error");
-    expect(rowDetail("traces")).toBe(
+    const notice: HTMLElement = onlyNotice();
+    expect(noticeText(notice)).toBe(
       'The key "iOS key" has expired, so everything sent with it is refused.',
     );
 
-    fireEvent.click(rowAction("traces")!);
+    fireEvent.click(noticeAction(notice)!);
     await flush();
 
     const keyReads: Array<unknown> = getListMock.mock.calls
@@ -703,14 +824,16 @@ describe("a refused mobile application", () => {
         return (args["query"] as Record<string, unknown>)["keyType"];
       });
     expect(keyReads).toEqual([TelemetryIngestionKeyType.Server]);
-    expect(screen.getByTestId("rum-pick-key-setup").textContent).toContain(
-      "secret-key-mobile",
+    const dialog: HTMLElement = screen.getByTestId("rum-pick-key-setup");
+    expect(dialog).toHaveAttribute("data-client", "mobile");
+    expect(dialog.textContent).toContain(
+      'OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=secret-key-mobile"',
     );
   });
 });
 
 describe("in German", () => {
-  test("the refused row, its reason and its fix read in German", async () => {
+  test("the refused rows, their shared reason and its fix read in German", async () => {
     const german: Record<string, string> = JSON.parse(
       fs.readFileSync(
         path.join(
@@ -735,9 +858,10 @@ describe("in German", () => {
     await renderCard();
 
     expect(rowText("traces")).toMatch(/^Abgelehnt\. Die letzte Ablehnung war /);
-    expect(rowDetail("traces")).toBe(
+    const notice: HTMLElement = onlyNotice();
+    expect(noticeText(notice)).toBe(
       "Der Schlüssel „Storefront browser key“ ist ausgeschaltet, daher wird alles abgelehnt, was damit gesendet wird.",
     );
-    expect(rowAction("traces")).toHaveTextContent("Anderen Schlüssel wählen");
+    expect(noticeAction(notice)).toHaveTextContent("Anderen Schlüssel wählen");
   });
 });

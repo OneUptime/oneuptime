@@ -1174,7 +1174,6 @@ const RumApplicationOverview: FunctionComponent<
 
       {isPickingKey ? (
         <RumKeySetupModal
-          appName={(a.appIdentifier as string) || (a.name as string) || ""}
           clientType={client}
           onClose={(): void => {
             setIsPickingKey(false);

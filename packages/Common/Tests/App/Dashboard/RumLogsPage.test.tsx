@@ -148,15 +148,11 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (props: {
-        appName: string;
-        clientType?: string;
-        onClose: () => void;
-      }) => {
+      default: (props: { clientType?: string; onClose: () => void }) => {
         keyModalMock(props);
         return (
           <div data-testid="pick-key-dialog">
-            {props.clientType} key for {props.appName}
+            {props.clientType} key
             <button type="button" onClick={props.onClose}>
               Close key dialog
             </button>
@@ -404,7 +400,7 @@ describe("a RUM application's empty Logs page", () => {
 });
 
 describe("a RUM application's Logs page, when its logs are refused", () => {
-  test("refused since the last log: says so, why and when, and Pick another key opens the app's setup with its key step", async () => {
+  test("refused since the last log: says so, why and when, and Pick another key opens the steps a new key takes", async () => {
     const refusal: Record<string, unknown> = refusalRow();
     arrangeRefusals([refusal]);
     await renderPage(app({ logsLastReceivedAt: ago(3 * DAY_MS) }));
@@ -425,7 +421,11 @@ describe("a RUM application's Logs page, when its logs are refused", () => {
     fireEvent.click(screen.getByTestId("rum-logs-empty-action"));
 
     expect(screen.getByTestId("pick-key-dialog")).toHaveTextContent(
-      "browser key for storefront-web",
+      "browser key",
+    );
+    // The app's kind decides the key and the line; its name is not needed.
+    expect(keyModalMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ clientType: "browser" }),
     );
     expect(setupModalMock).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Close key dialog" }));

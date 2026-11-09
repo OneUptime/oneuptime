@@ -161,7 +161,12 @@ describe("the refusal words", () => {
       "{{count}} requests refused since {{date}}, the latest {{time}}._one",
       "One request refused {{time}}.",
       "Refused Telemetry",
+      "Telemetry sent with this key that OneUptime refused in the past 30 days, and why. A refusal shows here within a few minutes.",
       "Nothing sent with this key was refused in the past 30 days.",
+      "Couldn't load the refused telemetry. Try again in a moment.",
+      // The key page's reasons, in a few words.
+      "Key turned off",
+      "Project blocked by an administrator",
       "Other endpoints",
       "{{name}} (expired)",
       "{{name}} (turned off)",
@@ -259,6 +264,45 @@ describe("the refusal words", () => {
       expect(reasons.length).toBeGreaterThanOrEqual(8);
       expect(new Set(reasons).size).toBe(reasons.length);
       expect(new Set(fixes).size).toBe(fixes.length);
+    },
+  );
+
+  // The key page heads each line with its reason in a few words.
+  const REASON_LABELS: ReadonlyArray<string> = [
+    "Key turned off",
+    "Key expired",
+    "Origin not allowed by the key",
+    "Endpoint takes only Server keys",
+    "Endpoint takes only unpinned keys",
+    "Over the key's limit of requests per minute",
+    "Key's daily ingestion budget used up",
+    "Over the key's ingestion rate limit",
+    "Project's daily ingestion budget used up",
+    "Over the project's ingestion rate limit",
+    "No payment method on the project",
+    "Project blocked by an administrator",
+  ];
+
+  test("every reason has its few words", () => {
+    const keys: Array<string> = uniqueKeys();
+
+    for (const label of REASON_LABELS) {
+      expect({ label, found: keys.includes(label) }).toEqual({
+        label,
+        found: true,
+      });
+    }
+  });
+
+  test.each(LANGUAGES)(
+    "%s tells every reason's few words apart",
+    (language: string) => {
+      const words: Locale = localeOf(language);
+      const labels: Array<string> = REASON_LABELS.map((key: string): string => {
+        return String(words[key]);
+      });
+
+      expect(new Set(labels).size).toBe(REASON_LABELS.length);
     },
   );
 });

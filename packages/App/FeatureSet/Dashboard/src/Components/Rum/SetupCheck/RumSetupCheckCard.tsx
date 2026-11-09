@@ -2,6 +2,7 @@ import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -29,6 +30,8 @@ import {
   RumClientKind,
   RumPanelSignal,
   RumSetupCheckLine,
+  RumSetupCheckRefusalNotice,
+  RumSetupCheckRow,
   RumSetupCheckSignal,
   RumSetupCheckTone,
   RumSignalAction,
@@ -39,6 +42,7 @@ import {
   getRumSetupCheckLabel,
   getRumSetupCheckLine,
   getSessionReplaySetupCheckLine,
+  shareRumSetupCheckRefusals,
 } from "./RumSignalWords";
 import RumSignalSetupModal from "./RumSignalSetupModal";
 import RumKeySetupModal from "./RumKeySetupModal";
@@ -73,7 +77,9 @@ import useRumSetupCheck, {
  * What the ingest endpoints refused (issue #6378) wins over a row's other
  * answers while nothing of its kind has arrived since (RumIngestRefusals):
  * "Refused", when the latest was, why, and the fix - another key in a
- * dialog, the key's page, the budgets or Billing.
+ * dialog, the key's page, the budgets or Billing. Rows refused the same way
+ * (a turned-off key refuses everything sent with it) say why and the fix
+ * once, in a notice above them, and each only that it is refused and when.
  */
 
 export interface ComponentProps {
@@ -98,6 +104,122 @@ export const RUM_SETUP_CHECK_TONES: Record<RumSetupCheckTone, ToneStyle> = {
 const ACTION_CLASS_NAME: string =
   "mt-1.5 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700";
 
+// In a refusal notice: the notice's own color, underlined, as Alert links are.
+const NOTICE_ACTION_CLASS_NAME: string =
+  "font-medium underline underline-offset-2 hover:no-underline";
+
+interface ActionProps {
+  action: RumSignalAction;
+  testId: string;
+  className: string;
+  // A chevron after the words (an arrow out for a docs page): rows only.
+  showIcon: boolean;
+  recordingHealthRoute: Route;
+  onSetUp: (signal: RumPanelSignal) => void;
+  onPickKey: () => void;
+}
+
+/*
+ * A row's or a notice's action. A guide in the docs opens in a new tab, and
+ * its icon says so; the rest stay on this page. Icon turns a chevron round
+ * on a right-to-left page by itself.
+ */
+const SetupCheckAction: FunctionComponent<ActionProps> = (
+  props: ActionProps,
+): ReactElement => {
+  const action: RumSignalAction = props.action;
+
+  const content: ReactElement = (
+    <>
+      <span>{action.label}</span>
+      {props.showIcon ? (
+        <Icon
+          icon={
+            action.kind === "docs"
+              ? IconProp.ExternalLink
+              : IconProp.ChevronRight
+          }
+          className={action.kind === "docs" ? "h-3.5 w-3.5" : "h-4 w-4"}
+        />
+      ) : (
+        <></>
+      )}
+    </>
+  );
+
+  const actionRoute: Route | null = getRumActionRoute(action);
+
+  if (action.kind === "pick-key") {
+    return (
+      <button
+        type="button"
+        className={props.className}
+        data-testid={props.testId}
+        onClick={(): void => {
+          props.onPickKey();
+        }}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  if (actionRoute) {
+    return (
+      <AppLink
+        to={actionRoute}
+        className={props.className}
+        dataTestId={props.testId}
+      >
+        {content}
+      </AppLink>
+    );
+  }
+
+  if (action.kind === "set-up") {
+    return (
+      <button
+        type="button"
+        className={props.className}
+        data-testid={props.testId}
+        onClick={(): void => {
+          props.onSetUp(action.signal);
+        }}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  if (action.kind === "docs") {
+    return (
+      <a
+        href={action.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={props.className}
+        data-testid={props.testId}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  if (action.kind === "recording-health") {
+    return (
+      <AppLink
+        to={props.recordingHealthRoute}
+        className={props.className}
+        dataTestId={props.testId}
+      >
+        {content}
+      </AppLink>
+    );
+  }
+
+  return <></>;
+};
+
 interface RowProps {
   signal: RumSetupCheckSignal;
   label: string;
@@ -111,90 +233,7 @@ const SetupCheckRow: FunctionComponent<RowProps> = (
   props: RowProps,
 ): ReactElement => {
   const tone: ToneStyle = RUM_SETUP_CHECK_TONES[props.line.tone];
-  const action: RumSignalAction | undefined = props.line.action;
   const testId: string = `rum-setup-check-${props.signal}`;
-
-  /*
-   * A guide in the docs opens in a new tab, and its icon says so; the rest
-   * stay on this page. Icon turns a chevron round on a right-to-left page
-   * by itself.
-   */
-  const actionContent: ReactElement | null = action ? (
-    <>
-      <span>{action.label}</span>
-      <Icon
-        icon={
-          action.kind === "docs" ? IconProp.ExternalLink : IconProp.ChevronRight
-        }
-        className={action.kind === "docs" ? "h-3.5 w-3.5" : "h-4 w-4"}
-      />
-    </>
-  ) : null;
-
-  let actionElement: ReactElement = <></>;
-  const actionRoute: Route | null = action ? getRumActionRoute(action) : null;
-
-  if (action && actionContent) {
-    if (action.kind === "pick-key") {
-      actionElement = (
-        <button
-          type="button"
-          className={ACTION_CLASS_NAME}
-          data-testid={`${testId}-action`}
-          onClick={(): void => {
-            props.onPickKey();
-          }}
-        >
-          {actionContent}
-        </button>
-      );
-    } else if (actionRoute) {
-      actionElement = (
-        <AppLink
-          to={actionRoute}
-          className={ACTION_CLASS_NAME}
-          dataTestId={`${testId}-action`}
-        >
-          {actionContent}
-        </AppLink>
-      );
-    } else if (action.kind === "set-up") {
-      actionElement = (
-        <button
-          type="button"
-          className={ACTION_CLASS_NAME}
-          data-testid={`${testId}-action`}
-          onClick={(): void => {
-            props.onSetUp(action.signal);
-          }}
-        >
-          {actionContent}
-        </button>
-      );
-    } else if (action.kind === "docs") {
-      actionElement = (
-        <a
-          href={action.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={ACTION_CLASS_NAME}
-          data-testid={`${testId}-action`}
-        >
-          {actionContent}
-        </a>
-      );
-    } else if (action.kind === "recording-health") {
-      actionElement = (
-        <AppLink
-          to={props.recordingHealthRoute}
-          className={ACTION_CLASS_NAME}
-          dataTestId={`${testId}-action`}
-        >
-          {actionContent}
-        </AppLink>
-      );
-    }
-  }
 
   return (
     <li
@@ -226,10 +265,75 @@ const SetupCheckRow: FunctionComponent<RowProps> = (
           ) : (
             <></>
           )}
-          {actionElement}
+          {props.line.action ? (
+            <SetupCheckAction
+              action={props.line.action}
+              testId={`${testId}-action`}
+              className={ACTION_CLASS_NAME}
+              showIcon={true}
+              recordingHealthRoute={props.recordingHealthRoute}
+              onSetUp={props.onSetUp}
+              onPickKey={props.onPickKey}
+            />
+          ) : (
+            <></>
+          )}
         </div>
       </div>
     </li>
+  );
+};
+
+interface NoticeProps {
+  notice: RumSetupCheckRefusalNotice;
+  recordingHealthRoute: Route;
+  onSetUp: (signal: RumPanelSignal) => void;
+  onPickKey: () => void;
+}
+
+/*
+ * Why several rows are refused, and the fix, once above them: the reason's
+ * sentence, then its fix as a link in the notice's own color.
+ */
+const SetupCheckRefusalNotice: FunctionComponent<NoticeProps> = (
+  props: NoticeProps,
+): ReactElement => {
+  const notice: RumSetupCheckRefusalNotice = props.notice;
+
+  return (
+    <div
+      className="mb-4"
+      data-testid="rum-setup-check-refusal"
+      data-tone={notice.tone}
+      data-signals={notice.signals.join(" ")}
+    >
+      <Alert
+        type={notice.tone === "error" ? AlertType.DANGER : AlertType.WARNING}
+        title={
+          <span>
+            <span data-testid="rum-setup-check-refusal-text">
+              {notice.text}
+            </span>
+            {notice.action ? (
+              <>
+                {" "}
+                <SetupCheckAction
+                  action={notice.action}
+                  testId="rum-setup-check-refusal-action"
+                  className={NOTICE_ACTION_CLASS_NAME}
+                  showIcon={false}
+                  recordingHealthRoute={props.recordingHealthRoute}
+                  onSetUp={props.onSetUp}
+                  onPickKey={props.onPickKey}
+                />
+              </>
+            ) : (
+              <></>
+            )}
+          </span>
+        }
+      />
+    </div>
   );
 };
 
@@ -352,10 +456,7 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
       now,
     });
 
-  const rows: Array<{
-    signal: RumSetupCheckSignal;
-    line: RumSetupCheckLine;
-  }> = [
+  const rows: Array<RumSetupCheckRow> = [
     {
       signal: "traces",
       line: getRumSetupCheckLine({
@@ -439,6 +540,22 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
     }
   }
 
+  // Rows refused the same way say why once, above them.
+  const shared: {
+    notices: Array<RumSetupCheckRefusalNotice>;
+    rows: Array<RumSetupCheckRow>;
+  } = shareRumSetupCheckRefusals(rows);
+
+  const onSetUp: (signal: RumPanelSignal) => void = (
+    signal: RumPanelSignal,
+  ): void => {
+    setSetUpSignal(signal);
+  };
+
+  const onPickKey: () => void = (): void => {
+    setIsPickingKey(true);
+  };
+
   const recordingHealthRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH] as Route,
     { modelId: props.rumApplicationId },
@@ -484,17 +601,28 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
               </span>
             </div>
           ) : (
-            <ul
-              className="divide-y divide-gray-100"
-              aria-label={
-                translator.translateText(SETUP_CHECK_TITLE) || SETUP_CHECK_TITLE
-              }
-            >
-              {rows.map(
-                (row: {
-                  signal: RumSetupCheckSignal;
-                  line: RumSetupCheckLine;
-                }): ReactElement => {
+            <>
+              {shared.notices.map(
+                (notice: RumSetupCheckRefusalNotice): ReactElement => {
+                  return (
+                    <SetupCheckRefusalNotice
+                      key={notice.signals.join(" ")}
+                      notice={notice}
+                      recordingHealthRoute={recordingHealthRoute}
+                      onSetUp={onSetUp}
+                      onPickKey={onPickKey}
+                    />
+                  );
+                },
+              )}
+              <ul
+                className="divide-y divide-gray-100"
+                aria-label={
+                  translator.translateText(SETUP_CHECK_TITLE) ||
+                  SETUP_CHECK_TITLE
+                }
+              >
+                {shared.rows.map((row: RumSetupCheckRow): ReactElement => {
                   return (
                     <SetupCheckRow
                       key={row.signal}
@@ -506,17 +634,13 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
                       )}
                       line={row.line}
                       recordingHealthRoute={recordingHealthRoute}
-                      onSetUp={(signal: RumPanelSignal): void => {
-                        setSetUpSignal(signal);
-                      }}
-                      onPickKey={(): void => {
-                        setIsPickingKey(true);
-                      }}
+                      onSetUp={onSetUp}
+                      onPickKey={onPickKey}
                     />
                   );
-                },
-              )}
-            </ul>
+                })}
+              </ul>
+            </>
           )}
         </div>
       </Card>
@@ -535,7 +659,6 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
 
       {isPickingKey ? (
         <RumKeySetupModal
-          appName={props.appName}
           clientType={client}
           onClose={(): void => {
             setIsPickingKey(false);

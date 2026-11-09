@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { PROJECT_WIDE_TELEMETRY_INGEST_REFUSAL_REASONS } from "Common/Types/Telemetry/TelemetryIngestRefusal";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import {
@@ -88,6 +89,30 @@ export interface RumSetupCheckLine {
   text: string;
   detail?: string | undefined;
   action?: RumSignalAction | undefined;
+  /*
+   * The refusal the row says (issue #6378), when it says one: rows refused
+   * the same way share one notice (shareRumSetupCheckRefusals).
+   */
+  refusal?: RumKindRefusal | undefined;
+}
+
+// A row of the setup check: its signal and what it says.
+export interface RumSetupCheckRow {
+  signal: RumSetupCheckSignal;
+  line: RumSetupCheckLine;
+}
+
+/*
+ * A refusal several rows of the setup check share, said once above them:
+ * why, and its fix. Red while any of its rows is refused outright, amber
+ * while they all still arrive in part.
+ */
+export interface RumSetupCheckRefusalNotice {
+  tone: "error" | "warning";
+  text: string;
+  action?: RumSignalAction | undefined;
+  // Its rows, in the card's order.
+  signals: Array<RumSetupCheckSignal>;
 }
 
 /* ------------------------------------------------------- Empty charts */
@@ -393,6 +418,7 @@ function refusalLine(
     ),
     detail: getIngestRefusalReasonText(refusal.refusal, translator),
     action: getRefusalAction(refusal, translator),
+    refusal,
   };
 }
 
@@ -834,5 +860,95 @@ export function getSessionReplaySetupCheckLine(data: {
             kind: "recording-health",
             label: translate(translator, OPEN_RECORDING_HEALTH),
           },
+  };
+}
+
+/*
+ * Which refusals read the same: one reason, and for a key's own reason, one
+ * key. A project-wide reason ("This project used up its daily ingestion
+ * budget.") names no key, so it is the same whichever key it refused.
+ */
+function refusalShareKey(refusal: RumKindRefusal): string {
+  const reason: string = refusal.refusal.reason;
+
+  return PROJECT_WIDE_TELEMETRY_INGEST_REFUSAL_REASONS.has(
+    refusal.refusal.reason,
+  )
+    ? reason
+    : `${reason} ${refusal.refusal.keyId}`;
+}
+
+/*
+ * A turned-off key refuses everything sent with it, so every row of the
+ * setup check said the same reason and offered the same fix, five times
+ * over. Rows refused the same way share one notice above them instead
+ * (why, and the fix), and each says only that it is refused and when. A
+ * refusal only one row says stays under that row.
+ */
+export function shareRumSetupCheckRefusals(
+  rows: ReadonlyArray<RumSetupCheckRow>,
+): {
+  notices: Array<RumSetupCheckRefusalNotice>;
+  rows: Array<RumSetupCheckRow>;
+} {
+  const sharers: Map<string, Array<RumSetupCheckRow>> = new Map<
+    string,
+    Array<RumSetupCheckRow>
+  >();
+
+  for (const row of rows) {
+    if (!row.line.refusal) {
+      continue;
+    }
+
+    const key: string = refusalShareKey(row.line.refusal);
+    sharers.set(key, [...(sharers.get(key) || []), row]);
+  }
+
+  const notices: Array<RumSetupCheckRefusalNotice> = [];
+
+  for (const shared of sharers.values()) {
+    if (shared.length < 2) {
+      continue;
+    }
+
+    const first: RumSetupCheckLine = shared[0]!.line;
+
+    notices.push({
+      tone: shared.some((row: RumSetupCheckRow): boolean => {
+        return row.line.tone === "error";
+      })
+        ? "error"
+        : "warning",
+      text: first.detail || "",
+      action: first.action,
+      signals: shared.map((row: RumSetupCheckRow): RumSetupCheckSignal => {
+        return row.signal;
+      }),
+    });
+  }
+
+  return {
+    notices,
+    rows: rows.map((row: RumSetupCheckRow): RumSetupCheckRow => {
+      const isShared: boolean = notices.some(
+        (notice: RumSetupCheckRefusalNotice): boolean => {
+          return notice.signals.includes(row.signal);
+        },
+      );
+
+      if (!isShared) {
+        return row;
+      }
+
+      return {
+        signal: row.signal,
+        line: {
+          tone: row.line.tone,
+          text: row.line.text,
+          refusal: row.line.refusal,
+        },
+      };
+    }),
   };
 }

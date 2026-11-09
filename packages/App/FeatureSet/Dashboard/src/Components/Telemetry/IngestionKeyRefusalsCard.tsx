@@ -38,8 +38,9 @@ import {
   REFUSALS_NONE,
   REFUSALS_TITLE,
   getIngestRefusalCountText,
-  getIngestRefusalReasonText,
+  getIngestRefusalReasonLabel,
   getIngestSurfaceLabel,
+  isIngestRefusalRecent,
 } from "./IngestRefusalWords";
 
 /*
@@ -48,9 +49,11 @@ import {
  * 30 days - why, where, how many and when - so "is anything sending with
  * this key, and is it getting through?" has its answer beside Last Used At.
  *
- * One line per reason and endpoint, the latest first. A reason the
- * project's settings put right (its budgets, a payment method) links
- * there; the key's own settings are on this page.
+ * One line per reason and endpoint, the latest first, headed by the reason
+ * in a few words (the page is the key's: its name would only repeat). A
+ * line refused in the past day is drawn as a problem, an older one as
+ * history. A reason the project's settings put right (its budgets, a
+ * payment method) links there; the key's own settings are on this page.
  */
 
 export interface ComponentProps {
@@ -156,10 +159,14 @@ const IngestionKeyRefusalsCard: FunctionComponent<ComponentProps> = (
   } else if (!refusals) {
     body = (
       <div
-        className="text-sm text-gray-500"
+        className="flex items-start gap-2 text-sm text-gray-500"
         data-testid="ingestion-key-refusals-loading"
       >
-        {translate(REFUSALS_LOADING)}
+        <Icon
+          icon={IconProp.Clock}
+          className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+        />
+        <span>{translate(REFUSALS_LOADING)}</span>
       </div>
     );
   } else if (refusals.length === 0) {
@@ -191,6 +198,7 @@ const IngestionKeyRefusalsCard: FunctionComponent<ComponentProps> = (
           const route: Route | null = linkedFix
             ? getIngestRefusalFixRoute({ fix: linkedFix, keyId: refusal.keyId })
             : null;
+          const isRecent: boolean = isIngestRefusalRecent(refusal, checkedAt);
 
           return (
             <li
@@ -199,17 +207,20 @@ const IngestionKeyRefusalsCard: FunctionComponent<ComponentProps> = (
               data-testid="ingestion-key-refusal"
               data-reason={refusal.reason}
               data-surface={refusal.surface}
+              data-recent={isRecent ? "true" : "false"}
             >
               <Icon
                 icon={IconProp.Error}
-                className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600"
+                className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
+                  isRecent ? "text-red-600" : "text-gray-400"
+                }`}
               />
               <div className="min-w-0">
                 <div
-                  className="break-words text-sm text-gray-900"
+                  className="break-words text-sm font-medium text-gray-900"
                   data-testid="ingestion-key-refusal-reason"
                 >
-                  {getIngestRefusalReasonText(refusal, translator)}
+                  {getIngestRefusalReasonLabel(refusal.reason, translator)}
                 </div>
                 <div
                   className="mt-0.5 break-words text-sm text-gray-500"
