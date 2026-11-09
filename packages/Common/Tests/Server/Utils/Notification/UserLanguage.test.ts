@@ -73,16 +73,30 @@ describe("UserLanguage.getLanguage", () => {
     expect(await UserLanguage.getLanguage(USER_ID)).toBe("en");
   });
 
-  test("a read that fails is English, logged, and never thrown", async () => {
+  test("a read that fails is English, logged as a best-effort read, and never thrown", async () => {
     jest
       .spyOn(UserService, "findOneById")
       .mockRejectedValue(new Error("Database not connected"));
-    const logged: SpyInstance<typeof logger.error> = jest
+    const debug: SpyInstance<typeof logger.debug> = jest
+      .spyOn(logger, "debug")
+      .mockImplementation((): void => {});
+    const error: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation((): void => {});
 
     await expect(UserLanguage.getLanguage(USER_ID)).resolves.toBe("en");
-    expect(logged).toHaveBeenCalledTimes(1);
+
+    // Who it is about and what it did, then the error itself.
+    expect(String(debug.mock.calls[0]![0])).toBe(
+      `Could not read the language of user ${USER_ID.toString()}; their messages are written in English.`,
+    );
+    expect(String(debug.mock.calls[1]![0])).toContain("Database not connected");
+    /*
+     * Not an error: the page goes out in English, as the page's other
+     * best-effort reads word it (NotificationChannelEventCoverage holds a
+     * delivered page to no logged error).
+     */
+    expect(error).not.toHaveBeenCalled();
   });
 
   test("no person: English, without a read", async () => {

@@ -16,7 +16,9 @@ import { getUserWritingLanguage } from "../../../Types/UserLanguage";
  *
  * Read as OneUptime: a page goes out whoever triggered it. A read that
  * fails - the person is gone, the database is slow - is English, and is
- * logged: a page is never held back for the language it is written in.
+ * logged as the page's other best-effort reads are (whether it pages
+ * again, who paged, an observer's page): a page is never held back for the
+ * language it is written in, and the page itself is no error.
  */
 export default class UserLanguage {
   public static async getLanguage(
@@ -39,7 +41,10 @@ export default class UserLanguage {
 
       return getUserWritingLanguage(user);
     } catch (err) {
-      logger.error(err);
+      logger.debug(
+        `Could not read the language of user ${userId.toString()}; their messages are written in English.`,
+      );
+      logger.debug(err as Error);
       return DEFAULT_READER_LANGUAGE;
     }
   }

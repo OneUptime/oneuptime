@@ -350,6 +350,9 @@ describe("a delivery writes each channel in the language of the person it pages"
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
+    jest.spyOn(logger, "debug").mockImplementation((): void => {
+      return undefined;
+    });
     jest
       .spyOn(UserOnCallLogService, "claimNotificationRuleExecution")
       .mockResolvedValue(true as never);
@@ -577,7 +580,16 @@ describe("a delivery writes each channel in the language of the person it pages"
     expect(delivered.push.title).toBe("New Incident INC-42: Checkout is down");
     expect(CallService.makeCall).toHaveBeenCalledTimes(1);
     expect(WhatsAppService.sendWhatsAppMessage).toHaveBeenCalledTimes(1);
-    expect(logger.error).toHaveBeenCalled();
+    // Said where an operator reads the page's best-effort reads.
+    expect(
+      (logger.debug as unknown as jest.SpyInstance).mock.calls.some(
+        (call: Array<unknown>): boolean => {
+          return String(call[0]).startsWith(
+            `Could not read the language of user ${USER.toString()}`,
+          );
+        },
+      ),
+    ).toBe(true);
   });
 
   test("the language is read with the person's own id, as OneUptime, never their name or email", async () => {
@@ -622,7 +634,10 @@ interface Kind {
   name: string;
   number: string;
   title: string;
-  messages: (translator?: Translator) => Promise<Messages>;
+  messages: (
+    translator?: Translator,
+    isObserverPage?: boolean,
+  ) => Promise<Messages>;
 }
 
 const KINDS: Array<Kind> = [
@@ -630,7 +645,10 @@ const KINDS: Array<Kind> = [
     name: "an incident",
     number: "INC-42",
     title: "Checkout is down",
-    messages: async (translator?: Translator): Promise<Messages> => {
+    messages: async (
+      translator?: Translator,
+      isObserverPage?: boolean,
+    ): Promise<Messages> => {
       return {
         email: await service.generateEmailTemplateForIncidentCreated(
           TO_EMAIL,
@@ -638,6 +656,7 @@ const KINDS: Array<Kind> = [
           NOTIFICATION,
           undefined,
           undefined,
+          isObserverPage,
           translator,
         ),
         sms: await service.generateSmsTemplateForIncidentCreated(
@@ -646,6 +665,7 @@ const KINDS: Array<Kind> = [
           NOTIFICATION,
           undefined,
           undefined,
+          isObserverPage,
           translator,
         ),
         telegram: await service.generateTelegramBodyForIncidentCreated(
@@ -653,6 +673,7 @@ const KINDS: Array<Kind> = [
           NOTIFICATION,
           undefined,
           undefined,
+          isObserverPage,
           translator,
         ),
         workspace: markdown(
@@ -661,6 +682,7 @@ const KINDS: Array<Kind> = [
             NOTIFICATION,
             undefined,
             undefined,
+            isObserverPage,
             translator,
           ),
         ),
@@ -669,6 +691,7 @@ const KINDS: Array<Kind> = [
           projectName: "Acme",
           incidentViewLink: VIEW,
           incidentNumberWithPrefix: "INC-42",
+          isObserverPage: isObserverPage,
           translator: translator,
         }),
       };
@@ -678,7 +701,10 @@ const KINDS: Array<Kind> = [
     name: "an alert",
     number: "ALR-12",
     title: "CPU above 90%",
-    messages: async (translator?: Translator): Promise<Messages> => {
+    messages: async (
+      translator?: Translator,
+      isObserverPage?: boolean,
+    ): Promise<Messages> => {
       return {
         email: await service.generateEmailTemplateForAlertCreated(
           TO_EMAIL,
@@ -686,6 +712,7 @@ const KINDS: Array<Kind> = [
           NOTIFICATION,
           undefined,
           undefined,
+          isObserverPage,
           translator,
         ),
         sms: await service.generateSmsTemplateForAlertCreated(
@@ -694,6 +721,7 @@ const KINDS: Array<Kind> = [
           NOTIFICATION,
           undefined,
           undefined,
+          isObserverPage,
           translator,
         ),
         telegram: await service.generateTelegramBodyForAlertCreated(
@@ -701,6 +729,7 @@ const KINDS: Array<Kind> = [
           NOTIFICATION,
           undefined,
           undefined,
+          isObserverPage,
           translator,
         ),
         workspace: markdown(
@@ -709,6 +738,7 @@ const KINDS: Array<Kind> = [
             NOTIFICATION,
             undefined,
             undefined,
+            isObserverPage,
             translator,
           ),
         ),
@@ -717,6 +747,7 @@ const KINDS: Array<Kind> = [
           projectName: "Acme",
           alertViewLink: VIEW,
           alertNumberWithPrefix: "ALR-12",
+          isObserverPage: isObserverPage,
           translator: translator,
         }),
       };
@@ -726,13 +757,17 @@ const KINDS: Array<Kind> = [
     name: "an incident episode",
     number: "EP-7",
     title: "Payments degraded",
-    messages: async (translator?: Translator): Promise<Messages> => {
+    messages: async (
+      translator?: Translator,
+      isObserverPage?: boolean,
+    ): Promise<Messages> => {
       return {
         email: await service.generateEmailTemplateForIncidentEpisodeCreated(
           TO_EMAIL,
           incidentEpisode(),
           NOTIFICATION,
           undefined,
+          isObserverPage,
           translator,
         ),
         sms: await service.generateSmsTemplateForIncidentEpisodeCreated(
@@ -740,12 +775,14 @@ const KINDS: Array<Kind> = [
           incidentEpisode(),
           NOTIFICATION,
           undefined,
+          isObserverPage,
           translator,
         ),
         telegram: await service.generateTelegramBodyForIncidentEpisodeCreated(
           incidentEpisode(),
           NOTIFICATION,
           undefined,
+          isObserverPage,
           translator,
         ),
         workspace: markdown(
@@ -753,6 +790,7 @@ const KINDS: Array<Kind> = [
             incidentEpisode(),
             NOTIFICATION,
             undefined,
+            isObserverPage,
             translator,
           ),
         ),
@@ -761,6 +799,7 @@ const KINDS: Array<Kind> = [
           projectName: "Acme",
           incidentEpisodeViewLink: VIEW,
           episodeNumberWithPrefix: "EP-7",
+          isObserverPage: isObserverPage,
           translator: translator,
         }),
       };
@@ -770,13 +809,17 @@ const KINDS: Array<Kind> = [
     name: "an alert episode",
     number: "AEP-3",
     title: "Disk filling up",
-    messages: async (translator?: Translator): Promise<Messages> => {
+    messages: async (
+      translator?: Translator,
+      isObserverPage?: boolean,
+    ): Promise<Messages> => {
       return {
         email: await service.generateEmailTemplateForAlertEpisodeCreated(
           TO_EMAIL,
           alertEpisode(),
           NOTIFICATION,
           undefined,
+          isObserverPage,
           translator,
         ),
         sms: await service.generateSmsTemplateForAlertEpisodeCreated(
@@ -784,12 +827,14 @@ const KINDS: Array<Kind> = [
           alertEpisode(),
           NOTIFICATION,
           undefined,
+          isObserverPage,
           translator,
         ),
         telegram: await service.generateTelegramBodyForAlertEpisodeCreated(
           alertEpisode(),
           NOTIFICATION,
           undefined,
+          isObserverPage,
           translator,
         ),
         workspace: markdown(
@@ -797,6 +842,7 @@ const KINDS: Array<Kind> = [
             alertEpisode(),
             NOTIFICATION,
             undefined,
+            isObserverPage,
             translator,
           ),
         ),
@@ -805,6 +851,7 @@ const KINDS: Array<Kind> = [
           projectName: "Acme",
           alertEpisodeViewLink: VIEW,
           episodeNumberWithPrefix: "AEP-3",
+          isObserverPage: isObserverPage,
           translator: translator,
         }),
       };
@@ -936,6 +983,7 @@ describe("a person's page, in the language of the person it pages", () => {
         NOTIFICATION,
         undefined,
         NOTICE,
+        undefined,
         GERMAN,
       );
 
@@ -952,6 +1000,7 @@ describe("a person's page, in the language of the person it pages", () => {
       NOTIFICATION,
       undefined,
       NOTICE,
+      undefined,
       GERMAN,
     );
 
@@ -983,6 +1032,7 @@ describe("a person's page, in the language of the person it pages", () => {
         NOTIFICATION,
         undefined,
         NOTICE,
+        undefined,
         GERMAN,
       );
     const slack: string = markdown(
@@ -991,6 +1041,7 @@ describe("a person's page, in the language of the person it pages", () => {
         NOTIFICATION,
         undefined,
         NOTICE,
+        undefined,
         GERMAN,
       ),
     );
@@ -1001,5 +1052,264 @@ describe("a person's page, in the language of the person it pages", () => {
         "Sie erhalten diese Nachricht, weil Sie Mitglied von Platform sind.",
       );
     }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * An observer's page (OnCallObserverPage), in the language of the person
+ * it pages: kept informed while others respond, and its one answer says
+ * they have seen it - in their words, around the record's own values.
+ * ---------------------------------------------------------------------------
+ */
+
+// Phrases only an English observer's page says.
+const OBSERVER_ENGLISH_ONLY: ReadonlyArray<string> = [
+  "FYI",
+  "paged as an observer",
+  "as observers",
+  "keep you informed",
+  "people responding",
+  "I've seen it",
+  "Mark seen",
+  "Tap to view",
+  "Seen it?",
+];
+
+describe("an observer's page, in the language of the person it pages", () => {
+  test.each(OTHER_LANGUAGES)(
+    "%s: every channel says it in the person's words, with nothing to escalate",
+    async (code: string) => {
+      const translator: Translator = getServerTranslator(code);
+
+      for (const kind of KINDS) {
+        const messages: Messages = await kind.messages(translator, true);
+        const texts: Record<string, string> = {
+          subject: messages.email.subject,
+          vars: Object.values(messages.email.vars).join("\n"),
+          sms: messages.sms.message,
+          telegram: messages.telegram,
+          workspace: messages.workspace,
+          push: `${messages.push.title}\n${messages.push.body}`,
+        };
+
+        expect([kind.name, messages.email.language]).toEqual([kind.name, code]);
+        // The email says what an observer's page is, and why they get it.
+        expect([
+          kind.name,
+          Boolean(messages.email.vars["observerPageInfo"]),
+          Boolean(messages.email.vars["observerPageWhy"]),
+        ]).toEqual([kind.name, true, true]);
+        // Nothing to escalate.
+        expect([kind.name, "passOnLink" in messages.email.vars]).toEqual([
+          kind.name,
+          false,
+        ]);
+
+        for (const [channel, text] of Object.entries(texts)) {
+          for (const phrase of [...ENGLISH_ONLY, ...OBSERVER_ENGLISH_ONLY]) {
+            expect([kind.name, channel, phrase, text.includes(phrase)]).toEqual(
+              [kind.name, channel, phrase, false],
+            );
+          }
+        }
+
+        // The record's number and title, kept as written.
+        for (const channel of ["subject", "sms", "telegram", "push"]) {
+          const plain: string = withoutIsolates(texts[channel] as string);
+
+          expect([
+            kind.name,
+            channel,
+            plain.includes(kind.number),
+            plain.includes(kind.title),
+          ]).toEqual([kind.name, channel, true, true]);
+        }
+      }
+    },
+  );
+
+  test("English, named or not, writes every observer message exactly as before", async () => {
+    for (const kind of KINDS) {
+      const withoutLanguage: Messages = await kind.messages(undefined, true);
+      const inEnglish: Messages = await kind.messages(
+        getServerTranslator("en"),
+        true,
+      );
+
+      expect([kind.name, inEnglish]).toEqual([kind.name, withoutLanguage]);
+      expect(withoutLanguage.email.subject.startsWith("FYI (observer): ")).toBe(
+        true,
+      );
+      expect(withoutLanguage.sms.message).toContain("Mark seen: ");
+      expect(withoutLanguage.telegram).toContain(">I've seen it</a>");
+      expect(withoutLanguage.workspace).toContain("[I've seen it](");
+    }
+  });
+
+  const GERMAN: Translator = getServerTranslator("de");
+
+  test("German: the email, the text, the push, Telegram and Slack, word for word", async () => {
+    const email: EmailMessage =
+      await service.generateEmailTemplateForIncidentCreated(
+        TO_EMAIL,
+        incident(),
+        NOTIFICATION,
+        undefined,
+        undefined,
+        true,
+        GERMAN,
+      );
+
+    expect(email.subject).toBe(
+      "Zur Info (Beobachter): Vorfall INC-42 - Checkout is down",
+    );
+    expect(email.vars["observerPageInfo"]).toBe(
+      "Sie wurden als Beobachter alarmiert, damit Sie informiert bleiben: Die Zuständigen kümmern sich weiter um diesen Vorfall. Wenn Sie diesen Alarm bestätigen, heißt das nur, dass Sie ihn gesehen haben. Der Vorfall wird dadurch nicht bestätigt.",
+    );
+    expect(email.vars["observerPageWhy"]).toBe(
+      "Sie erhalten diese E-Mail, weil Sie als Beobachter alarmiert wurden: Sie bleiben über diesen Vorfall informiert, während sich die Zuständigen darum kümmern.",
+    );
+
+    const sms: SMS = await service.generateSmsTemplateForAlertCreated(
+      TO_PHONE,
+      alert(),
+      NOTIFICATION,
+      undefined,
+      undefined,
+      true,
+      GERMAN,
+    );
+
+    // One GSM-7 part, as an English observer's text.
+    expect(sms.message).toBe(
+      "OneUptime Zur Info (Beobachter): Warnung ALR-12 (Hoch) im Projekt Acme: CPU above 90%. Als gesehen markieren: https://oneuptime.example.com/l/1",
+    );
+
+    const push: PushNotificationMessage =
+      PushNotificationUtil.createIncidentCreatedNotification({
+        incidentTitle: "Checkout is down",
+        projectName: "Acme",
+        incidentViewLink: VIEW,
+        incidentNumberWithPrefix: "INC-42",
+        isObserverPage: true,
+        translator: GERMAN,
+      });
+
+    expect(push.title).toBe("Zur Info: Vorfall INC-42: Checkout is down");
+    expect(push.body).toBe(
+      "Sie wurden als Beobachter alarmiert, im Projekt Acme: Die Zuständigen kümmern sich weiter um diesen Vorfall. Tippen Sie zum Ansehen.",
+    );
+
+    const telegram: string =
+      await service.generateTelegramBodyForIncidentCreated(
+        incident(),
+        NOTIFICATION,
+        undefined,
+        undefined,
+        true,
+        GERMAN,
+      );
+    const slack: string = markdown(
+      await service.generateWorkspaceMessageBlocksForIncidentCreated(
+        incident(),
+        NOTIFICATION,
+        undefined,
+        undefined,
+        true,
+        GERMAN,
+      ),
+    );
+
+    expect(telegram).toContain("<b>Sie wurden als Beobachter alarmiert</b>");
+    expect(telegram).toContain(">Ich habe es gesehen</a>");
+    expect(slack).toContain("**Sie wurden als Beobachter alarmiert**");
+    expect(slack).toContain("[Ich habe es gesehen](");
+
+    for (const text of [telegram, slack]) {
+      expect(text).toContain(
+        "Die Zuständigen kümmern sich weiter um diesen Vorfall.",
+      );
+      // Nothing to escalate, in any language.
+      expect(text).not.toContain("Eskalieren");
+      expect(text).not.toContain("Zum Bestätigen tippen");
+    }
+  });
+
+  test("a person's observer page says who paged them as an observer, in German", async () => {
+    const NOTICE: OnCallPersonPageNotice = {
+      pagedByName: "Alice Kim",
+      teamName: "Platform",
+    };
+
+    const sms: SMS = await service.generateSmsTemplateForIncidentCreated(
+      TO_PHONE,
+      incident(),
+      NOTIFICATION,
+      undefined,
+      NOTICE,
+      true,
+      GERMAN,
+    );
+    const push: PushNotificationMessage =
+      PushNotificationUtil.createIncidentCreatedNotification({
+        incidentTitle: "Checkout is down",
+        projectName: "Acme",
+        incidentViewLink: VIEW,
+        incidentNumberWithPrefix: "INC-42",
+        personPage: NOTICE,
+        isObserverPage: true,
+        translator: GERMAN,
+      });
+    const email: EmailMessage =
+      await service.generateEmailTemplateForIncidentCreated(
+        TO_EMAIL,
+        incident(),
+        NOTIFICATION,
+        undefined,
+        NOTICE,
+        true,
+        GERMAN,
+      );
+    const telegram: string =
+      await service.generateTelegramBodyForIncidentCreated(
+        incident(),
+        NOTIFICATION,
+        undefined,
+        NOTICE,
+        true,
+        GERMAN,
+      );
+
+    expect(sms.message).toContain(
+      "OneUptime: Alice Kim hat Platform als Beobachter alarmiert, wegen Vorfall INC-42 (Sev 1)",
+    );
+    expect(sms.message).toContain("Als gesehen markieren: ");
+    expect(push.body).toBe(
+      "Alice Kim hat Platform als Beobachter alarmiert, im Projekt Acme: Die Zuständigen kümmern sich weiter um diesen Vorfall. Tippen Sie zum Ansehen.",
+    );
+    expect(email.subject).toBe(
+      "Zur Info (Beobachter): Alice Kim hat Platform alarmiert, wegen Vorfall INC-42 - Checkout is down",
+    );
+    // Why this person, then what an observer's page is: two sentences.
+    expect(telegram).toContain(
+      "Sie erhalten diese Nachricht, weil Sie Mitglied von Platform sind. Sie wurden als Beobachter alarmiert",
+    );
+  });
+
+  test("a call stays in English, as every page's call does", async () => {
+    const call: CallRequest =
+      await service.generateCallTemplateForIncidentCreated(
+        TO_PHONE,
+        incident(),
+        NOTIFICATION,
+        undefined,
+        undefined,
+        true,
+      );
+
+    expect(sayMessages(call)[1]).toBe(
+      "You are paged as an observer about an incident",
+    );
   });
 });
