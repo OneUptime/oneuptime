@@ -129,17 +129,17 @@ Chaque enregistrement porte ces attributs de ressource :
 
 ### Où Cursor apparaît dans l'onglet Utilisation
 
-Cursor envoie des métriques sans spans GenAI, et les métriques ne font que prendre le relais des spans : **si le même projet reçoit des spans GenAI avec un coût, les dépenses de Cursor n'apparaissent pas.** Envoyez Cursor dans un projet à lui. Voir [Les spans d'abord, les métriques en relais](/docs/telemetry/ai-llm-observability#les-spans-dabord-les-métriques-en-relais).
+Cursor envoie des métriques et aucun span GenAI, sous son propre service, `cursor`, donc ses dépenses sont comptées à côté des appels d'IA que vos applications envoient au même projet, jamais à leur place. Voir [Chaque service est compté à partir de ce qu'il envoie](/docs/telemetry/ai-llm-observability#chaque-service-est-compté-à-partir-de-ce-quil-envoie).
 
 | Ventilation | Pour Cursor |
 | --- | --- |
 | **Employé** | Oui, par `cursor.user.email`, sinon `cursor.user.id` |
 | **Équipe** | Oui, par `cursor.team.id` |
 | **Modèle** | Oui, par `cursor.model.name` |
-| **Fournisseur** | Non : Cursor ne dit jamais quel fournisseur a servi un appel |
-| **Application / Service** | Non : les métriques de Cursor n'appartiennent à aucun service OneUptime |
+| **Fournisseur** | Sous **Non attribué** : Cursor ne dit jamais quel fournisseur a servi un appel |
+| **Application / Service** | Oui, sous le service `cursor` |
 
-Une ligne Cursor ne porte que le coût : ses cellules d'appels et de jetons affichent `—`, car `cursor.cost.usage` n'a aucun détail par appel. `cursor.token.usage` alimente toujours les totaux de jetons au-dessus du tableau (ses types `input` et `output` ; les jetons de cache sont laissés de côté), et vous pouvez le représenter sur un tableau de bord par `cursor.token.type`.
+Une ligne Cursor indique **Depuis les métriques d'utilisation** sous son nom, et sa cellule d'appels affiche `—`, car un compteur n'a aucun détail par appel. Son coût vient de `cursor.cost.usage` et ses jetons de `cursor.token.usage` (ses types `input` et `output` ; les jetons de cache sont exclus), que vous pouvez aussi tracer sur un tableau de bord par `cursor.token.type`.
 
 :::details Transformer un identifiant utilisateur Cursor en personne
 Les noms et les montants facturés se trouvent dans l'API d'administration de Cursor, que OneUptime lit lorsque vous connectez sa clé comme [compte de fournisseur](/docs/telemetry/ai-provider-accounts#cursor) : ce compte désigne les personnes par e-mail. Pour faire correspondre vous-même un `cursor.user.id`, appelez l'API à `https://api.cursor.com`, avec une clé d'API d'administration comme nom d'utilisateur et un mot de passe vide :
@@ -176,7 +176,7 @@ Cursor se connecte depuis ses propres serveurs : votre point de terminaison OTLP
 :::
 
 :::details Les logs arrivent, mais l'onglet Utilisation n'affiche aucune dépense Cursor
-Le projet reçoit aussi des spans GenAI avec un coût, donc les métriques de Cursor ne sont pas lues. Envoyez Cursor dans un projet à lui, avec sa propre clé d'ingestion.
+Les dépenses de Cursor viennent de ses métriques, pas de ses logs : vérifiez que le signal des métriques est activé dans Cursor, et cherchez `cursor.cost.usage` dans **Métriques**. Si votre rôle ne peut pas lire les métriques, l'onglet Utilisation les exclut et le dit.
 :::
 
 :::details Les personnes apparaissent sous forme de nombres

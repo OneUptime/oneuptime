@@ -122,6 +122,8 @@ För att byta en hemlighet utan att förlora data skapar du en andra nyckel, fly
 
 En avvisad begäran får en status och en mening som säger varför.
 
+Nyckelns sida räknar också: **Avvisad telemetri** visar vad som avvisats från nyckeln de senaste 30 dagarna, varför, på vilken slutpunkt, hur många begäranden och när. En saknad eller felskriven nyckel hör inte till något projekt, så inget räknar den.
+
 | Svar | Vad det betyder |
 | --- | --- |
 | `401` med `Missing ingestion token` | Begäran har ingen nyckel. Skicka den i `x-oneuptime-token`. |

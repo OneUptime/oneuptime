@@ -14,6 +14,7 @@ import LogSeverity from "../../../../Types/Log/LogSeverity";
 import ObjectID from "../../../../Types/ObjectID";
 import { LogRecordingRuleWindow } from "../../../../Utils/Telemetry/LogRecordingRuleWindow";
 import { describe, expect, test } from "@jest/globals";
+import { decodedQueryParams } from "../../../Helpers/StatementEcho";
 
 /*
  * The one ClickHouse statement a log recording rule runs per run, and how
@@ -92,7 +93,7 @@ const paramsHolding: (statement: Statement, value: unknown) => Array<string> = (
   statement: Statement,
   value: unknown,
 ): Array<string> => {
-  return Object.entries(statement.query_params)
+  return Object.entries(decodedQueryParams(statement))
     .filter((entry: [string, unknown]): boolean => {
       return JSON.stringify(entry[1]) === JSON.stringify(value);
     })
@@ -131,7 +132,7 @@ describe("LogRecordingRuleQuery.buildStatement", () => {
 
       expect(paramsHolding(statement, "LogItemV3")).toHaveLength(1);
       expect(paramsHolding(statement, PROJECT_ID.toString())).toHaveLength(1);
-      expect(statement.query_params).toEqual(
+      expect(decodedQueryParams(statement)).toEqual(
         expect.objectContaining({
           [onlyParamHolding(statement, "2026-10-07 10:00:00.000000000")]:
             "2026-10-07 10:00:00.000000000",
@@ -413,7 +414,7 @@ describe("LogRecordingRuleQuery.buildStatement", () => {
 
       expect(statement.query).not.toContain(text.trim());
       expect(
-        Object.values(statement.query_params).some((value: unknown) => {
+        Object.values(decodedQueryParams(statement)).some((value: unknown) => {
           return typeof value === "string" && value.startsWith("%");
         }),
       ).toBe(true);

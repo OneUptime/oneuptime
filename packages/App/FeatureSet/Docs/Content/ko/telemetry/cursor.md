@@ -129,17 +129,17 @@ Cursor는 HTTP 위의 OTLP를 바이너리 protobuf로만 사용하며(gRPC도 J
 
 ### 사용량 탭에서 Cursor가 표시되는 위치
 
-Cursor는 메트릭을 보내고 GenAI 스팬은 보내지 않으며, 메트릭은 스팬을 보충할 뿐입니다. **같은 프로젝트가 비용이 있는 GenAI 스팬을 받으면, Cursor의 지출은 표시되지 않습니다.** Cursor는 전용 프로젝트로 보내세요. [스팬이 먼저, 메트릭은 보충](/docs/telemetry/ai-llm-observability#스팬이-먼저-메트릭은-보충)을 참조하세요.
+Cursor는 메트릭을 보내고 GenAI 스팬은 보내지 않으며, 그 메트릭은 Cursor 자체의 서비스 `cursor` 아래로 들어오므로, 그 지출은 앱이 같은 프로젝트로 보내는 AI 호출과 나란히 계산되고, 그것을 대신하지 않습니다. [각 서비스는 보내는 데이터를 기준으로 셉니다](/docs/telemetry/ai-llm-observability#각-서비스는-보내는-데이터를-기준으로-셉니다)를 참조하세요.
 
 | 분류 | Cursor의 경우 |
 | --- | --- |
 | **직원** | 예. `cursor.user.email`별, 없으면 `cursor.user.id`별 |
 | **팀** | 예. `cursor.team.id`별 |
 | **모델** | 예. `cursor.model.name`별 |
-| **공급자** | 아니요. Cursor는 어떤 공급자가 호출을 처리했는지 알려 주지 않음 |
-| **애플리케이션 / 서비스** | 아니요. Cursor의 메트릭은 어떤 OneUptime 서비스에도 속하지 않음 |
+| **공급자** | **미지정** 아래. Cursor는 어떤 공급자가 호출을 처리했는지 알려 주지 않음 |
+| **애플리케이션 / 서비스** | 예. `cursor` 서비스 아래 |
 
-Cursor 행은 비용만 가집니다. `cursor.cost.usage`에는 호출별 세부 정보가 없으므로 호출과 토큰 셀에는 `—`가 표시됩니다. `cursor.token.usage`는 여전히 표 위의 토큰 합계를 채우며(`input`과 `output` 종류만, 캐시 토큰은 제외), `cursor.token.type`별로 대시보드에 차트를 그릴 수 있습니다.
+Cursor 행은 이름 아래에 **사용량 메트릭 기준** 이라고 표시되고, 카운터에는 호출별 세부 정보가 없으므로 호출 셀에는 `—`가 표시됩니다. 비용은 `cursor.cost.usage`에서, 토큰은 `cursor.token.usage`에서 가져오며(`input`과 `output` 종류만, 캐시 토큰은 제외), 이것은 `cursor.token.type`별로 대시보드에 차트를 그릴 수도 있습니다.
 
 :::details Cursor 사용자 ID를 사람으로 바꾸기
 이름과 청구 금액은 Cursor의 Admin API에 있으며, 키를 [공급자 계정](/docs/telemetry/ai-provider-accounts#cursor)으로 연결하면 OneUptime이 이를 읽습니다. 그 계정은 사람을 이메일로 나타냅니다. `cursor.user.id`를 직접 맞춰 보려면 `https://api.cursor.com`의 API를 관리자 API 키를 사용자 이름으로, 비밀번호는 비워서 호출하세요.
@@ -176,7 +176,7 @@ Cursor는 자체 서버에서 연결합니다. OTLP 엔드포인트는 공개 DN
 :::
 
 :::details 로그는 도착하지만 사용량 탭에 Cursor 지출이 없음
-프로젝트가 비용이 있는 GenAI 스팬도 받고 있으므로 Cursor 메트릭을 읽지 않습니다. Cursor는 자체 수집 키가 있는 전용 프로젝트로 보내세요.
+Cursor의 지출은 로그가 아니라 메트릭에서 옵니다. Cursor의 메트릭 신호가 켜져 있는지 확인하고, **메트릭** 에서 `cursor.cost.usage`를 찾으세요. 역할이 메트릭을 읽을 수 없으면 사용량 탭은 메트릭을 빼고 그렇게 알려 줍니다.
 :::
 
 :::details 사람이 숫자로 표시됨

@@ -24,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { decodedQueryParams } from "../../Helpers/StatementEcho";
 
 /*
  * The SQL the Traffic pages send, as ClickHouse receives it. The real
@@ -142,7 +143,9 @@ describe("every page read is held to the project, the window and the caller's de
     "%s",
     (_name: string, statement: Statement) => {
       const sql: string = statement.query;
-      const values: Array<unknown> = Object.values(statement.query_params);
+      const values: Array<unknown> = Object.values(
+        decodedQueryParams(statement),
+      );
 
       expect(sql).toMatch(/WHERE projectId = \{p\d+:String\}/);
       expect(values).toContain(PROJECT.toString());
@@ -208,7 +211,7 @@ describe("every page read is bounded in time and memory", () => {
       });
 
     expect(statement.query).toMatch(/LIMIT 100\b/);
-    expect(Object.values(statement.query_params)).toContain(
+    expect(Object.values(decodedQueryParams(statement))).toContain(
       "2026-09-01 11:00:00.000000000",
     );
     expect(statement.query).toMatch(/networkDeviceId IN \(/);
@@ -236,7 +239,7 @@ describe("every page read is bounded in time and memory", () => {
       });
 
     expect(statement.query).toMatch(/ORDER BY flowStartAt DESC\s+LIMIT 1/);
-    expect(Object.values(statement.query_params)).toEqual(
+    expect(Object.values(decodedQueryParams(statement))).toEqual(
       expect.arrayContaining([PROJECT.toString(), READABLE.toString()]),
     );
   });
@@ -265,7 +268,7 @@ describe("filters reach SQL as bound parameters only", () => {
 
     for (const [, statement] of allStatements(filtered)) {
       expect(statement.query).not.toContain("OR 1=1");
-      expect(Object.values(statement.query_params)).toContain(HOSTILE);
+      expect(Object.values(decodedQueryParams(statement))).toContain(HOSTILE);
     }
   });
 
@@ -585,7 +588,7 @@ describe("find an address by its DNS name", () => {
     expect(sql).toContain("UNION ALL");
     expect(sql).toContain("ORDER BY foundAt DESC");
     expect(sql).toContain(`LIMIT ${NETWORK_TRAFFIC_FIND_NAMES_LIMIT}`);
-    expect(Object.values(statement.query_params)).toContain("FS01");
+    expect(Object.values(decodedQueryParams(statement))).toContain("FS01");
     // Both halves are held to the project, the window and the devices.
     expect(sql.split("WHERE projectId = ")).toHaveLength(3);
     expect(sql.split("networkDeviceId IN (")).toHaveLength(3);
@@ -600,7 +603,7 @@ describe("find an address by its DNS name", () => {
 
     expect(statement.query).not.toContain("OR 1=1");
     expect(statement.query).not.toMatch(PATTERN_MATCHING);
-    expect(Object.values(statement.query_params)).toContain(HOSTILE);
+    expect(Object.values(decodedQueryParams(statement))).toContain(HOSTILE);
   });
 
   test("the window's traffic of what was found: both ends, busiest first, at most the find limit", () => {
@@ -614,7 +617,7 @@ describe("find an address by its DNS name", () => {
     expect(statement.query).toMatch(DESTINATION_IN_ADDRESSES);
     expect(statement.query).toContain("ORDER BY totalOctets DESC");
     expect(statement.query).toContain(`LIMIT ${NETWORK_TRAFFIC_FIND_LIMIT}`);
-    expect(Object.values(statement.query_params)).toContainEqual([
+    expect(Object.values(decodedQueryParams(statement))).toContainEqual([
       "10.0.0.5",
       "2001:db8::5",
     ]);

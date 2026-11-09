@@ -27,6 +27,7 @@ import {
   TELEMETRY_INGESTION_BUDGET_COLUMN_NAMES,
   TelemetryIngestionBudgetStoredSettings,
 } from "../../Types/Telemetry/TelemetryIngestionBudget";
+import { noteTelemetryIngestRefusalKey } from "../Utils/Telemetry/TelemetryIngestRefusalRecorder";
 import { createHash } from "crypto";
 
 /*
@@ -475,6 +476,30 @@ export class Service extends DatabaseService<Model> {
   private async requireBillingForPolicy(
     policy: TelemetryIngestionKeyPolicy,
   ): Promise<TelemetryIngestionKeyPolicy> {
+    try {
+      await this.requireBillingForUsableKey(policy);
+    } catch (err) {
+      /*
+       * The caller that catches a billing refusal never holds the policy
+       * (this throws instead of returning it), so note which key it was
+       * thrown for: the ingest guards count it against that key (issue
+       * #6378, TelemetryIngestRefusalRecorder). The validation endpoint
+       * and other callers ignore the note.
+       */
+      noteTelemetryIngestRefusalKey(err, {
+        projectId: policy.projectId,
+        ingestionKeyId: policy.ingestionKeyId,
+      });
+
+      throw err;
+    }
+
+    return policy;
+  }
+
+  private async requireBillingForUsableKey(
+    policy: TelemetryIngestionKeyPolicy,
+  ): Promise<void> {
     if (
       policy.isEnabled &&
       (!policy.expiresAt || policy.expiresAt.getTime() > Date.now())
@@ -507,8 +532,6 @@ export class Service extends DatabaseService<Model> {
         allowStaleDenial: true,
       });
     }
-
-    return policy;
   }
 
   /**

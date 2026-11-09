@@ -8,6 +8,7 @@ import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedExcept
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionKeyGuard, {
+  TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL,
   TelemetryIngestionKeyRefusal,
   TelemetryIngestionKeyRefusalReason,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
@@ -31,6 +32,10 @@ import TelemetryIngestionBudget, {
 } from "Common/Server/Utils/Telemetry/TelemetryIngestionBudget";
 import { encodeGoogleRpcStatus } from "Common/Server/Utils/Telemetry/GoogleRpcStatus";
 import { isTelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import { getTelemetryIngestRefusalReasonForBudget } from "Common/Types/Telemetry/TelemetryIngestRefusal";
+import TelemetryIngestRefusalRecorder, {
+  recordTelemetryIngestBillingRefusal,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestRefusalRecorder";
 
 const GRPC_PORT: number = 4317;
 
@@ -312,6 +317,14 @@ export async function authenticateGrpcRequestWithPolicy(
         service: "telemetry",
       },
     );
+
+    // Counted against the key, for its page (issue #6378).
+    TelemetryIngestRefusalRecorder.record({
+      projectId: policy.projectId,
+      ingestionKeyId: policy.ingestionKeyId,
+      reason: TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL[refusal.reason],
+      surface: TelemetryIngestSurface.Grpc,
+    });
     return {
       refusal: {
         code: GRPC_STATUS_FOR_KEY_REFUSAL[refusal.reason],
@@ -490,6 +503,13 @@ export async function handleExport(
         });
 
       if (admission.refusal) {
+        TelemetryIngestRefusalRecorder.record({
+          projectId: projectId,
+          ingestionKeyId: authentication.policy.ingestionKeyId,
+          reason: getTelemetryIngestRefusalReasonForBudget(admission.refusal),
+          surface: TelemetryIngestSurface.Grpc,
+        });
+
         callback(buildIngestionBudgetServiceError(admission.refusal));
         return;
       }
@@ -545,6 +565,15 @@ export async function handleExport(
 
     callback(null, {});
   } catch (err) {
+    /*
+     * A billing refusal is thrown while the key resolves; the key service
+     * noted which key, so it is counted against it (issue #6378).
+     */
+    recordTelemetryIngestBillingRefusal({
+      err,
+      surface: TelemetryIngestSurface.Grpc,
+    });
+
     if (err instanceof PaymentRequiredException) {
       /*
        * Billing admission, thrown by getPolicyFromSecretKey only for a key
