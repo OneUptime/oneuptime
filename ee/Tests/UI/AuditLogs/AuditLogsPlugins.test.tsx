@@ -22,7 +22,9 @@ import { MemoryRouter } from "react-router-dom";
  *     that resolve to ee/Dashboard/AuditLogs/{AuditLogsTable,AuditLogsSettings};
  *   - the assembled plugin (ee/Dashboard/Index.tsx) carries both keys;
  *   - the Settings form still edits the same three Project columns, with the
- *     same 7-180 day retention bounds;
+ *     same 7-180 day retention bounds - the recorder's own rule
+ *     (Common/Types/AuditLog/AuditLogRetention) - and the card shows, and the
+ *     form opens on, the retention the project keeps (#6383);
  *   - the bodies never import a core shell that reads the plugins (that
  *     import cycle crashes the Enterprise bundle), and the table takes its
  *     resource metadata from core's AuditLogsTableUtils, not a private copy.
@@ -37,13 +39,18 @@ type CapturedCardModelDetailProps = {
   formFields?: Array<{
     field?: Record<string, boolean>;
     title?: string;
+    description?: string;
     required?: boolean;
     validation?: { minValue?: number; maxValue?: number };
   }>;
+  onEditFormItemFetched?: (item: Project) => Promise<Project>;
   modelDetailProps?: {
     modelType?: unknown;
     modelId?: unknown;
-    fields?: Array<{ field?: Record<string, boolean> }>;
+    fields?: Array<{
+      field?: Record<string, boolean>;
+      getElement?: (item: Project) => React.ReactElement;
+    }>;
   };
 };
 
@@ -98,6 +105,10 @@ import { DashboardEnterprisePlugins } from "@oneuptime/dashboard/Enterprise/Ente
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import Project from "Common/Models/DatabaseModels/Project";
 import Route from "Common/Types/API/Route";
+import {
+  AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+  AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+} from "Common/Types/AuditLog/AuditLogRetention";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 
@@ -258,7 +269,53 @@ describe("Settings > Audit Logs (the Enterprise page)", () => {
 
     expect(retention?.required).toBe(true);
     expect(retention?.validation).toEqual({ minValue: 7, maxValue: 180 });
+    // The server's range: one rule, which the form's own words state too.
+    expect(retention?.validation).toEqual({
+      minValue: AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+      maxValue: AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+    });
+    expect(retention?.description).toBe(
+      `Number of days to retain audit log entries. Minimum ${AUDIT_LOG_MIN_RETENTION_IN_DAYS}, maximum ${AUDIT_LOG_MAX_RETENTION_IN_DAYS}.`,
+    );
   });
+
+  /*
+   * A project that stores a retention from before the server checked it
+   * (-3, 500, written through the API) keeps its entries for the nearest
+   * retention from 7 to 180 days. The card says so, and the form opens on
+   * it, so saving it stores what the project already keeps.
+   */
+  test.each([
+    [30, "30"],
+    [7, "7"],
+    [180, "180"],
+    [-3, "7"],
+    [0, "7"],
+    [3, "7"],
+    [500, "180"],
+  ])(
+    "a stored retention of %p shows, and opens the form, as the %s days entries are kept",
+    async (stored: number, shown: string) => {
+      render(<AuditLogsSettings {...PAGE_PROPS} />);
+
+      const project: Project = new Project();
+      project.auditLogsRetentionInDays = stored;
+
+      const retentionField:
+        | { getElement?: (item: Project) => React.ReactElement }
+        | undefined = (capturedCardProps?.modelDetailProps?.fields || [])[1];
+
+      cleanup();
+      render(retentionField!.getElement!(project));
+      expect(screen.getByText(shown)).toBeInTheDocument();
+
+      const opened: Project = await capturedCardProps!.onEditFormItemFetched!(
+        project,
+      );
+
+      expect(opened.auditLogsRetentionInDays).toBe(Number(shown));
+    },
+  );
 
   test("reads and writes the current project", () => {
     render(<AuditLogsSettings {...PAGE_PROPS} />);

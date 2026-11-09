@@ -50,7 +50,6 @@ jest.mock(
 
 import AuditLogExporter from "../../../Server/AuditLogExport/AuditLogExporter";
 import {
-  AUDIT_LOG_EXPORT_DEFAULT_RETENTION_IN_DAYS,
   AUDIT_LOG_EXPORT_FAILING_NOTICE_AFTER_IN_MINUTES,
   AUDIT_LOG_EXPORT_LOSING_NOTICE_LEAD_IN_HOURS,
   AuditLogExportFailureEmail,
@@ -63,7 +62,6 @@ import {
   getAuditLogExportFailureNotice,
   getAuditLogExportLosingNoticeAt,
   getAuditLogExportRetentionInDays,
-  toAuditLogExportRetentionInDays,
 } from "../../../Server/AuditLogExport/AuditLogExportNotifications";
 import AuditLogExportDestinationRegistry from "../../../Server/AuditLogExport/Destinations/DestinationRegistry";
 import {
@@ -84,6 +82,10 @@ import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import URL from "Common/Types/API/URL";
+import {
+  AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
+  readAuditLogRetentionInDays,
+} from "Common/Types/AuditLog/AuditLogRetention";
 import { getAuditLogExportDestinationDefinition } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -299,21 +301,21 @@ describe("which email a failure is due", () => {
     ).toBe(at(30 * MINUTE).toISOString());
 
     /*
-     * A day's retention, recorded two hours before the failures began: less
-     * than a day left when the first email can go, however long that day is
-     * on the server's clock. Recorded a minute before, it is not on the day
-     * Europe's clocks go back: that day keeps it 25 hours, and the first
-     * email says "failing" (AuditLogExportClockChanges.test.ts).
+     * A week's retention, the entry recorded six days and 22 hours before
+     * the failures began: less than a day left when the first email can go,
+     * however long the days in between are on the server's clock. Where the
+     * last of them is Europe's 25-hour day, it can be more than a day, and
+     * the first email says "failing" (AuditLogExportClockChanges.test.ts).
      */
-    const kept: Date = at(-2 * HOUR);
+    const kept: Date = at(-7 * DAY + 2 * HOUR);
 
-    expect(losingNoticeAt(kept, 1)).toBeLessThan(at(30 * MINUTE).getTime());
+    expect(losingNoticeAt(kept, 7)).toBeLessThan(at(30 * MINUTE).getTime());
     expect(
       notice({
         previousFailureAt: at(15 * MINUTE),
         now: at(31 * MINUTE),
         oldestUnsentAt: kept,
-        retentionInDays: 1,
+        retentionInDays: 7,
       }),
     ).toBe(AuditLogExportFailureNotice.LosingEntries);
   });
@@ -354,14 +356,41 @@ describe("which email a failure is due", () => {
     ).toBe(AuditLogExportFailureNotice.Failing);
   });
 
-  test("the retention is the one an entry is recorded with: 7 days for none, 1 to 180", () => {
-    expect(AUDIT_LOG_EXPORT_DEFAULT_RETENTION_IN_DAYS).toBe(7);
-    for (const unreadable of [0, -3, Number.NaN, null, undefined]) {
-      expect(toAuditLogExportRetentionInDays(unreadable)).toBe(7);
+  /*
+   * The recorder's rule (Common/Types/AuditLog/AuditLogRetention). This
+   * read -3 as 7 days and 0.5 as 1 while the recorder kept both a day (#6383);
+   * now both read them as the week the recorder keeps, and
+   * AuditLogExportClockChanges.test.ts holds the two to the same instant.
+   */
+  test("the retention is the one an entry is recorded with: 7 days for none, and from 7 to 180", () => {
+    expect(AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS).toBe(7);
+
+    for (const [value, days] of [
+      [null, 7],
+      [undefined, 7],
+      [Number.NaN, 7],
+      [0, 7],
+      [-3, 7],
+      [0.5, 7],
+      [3, 7],
+      [7, 7],
+      [30, 30],
+      [180, 180],
+      [500, 180],
+    ] as Array<[number, number]>) {
+      expect({
+        value,
+        days: readAuditLogRetentionInDays(value),
+        lostAt: getAuditLogExportEntriesLostAt({
+          oldestUnsentAt: OLDEST,
+          retentionInDays: value,
+        }).toISOString(),
+      }).toEqual({
+        value,
+        days,
+        lostAt: deletedAt(OLDEST, days).toISOString(),
+      });
     }
-    expect(toAuditLogExportRetentionInDays(30)).toBe(30);
-    expect(toAuditLogExportRetentionInDays(500)).toBe(180);
-    expect(toAuditLogExportRetentionInDays(0.5)).toBe(1);
   });
 });
 
@@ -498,11 +527,11 @@ describe("the email's words", () => {
     );
   });
 
-  test("one day reads as one day, and an export with no name still reads", () => {
+  test("it says the days the audit log keeps an entry, as the recorder keeps it, and an export with no name still reads", () => {
     const email: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail({
       ...base,
       exportName: "  ",
-      retentionInDays: 1,
+      retentionInDays: -3,
     });
 
     // Never "The audit log export audit log export is failing".
@@ -511,9 +540,40 @@ describe("the email's words", () => {
       title: "Export: ",
       text: "audit log export",
     });
+    // A stored -3 keeps entries a week: never "1 day", never "-3 days".
     expect(email.remediation).toContain(
-      "the audit log keeps each entry for 1 day.",
+      "the audit log keeps each entry for 7 days.",
     );
+
+    for (const [retentionInDays, days] of [
+      [1, "7 days"],
+      [0.5, "7 days"],
+      [30, "30 days"],
+      [500, "180 days"],
+    ] as Array<[number, string]>) {
+      expect(
+        buildAuditLogExportFailureEmail({ ...base, retentionInDays })
+          .remediation,
+      ).toContain(`the audit log keeps each entry for ${days}.`);
+    }
+
+    const losing: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail(
+      {
+        ...base,
+        notice: AuditLogExportFailureNotice.LosingEntries,
+        retentionInDays: -3,
+      },
+    );
+
+    expect(losing.remediation).toContain(
+      "the audit log's retention of 7 days, and are never sent.",
+    );
+    expect(losing.details).toContainEqual({
+      title: "Entries lost from: ",
+      text: `about ${OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        deletedAt(base.oldestUnsentAt as Date, 7),
+      )}`,
+    });
 
     const instance: AuditLogExportFailureEmail =
       buildAuditLogExportFailureEmail({
@@ -564,7 +624,13 @@ describe("the retention that decides when entries are lost", () => {
           Object.assign(new Project(), { auditLogsRetentionInDays: 30 }),
         )
         .mockResolvedValueOnce(new Project())
-        .mockResolvedValueOnce(null);
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(
+          Object.assign(new Project(), { auditLogsRetentionInDays: -3 }),
+        )
+        .mockResolvedValueOnce(
+          Object.assign(new Project(), { auditLogsRetentionInDays: 500 }),
+        );
 
     await expect(
       getAuditLogExportRetentionInDays(exportOf(PROJECT_A)),
@@ -575,6 +641,13 @@ describe("the retention that decides when entries are lost", () => {
     await expect(
       getAuditLogExportRetentionInDays(exportOf(PROJECT_A)),
     ).resolves.toBe(7);
+    // Stored before the server checked: read as the recorder keeps them.
+    await expect(
+      getAuditLogExportRetentionInDays(exportOf(PROJECT_A)),
+    ).resolves.toBe(7);
+    await expect(
+      getAuditLogExportRetentionInDays(exportOf(PROJECT_A)),
+    ).resolves.toBe(180);
     expect(findOneById.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
         select: { auditLogsRetentionInDays: true },
@@ -587,13 +660,23 @@ describe("the retention that decides when entries are lost", () => {
   test("the instance's export: the shortest of the projects that record an audit log", async () => {
     const findOneBy: jest.SpiedFunction<typeof ProjectService.findOneBy> = jest
       .spyOn(ProjectService, "findOneBy")
-      .mockResolvedValue(
-        Object.assign(new Project(), { auditLogsRetentionInDays: 3 }),
+      .mockResolvedValueOnce(
+        Object.assign(new Project(), { auditLogsRetentionInDays: 14 }),
+      )
+      .mockResolvedValueOnce(
+        Object.assign(new Project(), { auditLogsRetentionInDays: -3 }),
       );
 
     await expect(
       getAuditLogExportRetentionInDays(exportOf(null)),
-    ).resolves.toBe(3);
+    ).resolves.toBe(14);
+    /*
+     * A stored -3 sorts first, and is the week the recorder keeps that
+     * project's entries for: never a day, never -3.
+     */
+    await expect(
+      getAuditLogExportRetentionInDays(exportOf(null)),
+    ).resolves.toBe(7);
     expect(findOneBy.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
         query: { enableAuditLogs: true },
@@ -1036,16 +1119,56 @@ describe("the exporter tells people as its failures go on", () => {
     expect(sent[1]!.error).toBe("refused again");
   });
 
-  test("a short retention is told as 'losing entries' from the first email on", async () => {
-    retentionInDays = 1;
-    // Waiting two hours: less than a day left by the first email, however long that day is.
-    const { row, exports } = failingExport(at(-2 * HOUR));
+  test("an entry with less than a day left is told as 'losing entries' from the first email on", async () => {
+    /*
+     * Exporting from a week back, its oldest entry recorded six days and
+     * 22 hours before the failures: a week's retention leaves it less than
+     * a day by the first email, however long the days in between are.
+     */
+    const row: StoredExport = webhookRow({
+      startsAt: at(-7 * DAY),
+      createdAt: START,
+    });
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    record(at(-7 * DAY + 2 * HOUR));
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused the key (HTTP 401)", {
+        retryable: false,
+        status: 401,
+      }),
+    );
 
     await runUntil(exports, row, at(3 * HOUR));
 
     expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
     // With the first email, at the try 31 minutes in.
     expect(sent[0]!.at.toISOString()).toBe(at(31 * MINUTE).toISOString());
+  });
+
+  /*
+   * #6383: for a project storing -3 the recorder deleted entries after a
+   * day while the export reckoned a week; the export's "losing entries" email
+   * was due six days after they were gone. Both now keep and reckon the week.
+   */
+  test("a negative retention is reckoned as the week the recorder keeps: 'losing entries' a day before the oldest entry goes", async () => {
+    retentionInDays = -3;
+    const { row, exports } = failingExport();
+    const oldest: Date = at(-5 * MINUTE);
+    const losingAt: number = losingNoticeAt(oldest, 7);
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    // Well before the entry is deleted: a week after it was recorded.
+    expect(sent[1]!.at.getTime()).toBeLessThan(
+      deletedAt(oldest, 7).getTime(),
+    );
   });
 
   test("an export reading from the past is told 'losing entries' a day before its oldest entry goes, not a week after it broke", async () => {

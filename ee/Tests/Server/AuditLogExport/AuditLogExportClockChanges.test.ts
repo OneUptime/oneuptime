@@ -56,6 +56,11 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import PacketCapture from "Common/Models/DatabaseModels/PacketCapture";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
+import {
+  AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+  AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+  readAuditLogRetentionInDays,
+} from "Common/Types/AuditLog/AuditLogRetention";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
@@ -66,6 +71,10 @@ import {
   resetMomentDefaultZone,
   setMomentDefaultZone,
 } from "Common/Tests/Helpers/MomentDefaultZone";
+import {
+  SeededRandom,
+  seededRandom,
+} from "Common/Tests/Helpers/SeededRandom";
 import {
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
@@ -83,9 +92,10 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
  * (getAuditLogExportEntriesLostAt) to send "will start losing entries" a day
  * before it, and to say from when. In a zone that changes its clocks, a
  * calendar day in between can be 23 or 25 hours long - half an hour either
- * way on Lord Howe Island, two hours on Antarctica/Troll - so the email goes
- * a day before the deletion only while the export counts days as the
- * recorder does: by the calendar.
+ * way on Lord Howe Island, two hours on Antarctica/Troll - so a week across
+ * the change is 167 or 169 hours, and the email goes a day before the
+ * deletion only while the export counts days as the recorder does: by the
+ * calendar.
  *
  * CI runs in UTC, where every day is 24 hours, so there neither the
  * recorder's suites nor AuditLogExportNotifications.test.ts can tell
@@ -102,11 +112,21 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
  *     either stops reckoning through moment, or starts counting 24-hour
  *     days, this fails in UTC too;
  *   - the email is due 24 hours before that instant, and not a millisecond
- *     sooner.
+ *     sooner;
+ *   - both read the project's retention by one rule
+ *     (Common/Types/AuditLog/AuditLogRetention, #6383): for every value a
+ *     project can store - none, -3, 0.5, 500, text - and in every zone, the
+ *     export reckons the instant the recorder stamps. They once disagreed
+ *     for a negative retention: the recorder kept entries a day, the export
+ *     reckoned a week, and warned six days after they were gone.
+ *
+ * A retention is 7 to 180 days, so every entry here is kept a week or more.
  */
 
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
+// 24 hours: for placing moments on the clock, never for when an entry is deleted.
+const DAY: number = 24 * HOUR;
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -127,7 +147,7 @@ interface ClockChange {
   zone: string;
   // What its clocks do while the entry is kept.
   change: string;
-  // When the entry is recorded, and how many days its project keeps it.
+  // When the entry is recorded, and how many days its project keeps it (7 to 180).
   recordedAt: string;
   retentionInDays: number;
   // The same time by that zone's clock, retentionInDays later: the deletion.
@@ -150,18 +170,18 @@ const CLOCK_CHANGES: Array<ClockChange> = [
     zone: "Europe/London",
     change: "go back an hour on 25 October 2026",
     recordedAt: "2026-10-24T11:59:00.000Z",
-    retentionInDays: 1,
-    deletedAt: "2026-10-25T12:59:00.000Z",
-    hours: 25,
+    retentionInDays: 14,
+    deletedAt: "2026-11-07T12:59:00.000Z",
+    hours: 337,
   },
   {
     // 12:00 GMT, then 12:00 BST.
     zone: "Europe/London",
     change: "go forward an hour on 29 March 2026",
     recordedAt: "2026-03-28T12:00:00.000Z",
-    retentionInDays: 1,
-    deletedAt: "2026-03-29T11:00:00.000Z",
-    hours: 23,
+    retentionInDays: 7,
+    deletedAt: "2026-04-04T11:00:00.000Z",
+    hours: 167,
   },
   {
     // 12:00 EDT, then 12:00 EST.
@@ -190,12 +210,13 @@ const CLOCK_CHANGES: Array<ClockChange> = [
     hours: 167.5,
   },
   {
+    // 12:00 at +11:00, then 12:00 at +10:30.
     zone: "Australia/Lord_Howe",
     change: "go back half an hour on 5 April 2026",
     recordedAt: "2026-04-04T01:00:00.000Z",
-    retentionInDays: 1,
-    deletedAt: "2026-04-05T01:30:00.000Z",
-    hours: 24.5,
+    retentionInDays: 7,
+    deletedAt: "2026-04-11T01:30:00.000Z",
+    hours: 168.5,
   },
   {
     // 12:00 at +12:45, then 12:00 at +13:45: the longest retention there is.
@@ -207,13 +228,13 @@ const CLOCK_CHANGES: Array<ClockChange> = [
     hours: 4319,
   },
   {
-    // +02:00, then +00:00.
+    // 13:59 at +02:00, then 13:59 at +00:00.
     zone: "Antarctica/Troll",
     change: "go back two hours on 25 October 2026",
     recordedAt: "2026-10-24T11:59:00.000Z",
-    retentionInDays: 1,
-    deletedAt: "2026-10-25T13:59:00.000Z",
-    hours: 26,
+    retentionInDays: 7,
+    deletedAt: "2026-10-31T13:59:00.000Z",
+    hours: 170,
   },
   {
     zone: "UTC",
@@ -352,12 +373,8 @@ describe("the instant an entry is deleted, where the clocks change", () => {
 });
 
 describe("the 'losing entries' email is due a day before that instant", () => {
-  // Kept longer than a day: the email is never due before the first one (30 minutes in).
-  test.each(
-    CLOCK_CHANGES.filter((clockChange: ClockChange): boolean => {
-      return clockChange.retentionInDays > 1;
-    }),
-  )(
+  // Kept a week or more: the email is never due before the first one (30 minutes in).
+  test.each(CLOCK_CHANGES)(
     "$zone, whose clocks $change: 24 hours before $deletedAt, and not a millisecond sooner",
     (clockChange: ClockChange) => {
       setMomentDefaultZone(clockChange.zone);
@@ -400,12 +417,16 @@ describe("the 'losing entries' email is due a day before that instant", () => {
     },
   );
 
-  test("a day's retention over the night London's clocks go back is 25 hours: the first email says 'failing', and 'losing entries' follows when a day is left", () => {
+  test("a week's retention ending the day after London's clocks go back: 24 hours 59 minutes are left when the failures begin, so the first email says 'failing', and 'losing entries' follows when a day is left", () => {
     setMomentDefaultZone("Europe/London");
 
-    // Failing from 12:00 UTC (13:00 BST) on 24 October 2026; the entry is a minute older.
+    /*
+     * Failing from 12:00 UTC (13:00 BST) on 24 October 2026; the entry was
+     * recorded six days and a minute before, at 12:59 BST on 18 October, and
+     * is deleted at 12:59 GMT on 25 October, 169 hours later.
+     */
     const failingSince: Date = new Date("2026-10-24T12:00:00.000Z");
-    const oldestUnsentAt: Date = new Date("2026-10-24T11:59:00.000Z");
+    const oldestUnsentAt: Date = new Date("2026-10-18T11:59:00.000Z");
     const notice: (
       previousFailureAt: string,
       now: string,
@@ -418,15 +439,21 @@ describe("the 'losing entries' email is due a day before that instant", () => {
         previousFailureAt: new Date(previousFailureAt),
         now: new Date(now),
         oldestUnsentAt,
-        retentionInDays: 1,
+        retentionInDays: 7,
       });
     };
 
     expect(
+      getAuditLogExportEntriesLostAt({
+        oldestUnsentAt,
+        retentionInDays: 7,
+      }).toISOString(),
+    ).toBe("2026-10-25T12:59:00.000Z");
+    expect(
       getAuditLogExportLosingNoticeAt({
         failingSince,
         oldestUnsentAt,
-        retentionInDays: 1,
+        retentionInDays: 7,
       })!.toISOString(),
     ).toBe("2026-10-24T12:59:00.000Z");
     // The tries come 15, 31 and 63 minutes in.
@@ -438,16 +465,21 @@ describe("the 'losing entries' email is due a day before that instant", () => {
     );
   });
 
-  test("a day's retention over the night London's clocks go forward is 23 hours: the first email already says 'losing entries'", () => {
+  test("a week's retention ending the day after London's clocks go forward: 22 hours 59 minutes are left when the failures begin, so the first email already says 'losing entries'", () => {
     setMomentDefaultZone("Europe/London");
 
+    /*
+     * Failing from 12:00 GMT on 28 March 2026; the entry was recorded at
+     * 11:59 GMT on 22 March, and is deleted at 11:59 BST on 29 March, 167
+     * hours later.
+     */
     const failingSince: Date = new Date("2026-03-28T12:00:00.000Z");
-    const oldestUnsentAt: Date = new Date("2026-03-28T11:59:00.000Z");
+    const oldestUnsentAt: Date = new Date("2026-03-22T11:59:00.000Z");
 
     expect(
       getAuditLogExportEntriesLostAt({
         oldestUnsentAt,
-        retentionInDays: 1,
+        retentionInDays: 7,
       }).toISOString(),
     ).toBe("2026-03-29T10:59:00.000Z");
     // Less than a day left when the first email can go, 30 minutes in.
@@ -455,7 +487,7 @@ describe("the 'losing entries' email is due a day before that instant", () => {
       getAuditLogExportLosingNoticeAt({
         failingSince,
         oldestUnsentAt,
-        retentionInDays: 1,
+        retentionInDays: 7,
       })!.toISOString(),
     ).toBe("2026-03-28T12:30:00.000Z");
     expect(
@@ -464,8 +496,241 @@ describe("the 'losing entries' email is due a day before that instant", () => {
         previousFailureAt: new Date("2026-03-28T12:15:00.000Z"),
         now: new Date("2026-03-28T12:31:00.000Z"),
         oldestUnsentAt,
-        retentionInDays: 1,
+        retentionInDays: 7,
       }),
     ).toBe(AuditLogExportFailureNotice.LosingEntries);
   });
+});
+
+/*
+ * ONE RULE FOR THE RETENTION (#6383).
+ *
+ * The recorder stamped Math.max(1, Math.min(days || 7, 180)) days, and the
+ * export reckoned any value <= 0 as 7: for -3, which the API took, the
+ * recorder deleted an entry after a day while a failing export reckoned a
+ * week, and its "will start losing entries" email was due six days after
+ * the entry was gone. Both now read the stored value by one rule
+ * (readAuditLogRetentionInDays: 7 to 180 whole days, 7 for none), and the
+ * server refuses a value outside that range, but a value stored before is
+ * still read. So, for every value a project can hold, in every zone above
+ * that keeps an entry a week: the instant the export reckons is the one the
+ * recorder stamps, and a value read as a week is deleted at that zone's
+ * week, written out above.
+ */
+const STORED_VALUES: Array<{ name: string; value: unknown; days: number }> = [
+  { name: "none", value: null, days: 7 },
+  { name: "0", value: 0, days: 7 },
+  { name: "-3", value: -3, days: 7 },
+  { name: "0.5", value: 0.5, days: 7 },
+  { name: "3", value: 3, days: 7 },
+  { name: "7", value: 7, days: 7 },
+  { name: "180", value: 180, days: 180 },
+  { name: "500", value: 500, days: 180 },
+  { name: "NaN", value: Number.NaN, days: 7 },
+  { name: '"30", a number written as text', value: "30", days: 30 },
+  { name: '"a week", text', value: "a week", days: 7 },
+];
+
+interface StoredValueCase {
+  zone: string;
+  change: string;
+  recordedAt: string;
+  // When the zone's week from recordedAt ends, written out above.
+  weekEndsAt: string;
+  name: string;
+  value: unknown;
+  days: number;
+}
+
+const STORED_VALUE_CASES: Array<StoredValueCase> = CLOCK_CHANGES.filter(
+  (clockChange: ClockChange): boolean => {
+    return clockChange.retentionInDays === 7;
+  },
+).flatMap((week: ClockChange): Array<StoredValueCase> => {
+  return STORED_VALUES.map(
+    (stored: {
+      name: string;
+      value: unknown;
+      days: number;
+    }): StoredValueCase => {
+      return {
+        zone: week.zone,
+        change: week.change,
+        recordedAt: week.recordedAt,
+        weekEndsAt: week.deletedAt,
+        ...stored,
+      };
+    },
+  );
+});
+
+describe("one rule: for every value a project can store, the export reckons the instant the recorder stamps", () => {
+  test("every zone that changes its clocks is here, with the values the issue named", () => {
+    expect(
+      [
+        ...new Set(
+          STORED_VALUE_CASES.map((stored: StoredValueCase): string => {
+            return stored.zone;
+          }),
+        ),
+      ].sort(),
+    ).toEqual(
+      [
+        "America/New_York",
+        "Antarctica/Troll",
+        "Australia/Lord_Howe",
+        "Europe/London",
+        "UTC",
+      ].sort(),
+    );
+    expect(STORED_VALUE_CASES).toHaveLength(7 * STORED_VALUES.length);
+  });
+
+  test.each(STORED_VALUE_CASES)(
+    "$zone, whose clocks $change: a stored retention of $name keeps an entry $days days, as the export reckons",
+    async (stored: StoredValueCase) => {
+      setMomentDefaultZone(stored.zone);
+
+      const stamped: Date = await stampedRetentionDate(
+        stored.recordedAt,
+        stored.value as number,
+      );
+      const lostAt: Date = getAuditLogExportEntriesLostAt({
+        oldestUnsentAt: new Date(stored.recordedAt),
+        retentionInDays: stored.value as number,
+      });
+
+      expect(lostAt.toISOString()).toBe(stamped.toISOString());
+      expect(readAuditLogRetentionInDays(stored.value)).toBe(stored.days);
+      expect(stamped.toISOString()).toBe(
+        stored.days === 7
+          ? stored.weekEndsAt
+          : OneUptimeDate.addRemoveDays(
+              new Date(stored.recordedAt),
+              stored.days,
+            ).toISOString(),
+      );
+    },
+  );
+
+  test("a negative retention: 'losing entries' a day before the entry is deleted, and not six days after", async () => {
+    setMomentDefaultZone("Europe/London");
+
+    const recordedAt: string = "2026-10-24T11:59:00.000Z";
+    const stamped: Date = await stampedRetentionDate(recordedAt, -3);
+    const losingAt: Date = getAuditLogExportLosingNoticeAt({
+      failingSince: new Date(recordedAt),
+      oldestUnsentAt: new Date(recordedAt),
+      retentionInDays: -3,
+    })!;
+
+    // Kept the week the export reckons: 12:59 BST to 12:59 GMT.
+    expect(stamped.toISOString()).toBe("2026-10-31T12:59:00.000Z");
+    expect(losingAt.getTime()).toBe(stamped.getTime() - 24 * HOUR);
+  });
+});
+
+/*
+ * Values of every kind a project could hold, drawn from a seeded stream:
+ * whole numbers either side of the range, fractions, huge numbers, numbers
+ * written as text, and what is not a number at all.
+ */
+const drawStoredValue: (random: SeededRandom) => unknown = (
+  random: SeededRandom,
+): unknown => {
+  const kind: number = random(6);
+
+  if (kind === 0) {
+    return random(1000) - 400;
+  }
+
+  if (kind === 1) {
+    return random() * 400 - 100;
+  }
+
+  if (kind === 2) {
+    return random() * 1e9 * (random(2) === 0 ? 1 : -1);
+  }
+
+  if (kind === 3) {
+    return String(random(400) - 100);
+  }
+
+  if (kind === 4) {
+    return AUDIT_LOG_MIN_RETENTION_IN_DAYS + random(AUDIT_LOG_MAX_RETENTION_IN_DAYS);
+  }
+
+  return [null, undefined, Number.NaN, Number.POSITIVE_INFINITY, "", "a week"][
+    random(6)
+  ];
+};
+
+const RANDOM_ZONES: Array<string> = [
+  "UTC",
+  "Europe/London",
+  "America/New_York",
+  "America/Santiago",
+  "Australia/Lord_Howe",
+  "Pacific/Chatham",
+  "Antarctica/Troll",
+  "Asia/Kolkata",
+];
+
+// 400 entries recorded, one at a time: far more than Jest's 5 seconds on a busy runner.
+const RANDOM_DRAWS_TIMEOUT_IN_MS: number = 120000;
+
+describe("one rule, drawn at random: values, zones and moments", () => {
+  test("the export reckons the instant the recorder stamps, a week to 180 days later by the zone's clock", async () => {
+    const random: SeededRandom = seededRandom(6383);
+    const FROM: number = Date.parse("2026-01-01T00:00:00.000Z");
+
+    for (let draw: number = 0; draw < 400; draw++) {
+      const zone: string = RANDOM_ZONES[random(RANDOM_ZONES.length)] as string;
+      const value: unknown = drawStoredValue(random);
+      // Any minute of two years, so draws fall on every side of each change.
+      const recordedAt: Date = new Date(
+        FROM + random(730) * DAY + random(24 * 60) * MINUTE,
+      );
+
+      setMomentDefaultZone(zone);
+      inserted = [];
+      recorder.invalidateProjectSettings(PROJECT_ID);
+
+      const stamped: Date = await stampedRetentionDate(
+        recordedAt.toISOString(),
+        value as number,
+      );
+      const lostAt: Date = getAuditLogExportEntriesLostAt({
+        oldestUnsentAt: recordedAt,
+        retentionInDays: value as number,
+      });
+      const days: number = readAuditLogRetentionInDays(value);
+
+      expect({ draw, zone, value, lostAt: lostAt.toISOString() }).toEqual({
+        draw,
+        zone,
+        value,
+        lostAt: stamped.toISOString(),
+      });
+      expect(days).toBeGreaterThanOrEqual(AUDIT_LOG_MIN_RETENTION_IN_DAYS);
+      expect(days).toBeLessThanOrEqual(AUDIT_LOG_MAX_RETENTION_IN_DAYS);
+      // Never a day off: the clocks change by two hours at most.
+      expect({
+        draw,
+        zone,
+        value,
+        withinTwoHoursOfTheDays:
+          Math.abs(stamped.getTime() - recordedAt.getTime() - days * DAY) <=
+          2 * HOUR,
+      }).toEqual({ draw, zone, value, withinTwoHoursOfTheDays: true });
+      // The email that entries are lost goes a day before they are.
+      expect(
+        getAuditLogExportLosingNoticeAt({
+          failingSince: recordedAt,
+          oldestUnsentAt: recordedAt,
+          retentionInDays: value as number,
+        })!.getTime(),
+      ).toBe(stamped.getTime() - 24 * HOUR);
+    }
+  }, RANDOM_DRAWS_TIMEOUT_IN_MS);
 });

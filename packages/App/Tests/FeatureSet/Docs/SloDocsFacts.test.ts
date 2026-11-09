@@ -8,6 +8,11 @@ import { ServiceLevelObjectiveFeedEventType } from "Common/Models/DatabaseModels
 import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveOwnerRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerRule";
+import {
+  AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
+  AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+  AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+} from "Common/Types/AuditLog/AuditLogRetention";
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import Permission, {
   PermissionHelper,
@@ -3300,6 +3305,12 @@ describe("SLO Feed and Audit Logs, against the feed and the audit log settings",
     expect(page).toContain(
       "Set **Retention (days)**, from 7 (the default) to 180, and turn on **Store System Events**",
     );
+    // The range the recorder, a failing export and the server read it by.
+    expect([
+      AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
+      AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+      AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+    ]).toEqual([7, 7, 180]);
   });
 
   it("walks the audit log settings as the settings page draws them, where the build has it", () => {
@@ -3324,8 +3335,8 @@ describe("SLO Feed and Audit Logs, against the feed and the audit log settings",
       'title: "Enable Audit Logs",',
       'title: "Retention (days)",',
       'title: "Store System Events",',
-      "minValue: 7,",
-      "maxValue: 180,",
+      "minValue: AUDIT_LOG_MIN_RETENTION_IN_DAYS,",
+      "maxValue: AUDIT_LOG_MAX_RETENTION_IN_DAYS,",
     ]) {
       expect({ text, inSettings: settings.includes(text) }).toEqual({
         text,
