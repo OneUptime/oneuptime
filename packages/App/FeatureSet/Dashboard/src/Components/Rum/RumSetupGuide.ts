@@ -225,6 +225,34 @@ registerInstrumentations({
 });`;
 }
 
+/*
+ * The window error handlers that report a browser app's uncaught errors:
+ * the browser SDK records none on its own. The "Report uncaught errors"
+ * topic below and the "Set up exceptions" dialog (RumSignalSetupGuide)
+ * show this same code.
+ */
+export function getRumErrorHandlersSnippet(): string {
+  return `import { trace, SpanStatusCode } from "@opentelemetry/api";
+
+const tracer = trace.getTracer("app-errors");
+
+window.addEventListener("error", (event: ErrorEvent) => {
+  const span = tracer.startSpan("window.onerror");
+  span.recordException(event.error ?? new Error(event.message));
+  span.setStatus({ code: SpanStatusCode.ERROR });
+  span.end();
+});
+
+window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
+  const span = tracer.startSpan("unhandledrejection");
+  span.recordException(
+    event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
+  );
+  span.setStatus({ code: SpanStatusCode.ERROR });
+  span.end();
+});`;
+}
+
 function getBrowserPrerequisites(): Array<string> {
   return [
     "A web app whose code you can change and redeploy, with its dependencies installed through npm",
@@ -350,28 +378,7 @@ Requests made with \`XMLHttpRequest\` instead of \`fetch\` need \`@opentelemetry
         "The browser SDK does not capture them, so report them from the window's error events.",
       markdown: `Uncaught errors are not captured automatically by the OpenTelemetry browser SDK. Report them explicitly so they roll into the **Exceptions** view alongside your backend errors:
 
-${codeBlock(
-  "ts",
-  `import { trace, SpanStatusCode } from "@opentelemetry/api";
-
-const tracer = trace.getTracer("app-errors");
-
-window.addEventListener("error", (event: ErrorEvent) => {
-  const span = tracer.startSpan("window.onerror");
-  span.recordException(event.error ?? new Error(event.message));
-  span.setStatus({ code: SpanStatusCode.ERROR });
-  span.end();
-});
-
-window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-  const span = tracer.startSpan("unhandledrejection");
-  span.recordException(
-    event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
-  );
-  span.setStatus({ code: SpanStatusCode.ERROR });
-  span.end();
-});`,
-)}`,
+${codeBlock("ts", getRumErrorHandlersSnippet())}`,
     },
     {
       title: "Send logs, metrics and Core Web Vitals",

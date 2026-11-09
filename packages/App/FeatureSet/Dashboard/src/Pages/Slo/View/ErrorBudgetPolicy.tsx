@@ -8,6 +8,7 @@ import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import {
   POLICY_TIER_BUDGET_LEFT_TEMPLATE,
   POLICY_TIER_ENTERED_TEMPLATE,
+  describePolicyTierDeployments,
 } from "../../../Components/Slo/SloPolicyTier";
 import SloRecommendedPolicyTiersModal, {
   USE_RECOMMENDED_POLICY_TITLE,
@@ -19,7 +20,7 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Gray500, Green } from "Common/Types/BrandColors";
+import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -41,6 +42,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  areSloDeploymentsAllowedInTier,
   formatSloPolicyTierThreshold,
   isSameSloPolicyTier,
 } from "Common/Utils/Slo/SloErrorBudgetPolicy";
@@ -67,6 +69,9 @@ export const USE_RECOMMENDED_POLICY_BUTTON_TEST_ID: string =
 
 export const CURRENT_POLICY_TIER_TEST_ID: string = "slo-current-policy-tier";
 
+export const POLICY_TIER_DEPLOYMENTS_TEST_ID: string =
+  "slo-policy-tier-deployments";
+
 // The tier the SLO is in, as the worker wrote it on the SLO.
 interface CurrentTier {
   id: ObjectID | null;
@@ -76,8 +81,9 @@ interface CurrentTier {
 /*
  * An SLO's error budget policy: its tiers, from the one the budget reaches
  * first (the highest threshold) down to the tier of an exhausted budget,
- * each with what the team agreed to do there and what it raises when the
- * SLO enters it. The tier the SLO is in now is marked on its row.
+ * each with what the team agreed to do there, whether it freezes
+ * deployments and what it raises when the SLO enters it. The tier the SLO
+ * is in now is marked on its row.
  *
  * An SLO with no policy yet is offered the recommended one in the table's
  * empty state: "Use the recommended policy" lists exactly the tiers it adds,
@@ -401,6 +407,35 @@ const SloErrorBudgetPolicy: FunctionComponent<
                 >
                   <MarkdownViewer text={item.whatWeDo} />
                 </div>
+              );
+            },
+          },
+          {
+            field: {
+              freezesDeployments: true,
+            },
+            title: "Deployments",
+            type: FieldType.Element,
+            getElement: (
+              item: ServiceLevelObjectiveErrorBudgetPolicyTier,
+            ): ReactElement => {
+              /*
+               * What CI/CD is told while the SLO is in the tier: a tier that
+               * freezes deployments stands out in red, any other reads
+               * Allowed, quietly.
+               */
+              const label: string = describePolicyTierDeployments(item);
+
+              return (
+                <span data-testid={POLICY_TIER_DEPLOYMENTS_TEST_ID}>
+                  {areSloDeploymentsAllowedInTier(item) ? (
+                    <span className="text-sm text-gray-500">
+                      {translator.translateText(label)}
+                    </span>
+                  ) : (
+                    <Pill color={Red} text={label} size={PillSize.Small} />
+                  )}
+                </span>
               );
             },
           },

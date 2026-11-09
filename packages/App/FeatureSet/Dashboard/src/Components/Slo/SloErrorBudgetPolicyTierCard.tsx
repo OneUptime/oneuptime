@@ -2,10 +2,14 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SloOverviewActionLink from "./SloOverviewActionLink";
 import {
+  DEPLOYMENTS_FROZEN_SINCE_TEMPLATE,
+  DEPLOYMENTS_FROZEN_TEXT,
   POLICY_TIER_BUDGET_LEFT_TEMPLATE,
   POLICY_TIER_ENTERED_TEMPLATE,
   SloCurrentPolicyTier,
+  SloDeploymentFreeze,
   getSloCurrentPolicyTier,
+  getSloDeploymentFreeze,
 } from "./SloPolicyTier";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
@@ -24,6 +28,8 @@ import { getSloPolicyTierColor } from "Common/Utils/Slo/SloStatusColor";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export const SLO_POLICY_TIER_CARD_TEST_ID: string = "slo-overview-policy-tier";
+
+export const SLO_DEPLOYMENTS_FROZEN_TEST_ID: string = `${SLO_POLICY_TIER_CARD_TEST_ID}-deployments-frozen`;
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -53,8 +59,15 @@ const ICON_TILE_CLASS_NAMES: Record<"danger" | "warning", string> = {
  * everywhere (getSloPolicyTierColor): red for the tier of an exhausted
  * budget, yellow for any other, and links to the policy itself.
  *
+ * While the tier freezes deployments - the SLO's deploymentsAllowed is
+ * false - a red "Deployments frozen since <time>" badge sits under the
+ * tier's name, so nobody who opens the SLO has to ask CI why a release
+ * waits. It reads the SLO's own answer, the one pipelines get, not the
+ * tier's switch: a switch flipped a moment ago changes the answer on the
+ * next evaluation, and the badge says what pipelines are told now.
+ *
  * Drawn only while the SLO is in a tier: an SLO without a policy, or whose
- * budget is above every tier, shows nothing here.
+ * budget is above every tier, shows nothing here - and is never frozen.
  */
 const SloErrorBudgetPolicyTierCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -89,6 +102,8 @@ const SloErrorBudgetPolicyTierCard: FunctionComponent<ComponentProps> = (
   const threshold: string = formatSloPolicyTierThreshold(
     current.thresholdPercentage,
   );
+
+  const freeze: SloDeploymentFreeze | null = getSloDeploymentFreeze(props.slo);
 
   return (
     <section
@@ -159,6 +174,38 @@ const SloErrorBudgetPolicyTierCard: FunctionComponent<ComponentProps> = (
                   </time>
                 ) : (
                   <></>
+                )}
+              </p>
+            ) : (
+              <></>
+            )}
+            {freeze ? (
+              <p
+                data-testid={SLO_DEPLOYMENTS_FROZEN_TEST_ID}
+                className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-200"
+              >
+                <Icon
+                  icon={IconProp.Lock}
+                  className="h-3.5 w-3.5 flex-shrink-0"
+                />
+                {freeze.frozenAt ? (
+                  <time
+                    dateTime={freeze.frozenAt.toISOString()}
+                    title={OneUptimeDate.fromNow(freeze.frozenAt)}
+                  >
+                    {translator.translateTemplate(
+                      DEPLOYMENTS_FROZEN_SINCE_TEMPLATE,
+                      {
+                        time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                          freeze.frozenAt,
+                        ),
+                      },
+                    )}
+                  </time>
+                ) : (
+                  <span>
+                    {translator.translateText(DEPLOYMENTS_FROZEN_TEXT)}
+                  </span>
                 )}
               </p>
             ) : (

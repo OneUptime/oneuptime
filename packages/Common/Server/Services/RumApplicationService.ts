@@ -23,6 +23,11 @@ import DiscoveredResourceCreate, {
 import RumApplicationLabelRuleEngineService from "./RumApplicationLabelRuleEngineService";
 import RumApplicationOwnerRuleEngineService from "./RumApplicationOwnerRuleEngineService";
 import { RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES } from "../../Types/Rum/RumApplicationStatus";
+import {
+  RUM_TELEMETRY_SIGNAL_COLUMNS,
+  RumTelemetrySignal,
+  RumTelemetrySignalColumn,
+} from "../../Types/Rum/RumTelemetrySignal";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "rum-application-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -401,6 +406,41 @@ export class Service extends ProjectReferencesService<Model> {
       cacheNamespace: REPLAY_CHUNK_RECEIVED_CACHE_NAMESPACE,
       throttleSeconds: REPLAY_CHUNK_RECEIVED_THROTTLE_SECONDS,
       column: "sessionReplayLastChunkReceivedAt",
+    });
+  }
+
+  /*
+   * A batch of traces, logs or metrics arrived from this application: its
+   * <signal>LastReceivedAt column says so (RumTelemetrySignal, issue #5770).
+   *
+   * The OpenTelemetry ingest path calls this behind its per-signal
+   * maintenance fence (OtelIngestBaseService), so it runs at most once per
+   * signal per application per fence window however many batches arrive -
+   * no throttle of its own here. Hook-free and without an updatedAt
+   * refresh for the reason the replay markers above are: a passive
+   * timestamp must not churn configEpoch, which every live recorder
+   * watches. It throws on failure, so the caller can release its fence and
+   * let the next batch try again.
+   */
+  @CaptureSpan()
+  public async markTelemetrySignalReceived(data: {
+    rumApplicationId: ObjectID;
+    signal: RumTelemetrySignal;
+  }): Promise<void> {
+    const column: RumTelemetrySignalColumn | undefined =
+      RUM_TELEMETRY_SIGNAL_COLUMNS[data.signal];
+
+    if (!column) {
+      return;
+    }
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: data.rumApplicationId,
+      data: {
+        [column]: OneUptimeDate.getCurrentDate(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      skipUpdateDateColumn: true,
     });
   }
 

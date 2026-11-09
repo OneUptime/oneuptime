@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 同じ `resource` オブジェクトで作成してください。リソースに `browser.*` がないログやメトリクスのパイプラインは、別のバックエンドサービスとして分類されます。
 
+ログのパイプラインは、コードが書いたレコードだけを送ります。知っておく価値のあることが起きる場所で、レコードを書いてください。
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## エンドポイントのリファレンス
 
 | シグナル | エンドポイント | ヘッダー |

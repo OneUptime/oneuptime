@@ -268,9 +268,15 @@ export function sumTimeSeries(
  * "Exceptions". Only the total: the histogram's handled / unhandled split
  * comes from exception.escaped, which a browser's recordException never
  * sets, so every browser exception would read as "handled".
+ *
+ * An app that has never reported one (isNotSetUp, from RumSignalDiagnosis)
+ * shows a dash and "not set up", not a confident 0: the OpenTelemetry
+ * browser SDK reports no errors on its own, so zero there says nothing
+ * about how many happened (issue #5770).
  */
 export function describeExceptionsTile(input: {
   exceptions: { total: number; failed: boolean } | null;
+  isNotSetUp?: boolean | undefined;
 }): TileText {
   if (!input.exceptions) {
     return { value: "—", sublabel: "reported by your app" };
@@ -278,6 +284,10 @@ export function describeExceptionsTile(input: {
 
   if (input.exceptions.failed) {
     return { value: "—", sublabel: "could not load" };
+  }
+
+  if (input.isNotSetUp && input.exceptions.total === 0) {
+    return { value: "—", sublabel: "not set up" };
   }
 
   return {

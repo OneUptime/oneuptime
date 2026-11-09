@@ -65,6 +65,9 @@ export const SLO_OVERVIEW_SELECT: Select<ServiceLevelObjective> = {
   currentErrorBudgetPolicyTierId: true,
   currentErrorBudgetPolicyTierName: true,
   currentErrorBudgetPolicyTierEnteredAt: true,
+  // The deploy gate, for the policy card's "Deployments frozen since" badge.
+  deploymentsAllowed: true,
+  deploymentsFrozenAt: true,
   monitors: {
     _id: true,
   },
