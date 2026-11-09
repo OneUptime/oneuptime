@@ -719,7 +719,7 @@ describe("GenAI log events through log ingest", () => {
     },
   );
 
-  test("before: a structured value passed the scrub rules untouched", () => {
+  test("a structured value is masked text by text, as the JSON text ingest holds it as is (#6397)", () => {
     const rule: CompiledLogScrubRule = emailRule(LogScrubField.Attributes);
     const structured: JSONObject = {
       attributes: {
@@ -732,20 +732,42 @@ describe("GenAI log events through log ingest", () => {
       },
     };
 
-    // Scrub rules mask text: a value still a list is passed over...
-    expect(
-      JSON.stringify(LogScrubRuleService.scrubLog(structured, [rule])),
-    ).toContain("ada.lovelace@example.com");
+    // Scrub rules read the texts inside a list too, keeping its shape...
+    const scrubbed: JSONObject = LogScrubRuleService.scrubLog(
+      JSON.parse(JSON.stringify(structured)) as JSONObject,
+      [rule],
+    );
+    const messages: unknown = (scrubbed["attributes"] as JSONObject)[
+      "gen_ai.input.messages"
+    ];
 
-    // ...which is why ingest holds what was said as its JSON text first.
+    expect(messages).toEqual([
+      {
+        role: "user",
+        parts: [
+          {
+            type: "text",
+            content: "Say this is a test. Then mail it to a***@***.com please.",
+          },
+        ],
+      },
+    ]);
+
+    // ...and what was said, held as its JSON text first, is masked the same.
     const held: JSONObject = JSON.parse(
       JSON.stringify(structured),
     ) as JSONObject;
     LlmLogEventsUtil.holdContentAsText(held["attributes"] as JSONObject);
 
+    const heldScrubbed: JSONObject = LogScrubRuleService.scrubLog(held, [rule]);
+
     expect(
-      JSON.stringify(LogScrubRuleService.scrubLog(held, [rule])),
-    ).not.toContain("ada.lovelace@example.com");
+      JSON.parse(
+        (heldScrubbed["attributes"] as JSONObject)[
+          "gen_ai.input.messages"
+        ] as string,
+      ),
+    ).toEqual(messages);
   });
 
   test("JavaScript's message events: the email scrub rule masks an address in the body", async () => {
