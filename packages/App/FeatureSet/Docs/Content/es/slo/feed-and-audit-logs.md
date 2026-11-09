@@ -32,7 +32,8 @@ El feed está en la página **Feed** del SLO, y sus últimos elementos en **Acti
 | SLO habilitado o deshabilitado | Se activa o desactiva la evaluación. |
 | SLO archivado o restaurado | El SLO se archiva o se desarchiva. |
 | Estado cambiado | Una evaluación lleva el SLO a un estado nuevo. Muestra el SLI, el presupuesto de errores, la tasa de consumo y el umbral de riesgo que lo explican, y el motivo en el caso de **Pausado** o **Mal configurado**. |
-| Nivel de la política de presupuesto de errores cambiado | Una evaluación lleva el SLO a un nivel de su política de presupuesto de errores, a otro nivel o fuera de todos los niveles. Muestra el nivel que dejó y el nivel al que entró, el presupuesto restante y lo que el equipo acordó hacer en el nuevo nivel. Consulta [Política de presupuesto de errores](/docs/slo/error-budget-policy). |
+| Nivel de la política de presupuesto de errores cambiado | Una evaluación lleva el SLO a un nivel de su política de presupuesto de errores, a otro nivel o fuera de todos los niveles. Muestra el nivel que dejó y el nivel al que entró, el presupuesto restante y lo que el equipo acordó hacer en el nuevo nivel, e indica cuándo el cambio congeló los despliegues o volvió a permitirlos. Consulta [Política de presupuesto de errores](/docs/slo/error-budget-policy). |
+| Despliegues congelados o permitidos de nuevo | Alguien activó o desactivó **Congelar despliegues** en el nivel en el que está el SLO, y la siguiente evaluación congeló los despliegues o volvió a permitirlos. Un cambio de nivel que lo hace lo indica en su propio elemento, no en este. Consulta [Barrera de despliegue](/docs/slo/error-budget-policy#barrera-de-despliegue). |
 | Alerta de tasa de consumo generada | Una regla de tasa de consumo crea una alerta. Enlaza a ella y muestra las tasas de consumo que la activaron. |
 | Incidente de tasa de consumo declarado | Una regla de tasa de consumo declara un incidente. Enlaza a él y muestra las tasas de consumo que lo activaron. |
 | Alerta o incidente de tasa de consumo resuelto | La alerta o el incidente de una regla se cierra: resuelto automáticamente, o a mano mientras la resolución automática estaba desactivada. |
@@ -67,7 +68,7 @@ Los cambios en las reglas y los propietarios se registran en la regla o el propi
 
 Quedan fuera dos cosas:
 
-- **Los resultados de las evaluaciones.** El SLI, el presupuesto de errores, la tasa de consumo, el estado y las horas de evaluación cambian cada pocos minutos. Su historial está en la **Vista general**, la página **Métricas** y el **Feed**. El nivel de la política de presupuesto de errores en el que está el SLO es la excepción: un cambio de nivel se registra como un cambio que hizo el propio OneUptime.
+- **Los resultados de las evaluaciones.** El SLI, el presupuesto de errores, la tasa de consumo, el estado y las horas de evaluación cambian cada pocos minutos. Su historial está en la **Vista general**, la página **Métricas** y el **Feed**. El nivel de la política de presupuesto de errores en el que está el SLO, y si sus despliegues están permitidos, son la excepción: un cambio de cualquiera de los dos se registra como un cambio que hizo el propio OneUptime.
 - **Los cambios que hace el propio OneUptime**, como una regla de monitores que asocia o desasocia un monitor, salvo que **Almacenar eventos del sistema** esté activado en el proyecto. El **Feed** registra igualmente las asociaciones y desasociaciones de monitores.
 
 ### Activar los registros de auditoría

@@ -6,7 +6,7 @@ import {
   RUM_TELEMETRY_SIGNAL_COLUMNS,
   RumTelemetrySignal,
 } from "../../Types/Rum/RumTelemetrySignal";
-import { AddRumSignalArrivals1809063175100 } from "../../Server/Infrastructure/Postgres/SchemaMigrations/1809063175100-AddRumSignalArrivals";
+import { AddRumSignalArrivals1809063215770 } from "../../Server/Infrastructure/Postgres/SchemaMigrations/1809063215770-AddRumSignalArrivals";
 import SchemaMigrations from "../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { describe, expect, test } from "@jest/globals";
 import {
@@ -164,8 +164,8 @@ describe("RumApplication's signal arrival columns", () => {
   });
 });
 
-describe("AddRumSignalArrivals1809063175100", () => {
-  const migration: MigrationInterface = new AddRumSignalArrivals1809063175100();
+describe("AddRumSignalArrivals1809063215770", () => {
+  const migration: MigrationInterface = new AddRumSignalArrivals1809063215770();
 
   test("up() adds the three stamps empty, and the tracked-since date as of now()", async () => {
     const statements: Array<string> = await statementsOf(
@@ -211,15 +211,15 @@ describe("AddRumSignalArrivals1809063175100", () => {
   });
 
   test("is registered once, under its own name, in its file", () => {
-    const className: string = AddRumSignalArrivals1809063175100.name;
+    const className: string = AddRumSignalArrivals1809063215770.name;
     const timestamp: number | null = timestampOf(
-      AddRumSignalArrivals1809063175100,
+      AddRumSignalArrivals1809063215770,
     );
 
     expect(timestamp).not.toBeNull();
     expect(
       SchemaMigrations.filter((entry: unknown): boolean => {
-        return entry === AddRumSignalArrivals1809063175100;
+        return entry === AddRumSignalArrivals1809063215770;
       }),
     ).toHaveLength(1);
     expect((migration as { name?: string }).name).toBe(className);
@@ -238,9 +238,9 @@ describe("AddRumSignalArrivals1809063175100", () => {
    */
   test("sorts above every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddRumSignalArrivals1809063175100,
+      AddRumSignalArrivals1809063215770,
     );
-    const timestamp: number = timestampOf(AddRumSignalArrivals1809063175100)!;
+    const timestamp: number = timestampOf(AddRumSignalArrivals1809063215770)!;
 
     expect(position).toBeGreaterThan(100);
 

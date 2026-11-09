@@ -10,17 +10,26 @@ import {
   SLO_POLICY_TIER_MIN_THRESHOLD_PERCENTAGE,
   SLO_POLICY_TIER_WHAT_WE_DO_MAX_LENGTH,
   SLO_RECOMMENDED_POLICY_TIERS,
+  SloDeploymentGate,
+  SloDeploymentGateChange,
+  SloDeploymentGateTransition,
   SloPolicyTierLike,
   SloRecommendedPolicyTier,
   SloRecommendedPolicyTierToAdd,
+  SloStoredDeploymentGate,
+  areSloDeploymentsAllowedInTier,
+  computeSloDeploymentGate,
   computeSloPolicyTier,
   formatSloPolicyTierThreshold,
   getMissingSloRecommendedPolicyTiers,
+  getSloDeploymentGateChange,
   getSloPolicyTierExitPercentage,
   getSloPolicyTierForBudget,
   isMoreSevereSloPolicyTier,
   isSameSloPolicyTier,
+  isSloStoredDeploymentGateAllowed,
   parseSloRecommendedPolicyTiers,
+  readSloDeploymentsFrozenAt,
   readSloPolicyTierThreshold,
   sloRecommendedPolicyTierToJSON,
   sortSloPolicyTiers,
@@ -647,15 +656,708 @@ describe("the recommended policy over the API", () => {
       ] as unknown as JSONValue);
 
     expect(parsed).toEqual([
-      { name: "Good", thresholdPercentage: 10, whatWeDo: "Do it." },
+      {
+        name: "Good",
+        thresholdPercentage: 10,
+        whatWeDo: "Do it.",
+        freezesDeployments: false,
+      },
     ]);
   });
 
   test("a missing agreement reads as empty, and anything that is not a list as none", () => {
     expect(
       parseSloRecommendedPolicyTiers([{ name: "A", thresholdPercentage: 1 }]),
-    ).toEqual([{ name: "A", thresholdPercentage: 1, whatWeDo: "" }]);
+    ).toEqual([
+      {
+        name: "A",
+        thresholdPercentage: 1,
+        whatWeDo: "",
+        freezesDeployments: false,
+      },
+    ]);
     expect(parseSloRecommendedPolicyTiers(undefined)).toEqual([]);
     expect(parseSloRecommendedPolicyTiers({} as JSONValue)).toEqual([]);
   });
+
+  test("says which tiers freeze deployments, and reads only true as a freeze", () => {
+    const json: Array<JSONObject> = SLO_RECOMMENDED_POLICY_TIERS.map(
+      (tier: SloRecommendedPolicyTier): JSONObject => {
+        return sloRecommendedPolicyTierToJSON(tier);
+      },
+    );
+
+    expect(
+      json.map((entry: JSONObject): [JSONValue, JSONValue] => {
+        return [
+          entry["name"] as JSONValue,
+          entry["freezesDeployments"] as JSONValue,
+        ];
+      }),
+    ).toEqual([
+      ["Caution", false],
+      ["Reliability first", false],
+      ["Budget exhausted", true],
+    ]);
+
+    // Always a boolean on the wire, even from a tier that never said.
+    expect(
+      sloRecommendedPolicyTierToJSON({
+        name: "Mine",
+        thresholdPercentage: 5,
+        whatWeDo: "Mine.",
+      } as SloRecommendedPolicyTier)["freezesDeployments"],
+    ).toBe(false);
+
+    expect(
+      parseSloRecommendedPolicyTiers([
+        { name: "A", thresholdPercentage: 1, freezesDeployments: true },
+        { name: "B", thresholdPercentage: 2, freezesDeployments: "true" },
+        { name: "C", thresholdPercentage: 3, freezesDeployments: 1 },
+        { name: "D", thresholdPercentage: 4, freezesDeployments: null },
+        { name: "E", thresholdPercentage: 5 },
+      ] as unknown as JSONValue).map(
+        (tier: SloRecommendedPolicyTierToAdd): [string, boolean] => {
+          return [tier.name, tier.freezesDeployments];
+        },
+      ),
+    ).toEqual([
+      ["A", true],
+      ["B", false],
+      ["C", false],
+      ["D", false],
+      ["E", false],
+    ]);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The deploy gate: CI/CD's yes/no on the SLO (deploymentsAllowed), read off
+ * the tier the SLO is in.
+ * ---------------------------------------------------------------------------
+ */
+
+interface FreezingTier extends Tier {
+  freezesDeployments?: boolean | null | undefined;
+}
+
+const FROZEN_SINCE: Date = new Date("2026-11-01T08:00:00.000Z");
+const NOW: Date = new Date("2026-11-09T12:00:00.000Z");
+
+const ALLOWED_GATE: SloStoredDeploymentGate = {
+  deploymentsAllowed: true,
+  deploymentsFrozenAt: null,
+};
+
+const FROZEN_GATE: SloStoredDeploymentGate = {
+  deploymentsAllowed: false,
+  deploymentsFrozenAt: FROZEN_SINCE,
+};
+
+// The recommended policy as its rows hold it: only Budget exhausted freezes.
+const FREEZING_POLICY: Array<FreezingTier> = [
+  { ...RELIABILITY_FIRST, freezesDeployments: false },
+  { ...EXHAUSTED, freezesDeployments: true },
+  { ...CAUTION, freezesDeployments: false },
+];
+
+describe("the recommended policy freezes deployments in Budget exhausted only", () => {
+  test("as its agreement says: Freeze non-critical releases", () => {
+    expect(
+      SLO_RECOMMENDED_POLICY_TIERS.map(
+        (tier: SloRecommendedPolicyTier): [string, boolean] => {
+          return [tier.name, tier.freezesDeployments];
+        },
+      ),
+    ).toEqual([
+      [SLO_POLICY_CAUTION_TIER_NAME, false],
+      [SLO_POLICY_RELIABILITY_FIRST_TIER_NAME, false],
+      [SLO_POLICY_BUDGET_EXHAUSTED_TIER_NAME, true],
+    ]);
+
+    const exhausted: SloRecommendedPolicyTier =
+      SLO_RECOMMENDED_POLICY_TIERS.find(
+        (tier: SloRecommendedPolicyTier): boolean => {
+          return tier.freezesDeployments;
+        },
+      ) as SloRecommendedPolicyTier;
+
+    expect(exhausted.thresholdPercentage).toBe(0);
+    expect(exhausted.whatWeDo).toContain("Freeze non-critical releases");
+  });
+
+  test("and the copies the starter adds say so too", () => {
+    expect(
+      getMissingSloRecommendedPolicyTiers({ existingTiers: [] }).map(
+        (tier: SloRecommendedPolicyTier): boolean => {
+          return tier.freezesDeployments;
+        },
+      ),
+    ).toEqual([false, false, true]);
+  });
+});
+
+describe("areSloDeploymentsAllowedInTier", () => {
+  test("only a tier that freezes deployments, exactly true, shuts the gate", () => {
+    expect(areSloDeploymentsAllowedInTier({ freezesDeployments: true })).toBe(
+      false,
+    );
+  });
+
+  test("no tier, a tier switched off, or one read without the switch: allowed", () => {
+    expect(areSloDeploymentsAllowedInTier(null)).toBe(true);
+    expect(areSloDeploymentsAllowedInTier(undefined)).toBe(true);
+    expect(areSloDeploymentsAllowedInTier({ freezesDeployments: false })).toBe(
+      true,
+    );
+    expect(areSloDeploymentsAllowedInTier({ freezesDeployments: null })).toBe(
+      true,
+    );
+    expect(areSloDeploymentsAllowedInTier({})).toBe(true);
+    expect(
+      areSloDeploymentsAllowedInTier({
+        freezesDeployments: "true" as unknown as boolean,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("the stored gate", () => {
+  test("only an explicit false is a freeze: the column defaults to true", () => {
+    expect(isSloStoredDeploymentGateAllowed(FROZEN_GATE)).toBe(false);
+    expect(isSloStoredDeploymentGateAllowed(ALLOWED_GATE)).toBe(true);
+    expect(isSloStoredDeploymentGateAllowed({})).toBe(true);
+    expect(isSloStoredDeploymentGateAllowed({ deploymentsAllowed: null })).toBe(
+      true,
+    );
+  });
+
+  test("a freeze time is read from a Date or the string an API answer holds", () => {
+    expect(readSloDeploymentsFrozenAt(FROZEN_SINCE)?.getTime()).toBe(
+      FROZEN_SINCE.getTime(),
+    );
+    expect(
+      readSloDeploymentsFrozenAt(FROZEN_SINCE.toISOString())?.getTime(),
+    ).toBe(FROZEN_SINCE.getTime());
+    expect(readSloDeploymentsFrozenAt(null)).toBeNull();
+    expect(readSloDeploymentsFrozenAt(undefined)).toBeNull();
+    expect(readSloDeploymentsFrozenAt("")).toBeNull();
+    expect(readSloDeploymentsFrozenAt("not a date")).toBeNull();
+  });
+});
+
+describe("computeSloDeploymentGate", () => {
+  test("entering a tier that freezes deployments freezes them, since this evaluation", () => {
+    expect(
+      computeSloDeploymentGate({
+        tier: { freezesDeployments: true },
+        stored: ALLOWED_GATE,
+        now: NOW,
+      }),
+    ).toEqual({ deploymentsAllowed: false, deploymentsFrozenAt: NOW });
+  });
+
+  test("staying frozen keeps the time they were frozen", () => {
+    const gate: SloDeploymentGate = computeSloDeploymentGate({
+      tier: { freezesDeployments: true },
+      stored: FROZEN_GATE,
+      now: NOW,
+    });
+
+    expect(gate.deploymentsAllowed).toBe(false);
+    expect(gate.deploymentsFrozenAt?.getTime()).toBe(FROZEN_SINCE.getTime());
+  });
+
+  test("a stored time read back as a string is the same instant", () => {
+    expect(
+      computeSloDeploymentGate({
+        tier: { freezesDeployments: true },
+        stored: {
+          deploymentsAllowed: false,
+          deploymentsFrozenAt: FROZEN_SINCE.toISOString(),
+        },
+        now: NOW,
+      }).deploymentsFrozenAt?.getTime(),
+    ).toBe(FROZEN_SINCE.getTime());
+  });
+
+  test("a stored freeze whose time was lost is frozen since now", () => {
+    expect(
+      computeSloDeploymentGate({
+        tier: { freezesDeployments: true },
+        stored: { deploymentsAllowed: false, deploymentsFrozenAt: null },
+        now: NOW,
+      }),
+    ).toEqual({ deploymentsAllowed: false, deploymentsFrozenAt: NOW });
+  });
+
+  test("a time left over on an allowed gate is not where a new freeze starts", () => {
+    expect(
+      computeSloDeploymentGate({
+        tier: { freezesDeployments: true },
+        stored: { deploymentsAllowed: true, deploymentsFrozenAt: FROZEN_SINCE },
+        now: NOW,
+      }).deploymentsFrozenAt,
+    ).toEqual(NOW);
+  });
+
+  test("a tier that does not freeze, or none, allows deployments and has no freeze time", () => {
+    for (const tier of [null, { freezesDeployments: false }, {}]) {
+      for (const stored of [ALLOWED_GATE, FROZEN_GATE, {}]) {
+        expect({
+          tier,
+          stored,
+          gate: computeSloDeploymentGate({ tier, stored, now: NOW }),
+        }).toEqual({
+          tier,
+          stored,
+          gate: { deploymentsAllowed: true, deploymentsFrozenAt: null },
+        });
+      }
+    }
+  });
+});
+
+describe("getSloDeploymentGateChange: what an evaluation writes", () => {
+  test("allowed, and still allowed: nothing is written, nothing is said", () => {
+    expect(
+      getSloDeploymentGateChange({
+        tier: null,
+        stored: ALLOWED_GATE,
+        now: NOW,
+      }),
+    ).toEqual({
+      gate: { deploymentsAllowed: true, deploymentsFrozenAt: null },
+      transition: null,
+      columns: {},
+    });
+
+    // An SLO never evaluated reads as the column's default: allowed.
+    expect(
+      getSloDeploymentGateChange({ tier: null, stored: {}, now: NOW }).columns,
+    ).toEqual({});
+  });
+
+  test("freezing writes both columns, and says Frozen", () => {
+    const change: SloDeploymentGateChange = getSloDeploymentGateChange({
+      tier: { freezesDeployments: true },
+      stored: ALLOWED_GATE,
+      now: NOW,
+    });
+
+    expect(change.transition).toBe(SloDeploymentGateTransition.Frozen);
+    expect(change.columns).toEqual({
+      deploymentsAllowed: false,
+      deploymentsFrozenAt: NOW,
+    });
+  });
+
+  test("still frozen: nothing is written, nothing is said", () => {
+    const change: SloDeploymentGateChange = getSloDeploymentGateChange({
+      tier: { freezesDeployments: true },
+      stored: FROZEN_GATE,
+      now: NOW,
+    });
+
+    expect(change.transition).toBeNull();
+    expect(change.columns).toEqual({});
+    expect(change.gate.deploymentsFrozenAt?.getTime()).toBe(
+      FROZEN_SINCE.getTime(),
+    );
+  });
+
+  test("still frozen, the time read back as a string: still nothing to write", () => {
+    expect(
+      getSloDeploymentGateChange({
+        tier: { freezesDeployments: true },
+        stored: {
+          deploymentsAllowed: false,
+          deploymentsFrozenAt: FROZEN_SINCE.toISOString(),
+        },
+        now: NOW,
+      }).columns,
+    ).toEqual({});
+  });
+
+  test("allowed again writes both columns back, and says Allowed", () => {
+    const change: SloDeploymentGateChange = getSloDeploymentGateChange({
+      tier: { freezesDeployments: false },
+      stored: FROZEN_GATE,
+      now: NOW,
+    });
+
+    expect(change.transition).toBe(SloDeploymentGateTransition.Allowed);
+    expect(change.columns).toEqual({
+      deploymentsAllowed: true,
+      deploymentsFrozenAt: null,
+    });
+  });
+
+  test("a freeze time left over on an allowed gate is cleared quietly", () => {
+    const change: SloDeploymentGateChange = getSloDeploymentGateChange({
+      tier: null,
+      stored: { deploymentsAllowed: true, deploymentsFrozenAt: FROZEN_SINCE },
+      now: NOW,
+    });
+
+    expect(change.transition).toBeNull();
+    expect(change.columns).toEqual({ deploymentsFrozenAt: null });
+  });
+
+  test("a frozen gate that lost its time gets one, quietly", () => {
+    const change: SloDeploymentGateChange = getSloDeploymentGateChange({
+      tier: { freezesDeployments: true },
+      stored: { deploymentsAllowed: false, deploymentsFrozenAt: null },
+      now: NOW,
+    });
+
+    expect(change.transition).toBeNull();
+    expect(change.columns).toEqual({ deploymentsFrozenAt: NOW });
+  });
+});
+
+/*
+ * The gate read off the tier the policy puts the SLO in, evaluation after
+ * evaluation, as the worker chains them: the tier stored by one evaluation
+ * and the gate it wrote are what the next one starts from.
+ */
+interface Evaluation {
+  tierId: string | null;
+  gate: SloDeploymentGate;
+  transition: SloDeploymentGateTransition | null;
+}
+
+function evaluateGate(data: {
+  budgets: Array<number>;
+  tiers?: Array<FreezingTier>;
+  // Tiers per evaluation, when the policy changes along the way.
+  tiersAt?: (step: number) => Array<FreezingTier>;
+  startTierId?: string | null;
+  startGate?: SloStoredDeploymentGate;
+}): Array<Evaluation> {
+  let tierId: string | null = data.startTierId ?? null;
+  let stored: SloStoredDeploymentGate = data.startGate || ALLOWED_GATE;
+  const evaluations: Array<Evaluation> = [];
+
+  data.budgets.forEach((budget: number, step: number) => {
+    const tiers: Array<FreezingTier> = data.tiersAt
+      ? data.tiersAt(step)
+      : data.tiers || FREEZING_POLICY;
+    const now: Date = new Date(NOW.getTime() + step * 60 * 1000);
+
+    const tier: FreezingTier | null = computeSloPolicyTier({
+      budgetRemainingPercentage: budget,
+      tiers: tiers,
+      currentTierId: tierId,
+    });
+
+    const change: SloDeploymentGateChange = getSloDeploymentGateChange({
+      tier: tier,
+      stored: stored,
+      now: now,
+    });
+
+    tierId = tier?.id || null;
+    stored = change.gate;
+
+    evaluations.push({
+      tierId: tierId,
+      gate: change.gate,
+      transition: change.transition,
+    });
+  });
+
+  return evaluations;
+}
+
+function allowedAlong(evaluations: Array<Evaluation>): Array<boolean> {
+  return evaluations.map((evaluation: Evaluation): boolean => {
+    return evaluation.gate.deploymentsAllowed;
+  });
+}
+
+describe("the deploy gate follows the tier, with the tier's hysteresis", () => {
+  test("enter: frozen on the first evaluation that finds the budget spent", () => {
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [30, 10, 0.5, -3],
+    });
+
+    expect(
+      evaluations.map((evaluation: Evaluation): string | null => {
+        return evaluation.tierId;
+      }),
+    ).toEqual([
+      "caution",
+      "reliability-first",
+      "reliability-first",
+      "exhausted",
+    ]);
+    expect(allowedAlong(evaluations)).toEqual([true, true, true, false]);
+    expect(evaluations[3]!.transition).toBe(SloDeploymentGateTransition.Frozen);
+    expect(evaluations[3]!.gate.deploymentsFrozenAt?.getTime()).toBe(
+      NOW.getTime() + 3 * 60 * 1000,
+    );
+  });
+
+  test("a budget at exactly 0% is in the tier, and frozen", () => {
+    expect(allowedAlong(evaluateGate({ budgets: [0] }))).toEqual([false]);
+  });
+
+  test("stay: frozen until the budget clears the tier's 2% exit, the time unchanged", () => {
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [-3, 0.5, 1.9, 1.99],
+    });
+
+    expect(allowedAlong(evaluations)).toEqual([false, false, false, false]);
+    expect(
+      evaluations.map((evaluation: Evaluation): number | undefined => {
+        return evaluation.gate.deploymentsFrozenAt?.getTime();
+      }),
+    ).toEqual([NOW.getTime(), NOW.getTime(), NOW.getTime(), NOW.getTime()]);
+    expect(
+      evaluations.slice(1).map((evaluation: Evaluation) => {
+        return evaluation.transition;
+      }),
+    ).toEqual([null, null, null]);
+  });
+
+  test("leave: allowed again on the first evaluation at the 2% exit", () => {
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [-3, 1.9, 2],
+    });
+
+    expect(allowedAlong(evaluations)).toEqual([false, false, true]);
+    expect(evaluations[2]!.tierId).toBe("reliability-first");
+    expect(evaluations[2]!.transition).toBe(
+      SloDeploymentGateTransition.Allowed,
+    );
+    expect(evaluations[2]!.gate.deploymentsFrozenAt).toBeNull();
+  });
+
+  test("a budget flapping around 0% freezes once and stays frozen", () => {
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [0.4, -0.2, 0.3, -0.1, 1.5, 0.1],
+    });
+
+    expect(
+      evaluations.filter((evaluation: Evaluation): boolean => {
+        return evaluation.transition !== null;
+      }),
+    ).toHaveLength(1);
+    expect(allowedAlong(evaluations).slice(1)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+  });
+
+  test("between two tiers that both freeze: frozen all along, since the first", () => {
+    const bothFreeze: Array<FreezingTier> = [
+      { ...CAUTION, freezesDeployments: false },
+      { ...RELIABILITY_FIRST, freezesDeployments: true },
+      { ...EXHAUSTED, freezesDeployments: true },
+    ];
+
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [20, -2, 3, 20],
+      tiers: bothFreeze,
+    });
+
+    expect(
+      evaluations.map((evaluation: Evaluation): string | null => {
+        return evaluation.tierId;
+      }),
+    ).toEqual([
+      "reliability-first",
+      "exhausted",
+      "reliability-first",
+      "reliability-first",
+    ]);
+    expect(allowedAlong(evaluations)).toEqual([false, false, false, false]);
+    expect(
+      evaluations.map((evaluation: Evaluation): number | undefined => {
+        return evaluation.gate.deploymentsFrozenAt?.getTime();
+      }),
+    ).toEqual([NOW.getTime(), NOW.getTime(), NOW.getTime(), NOW.getTime()]);
+  });
+
+  test("a freezing tier switched off - left out of the tiers - allows deployments on the next evaluation", () => {
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [-3, -3, -3],
+      // Disabled tiers are not among the tiers the worker hands over.
+      tiersAt: (step: number): Array<FreezingTier> => {
+        return step < 1
+          ? FREEZING_POLICY
+          : FREEZING_POLICY.filter((tier: FreezingTier): boolean => {
+              return tier.id !== "exhausted";
+            });
+      },
+    });
+
+    expect(allowedAlong(evaluations)).toEqual([false, true, true]);
+    expect(evaluations[1]!.tierId).toBe("reliability-first");
+    expect(evaluations[1]!.transition).toBe(
+      SloDeploymentGateTransition.Allowed,
+    );
+  });
+
+  test("a deleted freezing tier the SLO was in: the budget alone decides, and the gate opens", () => {
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [1.5],
+      tiers: [
+        { ...CAUTION, freezesDeployments: false },
+        { ...RELIABILITY_FIRST, freezesDeployments: false },
+      ],
+      startTierId: "deleted-tier",
+      startGate: FROZEN_GATE,
+    });
+
+    expect(evaluations[0]!.tierId).toBe("reliability-first");
+    expect(evaluations[0]!.gate).toEqual({
+      deploymentsAllowed: true,
+      deploymentsFrozenAt: null,
+    });
+    expect(evaluations[0]!.transition).toBe(
+      SloDeploymentGateTransition.Allowed,
+    );
+  });
+
+  test("the switch turned on for the tier the SLO is in freezes on the next evaluation, off allows again", () => {
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [-3, -3, -3, -3],
+      tiersAt: (step: number): Array<FreezingTier> => {
+        return FREEZING_POLICY.map((tier: FreezingTier): FreezingTier => {
+          return tier.id === "exhausted"
+            ? { ...tier, freezesDeployments: step === 1 || step === 2 }
+            : tier;
+        });
+      },
+    });
+
+    expect(
+      evaluations.map((evaluation: Evaluation): string | null => {
+        return evaluation.tierId;
+      }),
+    ).toEqual(["exhausted", "exhausted", "exhausted", "exhausted"]);
+    expect(allowedAlong(evaluations)).toEqual([true, false, false, true]);
+    expect(
+      evaluations.map((evaluation: Evaluation) => {
+        return evaluation.transition;
+      }),
+    ).toEqual([
+      null,
+      SloDeploymentGateTransition.Frozen,
+      null,
+      SloDeploymentGateTransition.Allowed,
+    ]);
+  });
+
+  test("an SLO with no policy is always allowed, whatever its budget", () => {
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [100, 50, 0, -50, -500, 10],
+      tiers: [],
+    });
+
+    expect(allowedAlong(evaluations)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+    ]);
+    expect(
+      evaluations.every((evaluation: Evaluation): boolean => {
+        return (
+          evaluation.transition === null &&
+          evaluation.gate.deploymentsFrozenAt === null
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("a budget that is not a number keeps the tier, and so the answer", () => {
+    const evaluations: Array<Evaluation> = evaluateGate({
+      budgets: [-3, Number.NaN, Number.POSITIVE_INFINITY],
+    });
+
+    expect(allowedAlong(evaluations)).toEqual([false, false, false]);
+    expect(
+      evaluations.map((evaluation: Evaluation) => {
+        return evaluation.gate.deploymentsFrozenAt?.getTime();
+      }),
+    ).toEqual([NOW.getTime(), NOW.getTime(), NOW.getTime()]);
+  });
+
+  test.each([1, 2, 3, 4, 5, 6])(
+    "seed %i: along a random walk the gate is shut exactly while the tier freezes, and its time never moves while it stays shut",
+    (seed: number) => {
+      const random: SeededRandom = seededRandom(seed);
+      const budgets: Array<number> = [];
+      let budget: number = 40;
+
+      for (let step: number = 0; step < 1500; step++) {
+        budget = Math.max(
+          -30,
+          Math.min(100, budget + (random(601) - 300) / 100),
+        );
+        budgets.push(budget);
+      }
+
+      // Reliability first freezes too, so the gate also holds across tiers.
+      const policy: Array<FreezingTier> = [
+        { ...CAUTION, freezesDeployments: false },
+        { ...RELIABILITY_FIRST, freezesDeployments: random(2) === 1 },
+        { ...EXHAUSTED, freezesDeployments: true },
+      ];
+      const freezing: Set<string> = new Set<string>(
+        policy
+          .filter((tier: FreezingTier): boolean => {
+            return tier.freezesDeployments === true;
+          })
+          .map((tier: FreezingTier): string => {
+            return tier.id;
+          }),
+      );
+
+      const evaluations: Array<Evaluation> = evaluateGate({
+        budgets: budgets,
+        tiers: policy,
+      });
+
+      let previous: Evaluation | null = null;
+
+      for (const evaluation of evaluations) {
+        const isFrozen: boolean = Boolean(
+          evaluation.tierId && freezing.has(evaluation.tierId),
+        );
+
+        expect(evaluation.gate.deploymentsAllowed).toBe(!isFrozen);
+        expect(evaluation.gate.deploymentsFrozenAt === null).toBe(!isFrozen);
+
+        const wasFrozen: boolean = previous
+          ? !previous.gate.deploymentsAllowed
+          : false;
+
+        expect(evaluation.transition).toBe(
+          wasFrozen === isFrozen
+            ? null
+            : isFrozen
+              ? SloDeploymentGateTransition.Frozen
+              : SloDeploymentGateTransition.Allowed,
+        );
+
+        if (wasFrozen && isFrozen) {
+          expect(evaluation.gate.deploymentsFrozenAt?.getTime()).toBe(
+            previous!.gate.deploymentsFrozenAt?.getTime(),
+          );
+        }
+
+        previous = evaluation;
+      }
+    },
+  );
 });

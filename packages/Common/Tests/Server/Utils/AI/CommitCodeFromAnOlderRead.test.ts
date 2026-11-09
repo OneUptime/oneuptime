@@ -26,6 +26,7 @@ import GitHubUtil from "../../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryService from "../../../../Server/Services/CodeRepositoryService";
 import {
   getActionArgumentParts,
+  getToolActionLeavesOutLists,
   ActionArgumentPart,
 } from "../../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ToolActionWords";
 import {
@@ -39,7 +40,10 @@ import {
   describeAIActionSentence,
   isKnownAIActionWords,
 } from "../../../../Types/AI/AIActionWords";
-import { AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME } from "../../../../Types/AI/AIChatTypes";
+import {
+  AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME,
+  AIChatToolActionStatus,
+} from "../../../../Types/AI/AIChatTypes";
 import { CODE_CHANGE_PROPOSED_ON_KEY } from "../../../../Types/CodeRepository/CodeChangeProposedOnKey";
 import {
   CodeChangeProposedOn,
@@ -232,7 +236,20 @@ const drawnCard: (
     arguments: getActionArgumentParts(
       args,
       {
-        leaveOutLists: Boolean(description && description.length > 0),
+        // The card's own rule for which lists its line stands for (issue #6331).
+        leaveOutLists: getToolActionLeavesOutLists({
+          id: "card",
+          toolName: tool.name,
+          title: describeAIActionSentence(tool.buildActionTitle!(args)),
+          arguments: args,
+          isMutation: true,
+          requiresApproval: true,
+          status: AIChatToolActionStatus.Pending,
+          words: {
+            title: tool.buildActionTitle!(args),
+            ...(description ? { description } : {}),
+          },
+        }),
         toolName: tool.name,
       },
       ENGLISH,
@@ -1266,6 +1283,32 @@ describe("open_code_pull_request, against the default branch it starts from", ()
     );
     expect(repository.pullRequests).toEqual([]);
     expect(repository.branches.size).toBe(2);
+  });
+
+  test("its card says how many files it writes beside the line about them (issue #6331)", async () => {
+    const repository: FakeGitRepository = repositoryWithCharge();
+    serveOnGitHub(repository);
+    const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
+
+    await conversation.read(CHARGE);
+    push(repository, "main", CHARGE, A_TEAMMATE);
+    const args: JSONObject = pullRequest([
+      { filePath: CHARGE, content: A_ASK_AI },
+      { filePath: "src/new.ts", content: "new\n" },
+    ]);
+    const prepared: PreparedMutation = await conversation.propose(
+      OpenCodePullRequestTool,
+      args,
+    );
+
+    expect(prepared.description).toHaveLength(1);
+    expect(
+      drawnCard(
+        OpenCodePullRequestTool,
+        prepared.arguments,
+        prepared.description,
+      ).arguments,
+    ).toContainEqual({ key: "changes", label: "Files", value: "2" });
   });
 
   test("approved anyway, the pull request tells whoever reviews it, each file in a code span", async () => {

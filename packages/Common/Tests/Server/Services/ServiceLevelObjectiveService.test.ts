@@ -154,6 +154,9 @@ const EXPECTED_DUE_SLO_SELECT_KEYS: Array<string> = [
   "currentErrorBudgetPolicyTierId",
   "currentErrorBudgetPolicyTierName",
   "currentErrorBudgetPolicyTierEnteredAt",
+  // The deploy gate it compares against, so it writes only what moved.
+  "deploymentsAllowed",
+  "deploymentsFrozenAt",
   "lastEvaluatedAt",
   "nextEvaluationAt",
   "lastAccumulatedBucketEndAt",

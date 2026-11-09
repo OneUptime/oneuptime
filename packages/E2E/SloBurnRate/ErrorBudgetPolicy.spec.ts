@@ -22,7 +22,9 @@ import path from "path";
  * Reliability first at 25%, Budget exhausted at 0% - and adding them puts
  * them in the table, from the highest threshold down, raising nothing.
  * With ?policy=recommended the SLO has them already and is in Reliability
- * first, which its Overview shows right under the summary.
+ * first, which its Overview shows right under the summary. With
+ * ?policy=frozen it is in Budget exhausted - the recommended tier that
+ * freezes deployments - and the Overview says since when they are frozen.
  *
  * Run it as the other SloBurnRate specs are (README.md):
  *   cd packages/E2E && npm run test-slo-burn-rate-ui
@@ -117,7 +119,17 @@ test("offers the recommended policy to an SLO without one, lists exactly what it
     await expect(listed.nth(index)).toContainText(tier.name);
     await expect(listed.nth(index)).toContainText(percent(tier));
     await expect(listed.nth(index)).toContainText(tier.whatWeDo);
+    // Only the tier that freezes deployments - Budget exhausted - is marked.
+    await expect(
+      listed.nth(index).getByTestId("slo-recommended-policy-tier-freezes"),
+    ).toHaveCount(tier.freezesDeployments ? 1 : 0);
   }
+
+  await expect(
+    dialog.getByTestId("slo-recommended-policy-freeze-note"),
+  ).toHaveText(
+    "A tier marked Freezes deployments tells CI/CD pipelines that check this SLO to hold back releases while the SLO is in it.",
+  );
 
   await screenshot(page, "error-budget-policy-confirmation-synthetic");
 
@@ -135,6 +147,10 @@ test("offers the recommended policy to an SLO without one, lists exactly what it
     await expect(rows.nth(index)).toContainText(percent(tier));
     // Each raises nothing until someone switches that on.
     await expect(rows.nth(index)).toContainText("Nothing");
+    // And says what deployments do while the SLO is in it.
+    await expect(
+      rows.nth(index).getByTestId("slo-policy-tier-deployments"),
+    ).toHaveText(tier.freezesDeployments ? "Frozen" : "Allowed");
   }
 
   // A policy has been started: the starter is gone.
@@ -201,6 +217,17 @@ test("a new tier's form asks its own three fields, with its alerts and incidents
     dialog.getByRole("spinbutton", { name: /^Budget Left Threshold \(%\)/ }),
   ).toBeVisible();
   await expect(dialog.getByText("What We Do").first()).toBeVisible();
+
+  // Freeze Deployments is one of the tier's own fields: shown, and off.
+  const freeze: Locator = dialog.getByRole("switch", {
+    name: /^Freeze Deployments/,
+  });
+
+  await expect(freeze).toBeVisible();
+  await expect(freeze).toHaveAttribute("aria-checked", "false");
+  await expect(dialog).toContainText(
+    "While the SLO is in this tier, CI/CD pipelines that check it hold back releases.",
+  );
 
   const fold: Locator = dialog.getByRole("button", {
     name: "Alerts and incidents",
@@ -277,4 +304,81 @@ test("the Overview shows the tier the SLO is in, and what the team does there, l
   await expect(page.locator("tbody tr").filter({ has: current })).toContainText(
     reliabilityFirst.name,
   );
+});
+
+test("the Overview says since when deployments are frozen while the SLO is in a tier that freezes them", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(`${SLO_PATH}?policy=frozen`);
+
+  const card: Locator = page.getByTestId("slo-overview-policy-tier");
+  const exhausted: SloRecommendedPolicyTier = SLO_RECOMMENDED_POLICY_TIERS.find(
+    (tier: SloRecommendedPolicyTier): boolean => {
+      return tier.freezesDeployments;
+    },
+  )!;
+
+  await expect(card).toBeVisible();
+  await expect(card).toContainText(exhausted.name);
+  await expect(card).toHaveAttribute("data-tier-tone", "danger");
+
+  const badge: Locator = card.getByTestId(
+    "slo-overview-policy-tier-deployments-frozen",
+  );
+
+  await expect(badge).toBeVisible();
+  await expect(badge).toContainText("Deployments frozen since");
+  await expect(badge.locator("time")).toHaveAttribute(
+    "datetime",
+    "2026-09-11T09:00:00.000Z",
+  );
+
+  await screenshot(page, "slo-overview-deployments-frozen-synthetic");
+
+  // At a phone's width the badge stays inside the card.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await badge.scrollIntoViewIfNeeded();
+
+  const cardBox: { x: number; width: number } | null = await card.boundingBox();
+  const badgeBox: { x: number; width: number } | null =
+    await badge.boundingBox();
+
+  expect(cardBox).not.toBeNull();
+  expect(badgeBox).not.toBeNull();
+  expect(badgeBox!.x).toBeGreaterThanOrEqual(cardBox!.x);
+  expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(
+    cardBox!.x + cardBox!.width + 1,
+  );
+
+  await screenshot(page, "slo-overview-deployments-frozen-mobile-synthetic");
+
+  // The policy page marks Budget exhausted as the tier that freezes them.
+  await page.setViewportSize({ width: 1920, height: 1200 });
+  await page.goto(`${ROUTE}?policy=frozen`);
+
+  const frozenRow: Locator = page
+    .locator("tbody tr")
+    .filter({ has: page.getByTestId("slo-current-policy-tier") });
+
+  await expect(frozenRow).toContainText(exhausted.name);
+  await expect(frozenRow.getByTestId("slo-policy-tier-deployments")).toHaveText(
+    "Frozen",
+  );
+});
+
+test("an SLO in a tier that does not freeze deployments shows no freeze", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(`${SLO_PATH}?policy=recommended`);
+
+  const card: Locator = page.getByTestId("slo-overview-policy-tier");
+
+  await expect(card).toBeVisible();
+  await expect(
+    card.getByTestId("slo-overview-policy-tier-deployments-frozen"),
+  ).toHaveCount(0);
 });

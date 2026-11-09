@@ -1076,6 +1076,68 @@ describe("update diffs", () => {
     expect(harness.findProject).not.toHaveBeenCalled();
   });
 
+  test("an evaluation that freezes deployments records the deploy gate's answer as a system event, without the time it froze", async () => {
+    project = makeProject({
+      enableAuditLogs: true,
+      storeSystemEventsInAuditLogs: true,
+    });
+
+    const before: ServiceLevelObjective = makeSlo();
+    before.currentSliPercentage = 99.95;
+    before.deploymentsAllowed = true;
+
+    await harness.recorder.recordUpdate({
+      model: new ServiceLevelObjective(),
+      before,
+      updatedFields: {
+        currentSliPercentage: 99.1,
+        sloStatus: "BudgetExhausted",
+        deploymentsAllowed: false,
+        deploymentsFrozenAt: new Date("2026-09-15T10:05:00.000Z"),
+      },
+      itemId: SLO_ID,
+      props: SYSTEM_PROPS,
+    });
+
+    const entry: AuditLog = onlyEntry();
+
+    // OneUptime's own change, under the answer CI/CD reads; the time is bookkeeping.
+    expect(entry.userId).toBeUndefined();
+    expect(fieldsOf(entry)).toEqual(["deploymentsAllowed"]);
+
+    const change: JSONObject | undefined = changeFor(
+      entry,
+      "deploymentsAllowed",
+    );
+
+    expect(JSON.stringify(change?.["oldValue"])).toContain("true");
+    expect(JSON.stringify(change?.["newValue"])).toContain("false");
+  });
+
+  test("the deploy gate's answer written back as it stood records nothing", async () => {
+    project = makeProject({
+      enableAuditLogs: true,
+      storeSystemEventsInAuditLogs: true,
+    });
+
+    const before: ServiceLevelObjective = makeSlo();
+    before.deploymentsAllowed = false;
+    before.deploymentsFrozenAt = new Date("2026-09-15T10:05:00.000Z");
+
+    await harness.recorder.recordUpdate({
+      model: new ServiceLevelObjective(),
+      before,
+      updatedFields: {
+        deploymentsAllowed: false,
+        deploymentsFrozenAt: new Date("2026-09-15T11:00:00.000Z"),
+      },
+      itemId: SLO_ID,
+      props: SYSTEM_PROPS,
+    });
+
+    expect(harness.inserted).toHaveLength(0);
+  });
+
   test("a person's edit that lands with worker columns records the edit alone", async () => {
     const before: ServiceLevelObjective = makeSlo();
     before.currentSliPercentage = 99.95;

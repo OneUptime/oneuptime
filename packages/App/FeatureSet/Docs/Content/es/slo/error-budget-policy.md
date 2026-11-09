@@ -1,11 +1,12 @@
 # Política de presupuesto de errores
 
-Una política de presupuesto de errores deja escrito lo que tu equipo acordó hacer a medida que se agota el presupuesto de errores de un SLO, como revisar los cambios arriesgados cuando se ha gastado la mitad, o congelar las publicaciones cuando se ha gastado todo. OneUptime coloca el SLO en el nivel de la política al que ha llegado su presupuesto, muestra el acuerdo del equipo para ese nivel en las páginas del SLO y puede generar una alerta o declarar un incidente cuando el SLO entra en un nivel. Es la práctica de política de presupuesto de errores del [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+Una política de presupuesto de errores deja escrito lo que tu equipo acordó hacer a medida que se agota el presupuesto de errores de un SLO, como revisar los cambios arriesgados cuando se ha gastado la mitad, o congelar las publicaciones cuando se ha gastado todo. OneUptime coloca el SLO en el nivel de la política al que ha llegado su presupuesto, muestra el acuerdo del equipo para ese nivel en las páginas del SLO, puede generar una alerta o declarar un incidente cuando el SLO entra en un nivel, y les dice a tus pipelines de CI/CD si deben retener las publicaciones. Es la práctica de política de presupuesto de errores del [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Cómo funcionan los niveles](#cómo-funcionan-los-niveles): Qué nivel se aplica y cuándo lo deja el SLO.
 - [Configura una política](#configura-una-política): Parte de la política recomendada o escribe tus propios niveles.
 - [Alertas e incidentes](#alertas-e-incidentes): Avisa a tu equipo cuando el SLO entra en un nivel.
+- [Barrera de despliegue](#barrera-de-despliegue): Retén las publicaciones desde CI/CD mientras un nivel congela los despliegues.
 - [Lee el nivel desde la API](#lee-el-nivel-desde-la-api): Comprueba el nivel desde CI y scripts.
 :::
 
@@ -20,6 +21,8 @@ Una política es un conjunto de niveles. Cada nivel tiene tres campos:
 | **Lo que hacemos** | Lo que el equipo acordó hacer mientras el SLO está en el nivel, en Markdown. Obligatorio, hasta 10.000 caracteres. |
 
 Un nivel se aplica mientras el presupuesto restante está en su umbral o por debajo, así que un nivel en el 0 % es el de un presupuesto agotado. Cuando se aplican varios niveles, el SLO está en el de umbral más bajo: el más grave. Cuando no se aplica ninguno, el SLO no está en ningún nivel. Con niveles en el 50 %, el 25 % y el 0 %, un SLO al que le queda el 30 % de su presupuesto está en el nivel del 50 %, y uno al que le queda el 10 % está en el nivel del 25 %.
+
+Un nivel también puede congelar los despliegues mientras el SLO está en él: consulta [Barrera de despliegue](#barrera-de-despliegue).
 
 ### Entrar en un nivel y salir de él
 
@@ -59,7 +62,7 @@ Mientras el SLO no tiene niveles, la página ofrece **Usar la política recomend
 
 ### O añade un nivel tú mismo
 
-Haz clic en **Crear Nivel de política de presupuesto de errores del SLO**. Escribe un **Nombre** y un **Umbral de presupuesto restante (%)**, y escribe el acuerdo del equipo en **Lo que hacemos**.
+Haz clic en **Crear Nivel de política de presupuesto de errores del SLO**. Escribe un **Nombre** y un **Umbral de presupuesto restante (%)**, y escribe el acuerdo del equipo en **Lo que hacemos**. Activa **Congelar despliegues** si los pipelines deben retener las publicaciones mientras el SLO está en el nivel.
 
 ### Elige lo que genera el nivel
 
@@ -72,21 +75,21 @@ Añadir, editar o eliminar un nivel tiene efecto enseguida: OneUptime vuelve a e
 
 **Usar la política recomendada** añade tres niveles, en la mitad del presupuesto, en una cuarta parte y en cero, con este texto en inglés:
 
-| Nivel | Se aplica con | Lo que hace el equipo |
-| --- | --- | --- |
-| **Caution** | 50 % restante o menos | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 25 % restante o menos | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 0 % restante o menos | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| Nivel | Se aplica con | Lo que hace el equipo | Despliegues |
+| --- | --- | --- | --- |
+| **Caution** | 50 % restante o menos | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | Permitidos |
+| **Reliability first** | 25 % restante o menos | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Permitidos |
+| **Budget exhausted** | 0 % restante o menos | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Congelados |
 
-Ninguno genera una alerta ni declara un incidente hasta que lo actives. Solo se añaden los niveles que el SLO no tiene: un nivel con el mismo nombre, o con el mismo umbral, cuenta como presente, esté activado o no. Pedirlo dos veces, desde una segunda pestaña o por la API, no añade nada dos veces. Cada nivel que se añade así queda registrado en los registros de auditoría del SLO como añadido por ti.
+Ninguno genera una alerta ni declara un incidente hasta que lo actives. **Budget exhausted** congela los despliegues, como dice su acuerdo, y la confirmación lo indica: consulta [Barrera de despliegue](#barrera-de-despliegue). Los niveles añadidos antes de que existiera la barrera no congelan nada hasta que actives la congelación. Solo se añaden los niveles que el SLO no tiene: un nivel con el mismo nombre, o con el mismo umbral, cuenta como presente, esté activado o no. Pedirlo dos veces, desde una segunda pestaña o por la API, no añade nada dos veces. Cada nivel que se añade así queda registrado en los registros de auditoría del SLO como añadido por ti.
 
 ## Dónde aparece el nivel
 
-- La **Vista general** del SLO muestra el nivel en el que está y lo que el equipo acordó hacer en él, para que todo el que abra el SLO vea el acuerdo que rige ahora.
+- La **Vista general** del SLO muestra el nivel en el que está y lo que el equipo acordó hacer en él, para que todo el que abra el SLO vea el acuerdo que rige ahora. Mientras el nivel congela los despliegues, una insignia roja bajo su nombre indica desde cuándo.
 - El gráfico **Consumo del presupuesto de errores** dibuja una línea con etiqueta en el umbral de cada nivel, junto a la del umbral de riesgo.
-- El **Feed** del SLO publica cada cambio de nivel: el nivel que dejó el SLO y el nivel al que entró, el presupuesto restante y lo que el equipo acordó hacer en el nuevo nivel.
-- Los **Registros de auditoría** del SLO registran cada cambio de nivel como un cambio que hizo el propio OneUptime, así que solo lo muestran con **Almacenar eventos del sistema** activado: consulta [Activar los registros de auditoría](/docs/slo/feed-and-audit-logs#activar-los-registros-de-auditoría). Añadir, editar y quitar un nivel se registra a nombre de la persona que lo hizo.
-- La API de lectura del SLO devuelve el nivel: consulta [Lee el nivel desde la API](#lee-el-nivel-desde-la-api).
+- El **Feed** del SLO publica cada cambio de nivel: el nivel que dejó el SLO y el nivel al que entró, el presupuesto restante, lo que el equipo acordó hacer en el nuevo nivel y si el cambio congeló los despliegues o volvió a permitirlos.
+- Los **Registros de auditoría** del SLO registran cada cambio de nivel, y cada vez que los despliegues se congelan o se vuelven a permitir, como un cambio que hizo el propio OneUptime, así que solo los muestran con **Almacenar eventos del sistema** activado: consulta [Activar los registros de auditoría](/docs/slo/feed-and-audit-logs#activar-los-registros-de-auditoría). Añadir, editar y quitar un nivel se registra a nombre de la persona que lo hizo.
+- La API de lectura del SLO devuelve el nivel y si los despliegues están permitidos: consulta [Lee el nivel desde la API](#lee-el-nivel-desde-la-api) y [Barrera de despliegue](#barrera-de-despliegue).
 
 ## Alertas e incidentes
 
@@ -124,6 +127,98 @@ La descripción integrada nombra el nivel, compara el presupuesto restante con e
 - Un SLO **Pausado** o **Mal configurado** no mide ningún presupuesto, así que su nivel se queda donde estaba, y lo que generó el nivel sigue abierto hasta que se reanude la medición. Las reglas de tasa de consumo, en cambio, resuelven entonces lo que tienen abierto.
 - Desactivar la evaluación del SLO, o archivar el SLO, resuelve lo que generaron sus niveles. El nivel en el que está el SLO se queda como estaba.
 - Eliminar el SLO elimina sus niveles y resuelve lo que generaron.
+- En cada uno de estos casos, el SLO mantiene la respuesta que daba sobre los despliegues, porque mantiene su nivel: consulta [Barrera de despliegue](#barrera-de-despliegue).
+
+## Barrera de despliegue
+
+Un nivel puede congelar los despliegues. Mientras el SLO está en un nivel con **Congelar despliegues** activado, el campo `deploymentsAllowed` del SLO es `false`, así que un pipeline de CI/CD que lo comprueba antes de publicar retiene la publicación. En cualquier otro caso es `true`: cuando el SLO no tiene política, mientras su presupuesto está por encima de todos los niveles y en un nivel que no congela los despliegues. El nivel **Budget exhausted** de la política recomendada congela los despliegues.
+
+:::steps
+### Activa Congelar despliegues
+
+Abre la **Política de presupuesto de errores** del SLO, edita el nivel, activa **Congelar despliegues** y guarda. En la tabla, la columna **Despliegues** del nivel indica **Congelados**.
+
+### Dale una clave al pipeline
+
+Crea una [clave de API](/docs/api-reference/api-reference) del proyecto que pueda leer el SLO y guárdala como secreto del pipeline con el nombre `ONEUPTIME_API_KEY`.
+
+### Comprueba el SLO antes de la publicación
+
+Añade la comprobación de abajo como un paso anterior al que despliega, con el ID del SLO en lugar de `<slo-id>`.
+:::
+
+:::tabs
+@tab Shell
+```bash
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
+```
+:::
+
+La comprobación solo pasa cuando la respuesta es `true`. Un SLO congelado, una respuesta sin el campo (la clave no puede leer el SLO, o el ID es incorrecto) y la falta total de respuesta detienen cada uno el paso, así que un pipeline nunca publica con una respuesta que no recibió. En GitLab CI, el job se ejecuta en la etapa test, así que un SLO congelado detiene la etapa deploy que va después; añade `ONEUPTIME_API_KEY` como variable de CI/CD enmascarada. En una instalación autoalojada, usa su propia dirección en lugar de oneuptime.com.
+
+El SLO responde con dos campos, que se leen con el permiso de lectura del propio SLO:
+
+| Campo | Qué contiene |
+| --- | --- |
+| `deploymentsAllowed` | `false` mientras el SLO está en un nivel que congela los despliegues, `true` en cualquier otro caso. |
+| `deploymentsFrozenAt` | Cuándo se congelaron los despliegues. Vacío mientras están permitidos. |
+
+Cómo cambia la respuesta:
+
+- Los despliegues se congelan con la evaluación que pone el SLO en un nivel que los congela, y se vuelven a permitir con la que lo saca de él, con los márgenes de recuperación propios del nivel: consulta [Entrar en un nivel y salir de él](#entrar-en-un-nivel-y-salir-de-él). De un nivel que congela a otro siguen congelados, y `deploymentsFrozenAt` conserva su hora.
+- Activar o desactivar **Congelar despliegues** en el nivel en el que está el SLO tiene efecto en aproximadamente un minuto. Para publicar antes de que se recupere el presupuesto, desactívalo: el cambio queda registrado a tu nombre en los registros de auditoría del SLO.
+- Un SLO **Pausado** o **Mal configurado** mantiene la respuesta que tenía, igual que mantiene su nivel: una ventana de mantenimiento que pausa todos los monitores no levanta una congelación ni la inicia. Un SLO deshabilitado o archivado no se evalúa en absoluto, así que también mantiene su respuesta.
+- Mientras los despliegues están congelados, la **Vista general** del SLO muestra desde cuándo, y su **Feed** indica cuándo se congelan y cuándo se vuelven a permitir.
 
 ## Lee el nivel desde la API
 
@@ -164,7 +259,7 @@ Estos permisos están en el grupo SLO de un rol. Los roles Project Owner y Proje
 
 ## Aún no disponible
 
-Algunas partes de una política de presupuesto de errores aún no están disponibles: una barrera de despliegue que bloquee las publicaciones por sí sola (en su lugar, un trabajo de CI puede leer el nivel desde la API), disparadores de flujos de trabajo y notificaciones de Slack o Microsoft Teams para cada nivel, una política compartida por varios SLO, reconocer un nivel o concederle una excepción, y niveles basados en la autonomía del presupuesto en lugar del presupuesto restante.
+Algunas partes de una política de presupuesto de errores aún no están disponibles: disparadores de flujos de trabajo y notificaciones de Slack o Microsoft Teams para cada nivel, una política compartida por varios SLO, reconocer un nivel o concederle una excepción, y niveles basados en la autonomía del presupuesto en lugar del presupuesto restante. OneUptime no detiene una publicación por sí solo: lo hace un pipeline que comprueba `deploymentsAllowed`, como muestra [Barrera de despliegue](#barrera-de-despliegue).
 
 ## Próximos pasos
 

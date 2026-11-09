@@ -4,8 +4,10 @@ import OneUptimeDate from "Common/Types/Date";
 import type ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  areSloDeploymentsAllowedInTier,
   formatSloPolicyTierThreshold,
   isSameSloPolicyTier,
+  readSloDeploymentsFrozenAt,
   readSloPolicyTierThreshold,
 } from "Common/Utils/Slo/SloErrorBudgetPolicy";
 
@@ -14,7 +16,8 @@ import {
  *
  * The tier the SLO is in (its currentErrorBudgetPolicyTier* columns, which
  * the evaluation worker writes) read against the tiers themselves, the way
- * a tier's threshold is said wherever it is shown, and the labelled lines a
+ * a tier's threshold is said wherever it is shown, whether deployments are
+ * frozen (the deploy gate, deploymentsAllowed), and the labelled lines a
  * budget chart draws at each tier's threshold.
  *
  * React-free: the Overview, the Error Budget Policy page and both budget
@@ -29,6 +32,63 @@ export const POLICY_TIER_BUDGET_LEFT_TEMPLATE: string = translationKey(
 // "Entered 3 hours ago": when the SLO entered the tier it is in.
 export const POLICY_TIER_ENTERED_TEMPLATE: string =
   translationKey("Entered {{time}}");
+
+/*
+ * The Overview's badge while the deploy gate is shut: "Deployments frozen
+ * since Sep 11 2026, 12:00 UTC", or without the time when it is not known.
+ */
+export const DEPLOYMENTS_FROZEN_SINCE_TEMPLATE: string = translationKey(
+  "Deployments frozen since {{time}}",
+);
+export const DEPLOYMENTS_FROZEN_TEXT: string =
+  translationKey("Deployments frozen");
+
+// A tier's Deployments cell on the Error Budget Policy page.
+export const POLICY_TIER_DEPLOYMENTS_FROZEN_TEXT: string =
+  translationKey("Frozen");
+export const POLICY_TIER_DEPLOYMENTS_ALLOWED_TEXT: string =
+  translationKey("Allowed");
+
+export type DescribePolicyTierDeploymentsFunction = (tier: {
+  freezesDeployments?: boolean | undefined | null;
+}) => string;
+
+/*
+ * What deployments do while the SLO is in a tier, as its row says it:
+ * Frozen for a tier that freezes them, Allowed for any other.
+ */
+export const describePolicyTierDeployments: DescribePolicyTierDeploymentsFunction =
+  (tier: { freezesDeployments?: boolean | undefined | null }): string => {
+    return areSloDeploymentsAllowedInTier(tier)
+      ? POLICY_TIER_DEPLOYMENTS_ALLOWED_TEXT
+      : POLICY_TIER_DEPLOYMENTS_FROZEN_TEXT;
+  };
+
+export interface SloDeploymentFreeze {
+  // Since when, when the worker recorded it.
+  frozenAt: Date | null;
+}
+
+export type GetSloDeploymentFreezeFunction = (
+  slo: ServiceLevelObjective | null | undefined,
+) => SloDeploymentFreeze | null;
+
+/*
+ * The SLO's deploy gate as its pages draw it: the freeze, or null while
+ * deployments are allowed. Only an explicit false is a freeze - the column
+ * defaults to true, and an SLO read without it was frozen by nothing.
+ */
+export const getSloDeploymentFreeze: GetSloDeploymentFreezeFunction = (
+  slo: ServiceLevelObjective | null | undefined,
+): SloDeploymentFreeze | null => {
+  if (!slo || slo.deploymentsAllowed !== false) {
+    return null;
+  }
+
+  return {
+    frozenAt: readSloDeploymentsFrozenAt(slo.deploymentsFrozenAt),
+  };
+};
 
 export interface SloCurrentPolicyTier {
   // The tier's name: the tier's own, or the SLO's copy when the tier is gone.

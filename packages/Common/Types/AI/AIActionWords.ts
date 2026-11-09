@@ -379,6 +379,20 @@ export const AI_ACTION_PLURAL_LINES: {
 };
 
 /*
+ * The lines a code change's card says which files it would write over
+ * unseen with, as they are stored (each one's "other" form). They name
+ * some of the files, never how many the change writes - so a card that
+ * shows only these still shows its "Files: 3" (issue #6331).
+ */
+export const AI_ACTION_CODE_CHANGE_LINES: ReadonlyArray<string> = [
+  AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead.other,
+  AI_ACTION_PLURAL_LINES.codeFilesReadOnAnotherBranch.other,
+  AI_ACTION_PLURAL_LINES.codeFilesNotRead.other,
+  AI_ACTION_PLURAL_LINES.codeFilesReadInPart.other,
+  AI_ACTION_PLURAL_LINES.codeFilesNotChecked.other,
+];
+
+/*
  * One file in such a list, by its path as the commit writes it. No words
  * of its own: the path is data, in every language.
  */

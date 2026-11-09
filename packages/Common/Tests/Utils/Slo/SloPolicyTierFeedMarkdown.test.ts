@@ -5,9 +5,13 @@ import FeedMarkdown, {
 } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   SloFeedMarkdown,
+  getSloDeploymentGateChangedFeedMarkdown,
   getSloPolicyTierChangedFeedMarkdown,
 } from "../../../Utils/Slo/SloFeedMarkdown";
-import { getSloPolicyTierColor } from "../../../Utils/Slo/SloStatusColor";
+import {
+  getSloDeploymentGateColor,
+  getSloPolicyTierColor,
+} from "../../../Utils/Slo/SloStatusColor";
 
 /*
  * ErrorBudgetPolicyTierChanged: what the SLO feed says when an SLO enters,
@@ -145,6 +149,150 @@ describe("getSloPolicyTierChangedFeedMarkdown", () => {
     expect(markdown.moreInformationInMarkdown).not.toContain(
       "[Click](https://evil)",
     );
+  });
+});
+
+describe("getSloPolicyTierChangedFeedMarkdown and the deploy gate", () => {
+  test("a change that froze deployments says so on its first line, and how in its details", () => {
+    const markdown: SloFeedMarkdown = changed({
+      previousTierName: "Reliability first",
+      newTier: {
+        name: "Budget exhausted",
+        thresholdPercentage: 0,
+        whatWeDo: "Freeze non-critical releases.",
+      },
+      deployments: { isAllowed: false, hasChanged: true },
+    });
+
+    expect(markdown.feedInfoInMarkdown).toBe(
+      "📉 [SLO Checkout](https://oneuptime.com/dashboard/project-1/slos/slo-1) entered the **Budget exhausted** tier of its error budget policy (was **Reliability first**). Deployments are frozen.",
+    );
+    expect(markdown.moreInformationInMarkdown).toContain(
+      "**Error budget policy tier**: Reliability first → Budget exhausted\n\n**Deployments**: allowed → frozen\n\n**Error budget remaining**",
+    );
+  });
+
+  test("a recovery that allowed them again says so", () => {
+    const markdown: SloFeedMarkdown = changed({
+      previousTierName: "Budget exhausted",
+      isEscalation: false,
+      deployments: { isAllowed: true, hasChanged: true },
+    });
+
+    expect(markdown.feedInfoInMarkdown).toBe(
+      "📈 [SLO Checkout](https://oneuptime.com/dashboard/project-1/slos/slo-1) recovered to the **Reliability first** tier of its error budget policy (was **Budget exhausted**). Deployments are allowed again.",
+    );
+    expect(markdown.moreInformationInMarkdown).toContain(
+      "**Deployments**: frozen → allowed",
+    );
+  });
+
+  test("leaving the last tier, with deployments frozen in it, allows them again", () => {
+    const markdown: SloFeedMarkdown = changed({
+      previousTierName: "Budget exhausted",
+      newTier: null,
+      isEscalation: false,
+      deployments: { isAllowed: true, hasChanged: true },
+    });
+
+    expect(markdown.feedInfoInMarkdown).toBe(
+      "✅ [SLO Checkout](https://oneuptime.com/dashboard/project-1/slos/slo-1) left the **Budget exhausted** tier of its error budget policy: its error budget is above every tier again. Deployments are allowed again.",
+    );
+  });
+
+  test("between two tiers that both freeze, the details say deployments are still frozen", () => {
+    const markdown: SloFeedMarkdown = changed({
+      deployments: { isAllowed: false, hasChanged: false },
+    });
+
+    expect(markdown.feedInfoInMarkdown).not.toContain("Deployments");
+    expect(markdown.moreInformationInMarkdown).toContain(
+      "**Deployments**: still frozen",
+    );
+  });
+
+  test("deployments that stay allowed, or a gate not given, say nothing about deployments", () => {
+    for (const markdown of [
+      changed({ deployments: { isAllowed: true, hasChanged: false } }),
+      changed({}),
+    ]) {
+      expect(markdown.feedInfoInMarkdown).not.toContain("Deployments");
+      expect(markdown.moreInformationInMarkdown).not.toContain("Deployments");
+    }
+  });
+});
+
+describe("getSloDeploymentGateChangedFeedMarkdown", () => {
+  function gate(
+    overrides: Partial<
+      Parameters<typeof getSloDeploymentGateChangedFeedMarkdown>[0]
+    >,
+  ): SloFeedMarkdown {
+    return getSloDeploymentGateChangedFeedMarkdown({
+      sloMarkdownLink: SLO_LINK,
+      tierName: "Budget exhausted",
+      isAllowed: false,
+      errorBudgetRemainingPercentage: -12.5,
+      errorBudgetRemainingSeconds: -324,
+      ...overrides,
+    });
+  }
+
+  test("frozen while the SLO stays in its tier: the tier now freezes deployments", () => {
+    const markdown: SloFeedMarkdown = gate({});
+
+    expect(markdown.feedInfoInMarkdown).toBe(
+      "🔒 Deployments of [SLO Checkout](https://oneuptime.com/dashboard/project-1/slos/slo-1) are frozen: its **Budget exhausted** tier now freezes deployments.",
+    );
+    expect(markdown.moreInformationInMarkdown).toBe(
+      "**Deployments**: allowed → frozen\n\n**Error budget policy tier**: Budget exhausted\n\n**Error budget remaining**: -12.5% (over budget by 5 minutes)",
+    );
+  });
+
+  test("allowed again: the tier no longer freezes deployments", () => {
+    const markdown: SloFeedMarkdown = gate({
+      isAllowed: true,
+      errorBudgetRemainingPercentage: 18.5,
+      errorBudgetRemainingSeconds: 480,
+    });
+
+    expect(markdown.feedInfoInMarkdown).toBe(
+      "🔓 Deployments of [SLO Checkout](https://oneuptime.com/dashboard/project-1/slos/slo-1) are allowed again: its **Budget exhausted** tier no longer freezes deployments.",
+    );
+    expect(markdown.moreInformationInMarkdown).toContain(
+      "**Deployments**: frozen → allowed",
+    );
+    expect(markdown.moreInformationInMarkdown).toContain(
+      "**Error budget remaining**: 18.5% (8 minutes)",
+    );
+  });
+
+  test("with no tier to name, it still says which way the gate moved", () => {
+    expect(gate({ tierName: null, isAllowed: true }).feedInfoInMarkdown).toBe(
+      "🔓 Deployments of [SLO Checkout](https://oneuptime.com/dashboard/project-1/slos/slo-1) are allowed again: it is in no tier that freezes deployments.",
+    );
+    expect(gate({ tierName: "  " }).feedInfoInMarkdown).toBe(
+      "🔒 Deployments of [SLO Checkout](https://oneuptime.com/dashboard/project-1/slos/slo-1) are frozen.",
+    );
+    expect(gate({ tierName: undefined }).moreInformationInMarkdown).toContain(
+      "**Error budget policy tier**: none",
+    );
+  });
+
+  test("the tier's name is text: it cannot restyle the item or move a link", () => {
+    const markdown: SloFeedMarkdown = gate({
+      tierName: "[Click](https://evil) **now**",
+    });
+
+    expect(markdown.feedInfoInMarkdown).not.toContain("[Click](https://evil)");
+    expect(markdown.moreInformationInMarkdown).not.toContain(
+      "[Click](https://evil)",
+    );
+  });
+
+  test("red while deployments are frozen, green once they are allowed", () => {
+    expect(getSloDeploymentGateColor(false)).toBe(Red);
+    expect(getSloDeploymentGateColor(true)).toBe(Green);
   });
 });
 
