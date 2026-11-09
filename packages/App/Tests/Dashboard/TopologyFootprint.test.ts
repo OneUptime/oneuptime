@@ -1037,16 +1037,30 @@ describe("the line under a node's name", () => {
     expect(line).toContain("…");
   });
 
-  test("a long maker keeps its start", () => {
+  test("a long maker keeps its start, cut to the width of an endpoint's name", () => {
     const endpoint: NetworkTopologyNode = makeEndpoint("endpoint:v", {
       name: "aa:bb:cc:dd:ee:02",
       vendor: "Hewlett Packard Enterprise",
     });
     const line: string = labelSecondaryLineForNode(endpoint);
 
-    expect(line.length).toBeLessThanOrEqual(ENDPOINT_SECONDARY_LABEL_MAX_CHARS);
-    expect(line.startsWith("Hewlett")).toBe(true);
-    expect(line.endsWith("…")).toBe(true);
+    /*
+     * A hint, not a name: the fifteen characters an address takes would
+     * space the whole map out for "Seiko Epson Corporation".
+     */
+    expect(line).toBe("Hewlett Pa…");
+    expect(line.length).toBe(ENDPOINT_LABEL_MAX_CHARS);
+    expect(line.length).toBeLessThan(ENDPOINT_SECONDARY_LABEL_MAX_CHARS);
+  });
+
+  test("an endpoint's address still takes the whole line under its name", () => {
+    const endpoint: NetworkTopologyNode = makeEndpoint("endpoint:w", {
+      name: "Front register",
+      ipAddress: "192.168.100.254",
+      vendor: "Hewlett Packard Enterprise",
+    });
+
+    expect(labelSecondaryLineForNode(endpoint)).toBe("192.168.100.254");
   });
 
   test("the line under a name is reserved by the footprint, one line height lower", () => {

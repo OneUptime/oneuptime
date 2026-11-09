@@ -86,9 +86,10 @@ import {
  *
  * The Discovered Devices list imports through this step too (issue #5775):
  * its devices answered nothing yet - a switch saw them - so it says who
- * checks them (the probe of the switch that saw each one) and that a device
- * is walked with the SNMP credentials picked, in a section of the list's own
- * (leadSection) above these questions.
+ * checks them (the probe of the switch that saw each one), names the
+ * devices in a section of the list's own above these questions
+ * (leadSection), and asks what they are and the SNMP credentials they are
+ * walked with in a fold after them (trailingSection).
  */
 
 export interface DiscoveryImportMonitoringStepProps {
@@ -98,6 +99,8 @@ export interface DiscoveryImportMonitoringStepProps {
   source?: DiscoveryImportSource | undefined;
   // Drawn first, above how often the devices are checked.
   leadSection?: ReactElement | undefined;
+  // Drawn last, under who hears about a problem: a fold of fields, say.
+  trailingSection?: ReactElement | undefined;
   settings: DiscoveryImportSettings;
   onSettingsChange: (settings: DiscoveryImportSettings) => void;
   facts: DiscoveryImportProjectFacts | null;
@@ -952,6 +955,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
             </>
           )}
         </section>
+        {props.trailingSection}
       </div>
 
       <OutcomeSummary

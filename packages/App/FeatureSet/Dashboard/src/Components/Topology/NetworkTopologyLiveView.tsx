@@ -972,6 +972,13 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     <Card
       title="Network Topology"
       description="See how your network devices connect. Select a device to inspect its health, or a connection to inspect its ports."
+      /*
+       * A row of controls - when it was updated, Discovered Devices, Export
+       * PDF and Refresh - beside the title, and the description under both
+       * across the card: beside them it was squeezed into a column a few
+       * words wide, seven lines of it in German.
+       */
+      headerLayout="toolbar"
       rightElement={
         <span
           className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500"

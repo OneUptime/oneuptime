@@ -606,6 +606,39 @@ describe("why the list is empty", () => {
     }
   });
 
+  /*
+   * The counts are the search's: one monitored device looked for under Not
+   * monitored, which the list opens on, is not "nothing matches".
+   */
+  test("a search that matches only under another choice says where, not that nothing matches", () => {
+    const elsewhere: DiscoveredDeviceCounts = {
+      all: 1,
+      notMonitored: 0,
+      monitored: 1,
+      hidden: 0,
+    };
+
+    for (const show of [
+      DiscoveredDeviceShow.NotMonitored,
+      DiscoveredDeviceShow.Hidden,
+    ]) {
+      expect(
+        getDiscoveredDeviceEmptyKind({
+          search: "branch router",
+          show: show,
+          counts: elsewhere,
+        }),
+      ).toBe(DiscoveredDeviceEmptyKind.MatchesElsewhere);
+    }
+    expect(
+      getDiscoveredDeviceEmptyKind({
+        search: "lobby",
+        show: DiscoveredDeviceShow.Monitored,
+        counts: { all: 2, notMonitored: 2, monitored: 0, hidden: 1 },
+      }),
+    ).toBe(DiscoveredDeviceEmptyKind.MatchesElsewhere);
+  });
+
   test("a search of spaces is no search", () => {
     expect(
       getDiscoveredDeviceEmptyKind({

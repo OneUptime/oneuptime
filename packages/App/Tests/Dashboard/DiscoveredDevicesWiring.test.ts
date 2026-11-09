@@ -377,7 +377,7 @@ describe("the detail panel", () => {
   test("tells an endpoint what adding it does", () => {
     expect(PANEL).toContain('data-testid="network-topology-not-monitored"');
     expect(PANEL).toContain(
-      "A switch, router or network controller saw this device, and OneUptime does not monitor it. Add it to be told when it stops answering: you pick how often it is checked and who hears about it.",
+      "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.",
     );
   });
 });

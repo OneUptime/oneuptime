@@ -183,8 +183,36 @@ async function submit(): Promise<void> {
   await flush();
 }
 
-// react-select opens on ArrowDown; its options are portalled to the body.
+/*
+ * react-select opens on ArrowDown; its options are portalled to the body.
+ * Device Role and SNMP Credential Profile wait in the step's More fields fold.
+ */
+function moreFields(): HTMLElement {
+  return screen.getByTestId("discovered-device-import-more-fields");
+}
+
+async function toggleMoreFields(): Promise<void> {
+  await act(async () => {
+    fireEvent.click(within(moreFields()).getByTestId("folded-section-header"));
+  });
+}
+
+async function openMoreFields(): Promise<void> {
+  if (moreFields().getAttribute("data-collapsed") === "true") {
+    await toggleMoreFields();
+  }
+}
+
+const MORE_FIELDS_PICKERS: Array<string> = [
+  "Device Role",
+  "SNMP Credential Profile",
+];
+
 async function pick(comboboxName: string, optionText: string): Promise<void> {
+  if (MORE_FIELDS_PICKERS.includes(comboboxName)) {
+    await openMoreFields();
+  }
+
   const combobox: HTMLElement = screen.getByRole("combobox", {
     name: comboboxName,
   });
@@ -492,10 +520,52 @@ describe("how the devices are monitored", () => {
     });
   });
 
+  test("what the devices are and their credentials wait folded under More fields, after the step's questions, and say what is picked", async () => {
+    await openDialog();
+
+    const fold: HTMLElement = moreFields();
+    const header: HTMLElement = within(fold).getByTestId(
+      "folded-section-header",
+    );
+
+    expect(fold).toHaveAttribute("data-collapsed", "true");
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(header).toHaveAccessibleName("More fields");
+    expect(header).toHaveTextContent("Device Role, SNMP Credential Profile");
+    // After who hears about a problem, not first in the dialog.
+    expect(
+      screen
+        .getByTestId("discovery-import-alerting")
+        .compareDocumentPosition(fold) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      fold.compareDocumentPosition(
+        screen.getByTestId("discovered-device-import-names"),
+      ) & Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
+
+    await pick("Device Role", "Camera");
+    await pick("SNMP Credential Profile", "Office SNMP v3");
+    await toggleMoreFields();
+
+    expect(fold).toHaveAttribute("data-collapsed", "true");
+    expect(
+      within(fold)
+        .getAllByTestId("folded-section-item")
+        .map((entry: HTMLElement): string => {
+          return entry.textContent || "";
+        }),
+    ).toEqual([
+      "Device Role: Camera",
+      "SNMP Credential Profile: Office SNMP v3",
+    ]);
+  });
+
   test("a role list that cannot be read locks its picker and says why, and the import still goes ahead", async () => {
     lists.refuseRoles = "Roles could not be read.";
 
     await openDialog();
+    await openMoreFields();
 
     const role: HTMLElement = screen.getByTestId(
       "discovered-device-import-role",
@@ -510,6 +580,7 @@ describe("how the devices are monitored", () => {
 
   test("the pickers link to where roles and credential profiles are managed, in a new tab", async () => {
     await openDialog();
+    await openMoreFields();
 
     for (const testId of [
       "discovered-device-import-manage-roles",

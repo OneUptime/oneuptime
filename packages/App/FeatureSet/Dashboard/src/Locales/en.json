@@ -47017,5 +47017,14 @@
   "{{count}} selected devices are monitored already, so they are left out.": "{{count}} selected devices are monitored already, so they are left out.",
   "{{count}} selected devices are monitored already, so they are left out._one": "{{count}} selected device is monitored already, so it is left out.",
   "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it.": "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it.",
-  "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it._one": "{{count}} selected device has no IP address yet, so it is left out: a device gets one once a router's ARP table or a network controller reports it."
+  "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it._one": "{{count}} selected device has no IP address yet, so it is left out: a device gets one once a router's ARP table or a network controller reports it.",
+  "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.": "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
+  "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.": "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
+  "It matches {{count}} devices in All.": "It matches {{count}} devices in All.",
+  "It matches {{count}} devices in All._one": "It matches {{count}} device in All.",
+  "No IP address yet": "No IP address yet",
+  "No device hidden from the map matches this search.": "No device hidden from the map matches this search.",
+  "No device that is not monitored matches this search.": "No device that is not monitored matches this search.",
+  "No monitored device matches this search.": "No monitored device matches this search.",
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering."
 }

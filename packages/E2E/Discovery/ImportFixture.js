@@ -620,7 +620,8 @@ export function createImportApi(control) {
         );
         const record = create({
           scanId: "",
-          source: "DiscoveredDevices",
+          // As the server names it (DiscoveryImportSource.DiscoveredDevices).
+          source: "discoveredDevices",
           settings: body.settings,
           hosts,
           monitorTemplateName: template?.templateName,
@@ -693,6 +694,8 @@ export function createImportApi(control) {
           }
           const retried = create({
             scanId: record.scanId,
+            // A retry comes from where the import came from, as on the server.
+            ...(record.source ? { source: record.source } : {}),
             settings: record.settings,
             monitorTemplateName: record.monitorTemplateName,
             retryOf: record.id,

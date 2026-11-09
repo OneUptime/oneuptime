@@ -20,6 +20,9 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Modal, {
@@ -89,9 +92,10 @@ import {
  * The discovery import's own pipeline, from the list instead of a scan: the
  * same monitoring step - how often each device is checked, who hears about
  * a problem, from which monitor template - with what the devices are and
- * the SNMP credentials they are walked with asked first, because nothing
- * about them was read yet; and the same progress, run on the server, so the
- * dialog can be closed and the import carries on.
+ * the SNMP credentials they are walked with in a More fields fold after it
+ * (left empty, the map works a role out from SNMP and a device is pinged,
+ * or walked with its site's credentials); and the same progress, run on the
+ * server, so the dialog can be closed and the import carries on.
  *
  * Only devices with an address the probe can check and not monitored
  * already are sent; the rest are named, and the server refuses a duplicate
@@ -620,10 +624,7 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
     );
   };
 
-  /*
-   * What is added, and what the devices are: asked before how they are
-   * monitored, since a switch's table says nothing about either.
-   */
+  // What is added, and what is left out and why.
   const leadSection: ReactElement = (
     <section
       className="space-y-4"
@@ -685,8 +686,57 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
           </p>
         )}
       </div>
-      {plan.toAdd.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    </section>
+  );
+
+  const pickedRoleName: string | undefined = roles?.find(
+    (role: NamedOption): boolean => {
+      return role.id === settings.networkDeviceRoleId;
+    },
+  )?.name;
+  const pickedProfileName: string | undefined = profiles?.find(
+    (profile: NamedOption): boolean => {
+      return profile.id === settings.snmpCredentialProfileId;
+    },
+  )?.name;
+
+  /*
+   * Folded, the line names both fields, and what each is set to once one
+   * is picked ("SNMP Credential Profile: Office SNMP v3"): nothing in force
+   * is hidden.
+   */
+  const moreFieldsItems: Array<FoldedSectionItem> = [
+    {
+      key: "networkDeviceRoleId",
+      title: DEVICE_ROLE_FIELD_TITLE,
+      isSet: Boolean(settings.networkDeviceRoleId),
+      value: pickedRoleName,
+    },
+    {
+      key: "snmpCredentialProfileId",
+      title: SNMP_PROFILE_FIELD_TITLE,
+      isSet: Boolean(settings.snmpCredentialProfileId),
+      value: pickedProfileName,
+    },
+  ];
+
+  /*
+   * What the devices are and the SNMP credentials they are walked with:
+   * left empty, the map works a role out from what a device reports over
+   * SNMP, and a device is pinged - or walked with its site's credentials.
+   * Most imports keep both, so they wait in a fold at the end of the step,
+   * named, rather than standing first beside each other: side by side their
+   * descriptions put the two pickers at different heights, and each
+   * placeholder broke over two lines.
+   */
+  const trailingSection: ReactElement | undefined =
+    plan.toAdd.length > 0 ? (
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        items={moreFieldsItems}
+        dataTestId="discovered-device-import-more-fields"
+      >
+        <div className="max-w-md space-y-5">
           <div data-testid="discovered-device-import-role">
             <FieldLabelElement
               title={DEVICE_ROLE_FIELD_TITLE}
@@ -774,9 +824,8 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
             )}
           </div>
         </div>
-      )}
-    </section>
-  );
+      </FoldedSection>
+    ) : undefined;
 
   const description: string =
     props.devices.length === 1 && props.devices[0]
@@ -828,6 +877,7 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
             hosts={hosts}
             source={DiscoveryImportSource.DiscoveredDevices}
             leadSection={leadSection}
+            trailingSection={trailingSection}
             settings={settings}
             onSettingsChange={setSettings}
             facts={facts}

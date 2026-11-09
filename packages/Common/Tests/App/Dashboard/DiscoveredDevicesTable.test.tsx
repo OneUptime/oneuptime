@@ -614,6 +614,67 @@ describe("finding devices", () => {
     expect(lastListBody()["search"]).toBe("");
   });
 
+  test("a search that matches a monitored device under Not monitored says where it is, and Show all shows it", async () => {
+    await renderList();
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("discovered-devices-search"), {
+        target: { value: "Branch router" },
+      });
+    });
+
+    const empty: HTMLElement = await screen.findByTestId(
+      "discovered-devices-empty",
+      {},
+      { timeout: 3000 },
+    );
+    // A title is shown without its full stop.
+    expect(empty).toHaveTextContent(
+      "No device that is not monitored matches this search",
+    );
+    expect(empty).toHaveTextContent("It matches 1 device in All.");
+    expect(empty).not.toHaveTextContent(
+      "No discovered device matches this search",
+    );
+    // Two ways out, cased alike: show every choice, or drop the search.
+    expect(
+      within(empty).getByTestId("discovered-devices-empty-show-all"),
+    ).toHaveTextContent(/^Show all$/);
+    expect(
+      within(empty).getByTestId("discovered-devices-clear-search"),
+    ).toHaveTextContent(/^Clear search$/);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("discovered-devices-empty-show-all"));
+    });
+
+    expect(
+      await screen.findByText(
+        "Branch router",
+        { selector: "p" },
+        { timeout: 3000 },
+      ),
+    ).toBeInTheDocument();
+    expect(lastListBody()["show"]).toBe("all");
+    expect(lastListBody()["search"]).toBe("Branch router");
+    expect(
+      within(showChoices()).getByRole("radio", { checked: true }),
+    ).toHaveTextContent(/^All/);
+  });
+
+  test("a device with no address says so where its address would be", async () => {
+    await renderList();
+
+    expect(
+      within(rowOf("00:1a:2b:3c:4d:03")).getByTestId(
+        `discovered-device-no-address-${NO_ADDRESS_ID}`,
+      ),
+    ).toHaveTextContent("No IP address yet");
+    expect(
+      within(rowOf("Lobby camera")).queryByText("No IP address yet"),
+    ).not.toBeInTheDocument();
+  });
+
   test("Hidden from map shows only the hidden devices, and a sort asked for is the server's", async () => {
     await renderList();
     await showChoice(/Hidden from map/);

@@ -462,12 +462,15 @@ export function isDiscoveredDeviceShow(
 /*
  * Why the list is empty, which is what its empty state says: nothing was
  * discovered yet (the way in is a device setting, off by default), the
- * search matches nothing, or the choice shown holds none of the devices
- * found - every one is monitored, say, which is good news.
+ * search matches nothing, the search matches devices under another choice
+ * than the one shown - a monitored device looked for under Not monitored,
+ * which the list opens on - or the choice shown holds none of the devices
+ * found: every one is monitored, say, which is good news.
  */
 export enum DiscoveredDeviceEmptyKind {
   NoneYet = "NoneYet",
   NoMatch = "NoMatch",
+  MatchesElsewhere = "MatchesElsewhere",
   AllMonitored = "AllMonitored",
   NoneMonitored = "NoneMonitored",
   NoneHidden = "NoneHidden",
@@ -479,7 +482,13 @@ export function getDiscoveredDeviceEmptyKind(data: {
   counts: DiscoveredDeviceCounts;
 }): DiscoveredDeviceEmptyKind {
   if (data.search.trim()) {
-    return DiscoveredDeviceEmptyKind.NoMatch;
+    /*
+     * The counts are the search's: a match under another choice is not
+     * "nothing matches" - the device is there, a click away.
+     */
+    return data.counts.all > 0 && countForShow(data.counts, data.show) === 0
+      ? DiscoveredDeviceEmptyKind.MatchesElsewhere
+      : DiscoveredDeviceEmptyKind.NoMatch;
   }
 
   if (data.counts.all === 0) {

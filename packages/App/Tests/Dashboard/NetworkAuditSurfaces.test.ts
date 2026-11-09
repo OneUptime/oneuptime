@@ -115,10 +115,10 @@ describe("an empty Discovered Devices page says where they come from", () => {
 
   test("the list says what a discovered device is, and that nothing ages out on its own", () => {
     expect(DISCOVERED_DEVICES).toContain(
-      "Every device your switches, routers and network controllers have seen, and whether OneUptime monitors it: add any to monitoring, or hide them from the topology map. Nothing is removed on its own: Last Seen says when each was last there.",
+      "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
     );
     expect(DISCOVERED_DEVICES).toContain(
-      "Every device this site's switches, routers and network controllers have seen, and whether OneUptime monitors it. Nothing is removed on its own: Last Seen says when each was last there.",
+      "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
     );
   });
 

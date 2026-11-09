@@ -23487,7 +23487,7 @@
   "Whether OneUptime AI can reach this {{noun}}, and what it may do there.": "OneUptime AI 能否访问此{{noun}}，以及可以在其上执行哪些操作。",
   "With Compose instead? Recommended: allow only the targets AI may fix. Set these in the .env next to your docker-compose.yml:": "改用 Compose？建议：仅允许 AI 可以修复的目标。在您的 docker-compose.yml 旁边的 .env 中设置以下内容：",
   "With Compose instead? Set this in the .env next to your docker-compose.yml:": "改用 Compose？在您的 docker-compose.yml 旁边的 .env 中设置以下内容：",
-  "Worked out from the device (SNMP only)": "Worked out from the device (SNMP only)",
+  "Worked out from the device (SNMP only)": "根据设备推断（仅限 SNMP）",
   "Workspace Apps": "工作区应用",
   "Write access lets the agent cancel a running query and end one session at a time — as far as its login's grants allow, which are the hard limit. OneUptime still holds the line: it never runs free SQL, never changes a setting, schema, data, user or replication, and never ends its own session.": "写入权限允许代理取消正在运行的查询，并一次结束一个会话——以其登录账号的授权所允许的范围为限，这是硬性限制。OneUptime 仍会守住底线：它从不运行任意 SQL，从不更改设置、架构、数据、用户或复制，也从不结束其自身的会话。",
   "Write access lets the agent force-update (restart), roll back, scale and update services and change a node's availability through a manager's Docker socket — root on that node, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never creates or removes services or stacks, never touches secrets or configs, draining a node always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the services and nodes it names.": "写入权限允许代理通过管理节点的 Docker 套接字强制更新（重启）、回滚、扩缩和更新服务，以及更改节点的可用性——这相当于该节点上的 root 权限，因此命令策略、写入开关和写入目标是仅有的限制。OneUptime 仍会守住底线：它从不创建或删除服务或堆栈，从不触及 secret 或 config，排空节点始终需要等待人工批准，并且在设置了 ONEUPTIME_AI_WRITE_TARGETS 时只操作其中列出的服务和节点。",
@@ -47017,5 +47017,14 @@
   "{{count}} selected devices are monitored already, so they are left out.": "所选设备中有 {{count}} 台已在监控中，因此被排除。",
   "{{count}} selected devices are monitored already, so they are left out._one": "{{count}} selected device is monitored already, so it is left out.",
   "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it.": "所选设备中有 {{count}} 台还没有 IP 地址，因此被排除：当路由器的 ARP 表或网络控制器报告该设备后，它就会获得 IP 地址。",
-  "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it._one": "{{count}} selected device has no IP address yet, so it is left out: a device gets one once a router's ARP table or a network controller reports it."
+  "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it._one": "{{count}} selected device has no IP address yet, so it is left out: a device gets one once a router's ARP table or a network controller reports it.",
+  "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.": "此站点的交换机、路由器和网络控制器发现的每台设备。记录不会自动删除：最后一次出现 显示每台设备上次出现的时间。",
+  "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.": "你的交换机、路由器和网络控制器发现的每台设备。记录不会自动删除：最后一次出现 显示每台设备上次出现的时间。",
+  "It matches {{count}} devices in All.": "在“全部”中有 {{count}} 台设备匹配。",
+  "It matches {{count}} devices in All._one": "在“全部”中有 {{count}} 台设备匹配。",
+  "No IP address yet": "尚无 IP 地址",
+  "No device hidden from the map matches this search.": "没有已从地图隐藏的设备与此搜索匹配。",
+  "No device that is not monitored matches this search.": "没有未监控的设备与此搜索匹配。",
+  "No monitored device matches this search.": "没有已监控的设备与此搜索匹配。",
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime 尚未监控此设备。添加后会定期检查它，并可选择它停止响应时通知谁。"
 }

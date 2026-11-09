@@ -67,7 +67,10 @@ export const ENDPOINT_LABEL_MAX_LINES: number = 2;
 /*
  * The line under a name: an address (issue #5775), or an unnamed device's
  * maker. Never wrapped, and wide enough for any IPv4 address - fifteen
- * characters - on the narrowest node.
+ * characters - on the narrowest node. A maker is a hint, not a name: it is
+ * cut to the endpoint's name width (ENDPOINT_LABEL_MAX_CHARS), so the long
+ * ones the address tables carry ("Seiko Epson Corporation") do not space
+ * the whole map out.
  */
 export const DEVICE_SECONDARY_LABEL_MAX_CHARS: number = 17;
 export const ENDPOINT_SECONDARY_LABEL_MAX_CHARS: number = 15;
@@ -253,7 +256,7 @@ export const labelSecondaryLineForNode: (
   const vendor: string = (node.vendor || "").trim();
 
   if (isEndpoint && vendor && vendor !== name) {
-    return fitLabelLine(vendor, maxChars);
+    return fitLabelLine(vendor, ENDPOINT_LABEL_MAX_CHARS);
   }
 
   return "";

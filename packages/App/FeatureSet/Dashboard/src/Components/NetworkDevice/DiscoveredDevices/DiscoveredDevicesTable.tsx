@@ -44,6 +44,7 @@ import Table from "Common/UI/Components/Table/Table";
 import { useAreTableColumnsFolded } from "Common/UI/Components/Table/TableCellContext";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import {
+  TableEmptyStateActionStyle,
   TableEmptyStateKind,
   TableEmptyStateProps,
 } from "Common/UI/Components/Table/TableEmptyState";
@@ -151,12 +152,19 @@ export const DISCOVERED_DEVICES_COPY: {
   siteHowToCollect: string;
   noMatch: string;
   noMatchHint: string;
+  matchesElsewhere: Record<
+    Exclude<DiscoveredDeviceShow, DiscoveredDeviceShow.All>,
+    string
+  >;
+  showAll: string;
+  clearSearch: string;
   allMonitored: string;
   allMonitoredHint: string;
   noneMonitored: string;
   noneMonitoredHint: string;
   noneHidden: string;
   noAddressYet: string;
+  noAddress: string;
   addToMonitoring: string;
   add: string;
   hideFromMap: string;
@@ -168,11 +176,15 @@ export const DISCOVERED_DEVICES_COPY: {
 } = {
   title: translationKey("Discovered Devices"),
   siteTitle: translationKey("Discovered Devices at this Site"),
+  /*
+   * What the list is, and that nothing ages out of it. What each row's
+   * State says and what its buttons do, the rows show.
+   */
   description: translationKey(
-    "Every device your switches, routers and network controllers have seen, and whether OneUptime monitors it: add any to monitoring, or hide them from the topology map. Nothing is removed on its own: Last Seen says when each was last there.",
+    "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
   ),
   siteDescription: translationKey(
-    "Every device this site's switches, routers and network controllers have seen, and whether OneUptime monitors it. Nothing is removed on its own: Last Seen says when each was last there.",
+    "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
   ),
   searchPlaceholder: translationKey("Search by name, IP, MAC or vendor"),
   noneYet: translationKey("No discovered devices yet."),
@@ -187,6 +199,24 @@ export const DISCOVERED_DEVICES_COPY: {
   noMatchHint: translationKey(
     "Search by a name, an IP address, a MAC address with or without separators, or a vendor.",
   ),
+  /*
+   * The search matches, but not under the choice shown: a monitored device
+   * looked for under Not monitored, which the list opens on.
+   */
+  matchesElsewhere: {
+    [DiscoveredDeviceShow.NotMonitored]: translationKey(
+      "No device that is not monitored matches this search.",
+    ),
+    [DiscoveredDeviceShow.Monitored]: translationKey(
+      "No monitored device matches this search.",
+    ),
+    [DiscoveredDeviceShow.Hidden]: translationKey(
+      "No device hidden from the map matches this search.",
+    ),
+  },
+  showAll: translationKey("Show all"),
+  // Beside Show all, cased as the list's other words are.
+  clearSearch: translationKey("Clear search"),
   allMonitored: translationKey("Every discovered device is monitored."),
   allMonitoredHint: translationKey("Pick All to see them."),
   noneMonitored: translationKey(
@@ -199,6 +229,8 @@ export const DISCOVERED_DEVICES_COPY: {
   noAddressYet: translationKey(
     "No IP address yet: a device gets one once a router's ARP table or a network controller reports it.",
   ),
+  // In the IP Address column: why the row's Add is greyed out, on a phone too.
+  noAddress: translationKey("No IP address yet"),
   addToMonitoring: translationKey("Add to monitoring"),
   // The row's own button: the words its name starts with, or holds.
   add: translationKey("Add"),
@@ -240,7 +272,8 @@ function lockFor(gate: PermissionGateResult): {
 
 /*
  * A vendor's name: as dark as the row's other values in a column of its
- * own, and as quiet as any value folded under the device's name.
+ * own, and, folded under the device's name, as small and quiet as the
+ * hostname above it - the name stays what the eye finds first.
  */
 const VendorName: FunctionComponent<{ vendor: string }> = (props: {
   vendor: string;
@@ -249,7 +282,7 @@ const VendorName: FunctionComponent<{ vendor: string }> = (props: {
 
   return (
     <span
-      className={`break-words text-sm ${isFolded ? "text-gray-500" : "text-gray-900"}`}
+      className={`break-words ${isFolded ? "text-xs text-gray-500" : "text-sm text-gray-900"}`}
     >
       {props.vendor}
     </span>
@@ -759,8 +792,19 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
       key: "ipAddress",
       type: FieldType.Element,
       getElement: (item: DiscoveredDeviceItem): ReactElement => {
+        /*
+         * Said where the address would be, not only in the greyed-out
+         * Add's tooltip, which a phone never shows.
+         */
         if (!item.ipAddress) {
-          return <TableEmptyValue />;
+          return (
+            <span
+              className="text-xs text-gray-500"
+              data-testid={`discovered-device-no-address-${item.id}`}
+            >
+              {translator.translateText(DISCOVERED_DEVICES_COPY.noAddress)}
+            </span>
+          );
         }
 
         return (
@@ -1129,7 +1173,41 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
           description: DISCOVERED_DEVICES_COPY.noMatchHint,
           actions: [
             {
-              title: CLEAR_SEARCH,
+              title: DISCOVERED_DEVICES_COPY.clearSearch,
+              onClick: () => {
+                setSearch("");
+              },
+              dataTestId: "discovered-devices-clear-search",
+            },
+          ],
+          dataTestId: "discovered-devices-empty",
+        };
+      case DiscoveredDeviceEmptyKind.MatchesElsewhere:
+        return {
+          kind: TableEmptyStateKind.Filtered,
+          title:
+            show === DiscoveredDeviceShow.All
+              ? DISCOVERED_DEVICES_COPY.noMatch
+              : DISCOVERED_DEVICES_COPY.matchesElsewhere[show],
+          description: translator.translatePlural(
+            {
+              one: "It matches {{count}} device in All.",
+              other: "It matches {{count}} devices in All.",
+            },
+            counts.all,
+            { count: translator.formatNumber(counts.all) },
+          ),
+          actions: [
+            {
+              title: DISCOVERED_DEVICES_COPY.showAll,
+              onClick: () => {
+                setShow(DiscoveredDeviceShow.All);
+              },
+              dataTestId: "discovered-devices-empty-show-all",
+            },
+            {
+              title: DISCOVERED_DEVICES_COPY.clearSearch,
+              style: TableEmptyStateActionStyle.Link,
               onClick: () => {
                 setSearch("");
               },
@@ -1170,7 +1248,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
           dataTestId: "discovered-devices-empty",
         };
     }
-  }, [counts, debouncedSearch, show, props.siteId]);
+  }, [counts, debouncedSearch, show, props.siteId, translator]);
 
   const runningImports: Array<DiscoveryImportView> =
     activeImports.fromDiscoveredDevices;

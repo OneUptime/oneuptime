@@ -30,6 +30,7 @@ import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
 import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -563,10 +564,25 @@ ModelAPI.getList = async ({ modelType, query, requestOptions }) => {
         : [];
   return { data, count: data.length, skip: 0, limit: 10 };
 };
-ModelAPI.getItem = async ({ modelType, id }) =>
-  modelType === NetworkDeviceDiscoveryScan
-    ? scans.find((item) => item.id.toString() === id.toString())
-    : null;
+ModelAPI.getItem = async ({ modelType, id }) => {
+  if (modelType === NetworkDeviceDiscoveryScan) {
+    return scans.find((item) => item.id.toString() === id.toString());
+  }
+  // A row's Edit classification reads the device it edits, as the server would.
+  if (modelType === NetworkEndpoint) {
+    const row = discovered.devices.get(id.toString().toLowerCase());
+    if (!row) {
+      return null;
+    }
+    const endpoint = new NetworkEndpoint();
+    endpoint._id = row.id;
+    if (row.classification) {
+      endpoint.classification = row.classification;
+    }
+    return endpoint;
+  }
+  return null;
+};
 const originalCount = ModelAPI.count.bind(ModelAPI);
 ModelAPI.count = async (args) => (isDevicesRoute() ? 0 : originalCount(args));
 ModelAPI.updateById = async ({ id, data }) => {
@@ -610,6 +626,23 @@ ModelAPI.create = async ({ model, modelType }) => {
  */
 const originalCreateOrUpdate = ModelAPI.createOrUpdate.bind(ModelAPI);
 ModelAPI.createOrUpdate = async (args) => {
+  // A row's Edit classification saves to the device it edits.
+  if (args.modelType === NetworkEndpoint) {
+    const id = args.model._id ? args.model._id.toString() : "";
+    const classification = args.model.classification || null;
+    window.__discoveryFixture.updates.push({
+      id: id,
+      data: { classification: classification },
+      startedAt: performance.now(),
+      endedAt: performance.now(),
+    });
+    const row = discovered.devices.get(id.toLowerCase());
+    if (row && classification) {
+      row.classification = classification;
+      row.name = classification;
+    }
+    return { data: args.model };
+  }
   if (args.modelType !== NetworkDeviceDiscoveryScan) {
     return originalCreateOrUpdate(args);
   }

@@ -47017,5 +47017,14 @@
   "{{count}} selected devices are monitored already, so they are left out.": "選択したデバイスのうち {{count}} 台はすでに監視されているため、除外されます。",
   "{{count}} selected devices are monitored already, so they are left out._one": "{{count}} selected device is monitored already, so it is left out.",
   "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it.": "選択したデバイスのうち {{count}} 台はまだ IP アドレスがないため、除外されます。ルーターの ARP テーブルまたはネットワークコントローラーが報告すると割り当てられます。",
-  "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it._one": "{{count}} selected device has no IP address yet, so it is left out: a device gets one once a router's ARP table or a network controller reports it."
+  "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it._one": "{{count}} selected device has no IP address yet, so it is left out: a device gets one once a router's ARP table or a network controller reports it.",
+  "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.": "このサイトのスイッチ、ルーター、ネットワークコントローラーが確認したすべてのデバイス。自動的に削除されることはありません。最終確認で、各デバイスが最後に確認された時刻がわかります。",
+  "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.": "スイッチ、ルーター、ネットワークコントローラーが確認したすべてのデバイス。自動的に削除されることはありません。最終確認で、各デバイスが最後に確認された時刻がわかります。",
+  "It matches {{count}} devices in All.": "「すべて」では {{count}} 台のデバイスが一致します。",
+  "It matches {{count}} devices in All._one": "「すべて」では {{count}} 台のデバイスが一致します。",
+  "No IP address yet": "IP アドレスはまだありません",
+  "No device hidden from the map matches this search.": "マップで非表示のデバイスで、この検索に一致するものはありません。",
+  "No device that is not monitored matches this search.": "未監視のデバイスで、この検索に一致するものはありません。",
+  "No monitored device matches this search.": "監視中のデバイスで、この検索に一致するものはありません。",
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime はまだこのデバイスを監視していません。追加すると定期的にチェックされ、応答しなくなったときに誰に知らせるかを選べます。"
 }

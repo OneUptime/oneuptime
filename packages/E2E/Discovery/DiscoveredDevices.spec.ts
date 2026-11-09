@@ -318,6 +318,32 @@ test("the search runs on the server: a MAC typed without separators, a vendor or
   await search(page, "10.20.1.");
   await expect(checkedShow(page)).toHaveText(/^Not monitored\s*10$/);
 
+  /*
+   * A match only under another choice: a monitored device looked for under
+   * Not monitored, which the list opens on. The list says where it is, and
+   * Show all shows it with the search kept.
+   */
+  await search(page, "Branch router");
+  const elsewhere: Locator = page.getByTestId("discovered-devices-empty");
+  await expect(
+    elsewhere.getByRole("heading", {
+      name: "No device that is not monitored matches this search",
+    }),
+  ).toBeVisible();
+  await expect(elsewhere).toContainText("It matches 1 device in All.");
+  await expect(
+    elsewhere.getByRole("button", { name: "Clear search", exact: true }),
+  ).toBeVisible();
+  await elsewhere
+    .getByRole("button", { name: "Show all", exact: true })
+    .click();
+  await expect(checkedShow(page)).toHaveText(/^All\s*1$/);
+  await expect(rowOf(page, "Branch router")).toBeVisible();
+  await expect(page.getByTestId("discovered-devices-search")).toHaveValue(
+    "Branch router",
+  );
+  await pickShow(page, /^Not monitored/);
+
   // Nothing matches: the list says so, and Clear search brings them back.
   await search(page, "no-such-device");
   const empty: Locator = page.getByTestId("discovered-devices-empty");
@@ -368,6 +394,24 @@ test("Add to monitoring adds a selection through the import, with the role and S
     window.getByTestId("discovery-import-outcome-ping"),
   ).toContainText("2 devices are pinged every 5 min.");
 
+  /*
+   * What the devices are and the credentials they are walked with wait in
+   * a More fields fold after the step's questions, named on its line.
+   */
+  const moreFields: Locator = window.getByTestId(
+    "discovered-device-import-more-fields",
+  );
+  const moreFieldsHeader: Locator = moreFields.getByRole("button", {
+    name: "More fields",
+    exact: true,
+  });
+  await expect(moreFieldsHeader).toHaveAttribute("aria-expanded", "false");
+  await expect(moreFieldsHeader).toContainText(
+    "Device Role, SNMP Credential Profile",
+  );
+  await moreFieldsHeader.click();
+  await expect(moreFieldsHeader).toHaveAttribute("aria-expanded", "true");
+
   await pickOption(
     page,
     "Device Role",
@@ -379,6 +423,13 @@ test("Add to monitoring adds a selection through the import, with the role and S
     "SNMP Credential Profile",
     "discovered-device-import-snmp",
     "Office SNMP v3",
+  );
+
+  // Folded again, the line says what was picked.
+  await moreFieldsHeader.click();
+  await expect(moreFieldsHeader).toHaveAttribute("aria-expanded", "false");
+  await expect(moreFieldsHeader).toContainText(
+    "Device Role: Camera, SNMP Credential Profile: Office SNMP v3",
   );
   await expect(
     window.getByTestId("discovery-import-outcome-snmp"),
@@ -528,6 +579,13 @@ test("a device with no address yet cannot be added, and its row says why", async
 }) => {
   await openList(page);
 
+  // Where its address would be, the row says it has none yet.
+  await expect(
+    rowOf(page, "00:1a:2b:3c:00:03").getByTestId(
+      `discovered-device-no-address-${NO_ADDRESS}`,
+    ),
+  ).toHaveText("No IP address yet");
+
   const add: Locator = rowOf(page, "00:1a:2b:3c:00:03").getByRole("button", {
     name: "Add to monitoring",
   });
@@ -561,6 +619,51 @@ test("a device with no address yet cannot be added, and its row says why", async
   );
   await expect(page.getByTestId("modal-footer-submit-button")).toBeDisabled();
   expect(await importStarts(page)).toEqual([]);
+});
+
+test("a row's Edit classification starts from what the device is called, and saves the new name to that device", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page);
+
+  await rowOf(page, "Lobby camera")
+    .getByTestId("row-actions-more-button")
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Edit classification", exact: true })
+    .click();
+
+  await expect(dialog(page).getByTestId("modal-description")).toHaveText(
+    "Lobby camera (10.20.0.11)",
+  );
+  const field: Locator = dialog(page).getByRole("textbox");
+  await expect(field).toHaveValue("Lobby camera");
+  await field.fill("Reception camera");
+  await page.getByTestId("modal-footer-submit-button").click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // The list is read again, and the row goes by its new name.
+  await expect(rowOf(page, "Reception camera")).toBeVisible();
+
+  const updates: Array<{ id: string; data: Record<string, unknown> }> =
+    await page.evaluate(() => {
+      return (
+        window as unknown as {
+          __discoveryFixture: {
+            updates: Array<{ id: string; data: Record<string, unknown> }>;
+          };
+        }
+      ).__discoveryFixture.updates.map(
+        (write: { id: string; data: Record<string, unknown> }) => {
+          return { id: write.id, data: write.data };
+        },
+      );
+    });
+  expect(updates[updates.length - 1]).toMatchObject({
+    id: CAMERA,
+    data: { classification: "Reception camera" },
+  });
 });
 
 test("selecting every device that matches reaches past the page, and Hide from map sends them in one request", async ({

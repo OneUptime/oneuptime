@@ -23487,7 +23487,7 @@
   "Whether OneUptime AI can reach this {{noun}}, and what it may do there.": "OneUptime AI가 이 {{noun}}에 연결할 수 있는지, 그리고 그곳에서 무엇을 할 수 있는지.",
   "With Compose instead? Recommended: allow only the targets AI may fix. Set these in the .env next to your docker-compose.yml:": "Compose를 사용하나요? 권장: AI가 수정할 수 있는 대상만 허용하세요. docker-compose.yml 옆의 .env에 다음 값을 설정하세요:",
   "With Compose instead? Set this in the .env next to your docker-compose.yml:": "Compose를 사용하나요? docker-compose.yml 옆의 .env에 다음 값을 설정하세요:",
-  "Worked out from the device (SNMP only)": "Worked out from the device (SNMP only)",
+  "Worked out from the device (SNMP only)": "장치에서 판단(SNMP만 해당)",
   "Workspace Apps": "워크스페이스 앱",
   "Write access lets the agent cancel a running query and end one session at a time — as far as its login's grants allow, which are the hard limit. OneUptime still holds the line: it never runs free SQL, never changes a setting, schema, data, user or replication, and never ends its own session.": "쓰기 권한이 있으면 에이전트는 실행 중인 쿼리를 취소하고 한 번에 세션 하나를 종료할 수 있습니다. 로그인에 부여된 권한이 허용하는 범위까지이며, 이 권한이 넘을 수 없는 한계입니다. 그래도 OneUptime은 다음을 지킵니다: 임의의 SQL을 실행하지 않고, 설정, 스키마, 데이터, 사용자, 복제를 변경하지 않으며, 자신의 세션을 종료하지 않습니다.",
   "Write access lets the agent force-update (restart), roll back, scale and update services and change a node's availability through a manager's Docker socket — root on that node, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never creates or removes services or stacks, never touches secrets or configs, draining a node always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the services and nodes it names.": "쓰기 권한이 있으면 에이전트는 매니저의 Docker 소켓을 통해 서비스를 강제 업데이트(재시작), 롤백, 스케일, 업데이트하고 노드의 가용성을 변경할 수 있습니다. 이 소켓은 해당 노드의 root 권한과 같으므로 명령 정책, 쓰기 스위치, 쓰기 대상 외에는 다른 제한이 없습니다. 그래도 OneUptime은 다음을 지킵니다: 서비스나 스택을 생성하거나 제거하지 않고, 시크릿이나 config를 건드리지 않으며, 노드 드레인은 항상 사람의 승인을 기다리고, ONEUPTIME_AI_WRITE_TARGETS가 설정되어 있으면 그 변수에 지정된 서비스와 노드만 다룹니다.",
@@ -47017,5 +47017,14 @@
   "{{count}} selected devices are monitored already, so they are left out.": "선택한 장치 중 {{count}}개는 이미 모니터링 중이라 제외됩니다.",
   "{{count}} selected devices are monitored already, so they are left out._one": "{{count}} selected device is monitored already, so it is left out.",
   "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it.": "선택한 장치 중 {{count}}개는 아직 IP 주소가 없어 제외됩니다. 라우터의 ARP 테이블이나 네트워크 컨트롤러가 보고하면 장치에 IP 주소가 생깁니다.",
-  "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it._one": "{{count}} selected device has no IP address yet, so it is left out: a device gets one once a router's ARP table or a network controller reports it."
+  "{{count}} selected devices have no IP address yet, so they are left out: a device gets one once a router's ARP table or a network controller reports it._one": "{{count}} selected device has no IP address yet, so it is left out: a device gets one once a router's ARP table or a network controller reports it.",
+  "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.": "이 사이트의 스위치, 라우터, 네트워크 컨트롤러가 본 모든 장치입니다. 저절로 삭제되지 않으며, 마지막 확인은 각 장치가 마지막으로 있었던 시점을 보여 줍니다.",
+  "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.": "스위치, 라우터, 네트워크 컨트롤러가 본 모든 장치입니다. 저절로 삭제되지 않으며, 마지막 확인은 각 장치가 마지막으로 있었던 시점을 보여 줍니다.",
+  "It matches {{count}} devices in All.": "'전체'에서는 장치 {{count}}개가 일치합니다.",
+  "It matches {{count}} devices in All._one": "'전체'에서는 장치 {{count}}개가 일치합니다.",
+  "No IP address yet": "아직 IP 주소 없음",
+  "No device hidden from the map matches this search.": "지도에서 숨긴 장치 중 이 검색과 일치하는 장치가 없습니다.",
+  "No device that is not monitored matches this search.": "모니터링되지 않는 장치 중 이 검색과 일치하는 장치가 없습니다.",
+  "No monitored device matches this search.": "모니터링되는 장치 중 이 검색과 일치하는 장치가 없습니다.",
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime은 아직 이 장치를 모니터링하지 않습니다. 추가하면 정기적으로 확인하며, 응답이 멈출 때 알림을 받을 사람을 고를 수 있습니다."
 }

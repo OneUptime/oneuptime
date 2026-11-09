@@ -505,26 +505,38 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
             <p className="mt-1 text-sm text-gray-500">
               {isEndpoint
                 ? translateString(
-                    "A switch, router or network controller saw this device, and OneUptime does not monitor it. Add it to be told when it stops answering: you pick how often it is checked and who hears about it.",
+                    "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.",
                   ) ||
-                  "A switch, router or network controller saw this device, and OneUptime does not monitor it. Add it to be told when it stops answering: you pick how often it is checked and who hears about it."
+                  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering."
                 : translateString(
                     "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows.",
                   ) ||
                   "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows."}
             </p>
-            <Button
-              title={
-                translateString("Add to Monitoring") || "Add to Monitoring"
-              }
-              icon={IconProp.Add}
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.PRIMARY}
-              dataTestId="network-topology-add-to-monitoring"
-              onClick={() => {
-                props.onAddToMonitoring?.(node);
-              }}
-            />
+            {/*
+             * Under the sentence, at its start: a button keeps a dialog
+             * footer's left margin (md:ml-3) unless told otherwise. A
+             * discovered device's opens the Discovered Devices list's own
+             * dialog, and is named as that dialog is.
+             */}
+            <div className="mt-3 [&>button]:ml-0 [&>button]:md:ml-0">
+              <Button
+                title={
+                  isEndpoint
+                    ? translateString("Add to monitoring") ||
+                      "Add to monitoring"
+                    : translateString("Add to Monitoring") ||
+                      "Add to Monitoring"
+                }
+                icon={IconProp.Add}
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                dataTestId="network-topology-add-to-monitoring"
+                onClick={() => {
+                  props.onAddToMonitoring?.(node);
+                }}
+              />
+            </div>
           </div>
         ) : (
           <></>
