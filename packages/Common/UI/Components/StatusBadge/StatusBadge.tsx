@@ -13,6 +13,12 @@ export interface ComponentProps {
   text: string;
   type?: StatusBadgeType | undefined;
   className?: string | undefined;
+  /*
+   * The text is drawn as given, never looked up: a name someone typed - a
+   * session's own signal, "Payment failed" - which a translation of the
+   * same English words would otherwise replace.
+   */
+  isUserContent?: boolean | undefined;
 }
 
 const statusStyles: Record<StatusBadgeType, string> = {
@@ -38,7 +44,9 @@ const StatusBadge: FunctionComponent<ComponentProps> = (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusStyles[type]} ${props.className || ""}`}
     >
-      {translateString(props.text) ?? props.text}
+      {props.isUserContent
+        ? props.text
+        : translateString(props.text) ?? props.text}
     </span>
   );
 };

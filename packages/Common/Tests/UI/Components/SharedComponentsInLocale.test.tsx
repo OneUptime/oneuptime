@@ -176,6 +176,13 @@ describe("text props", () => {
     expect(screen.getByTestId("pill")).toHaveTextContent("payments-api");
     expect(screen.getByText("Degraded")).toBeInTheDocument();
   });
+
+  test("a StatusBadge marked as a name someone typed draws it as typed, even when the locale has the same words", () => {
+    inLocale(german, <StatusBadge text="Active" isUserContent={true} />);
+
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.queryByText("Aktiv")).toBeNull();
+  });
 });
 
 describe("TranslatedSentence", () => {

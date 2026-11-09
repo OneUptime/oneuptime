@@ -16,6 +16,7 @@ import {
   ReplaySignal,
 } from "./ReplaySignalTypes";
 import {
+  CUSTOM_SIGNAL_TRIGGER_SUBTITLES,
   REPLAY_NETWORK_CAPTURE_CAP,
   REPLAY_SLOW_REQUEST_MS,
   ReplayClientErrorSignalDetail,
@@ -631,7 +632,16 @@ const InteractionDetail: FunctionComponent<{
   return (
     <div className="space-y-2">
       <dl>
-        {isFrustration && (
+        {isFrustration && frustration.customSignalName && (
+          <Fact label="Signal">
+            {frustration.customSignalTrigger
+              ? `${frustration.customSignalName} (${CUSTOM_SIGNAL_TRIGGER_SUBTITLES[
+                  frustration.customSignalTrigger
+                ].toLowerCase()})`
+              : frustration.customSignalName}
+          </Fact>
+        )}
+        {isFrustration && !frustration.customSignalName && (
           <Fact label="Signal">
             {frustration.kind === "rage-click"
               ? `rage click${

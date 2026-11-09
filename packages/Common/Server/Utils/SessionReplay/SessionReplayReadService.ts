@@ -2580,6 +2580,8 @@ export default class SessionReplayReadService {
         refreshRageCount,
         routeCount,
         clickCount,
+        customSignalCount,
+        customSignalFrustrationCount,
         url
       FROM ${AnalyticsTableName.RumSessionChunk}
       WHERE projectId = ${{
@@ -2699,6 +2701,11 @@ export default class SessionReplayReadService {
         refreshRageCount: readNumber(row, "refreshRageCount"),
         routeCount: readNumber(row, "routeCount"),
         clickCount: readNumber(row, "clickCount"),
+        customSignalCount: readNumber(row, "customSignalCount"),
+        customSignalFrustrationCount: readNumber(
+          row,
+          "customSignalFrustrationCount",
+        ),
         url: readString(row, "url"),
       };
 

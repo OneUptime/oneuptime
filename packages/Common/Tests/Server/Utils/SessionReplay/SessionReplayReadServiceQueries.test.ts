@@ -2715,6 +2715,37 @@ describe("SessionReplayReadService statements", () => {
       expect(manifest.tabs[0]!.chunks[1]!.url).toBe("https://a/checkout");
     });
 
+    test("projects each chunk's own-signal counts, so the timeline and the tabs count them before decoding (issue #6443)", async () => {
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            ...chunkRows[0],
+            customSignalCount: "3",
+            customSignalFrustrationCount: 2,
+          },
+          chunkRows[1] as JSONObject,
+        ]) as never,
+      );
+
+      const manifest: SessionReplayManifest =
+        await SessionReplayReadService.getManifest({
+          header: header({ isFinalized: true, durationMs: 30000 }),
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          sessionId: "s-1",
+        });
+
+      const query: string = statementOf(chunkQuerySpy).query;
+      expect(query).toContain("customSignalCount");
+      expect(query).toContain("customSignalFrustrationCount");
+
+      expect(manifest.tabs[0]!.chunks[0]!.customSignalCount).toBe(3);
+      expect(manifest.tabs[0]!.chunks[0]!.customSignalFrustrationCount).toBe(2);
+      /* A row from before the columns reads as the column default: none. */
+      expect(manifest.tabs[0]!.chunks[1]!.customSignalCount).toBe(0);
+      expect(manifest.tabs[0]!.chunks[1]!.customSignalFrustrationCount).toBe(0);
+    });
+
     test("a finalized header is returned untouched", async () => {
       chunkQuerySpy.mockResolvedValue(fakeResultSet(chunkRows) as never);
 

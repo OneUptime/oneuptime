@@ -13,6 +13,7 @@ import {
   SessionReplayInteractionType,
   SessionReplayNavigationType,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
+import { SessionReplayCustomSignalTrigger } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import { ReplayTimelineEvent } from "../ReplayTimelineTypes";
 import { formatReplayDuration } from "../ReplayTimeFormat";
 import {
@@ -157,6 +158,12 @@ export type ReplayFrustrationSignalDetail = {
   clickCount: number | null;
   reloadCount: number | null;
   atUnixMs: number | null;
+  /*
+   * One of the application's own signals that counted as frustration
+   * (issue #6443): its name and what set it off. Null for the built-in four.
+   */
+  customSignalName?: string | null;
+  customSignalTrigger?: SessionReplayCustomSignalTrigger | null;
 };
 
 export type ReplayInteractionSignalDetail = {
@@ -198,6 +205,25 @@ export type ReplayCustomSignalDetail = {
   properties: Record<string, string>;
   propertyCount: number;
   atUnixMs: number | null;
+  /*
+   * Set when the row is one of the application's own signals shown as a
+   * marker (issue #6443) rather than a track() event.
+   */
+  customSignalTrigger?: SessionReplayCustomSignalTrigger | null;
+};
+
+/*
+ * What set one of the application's own signals off, as the rail says it
+ * under the signal's name. English; the rail translates it.
+ */
+export const CUSTOM_SIGNAL_TRIGGER_SUBTITLES: Record<
+  SessionReplayCustomSignalTrigger,
+  string
+> = {
+  click: "Your signal: a click",
+  page: "Your signal: a page",
+  event: "Your signal: an event",
+  error: "Your signal: an error",
 };
 
 export type ReplayMarkerKind =
@@ -787,6 +813,11 @@ function clientErrorSignal(
 }
 
 function frustrationTitle(event: ReplayTimelineEvent): string {
+  /* One of the application's own: it is called what the application named it. */
+  if (event.customSignalName) {
+    return toTitle(event.customSignalName);
+  }
+
   switch (event.frustrationKind) {
     case "rage-click":
       return isFiniteNumber(event.clickCount)
@@ -816,7 +847,10 @@ function frustrationSignal(
     frustrationTitle(event),
   );
 
-  if (isFiniteNumber(event.x) && isFiniteNumber(event.y)) {
+  if (event.customSignalName && event.customSignalTrigger) {
+    signal.subtitle =
+      CUSTOM_SIGNAL_TRIGGER_SUBTITLES[event.customSignalTrigger];
+  } else if (isFiniteNumber(event.x) && isFiniteNumber(event.y)) {
     signal.subtitle = `at ${Math.round(event.x)}, ${Math.round(event.y)}`;
   }
 
@@ -827,6 +861,8 @@ function frustrationSignal(
     clickCount: numberOrNull(event.clickCount),
     reloadCount: numberOrNull(event.reloadCount),
     atUnixMs: wallClockFor(event, ctx),
+    customSignalName: event.customSignalName || null,
+    customSignalTrigger: event.customSignalTrigger || null,
   };
 
   signal.detail = detail;
@@ -1067,7 +1103,10 @@ function customSignal(
     toTitle(name),
   );
 
-  if (propertyCount > 0) {
+  if (event.customSignalTrigger) {
+    signal.subtitle =
+      CUSTOM_SIGNAL_TRIGGER_SUBTITLES[event.customSignalTrigger];
+  } else if (propertyCount > 0) {
     signal.subtitle =
       propertyCount === 1 ? "1 property" : `${propertyCount} properties`;
   }
@@ -1077,6 +1116,7 @@ function customSignal(
     properties: properties,
     propertyCount: propertyCount,
     atUnixMs: wallClockFor(event, ctx),
+    customSignalTrigger: event.customSignalTrigger || null,
   };
 
   signal.detail = detail;

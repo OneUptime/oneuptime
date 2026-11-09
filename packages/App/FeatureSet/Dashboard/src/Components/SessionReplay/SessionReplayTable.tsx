@@ -215,6 +215,14 @@ export interface SessionReplaySummary {
    * by hand elsewhere need not name it.
    */
   hasRecordingEnded?: boolean | undefined;
+  /*
+   * The application's own signals (issue #6443): every hit, the hits that
+   * counted as frustration, and the sorted names hit. Undefined from an
+   * older server; 0, 0 and [] for a session recorded before them.
+   */
+  customSignalCount?: number | undefined;
+  customSignalFrustrationCount?: number | undefined;
+  customSignalNames?: Array<string> | undefined;
 }
 
 export interface SessionReplayListFilter {
@@ -460,6 +468,14 @@ export function parseSessionReplaySummary(
      * then keeps meaning "recording", the only thing that server can say.
      */
     hasRecordingEnded: readDtoBoolean(record, "hasRecordingEnded"),
+    customSignalCount: readDtoOptionalNumber(record, "customSignalCount"),
+    customSignalFrustrationCount: readDtoOptionalNumber(
+      record,
+      "customSignalFrustrationCount",
+    ),
+    customSignalNames: Array.isArray(record["customSignalNames"])
+      ? readDtoStringArray(record, "customSignalNames")
+      : undefined,
   };
 }
 
@@ -551,6 +567,29 @@ export interface SessionReplaySignalBadge {
   /* undefined = not measured on this row: no badge, never "0". */
   getCount: (row: SessionReplaySummary) => number | undefined;
   getText: (count: number) => string;
+  /*
+   * The text when the row knows more than a count - the names of the
+   * application's own signals. getText stays the fallback.
+   */
+  getRowText?:
+    | ((row: SessionReplaySummary, count: number) => string)
+    | undefined;
+  /* The severity when it depends on the row; severity stays the fallback. */
+  getRowSeverity?:
+    | ((row: SessionReplaySummary) => SessionReplayPlayabilitySeverity)
+    | undefined;
+  /*
+   * What the badge says on hover when the badge's own text is cut short:
+   * every name, where the badge shows the first and "+2".
+   */
+  getRowHoverText?:
+    | ((row: SessionReplaySummary) => string | undefined)
+    | undefined;
+  /*
+   * Whether getRowText's words are a name someone typed, drawn as they are
+   * and never looked up in the reader's language.
+   */
+  isRowTextUserContent?: ((row: SessionReplaySummary) => boolean) | undefined;
   /* The rail tab the badge links into. */
   rail: string;
 }
@@ -563,7 +602,40 @@ export interface SessionReplaySignalBadge {
  */
 export const SESSION_REPLAY_FRUSTRATION_COUNTERS: ReadonlyArray<
   keyof SessionReplaySummary
-> = ["rageClickCount", "deadClickCount", "errorClickCount", "refreshRageCount"];
+> = [
+  "rageClickCount",
+  "deadClickCount",
+  "errorClickCount",
+  "refreshRageCount",
+  "customSignalFrustrationCount",
+];
+
+/*
+ * The badge of the application's own signals: the name when one fired,
+ * the first name and how many more when several did, so a row says
+ * "Payment failed" rather than "2 signals". Amber when any of them counted
+ * as frustration, grey when they were all markers.
+ */
+export function getCustomSignalBadgeText(
+  row: SessionReplaySummary,
+  count: number,
+): string {
+  const names: Array<string> = (row.customSignalNames ?? []).filter(
+    (name: string): boolean => {
+      return name.trim().length > 0;
+    },
+  );
+
+  if (names.length === 0) {
+    return `${count} ${plural(count, "signal")}`;
+  }
+
+  if (names.length === 1) {
+    return names[0]!;
+  }
+
+  return `${names[0]!} +${names.length - 1}`;
+}
 
 function plural(count: number, singular: string, pluralWord?: string): string {
   return count === 1 ? singular : pluralWord ?? `${singular}s`;
@@ -622,6 +694,49 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
     },
     getText: (count: number): string => {
       return `${count} refresh rage`;
+    },
+    rail: "interactions",
+  },
+  {
+    key: "custom-signals",
+    severity: "neutral",
+    getCount: (row: SessionReplaySummary): number | undefined => {
+      /*
+       * Every hit, frustrating or not. The larger of the two, so a row
+       * whose frustration count arrived without the total still shows.
+       */
+      if (
+        row.customSignalCount === undefined &&
+        row.customSignalFrustrationCount === undefined
+      ) {
+        return undefined;
+      }
+
+      return Math.max(
+        row.customSignalCount ?? 0,
+        row.customSignalFrustrationCount ?? 0,
+      );
+    },
+    getText: (count: number): string => {
+      return `${count} ${plural(count, "signal")}`;
+    },
+    getRowText: getCustomSignalBadgeText,
+    isRowTextUserContent: (row: SessionReplaySummary): boolean => {
+      return (row.customSignalNames ?? []).some((name: string): boolean => {
+        return name.trim().length > 0;
+      });
+    },
+    getRowHoverText: (row: SessionReplaySummary): string | undefined => {
+      const names: Array<string> = row.customSignalNames ?? [];
+
+      return names.length > 1 ? names.join(", ") : undefined;
+    },
+    getRowSeverity: (
+      row: SessionReplaySummary,
+    ): SessionReplayPlayabilitySeverity => {
+      return (row.customSignalFrustrationCount ?? 0) > 0
+        ? "warning"
+        : "neutral";
     },
     rail: "interactions",
   },
@@ -870,14 +985,23 @@ function getSessionReplayCells(
           return [];
         }
 
-        const text: string = badge.getText(count);
+        const text: string = badge.getRowText
+          ? badge.getRowText(row, count)
+          : badge.getText(count);
+        const severity: SessionReplayPlayabilitySeverity = badge.getRowSeverity
+          ? badge.getRowSeverity(row)
+          : badge.severity;
         const badgeRoute: Route | null = buildReplayMomentRoute({
           rumApplicationId: props.rumApplicationId,
           sessionId: row.sessionId,
           rail: badge.rail,
         });
         const element: ReactElement = (
-          <StatusBadge text={text} type={SEVERITY_TO_BADGE[badge.severity]} />
+          <StatusBadge
+            text={text}
+            type={SEVERITY_TO_BADGE[severity]}
+            isUserContent={badge.isRowTextUserContent?.(row) ?? false}
+          />
         );
 
         return [
@@ -888,7 +1012,10 @@ function getSessionReplayCells(
                 key={badge.key}
                 to={badgeRoute}
                 className="inline-flex"
-                title={`Open the ${badge.rail} rail of this session`}
+                title={
+                  badge.getRowHoverText?.(row) ??
+                  `Open the ${badge.rail} rail of this session`
+                }
               >
                 {element}
               </Link>

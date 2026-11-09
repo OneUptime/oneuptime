@@ -4994,6 +4994,9 @@ describe("Session replay playback API", () => {
         "errorClickCount",
         "refreshRageCount",
         "routeCount",
+        /* The application's own signals (issue #6443). */
+        "customSignalCount",
+        "customSignalFrustrationCount",
       ]) {
         expect(statement.query).toContain(counterColumn);
       }

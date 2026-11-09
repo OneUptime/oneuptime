@@ -1057,6 +1057,15 @@ export interface SessionReplayChunkManifestEntry {
   clickCount?: number;
 
   /*
+   * The application's own signals in this chunk (issue #6443): every hit,
+   * and the hits that counted as frustration - which join the frustration
+   * lane's counters before the chunk is decoded. Optional: a server that
+   * predates them omits both.
+   */
+  customSignalCount?: number;
+  customSignalFrustrationCount?: number;
+
+  /*
    * Scrubbed URL the chunk was flushed from (the chunk row's url column).
    * Lets the stage's URL bar and the timeline preview name the page for a
    * chunk that is not loaded yet; the exact navigation events take over

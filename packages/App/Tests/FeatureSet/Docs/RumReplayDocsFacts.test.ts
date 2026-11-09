@@ -1222,8 +1222,25 @@ describe("Session Replay: the session list's filters", () => {
     expect(table).toContain('<MoreMenuSection key="sort" title="Sort">');
     expect(table).toContain("{SESSION_REPLAY_SORT_OPTIONS.map(");
     expect(table).toContain("text={option.label}");
-    // A sort option is not something a person named, so it is looked up.
-    expect(table).not.toContain("isUserContent");
+    /*
+     * A sort option is not something a person named, so it is looked up.
+     * (The one text the table draws as typed is the name of one of the
+     * application's own signals, on its row badge - issue #6443.)
+     */
+    const sortSectionStart: number = table.indexOf(
+      '<MoreMenuSection key="sort" title="Sort">',
+    );
+    const sortSection: string = table.slice(
+      sortSectionStart,
+      table.indexOf("</MoreMenuSection>", sortSectionStart),
+    );
+
+    expect(sortSection).toContain("text={option.label}");
+    expect(sortSection).not.toContain("isUserContent");
+    expect(table.match(/isUserContent=/g)).toHaveLength(1);
+    expect(table).toContain(
+      "isUserContent={badge.isRowTextUserContent?.(row) ?? false}",
+    );
     expect(source("moreMenuItem")).toContain(
       "{translateString(props.text) ?? props.text}",
     );

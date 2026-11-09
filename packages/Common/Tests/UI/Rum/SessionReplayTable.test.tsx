@@ -73,6 +73,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import SessionReplayTable, {
   fetchSessionReplayList,
+  getCustomSignalBadgeText,
   getSessionReplayFirstErrorRoute,
   getSessionReplayRouteTrail,
   isSessionReplayHandheldDevice,
@@ -433,6 +434,181 @@ describe("signal badge parity", () => {
 
       expect(shown.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("the application's own signals on a row (issue #6443)", () => {
+  // A row with nothing else to show, so the own-signals badge is in view.
+  function ownSignalsWireRow(overrides: JSONObject): JSONObject {
+    return wireRow({
+      errorCount: 0,
+      hasError: 0,
+      rageClickCount: 0,
+      traceCount: 0,
+      exceptionGroupCount: 0,
+      ...overrides,
+    });
+  }
+
+  function ownSignalsRow(overrides: JSONObject): SessionReplaySummary {
+    return parseSessionReplaySummary(ownSignalsWireRow(overrides));
+  }
+
+  function ownSignalsBadge(): SessionReplaySignalBadge {
+    return SESSION_REPLAY_SIGNAL_BADGES.find(
+      (badge: SessionReplaySignalBadge): boolean => {
+        return badge.key === "custom-signals";
+      },
+    )!;
+  }
+
+  it("reads the counts and names, numeric strings included, and leaves an older server's row unmeasured", () => {
+    const row: SessionReplaySummary = ownSignalsRow({
+      customSignalCount: "3",
+      customSignalFrustrationCount: 1,
+      customSignalNames: ["Payment failed", "Plan cancelled"],
+    });
+
+    expect(row.customSignalCount).toBe(3);
+    expect(row.customSignalFrustrationCount).toBe(1);
+    expect(row.customSignalNames).toEqual(["Payment failed", "Plan cancelled"]);
+
+    const legacy: SessionReplaySummary = parseSessionReplaySummary(wireRow());
+
+    expect(legacy.customSignalCount).toBeUndefined();
+    expect(legacy.customSignalFrustrationCount).toBeUndefined();
+    // Unmeasured is no badge, not a "0 signals" one.
+    expect(ownSignalsBadge().getCount(legacy)).toBeUndefined();
+  });
+
+  it("names the signal that fired, the first and how many more when several did, and counts them when no name came", () => {
+    expect(
+      getCustomSignalBadgeText(
+        ownSignalsRow({
+          customSignalCount: 2,
+          customSignalNames: ["Payment failed"],
+        }),
+        2,
+      ),
+    ).toBe("Payment failed");
+    expect(
+      getCustomSignalBadgeText(
+        ownSignalsRow({
+          customSignalCount: 4,
+          customSignalNames: ["Payment failed", "Plan cancelled", "Help"],
+        }),
+        4,
+      ),
+    ).toBe("Payment failed +2");
+    expect(
+      getCustomSignalBadgeText(
+        ownSignalsRow({ customSignalCount: 1, customSignalNames: [] }),
+        1,
+      ),
+    ).toBe("1 signal");
+    expect(
+      getCustomSignalBadgeText(
+        ownSignalsRow({ customSignalCount: 3, customSignalNames: ["  "] }),
+        3,
+      ),
+    ).toBe("3 signals");
+  });
+
+  it("is amber when any of them counted as frustration, grey when all were markers", () => {
+    const badge: SessionReplaySignalBadge = ownSignalsBadge();
+
+    expect(
+      badge.getRowSeverity!(
+        ownSignalsRow({
+          customSignalCount: 2,
+          customSignalFrustrationCount: 1,
+        }),
+      ),
+    ).toBe("warning");
+    expect(
+      badge.getRowSeverity!(
+        ownSignalsRow({
+          customSignalCount: 2,
+          customSignalFrustrationCount: 0,
+        }),
+      ),
+    ).toBe("neutral");
+  });
+
+  it("a row whose frustration count arrived without the total still shows the badge", () => {
+    expect(
+      ownSignalsBadge().getCount(
+        ownSignalsRow({ customSignalFrustrationCount: 2 }),
+      ),
+    ).toBe(2);
+    expect(
+      ownSignalsBadge().getCount(
+        ownSignalsRow({
+          customSignalCount: 0,
+          customSignalFrustrationCount: 0,
+        }),
+      ),
+    ).toBe(0);
+  });
+
+  it("draws the names as typed, never looked up in the reader's language; a count is a sentence", () => {
+    const badge: SessionReplaySignalBadge = ownSignalsBadge();
+
+    expect(
+      badge.isRowTextUserContent!(
+        ownSignalsRow({ customSignalNames: ["Active"] }),
+      ),
+    ).toBe(true);
+    expect(
+      badge.isRowTextUserContent!(ownSignalsRow({ customSignalNames: [] })),
+    ).toBe(false);
+  });
+
+  it("draws the badge on the row, linked to the interactions rail, with every name on hover", async () => {
+    mockApi(() => {
+      return listResponse([
+        ownSignalsWireRow({
+          customSignalCount: 3,
+          customSignalFrustrationCount: 1,
+          customSignalNames: ["Payment failed", "Plan cancelled"],
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    expect(row).toHaveTextContent("Payment failed +1");
+
+    const link: HTMLElement = within(row!).getByTitle(
+      "Payment failed, Plan cancelled",
+    );
+
+    expect(link.getAttribute("href")).toContain("interactions");
+    expect(within(link).getByText("Payment failed +1").className).toContain(
+      "amber",
+    );
+  });
+
+  it("a session where only markers fired shows a grey badge", async () => {
+    mockApi(() => {
+      return listResponse([
+        ownSignalsWireRow({
+          customSignalCount: 1,
+          customSignalFrustrationCount: 0,
+          customSignalNames: ["Plan cancelled"],
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const badge: HTMLElement = within(row!).getByText("Plan cancelled");
+
+    expect(badge.className).toContain("gray");
+    expect(badge.className).not.toContain("amber");
   });
 });
 
