@@ -114,47 +114,54 @@ function expectScopeOperators(attributes: unknown): void {
   ).toEqual(["nginx", "nginx@*"]);
   expect(map["resource.docker.swarm.task.id"]).toBeInstanceOf(NotNull);
   expect(map["resource.iot.fleet.name"]).toBeInstanceOf(Wildcard);
-  expect((map["resource.iot.fleet.name"] as Wildcard<string>).values).toEqual(
-    ["Sensors"],
-  );
+  expect((map["resource.iot.fleet.name"] as Wildcard<string>).values).toEqual([
+    "Sensors",
+  ]);
 }
 
 describe.each([
   ["an incident", Incident],
   ["an alert", Alert],
-])("%s's snapshot", (_name: string, modelType: typeof Incident | typeof Alert) => {
-  test("is read back by the page with every operator of its scope", () => {
-    const derived: TelemetryQuery | null = deriveTelemetrySnapshot({
-      storedTelemetryQuery: throughTheApi(workerSnapshot(), modelType),
-      seriesLabels: undefined,
-    }).telemetryQuery;
+])(
+  "%s's snapshot",
+  (_name: string, modelType: typeof Incident | typeof Alert) => {
+    test("is read back by the page with every operator of its scope", () => {
+      const derived: TelemetryQuery | null = deriveTelemetrySnapshot({
+        storedTelemetryQuery: throughTheApi(workerSnapshot(), modelType),
+        seriesLabels: undefined,
+      }).telemetryQuery;
 
-    // The query as the step keeps it, its scope beside it.
-    expect(
-      derived!.metricViewData!.queryConfigs[0]!.metricQueryData.filterData
-        .attributes,
-    ).toBeUndefined();
-    expectScopeOperators(MetricTelemetrySnapshot.getStoredScopes(derived)![0]);
-    expectScopeOperators(chartedOf(derived)[0]!.metricQueryData.filterData.attributes);
-    // The window comes back as dates.
-    expect(derived!.metricViewData!.startAndEndDate!.startValue).toBeInstanceOf(
-      Date,
-    );
-  });
+      // The query as the step keeps it, its scope beside it.
+      expect(
+        derived!.metricViewData!.queryConfigs[0]!.metricQueryData.filterData
+          .attributes,
+      ).toBeUndefined();
+      expectScopeOperators(
+        MetricTelemetrySnapshot.getStoredScopes(derived)![0],
+      );
+      expectScopeOperators(
+        chartedOf(derived)[0]!.metricQueryData.filterData.attributes,
+      );
+      // The window comes back as dates.
+      expect(
+        derived!.metricViewData!.startAndEndDate!.startValue,
+      ).toBeInstanceOf(Date);
+    });
 
-  test("narrowed to its own series by the page, keeps its scope beside the series", () => {
-    const derived: TelemetryQuery | null = deriveTelemetrySnapshot({
-      storedTelemetryQuery: throughTheApi(workerSnapshot(), modelType),
-      seriesLabels: { "resource.container.name": "web.1.abc" },
-    }).telemetryQuery;
+    test("narrowed to its own series by the page, keeps its scope beside the series", () => {
+      const derived: TelemetryQuery | null = deriveTelemetrySnapshot({
+        storedTelemetryQuery: throughTheApi(workerSnapshot(), modelType),
+        seriesLabels: { "resource.container.name": "web.1.abc" },
+      }).telemetryQuery;
 
-    const attributes: Dictionary<unknown> = chartedOf(derived)[0]!
-      .metricQueryData.filterData.attributes as Dictionary<unknown>;
+      const attributes: Dictionary<unknown> = chartedOf(derived)[0]!
+        .metricQueryData.filterData.attributes as Dictionary<unknown>;
 
-    expect(attributes["resource.container.name"]).toBe("web.1.abc");
-    expectScopeOperators(attributes);
-  });
-});
+      expect(attributes["resource.container.name"]).toBe("web.1.abc");
+      expectScopeOperators(attributes);
+    });
+  },
+);
 
 describe("the card's reads and links keep the scope's operators", () => {
   const derivedQueries: () => MetricInvestigationQueries =
@@ -192,9 +199,9 @@ describe("the card's reads and links keep the scope's operators", () => {
       readBack!.queryConfigs[0]!.metricQueryData.filterData.attributes,
     );
     // An untouched card's queries are its defaults: the same key.
-    expect(MetricInvestigationQueryUtil.isSame(readBack, derivedQueries())).toBe(
-      true,
-    );
+    expect(
+      MetricInvestigationQueryUtil.isSame(readBack, derivedQueries()),
+    ).toBe(true);
   });
 
   test("Open in Metric Explorer carries them", () => {
