@@ -27,7 +27,11 @@ const CUSTOMER_TIMEOUT: string =
 
 function response(data: {
   content?: string;
-  toolCalls?: Array<{ id: string; name: string; arguments: object }>;
+  toolCalls?: Array<{
+    id: string;
+    name: string;
+    arguments: Record<string, unknown>;
+  }>;
 }): AILogResponse {
   return {
     content: data.content ?? "",

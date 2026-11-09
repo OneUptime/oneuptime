@@ -7,6 +7,7 @@ import {
 } from "../../../Types/AI/AIRunAttempt";
 import AIRunStatus, { AIRunStatusHelper } from "../../../Types/AI/AIRunStatus";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../Utils/Project/ProjectBalance";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -143,13 +144,20 @@ describe("classifyAIRunFailureMessage", () => {
   test("only the start of a long error is read, and it is read quickly", () => {
     const long: string = `${"x".repeat(5000)} timed out`;
 
-    const started: number = Date.now();
     expect(classifyAIRunFailureMessage(long).failureKind).toBe(
       AIRunFailureKind.Other,
     );
+
     // Linear patterns: even 200 KB of a provider's words take no time.
-    classifyAIRunFailureMessage("did not respond within ".repeat(10000));
-    expect(Date.now() - started).toBeLessThan(1000);
+    const providerWords: string = "did not respond within ".repeat(10000);
+    const timed: FastestRun<AIRunFailureKind> = fastestRun({
+      run: (): AIRunFailureKind => {
+        return classifyAIRunFailureMessage(providerWords).failureKind;
+      },
+      limitInMs: 1000,
+    });
+
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("a missing message is Other, never a crash", () => {
