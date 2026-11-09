@@ -782,4 +782,37 @@ describe("TraceScrubRuleService: a span's events and links", () => {
       { "x.email": "bob@example.org" },
     ]);
   });
+
+  test("an exception's value too deep for the rules is held as its JSON text, as the span event's is", () => {
+    const deep: unknown = nest("ada@example.com", SCRUB_MAX_VALUE_DEPTH + 4);
+    const rules: Array<CompiledRule> = traceRules([EMAIL_MASK]);
+    const expected: string = JSON.stringify(
+      nest("a***@***.com", SCRUB_MAX_VALUE_DEPTH + 4),
+    );
+
+    const exception: {
+      message: string;
+      stackTrace: string;
+      attributes: JSONObject;
+    } = TraceScrubRuleService.scrubExceptionContent(
+      { message: "", stackTrace: "", attributes: { deep: deep as JSONObject } },
+      rules as never,
+    );
+    const row: JSONObject = TraceScrubRuleService.scrubSpan(
+      {
+        name: "",
+        attributes: {},
+        events: [{ name: "exception", attributes: { deep: deep } }],
+        links: [],
+      },
+      rules as never,
+    );
+
+    expect(exception.attributes["deep"]).toBe(expected);
+    expect(
+      ((row["events"] as Array<JSONObject>)[0]!["attributes"] as JSONObject)[
+        "deep"
+      ],
+    ).toBe(expected);
+  });
 });

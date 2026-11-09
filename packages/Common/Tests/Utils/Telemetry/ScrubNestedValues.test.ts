@@ -607,6 +607,29 @@ describe("holdOversizedValuesAsText bounds what the rules read value by value", 
     expect(allowance.remaining).toBe(0);
   });
 
+  test("a value held partway through its count gives back what it took, so the values after it still fit", () => {
+    const half: number = SCRUB_MAX_NESTED_VALUES_PER_RECORD / 2;
+    const attributes: Record<string, unknown> = {
+      // Its first list fits; its second takes it past the allowance.
+      tooMany: [
+        new Array<string>(half).fill("a"),
+        new Array<string>(half + 1).fill("a"),
+      ],
+      // 32 lists are counted before the one past them is found too deep.
+      tooDeep: nest("b", SCRUB_MAX_VALUE_DEPTH + 1),
+      after: new Array<string>(SCRUB_MAX_NESTED_VALUES_PER_RECORD).fill("c"),
+    };
+    const allowance: ScrubNestedValuesAllowance = newAllowance();
+
+    expect([
+      ...ScrubNestedValuesUtil.holdOversizedValuesAsText(attributes, allowance),
+    ]).toEqual(["tooMany", "tooDeep"]);
+    expect(typeof attributes["tooMany"]).toBe("string");
+    expect(typeof attributes["tooDeep"]).toBe("string");
+    expect(Array.isArray(attributes["after"])).toBe(true);
+    expect(allowance.remaining).toBe(0);
+  });
+
   test("counts the values at every level, a map's entries included", () => {
     // 100 lists of 99 texts: 100 + 9,900 values.
     const exactly: Array<Array<string>> = [];
