@@ -22,6 +22,8 @@ import {
   MonitorRecommendationSeverity,
 } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import RecommendationType from "../../../Types/Recommendation/RecommendationType";
+import { SUPPORTED_DASHBOARD_LANGUAGE_CODES } from "../../../Types/Dashboard/DashboardLanguage";
+import { getNumberLocale } from "../../../Types/DateLanguage";
 
 /*
  * "SELECT ALL" FOR ONE RECOMMENDATION, IN EVERY LANGUAGE (#6150's review).
@@ -44,25 +46,11 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+/*
+ * Every language a reader can pick, English included: a language added to
+ * the picker (Arabic was the eighteenth) is held to the same rule.
+ */
+const LANGUAGES: ReadonlyArray<string> = SUPPORTED_DASHBOARD_LANGUAGE_CODES;
 
 const SELECT_ALL: string = "Select all {{count}}";
 
@@ -181,11 +169,18 @@ function section(category: string): HTMLElement {
   );
 }
 
-// What `language` says for selecting `count`, from its shipped locale.
+/*
+ * What `language` says for selecting `count`, from its shipped locale, in
+ * the digits the language is written with here: Persian's own, and Latin
+ * ones in Arabic (Locales/ARABIC.md), as the translator writes a number.
+ */
 function selectAllWords(language: string, count: number): string {
   const template: string = LOCALES[language]![SELECT_ALL] || SELECT_ALL;
 
-  return template.replace("{{count}}", count.toLocaleString(language));
+  return template.replace(
+    "{{count}}",
+    count.toLocaleString(getNumberLocale(language)),
+  );
 }
 
 describe("a section of one recommendation offers no Select all", () => {

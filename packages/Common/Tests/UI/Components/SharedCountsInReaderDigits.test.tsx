@@ -19,6 +19,7 @@ import CommandPalette, {
 } from "../../../UI/Components/CommandPalette/CommandPalette";
 import { resetPageScrollLockForTesting } from "../../../UI/Utils/PageScrollLock";
 import Color from "../../../Types/Color";
+import { getNumberLocale } from "../../../Types/DateLanguage";
 import IconProp from "../../../Types/Icon/IconProp";
 
 /*
@@ -42,6 +43,9 @@ import IconProp from "../../../Types/Icon/IconProp";
 
 const LATIN_DIGIT: RegExp = /[0-9]/;
 
+// The digits Arabic is not written with here: ٠ to ٩.
+const ARABIC_INDIC_DIGIT: RegExp = /[\u{0660}-\u{0669}]/u;
+
 const languages: Record<string, i18n> = {};
 
 beforeAll(async () => {
@@ -53,6 +57,11 @@ beforeAll(async () => {
       Warning: "هشدار",
       [RESULT_COUNT_SENTENCE.other]: "{{count}} نتیجه",
       [`${RESULT_COUNT_SENTENCE.other}_one`]: "{{count}} نتیجه",
+    },
+    // Arabic as the Dashboard words it (Locales/ar.json).
+    ar: {
+      Critical: "حرجة",
+      Warning: "تحذير",
     },
   };
 
@@ -82,9 +91,13 @@ function draw(language: string, element: ReactElement): void {
   );
 }
 
-// What a reader of `language` reads for `count`.
+/*
+ * What a reader of `language` reads for `count`: in its own digits, as
+ * Persian is, or in Latin ones where OneUptime writes the language with
+ * them, as Arabic is (Locales/ARABIC.md).
+ */
 function inDigitsOf(language: string, count: number): string {
-  return count.toLocaleString(language);
+  return count.toLocaleString(getNumberLocale(language));
 }
 
 const SEVERITY_OPTIONS: Array<FilterButtonOption> = [
@@ -140,6 +153,25 @@ describe("a filter button's count", () => {
     drawSeverityFilter("de");
 
     expect(screen.getByTestId("severity-warning")).toHaveTextContent("1.234");
+  });
+
+  /*
+   * Arabic is written with Latin digits here, as its figures in ids, logs
+   * and typed values are: a chip beside an Arabic word reads "3", never
+   * the Arabic-Indic "٣", and a large count is grouped as Arabic groups it.
+   */
+  test("on an Arabic page a chip's count is in the Latin digits Arabic is written with", () => {
+    drawSeverityFilter("ar");
+
+    const critical: HTMLElement = screen.getByTestId("severity-critical");
+    const warning: HTMLElement = screen.getByTestId("severity-warning");
+
+    expect(critical).toHaveTextContent("حرجة");
+    expect(critical).toHaveTextContent("3");
+    expect(warning).toHaveTextContent(inDigitsOf("ar", 1234));
+    expect(`${critical.textContent}${warning.textContent}`).not.toMatch(
+      ARABIC_INDIC_DIGIT,
+    );
   });
 
   test("an option with no count, or a count of nothing, has no chip", () => {

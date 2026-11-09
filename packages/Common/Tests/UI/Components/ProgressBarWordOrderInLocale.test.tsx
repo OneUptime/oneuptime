@@ -7,6 +7,10 @@ import path from "path";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
 import ProgressBar from "../../../UI/Components/ProgressBar/ProgressBar";
+import {
+  DEFAULT_DASHBOARD_LANGUAGE,
+  SUPPORTED_DASHBOARD_LANGUAGE_CODES,
+} from "../../../Types/Dashboard/DashboardLanguage";
 
 /*
  * THE PROGRESS BAR'S WORD ORDER IN EVERY LANGUAGE (#6150's review).
@@ -37,24 +41,14 @@ const FEATURE_SETS: string = path.resolve(
 
 const APPS: ReadonlyArray<string> = ["Dashboard", "AdminDashboard"];
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+/*
+ * Every language a reader can pick, English aside: a language added to the
+ * picker (Arabic was the eighteenth) is held to the same order.
+ */
+const LANGUAGES: ReadonlyArray<string> =
+  SUPPORTED_DASHBOARD_LANGUAGE_CODES.filter((code: string): boolean => {
+    return code !== DEFAULT_DASHBOARD_LANGUAGE;
+  });
 
 const LINE: string = "{{count}} of {{total}} {{suffix}}";
 const LABEL: string =
@@ -106,6 +100,7 @@ describe("the rule reads the orders it is meant to", () => {
     "进度：{{suffix}} {{count}} / {{total}}（{{percent}}%）",
     "進捗（{{suffix}}）: {{total}} 件中 {{count}} 件 ({{percent}}%)",
     "{{count}} از {{total}} ({{suffix}})",
+    "{{count}} من {{total}} {{suffix}}",
   ])("passes %s", (template: string) => {
     expect(suffixNamesWhatIsCounted(template)).toBe(true);
   });
@@ -167,11 +162,11 @@ describe("both dashboards word the bar alike", () => {
   });
 });
 
-describe("the bar as a Hindi, Korean and Japanese reader reads it", () => {
+describe("the bar as a Hindi, Korean, Japanese and Arabic reader reads it", () => {
   const instances: Record<string, i18n> = {};
 
   beforeAll(async () => {
-    for (const language of ["hi", "ko", "ja"]) {
+    for (const language of ["hi", "ko", "ja", "ar"]) {
       const instance: i18n = createInstance();
 
       await instance.init({
@@ -267,6 +262,35 @@ describe("the bar as a Hindi, Korean and Japanese reader reads it", () => {
     expect(screen.getByRole("progressbar")).toHaveAttribute(
       "aria-label",
       "進捗（チェック済みのデータストア）: 7 件中 3 件 (43%)",
+    );
+  });
+
+  /*
+   * Arabic, the eighteenth language, counts as English does - "3 of 7",
+   * then what is counted - in the Latin digits OneUptime writes Arabic
+   * with (Locales/ARABIC.md), and words what each bar counts.
+   */
+  test.each([
+    ["monitors", "3 من 7 مراقبات"],
+    ["stores checked", "3 من 7 مخازن بيانات فُحصت"],
+    ["essential steps done", "3 من 7 خطوات أساسية مكتملة"],
+  ])(
+    "Arabic: the count, of the total, then what it counts (%s)",
+    (suffix: string, sentence: string) => {
+      drawBar("ar", { count: 3, total: 7, suffix });
+
+      expect(screen.getByTestId("progress-bar-count").textContent).toBe(
+        sentence,
+      );
+    },
+  );
+
+  test("Arabic: the bar's label for assistive technology says the same, then the percent", () => {
+    drawBar("ar", { count: 3, total: 7, suffix: "monitors" });
+
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-label",
+      "التقدم: 3 من 7 مراقبات (43%)",
     );
   });
 });
