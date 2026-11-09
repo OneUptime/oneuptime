@@ -216,6 +216,10 @@ broker 知道任何应用都看不到的东西：有多少消息在等待、每�
 
 每个队列的 **Broker 健康状况** 部分会绘制其系统所列出的指标（仪表绘制其值，每周期计数按间隔求和，计数器绘制为每秒速率），并按每个指标的需要合并队列的序列（RabbitMQ 队列的就绪消息和未确认消息相加；落后最多的消费者组即为滞后）。Collector 发送的所有内容也都在 **指标** 浏览器中。在队列还没有收到任何列出的指标时，该部分会显示该系统的指标来自哪里，并链接到本页的相应小节。
 
+在没有被追踪的应用向队列发布或从队列消费时，该队列的 **已发布**、**已消费** 和 **错误** 磁贴以及 **消息** 图表会改为读取 broker 自己的计数：流入的消息、流出的消息，以及它的错误合计，其中被限流的请求在 **错误** 下单独计数；每一项都会在数字下方注明这一点。有 span 的队列会保留 span，因为它们说明了哪个服务做了什么。**p95 processing time** 只来自消费者的追踪，因为没有任何 broker 会测量消费者处理一条消息需要多长时间：没有追踪时，它显示 **需要消费者追踪**。
+
+该部分顶部的 **Broker 指标** 卡片列出为该队列的系统绘制的每个指标：它在所选范围内是否到达了该队列、最后一次到达是什么时候，以及其他每个指标为什么没有到达。计数可能没有任何内容可报告（没有被限流的请求是好消息）；broker 一直在报告却从未到达的水平值，是 Collector 没有请求的指标，卡片会给出其配置需要的行；指标也可能停止到达。对于没有任何指标到达的 Service Bus 或 Event Hubs 队列，卡片还会读取其命名空间改为发送的内容（见 [Broker 健康状况一直为空](#broker-健康状况一直为空)）。
+
 ### Amazon SNS
 
 用 Collector 的 `aws_cloudwatch` 接收器读取主题的 CloudWatch 指标，或者通过 CloudWatch Metric Stream 和 Amazon Data Firehose 把它们流式传输到 Collector 的 `awsfirehose` 接收器。
@@ -619,6 +623,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -650,6 +655,7 @@ Azure Monitor 没有 Event Hubs 的消费者滞后指标：它的 `ConsumerLag` 
 | `azure_usererrors_total` | 用户错误 | 每周期计数 |
 | `azure_quotaexceedederrors_total` | 超出配额错误 | 每周期计数 |
 | `azure_throttledrequests_total` | 被限流的请求 | 每周期计数 |
+| `azure_size_average` | 大小 | 仪表 |
 
 ### Azure Service Bus
 
@@ -679,6 +685,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -686,6 +694,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -708,13 +717,17 @@ service:
 - 指标通过命名空间（`name`）和实体（`EntityName`）找到它们的队列或主题；SDK 的 span 把同一个命名空间指明为 `<namespace>.servicebus.windows.net`。针对 `orders/Subscriptions/billing` 或 `orders/$DeadLetterQueue` 的 span 与指标一样属于 `orders`。
 - `maximum_number_of_records_per_resource` 是 Azure 每个指标和命名空间返回的序列数，除非你调高，否则为 10：请让它大于你的队列和主题数量（错误指标还会把每个实体按结果进一步拆分），否则其余的不会被报告。
 - Azure Monitor 不按主题订阅拆分：一个主题的计数涵盖它的所有订阅。
-- `metrics` 列表恰好收集队列页面绘制的内容，每个指标使用它所绘制的唯一聚合方式；添加一个指标（`ScheduledMessages`、`Size`、…）即可同时收集它。
+- `metrics` 列表恰好收集队列页面绘制的内容，每个指标使用它所绘制的唯一聚合方式；添加一个指标（`IncomingRequests`、`Messages`、…）即可同时收集它。列表早于 `ScheduledMessages`、`Size` 或 `ServerSendLatency` 的 Collector 不会发送其中任何一个：队列的 **Broker 指标** 卡片会列出要添加的行。
+- 只有这个接收器会按队列和主题拆分指标。[已连接的 Azure 订阅](/docs/telemetry/cloud-accounts) 和导出指标的诊断设置都会发送命名空间的总计，不带 `EntityName`，因此它们都不会到达队列：订阅的指标在 **云 → 所有资源** 下该命名空间自己的页面上，而队列的 **Broker 指标** 卡片会说明它自己的指标为什么缺失。
+- 这些指标都不取决于命名空间的定价层。`ServerSendLatency` 按每次发送报告，因此在该范围内没有收到任何发送的队列不会有它。
 - 接收器每天列出一次你的命名空间，因此新命名空间最多可能需要 24 小时才会出现。
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
 | `azure_activemessages_average` | 活动消息 | 仪表 |
 | `azure_deadletteredmessages_average` | 死信消息 | 仪表 |
+| `azure_scheduledmessages_average` | 计划消息 | 仪表 |
+| `azure_size_average` | 大小 | 仪表 |
 | `azure_incomingmessages_total` | 传入消息 | 每周期计数 |
 | `azure_outgoingmessages_total` | 传出消息 | 每周期计数 |
 | `azure_completemessage_total` | 已完成消息 | 每周期计数 |
@@ -722,6 +735,7 @@ service:
 | `azure_servererrors_total` | 服务器错误 | 每周期计数 |
 | `azure_usererrors_total` | 用户错误 | 每周期计数 |
 | `azure_throttledrequests_total` | 被限流的请求 | 每周期计数 |
+| `azure_serversendlatency_average` | 服务器发送延迟 | 仪表 |
 
 ### BullMQ
 
@@ -1048,6 +1062,10 @@ service:
 - 接收器没有报告它。Kafka 只在消费者组提交偏移量之后才报告该组的滞后；RabbitMQ 只报告其用户有权访问的虚拟主机的队列，对其余队列不记录错误（见 [RabbitMQ](#rabbitmq)）；RabbitMQ 的计数器在第一次活动时才出现；除非调高 `maximum_number_of_records_per_resource`，否则 Azure Monitor 每个指标和命名空间返回 10 个队列；Cloud Monitoring 只读取 `metrics_list` 中的类型。
 - 它延迟了。`aws_cloudwatch` 会等待 `delay`（10 分钟）让 CloudWatch 发布，因此它的数据点会延迟 11 到 17 分钟到达，而 Pub/Sub 的指标会延迟几分钟到达。
 - 该系统没有绘制图表的指标：Azure Event Grid、NATS、ActiveMQ 以外的 JMS broker 以及 BullMQ（见各自的小节）。它们的指标在 **指标** 浏览器中。
+- 打开队列的 **Broker 指标** 卡片：它列出哪些指标已到达，以及其他指标为什么没有到达。对于没有任何指标到达的 Service Bus 或 Event Hubs 队列，它还会说明命名空间改为发送了什么，是以下三种情况之一。
+- **命名空间没有发来任何内容**：没有 Collector 读取它，或者每次读取都失败。为接收器的服务主体授予 **Monitoring Reader** 角色，并在 Collector 的日志中查找 `AuthorizationFailed` 或 `401`：客户端密码过期会让每次读取都停止。
+- **只有总计**：[已连接的 Azure 订阅](/docs/telemetry/cloud-accounts) 或诊断设置会把命名空间的指标作为整个命名空间的值发送，其中没有队列或主题。请同时用按 `EntityName` 拆分它们的 `azure_monitor` 接收器读取该命名空间。
+- **只有其他队列**：命名空间中其他队列和主题的指标已到达，但这个队列的没有。接收器的 `maximum_number_of_records_per_resource`（除非你调高，否则为 10）把它排除在外：请把它调高到大于命名空间中队列和主题的数量。
 
 ### 一个目标出现两个队列
 

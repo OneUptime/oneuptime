@@ -41,9 +41,19 @@ const DOCS: Route = new Route(
   "/dashboard/project-1/kubernetes/cluster-1/documentation",
 );
 
+// The card's sentences about the resource are the guide's own (issue #6308).
 const GUIDE: ResourceConnectionGuide = {
-  resourceNoun: "widget",
   agentName: "OneUptime Widget Agent",
+  setupCopy: {
+    title: "Connect this widget",
+    description:
+      "No data has arrived from this widget yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+  },
+  stoppedCopy: {
+    title: "This widget stopped sending data",
+    description:
+      "OneUptime last heard from this widget {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+  },
   setupSteps: [
     { title: "First setup step", description: "Do the first thing." },
     {

@@ -24,6 +24,7 @@ import {
   getActionArgumentParts,
   getToolActionDescribedArguments,
   getToolActionDescription,
+  getToolActionLeavesOutLists,
   getToolActionNamedArguments,
   getToolActionShownValues,
   getToolActionTitle,
@@ -226,7 +227,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                 getActionArgumentParts(
                   action.arguments,
                   {
-                    leaveOutLists: description.length > 0,
+                    leaveOutLists: getToolActionLeavesOutLists(action),
                     title: action.title,
                     shownValues: getToolActionShownValues(action),
                     namedArguments: getToolActionNamedArguments(action),

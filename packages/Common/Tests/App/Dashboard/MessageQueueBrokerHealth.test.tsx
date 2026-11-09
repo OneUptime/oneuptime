@@ -30,7 +30,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - the section per system: tiles and charts for the metrics with data,
  *     "Create monitor" on gauges only, and — without data — the system's
  *     metrics source from the catalog, linking to its own section of the
- *     Queues guide (every anchor a real heading of queues.md).
+ *     Queues guide (every anchor a real heading of queues.md): inside the
+ *     Broker metrics card, the section's one card, where its metrics can
+ *     reach the queue, else in a card of its own; metrics that arrived
+ *     before the range are the card's to tell, with when.
  */
 
 const aggregateMock: MockFunction = getJestMockFunction();
@@ -819,6 +822,29 @@ describe("Broker health with nothing to chart: where the metrics come from", () 
       ).toBe(!hasCuratedMetrics && descriptor.brokerMetrics.kind !== "none");
       expect(source.reachesQueue).toBe(hasCuratedMetrics);
 
+      /*
+       * Where the Broker metrics card is drawn (metrics that reach the
+       * queue), the guidance is in it, in place of its summary: the
+       * section's one card, under its header. Elsewhere the guidance is
+       * the section's card.
+       */
+      const card: HTMLElement | null = screen.queryByTestId(
+        "message-queue-broker-metrics-status",
+      );
+      if (hasCuratedMetrics) {
+        expect(card).not.toBeNull();
+        expect(card!).toHaveAttribute("data-health", "never");
+        expect(card!).toContainElement(guidance);
+        expect(
+          screen.getByTestId("message-queue-broker-health-no-data"),
+        ).toContainElement(card);
+        expect(
+          within(card!).queryByTestId("message-queue-broker-metrics-summary"),
+        ).toBeNull();
+      } else {
+        expect(card).toBeNull();
+      }
+
       expect(screen.queryByTestId("message-queue-broker-health")).toBeNull();
       expect(chartCardMock).not.toHaveBeenCalled();
     },
@@ -969,7 +995,12 @@ describe("Broker health with nothing to chart: where the metrics come from", () 
       brokerMetricsLastSeenAt: lastSeen,
     });
 
-    expect(screen.getByText(BROKER_HEALTH_NO_DATA_TITLE)).toBeInTheDocument();
+    /*
+     * The Broker metrics card says it, under the section's header: when
+     * the last arrived, and what to check, with the guide's
+     * troubleshooting. No second card beside it saying the same.
+     */
+    expect(screen.queryByText(BROKER_HEALTH_NO_DATA_TITLE)).toBeNull();
     const noData: HTMLElement = screen.getByTestId(
       "message-queue-broker-health-no-data",
     );
@@ -979,8 +1010,51 @@ describe("Broker health with nothing to chart: where the metrics come from", () 
       "href",
       `/dashboard/${PROJECT_ID}/queues/${MODEL_ID.toString()}/metrics`,
     );
+    const card: HTMLElement = within(noData).getByTestId(
+      "message-queue-broker-metrics-status",
+    );
+    expect(card).toHaveAttribute("data-health", "stopped");
     expect(
-      within(noData).getByText("Broker health stays empty →").closest("a"),
+      within(card).getByTestId("message-queue-broker-metrics-summary"),
+    ).toHaveTextContent(
+      "No metric arrived in the selected range, and none has since.",
+    );
+    expect(
+      within(card).getByTestId("message-queue-broker-metrics-last-received"),
+    ).toHaveTextContent(/^Last received /);
+    const finding: HTMLElement = within(card).getByTestId(
+      "message-queue-broker-metrics-finding",
+    );
+    expect(finding).toHaveAttribute("data-kind", "stopped");
+    expect(
+      within(finding)
+        .getByText("Troubleshooting in the Queues guide →")
+        .closest("a"),
+    ).toHaveAttribute(
+      "href",
+      "/docs/telemetry/queues#broker-health-stays-empty",
+    );
+    expect(
+      screen.queryByTestId("message-queue-broker-health-guidance"),
+    ).toBeNull();
+
+    /*
+     * A queue the Broker metrics card is not drawn for (one without the
+     * namespace its metrics name) keeps the section's own card saying it.
+     */
+    cleanup();
+    renderSection({
+      messagingSystem: "servicebus",
+      identifier: "servicebus||orders",
+      results: emptyResults("servicebus"),
+      brokerMetricsLastSeenAt: lastSeen,
+    });
+    expect(screen.getByText(BROKER_HEALTH_NO_DATA_TITLE)).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("message-queue-broker-metrics-status"),
+    ).toBeNull();
+    expect(
+      screen.getByText("Broker health stays empty →").closest("a"),
     ).toHaveAttribute(
       "href",
       "/docs/telemetry/queues#broker-health-stays-empty",

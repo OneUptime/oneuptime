@@ -216,6 +216,10 @@ Um broker sabe o que nenhum aplicativo consegue ver: quantas mensagens estão es
 
 A seção **Saúde do broker** de cada fila mostra em gráficos as métricas listadas para o seu sistema (um medidor como seu valor, uma contagem por período somada por intervalo, um contador como taxa por segundo), combinando as séries de uma fila do jeito que cada métrica precisa (as mensagens prontas e não confirmadas de uma fila do RabbitMQ se somam; o grupo de consumidores mais atrasado é o atraso). Tudo o que o coletor envia também está no explorador **Métricas**. Enquanto nenhuma métrica listada tiver chegado para uma fila, a seção mostra de onde vêm as métricas daquele sistema, com um link para a seção dele aqui.
 
+Onde nenhum aplicativo rastreado publica em uma fila nem consome dela, os blocos **Publicadas**, **Consumidas** e **Erros** e o gráfico **Mensagens** dela leem no lugar as contagens do próprio broker (mensagens que entram, mensagens que saem e os erros dele somados, com as solicitações limitadas contadas à parte em **Erros**), e cada um diz isso abaixo do seu número. Uma fila com spans fica com eles, porque eles dizem qual serviço fez o quê. O bloco **p95 processing time** vem só dos traces dos consumidores, porque nenhum broker mede quanto tempo um consumidor leva com uma mensagem: sem eles, mostra **Requer traços dos consumidores**.
+
+O cartão **Métricas do broker** no topo da seção lista cada métrica mostrada nos gráficos para o sistema da fila: se ela chegou para a fila no intervalo selecionado, quando chegou pela última vez e por que cada uma das outras não chegou. Uma contagem pode não ter nada a informar (nenhuma solicitação limitada é uma boa notícia); um nível que o broker informa o tempo todo e que nunca chega é um que o coletor não pede, e o cartão dá as linhas de que a configuração dele precisa; uma métrica também pode parar de chegar. Para uma fila do Service Bus ou do Event Hubs da qual nenhuma métrica chega, o cartão também lê o que o namespace dela envia no lugar (veja [A saúde do broker continua vazia](#a-saúde-do-broker-continua-vazia)).
+
 ### Amazon SNS
 
 Leia as métricas do CloudWatch dos tópicos com o receptor `aws_cloudwatch` do coletor, ou transmita-as por um CloudWatch Metric Stream e o Amazon Data Firehose para o receptor `awsfirehose` dele.
@@ -619,6 +623,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -650,6 +655,7 @@ O Azure Monitor não tem métrica de atraso dos consumidores para o Event Hubs: 
 | `azure_usererrors_total` | Erros do usuário | Contagem por período |
 | `azure_quotaexceedederrors_total` | Erros de cota excedida | Contagem por período |
 | `azure_throttledrequests_total` | Solicitações limitadas | Contagem por período |
+| `azure_size_average` | Tamanho | Medidor |
 
 ### Azure Service Bus
 
@@ -679,6 +685,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -686,6 +694,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -708,13 +717,17 @@ service:
 - As métricas encontram sua fila ou seu tópico pelo namespace (`name`) e pela entidade (`EntityName`); os spans dos SDKs nomeiam o mesmo namespace como `<namespace>.servicebus.windows.net`. Um span em `orders/Subscriptions/billing` ou `orders/$DeadLetterQueue` pertence a `orders`, como as métricas.
 - `maximum_number_of_records_per_resource` é quantas séries o Azure retorna por métrica e namespace, 10 a menos que você aumente: mantenha-o acima do seu número de filas e tópicos (as métricas de erro dividem ainda cada entidade por resultado), ou os demais não serão informados.
 - O Azure Monitor não divide por assinatura de tópico: as contagens de um tópico cobrem todas as assinaturas dele.
-- A lista `metrics` coleta exatamente o que a página da fila mostra nos gráficos, cada uma com a única agregação que mostra; adicione uma métrica (`ScheduledMessages`, `Size`, …) para coletá-la também.
+- A lista `metrics` coleta exatamente o que a página da fila mostra nos gráficos, cada uma com a única agregação que mostra; adicione uma métrica (`IncomingRequests`, `Messages`, …) para coletá-la também. Um coletor cuja lista é anterior a `ScheduledMessages`, `Size` ou `ServerSendLatency` não envia nenhuma delas: o cartão **Métricas do broker** da fila nomeia as linhas a adicionar.
+- Só este receptor divide as métricas por fila e tópico. Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) e uma configuração de diagnóstico que exporta métricas enviam os totais do namespace, sem `EntityName`, então nenhuma delas chega a uma fila: a página do próprio namespace em **Nuvem → Todos os recursos** tem as da assinatura, e o cartão **Métricas do broker** de uma fila diz por que faltam as dela.
+- Nenhuma dessas métricas depende do nível do namespace. `ServerSendLatency` é informada a cada envio, então uma fila para a qual nada foi enviado no intervalo não tem nenhuma.
 - O receptor lista seus namespaces uma vez por dia, então um namespace novo pode levar até 24 horas para aparecer.
 
 | Métrica | Exibida como | Tipo |
 | --- | --- | --- |
 | `azure_activemessages_average` | Mensagens ativas | Medidor |
 | `azure_deadletteredmessages_average` | Mensagens em dead-letter | Medidor |
+| `azure_scheduledmessages_average` | Mensagens agendadas | Medidor |
+| `azure_size_average` | Tamanho | Medidor |
 | `azure_incomingmessages_total` | Mensagens recebidas | Contagem por período |
 | `azure_outgoingmessages_total` | Mensagens enviadas | Contagem por período |
 | `azure_completemessage_total` | Mensagens concluídas | Contagem por período |
@@ -722,6 +735,7 @@ service:
 | `azure_servererrors_total` | Erros do servidor | Contagem por período |
 | `azure_usererrors_total` | Erros do usuário | Contagem por período |
 | `azure_throttledrequests_total` | Solicitações limitadas | Contagem por período |
+| `azure_serversendlatency_average` | Latência de envio do servidor | Medidor |
 
 ### BullMQ
 
@@ -1048,6 +1062,10 @@ Quando os spans dela a nomeiam de fato, crie-a manualmente com o mesmo sistema e
 - O receptor não a informa. O Kafka informa o atraso de um grupo de consumidores só depois que o grupo confirma um offset; o RabbitMQ informa apenas as filas dos hosts virtuais aos quais o usuário dele tem acesso, e não registra nenhum erro pelo resto (veja [RabbitMQ](#rabbitmq)); os contadores do RabbitMQ aparecem com a primeira atividade; o Azure Monitor retorna 10 filas por métrica e namespace a menos que `maximum_number_of_records_per_resource` seja aumentado; o Cloud Monitoring lê apenas os tipos em `metrics_list`.
 - Está atrasada. O `aws_cloudwatch` espera `delay` (10 minutos) para o CloudWatch publicar, então os pontos dele chegam com 11 a 17 minutos de atraso, e as métricas do Pub/Sub chegam com minutos de atraso.
 - O sistema não tem métricas nos gráficos: Azure Event Grid, NATS, brokers JMS que não sejam o ActiveMQ e BullMQ (veja as seções deles). As métricas deles estão no explorador **Métricas**.
+- Abra o cartão **Métricas do broker** da fila: ele lista quais métricas chegam e por que as outras não. Para uma fila do Service Bus ou do Event Hubs da qual nenhuma métrica chega, ele também diz o que o namespace envia no lugar, uma de três coisas.
+- **Nada do namespace**: nenhum coletor o lê, ou toda leitura falha. Dê à entidade de serviço do receptor a função **Monitoring Reader** e procure `AuthorizationFailed` ou `401` no log do coletor: um segredo do cliente expirado interrompe toda leitura.
+- **Só totais**: uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) ou uma configuração de diagnóstico envia as métricas do namespace para o namespace como um todo, sem nenhuma fila ou tópico nelas. Leia o namespace também com o receptor `azure_monitor`, que as divide por `EntityName`.
+- **Só outras filas**: chegam métricas de outras filas e tópicos do namespace, mas não desta. O `maximum_number_of_records_per_resource` do receptor (10 a menos que você aumente) a deixou de fora: aumente-o acima do número de filas e tópicos do namespace.
 
 ### Duas filas para um só destino
 

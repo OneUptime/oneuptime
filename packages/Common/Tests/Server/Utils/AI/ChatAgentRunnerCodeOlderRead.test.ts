@@ -438,6 +438,37 @@ describe("Ask to act: the card names the file before anyone approves it", () => 
     );
   });
 
+  test("pushed to right after the approval read it again, before the commit: the host refuses it, the push is kept, and the model is told to read again (issue #6331)", async () => {
+    startRepository();
+    const first: Spies = installSpies({
+      turns: [
+        { answer: response({ toolCalls: [READ_CALL()] }) },
+        { answer: response({ toolCalls: [COMMIT_CALL(doubled(V1))] }) },
+      ],
+    });
+    await ChatAgentRunner.runTurn(buildRequest());
+    expect(commitAction(first).description).toBeUndefined();
+
+    // Approved: the approval reads the file again - and a teammate pushes right after.
+    repository.afterVersionRead = (): void => {
+      repository.afterVersionRead = undefined;
+      pushTheTeammatesChange();
+    };
+
+    const spies: Spies = await resumeWith({
+      paused: pausedStateOf(first),
+      approved: ["call-commit"],
+      turns: [{ answer: response({ content: "It changed." }) }],
+    });
+
+    expect(repository.commits).toEqual([]);
+    expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(TEAMMATE);
+    expect(commitAction(spies).status).toBe(AIChatToolActionStatus.Failed);
+    expect(toldModel(spies, "call-commit")).toContain(
+      `Nothing was committed: ${CHARGE} changed on fix/login after this commit was shown for approval`,
+    );
+  });
+
   test("nothing pushed since the read: the card is as it always was", async () => {
     startRepository();
     const spies: Spies = installSpies({
