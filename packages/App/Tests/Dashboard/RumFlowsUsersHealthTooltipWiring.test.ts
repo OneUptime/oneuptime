@@ -706,14 +706,14 @@ describe("User Flows texts match what the page computes", () => {
     }
   });
 
-  test("Frustrated names the four signals with their default rules, and the application's own", () => {
+  test("Frustrated names the four signals and the application's own, and leaves their rules to the Frustration Signals page", () => {
     expect(USER_FLOW_READ).toContain(
       "toFloat64(sum(rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount)) AS flowFrustrationTotal",
     );
     /*
-     * The numbers in the text are the defaults: each application can
-     * change them on its Frustration Signals page (issue #6443), and the
-     * recorders fall back to these when a server sends no rules.
+     * The default rules: each application can change them on its
+     * Frustration Signals page (issue #6443), and the recorders fall back
+     * to these when a server sends no rules.
      */
     expect(SESSION_REPLAY_FRUSTRATION_LIMITS.rageClickCount.defaultValue).toBe(
       3,
@@ -751,7 +751,8 @@ describe("User Flows texts match what the page computes", () => {
      * Refresh rage counts page LOADS of one path, the first load included:
      * the recorder logs every start, not only reloads, so three loads (two
      * reloads, or A -> B -> A -> B -> A by full page loads) are enough -
-     * which is why the text says "loaded 3 or more times", not "reloads".
+     * which is why the text says the same page "loaded again and again",
+     * not "reloads".
      */
     expect(SESSION_ID).toContain(
       "const REFRESH_RAGE_WINDOW_MS: number = 60 * 1000;",
@@ -770,16 +771,21 @@ describe("User Flows texts match what the page computes", () => {
 
     const text: string = RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageFrustrated;
 
-    expect(text).toContain("3 or more clicks within a second in one spot");
-    expect(text).toContain("did nothing for 3 seconds");
-    expect(text).toContain("an error within a second of a click");
-    expect(text).toContain("the same page loaded 3 or more times in a minute");
+    /*
+     * The tooltip names the four and the application's own, and sends the
+     * reader to the page that holds this application's rules: it states no
+     * number, because the numbers are each application's to change.
+     */
+    expect(text).toContain(
+      "a rage click, a dead click, an error right after a click, the same page loaded again and again",
+    );
     expect(text).toContain(
       "one of your own signals that counts as frustration",
     );
     expect(text).toContain(
-      "These numbers are the defaults; each application can change them on its Frustration Signals page",
+      "each as the application's Frustration Signals page defines it",
     );
+    expect(text).not.toMatch(/\d/);
     expect(text).not.toContain("reloads within a minute");
   });
 
@@ -1029,7 +1035,7 @@ describe("Users texts match the per-person rollup", () => {
       "errorCount: Math.max(previous.errorCount, next.errorCount),",
     );
     expect(RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.signals).toContain(
-      "rage, dead and error clicks, repeated reloads and your own signals that count as frustration",
+      "Frustration: rage, dead and error clicks, repeated reloads and your own.",
     );
     expect(RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.signals).toContain(
       "A live session can show fewer until it is closed off",
