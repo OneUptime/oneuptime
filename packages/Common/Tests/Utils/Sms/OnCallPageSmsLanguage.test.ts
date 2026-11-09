@@ -10,6 +10,11 @@ import {
   OnCallPageKind,
   OnCallPageSmsWords,
 } from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
+import {
+  getOnCallObserverPageLead,
+  getOnCallObserverPageSmsAction,
+  getOnCallObserverPageSmsLead,
+} from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import { Translator } from "../../../Types/Translator";
 import {
   buildOnCallPageSms,
@@ -48,9 +53,8 @@ const KINDS: Record<OnCallPageSmsKind, OnCallPageKind> = {
 const languageOf: (language: string) => OnCallPageSmsLanguage = (
   language: string,
 ): OnCallPageSmsLanguage => {
-  const words: OnCallPageSmsWords = getOnCallPageSmsWords(
-    getServerTranslator(language),
-  );
+  const translator: Translator = getServerTranslator(language);
+  const words: OnCallPageSmsWords = getOnCallPageSmsWords(translator);
 
   return {
     describeRecord: (record: {
@@ -66,6 +70,9 @@ const languageOf: (language: string) => OnCallPageSmsLanguage = (
     },
     head: words.head,
     action: words.action,
+    // An observer's page (OnCallObserverPage): "FYI (observer)", "Mark seen:".
+    observerLead: getOnCallObserverPageSmsLead(translator),
+    observerAction: getOnCallObserverPageSmsAction(translator),
   };
 };
 
@@ -237,6 +244,74 @@ describe("in other languages", () => {
       expect([code, sms.text.endsWith(` ${LINK}`)]).toEqual([code, true]);
       expect([code, sms.text.startsWith("OneUptime: ")]).toEqual([code, true]);
     }
+  });
+});
+
+/*
+ * An observer's page (OnCallObserverPage): for their information, and its
+ * link only marks the page seen - in the person's words too.
+ */
+describe("an observer's page", () => {
+  test("German says it is for their information, and its link marks it seen, in one GSM-7 part", () => {
+    const translator: Translator = getServerTranslator("de");
+    const sms: OnCallPageSms = page({
+      language: languageOf("de"),
+      isObserverPage: true,
+      severityName: getOnCallPageStateName(translator, "Critical Incident"),
+    });
+
+    expect(sms.text).toBe(
+      `OneUptime Zur Info (Beobachter): Kritischer Vorfall INC-42 im Projekt Acme Prod: Checkout API is down. Als gesehen markieren: ${LINK}`,
+    );
+    expect(sms.sent.encoding).toBe("GSM-7");
+    expect(sms.sent.segments).toBe(1);
+  });
+
+  test("a person's observer page says who paged them as observers, and nothing else after the product", () => {
+    const translator: Translator = getServerTranslator("de");
+    const sms: OnCallPageSms = page({
+      language: languageOf("de"),
+      isObserverPage: true,
+      lead: getOnCallObserverPageLead(
+        { pagedByName: "Alice Kim", teamName: "Platform" },
+        translator,
+      ),
+    });
+
+    expect(
+      sms.text.startsWith(
+        "OneUptime: Alice Kim hat Platform als Beobachter alarmiert, wegen ",
+      ),
+    ).toBe(true);
+    expect(sms.text).not.toContain("Zur Info");
+    expect(sms.text).toContain(`Als gesehen markieren: ${LINK}`);
+  });
+
+  test("Japanese and Persian: their own words, in UCS-2, the link kept", () => {
+    for (const code of ["ja", "fa"]) {
+      const sms: OnCallPageSms = page({
+        language: languageOf(code),
+        isObserverPage: true,
+      });
+      const translator: Translator = getServerTranslator(code);
+
+      expect([code, sms.sent.encoding]).toEqual([code, "UCS-2"]);
+      expect([
+        code,
+        sms.text.includes(getOnCallObserverPageSmsLead(translator)),
+        sms.text.includes(
+          `${getOnCallObserverPageSmsAction(translator)} ${LINK}`,
+        ),
+        sms.text.includes("FYI"),
+        sms.text.includes("Mark seen"),
+      ]).toEqual([code, true, true, false, false]);
+    }
+  });
+
+  test("without a language, the English it always said", () => {
+    expect(page({ isObserverPage: true }).text).toBe(
+      `OneUptime FYI (observer): Critical Incident INC-42 in Acme Prod: Checkout API is down. Mark seen: ${LINK}`,
+    );
   });
 });
 

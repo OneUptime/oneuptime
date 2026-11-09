@@ -312,10 +312,7 @@ describe("a person's page's message, quoted in the person's language", () => {
     ["da", "»Can you check the database?«"],
   ])("%s quotes it its own way", (code: string, quoted: string) => {
     expect(
-      getOnCallPersonPageQuotedMessage(
-        WITH_MESSAGE,
-        getServerTranslator(code),
-      ),
+      getOnCallPersonPageQuotedMessage(WITH_MESSAGE, getServerTranslator(code)),
     ).toBe(quoted);
   });
 

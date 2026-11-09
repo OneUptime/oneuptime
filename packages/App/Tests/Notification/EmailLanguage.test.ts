@@ -1092,8 +1092,7 @@ describe("every on-call page email, in every language", () => {
     "%s in Persian keeps the logo's name apart from the logo, on the right",
     async (templateType: EmailTemplateType) => {
       const persian: string = (await renderPage(templateType, "fa")).body;
-      const english: string = (await renderPage(templateType, undefined))
-        .body;
+      const english: string = (await renderPage(templateType, undefined)).body;
 
       const nameCell: (html: string) => string = (html: string): string => {
         return attributeOf(startTagOf(html, 'aria-hidden="true"'), "style")!;
