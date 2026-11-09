@@ -193,7 +193,7 @@ describe("the Ask AI page on a code change written from an older read (issue #63
     // A pull request approved anyway names the files for its reviewer.
     expect(writeTools).toContain("describeCodeFilesUnseenForReviewer({");
     expect(reviewerNote).toContain(
-      "Before this was approved, OneUptime said AI's versions of them may undo or replace changes it did not read",
+      "Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read",
     );
   });
 

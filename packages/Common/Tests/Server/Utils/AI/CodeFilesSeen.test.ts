@@ -719,7 +719,7 @@ describe("what a pull request approved anyway tells its reviewer", () => {
 
     expect(note).toBe(
       [
-        "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace changes it did not read:",
+        "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:",
         "- `src/a.ts`: changed on `main` after AI read it.",
         "- `src/b.ts`: AI read it on `release`, and it is different on `main`.",
         "- `src/c.ts`: AI did not read it before writing it.",
