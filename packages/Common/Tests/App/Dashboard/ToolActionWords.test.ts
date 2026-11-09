@@ -25,7 +25,6 @@ import {
   aiActionTerm,
   describeAIActionWords,
 } from "../../../Types/AI/AIActionWords";
-import { PluralTemplate } from "../../../Types/Translator";
 import {
   AIChatToolAction,
   AIChatToolActionStatus,
@@ -34,7 +33,7 @@ import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
 } from "../../../Types/ReadingDirection";
-import { Translator } from "../../../Types/Translator";
+import { PluralTemplate, Translator } from "../../../Types/Translator";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
@@ -247,18 +246,21 @@ describe("whether the line under the title names what the action's lists stand f
     });
   };
 
-  const pullRequest: (description: Array<AIActionSentence>) => AIChatToolAction =
-    (description: Array<AIActionSentence>): AIChatToolAction => {
-      return action({
-        toolName: "open_code_pull_request",
-        words: {
-          title: aiActionSentence(AI_ACTION_TITLES.openPullRequest, {
-            title: "Fix charge",
-          }),
-          description,
-        },
-      });
-    };
+  const pullRequest: (
+    description: Array<AIActionSentence>,
+  ) => AIChatToolAction = (
+    description: Array<AIActionSentence>,
+  ): AIChatToolAction => {
+    return action({
+      toolName: "open_code_pull_request",
+      words: {
+        title: aiActionSentence(AI_ACTION_TITLES.openPullRequest, {
+          title: "Fix charge",
+        }),
+        description,
+      },
+    });
+  };
 
   test("the resources a new alert links: its lists are left out, as they always were", () => {
     expect(getToolActionLeavesOutLists(action())).toBe(true);
@@ -270,11 +272,14 @@ describe("whether the line under the title names what the action's lists stand f
         return name !== "moreFiles";
       },
     ),
-  )("a code change's line %s never stands for its files: Files: N stays", (_name: string, plural: PluralTemplate) => {
-    expect(getToolActionLeavesOutLists(pullRequest([codeLine(plural)]))).toBe(
-      false,
-    );
-  });
+  )(
+    "a code change's line %s never stands for its files: Files: N stays",
+    (_name: string, plural: PluralTemplate) => {
+      expect(getToolActionLeavesOutLists(pullRequest([codeLine(plural)]))).toBe(
+        false,
+      );
+    },
+  );
 
   test("every code change line is one of them, and none of them is any other line", () => {
     expect(AI_ACTION_CODE_CHANGE_LINES).toHaveLength(5);
@@ -318,9 +323,7 @@ describe("whether the line under the title names what the action's lists stand f
   test("no line: nothing to leave out for", () => {
     expect(getToolActionLeavesOutLists(pullRequest([]))).toBe(false);
     expect(
-      getToolActionLeavesOutLists(
-        action({ words: { title: WORDS.title } }),
-      ),
+      getToolActionLeavesOutLists(action({ words: { title: WORDS.title } })),
     ).toBe(false);
   });
 

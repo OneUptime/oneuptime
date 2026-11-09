@@ -1233,7 +1233,11 @@ describe("what a commit made right after the read is held to (issue #6331)", () 
     // One read of each, for the card's check and the commit both.
     expect(asked).toHaveLength(1);
     expect(read.versions).toEqual([
-      { filePath: "src/a.ts", blobSha: HELLO_BLOB_SHA1, lastCommitId: LAST_COMMIT },
+      {
+        filePath: "src/a.ts",
+        blobSha: HELLO_BLOB_SHA1,
+        lastCommitId: LAST_COMMIT,
+      },
       { filePath: "src/new.ts", blobSha: null },
     ]);
     expect(read.files).toEqual(

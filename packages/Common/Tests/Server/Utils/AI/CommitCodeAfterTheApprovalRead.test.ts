@@ -84,7 +84,8 @@ const README: string = "README.md";
 
 const V1: string = "export const charge = 1;\n";
 const ASK_AI: string = "export const charge = 2;\n";
-const TEAMMATE: string = "export const charge = 1;\nexport const audited = true;\n";
+const TEAMMATE: string =
+  "export const charge = 1;\nexport const audited = true;\n";
 
 type Serve = (repository: FakeGitRepository) => void;
 
@@ -216,266 +217,275 @@ const proposedClean: (data: {
   args: JSONObject;
   read: Array<string>;
   branchName?: string;
-}) => Promise<{ conversation: Conversation; prepared: PreparedMutation }> =
-  async (data: {
-    repository: FakeGitRepository;
-    context: ToolContext;
-    tool?: ObservabilityTool;
-    args: JSONObject;
-    read: Array<string>;
-    branchName?: string;
-  }): Promise<{ conversation: Conversation; prepared: PreparedMutation }> => {
-    const conversation: Conversation = new Conversation(data.context);
+}) => Promise<{
+  conversation: Conversation;
+  prepared: PreparedMutation;
+}> = async (data: {
+  repository: FakeGitRepository;
+  context: ToolContext;
+  tool?: ObservabilityTool;
+  args: JSONObject;
+  read: Array<string>;
+  branchName?: string;
+}): Promise<{ conversation: Conversation; prepared: PreparedMutation }> => {
+  const conversation: Conversation = new Conversation(data.context);
 
-    for (const filePath of data.read) {
-      await conversation.read(filePath, data.branchName ?? "fix/login");
-    }
+  for (const filePath of data.read) {
+    await conversation.read(filePath, data.branchName ?? "fix/login");
+  }
 
-    const prepared: PreparedMutation = await conversation.propose(
-      data.tool || CommitCodeToBranchTool,
-      data.args,
-    );
+  const prepared: PreparedMutation = await conversation.propose(
+    data.tool || CommitCodeToBranchTool,
+    data.args,
+  );
 
-    expect(prepared.description).toBeUndefined();
-    expect(prepared.arguments[CODE_CHANGE_PROPOSED_ON_KEY]).toBeDefined();
+  expect(prepared.description).toBeUndefined();
+  expect(prepared.arguments[CODE_CHANGE_PROPOSED_ON_KEY]).toBeDefined();
 
-    return { conversation, prepared };
-  };
+  return { conversation, prepared };
+};
 
 const REFUSED_CHARGE: string = `Nothing was committed: ${CHARGE} changed on fix/login after this commit was shown for approval`;
 
-describe.each(HOSTS)("%s", (_host: string, serve: Serve, context: ToolContext) => {
-  test("no push: the commit is made as it always was, on the file the approval read", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    const { conversation, prepared } = await proposedClean({
-      repository,
-      context,
-      args: commit([{ filePath: CHARGE, content: ASK_AI }]),
-      read: [CHARGE],
-    });
+describe.each(HOSTS)(
+  "%s",
+  (_host: string, serve: Serve, context: ToolContext) => {
+    test("no push: the commit is made as it always was, on the file the approval read", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
+      const { conversation, prepared } = await proposedClean({
+        repository,
+        context,
+        args: commit([{ filePath: CHARGE, content: ASK_AI }]),
+        read: [CHARGE],
+      });
 
-    await conversation.run(CommitCodeToBranchTool, prepared);
-
-    expect(repository.commits).toHaveLength(1);
-    expect(repository.commits[0]!.files).toEqual([
-      { filePath: CHARGE, content: ASK_AI },
-    ]);
-    expect(repository.commits[0]!.message).toBe("fix: charge twice");
-    expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(ASK_AI);
-    // What it replaced is what the approval read.
-    expect(repository.replaced).toEqual([
-      { branchName: "fix/login", filePath: CHARGE, content: V1 },
-    ]);
-    // Nothing else on the branch moved.
-    expect(repository.branches.get("fix/login")!.get(REFUND)).toBe("r = 1;\n");
-  });
-
-  test("a push to the file right after the approval read it: refused as the approval refuses, nothing written over", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    const { conversation, prepared } = await proposedClean({
-      repository,
-      context,
-      args: commit([{ filePath: CHARGE, content: ASK_AI }]),
-      read: [CHARGE],
-    });
-
-    rightAfterTheApprovalRead(repository, (): void => {
-      push(repository, "fix/login", CHARGE, TEAMMATE);
-    });
-
-    await expect(
-      conversation.run(CommitCodeToBranchTool, prepared),
-    ).rejects.toThrow(REFUSED_CHARGE);
-    expect(repository.commits).toEqual([]);
-    expect(repository.replaced).toEqual([]);
-    expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(TEAMMATE);
-  });
-
-  test("the message is the approval's own: read the files again, and propose the commit again", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    const { conversation, prepared } = await proposedClean({
-      repository,
-      context,
-      args: commit([{ filePath: CHARGE, content: ASK_AI }]),
-      read: [CHARGE],
-    });
-
-    rightAfterTheApprovalRead(repository, (): void => {
-      push(repository, "fix/login", CHARGE, TEAMMATE);
-    });
-
-    let message: string = "";
-
-    try {
       await conversation.run(CommitCodeToBranchTool, prepared);
-    } catch (error) {
-      message = (error as Error).message;
-    }
 
-    expect(message).toBe(
-      `${REFUSED_CHARGE}, or could not be read there again, so committing it now could undo a change nobody saw. Read each of them again with read_code_file and branchName "fix/login", and propose the commit again on the files as they are now.`,
-    );
-  });
-
-  test("a push to another file right after: no reason to refuse - committed, the push kept", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    const { conversation, prepared } = await proposedClean({
-      repository,
-      context,
-      args: commit([{ filePath: CHARGE, content: ASK_AI }]),
-      read: [CHARGE],
-    });
-
-    rightAfterTheApprovalRead(repository, (): void => {
-      push(repository, "fix/login", REFUND, "r = 2;\n");
-    });
-
-    await conversation.run(CommitCodeToBranchTool, prepared);
-
-    expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(ASK_AI);
-    expect(repository.branches.get("fix/login")!.get(REFUND)).toBe("r = 2;\n");
-    expect(repository.replaced).toEqual([
-      { branchName: "fix/login", filePath: CHARGE, content: V1 },
-    ]);
-  });
-
-  test("the file deleted right after the approval read it: refused - writing it would put it back unseen", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    const { conversation, prepared } = await proposedClean({
-      repository,
-      context,
-      args: commit([{ filePath: CHARGE, content: ASK_AI }]),
-      read: [CHARGE],
-    });
-
-    rightAfterTheApprovalRead(repository, (): void => {
-      deleteFile(repository, "fix/login", CHARGE);
-    });
-
-    await expect(
-      conversation.run(CommitCodeToBranchTool, prepared),
-    ).rejects.toThrow(REFUSED_CHARGE);
-    expect(repository.commits).toEqual([]);
-    expect(repository.branches.get("fix/login")!.has(CHARGE)).toBe(false);
-  });
-
-  test("a file the commit makes, made by someone right after the approval found none there: refused, theirs kept", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    const { conversation, prepared } = await proposedClean({
-      repository,
-      context,
-      args: commit([
+      expect(repository.commits).toHaveLength(1);
+      expect(repository.commits[0]!.files).toEqual([
         { filePath: CHARGE, content: ASK_AI },
-        { filePath: "src/billing/new.ts", content: "mine\n" },
-      ]),
-      read: [CHARGE],
+      ]);
+      expect(repository.commits[0]!.message).toBe("fix: charge twice");
+      expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(ASK_AI);
+      // What it replaced is what the approval read.
+      expect(repository.replaced).toEqual([
+        { branchName: "fix/login", filePath: CHARGE, content: V1 },
+      ]);
+      // Nothing else on the branch moved.
+      expect(repository.branches.get("fix/login")!.get(REFUND)).toBe(
+        "r = 1;\n",
+      );
     });
 
-    rightAfterTheApprovalRead(repository, (): void => {
-      push(repository, "fix/login", "src/billing/new.ts", "theirs\n");
+    test("a push to the file right after the approval read it: refused as the approval refuses, nothing written over", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
+      const { conversation, prepared } = await proposedClean({
+        repository,
+        context,
+        args: commit([{ filePath: CHARGE, content: ASK_AI }]),
+        read: [CHARGE],
+      });
+
+      rightAfterTheApprovalRead(repository, (): void => {
+        push(repository, "fix/login", CHARGE, TEAMMATE);
+      });
+
+      await expect(
+        conversation.run(CommitCodeToBranchTool, prepared),
+      ).rejects.toThrow(REFUSED_CHARGE);
+      expect(repository.commits).toEqual([]);
+      expect(repository.replaced).toEqual([]);
+      expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(TEAMMATE);
     });
 
-    await expect(
-      conversation.run(CommitCodeToBranchTool, prepared),
-    ).rejects.toThrow(/^Nothing was committed: .*src\/billing\/new\.ts/);
-    expect(repository.commits).toEqual([]);
-    expect(repository.branches.get("fix/login")!.get("src/billing/new.ts")).toBe(
-      "theirs\n",
-    );
-  });
+    test("the message is the approval's own: read the files again, and propose the commit again", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
+      const { conversation, prepared } = await proposedClean({
+        repository,
+        context,
+        args: commit([{ filePath: CHARGE, content: ASK_AI }]),
+        read: [CHARGE],
+      });
 
-  test("a push that lands as the commit is being made: refused, nothing written over", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    const { conversation, prepared } = await proposedClean({
-      repository,
-      context,
-      args: commit([{ filePath: CHARGE, content: ASK_AI }]),
-      read: [CHARGE],
+      rightAfterTheApprovalRead(repository, (): void => {
+        push(repository, "fix/login", CHARGE, TEAMMATE);
+      });
+
+      let message: string = "";
+
+      try {
+        await conversation.run(CommitCodeToBranchTool, prepared);
+      } catch (error) {
+        message = (error as Error).message;
+      }
+
+      expect(message).toBe(
+        `${REFUSED_CHARGE}, or could not be read there again, so committing it now could undo a change nobody saw. Read each of them again with read_code_file and branchName "fix/login", and propose the commit again on the files as they are now.`,
+      );
     });
 
-    repository.beforeCommitWrite = (): void => {
-      repository.beforeCommitWrite = undefined;
+    test("a push to another file right after: no reason to refuse - committed, the push kept", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
+      const { conversation, prepared } = await proposedClean({
+        repository,
+        context,
+        args: commit([{ filePath: CHARGE, content: ASK_AI }]),
+        read: [CHARGE],
+      });
+
+      rightAfterTheApprovalRead(repository, (): void => {
+        push(repository, "fix/login", REFUND, "r = 2;\n");
+      });
+
+      await conversation.run(CommitCodeToBranchTool, prepared);
+
+      expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(ASK_AI);
+      expect(repository.branches.get("fix/login")!.get(REFUND)).toBe(
+        "r = 2;\n",
+      );
+      expect(repository.replaced).toEqual([
+        { branchName: "fix/login", filePath: CHARGE, content: V1 },
+      ]);
+    });
+
+    test("the file deleted right after the approval read it: refused - writing it would put it back unseen", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
+      const { conversation, prepared } = await proposedClean({
+        repository,
+        context,
+        args: commit([{ filePath: CHARGE, content: ASK_AI }]),
+        read: [CHARGE],
+      });
+
+      rightAfterTheApprovalRead(repository, (): void => {
+        deleteFile(repository, "fix/login", CHARGE);
+      });
+
+      await expect(
+        conversation.run(CommitCodeToBranchTool, prepared),
+      ).rejects.toThrow(REFUSED_CHARGE);
+      expect(repository.commits).toEqual([]);
+      expect(repository.branches.get("fix/login")!.has(CHARGE)).toBe(false);
+    });
+
+    test("a file the commit makes, made by someone right after the approval found none there: refused, theirs kept", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
+      const { conversation, prepared } = await proposedClean({
+        repository,
+        context,
+        args: commit([
+          { filePath: CHARGE, content: ASK_AI },
+          { filePath: "src/billing/new.ts", content: "mine\n" },
+        ]),
+        read: [CHARGE],
+      });
+
+      rightAfterTheApprovalRead(repository, (): void => {
+        push(repository, "fix/login", "src/billing/new.ts", "theirs\n");
+      });
+
+      await expect(
+        conversation.run(CommitCodeToBranchTool, prepared),
+      ).rejects.toThrow(/^Nothing was committed: .*src\/billing\/new\.ts/);
+      expect(repository.commits).toEqual([]);
+      expect(
+        repository.branches.get("fix/login")!.get("src/billing/new.ts"),
+      ).toBe("theirs\n");
+    });
+
+    test("a push that lands as the commit is being made: refused, nothing written over", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
+      const { conversation, prepared } = await proposedClean({
+        repository,
+        context,
+        args: commit([{ filePath: CHARGE, content: ASK_AI }]),
+        read: [CHARGE],
+      });
+
+      repository.beforeCommitWrite = (): void => {
+        repository.beforeCommitWrite = undefined;
+        push(repository, "fix/login", CHARGE, TEAMMATE);
+      };
+
+      await expect(
+        conversation.run(CommitCodeToBranchTool, prepared),
+      ).rejects.toThrow(REFUSED_CHARGE);
+      expect(repository.commits).toEqual([]);
+      expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(TEAMMATE);
+    });
+
+    test("a pull request whose base was pushed to right after the approval read it: not opened, nothing undone", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
+      const { conversation, prepared } = await proposedClean({
+        repository,
+        context,
+        tool: OpenCodePullRequestTool,
+        args: pullRequest([{ filePath: CHARGE, content: ASK_AI }]),
+        read: [CHARGE],
+        branchName: "main",
+      });
+
+      rightAfterTheApprovalRead(repository, (): void => {
+        push(repository, "main", CHARGE, TEAMMATE);
+      });
+
+      await expect(
+        conversation.run(OpenCodePullRequestTool, prepared),
+      ).rejects.toThrow(
+        `No pull request was opened: ${CHARGE} changed on main after this pull request was shown for approval`,
+      );
+      expect(repository.pullRequests).toEqual([]);
+      expect(repository.commits).toEqual([]);
+      expect(repository.branches.get("main")!.get(CHARGE)).toBe(TEAMMATE);
+    });
+
+    test("a pull request with no push: opened on the files as the approval read them", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
+      const { conversation, prepared } = await proposedClean({
+        repository,
+        context,
+        tool: OpenCodePullRequestTool,
+        args: pullRequest([{ filePath: CHARGE, content: ASK_AI }]),
+        read: [CHARGE],
+        branchName: "main",
+      });
+
+      await conversation.run(OpenCodePullRequestTool, prepared);
+
+      expect(repository.pullRequests).toHaveLength(1);
+      const head: string = repository.pullRequests[0]!.headBranchName;
+      expect(repository.branches.get(head)!.get(CHARGE)).toBe(ASK_AI);
+      expect(repository.replaced).toEqual([
+        { branchName: head, filePath: CHARGE, content: V1 },
+      ]);
+    });
+
+    test("a caller that keeps no record holds the commit to nothing: made on the branch as it is, as it always was", async () => {
+      const repository: FakeGitRepository = fresh();
+      serve(repository);
       push(repository, "fix/login", CHARGE, TEAMMATE);
-    };
 
-    await expect(
-      conversation.run(CommitCodeToBranchTool, prepared),
-    ).rejects.toThrow(REFUSED_CHARGE);
-    expect(repository.commits).toEqual([]);
-    expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(TEAMMATE);
-  });
+      await CommitCodeToBranchTool.execute(
+        commit([{ filePath: CHARGE, content: ASK_AI }]),
+        context,
+      );
 
-  test("a pull request whose base was pushed to right after the approval read it: not opened, nothing undone", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    const { conversation, prepared } = await proposedClean({
-      repository,
-      context,
-      tool: OpenCodePullRequestTool,
-      args: pullRequest([{ filePath: CHARGE, content: ASK_AI }]),
-      read: [CHARGE],
-      branchName: "main",
+      expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(ASK_AI);
+      expect(repository.replaced).toEqual([
+        { branchName: "fix/login", filePath: CHARGE, content: TEAMMATE },
+      ]);
     });
-
-    rightAfterTheApprovalRead(repository, (): void => {
-      push(repository, "main", CHARGE, TEAMMATE);
-    });
-
-    await expect(
-      conversation.run(OpenCodePullRequestTool, prepared),
-    ).rejects.toThrow(
-      `No pull request was opened: ${CHARGE} changed on main after this pull request was shown for approval`,
-    );
-    expect(repository.pullRequests).toEqual([]);
-    expect(repository.commits).toEqual([]);
-    expect(repository.branches.get("main")!.get(CHARGE)).toBe(TEAMMATE);
-  });
-
-  test("a pull request with no push: opened on the files as the approval read them", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    const { conversation, prepared } = await proposedClean({
-      repository,
-      context,
-      tool: OpenCodePullRequestTool,
-      args: pullRequest([{ filePath: CHARGE, content: ASK_AI }]),
-      read: [CHARGE],
-      branchName: "main",
-    });
-
-    await conversation.run(OpenCodePullRequestTool, prepared);
-
-    expect(repository.pullRequests).toHaveLength(1);
-    const head: string = repository.pullRequests[0]!.headBranchName;
-    expect(repository.branches.get(head)!.get(CHARGE)).toBe(ASK_AI);
-    expect(repository.replaced).toEqual([
-      { branchName: head, filePath: CHARGE, content: V1 },
-    ]);
-  });
-
-  test("a caller that keeps no record holds the commit to nothing: made on the branch as it is, as it always was", async () => {
-    const repository: FakeGitRepository = fresh();
-    serve(repository);
-    push(repository, "fix/login", CHARGE, TEAMMATE);
-
-    await CommitCodeToBranchTool.execute(
-      commit([{ filePath: CHARGE, content: ASK_AI }]),
-      context,
-    );
-
-    expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(ASK_AI);
-    expect(repository.replaced).toEqual([
-      { branchName: "fix/login", filePath: CHARGE, content: TEAMMATE },
-    ]);
-  });
-});
+  },
+);
 
 describe("one read of each file, never two", () => {
   test.each<[string, Serve, ToolContext, string]>([
@@ -652,7 +662,9 @@ describe("GitHub: the branch moves while the commit is made", () => {
         commit([{ filePath: CHARGE, content: ASK_AI }]),
         GITHUB_CONTEXT,
       ),
-    ).rejects.toThrow(/^Nothing was committed: src\/billing\/charge\.ts changed on fix\/login/);
+    ).rejects.toThrow(
+      /^Nothing was committed: src\/billing\/charge\.ts changed on fix\/login/,
+    );
     expect(moves).toBe(1);
     expect(repository.commits).toEqual([]);
   });
@@ -755,19 +767,25 @@ describe("GitLab: each update names the file's last commit", () => {
     await conversation.run(CommitCodeToBranchTool, prepared);
 
     const posted: { body?: string | undefined } | undefined =
-      connected.host.requests.find((request: { url: string; method: string }) => {
-        return (
-          request.method === "POST" &&
-          request.url.endsWith("/repository/commits")
-        );
-      });
+      connected.host.requests.find(
+        (request: { url: string; method: string }) => {
+          return (
+            request.method === "POST" &&
+            request.url.endsWith("/repository/commits")
+          );
+        },
+      );
     const actions: Array<Record<string, unknown>> = (
       JSON.parse(posted!.body!) as { actions: Array<Record<string, unknown>> }
     ).actions;
 
     expect(
       actions.map((action: Record<string, unknown>) => {
-        return [action["action"], action["file_path"], action["last_commit_id"]];
+        return [
+          action["action"],
+          action["file_path"],
+          action["last_commit_id"],
+        ];
       }),
     ).toEqual([
       ["update", CHARGE, lastCommit],
@@ -876,7 +894,10 @@ describe("pushes around the approval's read and the commit, drawn from a seed", 
       // The files as the approval will read them: after what landed while the card waited.
       const atApproval: Map<string, string | undefined> = new Map(
         written.map((filePath: string): [string, string | undefined] => {
-          return [filePath, repository.branches.get("fix/login")!.get(filePath)];
+          return [
+            filePath,
+            repository.branches.get("fix/login")!.get(filePath),
+          ];
         }),
       );
       const atCard: Map<string, string | undefined> = new Map(
@@ -948,8 +969,12 @@ describe("pushes around the approval's read and the commit, drawn from a seed", 
       if (refusal !== null) {
         expect(refusal).toMatch(/^Nothing was committed: /);
         expect(repository.commits).toEqual([]);
-        outcomes[changedWhileWaiting ? "held at approval" : "refused by the host"] =
-          (outcomes[changedWhileWaiting ? "held at approval" : "refused by the host"] || 0) + 1;
+        outcomes[
+          changedWhileWaiting ? "held at approval" : "refused by the host"
+        ] =
+          (outcomes[
+            changedWhileWaiting ? "held at approval" : "refused by the host"
+          ] || 0) + 1;
       } else {
         // Committed: what it replaced is what the approval read, file by file.
         expect({

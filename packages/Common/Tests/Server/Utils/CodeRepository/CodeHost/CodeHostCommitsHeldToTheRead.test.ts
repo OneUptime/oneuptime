@@ -45,9 +45,7 @@ describe("GitLab", () => {
   const gitLab: (routes: Array<FakeRoute>) => {
     api: GitLabApi;
     host: FakeCodeHost;
-  } = (
-    routes: Array<FakeRoute>,
-  ): { api: GitLabApi; host: FakeCodeHost } => {
+  } = (routes: Array<FakeRoute>): { api: GitLabApi; host: FakeCodeHost } => {
     const host: FakeCodeHost = fakeCodeHost({
       apiBaseUrl: `${HOST}/api/v4`,
       routes,
@@ -70,7 +68,10 @@ describe("GitLab", () => {
     answer: () => {
       return {
         status: 201,
-        json: { id: COMMIT, web_url: `${HOST}/acme/checkout/-/commit/${COMMIT}` },
+        json: {
+          id: COMMIT,
+          web_url: `${HOST}/acme/checkout/-/commit/${COMMIT}`,
+        },
       };
     },
   };
@@ -153,10 +154,16 @@ describe("GitLab", () => {
 
     expect(host.urlsTo("/repository/files/src%2Fb.ts")).toHaveLength(1);
     expect(
-      (bodyOf(host, "/repository/commits")["actions"] as Array<
-        Record<string, unknown>
-      >).map((action: Record<string, unknown>) => {
-        return [action["action"], action["file_path"], action["last_commit_id"]];
+      (
+        bodyOf(host, "/repository/commits")["actions"] as Array<
+          Record<string, unknown>
+        >
+      ).map((action: Record<string, unknown>) => {
+        return [
+          action["action"],
+          action["file_path"],
+          action["last_commit_id"],
+        ];
       }),
     ).toEqual([
       ["update", "src/a.ts", undefined],
@@ -168,33 +175,36 @@ describe("GitLab", () => {
     "You are attempting to update a file that has changed since you started editing it.",
     "A file with this name already exists",
     "A file with this name doesn't exist",
-  ])("GitLab's refusal %j is a file that moved: refused, naming the files it was held to", async (message: string) => {
-    const { api } = gitLab([refusing(message)]);
+  ])(
+    "GitLab's refusal %j is a file that moved: refused, naming the files it was held to",
+    async (message: string) => {
+      const { api } = gitLab([refusing(message)]);
 
-    const error: unknown = await api
-      .commitFiles({
-        project: "4217",
-        branchName: "fix/login",
-        commitMessage: "m",
-        files: [
-          { filePath: "src/a.ts", content: "a\n" },
-          { filePath: "src/new.ts", content: "n\n" },
-        ],
-        expected: [
-          { filePath: "src/a.ts", blobSha: BLOB, lastCommitId: LAST_COMMIT },
-          { filePath: "src/new.ts", blobSha: null },
-        ],
-      })
-      .catch((caught: unknown) => {
-        return caught;
-      });
+      const error: unknown = await api
+        .commitFiles({
+          project: "4217",
+          branchName: "fix/login",
+          commitMessage: "m",
+          files: [
+            { filePath: "src/a.ts", content: "a\n" },
+            { filePath: "src/new.ts", content: "n\n" },
+          ],
+          expected: [
+            { filePath: "src/a.ts", blobSha: BLOB, lastCommitId: LAST_COMMIT },
+            { filePath: "src/new.ts", blobSha: null },
+          ],
+        })
+        .catch((caught: unknown) => {
+          return caught;
+        });
 
-    expect(error).toBeInstanceOf(CodeHostFilesMovedError);
-    expect((error as CodeHostFilesMovedError).filePaths).toEqual([
-      "src/a.ts",
-      "src/new.ts",
-    ]);
-  });
+      expect(error).toBeInstanceOf(CodeHostFilesMovedError);
+      expect((error as CodeHostFilesMovedError).filePaths).toEqual([
+        "src/a.ts",
+        "src/new.ts",
+      ]);
+    },
+  );
 
   test("any other refusal, or one of a commit held to nothing, is thrown as it always was", async () => {
     const { api: invalid } = gitLab([refusing("Invalid path")]);
@@ -284,9 +294,7 @@ describe("Forgejo and Gitea", () => {
   const forgejo: (routes: Array<FakeRoute>) => {
     api: ForgejoApi;
     host: FakeCodeHost;
-  } = (
-    routes: Array<FakeRoute>,
-  ): { api: ForgejoApi; host: FakeCodeHost } => {
+  } = (routes: Array<FakeRoute>): { api: ForgejoApi; host: FakeCodeHost } => {
     const host: FakeCodeHost = fakeCodeHost({
       apiBaseUrl: `${HOST}/api/v1`,
       routes,
@@ -392,9 +400,11 @@ describe("Forgejo and Gitea", () => {
       1,
     );
     expect(
-      (bodyOf(host, "/repos/acme/checkout/contents")["files"] as Array<
-        Record<string, unknown>
-      >)[0]!["sha"],
+      (
+        bodyOf(host, "/repos/acme/checkout/contents")["files"] as Array<
+          Record<string, unknown>
+        >
+      )[0]!["sha"],
     ).toBe(BLOB);
   });
 

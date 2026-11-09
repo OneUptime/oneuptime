@@ -1303,8 +1303,11 @@ describe("open_code_pull_request, against the default branch it starts from", ()
 
     expect(prepared.description).toHaveLength(1);
     expect(
-      drawnCard(OpenCodePullRequestTool, prepared.arguments, prepared.description)
-        .arguments,
+      drawnCard(
+        OpenCodePullRequestTool,
+        prepared.arguments,
+        prepared.description,
+      ).arguments,
     ).toContainEqual({ key: "changes", label: "Files", value: "2" });
   });
 

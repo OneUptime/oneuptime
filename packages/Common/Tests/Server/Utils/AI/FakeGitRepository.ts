@@ -162,9 +162,11 @@ export function makeRepository(data: {
     lastCommits.set(
       branchName,
       new Map(
-        Array.from(files.entries()).map(([filePath, content]: [string, string]) => {
-          return [filePath, sha1(`initial ${filePath} ${content}`)];
-        }),
+        Array.from(files.entries()).map(
+          ([filePath, content]: [string, string]) => {
+            return [filePath, sha1(`initial ${filePath} ${content}`)];
+          },
+        ),
       ),
     );
   }
@@ -391,8 +393,10 @@ function serveGitData(repository: FakeGitRepository): void {
   const made: Map<string, { tree: string; parent: string; message: string }> =
     new Map();
   // The files each new tree writes over its base, by the tree's SHA.
-  const written: Map<string, Array<{ filePath: string; content: string }>> =
-    new Map();
+  const written: Map<
+    string,
+    Array<{ filePath: string; content: string }>
+  > = new Map();
 
   const route: (options: APIRequestOptions) => string = (
     options: APIRequestOptions,
@@ -406,12 +410,10 @@ function serveGitData(repository: FakeGitRepository): void {
     return url.substring(base.length);
   };
 
-  jest
-    .spyOn(GitHubUtil, "getInstallationAccessToken")
-    .mockResolvedValue({
-      token: "ghs_fake",
-      expiresAt: new Date("2030-01-01T00:00:00Z"),
-    } as never);
+  jest.spyOn(GitHubUtil, "getInstallationAccessToken").mockResolvedValue({
+    token: "ghs_fake",
+    expiresAt: new Date("2030-01-01T00:00:00Z"),
+  } as never);
 
   jest.spyOn(API, "get").mockImplementation((async (
     options: APIRequestOptions,
@@ -547,15 +549,19 @@ function serveGitData(repository: FakeGitRepository): void {
     const branchName: string = decodeURIComponent(
       path.substring("refs/heads/".length),
     );
-    const commit: { tree: string; parent: string; message: string } | undefined =
-      made.get(String(body["sha"]));
+    const commit:
+      | { tree: string; parent: string; message: string }
+      | undefined = made.get(String(body["sha"]));
 
     if (!commit || !repository.branches.has(branchName)) {
       return refusal(422, "Reference does not exist");
     }
 
     // Not forced: only a commit built on the branch's head moves it.
-    if (body["force"] !== true && commit.parent !== headOf(repository, branchName)) {
+    if (
+      body["force"] !== true &&
+      commit.parent !== headOf(repository, branchName)
+    ) {
       return refusal(422, "Update is not a fast forward");
     }
 
@@ -567,7 +573,10 @@ function serveGitData(repository: FakeGitRepository): void {
       String(body["sha"]),
     );
 
-    return ok({ ref: `refs/heads/${branchName}`, object: { sha: body["sha"] } });
+    return ok({
+      ref: `refs/heads/${branchName}`,
+      object: { sha: body["sha"] },
+    });
   }) as never);
 }
 
@@ -832,7 +841,10 @@ export function serveOnGitLab(
           }
 
           if (action["action"] === "update" && !isThere) {
-            return json({ message: "A file with this name doesn't exist" }, 400);
+            return json(
+              { message: "A file with this name doesn't exist" },
+              400,
+            );
           }
 
           if (
@@ -1019,7 +1031,9 @@ export function serveOnForgejo(
           if (operation["operation"] === "update") {
             if (content === undefined) {
               return json(
-                { message: `object does not exist [id: , rel_path: ${filePath}]` },
+                {
+                  message: `object does not exist [id: , rel_path: ${filePath}]`,
+                },
                 404,
               );
             }
