@@ -710,6 +710,11 @@ const DocsNav: NavGroup[] = [
         title: "Telemetry Usage",
         url: "/docs/telemetry/usage",
       },
+      // How much of it each project and ingestion key may send in a day.
+      {
+        title: "Ingestion Budgets",
+        url: "/docs/telemetry/ingestion-budgets",
+      },
       {
         title: "Continuous Profiling",
         url: "/docs/telemetry/profiles",

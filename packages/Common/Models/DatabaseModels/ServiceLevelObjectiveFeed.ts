@@ -71,6 +71,13 @@ export enum ServiceLevelObjectiveFeedEventType {
   ErrorBudgetPolicyAlertResolved = "ErrorBudgetPolicyAlertResolved",
   ErrorBudgetPolicyIncidentDeclared = "ErrorBudgetPolicyIncidentDeclared",
   ErrorBudgetPolicyIncidentResolved = "ErrorBudgetPolicyIncidentResolved",
+  /*
+   * Deployments frozen, or allowed again, while the SLO stayed in its tier:
+   * Freeze Deployments switched on or off for the tier it is in. A tier
+   * change that moves the deploy gate says so in its own item.
+   */
+  ErrorBudgetPolicyDeploymentsFrozen = "ErrorBudgetPolicyDeploymentsFrozen",
+  ErrorBudgetPolicyDeploymentsAllowed = "ErrorBudgetPolicyDeploymentsAllowed",
 }
 
 @EnableDocumentation()

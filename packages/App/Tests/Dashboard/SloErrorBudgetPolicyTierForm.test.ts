@@ -16,8 +16,14 @@ import {
   describeBurnRateOutputs,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleForm";
 import {
+  DEPLOYMENTS_FROZEN_SINCE_TEMPLATE,
+  DEPLOYMENTS_FROZEN_TEXT,
+  POLICY_TIER_DEPLOYMENTS_ALLOWED_TEXT,
+  POLICY_TIER_DEPLOYMENTS_FROZEN_TEXT,
   POLICY_TIER_LINE_COLOR,
+  describePolicyTierDeployments,
   getSloCurrentPolicyTier,
+  getSloDeploymentFreeze,
   getSloPolicyTierLineLabel,
   getSloPolicyTierReferenceLines,
   isSloInPolicyTier,
@@ -185,6 +191,37 @@ describe("the error budget policy tier form", () => {
     );
   });
 
+  test("asks Freeze Deployments under What We Do, with the tier's own fields: unfolded, off, on the Create form too", () => {
+    const freeze: FieldOf = fieldFor("freezesDeployments");
+
+    // Right after the three fields a tier is made of, before Enabled.
+    expect(FIELDS.indexOf(freeze)).toBe(3);
+    expect(FIELDS.slice(0, 5).map(columnOf)).toEqual([
+      "name",
+      "thresholdPercentage",
+      "whatWeDo",
+      "freezesDeployments",
+      "isEnabled",
+    ]);
+
+    expect(freeze.title).toBe(metadataOf("freezesDeployments").title);
+    expect(freeze.title).toBe("Freeze Deployments");
+    expect(freeze.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(freeze.required).toBe(false);
+    // Not one of the outputs: it raises nothing, so it is not folded with them.
+    expect(freeze.collapsibleSection).toBeUndefined();
+    expect(freeze.showIf).toBeUndefined();
+    // A tier's switch from the start, not an edit-only one like Enabled.
+    expect(freeze.doNotShowWhenCreating).toBeUndefined();
+    // Off by default, as its column: BasicForm applies only a truthy default.
+    expect(freeze.defaultValue).toBeUndefined();
+    expect(metadataOf("freezesDeployments").defaultValue).toBe(false);
+    // Says what it does in the form's own words.
+    expect(freeze.description).toBe(
+      "While the SLO is in this tier, CI/CD pipelines that check it hold back releases.",
+    );
+  });
+
   test("Enabled is on the Edit form only, outside the fold: a new tier starts on", () => {
     const enabled: FieldOf = fieldFor("isEnabled");
 
@@ -332,6 +369,7 @@ describe("the error budget policy tier form", () => {
     });
 
     expect(toggles.map(columnOf)).toEqual([
+      "freezesDeployments",
       "isEnabled",
       "shouldCreateAlert",
       "autoResolveAlert",
@@ -773,5 +811,59 @@ describe("the tier an SLO is in, and the lines a budget chart draws", () => {
       whatWeDo: "",
       enteredAt: new Date("2026-11-08T10:00:00.000Z"),
     });
+  });
+});
+
+describe("the deploy gate, as the SLO's pages draw it", () => {
+  test("a tier's row says Frozen for a tier that freezes deployments, Allowed for any other", () => {
+    expect(describePolicyTierDeployments({ freezesDeployments: true })).toBe(
+      POLICY_TIER_DEPLOYMENTS_FROZEN_TEXT,
+    );
+    expect(POLICY_TIER_DEPLOYMENTS_FROZEN_TEXT).toBe("Frozen");
+
+    for (const freezesDeployments of [false, null, undefined]) {
+      expect(describePolicyTierDeployments({ freezesDeployments })).toBe(
+        POLICY_TIER_DEPLOYMENTS_ALLOWED_TEXT,
+      );
+    }
+
+    expect(POLICY_TIER_DEPLOYMENTS_ALLOWED_TEXT).toBe("Allowed");
+  });
+
+  test("the SLO's answer is a freeze only when it says false, with since when", () => {
+    const slo: ServiceLevelObjective = new ServiceLevelObjective();
+
+    // Never evaluated, or read without the column: nothing froze it.
+    expect(getSloDeploymentFreeze(slo)).toBeNull();
+    expect(getSloDeploymentFreeze(null)).toBeNull();
+    expect(getSloDeploymentFreeze(undefined)).toBeNull();
+
+    slo.deploymentsAllowed = true;
+    slo.deploymentsFrozenAt = new Date("2026-11-08T10:00:00.000Z");
+    // A time left over on an allowed answer is no freeze.
+    expect(getSloDeploymentFreeze(slo)).toBeNull();
+
+    slo.deploymentsAllowed = false;
+    expect(getSloDeploymentFreeze(slo)).toEqual({
+      frozenAt: new Date("2026-11-08T10:00:00.000Z"),
+    });
+
+    // The API hands a date over as text.
+    slo.deploymentsFrozenAt = "2026-11-08T10:00:00.000Z" as unknown as Date;
+    expect(getSloDeploymentFreeze(slo)?.frozenAt?.toISOString()).toBe(
+      "2026-11-08T10:00:00.000Z",
+    );
+
+    // Frozen, read without the time: a freeze, since when unknown.
+    const withoutTime: ServiceLevelObjective = new ServiceLevelObjective();
+    withoutTime.deploymentsAllowed = false;
+    expect(getSloDeploymentFreeze(withoutTime)).toEqual({ frozenAt: null });
+  });
+
+  test("the Overview's badge says since when as one sentence with the time in it", () => {
+    expect(DEPLOYMENTS_FROZEN_SINCE_TEMPLATE).toBe(
+      "Deployments frozen since {{time}}",
+    );
+    expect(DEPLOYMENTS_FROZEN_TEXT).toBe("Deployments frozen");
   });
 });

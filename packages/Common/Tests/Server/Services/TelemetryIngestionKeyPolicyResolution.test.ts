@@ -442,6 +442,8 @@ describe("TelemetryIngestionKeyService policy resolution", () => {
         isEnabled: true,
         expiresAt: null,
         requestsPerMinuteLimit: null,
+        // No ingestion budget of its own: only the project's applies (#5917).
+        ingestionBudgets: null,
       });
 
       expect(policy.ingestionKeyId.toString()).toBe(ingestionKeyId.toString());

@@ -244,21 +244,24 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
       if (!key.allowedOrigins || key.allowedOrigins.length === 0) {
         return (
           <div className="text-xs text-red-600 mt-2 leading-relaxed">
-            This browser key has no allowed origins, so every request made with
-            it is refused. Add your web origins or exact app:// mobile
-            identities in Project Settings &gt; Telemetry &amp; APM &gt;
-            Ingestion Keys before using this snippet.
+            {translator.translateText(
+              "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.",
+            )}
           </div>
         );
       }
 
+      /*
+       * The identities are set apart: in a sentence read right to left, a
+       * list of web addresses would otherwise pull its full stop away.
+       */
       return (
         <div className="text-xs text-gray-500 mt-2 leading-relaxed">
-          Browser key — intended for client distribution. Web origins may send
-          trace, log, metric and session replay ingest; app:// identities
-          authorize React Native replay only. Accepted identities:{" "}
-          {key.allowedOrigins.join(", ")}. Native app identities are
-          self-asserted, not platform attestation.
+          {translator.translateTemplate(
+            "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.",
+            { identities: key.allowedOrigins.join(", ") },
+            { setsValuesApart: true },
+          )}
         </div>
       );
     }

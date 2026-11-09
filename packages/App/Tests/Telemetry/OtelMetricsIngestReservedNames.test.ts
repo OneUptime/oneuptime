@@ -21,6 +21,8 @@ import ObjectID from "Common/Types/ObjectID";
 import SessionReplayBudgetMetricType from "Common/Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
+import TelemetryIngestionBudgetMetricType from "Common/Types/Telemetry/TelemetryIngestionBudgetMetricType";
+import TelemetryIngestionBudgetMetricTypeUtil from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -417,5 +419,61 @@ describe("nothing wider than the session replay prefix is reserved", () => {
 
     expect(rowNames()).toEqual(["oneuptime.rum.application.load"]);
     expect(catalogNames()).toEqual(["oneuptime.rum.application.load"]);
+  });
+});
+
+/*
+ * The telemetry ingestion budget series (issue #5917) are reserved the same
+ * way: they open budget incidents and are left out of usage and billing by
+ * name, so a sender must never be able to write one, on arrival or by a
+ * rename rule.
+ */
+describe("OTLP metric ingest refuses the telemetry ingestion budget names", () => {
+  test.each(TelemetryIngestionBudgetMetricTypeUtil.getAll())(
+    "%s writes no row and no catalog entry",
+    async (name: string) => {
+      await ingest([
+        resource([gaugeMetric(name), gaugeMetric("http.server.duration")]),
+      ]);
+
+      expect(rowNames()).toEqual(["http.server.duration"]);
+      expect(catalogNames()).toEqual(["http.server.duration"]);
+    },
+  );
+
+  test("refuses the whole prefix, in any letter case", async () => {
+    await ingest([
+      resource([
+        gaugeMetric("oneuptime.telemetry.budget.future.series"),
+        gaugeMetric("OneUptime.Telemetry.Budget.Used.Percent"),
+        gaugeMetric("process.cpu.time"),
+      ]),
+    ]);
+
+    expect(rowNames()).toEqual(["process.cpu.time"]);
+  });
+
+  test("a RenameMetric rule into the prefix drops the row", async () => {
+    loadRules.mockResolvedValue(
+      renameRule({
+        from: "process.cpu.time",
+        to: TelemetryIngestionBudgetMetricType.UsedPercent,
+      }),
+    );
+
+    await ingest([resource([gaugeMetric("process.cpu.time")])]);
+
+    expect(rowNames()).toEqual([]);
+  });
+
+  test.each([
+    "oneuptime.telemetry.budget",
+    "oneuptime.telemetry.budgets.used",
+    "custom.oneuptime.telemetry.budget.used.bytes",
+    "telemetry.budget.used.bytes",
+  ])("keeps the near miss %s", async (name: string) => {
+    await ingest([resource([gaugeMetric(name)])]);
+
+    expect(rowNames()).toEqual([name]);
   });
 });

@@ -81,7 +81,7 @@ Se [Säkerhetsärenden](/docs/telemetry/security-cases#aviseringar).
 
 Kortet **Godkännande av offentliga anteckningar** på fliken **Statussidor** gäller offentliga anteckningar som väntar på godkännande innan de publiceras, i ett projekt som kräver det:
 
-- **Offentlig anteckning väntar på mitt godkännande** berättar att en offentlig anteckning, eller en redigering av en, väntar på ett steg som du godkänner, med namn eller genom ett team. Du tillfrågas inte om en anteckning som du själv har skickat, eller om ett steg efter ett som du har godkänt. Den är påslagen från början via e-post och push, och **Email Rollup** håller aldrig tillbaka den: kunderna som anteckningen är skriven för väntar på den.
+- **Offentlig anteckning väntar på mitt godkännande** berättar att en offentlig anteckning, eller en redigering av en, väntar på ett steg som du godkänner, med namn eller genom ett team. Du tillfrågas inte om en anteckning som du själv har skickat, eller om ett steg efter ett som du har godkänt. Du tillfrågas om varje steg en gång: när anteckningen når det, eller när du blir en av dess godkännare medan anteckningen väntar, eftersom godkännandestegen ändrades eller du gick med i ett team som ett steg nämner. Den är påslagen från början via e-post och push, och **Email Rollup** håller aldrig tillbaka den: kunderna som anteckningen är skriven för väntar på den.
 - **Min offentliga anteckning godkänd eller avvisad** berättar att en anteckning som du skickade för godkännande har godkänts och publicerats, eller avvisats, med skälet. Den är påslagen från början via e-post.
 
 Se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar).

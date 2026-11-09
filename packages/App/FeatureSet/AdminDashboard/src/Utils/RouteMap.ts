@@ -35,6 +35,10 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROJECT_TELEMETRY_USAGE]: new Route(
     `/admin/projects/${RouteParams.ModelID}/telemetry-usage`,
   ),
+  // The project's own telemetry ingestion budgets, and today's usage of them.
+  [PageMap.PROJECT_INGESTION_BUDGETS]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/ingestion-budgets`,
+  ),
   [PageMap.PROJECT_DELETE]: new Route(
     `/admin/projects/${RouteParams.ModelID}/delete`,
   ),
@@ -103,6 +107,10 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_API_KEY]: new Route(`/admin/settings/api-key`),
   [PageMap.SETTINGS_DATA_RETENTION]: new Route(
     `/admin/settings/data-retention`,
+  ),
+  // Every project's default telemetry ingestion budgets.
+  [PageMap.SETTINGS_INGESTION_BUDGETS]: new Route(
+    `/admin/settings/ingestion-budgets`,
   ),
 
   [PageMap.SEND_EMAIL]: new Route(`/admin/send-email`),

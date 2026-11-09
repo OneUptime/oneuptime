@@ -64,7 +64,8 @@
     "more": "Mais",
     "sendEmail": "Enviar e-mail",
     "logout": "Sair",
-    "telemetryUsage": "Uso de telemetria"
+    "telemetryUsage": "Uso de telemetria",
+    "ingestionBudgets": "Orçamentos de ingestão"
   },
   "topAlert": {
     "title": "Painel do administrador do OneUptime",
@@ -133,7 +134,10 @@
     "settingsApiKey": "Chave API",
     "moreCommunication": "Comunicação",
     "moreSendEmail": "Enviar e-mail",
-    "telemetryUsage": "Uso de telemetria"
+    "telemetryUsage": "Uso de telemetria",
+    "ingestionBudgets": "Orçamentos de ingestão",
+    "settingsTelemetry": "Telemetria",
+    "settingsIngestionBudgets": "Orçamentos de ingestão"
   },
   "pages": {
     "users": {
@@ -307,7 +311,15 @@
       "dataResidencyFieldTitle": "Residência de dados",
       "dataResidencyFieldDescription": "Um rótulo que indica onde os dados deste projeto estão hospedados, por exemplo \"UE (Frankfurt)\". Deixe em branco para ocultá-la dos usuários do projeto.",
       "dataResidencyFieldPlaceholder": "UE (Frankfurt)",
-      "dataResidencyNotSet": "Não definida"
+      "dataResidencyNotSet": "Não definida",
+      "ingestionBudgets": {
+        "dailyCardTitle": "Orçamentos diários deste projeto",
+        "dailyCardDescription": "O orçamento diário próprio deste projeto para cada sinal, no lugar do padrão da instância. Deixe um sinal vazio para usar o padrão da instância, ou informe 0 para não ter limite. Os administradores do projeto veem estes valores, mas não podem alterá-los.",
+        "dailyEditButton": "Editar orçamentos diários",
+        "rateCardTitle": "Limites de taxa deste projeto",
+        "rateCardDescription": "Opcional. O limite de taxa próprio deste projeto para cada sinal, no lugar do padrão da instância. Deixe um sinal vazio para usar o padrão da instância, ou informe 0 para não ter limite.",
+        "rateEditButton": "Editar limites de taxa"
+      }
     },
     "projectSubscription": {
       "title": "Assinatura do projeto",
@@ -600,6 +612,17 @@
         "cardTitle": "Provedores de LLM globais",
         "cardDescription": "Os provedores de LLM globais estão disponíveis para todos os projetos para recursos de IA. Configure OpenAI, Anthropic, Ollama ou outros provedores de LLM.",
         "noItems": "Nenhum provedor de LLM configurado. Adicione um provedor de LLM para habilitar recursos de IA."
+      },
+      "ingestionBudgets": {
+        "dailyCardTitle": "Orçamentos diários padrão",
+        "dailyCardDescription": "O máximo de cada sinal de telemetria que cada projeto pode enviar em um dia de orçamento, contado descomprimido à medida que chega. Quando um orçamento se esgota, esse sinal é recusado até o orçamento ser redefinido. O orçamento próprio de um projeto, definido na página dele em Projetos, prevalece sobre estes. Deixe um sinal vazio para não ter limite.",
+        "dailyEditButton": "Editar orçamentos diários padrão",
+        "resetCardTitle": "Aviso e redefinição",
+        "resetCardDescription": "Quando os projetos são avisados de que um orçamento está acabando, e quando cada dia de orçamento recomeça.",
+        "resetEditButton": "Editar aviso e redefinição",
+        "rateCardTitle": "Limites de taxa padrão",
+        "rateCardDescription": "Opcional. A maior velocidade com que cada projeto pode enviar cada sinal, para que um único pico não esgote em minutos o orçamento de um dia. Requisições mais rápidas recebem 429 com Retry-After, e os remetentes tentam de novo. Deixe um sinal vazio para não ter limite.",
+        "rateEditButton": "Editar limites de taxa padrão"
       }
     },
     "telemetryUsage": {
@@ -1925,6 +1948,47 @@
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Por quantos dias o uso diário de telemetria de cada projeto é mantido, de 30 a 1095. Deixe vazio para 120 dias.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Número de dias para manter o uso diário de telemetria de cada projeto. O uso mais antigo que isso é excluído.",
   "Scheduled Maintenance": "Manutenção programada",
+  "Logs (GB per day)": "Registros (GB por dia)",
+  "Traces (GB per day)": "Traços (GB por dia)",
+  "Metrics (GB per day)": "Métricas (GB por dia)",
+  "Profiles (GB per day)": "Perfis (GB por dia)",
+  "Security Events (GB per day)": "Eventos de segurança (GB por dia)",
+  "Logs (MB per second)": "Registros (MB por segundo)",
+  "Traces (MB per second)": "Traços (MB por segundo)",
+  "Metrics (MB per second)": "Métricas (MB por segundo)",
+  "Profiles (MB per second)": "Perfis (MB por segundo)",
+  "Security Events (MB per second)": "Eventos de segurança (MB por segundo)",
+  "Instance default": "Padrão da instância",
+  "Warning Threshold (%)": "Limite de aviso (%)",
+  "Projects are warned, and their owners emailed, when this share of a daily budget is used. From 1 to 99. Leave empty for 80.": "Os projetos são avisados, e os proprietários deles recebem um e-mail, quando esta parcela de um orçamento diário é usada. De 1 a 99. Deixe vazio para 80.",
+  "Reset Time": "Horário de redefinição",
+  "When each budget day starts again, as HH:MM on the 24-hour clock. Leave empty for 00:00.": "Quando cada dia de orçamento recomeça, como HH:MM no formato de 24 horas. Deixe vazio para 00:00.",
+  "Reset Time Zone": "Fuso horário de redefinição",
+  "The time zone of the reset time. Leave empty for UTC.": "O fuso horário do horário de redefinição. Deixe vazio para UTC.",
+  "Ingestion Budgets": "Orçamentos de ingestão",
+  "Telemetry counted against today's budgets as it arrives, decompressed. Once a daily budget is used up, that signal is refused until the budget resets at {{resetsAt}}.": "A telemetria é contada nos orçamentos de hoje à medida que chega, descomprimida. Quando um orçamento diário se esgota, esse sinal é recusado até o orçamento ser redefinido em {{resetsAt}}.",
+  "Ingestion Key Budgets": "Orçamentos das chaves de ingestão",
+  "Ingestion keys with a budget of their own. A key's budget only subdivides the project's.": "Chaves de ingestão com orçamento próprio. O orçamento de uma chave apenas subdivide o do projeto.",
+  "No ingestion budgets": "Nenhum orçamento de ingestão",
+  "Every signal is accepted without a daily budget or a rate limit.": "Todos os sinais são aceitos sem orçamento diário nem limite de taxa.",
+  "Today's counts could not be read right now. Budgets are not enforced while they cannot be counted.": "Não foi possível ler as contagens de hoje agora. Os orçamentos não são aplicados enquanto não podem ser contados.",
+  "Ingestion Key": "Chave de ingestão",
+  "Signal": "Sinal",
+  "Used Today": "Usado hoje",
+  "Daily Budget": "Orçamento diário",
+  "Rate Limit": "Limite de taxa",
+  "Dropped": "Descartadas",
+  "Throttled": "Limitado",
+  "{{count}} requests": "{{count}} requisições",
+  "{{count}} requests_one": "{{count}} requisição",
+  "No daily budget": "Sem orçamento diário",
+  "Within budget": "Dentro do orçamento",
+  "Past warning": "Acima do aviso",
+  "Used up": "Esgotado",
+  "Unknown": "Desconhecido",
+  "Set for this project": "Definido para este projeto",
+  "This key's own": "Próprio desta chave",
+  "{{size}} per second": "{{size}} por segundo",
   "markdownCallouts": {
     "caution": "Cuidado",
     "danger": "Perigo",

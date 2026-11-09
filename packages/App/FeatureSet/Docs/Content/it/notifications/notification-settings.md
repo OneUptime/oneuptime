@@ -81,7 +81,7 @@ Vedete [Casi di sicurezza](/docs/telemetry/security-cases#notifiche).
 
 Il riquadro **Approvazione delle note pubbliche**, nella scheda **Pagine di stato**, riguarda le note pubbliche che attendono un'approvazione prima di essere pubblicate, in un progetto che la richiede:
 
-- **Nota pubblica in attesa della mia approvazione** vi dice che una nota pubblica, o una sua modifica, attende un passaggio che approvate, per nome o tramite un team. Non vi viene chiesto di una nota che avete inviato, né di un passaggio successivo a uno che avete approvato. È attiva all'inizio via email e via push, e **Email Rollup** non la trattiene mai: i clienti per cui la nota è scritta la stanno aspettando.
+- **Nota pubblica in attesa della mia approvazione** vi dice che una nota pubblica, o una sua modifica, attende un passaggio che approvate, per nome o tramite un team. Non vi viene chiesto di una nota che avete inviato, né di un passaggio successivo a uno che avete approvato. Per ogni passaggio vi viene chiesto una volta: quando la nota lo raggiunge, o quando diventate uno dei suoi approvatori mentre la nota attende, perché i passaggi di approvazione sono cambiati o siete entrati in un team che un passaggio nomina. È attiva all'inizio via email e via push, e **Email Rollup** non la trattiene mai: i clienti per cui la nota è scritta la stanno aspettando.
 - **La mia nota pubblica approvata o rifiutata** vi dice che una nota che avete inviato per l'approvazione è stata approvata e pubblicata, oppure rifiutata, con il motivo. È attiva all'inizio via email.
 
 Vedete [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche).

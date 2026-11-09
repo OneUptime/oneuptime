@@ -32,7 +32,8 @@ Flödet finns på SLO:ets sida **Feed**, och dess senaste poster under **Senaste
 | SLO aktiverat eller inaktiverat | Utvärderingen slås på eller av. |
 | SLO arkiverat eller återställt | SLO:et arkiveras eller avarkiveras. |
 | Status ändrad | En utvärdering flyttar SLO:et till en ny status. Visar den SLI, den felbudget, den förbrukningstakt och den tröskel för riskzon som förklarar den, och orsaken vid **Pausad** eller **Felkonfigurerad**. |
-| Nivå i felbudgetpolicyn bytt | En utvärdering flyttar SLO:et till en nivå i dess felbudgetpolicy, till en annan nivå eller ut ur alla nivåer. Visar nivån det lämnade och nivån det gick in i, återstående budget och vad teamet har kommit överens om att göra i den nya nivån. Se [Felbudgetpolicy](/docs/slo/error-budget-policy). |
+| Nivå i felbudgetpolicyn bytt | En utvärdering flyttar SLO:et till en nivå i dess felbudgetpolicy, till en annan nivå eller ut ur alla nivåer. Visar nivån det lämnade och nivån det gick in i, återstående budget och vad teamet har kommit överens om att göra i den nya nivån, och anger när bytet frös distributioner eller tillät dem igen. Se [Felbudgetpolicy](/docs/slo/error-budget-policy). |
+| Distributioner frysta eller tillåtna igen | Någon slog på eller av **Frys distributioner** för den nivå SLO:et är i, och nästa utvärdering frös distributioner eller tillät dem igen. Ett byte av nivå som gör det säger det i stället i sin egen post. Se [Distributionsspärr](/docs/slo/error-budget-policy#distributionsspärr). |
 | Larm för förbrukningstakt utlöst | En regel för förbrukningstakt skapar ett larm. Länkar till det och visar de förbrukningstakter som utlöste det. |
 | Incident för förbrukningstakt deklarerad | En regel för förbrukningstakt deklarerar en incident. Länkar till den och visar de förbrukningstakter som utlöste den. |
 | Larm eller incident för förbrukningstakt löst | En regels larm eller incident stängs: löst automatiskt, eller för hand medan automatisk lösning var avstängd. |
@@ -67,7 +68,7 @@ SLO:ets sida **Granskningsloggar** listar ändringar i:
 
 Två saker utelämnas:
 
-- **Utvärderingsresultat.** SLI:n, felbudgeten, förbrukningstakten, statusen och utvärderingstiderna ändras med några minuters mellanrum. Deras historik finns i **Översikt**, på sidan **Mätvärden** och i **Feed**. Den nivå i felbudgetpolicyn som SLO:et är i är undantaget: ett byte av nivå registreras som en ändring som OneUptime själv har gjort.
+- **Utvärderingsresultat.** SLI:n, felbudgeten, förbrukningstakten, statusen och utvärderingstiderna ändras med några minuters mellanrum. Deras historik finns i **Översikt**, på sidan **Mätvärden** och i **Feed**. Den nivå i felbudgetpolicyn som SLO:et är i, och om dess distributioner är tillåtna, är undantaget: en ändring av någon av dem registreras som en ändring som OneUptime själv har gjort.
 - **Ändringar som OneUptime gör själv**, som en monitorregel som kopplar eller kopplar bort en monitor, om inte **Lagra systemhändelser** är påslaget för projektet. **Feed** registrerar kopplingar och bortkopplingar av monitorer i vilket fall som helst.
 
 ### Slå på granskningsloggar

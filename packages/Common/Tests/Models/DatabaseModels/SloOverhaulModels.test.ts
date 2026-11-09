@@ -451,6 +451,8 @@ describe("ServiceLevelObjectiveFeed", () => {
         "ErrorBudgetPolicyAlertResolved",
         "ErrorBudgetPolicyIncidentDeclared",
         "ErrorBudgetPolicyIncidentResolved",
+        "ErrorBudgetPolicyDeploymentsFrozen",
+        "ErrorBudgetPolicyDeploymentsAllowed",
       ].sort(),
     );
 

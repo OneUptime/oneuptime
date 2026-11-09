@@ -32,7 +32,8 @@ Le fil d'activité se trouve sur la page **Fil d'activité** du SLO, et ses dern
 | SLO activé ou désactivé | L'évaluation est activée ou désactivée. |
 | SLO archivé ou restauré | Le SLO est archivé ou désarchivé. |
 | Statut modifié | Une évaluation fait passer le SLO à un nouveau statut. Affiche le SLI, le budget d'erreur, le taux de consommation et le seuil à risque qui l'expliquent, et la raison pour **En pause** ou **Mal configuré**. |
-| Palier de politique de budget d'erreur changé | Une évaluation fait entrer le SLO dans un palier de sa politique de budget d'erreur, le fait passer à un autre palier ou sortir de tous les paliers. Affiche le palier quitté et le palier atteint, le budget restant, et ce que l'équipe s'est engagée à faire dans le nouveau palier. Voir [Politique de budget d'erreur](/docs/slo/error-budget-policy). |
+| Palier de politique de budget d'erreur changé | Une évaluation fait entrer le SLO dans un palier de sa politique de budget d'erreur, le fait passer à un autre palier ou sortir de tous les paliers. Affiche le palier quitté et le palier atteint, le budget restant, et ce que l'équipe s'est engagée à faire dans le nouveau palier, et indique quand le changement a gelé les déploiements ou les a de nouveau autorisés. Voir [Politique de budget d'erreur](/docs/slo/error-budget-policy). |
+| Déploiements gelés ou de nouveau autorisés | Quelqu'un a activé ou désactivé **Geler les déploiements** pour le palier dans lequel se trouve le SLO, et l'évaluation suivante a gelé les déploiements ou les a de nouveau autorisés. Un changement de palier qui le fait l'indique plutôt dans son propre élément. Voir [Barrière de déploiement](/docs/slo/error-budget-policy#barrière-de-déploiement). |
 | Alerte de taux de consommation déclenchée | Une règle de taux de consommation crée une alerte. Renvoie vers elle et affiche les taux de consommation qui l'ont déclenchée. |
 | Incident de taux de consommation déclaré | Une règle de taux de consommation déclare un incident. Renvoie vers lui et affiche les taux de consommation qui l'ont déclenché. |
 | Alerte ou incident de taux de consommation résolu | L'alerte ou l'incident d'une règle se ferme : résolu automatiquement, ou à la main pendant que la résolution automatique était désactivée. |
@@ -67,7 +68,7 @@ Les changements des règles et des propriétaires sont enregistrés sur la règl
 
 Deux choses n'y figurent pas :
 
-- **Les résultats d'évaluation.** Le SLI, le budget d'erreur, le taux de consommation, le statut et les heures d'évaluation changent toutes les quelques minutes. Leur historique se trouve dans la **Vue d'ensemble**, la page **Métriques** et le **Fil d'activité**. Le palier de la politique de budget d'erreur dans lequel se trouve le SLO fait exception : un changement de palier est enregistré comme un changement fait par OneUptime lui-même.
+- **Les résultats d'évaluation.** Le SLI, le budget d'erreur, le taux de consommation, le statut et les heures d'évaluation changent toutes les quelques minutes. Leur historique se trouve dans la **Vue d'ensemble**, la page **Métriques** et le **Fil d'activité**. Le palier de la politique de budget d'erreur dans lequel se trouve le SLO, et le fait que ses déploiements soient autorisés ou non, font exception : un changement de l'un ou de l'autre est enregistré comme un changement fait par OneUptime lui-même.
 - **Les changements que fait OneUptime lui-même**, comme une règle de moniteurs qui rattache ou détache un moniteur, sauf si **Stocker les événements système** est activé pour le projet. Le **Fil d'activité** enregistre les rattachements et détachements de moniteurs dans tous les cas.
 
 ### Activer les journaux d'audit

@@ -1,11 +1,12 @@
 # Fejlbudgetpolitik
 
-En fejlbudgetpolitik skriver ned, hvad dit team har aftalt at gøre, mens et SLO's fejlbudget løber ud, for eksempel at gennemgå risikable ændringer, når halvdelen er brugt, eller at fastfryse udgivelser, når det hele er brugt. OneUptime placerer SLO'et i det niveau i politikken, som dets budget har nået, viser teamets aftale for niveauet på SLO'ets sider og kan udløse en advarsel eller erklære en hændelse, når SLO'et går ind i et niveau. Det er praksissen med en fejlbudgetpolitik fra [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+En fejlbudgetpolitik skriver ned, hvad dit team har aftalt at gøre, mens et SLO's fejlbudget løber ud, for eksempel at gennemgå risikable ændringer, når halvdelen er brugt, eller at fastfryse udgivelser, når det hele er brugt. OneUptime placerer SLO'et i det niveau i politikken, som dets budget har nået, viser teamets aftale for niveauet på SLO'ets sider, kan udløse en advarsel eller erklære en hændelse, når SLO'et går ind i et niveau, og fortæller dine CI/CD-pipelines, om de skal holde udgivelser tilbage. Det er praksissen med en fejlbudgetpolitik fra [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Sådan fungerer niveauer](#sådan-fungerer-niveauer): Hvilket niveau der gælder, og hvornår SLO'et forlader det.
 - [Opsæt en politik](#opsæt-en-politik): Start med den anbefalede politik, eller skriv dine egne niveauer.
 - [Advarsler og hændelser](#advarsler-og-hændelser): Alarmér dit team, når SLO'et går ind i et niveau.
+- [Udrulningsspærre](#udrulningsspærre): Hold udgivelser tilbage fra CI/CD, mens et niveau fryser udrulninger.
 - [Læs niveauet via API'et](#læs-niveauet-via-apiet): Tjek niveauet fra CI og scripts.
 :::
 
@@ -20,6 +21,8 @@ En politik er et sæt niveauer. Hvert niveau har tre felter:
 | **Hvad vi gør** | Hvad teamet har aftalt at gøre, mens SLO'et er i niveauet, i Markdown. Påkrævet, op til 10.000 tegn. |
 
 Et niveau gælder, så længe det resterende budget er ved eller under dets tærskel, så et niveau på 0 % er niveauet for et opbrugt budget. Når flere niveauer gælder, er SLO'et i det med den laveste tærskel: det mest alvorlige. Når ingen gælder, er SLO'et ikke i noget niveau. Med niveauer på 50 %, 25 % og 0 % er et SLO med 30 % af sit budget tilbage i niveauet på 50 %, og et med 10 % tilbage er i niveauet på 25 %.
+
+Et niveau kan også fryse udrulninger, mens SLO'et er i det: se [Udrulningsspærre](#udrulningsspærre).
 
 ### At gå ind i et niveau og forlade det
 
@@ -59,7 +62,7 @@ Så længe SLO'et ikke har nogen niveauer, tilbyder siden **Brug den anbefalede 
 
 ### Eller tilføj selv et niveau
 
-Klik på **Opret SLO-fejlbudgetpolitikniveau**. Angiv et **Navn** og en **Tærskel for resterende budget (%)**, og skriv teamets aftale i **Hvad vi gør**.
+Klik på **Opret SLO-fejlbudgetpolitikniveau**. Angiv et **Navn** og en **Tærskel for resterende budget (%)**, og skriv teamets aftale i **Hvad vi gør**. Slå **Frys udrulninger** til, hvis pipelines skal holde udgivelser tilbage, mens SLO'et er i niveauet.
 
 ### Vælg, hvad niveauet udløser
 
@@ -72,21 +75,21 @@ At tilføje, redigere eller slette et niveau virker med det samme: OneUptime eva
 
 **Brug den anbefalede politik** tilføjer tre niveauer, ved halvdelen af budgettet, en fjerdedel og nul, med denne engelske ordlyd:
 
-| Niveau | Gælder ved | Hvad teamet gør |
-| --- | --- | --- |
-| **Caution** | 50 % tilbage eller mindre | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 25 % tilbage eller mindre | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 0 % tilbage eller mindre | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| Niveau | Gælder ved | Hvad teamet gør | Udrulninger |
+| --- | --- | --- | --- |
+| **Caution** | 50 % tilbage eller mindre | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | Tilladt |
+| **Reliability first** | 25 % tilbage eller mindre | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Tilladt |
+| **Budget exhausted** | 0 % tilbage eller mindre | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Frosset |
 
-Ingen af dem udløser en advarsel eller erklærer en hændelse, før du slår det til. Kun de niveauer, SLO'et ikke har, tilføjes: Et niveau med samme navn eller med samme tærskel tæller som til stede, uanset om det er slået til eller fra. At bede om det to gange, fra en anden fane eller via API'et, tilføjer altså intet to gange. Hvert niveau, der tilføjes på den måde, registreres i SLO'ets auditlogs som tilføjet af dig.
+Ingen af dem udløser en advarsel eller erklærer en hændelse, før du slår det til. **Budget exhausted** fryser udrulninger, som dets aftale siger, og bekræftelsen markerer det: se [Udrulningsspærre](#udrulningsspærre). Niveauer, der blev tilføjet, før spærren fandtes, fryser intet, før du slår frysningen til. Kun de niveauer, SLO'et ikke har, tilføjes: Et niveau med samme navn eller med samme tærskel tæller som til stede, uanset om det er slået til eller fra. At bede om det to gange, fra en anden fane eller via API'et, tilføjer altså intet to gange. Hvert niveau, der tilføjes på den måde, registreres i SLO'ets auditlogs som tilføjet af dig.
 
 ## Hvor niveauet vises
 
-- SLO'ets **Oversigt** viser det niveau, det er i, og hvad teamet har aftalt at gøre der, så alle, der åbner SLO'et, ser den aftale, der gælder nu.
+- SLO'ets **Oversigt** viser det niveau, det er i, og hvad teamet har aftalt at gøre der, så alle, der åbner SLO'et, ser den aftale, der gælder nu. Mens niveauet fryser udrulninger, viser et rødt mærke under dets navn, siden hvornår.
 - Diagrammet **Burn-down af fejlbudget** tegner en linje med etiket ved hvert niveaus tærskel ved siden af risikotærsklens linje.
-- SLO'ets **Feed** viser hvert skift af niveau: det niveau, SLO'et forlod, og det niveau, det gik ind i, det resterende budget, og hvad teamet har aftalt at gøre i det nye niveau.
-- SLO'ets **Auditlogs** registrerer hvert skift af niveau som en ændring, OneUptime selv har lavet, og viser det derfor kun med **Gem systemhændelser** slået til: se [Slå auditlogs til](/docs/slo/feed-and-audit-logs#slå-auditlogs-til). At tilføje, redigere og fjerne et niveau registreres under den person, der gjorde det.
-- SLO'ets læse-API returnerer niveauet: se [Læs niveauet via API'et](#læs-niveauet-via-apiet).
+- SLO'ets **Feed** viser hvert skift af niveau: det niveau, SLO'et forlod, og det niveau, det gik ind i, det resterende budget, hvad teamet har aftalt at gøre i det nye niveau, og om skiftet frøs udrulninger eller tillod dem igen.
+- SLO'ets **Auditlogs** registrerer hvert skift af niveau, og hver gang udrulninger fryses eller tillades igen, som en ændring, OneUptime selv har lavet, og viser det derfor kun med **Gem systemhændelser** slået til: se [Slå auditlogs til](/docs/slo/feed-and-audit-logs#slå-auditlogs-til). At tilføje, redigere og fjerne et niveau registreres under den person, der gjorde det.
+- SLO'ets læse-API returnerer niveauet, og om udrulninger er tilladt: se [Læs niveauet via API'et](#læs-niveauet-via-apiet) og [Udrulningsspærre](#udrulningsspærre).
 
 ## Advarsler og hændelser
 
@@ -124,6 +127,98 @@ Den indbyggede beskrivelse nævner niveauet, holder det resterende budget op mod
 - Et SLO, der er **Sat på pause** eller **Forkert konfigureret**, måler intet budget, så dets niveau bliver, hvor det var, og det, niveauet udløste, forbliver åbent, til der måles igen. Forbrugsrateregler løser derimod det, de har åbent.
 - At slå SLO'ets evaluering fra eller at arkivere SLO'et løser det, dets niveauer udløste. Det niveau, SLO'et er i, forbliver, som det var.
 - At slette SLO'et sletter dets niveauer og løser det, de udløste.
+- I hvert af disse tilfælde beholder SLO'et det svar, det gav om udrulninger, fordi det beholder sit niveau: se [Udrulningsspærre](#udrulningsspærre).
+
+## Udrulningsspærre
+
+Et niveau kan fryse udrulninger. Mens SLO'et er i et niveau med **Frys udrulninger** slået til, er SLO'ets felt `deploymentsAllowed` `false`, så en CI/CD-pipeline, der tjekker det før en udgivelse, holder udgivelsen tilbage. Ellers er det `true`: når SLO'et ikke har nogen politik, mens dets budget er over alle niveauer, og i et niveau, der ikke fryser udrulninger. Den anbefalede politiks niveau **Budget exhausted** fryser udrulninger.
+
+:::steps
+### Slå Frys udrulninger til
+
+Åbn SLO'ets **Fejlbudgetpolitik**, redigér niveauet, slå **Frys udrulninger** til, og gem. Niveauets kolonne **Udrulninger** i tabellen viser **Frosset**.
+
+### Giv pipelinen en nøgle
+
+Opret en [API-nøgle](/docs/api-reference/api-reference) til projektet, der kan læse SLO'et, og gem den som en hemmelighed i pipelinen med navnet `ONEUPTIME_API_KEY`.
+
+### Tjek SLO'et før udgivelsen
+
+Tilføj tjekket nedenfor som et trin før det trin, der udruller, med SLO'ets ID i stedet for `<slo-id>`.
+:::
+
+:::tabs
+@tab Shell
+```bash
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
+```
+:::
+
+Tjekket lykkes kun, når svaret er `true`. Et frosset SLO, et svar uden feltet (nøglen kan ikke læse SLO'et, eller ID'et er forkert) og slet intet svar stopper hver især trinnet, så en pipeline aldrig udgiver på et svar, den ikke fik. I GitLab CI kører jobbet i fasen test, så et frosset SLO stopper fasen deploy efter den; tilføj `ONEUPTIME_API_KEY` som en maskeret CI/CD-variabel. På en selvhostet installation skal du bruge installationens egen adresse i stedet for oneuptime.com.
+
+SLO'et svarer med to felter, der læses med SLO'ets egen læsetilladelse:
+
+| Felt | Hvad det indeholder |
+| --- | --- |
+| `deploymentsAllowed` | `false`, mens SLO'et er i et niveau, der fryser udrulninger, ellers `true`. |
+| `deploymentsFrozenAt` | Hvornår udrulningerne blev frosset. Tomt, mens de er tilladt. |
+
+Sådan ændrer svaret sig:
+
+- Udrulninger fryses af den evaluering, der placerer SLO'et i et niveau, som fryser dem, og tillades igen af den evaluering, der tager det ud, med niveauets egne marginer for at komme sig: se [At gå ind i et niveau og forlade det](#at-gå-ind-i-et-niveau-og-forlade-det). Fra ét niveau, der fryser, til et andet forbliver de frosset, og `deploymentsFrozenAt` beholder sit tidspunkt.
+- At slå **Frys udrulninger** til eller fra for det niveau, SLO'et er i, virker inden for cirka et minut. For at udgive, før budgettet er kommet sig, skal du slå frysningen fra: Ændringen registreres i SLO'ets auditlogs som din.
+- Et SLO, der er **Sat på pause** eller **Forkert konfigureret**, beholder det svar, det havde, ligesom det beholder sit niveau: Et vedligeholdelsesvindue, der sætter alle monitorer på pause, hverken ophæver en frysning eller starter en. Et deaktiveret eller arkiveret SLO evalueres slet ikke, så det beholder også sit svar.
+- Mens udrulninger er frosset, viser SLO'ets **Oversigt**, siden hvornår, og dets **Feed** siger, hvornår de fryses og tillades igen.
 
 ## Læs niveauet via API'et
 
@@ -164,7 +259,7 @@ Disse tilladelser ligger i en rolles SLO-gruppe. Rollerne Project Owner og Proje
 
 ## Endnu ikke tilgængeligt
 
-Nogle dele af en fejlbudgetpolitik er endnu ikke tilgængelige: en udrulningsspærre, der selv blokerer udgivelser (et CI-job kan i stedet læse niveauet via API'et), workflow-udløsere og Slack- eller Microsoft Teams-notifikationer for hvert niveau, en politik, som flere SLO'er deler, at kvittere for et niveau eller give en undtagelse fra det, og niveauer, der bygger på budgettets rækkevidde i stedet for det resterende budget.
+Nogle dele af en fejlbudgetpolitik er endnu ikke tilgængelige: workflow-udløsere og Slack- eller Microsoft Teams-notifikationer for hvert niveau, en politik, som flere SLO'er deler, at kvittere for et niveau eller give en undtagelse fra det, og niveauer, der bygger på budgettets rækkevidde i stedet for det resterende budget. OneUptime stopper ikke selv en udgivelse: Det gør en pipeline, der tjekker `deploymentsAllowed`, som [Udrulningsspærre](#udrulningsspærre) viser.
 
 ## Næste trin
 
