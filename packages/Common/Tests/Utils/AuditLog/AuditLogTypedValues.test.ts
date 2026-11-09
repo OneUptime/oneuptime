@@ -65,7 +65,9 @@ import {
   readAuditLogChange,
   readAuditLogTypedValue,
   readAuditLogValue,
+  redactAuditLogTypedSecrets,
 } from "../../../Utils/AuditLog/AuditLogTypedValues";
+import { redactSecretsInJson } from "../../../Utils/AuditLog/AuditLogValues";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { listTypeScriptFiles } from "../../Helpers/ReferenceNameScan";
@@ -1025,6 +1027,102 @@ describe("a recorded change reads as one recorded now", () => {
       oldValue: "a@example.com",
       newValue: { to: "b@example.com" },
       summary: ["Removed _type", "Removed value", "Added to"],
+    });
+  });
+});
+
+describe("a hash is a secret wherever it is", () => {
+  const HASH: JSONObject = { _type: "HashedString", value: "5e884898da28" };
+
+  test("inside JSON, under a key that says nothing, it is [REDACTED] - in an entry recorded now", () => {
+    expect(
+      redactSecretsInJson({
+        owner: "ada",
+        check: HASH,
+        list: [HASH, { deeper: { still: HASH } }],
+        email: { _type: "Email", value: "ada@example.com" },
+      }),
+    ).toEqual({
+      owner: "ada",
+      check: AUDIT_LOG_REDACTED_VALUE,
+      list: [
+        AUDIT_LOG_REDACTED_VALUE,
+        { deeper: { still: AUDIT_LOG_REDACTED_VALUE } },
+      ],
+      // A typed value that is no secret stays part of its JSON.
+      email: { _type: "Email", value: "ada@example.com" },
+    });
+    expect(redactSecretsInJson(HASH)).toBe(AUDIT_LOG_REDACTED_VALUE);
+  });
+
+  test("and in one recorded before, read now", () => {
+    const old: JSONObject = { owner: "ada", check: HASH, list: [1, HASH] };
+
+    expect(redactAuditLogTypedSecrets(old)).toEqual({
+      owner: "ada",
+      check: AUDIT_LOG_REDACTED_VALUE,
+      list: [1, AUDIT_LOG_REDACTED_VALUE],
+    });
+    // What was read is not changed.
+    expect(old["check"]).toEqual(HASH);
+  });
+
+  test("a hash the API client read back into a HashedString is one too", () => {
+    const readBack: JSONObject = JSONFunctions.deserialize({
+      check: HASH,
+      list: [HASH],
+    });
+
+    expect(readBack["check"]).toBeInstanceOf(HashedString);
+    expect(redactAuditLogTypedSecrets(readBack)).toEqual({
+      check: AUDIT_LOG_REDACTED_VALUE,
+      list: [AUDIT_LOG_REDACTED_VALUE],
+    });
+  });
+
+  test("JSON with no hash in it is itself, and a typed object is never taken apart", () => {
+    const plain: JSONObject = {
+      to: { _type: "Email", value: "a@example.com" },
+      list: [1, "two", { three: 3 }],
+    };
+    const steps: MonitorSteps = new MonitorSteps();
+
+    expect(redactAuditLogTypedSecrets(plain)).toBe(plain);
+    expect(redactAuditLogTypedSecrets(steps)).toBe(steps);
+    expect(redactAuditLogTypedSecrets([steps])).toEqual([steps]);
+    for (const value of ["text", 7, true, null, undefined]) {
+      expect(redactAuditLogTypedSecrets(value)).toBe(value);
+    }
+  });
+
+  test("too deep to read is kept as nothing, as the recorder keeps it", () => {
+    let deep: unknown = HASH;
+
+    for (let level: number = 0; level < 40; level++) {
+      deep = { level: deep };
+    }
+
+    expect(JSON.stringify(redactAuditLogTypedSecrets(deep))).not.toContain(
+      "5e884898da28",
+    );
+    expect(JSON.stringify(redactSecretsInJson(deep))).not.toContain(
+      "5e884898da28",
+    );
+  });
+
+  test("a change holding one inside JSON is read, its lines kept", () => {
+    expect(
+      readAuditLogChange({
+        field: "settings",
+        oldValue: { check: HASH },
+        newValue: { check: { _type: "HashedString", value: "other" } },
+        summary: ["Changed check › value"],
+      }),
+    ).toEqual({
+      field: "settings",
+      oldValue: { check: AUDIT_LOG_REDACTED_VALUE },
+      newValue: { check: AUDIT_LOG_REDACTED_VALUE },
+      summary: ["Changed check › value"],
     });
   });
 });

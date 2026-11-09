@@ -29,7 +29,10 @@ import { ObjectType } from "../../Types/JSON";
  * that Common/Types writes to a decision, and each class read as a value to
  * giving one. Anything else - more keys, a value that is JSON itself, a
  * _type that is not OneUptime's - stays JSON, as before. Only a whole value
- * is read: a phone number inside a JSON setting stays part of that JSON.
+ * is read: a phone number inside a JSON setting stays part of that JSON. A
+ * hash is the one exception: a secret wherever it is, it is "[REDACTED]"
+ * inside JSON too, under whatever key (redactAuditLogTypedSecrets, and the
+ * recorder's redactSecretsInJson).
  *
  * SECRETS FIRST. The recorder redacts a secret column's value before it
  * serializes anything (AuditLogRedaction), so a typed value in a secret
@@ -275,6 +278,92 @@ export const getAuditLogHeldValue: (value: unknown) => unknown = (
   return typed ? typed.value : value;
 };
 
+// How far into nested JSON a hash is looked for: as far as an entry's JSON is read (AuditLogValues).
+const DEEPEST_LEVEL_READ: number = 32;
+
+const isTypedSecret: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  return (
+    readAuditLogTypedValue(value)?.reading === AuditLogTypedValueReading.Secret
+  );
+};
+
+// Only JSON's own objects are walked: a typed object is read whole, never taken apart.
+const isJsonObject: (value: unknown) => value is PlainObject = (
+  value: unknown,
+): value is PlainObject => {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+
+  const prototype: unknown = Object.getPrototypeOf(value);
+
+  return prototype === Object.prototype || prototype === null;
+};
+
+const redactTypedSecretsAtDepth: (value: unknown, depth: number) => unknown = (
+  value: unknown,
+  depth: number,
+): unknown => {
+  if (isTypedSecret(value)) {
+    return AUDIT_LOG_REDACTED_VALUE;
+  }
+
+  if (depth > DEEPEST_LEVEL_READ) {
+    // Too deep to read, as the recorder keeps nothing of it now.
+    return value === null || value === undefined
+      ? value
+      : AUDIT_LOG_REDACTED_VALUE;
+  }
+
+  if (Array.isArray(value)) {
+    let isChanged: boolean = false;
+    const items: Array<unknown> = value.map((item: unknown): unknown => {
+      const redacted: unknown = redactTypedSecretsAtDepth(item, depth + 1);
+
+      if (redacted !== item) {
+        isChanged = true;
+      }
+
+      return redacted;
+    });
+
+    return isChanged ? items : value;
+  }
+
+  if (!isJsonObject(value)) {
+    return value;
+  }
+
+  let copy: PlainObject | null = null;
+
+  for (const key of Object.keys(value)) {
+    const item: unknown = value[key];
+    const redacted: unknown = redactTypedSecretsAtDepth(item, depth + 1);
+
+    if (redacted !== item) {
+      copy = copy || { ...value };
+      copy[key] = redacted;
+    }
+  }
+
+  return copy || value;
+};
+
+/*
+ * JSON with every hash in it, however deep, as "[REDACTED]": a hash is a
+ * secret wherever it is, under whatever key - one under a key that says it
+ * is a secret is redacted by its key already (redactSecretsInJson). The
+ * JSON itself when it holds none. A typed value that is not a secret stays
+ * as it is: only a whole value is read as its value.
+ */
+export const redactAuditLogTypedSecrets: (value: unknown) => unknown = (
+  value: unknown,
+): unknown => {
+  return redactTypedSecretsAtDepth(value, 0);
+};
+
 // What a recorded change carries, as far as its values go.
 export interface AuditLogRecordedChange {
   oldValue?: unknown;
@@ -284,13 +373,15 @@ export interface AuditLogRecordedChange {
 
 /*
  * A recorded change as the recorder writes one now: each of its values read
- * through readAuditLogValue, and, when a typed value made both values plain,
- * no lines of what changed. Those lines were the paths that changed in the
- * typed value's JSON ("Changed value", "Changed the value"), and a phone
- * number changed today is recorded with none - so an entry recorded before
- * reads as one recorded now. The summary is then null rather than gone, so
- * a reader that expects the key still has it. A change with no typed value
- * in it comes back as it is, the same object.
+ * through readAuditLogValue - and a hash inside JSON redacted, as the
+ * recorder redacts one now (redactAuditLogTypedSecrets) - and, when a typed
+ * value made both values plain, no lines of what changed. Those lines were
+ * the paths that changed in the typed value's JSON ("Changed value",
+ * "Changed the value"), and a phone number changed today is recorded with
+ * none - so an entry recorded before reads as one recorded now. The summary
+ * is then null rather than gone, so a reader that expects the key still has
+ * it. A change with nothing in it to read comes back as it is, the same
+ * object.
  */
 export const readAuditLogChange: <TChange extends AuditLogRecordedChange>(
   change: TChange,
@@ -298,6 +389,7 @@ export const readAuditLogChange: <TChange extends AuditLogRecordedChange>(
   change: TChange,
 ): TChange => {
   let isTyped: boolean = false;
+  let isRead: boolean = false;
   let isEveryValuePlain: boolean = true;
   const read: AuditLogRecordedChange = {};
 
@@ -310,9 +402,14 @@ export const readAuditLogChange: <TChange extends AuditLogRecordedChange>(
 
     if (readAuditLogTypedValue(value)) {
       isTyped = true;
+      read[key] = readAuditLogValue(value);
+    } else {
+      read[key] = redactAuditLogTypedSecrets(value);
     }
 
-    read[key] = readAuditLogValue(value);
+    if (read[key] !== value) {
+      isRead = true;
+    }
 
     if (
       read[key] !== null &&
@@ -323,13 +420,13 @@ export const readAuditLogChange: <TChange extends AuditLogRecordedChange>(
     }
   }
 
-  if (!isTyped) {
+  if (!isTyped && !isRead) {
     return change;
   }
 
   const copy: TChange = { ...change, ...read };
 
-  if (isEveryValuePlain && hasOwn(change, "summary")) {
+  if (isTyped && isEveryValuePlain && hasOwn(change, "summary")) {
     copy.summary = null;
   }
 
