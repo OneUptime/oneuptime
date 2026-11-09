@@ -60,10 +60,10 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *     a placeholder, NOT a verdict — consumers must route decisions through
  *     the helpers below, never through the raw boolean.
  *
- * Budget accounting: the classification call runs AFTER the investigation's
- * agent loop has finished, so it is deliberately OUTSIDE the engine's per-run
- * caps (MAX_LLM_CALLS / MAX_OUTPUT_TOKENS govern the loop, whose counts are
- * persisted at the Completed transition before this call fires). It is still
+ * Accounting: the classification call runs AFTER the investigation's agent
+ * loop has finished, so it is deliberately OUTSIDE the run's limits (they
+ * govern the loop, whose counts are persisted at the Completed transition
+ * before this call fires). It is still
  * metered per-call in LlmLog and its feature is in AUTONOMOUS_AI_FEATURES, so
  * the G4 daily autonomous token budget covers it — and a budget rejection
  * degrades the signal to "classification-failed", never a run failure.

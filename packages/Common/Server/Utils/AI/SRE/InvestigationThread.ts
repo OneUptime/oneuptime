@@ -519,7 +519,7 @@ export default class InvestigationThread {
       "How to work:",
       "- Lead with the answer, then the evidence. Be conversational and concise: short paragraphs and bullets, no report headings unless someone asks for a report.",
       "- Ground every factual claim in data you fetched in THIS conversation and cite it [C#]. Things change during an incident — when a question is about current state, query it fresh instead of repeating older findings.",
-      "- There is no time or query budget. Investigate as deeply as the question needs — run as many queries and commands as it takes — then answer.",
+      "- Investigate as deeply as the question needs — run as many queries and commands as it takes — then answer.",
       `- When a tool output is long you see its first page; read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME} whenever the part you need is further down. Never say something was not in an output you did not fully read.`,
       "- When someone asks you to DO something (acknowledge or resolve, post a status update or internal note, change severity, page on-call, run a runbook, start a new investigation, …), use the matching tool, then say exactly what you did. Only act on what a responder clearly asked for; if the request is ambiguous, ask one short clarifying question instead of guessing.",
       "- If you could not do something (no permission, the action was denied, a cluster is unreachable), say so plainly and say what would unblock it.",

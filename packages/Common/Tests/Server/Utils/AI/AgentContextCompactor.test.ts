@@ -1,7 +1,6 @@
+import * as AgentContextCompactor from "../../../../Server/Utils/AI/Chat/AgentContextCompactor";
 import {
   buildElidedToolResult,
-  buildSkippedToolCallText,
-  buildWrapUpInstruction,
   compactAgentContext,
   COMPACTED_CONTEXT_SHARE,
   CompactionResult,
@@ -502,31 +501,26 @@ describe("answer continuation", () => {
 });
 
 describe("wrap-up wording", () => {
-  test("a configured time limit is named as such", () => {
-    expect(buildWrapUpInstruction("time_limit")).toContain(
-      "time limit configured for this investigation",
-    );
-    expect(buildSkippedToolCallText("time_limit")).toContain(
-      "time limit configured",
-    );
+  /*
+   * The wrap-up sentences moved to Types/AI/AIAgentRunLimits (issue #6440),
+   * where each names the limit the run really reached - its time limit, a
+   * cap the project set, or loop detection. The step-count "runaway guard"
+   * they spoke of is gone, so nothing here may build one any more.
+   */
+  test("the compactor no longer builds wrap-up or skipped-call text", () => {
+    const exported: Record<string, unknown> = AgentContextCompactor as Record<
+      string,
+      unknown
+    >;
+
+    expect(exported["buildWrapUpInstruction"]).toBeUndefined();
+    expect(exported["buildSkippedToolCallText"]).toBeUndefined();
   });
 
-  test("the runaway guard never calls itself a budget", () => {
-    for (const text of [
-      buildWrapUpInstruction("step_limit"),
-      buildSkippedToolCallText("step_limit"),
-    ]) {
-      expect(text.toLowerCase()).not.toContain("budget");
-      expect(text).toContain("very large number of calls");
-    }
-  });
-
-  test("both ask for what was and was not verified", () => {
-    expect(buildWrapUpInstruction("time_limit")).toContain(
-      "could and could not verify",
-    );
-    expect(buildWrapUpInstruction("step_limit")).toContain(
-      "could and could not verify",
+  test("its own instructions speak of no budget or step limit", () => {
+    expect(CONTINUE_ANSWER_INSTRUCTION).not.toMatch(/budget|step limit/i);
+    expect(buildElidedToolResult("x".repeat(5_000))).not.toMatch(
+      /budget|step limit/i,
     );
   });
 });

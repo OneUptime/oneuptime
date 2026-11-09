@@ -187,6 +187,11 @@ import {
   aiActionSentence,
   describeAIActionWords,
 } from "../../../Types/AI/AIActionWords";
+import AIAgentRunLimitsHelper, {
+  AIRunStopReason,
+  AIRunTimeLimitSource,
+  PROJECT_AI_RUN_LIMITS_LOCATION,
+} from "../../../Types/AI/AIAgentRunLimits";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
@@ -2509,6 +2514,122 @@ describe("InvestigationConversation — an answer's parts", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+});
+
+/*
+ * A follow-up answer a limit stopped ends with OneUptime's line saying so
+ * (issue #6440). It is drawn as the AI card above draws its own: a line of
+ * its own under the answer, the setting a link the card builds - not the
+ * answer's last italic paragraph, whose link safe mode left as dotted text
+ * that went nowhere.
+ */
+describe("InvestigationConversation — an answer a limit stopped", () => {
+  const SETTINGS_URL: string =
+    "https://oneuptime.example.com/dashboard/p1/settings/ai-features#LimitsPerRun";
+  const NOTE: string = AIAgentRunLimitsHelper.getStopNote({
+    reason: AIRunStopReason.TimeLimit,
+    limits: {
+      ...AIAgentRunLimitsHelper.getDefault(),
+      maxWallClockMs: 45 * 60 * 1000,
+      timeLimitSource: AIRunTimeLimitSource.Project,
+    },
+    settingsUrl: SETTINGS_URL,
+  });
+  const NOTE_WORDS: string = `This run stopped at this project's time limit of 45 minutes per run. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}.`;
+
+  function renderStopped(content: string): void {
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          messages: [answer({ content, userId: SAM, name: "Sam Lee" })],
+        });
+      },
+    });
+    renderConversation();
+  }
+
+  test("the answer reads as written, and the note is its own line under it", async () => {
+    renderStopped(`The pool is exhausted.\n\n${NOTE}`);
+    await flush();
+
+    const reply: HTMLElement = screen.getByTestId(
+      "investigation-conversation-answer",
+    );
+    const markdown: HTMLElement = within(reply).getByTestId("answer-markdown");
+    const line: HTMLElement = within(reply).getByTestId(
+      "investigation-report-stop-note",
+    );
+
+    expect(markdown.textContent).toBe("The pool is exhausted.");
+    expect(markdown).toHaveAttribute("data-safe-mode", "true");
+    expect(line).toHaveTextContent(NOTE_WORDS);
+    expect(
+      markdown.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Before the answer's Copy, which still copies the whole answer.
+    expect(
+      line.compareDocumentPosition(
+        within(reply).getByRole("button", { name: "Copy" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("its setting is a link the card builds, never the note's own address", async () => {
+    renderStopped(
+      `The pool is exhausted.\n\n${NOTE.replace(SETTINGS_URL, "https://attacker.example/x")}`,
+    );
+    await flush();
+
+    const link: HTMLElement = within(
+      screen.getByTestId("investigation-report-stop-note"),
+    ).getByRole("link", { name: PROJECT_AI_RUN_LIMITS_LOCATION });
+
+    expect(link.getAttribute("href")).toMatch(
+      /\/settings\/ai-features#LimitsPerRun$/,
+    );
+    expect(document.body.innerHTML).not.toContain("attacker.example");
+  });
+
+  test("an answer that is only the note shows the line alone", async () => {
+    renderStopped(NOTE);
+    await flush();
+
+    const reply: HTMLElement = screen.getByTestId(
+      "investigation-conversation-answer",
+    );
+
+    expect(within(reply).queryByTestId("answer-markdown")).toBeNull();
+    expect(
+      within(reply).getByTestId("investigation-report-stop-note"),
+    ).toHaveTextContent(NOTE_WORDS);
+  });
+
+  test("Copy still copies the answer as it was written, note and all", async () => {
+    const content: string = `The pool is exhausted.\n\n${NOTE}`;
+
+    renderStopped(content);
+    await flush();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    await flush();
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining("The pool is exhausted."),
+    );
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining("This run stopped at this project's time limit"),
+    );
+  });
+
+  test("an answer no limit stopped has no such line", async () => {
+    renderStopped("The pool is exhausted.");
+    await flush();
+
+    expect(screen.queryByTestId("investigation-report-stop-note")).toBeNull();
+    expect(screen.getByTestId("answer-markdown").textContent).toBe(
+      "The pool is exhausted.",
+    );
   });
 });
 

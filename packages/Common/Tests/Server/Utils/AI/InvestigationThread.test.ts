@@ -477,8 +477,12 @@ describe("InvestigationThread.buildThreadInstructions", () => {
     expect(instructions).toContain('Incident #42 "Node memory at 93%"');
   });
 
-  test("promises no budget and full reads", () => {
-    expect(instructions).toContain("There is no time or query budget");
+  test("speaks of no budget, and promises full reads", () => {
+    expect(instructions).toContain(
+      "Investigate as deeply as the question needs",
+    );
+    // No budget is spoken of: a run has none (issue #6440).
+    expect(instructions.toLowerCase()).not.toContain("budget");
     expect(instructions).toContain(READ_TOOL_OUTPUT_TOOL_NAME);
   });
 

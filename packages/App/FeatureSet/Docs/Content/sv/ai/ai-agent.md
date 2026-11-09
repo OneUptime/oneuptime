@@ -15,7 +15,7 @@ Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skul
 :::
 
 > [!TIP]
-> Du kan också starta det här från GitHub. Nämn OneUptime GitHub App i en issue eller en pull request, så implementerar, reviderar eller granskar den direkt där: se [GitHub App](/docs/ai/github-app). Det är samma agent, samma Runner och samma budgetar; bara utlösaren skiljer sig.
+> Du kan också starta det här från GitHub. Nämn OneUptime GitHub App i en issue eller en pull request, så implementerar, reviderar eller granskar den direkt där: se [GitHub App](/docs/ai/github-app). Det är samma agent, samma Runner och samma gränser; bara utlösaren skiljer sig.
 
 ## Be AI om något i ett repositorium
 
@@ -97,7 +97,7 @@ flowchart TB
 
 Sidan som uppgiften startades från visar dess status live. Varje uppgift listas i sitt repositorium under **Produkter → Kod**: dess sida är dess konversation, och varje turs **Logg** har en rad för varje fil som Runnern läste eller skrev och varje kommando den körde.
 
-Varje körning hålls inom budgetar som servern upprätthåller: högst **40 LLM-anrop** och **100 000 utdatatokens**. En körnings frågor mot produktionstelemetrin räknas mot samma 40 anrop. En körning som når någon av dem avslutas med en sammanfattning av arbetet hittills i stället för att gå i loop. Åtgärdskörningar räknas också mot projektets dagliga AI-gränser, när projektet sätter dem.
+En körning gör så många LLM-anrop och frågor mot produktionstelemetrin som arbetet behöver, inom sin tidsgräns: 120 minuter, om inte projektet anger en egen. Projektet kan hålla varje körning till mindre i **Gränser per körning**, under **Fler inställningar** på **Projektinställningar → AI → AI-funktioner**; en körning som når en gräns avslutas med en sammanfattning av arbetet hittills. En Runner från före den här versionen stoppar fortfarande en körning vid 40 LLM-anrop och 100 000 utdatatokens: uppgradera den för att ta bort de gränserna. Åtgärdskörningar räknas också mot projektets dagliga AI-gränser, när projektet sätter dem.
 
 ## Var åtgärdsuppgifter startar
 
@@ -145,7 +145,7 @@ Vad agenten får läsa avgörs av OneUptime-servern, utifrån själva uppgiften:
 - **Endast läsning.** Frågorna körs på OneUptime-servern, aldrig på Runnern, som inte har några inloggningsuppgifter som kan läsa telemetri. Inget de gör kan ändra ditt projekt.
 - **Det här projektet, och bara de tjänster som hör till det här repositoriet.** Du kopplar inte ihop dem själv: det är de tjänster som OneUptime hittar det här repositoriet för, på samma sätt som den hittar repositoriet för en åtgärd - deras undantags stack traces går genom dess filer, de heter som det, eller så är det projektets enda repository. En annan tjänsts telemetri kan inte läsas.
 - **Inga privata incidenter**, och token, nycklar, lösenord och e-postadresser maskeras innan agenten ser ett resultat, som överallt där OneUptime AI läser dina data.
-- **Begränsat.** Högst **12** frågor per körning, som var och en räknas mot körningens 40 anrop.
+- **Begränsat.** Av körningens tidsgräns, och av **Verktygsanrop per körning** när projektet anger den: varje fråga är ett verktygsanrop.
 
 När ingen tjänst hör till repositoriet körs uppgiften utan produktionstelemetri, som tidigare.
 
@@ -192,7 +192,7 @@ Inget från en pull request som kommer från en fork läses någonsin som reposi
 Kod frågar inte längre efter installations-, bygg- och testkommandon, men ett repositorium som har dem, satta tidigare eller via API:et eller Terraform, behåller dem. De visas skrivskyddade på kortet **Bygg- och testkommandon**, under **Fler inställningar** på repositoriets sida **Inställningar**, och **Ta bort kommandon** tar bort alla tre. Så länge något av dem är satt kontrollerar varje åtgärdskörning på en egen Runner också sin ändring med dem innan pull requesten öppnas:
 
 1. När kodagenten är klar körs kommandona i ordning i roten av repositoriet, på Runnern, i den klonade arbetsytan. Vart och ett får upp till 15 minuter och körs med `CI=true`, så att inget väntar på indata; det första felet stoppar omgången.
-2. Vid ett fel går slutet av det fallerande kommandots utdata tillbaka till samma kodagent som en reparationsuppgift, med instruktioner att rätta sin egen ändring i stället för att försvaga eller hoppa över tester, och kommandona körs igen. Den gör högst **2** reparationsförsök. De delar körningens LLM-budget, och deras ändringar hamnar i samma commit som åtgärden.
+2. Vid ett fel går slutet av det fallerande kommandots utdata tillbaka till samma kodagent som en reparationsuppgift, med instruktioner att rätta sin egen ändring i stället för att försvaga eller hoppa över tester, och kommandona körs igen. Den gör högst **2** reparationsförsök. De räknas in i körningens gränser, och deras ändringar hamnar i samma commit som åtgärden.
 3. Utfallet, godkänt, fallerat eller överhoppat (inga kommandon satta, eller en global Runner), skrivs i ett Verification-avsnitt i pull requestens beskrivning och registreras på uppgiftens pull request.
 
 En ändring som fortfarande inte klarar kontrollen kastas inte: pull requesten öppnas ändå, med ett tydligt markerat avsnitt "Verification failed" som namnger det fallerande kommandot och slutar med dess utdata. Arbetet behålls, och den som granskar bestämmer. Ett repository utan satta kommandon rapporteras som överhoppat, i stället för att antyda ett grönt bygge.

@@ -42,9 +42,9 @@ import logger from "../../../../Server/Utils/Logger";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Project from "../../../../Models/DatabaseModels/Project";
-import {
-  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
-  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+import AIAgentRunLimitsHelper, {
+  AIRunTimeLimitSource,
+  DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
 } from "../../../../Types/AI/AIAgentRunLimits";
 import { JSONObject } from "../../../../Types/JSON";
 import {
@@ -65,8 +65,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * Infrastructure access (Docker, Podman, Swarm, Proxmox, VMware, Ceph,
  * databases, hosts) reaches an investigation through the same four wires
  * cluster access does — the tools, the persona addendum, the context block
- * and the shared deadline (none unless the project configured a time
- * limit) — BESIDE the cluster wiring, never instead of it:
+ * and the shared deadline (the lane's time limit, else the project's, else
+ * the default 120 minutes) — BESIDE the cluster wiring, never instead of
+ * it:
  *
  * - with no linked resource, every request is exactly what it was (the
  *   cluster addendum alone, the kubectl tools alone);
@@ -324,7 +325,7 @@ describe("Investigation runners wire infrastructure access beside cluster access
   });
 
   test.each(SUBJECT_KINDS)(
-    "a %s investigation gets the infrastructure tools, the output reader, addendum, context block and no time limit",
+    "a %s investigation gets the infrastructure tools, the output reader, addendum, context block and the default limits",
     async (kind: SubjectKind) => {
       await investigate(kind);
 
@@ -349,9 +350,8 @@ describe("Investigation runners wire infrastructure access beside cluster access
         `- Docker host "web-1" (resourceId: ${DOCKER_ID}): READ access via run_infrastructure_command`,
       );
       expect(request.contextSummary).not.toContain("# Cluster access");
-      expect(request.maxWallClockMs).toBeUndefined();
-      expect(request.maxLlmCalls).toBe(AI_AGENT_RUNAWAY_MAX_LLM_CALLS);
-      expect(request.maxToolCalls).toBe(AI_AGENT_RUNAWAY_MAX_TOOL_CALLS);
+      // No cap on calls or tokens, and the default time limit.
+      expect(request.runLimits).toEqual(AIAgentRunLimitsHelper.getDefault());
       expect(failOrRequeue).not.toHaveBeenCalled();
     },
   );
@@ -534,7 +534,7 @@ describe("Investigation runners wire infrastructure access beside cluster access
   });
 
   test.each(SUBJECT_KINDS)(
-    "a %s investigation's infrastructure tools are bound to this run, with no deadline by default",
+    "a %s investigation's infrastructure tools are bound to this run, with the default deadline",
     async (kind: SubjectKind) => {
       const NOW_MS: number = 1_700_000_000_000;
       const now: jest.SpyInstance = jest
@@ -552,14 +552,16 @@ describe("Investigation runners wire infrastructure access beside cluster access
         RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
       );
 
-      // A day into the run: an unlimited run is never refused for time.
-      now.mockReturnValue(NOW_MS + 24 * 60 * 60 * 1000);
+      // An hour and a half in: well inside the default 120 minutes.
+      now.mockReturnValue(NOW_MS + 90 * 60 * 1000);
       const outcome: ToolCallOutcome =
         await runCommand.execute(RUN_COMMAND_ARGS);
 
       expect(outcome.success).toBe(true);
       expect(plan).toHaveBeenCalledWith(
-        expect.objectContaining({ deadlineAtMs: undefined }),
+        expect.objectContaining({
+          deadlineAtMs: NOW_MS + DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES * 60_000,
+        }),
       );
       expect(commandRun).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -574,12 +576,12 @@ describe("Investigation runners wire infrastructure access beside cluster access
   );
 
   /*
-   * A project that configured a time limit for the lane: the engine gets
-   * it as maxWallClockMs, and the infrastructure toolkit the deadline it
-   * ends at — the same number, measured from when the run was wired.
+   * A project that set a time limit for the lane: the engine gets it in
+   * runLimits, and the infrastructure toolkit the deadline it ends at - the
+   * same number, measured from when the run was wired.
    */
   test.each(SUBJECT_KINDS)(
-    "a %s investigation with a configured time limit hands the engine and the infrastructure tools the same deadline",
+    "a %s investigation with a lane time limit hands the engine and the infrastructure tools the same deadline",
     async (kind: SubjectKind) => {
       const NOW_MS: number = 1_700_000_000_000;
       const LIMIT_MS: number = 15 * 60 * 1000;
@@ -597,7 +599,12 @@ describe("Investigation runners wire infrastructure access beside cluster access
       await investigate(kind);
 
       const request: InvestigationRequest = sentRequest(executeRun);
-      expect(request.maxWallClockMs).toBe(LIMIT_MS);
+      expect(request.runLimits?.maxWallClockMs).toBe(LIMIT_MS);
+      expect(request.runLimits?.timeLimitSource).toBe(
+        kind === "incident"
+          ? AIRunTimeLimitSource.IncidentInvestigation
+          : AIRunTimeLimitSource.AlertInvestigation,
+      );
 
       const runCommand: ObservabilityAssistantExtraTool = findTool(
         request,
@@ -617,7 +624,7 @@ describe("Investigation runners wire infrastructure access beside cluster access
 
       expect(late.success).toBe(false);
       expect(late.textForLlm).toContain(
-        "Not enough time is left before this investigation's configured time limit to run another infrastructure command",
+        "Not enough time is left before this investigation's time limit to run another infrastructure command",
       );
       expect(commandRun).toHaveBeenCalledTimes(1);
     },
