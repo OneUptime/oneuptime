@@ -78,6 +78,7 @@ import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import { getDashboardWidgetSortColumns } from "../../../Utils/Dashboard/DashboardWidgetSorts";
+import { widgetSettingsOf } from "../../Helpers/DashboardWidgetSettingsDeclared";
 import { servedWhole } from "../../Helpers/PublicDashboardServedWhole";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
@@ -339,15 +340,13 @@ function decisionOf(componentType: string): PublicDashboardWidgetSettings {
   ];
 }
 
-// Every setting a type has: served, served while another is on, or withheld.
+/*
+ * Every setting a type has, read from its declaration, its editor and its
+ * sort - not from the table under test, so a setting it wrongly withholds
+ * is still stored, and shows as a page drawn differently.
+ */
 function settingsOf(componentType: string): Array<string> {
-  const decision: PublicDashboardWidgetSettings = decisionOf(componentType);
-
-  return [
-    ...decision.served,
-    ...Object.keys(decision.servedWhileOn || {}),
-    ...decision.withheld,
-  ];
+  return widgetSettingsOf(componentType as DashboardComponentType);
 }
 
 const LABEL_ID: string = "e5e5e5e5-5555-4555-8555-e5e5e5e5e5e5";
@@ -587,7 +586,9 @@ function everySetting(componentType: string, mark: string): JSONObject {
     const value: unknown = settingValue(componentType, setting, mark);
 
     settings[setting] = (
-      decision.withheld.includes(setting) && typeof value === "string"
+      !decision.served.includes(setting) &&
+      !Object.keys(decision.servedWhileOn || {}).includes(setting) &&
+      typeof value === "string"
         ? `secret ${setting} ${value}`
         : value
     ) as JSONObject;

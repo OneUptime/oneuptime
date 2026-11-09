@@ -21,6 +21,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
 import ObjectID from "../../../../Types/ObjectID";
 import StoredDashboardViewConfig from "../../../../Utils/Dashboard/StoredDashboardViewConfig";
+import { widgetSettingsOf } from "../../../Helpers/DashboardWidgetSettingsDeclared";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
 /*
@@ -63,9 +64,12 @@ function servedKeysOf(componentType: string): Array<string> {
   return [...decision.served, ...Object.keys(decision.servedWhileOn || {})];
 }
 
-// Every setting a type has: served, or withheld.
+/*
+ * Every setting a type has, read from its declaration, its editor and its
+ * sort - not from the table under test.
+ */
 function settingsOf(componentType: string): Array<string> {
-  return [...servedKeysOf(componentType), ...decisionOf(componentType).withheld];
+  return widgetSettingsOf(componentType as DashboardComponentType);
 }
 
 function widgetOf(

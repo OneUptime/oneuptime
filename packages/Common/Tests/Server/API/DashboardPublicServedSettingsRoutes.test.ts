@@ -5,21 +5,19 @@ import PublicDashboardResourceListPolicy from "../../../Server/Utils/Dashboard/P
 import PublicDashboardSloHistoryPolicy from "../../../Server/Utils/Dashboard/PublicDashboardSloHistoryPolicy";
 import PublicDashboardSloWidget from "../../../Server/Utils/Dashboard/PublicDashboardSloWidget";
 import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
-import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import DashboardComponentType, {
+  isDashboardComponentType,
+} from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
-import {
-  PUBLIC_DASHBOARD_WIDGET_SETTINGS,
-  PublicDashboardServedWidgetType,
-  PublicDashboardWidgetSettings,
-} from "../../../Types/Dashboard/PublicDashboardServedSettings";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import { getDashboardWidgetSortColumns } from "../../../Utils/Dashboard/DashboardWidgetSorts";
+import { widgetSettingsOf } from "../../Helpers/DashboardWidgetSettingsDeclared";
 import { drawnFromWhole } from "../../Helpers/PublicDashboardServedWhole";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
@@ -273,6 +271,37 @@ const FILTER_VALUES: Array<unknown> = [
   null,
 ];
 
+/*
+ * The values each list's filter takes (PublicDashboardResourceListPolicy),
+ * by widget type and setting: drawn most of the time, so a list is read
+ * rather than refused, and its other settings shape what it reads.
+ */
+const VALID_FILTER_VALUES: Record<string, Array<string>> = {
+  "IncidentList.stateFilter": ["unresolved", "resolved", "acknowledged"],
+  "AlertList.stateFilter": ["unresolved", "resolved", "acknowledged"],
+  "MonitorList.statusFilter": ["operational", "non-operational"],
+  "NetworkMap.statusFilter": ["down", "operational"],
+  "HostList.statusFilter": ["connected", "disconnected"],
+  "HostList.osTypeFilter": ["linux", "darwin", "windows"],
+  "DockerHostList.statusFilter": ["connected", "disconnected"],
+  "PodmanHostList.statusFilter": ["connected", "disconnected"],
+  "KubernetesNodeList.readinessFilter": ["ready", "not-ready"],
+  "ProxmoxNodeList.statusFilter": ["online", "offline"],
+  "ProxmoxGuestList.guestTypeFilter": ["qemu", "lxc"],
+  "ProxmoxGuestList.statusFilter": ["running", "stopped"],
+  "VMwareVirtualMachineList.powerStateFilter": ["on", "off"],
+  "VMwareVirtualMachineList.templateFilter": ["exclude", "only"],
+  "CephOsdList.stateFilter": ["up", "down", "out"],
+  "StorageArrayHardwareList.kindFilter": ["Hardware", "Drive", "Controller"],
+  "StorageArrayHardwareList.statusFilter": ["unhealthy"],
+  "DockerSwarmNodeList.roleFilter": ["manager", "worker"],
+  "DockerSwarmNodeList.statusFilter": ["ready", "notready"],
+  "DockerSwarmServiceList.serviceModeFilter": ["replicated", "global"],
+  "DockerSwarmServiceList.statusFilter": ["converged", "notconverged"],
+  "TraceList.statusFilter": ["0", "1", "2"],
+  "LogStream.severityFilter": ["Error", "Warning", "Information"],
+};
+
 interface Generation {
   random: SeededRandom;
   name: string;
@@ -385,9 +414,11 @@ function settingValue(
     case "serviceLevelObjectiveId":
       return random(4) === 0 ? 42 : storedId(random, pick(random, IDS));
     case "sloMetric":
-      return pick(random, ["Sli", "ErrorBudgetRemaining", "BurnRate", "bogus"]);
+      return random(5) === 0
+        ? "bogus"
+        : pick(random, ["Sli", "ErrorBudgetRemaining", "BurnRate"]);
     case "displayType":
-      return pick(random, ["Tile", "Chart", "bogus"]);
+      return random(5) === 0 ? "bogus" : pick(random, ["Tile", "Chart"]);
     case "maxRows":
     case "maxSites":
     case "limit":
@@ -433,7 +464,12 @@ function settingValue(
   }
 
   if (setting.endsWith("Filter")) {
-    return pick(random, FILTER_VALUES);
+    const valid: Array<string> | undefined =
+      VALID_FILTER_VALUES[`${componentType}.${setting}`];
+
+    return valid && random(4) !== 0
+      ? pick(random, valid)
+      : pick(random, FILTER_VALUES);
   }
 
   if (setting.startsWith("is") || setting.startsWith("show") || setting.startsWith("allow") || setting === "hideUnit" || setting === "includeChildSpans") {
@@ -497,6 +533,19 @@ function junkSettings(
   return junk;
 }
 
+/*
+ * Every setting a widget type has, read from its declaration, its editor
+ * and its sort - never from the table that decides what is served, so a
+ * setting it wrongly withholds is still generated, and shows as an answer
+ * that changed. A type no board draws holds what a Data Source widget
+ * would.
+ */
+function settingsTheTypeHas(componentType: string): Array<string> {
+  return isDashboardComponentType(componentType)
+    ? widgetSettingsOf(componentType)
+    : ["title", "query", "queries"];
+}
+
 interface GeneratedDashboard {
   // Every widget with every setting its type has, and every variable.
   clean: unknown;
@@ -555,18 +604,8 @@ function generate(random: SeededRandom, name: string): GeneratedDashboard {
 
   for (let index: number = 0; index < count; index++) {
     const componentType: string = pick(random, ALL_TYPES);
-    const decision: PublicDashboardWidgetSettings | undefined =
-      PUBLIC_DASHBOARD_WIDGET_SETTINGS[
-        componentType as PublicDashboardServedWidgetType
-      ];
     const settings: JSONObject = {};
-    const typeSettings: Array<string> = decision
-      ? [
-          ...decision.served,
-          ...Object.keys(decision.servedWhileOn || {}),
-          ...decision.withheld,
-        ]
-      : ["title", "query", "queries"];
+    const typeSettings: Array<string> = settingsTheTypeHas(componentType);
 
     for (const setting of typeSettings) {
       if (random(5) !== 0) {
@@ -688,7 +727,8 @@ describe("every public route answers as before for every widget the page draws (
 
     expect(lists).toBeGreaterThan(100);
     expect(refusedLists).toBeGreaterThan(20);
-    expect(sloWidgets).toBeGreaterThan(10);
+    // An SLO widget is one type of 55: a few, pinned and following a variable.
+    expect(sloWidgets).toBeGreaterThan(5);
     expect(metricNames).toBeGreaterThan(100);
     expect(services).toBeGreaterThan(50);
     expect(variableKeys).toBeGreaterThan(20);
@@ -707,19 +747,9 @@ describe("every public route answers as before for every widget the page draws (
       heightInDashboardUnits: 24,
       components: Object.values(DashboardComponentType).map(
         (componentType: DashboardComponentType, index: number): JSONObject => {
-          const decision: PublicDashboardWidgetSettings | undefined =
-            PUBLIC_DASHBOARD_WIDGET_SETTINGS[
-              componentType as PublicDashboardServedWidgetType
-            ];
           const settings: JSONObject = {};
 
-          for (const setting of decision
-            ? [
-                ...decision.served,
-                ...Object.keys(decision.servedWhileOn || {}),
-                ...decision.withheld,
-              ]
-            : ["query"]) {
+          for (const setting of settingsTheTypeHas(componentType)) {
             settings[setting] = settingValue(
               generation,
               componentType,

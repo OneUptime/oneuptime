@@ -1,6 +1,4 @@
 import { describe, expect, test } from "@jest/globals";
-import fs from "fs";
-import path from "path";
 import DashboardComponentType, {
   DataSourceComponentTypes,
   isDashboardComponentType,
@@ -24,13 +22,13 @@ import {
   getPublicDashboardWidgetSettingsDecision,
   isPublicDashboardUndrawnWidgetType,
 } from "../../../Types/Dashboard/PublicDashboardServedSettings";
-import { ComponentArgument } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
-import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
-import DashboardComponentsUtil from "../../../Utils/Dashboard/Components/Index";
 import {
-  DASHBOARD_WIDGET_TYPES_SORTED_BY_OWN_COLUMNS,
-  getDashboardWidgetSortSpec,
-} from "../../../Utils/Dashboard/DashboardWidgetSorts";
+  declaredVariableFields,
+  declaredWidgetSettings,
+  editorWidgetSettings,
+  isSortableWidgetType,
+  widgetSettingsOf,
+} from "../../Helpers/DashboardWidgetSettingsDeclared";
 
 /*
  * Issue #6338: a public dashboard served its anonymous visitors the whole
@@ -57,26 +55,6 @@ import {
  * routes' and the public page's own suites.
  */
 
-const TYPES_DIRECTORY: string = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "Types",
-  "Dashboard",
-  "DashboardComponents",
-);
-
-const VARIABLE_TYPE_FILE: string = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "Types",
-  "Dashboard",
-  "DashboardVariable.ts",
-);
-
 // The types a public dashboard serves: every type but the Data Source ones.
 const SERVED_TYPES: Array<PublicDashboardServedWidgetType> = Object.values(
   DashboardComponentType,
@@ -84,104 +62,18 @@ const SERVED_TYPES: Array<PublicDashboardServedWidgetType> = Object.values(
   return !DataSourceComponentTypes.includes(componentType);
 }) as Array<PublicDashboardServedWidgetType>;
 
-// TypeScript source without its comments.
-function withoutComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-}
-
-/*
- * The top-level keys of the object type that follows `opening` in a
- * source: `arguments: {` in a widget type's declaration, `interface
- * DashboardVariable {` in the variable's.
- */
-function declaredKeys(source: string, opening: string): Array<string> {
-  const code: string = withoutComments(source);
-  const start: number = code.indexOf(opening);
-
-  if (start < 0) {
-    return [];
-  }
-
-  const keys: Array<string> = [];
-  let depth: number = 1;
-  let line: string = "";
-
-  for (
-    let index: number = start + opening.length;
-    index < code.length && depth > 0;
-    index++
-  ) {
-    const character: string = code[index]!;
-
-    if (character === "\n") {
-      if (depth === 1) {
-        const match: RegExpExecArray | null =
-          /^\s*([A-Za-z_][A-Za-z0-9_]*)\??\s*:/.exec(line);
-
-        if (match) {
-          keys.push(match[1]!);
-        }
-      }
-
-      line = "";
-      continue;
-    }
-
-    if (depth === 1) {
-      line += character;
-    }
-
-    if (character === "{" || character === "(" || character === "[") {
-      depth++;
-    } else if (character === "}" || character === ")" || character === "]") {
-      depth--;
-    }
-  }
-
-  return keys;
-}
-
-// The settings each widget type declares in Types/Dashboard/DashboardComponents.
-function declaredSettings(componentType: string): Array<string> {
-  const file: string = path.join(
-    TYPES_DIRECTORY,
-    `Dashboard${componentType}Component.ts`,
-  );
-
-  if (!fs.existsSync(file)) {
-    return [];
-  }
-
-  return declaredKeys(fs.readFileSync(file, "utf8"), "arguments: {");
-}
-
-// The settings each widget type's editor writes.
-function editorSettings(componentType: DashboardComponentType): Array<string> {
-  return DashboardComponentsUtil.getComponentSettingsArguments(
-    componentType,
-  ).map((argument: ComponentArgument<DashboardBaseComponent>): string => {
-    return String(argument.id);
-  });
-}
-
-// Whether a widget type keeps a sort of its own (issue #5082).
-function isSortable(componentType: DashboardComponentType): boolean {
-  return (
-    getDashboardWidgetSortSpec(componentType) !== null ||
-    DASHBOARD_WIDGET_TYPES_SORTED_BY_OWN_COLUMNS.includes(componentType)
-  );
-}
-
 // Every setting a widget type has, as its declaration, its editor and its sort say.
-function settingsOf(componentType: DashboardComponentType): Array<string> {
-  return [
-    ...new Set([
-      ...declaredSettings(componentType),
-      ...editorSettings(componentType),
-      ...(isSortable(componentType) ? [DASHBOARD_WIDGET_SORT_ARGUMENT] : []),
-    ]),
-  ].sort();
-}
+const settingsOf: (componentType: DashboardComponentType) => Array<string> =
+  widgetSettingsOf;
+
+const declaredSettings: (componentType: string) => Array<string> =
+  declaredWidgetSettings;
+
+const editorSettings: (componentType: DashboardComponentType) => Array<string> =
+  editorWidgetSettings;
+
+const isSortable: (componentType: DashboardComponentType) => boolean =
+  isSortableWidgetType;
 
 // Every setting a decision names, in all three of its lists.
 function decidedSettings(decision: PublicDashboardWidgetSettings): Array<string> {
@@ -610,17 +502,6 @@ describe("getPublicDashboardWidgetSettings", () => {
     });
   });
 });
-
-/*
- * The fields DashboardVariable declares, read off its declaration, so a
- * field added later is decided the day it is added.
- */
-function declaredVariableFields(): Array<string> {
-  return declaredKeys(
-    fs.readFileSync(VARIABLE_TYPE_FILE, "utf8"),
-    "export default interface DashboardVariable {",
-  );
-}
 
 describe("every field of a variable is decided, for every type of it", () => {
   test("the declaration is read: the query the issue names is among its fields", () => {
