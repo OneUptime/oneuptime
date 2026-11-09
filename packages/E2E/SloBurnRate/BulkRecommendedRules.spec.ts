@@ -57,7 +57,8 @@ async function selectAll(page: Page): Promise<void> {
   for (const name of SLO_NAMES) {
     await page
       .getByRole("checkbox", {
-        name: `Select Service Level Objective: ${name}`,
+        // The SLOs table names its rows SLO.
+        name: `Select SLO: ${name}`,
         exact: true,
       })
       .check();
@@ -100,7 +101,7 @@ test.beforeEach(async ({ page }: { page: Page }) => {
   await page.goto(ROUTE);
   await expect(
     page.getByRole("checkbox", {
-      name: "Select Service Level Objective: Login",
+      name: "Select SLO: Login",
       exact: true,
     }),
   ).toBeVisible();

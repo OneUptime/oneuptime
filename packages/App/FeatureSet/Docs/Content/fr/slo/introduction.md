@@ -42,7 +42,7 @@ Il vous faut un rôle autorisé à créer des SLO : Project Owner, Project Admin
 :::steps
 ### Ouvrir les SLO
 
-Ouvrez **SLOs** depuis le menu **Produits** de la barre supérieure. Il se trouve dans le premier groupe, à côté des moniteurs et des incidents. Cliquez sur **Créer : Objectif de niveau de service**.
+Ouvrez **SLOs** depuis le menu **Produits** de la barre supérieure. Il se trouve dans le premier groupe, à côté des moniteurs et des incidents. Cliquez sur **Créer : SLO**.
 
 ### Le nommer et fixer un objectif
 
@@ -54,7 +54,7 @@ Saisissez un **Nom**, par exemple « API Availability », et un **Cible (%)** : 
 
 ### Enregistrer le SLO
 
-Cliquez sur **Créer : Objectif de niveau de service**. OneUptime ouvre le nouveau SLO. Sa **Vue d'ensemble** affiche **Choisissez ce que ce SLO mesure**, car un nouveau SLO n'a encore aucun moniteur.
+Cliquez sur **Créer : SLO**. OneUptime ouvre le nouveau SLO. Sa **Vue d'ensemble** affiche **Choisissez ce que ce SLO mesure**, car un nouveau SLO n'a encore aucun moniteur.
 
 ### Rattacher des moniteurs
 

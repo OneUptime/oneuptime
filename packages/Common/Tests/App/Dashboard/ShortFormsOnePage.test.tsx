@@ -519,17 +519,17 @@ describe("the OID collection template form", () => {
 /*
  * SLO create, as the SLOs table opens it: the page's own field list and
  * initial values (Pages/Slo/Slos.tsx hands both to its table, with no
- * steps).
+ * steps), and the table's name for its rows, SLO.
  */
 async function renderSloCreate(): Promise<void> {
   render(
     <MemoryRouter>
       <ModelFormModal<ServiceLevelObjective>
-        title="Create New Service Level Objective"
-        name="SLOs > Create New Service Level Objective"
+        title="Create New SLO"
+        name="SLOs > Create New SLO"
         modelType={ServiceLevelObjective}
         initialValues={SLO_CREATE_INITIAL_VALUES}
-        submitButtonText="Create Service Level Objective"
+        submitButtonText="Create SLO"
         onClose={() => {}}
         onSuccess={() => {}}
         formProps={{
@@ -544,7 +544,7 @@ async function renderSloCreate(): Promise<void> {
     </MemoryRouter>,
   );
 
-  await screen.findByText("Create New Service Level Objective");
+  await screen.findByText("Create New SLO");
   await settle();
 }
 
@@ -559,7 +559,7 @@ function sloField(placeholder: string): HTMLInputElement {
 describe("SLO create", () => {
   test("is one page: the name, the target and the folded Advanced section", async () => {
     await renderSloCreate();
-    await expectOnePage("Create Service Level Objective");
+    await expectOnePage("Create SLO");
 
     expect(sloField("API Availability")).toBeVisible();
     // The suggested target, there to see and change.

@@ -118,8 +118,9 @@ const sideMenuAdvancedToggle: MenuLocatorFunction = (page: Page): Locator => {
  */
 type CreateSloButtonFunction = (page: Page) => Locator;
 
+// The table names its rows SLO, so its button reads Create SLO.
 const createSloButton: CreateSloButtonFunction = (page: Page): Locator => {
-  return getCardButton(page, "Create Service Level Objective");
+  return getCardButton(page, "Create SLO");
 };
 
 type OpenSideMenuSectionFunction = (page: Page, title: string) => Promise<void>;
@@ -354,7 +355,7 @@ test.describe("SLOs", () => {
     const modal: Locator = page.getByTestId("modal");
     await modal.waitFor({ state: "visible", timeout: 30000 });
     await expect(page.getByTestId("modal-title")).toContainText(
-      "Service Level Objective",
+      "Create New SLO",
     );
 
     // ModelTable names its create form after the model class.
@@ -375,7 +376,7 @@ test.describe("SLOs", () => {
     await expect(form.getByLabel("Name", { exact: true })).toBeVisible();
     await expect(form.locator('nav[aria-label="Progress"]')).toHaveCount(0);
     await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
-    await expect(submitButton).toContainText("Create Service Level Objective");
+    await expect(submitButton).toContainText("Create SLO");
     // The suggested target, there to see and change.
     await expect(form.getByLabel("Target (%)")).toHaveValue("99.9");
     await expect(
@@ -550,9 +551,7 @@ test.describe("SLOs", () => {
     await expect(sloRow).toContainText("30 days rolling");
     await expect(sloRow).toContainText(sloStatusRegex);
 
-    await sloRow
-      .getByRole("button", { name: "View Service Level Objective" })
-      .click();
+    await sloRow.getByRole("button", { name: "View SLO" }).click();
 
     await page.waitForURL(
       new RegExp(`/dashboard/${ctx.projectId}/slos/${ctx.sloId}/?$`, "i"),

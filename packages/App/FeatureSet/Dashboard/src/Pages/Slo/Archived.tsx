@@ -82,6 +82,9 @@ const SlosArchived: FunctionComponent<
     <Fragment>
       <ModelTable<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
+        // Named as the SLO list names its rows: View SLO, Select SLO.
+        singularName="SLO"
+        pluralName="SLOs"
         // Unarchive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...unarchiveRowActions]}
         id={SLOS_ARCHIVED_TABLE_ID}

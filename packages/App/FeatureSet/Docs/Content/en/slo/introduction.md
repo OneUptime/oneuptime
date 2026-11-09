@@ -42,7 +42,7 @@ You need a role that can create SLOs: Project Owner, Project Admin, or a custom 
 :::steps
 ### Open SLOs
 
-Open **SLOs** from the **Products** menu in the top bar. It is in the first group, beside Monitors and Incidents. Click **Create Service Level Objective**.
+Open **SLOs** from the **Products** menu in the top bar. It is in the first group, beside Monitors and Incidents. Click **Create SLO**.
 
 ### Name it and set a target
 
@@ -54,7 +54,7 @@ Enter a **Name**, for example "API Availability", and a **Target (%)**: the shar
 
 ### Save the SLO
 
-Click **Create Service Level Objective**. OneUptime opens the new SLO. Its **Overview** shows **Choose what this SLO measures**, because a new SLO has no monitors yet.
+Click **Create SLO**. OneUptime opens the new SLO. Its **Overview** shows **Choose what this SLO measures**, because a new SLO has no monitors yet.
 
 ### Attach monitors
 

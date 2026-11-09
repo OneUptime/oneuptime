@@ -42,7 +42,7 @@ Ti serve un ruolo che possa creare SLO: Project Owner, Project Admin o un ruolo 
 :::steps
 ### Aprire gli SLO
 
-Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo gruppo, accanto a monitor e incidenti. Fai clic su **Crea: Service Level Objective**.
+Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo gruppo, accanto a monitor e incidenti. Fai clic su **Crea: SLO**.
 
 ### Dargli un nome e fissare un obiettivo
 
@@ -54,7 +54,7 @@ Inserisci un **Nome**, per esempio «API Availability», e un **Obiettivo (%)**:
 
 ### Salvare lo SLO
 
-Fai clic su **Crea: Service Level Objective**. OneUptime apre il nuovo SLO. La sua **Panoramica** mostra **Choose what this SLO measures**, perché un nuovo SLO non ha ancora monitor.
+Fai clic su **Crea: SLO**. OneUptime apre il nuovo SLO. La sua **Panoramica** mostra **Choose what this SLO measures**, perché un nuovo SLO non ha ancora monitor.
 
 ### Collegare i monitor
 

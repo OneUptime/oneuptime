@@ -473,6 +473,14 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
       <ModelTable<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
+        /*
+         * Its rows are named as the product names them everywhere else -
+         * the SLOs menu, "No SLOs yet" - so its buttons read Create SLO and
+         * View SLO, not Create Service Level Objective; the card's title
+         * spells the name out once.
+         */
+        singularName="SLO"
+        pluralName="SLOs"
         // Enable or Disable, and Archive, in each row's ⋯ menu.
         actionButtons={[...rowActions, ...archiveRowActions]}
         id={SLOS_TABLE_ID}

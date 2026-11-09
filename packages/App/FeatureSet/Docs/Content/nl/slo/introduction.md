@@ -42,7 +42,7 @@ U hebt een rol nodig die SLO's mag aanmaken: Project Owner, Project Admin of een
 :::steps
 ### SLO's openen
 
-Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste groep, naast monitoren en incidenten. Klik op **Service Level Objective aanmaken**.
+Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste groep, naast monitoren en incidenten. Klik op **SLO aanmaken**.
 
 ### Een naam en een doel geven
 
@@ -54,7 +54,7 @@ Vul een **Naam** in, bijvoorbeeld "API Availability", en een **Doel (%)**: het d
 
 ### De SLO opslaan
 
-Klik op **Service Level Objective aanmaken**. OneUptime opent de nieuwe SLO. Het **Overzicht** toont **Choose what this SLO measures**, omdat een nieuwe SLO nog geen monitoren heeft.
+Klik op **SLO aanmaken**. OneUptime opent de nieuwe SLO. Het **Overzicht** toont **Choose what this SLO measures**, omdat een nieuwe SLO nog geen monitoren heeft.
 
 ### Monitoren koppelen
 

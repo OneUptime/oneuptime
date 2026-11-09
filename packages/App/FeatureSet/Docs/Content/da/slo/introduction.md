@@ -42,7 +42,7 @@ Du skal have en rolle, der må oprette SLO'er: Project Owner, Project Admin elle
 :::steps
 ### Åbn SLO'er
 
-Åbn **SLOs** fra menuen **Produkter** i topbjælken. Det ligger i den første gruppe, ved siden af monitorer og hændelser. Klik på **Opret Service Level Objective**.
+Åbn **SLOs** fra menuen **Produkter** i topbjælken. Det ligger i den første gruppe, ved siden af monitorer og hændelser. Klik på **Opret SLO**.
 
 ### Giv det et navn og et mål
 
@@ -54,7 +54,7 @@ Angiv et **Navn**, for eksempel "API Availability", og et **Mål (%)**: den ande
 
 ### Gem SLO'et
 
-Klik på **Opret Service Level Objective**. OneUptime åbner det nye SLO. Dets **Oversigt** viser **Choose what this SLO measures**, fordi et nyt SLO endnu ikke har nogen monitorer.
+Klik på **Opret SLO**. OneUptime åbner det nye SLO. Dets **Oversigt** viser **Choose what this SLO measures**, fordi et nyt SLO endnu ikke har nogen monitorer.
 
 ### Tilknyt monitorer
 

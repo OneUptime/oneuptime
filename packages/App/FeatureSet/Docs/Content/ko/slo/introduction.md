@@ -42,7 +42,7 @@ SLO를 만들 수 있는 역할이 필요합니다. Project Owner, Project Admin
 :::steps
 ### SLO 열기
 
-상단 바의 **제품** 메뉴에서 **SLOs** 를 엽니다. 모니터, 인시던트와 함께 첫 번째 그룹에 있습니다. **Service Level Objective 만들기** 를 클릭합니다.
+상단 바의 **제품** 메뉴에서 **SLOs** 를 엽니다. 모니터, 인시던트와 함께 첫 번째 그룹에 있습니다. **SLO 만들기** 를 클릭합니다.
 
 ### 이름과 목표 정하기
 
@@ -54,7 +54,7 @@ SLO를 만들 수 있는 역할이 필요합니다. Project Owner, Project Admin
 
 ### SLO 저장하기
 
-**Service Level Objective 만들기** 를 클릭합니다. OneUptime이 새 SLO를 엽니다. 새 SLO에는 아직 모니터가 없으므로 **개요** 에 **Choose what this SLO measures** 가 표시됩니다.
+**SLO 만들기** 를 클릭합니다. OneUptime이 새 SLO를 엽니다. 새 SLO에는 아직 모니터가 없으므로 **개요** 에 **Choose what this SLO measures** 가 표시됩니다.
 
 ### 모니터 연결하기
 

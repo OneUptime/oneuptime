@@ -253,7 +253,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
  * gives its rows (drawnCreateButton): "Create" and the model's singular name.
  */
 const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
-  [INTRODUCTION]: ["Create Service Level Objective"],
+  // The SLOs table names its rows SLO (Pages/Slo/Slos.tsx).
+  [INTRODUCTION]: ["Create SLO"],
   [MONITOR_RULES]: ["Create SLO Monitor Rule"],
   [BURN_RATE]: ["Create SLO Burn Rate Rule"],
   [ERROR_BUDGET_POLICY]: ["Create SLO Error Budget Policy Tier"],

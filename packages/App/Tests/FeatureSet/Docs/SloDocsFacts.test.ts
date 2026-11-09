@@ -353,6 +353,9 @@ function criteriaCopy(key: string): string {
   return (match as RegExpExecArray)[1] as string;
 }
 
+// The name the SLOs table gives its rows (ModelTable's singularName).
+const SLO_TABLE_SINGULAR_NAME: RegExp = /singularName="([^"]+)"/;
+
 // A table create button, as ModelTable names it: "Create" and the model's singular name.
 function createButton(model: {
   singularName?: string | null | undefined;
@@ -411,14 +414,24 @@ function runway(
 describe("SLOs Overview, against the product", () => {
   const page: string = englishPage(INTRODUCTION);
 
-  it("names the create button the SLO table draws, never a shorter one", () => {
-    const button: string = createButton(new ServiceLevelObjective());
+  /*
+   * The SLO table names its rows as the product names them everywhere -
+   * the SLOs menu, "No SLOs yet" - so its create button reads Create SLO,
+   * never the model's long name.
+   */
+  it("names the create button the SLO table draws: Create SLO", () => {
+    const slosPage: string = readSource("slosPage");
+    const button: string = createButton({
+      singularName: SLO_TABLE_SINGULAR_NAME.exec(slosPage)?.[1],
+    });
 
-    expect(button).toBe("Create Service Level Objective");
+    expect(button).toBe("Create SLO");
     // The list's button opens the form, and the form's button saves it.
     expect(page.split(`**${button}**`).length - 1).toBe(2);
-    expect(page).not.toContain("**Create SLO**");
-    expect(readSource("slosPage")).toContain("isCreateable={true}");
+    expect(page).not.toContain(
+      `**${createButton(new ServiceLevelObjective())}**`,
+    );
+    expect(slosPage).toContain("isCreateable={true}");
   });
 
   it("opens SLOs from the Products menu", () => {

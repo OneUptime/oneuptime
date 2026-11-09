@@ -42,7 +42,7 @@ flowchart TB
 :::steps
 ### 開啟 SLO
 
-從頂部列的 **產品** 選單開啟 **SLOs**。它位於第一組，與監測器和事件放在一起。按一下 **建立Service Level Objective**。
+從頂部列的 **產品** 選單開啟 **SLOs**。它位於第一組，與監測器和事件放在一起。按一下 **建立SLO**。
 
 ### 命名並設定目標
 
@@ -54,7 +54,7 @@ flowchart TB
 
 ### 儲存 SLO
 
-按一下 **建立Service Level Objective**。OneUptime 會開啟新的 SLO。由於新 SLO 還沒有監測器，它的 **概覽** 會顯示 **Choose what this SLO measures**。
+按一下 **建立SLO**。OneUptime 會開啟新的 SLO。由於新 SLO 還沒有監測器，它的 **概覽** 會顯示 **Choose what this SLO measures**。
 
 ### 連結監測器
 
