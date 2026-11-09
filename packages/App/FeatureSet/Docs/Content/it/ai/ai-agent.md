@@ -15,7 +15,7 @@ Codice è il posto in cui chiedi a OneUptime AI di lavorare nei tuoi repository,
 :::
 
 > [!TIP]
-> Puoi avviarla anche da GitHub. Menziona la GitHub App di OneUptime in una issue o in una pull request e implementa, rivede o revisiona direttamente lì: vedi [GitHub App](/docs/ai/github-app). È lo stesso agente, lo stesso Runner e gli stessi budget; cambia solo il trigger.
+> Puoi avviarla anche da GitHub. Menziona la GitHub App di OneUptime in una issue o in una pull request e implementa, rivede o revisiona direttamente lì: vedi [GitHub App](/docs/ai/github-app). È lo stesso agente, lo stesso Runner e gli stessi limiti; cambia solo il trigger.
 
 ## Chiedere all'IA in un repository
 
@@ -97,7 +97,7 @@ flowchart TB
 
 La pagina da cui è stata avviata l'attività ne mostra lo stato in tempo reale. Ogni attività è elencata nel suo repository, in **Prodotti → Codice**: la sua pagina è la sua conversazione, e il **Registro** di ogni turno ha una riga per ogni file che il Runner ha letto o scritto e per ogni comando che ha eseguito.
 
-Ogni esecuzione è soggetta a budget che il server impone: al massimo **40 chiamate al LLM** e **100.000 token di output**. Le query sulla telemetria di produzione di un'esecuzione rientrano nelle stesse 40 chiamate. Un'esecuzione che ne raggiunge uno termina con un riepilogo del lavoro svolto fin lì invece di girare a vuoto. Le esecuzioni di correzione contano anche per i limiti giornalieri di IA del progetto, quando il progetto li imposta.
+Un'esecuzione fa tutte le chiamate al LLM e le query sulla telemetria di produzione di cui il suo lavoro ha bisogno, entro il suo limite di tempo: 120 minuti, a meno che il progetto non ne imposti uno proprio. Il progetto può contenere di più ogni esecuzione in **Limiti per esecuzione**, sotto **Altre impostazioni** in **Impostazioni del progetto → IA → Funzionalità IA**; un'esecuzione che raggiunge un limite termina con un riepilogo del lavoro svolto fin lì. Un Runner precedente a questa release ferma ancora un'esecuzione a 40 chiamate al LLM e 100.000 token di output: aggiornalo per eliminare questi limiti. Le esecuzioni di correzione contano anche per i limiti giornalieri di IA del progetto, quando il progetto li imposta.
 
 ## Dove partono le attività di correzione
 
@@ -145,7 +145,7 @@ Cosa può leggere l'agente lo decide il server OneUptime, in base all'attività 
 - **Sola lettura.** Le query vengono eseguite sul server OneUptime, mai sul Runner, che non possiede alcuna credenziale per leggere la telemetria. Niente di ciò che fanno può modificare il tuo progetto.
 - **Questo progetto, e solo i servizi di questo repository.** Non sei tu ad associarli: sono i servizi per cui OneUptime trova questo repository, nello stesso modo in cui trova il repository di una correzione - gli stack trace delle loro eccezioni passano per i suoi file, hanno il suo stesso nome, oppure è l'unico repository del progetto. La telemetria di un altro servizio non si può leggere.
 - **Nessun incidente privato**, e token, chiavi, password e indirizzi email vengono oscurati prima che l'agente veda un risultato, come ovunque OneUptime AI legga i tuoi dati.
-- **Limitato.** Al massimo **12** query per esecuzione, ognuna conteggiata nelle 40 chiamate dell'esecuzione.
+- **Limitato.** Dal limite di tempo dell'esecuzione e da **Chiamate agli strumenti per esecuzione**, quando il progetto lo imposta: ogni query è una chiamata a uno strumento.
 
 Quando nessun servizio corrisponde al repository, l'attività viene eseguita senza telemetria di produzione, come prima.
 
@@ -192,7 +192,7 @@ Nulla di una pull request che viene da un fork viene mai letto come istruzioni d
 Codice non chiede più i comandi di setup, build e test, ma un repository che li ha, impostati prima o tramite l'API o Terraform, li mantiene. Compaiono in sola lettura nella scheda **Comandi di build e test**, in **Altre impostazioni** nella pagina **Impostazioni** del repository, e **Rimuovi comandi** li rimuove tutti e tre. Finché uno di essi è impostato, ogni esecuzione di correzione su un Runner tuo verifica anche la sua modifica con essi prima che si apra la pull request:
 
 1. Quando l'agente di codice ha finito, i comandi vengono eseguiti in ordine nella radice del repository, sul Runner, nello spazio di lavoro clonato. Ognuno ha fino a 15 minuti e viene eseguito con `CI=true`, così niente resta in attesa di un input; il primo errore ferma il passaggio.
-2. In caso di errore, la parte finale dell'output del comando fallito torna allo stesso agente di codice come attività di riparazione, con l'istruzione di correggere la propria modifica invece di indebolire o saltare i test, e i comandi vengono eseguiti di nuovo. Fa al massimo **2** tentativi di riparazione. Condividono il budget LLM dell'esecuzione, e le loro modifiche finiscono nello stesso commit della correzione.
+2. In caso di errore, la parte finale dell'output del comando fallito torna allo stesso agente di codice come attività di riparazione, con l'istruzione di correggere la propria modifica invece di indebolire o saltare i test, e i comandi vengono eseguiti di nuovo. Fa al massimo **2** tentativi di riparazione. Contano nei limiti dell'esecuzione, e le loro modifiche finiscono nello stesso commit della correzione.
 3. L'esito, superato, fallito o saltato (nessun comando impostato, o un Runner globale), viene scritto in una sezione Verification della descrizione della pull request e registrato sulla pull request dell'attività.
 
 Una modifica che continua a non superare la verifica non viene scartata: la pull request si apre comunque, con una sezione "Verification failed" ben evidenziata che nomina il comando fallito e termina con il suo output. Il lavoro resta, e chi rivede decide. Un repository senza comandi impostati viene segnalato come saltato, invece di far pensare a una build verde.

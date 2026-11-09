@@ -939,6 +939,7 @@ import { AllowDiscoveryImportWithoutScan1809063255775 } from "./1809063255775-Al
 import { AddUserLanguage1809063412000 } from "./1809063412000-AddUserLanguage";
 import { AddTelemetryIngestionKeyRefusals1809071100000 } from "./1809071100000-AddTelemetryIngestionKeyRefusals";
 import { AddAIRunRetryAtAndProviderTimeout1809080100000 } from "./1809080100000-AddAIRunRetryAtAndProviderTimeout";
+import { AddProjectAiRunLimits1809080210000 } from "./1809080210000-AddProjectAiRunLimits";
 import { AddCodeFixRunAutoRetry1809080300000 } from "./1809080300000-AddCodeFixRunAutoRetry";
 
 export default [
@@ -1883,5 +1884,6 @@ export default [
   AddUserLanguage1809063412000,
   AddTelemetryIngestionKeyRefusals1809071100000,
   AddAIRunRetryAtAndProviderTimeout1809080100000,
+  AddProjectAiRunLimits1809080210000,
   AddCodeFixRunAutoRetry1809080300000,
 ];

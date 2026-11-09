@@ -194,13 +194,14 @@ async function fixApprovalsSwitch(): Promise<HTMLElement> {
 }
 
 describe("Fix approvals, folded under More settings", () => {
-  test("the folded header names it beside Daily limits, and nothing is set by default", async () => {
+  test("the folded header names it after Daily limits and Limits per run, and nothing is set by default", async () => {
     openAiFeaturesPage();
 
     await waitFor(
       () => {
         expect(listedNames(moreSettingsHeader())).toEqual([
           "Daily limits",
+          "Limits per run",
           "Fix approvals",
         ]);
       },
@@ -235,7 +236,7 @@ describe("Fix approvals, folded under More settings", () => {
     );
   });
 
-  test("the More settings line says what the section is for: the daily limits and who approves riskier fixes", async () => {
+  test("the More settings line says what the section is for: the daily limits, the limits per run and who approves riskier fixes", async () => {
     openAiFeaturesPage();
     fireEvent.click(moreSettingsHeader());
 
@@ -248,7 +249,7 @@ describe("Fix approvals, folded under More settings", () => {
       { timeout: WAIT_TIMEOUT },
     );
     expect(ProjectAiDailyLimitsCopy.sectionDescription).toBe(
-      "Limits on how much OneUptime AI uses across the whole project each day, and how many people approve its riskier fixes.",
+      "Limits on how much OneUptime AI uses each day and in each run, and how many people approve its riskier fixes.",
     );
   });
 });
@@ -268,7 +269,7 @@ describe("the switch", () => {
     expect(card).toHaveTextContent(FixApprovalsCopy.switchDescription);
     expect(control).toBeEnabled();
 
-    // A section of More settings' one card, after Daily limits.
+    // A section of More settings' one card, after Daily limits and Limits per run.
     expect(card).toHaveAttribute("data-card-surface", "section");
     const sections: Array<string> = Array.from(
       section().querySelectorAll<HTMLElement>(
@@ -277,7 +278,7 @@ describe("the switch", () => {
     ).map((element: HTMLElement): string => {
       return element === card ? FixApprovalsCopy.cardTitle : "other";
     });
-    expect(sections).toEqual(["other", FixApprovalsCopy.cardTitle]);
+    expect(sections).toEqual(["other", "other", FixApprovalsCopy.cardTitle]);
   });
 
   test("a project owner turns it on: it saves that column alone, at once, and the folded header follows", async () => {

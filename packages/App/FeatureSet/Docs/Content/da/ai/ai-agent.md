@@ -15,7 +15,7 @@ Kode er stedet, hvor du beder OneUptime AI om at arbejde i dine repositorier, s�
 :::
 
 > [!TIP]
-> Du kan også starte dette fra GitHub. Nævn OneUptime GitHub App i et issue eller en pull request, så implementerer, reviderer eller gennemgår den lige dér: se [GitHub App](/docs/ai/github-app). Det er den samme agent, den samme Runner og de samme budgetter; kun udløseren er en anden.
+> Du kan også starte dette fra GitHub. Nævn OneUptime GitHub App i et issue eller en pull request, så implementerer, reviderer eller gennemgår den lige dér: se [GitHub App](/docs/ai/github-app). Det er den samme agent, den samme Runner og de samme grænser; kun udløseren er en anden.
 
 ## Bed AI om noget i et repositorie
 
@@ -97,7 +97,7 @@ flowchart TB
 
 Siden, opgaven blev startet fra, viser dens status live. Alle opgaver står i deres repositorie under **Produkter → Kode**: opgavens side er dens samtale, og hver turs **Log** har en linje for hver fil, Runneren læste eller skrev, og hver kommando, den kørte.
 
-Hver kørsel holdes inden for budgetter, som serveren håndhæver: højst **40 LLM-kald** og **100.000 output-tokens**. En kørsels forespørgsler til produktionstelemetrien tæller med i de samme 40 kald. En kørsel, der når et af dem, afslutter med et resumé af arbejdet indtil da i stedet for at køre i ring. Rettelseskørsler tæller også med i projektets daglige AI-grænser, når projektet har sat dem.
+En kørsel foretager så mange LLM-kald og forespørgsler på produktionstelemetri, som arbejdet kræver, inden for sin tidsgrænse: 120 minutter, medmindre projektet sætter sin egen. Projektet kan holde hver kørsel til mindre i **Grænser pr. kørsel**, under **Yderligere indstillinger** på **Projektindstillinger → AI → AI-funktioner**; en kørsel, der når en grænse, afslutter med et resumé af arbejdet indtil da. En Runner fra før denne udgivelse stopper stadig en kørsel ved 40 LLM-kald og 100.000 output-tokens: opgradér den for at fjerne dem. Rettelseskørsler tæller også med i projektets daglige AI-grænser, når projektet sætter dem.
 
 ## Hvor rettelsesopgaver starter
 
@@ -145,7 +145,7 @@ Hvad agenten kan læse, afgøres af OneUptime-serveren ud fra selve opgaven:
 - **Kun læsning.** Forespørgslerne kører på OneUptime-serveren, aldrig på Runneren, som ikke har nogen legitimationsoplysninger, der kan læse telemetri. Intet, de gør, kan ændre dit projekt.
 - **Dette projekt, og kun de tjenester, der hører til dette repositorie.** Du tilknytter dem ikke: det er de tjenester, som OneUptime finder dette repositorie for, på samme måde som den finder repositoriet til en rettelse - deres undtagelsers stack traces går gennem dets filer, de hedder som det, eller det er projektets eneste repositorie. En anden tjenestes telemetri kan ikke læses.
 - **Ingen private hændelser**, og tokens, nøgler, adgangskoder og e-mailadresser sløres, før agenten ser et resultat, som overalt, hvor OneUptime AI læser dine data.
-- **Begrænset.** Højst **12** forespørgsler pr. kørsel, som hver tæller med i kørslens 40 kald.
+- **Begrænset.** Af kørslens tidsgrænse og af **Værktøjskald pr. kørsel**, når projektet sætter den: hver forespørgsel er ét værktøjskald.
 
 Når ingen tjeneste hører til repositoriet, kører opgaven uden produktionstelemetri, som før.
 
@@ -192,7 +192,7 @@ Intet fra en pull request, der kommer fra en fork, læses nogensinde som reposit
 Kode beder ikke længere om setup-, build- og testkommandoer, men et repositorie, der har dem, sat tidligere eller via API'et eller Terraform, beholder dem. De vises skrivebeskyttet på kortet **Build- og testkommandoer** under **Yderligere indstillinger** på repositoriets side **Indstillinger**, og **Fjern kommandoer** fjerner alle tre. Så længe en af dem er sat, kontrollerer hver rettelseskørsel på din egen Runner også sin ændring med dem, før pull requesten åbnes:
 
 1. Når kodeagenten er færdig, kører kommandoerne i rækkefølge i roden af repositoriet, på Runneren, i det klonede arbejdsområde. Hver får op til 15 minutter og kører med `CI=true`, så intet venter på et input; den første fejl stopper gennemløbet.
-2. Ved en fejl går slutningen af den fejlende kommandos output tilbage til den samme kodeagent som en reparationsopgave, med besked om at rette sin egen ændring i stedet for at svække eller springe tests over, og kommandoerne kører igen. Den gør højst **2** reparationsforsøg. De deler kørslens LLM-budget, og deres ændringer lander i samme commit som rettelsen.
+2. Ved en fejl går slutningen af den fejlende kommandos output tilbage til den samme kodeagent som en reparationsopgave, med besked om at rette sin egen ændring i stedet for at svække eller springe tests over, og kommandoerne kører igen. Den gør højst **2** reparationsforsøg. De tæller med i kørslens grænser, og deres ændringer lander i samme commit som rettelsen.
 3. Resultatet, bestået, fejlet eller sprunget over (ingen kommandoer sat, eller en global Runner), skrives i et Verification-afsnit i pull requestens beskrivelse og registreres på opgavens pull request.
 
 En ændring, der stadig ikke består kontrollen, smides ikke væk: pull requesten åbnes alligevel med et tydeligt markeret afsnit "Verification failed", der nævner den fejlende kommando og slutter med dens output. Arbejdet bevares, og den, der gennemgår, beslutter. Et repositorie uden kommandoer rapporteres som sprunget over i stedet for at antyde et grønt build.

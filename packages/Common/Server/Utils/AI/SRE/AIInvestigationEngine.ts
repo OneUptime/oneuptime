@@ -13,11 +13,9 @@ import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
-import AIAgentRunLimitsHelper, {
-  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
-  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
-  AIAgentRunLimits,
-} from "../../../../Types/AI/AIAgentRunLimits";
+import { AIAgentRunLimits } from "../../../../Types/AI/AIAgentRunLimits";
+import LogSeverity from "../../../../Types/Log/LogSeverity";
+import AIRunLimitsReader from "../AIRunLimitsReader";
 import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
@@ -82,7 +80,7 @@ import { getAiContextEventSummary } from "../AiContext/AiContextPrompt";
  * for both incidents and alerts (and, later, anomalies). It:
  *   1. records the run as an AIRun(Investigation) + AIRunEvents (audit trail),
  *   2. runs the existing read-only, tool-grounded, citation-minting agent loop
- *      (ObservabilityAssistant) with the AI persona and a larger budget,
+ *      (ObservabilityAssistant) with the AI persona and the run limits,
  *   3. brands the cited analysis, judges confidence via the structured
  *      ConfidenceSignal (deterministic evidence floor + one constrained
  *      classification call — G6: no control flow from free-form prose), and
@@ -94,14 +92,14 @@ import { getAiContextEventSummary } from "../AiContext/AiContextPrompt";
  */
 
 /*
- * Budgets. An investigation runs until it is done: no wall clock, and step
- * counts that only guard against a runaway loop (see AIAgentRunLimits). A
- * project that wants a hard time limit configures one per lane, and the
- * runners pass it in as maxWallClockMs — and to the command toolkits as a
- * deadline — so the loop and every command wait agree on one number.
+ * How far a run goes. An investigation runs until it is done: no count of
+ * calls or tokens unless the project set one (Limits per run), loop
+ * detection, and a time limit - the lane's, the project's, or the default
+ * (Types/AI/AIAgentRunLimits). The runners read the limits once
+ * (getRunLimitsForProject) and pass them in as runLimits - and the deadline
+ * to the command toolkits - so the loop and every command wait agree on one
+ * number. A run nobody passes limits to reads the project's own.
  */
-const MAX_LLM_CALLS: number = AI_AGENT_RUNAWAY_MAX_LLM_CALLS;
-const MAX_TOOL_CALLS: number = AI_AGENT_RUNAWAY_MAX_TOOL_CALLS;
 /*
  * Room for a full report. An answer that still reaches the limit is
  * finished with continuation calls, never published half-written.
@@ -406,10 +404,11 @@ export interface InvestigationRequest {
    * every connected repository.
    */
   codeRepositoryAllowance?: CodeRepositoryAllowance | undefined;
-  maxLlmCalls?: number | undefined;
-  maxToolCalls?: number | undefined;
-  // Undefined means no time limit.
-  maxWallClockMs?: number | undefined;
+  /*
+   * How far the run may go: an investigation's runner reads its lane's
+   * (getRunLimitsForProject). Left out, the project's limits per run.
+   */
+  runLimits?: AIAgentRunLimits | undefined;
   maxOutputTokens?: number | undefined;
 }
 
@@ -547,36 +546,20 @@ export default class AIInvestigationEngine {
   }
 
   /*
-   * How far an investigation of this lane may run: no time limit unless the
-   * project configured one in its Incident / Alert AI settings. Fails open —
-   * a project that cannot be read runs unbounded rather than being cut
-   * short, since the time limit is an opt-in.
+   * How far an investigation of this lane may run: the project's limits per
+   * run (no cap unless it set one), and the lane's time limit when the
+   * project set one in its Incident / Alert AI settings - else the
+   * project's, else the default. Fails open: a project that cannot be read
+   * runs with the defaults rather than not at all (AIRunLimitsReader).
    */
   public static async getRunLimitsForProject(
     projectId: ObjectID,
     subjectType: AISubjectType,
   ): Promise<AIAgentRunLimits> {
-    try {
-      const project: Project | null = await ProjectService.findOneById({
-        id: projectId,
-        select: {
-          incidentAiInvestigationTimeLimitInMinutes: true,
-          alertAiInvestigationTimeLimitInMinutes: true,
-        },
-        props: { isRoot: true },
-      });
-
-      return AIAgentRunLimitsHelper.fromTimeLimitInMinutes(
-        subjectType === "Alert"
-          ? project?.alertAiInvestigationTimeLimitInMinutes
-          : project?.incidentAiInvestigationTimeLimitInMinutes,
-      );
-    } catch (error) {
-      logger.error(
-        `AI: could not read the investigation time limit for project ${projectId.toString()}; running without one: ${error}`,
-      );
-      return AIAgentRunLimitsHelper.getDefault();
-    }
+    return await AIRunLimitsReader.read({
+      projectId,
+      lane: subjectType === "Alert" ? "Alert" : "Incident",
+    });
   }
 
   /*
@@ -934,10 +917,8 @@ export default class AIInvestigationEngine {
             request.questionOverride ??
             "A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis."
           }\n\n${seed.text}`,
-          maxLlmCalls: request.maxLlmCalls ?? MAX_LLM_CALLS,
-          maxToolCalls: request.maxToolCalls ?? MAX_TOOL_CALLS,
-          // Null tells the loop "no time limit" (undefined = its chat default).
-          maxWallClockMs: request.maxWallClockMs ?? null,
+          runLimits:
+            request.runLimits ?? (await AIRunLimitsReader.read({ projectId })),
           maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
           getStopReason: (): string | null => {
@@ -954,7 +935,7 @@ export default class AIInvestigationEngine {
            * The chat-facing AI-meta tools are hidden from the investigator:
            * "the latest investigation" for this subject IS this in-flight
            * run, so the model would poll its own unfinished status ("check
-           * again in a minute") and burn budget instead of investigating.
+           * again in a minute") and spend its calls instead of investigating.
            */
           excludeToolNames: ["get_ai_investigation", "start_investigation"],
         });
@@ -998,6 +979,25 @@ export default class AIInvestigationEngine {
       settledAsCompleted = true;
 
       /*
+       * A run a limit stopped says so in its activity - which limit, and
+       * where to change it - whatever it went on to write (the report says
+       * it too, under the analysis: buildBrandedMarkdown). The activity
+       * draws a line as text, so it gets the note as text, as a warning.
+       */
+      if (result.stopNoteText) {
+        await this.emitEvent({
+          projectId,
+          aiRunId,
+          sequence: sequence++,
+          eventType: AIRunEventType.ProgressLog,
+          resultSummary: {
+            message: result.stopNoteText,
+            severity: LogSeverity.Warning,
+          },
+        });
+      }
+
+      /*
        * The impact's numbers the persona asks the answer to close with are
        * taken off before anything reads it: the TL;DR, the confidence
        * classification, the posted report and the chats never see the
@@ -1038,10 +1038,9 @@ export default class AIInvestigationEngine {
        * G6: judge confidence via the structured signal — the deterministic
        * evidence floor over this run's own server-minted citations, then
        * (only when the floor passes) one constrained classification call.
-       * Budget accounting: that call fires AFTER the agent loop finished, so
-       * it is deliberately OUTSIDE the per-run caps above (MAX_LLM_CALLS /
-       * MAX_OUTPUT_TOKENS govern the loop, whose counts were already
-       * persisted at the Completed transition). It is still metered in
+       * Accounting: that call fires AFTER the agent loop finished, so it is
+       * deliberately OUTSIDE the run's limits (they govern the loop, whose
+       * counts were already persisted at the Completed transition). It is still metered in
        * LlmLog under an AUTONOMOUS_AI_FEATURES feature, so the G4 daily
        * autonomous budget covers it; a budget rejection degrades the signal
        * to "classification-failed" — never a run failure. Running it after
@@ -1555,6 +1554,15 @@ export default class AIInvestigationEngine {
     if (reportLead && reportLead.toString().trim()) {
       markdown =
         mdText`## 🧠 AI — ${heading}\n\n${reportLead}\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
+    }
+
+    /*
+     * A run a limit stopped says so under its analysis, in OneUptime's own
+     * words, with the link to the setting (AIRunLimitsReader.getStopNote):
+     * Markdown OneUptime built, placed as it was written.
+     */
+    if (result.stopNoteInMarkdown) {
+      markdown += mdText`\n\n${FeedMarkdown.asMarkdown(result.stopNoteInMarkdown)}`;
     }
 
     const citations: Array<AIChatCitation> = result.citations || [];
