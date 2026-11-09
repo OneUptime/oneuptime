@@ -1892,7 +1892,8 @@ describe("Cursor as a connection", () => {
       genAiProviderName: "cursor",
       docsPath: "/docs/telemetry/ai-provider-accounts#cursor",
       otherWay: {
-        title: "Cursor Enterprise: OpenTelemetry Export",
+        description:
+          "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.",
         docsPath: "/docs/telemetry/cursor",
       },
     });

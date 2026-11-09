@@ -50,7 +50,7 @@ import UserUtil from "Common/UI/Utils/User";
  *   ?otel=      cursor (Cursor's OpenTelemetry Export arrives as well)
  *   ?role=      owner (default) | member | loading
  *   ?verdict=   pass (default) | warn | auth | permission | settings | slow
- *               | cursor | cursor-permission
+ *               | cursor | cursor-busy | cursor-permission
  *   ?source=    providers (the Usage page's provider accounts)
  *   ?theme=dark   ?lang=ja|de
  */
@@ -189,8 +189,9 @@ const CURSOR = connection("20000000-0000-4000-8000-000000000006", {
     outputTokens: 610000,
     requests: 2310,
     daysWithUsage: 6,
-    members: 40,
-    activeMembers: 12,
+    // A big team: both numbers of its line are written the reader's way.
+    members: 1248,
+    activeMembers: 1031,
   },
 });
 
@@ -351,6 +352,24 @@ const VERDICTS = {
         costUsd: 96.25,
       },
       durationMs: 2400,
+    },
+  },
+  /*
+   * A busy team: more than CursorConnector's test pages of events in a
+   * week, so its requests are counted, not added up - no cost or tokens.
+   */
+  "cursor-busy": {
+    status: 200,
+    body: {
+      provider: "cursor",
+      status: "pass",
+      message: "Connected. Found 48200 requests in the last 7 days.",
+      counts: {
+        days: 7,
+        requests: 48200,
+        members: 1248,
+      },
+      durationMs: 3100,
     },
   },
   // A key Cursor accepts but that may not read the team: a personal key.

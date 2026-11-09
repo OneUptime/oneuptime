@@ -211,13 +211,27 @@ describe("connecting Cursor", () => {
       "llm-connection-other-way-link",
     );
 
-    expect(link).toHaveTextContent("Cursor Enterprise: OpenTelemetry Export");
+    /*
+     * Said as an addition, with its guide - not as a step before the key:
+     * a footnote under the same rule as what OneUptime does with the key.
+     */
+    expect(otherWay).toHaveTextContent(
+      "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export. Read how",
+    );
+    expect(link).toHaveTextContent("Read how");
     expect(link.getAttribute("href")).toMatch(/\/docs\/telemetry\/cursor$/);
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    expect(otherWay).toHaveTextContent(
-      "Cursor's servers send the team's metrics and request logs as they happen, with no key here.",
+
+    const footnotes: HTMLElement = within(hint).getByTestId(
+      "llm-connection-footnotes",
     );
+
+    expect(
+      Array.from(footnotes.children).map((line: Element) => {
+        return line.getAttribute("data-testid");
+      }),
+    ).toEqual(["llm-connection-reads-only", "llm-connection-other-way"]);
 
     // A secret, in a password box, under its own name.
     const key: HTMLElement = within(modal()).getByPlaceholderText("crsr_...");
@@ -293,6 +307,10 @@ describe("connecting a company AI tool", () => {
     );
     expect(
       within(hint).queryByTestId("llm-connection-reads-only"),
+    ).not.toBeInTheDocument();
+    // With no footnote to make, no rule drawn over nothing.
+    expect(
+      within(hint).queryByTestId("llm-connection-footnotes"),
     ).not.toBeInTheDocument();
   });
 

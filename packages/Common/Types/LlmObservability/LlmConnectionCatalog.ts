@@ -55,12 +55,11 @@ export interface LlmConnectionField {
 /*
  * Another way the same product comes into OneUptime, named beside the
  * credential so nobody picks this one not knowing of it: Cursor Enterprise
- * sends its own OpenTelemetry, with no key here.
+ * sends its own OpenTelemetry. The form says it as a footnote, with its
+ * guide - something to add, not a step before the key.
  */
 export interface LlmConnectionOtherWay {
-  // A link's words: "Cursor Enterprise: OpenTelemetry Export".
-  title: string;
-  // One line on what that way brings, and how it differs.
+  // One sentence on what that way brings, said as an addition.
   description: string;
   // Its guide, e.g. "/docs/telemetry/cursor".
   docsPath: string;
@@ -363,9 +362,8 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     backfillDays: 30,
     costIsEstimated: false,
     otherWay: {
-      title: "Cursor Enterprise: OpenTelemetry Export",
       description:
-        "Cursor's servers send the team's metrics and request logs as they happen, with no key here.",
+        "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.",
       docsPath: "/docs/telemetry/cursor",
     },
   },

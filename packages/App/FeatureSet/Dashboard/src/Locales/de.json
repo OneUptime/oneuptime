@@ -47023,11 +47023,9 @@
   "A team admin creates the key in the Cursor dashboard: Settings, Cursor Admin API Keys. It comes with the Teams and Enterprise plans.": "Ein Team-Admin erstellt den Schlüssel im Dashboard von Cursor: Settings, Cursor Admin API Keys. Er ist in den Tarifen Teams und Enterprise enthalten.",
   "Admin API key": "Admin-API-Schlüssel",
   "Connect an OpenAI, Anthropic, Azure, Bedrock, Vertex AI or Cursor account to see what it used and what it cost, by model, project, key and person.": "Verbinde ein OpenAI-, Anthropic-, Azure-, Bedrock-, Vertex-AI- oder Cursor-Konto, um zu sehen, was es verbraucht und gekostet hat – nach Modell, Projekt, Schlüssel und Person.",
-  "Cursor Enterprise: OpenTelemetry Export": "Cursor Enterprise: OpenTelemetry Export",
   "Cursor accepted the key, but it may not read the team's usage.": "Cursor hat den Schlüssel angenommen, aber er darf die Nutzung des Teams nicht lesen.",
   "Cursor's Admin API gives usage and cost by person, not conversations, so Cursor is connected with your AI provider accounts.": "Die Admin API von Cursor liefert Nutzung und Kosten pro Person, keine Unterhaltungen. Deshalb wird Cursor bei deinen KI-Anbieterkonten verbunden.",
   "Cursor's OpenTelemetry Export arrives too. Usage shows it under Your AI calls and this account under Provider accounts, never added together, and a budget counts one of them.": "Auch der OpenTelemetry Export von Cursor kommt an. Nutzung zeigt ihn unter Deine KI-Aufrufe und dieses Konto unter Anbieterkonten, nie zusammengezählt, und ein Budget zählt nur eines von beiden.",
-  "Cursor's servers send the team's metrics and request logs as they happen, with no key here.": "Die Server von Cursor senden die Metriken und Anfrageprotokolle des Teams, sobald sie entstehen, ganz ohne Schlüssel hier.",
   "Read every 15 minutes, Cursor every hour. Usage and cost arrive in Usage, under Provider accounts, and a budget can count them.": "Wird alle 15 Minuten gelesen, Cursor jede Stunde. Nutzung und Kosten erscheinen unter Nutzung bei Anbieterkonten, und ein Budget kann sie zählen.",
   "Reads the requests of your Cursor team's members with Cursor's Admin API, an hour at a time: the newest hour arrives with the next read.": "Liest die Anfragen der Mitglieder deines Cursor-Teams mit der Admin API von Cursor, Stunde für Stunde: Die neueste Stunde kommt mit dem nächsten Lesen.",
   "Still reading earlier usage": "Frühere Nutzung wird noch gelesen",
@@ -47119,5 +47117,8 @@
   "No device hidden from the map matches this search.": "Kein auf der Karte ausgeblendetes Gerät passt zu dieser Suche.",
   "No device that is not monitored matches this search.": "Kein nicht überwachtes Gerät passt zu dieser Suche.",
   "No monitored device matches this search.": "Kein überwachtes Gerät passt zu dieser Suche.",
-  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime überwacht dieses Gerät noch nicht. Fügen Sie es hinzu, um es regelmäßig zu prüfen, und legen Sie fest, wer erfährt, wenn es nicht mehr antwortet."
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime überwacht dieses Gerät noch nicht. Fügen Sie es hinzu, um es regelmäßig zu prüfen, und legen Sie fest, wer erfährt, wenn es nicht mehr antwortet.",
+  "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "Bei einem stark genutzten Team zählt der Test nur die Anfragen. Kosten, Tokens und Personen folgen mit dem ersten Lesevorgang.",
+  "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise kann die Nutzung des Teams auch mit seinem OpenTelemetry Export senden, sobald sie entsteht.",
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "Die Nutzung erscheint, sobald es welche gibt. Wenn dein Team Cursor nutzt, prüfe, ob der Schlüssel zum richtigen Team gehört."
 }

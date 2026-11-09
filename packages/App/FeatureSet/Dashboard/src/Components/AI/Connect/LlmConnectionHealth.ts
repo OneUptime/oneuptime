@@ -240,6 +240,14 @@ export const LLM_CONNECTION_MEMBERS: PluralTemplate = {
 
 export function getLlmConnectionPeopleSummary(
   connection: LlmObservabilityConnection,
+  /*
+   * How the reader's language writes a number: the translator's
+   * formatNumber, which writes the count beside it, so a big team reads
+   * "1,031 of 1,248" - or "1.031 von 1.248" - and never "1031 of 1,248".
+   */
+  formatNumber: (value: number) => string = (value: number): string => {
+    return value.toLocaleString("en-US");
+  },
 ): LlmConnectionSummary | undefined {
   const result: JSONObject | undefined = connection.lastPullResult;
 
@@ -258,7 +266,7 @@ export function getLlmConnectionPeopleSummary(
   if (active !== undefined) {
     return {
       template: LLM_CONNECTION_ACTIVE_MEMBERS.other,
-      values: { active: String(Math.min(active, members)) },
+      values: { active: formatNumber(Math.min(active, members)) },
       plural: LLM_CONNECTION_ACTIVE_MEMBERS,
       count: members,
     };

@@ -1,7 +1,6 @@
 import LlmObservabilityConnection from "Common/Models/DatabaseModels/LlmObservabilityConnection";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -40,12 +39,9 @@ import {
 } from "./LlmConnectApi";
 import {
   LlmConnectionHealth,
-  LlmConnectionSummary,
   getLlmConnectionHealth,
-  getLlmConnectionLastReadSummary,
-  getLlmConnectionPeopleSummary,
-  getLlmConnectionReadingNote,
 } from "./LlmConnectionHealth";
+import LlmConnectionLastRead from "./LlmConnectionLastRead";
 import LlmConnectionLogo from "./LlmConnectionLogo";
 import LlmConnectionTestPanel from "./LlmConnectionTestPanel";
 import {
@@ -447,74 +443,16 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
             field: { lastSuccessfulPullAt: true },
             title: "Last read",
             type: FieldType.Element,
+            /*
+             * Its lines are sentences, and a big team's runs long in German
+             * ("1.031 von 1.248 Mitgliedern in den letzten 7 Tagen aktiv"):
+             * they wrap rather than being cut off at the column's edge.
+             */
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-sm",
             getElement: (item: LlmObservabilityConnection): ReactElement => {
-              const summary: LlmConnectionSummary | undefined =
-                getLlmConnectionLastReadSummary(item);
-              // A team's members (Cursor), and a read still catching up.
-              const people: LlmConnectionSummary | undefined =
-                getLlmConnectionPeopleSummary(item);
-              const readingNote: string | undefined =
-                getLlmConnectionReadingNote(item);
-
-              if (!item.lastSuccessfulPullAt) {
-                return (
-                  <span className="text-sm text-gray-500">
-                    {translator.translateText("Not yet")}
-                  </span>
-                );
-              }
-
-              const say: (line: LlmConnectionSummary) => string = (
-                line: LlmConnectionSummary,
-              ): string => {
-                return line.plural && line.count !== undefined
-                  ? translator.translatePlural(
-                      line.plural,
-                      line.count,
-                      line.values,
-                    )
-                  : translator.translateTemplate(line.template, line.values);
-              };
-
-              return (
-                <div className="min-w-0">
-                  <div className="text-sm text-gray-900">
-                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                      item.lastSuccessfulPullAt,
-                    )}
-                  </div>
-                  {summary ? (
-                    <div
-                      className="text-xs text-gray-500"
-                      data-testid="llm-connection-last-read-summary"
-                    >
-                      {say(summary)}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
-                  {people ? (
-                    <div
-                      className="text-xs text-gray-500"
-                      data-testid="llm-connection-people-summary"
-                    >
-                      {say(people)}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
-                  {readingNote ? (
-                    <div
-                      className="text-xs text-gray-500"
-                      data-testid="llm-connection-reading-note"
-                    >
-                      {translator.translateText(readingNote)}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              );
+              // What it read, a team's members (Cursor), a read catching up.
+              return <LlmConnectionLastRead connection={item} />;
             },
           },
           ...(isTool

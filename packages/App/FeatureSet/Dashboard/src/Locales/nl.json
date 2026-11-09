@@ -47023,11 +47023,9 @@
   "A team admin creates the key in the Cursor dashboard: Settings, Cursor Admin API Keys. It comes with the Teams and Enterprise plans.": "Een teambeheerder maakt de sleutel in het dashboard van Cursor: Settings, Cursor Admin API Keys. Hij hoort bij de abonnementen Teams en Enterprise.",
   "Admin API key": "Beheerders-API-sleutel",
   "Connect an OpenAI, Anthropic, Azure, Bedrock, Vertex AI or Cursor account to see what it used and what it cost, by model, project, key and person.": "Koppel een OpenAI-, Anthropic-, Azure-, Bedrock-, Vertex AI- of Cursor-account om te zien wat het gebruikte en wat het kostte, per model, project, sleutel en persoon.",
-  "Cursor Enterprise: OpenTelemetry Export": "Cursor Enterprise: OpenTelemetry Export",
   "Cursor accepted the key, but it may not read the team's usage.": "Cursor heeft de sleutel geaccepteerd, maar die mag het gebruik van het team niet lezen.",
   "Cursor's Admin API gives usage and cost by person, not conversations, so Cursor is connected with your AI provider accounts.": "De Admin API van Cursor geeft gebruik en kosten per persoon, geen gesprekken, dus Cursor wordt gekoppeld bij je AI-provideraccounts.",
   "Cursor's OpenTelemetry Export arrives too. Usage shows it under Your AI calls and this account under Provider accounts, never added together, and a budget counts one of them.": "De OpenTelemetry Export van Cursor komt ook binnen. Gebruik toont die onder Je AI-aanroepen en dit account onder Provideraccounts, nooit bij elkaar opgeteld, en een budget telt er maar een van.",
-  "Cursor's servers send the team's metrics and request logs as they happen, with no key here.": "De servers van Cursor sturen de metrics en aanvraaglogs van het team zodra ze ontstaan, zonder sleutel hier.",
   "Read every 15 minutes, Cursor every hour. Usage and cost arrive in Usage, under Provider accounts, and a budget can count them.": "Elke 15 minuten gelezen, Cursor elk uur. Gebruik en kosten komen in Gebruik, onder Provideraccounts, en een budget kan ze tellen.",
   "Reads the requests of your Cursor team's members with Cursor's Admin API, an hour at a time: the newest hour arrives with the next read.": "Leest de aanvragen van de leden van je Cursor-team met de Admin API van Cursor, uur voor uur: het nieuwste uur komt met de volgende lezing.",
   "Still reading earlier usage": "Eerder gebruik wordt nog gelezen",
@@ -47119,5 +47117,8 @@
   "No device hidden from the map matches this search.": "Geen apparaat dat op de kaart is verborgen komt overeen met deze zoekopdracht.",
   "No device that is not monitored matches this search.": "Geen apparaat dat niet wordt bewaakt komt overeen met deze zoekopdracht.",
   "No monitored device matches this search.": "Geen bewaakt apparaat komt overeen met deze zoekopdracht.",
-  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime bewaakt dit apparaat nog niet. Voeg het toe om het regelmatig te controleren, en kies wie het hoort wanneer het niet meer antwoordt."
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime bewaakt dit apparaat nog niet. Voeg het toe om het regelmatig te controleren, en kies wie het hoort wanneer het niet meer antwoordt.",
+  "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "Bij een druk team telt de test alleen de aanvragen. Kosten, tokens en personen komen met de eerste leesactie.",
+  "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise kan het gebruik van het team ook sturen zodra het ontstaat, met zijn OpenTelemetry Export.",
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "Gebruik verschijnt zodra er gebruik is. Als je team Cursor gebruikt, controleer dan of de sleutel bij het juiste team hoort."
 }

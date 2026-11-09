@@ -94,12 +94,49 @@ const CURSOR_PERMISSION_WORDS: { headline: string; advice: string } = {
   ),
 };
 
+/*
+ * A busy Cursor team's test counts its week of requests instead of reading
+ * them all (CursorConnector), so it has requests and members and no cost,
+ * tokens or people: said, so the missing figures are not taken for a team
+ * that spent nothing.
+ */
+export const CURSOR_COUNTED_ONLY_ADVICE: string = translationKey(
+  "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.",
+);
+
+/*
+ * Cursor's words for a key that reads nothing: a Cursor key belongs to a
+ * team, not to an organization.
+ */
+export const CURSOR_NO_USAGE_ADVICE: string = translationKey(
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.",
+);
+
+function isCountedOnly(data: {
+  result: LlmConnectionTestResult;
+  definition: LlmConnectionDefinition;
+}): boolean {
+  const counts: LlmConnectionTestCounts | undefined = data.result.counts;
+
+  // A test that read the events has tokens and cost, even when they are 0.
+  return (
+    data.definition.provider === LlmConnectionProvider.Cursor &&
+    counts !== undefined &&
+    (counts.requests || 0) > 0 &&
+    counts.costUsd === undefined &&
+    counts.inputTokens === undefined &&
+    counts.outputTokens === undefined
+  );
+}
+
 export function getLlmConnectionTestWords(data: {
   result: LlmConnectionTestResult;
   definition: LlmConnectionDefinition;
 }): LlmConnectionTestWords {
   const isTool: boolean =
     data.definition.kind === LlmConnectionKind.CompanyTool;
+  const isCursor: boolean =
+    data.definition.provider === LlmConnectionProvider.Cursor;
 
   /*
    * "It works", never "Connected": a test in the form runs before anything
@@ -112,6 +149,7 @@ export function getLlmConnectionTestWords(data: {
         : translationKey(
             "It works. Here is what the account used in the last 7 days.",
           ),
+      ...(isCountedOnly(data) ? { advice: CURSOR_COUNTED_ONLY_ADVICE } : {}),
     };
   }
 
@@ -146,15 +184,16 @@ export function getLlmConnectionTestWords(data: {
         ? translationKey(
             "Conversations show up as soon as people use it. If they do use it, check that the credential belongs to the right organization or tenant.",
           )
-        : translationKey(
-            "Usage shows up as soon as there is some. If the account is in use, check that the key belongs to the right organization.",
-          ),
+        : isCursor
+          ? CURSOR_NO_USAGE_ADVICE
+          : translationKey(
+              "Usage shows up as soon as there is some. If the account is in use, check that the key belongs to the right organization.",
+            ),
     };
   }
 
   const words: { headline: string; advice: string } =
-    data.definition.provider === LlmConnectionProvider.Cursor &&
-    data.result.failureKind === LlmConnectionFailureKind.Permission
+    isCursor && data.result.failureKind === LlmConnectionFailureKind.Permission
       ? CURSOR_PERMISSION_WORDS
       : FAILURE_WORDS[
           data.result.failureKind || LlmConnectionFailureKind.Other

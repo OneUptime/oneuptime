@@ -29,6 +29,8 @@ import {
   formatLlmUsageDay,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionHealth";
 import {
+  CURSOR_COUNTED_ONLY_ADVICE,
+  CURSOR_NO_USAGE_ADVICE,
   getLlmConnectionReadFailureWords,
   getLlmConnectionTestFigures,
   getLlmConnectionTestWords,
@@ -436,6 +438,43 @@ describe("a team's people, and a read still catching up", () => {
     ).toBe("12 of 40 members active in the last 7 days");
   });
 
+  /*
+   * The count is written by translatePlural, the reader's way; the active
+   * members beside it were written as a bare number, so a big team read
+   * "1031 of 1,248". Both go through the same formatter now.
+   */
+  test("a big team's two numbers are written alike, in the reader's way", () => {
+    const team: LlmObservabilityConnection = connectionWith({
+      lastPullResult: {
+        kind: "usage",
+        status: "success",
+        members: 1248,
+        activeMembers: 1031,
+      },
+    });
+    const english: LlmConnectionSummary = getLlmConnectionPeopleSummary(team)!;
+
+    expect(english.values).toEqual({ active: "1,031" });
+    expect(
+      getGlobalTranslator().translatePlural(
+        english.plural!,
+        english.count!,
+        english.values,
+      ),
+    ).toBe("1,031 of 1,248 members active in the last 7 days");
+
+    // The translator's formatter, as the list hands it over.
+    const german: LlmConnectionSummary = getLlmConnectionPeopleSummary(
+      team,
+      (value: number): string => {
+        return value.toLocaleString("de-DE");
+      },
+    )!;
+
+    expect(german.values).toEqual({ active: "1.031" });
+    expect(german.count).toBe(1248);
+  });
+
   test("one member reads in the singular; no more active than there are", () => {
     const summary: LlmConnectionSummary | undefined =
       getLlmConnectionPeopleSummary(
@@ -673,6 +712,95 @@ describe("what a test says", () => {
 
     expect(words.headline).toBe("The provider refused the test.");
     expect(words.details).toBe(undefined);
+  });
+
+  /*
+   * #5547: a busy Cursor team's test counts its week of requests instead of
+   * reading them (CursorConnector), so it shows requests and members and no
+   * cost: it says why, and when the rest arrives, so the team is not taken
+   * for one that spent nothing.
+   */
+  test("a busy Cursor team's test says its cost and tokens come with the first read", () => {
+    expect(
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.Cursor,
+          status: "pass",
+          counts: { days: 7, requests: 48_200, members: 1248 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+      }),
+    ).toEqual({
+      headline: "It works. Here is what the account used in the last 7 days.",
+      advice: CURSOR_COUNTED_ONLY_ADVICE,
+    });
+    expect(CURSOR_COUNTED_ONLY_ADVICE).toBe(
+      "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.",
+    );
+
+    // A team whose week was read whole has its figures, even at no cost.
+    for (const counts of [
+      {
+        days: 7,
+        requests: 2310,
+        members: 40,
+        costUsd: 96.25,
+        inputTokens: 5_400_000,
+        outputTokens: 610_000,
+      },
+      {
+        days: 7,
+        requests: 120,
+        members: 3,
+        costUsd: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+      },
+    ]) {
+      expect(
+        getLlmConnectionTestWords({
+          result: result({
+            provider: LlmConnectionProvider.Cursor,
+            status: "pass",
+            counts,
+          }),
+          definition: definitionOf(LlmConnectionProvider.Cursor),
+        }).advice,
+      ).toBe(undefined);
+    }
+
+    // Another provider that counts requests alone has nothing to explain.
+    expect(
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.AwsBedrock,
+          status: "pass",
+          counts: { days: 7, requests: 900 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.AwsBedrock),
+      }).advice,
+    ).toBe(undefined);
+  });
+
+  test("a quiet Cursor team: its key belongs to a team, not an organization", () => {
+    const words: ReturnType<typeof getLlmConnectionTestWords> =
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.Cursor,
+          status: "warn",
+          counts: { days: 7, requests: 0, members: 40 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+      });
+
+    expect(words).toEqual({
+      headline: "It works, but the account has no usage in the last 7 days.",
+      advice: CURSOR_NO_USAGE_ADVICE,
+    });
+    expect(CURSOR_NO_USAGE_ADVICE).toBe(
+      "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.",
+    );
+    expect(words.advice).not.toContain("organization");
   });
 });
 

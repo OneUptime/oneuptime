@@ -52,7 +52,7 @@
   "CoreDNS",
   "CronJob",
   "CronJobs",
-  "Cursor Enterprise: OpenTelemetry Export",
+  "Cursor",
   "DB.*maintenance",
   "DNS",
   "DaemonSet",

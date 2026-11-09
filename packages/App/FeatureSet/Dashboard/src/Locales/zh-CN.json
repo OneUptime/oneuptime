@@ -9468,7 +9468,7 @@
   "Current state of the scheduled maintenance": "Current state of the scheduled maintenance",
   "Current state of this AI task.": "Current state of this AI task.",
   "Currently has a webhook configured": "当前已配置 Webhook",
-  "Cursor": "游标",
+  "Cursor": "Cursor",
   "Custom Attribute...": "Custom Attribute...",
   "Custom Code": "Custom Code",
   "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.": "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
@@ -47023,11 +47023,9 @@
   "A team admin creates the key in the Cursor dashboard: Settings, Cursor Admin API Keys. It comes with the Teams and Enterprise plans.": "由团队管理员在 Cursor 控制台中创建密钥：Settings、Cursor Admin API Keys。Teams 和 Enterprise 套餐提供此功能。",
   "Admin API key": "管理员 API 密钥",
   "Connect an OpenAI, Anthropic, Azure, Bedrock, Vertex AI or Cursor account to see what it used and what it cost, by model, project, key and person.": "连接 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 或 Cursor 账户，按模型、项目、密钥和人员查看用量和费用。",
-  "Cursor Enterprise: OpenTelemetry Export": "Cursor Enterprise: OpenTelemetry Export",
   "Cursor accepted the key, but it may not read the team's usage.": "Cursor 接受了该密钥，但它无权读取团队的用量。",
   "Cursor's Admin API gives usage and cost by person, not conversations, so Cursor is connected with your AI provider accounts.": "Cursor 的 Admin API 提供按人员统计的用量和费用，而不是对话，因此 Cursor 与你的 AI 提供商账户一起连接。",
   "Cursor's OpenTelemetry Export arrives too. Usage shows it under Your AI calls and this account under Provider accounts, never added together, and a budget counts one of them.": "Cursor 的 OpenTelemetry Export 也已传入。“用量”在“你的 AI 调用”下显示它，在“提供商账户”下显示此账户，二者从不相加，预算只统计其中之一。",
-  "Cursor's servers send the team's metrics and request logs as they happen, with no key here.": "Cursor 的服务器会实时发送团队的指标和请求日志，这里无需密钥。",
   "Read every 15 minutes, Cursor every hour. Usage and cost arrive in Usage, under Provider accounts, and a budget can count them.": "每 15 分钟读取一次，Cursor 每小时读取一次。用量和费用会出现在“用量”的“提供商账户”下，预算可以统计它们。",
   "Reads the requests of your Cursor team's members with Cursor's Admin API, an hour at a time: the newest hour arrives with the next read.": "通过 Cursor 的 Admin API 读取你的 Cursor 团队成员的请求，每次读取一小时：最新的一小时会在下次读取时到达。",
   "Still reading earlier usage": "仍在读取更早的用量",
@@ -47119,5 +47117,8 @@
   "No device hidden from the map matches this search.": "没有已从地图隐藏的设备与此搜索匹配。",
   "No device that is not monitored matches this search.": "没有未监控的设备与此搜索匹配。",
   "No monitored device matches this search.": "没有已监控的设备与此搜索匹配。",
-  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime 尚未监控此设备。添加后会定期检查它，并可选择它停止响应时通知谁。"
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime 尚未监控此设备。添加后会定期检查它，并可选择它停止响应时通知谁。",
+  "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "使用量大的团队，测试只统计请求数。费用、Token 和人员会在首次读取后显示。",
+  "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise 还可以通过其 OpenTelemetry Export 实时发送团队的用量。",
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "一有用量就会显示。如果你的团队在使用 Cursor，请检查密钥是否属于正确的团队。"
 }

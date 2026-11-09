@@ -9468,7 +9468,7 @@
   "Current state of the scheduled maintenance": "Current state of the scheduled maintenance",
   "Current state of this AI task.": "Current state of this AI task.",
   "Currently has a webhook configured": "Har i øjeblikket en webhook konfigureret",
-  "Cursor": "Markør",
+  "Cursor": "Cursor",
   "Custom Attribute...": "Custom Attribute...",
   "Custom Code": "Custom Code",
   "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.": "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
@@ -47023,11 +47023,9 @@
   "A team admin creates the key in the Cursor dashboard: Settings, Cursor Admin API Keys. It comes with the Teams and Enterprise plans.": "En teamadministrator opretter nøglen i Cursors dashboard: Settings, Cursor Admin API Keys. Den følger med abonnementerne Teams og Enterprise.",
   "Admin API key": "Administrator-API-nøgle",
   "Connect an OpenAI, Anthropic, Azure, Bedrock, Vertex AI or Cursor account to see what it used and what it cost, by model, project, key and person.": "Forbind en OpenAI-, Anthropic-, Azure-, Bedrock-, Vertex AI- eller Cursor-konto for at se, hvad den brugte, og hvad det kostede, pr. model, projekt, nøgle og person.",
-  "Cursor Enterprise: OpenTelemetry Export": "Cursor Enterprise: OpenTelemetry Export",
   "Cursor accepted the key, but it may not read the team's usage.": "Cursor godtog nøglen, men den må ikke læse teamets forbrug.",
   "Cursor's Admin API gives usage and cost by person, not conversations, so Cursor is connected with your AI provider accounts.": "Cursors Admin API giver forbrug og omkostninger pr. person, ikke samtaler, så Cursor forbindes sammen med dine AI-udbyderkonti.",
   "Cursor's OpenTelemetry Export arrives too. Usage shows it under Your AI calls and this account under Provider accounts, never added together, and a budget counts one of them.": "Cursors OpenTelemetry Export kommer også ind. Forbrug viser den under Dine AI-kald og denne konto under Udbyderkonti, aldrig lagt sammen, og et budget tæller kun den ene af dem.",
-  "Cursor's servers send the team's metrics and request logs as they happen, with no key here.": "Cursors servere sender teamets metrikker og anmodningslogs, efterhånden som de sker, uden nogen nøgle her.",
   "Read every 15 minutes, Cursor every hour. Usage and cost arrive in Usage, under Provider accounts, and a budget can count them.": "Læses hvert 15. minut, Cursor hver time. Forbrug og omkostninger kommer ind i Forbrug under Udbyderkonti, og et budget kan tælle dem.",
   "Reads the requests of your Cursor team's members with Cursor's Admin API, an hour at a time: the newest hour arrives with the next read.": "Læser anmodningerne fra dit Cursor-teams medlemmer med Cursors Admin API, en time ad gangen: den nyeste time kommer med den næste læsning.",
   "Still reading earlier usage": "Læser stadig tidligere forbrug",
@@ -47119,5 +47117,8 @@
   "No device hidden from the map matches this search.": "Ingen enheder skjult på kortet matcher denne søgning.",
   "No device that is not monitored matches this search.": "Ingen enheder, der ikke overvåges, matcher denne søgning.",
   "No monitored device matches this search.": "Ingen overvågede enheder matcher denne søgning.",
-  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime overvåger ikke denne enhed endnu. Tilføj den for at tjekke den regelmæssigt, og vælg, hvem der får besked, når den holder op med at svare."
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime overvåger ikke denne enhed endnu. Tilføj den for at tjekke den regelmæssigt, og vælg, hvem der får besked, når den holder op med at svare.",
+  "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.": "For et travlt team tæller testen kun anmodningerne. Omkostning, tokens og personer kommer med den første læsning.",
+  "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.": "Cursor Enterprise kan også sende teamets forbrug, efterhånden som det sker, med sin OpenTelemetry Export.",
+  "Usage shows up as soon as there is some. If your team uses Cursor, check that the key belongs to the right team.": "Forbrug vises, så snart der er noget. Hvis dit team bruger Cursor, så tjek, at nøglen hører til det rigtige team."
 }
