@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { DataSecurityComplianceFramework } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
   ComplianceRequirementResult,
@@ -73,7 +74,7 @@ export function formatComplianceScore(
   translator: Translator,
 ): string {
   try {
-    return new Intl.NumberFormat(translator.language, {
+    return new Intl.NumberFormat(getNumberLocale(translator.language), {
       style: "percent",
       maximumFractionDigits: 0,
     }).format(score / 100);

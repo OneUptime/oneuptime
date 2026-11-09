@@ -518,7 +518,7 @@ describe("the status page's locales", () => {
     });
 
   test("are really read", () => {
-    expect(files.length).toBe(17);
+    expect(files.length).toBe(18);
   });
 
   test.each(files)(

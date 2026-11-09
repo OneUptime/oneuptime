@@ -546,6 +546,11 @@ const DOCS_LOCALES_DIR: string = nodePath.join(
   "Locales",
 );
 
+// Whether the docs are written in a language (Arabic's are not, yet).
+function hasDocsLocale(code: string): boolean {
+  return fs.existsSync(nodePath.join(DOCS_LOCALES_DIR, `${code}.json`));
+}
+
 // The docs' own callout names (calloutNote, calloutTip, ...) in a language.
 function docsCalloutNames(code: string): Record<string, string> {
   const find: (value: unknown) => Record<string, unknown> | null = (
@@ -649,8 +654,8 @@ function placeholders(text: string): Array<string> {
 }
 
 describe("the page's copy exists in every Accounts locale", () => {
-  test("all seventeen locales are checked", () => {
-    expect(localeCodes).toHaveLength(17);
+  test("all eighteen locales are checked", () => {
+    expect(localeCodes).toHaveLength(18);
     expect(localeCodes).toContain("en");
   });
 
@@ -777,14 +782,36 @@ describe("the sentences the page looks up whole", () => {
     );
   });
 
+  test("only Arabic has no docs to take the callouts' names from yet", () => {
+    expect(
+      translatedLocaleCodes.filter((code: string): boolean => {
+        return !hasDocsLocale(code);
+      }),
+    ).toEqual(["ar"]);
+  });
+
   test.each(translatedLocaleCodes)(
     "%s names each callout as its docs do",
     (code: string) => {
-      const names: unknown = readLocale(code)["markdownCallouts"];
+      const names: Record<string, string> = readLocale(code)[
+        "markdownCallouts"
+      ] as Record<string, string>;
 
-      expect(Object.keys(names as Record<string, string>)).toEqual(
-        Object.keys(MARKDOWN_CALLOUT_NAMES),
-      );
+      expect(Object.keys(names)).toEqual(Object.keys(MARKDOWN_CALLOUT_NAMES));
+
+      if (!hasDocsLocale(code)) {
+        // No docs in this language yet: its own words, never the English.
+        for (const [kind, english] of Object.entries(MARKDOWN_CALLOUT_NAMES)) {
+          expect({ kind, name: names[kind] }).not.toEqual({
+            kind,
+            name: english,
+          });
+          expect((names[kind] || "").trim()).not.toBe("");
+        }
+
+        return;
+      }
+
       expect(names).toEqual(docsCalloutNames(code));
     },
   );

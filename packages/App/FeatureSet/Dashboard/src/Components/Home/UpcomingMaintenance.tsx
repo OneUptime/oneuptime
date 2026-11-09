@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { formatRelativeTime, toDate } from "./HomeRelativeTime";
 import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
@@ -103,7 +104,7 @@ export const formatCalendarPart: (data: {
     data.part === "month" ? { month: "short" } : { day: "numeric" };
 
   try {
-    return new Intl.DateTimeFormat(data.language || "en", {
+    return new Intl.DateTimeFormat(getNumberLocale(data.language || "en"), {
       ...options,
       timeZone: OneUptimeDate.getCurrentTimezone().toString(),
     }).format(data.date);

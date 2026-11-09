@@ -1,3 +1,4 @@
+import { getNumberLocale } from "./DateLanguage";
 import InBetween from "./BaseDatabase/InBetween";
 import DayOfWeek, { DayOfWeekUtil } from "./Day/DayOfWeek";
 import BadDataException from "./Exception/BadDataException";
@@ -213,7 +214,7 @@ export default class OneUptimeDate {
       ...TimezoneAlias.getLegacyNamesOf(timezone),
     ]) {
       try {
-        return date.toLocaleString(locale, {
+        return date.toLocaleString(getNumberLocale(locale), {
           month: "short",
           timeZone: name.toString(),
         });

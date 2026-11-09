@@ -407,7 +407,7 @@ describe("Status page SSO page: the way back to the password form", () => {
         return file.endsWith(".json") && file !== "en.json";
       });
 
-    expect(locales).toHaveLength(16);
+    expect(locales).toHaveLength(17);
 
     for (const file of locales) {
       const locale: Record<string, any> = readLocale(file);

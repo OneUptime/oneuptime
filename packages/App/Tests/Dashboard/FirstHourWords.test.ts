@@ -257,8 +257,8 @@ describe("in every language", () => {
     }
   });
 
-  test("all 17 locales are here", () => {
-    expect(Object.keys(locales)).toHaveLength(17);
+  test("all 18 locales are here", () => {
+    expect(Object.keys(locales)).toHaveLength(18);
   });
 
   test.each(NON_ENGLISH)("%s translates every sentence", (code: string) => {

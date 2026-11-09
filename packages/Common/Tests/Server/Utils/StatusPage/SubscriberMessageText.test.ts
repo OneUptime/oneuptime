@@ -7,6 +7,7 @@ import SubscriberMessageText, {
   SubscriberSmsText,
 } from "../../../../Server/Utils/StatusPage/SubscriberMessageText";
 import { READER_LANGUAGE_CODES } from "../../../../Types/ReaderLanguage";
+import { isRightToLeftLanguage } from "../../../../Types/ReadingDirection";
 import {
   createTranslator,
   Translator,
@@ -27,6 +28,7 @@ import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 const ENGLISH: Translator = createTranslator(undefined, "en");
 const GERMAN: Translator = getServerTranslator("de");
 const PERSIAN: Translator = getServerTranslator("fa");
+const ARABIC: Translator = getServerTranslator("ar");
 const JAPANESE: Translator = getServerTranslator("ja");
 
 const DETAILS_URL: string =
@@ -397,6 +399,38 @@ describe("a chat line's value, for a reader of a language read from the right", 
     );
   });
 
+  // Arabic is read from the right too, so it gets the same isolates.
+  test("in Arabic a value is isolated after its label, as in Persian", () => {
+    expect(
+      SubscriberMessageText.chatLine(
+        ARABIC,
+        SubscriberChatText.resourcesAffected,
+        "API (EU)",
+      ).toString(),
+    ).toBe(`**الموارد المتأثرة:** ${FSI}API (EU)${PDI}`);
+    expect(
+      SubscriberMessageText.chatLine(
+        ARABIC,
+        SubscriberChatText.severity,
+        SubscriberMessageText.nameInLanguage(ARABIC, "Major Incident"),
+      ).toString(),
+    ).toBe(`**الخطورة:** ${FSI}حادثة كبرى${PDI}`);
+    expect(
+      SubscriberMessageText.chatValue(
+        ARABIC,
+        SubscriberMessageText.asMarkdown("Payments fail (EU)."),
+      ).toString(),
+    ).toBe(`${FSI}Payments fail (EU).${PDI}`);
+  });
+
+  test("the languages read from the right are Arabic and Persian", () => {
+    expect(
+      READER_LANGUAGE_CODES.filter((language: string): boolean => {
+        return isRightToLeftLanguage(language);
+      }).sort(),
+    ).toEqual(["ar", "fa"]);
+  });
+
   test("a value is still escaped as a value, its marks outside the escapes", () => {
     const line: string = SubscriberMessageText.chatLine(
       PERSIAN,
@@ -444,7 +478,7 @@ describe("a chat line's value, for a reader of a language read from the right", 
 
   test.each(
     READER_LANGUAGE_CODES.filter((language: string): boolean => {
-      return language !== "fa";
+      return !isRightToLeftLanguage(language);
     }),
   )("in %s a value is placed as it always was", (language: string) => {
     const translator: Translator = getServerTranslator(language);

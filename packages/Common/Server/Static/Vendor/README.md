@@ -21,11 +21,17 @@ or `packages/Home/Views`.
 
 ## Contents
 
-| Path                         | Source                                                                                                              |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `tailwind/tailwind-3.4.5.js` | Tailwind Play CDN build 3.4.5                                                                                       |
-| `highlight/`                 | highlight.js 11.11.1, from cdnjs                                                                                    |
-| `fonts/InterVariable.woff2`  | Inter variable font, byte-identical to the copies under `packages/App/FeatureSet/{Docs,APIReference}/Static/fonts/` |
+| Path                                  | Source                                                                                                                                                                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tailwind/tailwind-3.4.5.js`          | Tailwind Play CDN build 3.4.5                                                                                                                                                                                                                    |
+| `highlight/`                          | highlight.js 11.11.1, from cdnjs                                                                                                                                                                                                                 |
+| `fonts/InterVariable.woff2`           | Inter variable font, byte-identical to the copies under `packages/App/FeatureSet/{Docs,APIReference}/Static/fonts/`                                                                                                                              |
+| `fonts/VazirmatnArabicVariable.woff2` | Vazirmatn variable font (Google Fonts v16), Arabic subset (`vazirmatn-arabic-wght-normal.woff2` of `@fontsource-variable/vazirmatn` 5.3.0, SIL Open Font License 1.1), byte-identical to the copies under each frontend's `public/assets/fonts/` |
+
+Vazirmatn draws the Arabic and Persian letters Inter does not have: every page
+declares it as a second `Inter` face with an Arabic `unicode-range`, so a font
+list that names Inter draws Arabic script in it, and only a page that shows an
+Arabic letter downloads it (46 KB).
 
 The Tailwind file is the **only** copy in the tree. The five frontends used to
 commit one each; `packages/Common/UI/esbuild-config.js` now copies this one into each

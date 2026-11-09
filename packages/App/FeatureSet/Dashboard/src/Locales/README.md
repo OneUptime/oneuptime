@@ -1,6 +1,9 @@
 # Dashboard translations
 
-The Dashboard is translated into 16 languages: `de fr es it pt nl da no sv ru ja ko zh-CN zh-TW hi fa`.
+The Dashboard is translated into 17 languages: `de fr es it pt nl da no sv ru ja ko zh-CN zh-TW hi fa ar`.
+Arabic (`ar`) is new and only partly translated: its glossary and its choices
+for plurals, digits, punctuation and direction are in
+[ARABIC.md](./ARABIC.md).
 This file explains how a string gets from the source code to the screen in the
 reader's language, how to route new strings through translation, how to fill in
 a language, and the rules the guard test enforces.
@@ -355,7 +358,7 @@ exactly what the plugin keeps, that only English is in the entry chunk, that
 the `_one` forms ship with the languages that read them and not with English,
 and that `en.json`'s share of the entry stays under 32 KB.
 `packages/Common/Tests/App/Dashboard/DashboardRuntimeLocales.test.tsx` checks
-that every string in all seventeen languages reads the same from the shipped
+that every string in all eighteen languages reads the same from the shipped
 copies as from these files, every plural at counts that pick each form, and
 that no source looks a `_one` key up on its own.
 

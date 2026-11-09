@@ -282,8 +282,8 @@ const DASHBOARD_FILES: Array<string> = localeFiles(DASHBOARD_LOCALES);
 const ADMIN_FILES: Array<string> = localeFiles(ADMIN_LOCALES);
 
 describe("the mail server forms' strings", () => {
-  test("seventeen locales of each app are checked", () => {
-    expect(DASHBOARD_FILES).toHaveLength(17);
+  test("eighteen locales of each app are checked", () => {
+    expect(DASHBOARD_FILES).toHaveLength(18);
     expect(ADMIN_FILES).toEqual(DASHBOARD_FILES);
   });
 

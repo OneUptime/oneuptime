@@ -124,7 +124,7 @@ function heading(): HTMLElement {
 
 describe("a record page's heading, in the reader's language", () => {
   test("ships for every Dashboard language", () => {
-    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toHaveLength(18);
   });
 
   test.each(LANGUAGES)(

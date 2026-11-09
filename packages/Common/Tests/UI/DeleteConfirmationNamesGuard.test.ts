@@ -658,7 +658,7 @@ describe("the sentences in every locale", () => {
         entries: Record<string, unknown>;
       }> = readLocales(directory);
 
-      expect(locales).toHaveLength(17);
+      expect(locales).toHaveLength(18);
 
       for (const { locale, entries } of locales) {
         for (const sentence of SHARED_SENTENCES) {
