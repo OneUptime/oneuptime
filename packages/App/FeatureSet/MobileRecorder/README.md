@@ -70,8 +70,8 @@ await OneUptimeReplay.start({
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "YOUR_RUM_APPLICATION_IDENTIFIER",
   mobileAppIdentifier: "com.example.checkout",
-  appName: "Checkout",       // optional metadata override
-  appVersion: "2.4.1",       // optional metadata override
+  appName: "Checkout", // optional metadata override
+  appVersion: "2.4.1", // optional metadata override
   userRef: "support-user-42", // optional targeting reference
 });
 
@@ -183,6 +183,28 @@ React Native's existing global JavaScript error handler is chained only when
 it can be safely restored. The SDK never takes ownership of an application
 handler it cannot restore. In error-triggered mode a bounded 60-second/2 MiB
 pre-roll is uploaded after a manual or JavaScript error trigger.
+
+## Frustration signals of your own
+
+A RUM application can name signals of its own on its **Frustration Signals**
+page in OneUptime, and this SDK detects three kinds of them with no code change:
+
+| signal | fires when                                                                                                                         |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| page   | `setRoute()` moves to a route whose path matches the pattern (`*` stands for any characters; case, query and fragment are ignored) |
+| event  | `track()` is called with that event name (case is ignored)                                                                         |
+| error  | a JavaScript error or `captureError()` carries a message containing the given words (case is ignored)                              |
+
+A hit is recorded as a marker carrying the signal's **name** only - never the
+route, the event's properties or the error's text, which are only compared on
+the device - and counted on the chunk. A signal that counts as frustration
+starts the upload in error-triggered mode, like an error. The same name fires
+at most once a second, and a chunk holds at most 50 markers. Nothing is
+detected while capture is paused because nobody is using the app.
+
+Signals that react to a click on an element are CSS selectors on a web page,
+and the built-in rage, dead and error clicks and refresh rage are about a mouse
+on a web page: the browser recorder detects those, and this SDK leaves them out.
 
 ## Diagnostics
 
