@@ -1,7 +1,7 @@
 import Service from "Common/Models/DatabaseModels/Service";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import { SparklinePoint } from "../MetricSparkline";
+import { SparklinePoint } from "./SparklinePoint";
 
 /*
  * What a metric row shows when its host page knows more than the metric
