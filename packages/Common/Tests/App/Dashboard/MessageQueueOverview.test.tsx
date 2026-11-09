@@ -2453,7 +2453,7 @@ describe("the Broker metrics card's namespace read", () => {
       "Namespace orders-prod reports totals only",
     );
     expect(finding).toHaveTextContent(
-      "Your Azure cloud connection sent only totals for the namespace as a whole",
+      "Your Azure cloud connection sent only the namespace's totals in the selected range, not its figures for each queue and topic.",
     );
     expect(finding).toHaveTextContent(
       "Check the connection's last read on Cloud > Connect: it says which resources it could not read.",

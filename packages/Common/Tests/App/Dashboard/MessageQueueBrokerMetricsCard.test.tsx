@@ -581,7 +581,7 @@ describe("what the card asks the reader to do", () => {
       "namespaceTotalsOnly",
     );
     expect(findingsIn(totals)[0]).toHaveTextContent(
-      "Your Azure cloud connection sent only totals for the namespace as a whole",
+      "Your Azure cloud connection sent only the namespace's totals in the selected range, not its figures for each queue and topic.",
     );
     expect(findingsIn(totals)[0]).toHaveTextContent(
       "Check the connection's last read on Cloud > Connect",
