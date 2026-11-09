@@ -420,8 +420,8 @@ describe("the shared chip group", () => {
     expect(CHIP_GROUP).toContain("aria-pressed={isActive}");
   });
 
-  test("carries the count and the status dot on every chip", () => {
-    expect(CHIP_GROUP).toContain("{option.count}");
+  test("carries the count, in the reader's digits, and the status dot on every chip", () => {
+    expect(CHIP_GROUP).toContain("{translator.formatNumber(option.count)}");
     expect(CHIP_GROUP).toContain("backgroundColor: option.color");
   });
 

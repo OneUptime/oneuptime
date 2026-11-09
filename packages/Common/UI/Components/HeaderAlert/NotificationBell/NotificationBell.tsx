@@ -81,7 +81,13 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
         <span
           className={`absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ${badgeColor} text-xs font-semibold text-white ring-2 ring-white`}
         >
-          {badgeCount > 99 ? "99+" : badgeCount}
+          {/*
+           * In the reader's digits, as the page's other counts are: "۱۲" on
+           * a Persian page, and "۹۹+" past ninety-nine.
+           */}
+          {badgeCount > 99
+            ? `${translator.formatNumber(99)}+`
+            : translator.formatNumber(badgeCount)}
         </span>
       )}
 

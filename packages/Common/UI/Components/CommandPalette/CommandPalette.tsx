@@ -8,6 +8,8 @@ import KeyboardKey, {
 } from "../KeyboardShortcut/KeyboardKey";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import { usePageScrollLock } from "../../Utils/PageScrollLock";
 import {
   PaletteCommand,
@@ -35,6 +37,12 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+
+// What a screen reader hears once a query has run: how many rows it found.
+export const RESULT_COUNT_SENTENCE: PluralTemplate = {
+  one: "{{count}} result",
+  other: "{{count}} results",
+};
 
 export interface ComponentProps {
   commands: Array<PaletteCommand>;
@@ -181,6 +189,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) ?? value;
   };
+  const translator: Translator = useTranslator();
 
   useEffect(() => {
     const open: () => void = (): void => {
@@ -642,7 +651,12 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
               data-testid="command-palette-result-count"
               className="sr-only"
             >
-              {resultCount} {resultCount === 1 ? tx("result") : tx("results")}
+              {/*
+               * One sentence in the reader's language, its count in the
+               * reader's digits: "۳ نتیجه", never "3 results" glued from a
+               * number and a word.
+               */}
+              {translator.translatePlural(RESULT_COUNT_SENTENCE, resultCount)}
             </p>
 
             {/* Results */}

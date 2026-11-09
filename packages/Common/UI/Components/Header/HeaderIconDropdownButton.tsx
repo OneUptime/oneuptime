@@ -10,6 +10,8 @@ import {
   KeyboardShortcutKey,
 } from "../KeyboardShortcut/KeyboardKey";
 import IconProp from "../../../Types/Icon/IconProp";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -39,6 +41,7 @@ export interface ComponentProps {
 const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
+  const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
   const [isDropdownVisible, setDropdownVisible] = useState<boolean>(false);
@@ -136,9 +139,13 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
             />
           )}
         </button>
-        {props.badge && props.badge > 0 && (
+        {/*
+         * A count of nothing is no badge: "props.badge && ..." drew a bare
+         * "0" beside the button for a count of zero.
+         */}
+        {props.badge !== undefined && props.badge > 0 && (
           <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white ring-2 ring-white">
-            {props.badge}
+            {translator.formatNumber(props.badge)}
           </span>
         )}
       </div>

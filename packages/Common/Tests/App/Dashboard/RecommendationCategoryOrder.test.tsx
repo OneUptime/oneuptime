@@ -23,8 +23,10 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  * which the catalog first met each category instead: on Kubernetes,
  * Scheduling came second on the page (Pod Stuck in Pending is the catalog's
  * second template) and last in Quick Setup. Each page is rendered here for
- * real; its order is read off the headings' Select all buttons and held to
- * the picker's own grouping of the same templates.
+ * real; its order is read off its sections - each carries its category in
+ * its test id, whether or not its heading offers Select all (a section with
+ * one recommendation left offers none) - and held to the picker's own
+ * grouping of the same templates.
  *
  * A Kubernetes cluster's Recommendations end with one heading Quick Setup
  * does not have: Events, the cluster's Warning Events alert - a Logs
@@ -109,6 +111,7 @@ import OpenStackRecommendations from "../../../../App/FeatureSet/Dashboard/src/P
 import VMwareRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Recommendations";
 import DockerSwarmRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Recommendations";
 import IoTRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/View/Recommendations";
+import { RECOMMENDATION_CATEGORY_TEST_ID_PREFIX } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationsList";
 
 type PageComponent = (props: PageComponentProps) => React.ReactElement | null;
 
@@ -213,7 +216,8 @@ const CASES: Array<OrderCase> = [
   },
 ];
 
-const SELECT_ALL_PREFIX: string = "recommendation-group-select-all-";
+// Each section's test id: this, then the catalog's category.
+const SECTION_PREFIX: string = RECOMMENDATION_CATEGORY_TEST_ID_PREFIX;
 
 // Everything MonitorRecommendations needs to build a monitor step.
 function projectList(modelType: unknown): { data: Array<unknown> } {
@@ -256,10 +260,10 @@ function resourceOf(modelType: { new (): BaseModel }): BaseModel {
 // The page's headings, in the order it draws them.
 function drawnCategoryOrder(): Array<string> {
   return Array.from(
-    document.querySelectorAll(`[data-testid^="${SELECT_ALL_PREFIX}"]`),
+    document.querySelectorAll(`[data-testid^="${SECTION_PREFIX}"]`),
   ).map((element: Element): string => {
     return (element.getAttribute("data-testid") || "").slice(
-      SELECT_ALL_PREFIX.length,
+      SECTION_PREFIX.length,
     );
   });
 }
@@ -303,7 +307,7 @@ describe.each(CASES)("$name Recommendations", (orderCase: OrderCase) => {
 
     expect(await screen.findByText("Recommended Monitors")).toBeInTheDocument();
     await screen.findByTestId(
-      `${SELECT_ALL_PREFIX}${orderCase.categories[0]!.category}`,
+      `${SECTION_PREFIX}${orderCase.categories[0]!.category}`,
     );
 
     const quickSetupOrder: Array<string> = groupAlertTemplates(

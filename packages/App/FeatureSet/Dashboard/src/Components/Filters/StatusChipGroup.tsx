@@ -1,4 +1,6 @@
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -46,6 +48,7 @@ const StatusChipGroup: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const muteEmpty: boolean = props.muteEmptyOptions !== false;
 
   return (
@@ -107,7 +110,11 @@ const StatusChipGroup: FunctionComponent<ComponentProps> = (
                 isActive ? "text-gray-500" : "text-gray-400"
               }`}
             >
-              {option.count}
+              {/*
+               * In the reader's digits, as the chip's name is in their
+               * words: "از کار افتاده ۳" on a Persian map, never "3".
+               */}
+              {translator.formatNumber(option.count)}
             </span>
           </button>
         );

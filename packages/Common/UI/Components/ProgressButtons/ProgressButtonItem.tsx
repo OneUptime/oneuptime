@@ -3,6 +3,8 @@ import Color from "../../../Types/Color";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ProgressItemProps {
   id: string;
@@ -22,7 +24,10 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const translatedTitle: string = translateString(props.title) ?? props.title;
+  // The step's number in the reader's digits: "۲" on a Persian page.
+  const stepNumber: string = translator.formatNumber(props.stepCount);
   return (
     <li
       className="relative md:flex md:flex-1 "
@@ -57,7 +62,7 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
                   color: props.color.toString(),
                 }}
               >
-                {props.stepCount}
+                {stepNumber}
               </span>
             </span>
           )}
@@ -70,7 +75,7 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
                 className="text-gray-500 group-hover:text-gray-900"
                 style={{ color: props.color.toString() }}
               >
-                {props.stepCount}
+                {stepNumber}
               </span>
             </span>
           )}

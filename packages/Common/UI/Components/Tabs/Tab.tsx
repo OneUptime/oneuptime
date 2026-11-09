@@ -1,4 +1,6 @@
 import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum TabType {
@@ -36,6 +38,7 @@ const TabElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const translatedName: string = props.tab.isName
     ? props.tab.name
     : translateString(props.tab.name) ?? props.tab.name;
@@ -86,7 +89,8 @@ const TabElement: FunctionComponent<ComponentProps> = (
                       : "bg-gray-500"
             } text-white rounded-full px-2 py-1 text-xs font-semibold ml-2 -mt-0.5`}
           >
-            {props.tab.countBadge}
+            {/* In the reader's digits, as the tab's name is in their words. */}
+            {translator.formatNumber(props.tab.countBadge)}
           </span>
         ) : null}
       </div>

@@ -5,7 +5,8 @@ import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import { getDropdownLabelDirection } from "./DropdownLabelDirection";
 import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
-import { createTranslator } from "../../Utils/TranslateTemplate";
+import { createTranslator, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -296,6 +297,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   ): string | undefined => {
     return translateString(value);
   };
+  const translator: Translator = useTranslator();
   const uniqueId: string = useId();
   const errorId: string = `dropdown-error-${uniqueId}`;
 
@@ -690,7 +692,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           })}
           {hiddenLabelCount > 0 ? (
             <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-500">
-              +{hiddenLabelCount}
+              +{translator.formatNumber(hiddenLabelCount)}
             </span>
           ) : null}
         </div>
@@ -714,7 +716,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         })}
         {hiddenLabelCount > 0 ? (
           <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-            +{hiddenLabelCount}
+            +{translator.formatNumber(hiddenLabelCount)}
           </span>
         ) : null}
       </div>

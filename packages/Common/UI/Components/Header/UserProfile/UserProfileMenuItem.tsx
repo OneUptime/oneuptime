@@ -3,6 +3,8 @@ import Link from "../../Link/Link";
 import Route from "../../../../Types/API/Route";
 import Color from "../../../../Types/Color";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -17,6 +19,8 @@ export interface ComponentProps {
 const UserProfile: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <Link
       to={props.route}
@@ -24,7 +28,9 @@ const UserProfile: FunctionComponent<ComponentProps> = (
       className="dropdown-item flex"
     >
       {props.badge ? (
-        <span className="badge bg-success float-end">{props.badge}</span>
+        <span className="badge bg-success float-end">
+          {translator.formatNumber(props.badge)}
+        </span>
       ) : (
         <></>
       )}

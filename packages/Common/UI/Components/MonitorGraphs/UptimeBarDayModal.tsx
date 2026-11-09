@@ -19,6 +19,8 @@ import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltip
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../../Types/Monitor/UptimeHistoryLabels";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -354,6 +356,8 @@ const DaySectionHeading: FunctionComponent<{
   icon: ReactElement;
   color: Color;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div
       style={{
@@ -384,7 +388,7 @@ const DaySectionHeading: FunctionComponent<{
           padding: "1px 8px",
         })}
       >
-        {props.count}
+        {translator.formatNumber(props.count)}
       </span>
     </div>
   );

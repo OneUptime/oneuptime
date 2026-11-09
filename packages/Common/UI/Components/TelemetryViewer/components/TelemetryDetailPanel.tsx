@@ -39,6 +39,17 @@ const TelemetryDetailPanel: FunctionComponent<TelemetryDetailPanelProps> = (
   props: TelemetryDetailPanelProps,
 ): ReactElement | null => {
   const translator: Translator = useTranslator();
+
+  /*
+   * A tab's badge as drawn: a count in the reader's digits ("۱۲" on a
+   * Persian page, "1,234" in English), and a badge given as words as it is.
+   */
+  const badgeText: (badge: string | number) => string = (
+    badge: string | number,
+  ): string => {
+    return typeof badge === "number" ? translator.formatNumber(badge) : badge;
+  };
+
   const panelId: string = useId();
   const titleId: string = `${panelId}-title`;
   const panelRef: React.MutableRefObject<HTMLDivElement | null> =
@@ -307,7 +318,7 @@ const TelemetryDetailPanel: FunctionComponent<TelemetryDetailPanelProps> = (
                         : "bg-gray-100 text-gray-500"
                     }`}
                   >
-                    {tab.badge}
+                    {badgeText(tab.badge)}
                   </span>
                 )}
                 {isActive && (

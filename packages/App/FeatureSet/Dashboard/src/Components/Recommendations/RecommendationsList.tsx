@@ -23,6 +23,17 @@ export interface ComponentProps {
 }
 
 /*
+ * How many recommendations a section has left to set up before its heading
+ * offers "Select all": a section of one has its card's own checkbox one line
+ * below, and "Select all 1" ("Alle 1 auswählen") read as a slip.
+ */
+export const SELECT_ALL_MINIMUM: number = 2;
+
+// The test id of a category's section, which every category has.
+export const RECOMMENDATION_CATEGORY_TEST_ID_PREFIX: string =
+  "recommendation-category-";
+
+/*
  * Category sections of recommendation cards.
  *
  * Categories come from the catalog in declaration order — the template modules
@@ -77,6 +88,10 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
             );
           });
 
+        // Several left to set up, and nothing being created meanwhile.
+        const offersSelectAll: boolean =
+          availableInGroup.length >= SELECT_ALL_MINIMUM && !props.isDisabled;
+
         /*
          * The heading the monitor form's template picker gives this
          * category ("Control Plane", not the catalog's "ControlPlane"), in
@@ -93,7 +108,10 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
           : undefined;
 
         return (
-          <div key={group.category}>
+          <div
+            key={group.category}
+            data-testid={`${RECOMMENDATION_CATEGORY_TEST_ID_PREFIX}${group.category}`}
+          >
             {/*
              * The heading carries the category, then the two numbers that
              * decide whether it is worth reading: how much is left to do here,
@@ -130,7 +148,7 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
                 )}
               </div>
 
-              {availableInGroup.length > 0 && !props.isDisabled ? (
+              {offersSelectAll ? (
                 <button
                   type="button"
                   className="flex-shrink-0 rounded text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"

@@ -19,7 +19,11 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
-import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -54,6 +58,15 @@ export interface ComponentProps {
   userId: ObjectID | null;
   projectId: ObjectID | null;
 }
+
+/*
+ * The progress bar's words after its "3 of 5", a key of their own: a bare
+ * string handed to the bar was never extracted, so every language read
+ * "3 von 5 essential steps done" with the English in it.
+ */
+export const SETUP_CHECKLIST_PROGRESS_SUFFIX: string = translationKey(
+  "essential steps done",
+);
 
 /*
  * Under the progress bar while a step is Blocked. The one step that can be -
@@ -241,7 +254,7 @@ const SetupChecklist: FunctionComponent<ComponentProps> = (
             <ProgressBar
               count={checklist.completedCount}
               totalCount={checklist.totalCount}
-              suffix="essential steps done"
+              suffix={SETUP_CHECKLIST_PROGRESS_SUFFIX}
               size={ProgressBarSize.Small}
             />
             {/*

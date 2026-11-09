@@ -72,7 +72,12 @@ const FilterButtons: FunctionComponent<ComponentProps> = (
                     : "bg-gray-100 text-gray-500"
                 }`}
               >
-                {option.badge}
+                {/*
+                 * In the reader's digits, as the label beside it is in the
+                 * reader's words: a Persian severity filter read "بحرانی 3"
+                 * where every other count on the page is "۳".
+                 */}
+                {translator.formatNumber(option.badge)}
               </span>
             )}
           </button>

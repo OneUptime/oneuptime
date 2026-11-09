@@ -140,7 +140,7 @@ const EventAttachmentList: FunctionComponent<EventAttachmentListProps> = (
           <span>{translator.translateText(title)}</span>
           {showCount && (
             <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-600">
-              {attachments.length}
+              {translator.formatNumber(attachments.length)}
             </span>
           )}
         </div>

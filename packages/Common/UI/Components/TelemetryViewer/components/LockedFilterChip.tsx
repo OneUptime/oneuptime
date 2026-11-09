@@ -404,7 +404,7 @@ const ScopeMatchesSection: FunctionComponent<ScopeMatchesSectionProps> = (
                   className="text-[10px] tabular-nums text-gray-400"
                   data-testid="locked-filter-scope-match-count"
                 >
-                  {match.values.length}
+                  {translator.formatNumber(match.values.length)}
                 </span>
               </div>
               {match.description ? (

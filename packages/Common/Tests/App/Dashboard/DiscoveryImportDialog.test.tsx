@@ -810,6 +810,72 @@ describe("choosing the hosts", () => {
     expect(chooseSummary()).toBe("3 hosts will be imported");
   });
 
+  /*
+   * One host shown: the selection line's box and the host's own box are the
+   * same choice already, so the line offers no "Select all 1" beside them,
+   * and its box is named for the one host - "Select the host shown", never
+   * "Select the 1 hosts shown".
+   */
+  test("with one host shown there is no Select all 1, and the box is named for the one host", async () => {
+    await openDialog();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("discovered-host-clear-selection"));
+    });
+    await search("10.48.12.31");
+
+    expect(screen.queryByTestId("discovered-host-select-shown")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Select all 1" })).toBeNull();
+
+    const box: HTMLElement = screen.getByTestId("discovered-device-select-all");
+
+    expect(box).toHaveAttribute("aria-label", "Select the host shown");
+
+    await act(async () => {
+      fireEvent.click(box);
+    });
+
+    expect(checkbox("10.48.12.31")).toBeChecked();
+    expect(chooseSummary()).toBe("1 host will be imported");
+    expect(screen.getByTestId("discovered-device-select-all")).toHaveAttribute(
+      "aria-label",
+      "Clear the host shown",
+    );
+  });
+
+  test("with two hosts shown the line offers Select all 2, and its box counts them", async () => {
+    await openDialog();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("discovered-host-clear-selection"));
+    });
+    await search("10.48.12.3");
+
+    // 10.48.12.31 alone: no offer.
+    expect(screen.queryByTestId("discovered-host-select-shown")).toBeNull();
+
+    await search("10.48.11.");
+
+    // 10.48.11.1 and .2; .3 is already added and cannot be ticked.
+    expect(
+      screen.getByTestId("discovered-host-select-shown"),
+    ).toHaveTextContent("Select all 2");
+    expect(screen.getByTestId("discovered-device-select-all")).toHaveAttribute(
+      "aria-label",
+      "Select the 2 hosts shown",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("discovered-host-select-shown"));
+    });
+
+    expect(chooseSummary()).toBe("2 hosts will be imported");
+    expect(screen.getByTestId("discovered-device-select-all")).toHaveAttribute(
+      "aria-label",
+      "Clear the 2 hosts shown",
+    );
+  });
+
   test("a row's box is the same box across a facet change, so ticks never flicker", async () => {
     await openDialog();
 

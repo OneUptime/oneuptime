@@ -243,7 +243,7 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
                       isActive ? "text-indigo-500" : "text-gray-400"
                     }`}
                   >
-                    {count}
+                    {translator.formatNumber(count)}
                   </span>
                 </button>
               );

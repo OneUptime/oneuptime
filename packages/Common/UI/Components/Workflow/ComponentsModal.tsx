@@ -872,7 +872,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Browse all resources")}
               </span>
               <span className="flex-shrink-0 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-normal text-gray-600">
-                {catalog.resources.length}
+                {translator.formatNumber(catalog.resources.length)}
               </span>
               <Icon
                 icon={IconProp.ChevronRight}
