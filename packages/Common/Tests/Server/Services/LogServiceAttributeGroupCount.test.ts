@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Dictionary from "../../../Types/Dictionary";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import { decodedQueryParams } from "../../Helpers/StatementEcho";
 
 /*
  * Contract under test - the grouped count behind a Logs monitor's Group By.
@@ -76,7 +77,7 @@ function statementFor(
 }
 
 function paramValues(statement: Statement): Array<unknown> {
-  return Object.values(statement.query_params);
+  return Object.values(decodedQueryParams(statement));
 }
 
 describe("LogService.toAttributeGroupCountStatement", () => {
@@ -90,9 +91,9 @@ describe("LogService.toAttributeGroupCountStatement", () => {
     expect(statement.query).toContain(
       " ORDER BY groupCount DESC, __group_0 ASC ",
     );
-    expect(statement.query_params["p0"]).toBe("con_name");
-    expect(statement.query_params["p1"]).toBe("oneuptime");
-    expect(statement.query_params["p2"]).toBe(new Log().tableName);
+    expect(decodedQueryParams(statement)["p0"]).toBe("con_name");
+    expect(decodedQueryParams(statement)["p1"]).toBe("oneuptime");
+    expect(decodedQueryParams(statement)["p2"]).toBe(new Log().tableName);
   });
 
   it("keeps several attributes in the order they were configured", () => {
@@ -105,8 +106,8 @@ describe("LogService.toAttributeGroupCountStatement", () => {
     expect(statement.query).toContain(
       " ORDER BY groupCount DESC, __group_0 ASC, __group_1 ASC ",
     );
-    expect(statement.query_params["p0"]).toBe("con_name");
-    expect(statement.query_params["p1"]).toBe("gw_name");
+    expect(decodedQueryParams(statement)["p0"]).toBe("con_name");
+    expect(decodedQueryParams(statement)["p1"]).toBe("gw_name");
   });
 
   it("cuts long values in the query, so the cut values group together", () => {
@@ -326,7 +327,7 @@ describe("LogService.countByAttributeGroups", () => {
     expect(permissionSpy).toHaveBeenCalledTimes(1);
     expect(executedStatements).toHaveLength(1);
     expect(executedStatements[0]!.query).toContain("GROUP BY __group_0");
-    expect(executedStatements[0]!.query_params["p0"]).toBe("con_name");
+    expect(decodedQueryParams(executedStatements[0]!)["p0"]).toBe("con_name");
 
     expect(result).toEqual({
       groups: [

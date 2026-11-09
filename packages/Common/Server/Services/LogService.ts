@@ -122,11 +122,16 @@ export class LogService extends AnalyticsDatabaseService<Log> {
   /*
    * The prefilter as a ClickHouse condition on the body, every word bound as
    * a parameter: a line holds one of `anyOf`, or matches one of the groups.
+   * Every word is sent hex encoded (Statement's sendAsHex): ClickHouse writes
+   * a failed query down, and the scan reads the logs it is written in -
+   * where its own words, all together, would pass this very filter
+   * (issue #6419).
    */
   public static buildSecurityLogPrefilter(): Statement {
     const statement: Statement = SQL`(multiSearchAnyCaseInsensitive(body, ${{
       type: TableColumnType.ArrayText,
       value: [...SECURITY_LOG_PREFILTER.anyOf],
+      sendAsHex: true,
     }})`;
 
     for (const group of SECURITY_LOG_PREFILTER.groups) {
@@ -134,9 +139,11 @@ export class LogService extends AnalyticsDatabaseService<Log> {
         SQL` OR (positionCaseInsensitive(body, ${{
           type: TableColumnType.Text,
           value: group.requires,
+          sendAsHex: true,
         }}) > 0 AND multiSearchAnyCaseInsensitive(body, ${{
           type: TableColumnType.ArrayText,
           value: [...group.anyOf],
+          sendAsHex: true,
         }})`,
       );
 
@@ -145,6 +152,7 @@ export class LogService extends AnalyticsDatabaseService<Log> {
           SQL` AND (NOT multiSearchAnyCaseInsensitive(body, ${{
             type: TableColumnType.ArrayText,
             value: [...group.noneOf],
+            sendAsHex: true,
           }})`,
         );
 
@@ -153,6 +161,7 @@ export class LogService extends AnalyticsDatabaseService<Log> {
             SQL` OR multiSearchAnyCaseInsensitive(body, ${{
               type: TableColumnType.ArrayText,
               value: [...group.unlessAnyOf],
+              sendAsHex: true,
             }})`,
           );
         }

@@ -13,7 +13,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  *  - "done": the run reported;
  *  - "idle": nothing ran, and nothing is wrong with the page;
  *  - "waiting": an investigation rule makes OneUptime AI wait before it
- *    investigates (issue #5074): calm, nothing moves until the wait ends;
+ *    investigates (issue #5074), or an attempt that did not finish waits
+ *    for the next one (issue #6438): calm, nothing moves until the wait
+ *    ends;
  *  - "attention": something is missing that a reader should notice (a run
  *    without a report, a status that could not be loaded);
  *  - "failed": the run stopped before it could report.

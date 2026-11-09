@@ -1421,8 +1421,8 @@ afterEach(() => {
  */
 
 describe("the trace view's words, in the Dashboard's locales", () => {
-  test("every Dashboard language is read: English and the 16 others", () => {
-    expect(LANGUAGES).toHaveLength(17);
+  test("every Dashboard language is read: English and the 17 others", () => {
+    expect(LANGUAGES).toHaveLength(18);
     expect(OTHER_LANGUAGES).toEqual(
       expect.arrayContaining(["de", "ja", "fa", "zh-TW"]),
     );

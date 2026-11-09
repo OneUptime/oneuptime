@@ -20,6 +20,7 @@ import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import AIRunRetryPolicy from "../../../../Server/Utils/AI/AIRunRetryPolicy";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -657,9 +658,10 @@ describe("AIInvestigationQueue", () => {
       .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
+    // A provider that timed out gets its three attempts (AIRunRetryPolicy).
     await AIInvestigationQueue.failOrRequeue({
       aiRunId: ObjectID.generate(),
-      attemptCount: MAX_INVESTIGATION_ATTEMPTS,
+      attemptCount: AIRunRetryPolicy.PROVIDER_FAILURE_MAX_ATTEMPTS,
       errorMessage: "LLM provider timed out",
       isPermanent: false,
     });

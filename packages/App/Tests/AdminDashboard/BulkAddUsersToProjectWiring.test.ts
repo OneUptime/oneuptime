@@ -298,13 +298,14 @@ describe("Bulk add users to project translations", () => {
     expect(bulkAddTranslationKeys().length).toBeGreaterThan(10);
   });
 
-  test("all seventeen locale files are being looked at", () => {
+  test("all eighteen locale files are being looked at", () => {
     /*
      * The loops below prove nothing if the directory read comes back short.
      * i18next's fallbackLng is "en", so a locale file that simply lacks these
      * keys renders an English modal with no error to notice.
      */
     expect(localeFileNames).toEqual([
+      "ar.json",
       "da.json",
       "de.json",
       "en.json",

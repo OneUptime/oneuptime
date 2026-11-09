@@ -317,6 +317,41 @@ describe("a line a cloud's service wrote", () => {
     expect(String(harness.rows[0]!["time"])).toContain("21:51:59");
   });
 
+  test("with no time of its own, takes the one on its line over the time the collector read it (#6395)", async () => {
+    const harness: Harness = setup();
+    const record: JSONObject = journalRecord(
+      `2026-11-04 21:51:59.583 91143 ERROR nova.compute.manager [None ${REQUEST} - - - - - -] Failed`,
+    );
+    // Read by the collector five minutes after the line was written.
+    const readAt: string = "1793829419000000000";
+
+    delete record["timeUnixNano"];
+    record["observedTimeUnixNano"] = readAt;
+
+    await OtelLogsIngestService.processLogsFromQueue(cloudRequest([record]));
+
+    expect(String(harness.rows[0]!["time"])).toContain("2026-11-04 21:51:59");
+    expect(harness.rows[0]!["timeUnixNano"]).not.toBe(readAt);
+    expect(harness.rows[0]!["observedTimeUnixNano"]).toBe(readAt);
+  });
+
+  test("with no time of its own and none on its line, the time the collector read it (#6395)", async () => {
+    const harness: Harness = setup();
+    const record: JSONObject = journalRecord(
+      `ERROR nova.compute.manager [None ${REQUEST} - - - - - -] Failed`,
+    );
+    // 2026-11-04T21:56:59Z.
+    const readAt: string = "1793829419000000000";
+
+    delete record["timeUnixNano"];
+    record["observedTimeUnixNano"] = readAt;
+
+    await OtelLogsIngestService.processLogsFromQueue(cloudRequest([record]));
+
+    expect(harness.rows[0]!["time"]).toBe("2026-11-04 21:56:59.000000000");
+    expect(harness.rows[0]!["timeUnixNano"]).toBe(readAt);
+  });
+
   test("its secrets are gone from everything the row holds", async () => {
     const harness: Harness = setup();
 

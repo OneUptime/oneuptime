@@ -36,8 +36,10 @@ import ResourceOverview, {
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
 import {
+  CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
   getCloudMonitoredResourceAttributeFilters,
+  getCloudMonitoredResourceRowAggregation,
 } from "../Utils/CloudMonitoredResourceScope";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -208,6 +210,12 @@ const CloudMonitoredResourceOverview: FunctionComponent<
   const eventScope: Record<string, string> = useMemo(() => {
     return { cloudResourceId: modelId.toString() };
   }, [modelId.toString()]);
+
+  // A namespace's rows add up its queues' series, as its Metrics tab's do.
+  const rowAggregation: CloudMonitoredResourceRowAggregation | undefined =
+    useMemo(() => {
+      return getCloudMonitoredResourceRowAggregation(cloudResource);
+    }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -460,6 +468,8 @@ const CloudMonitoredResourceOverview: FunctionComponent<
                 attributeFilters={attributeFilters}
                 attributeFilterDisplayKeys={attributeFilterDisplayKeys}
                 eventScope={eventScope}
+                getRowAggregation={rowAggregation?.getRowAggregation}
+                defaultRowValueCaption={rowAggregation?.defaultRowValueCaption}
                 disableUrlSync={true}
               />
             ) : (

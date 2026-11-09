@@ -129,17 +129,17 @@ Elk record draagt deze resource-attributen:
 
 ### Waar Cursor op het tabblad Gebruik verschijnt
 
-Cursor stuurt metrieken en geen GenAI-spans, en de metrieken vullen alleen spans aan: **als hetzelfde project GenAI-spans met kosten ontvangt, verschijnen de uitgaven van Cursor niet.** Stuur Cursor naar een eigen project. Zie [Spans eerst, metrieken vullen aan](/docs/telemetry/ai-llm-observability#spans-eerst-metrieken-vullen-aan).
+Cursor stuurt metrieken en geen GenAI-spans, onder zijn eigen service, `cursor`, dus worden zijn uitgaven geteld naast de AI-aanroepen die je apps naar hetzelfde project sturen, nooit in hun plaats. Zie [Elke service wordt geteld uit wat hij stuurt](/docs/telemetry/ai-llm-observability#elke-service-wordt-geteld-uit-wat-hij-stuurt).
 
 | Uitsplitsing | Voor Cursor |
 | --- | --- |
 | **Medewerker** | Ja, op `cursor.user.email`, anders `cursor.user.id` |
 | **Team** | Ja, op `cursor.team.id` |
 | **Model** | Ja, op `cursor.model.name` |
-| **Provider** | Nee: Cursor zegt nooit welke provider een aanroep afhandelde |
-| **Applicatie / Service** | Nee: de metrieken van Cursor horen bij geen enkele OneUptime-service |
+| **Provider** | Onder **Niet toegewezen**: Cursor zegt nooit welke provider een aanroep bediende |
+| **Applicatie / Service** | Ja, onder de service `cursor` |
 
-Een Cursor-rij draagt alleen kosten: de cellen voor aanroepen en tokens tonen `—`, omdat `cursor.cost.usage` geen details per aanroep heeft. `cursor.token.usage` voedt nog steeds de tokentotalen boven de tabel (de types `input` en `output`; cachetokens blijven buiten beschouwing), en je kunt het in een dashboard zetten per `cursor.token.type`.
+Een Cursor-rij zegt **Uit gebruiksmetrieken** onder haar naam, en haar cel voor aanroepen toont `—`, omdat een teller geen details per aanroep heeft. Haar kosten komen uit `cursor.cost.usage` en haar tokens uit `cursor.token.usage` (de typen `input` en `output`; cachetokens worden weggelaten), die je ook op een dashboard per `cursor.token.type` kunt tonen.
 
 :::details Een gebruikers-id van Cursor omzetten in een persoon
 Namen en gefactureerde bedragen staan in de Admin API van Cursor, die OneUptime leest als je zijn sleutel koppelt als [provideraccount](/docs/telemetry/ai-provider-accounts#cursor): dat account noemt personen bij hun e-mailadres. Om zelf een `cursor.user.id` te koppelen, roep je de API aan op `https://api.cursor.com`, met een beheerders-API-sleutel als gebruikersnaam en een leeg wachtwoord:
@@ -176,7 +176,7 @@ Cursor maakt verbinding vanaf zijn eigen servers: je OTLP-endpoint moet bereikba
 :::
 
 :::details Logs komen binnen, maar het tabblad Gebruik toont geen uitgaven van Cursor
-Het project ontvangt ook GenAI-spans met kosten, dus de metrieken van Cursor worden niet gelezen. Stuur Cursor naar een eigen project, met een eigen ingestiesleutel.
+De uitgaven van Cursor komen uit zijn metrieken, niet uit zijn logs: controleer of het signaal voor metrieken in Cursor aan staat, en zoek `cursor.cost.usage` onder **Metrieken**. Als je rol geen metrieken mag lezen, laat het tabblad Gebruik ze weg en zegt dat.
 :::
 
 :::details Personen verschijnen als getallen

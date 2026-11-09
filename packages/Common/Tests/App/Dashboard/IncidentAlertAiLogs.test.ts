@@ -987,8 +987,8 @@ describe("the words are in every Dashboard locale", () => {
     ),
   ];
 
-  test("seventeen of them", () => {
-    expect(LOCALE_CODES).toHaveLength(17);
+  test("eighteen of them", () => {
+    expect(LOCALE_CODES).toHaveLength(18);
   });
 
   test.each(LOCALE_CODES)("%s has every one", (code: string) => {

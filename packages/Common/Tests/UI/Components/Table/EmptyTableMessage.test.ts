@@ -331,8 +331,8 @@ describe("the Dashboard locale files", () => {
     ["Runbooks", "No runbooks yet."],
   ];
 
-  test("all 17 locales are here", () => {
-    expect(localeCodes).toHaveLength(17);
+  test("all 18 locales are here", () => {
+    expect(localeCodes).toHaveLength(18);
     expect(localeCodes).toContain("en");
   });
 

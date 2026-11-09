@@ -11,6 +11,7 @@ import LLMService, {
 import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { drawnPath } from "./DocsProductsMenu";
+import { toLatinDigits } from "./DocsTranslationChecks";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -442,12 +443,16 @@ describe("every LLM provider guide says what is under More fields", () => {
     "description",
     "isDefault",
     "additionalParams",
+    "requestTimeoutInSeconds",
   ];
 
-  test("the form folds Description, Set as Default and Additional Parameters under More fields", () => {
+  test("the form folds Description, Set as Default, Additional Parameters and Response Timeout under More fields", () => {
     expect(formFieldTitle("description")).toBe("Description");
     expect(formFieldTitle("isDefault")).toBe("Set as Default");
     expect(formFieldTitle("additionalParams")).toBe("Additional Parameters");
+    expect(formFieldTitle("requestTimeoutInSeconds")).toBe(
+      "Response Timeout (Seconds)",
+    );
 
     for (const field of FOLDED) {
       expect(formField(field)).toContain("collapsibleSection: advancedSection");
@@ -473,6 +478,158 @@ describe("every LLM provider guide says what is under More fields", () => {
       }
 
       expect(bullet).toContain('`{"temperature": 0.2}`');
+    },
+  );
+});
+
+/*
+ * Issue #6438: a self-hosted model took longer to answer than the 120
+ * seconds every provider was given, and nothing could change that. A
+ * provider's Response Timeout now can; each guide says how long OneUptime
+ * waits when it is left empty, for Ollama too, and what it may be set to -
+ * the numbers LLMService and the form use, in the page's own digits.
+ */
+describe("every LLM provider guide says how long OneUptime waits for a provider", () => {
+  startEachTestOnSelfHostedEgressPolicy();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const DIGIT_GROUP: RegExp = /(\d)[\s.,'٬](\d{3})(?!\d)/g;
+
+  /*
+   * The numbers a text states, code left out, in any digits and digit
+   * groups: "3,600", "3.600", "3 600" and "۳٬۶۰۰" are all 3600.
+   */
+  function numbersIn(text: string): Array<number> {
+    let joined: string = toLatinDigits(text.replace(/`[^`\n]*`/g, " "));
+    let previous: string = "";
+
+    while (joined !== previous) {
+      previous = joined;
+      joined = joined.replace(DIGIT_GROUP, "$1$2");
+    }
+
+    return Array.from(joined.matchAll(/\d+/g)).map(
+      (match: RegExpMatchArray): number => {
+        return Number(match[0]);
+      },
+    );
+  }
+
+  // How long LLMService waits for this provider, with no timeout of its own.
+  async function secondsWaitedFor(
+    llmProviderConfig: {
+      llmType: LlmType;
+      apiKey?: string;
+      baseUrl: string;
+    },
+    reply: JSONObject,
+  ): Promise<number> {
+    const post: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(API, "post")
+      .mockResolvedValue({
+        jsonData: reply,
+      } as unknown as HTTPResponse<JSONObject>) as ReturnType<
+      typeof jest.spyOn
+    >;
+
+    await LLMService.getCompletion({
+      llmProviderConfig: { ...llmProviderConfig, modelName: "a-model" },
+      messages: [{ role: "user", content: "which incidents are active?" }],
+    });
+
+    const request: { options: { timeout: number } } = post.mock
+      .calls[0]![0] as { options: { timeout: number } };
+
+    return request.options.timeout / 1000;
+  }
+
+  // What the bullet says after the timeout's label.
+  function timeoutPart(language: string): string {
+    const fold: string = dashboardLabel(language, MORE_FIELDS_SECTION_TITLE);
+    const label: string = `**${dashboardLabel(
+      language,
+      formFieldTitle("requestTimeoutInSeconds"),
+    )}**`;
+    const bullet: string =
+      readPage(language)
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith(`- **${fold}**`);
+        }) || "";
+
+    return bullet.includes(label) ? bullet.split(label)[1]! : "";
+  }
+
+  test("the numbers: 120 seconds left empty, 300 for Ollama, and 10 to 3,600 seconds, which the form allows", async () => {
+    // A private address, which a self-hosted install reaches.
+    expect(
+      await secondsWaitedFor(
+        {
+          llmType: LlmType.OpenAI,
+          apiKey: "sk-test",
+          baseUrl: "http://10.0.0.12:8000/v1",
+        },
+        { choices: [{ message: { content: "OK" }, finish_reason: "stop" }] },
+      ),
+    ).toBe(120);
+
+    jest.restoreAllMocks();
+
+    expect(
+      await secondsWaitedFor(
+        { llmType: LlmType.Ollama, baseUrl: "http://10.0.0.12:11434" },
+        {
+          message: { role: "assistant", content: "OK" },
+          prompt_eval_count: 1,
+          eval_count: 1,
+        },
+      ),
+    ).toBe(300);
+
+    expect(LLMService.MIN_PROVIDER_TIMEOUT_IN_SECONDS).toBe(10);
+    expect(LLMService.MAX_PROVIDER_TIMEOUT_IN_SECONDS).toBe(3600);
+
+    const field: string = formField("requestTimeoutInSeconds");
+
+    expect(field).toContain(
+      `minValue: ${LLMService.MIN_PROVIDER_TIMEOUT_IN_SECONDS},`,
+    );
+    expect(field).toContain(
+      `maxValue: ${LLMService.MAX_PROVIDER_TIMEOUT_IN_SECONDS},`,
+    );
+  });
+
+  test("the numbers read in any digits and digit groups", () => {
+    expect(numbersIn("from 10 to 3,600 seconds")).toEqual([10, 3600]);
+    expect(numbersIn("de 10 à 3 600 secondes")).toEqual([10, 3600]);
+    expect(numbersIn("von 10 bis 3.600 Sekunden")).toEqual([10, 3600]);
+    expect(numbersIn("از ۱۰ تا ۳٬۶۰۰ ثانیه")).toEqual([10, 3600]);
+    expect(numbersIn('`{"temperature": 0.2}` and 120')).toEqual([120]);
+  });
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s gives the timeout left empty, Ollama's and the range",
+    (language: string) => {
+      const part: string = timeoutPart(language);
+
+      expect({ language, part }).toEqual({
+        language,
+        part: expect.any(String),
+      });
+      expect(part.length).toBeGreaterThan(0);
+      expect(numbersIn(part)).toEqual(
+        expect.arrayContaining([
+          120,
+          300,
+          LLMService.MIN_PROVIDER_TIMEOUT_IN_SECONDS,
+          LLMService.MAX_PROVIDER_TIMEOUT_IN_SECONDS,
+        ]),
+      );
+      // Ollama is named: its own default is the 300 seconds.
+      expect(part).toContain("Ollama");
     },
   );
 });

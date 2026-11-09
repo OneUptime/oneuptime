@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import OneUptimeDate from "Common/Types/Date";
 import {
   TraceHealthHint,
@@ -142,7 +143,9 @@ export function formatTraceHealthShare(
   };
 
   try {
-    return new Intl.NumberFormat(language, options).format(shown / 100);
+    return new Intl.NumberFormat(getNumberLocale(language), options).format(
+      shown / 100,
+    );
   } catch {
     return new Intl.NumberFormat("en", options).format(shown / 100);
   }

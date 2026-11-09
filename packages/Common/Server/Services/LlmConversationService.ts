@@ -15,6 +15,9 @@ import LlmLogEventReader, {
   LlmLogEventReadResult,
   LlmLogEventTitleRequest,
 } from "../Utils/Telemetry/LlmLogEventReader";
+import LlmCountedCallsSql, {
+  LlmCountedCallsScope,
+} from "../Utils/Telemetry/LlmCountedCallsSql";
 import logger from "../Utils/Logger";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -74,6 +77,10 @@ import LlmLogEventsUtil, {
  * (a model it used, a person in it, text anywhere in it, an issue in any of
  * its calls) go in HAVING, so a matching conversation keeps every one of its
  * calls in its totals. Filters on what the caller may read go in WHERE.
+ *
+ * A conversation's tokens and cost count each model call once: an agent
+ * run's or a wrapper span's repeat of what its calls report is left out
+ * (LlmCountedCallsSql), as the Usage tab and the transcript count them.
  *
  * Every read is bounded below nginx's 60 s read timeout with 'throw', never
  * 'break': a grouped read cut short with 'break' answers an EMPTY body, which
@@ -690,6 +697,46 @@ export default class LlmConversationService {
     });
   }
 
+  // What the counted figures of a read are counted against: its project, range and scope.
+  public static getCountedCallsScope(
+    query: TelemetryServiceFilter & {
+      projectId: ObjectID;
+      startTime: Date;
+      endTime: Date;
+    },
+  ): LlmCountedCallsScope {
+    return {
+      projectId: query.projectId,
+      startTime: query.startTime,
+      endTime: query.endTime,
+      serviceIds: query.serviceIds,
+      excludedServiceIds: query.excludedServiceIds,
+    };
+  }
+
+  /*
+   * `sum(<counted cost>) AS <prefix>costUsd, sum(<counted input tokens>) AS
+   * <prefix>inputTokens, sum(<counted output tokens>) AS
+   * <prefix>outputTokens, `: each model call's figures once.
+   */
+  public static appendCountedSums(
+    statement: Statement,
+    scope: LlmCountedCallsScope,
+    prefix: string,
+  ): void {
+    statement.append("sum(");
+    statement.append(LlmCountedCallsSql.buildCountedColumn(scope, "llmCost"));
+    statement.append(`) AS ${prefix}costUsd, sum(`);
+    statement.append(
+      LlmCountedCallsSql.buildCountedColumn(scope, "llmInputTokens"),
+    );
+    statement.append(`) AS ${prefix}inputTokens, sum(`);
+    statement.append(
+      LlmCountedCallsSql.buildCountedColumn(scope, "llmOutputTokens"),
+    );
+    statement.append(`) AS ${prefix}outputTokens, `);
+  }
+
   public static buildListStatement(query: LlmConversationListQuery): Statement {
     const statement: Statement = new Statement();
 
@@ -706,11 +753,15 @@ export default class LlmConversationService {
         `intDiv(min(${CALL_START_SQL}), ${NANOS_PER_MILLI}) AS startedAtMs, ` +
         `intDiv(max(${CALL_END_SQL}), ${NANOS_PER_MILLI}) AS endedAtMs, ` +
         `count() AS callCount, ` +
-        `countIf(${IS_ANSWER_SQL}) AS answerCount, ` +
-        `sum(llmCost) AS costUsd, ` +
-        `sum(llmInputTokens) AS inputTokens, ` +
-        `sum(llmOutputTokens) AS outputTokens, ` +
-        `${issueColumns}, ` +
+        `countIf(${IS_ANSWER_SQL}) AS answerCount, `,
+    );
+    LlmConversationService.appendCountedSums(
+      statement,
+      LlmConversationService.getCountedCallsScope(query),
+      "",
+    );
+    statement.append(
+      `${issueColumns}, ` +
         `maxIf(durationUnixNano, ${IS_ANSWER_SQL}) AS slowestAnswerNano, ` +
         `argMinIf(llmUserMessagePreview, ${CALL_START_SQL}, llmUserMessagePreview != '') AS title, ` +
         `groupUniqArrayIf(5)(llmRequestModel, llmRequestModel != '') AS models, ` +
@@ -787,11 +838,15 @@ export default class LlmConversationService {
         `count() AS inner_callCount, ` +
         `countIf(${IS_ANSWER_SQL}) AS inner_answerCount, ` +
         `countIf(${HAS_PROBLEM_SQL}) AS inner_problemCallCount, ` +
-        `${innerIssueColumns}, ` +
-        `sum(llmCost) AS inner_costUsd, ` +
-        `sum(llmInputTokens) AS inner_inputTokens, ` +
-        `sum(llmOutputTokens) AS inner_outputTokens, ` +
-        `quantilesStateIf(0.5, 0.95)(durationUnixNano, ${IS_ANSWER_SQL}) AS inner_answerLatencyState ` +
+        `${innerIssueColumns}, `,
+    );
+    LlmConversationService.appendCountedSums(
+      statement,
+      LlmConversationService.getCountedCallsScope(query),
+      "inner_",
+    );
+    statement.append(
+      `quantilesStateIf(0.5, 0.95)(durationUnixNano, ${IS_ANSWER_SQL}) AS inner_answerLatencyState ` +
         `FROM ${TABLE_NAME}`,
     );
 

@@ -537,6 +537,7 @@ const TRANSLATED_LOCALES: Array<string> = [
   "de",
   "es",
   "fa",
+  "ar",
   "fr",
   "hi",
   "it",
@@ -709,13 +710,14 @@ describe("every screen this file asserts on was located in Login.tsx", () => {
     );
   });
 
-  test("all seventeen locale files are being looked at", () => {
+  test("all eighteen locale files are being looked at", () => {
     /*
      * The locale loops prove nothing if the directory read comes back short.
      * i18next's fallbackLng is "en", so a locale file that simply is not there
      * renders an English sign-in page with no error to notice.
      */
     expect(localeFileNames).toEqual([
+      "ar.json",
       "da.json",
       "de.json",
       "en.json",

@@ -10,6 +10,7 @@ import {
 import {
   LlmCostMetricNames,
   LlmMetricModelAttributeKeys,
+  LlmMetricProviderAttributeKeys,
   LlmMetricTeamAttributeKeys,
   LlmMetricUserAttributeKeys,
   LlmMicroUsdCostMetricNames,
@@ -20,11 +21,13 @@ import {
 /*
  * WHAT THE GENAI METRICS OF A RANGE ADD UP TO.
  *
- * LlmMetricUsageReader reads one row per metric, group and token type - the
- * usage its series added in the range - and LlmMetricUsageUtil folds those
- * rows into the Usage tab's and the budgets' figures. These pin the fold:
- * which rows are cost and in which unit, which token types are input and
- * output for each coding tool, and how groups are kept and ordered.
+ * LlmMetricUsageReader reads one row per metric, service, group and token
+ * type - the usage its series added in the range, each service's totals in
+ * rows of their own - and LlmMetricUsageUtil folds those rows into the Usage
+ * tab's and the budgets' figures. These pin the fold: which rows are cost
+ * and in which unit, which token types are input and output for each coding
+ * tool, how groups are kept and ordered, and that a total row and a group
+ * row of the same points are never both counted.
  */
 
 function row(
@@ -425,5 +428,179 @@ describe("the keys a group is read from", () => {
     expect(
       LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.Employee),
     ).not.toContain("mutated");
+  });
+
+  test("a provider is read from the provider keys, preferred first", () => {
+    expect(
+      LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.Provider),
+    ).toEqual(LlmMetricProviderAttributeKeys);
+    expect(
+      LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.Provider)[0],
+    ).toBe("gen_ai.provider.name");
+  });
+
+  // Every row carries its service: it is not an attribute to group by.
+  test("a service is no attribute", () => {
+    expect(
+      LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.Service),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * The reader sends each service's totals in rows of their own, beside the
+ * group rows of the same points (GROUPING SETS), so the totals stay exact
+ * when the group rows are cut short. The fold must count each point once:
+ * the totals from the total rows, the groups from the group rows.
+ */
+describe("services, and total rows beside group rows", () => {
+  const COST: string = "claude_code.cost.usage";
+
+  function total(service: string, value: number): LlmMetricUsageRow {
+    return { ...row(COST, value), service: service, isTotal: true };
+  }
+
+  function groupRow(
+    service: string,
+    group: string,
+    value: number,
+  ): LlmMetricUsageRow {
+    return {
+      ...row(COST, value, { group: group }),
+      service: service,
+      isTotal: false,
+      groupAttribute: "user.email",
+    };
+  }
+
+  test("a row that says neither is both: rows built by hand still fold", () => {
+    const plain: LlmMetricUsageRow = row(COST, 1);
+
+    expect(LlmMetricUsageUtil.isTotalRow(plain)).toBe(true);
+    expect(LlmMetricUsageUtil.isGroupRow(plain)).toBe(true);
+    expect(LlmMetricUsageUtil.isTotalRow(total("a", 1))).toBe(true);
+    expect(LlmMetricUsageUtil.isGroupRow(total("a", 1))).toBe(false);
+    expect(LlmMetricUsageUtil.isTotalRow(groupRow("a", "ana", 1))).toBe(false);
+    expect(LlmMetricUsageUtil.isGroupRow(groupRow("a", "ana", 1))).toBe(true);
+  });
+
+  test("the totals come from the total rows, the groups from the group rows", () => {
+    const usage: LlmMetricUsageResponse = LlmMetricUsageUtil.fold(
+      [
+        total("claude-code", 10),
+        groupRow("claude-code", "ana@example.com", 6),
+        groupRow("claude-code", "bo@example.com", 4),
+      ],
+      { dimension: LlmMetricUsageDimension.Employee },
+    );
+
+    expect(usage.totals.costUsd).toBe(10);
+    expect(
+      usage.groups.map((group: LlmMetricUsageGroup): [string, number] => {
+        return [group.key, group.costUsd];
+      }),
+    ).toEqual([
+      ["ana@example.com", 6],
+      ["bo@example.com", 4],
+    ]);
+  });
+
+  test("a cut that left groups out leaves the totals whole", () => {
+    const usage: LlmMetricUsageResponse = LlmMetricUsageUtil.fold(
+      [total("claude-code", 10), groupRow("claude-code", "ana@example.com", 6)],
+      { dimension: LlmMetricUsageDimension.Employee, truncated: true },
+    );
+
+    expect(usage.totals.costUsd).toBe(10);
+    expect(usage.groups).toHaveLength(1);
+    expect(usage.truncated).toBe(true);
+  });
+
+  test("by service, each service's totals are its group, and group rows are not added again", () => {
+    const usage: LlmMetricUsageResponse = LlmMetricUsageUtil.fold(
+      [
+        total("claude-code", 10),
+        total("codex", 3),
+        groupRow("claude-code", "ana@example.com", 10),
+      ],
+      { dimension: LlmMetricUsageDimension.Service },
+    );
+
+    expect(usage.totals.costUsd).toBe(13);
+    expect(
+      usage.groups.map((group: LlmMetricUsageGroup): [string, number] => {
+        return [group.key, group.costUsd];
+      }),
+    ).toEqual([
+      ["claude-code", 10],
+      ["codex", 3],
+    ]);
+  });
+
+  test("each service's figures, from its total rows", () => {
+    const services: Map<string, { costUsd: number; inputTokens: number }> =
+      LlmMetricUsageUtil.foldByService([
+        total("claude-code", 10),
+        {
+          ...row("claude_code.token.usage", 500, { tokenType: "input" }),
+          service: "claude-code",
+          isTotal: true,
+        },
+        total(" codex ", 3),
+        groupRow("claude-code", "ana@example.com", 99),
+        // Points read with no service fold under "".
+        row(COST, 2),
+      ]);
+
+    expect(Array.from(services.keys()).sort()).toEqual([
+      "",
+      "claude-code",
+      "codex",
+    ]);
+    expect(services.get("claude-code")!.costUsd).toBe(10);
+    expect(services.get("claude-code")!.inputTokens).toBe(500);
+    expect(services.get("codex")!.costUsd).toBe(3);
+    expect(services.get("")!.costUsd).toBe(2);
+  });
+
+  test("a provider is named the way ingest names a span's", () => {
+    expect(
+      LlmMetricUsageUtil.normalizeGroup(
+        LlmMetricUsageDimension.Provider,
+        " az.ai.openai ",
+      ),
+    ).toBe("azure.ai.openai");
+    expect(
+      LlmMetricUsageUtil.normalizeGroup(
+        LlmMetricUsageDimension.Provider,
+        "OpenAI",
+      ),
+    ).toBe("openai");
+    expect(
+      LlmMetricUsageUtil.normalizeGroup(LlmMetricUsageDimension.Provider, ""),
+    ).toBe("");
+    // Anything else is only trimmed: a person's email keeps its case.
+    expect(
+      LlmMetricUsageUtil.normalizeGroup(
+        LlmMetricUsageDimension.Employee,
+        " Ana@Example.com ",
+      ),
+    ).toBe("Ana@Example.com");
+  });
+
+  test("by provider, two spellings of one provider are one group", () => {
+    const usage: LlmMetricUsageResponse = LlmMetricUsageUtil.fold(
+      [
+        { ...groupRow("app", "az.ai.openai", 2), groupAttribute: "" },
+        { ...groupRow("app", "azure.ai.openai", 3), groupAttribute: "" },
+      ],
+      { dimension: LlmMetricUsageDimension.Provider },
+    );
+
+    expect(
+      usage.groups.map((group: LlmMetricUsageGroup): [string, number] => {
+        return [group.key, group.costUsd];
+      }),
+    ).toEqual([["azure.ai.openai", 5]]);
   });
 });

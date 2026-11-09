@@ -87,6 +87,7 @@ const LANGUAGES: ReadonlyArray<string> = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
 
 /*
@@ -111,6 +112,7 @@ const SINGAPORE_BY_LANGUAGE: Readonly<Record<string, string>> = {
   "zh-TW": "新加坡",
   hi: "सिंगापुर",
   fa: "سنگاپور",
+  ar: "سنغافورة",
 };
 
 /*

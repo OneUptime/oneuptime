@@ -1,3 +1,4 @@
+import { getNumberLocale } from "../../../Types/DateLanguage";
 import { Blue500 } from "../../../Types/BrandColors";
 import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import Color from "../../../Types/Color";
@@ -257,7 +258,7 @@ export const getCalendarFormats: (language: string | undefined) => Formats = (
     let format: Intl.DateTimeFormat;
 
     try {
-      format = new Intl.DateTimeFormat(code, {
+      format = new Intl.DateTimeFormat(getNumberLocale(code), {
         calendar: "gregory",
         ...options,
       } as Intl.DateTimeFormatOptions);
@@ -365,16 +366,22 @@ export const hasShortWeekdayNames: (language: string | undefined) => boolean = (
   let hasShortNames: boolean = true;
 
   try {
-    const short: Intl.DateTimeFormat = new Intl.DateTimeFormat(code, {
-      calendar: "gregory",
-      weekday: "short",
-      timeZone: "UTC",
-    } as Intl.DateTimeFormatOptions);
-    const long: Intl.DateTimeFormat = new Intl.DateTimeFormat(code, {
-      calendar: "gregory",
-      weekday: "long",
-      timeZone: "UTC",
-    } as Intl.DateTimeFormatOptions);
+    const short: Intl.DateTimeFormat = new Intl.DateTimeFormat(
+      getNumberLocale(code),
+      {
+        calendar: "gregory",
+        weekday: "short",
+        timeZone: "UTC",
+      } as Intl.DateTimeFormatOptions,
+    );
+    const long: Intl.DateTimeFormat = new Intl.DateTimeFormat(
+      getNumberLocale(code),
+      {
+        calendar: "gregory",
+        weekday: "long",
+        timeZone: "UTC",
+      } as Intl.DateTimeFormatOptions,
+    );
 
     hasShortNames = A_WEEK.some((day: Date): boolean => {
       return short.format(day) !== long.format(day);
@@ -410,10 +417,13 @@ export const getNarrowDayNameFormats: (
     let format: Intl.DateTimeFormat;
 
     try {
-      format = new Intl.DateTimeFormat(language || ENGLISH_LANGUAGE, {
-        calendar: "gregory",
-        ...options,
-      } as Intl.DateTimeFormatOptions);
+      format = new Intl.DateTimeFormat(
+        getNumberLocale(language || ENGLISH_LANGUAGE),
+        {
+          calendar: "gregory",
+          ...options,
+        } as Intl.DateTimeFormatOptions,
+      );
     } catch {
       format = new Intl.DateTimeFormat(ENGLISH_LANGUAGE, options);
     }

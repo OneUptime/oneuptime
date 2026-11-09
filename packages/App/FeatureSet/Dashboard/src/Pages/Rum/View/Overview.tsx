@@ -107,6 +107,14 @@ import {
 } from "../../../Components/Rum/SetupCheck/RumSignalWords";
 import RumSignalEmptyState from "../../../Components/Rum/SetupCheck/RumSignalEmptyState";
 import RumSignalSetupModal from "../../../Components/Rum/SetupCheck/RumSignalSetupModal";
+import RumKeySetupModal from "../../../Components/Rum/SetupCheck/RumKeySetupModal";
+import {
+  IngestRefusalFact,
+  RumKindRefusal,
+  RumRefusalApp,
+  getRumKindRefusal,
+} from "../../../Components/Rum/SetupCheck/RumIngestRefusals";
+import useRecentIngestRefusals from "../../../Components/Rum/SetupCheck/useRecentIngestRefusals";
 import { RumSignalArrivalRead } from "../../../Components/Rum/SetupCheck/useRumSetupCheck";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
@@ -203,6 +211,24 @@ const RumApplicationOverview: FunctionComponent<
   );
   // The setup dialog an empty chart opened.
   const [setUpSignal, setSetUpSignal] = useState<RumPanelSignal | null>(null);
+  // "Pick another key", from an empty chart whose telemetry is refused.
+  const [isPickingKey, setIsPickingKey] = useState<boolean>(false);
+  /*
+   * What the project's keys were refused in the past day (issue #6378),
+   * read again on every refresh: an empty chart says "refused" while
+   * nothing of its kind has arrived since. Like the newest exception, read
+   * only while a chart has nothing to draw.
+   */
+  const [refusalsReloadToken, setRefusalsReloadToken] = useState<number>(0);
+  const isChartEmpty: boolean = [signals?.exceptions, signals?.logs].some(
+    (pillar: { total: number; failed: boolean } | undefined): boolean => {
+      return Boolean(pillar && !pillar.failed && pillar.total === 0);
+    },
+  );
+  const refusals: Array<IngestRefusalFact> | null = useRecentIngestRefusals(
+    refusalsReloadToken,
+    isChartEmpty,
+  );
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
   const [inpByRoute, setInpByRoute] = useState<WebVitalByRoute | null>(null);
@@ -557,6 +583,9 @@ const RumApplicationOverview: FunctionComponent<
 
   const refresh: () => void = useCallback((): void => {
     fetchModel(false).catch(() => {});
+    setRefusalsReloadToken((value: number): number => {
+      return value + 1;
+    });
 
     if (appIdentifier) {
       loadTelemetry(false);
@@ -677,6 +706,28 @@ const RumApplicationOverview: FunctionComponent<
     now: diagnosisNow,
   });
 
+  const refusalApp: RumRefusalApp = {
+    client,
+    appIdentifier: (a.appIdentifier as string) || null,
+  };
+  const panelRefusals: Record<RumPanelSignal, RumKindRefusal | null> = {
+    // Exceptions are span events: they travel with the traces.
+    exceptions: getRumKindRefusal({
+      refusals,
+      kind: "traces",
+      lastArrivalAt: toDateOrNull(a.tracesLastReceivedAt),
+      app: refusalApp,
+      now: diagnosisNow,
+    }),
+    logs: getRumKindRefusal({
+      refusals,
+      kind: "logs",
+      lastArrivalAt: toDateOrNull(a.logsLastReceivedAt),
+      app: refusalApp,
+      now: diagnosisNow,
+    }),
+  };
+
   const documentationRoute: Route = populate(
     PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION,
   );
@@ -693,6 +744,7 @@ const RumApplicationOverview: FunctionComponent<
       diagnosis,
       client,
       sessionsWithErrors: signal === "exceptions" ? sessionsWithErrors : null,
+      refusal: panelRefusals[signal],
       translator,
       now: diagnosisNow,
     });
@@ -716,6 +768,9 @@ const RumApplicationOverview: FunctionComponent<
         }}
         onRetry={(): void => {
           loadTelemetry(true);
+        }}
+        onPickKey={(): void => {
+          setIsPickingKey(true);
         }}
       />
     );
@@ -1111,6 +1166,17 @@ const RumApplicationOverview: FunctionComponent<
           appName={(a.appIdentifier as string) || (a.name as string) || ""}
           onClose={(): void => {
             setSetUpSignal(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isPickingKey ? (
+        <RumKeySetupModal
+          clientType={client}
+          onClose={(): void => {
+            setIsPickingKey(false);
           }}
         />
       ) : (
