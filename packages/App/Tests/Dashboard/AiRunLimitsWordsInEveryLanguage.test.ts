@@ -29,7 +29,7 @@ import path from "path";
  * → More settings → Limits per run. Its words, the More settings line that
  * now names it, and the incident and alert AI pages' time limit - whose
  * empty value is the project's time limit per run, no longer "No time
- * limit" - are worded in each of the sixteen languages besides English:
+ * limit" - are worded in each of the seventeen languages besides English:
  * every placeholder kept, and the default time limit named as runs have
  * it.
  */
@@ -232,13 +232,42 @@ describe("the limits per run in every language", () => {
     },
   );
 
-  test("Persian writes the minutes in its own digits", () => {
+  test("Persian writes the minutes in its own digits, Arabic and German in Latin ones", () => {
     expect(
       readLocale("fa")[ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder],
     ).toBe("۱۲۰ دقیقه (پیش‌فرض)");
+    // Arabic in OneUptime writes Latin digits (Locales/ARABIC.md).
+    expect(
+      readLocale("ar")[ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder],
+    ).toBe("120 دقيقة (القيمة الافتراضية)");
     expect(
       readLocale("de")[ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder],
     ).toBe("120 Minuten (Standard)");
+  });
+
+  /*
+   * Arabic arrived after these words were written, as the eighteenth
+   * language. Its incident and alert AI pages were already in Arabic, so the
+   * words that replaced theirs are Arabic too, in its glossary's terms
+   * (التحقيق, المهلة الزمنية, الرموز): no English line among Arabic ones.
+   */
+  test("Arabic is one of the languages, with its own words for the lane pages", () => {
+    expect(TRANSLATED_LOCALES).toContain("ar");
+
+    const arabic: Record<string, unknown> = readLocale("ar");
+
+    expect(arabic["The project's time limit"]).toBe("المهلة الزمنية للمشروع");
+    expect(arabic[ProjectAiRunLimitsCopy.cardTitle]).toBe("الحدود لكل تشغيل");
+    expect(arabic[ProjectAiRunLimitsCopy.timeLimitFieldError]).toBe(
+      "يجب أن تكون قيمة «{{field}}» عددًا صحيحًا من {{min}} إلى {{max}}. اترك الحقل فارغًا لاستخدام القيمة الافتراضية.",
+    );
+
+    for (const text of LANE_WORDS.slice(1, 3)) {
+      expect([text, arabic[text]]).toEqual([
+        text,
+        expect.stringContaining("120 دقيقة، ما لم يضبط المشروع مهلة خاصة به."),
+      ]);
+    }
   });
 
   test("no language speaks of a budget where English does not", () => {
