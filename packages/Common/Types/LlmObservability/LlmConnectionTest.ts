@@ -36,6 +36,8 @@ export interface LlmConnectionTestCounts {
   apiKeys?: number | undefined;
   projects?: number | undefined;
   resources?: number | undefined;
+  // The account's members, for a tool that has them (Cursor's team).
+  members?: number | undefined;
   conversations?: number | undefined;
   inputTokens?: number | undefined;
   outputTokens?: number | undefined;

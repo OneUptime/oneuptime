@@ -79,6 +79,21 @@ const FAILURE_WORDS: Record<
   },
 };
 
+/*
+ * Cursor's own words for a key that works but may not read the team: what
+ * it refuses is a personal key, or a team whose plan has no Admin API -
+ * a role or scope, as the general words have it, would send people looking
+ * for a setting Cursor does not have.
+ */
+const CURSOR_PERMISSION_WORDS: { headline: string; advice: string } = {
+  headline: translationKey(
+    "Cursor accepted the key, but it may not read the team's usage.",
+  ),
+  advice: translationKey(
+    "Use an Admin API key of a Teams or Enterprise team: a team admin creates it in the Cursor dashboard, under Settings, Cursor Admin API Keys. Then test again.",
+  ),
+};
+
 export function getLlmConnectionTestWords(data: {
   result: LlmConnectionTestResult;
   definition: LlmConnectionDefinition;
@@ -138,8 +153,12 @@ export function getLlmConnectionTestWords(data: {
   }
 
   const words: { headline: string; advice: string } =
-    FAILURE_WORDS[data.result.failureKind || LlmConnectionFailureKind.Other] ||
-    FAILURE_WORDS[LlmConnectionFailureKind.Other];
+    data.definition.provider === LlmConnectionProvider.Cursor &&
+    data.result.failureKind === LlmConnectionFailureKind.Permission
+      ? CURSOR_PERMISSION_WORDS
+      : FAILURE_WORDS[
+          data.result.failureKind || LlmConnectionFailureKind.Other
+        ] || FAILURE_WORDS[LlmConnectionFailureKind.Other];
 
   return {
     headline: words.headline,
@@ -276,6 +295,11 @@ export function getLlmConnectionTestFigures(
 
   if (counts.people !== undefined && counts.people > 0) {
     add("people", translationKey("People"), formatWhole(counts.people));
+  }
+
+  // A team's members, whether they used it or not (Cursor).
+  if (counts.members !== undefined && counts.members > 0) {
+    add("members", translationKey("Members"), formatWhole(counts.members));
   }
 
   if (counts.apiKeys !== undefined && counts.apiKeys > 0) {

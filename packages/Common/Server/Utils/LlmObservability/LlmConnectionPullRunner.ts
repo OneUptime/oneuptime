@@ -12,6 +12,7 @@ import {
 } from "../../../Types/LlmObservability/LlmConnectionCatalog";
 import {
   LlmChatTurn,
+  LlmConnectionPendingWindow,
   LlmConnectionPullState,
   LlmUsageRecord,
 } from "../../../Types/LlmObservability/LlmConnectionRecords";
@@ -45,13 +46,16 @@ import {
   LlmConnectionSettings,
   LlmConnector,
   LlmConnectorTransport,
+  LlmUsageBucket,
   LlmUsageFetchResult,
   LlmUsageWindow,
   getSecretValues,
 } from "./LlmConnectorTypes";
 import LlmProviderError from "./LlmProviderError";
 import LlmProviderUsageWriter, {
+  LlmProviderUsageTotals,
   LlmProviderUsageWriteResult,
+  LlmProviderUsageWriteTarget,
 } from "./LlmProviderUsageWriter";
 import LlmUsageDays from "./LlmUsageDays";
 
@@ -66,11 +70,13 @@ import LlmUsageDays from "./LlmUsageDays";
  *      telemetry ingestion off;
  *   2. makes sure the connection has its own telemetry service;
  *   3. reads the provider - a provider account's days since the last read
- *      (LlmUsageDays.nextWindow), or a company AI tool's chats since its
- *      cursor - through the SSRF-guarded fetch;
- *   4. keeps what it read - usage as daily metrics (LlmProviderUsageWriter),
- *      chats as AI calls through the trace ingest (the importer the App
- *      hands in), skipping the turns already imported;
+ *      (LlmUsageDays.nextWindow), or the hours its connector plans (Cursor:
+ *      planUsageWindow), or a company AI tool's chats since its cursor -
+ *      through the SSRF-guarded fetch;
+ *   4. keeps what it read - usage as daily (or hourly) metrics
+ *      (LlmProviderUsageWriter), chats as AI calls through the trace ingest
+ *      (the importer the App hands in), skipping the turns already
+ *      imported;
  *   5. records the outcome on the connection: when it read, what it found,
  *      the error (secrets removed) and when it reads next.
  *
@@ -92,6 +98,12 @@ const RETRY_AFTER_FAILURE_MS: number = 15 * 60 * 1000;
 const RETRY_AFTER_REFUSED_CREDENTIAL_MS: number = 60 * 60 * 1000;
 // A read that stopped part way continues this soon.
 const CONTINUE_AFTER_MS: number = 60 * 1000;
+/*
+ * What a provider account read by the hour says it used: its past 7 UTC
+ * days, today included, read back from what is stored - each of its reads
+ * covers only a few hours.
+ */
+export const LLM_USAGE_SUMMARY_DAYS: number = 7;
 
 const SPAN_TABLE: string = AnalyticsTableName.Span;
 const DEDUPE_QUERY_SETTINGS: string = getQuerySettings({
@@ -136,6 +148,17 @@ export interface LlmConnectionPullOutcome {
 export interface LlmUsageCoverage {
   newestUsageDay: string | undefined;
   readSince: string;
+}
+
+/*
+ * An account's people, for a tool that counts them (Cursor): its members,
+ * and how many of them used it in the past 7 days. A read that did not
+ * count them - one a bound stopped before it got there - keeps the last
+ * count.
+ */
+export interface LlmUsageMembers {
+  members: number | undefined;
+  activeMembers: number | undefined;
 }
 
 export default class LlmConnectionPullRunner {
@@ -216,6 +239,29 @@ export default class LlmConnectionPullRunner {
 
     const nextIndex: number = Number(state["nextIndex"]);
 
+    // Only ranges with an ISO start and end; anything else is dropped.
+    const pendingWindows: Array<LlmConnectionPendingWindow> = (
+      Array.isArray(state["pendingWindows"]) ? state["pendingWindows"] : []
+    )
+      .map((value: unknown): LlmConnectionPendingWindow | null => {
+        const range: JSONObject =
+          value && typeof value === "object" && !Array.isArray(value)
+            ? (value as JSONObject)
+            : {};
+        const start: unknown = range["start"];
+        const end: unknown = range["end"];
+
+        return typeof start === "string" &&
+          typeof end === "string" &&
+          Number.isFinite(Date.parse(start)) &&
+          Number.isFinite(Date.parse(end))
+          ? { start, end }
+          : null;
+      })
+      .filter((range: LlmConnectionPendingWindow | null): boolean => {
+        return range !== null;
+      }) as Array<LlmConnectionPendingWindow>;
+
     return {
       cursor: read("cursor"),
       windowStart: read("windowStart"),
@@ -223,6 +269,9 @@ export default class LlmConnectionPullRunner {
       pageToken: read("pageToken"),
       nextIndex:
         Number.isInteger(nextIndex) && nextIndex >= 0 ? nextIndex : undefined,
+      ...(pendingWindows.length > 0 ? { pendingWindows } : {}),
+      ...(read("settledDay") ? { settledDay: read("settledDay") } : {}),
+      ...(read("membersDay") ? { membersDay: read("membersDay") } : {}),
     };
   }
 
@@ -271,6 +320,34 @@ export default class LlmConnectionPullRunner {
     return {
       newestUsageDay: newest > 0 ? new Date(newest).toISOString() : undefined,
       readSince: new Date(since).toISOString(),
+    };
+  }
+
+  public static getUsageMembers(data: {
+    previous: JSONObject | undefined | null;
+    fetched: LlmUsageFetchResult;
+  }): LlmUsageMembers {
+    const readCount: (value: unknown) => number | undefined = (
+      value: unknown,
+    ): number | undefined => {
+      return typeof value === "number" && Number.isFinite(value) && value >= 0
+        ? Math.round(value)
+        : undefined;
+    };
+
+    if (data.fetched.members !== undefined) {
+      return {
+        members: readCount(data.fetched.members),
+        activeMembers: readCount(data.fetched.activeMembers),
+      };
+    }
+
+    const previous: JSONObject =
+      data.previous && typeof data.previous === "object" ? data.previous : {};
+
+    return {
+      members: readCount(previous["members"]),
+      activeMembers: readCount(previous["activeMembers"]),
     };
   }
 
@@ -428,11 +505,17 @@ export default class LlmConnectionPullRunner {
       let nextState: LlmConnectionPullState;
 
       if (connector.kind === LlmConnectionKind.ProviderAccount) {
-        const window: LlmUsageWindow = LlmUsageDays.nextWindow({
-          now,
-          state,
-          backfillDays: definition.backfillDays,
-        });
+        const window: LlmUsageWindow = connector.planUsageWindow
+          ? connector.planUsageWindow({
+              now,
+              state,
+              backfillDays: definition.backfillDays,
+            })
+          : LlmUsageDays.nextWindow({
+              now,
+              state,
+              backfillDays: definition.backfillDays,
+            });
         const fetched: LlmUsageFetchResult = await connector.fetchUsage(
           settings,
           window,
@@ -441,8 +524,16 @@ export default class LlmConnectionPullRunner {
             now: () => {
               return now;
             },
+            state,
           },
         );
+        /*
+         * A read a bound stopped wrote only what it read in full: the rest
+         * of the window is read a minute later.
+         */
+        const covered: LlmUsageWindow = fetched.coveredWindow || window;
+        const bucket: LlmUsageBucket = fetched.bucket || "day";
+        const complete: boolean = fetched.complete !== false;
 
         const metadata: TelemetryServiceMetadata =
           await OpenTelemetryIngestService.telemetryServiceFromName({
@@ -450,47 +541,80 @@ export default class LlmConnectionPullRunner {
             projectId: connection.projectId,
           });
 
+        const target: LlmProviderUsageWriteTarget = {
+          projectId: connection.projectId,
+          connectionId: connection.id!,
+          connectionName: connection.name || definition.title,
+          genAiProviderName: definition.genAiProviderName,
+          serviceId: service.serviceId,
+          serviceName: service.serviceName,
+          retentionInDays: resolveTelemetryRetentionInDays({
+            pillar: "metrics",
+            serviceConfig: metadata.serviceRetentionConfig,
+            serviceRetentionInDays: metadata.serviceRetentionInDays,
+            projectConfig: metadata.projectRetentionConfig,
+            projectRetentionInDays: metadata.projectRetentionInDays,
+          }),
+          costIsEstimated: definition.costIsEstimated,
+          projectPriceOverrides:
+            await LlmConnectionPullRunner.loadProjectPrices(
+              connection.projectId,
+            ),
+        };
+
         const written: LlmProviderUsageWriteResult =
           await LlmProviderUsageWriter.write({
-            target: {
-              projectId: connection.projectId,
-              connectionId: connection.id!,
-              connectionName: connection.name || definition.title,
-              genAiProviderName: definition.genAiProviderName,
-              serviceId: service.serviceId,
-              serviceName: service.serviceName,
-              retentionInDays: resolveTelemetryRetentionInDays({
-                pillar: "metrics",
-                serviceConfig: metadata.serviceRetentionConfig,
-                serviceRetentionInDays: metadata.serviceRetentionInDays,
-                projectConfig: metadata.projectRetentionConfig,
-                projectRetentionInDays: metadata.projectRetentionInDays,
-              }),
-              costIsEstimated: definition.costIsEstimated,
-              projectPriceOverrides:
-                await LlmConnectionPullRunner.loadProjectPrices(
-                  connection.projectId,
-                ),
-            },
-            window,
+            target,
+            window: covered,
             records: fetched.records,
             now,
+            bucket,
           });
 
-        nextState = { cursor: LlmUsageDays.startOfUtcDay(now).toISOString() };
+        nextState = fetched.nextState || {
+          cursor: LlmUsageDays.startOfUtcDay(now).toISOString(),
+        };
 
         const coverage: LlmUsageCoverage =
           LlmConnectionPullRunner.getUsageCoverage({
             previous: connection.lastPullResult,
-            window,
+            window: covered,
             records: fetched.records,
           });
 
+        /*
+         * A provider read by the hour reads a few hours at a time: what its
+         * connection says it used is its past 7 days, as stored.
+         */
+        const totals: LlmProviderUsageTotals | undefined =
+          bucket === "hour"
+            ? await LlmProviderUsageWriter.readUsageTotals({
+                target,
+                startTime: LlmUsageDays.addDays(
+                  LlmUsageDays.startOfUtcDay(now),
+                  -(LLM_USAGE_SUMMARY_DAYS - 1),
+                ),
+                endTime:
+                  covered.endDay.getTime() > now.getTime()
+                    ? covered.endDay
+                    : new Date(now.getTime() + 1),
+              })
+            : undefined;
+
+        const people: LlmUsageMembers = LlmConnectionPullRunner.getUsageMembers(
+          {
+            previous: connection.lastPullResult,
+            fetched,
+          },
+        );
+
         outcome = {
-          status: "success",
+          status: complete ? "success" : "partial",
           result: {
             kind: "usage",
-            days: LlmUsageDays.daysBetween(window.startDay, window.endDay),
+            days: totals
+              ? LLM_USAGE_SUMMARY_DAYS
+              : LlmUsageDays.daysBetween(window.startDay, window.endDay),
             ...(coverage.newestUsageDay
               ? { newestUsageDay: coverage.newestUsageDay }
               : {}),
@@ -498,13 +622,29 @@ export default class LlmConnectionPullRunner {
             ...(fetched.resources !== undefined
               ? { resources: fetched.resources }
               : {}),
-            daysWithUsage: written.daysWithUsage,
+            ...(bucket === "hour"
+              ? {
+                  bucket: "hour",
+                  hoursRead: Math.round(
+                    (covered.endDay.getTime() - covered.startDay.getTime()) /
+                      (60 * 60 * 1000),
+                  ),
+                  complete,
+                }
+              : {}),
+            daysWithUsage: totals
+              ? totals.daysWithUsage
+              : written.daysWithUsage,
             series: written.seriesCount,
             pointsWritten: written.pointsWritten,
-            inputTokens: written.inputTokens,
-            outputTokens: written.outputTokens,
-            requests: written.requests,
-            costUsd: written.costUsd,
+            inputTokens: (totals || written).inputTokens,
+            outputTokens: (totals || written).outputTokens,
+            requests: (totals || written).requests,
+            costUsd: (totals || written).costUsd,
+            ...(people.members !== undefined ? { members: people.members } : {}),
+            ...(people.activeMembers !== undefined
+              ? { activeMembers: people.activeMembers }
+              : {}),
             requestCount: fetched.requestCount,
             warnings: fetched.warnings,
           },

@@ -43,6 +43,8 @@ import {
   LlmConnectionSummary,
   getLlmConnectionHealth,
   getLlmConnectionLastReadSummary,
+  getLlmConnectionPeopleSummary,
+  getLlmConnectionReadingNote,
 } from "./LlmConnectionHealth";
 import LlmConnectionLogo from "./LlmConnectionLogo";
 import LlmConnectionTestPanel from "./LlmConnectionTestPanel";
@@ -255,7 +257,7 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
           title: isTool ? "Connected AI tools" : "Connected provider accounts",
           description: isTool
             ? "Read every 15 minutes. Each answer arrives as an AI call of the person who asked, in Conversations."
-            : "Read every 15 minutes. Usage and cost arrive in Usage, under Provider accounts, and a budget can count them.",
+            : "Read every 15 minutes, Cursor every hour. Usage and cost arrive in Usage, under Provider accounts, and a budget can count them.",
         }}
         noItemsMessage={
           isTool
@@ -448,6 +450,11 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
             getElement: (item: LlmObservabilityConnection): ReactElement => {
               const summary: LlmConnectionSummary | undefined =
                 getLlmConnectionLastReadSummary(item);
+              // A team's members (Cursor), and a read still catching up.
+              const people: LlmConnectionSummary | undefined =
+                getLlmConnectionPeopleSummary(item);
+              const readingNote: string | undefined =
+                getLlmConnectionReadingNote(item);
 
               if (!item.lastSuccessfulPullAt) {
                 return (
@@ -456,6 +463,18 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
                   </span>
                 );
               }
+
+              const say: (line: LlmConnectionSummary) => string = (
+                line: LlmConnectionSummary,
+              ): string => {
+                return line.plural && line.count !== undefined
+                  ? translator.translatePlural(
+                      line.plural,
+                      line.count,
+                      line.values,
+                    )
+                  : translator.translateTemplate(line.template, line.values);
+              };
 
               return (
                 <div className="min-w-0">
@@ -469,16 +488,27 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
                       className="text-xs text-gray-500"
                       data-testid="llm-connection-last-read-summary"
                     >
-                      {summary.plural && summary.count !== undefined
-                        ? translator.translatePlural(
-                            summary.plural,
-                            summary.count,
-                            summary.values,
-                          )
-                        : translator.translateTemplate(
-                            summary.template,
-                            summary.values,
-                          )}
+                      {say(summary)}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                  {people ? (
+                    <div
+                      className="text-xs text-gray-500"
+                      data-testid="llm-connection-people-summary"
+                    >
+                      {say(people)}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                  {readingNote ? (
+                    <div
+                      className="text-xs text-gray-500"
+                      data-testid="llm-connection-reading-note"
+                    >
+                      {translator.translateText(readingNote)}
                     </div>
                   ) : (
                     <></>

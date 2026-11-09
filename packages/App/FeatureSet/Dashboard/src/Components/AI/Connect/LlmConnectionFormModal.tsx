@@ -6,6 +6,7 @@ import {
   LlmConnectionDefinition,
   LlmConnectionField,
   LlmConnectionKind,
+  LlmConnectionOtherWay,
   getLlmConnectionDefinition,
 } from "Common/Types/LlmObservability/LlmConnectionCatalog";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
@@ -239,6 +240,9 @@ export const LlmConnectionCredentialsHint: FunctionComponent<{
   const translator: Translator = useTranslator();
   const isTool: boolean =
     props.definition.kind === LlmConnectionKind.CompanyTool;
+  // Another way the same product comes in (Cursor's OpenTelemetry Export).
+  const otherWay: LlmConnectionOtherWay | undefined =
+    props.definition.otherWay;
 
   return (
     <div
@@ -279,6 +283,28 @@ export const LlmConnectionCredentialsHint: FunctionComponent<{
               {translator.translateText("OneUptime only reads usage and cost.")}
             </span>
           </div>
+        )}
+        {otherWay ? (
+          <div
+            className="mt-2 border-t border-gray-200 pt-2 text-xs text-gray-500"
+            data-testid="llm-connection-other-way"
+          >
+            <a
+              href={llmConnectionDocsUrl(otherWay.docsPath).toString()}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="llm-connection-other-way-link"
+              className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-700"
+            >
+              <Icon icon={IconProp.Signal} className="h-3.5 w-3.5" />
+              <span>{translator.translateText(otherWay.title)}</span>
+            </a>
+            <div className="mt-0.5">
+              {translator.translateText(otherWay.description)}
+            </div>
+          </div>
+        ) : (
+          <></>
         )}
       </div>
     </div>
