@@ -427,6 +427,37 @@ describe("query_resource_telemetry on a namespace's own page", () => {
     expect(requests[0]!.aggregationType).toBe(AggregationType.Sum);
   });
 
+  test("a read split by queue is told what it read too: messages in sum, and messages waiting over an hour say how to read the total", async () => {
+    const byQueue: JSONObject = { groupBy: ["metadata_entityname"] };
+
+    const messagesIn: ToolExecutionResult =
+      await QueryResourceTelemetryTool.execute(
+        args({ metricName: MESSAGES_IN, ...byQueue }),
+        ROOT_RUN,
+      );
+
+    expect(requests[0]!.groupByAttributeKeys).toEqual(["metadata_entityname"]);
+    expect(requests[0]!.aggregationType).toBe(AggregationType.Sum);
+    expect(messagesIn.dataForLlm).toContain(SUM_NOTE);
+
+    requests = [];
+
+    const messagesWaiting: ToolExecutionResult =
+      await QueryResourceTelemetryTool.execute(
+        args({ metricName: MESSAGES_WAITING, ...byQueue }),
+        ROOT_RUN,
+      );
+
+    expect(requests[0]!.groupByAttributeKeys).toEqual(["metadata_entityname"]);
+    expect(requests[0]!.aggregationInterval).toBe(
+      AggregationInterval.FiveMinutes,
+    );
+    expect(requests[0]!.aggregationType).toBe(AggregationType.Avg);
+    expect(messagesWaiting.dataForLlm).toContain(
+      'For the Service Bus Namespace "shop"\'s total, read a window short enough to be read by the minute, with aggregationType Sum.',
+    );
+  });
+
   test("a latency keeps the average with no word, and the metric names are listed as before", async () => {
     const latency: ToolExecutionResult =
       await QueryResourceTelemetryTool.execute(
