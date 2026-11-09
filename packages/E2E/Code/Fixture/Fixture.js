@@ -323,6 +323,10 @@ window.__fixture = {
   navigations: [],
   branchReads: [],
   lists: [],
+  // Each task list read's filter and search, as the list asked them.
+  listQueries: [],
+  // Each Retry selected: the tasks it asked again.
+  retryManys: [],
   reviewLists: [],
   reviewAgains: [],
   reviewAsks: [],
@@ -2609,6 +2613,43 @@ function originOf(task) {
   };
 }
 
+/*
+ * The one filter a task falls in, as the server buckets it
+ * (Server/Utils/AI/CodeTask/CodeTaskListQuery), in its order: in progress,
+ * waiting for you, a pull request open, failed, and done for the rest.
+ */
+function filterOf(task) {
+  const state = stateOf(task.turns[task.turns.length - 1]);
+  if (state === CodeTaskState.Working) {
+    return "inProgress";
+  }
+  if (state === CodeTaskState.WaitingForYou) {
+    return "waitingForYou";
+  }
+  const hasOpenPullRequest = task.turns.some((item) => {
+    return item.pullRequests.some((pullRequest) => {
+      return !pullRequest.state || pullRequest.state === "open";
+    });
+  });
+  if (hasOpenPullRequest) {
+    return "pullRequestOpen";
+  }
+  return state === CodeTaskState.Failed ? "failed" : "done";
+}
+
+// A search, as the server reads it: the title (case aside) or "12" / "#12".
+function matchesSearch(task, search) {
+  if (!search) {
+    return true;
+  }
+  const title = String(task.title || originOf(task).label || "");
+  if (title.toLowerCase().includes(search.toLowerCase())) {
+    return true;
+  }
+  const number = search.startsWith("#") ? search.substring(1) : search;
+  return /^[0-9]+$/.test(number) && Number(number) === task.taskNumber;
+}
+
 function lastActivityOf(task) {
   let latest = 0;
   for (const item of task.turns) {
@@ -2646,6 +2687,26 @@ function summaryOf(task) {
   };
   if (task.turns[0].userId) {
     summary.requestedBy = PEOPLE[task.turns[0].userId];
+  }
+  /*
+   * As the server's summary (CodeTaskPresenter): its latest turn's times,
+   * the attempt AI is on, and why it failed or stopped.
+   */
+  if (latest.startedAt) {
+    summary.startedAt = latest.startedAt;
+  }
+  if (latest.completedAt) {
+    summary.completedAt = latest.completedAt;
+  }
+  if (latest.retry) {
+    summary.retry = latest.retry;
+  }
+  if (
+    latest.errorMessage &&
+    (summary.state === CodeTaskState.Failed ||
+      summary.state === CodeTaskState.Stopped)
+  ) {
+    summary.errorMessage = latest.errorMessage;
   }
   if (pullRequest) {
     summary.pullRequest = pullRequest;
@@ -2932,7 +2993,36 @@ async function answer(path, body) {
     for (const task of own) {
       advance(task, task.turns[task.turns.length - 1]);
     }
-    const sorted = own.slice().sort((a, b) => {
+    /*
+     * The tasks' filter and search, as the server reads them: the counts
+     * are of the search, one per filter; the page shows the filter's.
+     */
+    const filter = isReviews ? "all" : String(body.filter || "all");
+    const search = isReviews ? "" : String(body.search || "").trim();
+    if (!isReviews) {
+      window.__fixture.listQueries.push({ filter, search });
+    }
+    const searched = own.filter((task) => {
+      return matchesSearch(task, search);
+    });
+    const counts = {
+      all: searched.length,
+      inProgress: 0,
+      waitingForYou: 0,
+      pullRequestOpen: 0,
+      failed: 0,
+      done: 0,
+    };
+    for (const task of searched) {
+      counts[filterOf(task)]++;
+    }
+    const listed =
+      filter === "all"
+        ? searched
+        : searched.filter((task) => {
+            return filterOf(task) === filter;
+          });
+    const sorted = listed.slice().sort((a, b) => {
       return (
         new Date(b.turns[0].createdAt).getTime() -
         new Date(a.turns[0].createdAt).getTime()
@@ -2947,9 +3037,47 @@ async function answer(path, body) {
         totalCount: sorted.length,
         skip,
         limit,
+        ...(body.withCounts && !isReviews ? { counts } : {}),
       },
       {},
     );
+  }
+
+  /*
+   * Retry selected: each task asked again as its own Try again asks it - a
+   * failed or stopped request, by someone who may ask - and each that
+   * cannot be, with why.
+   */
+  if (path === "/retry-many") {
+    const taskIds = Array.isArray(body.taskIds) ? body.taskIds : [];
+    window.__fixture.retryManys.push(taskIds);
+    let retried = 0;
+    const failed = [];
+    for (const taskId of taskIds) {
+      const task = findTask(taskId);
+      const latest = task ? task.turns[task.turns.length - 1] : null;
+      const state = latest ? stateOf(latest) : null;
+      if (
+        !task ||
+        !CAN_ASK ||
+        task.turns[0].recipe !== CodeFixTaskType.CodeRequest ||
+        (state !== CodeTaskState.Failed && state !== CodeTaskState.Stopped)
+      ) {
+        failed.push({
+          taskId,
+          message: "Only a failed or stopped request can be tried again.",
+        });
+        continue;
+      }
+      task.turns.push(
+        newRequestTurn({
+          message: latest.request.message,
+          context: latest.request.context,
+        }),
+      );
+      retried++;
+    }
+    return new HTTPResponse(200, { retried, failed }, {});
   }
 
   /*

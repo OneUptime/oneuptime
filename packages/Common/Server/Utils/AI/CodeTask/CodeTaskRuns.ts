@@ -211,6 +211,10 @@ export default class CodeTaskRuns {
    * Ask again what the latest turn asked, when it failed or was stopped: a
    * new turn with the same request, so the conversation keeps the failed
    * one. Only a request from Code can be asked again this way.
+   *
+   * A latest turn that waits to be tried again by itself
+   * (CodeFixAutoRetry) is started now instead: its wait ends, and the next
+   * worker takes it.
    */
   @CaptureSpan()
   public static async retry(data: {
@@ -223,6 +227,24 @@ export default class CodeTaskRuns {
       task: data.task,
       withTaskContext: true,
     });
+
+    if (
+      latest.status === AIRunStatus.Queued &&
+      latest.nextAttemptAt &&
+      new Date(latest.nextAttemptAt).getTime() > Date.now()
+    ) {
+      await AIRunService.updateOneBy({
+        query: {
+          _id: latest.id!.toString(),
+          projectId: data.projectId,
+          status: AIRunStatus.Queued,
+        },
+        data: { nextAttemptAt: OneUptimeDate.getCurrentDate() } as never,
+        props: { isRoot: true },
+      });
+
+      return latest;
+    }
 
     const state: CodeTaskState = CodeTaskStateUtil.fromRun(latest);
 
@@ -355,6 +377,7 @@ export default class CodeTaskRuns {
         status: true,
         needsUserInput: true,
         codeFixTaskType: true,
+        nextAttemptAt: true,
         ...(data.withTaskContext ? { taskContext: true } : {}),
       },
       sort: { createdAt: SortOrder.Descending },
@@ -373,6 +396,7 @@ export default class CodeTaskRuns {
           status: true,
           needsUserInput: true,
           codeFixTaskType: true,
+          nextAttemptAt: true,
           taskContext: true,
         },
         props: { isRoot: true },

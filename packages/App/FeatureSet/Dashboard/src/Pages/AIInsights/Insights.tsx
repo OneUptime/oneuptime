@@ -47,6 +47,9 @@ import {
 } from "../../Components/AIInsights/InsightListOrdering";
 import InsightHighlights from "../../Components/AIInsights/InsightHighlights";
 import InsightListItem from "../../Components/AIInsights/InsightListItem";
+import useInsightFixTasks, {
+  InsightFixTasks,
+} from "../../Components/AIInsights/UseInsightFixTasks";
 import InsightListSkeleton from "../../Components/AIInsights/InsightListSkeleton";
 import InsightStatusSummary, {
   InsightStatusBucket,
@@ -199,6 +202,15 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
   );
 
   const [insights, setInsights] = useState<Array<AIInsight>>([]);
+  /*
+   * The fix tasks of the insights shown, read together: an insight with
+   * one says where it stands ("Task in progress", "Task failed").
+   */
+  const fixTasks: InsightFixTasks = useInsightFixTasks(
+    insights.map((insight: AIInsight): string | undefined => {
+      return insight.fixAiRunId?.toString();
+    }),
+  );
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
@@ -398,6 +410,8 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
               firstSeenAt: true,
               lastSeenAt: true,
               occurrenceCount: true,
+              // Its fix task's state is its status's words.
+              fixAiRunId: true,
             },
             /*
              * Every order ends on the id, and the id is a tiebreaker, not
@@ -552,7 +566,7 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
     return (
       <div className="max-xl:hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 xl:flex">
         <span className="flex-1">{translator.translateText("Insight")}</span>
-        <span className="w-32 flex-shrink-0">
+        <span className="w-52 flex-shrink-0">
           {translator.translateText("Status")}
         </span>
         <span className="w-24 flex-shrink-0 text-right">
@@ -690,6 +704,13 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
                 <InsightListItem
                   key={item.id?.toString()}
                   insight={item}
+                  fixTask={
+                    item.fixAiRunId
+                      ? fixTasks.tasks.get(
+                          item.fixAiRunId.toString().toLowerCase(),
+                        )
+                      : undefined
+                  }
                   viewPage={scope?.viewPage}
                   // One kind of insight here: no row says its kind.
                   isTypeShown={insightTypes.length > 1}

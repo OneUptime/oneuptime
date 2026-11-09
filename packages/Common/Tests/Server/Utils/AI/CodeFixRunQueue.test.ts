@@ -1,4 +1,9 @@
-import CodeFixRunQueue from "../../../../Server/Utils/AI/CodeFix/CodeFixRunQueue";
+import CodeFixRunQueue, {
+  STALE_RUN_ERROR_MESSAGE,
+  STALE_RUN_FAILURE,
+} from "../../../../Server/Utils/AI/CodeFix/CodeFixRunQueue";
+import CodeFixAutoRetry from "../../../../Server/Utils/AI/CodeFix/CodeFixAutoRetry";
+import { TransientAIFailureKind } from "../../../../Types/AI/TransientAIFailure";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import CodeRepositoryService from "../../../../Server/Services/CodeRepositoryService";
 import CodeRepositoryRunnerChoice from "../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
@@ -22,10 +27,11 @@ import { describe, expect, test, afterEach } from "@jest/globals";
 /*
  * Sweeper decisions for CodeFix AIRuns:
  *
- *   (a) a heartbeat-stale Running run is finalized as Error, never requeued
- *       — the external agent may have already pushed a partial fix branch,
- *       so re-running the fix automatically is not safe (this is the
- *       deliberate divergence from investigations, which requeue);
+ *   (a) a heartbeat-stale Running run is tried again by itself, in
+ *       place, only when CodeFixAutoRetry finds nothing it may already
+ *       have pushed or opened and attempts left (its own suite holds
+ *       those rules); otherwise it is finalized as Error - the external
+ *       agent may have pushed a partial fix branch;
  *   (b) a Queued run that outwaited the timeout is failed only when
  *       nothing that may take it is online - the Runner its repository
  *       picks, or a global Runner for one that picks none - and says why;
@@ -37,13 +43,25 @@ describe("CodeFixRunQueue.markStaleRunAsError", () => {
     jest.restoreAllMocks();
   });
 
-  test("finalizes a heartbeat-stale run as Error via a Running-guarded CAS — no requeue", async () => {
+  test("finalizes a heartbeat-stale run that may not be tried again as Error via a Running-guarded CAS — no requeue", async () => {
     const runId: ObjectID = ObjectID.generate();
+    const tryAgainLater: jest.SpyInstance = jest
+      .spyOn(CodeFixAutoRetry, "tryAgainLater")
+      .mockResolvedValue(false);
     const transition: jest.SpyInstance = jest
       .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
-    await CodeFixRunQueue.markStaleRunAsError({ id: runId });
+    expect(await CodeFixRunQueue.markStaleRunAsError({ id: runId })).toBe(
+      false,
+    );
+
+    // Asked first, as a Runner that went away.
+    expect(tryAgainLater).toHaveBeenCalledWith({
+      runId,
+      failure: STALE_RUN_FAILURE,
+      kind: TransientAIFailureKind.RunnerWentAway,
+    });
 
     expect(transition).toHaveBeenCalledTimes(1);
     expect(transition).toHaveBeenCalledWith(
@@ -61,6 +79,28 @@ describe("CodeFixRunQueue.markStaleRunAsError", () => {
       expect.objectContaining({
         set: expect.objectContaining({ status: AIRunStatus.Queued }),
       }),
+    );
+    expect(transition.mock.calls[0]![0].set.errorMessage).toBe(
+      STALE_RUN_ERROR_MESSAGE,
+    );
+  });
+
+  test("a stale run that may be tried again went back to the queue: it is not failed as well", async () => {
+    jest.spyOn(CodeFixAutoRetry, "tryAgainLater").mockResolvedValue(true);
+    const transition: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
+
+    expect(
+      await CodeFixRunQueue.markStaleRunAsError({ id: ObjectID.generate() }),
+    ).toBe(true);
+    expect(transition).not.toHaveBeenCalled();
+  });
+
+  test("the reason it was not tried again says both reasons it may not be", () => {
+    expect(STALE_RUN_ERROR_MESSAGE).toContain(
+      "it may already have pushed a partial branch, or it had no attempts left",
     );
   });
 });
@@ -318,6 +358,45 @@ describe("CodeFixRunQueue.failOrphanedQueuedRuns", () => {
       }),
     );
     expect(transition).not.toHaveBeenCalled();
+  });
+
+  test("a run queued again by itself has waited since its next attempt was due, not since it was first queued", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const repositoryId: ObjectID = ObjectID.generate();
+    const waitingRunId: ObjectID = ObjectID.generate();
+    const overdueRunId: ObjectID = ObjectID.generate();
+
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([
+      {
+        id: waitingRunId,
+        projectId,
+        codeRepositoryId: repositoryId,
+        // Due in four minutes.
+        nextAttemptAt: new Date(Date.now() + 4 * 60_000),
+      },
+      {
+        id: overdueRunId,
+        projectId,
+        codeRepositoryId: repositoryId,
+        // Due long ago, and still not taken.
+        nextAttemptAt: new Date(Date.now() - 45 * 60_000),
+      },
+    ] as unknown as Array<AIRun>);
+    mockRepositories([{ id: repositoryId }]);
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+      .mockResolvedValue({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+      });
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    await CodeFixRunQueue.failOrphanedQueuedRuns();
+
+    expect(transition).toHaveBeenCalledTimes(1);
+    expect(transition.mock.calls[0]![0].aiRunId).toBe(overdueRunId);
   });
 
   test("does nothing when no run outwaited the timeout", async () => {
