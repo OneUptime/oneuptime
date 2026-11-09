@@ -156,6 +156,9 @@ export const MESSAGE_QUEUE_BROKER_METRICS_DOCS_ANCHOR: string =
   "broker-health-metrics";
 export const MESSAGE_QUEUE_BROKER_HEALTH_EMPTY_DOCS_ANCHOR: string =
   "broker-health-stays-empty";
+// What gives a queue its spans, and so its processing time.
+export const MESSAGE_QUEUE_INSTRUMENTING_DOCS_ANCHOR: string =
+  "instrumenting-applications";
 
 /** The docs route to one heading of the Queues guide. */
 export function getMessageQueueDocsRoute(anchor: string): Route {

@@ -94,16 +94,18 @@ const getStateCopy: (
   lastSeenAt: Date | null,
   translator: Translator,
 ): StateCopy => {
-  // The resource and its agent as they read in the middle of a sentence.
-  const resourceNoun: TranslatableTerm = translatableTerm(guide.resourceNoun, {
-    inSentence: true,
-  });
+  /*
+   * What sends the resource's data, as it reads in a sentence. The
+   * sentences about the resource itself are the guide's own, one set for
+   * each kind of resource (ResourceConnectionGuide's setupCopy).
+   */
   const agentName: TranslatableTerm = translatableTerm(guide.agentName);
 
   if (state === ResourceConnectionState.Disconnected) {
-    const lastHeard: string = lastSeenAt
+    // Translated with the sentence it goes into, as a date is.
+    const lastHeard: string | TranslatableTerm = lastSeenAt
       ? OneUptimeDate.fromNow(lastSeenAt)
-      : translator.translateTemplate("a while ago");
+      : translatableTerm("a while ago");
 
     // Idle, not broken: said in grey, the checks folded away.
     if (guide.idleCopy) {
@@ -132,18 +134,11 @@ const getStateCopy: (
     return {
       variant: "stopped",
       icon: IconProp.SignalSlash,
-      title: translator.translateTemplate(
-        "This {{resourceNoun}} stopped sending data",
-        { resourceNoun: resourceNoun },
-      ),
-      description: translator.translateTemplate(
-        "OneUptime last heard from this {{resourceNoun}} {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
-        {
-          resourceNoun: resourceNoun,
-          lastHeard: lastHeard,
-          agentName: agentName,
-        },
-      ),
+      title: translator.translateTemplate(guide.stoppedCopy.title),
+      description: translator.translateTemplate(guide.stoppedCopy.description, {
+        lastHeard: lastHeard,
+        agentName: agentName,
+      }),
       steps: guide.troubleshootingSteps,
       accent: {
         border: "border-amber-200",
@@ -175,9 +170,7 @@ const getStateCopy: (
   return {
     variant: "setup",
     icon: IconProp.RocketLaunch,
-    title: translator.translateTemplate("Connect this {{resourceNoun}}", {
-      resourceNoun: resourceNoun,
-    }),
+    title: translator.translateTemplate(guide.setupCopy.title),
     /*
      * A resource that is idle when unused never shows "Disconnected": its
      * pill says it is waiting for data, so its sentence does not name it.
@@ -185,10 +178,9 @@ const getStateCopy: (
     description: guide.idleCopy
       ? translator.translateText(guide.idleCopy.waitingDescription) ||
         guide.idleCopy.waitingDescription
-      : translator.translateTemplate(
-          "No data has arrived from this {{resourceNoun}} yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
-          { resourceNoun: resourceNoun, agentName: agentName },
-        ),
+      : translator.translateTemplate(guide.setupCopy.description, {
+          agentName: agentName,
+        }),
     steps: guide.setupSteps,
     accent: {
       border: "border-indigo-200",
