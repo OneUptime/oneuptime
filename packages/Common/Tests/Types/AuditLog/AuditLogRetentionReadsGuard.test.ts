@@ -70,22 +70,23 @@ const CODE_FILE: RegExp = /\.tsx?$/;
 let reads: Array<AuditLogRetentionRead> | null = null;
 
 // Every read of the column in packages/, read once for the suite.
-const readsInPackages: () => Array<AuditLogRetentionRead> = (): Array<AuditLogRetentionRead> => {
-  if (!reads) {
-    reads = listProductFiles(REPOSITORY_DIRECTORY, ["packages"])
-      .filter((file: string): boolean => {
-        return CODE_FILE.test(file);
-      })
-      .flatMap((file: string): Array<AuditLogRetentionRead> => {
-        return findAuditLogRetentionReads(
-          file,
-          fs.readFileSync(path.join(REPOSITORY_DIRECTORY, file), "utf8"),
-        );
-      });
-  }
+const readsInPackages: () => Array<AuditLogRetentionRead> =
+  (): Array<AuditLogRetentionRead> => {
+    if (!reads) {
+      reads = listProductFiles(REPOSITORY_DIRECTORY, ["packages"])
+        .filter((file: string): boolean => {
+          return CODE_FILE.test(file);
+        })
+        .flatMap((file: string): Array<AuditLogRetentionRead> => {
+          return findAuditLogRetentionReads(
+            file,
+            fs.readFileSync(path.join(REPOSITORY_DIRECTORY, file), "utf8"),
+          );
+        });
+    }
 
-  return reads;
-};
+    return reads;
+  };
 
 const describeRead: (read: AuditLogRetentionRead) => string = (
   read: AuditLogRetentionRead,

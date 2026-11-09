@@ -215,9 +215,9 @@ describe("a retention outside 7 to 180 days is refused", () => {
     async (_name: string, value: unknown) => {
       licensed();
 
-      await expect(
-        update({ auditLogsRetentionInDays: value }),
-      ).rejects.toThrow(REFUSAL);
+      await expect(update({ auditLogsRetentionInDays: value })).rejects.toThrow(
+        REFUSAL,
+      );
       expect(findBySpy).not.toHaveBeenCalled();
       expect(featureCheck).not.toHaveBeenCalled();
     },
@@ -420,8 +420,7 @@ describe("who may set the retention is unchanged", () => {
       ].sort(),
     );
     expect(
-      project.getColumnBillingAccessControl("auditLogsRetentionInDays")
-        ?.update,
+      project.getColumnBillingAccessControl("auditLogsRetentionInDays")?.update,
     ).toBe(PlanType.Enterprise);
   });
 

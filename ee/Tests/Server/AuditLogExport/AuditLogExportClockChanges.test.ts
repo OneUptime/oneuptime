@@ -71,10 +71,7 @@ import {
   resetMomentDefaultZone,
   setMomentDefaultZone,
 } from "Common/Tests/Helpers/MomentDefaultZone";
-import {
-  SeededRandom,
-  seededRandom,
-} from "Common/Tests/Helpers/SeededRandom";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
@@ -657,7 +654,9 @@ const drawStoredValue: (random: SeededRandom) => unknown = (
   }
 
   if (kind === 4) {
-    return AUDIT_LOG_MIN_RETENTION_IN_DAYS + random(AUDIT_LOG_MAX_RETENTION_IN_DAYS);
+    return (
+      AUDIT_LOG_MIN_RETENTION_IN_DAYS + random(AUDIT_LOG_MAX_RETENTION_IN_DAYS)
+    );
   }
 
   return [null, undefined, Number.NaN, Number.POSITIVE_INFINITY, "", "a week"][
@@ -680,57 +679,63 @@ const RANDOM_ZONES: Array<string> = [
 const RANDOM_DRAWS_TIMEOUT_IN_MS: number = 120000;
 
 describe("one rule, drawn at random: values, zones and moments", () => {
-  test("the export reckons the instant the recorder stamps, a week to 180 days later by the zone's clock", async () => {
-    const random: SeededRandom = seededRandom(6383);
-    const FROM: number = Date.parse("2026-01-01T00:00:00.000Z");
+  test(
+    "the export reckons the instant the recorder stamps, a week to 180 days later by the zone's clock",
+    async () => {
+      const random: SeededRandom = seededRandom(6383);
+      const FROM: number = Date.parse("2026-01-01T00:00:00.000Z");
 
-    for (let draw: number = 0; draw < 400; draw++) {
-      const zone: string = RANDOM_ZONES[random(RANDOM_ZONES.length)] as string;
-      const value: unknown = drawStoredValue(random);
-      // Any minute of two years, so draws fall on every side of each change.
-      const recordedAt: Date = new Date(
-        FROM + random(730) * DAY + random(24 * 60) * MINUTE,
-      );
+      for (let draw: number = 0; draw < 400; draw++) {
+        const zone: string = RANDOM_ZONES[
+          random(RANDOM_ZONES.length)
+        ] as string;
+        const value: unknown = drawStoredValue(random);
+        // Any minute of two years, so draws fall on every side of each change.
+        const recordedAt: Date = new Date(
+          FROM + random(730) * DAY + random(24 * 60) * MINUTE,
+        );
 
-      setMomentDefaultZone(zone);
-      inserted = [];
-      recorder.invalidateProjectSettings(PROJECT_ID);
+        setMomentDefaultZone(zone);
+        inserted = [];
+        recorder.invalidateProjectSettings(PROJECT_ID);
 
-      const stamped: Date = await stampedRetentionDate(
-        recordedAt.toISOString(),
-        value as number,
-      );
-      const lostAt: Date = getAuditLogExportEntriesLostAt({
-        oldestUnsentAt: recordedAt,
-        retentionInDays: value as number,
-      });
-      const days: number = readAuditLogRetentionInDays(value);
-
-      expect({ draw, zone, value, lostAt: lostAt.toISOString() }).toEqual({
-        draw,
-        zone,
-        value,
-        lostAt: stamped.toISOString(),
-      });
-      expect(days).toBeGreaterThanOrEqual(AUDIT_LOG_MIN_RETENTION_IN_DAYS);
-      expect(days).toBeLessThanOrEqual(AUDIT_LOG_MAX_RETENTION_IN_DAYS);
-      // Never a day off: the clocks change by two hours at most.
-      expect({
-        draw,
-        zone,
-        value,
-        withinTwoHoursOfTheDays:
-          Math.abs(stamped.getTime() - recordedAt.getTime() - days * DAY) <=
-          2 * HOUR,
-      }).toEqual({ draw, zone, value, withinTwoHoursOfTheDays: true });
-      // The email that entries are lost goes a day before they are.
-      expect(
-        getAuditLogExportLosingNoticeAt({
-          failingSince: recordedAt,
+        const stamped: Date = await stampedRetentionDate(
+          recordedAt.toISOString(),
+          value as number,
+        );
+        const lostAt: Date = getAuditLogExportEntriesLostAt({
           oldestUnsentAt: recordedAt,
           retentionInDays: value as number,
-        })!.getTime(),
-      ).toBe(stamped.getTime() - 24 * HOUR);
-    }
-  }, RANDOM_DRAWS_TIMEOUT_IN_MS);
+        });
+        const days: number = readAuditLogRetentionInDays(value);
+
+        expect({ draw, zone, value, lostAt: lostAt.toISOString() }).toEqual({
+          draw,
+          zone,
+          value,
+          lostAt: stamped.toISOString(),
+        });
+        expect(days).toBeGreaterThanOrEqual(AUDIT_LOG_MIN_RETENTION_IN_DAYS);
+        expect(days).toBeLessThanOrEqual(AUDIT_LOG_MAX_RETENTION_IN_DAYS);
+        // Never a day off: the clocks change by two hours at most.
+        expect({
+          draw,
+          zone,
+          value,
+          withinTwoHoursOfTheDays:
+            Math.abs(stamped.getTime() - recordedAt.getTime() - days * DAY) <=
+            2 * HOUR,
+        }).toEqual({ draw, zone, value, withinTwoHoursOfTheDays: true });
+        // The email that entries are lost goes a day before they are.
+        expect(
+          getAuditLogExportLosingNoticeAt({
+            failingSince: recordedAt,
+            oldestUnsentAt: recordedAt,
+            retentionInDays: value as number,
+          })!.getTime(),
+        ).toBe(stamped.getTime() - 24 * HOUR);
+      }
+    },
+    RANDOM_DRAWS_TIMEOUT_IN_MS,
+  );
 });

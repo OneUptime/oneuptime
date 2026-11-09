@@ -557,13 +557,11 @@ describe("the email's words", () => {
       ).toContain(`the audit log keeps each entry for ${days}.`);
     }
 
-    const losing: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail(
-      {
-        ...base,
-        notice: AuditLogExportFailureNotice.LosingEntries,
-        retentionInDays: -3,
-      },
-    );
+    const losing: AuditLogExportFailureEmail = buildAuditLogExportFailureEmail({
+      ...base,
+      notice: AuditLogExportFailureNotice.LosingEntries,
+      retentionInDays: -3,
+    });
 
     expect(losing.remediation).toContain(
       "the audit log's retention of 7 days, and are never sent.",
@@ -1166,9 +1164,7 @@ describe("the exporter tells people as its failures go on", () => {
     expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
     expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
     // Well before the entry is deleted: a week after it was recorded.
-    expect(sent[1]!.at.getTime()).toBeLessThan(
-      deletedAt(oldest, 7).getTime(),
-    );
+    expect(sent[1]!.at.getTime()).toBeLessThan(deletedAt(oldest, 7).getTime());
   });
 
   test("an export reading from the past is told 'losing entries' a day before its oldest entry goes, not a week after it broke", async () => {

@@ -309,9 +309,8 @@ describe("Settings > Audit Logs (the Enterprise page)", () => {
       render(retentionField!.getElement!(project));
       expect(screen.getByText(shown)).toBeInTheDocument();
 
-      const opened: Project = await capturedCardProps!.onEditFormItemFetched!(
-        project,
-      );
+      const opened: Project =
+        await capturedCardProps!.onEditFormItemFetched!(project);
 
       expect(opened.auditLogsRetentionInDays).toBe(Number(shown));
     },

@@ -71,64 +71,60 @@ describe("the range", () => {
 describe("the retention an entry is recorded with", () => {
   test.each([
     // No value, or one that is not a number of days: the default.
-    ["no value (null)", null, 7],
-    ["no value (undefined)", undefined, 7],
-    ["NaN", Number.NaN, 7],
-    ["Infinity", Number.POSITIVE_INFINITY, 7],
-    ["-Infinity", Number.NEGATIVE_INFINITY, 7],
-    ["text", "a week", 7],
-    ["blank text", "", 7],
-    ["spaces", "   ", 7],
-    ["a switch", true, 7],
-    ["an object", {}, 7],
-    ["a list", [], 7],
-    // A number: the nearest whole number of days from 7 to 180.
-    ["-3, which the recorder kept a day", -3, 7],
-    ["-0", -0, 7],
-    ["0", 0, 7],
-    ["0.5, which both kept a day", 0.5, 7],
-    ["1", 1, 7],
-    ["3", 3, 7],
-    ["6", 6, 7],
-    ["6.6", 6.6, 7],
-    ["7", 7, 7],
-    ["7.4", 7.4, 7],
-    ["7.5", 7.5, 8],
-    ["8", 8, 8],
-    ["30", 30, 30],
-    ["90", 90, 90],
-    ["179", 179, 179],
-    ["179.5", 179.5, 180],
-    ["180", 180, 180],
-    ["181", 181, 180],
-    ["500", 500, 180],
-    ["5000", 5000, 180],
-    ["the largest number", Number.MAX_VALUE, 180],
+    [null, 7],
+    [undefined, 7],
+    [Number.NaN, 7],
+    [Number.POSITIVE_INFINITY, 7],
+    [Number.NEGATIVE_INFINITY, 7],
+    ["a week", 7],
+    ["", 7],
+    ["   ", 7],
+    [true, 7],
+    [{}, 7],
+    [[], 7],
+    /*
+     * A number: the nearest whole number of days from 7 to 180. The
+     * recorder kept -3, 0.5 and 1 a day; the export reckoned -3 a week.
+     */
+    [-3, 7],
+    [-0, 7],
+    [0, 7],
+    [0.5, 7],
+    [1, 7],
+    [3, 7],
+    [6, 7],
+    [6.6, 7],
+    [7, 7],
+    [7.4, 7],
+    [7.5, 8],
+    [8, 8],
+    [30, 30],
+    [90, 90],
+    [179, 179],
+    [179.5, 180],
+    [180, 180],
+    [181, 180],
+    [500, 180],
+    [5000, 180],
+    [Number.MAX_VALUE, 180],
     // A number written as text, as a form sends it, is that number.
-    ['"30"', "30", 30],
-    ['" 90 "', " 90 ", 90],
-    ['"-3"', "-3", 7],
-    ['"500"', "500", 180],
-    ['"7.5"', "7.5", 8],
-  ])("%s reads as %p days", (_name: string, value: unknown, days: number) => {
+    ["30", 30],
+    [" 90 ", 90],
+    ["-3", 7],
+    ["500", 180],
+    ["7.5", 8],
+  ])("%p reads as %p days", (value: unknown, days: number) => {
     expect(readAuditLogRetentionInDays(value)).toBe(days);
   });
 });
 
 describe("what can be saved", () => {
-  test.each([
-    [7],
-    [8],
-    [30],
-    [90],
-    [179],
-    [180],
-    ["30"],
-    [" 90 "],
-    ["180"],
-  ])("%p is a retention", (value: unknown) => {
-    expect(getAuditLogRetentionError(value)).toBeNull();
-  });
+  test.each([[7], [8], [30], [90], [179], [180], ["30"], [" 90 "], ["180"]])(
+    "%p is a retention",
+    (value: unknown) => {
+      expect(getAuditLogRetentionError(value)).toBeNull();
+    },
+  );
 
   test.each([
     [null],
