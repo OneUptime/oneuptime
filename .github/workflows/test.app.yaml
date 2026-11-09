@@ -406,6 +406,11 @@ jobs:
           # group's suites sum to 25.0 minutes on a runner of median speed (25.3
           # on its slowest run). Diagrams (4.6) moved to the new group 18: about
           # 20.5.
+          # Chart Time Zoom gained 8 tests on 2026-11-09 (about 30 seconds
+          # locally: a value left out carried from Logs to Traces and back and
+          # named where it cannot go, Create monitor from a view with values
+          # left out, and the Word in message chip): 13.1 to 13.6 minutes, this
+          # group about 21.9.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui

@@ -700,7 +700,7 @@ describe("a view that leaves values out", () => {
   test("what a monitor's filters cannot hold is named: services, resources, message text, names and kinds, attribute patterns", () => {
     expect(
       getTelemetryFilterLinkNotCarried({
-        primaryEntityId: new NotEqual(new ObjectID(SERVICE_A)),
+        primaryEntityId: new NotEqual(SERVICE_A),
         excludedResourceFilters: {
           hostId: [SERVICE_B],
           kubernetesClusterId: [],
