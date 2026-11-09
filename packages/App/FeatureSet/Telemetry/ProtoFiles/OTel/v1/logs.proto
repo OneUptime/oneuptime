@@ -208,4 +208,16 @@ message LogRecord {
   //   - the field is not present,
   //   - the field contains an invalid value.
   bytes span_id = 10;
+
+  // A unique identifier of event category/type.
+  // All events with the same event_name are expected to conform to the same
+  // schema for both their attributes and their body.
+  //
+  // Recommended to be fully qualified and short (no longer than 256 characters).
+  //
+  // Presence of event_name on the log record identifies this record
+  // as an event.
+  //
+  // [Optional].
+  string event_name = 12;
 }

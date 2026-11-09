@@ -44,6 +44,10 @@ jest.mock("Common/Server/Services/MonitorTestService", () => {
     MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE:
       actual["MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE"],
     default: {
+      // The test's steps, which the kept result names its destination by.
+      findOneById: jest.fn(() => {
+        return Promise.resolve(null);
+      }),
       mergeStepProbeResponse: jest.fn(),
     },
   };

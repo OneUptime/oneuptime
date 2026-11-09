@@ -57,7 +57,8 @@ La **Comprobación de la configuración**, arriba en **Conectar**, dice lo que t
 | --- | --- |
 | Ninguna aplicación ha enviado una llamada de IA | [Envía tus llamadas de IA](#envía-tus-llamadas-de-ia): las cuentas de proveedor conectadas traen uso y coste por día, nunca una llamada |
 | Una aplicación llama a la API de un proveedor de IA y ninguna instrumentación de GenAI lo registra | Añade una para el lenguaje de la aplicación: la comprobación encontró los spans de cliente HTTP de la aplicación hacia `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` u otra API de un proveedor de IA |
-| Las llamadas llegan sin prompts ni respuestas | [Registra lo que se dijo](#registra-lo-que-se-dijo) en los spans: los prompts y las respuestas enviados como eventos de log no se muestran |
+| Las llamadas llegan sin prompts ni respuestas | [Registra lo que se dijo](#registra-lo-que-se-dijo), en los spans o como eventos de log |
+| Los prompts y las respuestas llegan como eventos de log | Nada: las conversaciones los leen, y quien puede leer los logs de la aplicación también puede leerlos en la página **Registros** |
 | Las llamadas quedan justo fuera del intervalo | La lista ofrece el intervalo que contiene la más reciente |
 | Una cuenta de proveedor no lee ningún uso | Su línea dice el último día con uso, o el primer día leído; una conexión de Azure que no encuentra ningún recurso necesita Monitoring Reader donde están los recursos |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Las instrumentaciones de OpenTelemetry más recientes aceptan `span_only`, `event_only` o `span_and_event` en lugar de `true`. Sin contenido registrado, una conversación sigue mostrando sus tiempos, su coste y sus problemas. Los prompts pueden llevar datos sensibles: [Privacidad y ocultación](#privacidad-y-ocultación) muestra cómo enmascararlos antes de guardarlos.
 
-Las conversaciones leen lo que se registra en el span de la llamada. La instrumentación de OpenTelemetry para Python lo registra ahí con `span_only`; las instrumentaciones para JavaScript y Java, y la de Python con `true`, lo envían como eventos de log, que las conversaciones no leen, y la **Comprobación de la configuración** lo indica. El SDK AI Inference de Azure lo registra en el span con `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI con `EnableSensitiveData`; la biblioteca OpenAI para .NET no registra nada.
+Las conversaciones leen lo que se registra en el span de la llamada, y los eventos de log que la aplicación envía con los ids de traza y de span de la llamada. La instrumentación de OpenTelemetry para Python lo registra en el span con `span_only`; las instrumentaciones para JavaScript y Java, y la de Python con `true` o `event_only`, lo envían como eventos de log, que llegan a OneUptime con los logs de la aplicación. El SDK AI Inference de Azure lo registra en el span con `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI con `EnableSensitiveData`; la biblioteca OpenAI para .NET no registra nada.
 
 ### Agrupa las llamadas en conversaciones
 
@@ -315,6 +316,8 @@ Las métricas de GenAI como `gen_ai.client.token.usage` y `gen_ai.client.operati
 
 Las llamadas de IA se guardan como spans de traza, así que las **Reglas de depuración** y los **Filtros de descarte** de las trazas se aplican a ellas: enmascara un atributo, o descarta un span, antes de que se guarde. Encuentras ambos en **Trazas → Ajustes**. La columna del correo del empleado se depura junto con el atributo del que se leyó, así que una regla que enmascara correos también la cubre.
 
+Los prompts y las respuestas enviados como eventos de log se guardan como logs, así que se les aplican las **Reglas de depuración** y los **Filtros de descarte** de los logs, en **Registros → Ajustes**: una regla que enmascara correos en las trazas no los enmascara en los eventos de log. Una conversación solo los muestra a quien también puede leer los logs de esa aplicación, y quienes pueden leerlos también los encuentran en la página **Registros**.
+
 Las conversaciones se leen con el mismo permiso que las trazas: quien puede leer las trazas del proyecto puede leer sus conversaciones, y nadie más. Las conversaciones de una herramienta de IA de la empresa son la excepción: solo los propietarios y administradores del proyecto pueden leerlas, salvo que su conexión diga otra cosa ([Herramientas de IA de la empresa](/docs/telemetry/ai-company-tools#privacidad)).
 
 ## Atributos que lee OneUptime
@@ -357,6 +360,8 @@ La vista de conversación lee los mensajes de una llamada, en este orden, de:
 - los atributos indexados: `gen_ai.prompt.N.content` y `gen_ai.completion.N.content` de OpenLLMetry, `llm.input_messages.N.message.content` y `llm.output_messages.N.message.content` de OpenInference;
 - los arrays de mensajes en `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` y `output.value`.
 
+Cuando el span de una llamada no tiene prompt o no tiene respuesta, se leen de los registros de log que llevan los ids de traza y de span de la llamada: los mismos eventos, enviados por la señal de logs, con su nombre en el atributo `event.name` del registro o en su campo de nombre de evento. Un registro con el id de la traza y sin id de span va a la única llamada al modelo de la traza, o a la llamada durante la que se envió, y se deja fuera cuando no es una sola llamada. Lo que registra el span tiene prioridad, así que una llamada registrada de las dos formas muestra cada mensaje una vez.
+
 ## Solución de problemas
 
 :::details Hay cuentas de proveedor conectadas, pero Conversaciones y Llamadas están vacías
@@ -364,7 +369,7 @@ Una cuenta de proveedor trae lo que usó y costó, por día, nunca una llamada n
 :::
 
 :::details Llegan llamadas, pero ninguna conversación muestra texto
-Tu instrumentación no registra el contenido. Actívalo como muestra [Registra lo que se dijo](#registra-lo-que-se-dijo); las llamadas anteriores se quedan sin texto.
+Tu instrumentación no registra el contenido, o lo envía como eventos de log y los logs de la aplicación no llegan a OneUptime. Actívalo como muestra [Registra lo que se dijo](#registra-lo-que-se-dijo), y envía los logs con las trazas; las llamadas anteriores se quedan sin texto.
 :::
 
 :::details Cada llamada de un chat aparece como su propia conversación

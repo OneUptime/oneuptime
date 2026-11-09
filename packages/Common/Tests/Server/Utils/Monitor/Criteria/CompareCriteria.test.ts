@@ -411,7 +411,7 @@ describe("CompareCriteria", () => {
       ).toBeNull();
     });
 
-    test("IsNotEmpty reports the value and truncates very long values", () => {
+    test("IsNotEmpty reports the value and cuts a long one where the evaluation details do", () => {
       const filter: CriteriaFilter = makeFilter({
         checkOn: CheckOn.ResponseBody,
         filterType: FilterType.IsNotEmpty,
@@ -430,7 +430,7 @@ describe("CompareCriteria", () => {
         criteriaFilter: filter,
       });
       expect(message).toBe(
-        `Response Body is not empty. Value: ${"a".repeat(500)}...`,
+        `Response Body is not empty. Value: ${"a".repeat(300)}…`,
       );
 
       expect(
@@ -440,9 +440,67 @@ describe("CompareCriteria", () => {
         }),
       ).toBeNull();
     });
+
+    /*
+     * The root cause goes out in email, Slack and Teams: the value is
+     * quoted redacted, on one line (MonitorQuotedValue, #6341).
+     */
+    test("IsNotEmpty quotes the value with its credentials and personal data masked, on one line", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.Error,
+        filterType: FilterType.IsNotEmpty,
+      });
+
+      expect(
+        CompareCriteria.compareEmptyAndNotEmpty({
+          value:
+            "Error: login as jane@acme.example failed\n    at login (password=hunter2)\n    at main",
+          criteriaFilter: filter,
+        }),
+      ).toBe(
+        "Error is not empty. Value: Error: login as [REDACTED] failed at login (password=[REDACTED]) at main",
+      );
+
+      // A script's result can be JSON: its credential fields are masked.
+      expect(
+        CompareCriteria.compareEmptyAndNotEmpty({
+          value: { ok: false, token: "tok_live_123", reason: "quota" },
+          criteriaFilter: makeFilter({
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.IsNotEmpty,
+          }),
+        }),
+      ).toBe(
+        'Result Value is not empty. Value: {"ok":false,"token":"[REDACTED]","reason":"quota"}',
+      );
+    });
   });
 
   describe("compareCriteriaStrings", () => {
+    /*
+     * The value a text filter matched is what the monitored system sent - a
+     * query's error, a script's result - quoted in a root cause that goes
+     * out in email, Slack and Teams (MonitorQuotedValue, #6341).
+     */
+    test("quotes the value it matched redacted, on one line and bounded", () => {
+      const value: string = `FATAL: password authentication failed (password=hunter2)\nHINT: check ${"x".repeat(400)}`;
+
+      const message: string | null = CompareCriteria.compareCriteriaStrings({
+        value: value,
+        threshold: "FATAL",
+        criteriaFilter: makeFilter({
+          checkOn: CheckOn.SqlQueryError,
+          filterType: FilterType.StartsWith,
+        }),
+      });
+
+      const quoted: string = `${`FATAL: password authentication failed (password=[REDACTED]) HINT: check ${"x".repeat(400)}`.slice(0, 300)}…`;
+
+      expect(message).toContain(` is ${quoted} which is starts with`);
+      expect(message).not.toContain("hunter2");
+      expect(message).not.toContain("\n");
+    });
+
     test("Contains / NotContains", () => {
       const contains: CriteriaFilter = makeFilter({
         checkOn: CheckOn.ResponseBody,

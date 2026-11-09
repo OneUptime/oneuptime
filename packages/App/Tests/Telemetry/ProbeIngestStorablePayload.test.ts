@@ -46,6 +46,7 @@ jest.mock("Common/Server/Services/MonitorTestService", () => {
   return {
     __esModule: true,
     default: {
+      findOneById: jest.fn(),
       mergeStepProbeResponse: jest.fn(),
     },
   };
@@ -77,9 +78,13 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
+import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
+import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import {
@@ -106,6 +111,9 @@ const updateColumns: jest.Mock =
 
 const mergeStepProbeResponse: jest.Mock =
   MonitorTestService.mergeStepProbeResponse as unknown as jest.Mock;
+
+const findTestById: jest.Mock =
+  MonitorTestService.findOneById as unknown as jest.Mock;
 
 // The first bytes of a ZIP archive, as a probe or a mail parser decodes them.
 const ZIP_TEXT: string = "PK\u0003\u0004\u0014\u0000\u0000\u0000\u0008\u0000";
@@ -179,8 +187,14 @@ beforeEach(() => {
   updateColumns.mockReset();
   mergeStepProbeResponse.mockReset();
   findOneBy.mockReset();
+  findTestById.mockReset();
 
   updateColumns.mockImplementation(refuseLikePostgres);
+
+  // A test whose row is gone by now: its result is still masked.
+  findTestById.mockImplementation(() => {
+    return Promise.resolve(null);
+  });
 
   mergeStepProbeResponse.mockImplementation(
     (data: {
@@ -373,5 +387,85 @@ describe("A monitor test run whose response held NUL", () => {
     await processProbeFromQueue(monitorTestJob(probeResponse));
 
     expect(monitorResource).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A test's result is read by everyone who can read the project's
+   * monitors, Viewer included, for the two days the test is kept
+   * (#6341). The probe ran it with the monitor secrets filled in and
+   * echoes the destination it used.
+   */
+  it("keeps the result masked, with the destination the test was written with", async () => {
+    const step: MonitorStep = new MonitorStep();
+    step.id = new ObjectID(STEP_ID);
+    step.data!.monitorDestination = URL.fromString(
+      "https://api.acme.example/health?tenant={{monitorSecrets.Tenant}}",
+    );
+
+    const monitorSteps: MonitorSteps = new MonitorSteps();
+    monitorSteps.data = {
+      monitorStepsInstanceArray: [step],
+      defaultMonitorStatusId: undefined,
+    };
+
+    const monitorTest: MonitorTest = new MonitorTest();
+    monitorTest.monitorSteps = monitorSteps;
+
+    findTestById.mockImplementation(() => {
+      return Promise.resolve(monitorTest);
+    });
+
+    await processProbeFromQueue(
+      monitorTestJob({
+        ...probeResponse,
+        monitorDestination: URL.fromString(
+          "https://api.acme.example/health?tenant=acme-prod-7781",
+        ),
+        responseBody: JSON.stringify({
+          status: "ok",
+          owner: { email: "jane@acme.example", phone: "+1 555 0100" },
+        }),
+        responseHeaders: {
+          "content-type": "application/json",
+          "set-cookie": "sid=abc",
+        },
+        failureCause: "retried after token=abc123 expired",
+      } as unknown as ProbeMonitorResponse),
+    );
+
+    // The test's own steps, read as OneUptime reads them.
+    const read: { id: ObjectID; select: JSONObject; props: JSONObject } = (
+      findTestById.mock.calls as unknown as Array<
+        Array<{ id: ObjectID; select: JSONObject; props: JSONObject }>
+      >
+    )[0]![0]!;
+
+    expect(read.id.toString()).toBe(TEST_ID);
+    expect(read.select).toEqual({ monitorSteps: true });
+    expect(read.props).toEqual({ isRoot: true });
+
+    const stored: JSONObject = (
+      (
+        mergeStepProbeResponse.mock.calls as unknown as Array<
+          Array<{ monitorStepProbeResponse: MonitorStepProbeResponse }>
+        >
+      )[0]![0]!.monitorStepProbeResponse as unknown as JSONObject
+    )[STEP_ID] as JSONObject;
+
+    expect(stored["monitorDestination"]).toBe(
+      "https://api.acme.example/health?tenant={{monitorSecrets.Tenant}}",
+    );
+    expect(stored["responseBody"]).toBe(
+      '{"status":"ok","owner":{"email":"[REDACTED]","phone":"[REDACTED]"}}',
+    );
+    expect(stored["responseHeaders"]).toEqual({
+      "content-type": "application/json",
+      "set-cookie": "[REDACTED]",
+    });
+    expect(stored["failureCause"]).toBe(
+      "retried after token=[REDACTED] expired",
+    );
+    expect(stored["responseCode"]).toBe(200);
+    expect(JSON.stringify(stored)).not.toContain("acme-prod-7781");
   });
 });

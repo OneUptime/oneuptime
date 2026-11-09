@@ -14,6 +14,7 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import Port from "../../../../Types/Port";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -21,9 +22,12 @@ import { describe, expect, test } from "@jest/globals";
  * MONITOR SUMMARY.
  *
  * Both are cut by the same rules as the evaluation details: credential
- * headers keep their name and lose their value, the destination is the one
- * the step was configured with (monitor secrets by name), and a monitor set
- * to keep no response content keeps no body at all.
+ * headers keep their name and lose their value, a body's credentials and
+ * personal data are masked, the destination is the one the step was
+ * configured with (monitor secrets by name), and a monitor set to keep no
+ * response content keeps no body and no headers at all. The rules on each
+ * kind of payload, and on every other copy of a check, are pinned in
+ * MonitorCheckCopiesRedaction.test.ts.
  */
 
 const REDACTED: string = "[REDACTED]";
@@ -111,7 +115,7 @@ describe("whether a monitor keeps response content", () => {
 });
 
 describe("the stored check (createdStateLog, the state timeline's log)", () => {
-  test("masks the credential headers, as the monitor's own log is", () => {
+  test("masks the credential headers and the body's personal data, as the monitor's own log does", () => {
     const stored: JSONObject = MonitorRecordEvidence.toStoredCheck({
       dataToProcess: probeResponse() as unknown as DataToProcess,
       keepResponseContent: true,
@@ -124,22 +128,25 @@ describe("the stored check (createdStateLog, the state timeline's log)", () => {
       "x-request-id": "r-1",
     });
     expect(stored["responseBody"]).toBe(
-      '{"error":"db down","owner":"ops@acme.example"}',
+      `{"error":"db down","owner":"${REDACTED}"}`,
     );
     expect(stored["responseCode"]).toBe(500);
+    expect(stored["isResponseContentOmitted"]).toBeUndefined();
   });
 
-  test("keeps no body for a monitor that keeps no response content", () => {
+  test("keeps no body and no headers for a monitor that keeps no response content, and says so", () => {
     const stored: JSONObject = MonitorRecordEvidence.toStoredCheck({
       dataToProcess: probeResponse() as unknown as DataToProcess,
       keepResponseContent: false,
     });
 
     expect(stored["responseBody"]).toBeUndefined();
+    expect(stored["responseHeaders"]).toBeUndefined();
+    expect(stored["isResponseContentOmitted"]).toBe(true);
     expect(stored["responseCode"]).toBe(500);
   });
 
-  test("nor an incoming request's body", () => {
+  test("nor an incoming request's body and headers", () => {
     const stored: JSONObject = MonitorRecordEvidence.toStoredCheck({
       dataToProcess: {
         requestBody: { alert: "fired" },
@@ -150,9 +157,24 @@ describe("the stored check (createdStateLog, the state timeline's log)", () => {
     });
 
     expect(stored["requestBody"]).toBeUndefined();
-    expect((stored["requestHeaders"] as JSONObject)["authorization"]).toBe(
-      REDACTED,
-    );
+    expect(stored["requestHeaders"]).toBeUndefined();
+    expect(stored["isResponseContentOmitted"]).toBe(true);
+    expect(stored["incomingRequestReceivedAt"]).toBeDefined();
+  });
+
+  test("a check that had no content to leave out does not say it left some out", () => {
+    const stored: JSONObject = MonitorRecordEvidence.toStoredCheck({
+      dataToProcess: {
+        isOnline: false,
+        failureCause: "connect ECONNREFUSED",
+      } as unknown as DataToProcess,
+      keepResponseContent: false,
+    });
+
+    expect(stored).toEqual({
+      isOnline: false,
+      failureCause: "connect ECONNREFUSED",
+    });
   });
 
   test("leaves the check it was handed as it was: the evaluator still reads it", () => {
@@ -236,7 +258,7 @@ describe("the monitor summary", () => {
     );
   });
 
-  test("keeps no body for a monitor that keeps no response content, and says why", () => {
+  test("keeps no body and no headers for a monitor that keeps no response content, and says why", () => {
     const snapshot: MonitorSummarySnapshot =
       MonitorRecordEvidence.redactSnapshot({
         snapshot: snapshotOf({
@@ -247,12 +269,14 @@ describe("the monitor summary", () => {
       });
 
     expect(snapshot.probeMonitorResponse!.responseBody).toBeUndefined();
+    expect(snapshot.probeMonitorResponse!.responseHeaders).toBeUndefined();
+    expect(snapshot.probeMonitorResponse!.responseCode).toBe(500);
     expect(snapshot.isResponseContentOmitted).toBe(true);
     // It was not cut for size: it was left out.
     expect(snapshot.isResponseBodyTruncated).toBeUndefined();
   });
 
-  test("an incoming request's headers are masked, and its body left out when off", () => {
+  test("an incoming request's headers are masked, and its body and headers left out when off", () => {
     const request: IncomingMonitorRequest = {
       projectId: ObjectID.generate(),
       monitorId: ObjectID.generate(),
@@ -292,6 +316,7 @@ describe("the monitor summary", () => {
     });
 
     expect(off.incomingMonitorRequest!.requestBody).toBeUndefined();
+    expect(off.incomingMonitorRequest!.requestHeaders).toBeUndefined();
     expect(off.isResponseContentOmitted).toBe(true);
   });
 
@@ -341,5 +366,66 @@ describe("a step's destination and port, as text", () => {
     expect(
       MonitorRecordEvidence.getStepPort(new MonitorStep()),
     ).toBeUndefined();
+  });
+});
+
+/*
+ * A body is written by whatever a monitor watches: what is kept of it takes
+ * time in line with its length (Tests/Helpers/FastestRun).
+ */
+describe("a long body", () => {
+  test("a JSON text of 400,000 characters, every entry with fields named for personal data, is cut within two seconds", () => {
+    const entry: string =
+      '{"id":7,"phone":"+1 555 0100","email":"jane@acme.example","note":"ok"},';
+    const count: number = Math.ceil(400000 / entry.length);
+    const text: string = `[${entry.repeat(count).slice(0, -1)}]`;
+
+    expect(text.length).toBeGreaterThanOrEqual(400000);
+
+    const timed: FastestRun<JSONObject> = fastestRun({
+      run: (): JSONObject => {
+        return MonitorRecordEvidence.redactCheck({
+          check: { responseBody: text },
+          keepResponseContent: true,
+        });
+      },
+      limitInMs: 2000,
+    });
+
+    expect(timed.inMs).toBeLessThan(2000);
+
+    const kept: Array<JSONObject> = JSON.parse(
+      timed.result["responseBody"] as string,
+    ) as Array<JSONObject>;
+
+    expect(kept).toHaveLength(count);
+    expect(kept[0]).toEqual({
+      id: 7,
+      phone: REDACTED,
+      email: REDACTED,
+      note: "ok",
+    });
+    expect(kept[count - 1]).toEqual(kept[0]);
+  });
+
+  test("a JSON text of 400,000 characters cut short at its very end is read by the text rules within two seconds", () => {
+    const entry: string = '{"id":7,"phone":"+1 555 0100","note":"ok"},';
+    const text: string = `[${entry.repeat(Math.ceil(400000 / entry.length))}`;
+
+    expect(text.length).toBeGreaterThanOrEqual(400000);
+
+    const timed: FastestRun<JSONObject> = fastestRun({
+      run: (): JSONObject => {
+        return MonitorRecordEvidence.redactCheck({
+          check: { responseBody: text },
+          keepResponseContent: true,
+        });
+      },
+      limitInMs: 2000,
+    });
+
+    expect(timed.inMs).toBeLessThan(2000);
+    // Not one whole JSON value: no field is found, and no text rule applies.
+    expect(timed.result["responseBody"]).toBe(text);
   });
 });

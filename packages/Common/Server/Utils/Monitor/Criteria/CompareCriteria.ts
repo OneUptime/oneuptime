@@ -8,6 +8,7 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import Typeof from "../../../../Types/Typeof";
 import MetricValueFormatter from "../../../../Utils/Monitor/MetricValueFormatter";
+import MonitorQuotedValue from "../MonitorQuotedValue";
 
 /*
  * No @CaptureSpan here: each method compares values already in memory, in
@@ -344,10 +345,11 @@ export default class CompareCriteria {
 
     if (data.criteriaFilter.filterType === FilterType.IsNotEmpty) {
       if (data.value !== null && data.value !== undefined) {
-        const valueStr: string = String(data.value);
-        const truncatedValue: string =
-          valueStr.length > 500 ? valueStr.substring(0, 500) + "..." : valueStr;
-        return `${data.criteriaFilter.checkOn} is not empty. Value: ${truncatedValue}`;
+        /*
+         * A root cause goes out in email, Slack and Teams: the value is
+         * redacted, put on one line and bounded (MonitorQuotedValue).
+         */
+        return `${data.criteriaFilter.checkOn} is not empty. Value: ${MonitorQuotedValue.quote(data.value)}`;
       }
 
       return null;
@@ -797,10 +799,15 @@ export default class CompareCriteria {
       data.criteriaFilter.filterType !== FilterType.True &&
       data.criteriaFilter.filterType !== FilterType.False
     ) {
-      const formattedValues: string = CompareCriteria.formatCriteriaValues(
-        data.values,
-        withUnit,
-      );
+      /*
+       * A text value is what the monitored system sent - a query's result,
+       * a record, a script's error - so it is quoted as a root cause may
+       * quote it (MonitorQuotedValue). A number is the evaluation's own.
+       */
+      const formattedValues: string =
+        typeof data.values === "string"
+          ? MonitorQuotedValue.quote(data.values)
+          : CompareCriteria.formatCriteriaValues(data.values, withUnit);
       message += ` is ${formattedValues} which is`;
     }
 

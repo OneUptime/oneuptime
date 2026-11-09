@@ -2,14 +2,18 @@ import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import { EntityManager } from "./DatabaseService";
 import ProjectReferencesService, {
   ProjectReferenceWrite,
 } from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
-import MonitorProbe from "../../Models/DatabaseModels/MonitorProbe";
+import MonitorProbe, {
+  MonitorStepProbeResponse,
+} from "../../Models/DatabaseModels/MonitorProbe";
+import { JSONObject } from "../../Types/JSON";
+import MonitorRecordEvidence from "../Utils/Monitor/MonitorRecordEvidence";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -383,6 +387,142 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
     write?: ProjectReferenceWrite,
   ): Array<string> {
     return write?.kind === "update" ? [] : ["probe"];
+  }
+
+  /*
+   * A probe's latest check is kept as the probe sent it: probe agreement
+   * judges it again against the criteria (MonitorResource
+   * .checkProbeAgreement), and a filter on the body needs the body. Everyone
+   * else reads it cut as the monitor's logs are (MonitorRecordEvidence) -
+   * the Probes page, the monitor's overview, the API - so every read that is
+   * not OneUptime's own gets the redacted copy.
+   */
+  protected override async onFindSuccess(
+    onFind: OnFind<MonitorProbe>,
+    items: Array<MonitorProbe>,
+  ): Promise<OnFind<MonitorProbe>> {
+    if (!onFind.findBy.props.isRoot) {
+      await this.redactLastChecksForReaders(items);
+    }
+
+    return { ...onFind, carryForward: items };
+  }
+
+  private async redactLastChecksForReaders(
+    items: Array<MonitorProbe>,
+  ): Promise<void> {
+    const rows: Array<MonitorProbe> = items.filter(
+      (item: MonitorProbe): boolean => {
+        return Boolean(
+          item.lastMonitoringLog &&
+            typeof item.lastMonitoringLog === "object" &&
+            Object.keys(item.lastMonitoringLog).length > 0,
+        );
+      },
+    );
+
+    if (rows.length === 0) {
+      return;
+    }
+
+    // Each row's monitor: its switch and its steps decide what is shown.
+    const monitorIdOfRow: Map<MonitorProbe, string> = new Map();
+    const rowsWithoutMonitorId: Array<MonitorProbe> = [];
+
+    for (const row of rows) {
+      const monitorId: string | undefined =
+        row.monitorId?.toString() || row.monitor?.id?.toString();
+
+      if (monitorId) {
+        monitorIdOfRow.set(row, monitorId);
+      } else if (row.id) {
+        rowsWithoutMonitorId.push(row);
+      }
+    }
+
+    // A read that did not select the monitor's id still gets its monitor's rules.
+    if (rowsWithoutMonitorId.length > 0) {
+      const found: Array<MonitorProbe> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(
+            rowsWithoutMonitorId.map((row: MonitorProbe): ObjectID => {
+              return row.id!;
+            }),
+          ),
+        },
+        select: {
+          _id: true,
+          monitorId: true,
+        },
+        limit: rowsWithoutMonitorId.length,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const monitorIdOfRowId: Map<string, string> = new Map();
+
+      for (const item of found) {
+        if (item.id && item.monitorId) {
+          monitorIdOfRowId.set(item.id.toString(), item.monitorId.toString());
+        }
+      }
+
+      for (const row of rowsWithoutMonitorId) {
+        const monitorId: string | undefined = monitorIdOfRowId.get(
+          row.id!.toString(),
+        );
+
+        if (monitorId) {
+          monitorIdOfRow.set(row, monitorId);
+        }
+      }
+    }
+
+    const monitorIds: Array<string> = Array.from(
+      new Set<string>(monitorIdOfRow.values()),
+    );
+
+    const monitors: Array<Monitor> =
+      monitorIds.length > 0
+        ? await MonitorService.findBy({
+            query: {
+              _id: QueryHelper.any(
+                monitorIds.map((id: string): ObjectID => {
+                  return new ObjectID(id);
+                }),
+              ),
+            },
+            select: {
+              _id: true,
+              keepResponseContent: true,
+              monitorSteps: true,
+            },
+            limit: monitorIds.length,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          })
+        : [];
+
+    const monitorById: Map<string, Monitor> = new Map();
+
+    for (const monitor of monitors) {
+      if (monitor.id) {
+        monitorById.set(monitor.id.toString(), monitor);
+      }
+    }
+
+    for (const row of rows) {
+      const monitorId: string | undefined = monitorIdOfRow.get(row);
+
+      row.lastMonitoringLog = MonitorRecordEvidence.redactLastChecks({
+        lastChecks: row.lastMonitoringLog as unknown as JSONObject,
+        monitor: monitorId ? monitorById.get(monitorId) : undefined,
+      }) as unknown as MonitorStepProbeResponse;
+    }
   }
 
   protected override async onBeforeCreate(

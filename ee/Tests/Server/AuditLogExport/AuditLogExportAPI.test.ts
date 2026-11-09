@@ -23,10 +23,20 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 
 import AuditLogExportAPI, {
   AuditLogExportTest,
+  describeTestSuccess,
 } from "../../../Server/AuditLogExport/API/AuditLogExportAPI";
 import AuditLogExportArea from "../../../Server/AuditLogExport/Index";
 import AuditLogExportDestinationRegistry from "../../../Server/AuditLogExport/Destinations/DestinationRegistry";
-import { AuditLogExportDeliveryError } from "../../../Server/AuditLogExport/Destinations/Types";
+import {
+  AuditLogExportDelivery,
+  AuditLogExportDeliveryError,
+  AuditLogExportDeliveryReceipt,
+  AuditLogExportDestination,
+} from "../../../Server/AuditLogExport/Destinations/Types";
+import {
+  AuditLogExportDestinationDefinition,
+  getAuditLogExportDestinationDefinition,
+} from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
 import { EnterpriseServerModuleShape } from "Common/Server/Enterprise/EnterpriseServerModule";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
@@ -223,6 +233,94 @@ describe("testing an audit log export", () => {
       expect(answer["isSuccessful"]).toBe(true);
       expect(answer["message"]).toBe(
         `A test file was written to recorded://${s3.batches[0]!.id}. Real entries are written next to it, in folders by date.`,
+      );
+    });
+
+    /*
+     * Issue #6392: over UDP nothing answers that a datagram arrived, so a
+     * test that went out says only that, and to look at the receiver.
+     */
+    test("a syslog test over UDP says it was sent, and that only the receiver can say it arrived", async () => {
+      const syslog: RecordingDestination = new RecordingDestination();
+      const unconfirmed: AuditLogExportDestination = {
+        deliver: async (
+          delivery: AuditLogExportDelivery,
+        ): Promise<AuditLogExportDeliveryReceipt> => {
+          await syslog.deliver(delivery);
+          return {
+            location: "syslog+udp://93.184.216.34:514",
+            isUnconfirmed: true,
+          };
+        },
+      };
+
+      AuditLogExportDestinationRegistry.setDestination(
+        AuditLogExportDestinationType.Syslog,
+        unconfirmed,
+      );
+
+      try {
+        const answer: JSONObject = await AuditLogExportTest.testProjectExport({
+          body: {
+            destinationType: "syslog",
+            config: { host: "93.184.216.34", protocol: "udp" },
+            secrets: {},
+          },
+          props: OWNER,
+        });
+
+        expect(answer).toEqual({
+          isSuccessful: true,
+          message:
+            "A test entry was sent to syslog+udp://93.184.216.34:514. Its action is Test. UDP does not confirm delivery, so check that it arrived.",
+        });
+        // The settings as a save keeps them: no framing a datagram has no use for.
+        expect(syslog.deliveries[0]!.settings.config).toEqual({
+          host: "93.184.216.34",
+          protocol: "udp",
+        });
+        expect(syslog.batches[0]!.records[0]!.action).toBe("Test");
+      } finally {
+        AuditLogExportDestinationRegistry.reset();
+      }
+    });
+
+    test("only an unconfirmed stream's test says to check; a file is where it says", () => {
+      const syslogDefinition: AuditLogExportDestinationDefinition =
+        getAuditLogExportDestinationDefinition(
+          AuditLogExportDestinationType.Syslog,
+        )!;
+      const s3Definition: AuditLogExportDestinationDefinition =
+        getAuditLogExportDestinationDefinition(
+          AuditLogExportDestinationType.AmazonS3,
+        )!;
+
+      expect(
+        describeTestSuccess({
+          definition: syslogDefinition,
+          receipt: { location: "syslog+tls://siem.example.com:6514" },
+        }),
+      ).toBe(
+        "A test entry was sent to syslog+tls://siem.example.com:6514. Its action is Test.",
+      );
+      expect(
+        describeTestSuccess({
+          definition: syslogDefinition,
+          receipt: {
+            location: "syslog+udp://siem.example.com:514",
+            isUnconfirmed: false,
+          },
+        }),
+      ).toBe(
+        "A test entry was sent to syslog+udp://siem.example.com:514. Its action is Test.",
+      );
+      expect(
+        describeTestSuccess({
+          definition: s3Definition,
+          receipt: { location: "s3://bucket/key", isUnconfirmed: true },
+        }),
+      ).toBe(
+        "A test file was written to s3://bucket/key. Real entries are written next to it, in folders by date.",
       );
     });
 
