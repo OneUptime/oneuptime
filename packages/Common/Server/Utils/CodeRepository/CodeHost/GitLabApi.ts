@@ -407,8 +407,7 @@ export default class GitLabApi {
     ref: string;
     filePath: string;
   }): Promise<string | null> {
-    const version: CodeHostFileVersion | null =
-      await this.getFileVersion(data);
+    const version: CodeHostFileVersion | null = await this.getFileVersion(data);
 
     return version ? version.blobSha : null;
   }

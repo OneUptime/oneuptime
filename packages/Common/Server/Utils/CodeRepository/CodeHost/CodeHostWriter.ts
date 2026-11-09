@@ -381,7 +381,9 @@ export default class CodeHostWriters {
       }): Promise<Array<CodeHostFileBlob>> => {
         return await readFileBlobs({
           filePaths: args.filePaths,
-          read: async (filePath: string): Promise<CodeHostFileVersion | null> => {
+          read: async (
+            filePath: string,
+          ): Promise<CodeHostFileVersion | null> => {
             return await api.call(() => {
               return gitLab.getFileVersion({
                 project,
@@ -474,7 +476,9 @@ export default class CodeHostWriters {
       }): Promise<Array<CodeHostFileBlob>> => {
         return await readFileBlobs({
           filePaths: args.filePaths,
-          read: async (filePath: string): Promise<CodeHostFileVersion | null> => {
+          read: async (
+            filePath: string,
+          ): Promise<CodeHostFileVersion | null> => {
             const sha: string | null = await api.call(() => {
               return forgejo.getFileSha({
                 owner,

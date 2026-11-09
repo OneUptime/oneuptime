@@ -246,104 +246,105 @@ type ReadFileVersionsNowFunction = (data: {
  * follows to be held to: one read of each file, never two (issue #6331).
  * A file that could not be read has no version, and holds nothing.
  */
-export const readCodeFileVersionsNow: ReadFileVersionsNowFunction = async (data: {
-  writer: CodeHostWriter;
-  branchName: string;
-  filePaths: Array<string>;
-  deadlineInMs?: number | undefined;
-}): Promise<CodeFilesReadNow> => {
-  const unreadable: (reason: string) => CodeFilesReadNow = (
-    reason: string,
-  ): CodeFilesReadNow => {
-    return {
-      files: data.filePaths.map((filePath: string): CodeFileNow => {
-        return { filePath, now: { state: "unreadable", reason } };
-      }),
-      versions: [],
-    };
-  };
-
-  if (data.filePaths.length === 0) {
-    return { files: [], versions: [] };
-  }
-
-  const clock: { timer?: ReturnType<typeof setTimeout> | undefined } = {};
-  let blobs: Array<CodeHostFileBlob> | null = null;
-
-  try {
-    blobs = await Promise.race([
-      data.writer.getFileBlobShas({
-        branchName: data.branchName,
-        filePaths: data.filePaths,
-      }),
-      new Promise<null>((resolve: (value: null) => void): void => {
-        clock.timer = setTimeout((): void => {
-          resolve(null);
-        }, data.deadlineInMs ?? CODE_FILE_READ_DEADLINE_MS);
-      }),
-    ]);
-  } catch (error) {
-    logger.debug(error);
-
-    return unreadable("The code host could not be read.");
-  } finally {
-    if (clock.timer) {
-      clearTimeout(clock.timer);
-    }
-  }
-
-  if (!blobs) {
-    return unreadable(DEADLINE_PASSED);
-  }
-
-  const versions: Array<CodeHostFileExpected> = [];
-
-  const files: Array<CodeFileNow> = data.filePaths.map(
-    (filePath: string): CodeFileNow => {
-      const blob: CodeHostFileBlob | undefined = blobs!.find(
-        (candidate: CodeHostFileBlob): boolean => {
-          return candidate.filePath === filePath;
-        },
-      );
-
-      if (!blob) {
-        return {
-          filePath,
-          now: {
-            state: "unreadable",
-            reason: "The code host said nothing of it.",
-          },
-        };
-      }
-
-      if ("failure" in blob) {
-        return {
-          filePath,
-          now: { state: "unreadable", reason: blob.failure },
-        };
-      }
-
-      versions.push({
-        filePath,
-        blobSha: blob.blobSha,
-        ...(blob.lastCommitId ? { lastCommitId: blob.lastCommitId } : {}),
-      });
-
+export const readCodeFileVersionsNow: ReadFileVersionsNowFunction =
+  async (data: {
+    writer: CodeHostWriter;
+    branchName: string;
+    filePaths: Array<string>;
+    deadlineInMs?: number | undefined;
+  }): Promise<CodeFilesReadNow> => {
+    const unreadable: (reason: string) => CodeFilesReadNow = (
+      reason: string,
+    ): CodeFilesReadNow => {
       return {
-        filePath,
-        now:
-          blob.blobSha === null
-            ? { state: "absent" }
-            : {
-                state: "file",
-                fingerprint: fingerprintCodeFileVersion(blob.blobSha),
-              },
+        files: data.filePaths.map((filePath: string): CodeFileNow => {
+          return { filePath, now: { state: "unreadable", reason } };
+        }),
+        versions: [],
       };
-    },
-  );
+    };
 
-  return { files, versions };
-};
+    if (data.filePaths.length === 0) {
+      return { files: [], versions: [] };
+    }
+
+    const clock: { timer?: ReturnType<typeof setTimeout> | undefined } = {};
+    let blobs: Array<CodeHostFileBlob> | null = null;
+
+    try {
+      blobs = await Promise.race([
+        data.writer.getFileBlobShas({
+          branchName: data.branchName,
+          filePaths: data.filePaths,
+        }),
+        new Promise<null>((resolve: (value: null) => void): void => {
+          clock.timer = setTimeout((): void => {
+            resolve(null);
+          }, data.deadlineInMs ?? CODE_FILE_READ_DEADLINE_MS);
+        }),
+      ]);
+    } catch (error) {
+      logger.debug(error);
+
+      return unreadable("The code host could not be read.");
+    } finally {
+      if (clock.timer) {
+        clearTimeout(clock.timer);
+      }
+    }
+
+    if (!blobs) {
+      return unreadable(DEADLINE_PASSED);
+    }
+
+    const versions: Array<CodeHostFileExpected> = [];
+
+    const files: Array<CodeFileNow> = data.filePaths.map(
+      (filePath: string): CodeFileNow => {
+        const blob: CodeHostFileBlob | undefined = blobs!.find(
+          (candidate: CodeHostFileBlob): boolean => {
+            return candidate.filePath === filePath;
+          },
+        );
+
+        if (!blob) {
+          return {
+            filePath,
+            now: {
+              state: "unreadable",
+              reason: "The code host said nothing of it.",
+            },
+          };
+        }
+
+        if ("failure" in blob) {
+          return {
+            filePath,
+            now: { state: "unreadable", reason: blob.failure },
+          };
+        }
+
+        versions.push({
+          filePath,
+          blobSha: blob.blobSha,
+          ...(blob.lastCommitId ? { lastCommitId: blob.lastCommitId } : {}),
+        });
+
+        return {
+          filePath,
+          now:
+            blob.blobSha === null
+              ? { state: "absent" }
+              : {
+                  state: "file",
+                  fingerprint: fingerprintCodeFileVersion(blob.blobSha),
+                },
+        };
+      },
+    );
+
+    return { files, versions };
+  };
 
 type ProposedOnFunction = (data: {
   branchName: string;

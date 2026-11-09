@@ -147,9 +147,7 @@ export function getToolActionDescription(
  * too. An action saved before its words leaves its lists out whenever it
  * has a line, as it always did.
  */
-export function getToolActionLeavesOutLists(
-  action: AIChatToolAction,
-): boolean {
+export function getToolActionLeavesOutLists(action: AIChatToolAction): boolean {
   const words: AIActionWords | null = getKnownWords(action);
 
   if (!words) {
