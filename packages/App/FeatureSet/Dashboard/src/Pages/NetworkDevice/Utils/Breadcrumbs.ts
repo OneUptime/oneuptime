@@ -145,7 +145,7 @@ export function getNetworkDeviceBreadcrumbs(
       "Project",
       "Network",
       "Topology",
-      "Endpoints",
+      "Discovered Devices",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_TOPOLOGY, [
       "Project",

@@ -102,6 +102,30 @@ describe("endpointTooltipForNode", () => {
     expect(endpointTooltipForNode(base)).toBe("pos-1 (endpoint)");
   });
 
+  /*
+   * A device nothing named is called by its address, or by its MAC when it
+   * has no address (issue #5775): the tooltip says each once.
+   */
+  test("an address or MAC that is the name is not said twice", () => {
+    expect(
+      endpointTooltipForNode({
+        ...base,
+        name: "10.0.0.12",
+        macAddress: "aa:bb:cc:dd:ee:ff",
+        ipAddress: "10.0.0.12",
+        vendor: "Zebra",
+      }),
+    ).toBe("10.0.0.12 (endpoint) — aa:bb:cc:dd:ee:ff · Zebra");
+    expect(
+      endpointTooltipForNode({
+        ...base,
+        name: "aa:bb:cc:dd:ee:ff",
+        macAddress: "aa:bb:cc:dd:ee:ff",
+        vendor: "Zebra",
+      }),
+    ).toBe("aa:bb:cc:dd:ee:ff (endpoint) — Zebra");
+  });
+
   test("appends 'VLAN <n>' when the endpoint carries a vlanId", () => {
     expect(
       endpointTooltipForNode({

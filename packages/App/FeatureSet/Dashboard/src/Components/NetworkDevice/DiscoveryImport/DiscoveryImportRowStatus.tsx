@@ -32,7 +32,7 @@ const DiscoveryImportRowStatus: FunctionComponent<
   return (
     <div
       className="max-w-56 space-y-1"
-      data-testid={`discovery-import-row-${props.view.scanId}`}
+      data-testid={`discovery-import-row-${props.view.scanId || props.view.id}`}
     >
       <p className="text-xs font-medium text-indigo-700">
         {isQueued
@@ -71,7 +71,7 @@ const DiscoveryImportRowStatus: FunctionComponent<
       <button
         type="button"
         className="text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
-        data-testid={`discovery-import-row-view-${props.view.scanId}`}
+        data-testid={`discovery-import-row-view-${props.view.scanId || props.view.id}`}
         onClick={props.onView}
       >
         {translator.translateText("View progress")}

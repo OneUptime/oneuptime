@@ -1483,6 +1483,12 @@ jobs:
           # page and its Response content card, about half of them in each
           # half), which took this group to 22.1: Archivable Values (1.8)
           # moved on to group 19, the group with the most room: about 20.3.
+          # DiscoveredDevices.spec.ts joined Discovery on 2026-11-09 with
+          # #5775's tests (8 tests, about a minute locally: the Discovered
+          # Devices list, its search, Add to monitoring, Hide from map and Show
+          # on map, 320 devices selected at once, a phone, and the list at four
+          # widths, dark, German and Persian), which took Discovery from 5.5 to
+          # about 6.6 and this group to about 21.4.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
