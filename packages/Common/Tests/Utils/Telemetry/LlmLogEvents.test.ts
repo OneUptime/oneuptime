@@ -514,6 +514,64 @@ describe("what the OpenAI instrumentations send as log events", () => {
       expect({ fixture, count }).toEqual({ fixture, count: records.length });
     }
   });
+
+  test("rows stored before #6395, at the time they arrived, read as the rows stored now, at their observed time", () => {
+    let fixturesWithoutOwnTimes: number = 0;
+
+    for (const fixture of Object.values(GenAiLogEventFixture)) {
+      const file: GenAiLogEventFixtureFile = loadGenAiLogEventFixture(fixture);
+      const calls: Array<LlmLogEventCall> = toStoredSpans(file).map(toCall);
+      const storedNow: Array<LlmLogEventRecord> = toStoredLogRecords(file, {
+        arrivedAtNano: ARRIVED_AT_NANO,
+      });
+      const storedBefore: Array<LlmLogEventRecord> = toStoredLogRecords(file, {
+        arrivedAtNano: ARRIVED_AT_NANO,
+        storedAtArrival: true,
+      });
+
+      // Each record's place in time, and the content of each call.
+      const readAll: (records: Array<LlmLogEventRecord>) => Array<unknown> = (
+        records: Array<LlmLogEventRecord>,
+      ): Array<unknown> => {
+        const assigned: Map<
+          string,
+          Array<LlmLogEventRecord>
+        > = LlmLogEventsUtil.assignToCalls(calls, records);
+
+        return [
+          records.map((record: LlmLogEventRecord): number | null => {
+            return LlmLogEventsUtil.getTimeMs(record);
+          }),
+          calls.map((call: LlmLogEventCall): LlmCallContent => {
+            return LlmLogEventsUtil.readContent(
+              assigned.get(call.spanId) || [],
+            );
+          }),
+        ];
+      };
+
+      if (
+        storedNow.some((record: LlmLogEventRecord, index: number): boolean => {
+          return record.timeUnixNano !== storedBefore[index]!.timeUnixNano;
+        })
+      ) {
+        fixturesWithoutOwnTimes++;
+
+        // Stored now within its call, not at the time it arrived.
+        for (const record of storedNow) {
+          expect(record.timeUnixNano).not.toBe(ARRIVED_AT_NANO);
+        }
+      }
+
+      expect({ fixture, read: readAll(storedBefore) }).toEqual({
+        fixture,
+        read: readAll(storedNow),
+      });
+    }
+
+    // The Java agent's and the newer Python instrumentations' captures.
+    expect(fixturesWithoutOwnTimes).toBeGreaterThanOrEqual(5);
+  });
 });
 
 describe("OTLP values as log ingest stores them", () => {
