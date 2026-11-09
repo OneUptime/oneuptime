@@ -23,13 +23,16 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * logs up; quiet, with when the last arrived and the longer range that
  * shows it, which the list then reads; or nothing arriving from the app at
  * all. The logs explorer itself is replaced by a stub that draws what the
- * page hands it.
+ * page hands it. Logs refused at ingest since the last one arrived (issue
+ * #6378) say so instead, with the fix.
  */
 
 const MODEL_ID: string = "84858d6c-4444-4aaa-8bbb-000000000004";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000004";
 
 const getItemMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
+const keyModalMock: MockFunction = getJestMockFunction();
 const viewerPropsMock: MockFunction = getJestMockFunction();
 const setupModalMock: MockFunction = getJestMockFunction();
 const openMock: MockFunction = getJestMockFunction();
@@ -53,6 +56,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       getItem: (...args: Array<unknown>): unknown => {
         return getItemMock(...args);
+      },
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
       },
     },
   };
@@ -137,11 +143,39 @@ jest.mock(
   },
 );
 
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumKeySetupModal",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: {
+        appName: string;
+        clientType?: string;
+        onClose: () => void;
+      }) => {
+        keyModalMock(props);
+        return (
+          <div data-testid="pick-key-dialog">
+            {props.clientType} key for {props.appName}
+            <button type="button" onClick={props.onClose}>
+              Close key dialog
+            </button>
+          </div>
+        );
+      },
+    };
+  },
+);
+
 import RumApplicationLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Logs";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import OneUptimeDate from "../../../Types/Date";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import TimeRange from "../../../Types/Time/TimeRange";
+import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import { TelemetryIngestRefusalReason } from "../../../Types/Telemetry/TelemetryIngestRefusal";
+import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
+import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 
 const DAY_MS: number = 24 * 60 * 60 * 1000;
 
@@ -177,6 +211,42 @@ async function renderPage(
   }
 }
 
+// What the project's keys were refused in the past day, as the API returns it.
+function arrangeRefusals(rows: Array<Record<string, unknown>> | "fails"): void {
+  getListMock.mockImplementation(async (args: unknown) => {
+    if (
+      (args as { modelType?: unknown }).modelType !==
+      TelemetryIngestionKeyRefusal
+    ) {
+      return { data: [], count: 0, skip: 0, limit: 10 };
+    }
+
+    if (rows === "fails") {
+      throw new Error("Permission denied");
+    }
+
+    return { data: rows, count: rows.length, skip: 0, limit: 100 };
+  });
+}
+
+function refusalRow(
+  extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    reason: TelemetryIngestRefusalReason.KeyExpired,
+    surface: TelemetryIngestSurface.OtelLogs,
+    refusedCount: 30,
+    firstRefusedAt: ago(DAY_MS / 2),
+    lastRefusedAt: ago(10 * 60 * 1000),
+    telemetryIngestionKeyId: "6c3d0000-0000-4000-8000-0000000000e5",
+    telemetryIngestionKey: {
+      name: "Storefront browser key",
+      keyType: TelemetryIngestionKeyType.Browser,
+    },
+    ...extra,
+  };
+}
+
 function lastViewerProps(): Record<string, unknown> {
   const calls: Array<Array<unknown>> = viewerPropsMock.mock.calls;
   return calls[calls.length - 1]![0] as Record<string, unknown>;
@@ -185,6 +255,8 @@ function lastViewerProps(): Record<string, unknown> {
 beforeEach(() => {
   for (const mock of [
     getItemMock,
+    getListMock,
+    keyModalMock,
     viewerPropsMock,
     setupModalMock,
     openMock,
@@ -192,6 +264,8 @@ beforeEach(() => {
   ]) {
     mock.mockReset();
   }
+  // Nothing refused, unless a test says so.
+  arrangeRefusals([]);
   window.open = ((...args: Array<unknown>): null => {
     openMock(...args);
     return null;
@@ -326,5 +400,116 @@ describe("a RUM application's empty Logs page", () => {
 
     expect(screen.getByText("RUM application not found.")).toBeInTheDocument();
     expect(screen.queryByTestId("logs-viewer")).toBeNull();
+  });
+});
+
+describe("a RUM application's Logs page, when its logs are refused", () => {
+  test("refused since the last log: says so, why and when, and Pick another key opens the app's setup with its key step", async () => {
+    const refusal: Record<string, unknown> = refusalRow();
+    arrangeRefusals([refusal]);
+    await renderPage(app({ logsLastReceivedAt: ago(3 * DAY_MS) }));
+
+    expect(screen.getByTestId("rum-logs-empty-title")).toHaveTextContent(
+      "Logs are being refused",
+    );
+    expect(screen.getByTestId("rum-logs-empty-description")).toHaveTextContent(
+      'The key "Storefront browser key" has expired, so everything sent with it is refused.',
+    );
+    expect(screen.getByTestId("rum-logs-empty-note")).toHaveTextContent(
+      `The latest was refused ${OneUptimeDate.fromNow(
+        refusal["lastRefusedAt"] as Date,
+        new Date(),
+      )}.`,
+    );
+
+    fireEvent.click(screen.getByTestId("rum-logs-empty-action"));
+
+    expect(screen.getByTestId("pick-key-dialog")).toHaveTextContent(
+      "browser key for storefront-web",
+    );
+    expect(setupModalMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Close key dialog" }));
+    expect(screen.queryByTestId("pick-key-dialog")).toBeNull();
+  });
+
+  test("the project's budget: See budgets goes to the usage page", async () => {
+    arrangeRefusals([
+      refusalRow({
+        reason: TelemetryIngestRefusalReason.ProjectDailyBudget,
+        telemetryIngestionKey: {
+          name: "Backend key",
+          keyType: TelemetryIngestionKeyType.Server,
+        },
+      }),
+    ]);
+    await renderPage(app());
+
+    expect(screen.getByTestId("rum-logs-empty-description")).toHaveTextContent(
+      "This project used up its daily ingestion budget.",
+    );
+    fireEvent.click(screen.getByTestId("rum-logs-empty-action"));
+
+    expect(String(navigateMock.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/settings/usage-history`,
+    );
+  });
+
+  test("a log that arrived since the refusal: the page's own answer", async () => {
+    const HOUR_MS: number = 60 * 60 * 1000;
+
+    arrangeRefusals([refusalRow({ lastRefusedAt: ago(3 * HOUR_MS) })]);
+    await renderPage(app({ logsLastReceivedAt: ago(2 * HOUR_MS) }));
+
+    expect(screen.getByTestId("rum-logs-empty-title")).toHaveTextContent(
+      "No logs in this time range",
+    );
+    cleanup();
+
+    // Refused after the last log, the refusal is the answer.
+    arrangeRefusals([refusalRow({ lastRefusedAt: ago(HOUR_MS) })]);
+    await renderPage(app({ logsLastReceivedAt: ago(2 * HOUR_MS) }));
+
+    expect(screen.getByTestId("rum-logs-empty-title")).toHaveTextContent(
+      "Logs are being refused",
+    );
+  });
+
+  test("another application's pinned key, the traces' refusal, or a read that failed: as before", async () => {
+    for (const rows of [
+      [
+        refusalRow({
+          telemetryIngestionKey: {
+            name: "Checkout key",
+            keyType: TelemetryIngestionKeyType.Browser,
+            pinnedServiceName: "checkout-web",
+          },
+        }),
+      ],
+      [refusalRow({ surface: TelemetryIngestSurface.OtelTraces })],
+      "fails" as const,
+    ]) {
+      arrangeRefusals(rows);
+      await renderPage(app());
+
+      expect(screen.getByTestId("rum-logs-empty-title")).toHaveTextContent(
+        "Logs aren't set up",
+      );
+      cleanup();
+    }
+  });
+
+  test("reads the past day of the project's refusals, once", async () => {
+    await renderPage(app());
+
+    const reads: Array<Record<string, unknown>> = getListMock.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as Record<string, unknown>;
+      })
+      .filter((args: Record<string, unknown>): boolean => {
+        return args["modelType"] === TelemetryIngestionKeyRefusal;
+      });
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!["limit"]).toBe(100);
   });
 });

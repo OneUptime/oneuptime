@@ -1,7 +1,9 @@
 import OneUptimeDate from "Common/Types/Date";
-import { TelemetryIngestRefusalReason } from "Common/Types/Telemetry/TelemetryIngestRefusal";
+import {
+  TelemetryIngestRefusalReason,
+  UNNAMED_TELEMETRY_INGEST_SURFACE,
+} from "Common/Types/Telemetry/TelemetryIngestRefusal";
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
-import { UNNAMED_TELEMETRY_INGEST_SURFACE } from "Common/Types/Telemetry/TelemetryIngestRefusal";
 import {
   PluralTemplate,
   Translator,
@@ -105,12 +107,17 @@ export const INGEST_REFUSAL_FIX_LABELS: Readonly<
   billing: ADD_A_PAYMENT_METHOD,
 };
 
-// How many were refused, and over what span.
+/*
+ * How many were refused, and over what span. A single refusal has no span,
+ * so it is a sentence of its own: the plural's "one" form also serves 21 in
+ * Russian and 0 in French, and must keep the span.
+ */
+export const ONE_REQUEST_REFUSED: string = translationKey(
+  "One request refused {{time}}.",
+);
 export const REFUSED_COUNT_WORDS: PluralTemplate = {
-  one: translationKey("{{count}} request refused {{time}}."),
-  other: translationKey(
-    "{{count}} requests refused since {{date}}, the latest {{time}}.",
-  ),
+  one: "{{count}} request refused since {{date}}, the latest {{time}}.",
+  other: "{{count}} requests refused since {{date}}, the latest {{time}}.",
 };
 
 // Where it was refused: the ingest endpoint, as the key's page names it.
@@ -147,12 +154,31 @@ export const INGEST_SURFACE_LABELS: Readonly<Record<string, string>> = {
   [TelemetryIngestSurface.HostCollectorManagement]: translationKey(
     "Host collector management",
   ),
-  [UNNAMED_TELEMETRY_INGEST_SURFACE]: translationKey("Other ingest"),
+  [UNNAMED_TELEMETRY_INGEST_SURFACE]: translationKey("Other endpoints"),
 };
 
 function translate(translator: Translator, text: string): string {
   return translator.translateText(text) || text;
 }
+
+/*
+ * Settings > Telemetry Ingestion Keys > a key > Refused Telemetry
+ * (IngestionKeyRefusalsCard): the card's own words.
+ */
+export const REFUSALS_LOOKBACK_DAYS: number = 30;
+
+export const REFUSALS_TITLE: string = translationKey("Refused Telemetry");
+export const REFUSALS_DESCRIPTION: string = translationKey(
+  "What the ingest endpoints turned away from this key in the past 30 days, and why. Counted as it happens and written every few minutes.",
+);
+export const REFUSALS_NONE: string = translationKey(
+  "Nothing sent with this key was refused in the past 30 days.",
+);
+export const REFUSALS_FAILED: string = translationKey(
+  "Couldn't load what this key was refused. Try again in a moment.",
+);
+export const REFUSALS_LOADING: string = translationKey("Checking…");
+export const REFUSALS_CHECK_AGAIN: string = translationKey("Check again");
 
 // The reason a refusal was made, as a whole sentence in the reader's language.
 export function getIngestRefusalReasonText(
@@ -188,6 +214,12 @@ export function getIngestRefusalCountText(
   translator: Translator,
   now: Date,
 ): string {
+  if (refusal.count === 1) {
+    return translator.translateTemplate(ONE_REQUEST_REFUSED, {
+      time: OneUptimeDate.fromNow(refusal.lastRefusedAt, now),
+    });
+  }
+
   return translator.translatePlural(REFUSED_COUNT_WORDS, refusal.count, {
     date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
       refusal.firstRefusedAt,

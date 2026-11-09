@@ -7,7 +7,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Telemetry the ingest endpoints refused, counted per ingestion key, reason
  * and surface (issue #6378): TelemetryIngestionKeyRefusal, one row per
  * (key, reason, surface) under a unique index, which each ingest process
- * adds a batch of refusals to at most once per few minutes. A new, empty
+ * adds batches of refusals to, at most twice per five minutes. A new, empty
  * table: its own indexes and foreign keys are built in the same migration,
  * at once. Each row goes with its key and its project (ON DELETE CASCADE).
  */

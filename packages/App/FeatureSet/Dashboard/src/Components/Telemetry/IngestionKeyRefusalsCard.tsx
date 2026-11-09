@@ -11,7 +11,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -30,6 +30,13 @@ import {
   INGEST_REFUSAL_FIXES,
   INGEST_REFUSAL_FIX_LABELS,
   IngestRefusalFix,
+  REFUSALS_CHECK_AGAIN,
+  REFUSALS_DESCRIPTION,
+  REFUSALS_FAILED,
+  REFUSALS_LOADING,
+  REFUSALS_LOOKBACK_DAYS,
+  REFUSALS_NONE,
+  REFUSALS_TITLE,
   getIngestRefusalCountText,
   getIngestRefusalReasonText,
   getIngestSurfaceLabel,
@@ -45,21 +52,6 @@ import {
  * project's settings put right (its budgets, a payment method) links
  * there; the key's own settings are on this page.
  */
-
-export const REFUSALS_LOOKBACK_DAYS: number = 30;
-
-export const REFUSALS_TITLE: string = translationKey("Refused Telemetry");
-export const REFUSALS_DESCRIPTION: string = translationKey(
-  "What the ingest endpoints turned away from this key in the past 30 days, and why. Counted as it happens and written every few minutes.",
-);
-export const REFUSALS_NONE: string = translationKey(
-  "Nothing sent with this key was refused in the past 30 days.",
-);
-export const REFUSALS_FAILED: string = translationKey(
-  "Couldn't load what this key was refused. Try again in a moment.",
-);
-export const REFUSALS_LOADING: string = translationKey("Checking…");
-export const REFUSALS_CHECK_AGAIN: string = translationKey("Check again");
 
 export interface ComponentProps {
   ingestionKeyId: ObjectID;

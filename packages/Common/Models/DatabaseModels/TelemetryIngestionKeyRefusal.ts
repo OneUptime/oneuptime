@@ -20,9 +20,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 /*
  * Telemetry the ingest guards refused, counted per ingestion key, reason and
  * surface (issue #6378): how many requests, and when the first and the
- * latest were refused. One row per (key, reason, surface), written by
- * TelemetryIngestRefusalRecorder at most once per few minutes per process,
- * never once per refused request; nobody edits it.
+ * latest were refused. One row per (key, reason, surface), added to in
+ * batches by TelemetryIngestRefusalRecorder - a second after the first
+ * refusal, then at most once per five minutes per process - never once per
+ * refused request; nobody edits it.
  *
  * Read by the RUM setup check and its empty charts (what was refused, when,
  * how to fix it) and by the key's own page. A refusal is counted against

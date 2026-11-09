@@ -77,7 +77,7 @@ const UNUSABLE_KEY_CAUTIONS: Readonly<
     "This key is turned off, so everything sent with it is refused. Pick another key, or turn it back on in Project Settings > Telemetry & APM > Ingestion Keys.",
   ),
   expired: translationKey(
-    "This key has expired, so everything sent with it is refused. Pick another key, or move its expiry in Project Settings > Telemetry & APM > Ingestion Keys.",
+    "This key has expired, so everything sent with it is refused. Pick another key, or change its expiry date in Project Settings > Telemetry & APM > Ingestion Keys.",
   ),
 };
 

@@ -788,8 +788,9 @@ export default class TelemetryIngest {
   /*
    * Count a refusal against the key that sent it (issue #6378), for the
    * RUM setup check and the key's own page. In memory, written in batches
-   * at most every few minutes (TelemetryIngestRefusalRecorder), so a flood
-   * of refusals is never a flood of writes. Never throws.
+   * (TelemetryIngestRefusalRecorder: a key refused again and again is
+   * written at most once per five minutes), so a flood of refusals is never
+   * a flood of writes. Never throws.
    */
   private static recordRefusal(
     policy: TelemetryIngestionKeyPolicy,

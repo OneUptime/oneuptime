@@ -216,11 +216,19 @@ const RumApplicationOverview: FunctionComponent<
   /*
    * What the project's keys were refused in the past day (issue #6378),
    * read again on every refresh: an empty chart says "refused" while
-   * nothing of its kind has arrived since.
+   * nothing of its kind has arrived since. Like the newest exception, read
+   * only while a chart has nothing to draw.
    */
   const [refusalsReloadToken, setRefusalsReloadToken] = useState<number>(0);
-  const refusals: Array<IngestRefusalFact> | null =
-    useRecentIngestRefusals(refusalsReloadToken);
+  const isChartEmpty: boolean = [signals?.exceptions, signals?.logs].some(
+    (pillar: { total: number; failed: boolean } | undefined): boolean => {
+      return Boolean(pillar && !pillar.failed && pillar.total === 0);
+    },
+  );
+  const refusals: Array<IngestRefusalFact> | null = useRecentIngestRefusals(
+    refusalsReloadToken,
+    isChartEmpty,
+  );
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
   const [inpByRoute, setInpByRoute] = useState<WebVitalByRoute | null>(null);

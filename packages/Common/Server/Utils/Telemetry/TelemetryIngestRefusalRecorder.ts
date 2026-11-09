@@ -19,36 +19,48 @@ import logger from "../Logger";
  * a collector flushes every few seconds. Writing on every refusal would put
  * a Postgres write behind every request a flood sends - the one moment the
  * database most needs to be left alone. So refusals are counted here, in
- * memory, and written as one upsert per (key, reason, surface) at most once
- * per REFUSAL_WRITE_INTERVAL_MS per process:
+ * memory, and written in batches:
  *
- *   - the first refusal of a (key, reason, surface) is written at once, so
- *     the setup check can say "refused" while the reader is still looking;
- *   - every refusal after it, inside the interval, only adds to the count
- *     in memory, and one timer writes what gathered when the interval ends.
+ *   - a (key, reason, surface) not written in the past
+ *     REFUSAL_WRITE_INTERVAL_MS is written REFUSAL_WRITE_DELAY_MS after its
+ *     first refusal, so the setup check can say "refused" while the reader
+ *     is still looking;
+ *   - after that, its refusals only add to the count in memory until the
+ *     interval since its last write is over, and are written then.
  *
- * N ingest processes write at most N times per interval per key, reason and
- * surface, whatever the flood. Nothing here throws to its caller or waits on
- * the database: a refusal is answered at the same speed, and a write that
- * fails costs that batch's count, not the response.
+ * One timer serves every count, and each write takes everything that is due
+ * as ONE batch (TelemetryIngestionKeyRefusalService.addRefusals: one
+ * statement per 500 rows). Writes start at least REFUSAL_WRITE_DELAY_MS
+ * apart and never overlap, and a (key, reason, surface) is in at most two of
+ * them per interval - so N ingest processes add to a row at most 2N times
+ * per interval, whatever the flood. Nothing here throws to its caller or
+ * waits on the database: a refusal is answered at the same speed, and a
+ * write that fails costs that batch's counts, not the response.
  *
  * Only a key that resolved is counted: a missing or unknown token names no
  * project, so it is counted nowhere (the sender's 401 and the server's
- * "Invalid service token." log line are what an operator has of it). The
- * pending map is bounded anyway - only real keys reach it, but "the input
- * is trusted" is the assumption that ages worst.
+ * "Invalid service token." log line are what an operator has of it). What
+ * is held in memory is bounded anyway - only real keys reach it, but "the
+ * input is trusted" is the assumption that ages worst.
  */
 
+// How often a (key, reason, surface) refused again and again is written.
 export const REFUSAL_WRITE_INTERVAL_MS: number = 5 * 60 * 1000;
 
-// Distinct (key, reason, surface) counts held between writes, per process.
+/*
+ * The soonest a write follows a refusal, and the least time between two
+ * writes: what falls due within it goes in the same one.
+ */
+export const REFUSAL_WRITE_DELAY_MS: number = 1000;
+
+/*
+ * Distinct (key, reason, surface) counts held between writes, per process,
+ * and as many marks of when each was last written.
+ */
 export const MAX_PENDING_REFUSALS: number = 5000;
 
-// A failed write is logged at most this often: a database outage fails them all.
-const WRITE_FAILURE_LOG_INTERVAL_MS: number = 60 * 1000;
-
-// The smallest wait the timer is armed with, so it never spins.
-const MIN_TIMER_DELAY_MS: number = 1000;
+// A failed write or a full count is logged at most this often.
+const LOG_INTERVAL_MS: number = 60 * 1000;
 
 export interface TelemetryIngestRefusalKey {
   projectId: ObjectID;
@@ -68,12 +80,13 @@ interface PendingRefusal {
   reason: TelemetryIngestRefusalReason;
   surface: string;
   count: number;
-  firstRefusedAt: Date;
-  lastRefusedAt: Date;
+  // ms since the epoch: no Date is made per refusal.
+  firstRefusedAt: number;
+  lastRefusedAt: number;
 }
 
 export type TelemetryIngestRefusalWriter = (
-  batch: TelemetryIngestRefusalBatch,
+  batches: Array<TelemetryIngestRefusalBatch>,
 ) => Promise<void>;
 
 export class TelemetryIngestRefusalCounter {
@@ -87,13 +100,18 @@ export class TelemetryIngestRefusalCounter {
   // When the armed timer fires (ms since the epoch).
   private timerDueAt: number = Number.POSITIVE_INFINITY;
 
+  // The write in flight: one at a time.
+  private writing: Promise<void> | null = null;
+
   private lastFailureLoggedAt: number = Number.NEGATIVE_INFINITY;
 
   private lastOverflowLoggedAt: number = Number.NEGATIVE_INFINITY;
 
   public constructor(
     private writer: TelemetryIngestRefusalWriter,
-    private now: () => number = Date.now,
+    private now: () => number = (): number => {
+      return Date.now();
+    },
   ) {}
 
   /*
@@ -109,7 +127,6 @@ export class TelemetryIngestRefusalCounter {
       const surface: string = data.surface || UNNAMED_TELEMETRY_INGEST_SURFACE;
       const id: string = `${data.ingestionKeyId.toString()}|${data.reason}|${surface}`;
       const nowMs: number = this.now();
-      const at: Date = new Date(nowMs);
 
       let entry: PendingRefusal | undefined = this.pending.get(id);
 
@@ -125,19 +142,14 @@ export class TelemetryIngestRefusalCounter {
           reason: data.reason,
           surface,
           count: 0,
-          firstRefusedAt: at,
-          lastRefusedAt: at,
+          firstRefusedAt: nowMs,
+          lastRefusedAt: nowMs,
         };
         this.pending.set(id, entry);
       }
 
       entry.count += 1;
-      entry.lastRefusedAt = at;
-
-      if (this.isWriteDue(id, nowMs)) {
-        void this.writeOne(id, nowMs);
-        return;
-      }
+      entry.lastRefusedAt = nowMs;
 
       this.armTimer(this.getDueAt(id, nowMs), nowMs);
     } catch (err) {
@@ -147,18 +159,13 @@ export class TelemetryIngestRefusalCounter {
     }
   }
 
-  // Write everything still pending: shutdown, and tests.
+  // Write everything still counted, due or not, and wait for it: shutdown, and tests.
   public async flushAll(): Promise<void> {
-    this.clearTimer();
-
-    const writes: Array<Promise<void>> = [];
-    const nowMs: number = this.now();
-
-    for (const id of Array.from(this.pending.keys())) {
-      writes.push(this.writeOne(id, nowMs));
+    while (this.writing) {
+      await this.writing;
     }
 
-    await Promise.all(writes);
+    await this.write({ all: true });
   }
 
   public getPendingCount(): number {
@@ -169,12 +176,9 @@ export class TelemetryIngestRefusalCounter {
     this.clearTimer();
     this.pending.clear();
     this.lastWrittenAt.clear();
+    this.writing = null;
     this.lastFailureLoggedAt = Number.NEGATIVE_INFINITY;
     this.lastOverflowLoggedAt = Number.NEGATIVE_INFINITY;
-  }
-
-  private isWriteDue(id: string, nowMs: number): boolean {
-    return this.getDueAt(id, nowMs) <= nowMs;
   }
 
   // When a (key, reason, surface) may be written next: an interval after its last write.
@@ -186,50 +190,82 @@ export class TelemetryIngestRefusalCounter {
       : writtenAt + REFUSAL_WRITE_INTERVAL_MS;
   }
 
-  private writeOne(id: string, nowMs: number): Promise<void> {
-    const entry: PendingRefusal | undefined = this.pending.get(id);
-
-    if (!entry) {
-      return Promise.resolve();
+  /*
+   * Take what is due (everything, with `all`) out of the counts and write
+   * it as one batch. While a write is in flight nothing more is taken: it
+   * arms the timer for what is left when it ends.
+   */
+  private write(data: { all: boolean }): Promise<void> {
+    if (this.writing) {
+      return this.writing;
     }
 
-    this.pending.delete(id);
+    const nowMs: number = this.now();
+    const batches: Array<TelemetryIngestRefusalBatch> = [];
 
-    // Kept oldest first, so pruning stops at the first one still in its interval.
-    this.lastWrittenAt.delete(id);
-    this.lastWrittenAt.set(id, nowMs);
-    this.pruneWrittenMarks(nowMs);
+    for (const [id, entry] of this.pending) {
+      if (!data.all && this.getDueAt(id, nowMs) > nowMs) {
+        continue;
+      }
 
-    let write: Promise<void>;
+      this.pending.delete(id);
 
-    try {
-      write = this.writer({
+      // Kept oldest first, so pruning stops at the first one still in its interval.
+      this.lastWrittenAt.delete(id);
+      this.lastWrittenAt.set(id, nowMs);
+
+      batches.push({
         projectId: entry.projectId,
         telemetryIngestionKeyId: entry.ingestionKeyId,
         reason: entry.reason,
         surface: entry.surface,
         count: entry.count,
-        firstRefusedAt: entry.firstRefusedAt,
-        lastRefusedAt: entry.lastRefusedAt,
+        firstRefusedAt: new Date(entry.firstRefusedAt),
+        lastRefusedAt: new Date(entry.lastRefusedAt),
       });
+    }
+
+    this.pruneWrittenMarks(nowMs);
+
+    if (batches.length === 0) {
+      this.armTimerForPending(nowMs);
+      return Promise.resolve();
+    }
+
+    let write: Promise<void>;
+
+    try {
+      write = this.writer(batches);
     } catch (err) {
       write = Promise.reject(err);
     }
 
-    return write.catch((err: unknown) => {
-      /*
-       * Lost, not retried: the key may be gone (its rows went with it), or
-       * the database is down and a retry would only add to its load. The
-       * next refusal starts a new count.
-       */
-      this.logWriteFailure(err);
-    });
+    const settled: Promise<void> = write
+      .catch((err: unknown) => {
+        /*
+         * Lost, not retried: the key may be gone (its rows went with it),
+         * or the database is down and a retry would only add to its load.
+         * The next refusal starts a new count.
+         */
+        this.logWriteFailure(err);
+      })
+      .then(() => {
+        if (this.writing === settled) {
+          this.writing = null;
+          this.armTimerForPending(this.now());
+        }
+      });
+
+    this.writing = settled;
+
+    return settled;
   }
 
   /*
    * Marks older than an interval say nothing any more; dropping them keeps
-   * the map to the (key, reason, surface) refused lately, and the bound
-   * keeps it there even when that is many.
+   * the map to the (key, reason, surface) written lately, and the bound
+   * keeps it there even when that is many (a dropped mark only lets its
+   * count go in an earlier write).
    */
   private pruneWrittenMarks(nowMs: number): void {
     for (const [id, writtenAt] of this.lastWrittenAt) {
@@ -244,13 +280,26 @@ export class TelemetryIngestRefusalCounter {
     }
   }
 
+  // Arm the timer for the count that falls due first, after a write.
+  private armTimerForPending(nowMs: number): void {
+    let dueAt: number = Number.POSITIVE_INFINITY;
+
+    for (const id of this.pending.keys()) {
+      dueAt = Math.min(dueAt, this.getDueAt(id, nowMs));
+    }
+
+    if (dueAt !== Number.POSITIVE_INFINITY) {
+      this.armTimer(dueAt, nowMs);
+    }
+  }
+
   /*
-   * Have the timer fire by dueAt. One timer serves every pending count: it
-   * is moved earlier when a count falls due before it, never later, so a
-   * refusal costs one lookup however many counts are waiting.
+   * Have the timer fire by dueAt, and no sooner than REFUSAL_WRITE_DELAY_MS
+   * from now. It is moved earlier when a count falls due before it, never
+   * later, so a refusal costs one lookup however many counts are waiting.
    */
   private armTimer(dueAt: number, nowMs: number): void {
-    const fireAt: number = Math.max(dueAt, nowMs + MIN_TIMER_DELAY_MS);
+    const fireAt: number = Math.max(dueAt, nowMs + REFUSAL_WRITE_DELAY_MS);
 
     if (this.timer && this.timerDueAt <= fireAt) {
       return;
@@ -261,32 +310,13 @@ export class TelemetryIngestRefusalCounter {
     this.timer = setTimeout(() => {
       this.timer = null;
       this.timerDueAt = Number.POSITIVE_INFINITY;
-      this.writeDue();
+      // write() logs its own failures.
+      void this.write({ all: false });
     }, fireAt - nowMs);
 
     // A pending count must not keep a process (or a test) alive.
     if (typeof this.timer === "object" && this.timer && "unref" in this.timer) {
       this.timer.unref();
-    }
-  }
-
-  private writeDue(): void {
-    const nowMs: number = this.now();
-    let nextDueAt: number = Number.POSITIVE_INFINITY;
-
-    for (const id of Array.from(this.pending.keys())) {
-      const dueAt: number = this.getDueAt(id, nowMs);
-
-      if (dueAt <= nowMs) {
-        // writeOne logs its own failures.
-        void this.writeOne(id, nowMs);
-      } else {
-        nextDueAt = Math.min(nextDueAt, dueAt);
-      }
-    }
-
-    if (nextDueAt !== Number.POSITIVE_INFINITY) {
-      this.armTimer(nextDueAt, nowMs);
     }
   }
 
@@ -302,7 +332,7 @@ export class TelemetryIngestRefusalCounter {
   private logWriteFailure(err: unknown): void {
     const nowMs: number = this.now();
 
-    if (nowMs - this.lastFailureLoggedAt < WRITE_FAILURE_LOG_INTERVAL_MS) {
+    if (nowMs - this.lastFailureLoggedAt < LOG_INTERVAL_MS) {
       return;
     }
 
@@ -314,7 +344,7 @@ export class TelemetryIngestRefusalCounter {
   }
 
   private logOverflow(nowMs: number): void {
-    if (nowMs - this.lastOverflowLoggedAt < WRITE_FAILURE_LOG_INTERVAL_MS) {
+    if (nowMs - this.lastOverflowLoggedAt < LOG_INTERVAL_MS) {
       return;
     }
 
@@ -369,8 +399,8 @@ export function getTelemetryIngestBillingRefusalReason(
 
 const TelemetryIngestRefusalRecorder: TelemetryIngestRefusalCounter =
   new TelemetryIngestRefusalCounter(
-    (batch: TelemetryIngestRefusalBatch): Promise<void> => {
-      return TelemetryIngestionKeyRefusalService.addRefusals(batch);
+    (batches: Array<TelemetryIngestRefusalBatch>): Promise<void> => {
+      return TelemetryIngestionKeyRefusalService.addRefusals(batches);
     },
   );
 
