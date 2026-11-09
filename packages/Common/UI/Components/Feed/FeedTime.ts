@@ -1,6 +1,7 @@
 import moment from "moment-timezone";
 import OneUptimeDate from "../../../Types/Date";
 import {
+  getNumberLocale,
   getDateLocale,
   isEnglishDateLanguage,
   rememberEnglishOf,
@@ -162,10 +163,13 @@ const getDateTimeFormat: (data: {
   }
 
   try {
-    const format: Intl.DateTimeFormat = new Intl.DateTimeFormat(data.locale, {
-      ...data.options,
-      timeZone: data.timezone,
-    });
+    const format: Intl.DateTimeFormat = new Intl.DateTimeFormat(
+      getNumberLocale(data.locale),
+      {
+        ...data.options,
+        timeZone: data.timezone,
+      },
+    );
 
     formatterCache.set(cacheKey, format);
     return format;

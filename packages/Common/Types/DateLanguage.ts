@@ -101,6 +101,64 @@ export function inEnglishDates<T>(work: () => T): T {
   return withDateDisplayLanguage(ENGLISH_DATE_LANGUAGE, work);
 }
 
+/*
+ * THE DIGITS A LANGUAGE WRITES.
+ *
+ * A language writes its counts, dates, times and durations in one set of
+ * digits everywhere in the product. Persian writes its own, ۰ to ۹, and
+ * every other language Latin ones, 0 to 9 - Arabic among them, though
+ * Arabic also has digits of its own (٠ to ٩): what an Arabic reader of
+ * OneUptime reads beside the product's numbers is in Latin digits - a
+ * response time, a status code, an address, a version, an id, a log line -
+ * and so is what most products in Arabic write. Left to the browser,
+ * Arabic's digits are not even one choice: Chrome and Firefox write "ar" in
+ * Latin digits, Safari in Arabic ones ("٥" for "5"), so one status page
+ * would read differently on a phone and on a laptop. A language listed here
+ * is written in Latin digits by every engine (Intl's "-u-nu-latn").
+ */
+export const LATIN_DIGIT_LANGUAGES: ReadonlyArray<string> = ["ar"];
+
+const LANGUAGE_SUBTAG_SEPARATOR: RegExp = /[-_]/;
+
+// Whether `language` ("ar", "ar-EG") writes Latin digits whatever its default is.
+export const writesLatinDigits: (
+  language: string | null | undefined,
+) => boolean = (language: string | null | undefined): boolean => {
+  const base: string =
+    (language || "").trim().toLowerCase().split(LANGUAGE_SUBTAG_SEPARATOR)[0] ||
+    "";
+
+  return LATIN_DIGIT_LANGUAGES.includes(base);
+};
+
+/*
+ * The Intl locale a number is written in for `language`: the language as
+ * it is, or with Latin digits asked for ("ar-u-nu-latn") in a language that
+ * writes them though its default does not (LATIN_DIGIT_LANGUAGES). Hand it
+ * to Intl.NumberFormat, toLocaleString and the other Intl formatters in
+ * place of a bare language code. No language gives no locale - the
+ * runtime's own default, as before.
+ */
+export const getNumberLocale: (
+  language: string | null | undefined,
+) => string | undefined = (
+  language: string | null | undefined,
+): string | undefined => {
+  const trimmed: string = (language || "").trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  // A tag that already names its extensions ("ar-u-nu-arab") is kept.
+  if (!writesLatinDigits(trimmed) || trimmed.toLowerCase().includes("-u-")) {
+    return trimmed;
+  }
+
+  // "ar_EG", as some code writes a tag, is "ar-EG" to Intl.
+  return `${trimmed.replace(/_/g, "-")}-u-nu-latn`;
+};
+
 const localeCache: Map<string, string> = new Map<string, string>();
 
 /*
@@ -108,8 +166,10 @@ const localeCache: Map<string, string> = new Map<string, string>();
  * digits, on the Gregorian calendar ("fa" alone would give the Solar Hijri
  * calendar). Persian writes its own digits - "۲۶ اکتبر، ۱۵:۰۷", as its counts
  * are written (TranslateTemplate's formatNumber) - every other language of
- * the product Latin ones. A language Intl does not know reads English,
- * never the browser's own default, so a page never mixes two languages.
+ * the product Latin ones, Arabic too (LATIN_DIGIT_LANGUAGES): "26 أكتوبر
+ * 2026", where "ar-SA" alone writes "٢٦ أكتوبر ٢٠٢٦" and some engines Hijri
+ * dates. A language Intl does not know reads English, never the browser's
+ * own default, so a page never mixes two languages.
  */
 export const getDateLocale: (language: string | null | undefined) => string = (
   language: string | null | undefined,
@@ -129,7 +189,9 @@ export const getDateLocale: (language: string | null | undefined) => string = (
     ]);
 
     if (supported.length > 0 && supported[0]) {
-      locale = `${supported[0]}-u-ca-gregory`;
+      locale = writesLatinDigits(supported[0])
+        ? `${supported[0]}-u-ca-gregory-nu-latn`
+        : `${supported[0]}-u-ca-gregory`;
       // Throws on a tag Intl cannot take an extension on.
       new Intl.DateTimeFormat(locale);
     }
@@ -293,7 +355,7 @@ export const getDateTimeFormat: (data: {
 
     try {
       const format: Intl.DateTimeFormat = new Intl.DateTimeFormat(
-        data.locale,
+        getNumberLocale(data.locale),
         zone ? { ...data.options, timeZone: zone } : data.options,
       );
 
@@ -444,7 +506,7 @@ const getRelativeTimeFormatter: (
     ).RelativeTimeFormat;
 
     if (RelativeTimeFormat) {
-      formatter = new RelativeTimeFormat(locale, {
+      formatter = new RelativeTimeFormat(getNumberLocale(locale) || locale, {
         numeric: numeric,
         style: "long",
       });
@@ -643,18 +705,21 @@ const getUnitFormatter: (data: {
   let formatter: UnitFormatter | null = null;
 
   try {
-    const candidate: Intl.NumberFormat = new Intl.NumberFormat(data.locale, {
-      style: "unit",
-      unit: data.unit,
-      unitDisplay: data.unitDisplay,
-      maximumFractionDigits: data.maximumFractionDigits,
-    } as Intl.NumberFormatOptions);
+    const candidate: Intl.NumberFormat = new Intl.NumberFormat(
+      getNumberLocale(data.locale),
+      {
+        style: "unit",
+        unit: data.unit,
+        unitDisplay: data.unitDisplay,
+        maximumFractionDigits: data.maximumFractionDigits,
+      } as Intl.NumberFormatOptions,
+    );
 
     // An engine without the unit style writes the bare number.
     const probe: string = candidate.format(2);
 
     formatter =
-      probe === (2).toLocaleString(data.locale)
+      probe === (2).toLocaleString(getNumberLocale(data.locale))
         ? null
         : (candidate as UnitFormatter);
   } catch {
@@ -772,7 +837,7 @@ export const formatDecimal: (data: {
     try {
       numberFormatCache.set(
         key,
-        new Intl.NumberFormat(data.locale, {
+        new Intl.NumberFormat(getNumberLocale(data.locale), {
           maximumFractionDigits: data.maximumFractionDigits,
           useGrouping: false,
         }),
@@ -818,9 +883,12 @@ export const getDigitsOf: (locale: string) => Array<string> = (
   ];
 
   try {
-    const format: Intl.NumberFormat = new Intl.NumberFormat(locale, {
-      useGrouping: false,
-    });
+    const format: Intl.NumberFormat = new Intl.NumberFormat(
+      getNumberLocale(locale),
+      {
+        useGrouping: false,
+      },
+    );
 
     digits = digits.map((digit: string): string => {
       return format.format(Number(digit));

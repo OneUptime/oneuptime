@@ -83,6 +83,7 @@ export type PluralCategory = "zero" | "one" | "two" | "few" | "many" | "other";
  */
 export const PLURAL_CATEGORIES: Record<string, Array<PluralCategory>> = {
   en: ["one", "other"],
+  ar: ["zero", "one", "two", "few", "many", "other"],
   da: ["one", "other"],
   de: ["one", "other"],
   es: ["one", "many", "other"],
