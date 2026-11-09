@@ -1,4 +1,3 @@
-import { getNumberLocale } from "./DateLanguage";
 import InBetween from "./BaseDatabase/InBetween";
 import DayOfWeek, { DayOfWeekUtil } from "./Day/DayOfWeek";
 import BadDataException from "./Exception/BadDataException";
@@ -18,6 +17,7 @@ import {
   getDateDisplayLanguage,
   getDateLocale,
   getDateTimeFormat,
+  getNumberLocale,
   isEnglishDateLanguage,
   writeDigitsInLocale,
   writeInDateDisplayLanguage,

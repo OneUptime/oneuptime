@@ -27,6 +27,18 @@ const LOCALE_DIRS: Record<string, string> = {
 
 type LocaleTree = { [key: string]: string | LocaleTree };
 
+// The plural forms Arabic has that en.json never holds.
+const UNUSED_PLURAL_FORM: RegExp = /_(zero|two|few|many)$/;
+// ٠-٩ and the Persian ۰-۹: Arabic in OneUptime writes Latin digits.
+const ARABIC_INDIC_DIGIT: RegExp = /[٠-٩۰-۹]/;
+// An Arabic letter followed by a Latin comma, semicolon or question mark.
+const LATIN_PUNCTUATION_AFTER_ARABIC: RegExp = /[ء-ي][,;?](?=\s|$)/;
+/*
+ * The Arabic word right after {{count}}: letters U+0621 to U+06D3, a range
+ * written with escapes so no combining mark stands alone in the class.
+ */
+const WORD_AFTER_COUNT: RegExp = /\{\{count\}\}\s+([ء-ۓ]+)/g;
+
 const readLocale: (app: string, code: string) => LocaleTree = (
   app: string,
   code: string,
@@ -128,7 +140,7 @@ describe.each(APPS)("Arabic's %s locale", (app: string) => {
   test("has none of the plural keys English does not have", () => {
     const extra: Array<string> = Array.from(arabic.keys()).filter(
       (key: string): boolean => {
-        return /_(zero|two|few|many)$/.test(key);
+        return UNUSED_PLURAL_FORM.test(key);
       },
     );
 
@@ -159,11 +171,11 @@ describe.each(APPS)("Arabic's %s locale", (app: string) => {
         continue;
       }
 
-      if (/[٠-٩۰-۹]/.test(translated)) {
+      if (ARABIC_INDIC_DIGIT.test(translated)) {
         wrong.push(`${key}: Arabic-Indic digits`);
       }
 
-      if (/[ء-ي][,;?](?=\s|$)/.test(translated)) {
+      if (LATIN_PUNCTUATION_AFTER_ARABIC.test(translated)) {
         wrong.push(`${key}: Latin punctuation after an Arabic letter`);
       }
 
@@ -208,9 +220,7 @@ describe.each(APPS)("Arabic's %s locale", (app: string) => {
         continue;
       }
 
-      for (const match of translated.matchAll(
-        /\{\{count\}\}\s+([ء-يٰ-ۓ]+)/g,
-      )) {
+      for (const match of translated.matchAll(WORD_AFTER_COUNT)) {
         if (!allowedAfterCount.includes(match[1] as string)) {
           wrong.push(`${key}: ${translated}`);
         }

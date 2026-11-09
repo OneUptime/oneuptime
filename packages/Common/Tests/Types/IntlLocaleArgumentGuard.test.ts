@@ -42,6 +42,9 @@ const FIXED: RegExp = /^("[^"]*"|'[^']*'|`[^`]*`|undefined|\[\]|)$/;
 
 // A locale made for the language by the helpers that pin its digits.
 const PINNED: RegExp = /^(getNumberLocale|getDateLocale|getFeedLocale)\(/;
+// A TypeScript source file, and a test file, which the guard skips.
+const SOURCE_FILE: RegExp = /\.(ts|tsx)$/;
+const TEST_FILE: RegExp = /\.test\.tsx?$/;
 
 /*
  * The calls that may take another locale, each for its reason. Keyed by the
@@ -127,7 +130,7 @@ const sourceFiles: (directory: string) => Array<string> = (
       continue;
     }
 
-    if (/\.(ts|tsx)$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
+    if (SOURCE_FILE.test(entry.name) && !TEST_FILE.test(entry.name)) {
       files.push(full);
     }
   }

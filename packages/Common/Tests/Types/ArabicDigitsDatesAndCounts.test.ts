@@ -42,6 +42,7 @@ const NOW: Date = new Date(Date.UTC(2026, 9, 26, 15, 7, 0));
 
 // Arabic-Indic (٠-٩) and Extended Arabic-Indic (Persian, ۰-۹) digits.
 const NON_LATIN_DIGITS: RegExp = /[٠-٩۰-۹]/;
+const LATIN_DIGIT: RegExp = /[0-9]/;
 
 describe("the Intl locale Arabic writes numbers in", () => {
   test("Arabic is the one language that asks for Latin digits", () => {
@@ -95,7 +96,7 @@ describe("the Intl locale Arabic writes numbers in", () => {
       );
 
       expect([value, NON_LATIN_DIGITS.test(text)]).toEqual([value, false]);
-      expect([value, /[0-9]/.test(text)]).toEqual([value, true]);
+      expect([value, LATIN_DIGIT.test(text)]).toEqual([value, true]);
     }
 
     expect(new Intl.NumberFormat(getNumberLocale("ar")).format(1234567.5)).toBe(

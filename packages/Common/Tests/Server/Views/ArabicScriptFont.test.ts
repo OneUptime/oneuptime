@@ -148,7 +148,8 @@ const leaves: (tree: unknown) => Array<string> = (
 };
 
 // Arabic-script letters and marks: the blocks a font has to draw them from.
-const ARABIC_SCRIPT: RegExp = /[؀-ۿݐ-ݿࡰ-࢟ࢠ-ࣿﭐ-﷿ﹰ-﻿]/u;
+const ARABIC_SCRIPT: RegExp =
+  /[\u0600-\u06FF\u0750-\u077F\u0870-\u089F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/u;
 
 describe("Arabic script in OneUptime's own font", () => {
   const ranges: Array<CodePointRange> = parseUnicodeRange(
@@ -254,8 +255,10 @@ describe("Arabic script in OneUptime's own font", () => {
   });
 
   test("the range keeps the joiners Persian words are written with inside the face", () => {
-    // ZWNJ (U+200C) splits a Persian word without a space; drawn by another
-    // font it would break the word's shaping.
+    /*
+     * ZWNJ (U+200C) splits a Persian word without a space; drawn by another
+     * font it would break the word's shaping.
+     */
     expect(isCovered(0x200c, ranges)).toBe(true);
     expect(isCovered(0x200d, ranges)).toBe(true);
   });

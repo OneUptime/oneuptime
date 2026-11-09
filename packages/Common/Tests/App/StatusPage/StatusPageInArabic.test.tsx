@@ -219,10 +219,12 @@ describe("a status page read in Arabic", () => {
   });
 
   test("a question ends in the Arabic question mark", () => {
+    const arabicLetter: RegExp = /[ء-ي]/;
+
     for (const [path, english] of Object.entries(ENGLISH)) {
       const arabic: string = ARABIC[path] as string;
 
-      if (english.trim().endsWith("?") && /[ء-ي]/.test(arabic)) {
+      if (english.trim().endsWith("?") && arabicLetter.test(arabic)) {
         expect([path, arabic.trim().endsWith("؟")]).toEqual([path, true]);
       }
     }
