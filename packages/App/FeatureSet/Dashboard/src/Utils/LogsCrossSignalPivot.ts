@@ -13,6 +13,7 @@ import {
 import {
   getBaseFacetKey,
   isExcludeFacetKey,
+  toExcludeFacetKey,
 } from "Common/Types/Telemetry/FacetExcludeKey";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -85,6 +86,16 @@ export interface LogsCrossSignalScope {
    * has no session dimension.
    */
   sessionIds?: Array<string> | undefined;
+  /*
+   * What the view leaves out ("Service is not checkout", "Host is not
+   * web-01", "Severity is not debug"): the chips a facet row's minus writes,
+   * read into the scope's fields for them, so the traces explorer opens
+   * with the same "is not" chips.
+   */
+  excludedServiceIds?: Array<string> | undefined;
+  excludedResourceFacetSelections?: ResourceEntityFacetSelections | undefined;
+  excludedAttributes?: Dictionary<Array<string>> | undefined;
+  excludedSeverityTexts?: Array<string> | undefined;
   startTime?: Date | undefined;
   endTime?: Date | undefined;
 }
@@ -231,8 +242,69 @@ export const buildLogsPivotScope: BuildLogsPivotScopeFunction = (
     "severityText",
   ]);
 
+  /*
+   * What the chips leave out. Services, resources and severities are read
+   * by the readers the list's compile uses (collectExcluded*), so a pivot
+   * carries exactly what the list leaves out. An attribute's values are
+   * grammar tokens: a literal one is carried as the value it means, and a
+   * pattern (`!attributes.k: a*`), which no scope field holds, is named as
+   * not carried. Anything else left out - a message, a trace - has no
+   * field in the scope either.
+   */
+  const excludedServiceIds: Array<string> = mergeUnique(
+    undefined,
+    new Set<string>(
+      collectExcludedServiceFacetSelections(
+        input.appliedFacetFilters.entries(),
+      ),
+    ),
+  );
+  const excludedResourceFacetSelections: ResourceEntityFacetSelections =
+    collectExcludedResourceEntityFacetSelections(
+      input.appliedFacetFilters.entries(),
+    );
+  const excludedSeverityTexts: Array<string> = mergeUnique(
+    undefined,
+    input.appliedFacetFilters.get(toExcludeFacetKey("severityText")),
+  );
+  const excludedAttributes: Dictionary<Array<string>> = {};
+
+  for (const [chipKey, values] of input.appliedFacetFilters.entries()) {
+    if (!isExcludeFacetKey(chipKey) || values.size === 0) {
+      continue;
+    }
+
+    const baseKey: string = getBaseFacetKey(chipKey);
+
+    if (
+      baseKey === "severityText" ||
+      isServiceFacetKey(baseKey) ||
+      isResourceEntityFacetKey(baseKey)
+    ) {
+      continue;
+    }
+
+    const attributeKey: string = baseKey.startsWith(ATTRIBUTE_FACET_PREFIX)
+      ? baseKey.substring(ATTRIBUTE_FACET_PREFIX.length)
+      : "";
+    const literals: Array<string> = attributeKey
+      ? readLiteralChipValues(values)
+      : [];
+
+    if (!attributeKey || literals.length === 0) {
+      dropped.push(chipKey);
+      continue;
+    }
+
+    excludedAttributes[attributeKey] = literals;
+  }
+
   for (const [facetKey, values] of input.appliedFacetFilters.entries()) {
-    if (knownFacetKeys.has(facetKey) || values.size === 0) {
+    if (
+      knownFacetKeys.has(facetKey) ||
+      isExcludeFacetKey(facetKey) ||
+      values.size === 0
+    ) {
       continue;
     }
 
@@ -301,7 +373,54 @@ export const buildLogsPivotScope: BuildLogsPivotScopeFunction = (
     scope.sessionIds = sessionIds;
   }
 
+  if (excludedServiceIds.length > 0) {
+    scope.excludedServiceIds = excludedServiceIds;
+  }
+
+  if (Object.keys(excludedResourceFacetSelections).length > 0) {
+    scope.excludedResourceFacetSelections = excludedResourceFacetSelections;
+  }
+
+  if (excludedSeverityTexts.length > 0) {
+    scope.excludedSeverityTexts = excludedSeverityTexts;
+  }
+
+  if (Object.keys(excludedAttributes).length > 0) {
+    scope.excludedAttributes = excludedAttributes;
+  }
+
   return { scope, dropped };
+};
+
+/*
+ * The literal values an attribute chip holds: each value is a grammar
+ * token (a facet row writes the literal escaped as one), so a token that
+ * reads as a plain equality is the value it means. None when any is a
+ * pattern - a part of the chip carried alone would leave out less than the
+ * chip does.
+ */
+const readLiteralChipValues: (values: Set<string>) => Array<string> = (
+  values: Set<string>,
+): Array<string> => {
+  const literals: Array<string> = [];
+
+  for (const value of values) {
+    if (typeof value !== "string" || value.length === 0) {
+      continue;
+    }
+
+    const predicate: SearchValuePredicate = parseSearchValue(value);
+
+    if (predicate.operator !== SearchValueOperator.Equals) {
+      return [];
+    }
+
+    if (!literals.includes(predicate.value)) {
+      literals.push(predicate.value);
+    }
+  }
+
+  return literals;
 };
 
 type CarrySessionScopeIntoTracesPivotFunction = (

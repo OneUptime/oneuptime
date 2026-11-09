@@ -521,15 +521,15 @@ describe("a chip that leaves its value out is named like the one that keeps it",
   });
 });
 
-describe("a pivot never carries a value left out as one kept", () => {
-  test("each exclusion is named as not carried over", () => {
+describe("a pivot carries a value left out as left out, never as one kept", () => {
+  test("each exclusion rides the scope's field for what it leaves out", () => {
     const result: { dropped: Array<string>; scope: Record<string, unknown> } =
       Pivot.buildLogsPivotScope({
         appliedFacetFilters: facets({
           "!severityText": ["Debug"],
           "!primaryEntityId": [CHECKOUT_ID],
           "!hostId": [HOST_ID],
-          "!attributes.http.method": ["GET"],
+          "!attributes.http.method": [buildSearchTokenValue("GET")],
         }),
         timeRange: PAST_ONE_HOUR,
       }) as unknown as {
@@ -541,13 +541,38 @@ describe("a pivot never carries a value left out as one kept", () => {
     expect(result.scope["severityTexts"]).toBeUndefined();
     expect(result.scope["resourceFacetSelections"]).toBeUndefined();
     expect(result.scope["attributes"]).toBeUndefined();
-    expect(result.dropped.sort()).toEqual(
-      [
-        "!severityText",
-        "!primaryEntityId",
-        "!hostId",
-        "!attributes.http.method",
-      ].sort(),
+    expect(result.scope["excludedSeverityTexts"]).toEqual(["Debug"]);
+    expect(result.scope["excludedServiceIds"]).toEqual([CHECKOUT_ID]);
+    expect(result.scope["excludedResourceFacetSelections"]).toEqual({
+      hostId: [HOST_ID],
+    });
+    expect(result.scope["excludedAttributes"]).toEqual({
+      "http.method": ["GET"],
+    });
+    expect(result.dropped).toEqual([]);
+  });
+
+  test("what the scope has no field for is named as not carried over", () => {
+    const result: { dropped: Array<string>; scope: Record<string, unknown> } =
+      Pivot.buildLogsPivotScope({
+        appliedFacetFilters: facets({
+          "!body": ["healthcheck"],
+          "!traceId": ["trace-1"],
+          // A pattern left out: no scope field holds one.
+          "!attributes.http.route": ["/api/*", buildSearchTokenValue("/a")],
+        }),
+        timeRange: PAST_ONE_HOUR,
+      }) as unknown as {
+        dropped: Array<string>;
+        scope: Record<string, unknown>;
+      };
+
+    expect(result.scope["excludedAttributes"]).toBeUndefined();
+    expect([...result.dropped].sort()).toEqual(
+      ["!body", "!traceId", "!attributes.http.route"].sort(),
+    );
+    expect(Pivot.formatDroppedScopeHint(result.dropped)).toBe(
+      "Not carried over: excluded message text, excluded traces, excluded attribute http.route",
     );
   });
 

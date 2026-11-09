@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import Search from "Common/Types/BaseDatabase/Search";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
@@ -9,14 +10,22 @@ import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import {
   ParsedTraceSearch,
+  TRACE_EXCLUDABLE_FIELD_KEYS,
   TraceAttributeFilters,
   TraceDurationFilter,
+  TraceExclusions,
   TraceSearchChip,
+  applyTraceExclusionsToPayload,
+  applyTraceExclusionsToQuery,
   compileTraceAttributeFilters,
   getTraceChipFacetKey,
   getTraceChosenFacetKeys,
+  getTypedTraceAttributeExclusionChips,
+  getTypedTraceExclusionChips,
   isTraceFieldOfFacet,
+  isTypedTraceAttributeExclusion,
   parseTraceSearch,
+  readTraceExclusions,
   resolveTraceSearchChip,
   toSpanKind,
   toSpanStatusCode,
@@ -388,5 +397,254 @@ describe("the facet a traces chip chooses in", () => {
     );
     expect(isTraceFieldOfFacet("serviceId", "primaryEntityId")).toBe(true);
     expect(isTraceFieldOfFacet("statusCode", "primaryEntityId")).toBe(false);
+  });
+});
+
+/*
+ * A status, a kind or "has exception" typed with a leading `-` leaves its
+ * values out on BOTH transports - the span list's query and the histogram /
+ * facets / analytics body, which have a field for each (excludedStatusCodes,
+ * excludedSpanKinds) - through the very reading a facet row's minus goes
+ * through. Before, `-status:error` was text to find in span names: it found
+ * nothing, and the chart above the empty list kept counting.
+ */
+describe("a status, kind or exception flag typed with a leading - leaves its values out", () => {
+  const NO_ATTRIBUTE_FACETS: ReadonlySet<string> = new Set<string>();
+
+  // The reading both transports are compiled from, for a search alone.
+  const readTyped: (
+    search: string,
+    omitFacetKey?: string,
+  ) => TraceExclusions = (
+    search: string,
+    omitFacetKey?: string,
+  ): TraceExclusions => {
+    return readTraceExclusions({
+      chips: getTypedTraceExclusionChips(parseTraceSearch(search)),
+      attributeFacetKeys: NO_ATTRIBUTE_FACETS,
+      omitFacetKey: omitFacetKey,
+    });
+  };
+
+  const listQueryOf: (search: string) => Record<string, unknown> = (
+    search: string,
+  ): Record<string, unknown> => {
+    const query: Record<string, unknown> = {};
+    applyTraceExclusionsToQuery(query, readTyped(search));
+    return query;
+  };
+
+  const payloadOf: (search: string) => JSONObject = (
+    search: string,
+  ): JSONObject => {
+    const payload: JSONObject = {};
+    applyTraceExclusionsToPayload(payload, readTyped(search));
+    return payload;
+  };
+
+  test("the fields a leading - leaves out are status, kind and has exception", () => {
+    expect(Array.from(TRACE_EXCLUDABLE_FIELD_KEYS).sort()).toEqual([
+      "hasException",
+      "kind",
+      "statusCode",
+    ]);
+  });
+
+  test("-status:error is a status left out, not text to find in span names", () => {
+    const parsed: ParsedTraceSearch = parseTraceSearch("-status:error");
+
+    expect(parsed.excludedFieldFilters).toEqual({ statusCode: ["error"] });
+    expect(parsed.fieldFilters).toEqual({});
+    expect(parsed.freeText).toBe("");
+  });
+
+  test("the list leaves the stored code out; the chart leaves the same code out", () => {
+    const query: Record<string, unknown> = listQueryOf("-status:error");
+
+    expect(query["statusCode"]).toBeInstanceOf(NotEqual);
+    expect((query["statusCode"] as NotEqual<number>).value).toBe(
+      SpanStatus.Error,
+    );
+    expect(payloadOf("-status:error")).toEqual({
+      excludedStatusCodes: [SpanStatus.Error],
+    });
+  });
+
+  test("-kind:client leaves the stored OTel kind out of both", () => {
+    expect(parseTraceSearch("-kind:client").excludedFieldFilters).toEqual({
+      kind: ["client"],
+    });
+    expect(
+      (listQueryOf("-kind:client")["kind"] as NotEqual<string>).value,
+    ).toBe("SPAN_KIND_CLIENT");
+    expect(payloadOf("-kind:client")).toEqual({
+      excludedSpanKinds: ["SPAN_KIND_CLIENT"],
+    });
+  });
+
+  test("-hasException:true is the spans without one, in both", () => {
+    expect(listQueryOf("-hasException:true")["hasException"]).toBe(false);
+    expect(payloadOf("-hasException:true")).toEqual({ hasException: false });
+    expect(listQueryOf("-hasexception:false")["hasException"]).toBe(true);
+  });
+
+  test("an any-of list left out is one NOT IN of every value", () => {
+    const parsed: ParsedTraceSearch = parseTraceSearch(
+      "-status:(ok OR unset) -kind:(client OR producer)",
+    );
+
+    expect(parsed.excludedFieldFilters).toEqual({
+      statusCode: ["ok", "unset"],
+      kind: ["client", "producer"],
+    });
+
+    const query: Record<string, unknown> = listQueryOf(
+      "-status:(ok OR unset) -kind:(client OR producer)",
+    );
+
+    expect(query["statusCode"]).toBeInstanceOf(IncludesNone);
+    expect((query["statusCode"] as IncludesNone).values).toEqual([
+      SpanStatus.Ok,
+      SpanStatus.Unset,
+    ]);
+    expect((query["kind"] as IncludesNone).values).toEqual([
+      "SPAN_KIND_CLIENT",
+      "SPAN_KIND_PRODUCER",
+    ]);
+    expect(
+      payloadOf("-status:(ok OR unset) -kind:(client OR producer)"),
+    ).toEqual({
+      excludedStatusCodes: [SpanStatus.Ok, SpanStatus.Unset],
+      excludedSpanKinds: ["SPAN_KIND_CLIENT", "SPAN_KIND_PRODUCER"],
+    });
+  });
+
+  test("the same value typed twice is left out once", () => {
+    expect(
+      parseTraceSearch("-status:error -STATUS:error").excludedFieldFilters,
+    ).toEqual({ statusCode: ["error"] });
+  });
+
+  test("a value typed and the same value clicked in the sidebar are one status", () => {
+    const exclusions: TraceExclusions = readTraceExclusions({
+      chips: [
+        { facetKey: "!statusCode", value: String(SpanStatus.Error) },
+        ...getTypedTraceExclusionChips(parseTraceSearch("-status:error")),
+      ],
+      attributeFacetKeys: NO_ATTRIBUTE_FACETS,
+    });
+    const payload: JSONObject = {};
+    applyTraceExclusionsToPayload(payload, exclusions);
+
+    expect(payload).toEqual({ excludedStatusCodes: [SpanStatus.Error] });
+  });
+
+  test("the typed exclusions are the chips the facet rows' minus writes", () => {
+    expect(
+      getTypedTraceExclusionChips(
+        parseTraceSearch("-status:error -kind:(client OR server) checkout"),
+      ),
+    ).toEqual([
+      { facetKey: "!statusCode", value: "error" },
+      { facetKey: "!kind", value: "client" },
+      { facetKey: "!kind", value: "server" },
+    ]);
+    expect(
+      getTypedTraceExclusionChips(parseTraceSearch("status:error")),
+    ).toEqual([]);
+  });
+
+  test("the Status facet, counted without its own selection, is counted without a typed -status: too", () => {
+    expect(
+      readTyped("-status:error -kind:client", "statusCode").columns,
+    ).toEqual({ kind: ["client"] });
+  });
+
+  test("a negated name, status message, duration or id stays text: no request can leave a part of it out", () => {
+    for (const typed of [
+      "-name:GET",
+      "-statusMessage:timeout",
+      "-duration:>500",
+      "-trace:abc123",
+      "-span:def456",
+    ]) {
+      const parsed: ParsedTraceSearch = parseTraceSearch(typed);
+
+      expect(parsed.excludedFieldFilters).toEqual({});
+      expect(parsed.fieldFilters).toEqual({});
+      expect(parsed.freeText).toBe(typed);
+    }
+  });
+
+  test("a pattern left out of a status stays text: the requests leave out values, not patterns", () => {
+    const parsed: ParsedTraceSearch = parseTraceSearch("-status:err*");
+
+    expect(parsed.excludedFieldFilters).toEqual({});
+    expect(parsed.freeText).toBe("-status:err*");
+  });
+
+  test("asked for and left out in one search: the values asked for that are not left out", () => {
+    const parsed: ParsedTraceSearch = parseTraceSearch(
+      "status:(ok OR error) -status:error",
+    );
+
+    expect(parsed.fieldFilters).toEqual({ statusCode: ["ok"] });
+    expect(parsed.excludedFieldFilters).toEqual({});
+
+    // A typed spelling and the stored code are one value here too.
+    expect(
+      parseTraceSearch(`kind:(server OR client) -kind:SPAN_KIND_CLIENT`)
+        .fieldFilters,
+    ).toEqual({ kind: ["server"] });
+  });
+
+  test("when nothing asked for would be left, the values asked for stand, as a kept chip's do", () => {
+    const parsed: ParsedTraceSearch = parseTraceSearch(
+      "status:error -status:error",
+    );
+
+    expect(parsed.fieldFilters).toEqual({ statusCode: ["error"] });
+    expect(parsed.excludedFieldFilters).toEqual({});
+  });
+
+  test("a value kept by a chip wins over a typed one left out of its column, as a chip left out does", () => {
+    const query: Record<string, unknown> = { statusCode: SpanStatus.Ok };
+    applyTraceExclusionsToQuery(query, readTyped("-status:error"));
+
+    expect(query).toEqual({ statusCode: SpanStatus.Ok });
+  });
+});
+
+/*
+ * A typed attribute left out (`-@k:v`) is compiled with the rest of the
+ * search for the list and the chart (above). For the cross-signal pivots it
+ * is also read as the `!attributes.<key>` chips the pivot carries, holding
+ * the literal each leaves out.
+ */
+describe("a typed attribute left out, for the pivots", () => {
+  test("-@k:v and -@k:(a OR b) are literals left out; a pattern is not", () => {
+    const parsed: ParsedTraceSearch = parseTraceSearch(
+      '-@http.method:GET -@http.route:("/health" OR "/ready") -@k:a* @kept:yes',
+    );
+
+    expect(
+      parsed.attributeFilters.map(
+        (filter: ParsedTraceSearch["attributeFilters"][number]): boolean => {
+          return isTypedTraceAttributeExclusion(filter);
+        },
+      ),
+    ).toEqual([true, true, false, false]);
+
+    expect(getTypedTraceAttributeExclusionChips(parsed)).toEqual([
+      { facetKey: "!attributes.http.method", value: "GET" },
+      { facetKey: "!attributes.http.route", value: "/health" },
+      { facetKey: "!attributes.http.route", value: "/ready" },
+    ]);
+  });
+
+  test("a search with nothing left out has no chips", () => {
+    expect(
+      getTypedTraceAttributeExclusionChips(parseTraceSearch("@k:v checkout")),
+    ).toEqual([]);
   });
 });

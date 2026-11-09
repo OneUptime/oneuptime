@@ -514,14 +514,16 @@ describe("a value left out is named like the one kept, and never pivoted as kept
     ).toBe("checkout");
   });
 
-  test("a pivot names what is left out as not carried, and carries none of it", () => {
+  test("a pivot carries a service, a resource and an attribute left out as left out, and names the rest", () => {
     const result: TracesPivotScopeResult = buildTracesPivotScope({
       primaryEntityId: undefined,
       scopeAttributeFilters: undefined,
       activeFilters: [
         { facetKey: "!primaryEntityId", value: CHECKOUT_ID },
+        { facetKey: "!serviceId", value: BILLING_ID },
         { facetKey: "!hostId", value: HOST_ID },
         { facetKey: "!attributes.resource.host.name", value: "web-01" },
+        { facetKey: "!attributes.resource.host.name", value: "web-02" },
         { facetKey: "!statusCode", value: "2" },
       ],
       fieldFilters: {},
@@ -534,9 +536,37 @@ describe("a value left out is named like the one kept, and never pivoted as kept
       endTime: new Date("2026-08-05T12:00:00.000Z"),
     });
 
+    // Never carried as the value it leaves out.
     expect(result.scope.serviceIds).toBeUndefined();
     expect(result.scope.resourceFacetSelections).toBeUndefined();
     expect(result.scope.attributes).toBeUndefined();
+    expect(result.scope.excludedServiceIds).toEqual([CHECKOUT_ID, BILLING_ID]);
+    expect(result.scope.excludedResourceFacetSelections).toEqual({
+      hostId: [HOST_ID],
+    });
+    expect(result.scope.excludedAttributes).toEqual({
+      "resource.host.name": ["web-01", "web-02"],
+    });
+    // A status left out has no field in any target: named, once.
     expect(result.notCarried).toEqual(["excluded values"]);
+  });
+
+  test("a pivot with only what it can carry left out names nothing", () => {
+    const result: TracesPivotScopeResult = buildTracesPivotScope({
+      primaryEntityId: undefined,
+      scopeAttributeFilters: undefined,
+      activeFilters: [{ facetKey: "!primaryEntityId", value: CHECKOUT_ID }],
+      fieldFilters: {},
+      searchAttributes: {},
+      searchAttributeSearches: {},
+      freeText: "",
+      rootOnly: false,
+      hasEntityScope: false,
+      startTime: new Date("2026-08-05T11:00:00.000Z"),
+      endTime: new Date("2026-08-05T12:00:00.000Z"),
+    });
+
+    expect(result.scope.excludedServiceIds).toEqual([CHECKOUT_ID]);
+    expect(result.notCarried).toEqual([]);
   });
 });

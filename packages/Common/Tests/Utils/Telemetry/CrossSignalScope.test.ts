@@ -1,11 +1,17 @@
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
+  toExcludedDroppedField,
   toLogsExplorerQueryParams,
   toMetricsExplorerQueryParams,
   toTracesExplorerQueryParams,
 } from "../../../Utils/Telemetry/CrossSignalScope";
+import {
+  getBaseFacetKey,
+  isExcludeFacetKey,
+} from "../../../Types/Telemetry/FacetExcludeKey";
 import MetricExplorerUrl, {
+  MetricExplorerUrlParam,
   SerializedMetricQuery,
 } from "../../../Utils/Metrics/MetricExplorerUrl";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -863,5 +869,210 @@ describe("bodyContains", () => {
     expect(
       toMetricsExplorerQueryParams({ bodyContains: "  " }).dropped,
     ).toEqual([]);
+  });
+});
+
+/*
+ * What a view LEAVES OUT ("Service is not checkout", "Host is not web-01")
+ * rides the logs and traces `filters` as the chips their facet rows' minus
+ * writes - the facet key marked with a leading `!` - which both explorers
+ * read back into the same "is not" chip. The metric explorer has no "is
+ * not": there each is reported dropped, marked `!`, so a pivot hint names it
+ * as left out instead of the chart silently widening.
+ */
+describe("values the view leaves out", () => {
+  const CHECKOUT: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const BILLING: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const HOST: string = "5f4e3d2c-1b0a-4998-8776-655443322110";
+  const CLUSTER: string = "6a5f4e3d-2c1b-4a09-8887-766554433221";
+
+  function excludedScope(): TelemetryCrossSignalScope {
+    return {
+      excludedServiceIds: [CHECKOUT],
+      excludedResourceFacetSelections: {
+        hostId: [HOST],
+        kubernetesClusterId: [CLUSTER],
+      },
+      excludedAttributes: { "http.route": ["/health", "/api/*"] },
+      excludedSeverityTexts: ["debug", "Trace"],
+      startTime: START,
+      endTime: END,
+    };
+  }
+
+  function filtersOf(result: CrossSignalQueryParams): Array<unknown> {
+    return JSON.parse(result.params["filters"] as string) as Array<unknown>;
+  }
+
+  test("logs: each rides its `!` tuple, severities in the stored casing", () => {
+    const result: CrossSignalQueryParams =
+      toLogsExplorerQueryParams(excludedScope());
+
+    expect(filtersOf(result)).toEqual([
+      ["!severityText", ["Debug", "Trace"]],
+      ["!primaryEntityId", [CHECKOUT]],
+      ["!hostId", [HOST]],
+      ["!kubernetesClusterId", [CLUSTER]],
+      [
+        "!attributes.http.route",
+        [buildSearchTokenValue("/health"), buildSearchTokenValue("/api/*")],
+      ],
+    ]);
+    expect(result.params["range"]).toBe(TimeRange.CUSTOM);
+    expect(result.dropped).toEqual([]);
+  });
+
+  test("logs: an attribute value left out reads back through the grammar as the literal, never a wildcard", () => {
+    const [, values]: [string, Array<string>] = (
+      filtersOf(toLogsExplorerQueryParams(excludedScope())) as Array<
+        [string, Array<string>]
+      >
+    ).find((tuple: [string, Array<string>]): boolean => {
+      return tuple[0] === "!attributes.http.route";
+    })!;
+
+    expect(
+      values.map((value: string): SearchValuePredicate => {
+        return parseSearchValue(value);
+      }),
+    ).toEqual([
+      { operator: SearchValueOperator.Equals, value: "/health", values: [] },
+      { operator: SearchValueOperator.Equals, value: "/api/*", values: [] },
+    ]);
+  });
+
+  test("every tuple key is a facet's key with the exclude marker, never a column of its own", () => {
+    for (const [key] of filtersOf(
+      toLogsExplorerQueryParams(excludedScope()),
+    ) as Array<[string, Array<string>]>) {
+      expect(isExcludeFacetKey(key)).toBe(true);
+      expect(
+        [
+          "severityText",
+          "primaryEntityId",
+          "hostId",
+          "kubernetesClusterId",
+          "attributes.http.route",
+        ].includes(getBaseFacetKey(key)),
+      ).toBe(true);
+    }
+  });
+
+  test("logs: kept and left out ride side by side; a value both kept and left out is kept", () => {
+    const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+      serviceIds: [CHECKOUT],
+      excludedServiceIds: [CHECKOUT, BILLING],
+      severityTexts: ["error"],
+      excludedSeverityTexts: ["Error", "debug"],
+      resourceFacetSelections: { hostId: [HOST] },
+      excludedResourceFacetSelections: { hostId: [HOST] },
+      attributes: { "http.method": "GET" },
+      excludedAttributes: { "http.method": ["GET", "HEAD"] },
+    });
+
+    expect(filtersOf(result)).toEqual([
+      ["severityText", ["Error"]],
+      ["primaryEntityId", [CHECKOUT]],
+      ["hostId", [HOST]],
+      ["attributes.http.method", ["GET"]],
+      ["!severityText", ["Debug"]],
+      ["!primaryEntityId", [BILLING]],
+      ["!attributes.http.method", ["HEAD"]],
+    ]);
+  });
+
+  test("blank, duplicate and unknown entries leave nothing out", () => {
+    const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+      excludedServiceIds: ["", CHECKOUT, CHECKOUT],
+      excludedResourceFacetSelections: { notAFacet: [HOST], hostId: [] },
+      excludedAttributes: {
+        "": ["x"],
+        "http.route": ["", ""],
+        "http.method": "GET" as unknown as Array<string>,
+      },
+      excludedSeverityTexts: ["", "debug", "DEBUG"],
+    });
+
+    expect(filtersOf(result)).toEqual([
+      ["!severityText", ["Debug"]],
+      ["!primaryEntityId", [CHECKOUT]],
+    ]);
+    expect(
+      toLogsExplorerQueryParams({ excludedServiceIds: [] }).params,
+    ).toEqual({});
+  });
+
+  test("traces: one `!` chip a value, as the explorer's own chips are", () => {
+    const result: CrossSignalQueryParams =
+      toTracesExplorerQueryParams(excludedScope());
+
+    expect(filtersOf(result)).toEqual([
+      ["!primaryEntityId", CHECKOUT],
+      ["!hostId", HOST],
+      ["!kubernetesClusterId", CLUSTER],
+      ["!attributes.http.route", buildSearchTokenValue("/health")],
+      ["!attributes.http.route", buildSearchTokenValue("/api/*")],
+    ]);
+    // A chip, never a typed `-@key:value` in the search.
+    expect(result.params["search"]).toBeUndefined();
+  });
+
+  test("traces: severities left out are reported dropped, marked as left out", () => {
+    expect(toTracesExplorerQueryParams(excludedScope()).dropped).toEqual([
+      "!severityTexts",
+    ]);
+    expect(
+      toTracesExplorerQueryParams({ excludedSeverityTexts: ["", ""] }).dropped,
+    ).toEqual([]);
+  });
+
+  test("traces: a kept service and one left out ride side by side", () => {
+    expect(
+      filtersOf(
+        toTracesExplorerQueryParams({
+          serviceIds: [CHECKOUT],
+          excludedServiceIds: [CHECKOUT, BILLING],
+        }),
+      ),
+    ).toEqual([
+      ["primaryEntityId", CHECKOUT],
+      ["!primaryEntityId", BILLING],
+    ]);
+  });
+
+  test("metrics: has no 'is not', so each value left out is reported dropped, under its kept field's name", () => {
+    const result: CrossSignalQueryParams =
+      toMetricsExplorerQueryParams(excludedScope());
+
+    expect(result.dropped).toEqual([
+      "!serviceIds",
+      "!hostId",
+      "!kubernetesClusterId",
+      "!attributes.http.route",
+      "!severityTexts",
+    ]);
+    // Nothing of what is left out widens into a kept filter.
+    expect(
+      result.params[MetricExplorerUrlParam.Services] as string | undefined,
+    ).toBeUndefined();
+    expect(result.params["metricQueries"]).toBeUndefined();
+  });
+
+  test("metrics: a service kept still carries beside one left out", () => {
+    const result: CrossSignalQueryParams = toMetricsExplorerQueryParams({
+      serviceIds: [CHECKOUT],
+      excludedServiceIds: [BILLING],
+    });
+
+    expect(JSON.parse(result.params[MetricExplorerUrlParam.Services]!)).toEqual(
+      [CHECKOUT],
+    );
+    expect(result.dropped).toEqual(["!serviceIds"]);
+  });
+
+  test("the dropped name of a value left out is its kept field's, marked as left out", () => {
+    expect(toExcludedDroppedField("serviceIds")).toBe("!serviceIds");
+    expect(toExcludedDroppedField("hostId")).toBe("!hostId");
+    expect(toExcludedDroppedField("!hostId")).toBe("!hostId");
   });
 });

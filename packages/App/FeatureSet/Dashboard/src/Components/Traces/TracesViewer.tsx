@@ -167,6 +167,9 @@ import {
   compileTraceAttributeFilters,
   getTraceChipFacetKey,
   getTraceChosenFacetKeys,
+  getTypedTraceAttributeExclusionChips,
+  getTypedTraceExclusionChips,
+  isTypedTraceAttributeExclusion,
   isTraceFieldOfFacet,
   parseTraceSearch,
   readTraceExclusions,
@@ -181,7 +184,11 @@ import {
   chooseFacetValueInChips,
 } from "Common/UI/Components/TelemetryViewer/FacetExclusion";
 import { FacetValueState } from "Common/UI/Components/TelemetryViewer/FacetSelection";
-import { isExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
+import {
+  getBaseFacetKey,
+  isExcludeFacetKey,
+  toExcludeFacetKey,
+} from "Common/Types/Telemetry/FacetExcludeKey";
 import {
   FacetCountAnswer,
   FacetCountRequestPart,
@@ -1387,14 +1394,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
-     * The values the chips leave out ("Status is not Error"), once every
-     * filter that keeps rows is on the query: a column kept exactly drops
-     * them, a span name kept as a substring holds both. The aggregation
-     * payload reads the same chips by the same rules
-     * (applyTraceExclusionsToPayload).
+     * The values the chips leave out ("Status is not Error"), and the ones
+     * typed with a leading `-` (`-status:error`), once every filter that
+     * keeps rows is on the query: a column kept exactly drops them, a span
+     * name kept as a substring holds both. The aggregation payload reads the
+     * same chips by the same rules (applyTraceExclusionsToPayload).
      */
     const exclusions: TraceExclusions = readTraceExclusions({
-      chips: activeFilters,
+      chips: [...activeFilters, ...getTypedTraceExclusionChips(parsed)],
       attributeFacetKeys: ATTRIBUTE_FACET_KEYS,
     });
     applyTraceExclusionsToQuery(query as Record<string, unknown>, exclusions);
@@ -1884,9 +1891,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
          * a prefix. `attributeSearches` now carries only the pre-grammar chips a
          * saved view can still hold.
          */
-        // What the chips leave out - all but the counted facet's own.
+        /*
+         * What the chips leave out, and what is typed with a leading `-` -
+         * all but the counted facet's own.
+         */
         const exclusions: TraceExclusions = readTraceExclusions({
-          chips: activeFilters,
+          chips: [...activeFilters, ...getTypedTraceExclusionChips(parsed)],
           attributeFacetKeys: ATTRIBUTE_FACET_KEYS,
           omitFacetKey: omitFacetKey,
         });
@@ -3248,40 +3258,58 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           searchAttributes[filter.key] = filter.predicate.value;
           continue;
         }
+        // Left out, and carried so (getTypedTraceAttributeExclusionChips).
+        if (isTypedTraceAttributeExclusion(filter)) {
+          continue;
+        }
         searchAttributeSearches[filter.key] = filter.predicate.value;
       }
 
       return buildTracesPivotScope({
         primaryEntityId: props.primaryEntityId?.toString(),
         scopeAttributeFilters: props.attributeFilters,
-        activeFilters: activeFilters.map(
-          (filter: ActiveFilter): { facetKey: string; value: string } => {
-            if (!filter.facetKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
-              return { facetKey: filter.facetKey, value: filter.value };
-            }
+        activeFilters: [
+          ...activeFilters.map(
+            (filter: ActiveFilter): { facetKey: string; value: string } => {
+              const isExcluded: boolean = isExcludeFacetKey(filter.facetKey);
+              const baseKey: string = getBaseFacetKey(filter.facetKey);
 
-            /*
-             * An attribute chip stores a grammar token, not a literal: hand
-             * the scope the value it means, and let a non-equality chip fall
-             * into the same not-carried bucket a typed one does.
-             */
-            const predicate: SearchValuePredicate = parseSearchValue(
-              filter.value,
-            );
-            const key: string = filter.facetKey.substring(
-              ATTRIBUTE_CHIP_PREFIX.length,
-            );
+              if (!baseKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
+                return { facetKey: filter.facetKey, value: filter.value };
+              }
 
-            if (predicate.operator === SearchValueOperator.Equals) {
-              return { facetKey: filter.facetKey, value: predicate.value };
-            }
+              /*
+               * An attribute chip stores a grammar token, not a literal: hand
+               * the scope the value it means, kept or left out, and let a
+               * non-equality chip fall into the same not-carried bucket a
+               * typed one does.
+               */
+              const predicate: SearchValuePredicate = parseSearchValue(
+                filter.value,
+              );
+              const key: string = baseKey.substring(
+                ATTRIBUTE_CHIP_PREFIX.length,
+              );
 
-            return {
-              facetKey: `${ATTRIBUTE_SEARCH_CHIP_PREFIX}${key}`,
-              value: predicate.value,
-            };
-          },
-        ),
+              if (predicate.operator === SearchValueOperator.Equals) {
+                return { facetKey: filter.facetKey, value: predicate.value };
+              }
+
+              const searchKey: string = `${ATTRIBUTE_SEARCH_CHIP_PREFIX}${key}`;
+
+              return {
+                facetKey: isExcluded ? toExcludeFacetKey(searchKey) : searchKey,
+                value: predicate.value,
+              };
+            },
+          ),
+          /*
+           * Typed `-@key:value` and `-status:error`: left out, as the chips
+           * the facet rows' minus writes are.
+           */
+          ...getTypedTraceAttributeExclusionChips(parsed),
+          ...getTypedTraceExclusionChips(parsed),
+        ],
         fieldFilters: parsed.fieldFilters,
         searchAttributes,
         searchAttributeSearches,

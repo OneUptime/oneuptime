@@ -4,7 +4,10 @@ import {
   isResourceEntityFacetKey,
   isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
-import { isExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
+import {
+  getBaseFacetKey,
+  isExcludeFacetKey,
+} from "Common/Types/Telemetry/FacetExcludeKey";
 import Route from "Common/Types/API/Route";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
@@ -44,6 +47,14 @@ export interface TraceCrossSignalScope {
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   severityTexts?: Array<string> | undefined;
+  /*
+   * What the view leaves out ("Service is not checkout"): service ids,
+   * resource selections by facet and exact attribute values by key, so the
+   * logs explorer opens with the same "is not" chips.
+   */
+  excludedServiceIds?: Array<string> | undefined;
+  excludedResourceFacetSelections?: ResourceEntityFacetSelections | undefined;
+  excludedAttributes?: Dictionary<Array<string>> | undefined;
   startTime?: Date | undefined;
   endTime?: Date | undefined;
 }
@@ -488,14 +499,50 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
   }
 
   const resourceFacetSelections: ResourceEntityFacetSelections = {};
+  const excludedServiceIds: Array<string> = [];
+  const excludedResourceFacetSelections: ResourceEntityFacetSelections = {};
+  const excludedAttributes: Dictionary<Array<string>> = {};
 
   for (const filter of input.activeFilters) {
     /*
-     * A value left out ("Status is not Error") has no field in the scope a
-     * pivot carries, so it is named as not carried - never dropped
-     * silently, and never carried as the value it leaves out.
+     * A value left out ("Service is not checkout") rides the scope's field
+     * for it - a service, a resource, an exact attribute value - and the
+     * target explorer opens with the same "is not" chip. One the scope has
+     * no field for (a status, a kind, a span name, an attribute pattern) is
+     * named as not carried: never dropped silently, and never carried as the
+     * value it leaves out.
      */
     if (isExcludeFacetKey(filter.facetKey)) {
+      const baseKey: string = getBaseFacetKey(filter.facetKey);
+
+      if (isServiceFacetKey(baseKey)) {
+        addValue(excludedServiceIds, filter.value);
+        continue;
+      }
+
+      if (isResourceEntityFacetKey(baseKey)) {
+        const values: Array<string> =
+          excludedResourceFacetSelections[baseKey] || [];
+        addValue(values, filter.value);
+        excludedResourceFacetSelections[baseKey] = values;
+        continue;
+      }
+
+      if (baseKey.startsWith("attributes.")) {
+        const key: string = baseKey.substring("attributes.".length);
+
+        if (key.length > 0 && filter.value.length > 0) {
+          const values: Array<string> = excludedAttributes[key] || [];
+
+          if (!values.includes(filter.value)) {
+            values.push(filter.value);
+          }
+
+          excludedAttributes[key] = values;
+        }
+        continue;
+      }
+
       notCarried.add(translationKey("excluded values"));
       continue;
     }
@@ -662,6 +709,18 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
     scope.attributes = attributes;
   }
 
+  if (excludedServiceIds.length > 0) {
+    scope.excludedServiceIds = excludedServiceIds;
+  }
+
+  if (Object.keys(excludedResourceFacetSelections).length > 0) {
+    scope.excludedResourceFacetSelections = excludedResourceFacetSelections;
+  }
+
+  if (Object.keys(excludedAttributes).length > 0) {
+    scope.excludedAttributes = excludedAttributes;
+  }
+
   return { scope, notCarried: Array.from(notCarried) };
 };
 
@@ -686,8 +745,10 @@ type DescribeDroppedScopeFieldsFunction = (
 
 /**
  * Serializer `dropped` field names -> deduped human labels for the pivot
- * hint. Unknown names pass through verbatim so a new scope field is never
- * silently hidden.
+ * hint. A value the view leaves out and the target cannot (`!serviceIds`,
+ * `!hostId`, `!attributes.<key>`: CrossSignalScope's toExcludedDroppedField)
+ * reads as the "excluded values" a status left out reads as. Unknown names
+ * pass through verbatim so a new scope field is never silently hidden.
  */
 export const describeDroppedScopeFields: DescribeDroppedScopeFieldsFunction = (
   fields: Array<string>,
@@ -695,7 +756,11 @@ export const describeDroppedScopeFields: DescribeDroppedScopeFieldsFunction = (
   const labels: Set<string> = new Set<string>();
 
   for (const field of fields) {
-    labels.add(DROPPED_FIELD_LABELS[field] || field);
+    labels.add(
+      isExcludeFacetKey(field)
+        ? translationKey("excluded values")
+        : DROPPED_FIELD_LABELS[field] || field,
+    );
   }
 
   return Array.from(labels);

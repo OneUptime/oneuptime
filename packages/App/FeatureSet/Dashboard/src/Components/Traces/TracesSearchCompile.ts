@@ -31,6 +31,7 @@ import {
 import {
   getBaseFacetKey,
   isExcludeFacetKey,
+  toExcludeFacetKey,
 } from "Common/Types/Telemetry/FacetExcludeKey";
 import {
   SearchQueryValue,
@@ -109,9 +110,31 @@ export interface ParsedTraceSearch {
   freeText: string;
   /** Span column -> the value spellings the mappers below understand. */
   fieldFilters: Record<string, Array<string>>;
+  /*
+   * The values a leading `-` leaves out (`-status:error`, `-kind:client`,
+   * `-hasException:true`): span column -> the value spellings, read by the
+   * same mappers as the kept ones. Only the fields of
+   * TRACE_EXCLUDABLE_FIELD_KEYS; getTypedTraceExclusionChips hands them to
+   * the reading the facet rows' minus goes through.
+   */
+  excludedFieldFilters: Record<string, Array<string>>;
   /** Attribute tokens, in the order they were typed. */
   attributeFilters: Array<TraceAttributeFilter>;
 }
+
+/*
+ * The trace fields a leading `-` leaves out on both transports: the span
+ * list's query, and the histogram / facets / analytics requests, which have
+ * a field for the values left out of each (excludedStatusCodes,
+ * excludedSpanKinds; "Has exception" left out is the other answer). A
+ * negated name, status message, duration or id stays text to find in span
+ * names: the requests cannot leave a part of a name, a range or an id out,
+ * and the list alone leaving it out would put a chart above it that counts
+ * the rows it hides.
+ */
+export const TRACE_EXCLUDABLE_FIELD_KEYS: ReadonlySet<string> = new Set<string>(
+  ["statusCode", "kind", "hasException"],
+);
 
 type FieldTokenValuesFunction = (token: SearchToken) => Array<string>;
 
@@ -159,6 +182,7 @@ export const parseTraceSearch: ParseTraceSearchFunction = (
   });
 
   const fieldFilters: Record<string, Array<string>> = {};
+  const excludedFieldFilters: Record<string, Array<string>> = {};
   const attributeFilters: Array<TraceAttributeFilter> = [];
   const freeTextParts: Array<string> = [];
 
@@ -174,14 +198,34 @@ export const parseTraceSearch: ParseTraceSearchFunction = (
     }
 
     /*
-     * A negated known field has nowhere to go — every field filter reaches the
-     * aggregation endpoint as a positive list (`statusCodes`, `spanKinds`, …),
-     * so honouring the `-` on the list alone would leave the chart counting
-     * rows the table no longer shows. It stays free text, which is what the
-     * hand-rolled tokenizer this replaces also did with it.
+     * A negated status, kind or "has exception" leaves its values out on
+     * both transports (TRACE_EXCLUDABLE_FIELD_KEYS). Any other negated
+     * known field has nowhere to go - the aggregation endpoints cannot leave
+     * a part of a name, a range or an id out, so honouring the `-` on the
+     * list alone would leave the chart counting rows the table no longer
+     * shows. It stays free text, as it always was.
      */
     if (token.negated) {
-      freeTextParts.push(token.raw);
+      const excludedValues: Array<string> = TRACE_EXCLUDABLE_FIELD_KEYS.has(
+        token.key,
+      )
+        ? excludedFieldTokenValues(token)
+        : [];
+
+      if (excludedValues.length === 0) {
+        freeTextParts.push(token.raw);
+        continue;
+      }
+
+      const excluded: Array<string> = excludedFieldFilters[token.key] || [];
+
+      for (const value of excludedValues) {
+        if (!excluded.includes(value)) {
+          excluded.push(value);
+        }
+      }
+
+      excludedFieldFilters[token.key] = excluded;
       continue;
     }
 
@@ -202,11 +246,167 @@ export const parseTraceSearch: ParseTraceSearchFunction = (
     fieldFilters[token.key]!.push(...values);
   }
 
+  /*
+   * A field asked for by value and left out in the same search -
+   * `status:(ok OR error) -status:error` - is the values asked for that are
+   * not left out: one exact list, which both transports hold. When nothing
+   * would be left, the values asked for stand, as a value a chip keeps does
+   * beside one left out of its column (applyTraceExclusionsToQuery).
+   */
+  for (const key of Object.keys(excludedFieldFilters)) {
+    const kept: Array<string> | undefined = fieldFilters[key];
+
+    if (!kept || kept.length === 0) {
+      continue;
+    }
+
+    const leftOut: Set<string> = new Set<string>(
+      excludedFieldFilters[key]!.map((value: string): string => {
+        return toExclusionComparable(key, value);
+      }),
+    );
+    const remaining: Array<string> = kept.filter((value: string): boolean => {
+      return !leftOut.has(toExclusionComparable(key, value));
+    });
+
+    if (remaining.length > 0) {
+      fieldFilters[key] = remaining;
+    }
+
+    delete excludedFieldFilters[key];
+  }
+
   return {
     freeText: freeTextParts.join(" ").trim(),
     fieldFilters,
+    excludedFieldFilters,
     attributeFilters,
   };
+};
+
+/*
+ * The values a negated field token leaves out: one value, or the values of
+ * an any-of list (`-status:(ok OR unset)`). None for a pattern, a part of
+ * a value or a range, which no request can leave out of these columns.
+ */
+const excludedFieldTokenValues: (token: SearchToken) => Array<string> = (
+  token: SearchToken,
+): Array<string> => {
+  const values: Array<string> =
+    token.predicate.operator === SearchValueOperator.NotEquals
+      ? [token.predicate.value]
+      : token.predicate.operator === SearchValueOperator.NotIn
+        ? token.predicate.values
+        : [];
+
+  return values.filter((value: string): boolean => {
+    return value.trim().length > 0;
+  });
+};
+
+/*
+ * A value of an excludable field as it is stored, so a typed spelling and
+ * a clicked one compare equal: `error` and the facet's `2` are one status.
+ */
+const toExclusionComparable: (key: string, value: string) => string = (
+  key: string,
+  value: string,
+): string => {
+  if (key === "statusCode") {
+    return String(toSpanStatusCode(value));
+  }
+
+  if (key === "kind") {
+    return toSpanKind(value);
+  }
+
+  if (key === "hasException") {
+    return String(
+      value.trim().toLowerCase() === "true" || value.trim() === "1",
+    );
+  }
+
+  return value;
+};
+
+/*
+ * The values typed with a leading `-`, as the chips a facet row's minus
+ * writes (`-status:error` is `!statusCode: error`), so the span list, the
+ * chart and the facet counts read them through the one reading the chips go
+ * through (readTraceExclusions) - by the same rules, from the same values.
+ */
+export const getTypedTraceExclusionChips: (
+  parsed: Pick<ParsedTraceSearch, "excludedFieldFilters">,
+) => Array<{ facetKey: string; value: string }> = (
+  parsed: Pick<ParsedTraceSearch, "excludedFieldFilters">,
+): Array<{ facetKey: string; value: string }> => {
+  const chips: Array<{ facetKey: string; value: string }> = [];
+
+  for (const [key, values] of Object.entries(
+    parsed.excludedFieldFilters || {},
+  )) {
+    if (!TRACE_EXCLUDABLE_FIELD_KEYS.has(key)) {
+      continue;
+    }
+
+    for (const value of values) {
+      chips.push({ facetKey: toExcludeFacetKey(key), value });
+    }
+  }
+
+  return chips;
+};
+
+/*
+ * Whether a typed attribute token leaves literal values out: `-@k:v` (a
+ * `!=`) or `-@k:(a OR b)` (a NOT IN). A pattern left out (`-@k:a*`) is not
+ * one - no cross-signal scope field can hold it.
+ */
+export const isTypedTraceAttributeExclusion: (
+  filter: TraceAttributeFilter,
+) => boolean = (filter: TraceAttributeFilter): boolean => {
+  return (
+    filter.predicate.operator === SearchValueOperator.NotEquals ||
+    filter.predicate.operator === SearchValueOperator.NotIn
+  );
+};
+
+/*
+ * The typed attribute tokens that leave literal values out, as the
+ * `!attributes.<key>` chips a pivot reads, each holding the value it means
+ * (the pivot's chips are literals, not grammar tokens): `-@k:v` is
+ * `!attributes.k: v`. For the cross-signal pivots only - the list and the
+ * chart compile typed attributes with the rest of the search
+ * (compileTraceAttributeFilters).
+ */
+export const getTypedTraceAttributeExclusionChips: (
+  parsed: Pick<ParsedTraceSearch, "attributeFilters">,
+) => Array<{ facetKey: string; value: string }> = (
+  parsed: Pick<ParsedTraceSearch, "attributeFilters">,
+): Array<{ facetKey: string; value: string }> => {
+  const chips: Array<{ facetKey: string; value: string }> = [];
+
+  for (const filter of parsed.attributeFilters || []) {
+    if (!filter.key || !isTypedTraceAttributeExclusion(filter)) {
+      continue;
+    }
+
+    const values: Array<string> =
+      filter.predicate.operator === SearchValueOperator.NotIn
+        ? filter.predicate.values
+        : [filter.predicate.value];
+
+    for (const value of values) {
+      if (value.length > 0) {
+        chips.push({
+          facetKey: toExcludeFacetKey(`${ATTRIBUTE_CHIP_PREFIX}${filter.key}`),
+          value,
+        });
+      }
+    }
+  }
+
+  return chips;
 };
 
 export interface TraceSearchChip {

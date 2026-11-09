@@ -11,6 +11,7 @@ import MetricExplorerUrl, {
   SerializedMetricQuery,
 } from "../Metrics/MetricExplorerUrl";
 import { buildSearchTokenValue } from "../../Types/Telemetry/TelemetrySearchQuery";
+import { toExcludeFacetKey } from "../../Types/Telemetry/FacetExcludeKey";
 
 /*
  * Matches any whitespace, double-quote, or colon — the characters that break a
@@ -68,6 +69,13 @@ const PERCENT: RegExp = /%/;
  *    no `range` token), plus the one-shot `services` param (JSON array of
  *    Service ObjectID strings) that the explorer resolves to
  *    `resource.service.name` attribute filters on load.
+ *
+ * A value the view LEAVES OUT ("Service is not checkout") rides the logs and
+ * traces `filters` as the chip a facet row's minus writes: the facet key
+ * marked with a leading `!` (Types/Telemetry/FacetExcludeKey), which both
+ * explorers read back into the same "is not" chip. The metric explorer has
+ * no "is not", so there it is reported dropped under the kept field's name
+ * marked the same way (`!serviceIds`, `!hostId`, `!attributes.<key>`).
  */
 
 /**
@@ -113,8 +121,29 @@ export interface TelemetryCrossSignalScope {
    * nothing. Traces and metrics report it as dropped.
    */
   bodyContains?: string | undefined;
+  /**
+   * The values the view leaves out, each beside the field it would keep:
+   * service ObjectID strings, resource selections keyed by facet, exact
+   * attribute values by key, and log severities (logs only). Written as the
+   * `!` chips of the logs and traces `filters` grammar; a value both kept
+   * and left out is kept, as the explorers' own chips never hold one twice.
+   */
+  excludedServiceIds?: Array<string> | undefined;
+  excludedResourceFacetSelections?: ResourceEntityFacetSelections | undefined;
+  excludedAttributes?: Dictionary<Array<string>> | undefined;
+  excludedSeverityTexts?: Array<string> | undefined;
   startTime?: Date | undefined;
   endTime?: Date | undefined;
+}
+
+/**
+ * How a target that cannot leave a value out names it among the dropped
+ * fields: the kept field's name marked with the exclude marker
+ * (`!serviceIds`, `!severityTexts`, `!hostId`, `!attributes.<key>`), so a
+ * pivot hint reads it as "excluded services", never as the kept field.
+ */
+export function toExcludedDroppedField(field: string): string {
+  return toExcludeFacetKey(field);
 }
 
 /**
@@ -236,6 +265,133 @@ function sanitizeResourceFacetSelections(
 }
 
 /*
+ * Excluded attribute entries: an empty key or no non-empty value carries
+ * nothing to leave out. Values once each, in order.
+ */
+function sanitizeExcludedAttributeEntries(
+  attributes: Dictionary<Array<string>> | undefined,
+): Array<[string, Array<string>]> {
+  if (!attributes) {
+    return [];
+  }
+
+  const entries: Array<[string, Array<string>]> = [];
+
+  for (const key of Object.keys(attributes)) {
+    const raw: unknown = attributes[key];
+    const values: Array<string> = sanitizeValues(
+      Array.isArray(raw) ? (raw as Array<string>) : [],
+    );
+
+    if (key.length === 0 || values.length === 0) {
+      continue;
+    }
+
+    entries.push([key, values]);
+  }
+
+  return entries;
+}
+
+// The values left out that are not also kept: a value is in one state.
+function withoutKept(
+  excluded: Array<string>,
+  kept: Array<string>,
+): Array<string> {
+  const keptValues: Set<string> = new Set<string>(kept);
+
+  return excluded.filter((value: string): boolean => {
+    return !keptValues.has(value);
+  });
+}
+
+/*
+ * What a scope leaves out, read once for every serializer: each list
+ * sanitized, without the values the scope also keeps, and severities in
+ * the database's casing.
+ */
+interface ResolvedExclusions {
+  serviceIds: Array<string>;
+  resourceFacetSelections: Array<[string, Array<string>]>;
+  attributes: Array<[string, Array<string>]>;
+  severityTexts: Array<string>;
+}
+
+function resolveExclusions(
+  scope: TelemetryCrossSignalScope,
+): ResolvedExclusions {
+  const keptResources: Dictionary<Array<string>> = {};
+
+  for (const [facetKey, values] of sanitizeResourceFacetSelections(
+    scope.resourceFacetSelections,
+  )) {
+    keptResources[facetKey] = values;
+  }
+
+  const keptAttributes: Dictionary<string> = {};
+
+  for (const [key, value] of sanitizeAttributeEntries(scope.attributes)) {
+    keptAttributes[key] = value;
+  }
+
+  const resourceFacetSelections: Array<[string, Array<string>]> = [];
+
+  for (const [facetKey, values] of sanitizeResourceFacetSelections(
+    scope.excludedResourceFacetSelections,
+  )) {
+    const leftOut: Array<string> = withoutKept(
+      values,
+      keptResources[facetKey] || [],
+    );
+
+    if (leftOut.length > 0) {
+      resourceFacetSelections.push([facetKey, leftOut]);
+    }
+  }
+
+  const attributes: Array<[string, Array<string>]> = [];
+
+  for (const [key, values] of sanitizeExcludedAttributeEntries(
+    scope.excludedAttributes,
+  )) {
+    const kept: string | undefined = keptAttributes[key];
+    const leftOut: Array<string> = withoutKept(
+      values,
+      kept === undefined ? [] : [kept],
+    );
+
+    if (leftOut.length > 0) {
+      attributes.push([key, leftOut]);
+    }
+  }
+
+  const keptSeverities: Array<string> = sanitizeValues(scope.severityTexts).map(
+    (value: string): string => {
+      return normalizeLogSeverity(value);
+    },
+  );
+
+  return {
+    serviceIds: withoutKept(
+      sanitizeValues(scope.excludedServiceIds),
+      sanitizeValues(scope.serviceIds),
+    ),
+    resourceFacetSelections,
+    attributes,
+    severityTexts: withoutKept(
+      sanitizeValues(
+        sanitizeValues(scope.excludedSeverityTexts).map(
+          (value: string): string => {
+            return normalizeLogSeverity(value);
+          },
+        ),
+      ),
+      keptSeverities,
+    ),
+  };
+}
+
+/*
  * A blank body filter carries no scope: emitting it would add a chip that
  * matches every row while telling the user their view is filtered.
  */
@@ -298,7 +454,9 @@ function resolveTimeWindow(
  * -> `spanId`, attributes -> `attributes.<key>` tuples (values escaped with
  * the search grammar's buildSearchTokenValue, because the explorer re-parses
  * a chip value as grammar), bodyContains -> `body` (a contains-match chip),
- * startTime+endTime -> `range=Custom` + `start`/`end`. Every scope field is
+ * startTime+endTime -> `range=Custom` + `start`/`end`. The values left out
+ * ride `!` tuples beside them (`!severityText`, `!primaryEntityId`,
+ * `!<resource facet>`, `!attributes.<key>`). Every scope field is
  * expressible in the logs grammar, so `dropped` only ever reports a lone
  * time endpoint.
  */
@@ -372,6 +530,31 @@ export function toLogsExplorerQueryParams(
     tuples.push(["body", [bodyContains]]);
   }
 
+  // What the view leaves out, as the chips the explorer's minus writes.
+  const exclusions: ResolvedExclusions = resolveExclusions(scope);
+
+  if (exclusions.severityTexts.length > 0) {
+    tuples.push([toExcludeFacetKey("severityText"), exclusions.severityTexts]);
+  }
+
+  if (exclusions.serviceIds.length > 0) {
+    tuples.push([toExcludeFacetKey("primaryEntityId"), exclusions.serviceIds]);
+  }
+
+  for (const [facetKey, values] of exclusions.resourceFacetSelections) {
+    tuples.push([toExcludeFacetKey(facetKey), values]);
+  }
+
+  for (const [key, values] of exclusions.attributes) {
+    // Escaped as a kept attribute chip's value is: the literal value.
+    tuples.push([
+      toExcludeFacetKey(`attributes.${key}`),
+      values.map((value: string): string => {
+        return buildSearchTokenValue(value);
+      }),
+    ]);
+  }
+
   if (tuples.length > 0) {
     params["filters"] = JSON.stringify(tuples);
   }
@@ -442,8 +625,12 @@ function buildTraceSearchTokenValue(value: string): string | null {
  * valueDisplayMap, where a `service:` token would show the raw ObjectID),
  * startTime+endTime -> `range=Custom` + `start`/`end`.
  *
- * Dropped: severityTexts and bodyContains — spans have neither a severity
- * nor a message-body dimension.
+ * The values left out ride `!` filter chips (`!primaryEntityId`,
+ * `!<resource facet>`, `!attributes.<key>`), one per value as the kept ones.
+ *
+ * Dropped: severityTexts, excludedSeverityTexts (as `!severityTexts`) and
+ * bodyContains — spans have neither a severity nor a message-body
+ * dimension.
  */
 export function toTracesExplorerQueryParams(
   scope: TelemetryCrossSignalScope,
@@ -511,6 +698,33 @@ export function toTracesExplorerQueryParams(
     }
   }
 
+  /*
+   * What the view leaves out, as the chips the explorer's minus writes. A
+   * chip, never a typed `-@key:value`: the explorer reads a chip's values
+   * as one reading (readTraceExclusions), the same one its facet rows
+   * write.
+   */
+  const exclusions: ResolvedExclusions = resolveExclusions(scope);
+
+  for (const serviceId of exclusions.serviceIds) {
+    filterTuples.push([toExcludeFacetKey("primaryEntityId"), serviceId]);
+  }
+
+  for (const [facetKey, values] of exclusions.resourceFacetSelections) {
+    for (const value of values) {
+      filterTuples.push([toExcludeFacetKey(facetKey), value]);
+    }
+  }
+
+  for (const [key, values] of exclusions.attributes) {
+    for (const value of values) {
+      filterTuples.push([
+        toExcludeFacetKey(`attributes.${key}`),
+        buildSearchTokenValue(value),
+      ]);
+    }
+  }
+
   if (searchTokens.length > 0) {
     params["search"] = searchTokens.join(" ");
   }
@@ -529,6 +743,10 @@ export function toTracesExplorerQueryParams(
 
   if (sanitizeValues(scope.severityTexts).length > 0) {
     dropped.push("severityTexts");
+  }
+
+  if (exclusions.severityTexts.length > 0) {
+    dropped.push(toExcludedDroppedField("severityTexts"));
   }
 
   if (sanitizeBodyContains(scope.bodyContains).length > 0) {
@@ -553,7 +771,10 @@ export function toTracesExplorerQueryParams(
  * bodyContains — the metric explorer's URL grammar has no resource /
  * trace / span / severity / message dimension. serviceIds DO carry, via
  * the `services` param the explorer folds into `resource.service.name`
- * attribute filters on load.
+ * attribute filters on load. Every value left out is dropped too, under
+ * its kept field's name marked `!` (`!serviceIds`, `!hostId`,
+ * `!attributes.<key>`, `!severityTexts`): a metric query has no "is not",
+ * and carrying the rest without it would widen what the chart shows.
  */
 export function toMetricsExplorerQueryParams(
   scope: TelemetryCrossSignalScope,
@@ -623,6 +844,24 @@ export function toMetricsExplorerQueryParams(
 
   if (sanitizeBodyContains(scope.bodyContains).length > 0) {
     dropped.push("bodyContains");
+  }
+
+  const exclusions: ResolvedExclusions = resolveExclusions(scope);
+
+  if (exclusions.serviceIds.length > 0) {
+    dropped.push(toExcludedDroppedField("serviceIds"));
+  }
+
+  for (const [facetKey] of exclusions.resourceFacetSelections) {
+    dropped.push(toExcludedDroppedField(facetKey));
+  }
+
+  for (const [key] of exclusions.attributes) {
+    dropped.push(toExcludedDroppedField(`attributes.${key}`));
+  }
+
+  if (exclusions.severityTexts.length > 0) {
+    dropped.push(toExcludedDroppedField("severityTexts"));
   }
 
   dropped.push(...window.dropped);
