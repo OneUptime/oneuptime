@@ -81,7 +81,7 @@ Se [Sikkerhetssaker](/docs/telemetry/security-cases#varslinger).
 
 Kortet **Godkjenning av offentlige notater** på fanen **Statussider** gjelder offentlige notater som venter på godkjenning før de publiseres, i et prosjekt som krever det:
 
-- **Offentlig notat venter på min godkjenning** forteller deg at et offentlig notat, eller en redigering av et, venter på et trinn du godkjenner, ved navn eller gjennom et team. Du blir ikke spurt om et notat du selv har sendt, eller om et trinn etter et du har godkjent. Det er slått på fra start via e-post og push, og **Email Rollup** holder det aldri tilbake: kundene notatet er skrevet for, venter på det.
+- **Offentlig notat venter på min godkjenning** forteller deg at et offentlig notat, eller en redigering av et, venter på et trinn du godkjenner, ved navn eller gjennom et team. Du blir ikke spurt om et notat du selv har sendt, eller om et trinn etter et du har godkjent. Du blir spurt om hvert trinn én gang: når notatet kommer til det, eller når du blir en av godkjennerne mens notatet venter, fordi godkjenningstrinnene ble endret eller du ble med i et team et trinn nevner. Det er slått på fra start via e-post og push, og **Email Rollup** holder det aldri tilbake: kundene notatet er skrevet for, venter på det.
 - **Mitt offentlige notat godkjent eller avvist** forteller deg at et notat du sendte til godkjenning, ble godkjent og publisert, eller avvist, med begrunnelsen. Det er slått på fra start via e-post.
 
 Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).

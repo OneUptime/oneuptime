@@ -125,11 +125,12 @@ describe("ServiceLevelObjectiveErrorBudgetPolicyTier", () => {
     }
   });
 
-  it("people set its name, threshold, agreement and outputs; nobody moves it to another SLO", () => {
+  it("people set its name, threshold, agreement, deploy gate and outputs; nobody moves it to another SLO", () => {
     for (const column of [
       "name",
       "thresholdPercentage",
       "whatWeDo",
+      "freezesDeployments",
       "isEnabled",
       ...OUTPUT_COLUMNS,
     ]) {
@@ -196,6 +197,35 @@ describe("ServiceLevelObjectiveErrorBudgetPolicyTier", () => {
       model.getTableColumnMetadata("autoResolveIncident").defaultValue,
     ).toBe(true);
     expect(model.getTableColumnMetadata("isEnabled").defaultValue).toBe(true);
+  });
+
+  it("freezes no deployments by default: Freeze Deployments, a switch that is off until someone turns it on", () => {
+    const column: { title?: string; type?: unknown; required?: boolean } =
+      model.getTableColumnMetadata("freezesDeployments");
+
+    expect(column.title).toBe("Freeze Deployments");
+    expect(column.type).toBe(TableColumnType.Boolean);
+    expect(column.required).toBe(true);
+    expect(
+      model.getTableColumnMetadata("freezesDeployments").defaultValue,
+    ).toBe(false);
+    expect(
+      model.getTableColumnMetadata("freezesDeployments").isDefaultValueColumn,
+    ).toBe(true);
+    expect(
+      model.getColumnAccessControlFor("freezesDeployments")?.create,
+    ).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveErrorBudgetPolicyTier,
+    ]);
+    // Part of the agreement, not one of the outputs a burn rate rule shares.
+    expect(OUTPUT_COLUMNS).not.toContain("freezesDeployments");
+    expect(
+      new ServiceLevelObjectiveBurnRateRule().isTableColumn(
+        "freezesDeployments",
+      ),
+    ).toBe(false);
   });
 
   it("needs a name, a threshold and an agreement", () => {
@@ -305,6 +335,42 @@ describe("the SLO's current tier", () => {
       expect(slo.getTableColumnMetadata(column).required).toBeFalsy();
     },
   );
+
+  it.each(["deploymentsAllowed", "deploymentsFrozenAt"])(
+    "the deploy gate's %s is read with the SLO's own read permission, and only the worker writes it",
+    (column: string) => {
+      const access: ColumnAccessControl | null =
+        slo.getColumnAccessControlFor(column);
+
+      expect(access).toEqual({
+        create: [],
+        read: SLO_READERS,
+        update: [],
+      });
+    },
+  );
+
+  it("the deploy gate answers allowed until a tier says otherwise", () => {
+    const allowed: {
+      type?: unknown;
+      required?: boolean;
+      defaultValue?: unknown;
+      isDefaultValueColumn?: boolean;
+      title?: string;
+    } = slo.getTableColumnMetadata("deploymentsAllowed");
+
+    expect(allowed.type).toBe(TableColumnType.Boolean);
+    expect(allowed.required).toBe(true);
+    expect(allowed.defaultValue).toBe(true);
+    expect(allowed.isDefaultValueColumn).toBe(true);
+    expect(allowed.title).toBe("Deployments Allowed");
+
+    const frozenAt: { type?: unknown; required?: boolean } =
+      slo.getTableColumnMetadata("deploymentsFrozenAt");
+
+    expect(frozenAt.type).toBe(TableColumnType.Date);
+    expect(frozenAt.required).toBeFalsy();
+  });
 
   it("is a snapshot - an id, a name and an entry time - not a relation", () => {
     expect(

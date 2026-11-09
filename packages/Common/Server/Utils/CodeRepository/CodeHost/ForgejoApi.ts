@@ -32,6 +32,7 @@ import {
   CodeHostCommitRange,
   CodeHostCommitSummary,
   CodeHostFileContent,
+  CodeHostFileExpected,
   CodeHostFileWrite,
   CodeHostOpenedPullRequest,
   CodeHostPullRequestDetails,
@@ -42,6 +43,18 @@ import {
   CodeHostServerInfo,
 } from "./CodeHostTypes";
 import CodeHostText from "./CodeHostText";
+import CodeHostFilesMovedError from "./CodeHostFilesMovedError";
+
+/*
+ * What Forgejo and Gitea say when they refuse a commit held to the files
+ * as they were read (issue #6331): an update whose blob is no longer the
+ * one read, a create of a file made meanwhile, an update of one deleted.
+ */
+const FILE_MOVED_REFUSALS: ReadonlyArray<string> = [
+  "sha does not match",
+  "already exists",
+  "does not exist",
+];
 import UnifiedDiff from "./UnifiedDiff";
 
 /*
@@ -1020,6 +1033,13 @@ export default class ForgejoApi {
    * several files at once (Forgejo and Gitea 1.20 and later). Each file is
    * created, or updated where it is there already - with the SHA of the
    * file it replaces, as the API asks - and sent in base64.
+   *
+   * A file held to how it was read (expected, issue #6331) is not read
+   * again: its update names the blob that was read, and its create needs
+   * the file still not there. The server refuses the whole commit
+   * otherwise - a push that landed since - and nothing is written
+   * (CodeHostFilesMovedError). A file it is not held to is read here and
+   * written over as it is now, as it always was.
    */
   public async commitFiles(data: {
     owner: string;
@@ -1027,16 +1047,30 @@ export default class ForgejoApi {
     branchName: string;
     commitMessage: string;
     files: Array<CodeHostFileWrite>;
+    expected?: ReadonlyArray<CodeHostFileExpected> | undefined;
   }): Promise<CodeHostCommitMade> {
     const operations: Array<JSONObject> = [];
+    const held: Array<string> = [];
 
     for (const file of data.files) {
-      const sha: string | null = await this.getFileSha({
-        owner: data.owner,
-        name: data.name,
-        ref: data.branchName,
-        filePath: file.filePath,
-      });
+      const expected: CodeHostFileExpected | undefined = data.expected?.find(
+        (candidate: CodeHostFileExpected): boolean => {
+          return candidate.filePath === file.filePath;
+        },
+      );
+
+      if (expected) {
+        held.push(file.filePath);
+      }
+
+      const sha: string | null = expected
+        ? expected.blobSha
+        : await this.getFileSha({
+            owner: data.owner,
+            name: data.name,
+            ref: data.branchName,
+            filePath: file.filePath,
+          });
 
       operations.push({
         operation: sha ? "update" : "create",
@@ -1058,6 +1092,20 @@ export default class ForgejoApi {
         },
       );
     } catch (error) {
+      // A file it was held to moved since it was read: refused, nothing written.
+      if (
+        held.length > 0 &&
+        error instanceof CodeHostHttpError &&
+        FILE_MOVED_REFUSALS.some((refusal: string): boolean => {
+          return error.message.includes(refusal);
+        })
+      ) {
+        throw new CodeHostFilesMovedError({
+          filePaths: held,
+          reason: `${this.client.getProviderName()} refused the commit: a file it writes changed on the branch after it was read.`,
+        });
+      }
+
       /*
        * The branch was just read, so a server that does not know the
        * route is one older than 1.20, which writes one file at a time.

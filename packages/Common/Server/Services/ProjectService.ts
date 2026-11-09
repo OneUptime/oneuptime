@@ -178,6 +178,10 @@ import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import ActiveMonitorLimitUtil from "../../Types/Monitor/ActiveMonitorLimit";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
+import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngestionBudgetSettings";
+import TelemetryIngestionBudgetValidation, {
+  isTelemetryIngestionBudgetColumnTouched,
+} from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
 import { IsNull, Repository, UpdateResult } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
@@ -1211,6 +1215,17 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.invalidateAuditLogSettingsCache(updateData, updatedItemIds);
 
     /*
+     * A project's ingestion budget changed: this server's ingest reads it
+     * again at once, every other server within
+     * TelemetryIngestionBudgetSettings' minute.
+     */
+    if (isTelemetryIngestionBudgetColumnTouched(updateData)) {
+      for (const projectId of updatedItemIds) {
+        TelemetryIngestionBudgetSettings.clearProjectCache(projectId);
+      }
+    }
+
+    /*
      * The active monitor limit is read and cached with the plan
      * (getCurrentPlan): a new one - a reseller's change of tier, or a master
      * admin's edit - holds this server's monitor creates at once, and every
@@ -1426,6 +1441,16 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(updateBy.data);
     this.applyNextNumberRules(updateBy.data);
     this.applyAiDailyLimitRules(updateBy.data);
+
+    /*
+     * The project's ingestion budgets, which only a master admin writes (the
+     * columns' update list is empty): valid values, 0 meaning "no limit for
+     * this project".
+     */
+    TelemetryIngestionBudgetValidation.applyBudgetColumnRules(
+      updateBy.data as unknown as Record<string, unknown>,
+      { allowZero: true },
+    );
     this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       updateBy.data as { securityRiskCaseThreshold?: unknown },

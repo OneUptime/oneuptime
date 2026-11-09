@@ -80,7 +80,15 @@ const CAUTION_JSON: JSONObject = {
   name: "Caution",
   thresholdPercentage: 50,
   whatWeDo: CAUTION.whatWeDo,
+  freezesDeployments: false,
 };
+
+// The recommended tier that freezes deployments.
+const EXHAUSTED: SloRecommendedPolicyTier = SLO_RECOMMENDED_POLICY_TIERS.find(
+  (tier: SloRecommendedPolicyTier): boolean => {
+    return tier.freezesDeployments;
+  },
+)!;
 
 let props: DatabaseCommonInteractionProps;
 let next: jest.Mock;
@@ -331,6 +339,51 @@ describe("the recommended tiers an SLO is missing", () => {
 
     expect(refusal()).toBeInstanceOf(BadDataException);
     expect(previewSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("which recommended tier freezes deployments", () => {
+  test("the preview says so, so the confirmation can mark it", async () => {
+    previewSpy.mockResolvedValue({
+      serviceLevelObjectiveId: SLO_ID,
+      projectId: PROJECT,
+      tiers: [CAUTION, EXHAUSTED],
+    } as SloMissingRecommendedPolicyTiers);
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    const tiers: Array<JSONObject> = answered()["tiers"] as Array<JSONObject>;
+
+    expect(
+      tiers.map((tier: JSONObject): [unknown, unknown] => {
+        return [tier["name"], tier["freezesDeployments"]];
+      }),
+    ).toEqual([
+      ["Caution", false],
+      ["Budget exhausted", true],
+    ]);
+    expect(parseSloRecommendedPolicyTiers(tiers)).toEqual([CAUTION, EXHAUSTED]);
+  });
+
+  test("and so does the answer of what was added", async () => {
+    addSpy.mockResolvedValue({
+      serviceLevelObjectiveId: SLO_ID,
+      tiers: [{ ...EXHAUSTED, tierId: TIER_ID }],
+    } as SloAddedRecommendedPolicyTiers);
+
+    await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(answered()).toEqual({
+      tiers: [
+        {
+          name: "Budget exhausted",
+          thresholdPercentage: 0,
+          whatWeDo: EXHAUSTED.whatWeDo,
+          freezesDeployments: true,
+          id: TIER_ID.toString(),
+        },
+      ],
+    });
   });
 });
 

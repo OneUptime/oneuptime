@@ -494,6 +494,55 @@ export default class WorkspacePublicNoteApprovalActions {
   }
 
   /*
+   * What a message that still asks about the step a note waits for says in
+   * its place, once its approver is no longer one the step asks (#6353) -
+   * taken off the step, or off the team it names: that they are no longer
+   * asked, and who the note waits for now, in the feed's words, with the
+   * note's record in OneUptime. Null for a note that is gone: getReplacement
+   * says it was deleted.
+   *
+   *   You are no longer asked to approve this public note on
+   *   [Incident INC-42](...). It waits for step 1 of 2 (Support): Dave.
+   */
+  @CaptureSpan()
+  public static async getNoLongerAskedReplacement(
+    value: PublicNoteApprovalButtonValue,
+  ): Promise<PublicNoteApprovalReplacement | null> {
+    const pressed: PressedNote | null =
+      await WorkspacePublicNoteApprovalActions.readNote(value);
+
+    if (!pressed) {
+      return null;
+    }
+
+    const record: PublicNoteApprovalRecordInfo | null =
+      await WorkspacePublicNoteApprovalActions.readRecord({
+        value: value,
+        pressed: pressed,
+      });
+    const recordMarkdown: MarkdownText =
+      await WorkspacePublicNoteApprovalActions.getRecordMarkdown({
+        value: value,
+        pressed: pressed,
+        record: record,
+      });
+    const subject: MarkdownText = value.isEdit
+      ? mdText`the edit of this public note on ${recordMarkdown}`
+      : mdText`this public note on ${recordMarkdown}`;
+    const waitingFor: MarkdownText =
+      await WorkspacePublicNoteApprovalActions.getWaitingForMarkdown(pressed);
+
+    return {
+      answer: {
+        markdown:
+          mdText`You are no longer asked to approve ${subject}. ${waitingFor}`.toString(),
+        text: "You are no longer asked to approve this public note",
+      },
+      notesUrl: record?.notesUrl,
+    };
+  }
+
+  /*
    * The press, in the project's workspace logs: "approve_public_note",
    * "reject_public_note", with the record the note is on. Best effort.
    */

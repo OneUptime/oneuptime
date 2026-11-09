@@ -109,6 +109,33 @@ The application exists, but its pages show nothing.
 - **Wait a few minutes.** Ingest is queued, and **Last Seen** is refreshed every few minutes rather than on every batch.
 - **Check the project.** A key writes into its own project, so telemetry sent with another project's key is there, not here.
 
+## Exceptions or logs are empty
+
+Page loads and requests arrive, but **Exceptions** or **Logs** stay empty. The OpenTelemetry browser SDK sends traces of page loads and requests on its own, but no exceptions and no logs, so an application can look connected while these two stay empty for good.
+
+The empty chart on the application's **Overview** says which case it is, and the **Setup check** on its **Documentation** page lists each kind of telemetry with when the latest arrived:
+
+| The chart says | What it means |
+| --- | --- |
+| **Exceptions aren't set up** or **Logs aren't set up** | None has ever arrived from this app. **Set up exceptions** or **Set up logs** shows the code that sends them, with your URL and key filled in. |
+| **No exceptions in this time range** or **No logs in this time range** | Some arrived before, and the chart says when the last one did. Pick the longer range it offers. |
+| **Nothing has arrived from this app yet** | No telemetry of any kind arrives: start with [Check the key](#check-the-key). |
+| **The OpenTelemetry SDK isn't reporting** | Only Session Replay reports from this app: set up the SDK as in [Browser Setup](/docs/rum/browser-setup). |
+
+Exceptions need an error handler, because the SDK does not capture uncaught errors: [Report uncaught errors](/docs/rum/browser-setup#report-uncaught-errors) has the code. An error that an error boundary or a `try`/`catch` handles never reaches the window, so record it where you handle it, with `span.recordException`.
+
+Logs need a log pipeline and code that writes log records, because a `LoggerProvider` on its own sends nothing: [Add logs and metrics](/docs/rum/browser-setup#add-logs-and-metrics) has both. Build the pipeline with the same `resource` as your traces, or the logs are filed under a backend service.
+
+When page loads arrive, the key, its allowed origins and your Content Security Policy let exceptions and logs through as well, as long as the log exporter uses the same key and host. An error handler that has caught nothing sends nothing, exactly like one that was never added, so throw a test error from the browser's console to tell the two apart:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Within a minute, it is on the application's **Overview**, under **Exceptions**.
+
 ## The Clients page is empty
 
 The **Clients** page lists `browser.platform` on the web and `device.model.identifier` on mobile. Two reasons it stays empty while everything else works:

@@ -334,6 +334,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/RumApplicationService.ts": {
     "Service.attachLabels RumApplication": Why.Reported,
+    // When traces, logs or metrics last arrived, stamped by ingest (#5770).
+    "Service.markTelemetrySignalReceived RumApplication": Why.Reported,
     "Service.writeReplayHealthColumn RumApplication": Why.Reported,
   },
   "packages/Common/Server/Services/SecurityCaseService.ts": {

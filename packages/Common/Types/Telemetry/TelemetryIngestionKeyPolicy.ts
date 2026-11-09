@@ -1,4 +1,5 @@
 import ObjectID from "../ObjectID";
+import { TelemetryIngestionBudgetStoredSettings } from "./TelemetryIngestionBudget";
 import TelemetryIngestionKeyType from "./TelemetryIngestionKeyType";
 
 /*
@@ -57,6 +58,16 @@ export default interface TelemetryIngestionKeyPolicy {
    * DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE, a Server key is unlimited.
    */
   requestsPerMinuteLimit: number | null;
+
+  /*
+   * The key's own daily budgets and per-second rates, per signal
+   * (TelemetryIngestionBudget), or null when it sets none - the historical
+   * behaviour, where only the project's budget applies. Optional rather than
+   * spelled-out null because it is the one field a policy built before
+   * budgets existed (a test's, a rolling deploy's) does not carry, and absent
+   * means exactly that: no budget of the key's own.
+   */
+  ingestionBudgets?: TelemetryIngestionBudgetStoredSettings | null | undefined;
 }
 
 /*

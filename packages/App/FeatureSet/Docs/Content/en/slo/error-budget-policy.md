@@ -1,11 +1,12 @@
 # Error Budget Policy
 
-An error budget policy writes down what your team agreed to do as an SLO's error budget runs down, such as reviewing risky changes once half of it is spent, or freezing releases once all of it is. OneUptime puts the SLO in the tier of the policy its budget has reached, shows the team's agreement for that tier on the SLO's pages, and can raise an alert or declare an incident when the SLO enters a tier. It is the error budget policy practice of the [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+An error budget policy writes down what your team agreed to do as an SLO's error budget runs down, such as reviewing risky changes once half of it is spent, or freezing releases once all of it is. OneUptime puts the SLO in the tier of the policy its budget has reached, shows the team's agreement for that tier on the SLO's pages, can raise an alert or declare an incident when the SLO enters a tier, and tells your CI/CD pipelines whether to hold back releases. It is the error budget policy practice of the [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [How tiers work](#how-tiers-work): Which tier applies, and when the SLO leaves it.
 - [Set up a policy](#set-up-a-policy): Start from the recommended policy, or write your own tiers.
 - [Alerts and incidents](#alerts-and-incidents): Page your team when the SLO enters a tier.
+- [Deployment gate](#deployment-gate): Hold back releases from CI/CD while a tier freezes deployments.
 - [Read the tier from the API](#read-the-tier-from-the-api): Check the tier from CI and scripts.
 :::
 
@@ -20,6 +21,8 @@ A policy is a set of tiers. Each tier has three fields:
 | **What We Do** | What the team agreed to do while the SLO is in the tier, in Markdown. Required, up to 10,000 characters. |
 
 A tier applies while the budget left is at or below its threshold, so a tier at 0% is the tier of an exhausted budget. When several tiers apply, the SLO is in the one with the lowest threshold: the most severe. When none applies, the SLO is in no tier. With tiers at 50%, 25% and 0%, an SLO with 30% of its budget left is in the 50% tier, and one with 10% left is in the 25% tier.
+
+A tier can also freeze deployments while the SLO is in it: see [Deployment gate](#deployment-gate).
 
 ### Entering and leaving a tier
 
@@ -59,7 +62,7 @@ While the SLO has no tiers, the page offers **Use the recommended policy**. Clic
 
 ### Or add a tier yourself
 
-Click **Create SLO Error Budget Policy Tier**. Enter a **Name** and a **Budget Left Threshold (%)**, and write the team's agreement in **What We Do**.
+Click **Create SLO Error Budget Policy Tier**. Enter a **Name** and a **Budget Left Threshold (%)**, and write the team's agreement in **What We Do**. Switch on **Freeze Deployments** if pipelines should hold back releases while the SLO is in the tier.
 
 ### Choose what the tier raises
 
@@ -72,21 +75,21 @@ Adding, editing or deleting a tier applies right away: OneUptime evaluates the S
 
 **Use the recommended policy** adds three tiers, at half the budget, a quarter and none:
 
-| Tier | Applies at | What the team does |
-| --- | --- | --- |
-| **Caution** | 50% left or less | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 25% left or less | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 0% left or less | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| Tier | Applies at | What the team does | Deployments |
+| --- | --- | --- | --- |
+| **Caution** | 50% left or less | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | Allowed |
+| **Reliability first** | 25% left or less | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Allowed |
+| **Budget exhausted** | 0% left or less | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Frozen |
 
-None of them raises an alert or declares an incident until you switch that on. It adds only the tiers the SLO does not have: a tier with the same name, or with the same threshold, counts as there, whether it is on or off. So asking for it twice, from a second tab or through the API, adds nothing twice. Each tier it adds is recorded in the SLO's audit logs as added by you.
+None of them raises an alert or declares an incident until you switch that on. **Budget exhausted** freezes deployments, as its agreement says, and the confirmation marks it so: see [Deployment gate](#deployment-gate). Tiers added before the gate existed freeze nothing until you switch it on. It adds only the tiers the SLO does not have: a tier with the same name, or with the same threshold, counts as there, whether it is on or off. So asking for it twice, from a second tab or through the API, adds nothing twice. Each tier it adds is recorded in the SLO's audit logs as added by you.
 
 ## Where the tier shows
 
-- The SLO's **Overview** shows the tier it is in and what the team agreed to do there, so everyone who opens the SLO sees the agreement that holds now.
+- The SLO's **Overview** shows the tier it is in and what the team agreed to do there, so everyone who opens the SLO sees the agreement that holds now. While the tier freezes deployments, a red badge under its name says since when.
 - The **Error budget burn-down** chart draws a labelled line at each tier's threshold, beside the at-risk threshold's.
-- The SLO's **Feed** posts every tier change: the tier the SLO left and the tier it entered, the budget left, and what the team agreed to do in the new tier.
-- The SLO's **Audit Logs** record each tier change as a change OneUptime made itself, so they show it only with **Store System Events** on: see [Turn audit logs on](/docs/slo/feed-and-audit-logs#turn-audit-logs-on). Adding, editing and removing a tier is recorded as the person who did it.
-- The SLO's read API returns the tier: see [Read the tier from the API](#read-the-tier-from-the-api).
+- The SLO's **Feed** posts every tier change: the tier the SLO left and the tier it entered, the budget left, what the team agreed to do in the new tier, and whether the change froze deployments or allowed them again.
+- The SLO's **Audit Logs** record each tier change, and each time deployments are frozen or allowed again, as a change OneUptime made itself, so they show it only with **Store System Events** on: see [Turn audit logs on](/docs/slo/feed-and-audit-logs#turn-audit-logs-on). Adding, editing and removing a tier is recorded as the person who did it.
+- The SLO's read API returns the tier, and whether deployments are allowed: see [Read the tier from the API](#read-the-tier-from-the-api) and [Deployment gate](#deployment-gate).
 
 ## Alerts and incidents
 
@@ -124,6 +127,98 @@ The built-in description names the tier, gives the budget left against the tier'
 - A **Paused** or **Misconfigured** SLO measures no budget, so its tier stays where it was, and what the tier raised stays open until measuring resumes. Burn rate rules resolve what they have open instead.
 - Turning the SLO's evaluation off, or archiving the SLO, resolves what its tiers raised. The tier the SLO is in stays as it was.
 - Deleting the SLO deletes its tiers and resolves what they raised.
+- In each of these cases the SLO keeps the answer it gave about deployments, because it keeps its tier: see [Deployment gate](#deployment-gate).
+
+## Deployment gate
+
+A tier can freeze deployments. While the SLO is in a tier with **Freeze Deployments** on, the SLO's `deploymentsAllowed` field is `false`, so a CI/CD pipeline that checks it before it releases holds the release back. Otherwise it is `true`: when the SLO has no policy, while its budget is above every tier, and in a tier that does not freeze deployments. The recommended policy's **Budget exhausted** tier freezes deployments.
+
+:::steps
+### Switch on Freeze Deployments
+
+Open the SLO's **Error Budget Policy**, edit the tier, switch on **Freeze Deployments** and save. The tier's **Deployments** column in the table says **Frozen**.
+
+### Give the pipeline a key
+
+Create an [API key](/docs/api-reference/api-reference) of the project that can read the SLO, and store it as a secret of the pipeline named `ONEUPTIME_API_KEY`.
+
+### Check the SLO before the release
+
+Add the check below as a step before the one that deploys, with the SLO's ID in place of `<slo-id>`.
+:::
+
+:::tabs
+@tab Shell
+```bash
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
+```
+:::
+
+The check passes only when the answer is `true`. A frozen SLO, an answer without the field (the key cannot read the SLO, or the ID is wrong) and no answer at all each stop the step, so a pipeline never releases on an answer it did not get. In GitLab CI, the job runs in the test stage, so a frozen SLO stops the deploy stage after it; add `ONEUPTIME_API_KEY` as a masked CI/CD variable. On a self-hosted installation, use its own address instead of oneuptime.com.
+
+The SLO answers with two fields, read with the SLO's own read permission:
+
+| Field | What it holds |
+| --- | --- |
+| `deploymentsAllowed` | `false` while the SLO is in a tier that freezes deployments, `true` otherwise. |
+| `deploymentsFrozenAt` | When deployments were frozen. Empty while they are allowed. |
+
+How the answer moves:
+
+- Deployments are frozen by the evaluation that puts the SLO in a tier that freezes them, and allowed again by the one that takes it out, with the tier's own recovery margins: see [Entering and leaving a tier](#entering-and-leaving-a-tier). From one tier that freezes to another, they stay frozen, and `deploymentsFrozenAt` keeps its time.
+- Switching **Freeze Deployments** on or off for the tier the SLO is in applies within about a minute. To release before the budget recovers, switch it off: the change is recorded in the SLO's audit logs as yours.
+- A **Paused** or **Misconfigured** SLO keeps the answer it had, as it keeps its tier: a maintenance window that pauses every monitor neither lifts a freeze nor starts one. A disabled or archived SLO is not evaluated at all, so it keeps its answer too.
+- While deployments are frozen, the SLO's **Overview** shows since when, and its **Feed** says when they are frozen and allowed again.
 
 ## Read the tier from the API
 
@@ -164,7 +259,7 @@ These permissions are in the SLO group of a role. The Project Owner and Project 
 
 ## Not available yet
 
-Some parts of an error budget policy are not available yet: a deployment gate that blocks releases by itself (a CI job can read the tier from the API instead), workflow triggers and Slack or Microsoft Teams notifications for each tier, a policy shared by several SLOs, acknowledging a tier or granting an exception to it, and tiers based on the budget runway rather than the budget left.
+Some parts of an error budget policy are not available yet: workflow triggers and Slack or Microsoft Teams notifications for each tier, a policy shared by several SLOs, acknowledging a tier or granting an exception to it, and tiers based on the budget runway rather than the budget left. OneUptime does not stop a release by itself: a pipeline that checks `deploymentsAllowed` does, as [Deployment gate](#deployment-gate) shows.
 
 ## Next steps
 

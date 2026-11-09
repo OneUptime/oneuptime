@@ -33,6 +33,7 @@ import {
 import Response from "Common/Server/Utils/Response";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
+import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
@@ -557,6 +558,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
             projectId,
             attributes: resourceAttributes_raw,
+            signal: RumTelemetrySignal.Traces,
           });
 
           const serviceMetadata: TelemetryServiceMetadata =

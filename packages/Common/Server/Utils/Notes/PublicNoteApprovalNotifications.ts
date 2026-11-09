@@ -12,7 +12,9 @@ import { SMSMessage } from "../../../Types/SMS/SMS";
 import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
 import AccessTokenService from "../../Services/AccessTokenService";
 import ProjectService from "../../Services/ProjectService";
-import UserNotificationSettingService from "../../Services/UserNotificationSettingService";
+import UserNotificationSettingService, {
+  UserNotificationChannels,
+} from "../../Services/UserNotificationSettingService";
 import UserService from "../../Services/UserService";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -27,6 +29,12 @@ import type {
 } from "../Workspace/WorkspacePublicNoteApproval";
 import type { PublicNoteApprovalWaitingFor } from "./PublicNoteApprovalFeed";
 import type { PublicNoteKind } from "./PublicNoteApprovalEngine";
+import PublicNoteApprovalRequests, {
+  ASK_BY_EVERYTHING,
+  ASK_BY_NOTHING,
+  PublicNoteApprovalRequestClaim,
+  PublicNoteApprovalRequestKey,
+} from "./PublicNoteApprovalRequests";
 
 /*
  * TELLING PEOPLE ABOUT PUBLIC NOTE APPROVAL.
@@ -58,6 +66,13 @@ import type { PublicNoteKind } from "./PublicNoteApprovalEngine";
  * kept as it is sent, and replaced by what happened once the note is
  * decided, changed or deleted (WorkspacePublicNoteApprovalMessages,
  * replaceChatMessages).
+ *
+ * Who approves can change while a note waits - its approval steps, a team's
+ * members - and each change asks the step's people again
+ * (PublicNoteApprovalEngine.followUp). So every ask of a step records whom
+ * it asked, and how, before it asks them (PublicNoteApprovalRequests): a
+ * person is asked about a step once by their notification settings, and in
+ * chat once for each message that asks it.
  *
  * A notification never fails, or holds back, the decision it follows: it
  * is sent after the decision is written, and a failure is logged.
@@ -215,6 +230,12 @@ export default class PublicNoteApprovalNotifications {
    * Asks these people to approve. `canRead` says whether one of them may
    * read the note (PublicNoteApprovalEngine asks the note's own read, with
    * the person's permissions). Returns the people asked.
+   *
+   * With `request`, each person is asked about that step of the note's
+   * round only by what nobody asked them by yet, claimed before they are
+   * asked (PublicNoteApprovalRequests): all of it, the first time; in chat
+   * alone when only the chat message changed - its Approve now publishes
+   * the note, or no longer does; nothing when they were asked already.
    */
   @CaptureSpan()
   public static async askApprovers(data: {
@@ -227,10 +248,56 @@ export default class PublicNoteApprovalNotifications {
     canRead: (props: DatabaseCommonInteractionProps) => Promise<boolean>;
     // What the chat message's Approve and Reject carry; none, none on it.
     chat?: PublicNoteApprovalChatAsk | undefined;
+    /*
+     * The step of the note's round this asks about, to ask each person
+     * about it once; none, everyone is asked, as before requests were kept.
+     */
+    request?: PublicNoteApprovalRequestKey | undefined;
+    /*
+     * Asked because who approves changed while the note waits
+     * (PublicNoteApprovalEngine.followUp), not because the note reached the
+     * step: nobody is asked when who was asked cannot be told. The step's
+     * own ask asks everybody it cannot tell about, as it always has.
+     */
+    isFollowUp?: boolean | undefined;
   }): Promise<Array<ObjectID>> {
     const asked: Array<ObjectID> = [];
 
     if (data.userIds.length === 0) {
+      return asked;
+    }
+
+    if (data.isFollowUp && !data.request) {
+      return asked;
+    }
+
+    // Who was asked about the step already, read at once, for a follow-up.
+    let askedAlready: Map<string, PublicNoteApprovalRequestClaim> = new Map();
+
+    if (data.request && data.isFollowUp) {
+      try {
+        askedAlready = await PublicNoteApprovalRequests.readAsked(data.request);
+      } catch (error) {
+        logger.error(
+          "Public note approval: could not read who was asked about a public note's step, so nobody new was asked.",
+          { projectId: data.facts.projectId.toString() },
+        );
+        logger.error(error, { projectId: data.facts.projectId.toString() });
+        return asked;
+      }
+    }
+
+    // Those asked by everything already are not looked at again.
+    const userIds: Array<string> = data.userIds.filter(
+      (userId: string): boolean => {
+        const was: PublicNoteApprovalRequestClaim | undefined =
+          askedAlready.get(userId.toLowerCase());
+
+        return !(was?.notifications && was.chat);
+      },
+    );
+
+    if (userIds.length === 0) {
       return asked;
     }
 
@@ -253,7 +320,7 @@ export default class PublicNoteApprovalNotifications {
         ? this.getChatButtonValue({ facts: data.facts, chat: data.chat })
         : undefined;
 
-    for (const userIdText of data.userIds) {
+    for (const userIdText of userIds) {
       try {
         const userId: ObjectID = new ObjectID(userIdText);
 
@@ -267,30 +334,54 @@ export default class PublicNoteApprovalNotifications {
           continue;
         }
 
+        const claim: PublicNoteApprovalRequestClaim = await this.claimRequest({
+          request: data.request,
+          userId: userId,
+          isFollowUp: Boolean(data.isFollowUp),
+        });
+
+        if (!claim.notifications && !claim.chat) {
+          continue;
+        }
+
         await UserNotificationSettingService.addPublicNoteApprovalNotificationSettings(
           userId,
           data.facts.projectId,
         );
 
-        await this.send({
-          userId,
-          facts: data.facts,
-          message: buildApprovalRequestedMessage({
+        try {
+          await this.send({
+            userId,
             facts: data.facts,
-            projectName,
-            sentBy,
-            stepLabel: data.stepLabel,
-            isTeam: !data.namedUserIds.includes(userIdText),
-          }),
-          workspaceMessage:
-            workspaceMessage && buttonValue
-              ? this.keptAsSent({
-                  message: workspaceMessage,
-                  value: buttonValue,
-                  userId: userId,
-                })
-              : workspaceMessage,
-        });
+            message: buildApprovalRequestedMessage({
+              facts: data.facts,
+              projectName,
+              sentBy,
+              stepLabel: data.stepLabel,
+              isTeam: !data.namedUserIds.includes(userIdText),
+            }),
+            workspaceMessage:
+              workspaceMessage && buttonValue
+                ? this.keptAsSent({
+                    message: workspaceMessage,
+                    value: buttonValue,
+                    userId: userId,
+                  })
+                : workspaceMessage,
+            channels: this.getChannels(claim),
+          });
+        } catch (error) {
+          // Not asked: the next ask of the step asks them.
+          if (data.request) {
+            await PublicNoteApprovalRequests.release({
+              key: data.request,
+              userId: userId,
+              claim: claim,
+            });
+          }
+
+          throw error;
+        }
 
         asked.push(userId);
       } catch (error) {
@@ -302,6 +393,52 @@ export default class PublicNoteApprovalNotifications {
     }
 
     return asked;
+  }
+
+  /*
+   * What this ask may ask a person by (PublicNoteApprovalRequests.claim):
+   * everything, when the ask records nothing. When the record cannot be
+   * written, the step's own ask asks them anyway - a note must not wait for
+   * nobody - and a follow-up does not, so as not to ask them twice.
+   */
+  private static async claimRequest(data: {
+    request: PublicNoteApprovalRequestKey | undefined;
+    userId: ObjectID;
+    isFollowUp: boolean;
+  }): Promise<PublicNoteApprovalRequestClaim> {
+    if (!data.request) {
+      return ASK_BY_EVERYTHING;
+    }
+
+    try {
+      return await PublicNoteApprovalRequests.claim({
+        key: data.request,
+        userId: data.userId,
+      });
+    } catch (error) {
+      logger.error(
+        data.isFollowUp
+          ? `Public note approval: could not record that user ${data.userId.toString()} is asked to approve, so they were not asked.`
+          : `Public note approval: could not record that user ${data.userId.toString()} is asked to approve; they are asked anyway.`,
+        { projectId: data.request.projectId.toString() },
+      );
+      logger.error(error, { projectId: data.request.projectId.toString() });
+
+      return data.isFollowUp ? ASK_BY_NOTHING : ASK_BY_EVERYTHING;
+    }
+  }
+
+  // The channels a claim asks a person by.
+  public static getChannels(
+    claim: PublicNoteApprovalRequestClaim,
+  ): UserNotificationChannels {
+    if (claim.notifications && claim.chat) {
+      return UserNotificationChannels.All;
+    }
+
+    return claim.chat
+      ? UserNotificationChannels.ChatOnly
+      : UserNotificationChannels.AllButChat;
   }
 
   // Tells the person who sent the note how it was decided.
@@ -575,6 +712,8 @@ export default class PublicNoteApprovalNotifications {
     message: PublicNoteApprovalMessage;
     // The chat accounts' own message, when the event has one.
     workspaceMessage?: WorkspaceDirectMessage | undefined;
+    // Which of the person's channels it goes to; left out, all of them.
+    channels?: UserNotificationChannels | undefined;
   }): Promise<void> {
     const { facts, message } = data;
 
@@ -624,6 +763,9 @@ export default class PublicNoteApprovalNotifications {
       pushNotificationMessage: push,
       ...(data.workspaceMessage
         ? { workspaceMessage: data.workspaceMessage }
+        : {}),
+      ...(data.channels && data.channels !== UserNotificationChannels.All
+        ? { channels: data.channels }
         : {}),
       ...(facts.incidentId ? { incidentId: facts.incidentId } : {}),
       ...(facts.incidentEpisodeId

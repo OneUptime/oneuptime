@@ -52,6 +52,7 @@ import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import { getApplicationSessionReplayRetentionInDays } from "../Utils/SessionReplay/SessionReplayRetention";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
+import TelemetryIngestionBudgetMetricTypeUtil from "../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
@@ -134,9 +135,17 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
  * and a metric or trace recording rule cannot be saved with one as its
  * output. So no customer telemetry can be stored under one of these names to
  * be kept for free.
+ *
+ * The telemetry ingestion budget sweep's oneuptime.telemetry.budget.* readings
+ * are left out the same way and for the same reasons: they report on a
+ * project's budget, so counting them as usage would spend the budget they
+ * report on, and only the sweep can write them
+ * (TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName).
  */
-export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> =
-  SessionReplayBudgetMetricTypeUtil.getAll();
+export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> = [
+  ...SessionReplayBudgetMetricTypeUtil.getAll(),
+  ...TelemetryIngestionBudgetMetricTypeUtil.getAll(),
+];
 
 /*
  * How many complete UTC days back each billing run looks for usage it never

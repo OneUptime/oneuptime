@@ -48,9 +48,14 @@ again, there is nothing to add. The confirmation is also checked at a phone's wi
 with no tiers is offered Use the recommended policy: its confirmation lists exactly the
 tiers it adds, each raising nothing, and adds just those (closing it adds nothing). A
 new tier's form asks Name, Budget Left Threshold (%) and What We Do, with its alerts and
-incidents folded away and switched off. With `?policy=recommended` the SLO has the
-recommended tiers and is in Reliability first, which the overview shows under its
-summary, with what the team does there and a link to the policy.
+incidents folded away and switched off, and Freeze Deployments beside its own fields,
+off. Each tier's row says whether deployments are Frozen or Allowed in it, and the
+confirmation marks Budget exhausted as the tier that freezes them. With
+`?policy=recommended` the SLO has the recommended tiers and is in Reliability first,
+which the overview shows under its summary, with what the team does there and a link
+to the policy. With `?policy=frozen` it is in Budget exhausted with its budget
+overspent, and the overview's tier card says since when deployments are frozen, at
+desktop and phone widths.
 
 ## Run it
 

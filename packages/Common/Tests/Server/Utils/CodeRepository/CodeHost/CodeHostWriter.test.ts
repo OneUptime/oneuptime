@@ -418,6 +418,19 @@ describe("a GitHub repository's writer", () => {
     expect(commit.mock.calls[0]![0].changes).toEqual([
       { filePath: "a.ts", content: "x" },
     ]);
+    // Held to nothing: nothing to hold it to is passed on.
+    expect(commit.mock.calls[0]![0].expected).toBeUndefined();
+
+    // Held to the files as they were read (issue #6331): passed on to GitHub as they are.
+    await writer.commitFiles({
+      branchName: "feature",
+      commitMessage: "m",
+      files: [{ filePath: "a.ts", content: "x" }],
+      expected: [{ filePath: "a.ts", blobSha: SHA }],
+    });
+    expect(commit.mock.calls[1]![0].expected).toEqual([
+      { filePath: "a.ts", blobSha: SHA },
+    ]);
 
     expect(
       await writer.openPullRequest({

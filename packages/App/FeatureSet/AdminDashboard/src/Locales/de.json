@@ -64,7 +64,8 @@
     "more": "Mehr",
     "sendEmail": "E-Mail senden",
     "logout": "Abmelden",
-    "telemetryUsage": "Telemetrie-Nutzung"
+    "telemetryUsage": "Telemetrie-Nutzung",
+    "ingestionBudgets": "Ingestion-Budgets"
   },
   "topAlert": {
     "title": "OneUptime Admin-Dashboard",
@@ -133,7 +134,10 @@
     "settingsApiKey": "API-Schlüssel",
     "moreCommunication": "Kommunikation",
     "moreSendEmail": "E-Mail senden",
-    "telemetryUsage": "Telemetrie-Nutzung"
+    "telemetryUsage": "Telemetrie-Nutzung",
+    "ingestionBudgets": "Ingestion-Budgets",
+    "settingsTelemetry": "Telemetrie",
+    "settingsIngestionBudgets": "Ingestion-Budgets"
   },
   "pages": {
     "users": {
@@ -307,7 +311,15 @@
       "dataResidencyFieldTitle": "Datenresidenz",
       "dataResidencyFieldDescription": "Eine Bezeichnung dafür, wo die Daten dieses Projekts gehostet werden, zum Beispiel \"EU (Frankfurt)\". Leer lassen, um sie vor den Benutzern des Projekts auszublenden.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
-      "dataResidencyNotSet": "Nicht festgelegt"
+      "dataResidencyNotSet": "Nicht festgelegt",
+      "ingestionBudgets": {
+        "dailyCardTitle": "Tagesbudgets für dieses Projekt",
+        "dailyCardDescription": "Das eigene Tagesbudget dieses Projekts für jedes Signal, anstelle des Standards der Instanz. Lassen Sie ein Signal leer für den Standard der Instanz, oder geben Sie 0 für kein Limit ein. Die Administratoren des Projekts sehen diese Werte, können sie aber nicht ändern.",
+        "dailyEditButton": "Tagesbudgets bearbeiten",
+        "rateCardTitle": "Ratenlimits für dieses Projekt",
+        "rateCardDescription": "Optional. Das eigene Ratenlimit dieses Projekts für jedes Signal, anstelle des Standards der Instanz. Lassen Sie ein Signal leer für den Standard der Instanz, oder geben Sie 0 für kein Limit ein.",
+        "rateEditButton": "Ratenlimits bearbeiten"
+      }
     },
     "projectSubscription": {
       "title": "Projekt-Abonnement",
@@ -600,6 +612,17 @@
         "cardTitle": "Globale LLM-Anbieter",
         "cardDescription": "Globale LLM-Anbieter sind für alle Projekte für KI-Funktionen verfügbar. Konfigurieren Sie OpenAI, Anthropic, Ollama oder andere LLM-Anbieter.",
         "noItems": "Keine LLM-Anbieter konfiguriert. Fügen Sie einen LLM-Anbieter hinzu, um KI-Funktionen zu aktivieren."
+      },
+      "ingestionBudgets": {
+        "dailyCardTitle": "Standard-Tagesbudgets",
+        "dailyCardDescription": "Wie viel jedes Projekt von jedem Telemetriesignal an einem Budgettag höchstens senden darf, beim Eintreffen dekomprimiert gezählt. Sobald ein Budget aufgebraucht ist, wird dieses Signal abgelehnt, bis das Budget zurückgesetzt wird. Das eigene Budget eines Projekts, festgelegt auf seiner Seite unter Projekte, hat Vorrang vor diesen. Lassen Sie ein Signal leer für kein Limit.",
+        "dailyEditButton": "Standard-Tagesbudgets bearbeiten",
+        "resetCardTitle": "Warnung und Zurücksetzen",
+        "resetCardDescription": "Wann Projekte gewarnt werden, dass ein Budget zur Neige geht, und wann jeder Budgettag neu beginnt.",
+        "resetEditButton": "Warnung und Zurücksetzen bearbeiten",
+        "rateCardTitle": "Standard-Ratenlimits",
+        "rateCardDescription": "Optional. Wie schnell jedes Projekt jedes Signal höchstens senden darf, damit ein einzelner Schub das Budget eines Tages nicht in Minuten aufbrauchen kann. Schnellere Anfragen werden mit 429 und Retry-After beantwortet, und Sender versuchen sie erneut. Lassen Sie ein Signal leer für kein Limit.",
+        "rateEditButton": "Standard-Ratenlimits bearbeiten"
       }
     },
     "telemetryUsage": {
@@ -1925,6 +1948,47 @@
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Wie viele Tage die tägliche Telemetrie-Nutzung jedes Projekts aufbewahrt wird, von 30 bis 1095. Leer lassen für 120 Tage.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Anzahl der Tage, für die die tägliche Telemetrie-Nutzung jedes Projekts aufbewahrt wird. Ältere Nutzung wird gelöscht.",
   "Scheduled Maintenance": "Geplante Wartung",
+  "Logs (GB per day)": "Protokolle (GB pro Tag)",
+  "Traces (GB per day)": "Traces (GB pro Tag)",
+  "Metrics (GB per day)": "Metriken (GB pro Tag)",
+  "Profiles (GB per day)": "Profile (GB pro Tag)",
+  "Security Events (GB per day)": "Sicherheitsereignisse (GB pro Tag)",
+  "Logs (MB per second)": "Protokolle (MB pro Sekunde)",
+  "Traces (MB per second)": "Traces (MB pro Sekunde)",
+  "Metrics (MB per second)": "Metriken (MB pro Sekunde)",
+  "Profiles (MB per second)": "Profile (MB pro Sekunde)",
+  "Security Events (MB per second)": "Sicherheitsereignisse (MB pro Sekunde)",
+  "Instance default": "Standard der Instanz",
+  "Warning Threshold (%)": "Warnschwelle (%)",
+  "Projects are warned, and their owners emailed, when this share of a daily budget is used. From 1 to 99. Leave empty for 80.": "Projekte werden gewarnt und ihre Inhaber per E-Mail benachrichtigt, wenn dieser Anteil eines Tagesbudgets verbraucht ist. Von 1 bis 99. Leer lassen für 80.",
+  "Reset Time": "Rücksetzzeit",
+  "When each budget day starts again, as HH:MM on the 24-hour clock. Leave empty for 00:00.": "Wann jeder Budgettag neu beginnt, als HH:MM im 24-Stunden-Format. Leer lassen für 00:00.",
+  "Reset Time Zone": "Zeitzone der Rücksetzzeit",
+  "The time zone of the reset time. Leave empty for UTC.": "Die Zeitzone der Rücksetzzeit. Leer lassen für UTC.",
+  "Ingestion Budgets": "Ingestion-Budgets",
+  "Telemetry counted against today's budgets as it arrives, decompressed. Once a daily budget is used up, that signal is refused until the budget resets at {{resetsAt}}.": "Telemetrie, die beim Eintreffen dekomprimiert auf die heutigen Budgets angerechnet wird. Sobald ein Tagesbudget aufgebraucht ist, wird dieses Signal abgelehnt, bis das Budget am {{resetsAt}} zurückgesetzt wird.",
+  "Ingestion Key Budgets": "Budgets der Ingestion-Schlüssel",
+  "Ingestion keys with a budget of their own. A key's budget only subdivides the project's.": "Ingestion-Schlüssel mit eigenem Budget. Das Budget eines Schlüssels unterteilt nur das des Projekts.",
+  "No ingestion budgets": "Keine Ingestion-Budgets",
+  "Every signal is accepted without a daily budget or a rate limit.": "Jedes Signal wird ohne Tagesbudget und ohne Ratenlimit angenommen.",
+  "Today's counts could not be read right now. Budgets are not enforced while they cannot be counted.": "Die heutigen Zählungen konnten gerade nicht gelesen werden. Budgets werden nicht durchgesetzt, solange nicht gezählt werden kann.",
+  "Ingestion Key": "Aufnahmeschlüssel",
+  "Signal": "Signal",
+  "Used Today": "Heute verbraucht",
+  "Daily Budget": "Tagesbudget",
+  "Rate Limit": "Ratenlimit",
+  "Dropped": "Verworfen",
+  "Throttled": "Gedrosselt",
+  "{{count}} requests": "{{count}} Anfragen",
+  "{{count}} requests_one": "{{count}} Anfrage",
+  "No daily budget": "Kein Tagesbudget",
+  "Within budget": "Im Budget",
+  "Past warning": "Warnschwelle überschritten",
+  "Used up": "Aufgebraucht",
+  "Unknown": "Unbekannt",
+  "Set for this project": "Für dieses Projekt festgelegt",
+  "This key's own": "Für diesen Schlüssel festgelegt",
+  "{{size}} per second": "{{size}} pro Sekunde",
   "markdownCallouts": {
     "caution": "Vorsicht",
     "danger": "Gefahr",

@@ -27,6 +27,7 @@ flowchart TB
 - **Traces omvatten hun uitzonderingen, en profielen hun samples.**
 - **De eigen telemetrie van OneUptime wordt niet geteld.** Metingen van monitoren, waarschuwingen, incidenten en SLO's, metingen van Data-observability en de budgetmetrieken van sessieherhalingen worden door OneUptime zelf geschreven.
 - **Op OneUptime Cloud wordt telemetrie gefactureerd op basis van deze rijen.** Op een installatie zonder facturering wordt gebruik kosteloos geteld, en er wordt niets voor in rekening gebracht, ook niet als facturering later wordt ingeschakeld.
+- **Een budget wordt los van het gebruik geteld.** Een [ingestiebudget](/docs/telemetry/ingestion-budgets) telt telemetrie bij binnenkomst, gedecomprimeerd, zodat het de telemetrie van een dag nog dezelfde dag kan stoppen. Zolang er een is ingesteld, opent deze pagina met de budgetten van vandaag.
 
 ## Voordat u begint
 
@@ -134,4 +135,5 @@ De resource is verwijderd nadat hij de telemetrie verstuurde, of uw rol leest da
 - [Gegevensbewaring](/docs/telemetry/data-retention): Bewaar telemetrie zo lang als nodig, en niet langer.
 - [Facturering en gebruik](/docs/configuration/billing): Wat telemetrie kost op OneUptime Cloud.
 - [Ingestiesleutels](/docs/telemetry/ingestion-keys): Stuur telemetrie naar uw project.
+- [Ingestiebudgetten](/docs/telemetry/ingestion-budgets): Begrens hoeveel van elk signaal een project per dag verstuurt.
 :::
