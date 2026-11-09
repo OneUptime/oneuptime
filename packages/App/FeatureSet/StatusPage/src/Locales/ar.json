@@ -62,7 +62,7 @@
     "postedOn": "نُشر في"
   },
   "monitorOverview": {
-    "daysAgo": "قبل {{days}} يوم",
+    "daysAgo": "قبل {{days}} يومًا",
     "today": "اليوم",
     "notAvailable": "غير متاح",
     "underMaintenance": "قيد الصيانة"

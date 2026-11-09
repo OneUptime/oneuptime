@@ -313,4 +313,56 @@ describe("the Dashboard's most-used words, in Arabic", () => {
       expect(glossary).toContain(word);
     }
   });
+
+  /*
+   * Home and an incident, looked at in Arabic in a browser, still showed
+   * these in English: SLO badges on Home, the incident's facts and its AI
+   * card. Each is Arabic now, in the glossary's words.
+   */
+  test("what Home and the incident page showed in English is Arabic", () => {
+    const expected: Record<string, string> = {
+      "At Risk": "معرّض للخطر",
+      "Budget Exhausted": "استُنفدت الميزانية",
+      "Incident Commander": "قائد الحادثة",
+      "Root cause": "السبب الجذري",
+      "AI root cause analysis": "تحليل السبب الجذري بالذكاء الاصطناعي",
+      "What happened": "ما الذي حدث",
+      "By {{name}}": "بواسطة {{name}}",
+      "{{duration}} after impact began": "بعد {{duration}} من بدء التأثير",
+      "Time to acknowledge": "وقت الإقرار",
+      "Video Call": "مكالمة الفيديو",
+    };
+
+    for (const [key, word] of Object.entries(expected)) {
+      expect([key, english[key]]).toEqual([key, key]);
+      expect([key, arabic[key]]).toEqual([key, word]);
+    }
+
+    const glossary: string = fs.readFileSync(
+      path.join(PACKAGES, LOCALE_DIRS["Dashboard"] as string, "ARABIC.md"),
+      "utf8",
+    );
+
+    expect(glossary).toContain("| Incident Commander | قائد الحادثة |");
+    expect(glossary).toContain("| Grouping rule | قاعدة التجميع |");
+  });
+});
+
+describe("the status page's uptime bars, in Arabic", () => {
+  /*
+   * "{{days}} days ago" is not a plural key: Arabic writes it for the 90
+   * days every page starts with (11 to 99 take the singular يومًا), as
+   * Locales/ARABIC.md says.
+   */
+  test("their far end reads right for the 90 days a page shows", () => {
+    const english: LocaleTree = readLocale("StatusPage", "en");
+    const arabic: LocaleTree = readLocale("StatusPage", "ar");
+
+    expect((english["monitorOverview"] as LocaleTree)["daysAgo"]).toBe(
+      "{{days}} days ago",
+    );
+    expect((arabic["monitorOverview"] as LocaleTree)["daysAgo"]).toBe(
+      "قبل {{days}} يومًا",
+    );
+  });
 });

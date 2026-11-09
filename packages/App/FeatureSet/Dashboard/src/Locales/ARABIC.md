@@ -34,6 +34,11 @@ The short units are the ones `Intl.NumberFormat` draws for `ar` with
 `CompactDuration` wrote it. Short relative times are templates, not plurals:
 `قبل {{count}} د`, `قبل {{count}} س`, `قبل {{count}} ي`.
 
+A number that is not a plural count (the status page's `{{days}} days ago`
+under its uptime bars) is written for the value it nearly always has:
+`قبل {{days}} يومًا` reads right for 11 to 99 days, and every page starts
+with 90.
+
 A noun that arrives in a placeholder (`{{resourceName}}`, `{{noun}}`) is
 named after a fixed noun, `هذا المورد ({{resourceName}})`, so no adjective
 has to agree with a word it cannot see.
@@ -107,7 +112,15 @@ font is fetched from another site). Latin text keeps Inter.
 | Span Type / Span Kind | نوع الامتداد / صنف الامتداد |
 | Waterfall | المخطط الشلالي |
 | Latency | زمن الانتقال |
-| Response time | زمن الاستجابة |
+| Response time (a monitor's request) | زمن الاستجابة |
+| Response time (SLA, to acknowledge) | وقت الاستجابة |
+| Grouping rule | قاعدة التجميع |
+| Parent monitor | المراقبة الأم |
+| Suppressed (alerts) | مكتومة |
+| Re-investigation cooldown | فترة التهدئة قبل إعادة التحقيق |
+| Measurement | القياس |
+| Incident Commander | قائد الحادثة |
+| Call transcript | النص المكتوب للمكالمة |
 | Ingestion key | مفتاح الاستيعاب |
 | Probe | المسبار |
 | Collector | المجمّع |
