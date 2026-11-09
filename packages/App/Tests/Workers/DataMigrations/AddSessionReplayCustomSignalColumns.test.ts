@@ -335,9 +335,13 @@ describe("AddSessionReplayCustomSignalColumns", () => {
     expect(registered[registered.length - 1]).toBe(
       "AddAuditLogMcpClientColumns",
     );
-    expect(registered.indexOf("AddSessionReplayCustomSignalColumns")).toBe(
-      registered.length - 2,
-    );
+    /*
+     * Before the last slot (the runbook moves keep the places right before
+     * it), and after the engagement columns it is added beside.
+     */
+    expect(
+      registered.indexOf("AddSessionReplayCustomSignalColumns"),
+    ).toBeLessThan(registered.length - 1);
     expect(
       registered.indexOf("AddSessionReplayCustomSignalColumns"),
     ).toBeGreaterThan(registered.indexOf("AddSessionReplayEngagementColumns"));
