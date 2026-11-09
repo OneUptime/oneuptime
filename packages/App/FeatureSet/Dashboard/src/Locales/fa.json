@@ -47260,6 +47260,8 @@
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "یک اجرا چه مدت می‌تواند طول بکشد تا با یافته‌هایش پاسخ دهد. برای مقدار پیش‌فرض، ۱۲۰ دقیقه، خالی بگذارید. سقف زمانی بررسی حادثه یا هشدار، اگر تعیین شده باشد، مقدم است.",
   "120 minutes (the default)": "۱۲۰ دقیقه (پیش‌فرض)",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} باید عددی صحیح از {{min}} تا {{max}} باشد. برای مقدار پیش‌فرض خالی بگذارید.",
+  "Calls and Tokens": "فراخوانی‌ها و توکن‌ها",
+  "Time Limit": "سقف زمانی",
   "From AI calls": "از فراخوانی‌های هوش مصنوعی",
   "From AI calls and usage metrics": "از فراخوانی‌های هوش مصنوعی و متریک‌های مصرف",
   "From usage metrics": "از متریک‌های مصرف",

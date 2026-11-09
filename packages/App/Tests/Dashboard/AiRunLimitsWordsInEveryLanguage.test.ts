@@ -1,8 +1,10 @@
 import {
   PROJECT_AI_RUN_LIMIT_FIELDS,
+  PROJECT_AI_RUN_LIMITS_FORM_STEPS,
   ProjectAiDailyLimitsCopy,
   ProjectAiRunLimitField,
   ProjectAiRunLimitsCopy,
+  ProjectAiRunLimitsFormStep,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import {
   ExtractedString,
@@ -61,6 +63,12 @@ const WORDS: ReadonlyArray<string> = Array.from(
         return [field.title, field.description];
       },
     ),
+    // The edit dialog's step list.
+    ...PROJECT_AI_RUN_LIMITS_FORM_STEPS.map(
+      (step: ProjectAiRunLimitsFormStep): string => {
+        return step.title;
+      },
+    ),
     ...LANE_WORDS,
   ]),
 );
@@ -93,11 +101,13 @@ function digitsIn(language: string, value: number): string {
 }
 
 describe("the limits per run in every language", () => {
-  test("the words are the card's, the More settings line's and the lane pages'", () => {
-    expect(WORDS.length).toBe(17);
+  test("the words are the card's, its dialog's steps, the More settings line's and the lane pages'", () => {
+    expect(WORDS.length).toBe(19);
     expect(WORDS).toContain("Limits per run");
     expect(WORDS).toContain("Time Limit per Run (Minutes)");
     expect(WORDS).toContain("120 minutes (the default)");
+    expect(WORDS).toContain("Calls and Tokens");
+    expect(WORDS).toContain("Time Limit");
   });
 
   test("en.json maps every one of them to itself", () => {

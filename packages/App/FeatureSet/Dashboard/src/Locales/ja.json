@@ -47260,6 +47260,8 @@
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "1 回の実行が、見つかった内容で回答するまでにかけられる時間です。空欄にすると既定の 120 分になります。インシデントまたはアラートの調査の制限時間が設定されている場合は、そちらが優先されます。",
   "120 minutes (the default)": "120 分（既定）",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} は {{min}} から {{max}} までの整数にしてください。空欄にすると既定値になります。",
+  "Calls and Tokens": "呼び出しとトークン",
+  "Time Limit": "制限時間",
   "From AI calls": "AI 呼び出しから",
   "From AI calls and usage metrics": "AI 呼び出しと使用量メトリクスから",
   "From usage metrics": "使用量メトリクスから",

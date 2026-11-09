@@ -47260,6 +47260,8 @@
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "Hoe lang één uitvoering mag duren voordat ze antwoordt met wat ze heeft gevonden. Laat leeg voor de standaard, 120 minuten. Een tijdslimiet voor incident- of waarschuwingsonderzoeken gaat voor, als die is ingesteld.",
   "120 minutes (the default)": "120 minuten (standaard)",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} moet een geheel getal van {{min}} tot {{max}} zijn. Laat leeg voor de standaard.",
+  "Calls and Tokens": "Aanroepen en tokens",
+  "Time Limit": "Tijdslimiet",
   "From AI calls": "Uit AI-aanroepen",
   "From AI calls and usage metrics": "Uit AI-aanroepen en gebruiksmetrieken",
   "From usage metrics": "Uit gebruiksmetrieken",

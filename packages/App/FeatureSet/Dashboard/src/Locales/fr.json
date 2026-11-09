@@ -47260,6 +47260,8 @@
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "Combien de temps une exécution peut durer avant de répondre avec ce qu'elle a trouvé. Laissez vide pour la valeur par défaut, 120 minutes. Une limite de temps d'investigation des incidents ou des alertes, lorsqu'elle est fixée, passe en premier.",
   "120 minutes (the default)": "120 minutes (par défaut)",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} doit être un nombre entier de {{min}} à {{max}}. Laissez vide pour la valeur par défaut.",
+  "Calls and Tokens": "Appels et jetons",
+  "Time Limit": "Limite de temps",
   "From AI calls": "Depuis les appels d'IA",
   "From AI calls and usage metrics": "Depuis les appels d'IA et les métriques d'utilisation",
   "From usage metrics": "Depuis les métriques d'utilisation",

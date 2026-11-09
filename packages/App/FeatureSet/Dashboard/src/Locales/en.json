@@ -47260,6 +47260,8 @@
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.",
   "120 minutes (the default)": "120 minutes (the default)",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.",
+  "Calls and Tokens": "Calls and Tokens",
+  "Time Limit": "Time Limit",
   "From AI calls": "From AI calls",
   "From AI calls and usage metrics": "From AI calls and usage metrics",
   "From usage metrics": "From usage metrics",

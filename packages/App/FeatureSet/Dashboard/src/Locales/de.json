@@ -47260,6 +47260,8 @@
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "Wie lange eine Ausführung dauern darf, bevor sie mit dem antwortet, was sie gefunden hat. Leer lassen für den Standard, 120 Minuten. Ein Zeitlimit für Vorfalls- oder Warnungsuntersuchungen hat Vorrang, wo eines festgelegt ist.",
   "120 minutes (the default)": "120 Minuten (Standard)",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} muss eine ganze Zahl von {{min}} bis {{max}} sein. Leer lassen für den Standard.",
+  "Calls and Tokens": "Aufrufe und Tokens",
+  "Time Limit": "Zeitlimit",
   "From AI calls": "Aus KI-Aufrufen",
   "From AI calls and usage metrics": "Aus KI-Aufrufen und Nutzungsmetriken",
   "From usage metrics": "Aus Nutzungsmetriken",

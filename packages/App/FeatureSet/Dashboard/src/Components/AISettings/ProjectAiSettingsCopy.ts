@@ -1526,12 +1526,31 @@ export const ProjectAiRunLimitsCopy: {
   ),
 };
 
+/*
+ * The edit dialog's steps. A form of more than three fields walks steps
+ * (LongFormStepsGuard): first what a run may use - its model calls, tool
+ * calls and tokens, none capped until set - then how long it may take, the
+ * one limit every run has. The ids are the fields' stepId below.
+ */
+export interface ProjectAiRunLimitsFormStep {
+  id: string;
+  title: string;
+}
+
+export const PROJECT_AI_RUN_LIMITS_FORM_STEPS: ReadonlyArray<ProjectAiRunLimitsFormStep> =
+  [
+    { id: "calls-and-tokens", title: translationKey("Calls and Tokens") },
+    { id: "time-limit", title: translationKey("Time Limit") },
+  ];
+
 // One limit's field on the card, in the card's order.
 export interface ProjectAiRunLimitField {
   column: ProjectAiRunLimitColumn;
   title: string;
   description: string;
   placeholder: string;
+  // The edit dialog's step it is on (PROJECT_AI_RUN_LIMITS_FORM_STEPS).
+  stepId: string;
 }
 
 export const PROJECT_AI_RUN_LIMIT_FIELDS: ReadonlyArray<ProjectAiRunLimitField> =
@@ -1543,6 +1562,7 @@ export const PROJECT_AI_RUN_LIMIT_FIELDS: ReadonlyArray<ProjectAiRunLimitField> 
         "The most model calls one run may make. Leave empty for no limit.",
       ),
       placeholder: ProjectAiRunLimitsCopy.noLimitPlaceholder,
+      stepId: "calls-and-tokens",
     },
     {
       column: PROJECT_AI_RUN_MAX_TOOL_CALLS_COLUMN,
@@ -1551,6 +1571,7 @@ export const PROJECT_AI_RUN_LIMIT_FIELDS: ReadonlyArray<ProjectAiRunLimitField> 
         "The most tool calls one run may make: each query, command or lookup is one. Leave empty for no limit.",
       ),
       placeholder: ProjectAiRunLimitsCopy.noLimitPlaceholder,
+      stepId: "calls-and-tokens",
     },
     {
       column: PROJECT_AI_RUN_MAX_TOKENS_COLUMN,
@@ -1559,6 +1580,7 @@ export const PROJECT_AI_RUN_LIMIT_FIELDS: ReadonlyArray<ProjectAiRunLimitField> 
         "The most tokens one run may use. Leave empty for no limit.",
       ),
       placeholder: ProjectAiRunLimitsCopy.noLimitPlaceholder,
+      stepId: "calls-and-tokens",
     },
     {
       column: PROJECT_AI_RUN_TIME_LIMIT_COLUMN,
@@ -1567,6 +1589,7 @@ export const PROJECT_AI_RUN_LIMIT_FIELDS: ReadonlyArray<ProjectAiRunLimitField> 
         "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.",
       ),
       placeholder: ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder,
+      stepId: "time-limit",
     },
   ];
 

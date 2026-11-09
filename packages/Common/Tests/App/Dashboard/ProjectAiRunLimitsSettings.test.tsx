@@ -27,9 +27,11 @@ import {
   PROJECT_AI_ADVANCED_SECTION_TEST_ID,
   PROJECT_AI_RUN_LIMIT_FIELDS,
   PROJECT_AI_RUN_LIMITS_CARD_KEY,
+  PROJECT_AI_RUN_LIMITS_FORM_STEPS,
   ProjectAiDailyLimitsCopy,
   ProjectAiRunLimitField,
   ProjectAiRunLimitsCopy,
+  ProjectAiRunLimitsFormStep,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { PROJECT_AI_DAILY_USAGE_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/useProjectAiDailyLimits";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -256,6 +258,10 @@ function detailValue(card: HTMLElement, title: string): string {
   return (row?.textContent || "").replace(title, "").trim();
 }
 
+// The edit dialog's two steps, as the step list draws them.
+const CALLS_STEP_TITLE: string = "Calls and Tokens";
+const TIME_STEP_TITLE: string = "Time Limit";
+
 async function openEditDialog(card: HTMLElement): Promise<HTMLElement> {
   fireEvent.click(within(card).getByText("Edit"));
 
@@ -272,13 +278,74 @@ async function openEditDialog(card: HTMLElement): Promise<HTMLElement> {
     { timeout: WAIT_TIMEOUT },
   );
 
+  /*
+   * BasicForm opens its first step in an effect: until then it draws every
+   * field and no step list. Wait for the list, then for its first step.
+   */
+  await within(dialog).findByRole(
+    "navigation",
+    { name: "Progress" },
+    { timeout: WAIT_TIMEOUT },
+  );
+  await waitFor(
+    () => {
+      expect(activeStep(dialog)).toBe(CALLS_STEP_TITLE);
+    },
+    { timeout: WAIT_TIMEOUT },
+  );
+
   return dialog;
+}
+
+function progress(dialog: HTMLElement): HTMLElement {
+  return within(dialog).getByRole("navigation", { name: "Progress" });
+}
+
+function stepTitles(dialog: HTMLElement): Array<string> {
+  return within(progress(dialog))
+    .getAllByRole("listitem")
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
+function activeStep(dialog: HTMLElement): string {
+  return (
+    progress(dialog).querySelector('[aria-current="step"]')?.textContent || ""
+  );
+}
+
+// The plain Next: it checks the step on screen, then walks on.
+async function next(dialog: HTMLElement): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+  });
+}
+
+// Walks on to the time limit, the last step, where Save Changes is.
+async function goToTimeStep(dialog: HTMLElement): Promise<void> {
+  await next(dialog);
+  await waitFor(
+    () => {
+      expect(activeStep(dialog)).toBe(TIME_STEP_TITLE);
+    },
+    { timeout: WAIT_TIMEOUT },
+  );
 }
 
 function inputFor(dialog: HTMLElement, title: string): HTMLInputElement {
   return within(dialog).getByLabelText(
     new RegExp(escapeRegExp(title)),
   ) as HTMLInputElement;
+}
+
+function queryInputFor(
+  dialog: HTMLElement,
+  title: string,
+): HTMLInputElement | null {
+  return within(dialog).queryByLabelText(
+    new RegExp(escapeRegExp(title)),
+  ) as HTMLInputElement | null;
 }
 
 function postedColumns(): Array<string> {
@@ -406,30 +473,83 @@ describe("the Limits per run card", () => {
     expect(detailValue(card, TIME_TITLE)).toBe("45");
   });
 
-  test("edits the four limits on one page, each saying what empty means", async () => {
+  /*
+   * Four fields walk steps, as every form of more than three does
+   * (LongFormStepsGuard): what a run may use, then how long it may take.
+   * Save Changes is on the last step only, after a plain Next.
+   */
+  test("edits the four limits in two steps, calls and tokens then the time limit, each saying what empty means", async () => {
     openAiFeaturesPage();
 
     const dialog: HTMLElement = await openEditDialog(await openRunLimitsCard());
 
     expect(dialog).toHaveTextContent("Limits per run");
-    expect(within(dialog).queryByTestId("modal-footer-next-button")).toBeNull();
+    expect(stepTitles(dialog)).toEqual([CALLS_STEP_TITLE, TIME_STEP_TITLE]);
 
+    // The first step: the three caps, none set, and no Save yet.
     for (const title of [MODEL_CALLS_TITLE, TOOL_CALLS_TITLE, TOKENS_TITLE]) {
       expect(inputFor(dialog, title)).toHaveAttribute(
         "placeholder",
         "No limit",
       );
     }
+    expect(queryInputFor(dialog, TIME_TITLE)).toBeNull();
+    expect(dialog).toHaveTextContent(
+      "The most tool calls one run may make: each query, command or lookup is one. Leave empty for no limit.",
+    );
+    expect(
+      within(dialog).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
+    expect(
+      within(dialog).getByTestId("modal-footer-next-button"),
+    ).toHaveTextContent("Next");
+
+    // The last step: the time limit alone, its default named, and Save.
+    await goToTimeStep(dialog);
+
     expect(inputFor(dialog, TIME_TITLE)).toHaveAttribute(
       "placeholder",
       "120 minutes (the default)",
     );
-    expect(dialog).toHaveTextContent(
-      "The most tool calls one run may make: each query, command or lookup is one. Leave empty for no limit.",
-    );
+    for (const title of [MODEL_CALLS_TITLE, TOOL_CALLS_TITLE, TOKENS_TITLE]) {
+      expect(queryInputFor(dialog, title)).toBeNull();
+    }
     expect(dialog).toHaveTextContent(
       "Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.",
     );
+    expect(
+      within(dialog).getByTestId("modal-footer-submit-button"),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByTestId("modal-footer-next-button")).toBeNull();
+  });
+
+  test("the steps are the copy's, and every field is on one of them, in the card's order", () => {
+    expect(
+      PROJECT_AI_RUN_LIMITS_FORM_STEPS.map(
+        (step: ProjectAiRunLimitsFormStep): string => {
+          return step.title;
+        },
+      ),
+    ).toEqual([CALLS_STEP_TITLE, TIME_STEP_TITLE]);
+
+    const stepIds: Array<string> = PROJECT_AI_RUN_LIMITS_FORM_STEPS.map(
+      (step: ProjectAiRunLimitsFormStep): string => {
+        return step.id;
+      },
+    );
+
+    expect(
+      PROJECT_AI_RUN_LIMIT_FIELDS.map(
+        (field: ProjectAiRunLimitField): [string, string] => {
+          return [field.title, field.stepId];
+        },
+      ),
+    ).toEqual([
+      [MODEL_CALLS_TITLE, stepIds[0]],
+      [TOOL_CALLS_TITLE, stepIds[0]],
+      [TOKENS_TITLE, stepIds[0]],
+      [TIME_TITLE, stepIds[1]],
+    ]);
   });
 
   test("saving a tool-call cap writes that column alone, and the header shows it", async () => {
@@ -440,6 +560,7 @@ describe("the Limits per run card", () => {
     fireEvent.change(inputFor(dialog, TOOL_CALLS_TITLE), {
       target: { value: "300" },
     });
+    await goToTimeStep(dialog);
     fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
 
     await waitFor(
@@ -469,11 +590,12 @@ describe("the Limits per run card", () => {
 
     const dialog: HTMLElement = await openEditDialog(await openRunLimitsCard());
 
-    fireEvent.change(inputFor(dialog, TIME_TITLE), {
-      target: { value: "30" },
-    });
     fireEvent.change(inputFor(dialog, TOKENS_TITLE), {
       target: { value: "500000" },
+    });
+    await goToTimeStep(dialog);
+    fireEvent.change(inputFor(dialog, TIME_TITLE), {
+      target: { value: "30" },
     });
     fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
 
@@ -532,16 +654,73 @@ describe("the Limits per run card", () => {
         await openRunLimitsCard(),
       );
 
-      fireEvent.change(inputFor(dialog, title), { target: { value } });
-      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+      if (title === TIME_TITLE) {
+        // The time limit is on the last step, checked by Save Changes.
+        await goToTimeStep(dialog);
+        fireEvent.change(inputFor(dialog, title), { target: { value } });
+        fireEvent.click(
+          within(dialog).getByTestId("modal-footer-submit-button"),
+        );
+      } else {
+        // A cap is on the first step, checked by Next before it walks on.
+        fireEvent.change(inputFor(dialog, title), { target: { value } });
+        await next(dialog);
+      }
 
       expect(
         await within(dialog).findByText(message, {}, { timeout: WAIT_TIMEOUT }),
       ).toBeInTheDocument();
+      expect(activeStep(dialog)).toBe(
+        title === TIME_TITLE ? TIME_STEP_TITLE : CALLS_STEP_TITLE,
+      );
       await flush();
       expect(createOrUpdateSpy).not.toHaveBeenCalled();
     },
   );
+
+  /*
+   * The step list opens the last step without Next, as every edit dialog's
+   * does: Save Changes still checks the first step, and opens it on the
+   * cap that is wrong.
+   */
+  test("Save Changes checks the first step too, and opens it on a wrong cap", async () => {
+    openAiFeaturesPage();
+
+    const dialog: HTMLElement = await openEditDialog(await openRunLimitsCard());
+
+    fireEvent.change(inputFor(dialog, MODEL_CALLS_TITLE), {
+      target: { value: "0" },
+    });
+
+    const timeStep: HTMLElement = within(progress(dialog))
+      .getAllByRole("listitem")
+      .find((item: HTMLElement): boolean => {
+        return item.textContent === TIME_STEP_TITLE;
+      })!;
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(timeStep);
+    });
+    await waitFor(
+      () => {
+        expect(activeStep(dialog)).toBe(TIME_STEP_TITLE);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+    expect(
+      await within(dialog).findByText(
+        "Model Calls per Run must be a whole number from 1 to 100,000. Leave it empty for no limit.",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toBeInTheDocument();
+    expect(activeStep(dialog)).toBe(CALLS_STEP_TITLE);
+    await flush();
+    expect(createOrUpdateSpy).not.toHaveBeenCalled();
+  });
 });
 
 /*

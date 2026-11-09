@@ -19,10 +19,12 @@ import {
   PROJECT_AI_DAILY_LIMITS_CARD_KEY,
   PROJECT_AI_RUN_LIMIT_FIELDS,
   PROJECT_AI_RUN_LIMITS_CARD_KEY,
+  PROJECT_AI_RUN_LIMITS_FORM_STEPS,
   ProjectAiDailyLimitsCopy,
   ProjectAiNoticeContext,
   ProjectAiRunLimitField,
   ProjectAiRunLimitsCopy,
+  ProjectAiRunLimitsFormStep,
 } from "../../Components/AISettings/ProjectAiSettingsCopy";
 import useProjectAiDailyLimits, {
   ProjectAiDailyLimitsSection,
@@ -47,6 +49,7 @@ import {
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
@@ -131,12 +134,21 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
     buttonTitle: "Edit",
   });
 
+  // Two steps: what a run may use, then how long it may take.
+  const runLimitFormSteps: Array<FormStep<Project>> =
+    PROJECT_AI_RUN_LIMITS_FORM_STEPS.map(
+      (step: ProjectAiRunLimitsFormStep): FormStep<Project> => {
+        return { id: step.id, title: step.title };
+      },
+    );
+
   const runLimitFormFields: Fields<Project> = PROJECT_AI_RUN_LIMIT_FIELDS.map(
     (limit: ProjectAiRunLimitField) => {
       return {
         field: { [limit.column]: true },
         title: limit.title,
         description: limit.description,
+        stepId: limit.stepId,
         required: false,
         fieldType: FormFieldSchemaType.Number,
         placeholder: limit.placeholder,
@@ -324,6 +336,7 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isEditable={runLimitsGate.isEditable}
           editButtonText="Edit"
           editModalTitle={ProjectAiRunLimitsCopy.cardTitle}
+          formSteps={runLimitFormSteps}
           formFields={runLimitFormFields}
           modelDetailProps={{
             modelType: Project,

@@ -47260,6 +47260,8 @@
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "Сколько может длиться один запуск, прежде чем ответить тем, что он нашёл. Оставьте пустым для значения по умолчанию — 120 минут. Лимит времени расследования инцидента или оповещения, если он задан, действует первым.",
   "120 minutes (the default)": "120 минут (по умолчанию)",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}}: нужно целое число от {{min}} до {{max}}. Оставьте пустым для значения по умолчанию.",
+  "Calls and Tokens": "Вызовы и токены",
+  "Time Limit": "Лимит времени",
   "From AI calls": "Из вызовов ИИ",
   "From AI calls and usage metrics": "Из вызовов ИИ и метрик использования",
   "From usage metrics": "Из метрик использования",

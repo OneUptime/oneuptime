@@ -47260,6 +47260,8 @@
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "一次运行在根据已发现的内容作答之前可以持续多久。留空则使用默认值 120 分钟。若设置了事件或警报调查时间上限，则优先使用该上限。",
   "120 minutes (the default)": "120 分钟（默认）",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} 必须是 {{min}} 到 {{max}} 之间的整数。留空则使用默认值。",
+  "Calls and Tokens": "调用与 Token",
+  "Time Limit": "时间上限",
   "From AI calls": "来自 AI 调用",
   "From AI calls and usage metrics": "来自 AI 调用和用量指标",
   "From usage metrics": "来自用量指标",
