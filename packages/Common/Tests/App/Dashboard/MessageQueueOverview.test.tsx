@@ -2323,6 +2323,45 @@ describe("the Broker metrics card's namespace read", () => {
     );
   });
 
+  test("the card waits for the namespace's answer: never the setup guidance first, then the finding", async () => {
+    scenario = silentServiceBusScenario([]);
+    getItemMock.mockResolvedValue(serviceBusRow());
+    // Only the namespace's read waits; the queue's own reads land.
+    parkWhen = isNamespaceRead;
+
+    await renderOverview();
+    await waitFor(() => {
+      expect(parked.length).toBe(1);
+    });
+    // The tiles have their answer; Broker health is still loading.
+    await waitFor(() => {
+      expect(tile("Published")).toHaveAttribute("aria-busy", "false");
+    });
+    expect(
+      screen.getByTestId("message-queue-broker-health-loading"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("message-queue-broker-metrics-status"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("message-queue-broker-health-guidance"),
+    ).toBeNull();
+
+    parkWhen = null;
+    await releaseParked(isNamespaceRead);
+
+    const finding: HTMLElement = await screen.findByTestId(
+      "message-queue-broker-metrics-finding",
+    );
+    expect(finding).toHaveAttribute("data-kind", "nothingFromNamespace");
+    expect(
+      screen.queryByTestId("message-queue-broker-health-loading"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("message-queue-broker-health-guidance"),
+    ).toBeNull();
+  });
+
   test("metrics that arrived after the range: never a namespace read, only the range", async () => {
     scenario = {
       ...silentServiceBusScenario([]),
