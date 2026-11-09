@@ -19,6 +19,8 @@ import {
   getRecipeLabel,
 } from "../../../Components/Code/CodeTaskCopy";
 import CodeTaskStateBadge from "../../../Components/Code/CodeTaskStateBadge";
+import CodeTaskRetryNote from "../../../Components/Code/CodeTaskRetryNote";
+import CodeTaskWorkTime from "../../../Components/Code/CodeTaskWorkTime";
 import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
 import CodeTaskTurn, {
   CodeTaskTurnHost,
@@ -353,6 +355,18 @@ const CodeTaskConversation: FunctionComponent<
         latestTurn.state === CodeTaskState.Stopped),
   );
 
+  /*
+   * A latest turn AI tries again by itself, waiting for its next attempt:
+   * whoever may ask in the repository may start it now.
+   */
+  const canRetryNow: boolean = Boolean(
+    data.canAsk &&
+      !data.blocker &&
+      latestTurn &&
+      latestTurn.state === CodeTaskState.Working &&
+      latestTurn.retry?.nextAttemptAt,
+  );
+
   const stop: () => Promise<void> = async (): Promise<void> => {
     setIsStopping(true);
     setActionError(null);
@@ -515,7 +529,24 @@ const CodeTaskConversation: FunctionComponent<
               <CodeTaskStateBadge
                 state={data.task.state}
                 isQueued={data.task.isQueued}
+                isRetrying={Boolean(
+                  data.task.isQueued &&
+                    latestTurn?.state === CodeTaskState.Working &&
+                    latestTurn.retry?.nextAttemptAt,
+                )}
               />
+              {/* AI tries the latest turn again by itself: which attempt. */}
+              {latestTurn?.state === CodeTaskState.Working &&
+              latestTurn.retry ? (
+                <CodeTaskRetryNote
+                  retry={latestTurn.retry}
+                  isCompact={true}
+                  className="text-sm"
+                  dataTestId="code-task-header-retry"
+                />
+              ) : (
+                <></>
+              )}
               {data.task.taskNumber ? (
                 <span className="text-sm text-gray-500">
                   #{data.task.taskNumber}
@@ -614,13 +645,27 @@ const CodeTaskConversation: FunctionComponent<
             <></>
           )}
           {data.task.changes ? (
-            <CodeDiffStat
-              changes={data.task.changes}
-              dataTestId="code-task-changes-stat"
-            />
+            <span
+              data-testid="code-task-files-changed"
+              className="inline-flex items-center gap-2 whitespace-nowrap"
+            >
+              {translator.translatePlural(
+                {
+                  one: "{{count}} file changed",
+                  other: "{{count}} files changed",
+                },
+                data.task.changes.files,
+              )}
+              <CodeDiffStat
+                changes={data.task.changes}
+                dataTestId="code-task-changes-stat"
+              />
+            </span>
           ) : (
             <></>
           )}
+          {/* How long AI has worked on it, over all its turns. */}
+          <CodeTaskWorkTime turns={turns} hasClock={true} />
           {pullRequest &&
           (pullRequest.state === "merged" || pullRequest.state === "closed") ? (
             <span
@@ -697,6 +742,13 @@ const CodeTaskConversation: FunctionComponent<
               }
               onRetry={
                 canRetry
+                  ? () => {
+                      void retry();
+                    }
+                  : undefined
+              }
+              onRetryNow={
+                canRetryNow
                   ? () => {
                       void retry();
                     }

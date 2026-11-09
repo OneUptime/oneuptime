@@ -22,7 +22,7 @@ Código es donde le pides a OneUptime AI que trabaje en tus repositorios, como s
 :::steps
 ### Abre Código
 
-Abre **Productos → Código**. Se abre en **¿Qué debe hacer la IA?**: el cuadro donde pides, con todas las tareas debajo, las más recientes primero. Si todavía no hay ningún repositorio, ofrece en su lugar **Conectar GitHub**, con GitLab, Forgejo o Gitea y cualquier servidor Git debajo (consulta [Conectar un repositorio](#conectar-un-repositorio)). **Repositorios**, en su menú lateral, muestra los repositorios en los que la IA puede trabajar, y agrupa bajo **No conectado** los que OneUptime ya no alcanza. La página de cada repositorio tiene el mismo cuadro para ese repositorio.
+Abre **Productos → Código**. Se abre en **¿Qué debe hacer la IA?**: el cuadro donde pides, con todas las tareas debajo, las más recientes primero; fíltralas según cómo van, cada filtro con su número, o búscalas por título o número. Si todavía no hay ningún repositorio, ofrece en su lugar **Conectar GitHub**, con GitLab, Forgejo o Gitea y cualquier servidor Git debajo (consulta [Conectar un repositorio](#conectar-un-repositorio)). **Repositorios**, en su menú lateral, muestra los repositorios en los que la IA puede trabajar, y agrupa bajo **No conectado** los que OneUptime ya no alcanza. La página de cada repositorio tiene el mismo cuadro para ese repositorio, y allí puedes marcar las peticiones que fallaron o se detuvieron y volver a intentarlas todas con **Reintentar seleccionadas**.
 
 ### Elige el repositorio y la rama
 
@@ -57,15 +57,16 @@ Una petición lleva como máximo 10 elementos de contexto. Los tokens, claves, c
 
 ## La conversación de una tarea
 
-La página de una tarea es una conversación: lo que se pidió y el contexto añadido, y luego el turno de la IA: los pasos que da a medida que los da (los archivos que leyó y editó, lo que buscó, los comandos que ejecutó), su respuesta, los archivos que cambió con su diff, y el pull request. La parte de arriba de la página dice dónde trabaja la tarea (su repositorio y la rama de la que partió), cuántas líneas cambió, con un botón a su pull request, y cómo va la tarea:
+La página de una tarea es una conversación: lo que se pidió y el contexto añadido, y luego el turno de la IA: los pasos que da a medida que los da (los archivos que leyó y editó, lo que buscó, los comandos que ejecutó), su respuesta, los archivos que cambió con su diff, y el pull request. La parte de arriba de la página dice dónde trabaja la tarea (su repositorio y la rama de la que partió), cuántos archivos y líneas cambió, cuánto tiempo ha trabajado la IA en ella, con un botón a su pull request, y cómo va la tarea:
 
 | Estado | Qué significa |
 | --- | --- |
 | **En cola** | Espera a que un Runner la tome. |
+| **Reintentando** | Un turno que la IA vuelve a intentar por sí sola dice qué intento viene ahora y cuándo; **Reintentar ahora** lo inicia al momento. |
 | **Trabajando…** | La IA está en ello. **Detener** la detiene; lo que subió se queda en la rama. |
 | **Esperándote** | La IA hizo una pregunta. Respóndela en el cuadro de abajo. |
 | **Hecho** | La IA terminó: su respuesta, y el pull request si cambió código. |
-| **Fallido** | El turno no pudo terminar, y dice por qué. **Volver a intentar** pide lo mismo otra vez. |
+| **Fallido** | El turno no pudo terminar, y dice por qué, y tras cuántos intentos cuando la IA lo volvió a intentar por sí sola. **Volver a intentar** pide lo mismo otra vez. |
 | **Detenido** | Alguien la detuvo. **Volver a intentar** pide lo mismo otra vez. |
 
 Para seguir, escribe en el cuadro de abajo, que sigue a la vista mientras la conversación se desplaza: responde a la IA, añade contexto o pide cambios. Cada respuesta es el siguiente turno de la misma tarea: trabaja en la misma rama y sube al mismo pull request mientras siga abierto. Una tarea hace un turno cada vez, así que el cuadro espera mientras la IA trabaja. El **Registro** de cada turno es la constancia literal de lo que hizo. En una tarea con más de un turno, un selector en la parte superior de la página **Registro** pasa de un turno a otro.
@@ -328,11 +329,11 @@ Todo lo demás coincide con el botón:
 ## Cuando una corrección falla
 
 :::details La ejecución falla
-No se pudo aplicar la corrección, no se pudo acceder al repositorio o a la rama de la que partía una petición, o falló la llamada al LLM. La conversación de la tarea, y la página desde la que se inició, muestran el motivo y ofrecen volver a intentarlo. El **Registro** del turno tiene el registro completo de la ejecución.
+No se pudo aplicar la corrección, no se pudo acceder al repositorio o a la rama de la que partía una petición, o falló la llamada al LLM. Un fallo que puede pasar (el proveedor del modelo de IA ocupado o caído, una llamada que agotó su tiempo, la red) se vuelve a intentar por sí solo, hasta 3 intentos en total, el segundo al cabo de 1 minuto y el tercero al cabo de 4, salvo que la ejecución pueda haber subido ya una rama o abierto un pull request. Un fallo que volvería a ocurrir, como una clave que el proveedor rechaza o la falta de créditos, no se vuelve a intentar. Cuando un turno falla del todo, la conversación de la tarea, y la página desde la que se inició, muestran el motivo y ofrecen volver a intentarlo. El **Registro** del turno tiene el registro completo de la ejecución.
 :::
 
 :::details El Runner se detiene en mitad de una ejecución
-Una ejecución cuyo heartbeat lleva más de 12 minutos en silencio se marca como fallida con un error. Nunca se vuelve a poner en cola por sí sola, porque el Runner puede haber subido ya parte de una rama de corrección; iníciala de nuevo desde donde la iniciaste. Un comando que ejecuta el agente de código mantiene vivo el heartbeat mientras se ejecuta, así que una compilación o una batería de pruebas larga no se toma por un Runner detenido.
+Una ejecución cuyo heartbeat lleva más de 12 minutos en silencio se vuelve a intentar por sí sola de la misma manera si no ha subido nada, su tarea no tiene pull request y le quedan intentos. Si no, se marca como fallida con un error, porque el Runner puede haber subido ya parte de una rama de corrección; iníciala de nuevo desde donde la iniciaste. Un comando que ejecuta el agente de código mantiene vivo el heartbeat mientras se ejecuta, así que una compilación o una batería de pruebas larga no se toma por un Runner detenido.
 :::
 
 :::details Ningún Runner toma la tarea

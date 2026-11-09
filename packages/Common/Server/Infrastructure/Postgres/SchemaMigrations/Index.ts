@@ -940,9 +940,10 @@ import { AddUserLanguage1809063412000 } from "./1809063412000-AddUserLanguage";
 import { AddTelemetryIngestionKeyRefusals1809071100000 } from "./1809071100000-AddTelemetryIngestionKeyRefusals";
 import { AddAIRunRetryAtAndProviderTimeout1809080100000 } from "./1809080100000-AddAIRunRetryAtAndProviderTimeout";
 import { AddProjectAiRunLimits1809080210000 } from "./1809080210000-AddProjectAiRunLimits";
-import { AddDiscoveredDeviceRetention1809080263890 } from "./1809080263890-AddDiscoveredDeviceRetention";
-import { AddNetworkEndpointLastSeenIndex1809080263891 } from "./1809080263891-AddNetworkEndpointLastSeenIndex";
-import { KeepEditedDiscoveredDevices1809080263892 } from "./1809080263892-KeepEditedDiscoveredDevices";
+import { AddCodeFixRunAutoRetry1809080300000 } from "./1809080300000-AddCodeFixRunAutoRetry";
+import { AddDiscoveredDeviceRetention1809080363890 } from "./1809080363890-AddDiscoveredDeviceRetention";
+import { AddNetworkEndpointLastSeenIndex1809080363891 } from "./1809080363891-AddNetworkEndpointLastSeenIndex";
+import { KeepEditedDiscoveredDevices1809080363892 } from "./1809080363892-KeepEditedDiscoveredDevices";
 
 export default [
   InitialMigration,
@@ -1887,7 +1888,8 @@ export default [
   AddTelemetryIngestionKeyRefusals1809071100000,
   AddAIRunRetryAtAndProviderTimeout1809080100000,
   AddProjectAiRunLimits1809080210000,
-  AddDiscoveredDeviceRetention1809080263890,
-  AddNetworkEndpointLastSeenIndex1809080263891,
-  KeepEditedDiscoveredDevices1809080263892,
+  AddCodeFixRunAutoRetry1809080300000,
+  AddDiscoveredDeviceRetention1809080363890,
+  AddNetworkEndpointLastSeenIndex1809080363891,
+  KeepEditedDiscoveredDevices1809080363892,
 ];

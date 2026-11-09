@@ -6,6 +6,7 @@ import CodeFixAgentAuth, {
   CodeFixRunAccess,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
 import CodeFixPullRequestRecord from "../Utils/AI/CodeFix/CodeFixPullRequestRecord";
+import CodeFixAutoRetry from "../Utils/AI/CodeFix/CodeFixAutoRetry";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -395,6 +396,28 @@ export default class AIAgentTaskAPI {
                 projectId: existingRun.projectId,
                 aiAgent: aiAgent,
                 pullRequests: unrecordedPullRequests,
+              });
+            }
+
+            /*
+             * An attempt that failed for a reason trying again can fix goes
+             * back to the queue instead, for its next attempt after a short
+             * wait, when nothing says it may already have pushed or opened
+             * anything (CodeFixAutoRetry). It is not terminal, so nothing
+             * that waits for the run's end hears of it.
+             */
+            if (
+              toStatus === AIRunStatus.Error &&
+              (await CodeFixAutoRetry.tryAgainLater({
+                runId: runId,
+                failure: statusMessage || "",
+              }))
+            ) {
+              return Response.sendJsonObjectResponse(req, res, {
+                taskId: runId.toString(),
+                status: status,
+                willRetry: true,
+                message: "The task will be tried again",
               });
             }
 

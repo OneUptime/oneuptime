@@ -12,9 +12,9 @@ import NetworkEndpoint from "../../../../Models/DatabaseModels/NetworkEndpoint";
 import Project from "../../../../Models/DatabaseModels/Project";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDiscoveredDeviceRetention1809080263890 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080263890-AddDiscoveredDeviceRetention";
-import { AddNetworkEndpointLastSeenIndex1809080263891 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080263891-AddNetworkEndpointLastSeenIndex";
-import { KeepEditedDiscoveredDevices1809080263892 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080263892-KeepEditedDiscoveredDevices";
+import { AddDiscoveredDeviceRetention1809080363890 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080363890-AddDiscoveredDeviceRetention";
+import { AddNetworkEndpointLastSeenIndex1809080363891 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080363891-AddNetworkEndpointLastSeenIndex";
+import { KeepEditedDiscoveredDevices1809080363892 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080363892-KeepEditedDiscoveredDevices";
 import { DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS } from "../../../../Types/NetworkDevice/DiscoveredDeviceRetention";
 
 /*
@@ -51,19 +51,19 @@ const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 
 const MIGRATIONS: Array<OurMigration> = [
   {
-    timestamp: "1809080263890",
+    timestamp: "1809080363890",
     baseName: "AddDiscoveredDeviceRetention",
-    migration: new AddDiscoveredDeviceRetention1809080263890(),
+    migration: new AddDiscoveredDeviceRetention1809080363890(),
   },
   {
-    timestamp: "1809080263891",
+    timestamp: "1809080363891",
     baseName: "AddNetworkEndpointLastSeenIndex",
-    migration: new AddNetworkEndpointLastSeenIndex1809080263891(),
+    migration: new AddNetworkEndpointLastSeenIndex1809080363891(),
   },
   {
-    timestamp: "1809080263892",
+    timestamp: "1809080363892",
     baseName: "KeepEditedDiscoveredDevices",
-    migration: new KeepEditedDiscoveredDevices1809080263892(),
+    migration: new KeepEditedDiscoveredDevices1809080363892(),
   },
 ];
 
@@ -106,9 +106,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddDiscoveredDeviceRetention1809080263890", () => {
+describe("AddDiscoveredDeviceRetention1809080363890", () => {
   const migration: MigrationInterface =
-    new AddDiscoveredDeviceRetention1809080263890();
+    new AddDiscoveredDeviceRetention1809080363890();
 
   test("adds the project's setting at 30 days for every project, and the endpoint's editedAt", async () => {
     expect(await statementsOf(migration, "up")).toEqual([
@@ -145,9 +145,9 @@ describe("AddDiscoveredDeviceRetention1809080263890", () => {
   });
 });
 
-describe("AddNetworkEndpointLastSeenIndex1809080263891", () => {
-  const migration: AddNetworkEndpointLastSeenIndex1809080263891 =
-    new AddNetworkEndpointLastSeenIndex1809080263891();
+describe("AddNetworkEndpointLastSeenIndex1809080363891", () => {
+  const migration: AddNetworkEndpointLastSeenIndex1809080363891 =
+    new AddNetworkEndpointLastSeenIndex1809080363891();
 
   test("runs outside a transaction, so the index is built online", () => {
     expect(migration.transaction).toBe(false);
@@ -191,9 +191,9 @@ describe("AddNetworkEndpointLastSeenIndex1809080263891", () => {
   });
 });
 
-describe("KeepEditedDiscoveredDevices1809080263892", () => {
+describe("KeepEditedDiscoveredDevices1809080363892", () => {
   const migration: MigrationInterface =
-    new KeepEditedDiscoveredDevices1809080263892();
+    new KeepEditedDiscoveredDevices1809080363892();
 
   test("marks the live devices the API wrote as edited, when they were last changed", async () => {
     expect(await statementsOf(migration, "up")).toEqual([

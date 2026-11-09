@@ -2680,6 +2680,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/AI/CodeFix/CodeRepositoryDefaultRunnerPostgres.test.ts --forceExit
 
+      # A task list's filters, search and counts (CodeTaskListQuery): the
+      # statements the Code API builds, run in an isolated schema seeded
+      # with a task in each state - each task in exactly one filter, read
+      # from its latest turn and its pull requests; a search matches titles
+      # (LIKE's own characters as text) and task numbers.
+      - name: Test a code task list's filters, search and counts on Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CODE_TASK_LIST_TESTS: "true"
+          CODE_TASK_LIST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CODE_TASK_LIST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CODE_TASK_LIST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/AI/CodeTask/CodeTaskListQueryPostgres.test.ts --forceExit
+
       # An auto remediation rule picks the Runner OneUptime AI runs its
       # commands on, and a Runner has no "Runs AI Remediation Commands"
       # switch. Clones the migrated Runner, AutoRemediationRule and

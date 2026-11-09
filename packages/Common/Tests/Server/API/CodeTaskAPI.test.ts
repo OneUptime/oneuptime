@@ -42,11 +42,12 @@ import { ProductionReviewTrigger } from "../../../Types/CodeRepository/Productio
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeTaskPresenter from "../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
-import {
+import CodeTaskRuns, {
   CODE_TASK_BUSY_MESSAGE,
   CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE,
 } from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskStats from "../../../Server/Utils/AI/CodeTask/CodeTaskStats";
+import CodeTaskListQuery from "../../../Server/Utils/AI/CodeTask/CodeTaskListQuery";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import GitHubInstallationBinding from "../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import {
@@ -66,7 +67,10 @@ import {
   CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE,
   CodeTaskBlockerType,
   CodeTaskContextType,
+  CodeTaskListCountsJSON,
+  CodeTaskListFilter,
   CodeTaskState,
+  MAX_CODE_TASKS_PER_REQUEST,
 } from "../../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -422,6 +426,8 @@ describe("every route is for a member of the project", () => {
     ],
     ["/code-task/create", {}],
     ["/code-task/reply/:taskId", { taskId: TASK_ID.toString() }],
+    ["/code-task/retry-many", {}],
+    ["/code-task/summaries", {}],
     ["/code-task/stop/:taskId", { taskId: TASK_ID.toString() }],
     ["/code-task/review-again/:taskId", { taskId: TASK_ID.toString() }],
     [
@@ -435,7 +441,11 @@ describe("every route is for a member of the project", () => {
 
       const { next, result } = await call(route, {
         params,
-        body: { repositoryId: REPOSITORY_ID.toString(), message: "x" },
+        body: {
+          repositoryId: REPOSITORY_ID.toString(),
+          message: "x",
+          taskIds: [TASK_ID.toString()],
+        },
       });
 
       expect(refusal(next)).toBeInstanceOf(NotAuthorizedException);
@@ -498,6 +508,10 @@ describe("every route acts as a signed-in person", () => {
       "/code-task/create",
       "/code-task/reply/:taskId",
       "/code-task/retry/:taskId",
+      // A list's failed tasks, picked and tried again together.
+      "/code-task/retry-many",
+      // Several tasks at a glance: an insight's fix task.
+      "/code-task/summaries",
       "/code-task/stop/:taskId",
       // A pull request's production review, asked again.
       "/code-task/review-again/:taskId",
@@ -1536,6 +1550,369 @@ describe("listing every task the caller may read (Code's first page)", () => {
     });
 
     expect(result).toEqual({ tasks: [], totalCount: 3, skip: 0, limit: 50 });
+  });
+});
+
+describe("a task list's filters, search and counts", () => {
+  const route: string = "/code-task/list";
+  const OTHER_TASK_ID: ObjectID = new ObjectID(
+    "6f2a5c4b-8d9e-4f0a-9b1c-3d4e5f6a7b8c",
+  );
+  const COUNTS: CodeTaskListCountsJSON = {
+    [CodeTaskListFilter.All]: 9,
+    [CodeTaskListFilter.InProgress]: 2,
+    [CodeTaskListFilter.WaitingForYou]: 1,
+    [CodeTaskListFilter.PullRequestOpen]: 3,
+    [CodeTaskListFilter.Failed]: 2,
+    [CodeTaskListFilter.Done]: 1,
+  };
+  let summarized: Array<Array<string>>;
+
+  function taskWithId(id: ObjectID): AIRun {
+    const value: AIRun = task();
+    value._id = id.toString();
+    return value;
+  }
+
+  beforeEach(() => {
+    summarized = [];
+    jest.spyOn(CodeTaskListQuery, "readCounts").mockResolvedValue(COUNTS);
+    jest
+      .spyOn(CodeTaskListQuery, "readPage")
+      .mockResolvedValue([OTHER_TASK_ID.toString(), TASK_ID.toString()]);
+    // The page's rows, in the database's order - not the list's.
+    jest
+      .spyOn(AIRunService, "findBy")
+      .mockResolvedValue([taskWithId(TASK_ID), taskWithId(OTHER_TASK_ID)]);
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(9));
+    jest
+      .spyOn(CodeTaskPresenter, "summarize")
+      .mockImplementation(async (data: { tasks: Array<AIRun> }) => {
+        summarized.push(
+          data.tasks.map((value: AIRun): string => {
+            return value.id!.toString();
+          }),
+        );
+        return [];
+      });
+  });
+
+  test("a filter reads its page through the list's query, in its order, with how many each filter shows", async () => {
+    const { result } = await call(route, {
+      body: {
+        repositoryId: REPOSITORY_ID.toString(),
+        filter: CodeTaskListFilter.Failed,
+        skip: 20,
+        limit: 10,
+      },
+    });
+
+    expect(result).toEqual({
+      tasks: [],
+      totalCount: 2,
+      skip: 20,
+      limit: 10,
+      counts: COUNTS,
+    });
+    expect(CodeTaskListQuery.readPage).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      repositoryIds: [REPOSITORY_ID],
+      includeWithoutRepository: false,
+      isProductionReviews: false,
+      search: "",
+      filter: CodeTaskListFilter.Failed,
+      limit: 10,
+      skip: 20,
+    });
+    // The rows in the page's order.
+    expect(summarized).toEqual([
+      [OTHER_TASK_ID.toString(), TASK_ID.toString()],
+    ]);
+    expect(AIRunService.countBy).not.toHaveBeenCalled();
+  });
+
+  test("a search filters too - by title or number, its counts those of the search", async () => {
+    await call(route, {
+      body: { repositoryId: REPOSITORY_ID.toString(), search: "  #12  " },
+    });
+
+    expect(CodeTaskListQuery.readCounts).toHaveBeenCalledWith(
+      expect.objectContaining({ search: "#12" }),
+    );
+    expect(CodeTaskListQuery.readPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: "#12",
+        filter: CodeTaskListFilter.All,
+      }),
+    );
+  });
+
+  test("the counts alone keep the page as it always was read, and add how many each filter shows", async () => {
+    const { result } = await call(route, {
+      body: { repositoryId: REPOSITORY_ID.toString(), withCounts: true },
+    });
+
+    expect(result).toEqual({
+      tasks: [],
+      totalCount: 9,
+      skip: 0,
+      limit: 20,
+      counts: COUNTS,
+    });
+    expect(CodeTaskListQuery.readPage).not.toHaveBeenCalled();
+    expect(AIRunService.countBy).toHaveBeenCalled();
+  });
+
+  test("an unknown filter, or none, lists every task as before - and asks for no counts", async () => {
+    for (const filter of [undefined, "everything", CodeTaskListFilter.All]) {
+      const { result } = await call(route, {
+        body: { repositoryId: REPOSITORY_ID.toString(), filter },
+      });
+
+      expect(result).not.toHaveProperty("counts");
+    }
+
+    expect(CodeTaskListQuery.readCounts).not.toHaveBeenCalled();
+    expect(CodeTaskListQuery.readPage).not.toHaveBeenCalled();
+  });
+
+  test("across repositories: every one the caller may read, and the tasks with none for who may read AI runs", async () => {
+    await call(route, {
+      body: { allRepositories: true, filter: CodeTaskListFilter.InProgress },
+    });
+
+    expect(CodeTaskListQuery.readPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        repositoryIds: [REPOSITORY_ID],
+        includeWithoutRepository: true,
+      }),
+    );
+
+    world.props = caller([Permission.ReadCodeRepository]);
+
+    await call(route, {
+      body: { allRepositories: true, filter: CodeTaskListFilter.InProgress },
+    });
+
+    expect(CodeTaskListQuery.readPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        repositoryIds: [REPOSITORY_ID],
+        includeWithoutRepository: false,
+      }),
+    );
+  });
+
+  test("a filter in a repository the caller may not read lists nothing: it is not found", async () => {
+    world.repositoryReadable = false;
+
+    const { next } = await call(route, {
+      body: {
+        repositoryId: REPOSITORY_ID.toString(),
+        filter: CodeTaskListFilter.Failed,
+      },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(NotFoundException);
+    expect(CodeTaskListQuery.readPage).not.toHaveBeenCalled();
+    expect(CodeTaskListQuery.readCounts).not.toHaveBeenCalled();
+  });
+});
+
+describe("several tasks at a glance (an insight's fix tasks)", () => {
+  const route: string = "/code-task/summaries";
+  const HIDDEN_REPOSITORY_ID: ObjectID = new ObjectID(
+    "8a9b0c1d-2e3f-4a5b-9c6d-7e8f9a0b1c2d",
+  );
+  const NO_REPOSITORY_TASK_ID: ObjectID = new ObjectID(
+    "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+  );
+  const HIDDEN_TASK_ID: ObjectID = new ObjectID(
+    "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+  );
+  let summarized: Array<string>;
+
+  beforeEach(() => {
+    summarized = [];
+
+    const withoutRepository: AIRun = task();
+    withoutRepository._id = NO_REPOSITORY_TASK_ID.toString();
+    delete withoutRepository.codeRepositoryId;
+
+    const hidden: AIRun = task();
+    hidden._id = HIDDEN_TASK_ID.toString();
+    hidden.codeRepositoryId = HIDDEN_REPOSITORY_ID;
+
+    jest
+      .spyOn(AIRunService, "findBy")
+      .mockResolvedValue([task(), withoutRepository, hidden]);
+    jest
+      .spyOn(CodeTaskPresenter, "summarize")
+      .mockImplementation(async (data: { tasks: Array<AIRun> }) => {
+        summarized = data.tasks.map((value: AIRun): string => {
+          return value.id!.toString();
+        });
+        return data.tasks.map((value: AIRun) => {
+          return { id: value.id!.toString() };
+        }) as never;
+      });
+  });
+
+  test("answers only the tasks the caller may read; a task in a repository they may not read is left out", async () => {
+    const { result } = await call(route, {
+      body: {
+        taskIds: [
+          TASK_ID.toString(),
+          NO_REPOSITORY_TASK_ID.toString(),
+          HIDDEN_TASK_ID.toString(),
+        ],
+      },
+    });
+
+    expect(summarized).toEqual([
+      TASK_ID.toString(),
+      NO_REPOSITORY_TASK_ID.toString(),
+    ]);
+    expect(result).toEqual({
+      tasks: [
+        { id: TASK_ID.toString() },
+        { id: NO_REPOSITORY_TASK_ID.toString() },
+      ],
+    });
+
+    // Tasks of this project, not their replies.
+    const read: { query: Record<string, unknown>; limit: number } = (
+      AIRunService.findBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+    expect((read.query["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(read.query["runType"]).toBe(AIRunType.CodeFix);
+    expect(read.query).toHaveProperty("codeTaskId");
+    expect(read.limit).toBe(3);
+  });
+
+  test("someone who may not read AI runs does not read the tasks with no repository", async () => {
+    world.props = caller([Permission.ReadCodeRepository]);
+
+    await call(route, {
+      body: {
+        taskIds: [TASK_ID.toString(), NO_REPOSITORY_TASK_ID.toString()],
+      },
+    });
+
+    expect(summarized).toEqual([TASK_ID.toString()]);
+  });
+
+  test("no id worth reading: nothing is read", async () => {
+    const { result } = await call(route, {
+      body: { taskIds: ["not-an-id", 12, null] },
+    });
+
+    expect(result).toEqual({ tasks: [] });
+    expect(AIRunService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("ids that are not a list are refused", async () => {
+    const { next } = await call(route, {
+      body: { taskIds: TASK_ID.toString() },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(BadDataException);
+  });
+
+  test("each id once, and never more than fifty a request", async () => {
+    const ids: Array<string> = Array.from(
+      { length: 60 },
+      (_: unknown, index: number): string => {
+        return `00000000-0000-4000-8000-${index.toString().padStart(12, "0")}`;
+      },
+    );
+
+    await call(route, {
+      body: { taskIds: [TASK_ID.toString(), TASK_ID.toString(), ...ids] },
+    });
+
+    const read: { limit: number } = (
+      AIRunService.findBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+    expect(read.limit).toBe(MAX_CODE_TASKS_PER_REQUEST);
+  });
+});
+
+describe("trying several tasks again (Retry selected)", () => {
+  const route: string = "/code-task/retry-many";
+  const OTHER_TASK_ID: ObjectID = new ObjectID(
+    "6f2a5c4b-8d9e-4f0a-9b1c-3d4e5f6a7b8c",
+  );
+
+  beforeEach(() => {
+    world.task = task();
+    world.task.status = AIRunStatus.Error;
+  });
+
+  test("each is asked again as its own Try again is; one that cannot be is said, and the rest go on", async () => {
+    const retry: jest.SpyInstance = jest
+      .spyOn(CodeTaskRuns, "retry")
+      .mockResolvedValueOnce(task())
+      .mockRejectedValueOnce(
+        new BadDataException("AI is still working on this task."),
+      );
+
+    const { next, result } = await call(route, {
+      body: { taskIds: [TASK_ID.toString(), OTHER_TASK_ID.toString()] },
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      retried: 1,
+      failed: [
+        {
+          taskId: OTHER_TASK_ID.toString(),
+          message: "AI is still working on this task.",
+        },
+      ],
+    });
+    expect(retry).toHaveBeenCalledTimes(2);
+    expect(retry).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: PROJECT_ID, userId: USER_ID }),
+    );
+  });
+
+  test("someone who may only read the repository tries none again, and is told why", async () => {
+    world.props = VIEWER;
+    const retry: jest.SpyInstance = jest.spyOn(CodeTaskRuns, "retry");
+
+    const { result } = await call(route, {
+      body: { taskIds: [TASK_ID.toString()] },
+    });
+
+    expect(retry).not.toHaveBeenCalled();
+    expect(result!["retried"]).toBe(0);
+    expect((result!["failed"] as Array<JSONObject>)[0]!["message"]).toBe(
+      CODE_TASK_ASK_REFUSED_MESSAGE,
+    );
+  });
+
+  test("with AI turned off for the project, none starts", async () => {
+    world.enableAi = false;
+    const retry: jest.SpyInstance = jest.spyOn(CodeTaskRuns, "retry");
+
+    const { result } = await call(route, {
+      body: { taskIds: [TASK_ID.toString()] },
+    });
+
+    expect(retry).not.toHaveBeenCalled();
+    expect((result!["failed"] as Array<JSONObject>)[0]!["message"]).toBe(
+      AI_DISABLED_MESSAGE,
+    );
+  });
+
+  test("nothing picked is refused", async () => {
+    const { next } = await call(route, { body: { taskIds: [] } });
+
+    expect(refusal(next).message).toBe("Pick the tasks to try again.");
   });
 });
 

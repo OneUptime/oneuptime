@@ -22,7 +22,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 :::steps
 ### Open Code
 
-Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first. With no repository yet, it offers **Connect GitHub** instead, with GitLab, Forgejo or Gitea and any Git server under it (see [Connect a repository](#connect-a-repository)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those OneUptime no longer reaches under **Not connected**. Each repository's page has the same box for that repository.
+Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first; filter them by how they stand, each filter with its count, or search them by title or number. With no repository yet, it offers **Connect GitHub** instead, with GitLab, Forgejo or Gitea and any Git server under it (see [Connect a repository](#connect-a-repository)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those OneUptime no longer reaches under **Not connected**. Each repository's page has the same box for that repository, and there you can tick the requests that failed or were stopped and try them all again with **Retry selected**.
 
 ### Pick the repository and the branch
 
@@ -57,15 +57,16 @@ A request carries at most 10 pieces of context. Tokens, keys, passwords and emai
 
 ## A task's conversation
 
-A task's page is a conversation: what was asked and the context added, then AI's turn - the steps it takes as it takes them (the files it read and edited, what it searched for, the commands it ran), its reply, the files it changed with their diff, and the pull request. The top of the page says where the task works (its repository and the branch it started from), how many lines it changed, with a button to its pull request, and how the task stands:
+A task's page is a conversation: what was asked and the context added, then AI's turn - the steps it takes as it takes them (the files it read and edited, what it searched for, the commands it ran), its reply, the files it changed with their diff, and the pull request. The top of the page says where the task works (its repository and the branch it started from), how many files and lines it changed, how long AI has worked on it, with a button to its pull request, and how the task stands:
 
 | State | What it means |
 | --- | --- |
 | **Queued** | It waits for a Runner to pick it up. |
+| **Retrying** | A turn AI tries again by itself says which attempt comes next and when; **Retry now** starts it at once. |
 | **Working…** | AI is on it. **Stop** stops it; what it pushed stays on the branch. |
 | **Waiting for you** | AI asked a question. Answer it in the box below. |
 | **Done** | AI finished: its reply, and the pull request when it changed code. |
-| **Failed** | The turn could not finish, and says why. **Try again** asks the same again. |
+| **Failed** | The turn could not finish, and says why, and after how many attempts when AI tried it again by itself. **Try again** asks the same again. |
 | **Stopped** | Someone stopped it. **Try again** asks the same again. |
 
 To follow up, write in the box at the bottom, which stays in view as the conversation scrolls: answer AI, add context, or ask for changes. Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open. A task takes one turn at a time, so the box waits while AI works. Each turn's **Log** is the verbatim record of what it did. On a task with more than one turn, a picker at the top of the **Log** page moves between its turns.
@@ -328,11 +329,11 @@ Everything else matches the button:
 ## When a fix fails
 
 :::details The run errors
-The fix could not be applied, the repository or the branch a request started from could not be reached, or the LLM call failed. The task's conversation, and the page it was started from, show the reason and offer to try again. The turn's **Log** has the full run log.
+The fix could not be applied, the repository or the branch a request started from could not be reached, or the LLM call failed. A failure that may pass - the AI model provider busy or down, a call that timed out, the network - is tried again by itself, up to 3 attempts in all, the second after 1 minute and the third after 4, unless the run may already have pushed a branch or opened a pull request. A failure that would happen again, such as a key the provider refuses or no credits left, is not tried again. When a turn fails for good, the task's conversation, and the page it was started from, show the reason and offer to try again. The turn's **Log** has the full run log.
 :::
 
 :::details The Runner stops in the middle of a run
-A run whose heartbeat has been silent for more than 12 minutes is failed with an error. It is never queued again on its own, because the Runner may already have pushed part of a fix branch; start it again from where you started it. A command the code agent runs keeps the heartbeat going while it runs, so a long build or test suite is not taken for a stopped Runner.
+A run whose heartbeat has been silent for more than 12 minutes is tried again by itself in the same way when it has pushed nothing, its task has no pull request, and it has attempts left. Otherwise it fails with an error, because the Runner may already have pushed part of a fix branch; start it again from where you started it. A command the code agent runs keeps the heartbeat going while it runs, so a long build or test suite is not taken for a stopped Runner.
 :::
 
 :::details No Runner picks the task up
