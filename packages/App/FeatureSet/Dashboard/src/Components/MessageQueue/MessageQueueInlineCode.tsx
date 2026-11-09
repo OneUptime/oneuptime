@@ -19,7 +19,7 @@ export function renderMessageQueueInlineCode(text: string): ReactElement {
             {part}
           </code>
         ) : (
-          <Fragment key={`text-${index}`}>{part}</Fragment>
+          <Fragment key={`words-${index}`}>{part}</Fragment>
         );
       })}
     </Fragment>

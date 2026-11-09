@@ -216,6 +216,10 @@ Ein Broker weiß, was keine Anwendung sehen kann: wie viele Nachrichten warten, 
 
 Der Abschnitt **Broker-Zustand** jeder Warteschlange stellt die für ihr System aufgeführten Metriken dar – einen Gauge als seinen Wert, eine Anzahl pro Zeitraum summiert pro Intervall, einen Zähler als Rate pro Sekunde – und kombiniert die Serien einer Warteschlange so, wie es jede Metrik braucht (die bereiten und unbestätigten Nachrichten einer RabbitMQ-Warteschlange addieren sich; die am weitesten zurückliegende Consumer-Gruppe ist der Lag). Alles, was der Collector sendet, steht außerdem im Explorer **Metriken**. Solange für eine Warteschlange keine aufgeführte Metrik eingetroffen ist, zeigt der Abschnitt, woher die Metriken dieses Systems kommen, mit einem Link zu seinem Abschnitt hier.
 
+Wo keine Anwendung mit Tracing in eine Warteschlange veröffentlicht oder aus ihr konsumiert, lesen ihre Kacheln **Veröffentlicht**, **Verbraucht** und **Fehler** und ihr Diagramm **Nachrichten** stattdessen die eigenen Zählungen des Brokers – eingehende Nachrichten, ausgehende Nachrichten und seine Fehler zusammengezählt, wobei gedrosselte Anforderungen unter **Fehler** getrennt gezählt werden –, und jede sagt das unter ihrer Zahl. Eine Warteschlange mit Spans behält diese, denn sie sagen, welcher Dienst was getan hat. Die **p95-Verarbeitungszeit** stammt allein aus Consumer-Traces, weil kein Broker misst, wie lange ein Consumer für eine Nachricht braucht: Ohne sie steht dort **Benötigt Consumer-Traces**.
+
+Die Karte **Broker-Metriken** oben im Abschnitt listet jede Metrik auf, die für das System der Warteschlange dargestellt wird: ob sie im gewählten Zeitraum für die Warteschlange eingetroffen ist, wann sie zuletzt eintraf und warum jede andere nicht eingetroffen ist. Eine Anzahl kann nichts zu melden haben (keine gedrosselte Anforderung ist eine gute Nachricht); ein Füllstand, den der Broker ständig meldet und der nie eintrifft, ist einer, nach dem der Collector nicht fragt, und die Karte nennt die Zeilen, die seine Konfiguration braucht; eine Metrik kann auch aufhören einzutreffen. Für eine Warteschlange von Service Bus oder Event Hubs, von deren Metriken keine eintrifft, liest die Karte außerdem, was ihr Namespace stattdessen sendet (siehe [Der Broker-Zustand bleibt leer](#der-broker-zustand-bleibt-leer)).
+
 ### Amazon SNS
 
 Lesen Sie die CloudWatch-Metriken der Topics mit dem `aws_cloudwatch`-Receiver des Collectors, oder streamen Sie sie über einen CloudWatch Metric Stream und Amazon Data Firehose an seinen `awsfirehose`-Receiver.
@@ -619,6 +623,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -650,6 +655,7 @@ Azure Monitor hat für Event Hubs keine Metrik für den Consumer-Lag: Sein `Cons
 | `azure_usererrors_total` | Benutzerfehler | Anzahl pro Zeitraum |
 | `azure_quotaexceedederrors_total` | Fehler wegen überschrittenem Kontingent | Anzahl pro Zeitraum |
 | `azure_throttledrequests_total` | Gedrosselte Anforderungen | Anzahl pro Zeitraum |
+| `azure_size_average` | Größe | Gauge |
 
 ### Azure Service Bus
 
@@ -679,6 +685,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -686,6 +694,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -708,13 +717,17 @@ service:
 - Die Metriken finden ihre Warteschlange oder ihr Topic über den Namespace (`name`) und die Entität (`EntityName`); die Spans der SDKs nennen denselben Namespace als `<namespace>.servicebus.windows.net`. Ein Span auf `orders/Subscriptions/billing` oder `orders/$DeadLetterQueue` gehört zu `orders`, wie die Metriken.
 - `maximum_number_of_records_per_resource` gibt an, wie viele Serien Azure pro Metrik und Namespace zurückgibt, 10, sofern Sie den Wert nicht erhöhen: Halten Sie ihn über der Anzahl Ihrer Warteschlangen und Topics – die Fehlermetriken teilen jede Entität zusätzlich nach Ergebnis auf –, sonst werden die übrigen nicht gemeldet.
 - Azure Monitor teilt nicht nach Topic-Abonnement auf: Die Zählungen eines Topics umfassen alle seine Abonnements.
-- Die Liste `metrics` erfasst genau das, was die Warteschlangenseite darstellt, jeweils mit der einen Aggregation, die sie darstellt; fügen Sie eine Metrik (`ScheduledMessages`, `Size`, …) hinzu, um auch sie zu erfassen.
+- Die Liste `metrics` erfasst genau das, was die Warteschlangenseite darstellt, jeweils mit der einen Aggregation, die sie darstellt; fügen Sie eine Metrik (`IncomingRequests`, `Messages`, …) hinzu, um auch sie zu erfassen. Ein Collector, dessen Liste älter ist als `ScheduledMessages`, `Size` oder `ServerSendLatency`, sendet keine davon: Die Karte **Broker-Metriken** der Warteschlange nennt die Zeilen, die hinzuzufügen sind.
+- Nur dieser Receiver teilt die Metriken nach Warteschlange und Topic auf. Ein [verbundenes Azure-Abonnement](/docs/telemetry/cloud-accounts) und eine Diagnoseeinstellung, die Metriken exportiert, senden beide die Summen des Namespace ohne `EntityName`, sodass keine davon eine Warteschlange erreicht: Die eigene Seite des Namespace unter **Cloud → Alle Ressourcen** hat die des Abonnements, und die Karte **Broker-Metriken** einer Warteschlange sagt, warum ihre eigenen fehlen.
+- Keine dieser Metriken hängt vom Tarif des Namespace ab. `ServerSendLatency` wird pro Sendevorgang gemeldet, deshalb hat eine Warteschlange, an die im Zeitraum nichts gesendet wurde, keine.
 - Der Receiver listet Ihre Namespaces einmal am Tag auf, deshalb kann es bis zu 24 Stunden dauern, bis ein neuer Namespace erscheint.
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
 | `azure_activemessages_average` | Aktive Nachrichten | Gauge |
 | `azure_deadletteredmessages_average` | Unzustellbare Nachrichten | Gauge |
+| `azure_scheduledmessages_average` | Geplante Nachrichten | Gauge |
+| `azure_size_average` | Größe | Gauge |
 | `azure_incomingmessages_total` | Eingehende Nachrichten | Anzahl pro Zeitraum |
 | `azure_outgoingmessages_total` | Ausgehende Nachrichten | Anzahl pro Zeitraum |
 | `azure_completemessage_total` | Abgeschlossene Nachrichten | Anzahl pro Zeitraum |
@@ -722,6 +735,7 @@ service:
 | `azure_servererrors_total` | Serverfehler | Anzahl pro Zeitraum |
 | `azure_usererrors_total` | Benutzerfehler | Anzahl pro Zeitraum |
 | `azure_throttledrequests_total` | Gedrosselte Anforderungen | Anzahl pro Zeitraum |
+| `azure_serversendlatency_average` | Sendelatenz des Servers | Gauge |
 
 ### BullMQ
 
@@ -1048,6 +1062,10 @@ Wenn ihre Spans sie nennen, legen Sie sie von Hand mit demselben System und Ziel
 - Der Receiver meldet sie nicht. Kafka meldet den Lag einer Consumer-Gruppe erst, nachdem die Gruppe einen Offset committet hat; RabbitMQ meldet nur die Warteschlangen virtueller Hosts, auf die sein Benutzer Zugriff hat, und protokolliert für den Rest keinen Fehler (siehe [RabbitMQ](#rabbitmq)); die Zähler von RabbitMQ erscheinen mit der ersten Aktivität; Azure Monitor gibt pro Metrik und Namespace 10 Warteschlangen zurück, sofern `maximum_number_of_records_per_resource` nicht erhöht wird; Cloud Monitoring liest nur die Typen in `metrics_list`.
 - Sie ist verspätet. `aws_cloudwatch` wartet `delay` (10 Minuten), bis CloudWatch veröffentlicht, deshalb treffen seine Punkte 11 bis 17 Minuten verspätet ein, und die Metriken von Pub/Sub treffen Minuten verspätet ein.
 - Das System hat keine dargestellten Metriken: Azure Event Grid, NATS, andere JMS-Broker als ActiveMQ und BullMQ (siehe ihre Abschnitte). Ihre Metriken stehen im Explorer **Metriken**.
+- Öffnen Sie die Karte **Broker-Metriken** der Warteschlange: Sie listet auf, welche Metriken eintreffen und warum die anderen nicht. Für eine Warteschlange von Service Bus oder Event Hubs, von deren Metriken keine eintrifft, sagt sie außerdem, was der Namespace stattdessen sendet – eines von drei Dingen.
+- **Nichts vom Namespace**: Kein Collector liest ihn, oder jeder Lesevorgang schlägt fehl. Geben Sie dem Service Principal des Receivers die Rolle **Monitoring Reader**, und suchen Sie im Log des Collectors nach `AuthorizationFailed` oder `401`: Ein abgelaufener geheimer Clientschlüssel stoppt jeden Lesevorgang.
+- **Nur Summen**: Ein [verbundenes Azure-Abonnement](/docs/telemetry/cloud-accounts) oder eine Diagnoseeinstellung sendet die Metriken des Namespace für den Namespace als Ganzes, ohne Warteschlange oder Topic darin. Lesen Sie den Namespace zusätzlich mit dem Receiver `azure_monitor`, der sie nach `EntityName` aufteilt.
+- **Nur andere Warteschlangen**: Metriken treffen für andere Warteschlangen und Topics des Namespace ein, nicht für diese. `maximum_number_of_records_per_resource` des Receivers (10, sofern Sie den Wert nicht erhöhen) hat sie ausgelassen: Erhöhen Sie den Wert über die Anzahl der Warteschlangen und Topics im Namespace.
 
 ### Zwei Warteschlangen für ein Ziel
 

@@ -216,6 +216,10 @@ builder.Services.AddOpenTelemetry()
 
 各キューの **ブローカーのヘルス** セクションは、そのシステムについて一覧にあるメトリクスをグラフにします (ゲージはその値、期間ごとの件数は間隔ごとの合計、カウンターは毎秒のレート)。キューの系列は、メトリクスごとに必要な方法で組み合わせます (RabbitMQ キューの準備完了メッセージと未確認メッセージは合計され、最も遅れているコンシューマーグループがラグになります)。Collector が送信するものは、すべて **メトリクス** エクスプローラーにもあります。一覧にあるメトリクスがまだキューに届いていない間は、このセクションにそのシステムのメトリクスの入手元が、ここでの該当セクションへのリンクとともに表示されます。
 
+トレースされたアプリケーションがキューにパブリッシュもコンシュームもしていない場合、そのキューの **パブリッシュ**、**コンシューム**、**エラー** の各タイルと **メッセージ** グラフは、代わりにブローカー自身の件数を読み取ります。受信したメッセージ、送信したメッセージ、合計したエラーで、スロットリングされた要求は **エラー** の下に別に数えます。いずれも数値の下にそのことを表示します。スパンがあるキューはスパンを使い続けます。どのサービスが何をしたかがわかるからです。**p95 処理時間** はコンシューマーのトレースだけから求めます。コンシューマーがメッセージの処理にかける時間を測るブローカーはないためです。トレースがなければ **コンシューマーのトレースが必要** と表示されます。
+
+セクションの上部にある **ブローカーメトリクス** カードは、キューのシステムについてグラフにするすべてのメトリクスを一覧にします: 選んだ期間にそのキューに届いたかどうか、最後に届いたのはいつか、ほかの各メトリクスが届かなかったのはなぜかです。件数には報告することがない場合があります (スロットリングされた要求がないのは良い知らせです)。ブローカーが常に報告している値が一度も届かない場合、それは Collector が要求していないメトリクスで、カードにはその設定に必要な行が表示されます。メトリクスが届かなくなることもあります。どのメトリクスも届かない Service Bus または Event Hubs のキューについては、その名前空間が代わりに何を送っているかもカードが読み取ります ([ブローカーのヘルスが空のまま](#ブローカーのヘルスが空のまま) を参照)。
+
 ### Amazon SNS
 
 トピックの CloudWatch メトリクスを Collector の `aws_cloudwatch` レシーバーで読み取るか、CloudWatch Metric Stream と Amazon Data Firehose を経由して、その `awsfirehose` レシーバーにストリーミングします。
@@ -619,6 +623,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -650,6 +655,7 @@ Azure Monitor には Event Hubs のコンシューマーラグのメトリクス
 | `azure_usererrors_total` | ユーザーエラー | 期間ごとの件数 |
 | `azure_quotaexceedederrors_total` | クォータ超過エラー | 期間ごとの件数 |
 | `azure_throttledrequests_total` | スロットリングされた要求 | 期間ごとの件数 |
+| `azure_size_average` | サイズ | ゲージ |
 
 ### Azure Service Bus
 
@@ -679,6 +685,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -686,6 +694,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -708,13 +717,17 @@ service:
 - メトリクスは名前空間 (`name`) とエンティティ (`EntityName`) でキューまたはトピックを見つけます。SDK のスパンは、同じ名前空間を `<namespace>.servicebus.windows.net` として示します。`orders/Subscriptions/billing` または `orders/$DeadLetterQueue` のスパンは、メトリクスと同じく `orders` に属します。
 - `maximum_number_of_records_per_resource` は、Azure がメトリクスと名前空間ごとに返す系列の数で、引き上げない限り 10 です: キューとトピックの数より大きくしておかないと (エラーのメトリクスは、各エンティティをさらに結果ごとに分割します)、残りは報告されません。
 - Azure Monitor はトピックのサブスクリプションごとには分割しません: トピックの件数には、そのすべてのサブスクリプションが含まれます。
-- `metrics` の一覧は、キューのページがグラフ表示するものを、それぞれグラフで使う 1 つの集計で正確に収集します。メトリクス (`ScheduledMessages`、`Size`、…) を追加すると、それも収集されます。
+- `metrics` の一覧は、キューのページがグラフ表示するものを、それぞれグラフで使う 1 つの集計で正確に収集します。メトリクス (`IncomingRequests`、`Messages`、…) を追加すると、それも収集されます。一覧が `ScheduledMessages`、`Size`、`ServerSendLatency` より古い Collector は、そのどれも送信しません: キューの **ブローカーメトリクス** カードに、追加する行が表示されます。
+- メトリクスをキューとトピックごとに分けるのは、このレシーバーだけです。[接続済みの Azure サブスクリプション](/docs/telemetry/cloud-accounts) と、メトリクスをエクスポートする診断設定は、どちらも `EntityName` のない名前空間の合計を送るため、どちらもキューには届きません: サブスクリプションのメトリクスは **クラウド → すべてのリソース** にある名前空間自身のページにあり、キューの **ブローカーメトリクス** カードには、そのキュー自身のメトリクスがない理由が表示されます。
+- これらのメトリクスは、どれも名前空間の価格レベルに左右されません。`ServerSendLatency` は送信ごとに報告されるため、期間内に何も送信されなかったキューにはありません。
 - レシーバーは 1 日に 1 回名前空間を一覧するため、新しい名前空間が表示されるまで最大 24 時間かかることがあります。
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
 | `azure_activemessages_average` | アクティブなメッセージ | ゲージ |
 | `azure_deadletteredmessages_average` | デッドレターメッセージ | ゲージ |
+| `azure_scheduledmessages_average` | スケジュールされたメッセージ | ゲージ |
+| `azure_size_average` | サイズ | ゲージ |
 | `azure_incomingmessages_total` | 受信メッセージ | 期間ごとの件数 |
 | `azure_outgoingmessages_total` | 送信メッセージ | 期間ごとの件数 |
 | `azure_completemessage_total` | 完了したメッセージ | 期間ごとの件数 |
@@ -722,6 +735,7 @@ service:
 | `azure_servererrors_total` | サーバーエラー | 期間ごとの件数 |
 | `azure_usererrors_total` | ユーザーエラー | 期間ごとの件数 |
 | `azure_throttledrequests_total` | スロットリングされた要求 | 期間ごとの件数 |
+| `azure_serversendlatency_average` | サーバー送信レイテンシ | ゲージ |
 
 ### BullMQ
 
@@ -1048,6 +1062,10 @@ service:
 - レシーバーがそれを報告していません。Kafka は、グループがオフセットをコミットした後にのみコンシューマーグループのラグを報告します。RabbitMQ はユーザーがアクセスできる仮想ホストのキューだけを報告し、それ以外についてはエラーをログに出力しません ([RabbitMQ](#rabbitmq) を参照)。RabbitMQ のカウンターは最初のアクティビティで表示されます。Azure Monitor は、`maximum_number_of_records_per_resource` を引き上げない限り、メトリクスと名前空間ごとに 10 個のキューを返します。Cloud Monitoring は `metrics_list` にあるタイプだけを読み取ります。
 - 遅れています。`aws_cloudwatch` は CloudWatch が公開するのを `delay` (10 分) 待つため、そのポイントは 11〜17 分遅れて届き、Pub/Sub のメトリクスも数分遅れて届きます。
 - そのシステムにはグラフ表示されるメトリクスがありません: Azure Event Grid、NATS、ActiveMQ 以外の JMS ブローカー、BullMQ です (それぞれのセクションを参照)。これらのメトリクスは **メトリクス** エクスプローラーにあります。
+- キューの **ブローカーメトリクス** カードを開きます: 届いているメトリクスと、ほかのメトリクスが届かない理由が一覧になっています。どのメトリクスも届かない Service Bus または Event Hubs のキューについては、名前空間が代わりに何を送っているかも、次の 3 つのいずれかで示します。
+- **名前空間から何も届かない**: どの Collector もその名前空間を読み取っていないか、すべての読み取りが失敗しています。レシーバーのサービスプリンシパルに **Monitoring Reader** ロールを付与し、Collector のログで `AuthorizationFailed` または `401` を探します: クライアントシークレットの期限が切れると、すべての読み取りが止まります。
+- **合計だけ**: [接続済みの Azure サブスクリプション](/docs/telemetry/cloud-accounts) または診断設定が、名前空間のメトリクスを名前空間全体の値として、キューやトピックを含めずに送っています。`EntityName` で分割する `azure_monitor` レシーバーでも名前空間を読み取ります。
+- **ほかのキューだけ**: 名前空間のほかのキューとトピックのメトリクスは届いていますが、このキューのものは届いていません。レシーバーの `maximum_number_of_records_per_resource` (引き上げない限り 10) によって除外されています: 名前空間のキューとトピックの数より大きくします。
 
 ### 1 つの宛先に 2 つのキューがある
 
