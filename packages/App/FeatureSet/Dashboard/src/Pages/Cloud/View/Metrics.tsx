@@ -17,8 +17,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
 import {
+  CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
   getCloudMonitoredResourceAttributeFilters,
+  getCloudMonitoredResourceRowAggregation,
   isCloudMonitoredResourceScoped,
 } from "../Utils/CloudMonitoredResourceScope";
 
@@ -27,6 +29,10 @@ import {
  * about it, scoped by the exact metric attributes ingest recorded for it
  * (CloudMonitoredResourceScope). An environment's metrics are in App
  * Platforms (AppPlatforms/View/Metrics), its apps' own telemetry.
+ *
+ * A Service Bus or Event Hubs namespace's metrics arrive once per queue,
+ * topic and event hub, and its rows read as their total, as do the
+ * explorer and the monitors opened from them.
  */
 const CloudResourceMetrics: FunctionComponent<
   PageComponentProps
@@ -52,6 +58,9 @@ const CloudResourceMetrics: FunctionComponent<
           // The scope reads the attributes of a resource only.
           cloudResourceKind: true,
           telemetryAttributes: true,
+          // What its rows add up: a namespace's metrics, one per queue.
+          cloudProvider: true,
+          cloudResourceType: true,
         },
       });
 
@@ -95,6 +104,12 @@ const CloudResourceMetrics: FunctionComponent<
     return { cloudResourceId: modelId.toString() };
   }, [modelId.toString()]);
 
+  // Stable per type: the viewer refetches its rows when it changes.
+  const rowAggregation: CloudMonitoredResourceRowAggregation | undefined =
+    useMemo(() => {
+      return getCloudMonitoredResourceRowAggregation(cloudResource);
+    }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -123,6 +138,8 @@ const CloudResourceMetrics: FunctionComponent<
         attributeFilters={attributeFilters}
         attributeFilterDisplayKeys={attributeFilterDisplayKeys}
         eventScope={eventScope}
+        getRowAggregation={rowAggregation?.getRowAggregation}
+        defaultRowValueCaption={rowAggregation?.defaultRowValueCaption}
       />
     </Fragment>
   );
