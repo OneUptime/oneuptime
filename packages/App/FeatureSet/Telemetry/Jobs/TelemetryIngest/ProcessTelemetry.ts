@@ -35,7 +35,10 @@ import {
   TELEMETRY_CONCURRENCY,
   TELEMETRY_LOCK_DURATION_MS,
 } from "../../Config";
-import OtelPayloadDecoder from "../../Utils/OtelPayloadDecoder";
+import OtelPayloadDecoder, {
+  OtelDecodedPayload,
+} from "../../Utils/OtelPayloadDecoder";
+import TelemetryIngestionBudget from "Common/Server/Utils/Telemetry/TelemetryIngestionBudget";
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
 import SessionReplayIngestService from "../../Services/SessionReplayIngestService";
@@ -119,6 +122,7 @@ function applyPinnedServiceName(
  */
 async function resolveOtelBody(
   jobData: TelemetryIngestJobData,
+  options?: { isFirstAttempt?: boolean | undefined },
 ): Promise<JSONObject> {
   if (!jobData.bodyKey || !jobData.bodyFormat || !jobData.productType) {
     throw new Error(
@@ -126,16 +130,58 @@ async function resolveOtelBody(
     );
   }
 
-  const body: JSONObject = await OtelPayloadDecoder.decodeFromQueue({
-    productType: jobData.productType,
-    format: jobData.bodyFormat,
-    encoding: jobData.bodyEncoding ?? "none",
-    bodyKey: jobData.bodyKey,
+  const decoded: OtelDecodedPayload =
+    await OtelPayloadDecoder.decodeFromQueueMeasured({
+      productType: jobData.productType,
+      format: jobData.bodyFormat,
+      encoding: jobData.bodyEncoding ?? "none",
+      bodyKey: jobData.bodyKey,
+    });
+
+  await settleIngestionBudgetCharge({
+    jobData: jobData,
+    decodedBytes: decoded.decodedBytes,
+    isFirstAttempt: options?.isFirstAttempt !== false,
   });
+
+  const body: JSONObject = decoded.body;
 
   applyPinnedServiceName(body, jobData);
 
   return body;
+}
+
+/*
+ * A compressed OTLP/HTTP body was counted against its ingestion budget on
+ * arrival at the size its own header declared (gzip's ISIZE, a zstd frame's
+ * content size) or, with none, at its compressed size. Now that it is
+ * inflated its real size is known: add the difference to the day it was
+ * counted on, so the budget counts what was actually sent.
+ *
+ * Only on the job's first attempt - a retry re-reads the same body and
+ * would add the same difference again - and never when the body was gone
+ * (nothing was stored). Best effort: TelemetryIngestionBudget.reconcile
+ * never throws, and a lost settlement leaves the count at its estimate.
+ *
+ * Exported for tests.
+ */
+export async function settleIngestionBudgetCharge(data: {
+  jobData: TelemetryIngestJobData;
+  decodedBytes: number | null;
+  isFirstAttempt: boolean;
+}): Promise<void> {
+  if (
+    !data.jobData.ingestionBudgetCharge ||
+    data.decodedBytes === null ||
+    !data.isFirstAttempt
+  ) {
+    return;
+  }
+
+  await TelemetryIngestionBudget.reconcile({
+    charge: data.jobData.ingestionBudgetCharge,
+    decodedBytes: data.decodedBytes,
+  });
 }
 
 /*
@@ -328,6 +374,9 @@ if (DisableQueueWorkers) {
        */
       const useInsertDedup: boolean = shouldUseInsertDedup(jobData.type);
 
+      // A retry must not settle an ingestion budget charge a second time.
+      const isFirstAttempt: boolean = !job.attemptsMade;
+
       const dedupTokenBase: string = String(
         job.id ?? jobData.bodyKey ?? job.name,
       );
@@ -343,7 +392,9 @@ if (DisableQueueWorkers) {
           // Process based on telemetry type
           switch (jobData.type) {
             case TelemetryType.Logs: {
-              const body: JSONObject = await resolveOtelBody(jobData);
+              const body: JSONObject = await resolveOtelBody(jobData, {
+                isFirstAttempt: isFirstAttempt,
+              });
               const mockRequest: TelemetryRequest = {
                 projectId: new ObjectID(jobData.projectId!.toString()),
                 body,
@@ -358,7 +409,9 @@ if (DisableQueueWorkers) {
             }
 
             case TelemetryType.Traces: {
-              const body: JSONObject = await resolveOtelBody(jobData);
+              const body: JSONObject = await resolveOtelBody(jobData, {
+                isFirstAttempt: isFirstAttempt,
+              });
               const mockRequest: TelemetryRequest = {
                 projectId: new ObjectID(jobData.projectId!.toString()),
                 body,
@@ -373,7 +426,9 @@ if (DisableQueueWorkers) {
             }
 
             case TelemetryType.Metrics: {
-              const body: JSONObject = await resolveOtelBody(jobData);
+              const body: JSONObject = await resolveOtelBody(jobData, {
+                isFirstAttempt: isFirstAttempt,
+              });
               const mockRequest: TelemetryRequest = {
                 projectId: new ObjectID(jobData.projectId!.toString()),
                 body,
@@ -392,7 +447,9 @@ if (DisableQueueWorkers) {
             }
 
             case TelemetryType.Profiles: {
-              const body: JSONObject = await resolveOtelBody(jobData);
+              const body: JSONObject = await resolveOtelBody(jobData, {
+                isFirstAttempt: isFirstAttempt,
+              });
               const mockRequest: TelemetryRequest = {
                 projectId: new ObjectID(jobData.projectId!.toString()),
                 body,

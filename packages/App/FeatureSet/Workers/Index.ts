@@ -432,6 +432,8 @@ import "./Jobs/Rum/PublishSessionReplayBudgetMetrics";
  * retention either way.
  */
 import "./Jobs/TelemetryUsage/MeterTelemetryUsage";
+// Telemetry ingestion budgets as metrics, and the owners' warning emails.
+import "./Jobs/TelemetryIngestionBudget/PublishTelemetryIngestionBudgetMetrics";
 import "./Jobs/TelemetryUsage/DeleteOldTelemetryUsage";
 
 /*

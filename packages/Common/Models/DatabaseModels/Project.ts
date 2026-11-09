@@ -10,11 +10,13 @@ import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
+import { ColumnAccessControl as BaseColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
@@ -35,6 +37,29 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+
+/*
+ * Who reads and writes a project's telemetry ingestion budgets: its members
+ * and its telemetry roles read them (the Usage page shows them); only a
+ * master admin writes them, so a project cannot raise the budget the
+ * instance admin set for it.
+ */
+const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
+  create: [],
+  read: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.ReadProject,
+    Permission.UnAuthorizedSsoUser,
+    Permission.ProjectUser,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.TelemetryViewer,
+  ],
+  update: [],
+};
 
 @EnableDocumentation({
   isMasterAdminApiDocs: true,
@@ -4888,4 +4913,174 @@ export default class Project extends TenantModel {
   })
   public requireApprovalForScheduledMaintenancePublicNotes?: boolean =
     undefined;
+
+  /*
+   * Telemetry ingestion budgets for this project, per signal
+   * (TelemetryIngestionBudget): set by the master admin only (Admin
+   * Dashboard > Projects > the project > Ingestion Budgets), so `create` and
+   * `update` are empty - the project's own admins can see the budget they
+   * are held to but cannot raise it. Empty is the instance default
+   * (GlobalConfig), 0 is no limit for this project. Read by the ingest path
+   * through TelemetryIngestionBudgetSettings' one-minute cache, which
+   * ProjectService clears on this server when one changes.
+   */
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Logs Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most logs this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Traces Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most traces this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Metrics Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most metrics this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Profiles Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most profiles this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Security Events Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most security events this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Logs Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send logs, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Traces Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send traces, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Metrics Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send metrics, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Profiles Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send profiles, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Security Events Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send security events, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsIngestionRateLimitInMBPerSecond?: number = undefined;
 }
