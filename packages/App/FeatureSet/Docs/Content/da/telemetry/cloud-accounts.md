@@ -338,6 +338,10 @@ Den første læsning viser hver ressource i kontoen, uanset om den rapporterer m
 Én forbindelse læser op til 50 konti, abonnementer eller projekter, og hver læsning siger det, når der er flere. Forbind de andre med en forbindelse for sig.
 :::
 
+:::details En læsning har advarsler
+En læsning, der virker, kan stadig udelade noget, fx en metrik, som din cloud ikke returnerede for nogle ressourcer, eller køerne i et navneområde ud over de første 1.000. Under **Cloud → Forbind** siger forbindelsens status så, hvor mange advarsler dens seneste læsning havde: vælg dem for at læse hver enkelt.
+:::
+
 ## Næste trin
 
 :::cards

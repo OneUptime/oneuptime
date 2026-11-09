@@ -869,10 +869,26 @@ describe("reading Service Bus and Event Hubs namespaces through the connection",
     const result: CloudReadResult = await read(fake);
 
     expect(result.warnings).toEqual([
-      `sb-orders: ${AZURE_MAX_SPLIT_SERIES_PER_METRIC} or more queues, topics or event hubs in one namespace, and a read reads ${AZURE_MAX_SPLIT_SERIES_PER_METRIC} of them. The collector's azure_monitor receiver can read the rest.`,
+      "sb-orders has 1,000 or more queues, topics or event hubs: a read takes the metrics of 1,000 of them. The collector's azure_monitor receiver can read the rest.",
     ]);
     // Still one call.
     expect(callsTo(fake, SERVICE_BUS)).toHaveLength(1);
+  });
+
+  test("several such namespaces are said in one warning, each by name", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      entities: {
+        [SERVICE_BUS]: queues(AZURE_MAX_SPLIT_SERIES_PER_METRIC),
+        [EVENT_HUBS]: queues(AZURE_MAX_SPLIT_SERIES_PER_METRIC + 5),
+      },
+    });
+
+    const result: CloudReadResult = await read(fake);
+
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(
+      /^(sb-orders and eh-clicks|eh-clicks and sb-orders) have 1,000 or more queues, topics or event hubs each: a read takes the metrics of 1,000 of each\. The collector's azure_monitor receiver can read the rest\.$/,
+    );
   });
 
   test("Azure Monitor's throttling - a 429, or a 529 while its queries are throttled - is asked again, and the read goes on", async () => {
@@ -922,7 +938,7 @@ describe("reading Service Bus and Event Hubs namespaces through the connection",
 
     expect(callsTo(fake, SERVICE_BUS)).toHaveLength(4);
     expect(result.warnings).toEqual([
-      "Could not read the metrics of 1 resources this time.",
+      "Could not read the metrics of 1 resource this time.",
     ]);
     expect(
       written(result).some((point: WrittenPoint): boolean => {

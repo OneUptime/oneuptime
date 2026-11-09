@@ -362,26 +362,47 @@ describe("what read a queue's broker metrics lately", () => {
   test("each cloud connection by its id, once, sorted; a collector by no id", async () => {
     expect(
       await sourcesOf([
-        sourceRow("2026-03-04T12:00:00.000Z", "conn-b"),
-        sourceRow("2026-03-04T11:00:00.000Z", "conn-a"),
         sourceRow(
           "2026-03-04T12:00:00.000Z",
-          "conn-a",
+          "2a9d4e61-7f2c-4c8b-8d30-6f1a2b4c8e25",
+        ),
+        sourceRow(
+          "2026-03-04T11:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
+        sourceRow(
+          "2026-03-04T12:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
           3,
           "azure_incomingmessages_total",
         ),
         sourceRow("2026-03-04T12:00:00.000Z"),
       ]),
-    ).toEqual({ connectionIds: ["conn-a", "conn-b"], fromCollector: true });
+    ).toEqual({
+      connectionIds: [
+        "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        "2a9d4e61-7f2c-4c8b-8d30-6f1a2b4c8e25",
+      ],
+      fromCollector: true,
+    });
   });
 
   test("only a cloud connection: no collector", async () => {
     expect(
       await sourcesOf([
-        sourceRow("2026-03-04T12:00:00.000Z", "conn-a"),
-        sourceRow("2026-03-03T12:00:00.000Z", "conn-a"),
+        sourceRow(
+          "2026-03-04T12:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
+        sourceRow(
+          "2026-03-03T12:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
       ]),
-    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+    ).toEqual({
+      connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+      fromCollector: false,
+    });
   });
 
   test("a source that stopped well before the newest arrival was replaced, either way round", async () => {
@@ -391,14 +412,23 @@ describe("what read a queue's broker metrics lately", () => {
     expect(
       await sourcesOf([
         sourceRow("2026-03-01T12:00:00.000Z"),
-        sourceRow("2026-03-04T12:00:00.000Z", "conn-a"),
+        sourceRow(
+          "2026-03-04T12:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
       ]),
-    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+    ).toEqual({
+      connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+      fromCollector: false,
+    });
 
     // The connection read it until yesterday; a collector since.
     expect(
       await sourcesOf([
-        sourceRow("2026-03-03T12:00:00.000Z", "conn-a"),
+        sourceRow(
+          "2026-03-03T12:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
         sourceRow("2026-03-04T12:00:00.000Z"),
       ]),
     ).toEqual({ connectionIds: [], fromCollector: true });
@@ -407,28 +437,50 @@ describe("what read a queue's broker metrics lately", () => {
   test("the edge: two hours before the newest arrival still counts, three do not", async () => {
     expect(
       await sourcesOf([
-        sourceRow("2026-03-04T12:00:00.000Z", "conn-a"),
+        sourceRow(
+          "2026-03-04T12:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
         sourceRow("2026-03-04T10:00:00.000Z"),
-        sourceRow("2026-03-04T09:00:00.000Z", "conn-b"),
+        sourceRow(
+          "2026-03-04T09:00:00.000Z",
+          "2a9d4e61-7f2c-4c8b-8d30-6f1a2b4c8e25",
+        ),
       ]),
-    ).toEqual({ connectionIds: ["conn-a"], fromCollector: true });
+    ).toEqual({
+      connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+      fromCollector: true,
+    });
   });
 
   test("a stopped queue's sources are what read it last, however long ago", async () => {
     expect(
       await sourcesOf([
-        sourceRow("2026-02-27T08:00:00.000Z", "conn-a"),
-        sourceRow("2026-02-27T07:00:00.000Z", "conn-a"),
+        sourceRow(
+          "2026-02-27T08:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
+        sourceRow(
+          "2026-02-27T07:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
         sourceRow("2026-02-26T08:00:00.000Z"),
       ]),
-    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+    ).toEqual({
+      connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+      fromCollector: false,
+    });
   });
 
   test("an empty interval is no source; a blank or unreadable id is a collector's", async () => {
     // A count of nothing from a connection says nothing about it.
     expect(
       await sourcesOf([
-        sourceRow("2026-03-04T12:00:00.000Z", "conn-a", 0),
+        sourceRow(
+          "2026-03-04T12:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+          0,
+        ),
         sourceRow("2026-03-04T12:00:00.000Z"),
       ]),
     ).toEqual({ connectionIds: [], fromCollector: true });
@@ -442,10 +494,19 @@ describe("what read a queue's broker metrics lately", () => {
     // An id is trimmed, so one connection is one source.
     expect(
       await sourcesOf([
-        sourceRow("2026-03-04T12:00:00.000Z", " conn-a "),
-        sourceRow("2026-03-04T11:00:00.000Z", "conn-a"),
+        sourceRow(
+          "2026-03-04T12:00:00.000Z",
+          " 1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14 ",
+        ),
+        sourceRow(
+          "2026-03-04T11:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
       ]),
-    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+    ).toEqual({
+      connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+      fromCollector: false,
+    });
   });
 
   test("nothing in the week: no source at all", async () => {
@@ -466,15 +527,28 @@ describe("what read a queue's broker metrics lately", () => {
   test("the minute read, which is not grouped by source, never makes a collector of a connection", async () => {
     expect(
       await sourcesOf(
-        [sourceRow("2026-03-04T12:00:00.000Z", "conn-a")],
+        [
+          sourceRow(
+            "2026-03-04T12:00:00.000Z",
+            "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+          ),
+        ],
         [row("azure_activemessages_average", "2026-03-04T12:29:00.000Z")],
       ),
-    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+    ).toEqual({
+      connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+      fromCollector: false,
+    });
   });
 
   test("the cache keeps the sources with the arrivals", async () => {
     answers[AggregationInterval.Hour] = {
-      data: [sourceRow("2026-03-04T12:00:00.000Z", "conn-a")],
+      data: [
+        sourceRow(
+          "2026-03-04T12:00:00.000Z",
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+        ),
+      ],
     };
     const cache: MessageQueueBrokerMetricArrivalsCache =
       new MessageQueueBrokerMetricArrivalsCache();
@@ -496,7 +570,7 @@ describe("what read a queue's broker metrics lately", () => {
       });
     expect(second).toBe(first);
     expect(second?.sources).toEqual({
-      connectionIds: ["conn-a"],
+      connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
       fromCollector: false,
     });
   });

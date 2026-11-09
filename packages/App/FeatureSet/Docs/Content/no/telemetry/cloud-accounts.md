@@ -338,6 +338,10 @@ Den første lesingen lister hver ressurs i kontoen, enten den rapporterer målin
 Én tilkobling leser opptil 50 kontoer, abonnementer eller prosjekter, og hver lesing sier fra når det finnes flere. Koble til de andre med en egen tilkobling.
 :::
 
+:::details En lesing har advarsler
+En lesing som virker, kan likevel utelate noe, for eksempel en måling skyen ikke returnerte for noen ressurser, eller køene i et navneområde utover de første 1 000. Under **Sky → Koble til** sier tilkoblingens status da hvor mange advarsler den siste lesingen hadde: velg dem for å lese hver enkelt.
+:::
+
 ## Neste steg
 
 :::cards

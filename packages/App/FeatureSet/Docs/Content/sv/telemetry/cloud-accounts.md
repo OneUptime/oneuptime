@@ -338,6 +338,10 @@ Den första läsningen listar varje resurs i kontot, oavsett om den rapporterar 
 En anslutning läser upp till 50 konton, prenumerationer eller projekt, och varje läsning säger till när det finns fler. Anslut de andra med en egen anslutning.
 :::
 
+:::details En läsning har varningar
+En läsning som fungerar kan ändå utelämna något, till exempel ett mätvärde som molnet inte returnerade för vissa resurser, eller köerna i ett namnområde utöver de första 1 000. Under **Moln → Anslut** säger anslutningens status då hur många varningar dess senaste läsning hade: välj dem för att läsa var och en.
+:::
+
 ## Nästa steg
 
 :::cards

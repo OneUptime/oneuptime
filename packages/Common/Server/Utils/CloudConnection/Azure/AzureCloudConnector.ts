@@ -1697,7 +1697,9 @@ export default class AzureCloudConnector implements CloudConnector {
 
     if (failedResources > 0) {
       warnings.push(
-        `Could not read the metrics of ${failedResources} resources this time.`,
+        `Could not read the metrics of ${failedResources} ${
+          failedResources === 1 ? "resource" : "resources"
+        } this time.`,
       );
     }
 
@@ -1709,13 +1711,28 @@ export default class AzureCloudConnector implements CloudConnector {
       );
     }
 
+    /*
+     * Shown under the connection's status on Cloud > Connect, as the
+     * queue's Broker metrics card tells its reader to look there: which
+     * namespaces, and the way to read the rest.
+     */
     if (cappedResources.length > 0) {
+      const max: string =
+        AZURE_MAX_SPLIT_SERIES_PER_METRIC.toLocaleString("en-US");
+      // "a", "a and b", "a, b and c", "a, b, c and 2 more".
+      const named: Array<string> = cappedResources.slice(0, 3);
+      const more: number = cappedResources.length - named.length;
+      const names: string =
+        more > 0
+          ? `${named.join(", ")} and ${more} more`
+          : named.length > 1
+            ? `${named.slice(0, -1).join(", ")} and ${named[named.length - 1]}`
+            : named[0]!;
+
       warnings.push(
-        `${cappedResources.slice(0, 3).join(", ")}${
-          cappedResources.length > 3
-            ? ` and ${cappedResources.length - 3} more`
-            : ""
-        }: ${AZURE_MAX_SPLIT_SERIES_PER_METRIC} or more queues, topics or event hubs in one namespace, and a read reads ${AZURE_MAX_SPLIT_SERIES_PER_METRIC} of them. The collector's azure_monitor receiver can read the rest.`,
+        cappedResources.length === 1
+          ? `${names} has ${max} or more queues, topics or event hubs: a read takes the metrics of ${max} of them. The collector's azure_monitor receiver can read the rest.`
+          : `${names} have ${max} or more queues, topics or event hubs each: a read takes the metrics of ${max} of each. The collector's azure_monitor receiver can read the rest.`,
       );
     }
 

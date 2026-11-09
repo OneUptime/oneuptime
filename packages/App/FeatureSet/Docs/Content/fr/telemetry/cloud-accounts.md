@@ -338,6 +338,10 @@ La première lecture liste chaque ressource du compte, qu'elle signale des métr
 Une connexion lit jusqu'à 50 comptes, abonnements ou projets, et chaque lecture le signale quand il y en a davantage. Connectez les autres avec une connexion à part.
 :::
 
+:::details Une lecture signale des avertissements
+Une lecture qui fonctionne peut tout de même laisser quelque chose de côté, comme une métrique que le cloud n'a pas renvoyée pour certaines ressources, ou les files d'attente d'un espace de noms au-delà des 1 000 premières. Dans **Cloud → Connecter**, le statut de la connexion indique alors combien d'avertissements sa dernière lecture a eus : sélectionnez-les pour lire chacun d'eux.
+:::
+
 ## Prochaines étapes
 
 :::cards

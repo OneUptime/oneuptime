@@ -11,7 +11,9 @@ import {
   MessageQueueTimePoint,
   hasMessageQueueBrokerMetricData,
 } from "./MessageQueueTelemetryQueries";
-import MessageQueueBrokerMetricsCard from "./MessageQueueBrokerMetricsCard";
+import MessageQueueBrokerMetricsCard, {
+  BROKER_METRICS_CONNECT_AZURE_LINK_LABEL,
+} from "./MessageQueueBrokerMetricsCard";
 import {
   MessageQueueBrokerMetricsStatus,
   MessageQueueNamespaceFinding,
@@ -149,11 +151,11 @@ export const BROKER_HEALTH_SETUP_LINK_LABEL: string = translationKey(
 
 /*
  * Cloud > Connect, opened on the Azure form: a connected subscription reads
- * a Service Bus or Event Hubs namespace's key metrics per queue.
+ * a Service Bus or Event Hubs namespace's key metrics per queue. The card's
+ * findings link there too, with the same words.
  */
-export const BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL: string = translationKey(
-  "Connect an Azure subscription →",
-);
+export const BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL: string =
+  BROKER_METRICS_CONNECT_AZURE_LINK_LABEL;
 
 /*
  * Where a system's broker metrics can be read when they never reach this
@@ -302,14 +304,12 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
         {renderMessageQueueInlineCode(guidance.description)}
       </p>
       <p className="mt-2 text-xs text-gray-500">{guidance.sourceLabel}</p>
+      {/*
+       * The ways in first, in the order the description gives them (a
+       * connected subscription, with nothing to run, then the collector's
+       * setup), then the guide.
+       */}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-        <Link
-          to={guidance.docsRoute}
-          openInNewTab={true}
-          className="text-sm font-medium text-indigo-600 hover:underline"
-        >
-          {guidance.docsLabel}
-        </Link>
         {guidance.connectsCloudAccount ? (
           <AppLink
             to={getConnectRouteFor(CloudProvider.Azure)}
@@ -342,6 +342,13 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+        <Link
+          to={guidance.docsRoute}
+          openInNewTab={true}
+          className="text-sm font-medium text-indigo-600 hover:underline"
+        >
+          {guidance.docsLabel}
+        </Link>
       </div>
     </div>
   );

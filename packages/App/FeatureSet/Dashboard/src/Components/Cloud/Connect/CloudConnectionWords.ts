@@ -316,6 +316,50 @@ export function getChangesRecordedWords(count: number): CloudTemplate {
 }
 
 /*
+ * "2 warnings": what a read that worked could not read, or left for the
+ * next one (CloudConnectionReadSummary.warnings) - a namespace with more
+ * queues than a read takes, a metric Azure Monitor refused. Under the
+ * row's status, opening them.
+ */
+const READ_WARNINGS: PluralTemplate = {
+  one: "{{count}} warning",
+  other: "{{count}} warnings",
+};
+
+export function getReadWarningsWords(count: number): CloudTemplate {
+  return pluralOf(READ_WARNINGS, count);
+}
+
+export const READ_WARNINGS_TITLE: string = translationKey("Warnings");
+
+export const READ_WARNINGS_DESCRIPTION: string = translationKey(
+  "What the last read of {{name}} could not read, or left for the next one. It read the rest.",
+);
+
+/*
+ * The warnings of a connection's last read, as its row shows them: none
+ * while it is not working - View error says why its last read failed.
+ */
+export function getCloudReadWarnings(
+  connection: Pick<
+    CloudConnection,
+    | "isEnabled"
+    | "lastPulledAt"
+    | "lastSuccessfulPullAt"
+    | "lastError"
+    | "lastPullResult"
+  >,
+): Array<string> {
+  if (getCloudConnectionHealth(connection).key === "failing") {
+    return [];
+  }
+
+  return (
+    readCloudConnectionReadSummary(connection.lastPullResult)?.warnings || []
+  );
+}
+
+/*
  * What a connection reads, in its cloud's own word for it: an AWS account,
  * an Azure subscription, a Google Cloud project.
  */

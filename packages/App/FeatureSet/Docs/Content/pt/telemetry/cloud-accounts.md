@@ -338,6 +338,10 @@ A primeira leitura lista cada recurso da conta, informe ele métricas ou não. S
 Uma conexão lê até 50 contas, assinaturas ou projetos, e cada leitura avisa quando há mais. Conecte as outras com uma conexão própria.
 :::
 
+:::details Uma leitura tem avisos
+Uma leitura que funciona ainda pode deixar algo de fora, como uma métrica que a nuvem não retornou para alguns recursos, ou as filas de um namespace além das primeiras 1.000. Em **Nuvem → Conectar**, o status da conexão diz então quantos avisos a última leitura dela teve: selecione-os para ler cada um.
+:::
+
 ## Próximos passos
 
 :::cards

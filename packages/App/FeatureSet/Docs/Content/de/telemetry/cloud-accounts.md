@@ -338,6 +338,10 @@ Der erste Lesevorgang listet jede Ressource des Kontos auf, ob sie Metriken meld
 Eine Verbindung liest bis zu 50 Konten, Abonnements oder Projekte, und jeder Lesevorgang sagt es, wenn es mehr gibt. Verbinden Sie die anderen mit einer eigenen Verbindung.
 :::
 
+:::details Ein Lesevorgang hat Warnungen
+Ein Lesevorgang, der funktioniert, kann trotzdem etwas auslassen, etwa eine Metrik, die die Cloud für einige Ressourcen nicht geliefert hat, oder die Warteschlangen eines Namespace über die ersten 1.000 hinaus. Unter **Cloud → Verbinden** nennt der Status der Verbindung dann, wie viele Warnungen ihr letzter Lesevorgang hatte: Wählen Sie sie aus, um jede einzelne zu lesen.
+:::
+
 ## Nächste Schritte
 
 :::cards

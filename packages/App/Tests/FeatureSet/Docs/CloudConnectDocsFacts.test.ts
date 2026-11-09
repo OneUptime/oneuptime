@@ -573,6 +573,28 @@ describe("Connect a Cloud Account", () => {
     );
   });
 
+  /*
+   * A read that worked can still leave something out - a namespace's queues
+   * past the cap among them - and says so in its warnings: the connection's
+   * status on Cloud > Connect counts them and opens what each says.
+   */
+  it("says where a read's warnings show: the connection's status, which opens each one", () => {
+    const table: string = source("table");
+
+    expect(table).toContain('data-testid="cloud-connection-warnings"');
+    expect(table).toContain("getReadWarningsWords(");
+    expect(source("azure")).toContain(
+      "queues, topics or event hubs: a read takes the metrics of",
+    );
+    expect(PAGE).toContain(":::details A read has warnings");
+    expect(PAGE).toContain(
+      `or the queues of a namespace past the first ${written(AZURE_MAX_SPLIT_SERIES_PER_METRIC)}.`,
+    );
+    expect(PAGE).toContain(
+      "On **Cloud → Connect**, the connection's status then says how many warnings its last read had: select them to read each one.",
+    );
+  });
+
   it("names the variables a self-hosted OneUptime's AWS identity is read from", () => {
     const identity: string = source("serverIdentity");
 

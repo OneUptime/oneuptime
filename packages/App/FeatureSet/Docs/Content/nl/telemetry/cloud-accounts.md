@@ -338,6 +338,10 @@ De eerste leesbeurt toont elke resource van het account, of die nu metrieken mel
 Eén koppeling leest maximaal 50 accounts, abonnementen of projecten, en elke leesbeurt zegt het als het er meer zijn. Koppel de andere met een eigen koppeling.
 :::
 
+:::details Een leesbeurt heeft waarschuwingen
+Een leesbeurt die werkt, kan toch iets overslaan, zoals een metriek die de cloud voor sommige resources niet teruggaf, of de wachtrijen van een namespace na de eerste 1.000. Onder **Cloud → Koppelen** zegt de status van de koppeling dan hoeveel waarschuwingen de laatste leesbeurt had: selecteer ze om ze een voor een te lezen.
+:::
+
 ## Volgende stappen
 
 :::cards

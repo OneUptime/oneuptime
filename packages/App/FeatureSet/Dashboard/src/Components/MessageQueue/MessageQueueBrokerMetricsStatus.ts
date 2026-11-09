@@ -725,11 +725,11 @@ export function getMessageQueueBrokerMetricStatusLine(
     case "notReadByConnection":
       return metric.configLine
         ? translator.translateTemplate(
-            "Your cloud connection does not read it. The collector's `{{receiver}}` receiver can: add `{{line}}` to its metrics list.",
+            "Only the collector's `{{receiver}}` receiver reads it: add `{{line}}` to its metrics list.",
             { receiver: metric.descriptor.receiver, line: metric.configLine },
           )
         : translator.translateTemplate(
-            "Your cloud connection does not read it. The collector's `{{receiver}}` receiver can.",
+            "Only the collector's `{{receiver}}` receiver reads it.",
             { receiver: metric.descriptor.receiver },
           );
     case "stoppedWhileOthersArrive":
@@ -817,9 +817,11 @@ export interface MessageQueueBrokerMetricsSourceLine {
 
 /**
  * What reads the queue's metrics, as the card says it under its summary:
- * the cloud connection, the collector's receiver, or both. Null when the
- * lookback says nothing, and for a collector alone on a system no cloud
- * connection reads per queue - where it could be nothing else.
+ * the cloud connection (or connections), the collector's receiver, or both
+ * - the connection then skips what the receiver reads, so nothing is
+ * counted twice (CloudCollectorQueues). Null when the lookback says
+ * nothing, and for a collector alone on a system no cloud connection reads
+ * per queue - where it could be nothing else.
  */
 export function getMessageQueueBrokerMetricsSourceLine(
   status: Pick<MessageQueueBrokerMetricsStatus, "sources">,
@@ -833,18 +835,22 @@ export function getMessageQueueBrokerMetricsSourceLine(
   const receiver: string | null =
     reader.kind === "receiver" ? reader.name : null;
   const fromConnection: boolean = sources.connectionIds.length > 0;
+  const several: boolean = sources.connectionIds.length > 1;
 
   if (fromConnection && !sources.fromCollector) {
     return {
-      template: "Read by your cloud connection ({{connections}}).",
+      template: several
+        ? "Read by your cloud connections ({{connections}})."
+        : "Read by your cloud connection ({{connections}}).",
       values: {},
       namesConnections: true,
     };
   }
   if (fromConnection && receiver) {
     return {
-      template:
-        "Read by your collector's `{{receiver}}` receiver and your cloud connection ({{connections}}): where both read a metric, the receiver's is kept.",
+      template: several
+        ? "Read by your collector's `{{receiver}}` receiver and your cloud connections ({{connections}}), which skip the metrics the receiver reads."
+        : "Read by your collector's `{{receiver}}` receiver and your cloud connection ({{connections}}), which skips the metrics the receiver reads.",
       values: { receiver: receiver },
       namesConnections: true,
     };
@@ -863,6 +869,41 @@ export function getMessageQueueBrokerMetricsSourceLine(
   return null;
 }
 
+/**
+ * On a queue only a cloud connection reads, the sentence after the source
+ * line that says why the summary counts fewer metrics than the system has:
+ * the ones marked Collector only, which the collector's receiver reads.
+ * Null while there are none, and on any other queue.
+ */
+export function getMessageQueueCollectorOnlyLine(
+  status: Pick<MessageQueueBrokerMetricsStatus, "metrics" | "sources">,
+  messagingSystem: string | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string | null {
+  const reader: BrokerMetricsReader = getBrokerMetricsReader(messagingSystem);
+  const collectorOnly: number = status.metrics.filter(
+    (metric: MessageQueueBrokerMetricStatus): boolean => {
+      return metric.state === "collectorOnly";
+    },
+  ).length;
+  if (
+    collectorOnly === 0 ||
+    reader.kind !== "receiver" ||
+    !isReadByCloudConnectionOnly(status.sources)
+  ) {
+    return null;
+  }
+  return translator.translatePlural(
+    {
+      one: "The {{count}} metric marked Collector only needs the collector's `{{receiver}}` receiver.",
+      other:
+        "The {{count}} metrics marked Collector only need the collector's `{{receiver}}` receiver.",
+    },
+    collectorOnly,
+    { receiver: reader.name },
+  );
+}
+
 /*
  * One thing the card asks the reader to look at: a headline, what it means,
  * the steps that fix it, and the lines to add to the collector's
@@ -879,7 +920,25 @@ export interface MessageQueueBrokerMetricsFinding {
   steps: Array<string>;
   // Lines to add to the collector's configuration, verbatim.
   configLines: Array<string>;
+  /*
+   * Where Cloud > Connect fixes it, the card's first link: connecting the
+   * namespace's Azure subscription, or the cloud connection that reads the
+   * queue. Null where Cloud > Connect does not.
+   */
+  cloudConnectionLink: MessageQueueCloudConnectionLink | null;
+  /*
+   * Whether the collector's configuration for the queue (its Documentation
+   * tab) fixes it: not where only a cloud connection's read can.
+   */
+  linksCollectorConfiguration: boolean;
 }
+
+/*
+ * A finding's link to Cloud > Connect: "connect" opens its Azure form (no
+ * cloud connection reads the queue), "check" its list of connections (one
+ * does, and its last read says what went wrong).
+ */
+export type MessageQueueCloudConnectionLink = "connect" | "check";
 
 /*
  * What reads the system's broker metrics: a collector receiver, by the name
@@ -943,31 +1002,42 @@ export function getMessageQueueMissingMetricsFinding(
       return metric.configLine !== null;
     });
 
+  /*
+   * One metric is "it" and one line "the line": chosen here, not by a
+   * plural, since none of these sentences names the count.
+   */
+  const several: boolean = status.missing.length > 1;
   const steps: Array<string> = [];
   if (connectionOnly) {
     steps.push(
       translator.translateTemplate(
-        "Open Cloud > Connect: the connection's last read says which metrics it could not read.",
+        "Check the connection's last read on Cloud > Connect: it says which metrics it could not read.",
       ),
     );
   } else if (everyMissingIsListed && reader.kind === "receiver") {
     steps.push(
       translator.translateTemplate(
-        "Add the lines below to the `{{receiver}}` receiver's `metrics` list, under the namespace type, and restart the collector.",
+        configLines.length > 1
+          ? "Add the lines below to the `{{receiver}}` receiver's `metrics` list, under the namespace type, and restart the collector."
+          : "Add the line below to the `{{receiver}}` receiver's `metrics` list, under the namespace type, and restart the collector.",
         { receiver: reader.name },
       ),
     );
   } else if (reader.kind === "receiver") {
     steps.push(
       translator.translateTemplate(
-        "Check that the collector's `{{receiver}}` configuration collects them: the {{system}} section of the Queues guide lists what each needs.",
+        several
+          ? "Check that the collector's `{{receiver}}` configuration collects them: the {{system}} section of the Queues guide lists what each needs."
+          : "Check that the collector's `{{receiver}}` configuration collects it: the {{system}} section of the Queues guide lists what it needs.",
         { receiver: reader.name, system: system },
       ),
     );
   } else if (reader.kind === "scraper") {
     steps.push(
       translator.translateTemplate(
-        "Check that the {{scraper}}'s configuration collects them: the {{system}} section of the Queues guide lists what each needs.",
+        several
+          ? "Check that the {{scraper}}'s configuration collects them: the {{system}} section of the Queues guide lists what each needs."
+          : "Check that the {{scraper}}'s configuration collects it: the {{system}} section of the Queues guide lists what it needs.",
         { scraper: reader.name, system: system },
       ),
     );
@@ -983,7 +1053,13 @@ export function getMessageQueueMissingMetricsFinding(
       status.missing.length,
     ),
     description: translator.translateTemplate(
-      "{{system}} would have reported these in the selected range, and this queue's other metrics arrive, so they are most likely not collected: {{metrics}}.",
+      connectionOnly
+        ? several
+          ? "Your cloud connection reads these, and none arrived in the selected range while this queue's other metrics did: {{metrics}}."
+          : "Your cloud connection reads this metric, and it did not arrive in the selected range while this queue's other metrics did: {{metrics}}."
+        : several
+          ? "{{system}} would have reported these in the selected range, and this queue's other metrics arrive, so they are most likely not collected: {{metrics}}."
+          : "{{system}} would have reported this metric in the selected range, and this queue's other metrics arrive, so it is most likely not collected: {{metrics}}.",
       {
         system: system,
         metrics: composedValue((words: Translator): string => {
@@ -1003,6 +1079,8 @@ export function getMessageQueueMissingMetricsFinding(
     ),
     steps: steps,
     configLines: everyMissingIsListed ? configLines : [],
+    cloudConnectionLink: connectionOnly ? "check" : null,
+    linksCollectorConfiguration: !connectionOnly,
   };
 }
 
@@ -1072,41 +1150,86 @@ export function getMessageQueueStoppedMetricsFinding(
     ),
     steps: steps,
     configLines: [],
+    cloudConnectionLink: fromConnection ? "check" : null,
+    linksCollectorConfiguration:
+      !fromConnection || Boolean(sources?.fromCollector),
   };
 }
 
-/** The words of a namespace finding (getMessageQueueNamespaceFinding). */
+/**
+ * The words of a namespace finding (getMessageQueueNamespaceFinding), with
+ * what read the queue's metrics lately (the lookback's sources), which
+ * decides whose fix it gives: a namespace a cloud connection read and now
+ * sends nothing points at that connection, not at connecting one.
+ */
 export function getMessageQueueNamespaceFindingWords(
   finding: MessageQueueNamespaceFinding,
   messagingSystem: string | null | undefined,
   translator: Translator = getGlobalTranslator(),
+  sources: MessageQueueBrokerMetricSources | null = null,
 ): MessageQueueBrokerMetricsFinding {
   const system: string = getMessageQueueSystemLabel(messagingSystem);
+  const readByConnection: boolean = Boolean(
+    sources && sources.connectionIds.length > 0,
+  );
   switch (finding.kind) {
-    case "nothingFromNamespace":
+    case "nothingFromNamespace": {
+      const title: string = translator.translateTemplate(
+        "Nothing from namespace {{namespace}} reaches OneUptime",
+        { namespace: finding.namespace },
+      );
+      if (isReadByCloudConnectionOnly(sources)) {
+        // A connection read it, nothing else did, and it sends nothing now.
+        return {
+          kind: finding.kind,
+          title: title,
+          description: translator.translateTemplate(
+            "No {{system}} metric of this namespace arrived in the selected range, for any of its queues and topics: your cloud connection stopped reading it, or its reads fail.",
+            { system: system },
+          ),
+          steps: [
+            translator.translateTemplate(
+              "Check the connection's last read on Cloud > Connect: it says why its reads fail, such as an expired secret or a removed permission.",
+            ),
+            translator.translateTemplate(
+              "Give the connection's app the Monitoring Reader role on the subscription or the namespace.",
+            ),
+          ],
+          configLines: [],
+          cloudConnectionLink: "check",
+          linksCollectorConfiguration: false,
+        };
+      }
+      const steps: Array<string> = [];
+      // Nothing says a connection reads it: connecting one is the way in.
+      if (!readByConnection) {
+        steps.push(
+          translator.translateTemplate(
+            "Connect the namespace's Azure subscription on Cloud > Connect, or run the collector's `azure_monitor` receiver: either reads each of its queues and topics.",
+          ),
+        );
+      }
+      steps.push(
+        translator.translateTemplate(
+          "Give the connection's app or the receiver's service principal the Monitoring Reader role on the subscription or the namespace.",
+        ),
+        translator.translateTemplate(
+          "Look at the connection's last read on Cloud > Connect, or in the collector's log for `AuthorizationFailed` or `401`: a missing role or an expired client secret stops every read.",
+        ),
+      );
       return {
         kind: finding.kind,
-        title: translator.translateTemplate(
-          "Nothing from namespace {{namespace}} reaches OneUptime",
-          { namespace: finding.namespace },
-        ),
+        title: title,
         description: translator.translateTemplate(
           "No {{system}} metric of this namespace arrived in the selected range, for any of its queues and topics: nothing reads its metrics from Azure Monitor, or the read fails.",
           { system: system },
         ),
-        steps: [
-          translator.translateTemplate(
-            "Connect the namespace's Azure subscription on Cloud > Connect, which reads the metrics of each of its queues and topics, or run the collector's `azure_monitor` receiver: this queue's Documentation tab has its configuration.",
-          ),
-          translator.translateTemplate(
-            "Give the connection's app or the receiver's service principal the Monitoring Reader role on the subscription or the namespace.",
-          ),
-          translator.translateTemplate(
-            "Look at the connection's last read on Cloud > Connect, or in the collector's log for `AuthorizationFailed` or `401`: a missing role or an expired client secret stops every read.",
-          ),
-        ],
+        steps: steps,
         configLines: [],
+        cloudConnectionLink: readByConnection ? "check" : "connect",
+        linksCollectorConfiguration: true,
       };
+    }
     case "namespaceTotalsOnly":
       return {
         kind: finding.kind,
@@ -1131,46 +1254,73 @@ export function getMessageQueueNamespaceFindingWords(
               ),
         ],
         configLines: [],
+        cloudConnectionLink: finding.fromCloudConnection ? "check" : "connect",
+        linksCollectorConfiguration: !finding.fromCloudConnection,
       };
-    default:
+    default: {
+      const title: string = translator.translatePlural(
+        {
+          one: "Metrics arrive for {{count}} other queue or topic of {{namespace}}, not this one",
+          other:
+            "Metrics arrive for {{count}} other queues and topics of {{namespace}}, not this one",
+        },
+        finding.entityCount,
+        { namespace: finding.namespace },
+      );
+      if (!finding.fromCloudConnection) {
+        return {
+          kind: finding.kind,
+          title: title,
+          description: translator.translateTemplate(
+            "The `azure_monitor` receiver asks Azure Monitor for at most `maximum_number_of_records_per_resource` series per metric and namespace, 10 unless it is raised, so the queues and topics past it go unreported.",
+          ),
+          steps: [
+            translator.translateTemplate(
+              "Raise `maximum_number_of_records_per_resource` above the number of queues and topics in the namespace (1000 in the Queues guide's configuration), and restart the collector.",
+            ),
+          ],
+          configLines: [],
+          cloudConnectionLink: null,
+          linksCollectorConfiguration: true,
+        };
+      }
+      const max: string = translator.formatNumber(
+        CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE,
+      );
+      // Fewer than the connection reads: its cap left nothing out.
+      if (finding.entityCount < CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE) {
+        return {
+          kind: finding.kind,
+          title: title,
+          description: translator.translateTemplate(
+            "Your Azure cloud connection read the namespace's other queues and topics in the selected range, and Azure Monitor sent nothing for this one.",
+          ),
+          steps: [
+            translator.translateTemplate(
+              "Check that the queue still exists in the namespace under this name.",
+            ),
+          ],
+          configLines: [],
+          cloudConnectionLink: null,
+          linksCollectorConfiguration: false,
+        };
+      }
       return {
         kind: finding.kind,
-        title: translator.translatePlural(
-          {
-            one: "Metrics arrive for {{count}} other queue or topic of {{namespace}}, not this one",
-            other:
-              "Metrics arrive for {{count}} other queues and topics of {{namespace}}, not this one",
-          },
-          finding.entityCount,
-          { namespace: finding.namespace },
+        title: title,
+        description: translator.translateTemplate(
+          "Your Azure cloud connection reads up to {{max}} queues and topics of a namespace, and Azure Monitor sent none of this one's metrics in the selected range.",
+          { max: max },
         ),
-        description: finding.fromCloudConnection
-          ? translator.translateTemplate(
-              "Your Azure cloud connection reads up to {{max}} queues and topics of a namespace, and Azure Monitor sent none of this one's metrics in the selected range.",
-              {
-                max: translator.formatNumber(
-                  CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE,
-                ),
-              },
-            )
-          : translator.translateTemplate(
-              "The `azure_monitor` receiver asks Azure Monitor for at most `maximum_number_of_records_per_resource` series per metric and namespace, 10 unless it is raised, so the queues and topics past it go unreported.",
-            ),
         steps: [
-          finding.fromCloudConnection
-            ? translator.translateTemplate(
-                "If the namespace has more than {{max}} queues and topics, read it with the collector's `azure_monitor` receiver too, with `maximum_number_of_records_per_resource` above that number. Otherwise, check that the queue still exists under this name.",
-                {
-                  max: translator.formatNumber(
-                    CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE,
-                  ),
-                },
-              )
-            : translator.translateTemplate(
-                "Raise `maximum_number_of_records_per_resource` above the number of queues and topics in the namespace (1000 in the Queues guide's configuration), and restart the collector.",
-              ),
+          translator.translateTemplate(
+            "Read the namespace with the collector's `azure_monitor` receiver too, with `maximum_number_of_records_per_resource` above its number of queues and topics.",
+          ),
         ],
         configLines: [],
+        cloudConnectionLink: null,
+        linksCollectorConfiguration: true,
       };
+    }
   }
 }

@@ -338,6 +338,10 @@ La prima lettura elenca ogni risorsa dell'account, che segnali metriche o no. Se
 Una connessione legge fino a 50 account, sottoscrizioni o progetti, e ogni lettura lo dice quando ce ne sono di più. Collega gli altri con una connessione a parte.
 :::
 
+:::details Una lettura ha degli avvisi
+Una lettura che funziona può comunque tralasciare qualcosa, come una metrica che il cloud non ha restituito per alcune risorse, o le code di un namespace oltre le prime 1.000. In **Cloud → Collega**, lo stato della connessione indica allora quanti avvisi ha avuto la sua ultima lettura: selezionali per leggerli uno per uno.
+:::
+
 ## Prossimi passi
 
 :::cards

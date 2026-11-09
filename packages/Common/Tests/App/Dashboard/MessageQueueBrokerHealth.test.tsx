@@ -842,6 +842,31 @@ describe("Broker health with nothing to chart: where the metrics come from", () 
       }
 
       /*
+       * The ways in first, in the order the words give them - a connected
+       * subscription, then the queue's setup or the Metrics explorer - and
+       * the guide last.
+       */
+      const labels: Array<string> = Array.from(
+        guidance.querySelectorAll("a"),
+      ).map((anchor: HTMLAnchorElement): string => {
+        return anchor.textContent || "";
+      });
+      expect(labels[labels.length - 1]).toBe(
+        `${descriptor.displayName} broker metrics in the Queues guide →`,
+      );
+      expect(labels.slice(0, -1)).toEqual(
+        [
+          connectsAzure ? BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL : null,
+          hasCuratedMetrics ? BROKER_HEALTH_SETUP_LINK_LABEL : null,
+          !hasCuratedMetrics && descriptor.brokerMetrics.kind !== "none"
+            ? BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL
+            : null,
+        ].filter((label: string | null): boolean => {
+          return label !== null;
+        }),
+      );
+
+      /*
        * Where the Broker metrics card is drawn (metrics that reach the
        * queue), the guidance is in it, in place of its summary: the
        * section's one card, under its header. Elsewhere the guidance is

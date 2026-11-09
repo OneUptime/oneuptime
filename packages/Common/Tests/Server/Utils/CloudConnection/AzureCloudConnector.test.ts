@@ -730,7 +730,7 @@ describe("read", () => {
     );
 
     expect(result.warnings).toContain(
-      "Could not read the metrics of 1 resources this time.",
+      "Could not read the metrics of 1 resource this time.",
     );
     expect(
       datapoints(result).every((point: { stored: JSONObject }): boolean => {

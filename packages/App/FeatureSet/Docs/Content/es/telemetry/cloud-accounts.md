@@ -338,6 +338,10 @@ La primera lectura enumera cada recurso de la cuenta, informe métricas o no. Si
 Una conexión lee hasta 50 cuentas, suscripciones o proyectos, y cada lectura lo indica cuando hay más. Conecta las demás con una conexión propia.
 :::
 
+:::details Una lectura tiene advertencias
+Una lectura que funciona puede dejar algo fuera, como una métrica que la nube no devolvió para algunos recursos, o las colas de un espacio de nombres más allá de las primeras 1,000. En **Nube → Conectar**, el estado de la conexión indica entonces cuántas advertencias tuvo su última lectura: selecciónalas para leer cada una.
+:::
+
 ## Próximos pasos
 
 :::cards

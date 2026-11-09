@@ -338,6 +338,10 @@ The first read lists every resource of the account, whether it reports metrics o
 One connection reads up to 50 accounts, subscriptions or projects, and each read says so when there are more. Connect the others with a connection of their own.
 :::
 
+:::details A read has warnings
+A read that works can still leave something out, such as a metric the cloud did not return for some resources, or the queues of a namespace past the first 1,000. On **Cloud → Connect**, the connection's status then says how many warnings its last read had: select them to read each one.
+:::
+
 ## Next steps
 
 :::cards
