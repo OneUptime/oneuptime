@@ -1,3 +1,4 @@
+import { holdBackBase64Data } from "../../../Utils/Markdown/Base64Data";
 import {
   OVER_LONG_LINE_LENGTH,
   holdBackOverLongText,
@@ -23,10 +24,24 @@ import {
  * every parser - the middle of an over-long line, the plain lines of an
  * over-long run of lines - before react-markdown reads the text, puts a
  * short token in its place, and rehypePutBackHeldText writes it back into
- * the rendered tree as text: React escapes it, and an address it is part of
- * is put back together before the viewer's urlTransform judges it. A text
- * of at most 64 KB holds back nothing, and renders exactly as it always
- * has.
+ * the rendered tree as text: React escapes it. A text of at most 64 KB with
+ * no screenshot holds back nothing, and renders exactly as it always has.
+ *
+ * A synthetic monitor's screenshot is an image whose address carries the
+ * image itself, tens of thousands to millions of characters of base64 (see
+ * Utils/Markdown/InlineImageDataUri). Its data is held back first, as the
+ * emails hold it back (Utils/Markdown/Base64Data): remark has no use for
+ * it, and read as Markdown it is one long word of punctuation, which
+ * SlowMarkdown below would hold back - the screenshot's paragraph, its
+ * other Markdown with it, was shown as text (issue #6010).
+ *
+ * An address - an image's, a link's, a link reference definition's - is
+ * put back together in Markdown's own tree (remarkPutBackHeldUrls), before
+ * remark-rehype reads it: remark-rehype writes an address out with every
+ * character an address may not hold percent-encoded, a token's among them,
+ * and a token left in one was never found again - a screenshot whose line
+ * was over-long showed as an empty image. So the viewer's urlTransform
+ * judges the address as it was written.
  *
  * Text of some shapes takes remark long before it is that long: its time
  * grows with the square of a run of emphasis or brackets it cannot close
@@ -188,7 +203,7 @@ export const holdBackForViewer: (text: string) => HeldBackViewerText = (
 
   const heldTokenCharacters: number = held.length;
   const markdown: string = holdBackSlowMarkdown(
-    holdBackOverLongText(withoutTokens, hold),
+    holdBackOverLongText(holdBackBase64Data(withoutTokens, hold), hold),
     { holdLines: holdLines, holdCode: hold },
     VIEWER_SLOW_MARKDOWN_LIMITS,
   );
@@ -207,6 +222,53 @@ export const holdBackForViewer: (text: string) => HeldBackViewerText = (
     held: held,
     heldLines: heldLines,
     showAsText: markdown.length > MAX_PARSED_MARKDOWN_LENGTH,
+  };
+};
+
+/*
+ * A node of the Markdown tree remark builds (mdast): what
+ * remarkPutBackHeldUrls reads of one.
+ */
+export interface HeldUrlTreeNode {
+  type: string;
+  url?: unknown;
+  children?: Array<HeldUrlTreeNode> | undefined;
+}
+
+/*
+ * A remark plugin: the address of every image, link and link reference
+ * definition in the tree with what was held back put back, before
+ * remark-rehype reads the tree (see the top of this file). Everything else
+ * - text, alt text, a title - is put back by rehypePutBackHeldText. Walked
+ * with a stack, not recursion: the tree of a long text is deep and wide.
+ */
+export const remarkPutBackHeldUrls: (options: {
+  held: ReadonlyArray<string>;
+}) => (tree: HeldUrlTreeNode) => void = (options: {
+  held: ReadonlyArray<string>;
+}): ((tree: HeldUrlTreeNode) => void) => {
+  const held: ReadonlyArray<string> = options.held;
+
+  return (tree: HeldUrlTreeNode): void => {
+    if (held.length === 0) {
+      return;
+    }
+
+    const stack: Array<HeldUrlTreeNode> = [tree];
+
+    while (stack.length > 0) {
+      const node: HeldUrlTreeNode = stack.pop()!;
+
+      if (typeof node.url === "string") {
+        node.url = putBackHeldText(node.url, held);
+      }
+
+      if (node.children) {
+        for (const child of node.children) {
+          stack.push(child);
+        }
+      }
+    }
   };
 };
 
