@@ -1,5 +1,6 @@
 import logger, { LogAttributes } from "./Logger";
 import SlackUtil from "./Workspace/Slack/Slack";
+import { NotificationProviderConfig } from "./Telemetry/NotificationDeliveryMetrics";
 import Project from "../../Models/DatabaseModels/Project";
 import User from "../../Models/DatabaseModels/User";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -482,6 +483,8 @@ export default class OperatorSlackNotice {
         await SlackUtil.sendMessageToChannelViaIncomingWebhook({
           url: URL.fromString(data.webhookUrl),
           text: data.text,
+          // The installation's own webhook, set in its configuration.
+          providerConfig: NotificationProviderConfig.Global,
         });
 
       if (response instanceof HTTPErrorResponse) {

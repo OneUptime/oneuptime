@@ -1,5 +1,6 @@
 import CallStatus from "Common/Types/Call/CallStatus";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import { NotificationDeliveryStatus } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 
 /*
  * HOW A CALL ENDED, AS TWILIO TELLS IT.
@@ -38,6 +39,18 @@ export interface CallOutcome {
   notificationStatus: UserNotificationStatus | null;
   // How the call ended, in a sentence the logs show. Never the number called.
   sentence: string;
+  /*
+   * How the call ended for the platform's delivery metrics
+   * (notification.delivery.count): answered, not answered - rang out,
+   * busy, declined - or failed.
+   */
+  deliveryStatus: NotificationDeliveryStatus;
+  /*
+   * How long an answered call lasted, in whole seconds, when Twilio said:
+   * what is taken off the time to its end to tell when it was picked up.
+   * Null for a call not answered, or one Twilio gave no duration for.
+   */
+  durationInSeconds: number | null;
 }
 
 // "42 seconds", "1 second": how long an answered call lasted.
@@ -79,6 +92,8 @@ export function getCallOutcome(data: {
         sentence: hasDuration
           ? `The call was answered and lasted ${getDurationText(duration)}.`
           : "The call was answered.",
+        deliveryStatus: NotificationDeliveryStatus.Answered,
+        durationInSeconds: hasDuration ? duration : null,
       };
     }
     case TwilioCallStatus.NoAnswer:
@@ -86,6 +101,8 @@ export function getCallOutcome(data: {
         callStatus: CallStatus.MissedCall,
         notificationStatus: UserNotificationStatus.NotAnswered,
         sentence: "The call was not answered: it rang out.",
+        deliveryStatus: NotificationDeliveryStatus.NotAnswered,
+        durationInSeconds: null,
       };
     case TwilioCallStatus.Busy:
       return {
@@ -93,16 +110,51 @@ export function getCallOutcome(data: {
         notificationStatus: UserNotificationStatus.NotAnswered,
         sentence:
           "The call was not answered: the line was busy, or the call was declined.",
+        deliveryStatus: NotificationDeliveryStatus.NotAnswered,
+        durationInSeconds: null,
       };
     case TwilioCallStatus.Failed:
       return {
         callStatus: CallStatus.Error,
         notificationStatus: UserNotificationStatus.Error,
         sentence: "The call could not be connected.",
+        deliveryStatus: NotificationDeliveryStatus.Failed,
+        durationInSeconds: null,
       };
     default:
       return null;
   }
+}
+
+/*
+ * How long after Twilio accepted a call it ended as it did, for the
+ * platform's delivery metrics (notification.delivery.duration): for an
+ * answered call, to the moment it was picked up - its end, less how long
+ * it lasted - and for any other, to its end: it rang out, was busy or
+ * declined, or failed. Undefined when that cannot be told: the call's log
+ * has no time it was written, or Twilio said no duration of an answered
+ * call. Never below zero: Twilio's whole seconds round.
+ */
+export function getTimeToCallOutcomeInMs(data: {
+  outcome: CallOutcome;
+  millisecondsSincePlaced: number | undefined;
+}): number | undefined {
+  if (data.millisecondsSincePlaced === undefined) {
+    return undefined;
+  }
+
+  if (data.outcome.deliveryStatus !== NotificationDeliveryStatus.Answered) {
+    return Math.max(0, data.millisecondsSincePlaced);
+  }
+
+  if (data.outcome.durationInSeconds === null) {
+    return undefined;
+  }
+
+  return Math.max(
+    0,
+    data.millisecondsSincePlaced - data.outcome.durationInSeconds * 1000,
+  );
 }
 
 // A Twilio call's id: "CA" and 32 hexadecimal digits.

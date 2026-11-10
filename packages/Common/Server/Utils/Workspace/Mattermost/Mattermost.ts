@@ -36,6 +36,7 @@ import { AppApiClientUrl } from "../../../EnvironmentConfig";
 import logger, { LogAttributes } from "../../Logger";
 import SSRFProtection from "../../SSRFProtection";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { NotificationProviderConfig } from "../../Telemetry/NotificationDeliveryMetrics";
 import WorkspaceBase, {
   WorkspaceChannel,
   WorkspaceChannelToCreate,
@@ -44,6 +45,10 @@ import WorkspaceBase, {
   WorkspaceSendMessageResponse,
   WorkspaceThread,
 } from "../WorkspaceBase";
+import WorkspaceDeliveryMetrics, {
+  WorkspaceChannelPost,
+  WorkspaceChannelPosts,
+} from "../WorkspaceDeliveryMetrics";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import MattermostActionContext, {
   MAX_ACTIONS_PER_CONTEXT,
@@ -1308,6 +1313,14 @@ export default class MattermostUtil extends WorkspaceBase {
 
   // MESSAGES
 
+  /*
+   * Posts a message in each channel it names, once a channel, as the
+   * project's bot. Each post is recorded for the platform's operator
+   * (WorkspaceChannelPosts): a success or a failure for every channel it
+   * was posted in or not - one that could not be found or read among them
+   * - and, when the message fails as a whole before every channel was
+   * tried, a failure for each left.
+   */
   @CaptureSpan()
   public static override async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
@@ -1316,6 +1329,29 @@ export default class MattermostUtil extends WorkspaceBase {
     projectId: ObjectID;
     teamId?: string;
   }): Promise<WorkspaceSendMessageResponse> {
+    const posts: WorkspaceChannelPosts = new WorkspaceChannelPosts({
+      workspaceType: WorkspaceType.Mattermost,
+      payload: data.workspaceMessagePayload,
+    });
+
+    try {
+      return await MattermostUtil.postMessageInChannels(data, posts);
+    } catch (err) {
+      posts.recordRestAsFailed();
+      throw err;
+    }
+  }
+
+  private static async postMessageInChannels(
+    data: {
+      workspaceMessagePayload: WorkspaceMessagePayload;
+      authToken: string;
+      userId: string;
+      projectId: ObjectID;
+      teamId?: string;
+    },
+    posts: WorkspaceChannelPosts,
+  ): Promise<WorkspaceSendMessageResponse> {
     const connection: MattermostConnectionData =
       MattermostConnection.fromAuthToken(data.authToken);
 
@@ -1360,6 +1396,7 @@ export default class MattermostUtil extends WorkspaceBase {
         if (channel) {
           channels.push(channel);
         } else {
+          posts.recordChannelNotFound();
           response.errors!.push({
             channel: {
               id: "",
@@ -1370,6 +1407,7 @@ export default class MattermostUtil extends WorkspaceBase {
           });
         }
       } catch (err) {
+        posts.recordChannelNotFound();
         response.errors!.push({
           channel: {
             id: "",
@@ -1390,6 +1428,8 @@ export default class MattermostUtil extends WorkspaceBase {
           }),
         );
       } catch (err) {
+        // Not posted in - unless it is a channel the message is not for.
+        posts.recordChannelNotFound(channelId);
         response.errors!.push({
           channel: {
             id: channelId,
@@ -1416,6 +1456,8 @@ export default class MattermostUtil extends WorkspaceBase {
 
       postedChannelIds.add(channel.id);
 
+      const channelPost: WorkspaceChannelPost = posts.startPost();
+
       try {
         const thread: WorkspaceThread = await MattermostUtil.postInChannel({
           connection: connection,
@@ -1423,8 +1465,10 @@ export default class MattermostUtil extends WorkspaceBase {
           post: post,
         });
 
+        channelPost.succeeded();
         response.threads.push(thread);
       } catch (err) {
+        channelPost.failed();
         logger.error(
           `Could not post in Mattermost channel ${channel.id}.`,
           logAttributes,
@@ -1723,28 +1767,44 @@ export default class MattermostUtil extends WorkspaceBase {
    * message a status page subscriber or a workflow sends. The webhook's
    * address was typed by a person, so it is held to what OneUptime may
    * reach (SSRFProtection), strictly unless the caller says it was typed by
-   * a member of the project, and a redirect is never followed.
+   * a member of the project, and a redirect is never followed. Recorded for
+   * the platform's operator (WorkspaceDeliveryMetrics): a success when
+   * Mattermost took it, a failure when it did not, or the address was
+   * refused.
    */
   @CaptureSpan()
   public static override async sendMessageToChannelViaIncomingWebhook(data: {
     url: URL;
     text: string;
+    // Whose webhook it is: a project's, unless said otherwise.
+    providerConfig?: NotificationProviderConfig | undefined;
+    // False for a post that is no notification (a workflow's step): not counted.
+    isNotification?: boolean | undefined;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
-    await SSRFProtection.validateWebhookTargetIsSafe(data.url.toString(), {
-      targetLabel: "Mattermost webhook URL",
-    });
+    return await WorkspaceDeliveryMetrics.measureIncomingWebhookPost(
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        providerConfig: data.providerConfig,
+        isNotification: data.isNotification,
+      },
+      async (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        await SSRFProtection.validateWebhookTargetIsSafe(data.url.toString(), {
+          targetLabel: "Mattermost webhook URL",
+        });
 
-    return await API.post<JSONObject>({
-      url: data.url,
-      data: {
-        text: MattermostUtil.getMessageText(data.text),
+        return await API.post<JSONObject>({
+          url: data.url,
+          data: {
+            text: MattermostUtil.getMessageText(data.text),
+          },
+          options: {
+            retries: 3,
+            exponentialBackoff: true,
+            doNotFollowRedirects: true,
+          },
+        });
       },
-      options: {
-        retries: 3,
-        exponentialBackoff: true,
-        doNotFollowRedirects: true,
-      },
-    });
+    );
   }
 
   // RENDERING

@@ -17,17 +17,15 @@ import ts from "typescript";
  *
  * This keeps a skip added later from forgetting it: in the call, WhatsApp
  * and Telegram senders, every return before the provider is asked to send
- * is right after a markNotSent; the SMS sender returns its reason instead,
- * and sendSms hands every reason to markNotSent.
- *
- * Since every channel reports how each send went (5980a21b7db), a sender
- * runs inside NotificationDeliveryMetrics.measureDispatch: WhatsApp and
- * Telegram send in a method of their own (sendWhatsAppMessage,
- * sendTelegramMessage), and a skip also counts the send as not sent
- * (dispatch.markNotSent()) between the timeline's markNotSent and its return.
- * That still is right after the timeline's markNotSent; the counter alone is
- * not (2026-11-10).
+ * is right after a markNotSent - and, since each send is measured for the
+ * platform's operator (#6600), the dispatch's own markNotSent that may
+ * follow it; the SMS sender returns its reason instead, and sendSms hands
+ * every reason to markNotSent.
  */
+
+// What sendSms does with a reason not to send: the dispatch's, then the timeline's.
+const SEND_SMS_HANDS_THE_REASON_ON: RegExp =
+  /if \(notSentReason !== null\) \{\s*(dispatch\.markNotSent\(\);\s*)?await UserOnCallLogTimelineService\.markNotSent\(\{\s*userOnCallLogTimelineId: options\.userOnCallLogTimelineId,\s*reason: notSentReason,/;
 
 const SERVICES: string = path.resolve(
   __dirname,
@@ -80,7 +78,7 @@ function isMarkNotSent(statement: ts.Statement | undefined): boolean {
   );
 }
 
-// The delivery metrics' own not-sent count: dispatch.markNotSent();
+// The send's own record that it was not sent (NotificationDeliveryMetrics).
 function isDispatchMarkNotSent(statement: ts.Statement | undefined): boolean {
   return Boolean(
     statement &&
@@ -90,11 +88,11 @@ function isDispatchMarkNotSent(statement: ts.Statement | undefined): boolean {
 }
 
 /*
- * Whether the statement at `index` comes right after the timeline's
- * markNotSent: directly, or with only the dispatch's not-sent count between.
+ * A return right after the timeline's markNotSent - or after the
+ * dispatch's, right after the timeline's.
  */
 function isRightAfterMarkNotSent(
-  statements: ts.NodeArray<ts.Statement>,
+  statements: ReadonlyArray<ts.Statement>,
   index: number,
 ): boolean {
   if (isMarkNotSent(statements[index - 1])) {
@@ -164,7 +162,10 @@ function earlyReturnsOf(
 
 describe("the senders that return nothing record every skip on the timeline", () => {
   test.each([
-    // [file, sender, the call that asks the provider to send, skips]
+    /*
+     * [file, sender, the call that asks the provider to send, skips] - the
+     * sender that asks the provider, inside the measured send (#6600).
+     */
     ["CallService.ts", "makeCallInternal", "client.calls.create(", 3],
     ["WhatsAppService.ts", "sendWhatsAppMessage", "API.post<JSONObject>(", 2],
     ["TelegramService.ts", "sendTelegramMessage", "API.post<JSONObject>(", 3],
@@ -207,11 +208,7 @@ describe("the SMS sender", () => {
     expect(
       send.split("UserOnCallLogTimelineService.markNotSent(").length - 1,
     ).toBe(1);
-    // The delivery metrics count the same skip as not sent, once.
-    expect(send.split("dispatch.markNotSent()").length - 1).toBe(1);
-    expect(send).toMatch(
-      /if \(notSentReason !== null\) \{\s*dispatch\.markNotSent\(\);\s*await UserOnCallLogTimelineService\.markNotSent\(\{\s*userOnCallLogTimelineId: options\.userOnCallLogTimelineId,\s*reason: notSentReason,/,
-    );
+    expect(send).toMatch(SEND_SMS_HANDS_THE_REASON_ON);
   });
 });
 

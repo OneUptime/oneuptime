@@ -49,6 +49,11 @@ import SSRFProtection from "../../SSRFProtection";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
+import WorkspaceDeliveryMetrics, {
+  WorkspaceChannelPost,
+  WorkspaceChannelPosts,
+} from "../WorkspaceDeliveryMetrics";
+import { NotificationProviderConfig } from "../../Telemetry/NotificationDeliveryMetrics";
 import SlackInlineImages from "./SlackInlineImages";
 import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
 import {
@@ -1767,6 +1772,14 @@ export default class SlackUtil extends WorkspaceBase {
     return channel !== null;
   }
 
+  /*
+   * Posts a message in each channel it names, as the project's bot. Each
+   * post is recorded for the platform's operator (WorkspaceChannelPosts):
+   * a success or a failure for every channel it was posted in or not - a
+   * channel that could not be found among them - and, when the message
+   * fails as a whole before every channel was tried, a failure for each
+   * channel left.
+   */
   @CaptureSpan()
   public static override async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
@@ -1774,6 +1787,28 @@ export default class SlackUtil extends WorkspaceBase {
     userId: string;
     projectId: ObjectID;
   }): Promise<WorkspaceSendMessageResponse> {
+    const posts: WorkspaceChannelPosts = new WorkspaceChannelPosts({
+      workspaceType: WorkspaceType.Slack,
+      payload: data.workspaceMessagePayload,
+    });
+
+    try {
+      return await this.postMessageInChannels(data, posts);
+    } catch (err) {
+      posts.recordRestAsFailed();
+      throw err;
+    }
+  }
+
+  private static async postMessageInChannels(
+    data: {
+      workspaceMessagePayload: WorkspaceMessagePayload;
+      authToken: string;
+      userId: string;
+      projectId: ObjectID;
+    },
+    posts: WorkspaceChannelPosts,
+  ): Promise<WorkspaceSendMessageResponse> {
     const sendMsgLogAttributes: LogAttributes = {
       projectId: data.projectId?.toString(),
     };
@@ -1828,6 +1863,9 @@ export default class SlackUtil extends WorkspaceBase {
           `Channel ${channelName} does not exist.`,
           sendMsgLogAttributes,
         );
+
+        // Not posted in: renamed, deleted, or private to the bot.
+        posts.recordChannelNotFound();
       }
     }
 
@@ -1908,6 +1946,8 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     for (const channel of workspaceChannelsToPostTo) {
+      const post: WorkspaceChannelPost = posts.startPost();
+
       try {
         if (data.userId) {
           // check if the user is in the channel.
@@ -1963,6 +2003,8 @@ export default class SlackUtil extends WorkspaceBase {
           });
         }
 
+        post.succeeded();
+
         if (lastThread) {
           workspaspaceMessageResponse.threads.push(lastThread);
         }
@@ -1972,6 +2014,8 @@ export default class SlackUtil extends WorkspaceBase {
           sendMsgLogAttributes,
         );
       } catch (e) {
+        post.failed();
+
         logger.error(
           `Error sending message to channel ID ${channel.id}:`,
           sendMsgLogAttributes,
@@ -4137,8 +4181,34 @@ export default class SlackUtil extends WorkspaceBase {
     return buttonBlock;
   }
 
+  /*
+   * Posts to an incoming webhook - a status page subscriber's, the
+   * installation's own notices - recorded for the platform's operator
+   * (WorkspaceDeliveryMetrics): a success when Slack took it, a failure
+   * when it did not, or the address is not a Slack webhook's.
+   */
   @CaptureSpan()
   public static override async sendMessageToChannelViaIncomingWebhook(data: {
+    url: URL;
+    text: string;
+    // Whose webhook it is: a project's, unless said otherwise.
+    providerConfig?: NotificationProviderConfig | undefined;
+    // False for a post that is no notification (a workflow's step): not counted.
+    isNotification?: boolean | undefined;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    return await WorkspaceDeliveryMetrics.measureIncomingWebhookPost(
+      {
+        workspaceType: WorkspaceType.Slack,
+        providerConfig: data.providerConfig,
+        isNotification: data.isNotification,
+      },
+      (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        return this.postToIncomingWebhook({ url: data.url, text: data.text });
+      },
+    );
+  }
+
+  private static async postToIncomingWebhook(data: {
     url: URL;
     text: string;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
