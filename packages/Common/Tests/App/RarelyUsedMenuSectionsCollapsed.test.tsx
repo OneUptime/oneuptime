@@ -247,6 +247,11 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Resolve",
   "Resources",
   "Session Replay",
+  /*
+   * A RUM application's Users and Sessions (#6444): who uses the app and
+   * how, which its menu is opened for as often as its replays.
+   */
+  "Product Analytics",
   "Storage",
   "Team",
   "Telemetry",
