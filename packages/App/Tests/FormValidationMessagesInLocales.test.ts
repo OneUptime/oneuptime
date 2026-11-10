@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { FORM_VALIDATION_MESSAGES } from "Common/UI/Components/Forms/Utils/FormValidationMessages";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * EVERY FRONTEND SAYS WHAT IS WRONG WITH A FIELD IN THE READER'S LANGUAGE.
@@ -29,25 +30,7 @@ const FRONTENDS: ReadonlyArray<string> = [
   "StatusPage",
 ];
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 const PLACEHOLDER: RegExp = /\{\{[^{}]{1,40}\}\}/g;
 

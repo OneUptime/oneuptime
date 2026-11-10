@@ -72,6 +72,7 @@ import {
   suggestedCall,
   transcriptCall,
 } from "./CallTranscriptFixtures";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const EN: Record<string, string> = englishLocale as unknown as Record<
   string,
@@ -88,24 +89,7 @@ const LOCALES_DIRECTORY: string = path.join(
 );
 
 // Every language the Dashboard is translated into, besides English.
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // The sentences the UI review added: each language words every one.
 const REVIEW_KEYS: Array<string> = [

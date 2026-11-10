@@ -9,7 +9,10 @@ import {
   AIChatWidget,
 } from "Common/Types/AI/AIChatTypes";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
+import {
+  getReaderNumberLocale,
+  inEnglishDates,
+} from "Common/Types/DateLanguage";
 import parseMarkdownBlocks, {
   MarkdownBlock,
 } from "Common/UI/Utils/AIChatExport/MarkdownBlocks";
@@ -57,7 +60,9 @@ function runFooter(run: AIRun): string {
     parts.push(run.egressManifest.modelName);
   }
   if (run.totalTokens) {
-    parts.push(`${run.totalTokens.toLocaleString()} tokens`);
+    parts.push(
+      `${run.totalTokens.toLocaleString(getReaderNumberLocale())} tokens`,
+    );
   }
   if (run.totalCostInUSDCents) {
     parts.push(`$${(run.totalCostInUSDCents / 100).toFixed(4)}`);

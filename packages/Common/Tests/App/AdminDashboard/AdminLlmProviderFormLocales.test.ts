@@ -18,6 +18,7 @@ import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The Admin Dashboard's Global LLM Providers draws the same form as a
@@ -38,24 +39,7 @@ const FEATURE_SETS: string = path.join(
   "FeatureSet",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 
 function locale(app: string, code: string): Record<string, unknown> {
   return JSON.parse(

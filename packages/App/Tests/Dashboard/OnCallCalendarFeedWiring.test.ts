@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The calendar-feed feature is one new User Settings page, one new On-Call
@@ -34,25 +35,7 @@ const COMMON_TESTS_UI: string = path.join(
   "UI",
 );
 
-const LOCALES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LOCALES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");

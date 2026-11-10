@@ -16,6 +16,7 @@ import * as React from "react";
 import ExceptionRow from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionRow";
 import { isolated } from "../../Helpers/IsolateMarks";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * AN EXCEPTION ROW'S SMALL PRINT, IN THE READER'S LANGUAGE - from the
@@ -36,24 +37,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readLocale(locale: string): Record<string, string> {
   return JSON.parse(

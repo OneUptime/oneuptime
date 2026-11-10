@@ -24,6 +24,7 @@ import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import { SLO_WINDOW_TYPE_NAMES } from "../../FeatureSet/Dashboard/src/Pages/Slo/SloFormFields";
 import { SLO_MULTI_MONITOR_MODE_NAMES } from "../../FeatureSet/Dashboard/src/Pages/Slo/SloSettingsFormFields";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * THE TRANSLATION BACKLOG (#5134, #5239): LABELS THAT WERE STILL IN ENGLISH.
@@ -49,24 +50,7 @@ const DASHBOARD: string = path.resolve(__dirname, "../../FeatureSet/Dashboard");
 const LOCALES: string = path.join(DASHBOARD, "src", "Locales");
 const I18N: string = path.join(DASHBOARD, "i18n");
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 type Locale = Record<string, unknown>;
 

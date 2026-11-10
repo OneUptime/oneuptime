@@ -23,6 +23,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
 import { formatBytes } from "../../../Components/TelemetryResource/telemetryFormat";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * WHAT THE CAPACITY PAGE SAYS OF A SNAPSHOT.
@@ -62,7 +63,7 @@ export function formatOpenStackCapacityAmount(
     case OPENSTACK_CAPACITY_RESOURCE_STORAGE_BYTES:
       return formatBytes(amount);
     default:
-      return Math.round(amount).toLocaleString();
+      return Math.round(amount).toLocaleString(getReaderNumberLocale());
   }
 }
 

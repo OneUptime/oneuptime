@@ -24,6 +24,7 @@ import {
   getServiceInfo,
   sortOperations,
 } from "../../../Utils/TraceDetailPresentation";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   operations: Array<OperationSummary>;
@@ -249,12 +250,12 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                   </div>
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums text-gray-900">
-                  {operation.count.toLocaleString()}
+                  {operation.count.toLocaleString(getReaderNumberLocale())}
                 </td>
                 <td
                   className={`px-3 py-2 text-right tabular-nums ${operation.errorCount > 0 ? "font-medium text-red-600" : "text-gray-400"}`}
                 >
-                  {operation.errorCount.toLocaleString()}
+                  {operation.errorCount.toLocaleString(getReaderNumberLocale())}
                 </td>
                 <td className="px-3 py-2 text-right">
                   <div className="flex items-center justify-end gap-2">

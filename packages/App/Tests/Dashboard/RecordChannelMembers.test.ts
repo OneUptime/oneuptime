@@ -58,6 +58,7 @@ import {
   splitAtSlackInviteCommand,
 } from "../../FeatureSet/Dashboard/src/Components/Workspace/RecordChannelMembers";
 import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * THE RULES OF A RECORD'S CHANNEL CARD: what it is called, what it offers
@@ -1210,24 +1211,7 @@ describe("the card's words in every Dashboard language", () => {
     "src",
     "Locales",
   );
-  const LANGUAGES: Array<string> = [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
   // Product names, which read the same in every language.
   const SAME_IN_EVERY_LANGUAGE: Array<string> = [];
 

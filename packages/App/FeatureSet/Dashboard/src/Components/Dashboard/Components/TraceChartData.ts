@@ -6,6 +6,7 @@ import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSpanStatusPresentation } from "../../../Utils/SpanStatusPresentation";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * Pure, React-free data helpers for the trace chart widget. Kept out of the
@@ -182,7 +183,7 @@ export function formatCount(value: number): string {
   if (value >= 1000) {
     return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
   }
-  return Math.round(value).toLocaleString();
+  return Math.round(value).toLocaleString(getReaderNumberLocale());
 }
 
 export function formatTickTime(time: string): string {

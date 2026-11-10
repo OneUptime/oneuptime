@@ -21,6 +21,7 @@ import { getContrastRatio, parseColor } from "Common/Utils/ColorContrast";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { STATUS_PAGE_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * Theme, on a status page's Branding page (StatusPageThemeCopy): one choice
@@ -44,24 +45,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...STATUS_PAGE_LANGUAGES];
 
 function readLocale(locale: string): Record<string, unknown> {
   return JSON.parse(
@@ -372,6 +356,7 @@ describe("translations", () => {
     "zh-TW": "標誌",
     hi: "लोगो",
     fa: "لوگو",
+    ar: "شعار",
   };
 
   test.each(OTHER_LOCALES)(

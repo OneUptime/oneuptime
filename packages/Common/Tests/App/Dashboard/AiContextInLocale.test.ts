@@ -14,6 +14,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiContextCopy";
 import Project from "../../../Models/DatabaseModels/Project";
 import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * EVERY WORD THE AI CONTEXT ADDS IS EVERY LANGUAGE'S OWN (issue #5198): the
@@ -29,24 +30,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Japanese, Korean and Chinese read no "one" form: theirs may stay as is.
 const WITHOUT_ONE_FORM: Array<string> = ["ja", "ko", "zh-CN", "zh-TW"];

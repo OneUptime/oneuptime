@@ -71,6 +71,7 @@ import {
 import { StateListType } from "../../../Utils/StateOrder";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const EN: Record<string, string> = englishLocale as unknown as Record<
   string,
@@ -95,24 +96,7 @@ const LOCALES_DIRECTORY: string = path.join(
 );
 
 // Every language the Dashboard is translated into, besides English.
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Languages with no "one" form: their _one keys are never read.
 const NO_ONE_FORM: Array<string> = ["ja", "ko", "zh-CN", "zh-TW"];

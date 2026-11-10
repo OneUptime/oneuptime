@@ -1,5 +1,8 @@
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
+import {
+  getReaderNumberLocale,
+  inEnglishDates,
+} from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import { LogVolumeSummary, TopErrorPatternRow } from "./LogsInsights";
 import {
@@ -207,8 +210,12 @@ export function buildInvestigationFindings(
         "{{percent}}% of the window's log lines are error severity ({{errors}} of {{total}}).",
         {
           percent: evidence.logVolume.errorRatePercent.toFixed(1),
-          errors: evidence.logVolume.errorCount.toLocaleString(),
-          total: evidence.logVolume.total.toLocaleString(),
+          errors: evidence.logVolume.errorCount.toLocaleString(
+            getReaderNumberLocale(),
+          ),
+          total: evidence.logVolume.total.toLocaleString(
+            getReaderNumberLocale(),
+          ),
         },
       ),
     });
@@ -267,7 +274,7 @@ export function buildInvestigationPrompt(
 
   if (evidence.logVolume) {
     lines.push(
-      `Log signal: ${evidence.logVolume.total.toLocaleString()} lines, ${evidence.logVolume.errorCount.toLocaleString()} errors (${evidence.logVolume.errorRatePercent.toFixed(1)}%).`,
+      `Log signal: ${evidence.logVolume.total.toLocaleString("en-US")} lines, ${evidence.logVolume.errorCount.toLocaleString("en-US")} errors (${evidence.logVolume.errorRatePercent.toFixed(1)}%).`,
     );
   }
 
@@ -313,7 +320,7 @@ export function buildInvestigationNoteMarkdown(input: {
 
   if (evidence.logVolume) {
     lines.push(
-      `**Log signal:** ${evidence.logVolume.total.toLocaleString()} lines · ${evidence.logVolume.errorCount.toLocaleString()} errors · ${evidence.logVolume.errorRatePercent.toFixed(1)}% error rate`,
+      `**Log signal:** ${evidence.logVolume.total.toLocaleString("en-US")} lines · ${evidence.logVolume.errorCount.toLocaleString("en-US")} errors · ${evidence.logVolume.errorRatePercent.toFixed(1)}% error rate`,
     );
   }
 
@@ -332,7 +339,7 @@ export function buildInvestigationNoteMarkdown(input: {
     lines.push("", "**Top error patterns:**");
     for (const pattern of evidence.errorPatterns.slice(0, 5)) {
       lines.push(
-        `- \`${(pattern.sampleBody || pattern.pattern).replace(/`/g, "'")}\` — ${pattern.count.toLocaleString()}×`,
+        `- \`${(pattern.sampleBody || pattern.pattern).replace(/`/g, "'")}\` — ${pattern.count.toLocaleString("en-US")}×`,
       );
     }
   }

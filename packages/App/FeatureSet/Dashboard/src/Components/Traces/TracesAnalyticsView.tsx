@@ -70,6 +70,7 @@ import {
   resolveChartTimeRangeZoom,
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 
@@ -235,7 +236,7 @@ function formatCount(value: number): string {
   if (value >= 1000) {
     return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
   }
-  return Math.round(value).toLocaleString();
+  return Math.round(value).toLocaleString(getReaderNumberLocale());
 }
 
 function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
@@ -298,7 +299,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
                 <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
                   {props.isDuration
                     ? formatDurationMs(entry.value)
-                    : entry.value.toLocaleString()}
+                    : entry.value.toLocaleString(getReaderNumberLocale())}
                 </span>
               </div>
             );
@@ -1354,7 +1355,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                       );
                     })}
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm font-semibold tabular-nums text-gray-800">
-                      {row.count.toLocaleString()}
+                      {row.count.toLocaleString(getReaderNumberLocale())}
                     </td>
                     <td
                       className={`whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums ${
@@ -1363,7 +1364,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                           : "text-gray-400"
                       }`}
                     >
-                      {row.errorCount.toLocaleString()}
+                      {row.errorCount.toLocaleString(getReaderNumberLocale())}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
                       {formatDurationMs(row.avgDurationMs)}

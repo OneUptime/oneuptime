@@ -6,6 +6,7 @@ import {
   fillTemplate,
   translateTemplate,
 } from "../../Utils/TranslateTemplate";
+import { getReaderNumberLocale } from "../../../Types/DateLanguage";
 
 export type TranslateTemplateFunction = (
   template: string,
@@ -81,8 +82,8 @@ export const getPaginationSummary: (input: PaginationSummaryInput) => string = (
 
   const rangeText: string =
     input.itemRange.firstItemNumber === input.itemRange.lastItemNumber
-      ? input.itemRange.firstItemNumber.toLocaleString()
-      : `${input.itemRange.firstItemNumber.toLocaleString()}-${input.itemRange.lastItemNumber.toLocaleString()}`;
+      ? input.itemRange.firstItemNumber.toLocaleString(getReaderNumberLocale())
+      : `${input.itemRange.firstItemNumber.toLocaleString(getReaderNumberLocale())}-${input.itemRange.lastItemNumber.toLocaleString(getReaderNumberLocale())}`;
 
   if (input.hasMore !== undefined) {
     /*
@@ -99,7 +100,9 @@ export const getPaginationSummary: (input: PaginationSummaryInput) => string = (
     );
   }
 
-  const total: string = input.totalItemsCount.toLocaleString();
+  const total: string = input.totalItemsCount.toLocaleString(
+    getReaderNumberLocale(),
+  );
 
   return inReadersLanguage(
     PaginationCopy.showingRangeOfTotal,

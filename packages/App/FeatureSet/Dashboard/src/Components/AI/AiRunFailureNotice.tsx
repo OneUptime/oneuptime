@@ -208,10 +208,17 @@ const AiRunFailureNotice: FunctionComponent<ComponentProps> = (
         ) : undefined
       }
       details={
+        /*
+         * The error is the provider's or the server's own words - English,
+         * whatever the reader's language - so dir="auto" lays it out by its
+         * own first letter: on a page that reads right to left its full
+         * stop stays at the end of the line, not the start.
+         */
         errorMessage ? (
           <p
             id={detailsId}
             hidden={!isDetailsOpen}
+            dir="auto"
             data-testid={`${testId}-details`}
             className="mt-2 whitespace-pre-wrap break-words border-s-2 border-gray-200 ps-3 font-mono text-xs leading-5 text-gray-500"
           >

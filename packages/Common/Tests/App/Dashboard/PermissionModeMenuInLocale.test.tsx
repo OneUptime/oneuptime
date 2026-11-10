@@ -18,6 +18,7 @@ import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
   AIChatPermissionModeOption,
 } from "../../../Types/AI/AIChatPermissionMode";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * THE PERMISSION MENU IN EVERY LANGUAGE.
@@ -36,24 +37,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readLocale(language: string): Record<string, string> {
   return JSON.parse(

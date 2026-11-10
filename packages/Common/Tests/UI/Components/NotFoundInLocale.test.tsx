@@ -9,6 +9,7 @@ import { I18nextProvider } from "react-i18next";
 import NotFound from "../../../UI/Components/404";
 import Route from "../../../Types/API/Route";
 import Email from "../../../Types/Email";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * THE DASHBOARD'S "PAGE NOT FOUND", IN EVERY LANGUAGE IT SHIPS.
@@ -26,24 +27,7 @@ const LOCALES: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const TITLE: string = "Page not found";
 const MESSAGE: string =

@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The admin dashboard's one-switch settings save the moment they are
@@ -33,24 +34,7 @@ const ADMIN_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(ADMIN_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 
 const ALL_LOCALES: Array<string> = ["en", ...OTHER_LOCALES];
 

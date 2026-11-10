@@ -20,6 +20,7 @@ import React, {
   useId,
   useState,
 } from "react";
+import { getReaderNumberLocale } from "../../../Types/DateLanguage";
 
 export interface ComponentProps {
   currentPageNumber: number;
@@ -324,7 +325,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
           data-testid={`pagination-page-${pageNumber}`}
           aria-label={translateTemplate(
             isCurrentPage ? PaginationCopy.page : PaginationCopy.goToPageNumber,
-            { page: pageNumber.toLocaleString() },
+            { page: pageNumber.toLocaleString(getReaderNumberLocale()) },
           )}
           aria-current={isCurrentPage ? "page" : undefined}
           disabled={isDisabled}
@@ -335,7 +336,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
           }}
           className={`${CONTROL_CLASS_NAME} ${size.pageClassName} tabular-nums ${stateClassName}`}
         >
-          {pageNumber.toLocaleString()}
+          {pageNumber.toLocaleString(getReaderNumberLocale())}
         </button>
       </li>
     );
@@ -374,11 +375,11 @@ const Pagination: FunctionComponent<ComponentProps> = (
     (): ReactElement => {
       const text: string = isHasMoreMode
         ? translateTemplate(PaginationCopy.page, {
-            page: currentPageNumber.toLocaleString(),
+            page: currentPageNumber.toLocaleString(getReaderNumberLocale()),
           })
         : translateTemplate(PaginationCopy.pageOfPages, {
-            page: currentPageNumber.toLocaleString(),
-            total: totalPageCount.toLocaleString(),
+            page: currentPageNumber.toLocaleString(getReaderNumberLocale()),
+            total: totalPageCount.toLocaleString(getReaderNumberLocale()),
           });
 
       if (!canJumpFromIndicator) {
@@ -527,7 +528,9 @@ const Pagination: FunctionComponent<ComponentProps> = (
                   className={INDICATOR_CLASS_NAME}
                 >
                   {translateTemplate(PaginationCopy.page, {
-                    page: currentPageNumber.toLocaleString(),
+                    page: currentPageNumber.toLocaleString(
+                      getReaderNumberLocale(),
+                    ),
                   })}
                 </span>
               </li>
@@ -565,7 +568,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
         <Modal
           title={PaginationCopy.goToPage}
           description={translateTemplate(PaginationCopy.goToPageDescription, {
-            count: totalPageCount.toLocaleString(),
+            count: totalPageCount.toLocaleString(getReaderNumberLocale()),
           })}
           submitButtonText={PaginationCopy.goToPage}
           closeButtonText="Cancel"

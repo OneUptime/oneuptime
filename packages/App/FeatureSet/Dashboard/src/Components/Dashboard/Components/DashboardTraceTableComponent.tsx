@@ -55,6 +55,7 @@ import useDashboardWidgetColumns, {
   DashboardWidgetColumns,
 } from "./DashboardWidgetColumns";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceTableComponent;
@@ -345,7 +346,7 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                     );
                   })}
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm font-semibold tabular-nums text-gray-800">
-                    {row.count.toLocaleString()}
+                    {row.count.toLocaleString(getReaderNumberLocale())}
                   </td>
                   <td
                     className={`whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums ${
@@ -354,7 +355,7 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                         : "text-gray-400"
                     }`}
                   >
-                    {row.errorCount.toLocaleString()}
+                    {row.errorCount.toLocaleString(getReaderNumberLocale())}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
                     {formatDurationMs(row.avgDurationMs)}

@@ -103,30 +103,14 @@ import { MetricQueryFallbackHint } from "../../../Types/Metrics/MetricQueryFallb
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import ObjectID from "../../../Types/ObjectID";
 import TimeRange from "../../../Types/Time/TimeRange";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const HINT_TEXT: string = KUBERNETES_RESTARTS_FALLBACK_HINT.text;
 const HINT_LINK_TEXT: string = KUBERNETES_RESTARTS_FALLBACK_HINT.linkText!;

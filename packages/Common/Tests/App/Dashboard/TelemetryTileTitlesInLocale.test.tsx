@@ -73,30 +73,14 @@ import {
   WordRun,
 } from "../../../UI/Components/HyphenatedWords/LongWords";
 import HyphenatedWords from "../../../UI/Components/HyphenatedWords/HyphenatedWords";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // The tile names the RUM, database and cloud overviews hand ResourceOverview.
 const TILE_TITLES: ReadonlyArray<string> = [

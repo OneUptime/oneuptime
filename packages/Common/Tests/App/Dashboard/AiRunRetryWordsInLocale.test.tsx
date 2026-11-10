@@ -475,12 +475,11 @@ describe("the failure's words, by language", () => {
 });
 
 /*
- * Arabic, the eighteenth language, reaches the Dashboard surface by surface
- * (Locales/ARABIC.md), so it is not one of DASHBOARD_LANGUAGES yet. These
- * words are in it all the same, worded by its rules: i18next reads a
- * count's general form for 0, 2, 3-10, 11-99 and 100+, so that form is a
- * label and its count, or a unit the same for every count; and figures are
- * Latin digits.
+ * Arabic, the eighteenth language, is one of DASHBOARD_LANGUAGES, so every
+ * test above covers it; these hold its own rules (Locales/ARABIC.md):
+ * i18next reads a count's general form for 0, 2, 3-10, 11-99 and 100+, so
+ * that form is a label and its count, or a unit the same for every count;
+ * and figures are Latin digits.
  */
 describe("the failure's words, in Arabic", () => {
   const AR: Record<string, string> = readDashboardLocale("ar");

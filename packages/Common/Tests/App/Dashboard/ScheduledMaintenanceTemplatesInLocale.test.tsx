@@ -49,30 +49,14 @@ import ScheduledMaintenanceTemplate from "../../../Models/DatabaseModels/Schedul
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
 import FieldLabelElement from "../../../UI/Components/Forms/Fields/FieldLabel";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const NEXT_EVENT: string = "Next event will be scheduled at {{date}}";
 const NO: string = "No";

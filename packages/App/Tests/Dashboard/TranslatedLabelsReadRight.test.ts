@@ -6,6 +6,8 @@ import {
   createTranslator,
   translatableTerm,
 } from "Common/UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
+import { foldedArabic } from "Common/Tests/Helpers/ArabicWords";
 
 /*
  * WHAT THE TRANSLATION BACKLOG'S UI REVIEW (#5287) FOUND ON SCREEN.
@@ -37,24 +39,7 @@ const DASHBOARD: string = path.resolve(__dirname, "../../FeatureSet/Dashboard");
 const LOCALES: string = path.join(DASHBOARD, "src", "Locales");
 const I18N: string = path.join(DASHBOARD, "i18n");
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 type Locale = Record<string, unknown>;
 
@@ -352,14 +337,29 @@ describe("the older seeded state Created, whose word date columns share", () => 
 });
 
 describe("the gauge widget's setup prompt", () => {
+  /*
+   * Arabic joins a noun to the next by dropping its article, not its last
+   * letters: the picker's "المؤشر" is "مؤشر مصدر البيانات", the data
+   * source's gauge.
+   */
+  const foldedIn: (code: string, text: string) => string = (
+    code: string,
+    text: string,
+  ): string => {
+    return folded(code === "ar" ? foldedArabic(text) : text);
+  };
+
   test.each(LANGUAGES)(
     "names the gauge as the Add Widget picker does in %s",
     (code: string) => {
       // The picker's word, its last letters left out for a compound's join.
-      const picker: string = folded(valueOf(code, "Gauge"));
-      const stem: string = Array.from(picker)
-        .slice(0, Math.max(2, Array.from(picker).length - 2))
-        .join("");
+      const picker: string = foldedIn(code, valueOf(code, "Gauge"));
+      const stem: string =
+        code === "ar"
+          ? picker
+          : Array.from(picker)
+              .slice(0, Math.max(2, Array.from(picker).length - 2))
+              .join("");
 
       for (const title of ["Gauge Widget", "Data Source Gauge"]) {
         const words: string = valueOf(code, title);
@@ -368,7 +368,7 @@ describe("the gauge widget's setup prompt", () => {
           code,
           title,
           words,
-          named: folded(words).includes(stem),
+          named: foldedIn(code, words).includes(stem),
         }).toEqual({ code, title, words, named: true });
       }
     },
@@ -399,6 +399,7 @@ describe("the Add Trigger panel", () => {
     "zh-TW": "觸發器",
     hi: "ट्रिगर",
     fa: "تریگر",
+    ar: "محفّز",
   };
 
   // Its title, search box, description, section and a resource's count.

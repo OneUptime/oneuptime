@@ -36,6 +36,7 @@ import {
   OpenTelemetryGuideEntry,
   getGuidesForTelemetryGuideLanguage,
 } from "../../../Types/Telemetry/OpenTelemetryGuides";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The telemetry guide's two pickers in the reader's language.
@@ -54,24 +55,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const LABELS: Array<string> = ["Select Language", "Integration Method"];
 

@@ -8,6 +8,7 @@ import StatusPageGroupTreeUtil, {
   StatusPageGroupTreeIndex,
   StatusPageGroupTreeNode,
 } from "./GroupTree";
+import { getReaderNumberLocale } from "../../Types/DateLanguage";
 
 /*
  * The model behind the Resources tab: the one screen where an operator both
@@ -867,7 +868,7 @@ export default class StatusPageResourceExplorerUtil {
    * rather than to wonder afterwards.
    */
   public static getBulkRemoveConfirmTitle(data: { count: number }): string {
-    return `Remove ${data.count.toLocaleString()} ${
+    return `Remove ${data.count.toLocaleString("en-US")} ${
       data.count === 1 ? "resource" : "resources"
     }`;
   }
@@ -877,7 +878,7 @@ export default class StatusPageResourceExplorerUtil {
       return "Are you sure you want to remove 1 resource from this status page? The monitor itself is not deleted.";
     }
 
-    return `Are you sure you want to remove ${data.count.toLocaleString()} resources from this status page? The monitors themselves are not deleted.`;
+    return `Are you sure you want to remove ${data.count.toLocaleString("en-US")} resources from this status page? The monitors themselves are not deleted.`;
   }
 
   /*
@@ -1045,7 +1046,7 @@ export default class StatusPageResourceExplorerUtil {
       return "1 resource";
     }
 
-    return `${data.count.toLocaleString()} resources`;
+    return `${data.count.toLocaleString("en-US")} resources`;
   }
 
   /*
@@ -1070,10 +1071,10 @@ export default class StatusPageResourceExplorerUtil {
       data.row.ownResourceCount === 0 &&
       data.row.subtreeResourceCount > data.row.ownResourceCount
     ) {
-      return `+${data.row.subtreeResourceCount.toLocaleString()}`;
+      return `+${data.row.subtreeResourceCount.toLocaleString(getReaderNumberLocale())}`;
     }
 
-    return data.row.ownResourceCount.toLocaleString();
+    return data.row.ownResourceCount.toLocaleString(getReaderNumberLocale());
   }
 
   public static getNavigatorCountTooltip(data: {
@@ -1084,7 +1085,7 @@ export default class StatusPageResourceExplorerUtil {
       return undefined;
     }
 
-    const own: string = `${data.row.ownResourceCount.toLocaleString()} ${
+    const own: string = `${data.row.ownResourceCount.toLocaleString("en-US")} ${
       data.row.ownResourceCount === 1 ? "resource" : "resources"
     } in this group`;
 
@@ -1092,7 +1093,7 @@ export default class StatusPageResourceExplorerUtil {
       return own;
     }
 
-    return `${own} · ${data.row.subtreeResourceCount.toLocaleString()} including sub groups`;
+    return `${own} · ${data.row.subtreeResourceCount.toLocaleString("en-US")} including sub groups`;
   }
 
   public static getSubGroupCountLabel(data: {
@@ -1106,6 +1107,6 @@ export default class StatusPageResourceExplorerUtil {
       return "1 sub group";
     }
 
-    return `${data.subGroupCount.toLocaleString()} sub groups`;
+    return `${data.subGroupCount.toLocaleString("en-US")} sub groups`;
   }
 }

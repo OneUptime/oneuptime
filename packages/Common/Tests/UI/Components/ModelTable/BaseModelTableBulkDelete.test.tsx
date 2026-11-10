@@ -119,6 +119,7 @@ import Permission from "../../../../Types/Permission";
 import IconProp from "../../../../Types/Icon/IconProp";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 type Row = {
   _id: string;
@@ -1452,24 +1453,7 @@ describe("BaseModelTable bulk Delete", () => {
         return (text.match(SKIPPED_PLACEHOLDER) || []).sort();
       };
 
-      for (const language of [
-        "de",
-        "fr",
-        "es",
-        "it",
-        "pt",
-        "nl",
-        "da",
-        "no",
-        "sv",
-        "ru",
-        "ja",
-        "ko",
-        "zh-CN",
-        "zh-TW",
-        "hi",
-        "fa",
-      ]) {
+      for (const language of [...DASHBOARD_LANGUAGES]) {
         const locale: Record<string, unknown> = read(language);
 
         for (const [key, englishText] of [

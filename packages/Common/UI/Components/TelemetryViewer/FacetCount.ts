@@ -1,3 +1,4 @@
+import { getReaderNumberLocale } from "../../../Types/DateLanguage";
 /*
  * How a facet value's count reads in a telemetry sidebar.
  *
@@ -54,7 +55,7 @@ export const formatFacetCount: (count: number) => string = (
 export const formatExactFacetCount: (count: number) => string = (
   count: number,
 ): string => {
-  return toWholeCount(count).toLocaleString();
+  return toWholeCount(count).toLocaleString(getReaderNumberLocale());
 };
 
 // Whether the row's count is shortened, so the full count has to be told.

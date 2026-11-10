@@ -10,6 +10,7 @@ import {
   BURN_RATE_RULE_NOTHING_PICKED,
   getNamesOrNothingPicked,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleLines";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The Burn Rate Rules table's lines ("Alert: SEV1", "Incident: Checkout
@@ -23,24 +24,7 @@ const LOCALES: string = path.resolve(
   "../../FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // A line's one placeholder, by its name.
 const PLACEHOLDER: RegExp = /\{\{(\w+)\}\}/;

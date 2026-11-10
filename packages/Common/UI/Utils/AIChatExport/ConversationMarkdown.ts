@@ -8,7 +8,10 @@ import {
   AIChatWidget,
 } from "../../../Types/AI/AIChatTypes";
 import OneUptimeDate from "../../../Types/Date";
-import { inEnglishDates } from "../../../Types/DateLanguage";
+import {
+  getReaderNumberLocale,
+  inEnglishDates,
+} from "../../../Types/DateLanguage";
 import neutralizeAssistantMarkdown from "./MarkdownSafety";
 import {
   citationsToMarkdown,
@@ -40,7 +43,9 @@ function runFooter(run: AIRun): string {
     parts.push(run.egressManifest.modelName);
   }
   if (run.totalTokens) {
-    parts.push(`${run.totalTokens.toLocaleString()} tokens`);
+    parts.push(
+      `${run.totalTokens.toLocaleString(getReaderNumberLocale())} tokens`,
+    );
   }
   if (run.totalCostInUSDCents) {
     parts.push(`$${(run.totalCostInUSDCents / 100).toFixed(4)}`);

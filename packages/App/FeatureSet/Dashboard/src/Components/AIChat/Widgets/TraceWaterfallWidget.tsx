@@ -2,6 +2,7 @@ import { AIChatWidget, AIChatWidgetSpan } from "Common/Types/AI/AIChatTypes";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   widget: AIChatWidget;
@@ -101,7 +102,7 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
               />
             </div>
             <div className="w-16 flex-shrink-0 text-right text-[11px] tabular-nums text-gray-500">
-              {span.durationMs.toLocaleString()} ms
+              {span.durationMs.toLocaleString(getReaderNumberLocale())} ms
             </div>
           </div>
         );

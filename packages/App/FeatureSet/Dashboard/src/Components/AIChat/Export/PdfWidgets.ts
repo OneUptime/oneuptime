@@ -29,6 +29,7 @@ import {
 import PdfChart, { CHART_BLOCK_HEIGHT } from "./PdfChart";
 import PdfDocument, { PDF_COLORS } from "./PdfDocument";
 import { PdfTable } from "./PdfTable";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * Draws the inline widgets an assistant message produced.
@@ -462,7 +463,9 @@ export default class PdfWidgets {
       // Duration.
       this.pdf.setStyle({ size: SMALL_SIZE, color: PDF_COLORS.muted });
       this.pdf.doc.text(
-        this.pdf.sanitize(`${span.durationMs.toLocaleString()} ms`),
+        this.pdf.sanitize(
+          `${span.durationMs.toLocaleString(getReaderNumberLocale())} ms`,
+        ),
         this.pdf.right,
         y + 1,
         { baseline: "top", align: "right" },

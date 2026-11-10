@@ -19,6 +19,10 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import {
+  getReaderDateLocale,
+  getReaderNumberLocale,
+} from "Common/Types/DateLanguage";
 
 // Maximum number of pending migration names to list before collapsing the rest.
 const MAX_PENDING_TO_SHOW: number = 10;
@@ -35,7 +39,7 @@ const asArray: (value: unknown) => JSONArray = (value: unknown): JSONArray => {
 
 const countLabel: (value: unknown) => string = (value: unknown): string => {
   const parsed: number = Number(value);
-  return isNaN(parsed) ? "—" : parsed.toLocaleString();
+  return isNaN(parsed) ? "—" : parsed.toLocaleString(getReaderNumberLocale());
 };
 
 // Render an ISO timestamp as readable local date/time; blank/unparseable -> em dash.
@@ -48,7 +52,7 @@ const formatDateTime: (value: unknown) => string = (value: unknown): string => {
   if (isNaN(date.getTime())) {
     return raw;
   }
-  return date.toLocaleString();
+  return date.toLocaleString(getReaderDateLocale());
 };
 
 /*

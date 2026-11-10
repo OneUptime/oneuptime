@@ -7,6 +7,7 @@ import { DeviceNameSource } from "../../../Types/NetworkDevice/DeviceNameSource"
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * What the device Overview's Name Source row says (OneUptime issue #4518),
@@ -94,32 +95,18 @@ describe("the row's words are recorded for translation, and translated", () => {
     expect(english[word]).toBe(word);
   });
 
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])("%s translates every one of them", (code: string) => {
-    const locale: Record<string, unknown> = readLocale(code);
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s translates every one of them",
+    (code: string) => {
+      const locale: Record<string, unknown> = readLocale(code);
 
-    for (const word of words) {
-      expect({ word: word, value: locale[word] }).not.toEqual({
-        word: word,
-        value: word,
-      });
-      expect(typeof locale[word]).toBe("string");
-    }
-  });
+      for (const word of words) {
+        expect({ word: word, value: locale[word] }).not.toEqual({
+          word: word,
+          value: word,
+        });
+        expect(typeof locale[word]).toBe("string");
+      }
+    },
+  );
 });

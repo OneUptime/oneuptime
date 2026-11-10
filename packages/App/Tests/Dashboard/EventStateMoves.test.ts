@@ -28,6 +28,7 @@ import {
   isQuickMoveOffered,
 } from "../../FeatureSet/Dashboard/src/Components/EventView/EventStateMoves";
 import { BulkStateChangeNoteType } from "../../FeatureSet/Dashboard/src/Utils/BulkStateChange";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * "I dont see the button to assign to me, change priority, change status
@@ -53,24 +54,7 @@ const DASHBOARD_LOCALES: string = path.join(
   "Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // A project's incident states, as the incidents list reads them.
 const INCIDENT_STATES: Array<

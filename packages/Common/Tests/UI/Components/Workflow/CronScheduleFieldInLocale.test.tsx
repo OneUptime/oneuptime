@@ -31,6 +31,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 const NOW: Date = new Date("2026-10-25T12:00:00.000Z");
 const MONDAY_NINE: Date = new Date("2026-10-26T09:00:00.000Z");
@@ -40,24 +41,7 @@ const LOCALES_DIRECTORY: string = path.join(
   "../../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const readLocale: (language: string) => Record<string, unknown> = (
   language: string,

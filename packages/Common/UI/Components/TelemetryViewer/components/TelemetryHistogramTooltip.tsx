@@ -3,6 +3,7 @@ import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import OneUptimeDate from "../../../../Types/Date";
 import { HistogramSeriesOption } from "../types";
+import { getReaderNumberLocale } from "../../../../Types/DateLanguage";
 
 export interface TooltipEntry {
   series: string;
@@ -115,7 +116,7 @@ const TelemetryHistogramTooltip: FunctionComponent<
               <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
                 {props.valueFormatter
                   ? props.valueFormatter(entry.count)
-                  : entry.count.toLocaleString()}
+                  : entry.count.toLocaleString(getReaderNumberLocale())}
               </span>
             </div>
           );
@@ -127,7 +128,7 @@ const TelemetryHistogramTooltip: FunctionComponent<
             {translator.translateText("Total")}
           </span>
           <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
-            {total.toLocaleString()}
+            {total.toLocaleString(getReaderNumberLocale())}
           </span>
         </div>
       )}

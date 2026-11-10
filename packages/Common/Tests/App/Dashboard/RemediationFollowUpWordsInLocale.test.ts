@@ -8,6 +8,7 @@ import {
   REMEDIATION_FIX_STEP_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * THE WORDS #5519's FOLLOW-UPS ADD ARE EVERY LANGUAGE'S OWN.
@@ -32,24 +33,7 @@ const DASHBOARD_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readJson(file: string): Record<string, unknown> {
   return JSON.parse(

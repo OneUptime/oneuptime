@@ -56,10 +56,18 @@ const font = path.join(
   "packages/Common/Server/Static/Vendor/fonts/InterVariable.woff2",
 );
 /*
+ * Arabic and Persian letters, which Inter does not have, in Vazirmatn: the
+ * same family, for those letters only, as every index.ejs has them.
+ */
+const arabicScriptFont = path.join(
+  repository,
+  "packages/Common/Server/Static/Vendor/fonts/VazirmatnArabicVariable.woff2",
+);
+/*
  * The head the Dashboard's views/index.ejs writes: the Tailwind runtime and
  * the reading-direction config after it, the same tailwind.config (class-based
- * dark mode), Inter as @font-face and the `*` rule that draws every element
- * in it. <html> starts as index.ejs writes it, lang="en" and no dir: the
+ * dark mode), Inter as @font-face (Arabic and Persian letters in Vazirmatn)
+ * and the `*` rule that draws every element in it. <html> starts as index.ejs writes it, lang="en" and no dir: the
  * page's language is set by the production helper the fixture's i18next
  * instance is handed to (Common/UI/Utils/PageLanguage). ?theme=dark adds
  * the class on <html> that Theme.css reads.
@@ -67,7 +75,7 @@ const font = path.join(
  * HOST is a made-up domain. Nothing is ever fetched from it: the spec
  * aborts any request that leaves this server.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reading direction preview</title><script>window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(window.location.search).get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background-color:#f9fafb}html.dark,html.dark body{background-color:#0f172a}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reading direction preview</title><script>window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(window.location.search).get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/VazirmatnArabicVariable.woff2') format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200D,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC;}html,body{margin:0;background-color:#f9fafb}html.dark,html.dark body{background-color:#0f172a}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -103,6 +111,11 @@ async function main() {
     if (url.pathname === "/fonts/InterVariable.woff2") {
       response.setHeader("Content-Type", "font/woff2");
       fs.createReadStream(font).pipe(response);
+      return;
+    }
+    if (url.pathname === "/fonts/VazirmatnArabicVariable.woff2") {
+      response.setHeader("Content-Type", "font/woff2");
+      fs.createReadStream(arabicScriptFont).pipe(response);
       return;
     }
     if (url.pathname.startsWith("/dist/")) {

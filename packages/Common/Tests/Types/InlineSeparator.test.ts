@@ -8,6 +8,7 @@ import {
   Translator,
   writesZeroAsADot,
 } from "../../Types/Translator";
+import { DASHBOARD_LANGUAGES } from "../Helpers/TranslatedLanguages";
 
 /*
  * WHAT STANDS BETWEEN TWO FACTS ON ONE LINE, IN A LANGUAGE WHOSE ZERO IS A DOT.
@@ -23,25 +24,7 @@ import {
  * named "API · EU" is named as written. Every other language is as it was.
  */
 
-const LANGUAGES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 const UPTIME: string = "Uptime · {{window}}";
 const COUNTS: string = "{{incidents}} · {{alerts}}";

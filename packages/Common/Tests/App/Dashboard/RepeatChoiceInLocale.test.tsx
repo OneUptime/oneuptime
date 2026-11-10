@@ -120,30 +120,14 @@ import {
   ON_CALL_POLICY_REPEAT,
   RepeatChoiceConfig,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/RepeatChoice/RepeatChoice";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const ON_CALL_SUMMARY: string = "Start again from Level 1, up to {{times}}";
 const INCOMING_CALL_SUMMARY: string =

@@ -2,8 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
 /*
- * The reading direction - a Persian page laid out right to left, every
- * other language left to right - in real Chromium, with no backend:
+ * The reading direction - a Persian or Arabic page laid out right to left,
+ * every other language left to right - in real Chromium, with no backend:
  * ReadingDirection/Fixture/server.js bundles the production components with
  * the app's esbuild config and draws them with Tailwind's runtime and the
  * reading-direction config every index.ejs loads after it. What jsdom

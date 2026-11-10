@@ -25,6 +25,7 @@ import {
 } from "./TopologyMeta";
 import { nounForType } from "./ServiceMapViewModel";
 import { workloadNameForReplica } from "./WorkloadNaming";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * The Infrastructure view model: "what runs where", as a tree a person can
@@ -901,10 +902,10 @@ export function describeInfrastructureNode(node: InfrastructureNode): string {
     return metaForEntityType(node.entityType || undefined).label;
   }
   if (node.kind === "group") {
-    return `${node.childIds.length.toLocaleString()} ${nounForType(node.entityType || "", node.childIds.length)}`;
+    return `${node.childIds.length.toLocaleString(getReaderNumberLocale())} ${nounForType(node.entityType || "", node.childIds.length)}`;
   }
   if (node.kind === "collection") {
-    return `${node.resourceCount.toLocaleString()} ${nounForType(node.entityType || "", node.resourceCount)}`;
+    return `${node.resourceCount.toLocaleString(getReaderNumberLocale())} ${nounForType(node.entityType || "", node.resourceCount)}`;
   }
   return summarizeCounts(node.countsByType) || "Empty";
 }
@@ -919,7 +920,7 @@ export function summarizeCounts(
     })
     .slice(0, limit)
     .map(([type, count]: [string, number]): string => {
-      return `${count.toLocaleString()} ${nounForType(type, count)}`;
+      return `${count.toLocaleString(getReaderNumberLocale())} ${nounForType(type, count)}`;
     })
     .join(" · ");
 }

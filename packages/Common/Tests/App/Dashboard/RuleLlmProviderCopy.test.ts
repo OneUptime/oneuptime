@@ -34,6 +34,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * What every OneUptime AI rule's "LLM Provider" field says and knows
@@ -49,24 +50,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "da",
-  "de",
-  "es",
-  "fa",
-  "fr",
-  "hi",
-  "it",
-  "ja",
-  "ko",
-  "nl",
-  "no",
-  "pt",
-  "ru",
-  "sv",
-  "zh-CN",
-  "zh-TW",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readLocale(locale: string): Record<string, string> {
   return JSON.parse(

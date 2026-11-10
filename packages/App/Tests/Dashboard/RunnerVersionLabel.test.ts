@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * ---------------------------------------------------------------------------
@@ -58,24 +59,7 @@ const TS_SOURCE: RegExp = /\.tsx?$/;
  * en.json is the source of truth; Scripts/I18n/ValidateLocales.js (run in CI by
  * the js-lint job) requires these sixteen to mirror it key-for-key.
  */
-const TRANSLATED_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const TRANSLATED_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const ALL_LOCALES: Array<string> = ["en", ...TRANSLATED_LOCALES];
 

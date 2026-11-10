@@ -59,6 +59,7 @@ import { RUNNER_CODE_FIXES_OFF_SETTING } from "../../../Types/Runner/RunnerCodeF
 import { RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID } from "../../../UI/Components/Runner/RunnerCodeFixesOffSetting";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * A CODE REPOSITORY'S RUNNER, WHEN WHAT IT WORKS ON TAKES NO AI CODE FIXES.
@@ -676,24 +677,7 @@ describe("the words, in every language", () => {
     __dirname,
     "../../../../App/FeatureSet/Dashboard/src/Locales",
   );
-  const LANGUAGES: Array<string> = [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
   const SENTENCES: Array<string> = [
     CODE_NO_CODE_FIX_GLOBAL_RUNNER_HELPER_TEXT,
     CODE_RUNNER_TAKES_NO_CODE_FIXES_OPTION_TEXT,

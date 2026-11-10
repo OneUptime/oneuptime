@@ -231,6 +231,7 @@ import {
   listedNames,
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const WAIT_FOR_TIMEOUT: number = 20000;
 
@@ -890,24 +891,7 @@ describe("Settings > Call & SMS", () => {
     });
 
     test("every word they add is in the Admin Dashboard's locales, translated", () => {
-      for (const language of [
-        "de",
-        "fr",
-        "es",
-        "it",
-        "pt",
-        "nl",
-        "da",
-        "no",
-        "sv",
-        "ru",
-        "ja",
-        "ko",
-        "zh-CN",
-        "zh-TW",
-        "hi",
-        "fa",
-      ]) {
+      for (const language of [...ADMIN_DASHBOARD_LANGUAGES]) {
         const words: Locale = readLocale(language);
 
         for (const key of [
@@ -1166,24 +1150,7 @@ describe("Settings > Call & SMS", () => {
         });
       }
 
-      for (const language of [
-        "de",
-        "fr",
-        "es",
-        "it",
-        "pt",
-        "nl",
-        "da",
-        "no",
-        "sv",
-        "ru",
-        "ja",
-        "ko",
-        "zh-CN",
-        "zh-TW",
-        "hi",
-        "fa",
-      ]) {
+      for (const language of [...ADMIN_DASHBOARD_LANGUAGES]) {
         const words: Locale = readLocale(language);
 
         for (const key of keys) {

@@ -35,6 +35,7 @@ import ObjectID from "../../../Types/ObjectID";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * TWO PEOPLE APPROVE A RISKIER FIX, ON THE AI CARD (#6148's follow-up).
@@ -592,24 +593,7 @@ describe("in the reader's language", () => {
     REMEDIATION_ALREADY_APPROVED_FIRST_REFUSED,
   ];
 
-  const LANGUAGES: Array<string> = [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
   test.each(LANGUAGES)(
     "%s words every sentence, none left English",
