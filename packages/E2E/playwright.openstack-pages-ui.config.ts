@@ -14,10 +14,11 @@ import path from "path";
 const port: string = process.env["OPENSTACK_PAGES_FIXTURE_PORT"] || "4662";
 
 /*
- * App Test runs this suite in halves, one per Dashboard Offline UI group: the group's matrix
- * sets OPENSTACK_PAGES_SHARD to "1/2" or "2/2". It grew past a group's 22 minutes as the product's
- * pages joined it. Its tests are independent, each opening its own page, so it is split by
- * test rather than by file (fullyParallel). Each half is one worker as before. Unset, the whole
+ * App Test runs this suite in thirds, one per Dashboard Offline UI group: the group's matrix
+ * sets OPENSTACK_PAGES_SHARD to "1/3", "2/3" or "3/3". It grew past a group's 22 minutes as the
+ * product's pages joined it, and past two groups' when 586 tests took about 25 minutes a half
+ * (2026-11-10). Its tests are independent, each opening its own page, so it is split by test
+ * rather than by file (fullyParallel). Each third is one worker as before. Unset, the whole
  * suite runs, in file order, as it always has.
  */
 const SHARD_PATTERN: RegExp = /^(\d+)\/(\d+)$/;

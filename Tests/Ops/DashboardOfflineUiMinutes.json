@@ -1,6 +1,6 @@
 {
   "about": [
-    "Each Dashboard Offline UI suite's minutes in its group's job on a runner of median speed: the median, over the App Test runs below, of the time from the group's '▶ npm run <suite>' to the next suite's (or the run step's end), its bundle build included. A suite run in halves has one entry per half, '<suite> <i>/<n>', as its groups' <name>_shard say.",
+    "Each Dashboard Offline UI suite's minutes in its group's job on a runner of median speed: the median, over the App Test runs below, of the time from the group's '▶ npm run <suite>' to the next suite's (or the run step's end), its bundle build included. A suite run in halves (or thirds) has one entry per part, '<suite> <i>/<n>', as its groups' <name>_shard say.",
     "A new suite's minutes come from a local run (CI=1, its bundle built, nothing else running) until App Test's runs measure it.",
     "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to the sum of its suites' minutes here."
   ],
@@ -79,8 +79,9 @@
     "test-network-traffic-names-ui": 2.5,
     "test-new-version-ui": 1.9,
     "test-openshift-pages-ui": 2.8,
-    "test-openstack-pages-ui 1/2": 11.6,
-    "test-openstack-pages-ui 2/2": 11.6,
+    "test-openstack-pages-ui 1/3": 17.1,
+    "test-openstack-pages-ui 2/3": 16.0,
+    "test-openstack-pages-ui 3/3": 17.8,
     "test-owner-filters-ui": 1.0,
     "test-owners-on-create-ui": 1.3,
     "test-packet-capture-ui": 1.2,
@@ -89,7 +90,7 @@
     "test-permissions-per-tab-ui": 0.5,
     "test-postmortem-rules-ui": 1.3,
     "test-postmortems-ui": 0.8,
-    "test-product-onboarding-ui": 0.7,
+    "test-product-onboarding-ui": 1.1,
     "test-profiles-ui": 2.8,
     "test-proxmox-pages-ui": 2.8,
     "test-public-addresses-ui": 1.2,
