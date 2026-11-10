@@ -49113,5 +49113,13 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 이 {{window}} 청크의 경로 변경 {{count}}회(근사치, 청크가 아직 로드되지 않음)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} route change in this {{window}} chunk (approximate, chunk not loaded yet)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 이 {{window}} 청크의 자체 신호 {{count}}개(근사치, 청크가 아직 로드되지 않음)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)",
+  "{{count}} bad AI answers": "나쁜 AI 답변 {{count}}개",
+  "{{count}} bad AI answers_one": "{{count}} bad AI answer",
+  "{{count}} data points": "데이터 포인트 {{count}}개",
+  "{{count}} data points_one": "{{count}} data point",
+  "{{count}} profiles": "프로파일 {{count}}개",
+  "{{count}} profiles_one": "{{count}} profile",
+  "{{count}} security events": "보안 이벤트 {{count}}개",
+  "{{count}} security events_one": "{{count}} security event"
 }

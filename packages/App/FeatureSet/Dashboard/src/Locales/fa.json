@@ -49113,5 +49113,13 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} تغییر مسیر در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} تغییر مسیر در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} سیگنال خودتان در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} سیگنال خودتان در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} سیگنال خودتان در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
+  "{{count}} bad AI answers": "{{count}} پاسخ بد هوش مصنوعی",
+  "{{count}} bad AI answers_one": "{{count}} پاسخ بد هوش مصنوعی",
+  "{{count}} data points": "{{count}} نقطه داده",
+  "{{count}} data points_one": "{{count}} نقطه داده",
+  "{{count}} profiles": "{{count}} پروفایل",
+  "{{count}} profiles_one": "{{count}} پروفایل",
+  "{{count}} security events": "{{count}} رویداد امنیتی",
+  "{{count}} security events_one": "{{count}} رویداد امنیتی"
 }

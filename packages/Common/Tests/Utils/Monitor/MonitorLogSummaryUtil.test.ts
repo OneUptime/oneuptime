@@ -19,6 +19,7 @@ import MonitorLogSummaryUtil, {
   IncomingEmailLogEntryKind,
 } from "../../../Utils/Monitor/MonitorLogSummaryUtil";
 import { MonitorSummaryInfoProps } from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
+import { TelemetryObservationKind } from "../../../Types/Monitor/TelemetryObservation";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -689,8 +690,11 @@ describe("MonitorLogSummaryUtil.toSummaryInfoProps - other families", () => {
       monitoredAt: MONITORED_AT,
     });
 
+    // A row is a check that has run, with what it saw (#6639).
     expect(props.telemetryMonitorSummary).toEqual({
       lastCheckedAt: MONITORED_AT,
+      isPastCheck: true,
+      observation: { kind: TelemetryObservationKind.Logs, count: 12 },
     });
   });
 

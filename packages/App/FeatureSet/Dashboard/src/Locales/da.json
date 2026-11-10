@@ -49113,5 +49113,13 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} ruteskift i denne blok på {{window}} (omtrentligt, blokken er ikke indlæst endnu)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} ruteskift i denne blok på {{window}} (omtrentligt, blokken er ikke indlæst endnu)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} egne signaler i denne blok på {{window}} (omtrentligt, blokken er ikke indlæst endnu)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} eget signal i denne blok på {{window}} (omtrentligt, blokken er ikke indlæst endnu)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} eget signal i denne blok på {{window}} (omtrentligt, blokken er ikke indlæst endnu)",
+  "{{count}} bad AI answers": "{{count}} dårlige AI-svar",
+  "{{count}} bad AI answers_one": "{{count}} dårligt AI-svar",
+  "{{count}} data points": "{{count}} datapunkter",
+  "{{count}} data points_one": "{{count}} datapunkt",
+  "{{count}} profiles": "{{count}} profiler",
+  "{{count}} profiles_one": "{{count}} profil",
+  "{{count}} security events": "{{count}} sikkerhedshændelser",
+  "{{count}} security events_one": "{{count}} sikkerhedshændelse"
 }

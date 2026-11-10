@@ -49113,5 +49113,13 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} cambios de ruta en este fragmento de {{window}} (aproximado, fragmento aún no cargado)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} cambio de ruta en este fragmento de {{window}} (aproximado, fragmento aún no cargado)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} señales propias en este fragmento de {{window}} (aproximado, fragmento aún no cargado)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} señal propia en este fragmento de {{window}} (aproximado, fragmento aún no cargado)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} señal propia en este fragmento de {{window}} (aproximado, fragmento aún no cargado)",
+  "{{count}} bad AI answers": "{{count}} respuestas malas de la IA",
+  "{{count}} bad AI answers_one": "{{count}} respuesta mala de la IA",
+  "{{count}} data points": "{{count}} puntos de datos",
+  "{{count}} data points_one": "{{count}} punto de datos",
+  "{{count}} profiles": "{{count}} perfiles",
+  "{{count}} profiles_one": "{{count}} perfil",
+  "{{count}} security events": "{{count}} eventos de seguridad",
+  "{{count}} security events_one": "{{count}} evento de seguridad"
 }

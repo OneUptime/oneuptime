@@ -344,6 +344,19 @@ export class MonitorTypeHelper {
   }
 
   /*
+   * Whether a monitor of this type has a Monitoring Logs page: every type
+   * but Manual. Each check of any other type is evaluated by
+   * MonitorResourceUtil.monitorResource, which writes one MonitorLog row
+   * for it - a probe's result, an incoming request or email, a server's
+   * report, a Probe Status evaluation, and the telemetry worker's check of
+   * a Logs, Metrics, Kubernetes or any other telemetry monitor alike. A
+   * Manual monitor checks nothing, so it has nothing to log.
+   */
+  public static hasMonitoringLogs(monitorType: MonitorType): boolean {
+    return !this.isManualMonitor(monitorType);
+  }
+
+  /*
    * Whether a monitor of this type adds to the project's Active Monitoring
    * bill. Mirrors what the server actually meters -
    * ActiveMonitoringMeteredPlan counts every monitor whose type is not
