@@ -86,6 +86,11 @@ import DataBiSync from "../Utils/DataObservability/Bi/DataBiSync";
 import DataWarehouseSpendSummary from "../Utils/DataObservability/DataWarehouseSpendSummary";
 import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
 import DataTableSensitivity from "../Utils/DataObservability/DataTableSensitivity";
+import DataTableLineageReader from "../Utils/DataObservability/DataTableLineage";
+import {
+  DataTableLineage,
+  readDataLineageDepth,
+} from "../../Types/DataObservability/DataTableLineage";
 import TableHealthIngest from "../Utils/DataObservability/TableHealthIngest";
 import DataTableErrors from "../Utils/DataObservability/DataTableErrors";
 import DataAiAppTables from "../Utils/DataObservability/DataAiAppTables";
@@ -126,6 +131,9 @@ import CommonAPI from "./CommonAPI";
  *  - whether a table is fresh, as one answer (DataTableAnswer), for anyone
  *    who may read data assets - what the MCP server's
  *    get_data_table_freshness tool asks;
+ *  - a table's lineage several steps each way, with how each table on it
+ *    is now (DataTableLineage), for the same people and their API keys -
+ *    what a table's Lineage tab draws;
  *  - a data product's "data as of" badge, for anyone with its secret, so it
  *    can be embedded where nobody signs in to OneUptime;
  *  - Connect a database, for those who may create data assets.
@@ -541,6 +549,42 @@ export default class DataObservabilityAPI extends BaseAPI<
           }),
         } as unknown as JSONObject;
       },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.tableLineage,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataAssetId: string =
+          typeof body["dataAssetId"] === "string" ? body["dataAssetId"] : "";
+
+        if (!ObjectID.isValidUUID(dataAssetId)) {
+          throw new BadDataException("Name the table by its ID.");
+        }
+
+        // Its tables' open alerts as the person who asked may see them.
+        const lineage: DataTableLineage | null =
+          await DataTableLineageReader.read({
+            projectId,
+            dataAssetId: new ObjectID(dataAssetId),
+            depth: readDataLineageDepth(body["depth"]),
+            now: OneUptimeDate.getCurrentDate(),
+            reader: props,
+          });
+
+        if (!lineage) {
+          throw new BadDataException("Table not found.");
+        }
+
+        return lineage as unknown as JSONObject;
+      },
+      // Read-only, so a build in CI can ask what a change reaches.
+      { allowsApiKey: true },
     );
 
     this.post(

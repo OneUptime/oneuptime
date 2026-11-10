@@ -368,6 +368,8 @@ Lineage is read once an hour, back to the last read, and a week back at a databa
 
 Each edge on a table's **Lineage** tab says where it was seen: a pipeline's run, the query history (with a login whose queries moved the data), or a view's definition. Lineage from every source counts for **One issue per cause**.
 
+At the top of a table's **Lineage** tab, a diagram draws its lineage a few steps each way (three, or pick 1, 2 or 5): what it is built from on the left, the tables and dashboards built from it on the right, and the pipelines that load data from outside where it comes in. Each card says how it is now - late, an open alert, a failed run - and an arrow turns red when its pipeline's latest run failed, so a late table can be followed up to the run that broke it. Open any table to center the diagram on it. The same lineage is at \`POST /api/data-observability/tables/lineage\`, for your own tools.
+
 ## dbt
 
 After \`dbt build\` (or run, test, seed or snapshot), send the project's artifacts with the CLI and a telemetry ingestion key. It reads \`target/manifest.json\` and \`target/run_results.json\` and sends only what Data Observability reads of them:

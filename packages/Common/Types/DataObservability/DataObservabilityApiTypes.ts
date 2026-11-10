@@ -37,6 +37,7 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   tableFreshness: string;
   biSync: (dataBiConnectionId: string) => string;
   tableDashboards: string;
+  tableLineage: string;
   tableSensitivity: string;
   tableErrors: string;
   aiAppTables: string;
@@ -110,6 +111,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   },
   // The dashboards built on a table, and on the tables built from it.
   tableDashboards: "/data-observability/tables/dashboards",
+  // A table's lineage several steps each way, with how each table is now: what its Lineage tab draws.
+  tableLineage: "/data-observability/tables/lineage",
   // What Data Security knows each of a table's columns holds.
   tableSensitivity: "/data-observability/tables/sensitivity",
   // The errors in the services that write a table, naming it.

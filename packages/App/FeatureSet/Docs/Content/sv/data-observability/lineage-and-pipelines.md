@@ -15,6 +15,8 @@ Härkomst visar vilka tabeller varje tabell byggs av, och vilka pipelines som sk
 
 En tabells flik **Härkomst** visar de tabeller den byggs av, de pipelines som skriver till den med deras senaste körning, och de tabeller som byggs av den. Varje kant visar var den sågs.
 
+Överst på fliken ritar ett diagram den härkomsten några steg åt varje håll (tre, eller välj 1, 2 eller 5): till vänster det som tabellen byggs av, till höger de tabeller och instrumentpaneler som byggs av den, och de pipelines som läser in data utifrån, där den kommer in. Varje kort visar hur det står till nu - försenad, ett öppet larm, en misslyckad körning - och en pil blir röd när den senaste körningen av dess pipeline misslyckades, så att en försenad tabell kan följas upp till körningen som stoppade den. Öppna valfri tabell för att centrera diagrammet på den.
+
 Där källan anger kolumner visar en tabells flik **Kolumner** varifrån varje kolumn kommer och vad den matar: Snowflakes åtkomsthistorik (Enterprise-utgåvan, som kräver `IMPORTED PRIVILEGES` på databasen `SNOWFLAKE`), och OpenLineages facet `columnLineage`.
 
 ## OpenLineage

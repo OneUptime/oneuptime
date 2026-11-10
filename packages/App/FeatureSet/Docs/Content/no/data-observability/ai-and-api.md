@@ -32,6 +32,7 @@ Det fungerer med en skrivebeskyttet innlogging, og svarer som personen eller API
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Synkroniseringswebhookene fra Fivetran | Inntaksnøkkelen, som signeringshemmeligheten til Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Synkroniseringswebhookene fra Airbyte | Inntaksnøkkelen i URL-en |
 | `POST /api/data-observability/tables/freshness` | Aktualiteten til en tabell, slik MCP-verktøyet svarer, med `{ "table": "public.orders" }` | En API-nøkkel |
+| `POST /api/data-observability/tables/lineage` | Opphavet til en tabell noen trinn i hver retning, med hvordan hver tabell står nå, slik fanen **Opphav** tegner det, med `{ "dataAssetId": "<table ID>", "depth": 3 }` | En API-nøkkel |
 | `POST /api/data-observability/checks/apply` | Få prosjektets sjekker til å samsvare med en fil, slik `oneuptime data-checks apply` gjør, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nøkkel |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | «data as of»-merket til et dataprodukt | Merkets eget token |
 

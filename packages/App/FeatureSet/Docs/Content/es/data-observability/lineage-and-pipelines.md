@@ -15,6 +15,8 @@ El linaje dice a partir de qué tablas se construye cada tabla y qué pipelines 
 
 La pestaña **Linaje** de una tabla muestra las tablas a partir de las que se construye, los pipelines que escriben en ella con su última ejecución, y las tablas que se construyen a partir de ella. Cada arista indica dónde se vio.
 
+En la parte superior de la pestaña, un diagrama dibuja ese linaje unos pasos en cada dirección (tres, o elige 1, 2 o 5): a la izquierda, aquello a partir de lo que se construye la tabla; a la derecha, las tablas y los paneles construidos a partir de ella; y los pipelines que cargan datos desde fuera, donde estos entran. Cada tarjeta dice cómo está ahora - retrasada, una alerta abierta, una ejecución fallida - y una flecha se vuelve roja cuando la última ejecución de su pipeline falló, así que una tabla retrasada puede seguirse hasta la ejecución que la detuvo. Abre cualquier tabla para centrar el diagrama en ella.
+
 Cuando la fuente nombra columnas, la pestaña **Columnas** de una tabla indica de dónde viene cada columna y qué alimenta: el historial de acceso de Snowflake (edición Enterprise, que necesita `IMPORTED PRIVILEGES` sobre la base de datos `SNOWFLAKE`) y la faceta `columnLineage` de OpenLineage.
 
 ## OpenLineage

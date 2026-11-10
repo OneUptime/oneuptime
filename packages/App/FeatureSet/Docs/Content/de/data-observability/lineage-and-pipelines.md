@@ -15,6 +15,8 @@ Lineage sagt, aus welchen Tabellen jede Tabelle erstellt wird und welche Pipelin
 
 Der Tab **Datenherkunft** einer Tabelle zeigt die Tabellen, aus denen sie erstellt wird, die Pipelines, die in sie schreiben, mit ihrem letzten Lauf, und die Tabellen, die aus ihr erstellt werden. Jede Kante sagt, wo sie gesehen wurde.
 
+Oben im Tab zeichnet ein Diagramm diese Datenherkunft einige Schritte in jede Richtung (drei, oder wählen Sie 1, 2 oder 5): links, woraus die Tabelle erstellt wird, rechts die Tabellen und Dashboards, die aus ihr erstellt werden, und die Pipelines, die Daten von außen laden, dort, wo sie hereinkommen. Jede Karte zeigt, wie es jetzt um sie steht - verspätet, eine offene Warnung, ein fehlgeschlagener Lauf -, und ein Pfeil wird rot, wenn der letzte Lauf seiner Pipeline fehlgeschlagen ist, sodass sich eine verspätete Tabelle bis zu dem Lauf zurückverfolgen lässt, der sie aufgehalten hat. Öffnen Sie eine beliebige Tabelle, um das Diagramm auf sie zu zentrieren.
+
 Wo die Quelle Spalten nennt, sagt der Tab **Spalten** einer Tabelle, woher jede Spalte kommt und was sie speist: der Zugriffsverlauf von Snowflake (Enterprise-Edition, die `IMPORTED PRIVILEGES` auf der Datenbank `SNOWFLAKE` braucht) und das Facet `columnLineage` von OpenLineage.
 
 ## OpenLineage

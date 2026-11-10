@@ -32,6 +32,7 @@ Ela funciona com um login somente leitura e responde como a pessoa ou a chave de
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Os webhooks de sincronização do Fivetran | A chave de ingestão, como segredo de assinatura do Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Os webhooks de sincronização do Airbyte | A chave de ingestão na URL |
 | `POST /api/data-observability/tables/freshness` | A atualidade de uma tabela, como a ferramenta MCP a responde, com `{ "table": "public.orders" }` | Uma chave de API |
+| `POST /api/data-observability/tables/lineage` | A linhagem de uma tabela alguns passos em cada direção, com o estado de cada tabela, como a aba **Linhagem** a desenha, com `{ "dataAssetId": "<table ID>", "depth": 3 }` | Uma chave de API |
 | `POST /api/data-observability/checks/apply` | Faz as verificações do projeto corresponderem a um arquivo, como faz `oneuptime data-checks apply`, com `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Uma chave de API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | O selo "data as of" de um produto de dados | O próprio token do selo |
 
