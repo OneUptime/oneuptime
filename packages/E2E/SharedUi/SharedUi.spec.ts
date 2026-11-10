@@ -723,9 +723,18 @@ test.describe("a dropdown that cannot be changed looks it", () => {
     await expect(locked).toHaveClass(/ou-select__control--is-disabled/);
     await expect(unlocked).not.toHaveClass(/ou-select__control--is-disabled/);
 
-    expect(await styleOf(unlocked, "background-color")).toBe(WHITE);
+    // Read once Tailwind has written the classes the page holds.
+    await expect
+      .poll(async (): Promise<string> => {
+        return await styleOf(unlocked, "background-color");
+      })
+      .toBe(WHITE);
+    await expect
+      .poll(async (): Promise<string> => {
+        return await styleOf(locked, "background-color");
+      })
+      .toBe(GRAY_100);
     expect(await styleOf(unlocked, "cursor")).toBe("pointer");
-    expect(await styleOf(locked, "background-color")).toBe(GRAY_100);
     expect(await styleOf(locked, "cursor")).not.toBe("pointer");
 
     // Only the box is grey: what it is set to still reads.
@@ -747,18 +756,44 @@ test.describe("a dropdown that cannot be changed looks it", () => {
   }) => {
     await open(page, "section=pills&theme=dark");
 
-    const unlocked: string = await styleOf(
-      control(page, "single-select"),
-      "background-color",
-    );
-    const locked: string = await styleOf(
-      control(page, "single-select-locked"),
-      "background-color",
-    );
+    const fills: () => Promise<{
+      unlocked: string;
+      locked: string;
+    }> = async (): Promise<{ unlocked: string; locked: string }> => {
+      return {
+        unlocked: await styleOf(
+          control(page, "single-select"),
+          "background-color",
+        ),
+        locked: await styleOf(
+          control(page, "single-select-locked"),
+          "background-color",
+        ),
+      };
+    };
 
-    expect(unlocked).not.toBe(WHITE);
-    expect(locked).not.toBe(WHITE);
-    expect(locked).not.toBe(unlocked);
+    // Read once the theme's rules have been applied to both.
+    await expect
+      .poll(
+        async (): Promise<{
+          unlockedIsWhite: boolean;
+          lockedIsWhite: boolean;
+          sameFill: boolean;
+        }> => {
+          const { unlocked, locked } = await fills();
+
+          return {
+            unlockedIsWhite: unlocked === WHITE,
+            lockedIsWhite: locked === WHITE,
+            sameFill: locked === unlocked,
+          };
+        },
+      )
+      .toEqual({
+        unlockedIsWhite: false,
+        lockedIsWhite: false,
+        sameFill: false,
+      });
   });
 });
 
