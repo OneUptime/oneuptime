@@ -49169,7 +49169,6 @@
   "Lookup Table Key": "Lookup Table Key",
   "Lookup table": "Lookup table",
   "Lookup table value": "Lookup table value",
-  "MNUPLR01": "MNUPLR01",
   "Match by Identity": "Match by Identity",
   "Match by Site": "Match by Site",
   "Menu boards": "Menu boards",
@@ -49201,7 +49200,6 @@
   "Row {{row}}: enter the value for {{key}}.": "Row {{row}}: enter the value for {{key}}.",
   "Row {{row}}: the key can be at most {{max}} characters long.": "Row {{row}}: the key can be at most {{max}} characters long.",
   "Row {{row}}: the value can be at most {{max}} characters long.": "Row {{row}}: the value can be at most {{max}} characters long.",
-  "Rows of a key and the value it stands for, put where the name pattern says {lookup}. A device whose key has no row is left to the next rule. At most 5,000 rows.": "Rows of a key and the value it stands for, put where the name pattern says {lookup}. A device whose key has no row is left to the next rule. At most 5,000 rows.",
   "Rows {{first}} and {{row}} both have the key \"{{key}}\". Keep one of them.": "Rows {{first}} and {{row}} both have the key \"{{key}}\". Keep one of them.",
   "Rule-Assigned Name": "Rule-Assigned Name",
   "Rules that name network devices by your naming convention: which devices, and a name pattern such as UN{site.code}{lookup}. The first enabled rule that matches a device names it when discovery imports it, and the rules can be applied to the devices you already have.": "Rules that name network devices by your naming convention: which devices, and a name pattern such as UN{site.code}{lookup}. The first enabled rule that matches a device names it when discovery imports it, and the rules can be applied to the devices you already have.",
@@ -49260,5 +49258,6 @@
   "{{count}} lines had no value and were skipped.": "{{count}} lines had no value and were skipped.",
   "{{count}} lines had no value and were skipped._one": "{{count}} line had no value and was skipped.",
   "{{count}} rows read.": "{{count}} rows read.",
-  "{{count}} rows read._one": "{{count}} row read."
+  "{{count}} rows read._one": "{{count}} row read.",
+  "Rows of a key and the value it stands for, put where the name pattern says {lookup}. A device whose key has no row is left to the next rule.": "Rows of a key and the value it stands for, put where the name pattern says {lookup}. A device whose key has no row is left to the next rule."
 }
