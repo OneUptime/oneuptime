@@ -226,11 +226,12 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      *   menu and the flow map's Other pages;
      * - links a span's and a log's details draw the same way;
      * - the budget recommendations, as their cards name them;
-     * - the monitor form's Maximum Value and Ignore, enum values;
+     * - the monitor form's If No Data choice Ignore, an enum value;
      * - a permission's Owned scope, as the team permission picker lists it.
      * (The back link, the ended card's buttons and the Health page's four
-     * stages are translated since #6369, so every language names them as
-     * its own Dashboard draws them.)
+     * stages are translated since #6369, and the criterion's aggregation
+     * Maximum Value since 31eadaee92e, so every language names them as its
+     * own Dashboard draws them.)
      */
     [SESSION_REPLAY]: [
       "⋯",
@@ -241,7 +242,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "1:1",
       "?",
       ...SESSION_REPLAY_BUDGET_RECOMMENDATION_NAMES,
-      "Maximum Value",
       "Ignore",
       "Owned",
     ],
