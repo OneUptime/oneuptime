@@ -12,6 +12,11 @@ import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import URL from "Common/Types/API/URL";
+import {
+  AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
+  getAuditLogRetentionDate,
+  readAuditLogRetentionInDays,
+} from "Common/Types/AuditLog/AuditLogRetention";
 import { getAuditLogExportDestinationTitle } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -53,11 +58,13 @@ export const AUDIT_LOG_EXPORT_FAILING_NOTICE_AFTER_IN_MINUTES: number = 30;
 export const AUDIT_LOG_EXPORT_LOSING_NOTICE_LEAD_IN_HOURS: number = 24;
 
 /*
- * The retention an entry is recorded with: the project's, 7 days when it
- * has none, and from 1 to 180 days (AuditLogRecorder's computeRetentionDate).
+ * The retention an entry is recorded with, and when it is deleted, are the
+ * recorder's own (Common/Types/AuditLog/AuditLogRetention): the project's,
+ * from 7 to 180 days, and 7 when it has none. Reckoning them the same way
+ * is the whole point: for a retention the API took outside that range, the
+ * recorder and this module once disagreed, and the "losing entries" email
+ * came after the entries were gone (#6383).
  */
-export const AUDIT_LOG_EXPORT_DEFAULT_RETENTION_IN_DAYS: number = 7;
-export const AUDIT_LOG_EXPORT_MAX_RETENTION_IN_DAYS: number = 180;
 
 // Where each email's button opens.
 export const AUDIT_LOG_EXPORT_PROJECT_PAGE_ROUTE: string =
@@ -73,25 +80,18 @@ export enum AuditLogExportFailureNotice {
 const MINUTE_IN_MS: number = 60 * 1000;
 const HOUR_IN_MS: number = 60 * MINUTE_IN_MS;
 
-export function toAuditLogExportRetentionInDays(
-  value: number | null | undefined,
-): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    return AUDIT_LOG_EXPORT_DEFAULT_RETENTION_IN_DAYS;
-  }
-
-  return Math.max(1, Math.min(value, AUDIT_LOG_EXPORT_MAX_RETENTION_IN_DAYS));
-}
-
-// When the oldest entry the export has not sent is deleted from the audit log.
+/*
+ * When the oldest entry the export has not sent is deleted from the audit
+ * log: the retentionDate the recorder stamped on it.
+ */
 export function getAuditLogExportEntriesLostAt(data: {
   oldestUnsentAt: Date;
   retentionInDays: number;
 }): Date {
-  return OneUptimeDate.addRemoveDays(
-    new Date(data.oldestUnsentAt),
-    toAuditLogExportRetentionInDays(data.retentionInDays),
-  );
+  return getAuditLogRetentionDate({
+    recordedAt: data.oldestUnsentAt,
+    retentionInDays: data.retentionInDays,
+  });
 }
 
 /*
@@ -201,7 +201,8 @@ export function buildAuditLogExportFailureEmail(data: {
   retentionInDays: number;
 }): AuditLogExportFailureEmail {
   const product: string = ProductBrandingText.getProductName();
-  const retentionInDays: number = toAuditLogExportRetentionInDays(
+  // Never under 7: "days", never "day".
+  const retentionInDays: number = readAuditLogRetentionInDays(
     data.retentionInDays,
   );
   const lostAt: Date | null = data.oldestUnsentAt
@@ -215,9 +216,7 @@ export function buildAuditLogExportFailureEmail(data: {
     Boolean(lostAt);
   const givenName: string = data.exportName.trim();
   const name: string = givenName || "audit log export";
-  const days: string = `${retentionInDays} ${
-    retentionInDays === 1 ? "day" : "days"
-  }`;
+  const days: string = `${retentionInDays} days`;
 
   // "The audit log export "SIEM webhook"", or "An audit log export".
   const which: string = givenName
@@ -288,7 +287,11 @@ export function buildAuditLogExportFailureEmail(data: {
  * The audit log retention that decides when this export's unsent entries
  * are deleted: its project's, or for the instance's export the shortest of
  * the projects that record an audit log (the soonest any entry it waits to
- * send can be deleted). A read that fails is reckoned with the default.
+ * send can be deleted). Each is read by the recorder's rule, so a value the
+ * API once took outside 7 to 180 is reckoned as the recorder keeps it; the
+ * rule never reads a smaller stored value as a longer retention, so the
+ * smallest stored value is the shortest retention. A read that fails is
+ * reckoned with the default.
  */
 export async function getAuditLogExportRetentionInDays(
   item: AuditLogExport,
@@ -301,7 +304,7 @@ export async function getAuditLogExportRetentionInDays(
         props: { isRoot: true },
       });
 
-      return toAuditLogExportRetentionInDays(project?.auditLogsRetentionInDays);
+      return readAuditLogRetentionInDays(project?.auditLogsRetentionInDays);
     }
 
     const shortest: Project | null = await ProjectService.findOneBy({
@@ -311,13 +314,13 @@ export async function getAuditLogExportRetentionInDays(
       props: { isRoot: true },
     });
 
-    return toAuditLogExportRetentionInDays(shortest?.auditLogsRetentionInDays);
+    return readAuditLogRetentionInDays(shortest?.auditLogsRetentionInDays);
   } catch (error) {
     logger.warn(
       "AuditLogExport: could not read the audit log retention; reckoning with the default.",
     );
     logger.warn(error);
-    return AUDIT_LOG_EXPORT_DEFAULT_RETENTION_IN_DAYS;
+    return AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS;
   }
 }
 

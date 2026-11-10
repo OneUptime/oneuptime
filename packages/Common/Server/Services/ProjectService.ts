@@ -120,6 +120,12 @@ import {
 import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { DefaultTableColumnsUtil } from "../../Types/Table/DefaultTableColumns";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
+import {
+  AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
+  AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+  getAuditLogRetentionError,
+  readAuditLogRetentionInDays,
+} from "../../Types/AuditLog/AuditLogRetention";
 import { getRiskCaseThresholdError } from "../../Utils/SecurityCase/SecurityEntityRiskScore";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
@@ -316,17 +322,19 @@ export const DEFAULT_PROJECT_AUDIT_LOG_SETTINGS: Readonly<ProjectAuditLogSetting
   {
     enableAuditLogs: false,
     storeSystemEventsInAuditLogs: false,
-    auditLogsRetentionInDays: 7,
+    auditLogsRetentionInDays: AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
   };
 
 /*
  * The narrowest settings there are. A write that widens even these could
- * widen some project's; one that does not can only keep or narrow.
+ * widen some project's; one that does not can only keep or narrow. No
+ * project keeps its entries for less than the shortest retention, whatever
+ * it stores (readAuditLogRetentionInDays).
  */
 const NARROWEST_AUDIT_LOG_SETTINGS: Readonly<ProjectAuditLogSettings> = {
   enableAuditLogs: false,
   storeSystemEventsInAuditLogs: false,
-  auditLogsRetentionInDays: Number.NEGATIVE_INFINITY,
+  auditLogsRetentionInDays: AUDIT_LOG_MIN_RETENTION_IN_DAYS,
 };
 
 /*
@@ -343,7 +351,10 @@ const isSwitchedOn: (value: unknown) => boolean = (value: unknown): boolean => {
  * Whether writing `requested` over `current` widens audit logging: switches
  * it on, starts recording system events, or keeps entries for longer.
  * Switching off, recording less and shortening retention never widen, and
- * neither does writing the value a project already has.
+ * neither does writing the value a project already has. Retentions are
+ * compared as the recorder keeps them (readAuditLogRetentionInDays): a
+ * project that stores -3 keeps its entries 7 days, so writing 7 over it
+ * keeps them no longer, and writing 180 over a stored 500 neither.
  */
 export const widensAuditLogging: (
   requested: Record<string, unknown>,
@@ -377,13 +388,15 @@ export const widensAuditLogging: (
       ? requestedRetention
       : Number(requestedRetention);
 
-  const currentDays: number =
-    typeof current.auditLogsRetentionInDays === "number"
-      ? current.auditLogsRetentionInDays
-      : DEFAULT_PROJECT_AUDIT_LOG_SETTINGS.auditLogsRetentionInDays;
-
   // A value that is not a number cannot be judged: treat it as widening.
-  return !Number.isFinite(requestedDays) || requestedDays > currentDays;
+  if (!Number.isFinite(requestedDays)) {
+    return true;
+  }
+
+  return (
+    readAuditLogRetentionInDays(requestedDays) >
+    readAuditLogRetentionInDays(current.auditLogsRetentionInDays)
+  );
 };
 
 /*
@@ -817,6 +830,38 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
   }
 
+  /*
+   * The audit log retention a project sets (Project Settings > Audit Logs >
+   * Settings, or the API): a whole number of days from 7 to 180
+   * (Types/AuditLog/AuditLogRetention), the range the settings form checks,
+   * stored as a number. Anything else - a negative, 0, a fraction, 500, no
+   * value, text - is refused with that range, never stored for the recorder
+   * and a failing export to read as something else later. Who may write it
+   * is still the column's access control and, on OneUptime Cloud, its plan.
+   * A write that leaves it out is not judged on it, so a project that holds
+   * a value from before the server checked keeps saving everything else; it
+   * reads as the nearest retention in the range.
+   */
+  public applyAuditLogRetentionRules(data: {
+    auditLogsRetentionInDays?: unknown;
+  }): void {
+    if (data.auditLogsRetentionInDays === undefined) {
+      return;
+    }
+
+    const error: string | null = getAuditLogRetentionError(
+      data.auditLogsRetentionInDays,
+    );
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    data.auditLogsRetentionInDays = coerceNumericColumnValue(
+      data.auditLogsRetentionInDays,
+    );
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -844,6 +889,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultTableColumnsRules(
       data.data as { defaultTableColumns?: unknown },
+    );
+    this.applyAuditLogRetentionRules(
+      data.data as { auditLogsRetentionInDays?: unknown },
     );
 
     if (data.props.userId) {
@@ -1542,6 +1590,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultTableColumnsRules(
       updateBy.data as { defaultTableColumns?: unknown },
+    );
+    this.applyAuditLogRetentionRules(
+      updateBy.data as { auditLogsRetentionInDays?: unknown },
     );
 
     await this.assertAuditLogSettingsChangeIsLicensed({
