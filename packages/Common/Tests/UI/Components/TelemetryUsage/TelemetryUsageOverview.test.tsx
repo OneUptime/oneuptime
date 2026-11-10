@@ -16,6 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * The usage overview both dashboards draw (issue #5916): Project Settings >
@@ -153,13 +154,16 @@ function summary(
   };
 }
 
-let fetchUsage: jest.Mock<
-  (range: TelemetryUsageRange) => Promise<TelemetryUsageSummary>
->;
+// How the overview reads a range of usage (its fetchUsage).
+type FetchUsage = (
+  range: TelemetryUsageRange,
+) => Promise<TelemetryUsageSummary>;
+
+let fetchUsage: Mock<FetchUsage>;
 
 beforeEach(() => {
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
-  fetchUsage = jest.fn(async (): Promise<TelemetryUsageSummary> => {
+  fetchUsage = jest.fn<FetchUsage>(async (): Promise<TelemetryUsageSummary> => {
     return summary();
   });
 });

@@ -251,9 +251,11 @@ describe("the detector", () => {
 
 describe("every public-facing read of public notes asks for published notes only", () => {
   test.each(
-    PUBLIC_FACING_READERS.map((reader: { file: string; reads: number }) => {
-      return [reader.file, reader.reads];
-    }),
+    PUBLIC_FACING_READERS.map(
+      (reader: { file: string; reads: number }): [string, number] => {
+        return [reader.file, reader.reads];
+      },
+    ),
   )("%s", (file: string, expectedReads: number) => {
     const source: string = fs.readFileSync(path.join(PACKAGES, file), "utf8");
     const reads: Array<NoteRead> = findNoteReads(source);

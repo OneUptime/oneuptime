@@ -140,7 +140,7 @@ const PROJECT_PROVIDER_STRINGS: Array<string> = [
   "OAuth",
   "How OneUptime sends this project's email.",
   "Send through SendGrid's API with an API key.",
-  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.",
 ];
 
 const DASHBOARD_STRINGS: Array<string> = [
