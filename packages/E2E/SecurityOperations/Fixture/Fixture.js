@@ -181,6 +181,10 @@ import {
 } from "./CaseSetupFixture";
 import { createWatchlistsFixture } from "./WatchlistsFixture";
 import { HUNT_SCENARIOS, createHuntsFixture } from "./HuntsFixture";
+import {
+  ingestionBudgetStatus,
+  isIngestionBudgetRead,
+} from "./IngestionBudgetFixture";
 import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
 import SecurityHuntsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Hunts";
 import SecurityHuntViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntView";
@@ -4579,6 +4583,10 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/ai-chat/providers")) {
     return new HTTPResponse(200, AI_PROVIDERS, {});
+  }
+  // The layout's ingestion budget banner: the project sets no budget.
+  if (isIngestionBudgetRead(method, path)) {
+    return new HTTPResponse(200, ingestionBudgetStatus(NOW), {});
   }
   const usage = path.match(
     /\/(security-case-priority|security-case-status)\/([^/]+)\/usage$/,

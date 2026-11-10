@@ -764,9 +764,11 @@ test.describe("the overview", () => {
         return new URL(request.url).pathname.replace(/^.*\/api/, "");
       },
     );
+    // ...and the layout reads today's ingestion budgets, for its banner.
     expect(routes.sort()).toEqual([
       "/security-case/overview",
       "/security-case/setup/status",
+      "/telemetry-ingestion-budget/project",
     ]);
     expect(
       state.listRequests.filter((request: { modelName: string }): boolean => {
