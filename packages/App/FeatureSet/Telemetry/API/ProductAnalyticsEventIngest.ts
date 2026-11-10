@@ -136,8 +136,12 @@ function readBodyJson(body: Buffer): unknown {
   }
 }
 
+/*
+ * The path is written out (it is PRODUCT_ANALYTICS_EVENTS_ROUTE) so the
+ * ingest surface wiring suite can pair it with its surface.
+ */
 router.post(
-  PRODUCT_ANALYTICS_EVENTS_ROUTE,
+  "/session-replay/v1/events",
   TelemetryIngestionDisabled.middleware,
   TelemetryIngest.forSurface(TelemetryIngestSurface.SessionReplay),
   SessionReplayRequestMiddleware.parseBody,

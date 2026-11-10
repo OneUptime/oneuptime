@@ -141,6 +141,108 @@ export function describeProductAnalyticsCountry(
   }
 }
 
+/*
+ * The device type a reader typed, as the recorders report it ("desktop"),
+ * whether typed as that or as its name in the reader's language or in
+ * English; null for anything else.
+ */
+export function findProductAnalyticsDeviceType(
+  text: string,
+  translator: Translator,
+): string | null {
+  const typed: string = text.trim().toLocaleLowerCase();
+
+  for (const [code, label] of Object.entries(DEVICE_LABELS)) {
+    const names: Array<string> = [
+      code,
+      label,
+      translator.translateText(label) || label,
+    ];
+
+    if (
+      names.some((name: string): boolean => {
+        return name.toLocaleLowerCase() === typed;
+      })
+    ) {
+      return code;
+    }
+  }
+
+  return null;
+}
+
+/*
+ * The country a reader typed, as the sessions carry it ("DE"), whether
+ * typed as its code or by its name in the reader's language or in English;
+ * null for anything else.
+ */
+export function findProductAnalyticsCountryCode(
+  text: string,
+  language: string,
+): string | null {
+  const typed: string = text.trim();
+
+  if (typed.length === 2 && COUNTRY_CODE.test(typed.toUpperCase())) {
+    /* A code that was replaced reads as the one that replaced it: "UK" is "GB". */
+    return canonicalProductAnalyticsRegion(typed.toUpperCase()) || null;
+  }
+
+  const wanted: string = typed.toLocaleLowerCase();
+
+  if (!wanted) {
+    return null;
+  }
+
+  for (const locales of [[language, "en"], ["en"]]) {
+    let names: Intl.DisplayNames;
+
+    try {
+      names = new Intl.DisplayNames(locales, { type: "region" });
+    } catch {
+      continue;
+    }
+
+    for (let first: number = 65; first <= 90; first++) {
+      for (let second: number = 65; second <= 90; second++) {
+        const code: string = String.fromCharCode(first, second);
+        let name: string | undefined;
+
+        try {
+          name = names.of(code);
+        } catch {
+          name = undefined;
+        }
+
+        if (
+          name &&
+          name !== code &&
+          name.toLocaleLowerCase() === wanted &&
+          /* "DD" is named "Germany" too: only the code in use now. */
+          canonicalProductAnalyticsRegion(code) === code
+        ) {
+          return code;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/* A region code as it is written now ("UK" is "GB"), or null for one that is not a region. */
+function canonicalProductAnalyticsRegion(code: string): string | null {
+  try {
+    const locale: string | undefined = Intl.getCanonicalLocales(
+      `und-${code}`,
+    )[0];
+    const region: string | undefined = locale?.split("-")[1];
+
+    return region && COUNTRY_CODE.test(region) ? region : null;
+  } catch {
+    return null;
+  }
+}
+
 /* ---- Numbers. ---- */
 
 export function formatProductAnalyticsCount(
@@ -377,6 +479,18 @@ function readZoneDay(instant: number, timeZone: string): string {
     .slice(0, 10);
 }
 
+/* The day ("2026-03-01") an instant falls on in a zone; in UTC for a zone the runtime does not know. */
+export function getProductAnalyticsZoneDay(
+  instant: number,
+  timeZone: string,
+): string {
+  try {
+    return readZoneDay(instant, timeZone);
+  } catch {
+    return new Date(instant).toISOString().slice(0, 10);
+  }
+}
+
 // A day as the trend reads it: "2026-03-01".
 const DAY: RegExp = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -434,19 +548,28 @@ export function getProductAnalyticsDayStart(
   }
 }
 
-export interface ProductAnalyticsSeriesSpec {
+/* A day of a trend: part one's users and sessions, or part two's events. */
+export interface ProductAnalyticsDay {
+  day: string;
+}
+
+export interface ProductAnalyticsSeriesSpec<
+  TDay extends ProductAnalyticsDay = ProductAnalyticsTrendDayDto,
+> {
   // The line's name, as English the chart translates.
   seriesName: string;
-  read: (day: ProductAnalyticsTrendDayDto) => number;
+  read: (day: TDay) => number;
 }
 
 /* The trend's days as chart lines, one point a day at the day's start in the zone. */
-export function toProductAnalyticsSeries(data: {
-  days: Array<ProductAnalyticsTrendDayDto>;
+export function toProductAnalyticsSeries<
+  TDay extends ProductAnalyticsDay = ProductAnalyticsTrendDayDto,
+>(data: {
+  days: Array<TDay>;
   timeZone: string;
-  series: Array<ProductAnalyticsSeriesSpec>;
+  series: Array<ProductAnalyticsSeriesSpec<TDay>>;
 }): Array<SeriesPoint> {
-  return data.series.map((spec: ProductAnalyticsSeriesSpec): SeriesPoint => {
+  return data.series.map((spec: ProductAnalyticsSeriesSpec<TDay>): SeriesPoint => {
     const points: SeriesPoint["data"] = [];
 
     for (const day of data.days) {
@@ -469,11 +592,13 @@ export function toProductAnalyticsSeries(data: {
  * day before the first session kept was never counted: drawn as zero, it
  * would read as a day nobody came.
  */
-export function getProductAnalyticsCountedDays(data: {
-  days: Array<ProductAnalyticsTrendDayDto>;
+export function getProductAnalyticsCountedDays<
+  TDay extends ProductAnalyticsDay = ProductAnalyticsTrendDayDto,
+>(data: {
+  days: Array<TDay>;
   dataStartedAt: number | null;
   timeZone: string;
-}): Array<ProductAnalyticsTrendDayDto> {
+}): Array<TDay> {
   if (data.dataStartedAt === null) {
     return data.days;
   }
@@ -486,18 +611,20 @@ export function getProductAnalyticsCountedDays(data: {
     return data.days;
   }
 
-  return data.days.filter((day: ProductAnalyticsTrendDayDto): boolean => {
+  return data.days.filter((day: TDay): boolean => {
     return day.day >= firstDay;
   });
 }
 
 /* The chart's window: from the first day's start to the last day's. */
-export function getProductAnalyticsTrendWindow(data: {
-  days: Array<ProductAnalyticsTrendDayDto>;
+export function getProductAnalyticsTrendWindow<
+  TDay extends ProductAnalyticsDay = ProductAnalyticsTrendDayDto,
+>(data: {
+  days: Array<TDay>;
   timeZone: string;
 }): { start: Date; end: Date } | null {
-  const first: ProductAnalyticsTrendDayDto | undefined = data.days[0];
-  const last: ProductAnalyticsTrendDayDto | undefined =
+  const first: TDay | undefined = data.days[0];
+  const last: TDay | undefined =
     data.days[data.days.length - 1];
 
   if (!first || !last) {

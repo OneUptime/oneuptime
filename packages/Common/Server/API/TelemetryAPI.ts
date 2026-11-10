@@ -298,17 +298,11 @@ import {
 } from "../../Types/Rum/ProductAnalyticsEvents";
 import {
   DEFAULT_PRODUCT_ANALYTICS_FUNNEL_WINDOW_MS,
-  PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE,
-  PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE,
-  PRODUCT_ANALYTICS_EVENT_PROPERTIES_ROUTE,
-  PRODUCT_ANALYTICS_EVENT_TREND_ROUTE,
   PRODUCT_ANALYTICS_FUNNEL_MAX_STEPS,
   PRODUCT_ANALYTICS_FUNNEL_MIN_STEPS,
-  PRODUCT_ANALYTICS_FUNNEL_ROUTE,
   PRODUCT_ANALYTICS_FUNNEL_WINDOWS_MS,
   PRODUCT_ANALYTICS_MAX_SEGMENT_FILTERS,
   PRODUCT_ANALYTICS_RETENTION_PERIODS,
-  PRODUCT_ANALYTICS_RETENTION_ROUTE,
   ProductAnalyticsEventBreakdownDto,
   ProductAnalyticsEventNamesDto,
   ProductAnalyticsEventPropertiesDto,
@@ -7953,7 +7947,7 @@ const readTimeZoneFromBody: ReadTimeZoneFromBodyFunction = (
 
 /* The events the application sent in the range, the most frequent first. */
 router.post(
-  PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE,
+  "/telemetry/rum/product-analytics/event-names",
   ...requireSessionReplayListAccess,
   async (
     req: ExpressRequest,
@@ -8006,7 +8000,7 @@ router.post(
 
 /* One event day by day in the reader's zone, in a segment. */
 router.post(
-  PRODUCT_ANALYTICS_EVENT_TREND_ROUTE,
+  "/telemetry/rum/product-analytics/event-trend",
   ...requireSessionReplayListAccess,
   async (
     req: ExpressRequest,
@@ -8051,7 +8045,7 @@ router.post(
 
 /* One event by a field: device, browser, system, country, version, page or a property. */
 router.post(
-  PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE,
+  "/telemetry/rum/product-analytics/event-breakdown",
   ...requireSessionReplayListAccess,
   async (
     req: ExpressRequest,
@@ -8110,7 +8104,7 @@ router.post(
 
 /* The property and user property keys one event carried: what to break it down by. */
 router.post(
-  PRODUCT_ANALYTICS_EVENT_PROPERTIES_ROUTE,
+  "/telemetry/rum/product-analytics/event-properties",
   ...requireSessionReplayListAccess,
   async (
     req: ExpressRequest,
@@ -8150,7 +8144,7 @@ router.post(
 
 /* A funnel of two to six steps, in a window the page offers, in a segment. */
 router.post(
-  PRODUCT_ANALYTICS_FUNNEL_ROUTE,
+  "/telemetry/rum/product-analytics/funnel",
   ...requireSessionReplayListAccess,
   async (
     req: ExpressRequest,
@@ -8233,7 +8227,7 @@ router.post(
 
 /* Retention: cohorts by the first start event, returning on the return event. */
 router.post(
-  PRODUCT_ANALYTICS_RETENTION_ROUTE,
+  "/telemetry/rum/product-analytics/retention",
   ...requireSessionReplayListAccess,
   async (
     req: ExpressRequest,

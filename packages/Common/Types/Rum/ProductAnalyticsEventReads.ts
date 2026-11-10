@@ -254,11 +254,15 @@ export const PRODUCT_ANALYTICS_RETENTION_PERIODS: ReadonlyArray<ProductAnalytics
     ProductAnalyticsRetentionPeriod.Month,
   ];
 
-/* The most cohorts (and so periods after them) one read covers, per period. */
+/*
+ * The most cohorts (and so periods after them) one read covers, per period.
+ * A month's range, from a time of day to the same time a month later, spans
+ * up to 32 days: "By day" covers it whatever the month.
+ */
 export const PRODUCT_ANALYTICS_RETENTION_MAX_COHORTS: Readonly<
   Record<ProductAnalyticsRetentionPeriod, number>
 > = {
-  [ProductAnalyticsRetentionPeriod.Day]: 31,
+  [ProductAnalyticsRetentionPeriod.Day]: 32,
   [ProductAnalyticsRetentionPeriod.Week]: 26,
   [ProductAnalyticsRetentionPeriod.Month]: 13,
 };

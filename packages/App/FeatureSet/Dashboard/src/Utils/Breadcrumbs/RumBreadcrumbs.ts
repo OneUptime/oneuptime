@@ -90,6 +90,22 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       ["Project", "Real User Monitoring", "View Application", "Sessions"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS,
+      ["Project", "Real User Monitoring", "View Application", "Events"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS,
+      ["Project", "Real User Monitoring", "View Application", "Funnels"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION,
+      ["Project", "Real User Monitoring", "View Application", "Retention"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS,
+      ["Project", "Real User Monitoring", "View Application", "Analytics Settings"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
       ["Project", "Real User Monitoring", "View Application", "Replay Health"],
     ),

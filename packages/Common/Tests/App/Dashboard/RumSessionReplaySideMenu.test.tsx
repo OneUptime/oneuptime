@@ -53,8 +53,10 @@ async function renderApplicationMenu(): Promise<void> {
 /*
  * Every page the Session Replay category holds. Named once so the length
  * assertions and the list above cannot disagree about what "every" means.
+ * User Flows moved to Product Analytics with its events pages (issue #6444,
+ * part two).
  */
-const REPLAY_PAGE_COUNT: number = 8;
+const REPLAY_PAGE_COUNT: number = 7;
 
 describe("RUM application Session Replay navigation", () => {
   beforeEach(() => {
@@ -81,7 +83,6 @@ describe("RUM application Session Replay navigation", () => {
     expect(isExpanded("Session Replay")).toBe(true);
     expect(linksIn("Session Replay")).toEqual([
       { title: "Session Replay", href: `${APPLICATION_PATH}/session-replay` },
-      { title: "User Flows", href: `${APPLICATION_PATH}/user-flows` },
       {
         title: "Replay Users",
         href: `${APPLICATION_PATH}/session-replay-users`,
@@ -141,7 +142,6 @@ describe("RUM application Session Replay navigation", () => {
 
   test.each([
     ["session-replay", "Session Replay"],
-    ["user-flows", "User Flows"],
     ["session-replay-users", "Replay Users"],
     ["session-replay-health", "Health"],
     ["session-replay-settings", "Replay Policy"],
@@ -170,8 +170,29 @@ describe("RUM application Session Replay navigation", () => {
 /*
  * Product analytics (issue #6444): who uses the application and how their
  * sessions go, a category of its own beside Observability, ahead of the
- * replay pages its numbers are counted from.
+ * replay pages its numbers are counted from - and, since part two, what
+ * they do: events, funnels, retention, the journeys between pages, and the
+ * switch that sends the events.
  */
+const PRODUCT_ANALYTICS_LINKS: Array<MenuLink> = [
+  { title: "Users", href: `${APPLICATION_PATH}/product-analytics-users` },
+  {
+    title: "Sessions",
+    href: `${APPLICATION_PATH}/product-analytics-sessions`,
+  },
+  { title: "Events", href: `${APPLICATION_PATH}/product-analytics-events` },
+  { title: "Funnels", href: `${APPLICATION_PATH}/product-analytics-funnels` },
+  {
+    title: "Retention",
+    href: `${APPLICATION_PATH}/product-analytics-retention`,
+  },
+  { title: "User Flows", href: `${APPLICATION_PATH}/user-flows` },
+  {
+    title: "Analytics Settings",
+    href: `${APPLICATION_PATH}/product-analytics-settings`,
+  },
+];
+
 describe("RUM application Product Analytics navigation", () => {
   beforeEach(() => {
     setViewportWidth(DESKTOP_WIDTH);
@@ -181,20 +202,37 @@ describe("RUM application Product Analytics navigation", () => {
     cleanup();
   });
 
-  test("holds Users and Sessions, each with its icon", async () => {
+  test("holds who, what and the journeys, then the settings, each with its icon", async () => {
     goTo(`${APPLICATION_PATH}/product-analytics-users`);
     await renderApplicationMenu();
 
     expect(isExpanded("Product Analytics")).toBe(true);
-    expect(linksIn("Product Analytics")).toEqual([
-      { title: "Users", href: `${APPLICATION_PATH}/product-analytics-users` },
-      {
-        title: "Sessions",
-        href: `${APPLICATION_PATH}/product-analytics-sessions`,
-      },
-    ]);
-    expect(iconCountIn("Product Analytics")).toBe(2);
+    expect(linksIn("Product Analytics")).toEqual(PRODUCT_ANALYTICS_LINKS);
+    expect(iconCountIn("Product Analytics")).toBe(
+      PRODUCT_ANALYTICS_LINKS.length,
+    );
     expect(activeLinkTitles()).toEqual(["Users"]);
+    /* Each page is linked once in the whole menu. */
+    for (const link of PRODUCT_ANALYTICS_LINKS) {
+      expect(
+        titlesInMenu().filter((title: string): boolean => {
+          return title === link.title;
+        }),
+      ).toHaveLength(1);
+    }
+  });
+
+  test.each([
+    ["product-analytics-events", "Events"],
+    ["product-analytics-funnels", "Funnels"],
+    ["product-analytics-retention", "Retention"],
+    ["user-flows", "User Flows"],
+    ["product-analytics-settings", "Analytics Settings"],
+  ])("%s lights %s only", async (path: string, label: string) => {
+    goTo(`${APPLICATION_PATH}/${path}`);
+    await renderApplicationMenu();
+
+    expect(activeLinkTitles()).toEqual([label]);
   });
 
   test("the Sessions page lights Sessions only", async () => {
@@ -224,6 +262,11 @@ describe("RUM application Product Analytics navigation", () => {
   test.each([
     ["product-analytics-users", "Users"],
     ["product-analytics-sessions", "Sessions"],
+    ["product-analytics-events", "Events"],
+    ["product-analytics-funnels", "Funnels"],
+    ["product-analytics-retention", "Retention"],
+    ["user-flows", "User Flows"],
+    ["product-analytics-settings", "Analytics Settings"],
   ])(
     "mobile navigation locates %s inside Product Analytics",
     async (path: string, label: string) => {
