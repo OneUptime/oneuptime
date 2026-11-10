@@ -83,11 +83,13 @@ In un gruppo a griglia, la finestra di dialogo chiede anche la riga e la colonna
 
 La selezione multipla ha una scheda **Etichette**: fate clic su un'etichetta e ogni monitor che la porta viene selezionato in una volta.
 
+I gruppi di monitor si aggiungono allo stesso modo. Con l'interruttore **Gruppi di monitor** attivo, **Altre azioni** ha anche **Aggiungi più gruppi di monitor**, che apre **Aggiungi più gruppi di monitor**: una selezione multipla **Gruppi di monitor**, poi gli stessi **Altri campi** chiusi. Ogni risorsa prende nome visualizzato e descrizione dal proprio gruppo di monitor, e **Aggiungi gruppi di monitor** li aggiunge tutti; un gruppo di monitor già sulla pagina resta com'è ed è elencato sotto **Già aggiunti**. Il link sotto la selezione multipla, **Aggiungi invece gruppi di monitor.** o **Aggiungi invece dei monitor.**, passa da una finestra all'altra e mantiene le opzioni di visualizzazione che avete impostato. In un gruppo vuoto, **Aggiungi più elementi** si apre sui gruppi di monitor quando **Aggiungi monitor** è stato passato a loro.
+
 ### Aggiungere due volte per etichetta è sicuro
 
 Una pagina di stato elenca un monitor una sola volta. L'aggiunta è idempotente, quindi scegliere di nuovo la stessa etichetta dopo aver etichettato qualche nuovo monitor aggiunge solo quelli nuovi: i monitor già sulla pagina restano esattamente come sono, con il nome visualizzato e le opzioni che avete dato loro.
 
-Il riepilogo alla fine dell'aggiunta multipla lo dice: i monitor aggiunti sono elencati sotto **Aggiunto**, e quelli che c'erano già sotto **Already Added**. Niente viene segnalato come errore, e niente viene scritto per loro.
+Il riepilogo alla fine dell'aggiunta multipla lo dice: i monitor aggiunti sono elencati sotto **Aggiunto**, e quelli che c'erano già sotto **Già aggiunti**. Niente viene segnalato come errore, e niente viene scritto per loro.
 
 La stessa regola vale ovunque venga creata una risorsa. Aggiungere un monitor che è già sulla pagina dal modulo di aggiunta singola, o far puntare una risorsa esistente verso di esso dal modulo di modifica, viene rifiutato con *«This monitor is already added to this status page»*, anche quando la risorsa esistente si trova in un altro gruppo, perché un visitatore vedrebbe comunque il monitor due volte. Per mostrare un monitor in un altro gruppo, eliminate la risorsa che ha già e aggiungetelo dove volete.
 

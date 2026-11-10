@@ -12,12 +12,18 @@ export interface ComponentProps {
    * says Show rather than Add.
    */
   isEditForm: boolean;
+  /*
+   * Add Multiple Monitors (and Monitor Groups): the link swaps a picker of
+   * several, so it names several.
+   */
+  isBulkAdd?: boolean | undefined;
   onSwitch: () => void;
 }
 
 /*
  * The link under the resource form's picker, on projects with monitor
- * groups: it swaps the monitor picker for the monitor group one, and back.
+ * groups: it swaps the monitor picker for the monitor group one, and back -
+ * and under the bulk add's, its monitors for monitor groups (issue #6544).
  * The Add form's choice belongs to the page (Status Page > Resources), so
  * the next Add opens on it. An Edit form's belongs to that form alone and
  * starts on what the resource shows (getStatusPageResourceTargetType):
@@ -38,6 +44,10 @@ const StatusPageResourceTargetSwitch: FunctionComponent<ComponentProps> = (
     text = isMonitorGroupPicker
       ? translator.translateText("Show a Monitor instead.")
       : translator.translateText("Show a Monitor Group instead.");
+  } else if (props.isBulkAdd) {
+    text = isMonitorGroupPicker
+      ? translator.translateText("Add Monitors instead.")
+      : translator.translateText("Add Monitor Groups instead.");
   } else {
     text = isMonitorGroupPicker
       ? translator.translateText("Add a Monitor instead.")
