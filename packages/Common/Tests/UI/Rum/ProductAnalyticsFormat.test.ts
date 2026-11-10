@@ -284,6 +284,24 @@ describe("numbers", () => {
     expect(formatProductAnalyticsAverage(3, "en")).toBe("3");
     expect(formatProductAnalyticsAverage(0, "en")).toBe("0");
   });
+
+  test.each(["ar", "ar-EG"])(
+    "%s writes a share and an average in Latin digits, as OneUptime writes Arabic",
+    (language: string) => {
+      /*
+       * A bare "ar-EG" asks Intl for Arabic-Indic digits; getNumberLocale's
+       * locale asks for Latin ones, as every other number in the product.
+       */
+      expect(
+        formatProductAnalyticsShare({
+          part: 1,
+          whole: 4,
+          language: language,
+        }).replace(/[^\d%]/g, ""),
+      ).toBe("25%");
+      expect(formatProductAnalyticsAverage(2.5, language)).toBe("2.5");
+    },
+  );
 });
 
 describe("how a number moved since the range before", () => {

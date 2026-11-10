@@ -23,6 +23,7 @@ import {
   ProductAnalyticsPersonSessionDto,
   fromProductAnalyticsPersonSegment,
 } from "Common/Types/Rum/ProductAnalytics";
+import ProductAnalyticsPersonCard from "../../../Components/ProductAnalytics/ProductAnalyticsPersonCard";
 import React, {
   Fragment,
   FunctionComponent,
@@ -36,10 +37,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import AppLink from "../../../Components/AppLink/AppLink";
 import { fetchProductAnalyticsPerson } from "../../../Components/ProductAnalytics/ProductAnalyticsApi";
 import {
-  ProductAnalyticsPersonWords,
   describeProductAnalyticsCountry,
   describeProductAnalyticsDevice,
-  describeProductAnalyticsPerson,
   formatProductAnalyticsCount,
   formatProductAnalyticsDuration,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsFormat";
@@ -260,7 +259,7 @@ function getSessionColumns(translator: Translator): Columns<SessionRow> {
             className="text-sm font-medium text-indigo-700 hover:underline"
             dataTestId="product-analytics-person-watch"
           >
-            {translator.translateText("Watch")}
+            <span>{translator.translateText("Watch")}</span>
           </AppLink>
         ) : (
           <span className="text-xs text-gray-500">
@@ -271,69 +270,6 @@ function getSessionColumns(translator: Translator): Columns<SessionRow> {
     },
   ];
 }
-
-export const ProductAnalyticsPersonFacts: FunctionComponent<{
-  person: ProductAnalyticsPersonDto;
-}> = (props: { person: ProductAnalyticsPersonDto }): ReactElement => {
-  const translator: Translator = useTranslator();
-  const facts: Array<{ label: string; value: string }> = [
-    {
-      label: "First seen",
-      value: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        new Date(props.person.firstSeenAt),
-      ),
-    },
-    {
-      label: "Last seen",
-      value: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        new Date(props.person.lastSeenAt),
-      ),
-    },
-    {
-      label: "All sessions",
-      value: formatProductAnalyticsCount(
-        props.person.totalSessions,
-        translator,
-      ),
-    },
-    {
-      label: "Device",
-      value: describeProductAnalyticsDevice(
-        props.person.deviceType,
-        translator,
-      ),
-    },
-    {
-      label: "Country",
-      value: props.person.countryCode
-        ? describeProductAnalyticsCountry(
-            props.person.countryCode,
-            translator.language,
-          )
-        : "-",
-    },
-  ];
-
-  return (
-    <dl
-      className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5"
-      data-testid="product-analytics-person-facts"
-    >
-      {facts.map((fact: { label: string; value: string }): ReactElement => {
-        return (
-          <div key={fact.label} className="min-w-0">
-            <dt className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              {translator.translateText(fact.label)}
-            </dt>
-            <dd className="mt-1 break-words text-sm text-gray-900">
-              {fact.value}
-            </dd>
-          </div>
-        );
-      })}
-    </dl>
-  );
-};
 
 const RumApplicationProductAnalyticsPerson: FunctionComponent<
   PageComponentProps
@@ -401,7 +337,7 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
       className="text-sm font-medium text-indigo-700 hover:underline"
       dataTestId="product-analytics-person-back"
     >
-      {translator.translateText("Back to users")}
+      <span>{translator.translateText("Back to users")}</span>
     </AppLink>
   );
 
@@ -455,38 +391,13 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
     );
   }
 
-  const words: ProductAnalyticsPersonWords = describeProductAnalyticsPerson(
-    person,
-    translator,
-  );
-
   return (
     <Fragment>
-      <Card
-        title={
-          <span dir={words.isLabel ? "auto" : undefined}>{words.primary}</span>
-        }
-        description={
-          <span className="font-mono text-xs">{words.secondary}</span>
-        }
-        buttons={[<Fragment key="back">{backLink}</Fragment>]}
-      >
-        <div className="space-y-3">
-          <ProductAnalyticsPersonFacts person={person} />
-          {person.kind === "identified" && !detail.data.includesLabels ? (
-            <p
-              className="text-xs text-gray-500"
-              data-testid="product-analytics-person-hidden-name"
-            >
-              {translator.translateText(
-                "Your role cannot see who signed-in users are, so this person is shown without a name.",
-              )}
-            </p>
-          ) : (
-            <></>
-          )}
-        </div>
-      </Card>
+      <ProductAnalyticsPersonCard
+        person={person}
+        includesLabels={detail.data.includesLabels}
+        backLink={backLink}
+      />
       <div className="mt-5">
         <Card
           title="Sessions"

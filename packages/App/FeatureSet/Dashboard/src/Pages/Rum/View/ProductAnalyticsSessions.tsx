@@ -7,6 +7,7 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -460,7 +461,7 @@ const RumApplicationProductAnalyticsSessions: FunctionComponent<
         {body}
       </Card>
       {hasData && summary.data ? (
-        <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <CardGrid columns={2} dataTestId="product-analytics-sessions-cards">
           <Card
             title="Session length"
             description="Finished sessions by how long they lasted."
@@ -566,7 +567,7 @@ const RumApplicationProductAnalyticsSessions: FunctionComponent<
               )}
             </div>
           </Card>
-        </div>
+        </CardGrid>
       ) : (
         <></>
       )}

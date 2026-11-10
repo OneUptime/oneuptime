@@ -207,7 +207,7 @@ describe("parseProductAnalyticsPersonPath", () => {
       "jane",
       `u-${USER_KEY.slice(2)}`,
       `x-${USER_KEY}`,
-      `u:${USER_KEY}`.replace(":", "%3A").toUpperCase(),
+      encodeURIComponent(`u:${USER_KEY}`).toUpperCase(),
       "%E0%A4%A",
       `v-${VISITOR_ID}-`,
     ]) {

@@ -375,6 +375,26 @@ describe("ProductAnalyticsSessions session length", () => {
       { key: "10m-30m", text: "10 to 30 minutes 390 10%" },
       { key: "30m-plus", text: "30 minutes or more 390 10%" },
     ]);
+
+    /*
+     * Session length and Breakdown share a row as a CardGrid: each card
+     * fills its cell, so the shorter one never leaves bare page under it.
+     */
+    const cards: HTMLElement = screen.getByTestId(
+      "product-analytics-sessions-cards",
+    );
+    expect(cards).toHaveAttribute("data-columns", "2");
+    expect(
+      within(cards)
+        .getAllByTestId("card-grid-cell")
+        .map((cell: HTMLElement): boolean => {
+          return (
+            within(cell).queryByTestId("product-analytics-session-lengths") !==
+              null ||
+            within(cell).queryByTestId("product-analytics-breakdown") !== null
+          );
+        }),
+    ).toEqual([true, true]);
   });
 
   it("the rows a page builds: nothing finished is 0% everywhere, never NaN", () => {

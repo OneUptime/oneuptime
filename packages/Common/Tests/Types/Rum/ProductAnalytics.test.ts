@@ -29,6 +29,7 @@ import {
   toProductAnalyticsPersonSegment,
   toProductAnalyticsTimeZone,
 } from "../../../Types/Rum/ProductAnalytics";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -128,7 +129,20 @@ describe("time zones", () => {
   });
 
   test("every zone the runtime knows is accepted", () => {
-    for (const timeZone of Intl.supportedValuesOf("timeZone")) {
+    /*
+     * ES2022's Intl.supportedValuesOf: every Node the tests run on has it,
+     * but the lib the tests compile against does not name it.
+     */
+    const intl: { supportedValuesOf: (key: "timeZone") => Array<string> } =
+      Intl as unknown as {
+        supportedValuesOf: (key: "timeZone") => Array<string>;
+      };
+    const timeZones: Array<string> = intl.supportedValuesOf("timeZone");
+
+    // Hundreds of zones, so the loop below cannot pass by checking none.
+    expect(timeZones.length).toBeGreaterThan(300);
+
+    for (const timeZone of timeZones) {
       expect(toProductAnalyticsTimeZone(timeZone)).not.toBeNull();
     }
   });
@@ -157,11 +171,16 @@ describe("time zones", () => {
   });
 
   test("the shape check is linear on a long hostile input", () => {
-    const hostile: string = `${"a/".repeat(5000)}!`;
-    const started: number = Date.now();
+    // 400,000 characters of slashes the shape almost takes, then one it never does.
+    const run: FastestRun<string | null> = fastestRun({
+      run: (): string | null => {
+        return toProductAnalyticsTimeZone(`${"a/".repeat(200000)}!`);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(toProductAnalyticsTimeZone(hostile)).toBeNull();
-    expect(Date.now() - started).toBeLessThan(200);
+    expect(run.result).toBeNull();
+    expect(run.inMs).toBeLessThan(2000);
   });
 });
 

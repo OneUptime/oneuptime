@@ -686,9 +686,11 @@ describe("listPeople", () => {
 
     expect(people.includesLabels).toBe(true);
     expect(
-      people.people.map((person: { identifiedUserLabel?: string }) => {
-        return person.identifiedUserLabel;
-      }),
+      people.people.map(
+        (person: { identifiedUserLabel?: string | undefined }) => {
+          return person.identifiedUserLabel;
+        },
+      ),
     ).toEqual(["Alice", "", undefined]);
   });
 

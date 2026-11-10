@@ -155,7 +155,9 @@ export const ProductAnalyticsNothingYet: FunctionComponent<{
           to={docsRoute}
           className="text-sm font-medium text-indigo-700 hover:underline"
         >
-          {translator.translateText("How to install Session Replay")}
+          <span>
+            {translator.translateText("How to install Session Replay")}
+          </span>
         </AppLink>
       }
     />

@@ -977,9 +977,17 @@ integration("Product analytics against ClickHouse", () => {
    * checked against this server's own list.
    */
   test("ClickHouse knows every time zone the trend route can hand it", async () => {
+    /*
+     * ES2022's Intl.supportedValuesOf: every Node the tests run on has it,
+     * but the lib the tests compile against does not name it.
+     */
+    const intl: { supportedValuesOf: (key: "timeZone") => Array<string> } =
+      Intl as unknown as {
+        supportedValuesOf: (key: "timeZone") => Array<string>;
+      };
     const names: Array<string> = Array.from(
       new Set<string>(
-        [...Intl.supportedValuesOf("timeZone"), "UTC", "Etc/GMT+5"].map(
+        [...intl.supportedValuesOf("timeZone"), "UTC", "Etc/GMT+5"].map(
           (timeZone: string): string => {
             return (
               toProductAnalyticsTimeZone(timeZone) || `refused ${timeZone}`

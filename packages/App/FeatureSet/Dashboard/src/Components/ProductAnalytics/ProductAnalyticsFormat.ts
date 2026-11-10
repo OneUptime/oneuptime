@@ -1,4 +1,5 @@
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import {
@@ -149,7 +150,11 @@ export function formatProductAnalyticsCount(
   return translator.formatNumber(Math.round(value));
 }
 
-/* A share of a whole as a whole percent ("42%"), "0%" of nothing. */
+/*
+ * A share of a whole as a whole percent ("42%"), "0%" of nothing. Numbers
+ * take getNumberLocale's locale, never the bare language: Arabic writes
+ * Latin digits in OneUptime, which a bare "ar" does not ask for.
+ */
 export function formatProductAnalyticsShare(data: {
   part: number;
   whole: number;
@@ -158,7 +163,7 @@ export function formatProductAnalyticsShare(data: {
   const share: number = data.whole > 0 ? data.part / data.whole : 0;
 
   try {
-    return new Intl.NumberFormat(data.language, {
+    return new Intl.NumberFormat(getNumberLocale(data.language), {
       style: "percent",
       maximumFractionDigits: share > 0 && share < 0.01 ? 1 : 0,
     }).format(share);
@@ -183,7 +188,7 @@ export function formatProductAnalyticsAverage(
   language: string,
 ): string {
   try {
-    return new Intl.NumberFormat(language, {
+    return new Intl.NumberFormat(getNumberLocale(language), {
       maximumFractionDigits: 1,
     }).format(value);
   } catch {

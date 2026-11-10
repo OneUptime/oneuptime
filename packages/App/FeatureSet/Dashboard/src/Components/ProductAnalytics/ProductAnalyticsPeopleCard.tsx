@@ -331,6 +331,7 @@ const ProductAnalyticsPeopleCard: FunctionComponent<
                 ariaLabel="Search signed-in users by name"
                 maxLength={PRODUCT_ANALYTICS_SEARCH_MAX_LENGTH}
                 dataTestId="product-analytics-people-search"
+                isSearchOrFilter={true}
               />
             </div>
           ) : (

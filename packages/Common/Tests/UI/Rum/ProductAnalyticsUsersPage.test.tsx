@@ -760,6 +760,8 @@ describe("ProductAnalyticsUsers people", () => {
       "Search signed-in users by name",
     );
     expect(search).toHaveAttribute("maxLength", "200");
+    /* A query, never work to keep: a new version does not wait for it. */
+    expect(search).toHaveAttribute("data-unsaved-changes-ignore", "true");
 
     fireEvent.change(search, { target: { value: "  zed " } });
 
