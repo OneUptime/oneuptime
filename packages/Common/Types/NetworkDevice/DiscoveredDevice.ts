@@ -1,5 +1,6 @@
 import BadDataException from "../Exception/BadDataException";
 import ObjectID from "../ObjectID";
+import { readDiscoveredDeviceRetentionInDays } from "./DiscoveredDeviceRetention";
 import { MAX_HOSTS_PER_DISCOVERY_IMPORT } from "./DiscoveryImport";
 
 /*
@@ -144,6 +145,13 @@ export interface DiscoveredDeviceListResponse {
   // Rows matching the request's search and `show`, across every page.
   count: number;
   counts: DiscoveredDeviceCounts;
+  /*
+   * How many days a device stays on the list once nothing sees it - the
+   * project's Discovered Device Retention (Types/NetworkDevice/
+   * DiscoveredDeviceRetention), 0 for never - so the list can say so. Left
+   * out when it is not known.
+   */
+  retentionInDays?: number | undefined;
 }
 
 /*
@@ -486,11 +494,20 @@ export function readDiscoveredDeviceListResponse(
     }
   }
 
-  return {
+  const response: DiscoveredDeviceListResponse = {
     rows: rows,
     count: count(body["count"]),
     counts: readDiscoveredDeviceCounts(body["counts"]),
   };
+
+  const retentionInDays: number | undefined =
+    readDiscoveredDeviceRetentionInDays(body["retentionInDays"]);
+
+  if (retentionInDays !== undefined) {
+    response.retentionInDays = retentionInDays;
+  }
+
+  return response;
 }
 
 function idList(value: unknown): Array<string> {

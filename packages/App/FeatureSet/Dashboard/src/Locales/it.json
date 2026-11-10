@@ -47501,6 +47501,7 @@
   "The connection to the AI model provider dropped.": "La connessione al fornitore del modello di IA si è interrotta.",
   "Tokens per AI Run": "Tokens per AI Run",
   "Tool Calls per AI Run": "Tool Calls per AI Run",
+  "Never removed": "Mai rimossi",
   "Trying again in {{duration}}": "Nuovo tentativo tra {{duration}}",
   "Trying again now…": "Nuovo tentativo a breve…",
   "Trying {{count}} tasks again.": "Nuovo tentativo per {{count}} attività.",
@@ -47646,5 +47647,19 @@
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "Non hai l'autorizzazione per modificare questo incidente, quindi non puoi chiedere a OneUptime AI di riprovare questa correzione.",
   "No fix ran, and nobody was asked to approve one.": "Nessuna correzione è stata eseguita e a nessuno è stato chiesto di approvarne una.",
   "Show full reasoning": "Mostra il ragionamento completo",
-  "Follow the steps below. The last one waits for the first data to arrive.": "Segui i passaggi qui sotto. L'ultimo attende l'arrivo dei primi dati."
+  "Checked every hour. Nothing is removed while the switch or controller that saw a device isn't reporting, and a device seen again comes back as new.": "Controllato ogni ora. Nulla viene rimosso finché lo switch o il controller che ha visto un dispositivo non segnala nulla, e un dispositivo visto di nuovo torna come nuovo.",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified.": "I dispositivi non visti da {{count}} giorni vengono rimossi, a meno che non siano monitorati o classificati.",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified._one": "I dispositivi non visti da {{count}} giorno vengono rimossi, a meno che non siano monitorati o classificati.",
+  "Devices stay on this list however long ago they were last seen.": "I dispositivi restano in questo elenco indipendentemente da quando sono stati visti l'ultima volta.",
+  "Discovered Device Retention (Days)": "Conservazione dei dispositivi rilevati (giorni)",
+  "Edited At": "Modificato il",
+  "Every device stays until someone deletes it, however long ago it was last seen.": "Ogni dispositivo resta finché qualcuno non lo elimina, indipendentemente da quando è stato visto l'ultima volta.",
+  "Every device this site's switches, routers and network controllers have seen, and when each was last there.": "Ogni dispositivo visto da switch, router e controller di rete di questa sede, e quando c'era ciascuno l'ultima volta.",
+  "Every device your switches, routers and network controllers have seen, and when each was last there.": "Ogni dispositivo visto dai tuoi switch, router e controller di rete, e quando c'era ciascuno l'ultima volta.",
+  "Follow the steps below. The last one waits for the first data to arrive.": "Segui i passaggi qui sotto. L'ultimo attende l'arrivo dei primi dati.",
+  "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host still on the Discovered Devices list is counted, including ones not seen recently.": "Host come PC, telefoni e stampanti trovati nelle tabelle degli indirizzi dei tuoi switch e router (tabelle ARP e di inoltro MAC) durante le scansioni SNMP. Viene contato ogni host ancora nell'elenco Dispositivi rilevati, compresi quelli non visti di recente.",
+  "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host still on the Discovered Devices list is counted, including ones not seen recently.": "Host come PC, telefoni e stampanti che i dispositivi assegnati a questa sede hanno trovato nelle loro tabelle degli indirizzi (tabelle ARP e di inoltro MAC). Viene contato ogni host ancora nell'elenco Dispositivi rilevati, compresi quelli non visti di recente.",
+  "Remove after": "Rimuovi dopo",
+  "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Rimuovi i dispositivi rilevati che non vengono visti da un po'. I dispositivi monitorati e classificati, e quelli aggiunti o modificati da qualcuno, restano sempre.",
+  "Unseen Devices": "Dispositivi non visti"
 }

@@ -67,8 +67,12 @@ const IMPORT_DIALOG: string = readCode(
 
 describe("the pages", () => {
   test("the network's page and a site's draw the one list, the site's scoped to it", () => {
+    /*
+     * The network's list has no site; it is told how long devices stay by
+     * the Unseen Devices card under it (issue #6389).
+     */
     expect(readCode("Pages", "NetworkDevice", "Endpoints.tsx")).toContain(
-      "<DiscoveredDevicesTable />",
+      "<DiscoveredDevicesTable retentionInDays={retentionInDays} />",
     );
 
     const sitePage: string = readCode(

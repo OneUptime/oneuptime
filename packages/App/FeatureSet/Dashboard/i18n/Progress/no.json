@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47383,
-    "untranslated": 11078
+    "keys": 47623,
+    "untranslated": 11083
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -96,7 +96,6 @@
     "HA: {{state}}",
     "HAProxy",
     "Hertz",
-    "Histogram",
     "Hunt",
     "Hunts",
     "Hypervisor",
@@ -179,7 +178,6 @@
     "Pools",
     "Port",
     "Portugal (+351)",
-    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Problem",

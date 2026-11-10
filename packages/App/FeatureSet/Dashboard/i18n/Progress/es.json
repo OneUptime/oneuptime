@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47383,
-    "untranslated": 2784
+    "keys": 47623,
+    "untranslated": 2790
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -333,7 +333,6 @@
     "Pools",
     "Portugal",
     "Portugal (+351)",
-    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Powered by OneUptime",

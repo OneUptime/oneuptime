@@ -14,6 +14,7 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { FIX_APPROVALS_CARD_KEY } from "../../FeatureSet/Dashboard/src/Components/AISettings/FixApprovalsCopy";
 import { RETENTION_BY_TELEMETRY_TYPE_PLACE } from "../../FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryRetentionFold";
+import { DISCOVERED_DEVICE_RETENTION_PLACE } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/DiscoveredDeviceRetentionCopy";
 import {
   getPageSearchAreas,
   PageSearchArea,
@@ -543,6 +544,12 @@ describe("a folded setting opens its fold at its card", () => {
       pageKey: PageMap.SETTINGS_AI_FEATURES,
       place: FIX_APPROVALS_CARD_KEY,
     },
+    // How long a device nothing sees stays, under Discovered Devices (#6389).
+    {
+      name: "Unseen Devices",
+      pageKey: PageMap.NETWORK_DEVICE_ENDPOINTS,
+      place: DISCOVERED_DEVICE_RETENTION_PLACE,
+    },
   ];
 
   test.each(FOLDED)(
@@ -583,11 +590,13 @@ describe("a folded setting opens its fold at its card", () => {
       RETENTION_BY_TELEMETRY_TYPE_PLACE,
       FIX_APPROVALS_CARD_KEY,
       PROJECT_AI_RUN_LIMITS_CARD_KEY,
+      DISCOVERED_DEVICE_RETENTION_PLACE,
     ]).toEqual([
       "DailyLimits",
       "retention-by-telemetry-type",
       "FixApprovals",
       "LimitsPerRun",
+      "unseen-devices",
     ]);
   });
 

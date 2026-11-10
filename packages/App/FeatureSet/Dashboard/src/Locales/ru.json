@@ -47501,6 +47501,7 @@
   "The connection to the AI model provider dropped.": "Соединение с поставщиком модели ИИ прервалось.",
   "Tokens per AI Run": "Tokens per AI Run",
   "Tool Calls per AI Run": "Tool Calls per AI Run",
+  "Never removed": "Никогда не удаляются",
   "Trying again in {{duration}}": "До повтора: {{duration}}",
   "Trying again now…": "Повтор начинается…",
   "Trying {{count}} tasks again.": "Задач на повтор: {{count}}.",
@@ -47646,5 +47647,19 @@
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "У вас нет прав на изменение этого инцидента, поэтому вы не можете попросить OneUptime AI повторить это исправление.",
   "No fix ran, and nobody was asked to approve one.": "Ни одно исправление не выполнялось, и никого не просили его утвердить.",
   "Show full reasoning": "Показать рассуждения полностью",
-  "Follow the steps below. The last one waits for the first data to arrive.": "Выполните шаги ниже. Последний ждёт, пока поступят первые данные."
+  "Checked every hour. Nothing is removed while the switch or controller that saw a device isn't reporting, and a device seen again comes back as new.": "Проверяется каждый час. Пока коммутатор или контроллер, который видел устройство, ничего не сообщает, ничего не удаляется, а снова замеченное устройство возвращается как новое.",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified.": "Устройства, которые не появлялись {{count}} дн., удаляются, если они не отслеживаются и не классифицированы.",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified._one": "Устройства, которые не появлялись {{count}} день, удаляются, если они не отслеживаются и не классифицированы.",
+  "Devices stay on this list however long ago they were last seen.": "Устройства остаются в этом списке, как бы давно их ни видели в последний раз.",
+  "Discovered Device Retention (Days)": "Хранение обнаруженных устройств (дни)",
+  "Edited At": "Изменено",
+  "Every device stays until someone deletes it, however long ago it was last seen.": "Каждое устройство остаётся, пока кто-нибудь его не удалит, как бы давно его ни видели в последний раз.",
+  "Every device this site's switches, routers and network controllers have seen, and when each was last there.": "Все устройства, которые видели коммутаторы, маршрутизаторы и сетевые контроллеры этой площадки, и когда каждое было там в последний раз.",
+  "Every device your switches, routers and network controllers have seen, and when each was last there.": "Все устройства, которые видели ваши коммутаторы, маршрутизаторы и сетевые контроллеры, и когда каждое было там в последний раз.",
+  "Follow the steps below. The last one waits for the first data to arrive.": "Выполните шаги ниже. Последний ждёт, пока поступят первые данные.",
+  "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host still on the Discovered Devices list is counted, including ones not seen recently.": "Узлы, например ПК, телефоны и принтеры, найденные в адресных таблицах ваших коммутаторов и маршрутизаторов (таблицы ARP и пересылки MAC) при обходах SNMP. Учитывается каждый узел, который ещё есть в списке «Обнаруженные устройства», включая давно не появлявшиеся.",
+  "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host still on the Discovered Devices list is counted, including ones not seen recently.": "Узлы, например ПК, телефоны и принтеры, которые устройства этой площадки нашли в своих адресных таблицах (таблицы ARP и пересылки MAC). Учитывается каждый узел, который ещё есть в списке «Обнаруженные устройства», включая давно не появлявшиеся.",
+  "Remove after": "Удалять через",
+  "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Удалять обнаруженные устройства, которых давно не видели. Отслеживаемые и классифицированные устройства, а также добавленные или изменённые кем-то, остаются всегда.",
+  "Unseen Devices": "Устройства не на связи"
 }

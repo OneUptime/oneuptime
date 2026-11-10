@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47383,
-    "untranslated": 11060
+    "keys": 47623,
+    "untranslated": 11065
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -208,7 +208,6 @@
     "Pool {{name}}",
     "Pools",
     "Portugal (+351)",
-    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Profiler",
@@ -255,7 +254,6 @@
     "Stacks",
     "Status",
     "StatusPage",
-    "Switch",
     "TLS",
     "TTL",
     "TX",

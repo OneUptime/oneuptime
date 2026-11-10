@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47383,
-    "untranslated": 11098
+    "keys": 47623,
+    "untranslated": 11105
   },
   "sameAsEnglish": [
     " is",
@@ -46,7 +46,6 @@
     "Appliance {{appliance}}",
     "Apps",
     "Array",
-    "Assets",
     "Atmosphere",
     "Audit",
     "Backend",
@@ -170,7 +169,6 @@
     "Hardware",
     "Headers (JSON)",
     "Hertz",
-    "Histogram",
     "Host",
     "Hosts",
     "Hunt",
@@ -323,7 +321,6 @@
     "Pool {{name}}",
     "Pools",
     "Portugal (+351)",
-    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
     "Powered by OneUptime",
@@ -411,7 +408,6 @@
     "Stream",
     "Subnet",
     "Subnets",
-    "Switch",
     "Switches",
     "TLS",
     "TTL",

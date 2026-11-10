@@ -47501,6 +47501,7 @@
   "The connection to the AI model provider dropped.": "与 AI 模型提供商的连接已断开。",
   "Tokens per AI Run": "Tokens per AI Run",
   "Tool Calls per AI Run": "Tool Calls per AI Run",
+  "Never removed": "永不删除",
   "Trying again in {{duration}}": "{{duration}}后重试",
   "Trying again now…": "即将重试…",
   "Trying {{count}} tasks again.": "正在重试 {{count}} 个任务。",
@@ -47646,5 +47647,19 @@
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "您没有更改此事件的权限，因此无法请 OneUptime AI 重试此修复。",
   "No fix ran, and nobody was asked to approve one.": "没有运行任何修复，也没有请任何人批准。",
   "Show full reasoning": "显示完整推理",
-  "Follow the steps below. The last one waits for the first data to arrive.": "按照下方步骤操作。最后一步会等待第一批数据到达。"
+  "Checked every hour. Nothing is removed while the switch or controller that saw a device isn't reporting, and a device seen again comes back as new.": "每小时检查一次。在看到设备的交换机或控制器没有任何上报期间，不会删除任何设备；再次出现的设备会作为新设备回来。",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified.": "{{count}} 天未出现的设备会被删除，已监控或已分类的设备除外。",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified._one": "{{count}} 天未出现的设备会被删除，已监控或已分类的设备除外。",
+  "Devices stay on this list however long ago they were last seen.": "无论设备上次出现是多久以前，它们都会留在此列表中。",
+  "Discovered Device Retention (Days)": "已发现设备的保留期（天）",
+  "Edited At": "编辑于",
+  "Every device stays until someone deletes it, however long ago it was last seen.": "无论上次出现是多久以前，每台设备都会保留，直到有人将其删除。",
+  "Every device this site's switches, routers and network controllers have seen, and when each was last there.": "此站点的交换机、路由器和网络控制器发现的每台设备，以及每台设备上次出现的时间。",
+  "Every device your switches, routers and network controllers have seen, and when each was last there.": "你的交换机、路由器和网络控制器发现的每台设备，以及每台设备上次出现的时间。",
+  "Follow the steps below. The last one waits for the first data to arrive.": "按照下方步骤操作。最后一步会等待第一批数据到达。",
+  "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host still on the Discovered Devices list is counted, including ones not seen recently.": "在 SNMP 遍历期间从交换机和路由器的地址表（ARP 表和 MAC 转发表）中发现的主机，例如 PC、电话和打印机。仍在已发现的设备列表中的每台主机都会计入，包括近期未出现的主机。",
+  "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host still on the Discovered Devices list is counted, including ones not seen recently.": "分配到此站点的设备在其地址表（ARP 表和 MAC 转发表）中发现的主机，例如 PC、电话和打印机。仍在已发现的设备列表中的每台主机都会计入，包括近期未出现的主机。",
+  "Remove after": "多久后删除",
+  "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "删除一段时间内未出现的已发现设备。已监控和已分类的设备，以及有人添加或更改过的设备，始终保留。",
+  "Unseen Devices": "未出现的设备"
 }
