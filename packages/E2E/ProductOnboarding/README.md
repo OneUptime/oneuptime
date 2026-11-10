@@ -13,6 +13,12 @@ Two lists stand for the two kinds of list:
 | Monitors     | `MONITORS` `/dashboard/:projectId/monitors`         | `Pages/Monitor/Layout` and `Pages/Monitor/Monitors`            | a page of its own (Create Monitor) |
 | Status Pages | `STATUS_PAGES` `/dashboard/:projectId/status-pages` | `Pages/StatusPages/Layout` and `Pages/StatusPages/StatusPages` | the table's own create form        |
 
+Every other product is drawn on one page of the fixture's own, `/dashboard/:projectId/product-explanations`:
+each entry of `Components/ProductOnboarding/ProductOnboardings`, in its order, as its About dialog draws it
+(the product's name over its showcase, in a box as wide as the dialog's body). The suite reads every product's
+name and pitch there, in English at 1280px and on a phone in German and in Persian dark, and fails on any box
+that runs outside its explanation or any words that run past their box.
+
 Run from `packages/E2E`:
 
 ```sh
@@ -45,4 +51,9 @@ fixture server.
 
 Pages the lists lead to (Create Monitor, a new status page) are stubs that show their path, so a
 test can check where a button leads. Screenshots are written to
-`output/playwright/product-onboarding-ui/`.
+`output/playwright/product-onboarding-ui/`. A screenshot of every product's explanation, at each of
+the three widths and languages, is taken only when asked, into its `explanations/` folder:
+
+```sh
+PRODUCT_ONBOARDING_EXPLANATION_SHOTS=1 CI=1 npm run test-product-onboarding-ui -- -g "every product"
+```

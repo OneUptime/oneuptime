@@ -73,6 +73,8 @@ export const RESOURCE_SHOWCASE_CHART_TEST_ID: string =
   "resource-showcase-chart";
 export const RESOURCE_SHOWCASE_STEPS_TEST_ID: string =
   "resource-showcase-steps";
+export const RESOURCE_SHOWCASE_HIGHLIGHTS_TEST_ID: string =
+  "resource-showcase-highlights";
 export const RESOURCE_SHOWCASE_DESCRIPTION_TEST_ID: string =
   "resource-showcase-description";
 export const RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID: string =
@@ -472,7 +474,10 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
             )}
 
             {showcase.highlights.length > 0 && (
-              <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+              <ul
+                className="mt-6 flex flex-wrap gap-x-6 gap-y-2"
+                data-testid={RESOURCE_SHOWCASE_HIGHLIGHTS_TEST_ID}
+              >
                 {showcase.highlights.map((highlight: string): ReactElement => {
                   return (
                     <li

@@ -28,6 +28,11 @@ import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
  * explanation in a dialog. On a laptop, beside the side menu at 1024 and
  * 768 pixels, on a phone, in German, and in Persian in the dark theme.
  *
+ * And every other product: the fixture's explanations page draws each
+ * product's explanation as its About dialog does, so one page shows every
+ * product's words, in English at a laptop's width and on a phone in German
+ * and in Persian dark, each held inside its box.
+ *
  * Every test puts up a network fence that aborts anything leaving the
  * fixture server, and fails on an uncaught page error, on a request the
  * fixture does not model and on any request the fence had to abort.
@@ -76,10 +81,19 @@ function locale(language: string): Record<string, string> {
 const GERMAN: Record<string, string> = locale("de");
 const PERSIAN: Record<string, string> = locale("fa");
 
+// A product the explanations page draws (Fixture.js, `products`).
+interface FixtureProduct {
+  product: string;
+  // English translation keys: the product's name and its showcase's title.
+  name: string;
+  title: string;
+}
+
 interface FixtureState {
   counts: Array<{ modelName: string; query: Record<string, unknown> }>;
   creates: Array<{ modelName: string; data: Record<string, unknown> }>;
   unhandled: Array<Record<string, unknown>>;
+  products: Array<FixtureProduct>;
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -593,3 +607,315 @@ test("in Persian, dark: right to left, About before the title's end, the explana
   await expectNoSidewaysScroll(page, { message: "Monitors in Persian" });
   await screenshot(page, "monitors-first-run-fa-dark");
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Every product, as About draws it
+ * ---------------------------------------------------------------------------
+ */
+
+const EXPLANATIONS: string = `/dashboard/${PROJECT_ID}/product-explanations`;
+
+/*
+ * A screenshot of each product's explanation, when asked:
+ * PRODUCT_ONBOARDING_EXPLANATION_SHOTS=1 CI=1 npm run
+ * test-product-onboarding-ui -- -g "every product". One a product in each
+ * of the three tests, so a run in CI leaves them out.
+ */
+const SHOOTS_EVERY_EXPLANATION: boolean =
+  process.env["PRODUCT_ONBOARDING_EXPLANATION_SHOTS"] === "1";
+
+// A few products the registry must hold, one of each kind of first page.
+const PRODUCTS_OF_EVERY_KIND: Array<string> = [
+  // A list whose first step is a page of its own.
+  "monitors",
+  // A list whose first step is its table's create form.
+  "status-pages",
+  // A telemetry explorer.
+  "logs",
+  // A page with get-started steps of its own.
+  "network",
+  // A resource, which keeps the showcase its empty list draws.
+  "kubernetes",
+  // The page the issue was raised on.
+  "data-observability",
+];
+
+// What the page draws of one product's explanation.
+interface DrawnExplanation {
+  product: string;
+  name: string;
+  title: string;
+  // The example's label, as a screen reader hears it.
+  example: string;
+  docsHref: string;
+  steps: number;
+  highlights: number;
+}
+
+async function openExplanations(
+  page: Page,
+  query: string = "",
+): Promise<Array<FixtureProduct>> {
+  await page.goto(`${EXPLANATIONS}${query ? `?${query}` : ""}`);
+  // The first load parses a large bundle.
+  await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+    timeout: 60000,
+  });
+  const products: Array<FixtureProduct> = (await fixture(page)).products;
+  await expect(page.getByTestId("product-explanation")).toHaveCount(
+    products.length,
+  );
+  // Every box is read in the font it is drawn in.
+  await page.evaluate(async (): Promise<void> => {
+    await document.fonts.ready;
+  });
+
+  return products;
+}
+
+async function drawnExplanations(page: Page): Promise<Array<DrawnExplanation>> {
+  return page.evaluate((): Array<DrawnExplanation> => {
+    return Array.from(
+      document.querySelectorAll('[data-testid="product-explanation"]'),
+    ).map((section: Element): DrawnExplanation => {
+      const text: (selector: string) => string = (selector: string): string => {
+        return (section.querySelector(selector)?.textContent || "").trim();
+      };
+
+      return {
+        product: section.getAttribute("data-product") || "",
+        name: text('[data-testid="product-explanation-name"]'),
+        title: text("h2"),
+        example:
+          section
+            .querySelector('[data-testid="resource-showcase-preview"]')
+            ?.getAttribute("aria-label") || "",
+        docsHref:
+          section
+            .querySelector('[data-testid="resource-showcase-docs-link"]')
+            ?.getAttribute("href") || "",
+        steps: section.querySelectorAll(
+          '[data-testid="resource-showcase-steps"] li',
+        ).length,
+        highlights: section.querySelectorAll(
+          '[data-testid="resource-showcase-highlights"] li',
+        ).length,
+      };
+    });
+  });
+}
+
+/*
+ * Every box of an explanation that runs outside it, and every box whose
+ * words run past its own edge where nothing cuts them short on purpose
+ * (an ellipsis): a long German word, a Persian line that does not wrap.
+ * The example's chart is a drawing, not words, and is left out.
+ */
+async function overflowingBoxes(page: Page): Promise<Array<string>> {
+  return page.evaluate((): Array<string> => {
+    const SPACES: RegExp = /\s+/g;
+    const problems: Array<string> = [];
+    const describe: (element: Element) => string = (
+      element: Element,
+    ): string => {
+      const words: string = (element.textContent || "")
+        .replace(SPACES, " ")
+        .trim()
+        .slice(0, 60);
+      return `<${element.tagName.toLowerCase()}> "${words}"`;
+    };
+
+    for (const section of Array.from(
+      document.querySelectorAll('[data-testid="product-explanation"]'),
+    )) {
+      const product: string = section.getAttribute("data-product") || "";
+      const frame: DOMRect = section.getBoundingClientRect();
+
+      for (const element of Array.from(section.querySelectorAll("*"))) {
+        if (element.closest("svg")) {
+          continue;
+        }
+
+        const box: DOMRect = element.getBoundingClientRect();
+        if (box.width === 0 && box.height === 0) {
+          continue;
+        }
+
+        if (box.left < frame.left - 1 || box.right > frame.right + 1) {
+          problems.push(
+            `${product}: ${describe(element)} runs outside its explanation (${Math.round(box.left)} to ${Math.round(box.right)}, the box ${Math.round(frame.left)} to ${Math.round(frame.right)})`,
+          );
+          continue;
+        }
+
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+        if (style.display === "inline" || style.textOverflow === "ellipsis") {
+          continue;
+        }
+
+        if (element.scrollWidth > element.clientWidth + 1) {
+          problems.push(
+            `${product}: ${describe(element)} is ${element.scrollWidth - element.clientWidth}px wider than its box`,
+          );
+        }
+      }
+    }
+
+    return problems;
+  });
+}
+
+async function shootEveryExplanation(page: Page, name: string): Promise<void> {
+  if (!SHOOTS_EVERY_EXPLANATION) {
+    return;
+  }
+
+  fs.mkdirSync(path.join(SCREENSHOTS, "explanations"), { recursive: true });
+  const sections: Array<Locator> = await page
+    .getByTestId("product-explanation")
+    .all();
+  for (const section of sections) {
+    const product: string = (await section.getAttribute("data-product")) || "";
+    await section.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "explanations",
+        `${product}-${name}-synthetic.png`,
+      ),
+    });
+  }
+}
+
+test("every product explains itself the same way: its name, its pitch, its first steps or setup facts, an example and its documentation, inside its box at a laptop's width", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const products: Array<FixtureProduct> = await openExplanations(page);
+
+  // The registry is the products menu (ProductOnboardingRegistry): one of each kind is in it.
+  const keys: Array<string> = products.map((entry: FixtureProduct): string => {
+    return entry.product;
+  });
+  for (const product of PRODUCTS_OF_EVERY_KIND) {
+    expect(keys, `the explanations page draws ${product}`).toContain(product);
+  }
+  expect(new Set(keys).size).toBe(keys.length);
+
+  const drawn: Array<DrawnExplanation> = await drawnExplanations(page);
+  expect(
+    drawn.map((explanation: DrawnExplanation): string => {
+      return explanation.product;
+    }),
+  ).toEqual(keys);
+
+  for (const explanation of drawn) {
+    const entry: FixtureProduct = products.find(
+      (candidate: FixtureProduct): boolean => {
+        return candidate.product === explanation.product;
+      },
+    )!;
+    // In English, as the registry words it.
+    expect(explanation.name, explanation.product).toBe(entry.name);
+    expect(explanation.title, explanation.product).toBe(entry.title);
+    // An example, labelled as one for a screen reader.
+    expect(explanation.example, explanation.product).not.toBe("");
+    // Its documentation: a page of the docs.
+    expect(
+      explanation.docsHref.startsWith("/docs/"),
+      `${explanation.product} links ${explanation.docsHref}`,
+    ).toBe(true);
+    /*
+     * A product's two to four first steps, or a resource's three facts
+     * about setup: never both, never neither.
+     */
+    expect(
+      {
+        product: explanation.product,
+        stepsOrFacts:
+          (explanation.steps >= 2 && explanation.steps <= 4) !==
+          explanation.highlights > 0,
+      },
+      `${explanation.product}: ${explanation.steps} steps, ${explanation.highlights} facts`,
+    ).toEqual({ product: explanation.product, stepsOrFacts: true });
+  }
+
+  expect(await overflowingBoxes(page)).toEqual([]);
+  await expectNoSidewaysScroll(page, {
+    message: "every product's explanation at 1280px",
+  });
+  await shootEveryExplanation(page, "1280");
+});
+
+for (const reader of [
+  { language: "German", lang: "de", words: GERMAN, theme: "light" },
+  { language: "Persian", lang: "fa", words: PERSIAN, theme: "dark" },
+]) {
+  test(`every product on a phone in ${reader.language}${reader.theme === "dark" ? ", dark" : ""}: its name and pitch in the Dashboard's ${reader.language}, every word inside its box`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const products: Array<FixtureProduct> = await openExplanations(
+      page,
+      `lang=${reader.lang}${reader.theme === "dark" ? "&theme=dark" : ""}`,
+    );
+
+    const drawn: Array<DrawnExplanation> = await drawnExplanations(page);
+    expect(
+      drawn.map((explanation: DrawnExplanation): Record<string, string> => {
+        return {
+          product: explanation.product,
+          name: explanation.name,
+          title: explanation.title,
+        };
+      }),
+    ).toEqual(
+      products.map((entry: FixtureProduct): Record<string, string> => {
+        return {
+          product: entry.product,
+          // A word the language keeps as English (a product's own name) is its key.
+          name: reader.words[entry.name] || entry.name,
+          title: reader.words[entry.title] || entry.title,
+        };
+      }),
+    );
+
+    if (reader.lang === "fa") {
+      await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+      await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+
+      // Every pitch reads light on its dark box.
+      const darkTitles: Array<string> = await page.evaluate(
+        (): Array<string> => {
+          const CHANNELS: RegExp = /\d+/g;
+          return Array.from(
+            document.querySelectorAll('[data-testid="product-explanation"]'),
+          )
+            .filter((section: Element): boolean => {
+              const heading: Element | null = section.querySelector("h2");
+              const channels: Array<number> = (
+                window.getComputedStyle(heading!).color.match(CHANNELS) || []
+              )
+                .slice(0, 3)
+                .map(Number);
+              return Math.min(...channels) <= 180;
+            })
+            .map((section: Element): string => {
+              return section.getAttribute("data-product") || "";
+            });
+        },
+      );
+      expect(darkTitles).toEqual([]);
+    }
+
+    expect(await overflowingBoxes(page)).toEqual([]);
+    await expectNoSidewaysScroll(page, {
+      message: `every product's explanation in ${reader.language} at 390px`,
+    });
+    await shootEveryExplanation(page, `390-${reader.lang}-${reader.theme}`);
+  });
+}

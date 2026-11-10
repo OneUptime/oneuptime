@@ -108,6 +108,7 @@ import ResourceShowcaseCard, {
   RESOURCE_SHOWCASE_DESCRIPTION_TEST_ID,
   RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID,
   RESOURCE_SHOWCASE_FEATURES_TITLE,
+  RESOURCE_SHOWCASE_HIGHLIGHTS_TEST_ID,
   RESOURCE_SHOWCASE_PREVIEW_TEST_ID,
   RESOURCE_SHOWCASE_STEPS_TEST_ID,
   RESOURCE_SHOWCASE_TEST_ID,
@@ -287,6 +288,10 @@ describe("the showcase, as a product draws it", () => {
       "2Choose what it checks and how often",
       "3Get an incident or an alert when a check fails",
     ]);
+    // A product's steps take the place of a resource's facts about setup.
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_HIGHLIGHTS_TEST_ID),
+    ).toBeNull();
   });
 
   test("offers the first step as its one primary button, and the documentation beside it", async () => {
@@ -409,9 +414,16 @@ describe("the showcase, as a product draws it", () => {
     expect(
       screen.queryByTestId(RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID),
     ).toBeNull();
-    for (const highlight of HOST_SHOWCASE.highlights) {
-      expect(screen.getByText(highlight)).toBeInTheDocument();
-    }
+    const highlights: HTMLElement = screen.getByTestId(
+      RESOURCE_SHOWCASE_HIGHLIGHTS_TEST_ID,
+    );
+    expect(
+      within(highlights)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(HOST_SHOWCASE.highlights);
     expect(screen.getByText("Connected")).toBeInTheDocument();
     expect(
       screen.getByText(RESOURCE_SHOWCASE_FEATURES_TITLE),

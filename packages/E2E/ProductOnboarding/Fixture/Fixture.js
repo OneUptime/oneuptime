@@ -17,6 +17,15 @@
  *                 Pages/StatusPages/{Layout,StatusPages}: the first step is
  *                 the table's own create form
  *
+ * And one page of the fixture's own, which holds every product's
+ * explanation at once, each as its About dialog draws it:
+ *
+ *   /dashboard/:projectId/product-explanations
+ *                 every entry of Components/ProductOnboarding/
+ *                 ProductOnboardings, in its order: the product's name over
+ *                 its showcase (ResourceShowcaseCard, bare), in a box as wide
+ *                 as the dialog's body
+ *
  * Only the ModelAPI / API data boundary and the signed-in user's
  * permissions are replaced. Every record is fabricated for an "Acme Shop"
  * project.
@@ -33,7 +42,10 @@
  * Recorded on window.__productOnboardingFixture: every count asked
  * (`counts`: the table and the query as sent), every create (`creates`)
  * and every read of a table this fixture does not model, or any other
- * request it does not answer (`unhandled`; the spec fails on any).
+ * request it does not answer (`unhandled`; the spec fails on any). It also
+ * lists every product the explanations page draws (`products`: its key,
+ * and the English keys of its name and its showcase's title), so the spec
+ * reads the registry without importing the Dashboard.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -54,6 +66,8 @@ import MonitorLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/L
 import MonitorsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Monitors";
 import StatusPagesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Layout";
 import StatusPagesPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages";
+import { PRODUCT_ONBOARDINGS } from "../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductOnboardings";
+import ResourceShowcaseCard from "../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -88,6 +102,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import UserUtil from "Common/UI/Utils/User";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
@@ -113,6 +128,14 @@ const fixture = {
   counts: [],
   creates: [],
   unhandled: [],
+  // Every product the explanations page draws, in the registry's order.
+  products: Object.entries(PRODUCT_ONBOARDINGS).map(([product, onboarding]) => {
+    return {
+      product,
+      name: onboarding.name,
+      title: onboarding.showcase.title,
+    };
+  }),
 };
 window.__productOnboardingFixture = fixture;
 
@@ -561,8 +584,55 @@ function StubPage() {
   );
 }
 
+/*
+ * Every product's explanation, each as its About dialog draws it
+ * (ProductAboutButton): the product's name over its showcase without a
+ * frame of its own, in a box as wide as a large dialog's body (Modal's
+ * ModalWidth.Large: the full width on a phone, at most max-w-7xl from sm
+ * up, its body padded px-5 sm:px-6). The showcase lays itself out by its
+ * own width, so it lays out here as it does in the dialog. One page holds
+ * them all, so a test reads every product's words in one language and at
+ * one width at once.
+ */
+function ExplanationsPage() {
+  const translator = useTranslator();
+
+  return (
+    <main
+      data-testid="product-explanations"
+      className="mx-auto w-full max-w-7xl space-y-6 py-6 sm:px-6"
+    >
+      {Object.entries(PRODUCT_ONBOARDINGS).map(([product, onboarding]) => {
+        return (
+          <section
+            key={product}
+            data-testid="product-explanation"
+            data-product={product}
+            className="overflow-hidden border-y border-gray-200 bg-white shadow-sm sm:rounded-xl sm:border-x"
+          >
+            <div
+              data-testid="product-explanation-name"
+              className="border-b border-gray-100 px-5 py-4 text-base font-semibold leading-6 tracking-tight text-gray-900 [overflow-wrap:anywhere] sm:px-6"
+            >
+              {translator.translateText(onboarding.name)}
+            </div>
+            <div className="px-5 py-5 sm:px-6">
+              <ResourceShowcaseCard
+                showcase={onboarding.showcase}
+                docsRoute={onboarding.docsRoute}
+                isBare={true}
+              />
+            </div>
+          </section>
+        );
+      })}
+    </main>
+  );
+}
+
 const MONITORS_ROUTE = RouteMap[PageMap.MONITORS].toString();
 const STATUS_PAGES_ROUTE = RouteMap[PageMap.STATUS_PAGES].toString();
+const EXPLANATIONS_ROUTE = "/dashboard/:projectId/product-explanations";
 
 /*
  * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
@@ -608,6 +678,7 @@ createRoot(document.getElementById("root")).render(
             }
           />
         </PageRoute>
+        <PageRoute path={EXPLANATIONS_ROUTE} element={<ExplanationsPage />} />
         <PageRoute path="*" element={<StubPage />} />
       </PageRoute>
     </Routes>
