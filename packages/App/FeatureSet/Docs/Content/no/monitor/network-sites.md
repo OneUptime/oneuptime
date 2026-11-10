@@ -54,7 +54,7 @@ Hver enhet knyttes til én lokasjon. En lokasjons undertre er lokasjonen selv pl
 Gå til **Nettverk → Lokasjoner** og klikk på **Legg til Lokasjon**.
 
 ### Si hva lokasjonen er
-I trinnet **Site Details** velger du **Site Type** (hva slags sted det er: en region, en butikk, et datasenter) og skriver et **Navn**. Beskrivelsen, adressen og breddegraden og lengdegraden som fester lokasjonen på kartet, er foldet sammen under **Flere felt**: fyll dem ut nå eller senere.
+I trinnet **Site Details** velger du **Site Type** (hva slags sted det er: en region, en butikk, et datasenter) og skriver et **Navn**. Feltet **Lokasjonskode**, beskrivelsen, adressen og breddegraden og lengdegraden som fester lokasjonen på kartet, er foldet sammen under **Flere felt**: fyll dem ut nå eller senere. En lokasjonskode er en kort kode, for eksempel et butikk- eller avdelingsnummer (`1216`); [navneregler](/docs/monitor/network-device-monitor#gi-enheter-navn-etter-navnekonvensjonen-din) setter den inn i enhetsnavn med `{site.code}`.
 
 ### Plasser den i treet
 I trinnet **Hierarchy** velger du **Parent Site** hvis lokasjonen ligger under en annen. La det stå tomt for å holde lokasjonen på øverste nivå.

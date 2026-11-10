@@ -207,6 +207,20 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           icon: IconProp.Filter,
         },
         {
+          /*
+           * After the site rules: a naming convention is usually by site
+           * ("UN{site.code}..."), and the owner and label rules below may
+           * match the names these give (issue #6619).
+           */
+          link: {
+            title: "Naming Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_NAMING_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Pencil,
+        },
+        {
           link: {
             title: "Owner Rules",
             to: RouteUtil.populateRouteParams(

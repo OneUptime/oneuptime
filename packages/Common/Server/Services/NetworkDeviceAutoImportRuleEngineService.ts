@@ -71,6 +71,11 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import { RuleRunWriteProps } from "../Utils/Rules/RuleRun/RuleApplication";
+import NetworkDeviceNamingRuleEngineService, {
+  ImportNaming,
+  ImportNamingSession,
+  nameDeviceByRule,
+} from "./NetworkDeviceNamingRuleEngineService";
 import Label from "../../Models/DatabaseModels/Label";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -1575,6 +1580,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           dnsName: true,
           discoveredName: true,
           discoveredNameSource: true,
+          ruleAssignedName: true,
           createdAt: true,
         },
       });
@@ -1638,6 +1644,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           dnsName: device.dnsName,
           discoveredName: device.discoveredName,
           discoveredNameSource: device.discoveredNameSource,
+          ruleAssignedName: device.ruleAssignedName,
           createdAt: device.createdAt,
         });
       }
@@ -2134,6 +2141,37 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     const createdIpAddresses: Array<string> = [];
 
     /*
+     * The project's naming rules (issue #6619), read the first time this
+     * pass creates a device: an auto-imported device is named by them as one
+     * imported from Review Results is. Undefined until then; null when the
+     * project has none, or they could not be read - its devices are then
+     * created under their discovered names, as before.
+     */
+    let naming: ImportNamingSession | null | undefined = undefined;
+
+    const getNaming: () => Promise<ImportNamingSession | null> =
+      async (): Promise<ImportNamingSession | null> => {
+        if (naming !== undefined) {
+          return naming;
+        }
+
+        try {
+          naming =
+            await NetworkDeviceNamingRuleEngineService.startImportSession(
+              scan.projectId!,
+            );
+        } catch (error) {
+          logger.error(
+            `Auto-import: could not read the naming rules, so devices are created under their discovered names: ${error}`,
+            { projectId: scan.projectId?.toString() } as LogAttributes,
+          );
+          naming = null;
+        }
+
+        return naming;
+      };
+
+    /*
      * What this pass counted as still-to-do, deduplicated.
      *
      * A stored result can list the same address twice (duplicate rows are
@@ -2309,6 +2347,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             result: result,
             attempts: data.attempts,
             props: data.props,
+            naming: await getNaming(),
             ...(oidTemplateIdForHost
               ? { oidTemplateId: oidTemplateIdForHost }
               : {}),
@@ -2775,13 +2814,23 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     attempts: ImportAttemptBudget;
     // Who ran the rule (Run Now); none for the automatic path.
     props?: DatabaseCommonInteractionProps | undefined;
+    // The project's naming rules for this pass, when it has any (issue #6619).
+    naming?: ImportNamingSession | null | undefined;
   }): Promise<{ device: NetworkDevice | null; wasCreated: boolean }> {
     data.attempts.deviceCount++;
 
-    const attemptCreate: (name?: string) => Promise<NetworkDevice> = async (
+    const ruleNaming: ImportNaming | null = data.naming
+      ? data.naming.nameScanHost(data.host, data.scan)
+      : null;
+
+    const attemptCreate: (
       name?: string,
+      byRule?: ImportNaming,
+    ) => Promise<NetworkDevice> = async (
+      name?: string,
+      byRule?: ImportNaming,
     ): Promise<NetworkDevice> => {
-      const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      const built: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
         projectId: data.projectId,
         host: data.host,
         scan: data.scan,
@@ -2798,6 +2847,14 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           ? { pollingIntervalInMinutes: data.pollingIntervalInMinutes }
           : {}),
       });
+      const device: NetworkDevice = byRule
+        ? nameDeviceByRule({
+            device: built,
+            naming: byRule,
+            address: data.host.ipAddress,
+            isDiscoveredDevice: false,
+          })
+        : built;
 
       // On the behalf of whoever ran the rule: theirs in the audit log.
       const created: NetworkDevice = await NetworkDeviceService.create({
@@ -2805,10 +2862,55 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         props: RuleRunWriteProps.get(data.props),
       });
 
+      // Held, so a later host's rule name never takes it.
+      data.naming?.hold((created || device).name);
+
       return created || device;
     };
 
     let createdDevice: NetworkDevice;
+
+    /*
+     * Named by the naming rules first, when they name the host. A create
+     * under the rule's name that fails is tried under the discovered name,
+     * then its address-suffixed fallback, exactly as an import without
+     * naming rules - unless the address was registered meanwhile.
+     */
+    if (ruleNaming?.name) {
+      try {
+        createdDevice = await attemptCreate(ruleNaming.name, ruleNaming);
+        data.result.devicesCreated++;
+        data.existingDevices.set(data.host.ipAddress, createdDevice);
+
+        return { device: createdDevice, wasCreated: true };
+      } catch (ruleNameError) {
+        const registered: NetworkDevice | null =
+          await NetworkDeviceService.findOneBy({
+            query: {
+              projectId: data.projectId,
+              hostname: data.host.ipAddress,
+            },
+            select: {
+              _id: true,
+              projectId: true,
+              name: true,
+              hostname: true,
+              monitoringMethod: true,
+            },
+            props: { isRoot: true },
+          });
+
+        if (registered) {
+          data.result.hostsSkippedAlreadyRegistered++;
+          data.existingDevices.set(data.host.ipAddress, registered);
+          return { device: registered, wasCreated: false };
+        }
+
+        logger.debug(
+          `Auto-import: ${data.host.ipAddress} could not be created under its naming rule's name "${ruleNaming.name}", so it is created under its discovered name: ${ruleNameError}`,
+        );
+      }
+    }
 
     try {
       createdDevice = await attemptCreate();

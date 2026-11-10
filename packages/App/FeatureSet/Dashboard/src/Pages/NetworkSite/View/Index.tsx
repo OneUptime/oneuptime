@@ -103,6 +103,16 @@ const NetworkSiteView: FunctionComponent<
             },
             {
               field: {
+                code: true,
+              },
+              title: "Site Code",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkSite): boolean => {
+                return Boolean(item.code);
+              },
+            },
+            {
+              field: {
                 networkSiteType: {
                   name: true,
                 },

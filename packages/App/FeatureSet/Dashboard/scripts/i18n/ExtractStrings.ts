@@ -242,6 +242,20 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A naming rule's name pattern and lookup table (issue #6619): what each
+   * placeholder is, and what is wrong with a pattern or a table, as the
+   * rule form says it. Only the sentences the files mark are read: the
+   * placeholders themselves ({site.code}) are drawn as written.
+   */
+  {
+    directory: "packages/Common/Utils/NetworkDevice/Naming/NamePattern.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Utils/NetworkDevice/Naming/NamingLookup.ts",
+    kind: "keys",
+  },
+  /*
    * Why Add or Delete is locked on the Global User Overrides page for a
    * reader whose permission to add or delete overrides covers only some
    * policies - the words the server refuses with. Only the sentences the
