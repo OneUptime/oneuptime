@@ -3,6 +3,7 @@ import GlobalProbesOnNewMonitorsCopy from "../../FeatureSet/Dashboard/src/Compon
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * Whether new monitors start with a custom probe selected
@@ -25,24 +26,7 @@ const DASHBOARD_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const LIST_PAGE: string = "Pages/Monitor/Settings/MonitorProbes.tsx";
 const PROBE_PAGE: string = "Pages/Monitor/Settings/MonitorProbeView.tsx";

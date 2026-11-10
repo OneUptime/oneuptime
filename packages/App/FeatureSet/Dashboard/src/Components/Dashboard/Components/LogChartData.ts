@@ -11,6 +11,7 @@ import {
 } from "Common/Types/Log/LogQueryToFilter";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export type LogChartArguments = DashboardLogChartComponent["arguments"];
 
@@ -308,5 +309,5 @@ export function formatLogCount(value: number): string {
   if (value >= 1000) {
     return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
   }
-  return Math.round(value).toLocaleString();
+  return Math.round(value).toLocaleString(getReaderNumberLocale());
 }

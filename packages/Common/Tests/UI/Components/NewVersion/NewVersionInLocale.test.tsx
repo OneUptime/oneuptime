@@ -23,6 +23,8 @@ import NewVersion, {
 } from "../../../../UI/Utils/NewVersion/NewVersion";
 import { FetchFunction } from "../../../../UI/Utils/NewVersion/ServerBuildCheck";
 import UnsavedChanges from "../../../../UI/Utils/NewVersion/UnsavedChanges";
+import { isRightToLeftLanguage } from "../../../../Types/ReadingDirection";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * What a reader sees when a new version is out - the notice, and a page
@@ -40,24 +42,7 @@ const FEATURE_SETS: string = path.resolve(
   "../../../../../App/FeatureSet",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // The notice (Dashboard, Admin Dashboard).
 const NOTICE: Array<string> = [
@@ -238,6 +223,7 @@ describe("a question in the notice", () => {
     ["zh-CN", "？"],
     ["zh-TW", "？"],
     ["fa", "؟"],
+    ["ar", "؟"],
     ["de", "?"],
     ["fr", " ?"],
     ["es", "?"],
@@ -245,6 +231,11 @@ describe("a question in the notice", () => {
     const value: string = readLocale("Dashboard", language)[QUESTION] as string;
 
     expect(value).toContain(mark);
+
+    // Persian and Arabic write their own question mark, never the Latin one.
+    if (language === "fa" || language === "ar") {
+      expect(value).not.toContain("?");
+    }
 
     if (language === "es") {
       expect(value.startsWith("¿")).toBe(true);
@@ -430,7 +421,7 @@ describe("drawn in each language", () => {
       );
       expect(screen.getByTestId("chunk-load-recovery")).toHaveAttribute(
         "dir",
-        language === "fa" ? "rtl" : "ltr",
+        isRightToLeftLanguage(language) ? "rtl" : "ltr",
       );
     },
   );

@@ -34,6 +34,10 @@ import {
   toExportChartSeries,
   totalTraceDuration,
 } from "./ChatWidgetData";
+import {
+  getReaderDateLocale,
+  getReaderNumberLocale,
+} from "../../../Types/DateLanguage";
 
 /*
  * Renders the inline artifacts of an assistant message — widgets, tool actions
@@ -105,7 +109,9 @@ function chartToMarkdown(widget: AIChatWidget): Array<string> {
         ["left", "right"],
         item.points.map((point: ExportChartPoint) => {
           return [
-            point.date ? point.date.toLocaleString() : point.x,
+            point.date
+              ? point.date.toLocaleString(getReaderDateLocale())
+              : point.x,
             formatChartValue(point.y, widget.data.unit),
           ];
         }),
@@ -168,15 +174,15 @@ function waterfallToMarkdown(widget: AIChatWidget): Array<string> {
       const indent: string = "  ".repeat(Math.min(depth, 8));
       return [
         `${indent}${span.isError ? "● " : ""}${span.name}`,
-        `${span.startOffsetMs.toLocaleString()} ms`,
-        `${span.durationMs.toLocaleString()} ms`,
+        `${span.startOffsetMs.toLocaleString(getReaderNumberLocale())} ms`,
+        `${span.durationMs.toLocaleString(getReaderNumberLocale())} ms`,
       ];
     }),
   );
 
   lines.push(
     "",
-    `_Total trace duration: ${totalDurationMs.toLocaleString()} ms._`,
+    `_Total trace duration: ${totalDurationMs.toLocaleString(getReaderNumberLocale())} ms._`,
   );
 
   if (spans.length > shown.length) {

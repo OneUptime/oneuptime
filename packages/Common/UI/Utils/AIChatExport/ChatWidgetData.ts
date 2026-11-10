@@ -12,6 +12,7 @@ import {
   TableDateTexts,
   getTableDateTexts,
 } from "../../Components/Table/TableDate";
+import { getReaderNumberLocale } from "../../../Types/DateLanguage";
 
 /*
  * The formatting rules the AI chat widgets use on screen, factored out so the
@@ -108,7 +109,7 @@ export function getChatTableCellText(
   }
 
   if (column.type === "number" && typeof value === "number") {
-    const text: string = value.toLocaleString();
+    const text: string = value.toLocaleString(getReaderNumberLocale());
 
     return { text, fullText: text };
   }
@@ -139,7 +140,7 @@ export function formatTableCell(
     return texts ? texts.fullText : String(value);
   }
   if (column.type === "number" && typeof value === "number") {
-    return value.toLocaleString();
+    return value.toLocaleString(getReaderNumberLocale());
   }
   return String(value);
 }
@@ -147,7 +148,9 @@ export function formatTableCell(
 // StatCardsWidget: the number/string union is discriminated at runtime.
 export function formatStatValue(stat: AIChatWidgetStat): string {
   const value: string =
-    typeof stat.value === "number" ? stat.value.toLocaleString() : stat.value;
+    typeof stat.value === "number"
+      ? stat.value.toLocaleString(getReaderNumberLocale())
+      : stat.value;
   return stat.unit ? `${value} ${stat.unit}` : value;
 }
 
@@ -158,7 +161,7 @@ export function formatChartValue(
 ): string {
   const rounded: number =
     Math.abs(value) >= 100 ? Math.round(value) : Math.round(value * 100) / 100;
-  const text: string = rounded.toLocaleString();
+  const text: string = rounded.toLocaleString(getReaderNumberLocale());
   return unit ? `${text} ${unit}` : text;
 }
 

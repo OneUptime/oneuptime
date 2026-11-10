@@ -1,4 +1,7 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  getNumberLocale,
+  getReaderNumberLocale,
+} from "Common/Types/DateLanguage";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -178,7 +181,7 @@ export function formatOccurrenceCount(count: unknown): string {
       ? Math.floor(count)
       : 0;
 
-  return new Intl.NumberFormat().format(value);
+  return new Intl.NumberFormat(getReaderNumberLocale()).format(value);
 }
 
 /*

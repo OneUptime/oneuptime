@@ -18,6 +18,7 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The criteria form of an AI / LLM monitor: which numbers it compares
@@ -215,24 +216,7 @@ describe("the numbers it compares, in every language", () => {
     __dirname,
     "../../../../App/FeatureSet/Dashboard/src/Locales",
   );
-  const LOCALES: Array<string> = [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
   function readLocale(locale: string): Record<string, unknown> {
     return JSON.parse(

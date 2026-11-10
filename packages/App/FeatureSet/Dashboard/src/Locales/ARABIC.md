@@ -1,10 +1,12 @@
 # Arabic (`ar`)
 
 Arabic is the eighteenth language. The status page, Accounts, the admin
-dashboard, public dashboards and the server's own texts (emails, chat and
-text messages) are fully translated. The Dashboard is partly translated:
-its most-used surfaces come first, and every key still in English falls
-back to English (`npm run i18n:check` in the Dashboard counts what is left).
+dashboard, public dashboards, the server's own texts (emails, chat and text
+messages) and the Dashboard are fully translated: `npm run i18n:check --
+--locale ar` in the Dashboard counts 0 keys left. `Common/Tests/App/ArabicLocaleGuards`
+keeps it so: a key added later fails it while ar.json holds its English, until
+it is translated - or, for a name, a code or an example that stays as written,
+recorded with `--same-as-english` (README.md).
 
 This file is the glossary and the choices every Arabic string follows, so the
 next person who translates a key writes it the same way.
@@ -78,6 +80,24 @@ full stop at its end. Product names, protocols and plan names stay Latin
 (`خطة Free`, `Slack`, `OpenTelemetry`); the browser lays them out left to
 right inside the Arabic line.
 
+The locale files hold no direction marks, so a string is worded so the
+browser's own rules lay it out right:
+
+- A Latin word that starts with a dot, a dash, a slash or a hash right after
+  Arabic shows that sign at its far end (`.env` reads `env.`). Put a Latin
+  word before it (`شبكة CIDR /24`, `الأمر helm upgrade --reuse-values`,
+  `regex ^api-.*`), or name the format without its dot (`ملف VTT`,
+  `ملف env`).
+- A negative number is written out: `سالب 70 dBm`.
+- A function keeps its brackets, as the English writes it and as the suites
+  that hold code to its written form expect: `استدعِ الدالة grantConsent()`.
+  A right-to-left line can draw the brackets on the name's left; keeping code
+  in its own direction inside a line is the page's job, not the locale's.
+- A Latin aside in brackets right after a Latin name reads before the name:
+  write `{{file}} في VS Code`, or put an Arabic word inside the brackets
+  (`(السمات {{attributes}})`).
+- A range is written out: `من 5 إلى 15 دقيقة`.
+
 ## Fonts
 
 Arabic script is drawn with Vazirmatn, self-hosted as woff2 next to Inter (no
@@ -129,16 +149,34 @@ font is fetched from another site). Latin text keeps Inter.
 | Filters (of a criteria, a list) | عوامل التصفية |
 | Matched / Did not match | مطابق / غير مطابق |
 | Investigation (AI) | التحقيق |
+| Triage (an investigation step, a state) | الفرز |
 | Remediation | المعالجة |
 | Verdict | الحكم |
 | Tokens (AI) | الرموز |
+| Prompt (AI) | المطالبة (المطالبات) |
+| LLM provider | موفّر LLM (موفّرو LLM) |
+| OneUptime AI | OneUptime AI (a product name) |
 | Responders | المستجيبون |
 | Feed (an incident's, an alert's) | الموجز |
 | Incident Commander | قائد الحادثة |
 | Call transcript | النص المكتوب للمكالمة |
 | Ingestion key | مفتاح الاستيعاب |
-| Probe | المسبار |
-| Collector | المجمّع |
+| Probe | المسبار (المسابير) |
+| Collector | المجمّع (OpenTelemetry Collector stays Latin) |
+| Pipeline (telemetry) / Pipeline (data) | مسار المعالجة / مسار البيانات |
+| Host | المضيف (المضيفون) |
+| Instance (cloud, database, VM) | المثيل (المثيلات) |
+| Instance (a OneUptime installation) | النسخة |
+| Inventory | الجرد |
+| Workload | حمل العمل (أحمال العمل) |
+| Container | الحاوية (الحاويات) |
+| Bucket (object storage) | حاوية التخزين; الحاوية alone once S3 or Cloud Storage is named |
+| Pool | المجمّع (المجمّعات) |
+| Availability / High availability / Availability zone | التوفر / التوفر العالي / منطقة التوفر |
+| Serverless function | دالة بلا خادم |
+| Walk (SNMP) | الاستعراض |
+| Release (a software version) | الإصدار |
+| Threat intel | استخبارات التهديدات |
 | Receiver | مستقبِل |
 | Workspace | مساحة العمل |
 | Connect | ربط |
@@ -148,7 +186,7 @@ font is fetched from another site). Latin text keeps Inter.
 | Entity risk | مخاطر الكيانات |
 | Observable | المُلاحَظ |
 | Storage array | مصفوفة التخزين |
-| Data store | مخزن البيانات |
+| Data store, Datastore (VMware) | مخزن البيانات (مخازن البيانات) |
 | Merge request / Pull request | طلب دمج / طلب سحب |
 | Operational / Degraded / Offline | يعمل بشكل طبيعي / متدهور / غير متصل |
 | Turn on / Turn off | تفعيل / إيقاف |
@@ -160,3 +198,8 @@ Kept in Latin letters: product, vendor and protocol names, plan names, the
 default teams Owners, Admin and Members, and units such as `ms` and `GB`.
 The Dashboard's list of texts Arabic writes as English on purpose is
 `sameAsEnglish` in `../../i18n/Progress/ar.json`.
+
+Latency, a datastore and the inventory are named in well over a hundred texts
+each. `Common/Tests/App/ArabicLocaleGuards` fails when a text whose English names
+one in a sentence says it in other words than the table's; a metric's dotted
+name, a placeholder or an identifier is not a sentence.

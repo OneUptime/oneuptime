@@ -1,4 +1,7 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  getNumberLocale,
+  getReaderNumberLocale,
+} from "Common/Types/DateLanguage";
 import { DataSecurityComplianceFramework } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
   ComplianceRequirementResult,
@@ -79,7 +82,7 @@ export function formatComplianceScore(
       maximumFractionDigits: 0,
     }).format(score / 100);
   } catch {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(getReaderNumberLocale(), {
       style: "percent",
       maximumFractionDigits: 0,
     }).format(score / 100);

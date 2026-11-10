@@ -146,6 +146,7 @@ import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType"
 import ObjectID from "../../../Types/ObjectID";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import UserUtil from "../../../UI/Utils/User";
+import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const WAIT_FOR_TIMEOUT: number = 20000;
 
@@ -1031,25 +1032,7 @@ describe("Admin > Settings > Email > Email Server Settings", () => {
     );
     expect(screen.queryByText(/Sendgrid/)).toBeNull();
 
-    for (const locale of [
-      "da",
-      "de",
-      "en",
-      "es",
-      "fa",
-      "fr",
-      "hi",
-      "it",
-      "ja",
-      "ko",
-      "nl",
-      "no",
-      "pt",
-      "ru",
-      "sv",
-      "zh-CN",
-      "zh-TW",
-    ]) {
+    for (const locale of ["en", ...ADMIN_DASHBOARD_LANGUAGES]) {
       const strings: Locale = readLocale(locale);
 
       expect({
@@ -1438,25 +1421,7 @@ describe("Admin > Settings > Email > a provider's own card", () => {
   });
 
   test("every card's words are in every language the Admin Dashboard speaks", () => {
-    for (const locale of [
-      "da",
-      "de",
-      "en",
-      "es",
-      "fa",
-      "fr",
-      "hi",
-      "it",
-      "ja",
-      "ko",
-      "nl",
-      "no",
-      "pt",
-      "ru",
-      "sv",
-      "zh-CN",
-      "zh-TW",
-    ]) {
+    for (const locale of ["en", ...ADMIN_DASHBOARD_LANGUAGES]) {
       const strings: Locale = readLocale(locale);
 
       for (const [key, product] of [

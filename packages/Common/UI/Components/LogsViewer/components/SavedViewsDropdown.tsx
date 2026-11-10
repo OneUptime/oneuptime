@@ -17,6 +17,7 @@ import {
   getVisibleSavedViews,
   shouldShowSavedViewsSearch,
 } from "../../SavedViews/SavedViewsList";
+import { getReaderNumberLocale } from "../../../../Types/DateLanguage";
 
 export interface SavedViewsDropdownProps {
   savedViews: Array<LogsSavedViewOption>;
@@ -170,7 +171,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
           {selectedView?.name || translator.translateText("Saved Views")}
         </span>
         <span className="text-xs text-gray-400">
-          {props.savedViews.length.toLocaleString()}
+          {props.savedViews.length.toLocaleString(getReaderNumberLocale())}
         </span>
       </button>
 

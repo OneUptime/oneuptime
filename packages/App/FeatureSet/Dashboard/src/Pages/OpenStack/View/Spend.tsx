@@ -1,4 +1,7 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  getNumberLocale,
+  getReaderNumberLocale,
+} from "Common/Types/DateLanguage";
 import PageComponentProps from "../../PageComponentProps";
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import Route from "Common/Types/API/Route";
@@ -114,7 +117,9 @@ export function getOpenStackSpendTiles(data: {
     key: "reclaim",
     title: translationKey("Could Be Reclaimed"),
     // The rules run hourly, and a first reading may not have run them yet.
-    value: snapshot.waste ? getWasteCount(snapshot).toLocaleString() : "–",
+    value: snapshot.waste
+      ? getWasteCount(snapshot).toLocaleString(getReaderNumberLocale())
+      : "–",
     sublabel: translationKey("See Recommendations"),
     icon: IconProp.Archive,
     color: "amber",
@@ -464,7 +469,11 @@ const OpenStackCloudSpend: FunctionComponent<
             translationKey(
               "{{count}} projects used something with no price set, so a total here isn't all of it.",
             ),
-            { count: snapshot.projectsPartlyPriced.toLocaleString() },
+            {
+              count: snapshot.projectsPartlyPriced.toLocaleString(
+                getReaderNumberLocale(),
+              ),
+            },
           )}
         </OpenStackPartNotice>
       ) : (
@@ -766,7 +775,9 @@ const OpenStackCloudSpend: FunctionComponent<
                             {money(domain.lastMonth)}
                           </td>
                           <td className={WIDE_CELL_CLASS_NAME}>
-                            {domain.projectCount.toLocaleString()}
+                            {domain.projectCount.toLocaleString(
+                              getReaderNumberLocale(),
+                            )}
                           </td>
                           <td className={CELL_CLASS_NAME}>
                             {formatOpenStackUsageNumber(
@@ -786,8 +797,12 @@ const OpenStackCloudSpend: FunctionComponent<
                 {translator.translateTemplate(
                   translationKey("The largest {{count}} of {{total}}."),
                   {
-                    count: snapshot.domains.length.toLocaleString(),
-                    total: snapshot.domainCount.toLocaleString(),
+                    count: snapshot.domains.length.toLocaleString(
+                      getReaderNumberLocale(),
+                    ),
+                    total: snapshot.domainCount.toLocaleString(
+                      getReaderNumberLocale(),
+                    ),
                   },
                 )}
               </p>

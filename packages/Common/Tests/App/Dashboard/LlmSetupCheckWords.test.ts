@@ -37,6 +37,7 @@ import {
   isLlmSetupCheckQuiet,
   withOneStop,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/SetupCheck/LlmSetupCheckWords";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * WHAT THE AI / LLM SETUP CHECK SAYS (#5776), without a browser: the one
@@ -1248,24 +1249,7 @@ describe("the setup check in every language", () => {
     __dirname,
     "../../../../App/FeatureSet/Dashboard/src/Locales",
   );
-  const LANGUAGES: Array<string> = [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
   function translatorFor(language: string): Translator {
     const table: Record<string, string> = JSON.parse(

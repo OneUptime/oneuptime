@@ -114,6 +114,7 @@ import HuntsMenu from "./Hunts/HuntsMenu";
 import useAddEventsToCase, {
   AddEventsToCaseActions,
 } from "./Hunts/useAddEventsToCase";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export const SECURITY_EVENTS_VIEWER_TEST_ID: string = "security-events-viewer";
 
@@ -1338,7 +1339,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
               ) : (
                 <>
                   <span className="font-semibold tabular-nums text-gray-900">
-                    {volume.total.toLocaleString()}
+                    {volume.total.toLocaleString(getReaderNumberLocale())}
                   </span>{" "}
                   {volume.total === 1 ? "event" : "events"}
                 </>

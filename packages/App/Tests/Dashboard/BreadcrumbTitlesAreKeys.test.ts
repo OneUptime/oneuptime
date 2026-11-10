@@ -5,6 +5,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * A page's trail is a list of titles (BuildBreadcrumbLinksByTitles) that
@@ -31,24 +32,7 @@ const CALL: string = "BuildBreadcrumbLinksByTitles(";
 const LATIN_LETTER: RegExp = /[A-Za-z]/;
 
 // The Dashboard's sixteen languages besides English.
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 function sourceFiles(directory: string): Array<string> {
   return fs
@@ -320,7 +304,9 @@ describe("every breadcrumb title in the Dashboard is a translation key", () => {
       return LATIN_LETTER.test(title);
     });
 
-    expect(LANGUAGES).toHaveLength(16);
+    // Every language the Dashboard offers, the newest (Arabic) too.
+    expect(LANGUAGES).toContain("ar");
+    expect(LANGUAGES).not.toContain("en");
     expect(titles.length).toBeGreaterThan(400);
 
     for (const language of LANGUAGES) {

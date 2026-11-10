@@ -26,6 +26,10 @@ import {
   formatOpenStackUsageNumber,
 } from "../../Pages/OpenStack/Utils/OpenStackSpendView";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import {
+  getReaderDateLocale,
+  getReaderNumberLocale,
+} from "Common/Types/DateLanguage";
 
 /*
  * WHAT COULD BE RECLAIMED, AS RECOMMENDATIONS.
@@ -148,7 +152,7 @@ const OpenStackWasteRule: FunctionComponent<{
               finding.isPartial
                 ? translationKey("At least {{count}}")
                 : translationKey("{{count}} found"),
-              { count: finding.count.toLocaleString() },
+              { count: finding.count.toLocaleString(getReaderNumberLocale()) },
             )}
           </span>
         ) : (
@@ -254,7 +258,9 @@ const OpenStackWasteRule: FunctionComponent<{
                         ? translator.translateTemplate(
                             translationKey("Since {{date}}"),
                             {
-                              date: new Date(item.since).toLocaleDateString(),
+                              date: new Date(item.since).toLocaleDateString(
+                                getReaderDateLocale(),
+                              ),
                             },
                           )
                         : item.instanceCount !== undefined
@@ -276,7 +282,7 @@ const OpenStackWasteRule: FunctionComponent<{
                     {
                       count: (
                         finding.count - finding.items.length
-                      ).toLocaleString(),
+                      ).toLocaleString(getReaderNumberLocale()),
                     },
                   )}
                 </li>

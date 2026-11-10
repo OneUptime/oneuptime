@@ -35,6 +35,7 @@ import {
   formatFeedTime,
   FeedClock,
 } from "../Feed/FeedTime";
+import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -226,8 +227,12 @@ export const formatRunRecordCreatedAt: FormatCreatedAtFunction = (
   const time: string = formatFeedTime(date, clock);
   const relativeDay: string | undefined = getFeedRelativeDay(date, clock);
 
+  /*
+   * Joined as the day is written: "Today, 3:25 PM", "اليوم، 03:25 م" - the
+   * Arabic script's own comma, never English's (getDateTimeSeparator).
+   */
   if (relativeDay) {
-    return `${relativeDay}, ${time}`;
+    return OneUptimeDate.joinDateAndTime(relativeDay, time);
   }
 
   const options: Intl.DateTimeFormatOptions = {
@@ -245,7 +250,12 @@ export const formatRunRecordCreatedAt: FormatCreatedAtFunction = (
   }
 
   try {
-    return `${new Intl.DateTimeFormat(getFeedLocale(clock.language), options).format(date)}, ${time}`;
+    return OneUptimeDate.joinDateAndTime(
+      new Intl.DateTimeFormat(getFeedLocale(clock.language), options).format(
+        date,
+      ),
+      time,
+    );
   } catch {
     return time;
   }

@@ -18,6 +18,7 @@ import { SERVERLESS_FUNCTION_IDLE_COPY } from "../../FeatureSet/Dashboard/src/Co
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * A SERVERLESS FUNCTION'S AND A SERVICE'S STATUS SAY ALL THEIR WORDS IN THE
@@ -35,24 +36,7 @@ import path from "path";
 const DASHBOARD: string = path.resolve(__dirname, "../../FeatureSet/Dashboard");
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 type Locale = Record<string, unknown>;
 

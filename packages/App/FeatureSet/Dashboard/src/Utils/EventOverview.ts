@@ -1,10 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
 import {
-  ARABIC_LIST_SEPARATOR,
-  getListSeparator,
-  LIST_SEPARATOR,
-} from "Common/UI/Utils/ListSeparator";
-import {
   EventDurationPart,
   EventStateTimelineDate,
   LESS_THAN_A_MINUTE,
@@ -434,12 +429,9 @@ export const getEventStartTileParts: (
    * The comma of the script the date is written in: "14 سبتمبر، 06:01 م" in
    * Arabic and Persian, whose comma is turned. Joined with English's, the
    * Arabic tile read "14 سبتمبر, 06:01 م". Every other language keeps the
-   * comma and space it had.
+   * comma and space it had (OneUptimeDate.getDateTimeSeparator).
    */
-  const comma: string =
-    getListSeparator([datePart]) === ARABIC_LIST_SEPARATOR
-      ? ARABIC_LIST_SEPARATOR
-      : LIST_SEPARATOR;
+  const comma: string = OneUptimeDate.getDateTimeSeparator(datePart);
 
   return {
     dateTime: `${keepTogether(datePart)}${comma}${keepTogether(timePart)}`,

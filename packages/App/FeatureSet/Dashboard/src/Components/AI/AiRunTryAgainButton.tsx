@@ -109,9 +109,16 @@ const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
           void tryAgain();
         }}
       />
+      {/*
+       * The server's refusal is in English whatever the reader's language,
+       * the button's own words in theirs: dir="auto" lays each out by its
+       * first letter, so an English refusal on a page that reads right to
+       * left keeps its full stop at the end.
+       */}
       {error ? (
         <p
           role="alert"
+          dir="auto"
           data-testid={`${testId}-error`}
           className={TRY_AGAIN_ERROR_CLASS_NAME}
         >

@@ -238,6 +238,6 @@ export default class CodeAgentWorkspaceGuard {
       return output;
     }
 
-    return `${output.substring(0, maxChars)}\n... [output truncated to ${maxChars.toLocaleString()} characters]`;
+    return `${output.substring(0, maxChars)}\n... [output truncated to ${maxChars.toLocaleString("en-US")} characters]`;
   }
 }

@@ -1456,8 +1456,8 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             role="status"
             data-testid="status-page-resource-panel-filter-count"
           >
-            {filteredResources.length.toLocaleString()} of{" "}
-            {statusPageResources.length.toLocaleString()} shown
+            {filteredResources.length.toLocaleString("en-US")} of{" "}
+            {statusPageResources.length.toLocaleString("en-US")} shown
             {/*
              * Said only where it is true. A filtered list's neighbours are not
              * the real neighbours, so the reorder is withheld rather than
@@ -1744,8 +1744,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
           data-testid="status-page-resource-panel-truncated"
         >
-          Showing the first {statusPageResources.length.toLocaleString()} of{" "}
-          {totalResourceCount.toLocaleString()} resources in this group.
+          Showing the first {statusPageResources.length.toLocaleString("en-US")}{" "}
+          of {totalResourceCount.toLocaleString("en-US")} resources in this
+          group.
         </div>
       ) : (
         <></>

@@ -27,6 +27,7 @@ import {
   getVisibleSavedViews,
   shouldShowSavedViewsSearch,
 } from "../../SavedViews/SavedViewsList";
+import { getReaderNumberLocale } from "../../../../Types/DateLanguage";
 
 /*
  * The words a host names its saved things with, each a translation key: a
@@ -291,7 +292,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                 : ""
             }`}
           >
-            {props.savedViews.length.toLocaleString()}
+            {props.savedViews.length.toLocaleString(getReaderNumberLocale())}
           </span>
         )}
         {props.showTriggerIcon ? (

@@ -15,6 +15,7 @@ import { ColumnWidthKind } from "../../../../../UI/Components/Table/ColumnResize
 import ResetColumnWidthsButton, {
   RESET_COLUMN_WIDTHS_TEXT,
 } from "../../../../../UI/Components/Table/ColumnResize/ResetColumnWidthsButton";
+import { DASHBOARD_LANGUAGES } from "../../../../Helpers/TranslatedLanguages";
 
 /*
  * What a column's edge and a table's reset say, in every language: the
@@ -44,24 +45,7 @@ const LOCALE_DIRECTORIES: Array<[string, string]> = [
   ],
 ];
 
-const OTHER_LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Each key with the English it stands for.
 const KEYS: Array<[string, string]> = [

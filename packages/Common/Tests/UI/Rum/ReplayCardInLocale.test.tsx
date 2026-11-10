@@ -76,30 +76,14 @@ import ReplayCard, {
   REPLAY_CARD_PERMISSION_COPY,
   REPLAY_CARD_PLAN_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayCard";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // Every sentence and word the card draws, as its English keys.
 const CARD_WORDS: ReadonlyArray<string> = [

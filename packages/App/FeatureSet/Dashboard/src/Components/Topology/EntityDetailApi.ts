@@ -21,6 +21,7 @@ import {
   postTopologyApi,
 } from "./TopologyApi";
 import { EntityDetailTarget, TopologyEntity } from "./TopologyData";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * Client for the topology detail drawer: one entity's full inventory row
@@ -395,7 +396,7 @@ export function formatConnectionTotal(
   total: number,
   isScanLimited: boolean,
 ): string {
-  return `${total.toLocaleString()}${isScanLimited ? "+" : ""}`;
+  return `${total.toLocaleString(getReaderNumberLocale())}${isScanLimited ? "+" : ""}`;
 }
 
 /* A stable identity for a connection row within one entity's drawer. */

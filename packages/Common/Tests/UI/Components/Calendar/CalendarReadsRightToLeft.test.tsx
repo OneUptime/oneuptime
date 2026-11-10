@@ -22,6 +22,7 @@ import {
   SoftEventStyle,
 } from "../../../../UI/Components/Calendar/CalendarEventTone";
 import CalendarEvent from "../../../../Types/Calendar/CalendarEvent";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * A CALENDAR ON A PAGE READ RIGHT TO LEFT.
@@ -30,8 +31,8 @@ import CalendarEvent from "../../../../Types/Calendar/CalendarEvent";
  *   of the week: Intl's short names are its full ones ("چهارشنبه"), and a
  *   narrow month cut them to "چها…". Each name above a column now carries
  *   its one-letter name too ("چ"), which a column too narrow for the full
- *   one shows instead (Calendar.css, a container query). Every other
- *   language names its days as it did.
+ *   one shows instead (Calendar.css, a container query). Arabic is the
+ *   same ("الأربعاء", "ر"). Every other language names its days as it did.
  * - The current-time line's dot, the lines between the days and a block's
  *   stripe sit on the start side - the right one on a Persian page: the dot
  *   sat at the far end of today's column, the lines one day off, and a
@@ -45,25 +46,7 @@ import CalendarEvent from "../../../../Types/Calendar/CalendarEvent";
  * read right to left").
  */
 
-const LANGUAGES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 // A run of white space: the stylesheet is read with each run as one space.
 const WHITESPACE_RUN_REGEX: RegExp = /\s+/g;
@@ -85,7 +68,7 @@ const CALENDAR_CSS: string = fs
 const instances: Record<string, i18n> = {};
 
 beforeAll(async () => {
-  for (const language of ["en", "de", "fa"]) {
+  for (const language of ["en", "de", "fa", "ar"]) {
     const instance: i18n = createInstance();
 
     await instance.init({
@@ -192,17 +175,22 @@ function headersOf(container: HTMLElement): Array<HTMLElement> {
 }
 
 describe("hasShortWeekdayNames", () => {
-  test("Persian alone writes its days' short names as their full ones", () => {
+  /*
+   * Persian and Arabic: Intl's short names for the days are their full ones
+   * ("چهارشنبه", "الأربعاء"), so each column carries a one-letter name too.
+   */
+  test("Persian and Arabic alone write their days' short names as their full ones", () => {
     for (const language of LANGUAGES) {
       expect({ language, hasShort: hasShortWeekdayNames(language) }).toEqual({
         language,
-        hasShort: language !== "fa",
+        hasShort: language !== "fa" && language !== "ar",
       });
     }
   });
 
   test("a regional tag reads as its language, and an unknown one as English", () => {
     expect(hasShortWeekdayNames("fa-IR")).toBe(false);
+    expect(hasShortWeekdayNames("ar-EG")).toBe(false);
     expect(hasShortWeekdayNames("en-GB")).toBe(true);
     expect(hasShortWeekdayNames(undefined)).toBe(true);
     expect(hasShortWeekdayNames("xx-notalanguage")).toBe(true);
@@ -223,6 +211,22 @@ describe("getNarrowDayNameFormats", () => {
   test("a week's column with its day of the month, in the language's digits", () => {
     expect(getNarrowDayNameFormats("fa").weekdayAndDay(october(26, 12))).toBe(
       "د ۲۶",
+    );
+  });
+
+  test("Arabic's one-letter names, Sunday to Saturday", () => {
+    const narrow: NarrowDayNameFormats = getNarrowDayNameFormats("ar");
+
+    expect(
+      [25, 26, 27, 28, 29, 30, 31].map((day: number): string => {
+        return narrow.weekday(october(day, 12));
+      }),
+    ).toEqual(["ح", "ن", "ث", "ر", "خ", "ج", "س"]);
+  });
+
+  test("Arabic writes a week's day of the month in Latin digits, after an Arabic comma", () => {
+    expect(getNarrowDayNameFormats("ar").weekdayAndDay(october(26, 12))).toBe(
+      "ن، 26",
     );
   });
 });
@@ -294,6 +298,47 @@ describe("a Persian calendar's day names", () => {
     ).toHaveTextContent("دوشنبه ۲۶");
   });
 
+  test("an Arabic month's columns each carry the full name and the one-letter one", () => {
+    const container: HTMLElement = draw("ar", DefaultCalendarView.Month);
+    const headers: Array<HTMLElement> = headersOf(container);
+
+    expect(headers).toHaveLength(7);
+    expect(
+      headers.map((header: HTMLElement): string => {
+        return (
+          header.querySelector(".oneuptime-calendar-day-name__narrow")
+            ?.textContent || ""
+        );
+      }),
+    ).toEqual(["ح", "ن", "ث", "ر", "خ", "ج", "س"]);
+    expect(
+      headers[3]!.querySelector(".oneuptime-calendar-day-name__full"),
+    ).toHaveTextContent("الأربعاء");
+    // A screen reader reads the full name.
+    expect(headers[3]!.querySelector(".sr-only")).toHaveTextContent("الأربعاء");
+    expect(container.querySelector(".oneuptime-calendar")).toHaveClass(
+      LONG_DAY_NAMES_CLASS_NAME,
+    );
+  });
+
+  test("an Arabic week's columns carry the day of the month in Latin digits", () => {
+    const container: HTMLElement = draw("ar", DefaultCalendarView.Week);
+    const monday: HTMLElement = headersOf(container).find(
+      (header: HTMLElement): boolean => {
+        return Boolean(header.textContent?.includes("الاثنين"));
+      },
+    )!;
+
+    expect(
+      monday.querySelector(".oneuptime-calendar-day-name__narrow"),
+    ).toHaveTextContent("ن، 26");
+    expect(
+      monday.querySelector(".oneuptime-calendar-day-name__full")?.textContent,
+    ).toContain("26");
+    // No Arabic-Indic (٠-٩) or Persian (۰-۹) digit: Arabic writes Latin ones.
+    expect(monday.textContent).not.toMatch(/[٠-٩۰-۹]/);
+  });
+
   test.each(["en", "de"])(
     "%s: the names are the ones the calendar always drew, nothing added",
     (language: string) => {
@@ -338,14 +383,17 @@ describe("a block's stripe on its leading edge", () => {
     );
   });
 
-  test("a Persian calendar's soft block draws its stripe on the right", () => {
-    const container: HTMLElement = draw("fa", DefaultCalendarView.Week);
-    const block: HTMLElement = container.querySelector<HTMLElement>(
-      ".rbc-event.oneuptime-calendar-event--soft",
-    )!;
+  test.each(["fa", "ar"])(
+    "a %s calendar's soft block draws its stripe on the right",
+    (language: string) => {
+      const container: HTMLElement = draw(language, DefaultCalendarView.Week);
+      const block: HTMLElement = container.querySelector<HTMLElement>(
+        ".rbc-event.oneuptime-calendar-event--soft",
+      )!;
 
-    expect(block.style.boxShadow.startsWith("inset -3px 0 0 ")).toBe(true);
-  });
+      expect(block.style.boxShadow.startsWith("inset -3px 0 0 ")).toBe(true);
+    },
+  );
 
   test("an English calendar's soft block keeps its stripe on the left", () => {
     const container: HTMLElement = draw("en", DefaultCalendarView.Week);
@@ -449,23 +497,29 @@ describe("Calendar.css: the start side, whichever way the page reads", () => {
 });
 
 describe("two blocks at once lie from the day's start side", () => {
-  test("Persian: react-big-calendar is told the page reads right to left", () => {
-    const container: HTMLElement = drawWeekOf("fa", OVERLAPPING);
+  test.each(["fa", "ar"])(
+    "%s: react-big-calendar is told the page reads right to left",
+    (language: string) => {
+      const container: HTMLElement = drawWeekOf(language, OVERLAPPING);
 
-    expect(container.querySelector(".rbc-calendar")).toHaveClass("rbc-rtl");
-  });
+      expect(container.querySelector(".rbc-calendar")).toHaveClass("rbc-rtl");
+    },
+  );
 
-  test("Persian: the first block sits at the day's right edge, the next one beside it", () => {
-    const container: HTMLElement = drawWeekOf("fa", OVERLAPPING);
-    const first: HTMLElement = blockOf(container, "Database upgrade");
-    const second: HTMLElement = blockOf(container, "Cache flush");
+  test.each(["fa", "ar"])(
+    "%s: the first block sits at the day's right edge, the next one beside it",
+    (language: string) => {
+      const container: HTMLElement = drawWeekOf(language, OVERLAPPING);
+      const first: HTMLElement = blockOf(container, "Database upgrade");
+      const second: HTMLElement = blockOf(container, "Cache flush");
 
-    // Placed by their right edges: the first lane is the day's start side.
-    expect(first.style.right).toBe("0%");
-    expect(first.style.left).toBe("");
-    expect(parseFloat(second.style.right)).toBeGreaterThan(0);
-    expect(second.style.left).toBe("");
-  });
+      // Placed by their right edges: the first lane is the day's start side.
+      expect(first.style.right).toBe("0%");
+      expect(first.style.left).toBe("");
+      expect(parseFloat(second.style.right)).toBeGreaterThan(0);
+      expect(second.style.left).toBe("");
+    },
+  );
 
   test.each(["en", "de"])(
     "%s: the first block at the day's left edge, as it always was",

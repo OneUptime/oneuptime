@@ -27,6 +27,7 @@ import {
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 const LogDropFilterView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -289,7 +290,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
 
                 return (
                   <span className="text-lg font-semibold text-gray-900">
-                    {dropped.toLocaleString()}
+                    {dropped.toLocaleString(getReaderNumberLocale())}
                   </span>
                 );
               },

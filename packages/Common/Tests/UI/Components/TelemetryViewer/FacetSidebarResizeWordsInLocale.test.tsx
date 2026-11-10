@@ -16,6 +16,7 @@ import {
   COLUMN_RESIZE_HINT,
   COLUMN_RESIZE_WIDTH_TEMPLATE,
 } from "../../../../UI/Components/Table/ColumnResize/ColumnResizeHandle";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * What the filters sidebar's edge says, in every language: its name
@@ -33,24 +34,7 @@ const LOCALE_DIRECTORY: string = path.resolve(
   "../../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const OTHER_LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Each key with the English it stands for.
 const KEYS: Array<[string, string]> = [

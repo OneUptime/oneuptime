@@ -76,6 +76,7 @@ import { JSONObject } from "../../../Types/JSON";
 import { SHARED_VISITOR_ADDRESS_WINDOW_DAYS } from "../../../Server/Utils/InstanceHealth/SharedVisitorAddresses";
 import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -90,24 +91,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 
 const PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
 

@@ -29,6 +29,7 @@ import {
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { getTemplatePlaceholders, Translator } from "../../../Types/Translator";
 import IconProp from "../../../Types/Icon/IconProp";
+import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 import {
   forgetRememberedDateTexts,
   setDateDisplayLanguage,
@@ -478,8 +479,9 @@ describe("the hero's identifier line", () => {
           expect({ label, language, isMonospace }).toEqual({
             label,
             language,
-            // Persian is the Dashboard's one language read right to left.
-            isMonospace: language !== "fa" || label === "service.name",
+            // Persian and Arabic are the Dashboard's languages read right to left.
+            isMonospace:
+              !isRightToLeftLanguage(language) || label === "service.name",
           });
         }
       }

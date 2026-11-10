@@ -81,6 +81,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * A RESOURCE'S AI LOGS PAGE IN EVERY LANGUAGE (#5367's follow-up).
@@ -106,24 +107,7 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 const WAIT_TIMEOUT: number = 20000;
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,

@@ -30,6 +30,8 @@ import {
   getSecurityWatchlistFiltersProblem,
 } from "../../../Types/SecurityEvent/SecurityWatchlistFilter";
 import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { wordAsWrittenIn } from "../../Helpers/ArabicWords";
 
 /*
  * EVERY WORD OF WATCHLISTS IS EVERY LANGUAGE'S OWN: the list and its
@@ -52,24 +54,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Japanese, Korean and Chinese read no "one" form: theirs may say the same.
 const WITHOUT_ONE_FORM: Array<string> = ["ja", "ko", "zh-CN", "zh-TW"];
@@ -327,24 +312,7 @@ const SAME_WORD_IN: Record<string, Array<string>> = {
   Description: ["fr"],
   Hosts: ["de", "es", "pt", "nl"],
   // A word every language's Dashboard keeps: an address on the web.
-  URL: [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ],
+  URL: [...DASHBOARD_LANGUAGES],
   // As each of these languages names a monitor and a hunt everywhere else.
   Monitor: ["es", "it", "pt", "nl"],
   Hunt: ["nl", "da", "no", "sv"],
@@ -515,8 +483,9 @@ describe.each(LANGUAGES)("%s words every sentence", (language: string) => {
 
     expect(placeholders(translated!)).toEqual(placeholders(sentence));
 
+    // Arabic names a format without its dot: "ملف txt".
     for (const written of WRITTEN_AS_IS[sentence] || []) {
-      expect(translated).toContain(written);
+      expect(translated).toContain(wordAsWrittenIn(language, written));
     }
   });
 

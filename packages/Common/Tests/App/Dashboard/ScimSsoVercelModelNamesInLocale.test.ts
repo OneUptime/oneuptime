@@ -7,6 +7,7 @@ import UserProjectSsoConsent from "../../../Models/DatabaseModels/UserProjectSso
 import UserProjectSsoIdentity from "../../../Models/DatabaseModels/UserProjectSsoIdentity";
 import VercelMarketplaceConnection from "../../../Models/DatabaseModels/VercelMarketplaceConnection";
 import VercelMarketplaceInstallation from "../../../Models/DatabaseModels/VercelMarketplaceInstallation";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The names, descriptions and column titles of the models SCIM provisioning,
@@ -27,24 +28,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const MODELS: Array<{ name: string; model: BaseModel }> = [
   { name: "ProjectSCIMUser", model: new ProjectSCIMUser() },

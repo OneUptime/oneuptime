@@ -21,6 +21,7 @@ import {
   RULE_CRITERIA_SUBJECT_COPY,
   RuleCriteriaSubjectCopy,
 } from "../../../../UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * The conditions builder is drawn in the dashboard, which looks every string
@@ -50,24 +51,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 type ReadLocaleFunction = (locale: string) => Record<string, string>;
 

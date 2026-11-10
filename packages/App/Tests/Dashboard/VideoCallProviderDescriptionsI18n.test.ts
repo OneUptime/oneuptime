@@ -7,6 +7,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * A one-click provider's one-line description - Zoom's, Google Meet's,
@@ -37,24 +38,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Each description, and the brand of the account it names ("Google").
 const DESCRIPTIONS: Array<[string, string]> = OAuthVideoCallProviders.map(

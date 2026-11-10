@@ -36,6 +36,7 @@ import { getDefaultSubscriberNotificationTemplate } from "../../FeatureSet/Dashb
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { STATUS_PAGE_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 // The email language helpers the templates word their text with.
 registerEmailLanguageHelpers(Handlebars);
@@ -987,41 +988,27 @@ describe("the uptime report in its reader's language", () => {
     expect(html).not.toContain("No resources have been added");
   });
 
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])("%s words the title, the summary and the button", (language: string) => {
-    const html: string = renderIn(language);
+  test.each([...STATUS_PAGE_LANGUAGES])(
+    "%s words the title, the summary and the button",
+    (language: string) => {
+      const html: string = renderIn(language);
 
-    for (const words of [
-      "Uptime Report:",
-      "Here is your status summary for",
-      "View Full Status Page",
-      "Breakdown by group",
-    ]) {
-      expect([language, words, html.includes(words)]).toEqual([
-        language,
-        words,
-        false,
-      ]);
-    }
+      for (const words of [
+        "Uptime Report:",
+        "Here is your status summary for",
+        "View Full Status Page",
+        "Breakdown by group",
+      ]) {
+        expect([language, words, html.includes(words)]).toEqual([
+          language,
+          words,
+          false,
+        ]);
+      }
 
-    expect(html).toContain(`lang="${language}"`);
-  });
+      expect(html).toContain(`lang="${language}"`);
+    },
+  );
 
   test("English: one resource is one resource", () => {
     const html: string = renderIn(

@@ -20,6 +20,7 @@ import { getContrastRatio, parseColor } from "Common/Utils/ColorContrast";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * Theme, on a dashboard's Branding page (DashboardThemeCopy): one choice of
@@ -45,24 +46,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readLocale(locale: string): Record<string, unknown> {
   return JSON.parse(

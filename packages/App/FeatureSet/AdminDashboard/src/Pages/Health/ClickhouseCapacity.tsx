@@ -23,6 +23,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 const asArray: (value: unknown) => JSONArray = (value: unknown): JSONArray => {
   return (value || []) as JSONArray;
@@ -47,7 +48,7 @@ const toNumberOrNull: (value: unknown) => number | null = (
 
 const formatNumber: (value: unknown) => string = (value: unknown): string => {
   const parsed: number | null = toNumberOrNull(value);
-  return parsed === null ? "—" : parsed.toLocaleString();
+  return parsed === null ? "—" : parsed.toLocaleString(getReaderNumberLocale());
 };
 
 const bytesToReadable: (value: unknown) => string = (

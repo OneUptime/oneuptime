@@ -26,6 +26,7 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * What the plan picker says about each plan, and about what picking it means
@@ -58,24 +59,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readLocale(code: string): Record<string, unknown> {
   return JSON.parse(

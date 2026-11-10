@@ -8,6 +8,7 @@ import {
   RelativeTimeParts,
   toDate,
 } from "../../FeatureSet/Dashboard/src/Components/Home/HomeRelativeTime";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The times Home puts beside an incident, a maintenance window and the last
@@ -129,25 +130,7 @@ describe("the words", () => {
 describe("any time, any language", () => {
   test("never throws, never says NaN, and says the past as the past", () => {
     const random: SeededRandom = seededRandom(1013);
-    const languages: Array<string> = [
-      "en",
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-    ];
+    const languages: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
     for (let draw: number = 0; draw < 3000; draw++) {
       // Up to two years either side of now.

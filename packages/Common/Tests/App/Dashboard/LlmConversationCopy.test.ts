@@ -19,6 +19,7 @@ import {
   LlmCallKindUtil,
 } from "../../../Types/Telemetry/LlmCallKind";
 import { LlmConversationSort } from "../../../Types/Telemetry/LlmConversationApi";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The words the AI pages use for what went wrong with an answer and what a
@@ -48,24 +49,7 @@ const GLOBAL_SAME_AS_ENGLISH: Array<string> = JSON.parse(
   ),
 ) as Array<string>;
 
-const LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readJson(file: string): Record<string, unknown> {
   return JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;

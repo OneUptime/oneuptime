@@ -69,6 +69,7 @@ import { metaForEntityType } from "./TopologyMeta";
 import { nounForType } from "./ServiceMapViewModel";
 import { ResourceTopologyLink } from "../ResourceTopology/ResourceTopologyLinks";
 import useResourceTopologyLink from "../ResourceTopology/UseResourceTopologyLink";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * Infrastructure: "what runs where", walked top-down.
@@ -930,7 +931,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 : node.kind === "group"
                   ? node.childIds.length
                   : node.resourceCount
-              ).toLocaleString()}
+              ).toLocaleString(getReaderNumberLocale())}
             </span>
           </button>
         </div>
@@ -945,14 +946,15 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   type="button"
                   className="my-1 rounded px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
                   style={{ marginInlineStart: 4 + (depth + 1) * 14 + 28 }}
-                  aria-label={`${t("Show all")} ${containers.length.toLocaleString()} ${t("in")} ${node.kind === "category" ? t(node.name) : node.name}`}
+                  aria-label={`${t("Show all")} ${containers.length.toLocaleString(getReaderNumberLocale())} ${t("in")} ${node.kind === "category" ? t(node.name) : node.name}`}
                   onClick={() => {
                     setTreeShowAll((previous: Set<string>) => {
                       return new Set<string>([...previous, id]);
                     });
                   }}
                 >
-                  {t("Show all")} {containers.length.toLocaleString()}
+                  {t("Show all")}{" "}
+                  {containers.length.toLocaleString(getReaderNumberLocale())}
                 </button>
               </li>
             )}
@@ -1226,7 +1228,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         </div>
         {pageCount > 1 &&
           renderPager({
-            label: `${t("Page")} ${(currentPage + 1).toLocaleString()} / ${pageCount.toLocaleString()}`,
+            label: `${t("Page")} ${(currentPage + 1).toLocaleString(getReaderNumberLocale())} / ${pageCount.toLocaleString(getReaderNumberLocale())}`,
             canGoBack: currentPage > 0,
             canGoForward: currentPage + 1 < pageCount,
             onBack: () => {
@@ -1361,7 +1363,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       pageIndex + 1,
     );
     const pager: ReactElement = renderPager({
-      label: `${t("Page")} ${(pageIndex + 1).toLocaleString()} ${t("of")} ${pageCount.toLocaleString()} · ${page.total.toLocaleString()} ${noun(page.total)}`,
+      label: `${t("Page")} ${(pageIndex + 1).toLocaleString(getReaderNumberLocale())} ${t("of")} ${pageCount.toLocaleString(getReaderNumberLocale())} · ${page.total.toLocaleString(getReaderNumberLocale())} ${noun(page.total)}`,
       canGoBack: pageIndex > 0,
       canGoForward: Boolean(page.nextCursor),
       onBack: () => {
@@ -1543,7 +1545,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       return (
         <div className="mb-4 space-y-2">
           {collectionMatches.map((match: CollectionMatch): ReactElement => {
-            const label: string = `${match.count.toLocaleString()} ${t("matching")} ${nounForType(match.node.entityType || "", match.count)}`;
+            const label: string = `${match.count.toLocaleString(getReaderNumberLocale())} ${t("matching")} ${nounForType(match.node.entityType || "", match.count)}`;
             return (
               <button
                 key={match.node.id}
@@ -1710,7 +1712,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   <Icon icon={stat.icon} className="h-4 w-4 text-indigo-400" />
                 </div>
                 <p className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
-                  {stat.count.toLocaleString()}
+                  {stat.count.toLocaleString(getReaderNumberLocale())}
                 </p>
                 <p className="mt-0.5 truncate text-xs text-gray-500">
                   {t(stat.hint)}
@@ -1780,7 +1782,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               {t("Nothing reported in this time range")}
             </h3>
             <p className="mt-2 text-sm text-gray-500">
-              {inactiveHidden.toLocaleString()}{" "}
+              {inactiveHidden.toLocaleString(getReaderNumberLocale())}{" "}
               {t(
                 "resources are known but have been silent. Pick a longer time range or show inactive resources.",
               )}
@@ -1804,7 +1806,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 <Icon icon={IconProp.Layers} className="h-4 w-4" />
                 <span className="flex-1">{t("All infrastructure")}</span>
                 <span className="text-xs font-normal text-gray-500">
-                  {model.resourceCount.toLocaleString()}
+                  {model.resourceCount.toLocaleString(getReaderNumberLocale())}
                 </span>
               </button>
               <ul
@@ -1886,10 +1888,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     </h3>
                     <p role="status" className="mt-0.5 text-xs text-gray-500">
                       {searching
-                        ? `${(results.length + collectionMatchCount).toLocaleString()} ${t(results.length + collectionMatchCount === 1 ? "match" : "matches")}`
+                        ? `${(results.length + collectionMatchCount).toLocaleString(getReaderNumberLocale())} ${t(results.length + collectionMatchCount === 1 ? "match" : "matches")}`
                         : scope
                           ? `${scope.kind === "resource" ? `${t(metaForEntityType(scope.entityType || undefined).label)} · ` : ""}${summarizeCounts(scope.countsByType, 4) || t("Empty")}`
-                          : `${model.resourceCount.toLocaleString()} ${t("resources")}`}
+                          : `${model.resourceCount.toLocaleString(getReaderNumberLocale())} ${t("resources")}`}
                     </p>
                     {!searching && scope && scope.serviceKeys.length > 0 && (
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">

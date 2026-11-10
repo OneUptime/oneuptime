@@ -6,6 +6,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * THE DASHBOARD'S TELEMETRY INGESTION BUDGETS (issue #5917):
@@ -44,24 +45,7 @@ const compact: (code: string) => string = (code: string): string => {
   return code.replace(/\s+/g, "").replace(/,(?=[)}\]])/g, "");
 };
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 describe("the Dashboard's ingestion budgets", () => {
   test("are read from the project route, as the current project", () => {

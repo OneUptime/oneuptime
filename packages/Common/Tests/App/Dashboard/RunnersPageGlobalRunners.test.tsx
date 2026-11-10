@@ -60,6 +60,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * Runbooks -> Runners, with and without global Runners - the Runners
@@ -495,24 +496,7 @@ describe("Runbooks -> Runners, on a server with global Runners", () => {
     );
   });
 
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])(
+  test.each([...DASHBOARD_LANGUAGES])(
     "%s words what the global card says about code fixes",
     (language: string) => {
       const words: Record<string, string> = JSON.parse(
@@ -608,24 +592,7 @@ describe("Runbooks -> Runners, on a server with global Runners", () => {
     ).toBeNull();
   });
 
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])(
+  test.each([...DASHBOARD_LANGUAGES])(
     "%s words the line under a global Runner that takes none",
     (language: string) => {
       const words: Record<string, string> = JSON.parse(

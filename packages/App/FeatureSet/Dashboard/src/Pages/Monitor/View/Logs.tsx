@@ -43,6 +43,10 @@ import MonitorLogSummaryUtil, {
   IncomingEmailLogEntryKind,
 } from "Common/Utils/Monitor/MonitorLogSummaryUtil";
 import { MonitorSummaryInfoProps } from "Common/Utils/Monitor/MonitorSummarySnapshotUtil";
+import TelemetryObservation, {
+  TelemetryObservationKind,
+} from "Common/Types/Monitor/TelemetryObservation";
+import { getTelemetryObservationText } from "../../../Components/Monitor/SummaryView/TelemetryObservationText";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
@@ -127,6 +131,64 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const isIncomingEmailMonitor: boolean =
     monitorType === MonitorType.IncomingEmail;
+
+  const isTelemetryMonitor: boolean = monitorType
+    ? MonitorTypeHelper.isTelemetryMonitor(monitorType)
+    : false;
+
+  type GetObservationTextFunction = (log: MonitorLog) => string | null;
+
+  // What a telemetry check saw, in words: "12 logs", "3 series", "No data".
+  const getObservationText: GetObservationTextFunction = (
+    log: MonitorLog,
+  ): string | null => {
+    const observation: TelemetryObservation | null =
+      MonitorLogSummaryUtil.getTelemetryObservation({
+        monitorType: monitorType!,
+        logBody: log.logBody,
+      });
+
+    if (!observation) {
+      return null;
+    }
+
+    return getTelemetryObservationText(translator, observation);
+  };
+
+  type GetObservationCellFunction = (log: MonitorLog) => ReactElement;
+
+  const getObservationCell: GetObservationCellFunction = (
+    log: MonitorLog,
+  ): ReactElement => {
+    const observation: TelemetryObservation | null =
+      MonitorLogSummaryUtil.getTelemetryObservation({
+        monitorType: monitorType!,
+        logBody: log.logBody,
+      });
+
+    if (!observation) {
+      return <span className="text-sm text-gray-400">—</span>;
+    }
+
+    const text: string = getTelemetryObservationText(translator, observation);
+
+    /*
+     * A metric check that read nothing is why its criteria did not match
+     * more often than anything else, so it stands out from the counts.
+     */
+    if (observation.kind === TelemetryObservationKind.NoMetricData) {
+      return (
+        <span
+          data-testid="monitor-log-no-data"
+          className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
+        >
+          {text}
+        </span>
+      );
+    }
+
+    return <span className="text-sm text-gray-700">{text}</span>;
+  };
 
   type GetIncomingEmailCellFunction = (log: MonitorLog) => ReactElement;
 
@@ -228,7 +290,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       return <ErrorMessage message={error} />;
     }
 
-    if (monitorType === MonitorType.Manual) {
+    if (!MonitorTypeHelper.hasMonitoringLogs(monitorType)) {
       return (
         <EmptyState
           id="monitoring-probes-empty-state"
@@ -332,6 +394,31 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         item.logBody,
                       ),
                     );
+                  },
+                },
+              ]
+            : []),
+          /*
+           * What each check of a telemetry monitor saw: the logs, spans or
+           * exceptions its criteria counted, or the data a metric check
+           * read - so a check that saw nothing is found without opening
+           * every row.
+           */
+          ...(isTelemetryMonitor
+            ? [
+                {
+                  field: {
+                    logBody: true,
+                  },
+                  title: "Observed",
+                  type: FieldType.Text,
+                  // Backed by the whole logBody: there is nothing to sort on.
+                  disableSort: true,
+                  getElement: (item: MonitorLog): ReactElement => {
+                    return getObservationCell(item);
+                  },
+                  getExportValue: (item: MonitorLog): string => {
+                    return getObservationText(item) || "";
                   },
                 },
               ]

@@ -49,6 +49,7 @@ import {
   formatErrorRate,
   metaForEntityType,
 } from "./TopologyMeta";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * The map of ONE level of the infrastructure tree: the things directly inside
@@ -1084,7 +1085,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
    */
   const trafficStatus: string =
     linkCount > 0
-      ? `${linkCount.toLocaleString()} ${t(
+      ? `${linkCount.toLocaleString(getReaderNumberLocale())} ${t(
           linkCount === 1 ? "connection" : "connections",
         )} · ${t(
           "Lines are calls between the services on these cards, measured per service.",

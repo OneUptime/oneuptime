@@ -42,6 +42,7 @@ import {
   readWindowMinutes,
   securityEventConnectionRunLabels,
 } from "./SecurityEventConnectionDiagnosticsUtil";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * A UTC timestamp whose hover text carries the viewer's local time. Every
@@ -422,7 +423,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
               return (
                 <div key={label} className="rounded-md bg-gray-50 p-3">
                   <div className="text-xl font-semibold text-gray-900">
-                    {value.toLocaleString()}
+                    {value.toLocaleString(getReaderNumberLocale())}
                   </div>
                   <div className="text-xs text-gray-600">{label}</div>
                 </div>

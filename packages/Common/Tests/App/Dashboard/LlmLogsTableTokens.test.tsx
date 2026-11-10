@@ -68,6 +68,7 @@ import {
   PluralTemplate,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 interface TokensColumn {
   title: string;
@@ -82,24 +83,7 @@ const LOCALES_DIR: string = path.join(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // The facts the column states, as en.json keys them (the "other" forms).
 const FACT_TEMPLATES: Array<PluralTemplate> = [

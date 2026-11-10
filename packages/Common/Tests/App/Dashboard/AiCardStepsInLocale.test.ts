@@ -39,6 +39,7 @@ import {
   RemediationTryAgainResult,
   RemediationTryAgainSignal,
 } from "../../../Types/AutoRemediation/RemediationTryAgain";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * EVERY WORD OF THE AI CARD'S TWO STEPS IS EVERY LANGUAGE'S OWN (block 43).
@@ -58,24 +59,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const SIGNALS: Array<RemediationTryAgainSignal> = ["incident", "alert"];
 

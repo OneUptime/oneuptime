@@ -40,6 +40,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 interface ServiceExceptionSummary {
   /*
@@ -599,9 +600,9 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                             </div>
                             <div className="text-right shrink-0">
                               <p className="text-sm font-semibold text-gray-900 tabular-nums">
-                                {(
-                                  exception.occuranceCount || 0
-                                ).toLocaleString()}
+                                {(exception.occuranceCount || 0).toLocaleString(
+                                  getReaderNumberLocale(),
+                                )}
                               </p>
                               <p className="text-[10px] uppercase tracking-wide text-gray-400 mt-0.5">
                                 {translator.translatePlural(
@@ -807,7 +808,7 @@ const StatCell: FunctionComponent<StatCellProps> = (
         <p
           className={`text-3xl font-semibold mt-3 tabular-nums ${props.valueClassName}`}
         >
-          {props.value.toLocaleString()}
+          {props.value.toLocaleString(getReaderNumberLocale())}
         </p>
         <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
           {translator.translateText(props.sublabel)}

@@ -12,6 +12,7 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationGroupingNote,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
 import EvaluationLogList from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/EvaluationLogList";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * A grouping note among the Monitor Summary's Actions, in the reader's
@@ -31,24 +32,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const AT: Date = new Date("2026-10-20T09:01:00.000Z");
 const CRITERIA_ID: string = "6c1e1d6a-0001-4c00-8000-000000000001";

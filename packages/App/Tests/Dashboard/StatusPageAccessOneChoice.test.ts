@@ -10,6 +10,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { STATUS_PAGE_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * Who can see a status page is one choice, on its Security -> Access page:
@@ -42,24 +43,7 @@ const DASHBOARD_SRC: string = path.join(
 const COMMON_ROOT: string = path.join(APP_ROOT, "..", "Common");
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...STATUS_PAGE_LANGUAGES];
 
 // Source with comments dropped and whitespace collapsed.
 function readSource(file: string): string {

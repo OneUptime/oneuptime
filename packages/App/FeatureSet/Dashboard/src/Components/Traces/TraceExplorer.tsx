@@ -107,6 +107,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export type TraceViewMode =
   | "waterfall"
@@ -1042,7 +1043,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     {
       value: "operations",
       label: "Operations",
-      hint: operations.length.toLocaleString(),
+      hint: operations.length.toLocaleString(getReaderNumberLocale()),
     },
   ];
 
@@ -1371,7 +1372,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 <span
                   className={`rounded-full px-1.5 text-xs tabular-nums ${errorsOnly ? "bg-red-100" : "bg-gray-100 text-gray-600"}`}
                 >
-                  {summary.errorCount.toLocaleString()}
+                  {summary.errorCount.toLocaleString(getReaderNumberLocale())}
                 </span>
               </button>
               {viewMode === "waterfall" && (

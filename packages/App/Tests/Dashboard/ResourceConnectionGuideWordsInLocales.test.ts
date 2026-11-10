@@ -15,6 +15,8 @@ import { SERVERLESS_FUNCTION_RECEIVING_DATA_LABEL } from "Common/Types/Serverles
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
+import { wordAsWrittenIn } from "Common/Tests/Helpers/ArabicWords";
 
 /*
  * THE "HOW DO I CONNECT THIS?" CARD READS IN THE READER'S LANGUAGE (issue
@@ -48,24 +50,7 @@ const CARD_FILES: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuides.ts",
 ];
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 type Locale = Record<string, unknown>;
 
@@ -251,7 +236,8 @@ describe("the connection card's and its guides' words", () => {
         const worded: string = String(words[text]);
         const missing: Array<string> = asWrittenIn(text).filter(
           (token: string): boolean => {
-            return !worded.includes(token);
+            // Arabic writes "browser.*" as the name it starts with.
+            return !worded.includes(wordAsWrittenIn(language, token));
           },
         );
 

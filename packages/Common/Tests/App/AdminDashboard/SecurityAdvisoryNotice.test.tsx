@@ -106,6 +106,7 @@ import UpdateStatusUtil, {
   UpdateState,
   UpdateStatus,
 } from "../../../Types/UpdateCheck/UpdateStatus";
+import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const ADMIN_LOCALES: string = path.join(
   __dirname,
@@ -120,25 +121,7 @@ const ADMIN_LOCALES: string = path.join(
   "Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = ["en", ...ADMIN_DASHBOARD_LANGUAGES];
 
 type Locale = Record<string, unknown>;
 

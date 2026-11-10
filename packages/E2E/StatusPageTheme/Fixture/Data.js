@@ -320,6 +320,8 @@ export const buildFixture = (data) => {
     pageTitle: "Acme Cloud Status",
     pageDescription: "How Acme Cloud is doing right now.",
     theme: data.theme,
+    // The page's default language, which a visitor who never chose one reads.
+    ...(data.language ? { defaultLanguage: data.language } : {}),
     logoFile: logoFile(),
     logoFileId: new ObjectID(id(900)),
     ...(data.hasDarkLogo

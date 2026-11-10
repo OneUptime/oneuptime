@@ -9,6 +9,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import i18next from "i18next";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * WHAT A FORM SAYS UNDER A LIST OF PHONE NUMBERS THAT HOLDS SOMETHING ELSE.
@@ -93,24 +94,7 @@ describe("getPhoneNumberListError", () => {
 
     expect(english[PHONE_NUMBER_LIST_ERROR]).toBe(PHONE_NUMBER_LIST_ERROR);
 
-    for (const language of [
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-    ]) {
+    for (const language of [...DASHBOARD_LANGUAGES]) {
       const translated: string | undefined =
         locale(language)[PHONE_NUMBER_LIST_ERROR];
 

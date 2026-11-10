@@ -116,6 +116,7 @@ import GlobalConfig, {
   EmailServerType,
 } from "../../../Models/DatabaseModels/GlobalConfig";
 import Protocol from "../../../Types/API/Protocol";
+import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -130,24 +131,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 
 type Locale = Record<string, unknown>;
 

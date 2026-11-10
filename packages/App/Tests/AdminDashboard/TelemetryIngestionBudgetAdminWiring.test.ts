@@ -22,6 +22,7 @@ import FormField from "Common/UI/Components/Forms/Types/Field";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * THE INSTANCE ADMIN'S TELEMETRY INGESTION BUDGETS (issue #5917):
@@ -104,24 +105,7 @@ const valueAt: (locale: Locale, key: string) => unknown = (
   return value;
 };
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 
 const NESTED_KEYS: ReadonlyArray<string> = [
   "breadcrumbs.ingestionBudgets",

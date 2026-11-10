@@ -40,6 +40,7 @@ import {
   Translator,
   createTranslator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * Where an asset detail came from, and when, in words (OneUptime issue
@@ -71,24 +72,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readLocale(code: string): Record<string, unknown> {
   return JSON.parse(

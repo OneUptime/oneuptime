@@ -18,6 +18,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   monitorStepSecurityEventsMonitor:
@@ -133,7 +134,7 @@ const SecurityEventsMonitorPreview: FunctionComponent<ComponentProps> = (
   return (
     <div>
       <div className="text-3xl font-semibold text-gray-900">
-        {count.toLocaleString()}
+        {count.toLocaleString(getReaderNumberLocale())}
       </div>
       <div className="mt-1 text-sm text-gray-500">
         {translator.translatePlural(

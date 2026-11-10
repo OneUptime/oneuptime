@@ -39,6 +39,7 @@ import {
   createTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The AI alert cards promise things in words - "more than 5% of answers in
@@ -56,24 +57,7 @@ const PROGRESS_DIR: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/i18n/Progress",
 );
-const LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // The English translator: every lookup reads back the English it was given.
 const ENGLISH: Translator = createTranslator(undefined, "en");

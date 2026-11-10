@@ -43,6 +43,7 @@ import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { makeInsights, toBody } from "./AiActivityInsightsFixtures";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * WHERE A FIX WAS APPROVED, ON THE DASHBOARD (#5519's follow-up:
@@ -354,24 +355,7 @@ describe("AI Insights: where fixes were approved", () => {
   });
 
   test("its words are every language's own", () => {
-    for (const language of [
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-    ]) {
+    for (const language of [...DASHBOARD_LANGUAGES]) {
       const translator: Translator = translatorFor(language);
 
       expect({

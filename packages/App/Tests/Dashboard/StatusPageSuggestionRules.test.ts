@@ -23,6 +23,7 @@ import StatusPagesListingMonitors, {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { STATUS_PAGE_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * Suggesting the status pages that show the affected monitors, under the
@@ -50,24 +51,7 @@ const DASHBOARD_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...STATUS_PAGE_LANGUAGES];
 
 // Languages without a "one" form never show a _one key: it may stay English.
 const NO_ONE_FORM: Array<string> = ["ja", "ko", "zh-CN", "zh-TW"];

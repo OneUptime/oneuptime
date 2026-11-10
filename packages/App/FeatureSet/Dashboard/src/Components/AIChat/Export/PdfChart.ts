@@ -8,6 +8,7 @@ import {
   toExportChartSeries,
 } from "Common/UI/Utils/AIChatExport/ChatWidgetData";
 import PdfDocument, { PDF_COLORS } from "./PdfDocument";
+import { getReaderDateLocale } from "Common/Types/DateLanguage";
 
 /*
  * Draws a chart widget as real vector graphics.
@@ -99,13 +100,13 @@ function formatTimeLabel(date: Date, spanMs: number): string {
   const TWO_YEARS: number = 2 * 365 * 24 * 60 * 60 * 1000;
 
   if (spanMs <= TWO_HOURS) {
-    return date.toLocaleTimeString(undefined, {
+    return date.toLocaleTimeString(getReaderDateLocale(), {
       hour: "2-digit",
       minute: "2-digit",
     });
   }
   if (spanMs <= TWO_DAYS) {
-    return date.toLocaleString(undefined, {
+    return date.toLocaleString(getReaderDateLocale(), {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -113,12 +114,12 @@ function formatTimeLabel(date: Date, spanMs: number): string {
     });
   }
   if (spanMs <= TWO_YEARS) {
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString(getReaderDateLocale(), {
       month: "short",
       day: "numeric",
     });
   }
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(getReaderDateLocale(), {
     month: "short",
     year: "numeric",
   });
