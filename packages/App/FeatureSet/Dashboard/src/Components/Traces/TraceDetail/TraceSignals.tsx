@@ -81,6 +81,7 @@ import DashboardLogsViewer from "../../Logs/LogsViewer";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
 import TraceProfilerLink from "./TraceProfilerLink";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export type CorrelatedSignalTab = "logs" | "exceptions" | "metrics" | "profile";
 
@@ -139,10 +140,10 @@ export function formatTraceMetricValue(value: number): string {
     return "-";
   }
   if (Math.abs(value) >= 1000) {
-    return Math.round(value).toLocaleString();
+    return Math.round(value).toLocaleString(getReaderNumberLocale());
   }
   if (Number.isInteger(value)) {
-    return value.toLocaleString();
+    return value.toLocaleString(getReaderNumberLocale());
   }
   return value.toFixed(2);
 }
@@ -747,7 +748,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
                           : "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {tab.count.toLocaleString()}
+                      {tab.count.toLocaleString(getReaderNumberLocale())}
                     </span>
                   )}
                 </button>

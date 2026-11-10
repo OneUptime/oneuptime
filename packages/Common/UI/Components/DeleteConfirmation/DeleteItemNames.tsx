@@ -1,6 +1,7 @@
 import { NameListSummary, summarizeNames } from "../../Utils/ModelDisplayName";
 import { translateTemplate } from "../../Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
+import { getReaderNumberLocale } from "../../../Types/DateLanguage";
 
 /*
  * Which records a bulk delete is about to remove, under its "Are you sure you
@@ -58,7 +59,9 @@ const DeleteItemNames: FunctionComponent<ComponentProps> = (
           className="mt-1 pl-5 text-sm text-gray-500"
         >
           {translateTemplate(DELETE_MORE_ITEMS_TEMPLATE, {
-            remaining: summary.remainingCount.toLocaleString(),
+            remaining: summary.remainingCount.toLocaleString(
+              getReaderNumberLocale(),
+            ),
           })}
         </p>
       ) : (

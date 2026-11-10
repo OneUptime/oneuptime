@@ -31,6 +31,7 @@ import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseMod
 import Sort from "../../../Types/BaseDatabase/Sort";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
+import { getReaderNumberLocale } from "../../../Types/DateLanguage";
 
 export interface ComponentProps<T extends GenericObject> {
   tableId: string;
@@ -547,7 +548,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
           </span>
           {allTableViews.length > 0 && (
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gray-100 px-1.5 text-[11px] font-medium text-gray-600">
-              {allTableViews.length.toLocaleString()}
+              {allTableViews.length.toLocaleString(getReaderNumberLocale())}
             </span>
           )}
           <Icon

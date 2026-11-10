@@ -21,6 +21,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import URL from "Common/Types/API/URL";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { getReaderDateLocale } from "Common/Types/DateLanguage";
 
 /*
  * The BI tools Data Observability reads dashboards from, and the dashboards
@@ -238,7 +239,9 @@ const BiDashboardsPage: FunctionComponent<
               return (
                 <span className="text-sm text-gray-700">
                   {item.lastSyncedAt
-                    ? new Date(item.lastSyncedAt).toLocaleString()
+                    ? new Date(item.lastSyncedAt).toLocaleString(
+                        getReaderDateLocale(),
+                      )
                     : "-"}
                 </span>
               );

@@ -29,6 +29,10 @@ import {
   buildSecurityEventFacetLinkParams,
 } from "./SecurityEventsFacets";
 import { getSecurityEventsTimeRangeLinkParams } from "./SecurityEventsTimeRange";
+import {
+  getReaderDateLocale,
+  getReaderNumberLocale,
+} from "Common/Types/DateLanguage";
 
 /*
  * Shared by every provider on the Security Event Connections page. The
@@ -115,7 +119,7 @@ export function formatConnectionLocalDate(
     return "";
   }
 
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(getReaderDateLocale(), {
     year: "numeric",
     month: "short",
     day: "2-digit",
@@ -678,7 +682,7 @@ export function formatConnectorCountValue(value: unknown): string {
   }
 
   if (typeof value === "number") {
-    return value.toLocaleString();
+    return value.toLocaleString(getReaderNumberLocale());
   }
 
   if (value === null || value === undefined || value === "") {
@@ -941,5 +945,5 @@ export function formatWindowMinutes(minutes: number): string {
     return `${hours} hour${hours === 1 ? "" : "s"}`;
   }
 
-  return `${minutes.toLocaleString()} minute${minutes === 1 ? "" : "s"}`;
+  return `${minutes.toLocaleString("en-US")} minute${minutes === 1 ? "" : "s"}`;
 }

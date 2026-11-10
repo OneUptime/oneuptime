@@ -18,6 +18,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { getReaderDateLocale } from "Common/Types/DateLanguage";
 
 const asObject: (value: unknown) => JSONObject = (
   value: unknown,
@@ -75,7 +76,9 @@ const formatDateTime: (value: unknown) => string = (value: unknown): string => {
   }
 
   const date: Date = new Date(raw);
-  return isNaN(date.getTime()) ? raw : date.toLocaleString();
+  return isNaN(date.getTime())
+    ? raw
+    : date.toLocaleString(getReaderDateLocale());
 };
 
 const humanize: (value: unknown) => string = (value: unknown): string => {

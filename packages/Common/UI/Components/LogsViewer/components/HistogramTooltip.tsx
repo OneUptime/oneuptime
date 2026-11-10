@@ -3,6 +3,7 @@ import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import OneUptimeDate from "../../../../Types/Date";
 import { getSeverityColor } from "./severityColors";
+import { getReaderNumberLocale } from "../../../../Types/DateLanguage";
 
 export interface TooltipEntry {
   severity: string;
@@ -106,7 +107,7 @@ const HistogramTooltip: FunctionComponent<HistogramTooltipProps> = (
                 <span className="text-xs text-gray-600">{colorLabel}</span>
               </div>
               <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
-                {entry.count.toLocaleString()}
+                {entry.count.toLocaleString(getReaderNumberLocale())}
               </span>
             </div>
           );
@@ -118,7 +119,7 @@ const HistogramTooltip: FunctionComponent<HistogramTooltipProps> = (
             {translator.translateText("Total")}
           </span>
           <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
-            {total.toLocaleString()}
+            {total.toLocaleString(getReaderNumberLocale())}
           </span>
         </div>
       )}

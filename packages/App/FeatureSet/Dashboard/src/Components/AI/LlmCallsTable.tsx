@@ -36,6 +36,7 @@ import {
 import useLlmSetupCheck, {
   LlmSetupCheckState,
 } from "./SetupCheck/useLlmSetupCheck";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   // Extra query (merged with isLlmSpan + projectId).
@@ -464,10 +465,11 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
             const total: number = Number(span.llmTotalTokens || 0);
             return (
               <span className="font-mono text-xs text-gray-700">
-                {input.toLocaleString()} / {output.toLocaleString()}
+                {input.toLocaleString(getReaderNumberLocale())} /{" "}
+                {output.toLocaleString(getReaderNumberLocale())}
                 <span className="text-gray-400">
                   {" "}
-                  ({total.toLocaleString()})
+                  ({total.toLocaleString(getReaderNumberLocale())})
                 </span>
               </span>
             );

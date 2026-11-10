@@ -61,6 +61,7 @@ import {
   resolveDatabaseServerLink,
 } from "../Inventory/ResolveTypedRowLink";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * Right-hand detail drawer for anything on a topology map. It keeps the user
@@ -979,7 +980,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         </h3>
         {config.reportsUnknown && section.unknownTotal > 0 && (
           <p className="mt-0.5 text-xs text-gray-500">
-            {section.unknownTotal.toLocaleString()}{" "}
+            {section.unknownTotal.toLocaleString(getReaderNumberLocale())}{" "}
             {t("no longer in inventory")}
           </p>
         )}
@@ -1035,7 +1036,9 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         {section.nextOffset !== null && !isOutdated && (
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="text-xs text-gray-500">
-              {t("Showing")} {section.rows.length.toLocaleString()} {t("of")}{" "}
+              {t("Showing")}{" "}
+              {section.rows.length.toLocaleString(getReaderNumberLocale())}{" "}
+              {t("of")}{" "}
               {formatConnectionTotal(section.total, loaded.isScanLimited)}
             </p>
             <button

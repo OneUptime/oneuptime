@@ -1,4 +1,7 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  getNumberLocale,
+  getReaderNumberLocale,
+} from "Common/Types/DateLanguage";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import {
   Blue500,
@@ -91,7 +94,9 @@ export function formatScanBytes(bytes: number, language: string): string {
       value,
     );
   } catch {
-    return new Intl.NumberFormat(undefined, options).format(value);
+    return new Intl.NumberFormat(getReaderNumberLocale(), options).format(
+      value,
+    );
   }
 }
 
@@ -113,7 +118,9 @@ export function formatScanDuration(
         durationInMs,
       );
     } catch {
-      return new Intl.NumberFormat(undefined, options).format(durationInMs);
+      return new Intl.NumberFormat(getReaderNumberLocale(), options).format(
+        durationInMs,
+      );
     }
   }
 

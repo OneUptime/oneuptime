@@ -25,6 +25,10 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  getReaderDateLocale,
+  getReaderNumberLocale,
+} from "Common/Types/DateLanguage";
 
 /*
  * Service Map and Infrastructure each load their own view-shaped payload
@@ -416,7 +420,7 @@ const TopologyPage: FunctionComponent<
               aria-label={translateString("Refresh topology")}
               title={
                 activeTab?.loadedAt
-                  ? `${translateString("Last refreshed")}: ${activeTab.loadedAt.toLocaleTimeString()}`
+                  ? `${translateString("Last refreshed")}: ${activeTab.loadedAt.toLocaleTimeString(getReaderDateLocale())}`
                   : undefined
               }
               disabled={isActiveTabLoading}
@@ -447,7 +451,7 @@ const TopologyPage: FunctionComponent<
                   key={isConnections ? "connections" : "resources"}
                 >
                   <span className="font-semibold">
-                    {`${truncation.shown.toLocaleString()} ${translateString("of")} ${truncation.total.toLocaleString()} ${
+                    {`${truncation.shown.toLocaleString(getReaderNumberLocale())} ${translateString("of")} ${truncation.total.toLocaleString(getReaderNumberLocale())} ${
                       isConnections
                         ? translateString("connections shown.")
                         : translateString("resources shown.")

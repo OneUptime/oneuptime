@@ -68,6 +68,7 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * One level of children is open on arrival - enough to show that the hierarchy
@@ -1205,13 +1206,17 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
           {translator.translatePlural(
             { one: "{{count}} group", other: "{{count}} groups" },
             groups.length,
-            { count: groups.length.toLocaleString() },
+            { count: groups.length.toLocaleString(getReaderNumberLocale()) },
           )}
           {countIndex.isComplete
             ? ` · ${translator.translatePlural(
                 { one: "{{count}} resource", other: "{{count}} resources" },
                 countIndex.totalCount,
-                { count: countIndex.totalCount.toLocaleString() },
+                {
+                  count: countIndex.totalCount.toLocaleString(
+                    getReaderNumberLocale(),
+                  ),
+                },
               )}`
             : ""}
         </div>

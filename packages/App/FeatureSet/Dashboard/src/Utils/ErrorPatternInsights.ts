@@ -1,5 +1,8 @@
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
+import {
+  getReaderNumberLocale,
+  inEnglishDates,
+} from "Common/Types/DateLanguage";
 import {
   ErrorPatternCoOccurrenceRow,
   ErrorPatternCorrelation,
@@ -784,7 +787,11 @@ export function buildErrorPatternFindings(
             "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
         },
         evidence.trend.recentCount,
-        { count: evidence.trend.recentCount.toLocaleString() },
+        {
+          count: evidence.trend.recentCount.toLocaleString(
+            getReaderNumberLocale(),
+          ),
+        },
       ),
     });
   } else if (
@@ -797,8 +804,12 @@ export function buildErrorPatternFindings(
         "Getting worse: {{percent}}% more occurrences in the second half of the window than the first ({{previous}} → {{recent}}).",
         {
           percent: evidence.trend.changePercent,
-          previous: evidence.trend.previousCount.toLocaleString(),
-          recent: evidence.trend.recentCount.toLocaleString(),
+          previous: evidence.trend.previousCount.toLocaleString(
+            getReaderNumberLocale(),
+          ),
+          recent: evidence.trend.recentCount.toLocaleString(
+            getReaderNumberLocale(),
+          ),
         },
       ),
     });
@@ -920,7 +931,7 @@ export function buildErrorPatternFindings(
         partner.count,
         {
           pattern: partner.sampleBody || partner.pattern,
-          count: partner.count.toLocaleString(),
+          count: partner.count.toLocaleString(getReaderNumberLocale()),
         },
       ),
     });
@@ -1013,12 +1024,12 @@ export function buildErrorPatternPrompt(
   );
 
   lines.push(
-    `It occurred ${(evidence.occurrenceTotal || evidence.pattern.count).toLocaleString()} times across ${evidence.pattern.resourceCount} source(s).`,
+    `It occurred ${(evidence.occurrenceTotal || evidence.pattern.count).toLocaleString("en-US")} times across ${evidence.pattern.resourceCount} source(s).`,
   );
 
   if (evidence.trend.direction !== "unknown") {
     lines.push(
-      `Trend across the window: ${evidence.trend.direction} (${evidence.trend.previousCount.toLocaleString()} occurrences in the first half, ${evidence.trend.recentCount.toLocaleString()} in the second).`,
+      `Trend across the window: ${evidence.trend.direction} (${evidence.trend.previousCount.toLocaleString("en-US")} occurrences in the first half, ${evidence.trend.recentCount.toLocaleString("en-US")} in the second).`,
     );
   }
 
@@ -1036,7 +1047,7 @@ export function buildErrorPatternPrompt(
     lines.push("", "Where it happens:");
     for (const resource of resources) {
       lines.push(
-        `- ${evidence.resourceLabel(resource.resourceId)}: ${resource.count.toLocaleString()}`,
+        `- ${evidence.resourceLabel(resource.resourceId)}: ${resource.count.toLocaleString("en-US")}`,
       );
     }
   }
@@ -1062,7 +1073,7 @@ export function buildErrorPatternPrompt(
     lines.push("", "Other errors in the same time buckets:");
     for (const partner of partners) {
       lines.push(
-        `- (${partner.count.toLocaleString()}x) ${partner.sampleBody || partner.pattern}`,
+        `- (${partner.count.toLocaleString("en-US")}x) ${partner.sampleBody || partner.pattern}`,
       );
     }
   }

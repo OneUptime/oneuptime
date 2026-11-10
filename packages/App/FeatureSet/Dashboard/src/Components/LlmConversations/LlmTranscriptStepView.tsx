@@ -34,6 +34,7 @@ import {
   truncateLlmText,
 } from "./LlmConversationFormat";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * One moment of a conversation, drawn the way a chat reads:
@@ -347,9 +348,9 @@ const AnswerMeta: FunctionComponent<{
                   {translator.translateText("Tokens in / out")}
                 </dt>
                 <dd className="font-medium text-gray-800">
-                  {`${(Number(step.call.inputTokens) || 0).toLocaleString()} / ${(
+                  {`${(Number(step.call.inputTokens) || 0).toLocaleString(getReaderNumberLocale())} / ${(
                     Number(step.call.outputTokens) || 0
-                  ).toLocaleString()}`}
+                  ).toLocaleString(getReaderNumberLocale())}`}
                 </dd>
               </div>
             ) : (

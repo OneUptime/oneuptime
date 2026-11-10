@@ -5,6 +5,7 @@ import {
   TableThresholdStyle,
 } from "../../Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import ValueFormatter from "../ValueFormatter";
+import { getReaderNumberLocale } from "../../Types/DateLanguage";
 
 /*
  * A metric table's threshold colors (issue #5231): each value column may
@@ -414,7 +415,7 @@ export const formatTableValue: (data: {
 }): string => {
   const safeDecimals: number = getSafeDecimals(data.decimals);
   const rounded: number = roundTableValue(data.value, safeDecimals);
-  const formatted: string = rounded.toLocaleString(undefined, {
+  const formatted: string = rounded.toLocaleString(getReaderNumberLocale(), {
     minimumFractionDigits: safeDecimals,
     maximumFractionDigits: safeDecimals,
   });
@@ -434,7 +435,9 @@ export const formatTableThreshold: (data: {
   unit: string | undefined;
 }): string => {
   return joinTableValueAndUnit(
-    data.threshold.toLocaleString(undefined, { maximumFractionDigits: 6 }),
+    data.threshold.toLocaleString(getReaderNumberLocale(), {
+      maximumFractionDigits: 6,
+    }),
     data.unit,
   );
 };

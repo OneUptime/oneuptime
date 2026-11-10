@@ -4,8 +4,8 @@ import OneUptimeDate from "Common/Types/Date";
  * Every timestamp the Traces explorer draws - the histogram's x-axis ticks,
  * the tooltip that follows the cursor, the clock on a span row.
  *
- * These used to be three copies of `date.toLocaleTimeString([], { hour12:
- * false })` spread across the components below. That hardcodes a 24-hour clock
+ * These used to be three copies of a 24-hour toLocaleTimeString, with an
+ * empty locale list, spread across the components below. That hardcodes a 24-hour clock
  * over the reader's own preference, and passes no `timeZone`, so the digits
  * came from the browser process rather than the zone set in User Settings -
  * leaving the chart disagreeing with the span table underneath it. Going

@@ -102,6 +102,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { getReaderDateLocale } from "Common/Types/DateLanguage";
 
 /*
  * More fields on the new-scan form: the name, how hosts are named, and the
@@ -852,7 +853,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       : translator.translateTemplate(
                           "Last refreshed {{time}}",
                           {
-                            time: liveUpdates.lastRefreshedAt.toLocaleTimeString(),
+                            time: liveUpdates.lastRefreshedAt.toLocaleTimeString(
+                              getReaderDateLocale(),
+                            ),
                           },
                         )}
                 </span>

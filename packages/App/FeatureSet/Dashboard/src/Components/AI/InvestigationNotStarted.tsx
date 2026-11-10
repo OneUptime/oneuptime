@@ -22,6 +22,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { getReaderDateLocale } from "Common/Types/DateLanguage";
 
 interface ComponentProps {
   subjectType: "incident" | "alert";
@@ -315,7 +316,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
         : "No recorded decision",
   ) as string;
   const checkedAt: string | null = reason
-    ? new Date(reason.evaluatedAt).toLocaleString(undefined, {
+    ? new Date(reason.evaluatedAt).toLocaleString(getReaderDateLocale(), {
         month: "short",
         day: "numeric",
         year: "numeric",

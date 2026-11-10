@@ -1,5 +1,6 @@
 import { AIChatWidget, AIChatWidgetStat } from "Common/Types/AI/AIChatTypes";
 import React, { FunctionComponent, ReactElement } from "react";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   widget: AIChatWidget;
@@ -35,7 +36,7 @@ const StatCardsWidget: FunctionComponent<ComponentProps> = (
             </div>
             <div className="mt-1 break-words text-lg font-semibold tabular-nums text-gray-900">
               {typeof stat.value === "number"
-                ? stat.value.toLocaleString()
+                ? stat.value.toLocaleString(getReaderNumberLocale())
                 : stat.value}
               {stat.unit ? (
                 <span className="ml-1 text-xs font-normal text-gray-400">
