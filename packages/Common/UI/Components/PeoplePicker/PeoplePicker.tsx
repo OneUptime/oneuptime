@@ -3,7 +3,6 @@ import IconProp from "../../../Types/Icon/IconProp";
 import useAnchoredFieldPopup, {
   AnchoredFieldPopup,
 } from "../../Types/UseAnchoredFieldPopup";
-import { translationKey } from "../../Utils/TranslateTemplate";
 import useTranslateValue from "../../Utils/Translation";
 import joinAriaIds from "../../Utils/AriaIds";
 import Icon from "../Icon/Icon";
@@ -18,6 +17,9 @@ import {
   getPeoplePickerNamedOptions,
   getPeoplePickerOptionKey,
   getPeoplePickerValueKeySet,
+  PEOPLE_PICKER_ADD_BUTTON_TEXT,
+  PEOPLE_PICKER_CHANGE_BUTTON_TEXT,
+  PEOPLE_PICKER_NONE_TEXT,
   PeoplePickerChange,
   PeoplePickerKind,
   PeoplePickerNobodyPicked,
@@ -126,12 +128,8 @@ export interface ComponentProps {
   autoFocus?: boolean | undefined;
 }
 
-// The button of a single-pick picker once something is picked.
-export const PEOPLE_PICKER_CHANGE_BUTTON_TEXT: string =
-  translationKey("Change");
-
-// A read-only picker with nothing picked (readOnly), as PeopleList says it.
-export const PEOPLE_PICKER_NONE_TEXT: string = translationKey("None");
+// Its words, kept in PeoplePickerTypes, for what reads them from the picker.
+export { PEOPLE_PICKER_CHANGE_BUTTON_TEXT, PEOPLE_PICKER_NONE_TEXT };
 
 const PeoplePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -274,7 +272,8 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const addButtonText: string = props.addButtonText || "Add";
+  const addButtonText: string =
+    props.addButtonText || PEOPLE_PICKER_ADD_BUTTON_TEXT;
   const isReadOnly: boolean = Boolean(props.readOnly);
   const isInteractive: boolean = !props.disabled && !isReadOnly;
 

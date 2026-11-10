@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -102,6 +103,7 @@ jest.mock(
 );
 
 import DashboardChartComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardChartComponent";
+import { loadInvestigationDrawer } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/LazyInvestigationDrawer";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import DashboardChartType from "../../../Types/Dashboard/Chart/ChartType";
@@ -238,6 +240,15 @@ function lastFetchWindow(): InBetween<Date> | null | undefined {
   return (calls[calls.length - 1]?.[0] as { metricViewData: MetricViewData })
     ?.metricViewData?.startAndEndDate;
 }
+
+/*
+ * The drawer is a file of its own, loaded the first time a chart opens it
+ * (LazyInvestigationDrawer). Loaded once here, as on a page where a drawer
+ * has been opened before, so it draws on the click that opens it.
+ */
+beforeAll(async () => {
+  await loadInvestigationDrawer();
+});
 
 beforeEach(() => {
   onDashboardTimeRangeSelectMock = getJestMockFunction();

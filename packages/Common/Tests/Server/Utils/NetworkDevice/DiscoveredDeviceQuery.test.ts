@@ -5,14 +5,12 @@ import {
   buildClassifiedRows,
   buildClassifyStatement,
   buildCountsStatement,
-  buildHideStatement,
   buildIdsStatement,
   buildOrder,
   buildRetentionStatement,
   buildRowsStatement,
   buildSearchCondition,
   buildShowCondition,
-  buildShowStatement,
   escapeLikePattern,
   getSearchWords,
 } from "../../../../Server/Utils/NetworkDevice/DiscoveredDeviceQuery";
@@ -26,7 +24,8 @@ import { describe, expect, test } from "@jest/globals";
  * The statements behind the Discovered Devices list (issue #5775), read as
  * text: what each one asks the database, and that whatever a person types
  * reaches it as a parameter, never as SQL. DiscoveredDeviceListPostgres
- * runs them.
+ * runs them. The map writes of its bulk actions are read where they are
+ * written and recorded in the audit log, in DiscoveredDevices.test.ts.
  */
 
 const SCOPE: DiscoveredDeviceScope = {
@@ -299,79 +298,6 @@ describe("the statements", () => {
 
     expectParametersLineUp(statement);
     expect(statement.sql).toContain(`e."_id" = ANY($4::uuid[])`);
-  });
-
-  test("hiding writes what the model's create writes, version included, never twice for one node", () => {
-    const statement: DiscoveredDeviceStatement = buildHideStatement({
-      projectId: SCOPE.projectId,
-      userId: "dd000000-0000-4000-8000-000000000001",
-      reason: "Hidden from the map on the Discovered Devices list.",
-      rows: [
-        {
-          id: "ee000000-0000-4000-8000-000000000001",
-          nodeKey: "endpoint:cc000000-0000-4000-8000-000000000001",
-          nodeName: "Front register",
-        },
-      ],
-    });
-
-    expectParametersLineUp(statement);
-    expect(statement.sql).toContain(
-      `("_id", "createdAt", "updatedAt", "version", "projectId", "nodeKey", "nodeName", "reason", "createdByUserId")`,
-    );
-    expect(statement.sql).toContain("now(), now(), 1,");
-    expect(statement.sql).toContain("WHERE NOT EXISTS");
-    expect(statement.sql).toContain(`RETURNING "nodeKey"`);
-    // Answered by a SELECT, so the driver hands back the rows themselves.
-    expect(statement.sql.startsWith("WITH added AS (\nINSERT INTO")).toBe(true);
-    expect(statement.sql.endsWith(`SELECT "nodeKey" FROM added`)).toBe(true);
-    expect(statement.params).toEqual([
-      SCOPE.projectId,
-      "dd000000-0000-4000-8000-000000000001",
-      "Hidden from the map on the Discovered Devices list.",
-      ["ee000000-0000-4000-8000-000000000001"],
-      ["endpoint:cc000000-0000-4000-8000-000000000001"],
-      ["Front register"],
-    ]);
-  });
-
-  test("hiding by someone with no user id writes no author", () => {
-    const statement: DiscoveredDeviceStatement = buildHideStatement({
-      projectId: SCOPE.projectId,
-      reason: "r",
-      rows: [],
-    });
-
-    expect(statement.params[1]).toBeNull();
-  });
-
-  test("showing removes these nodes' suppressions, or every one of the project's", () => {
-    const some: DiscoveredDeviceStatement = buildShowStatement({
-      projectId: SCOPE.projectId,
-      nodeKeys: ["endpoint:cc000000-0000-4000-8000-000000000001"],
-    });
-    const every: DiscoveredDeviceStatement = buildShowStatement({
-      projectId: SCOPE.projectId,
-    });
-
-    expectParametersLineUp(some);
-    expectParametersLineUp(every);
-    /*
-     * A bare DELETE comes back from TypeORM's Postgres driver as
-     * [rows, rowCount]; through a SELECT it comes back as the rows.
-     */
-    expect(some.sql).toBe(`WITH removed AS (
-DELETE FROM "NetworkTopologySuppression"
-WHERE "projectId" = $1::uuid AND "nodeKey" = ANY($2::text[])
-RETURNING "nodeKey"
-)
-SELECT "nodeKey" FROM removed`);
-    expect(every.sql).toBe(`WITH removed AS (
-DELETE FROM "NetworkTopologySuppression"
-WHERE "projectId" = $1::uuid
-RETURNING "nodeKey"
-)
-SELECT "nodeKey" FROM removed`);
   });
 });
 
