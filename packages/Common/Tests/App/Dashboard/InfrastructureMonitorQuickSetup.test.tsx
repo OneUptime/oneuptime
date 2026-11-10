@@ -15,10 +15,21 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
 import * as React from "react";
+import { I18nextProvider } from "react-i18next";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
+import { CriteriaAlert } from "../../../Types/Monitor/CriteriaAlert";
+import { CriteriaIncident } from "../../../Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import ObjectID from "../../../Types/ObjectID";
+import {
+  createTranslator,
+  TemplateValues,
+  Translator,
+} from "../../../Types/Translator";
 import { MonitorStepHostMonitorUtil } from "../../../Types/Monitor/MonitorStepHostMonitor";
 import { MonitorStepDockerMonitorUtil } from "../../../Types/Monitor/MonitorStepDockerMonitor";
 import { MonitorStepPodmanMonitorUtil } from "../../../Types/Monitor/MonitorStepPodmanMonitor";
@@ -142,13 +153,31 @@ interface FormCase {
   render: (onChange: MockFunction, onCriteria: MockFunction) => void;
 }
 
+/*
+ * The Dashboard in a reader's language, while a test sets one: every form
+ * case renders inside it.
+ */
+let readerI18n: i18n | null = null;
+
+const renderForm: (form: React.ReactElement) => void = (
+  form: React.ReactElement,
+): void => {
+  render(
+    readerI18n ? (
+      <I18nextProvider i18n={readerI18n}>{form}</I18nextProvider>
+    ) : (
+      form
+    ),
+  );
+};
+
 const FORM_CASES: Array<FormCase> = [
   {
     name: "Host",
     templates: getAllHostAlertTemplates(),
     defaultTemplateId: getHostDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <HostMonitorStepForm
           monitorStepHostMonitor={MonitorStepHostMonitorUtil.getDefault()}
           onChange={onChange}
@@ -162,7 +191,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getAllDockerAlertTemplates(),
     defaultTemplateId: getDockerDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <DockerMonitorStepForm
           monitorStepDockerMonitor={MonitorStepDockerMonitorUtil.getDefault()}
           onChange={onChange}
@@ -176,7 +205,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getAllPodmanAlertTemplates(),
     defaultTemplateId: getPodmanDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <PodmanMonitorStepForm
           monitorStepPodmanMonitor={MonitorStepPodmanMonitorUtil.getDefault()}
           onChange={onChange}
@@ -190,7 +219,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getAllDockerSwarmAlertTemplates(),
     defaultTemplateId: getDockerSwarmDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <DockerSwarmMonitorStepForm
           monitorStepDockerSwarmMonitor={MonitorStepDockerSwarmMonitorUtil.getDefault()}
           onChange={onChange}
@@ -204,7 +233,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getAllKubernetesAlertTemplates(),
     defaultTemplateId: getKubernetesDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <KubernetesMonitorStepForm
           monitorStepKubernetesMonitor={MonitorStepKubernetesMonitorUtil.getDefault()}
           onChange={onChange}
@@ -218,7 +247,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getAllProxmoxAlertTemplates(),
     defaultTemplateId: getProxmoxDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <ProxmoxMonitorStepForm
           monitorStepProxmoxMonitor={MonitorStepProxmoxMonitorUtil.getDefault()}
           onChange={onChange}
@@ -232,7 +261,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getAllOpenStackAlertTemplates(),
     defaultTemplateId: getOpenStackDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <OpenStackMonitorStepForm
           monitorStepOpenStackMonitor={MonitorStepOpenStackMonitorUtil.getDefault()}
           onChange={onChange}
@@ -246,7 +275,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getAllVMwareAlertTemplates(),
     defaultTemplateId: getVMwareDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <VMwareMonitorStepForm
           monitorStepVMwareMonitor={MonitorStepVMwareMonitorUtil.getDefault()}
           onChange={onChange}
@@ -260,7 +289,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getAllCephAlertTemplates(),
     defaultTemplateId: getCephDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <CephMonitorStepForm
           monitorStepCephMonitor={MonitorStepCephMonitorUtil.getDefault()}
           onChange={onChange}
@@ -274,7 +303,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getStorageArrayAlertTemplatesForSystem(undefined),
     defaultTemplateId: getStorageArrayDefaultAlertTemplateId(undefined),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <StorageArrayMonitorStepForm
           monitorStepStorageArrayMonitor={MonitorStepStorageArrayMonitorUtil.getDefault()}
           onChange={onChange}
@@ -288,7 +317,7 @@ const FORM_CASES: Array<FormCase> = [
     templates: getAllIoTAlertTemplates(),
     defaultTemplateId: getIoTDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
-      render(
+      renderForm(
         <IoTMonitorStepForm
           monitorStepIoTMonitor={MonitorStepIoTMonitorUtil.getDefault()}
           onChange={onChange}
@@ -635,4 +664,98 @@ describe("the picked template's Time Range", () => {
       ).rollingTime,
     ).toBe(RollingTime.Past15Minutes);
   });
+});
+
+/*
+ * A new monitor's out-of-the-box criteria are written in the language of
+ * the person creating it (#6542), here as on every other monitor type: a
+ * metric of one's own starts on them in the reader's language.
+ */
+describe("a metric of your own starts on the out-of-the-box criteria in the reader's language", () => {
+  // A language that words every sentence the defaults are written with, marked.
+  const markedI18n: () => Promise<i18n> = async (): Promise<i18n> => {
+    const words: Record<string, string> = {};
+    const english: Translator = createTranslator(undefined, "en");
+    const recording: Translator = {
+      ...english,
+      translateTemplate: (
+        template: string,
+        values?: TemplateValues,
+      ): string => {
+        words[template] = `【${template}】`;
+        return english.translateTemplate(template, values);
+      },
+    };
+
+    for (const monitorType of Object.values(
+      MonitorType,
+    ) as Array<MonitorType>) {
+      MonitorCriteria.getDefaultMonitorCriteria({
+        monitorType,
+        monitorName: "Acme",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        translator: recording,
+      });
+    }
+
+    const instance: i18n = createInstance();
+
+    await instance.init({
+      lng: "zh-CN",
+      fallbackLng: "zh-CN",
+      resources: { "zh-CN": { translation: words } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+
+    return instance;
+  };
+
+  afterEach(() => {
+    readerI18n = null;
+  });
+
+  test.each(FORM_CASES)(
+    "$name: the criteria's names and descriptions, and what they open, are the reader's",
+    async (formCase: FormCase) => {
+      readerI18n = await markedI18n();
+
+      const onCriteria: MockFunction = getJestMockFunction();
+      formCase.render(getJestMockFunction(), onCriteria);
+      await settle();
+
+      await pickFirstCustomMetric();
+      expect(customMetricFieldsShown()).toBe(true);
+
+      const criteria: MonitorCriteria = onCriteria.mock.calls[
+        onCriteria.mock.calls.length - 1
+      ]![0] as MonitorCriteria;
+      const words: Array<string> = (
+        criteria.data?.monitorCriteriaInstanceArray || []
+      ).flatMap((instance: MonitorCriteriaInstance): Array<string> => {
+        return [
+          instance.data?.name || "",
+          instance.data?.description || "",
+          ...(instance.data?.incidents || []).flatMap(
+            (incident: CriteriaIncident) => {
+              return [incident.title, incident.description];
+            },
+          ),
+          ...(instance.data?.alerts || []).flatMap((alert: CriteriaAlert) => {
+            return [alert.title, alert.description];
+          }),
+        ];
+      });
+
+      expect(words.length).toBeGreaterThan(0);
+
+      for (const word of words) {
+        expect(word).toMatch(/^【[\s\S]+】$/);
+      }
+    },
+  );
 });

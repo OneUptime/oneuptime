@@ -9,6 +9,7 @@ import { JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
+import { Translator } from "../Translator";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
@@ -364,6 +365,8 @@ export default class MonitorStep extends DatabaseProperty {
     defaultAlertSeverityId: ObjectID;
     // See MonitorCriteria.getDefaultMonitorCriteria.
     warningAlertSeverityId?: ObjectID | undefined;
+    // The reader's: see MonitorCriteria.getDefaultMonitorCriteria.
+    translator?: Translator | undefined;
   }): MonitorStep {
     const monitorStep: MonitorStep = new MonitorStep();
 

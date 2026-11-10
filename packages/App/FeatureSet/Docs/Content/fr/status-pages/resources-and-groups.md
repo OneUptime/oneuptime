@@ -83,11 +83,13 @@ Dans un groupe en grille, la boîte de dialogue demande aussi la ligne et la col
 
 La sélection multiple a un onglet **Étiquettes** : cliquez sur une étiquette et chaque moniteur qui la porte est sélectionné d'un coup.
 
+Les groupes de moniteurs s'ajoutent de la même façon. Avec l'interrupteur **Groupes de moniteurs** activé, **Plus d'actions** propose aussi **Ajouter plusieurs groupes de moniteurs**, qui ouvre **Ajouter plusieurs groupes de moniteurs** : une sélection multiple **Groupes de moniteurs**, puis les mêmes **Plus de champs** repliés. Chaque ressource prend son nom d'affichage et sa description de son groupe de moniteurs, et **Ajouter des groupes de moniteurs** les ajoute tous ; un groupe de moniteurs déjà sur la page reste tel quel et est listé sous **Déjà ajoutés**. Le lien sous la sélection multiple, **Ajoutez plutôt des groupes de moniteurs.** ou **Ajoutez plutôt des moniteurs.**, passe d'une boîte de dialogue à l'autre en gardant les options d'affichage choisies. Dans un groupe vide, **Ajouter plusieurs** s'ouvre sur les groupes de moniteurs quand **Ajouter un moniteur** a été basculé vers eux.
+
 ### Ajouter deux fois par étiquette est sans risque
 
 Une page de statut ne liste un moniteur qu'une fois. L'ajout est idempotent : choisir de nouveau la même étiquette après avoir étiqueté quelques nouveaux moniteurs n'ajoute que les nouveaux – les moniteurs déjà sur la page restent exactement tels quels, avec le nom d'affichage et les options que vous leur avez donnés.
 
-Le résumé à la fin de l'ajout groupé le dit : les moniteurs ajoutés sont listés sous **Ajouté**, et ceux qui étaient déjà là sous **Already Added**. Rien n'est signalé comme un échec, et rien n'est écrit pour eux.
+Le résumé à la fin de l'ajout groupé le dit : les moniteurs ajoutés sont listés sous **Ajouté**, et ceux qui étaient déjà là sous **Déjà ajoutés**. Rien n'est signalé comme un échec, et rien n'est écrit pour eux.
 
 La même règle vaut partout où une ressource est créée. Ajouter un moniteur déjà présent sur la page depuis le formulaire d'ajout unique, ou faire pointer une ressource existante vers lui depuis le formulaire de modification, est refusé avec *« This monitor is already added to this status page »* – y compris quand la ressource existante se trouve dans un autre groupe, car un visiteur verrait quand même le moniteur deux fois. Pour afficher un moniteur dans un autre groupe, supprimez la ressource qu'il a déjà et ajoutez-le là où vous le voulez.
 

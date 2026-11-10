@@ -17,6 +17,7 @@ import OnCallDutyPolicySchedule from "../../../../../Models/DatabaseModels/OnCal
 import Team from "../../../../../Models/DatabaseModels/Team";
 import User from "../../../../../Models/DatabaseModels/User";
 import UserOnCallLogTimeline from "../../../../../Models/DatabaseModels/UserOnCallLogTimeline";
+import { OnCallPageNotificationMethods } from "../../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import WorkspaceNotificationRule from "../../../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import DatabaseConfig from "../../../../../Server/DatabaseConfig";
@@ -1121,13 +1122,33 @@ export default class QuietChannelsWorld {
     jest
       .spyOn(UserOnCallLogTimelineService, "findBy")
       .mockImplementation((async (data: {
-        query: { _id?: unknown; onCallDutyPolicyExecutionLogId?: unknown };
+        query: {
+          _id?: unknown;
+          onCallDutyPolicyExecutionLogId?: unknown;
+          onCallDutyPolicyExecutionLogTimelineId?: unknown;
+        };
       }): Promise<Array<UserOnCallLogTimeline>> => {
         if (data.query._id) {
           const ids: Array<string> = idsOfAnyFilter(data.query._id);
           return this.deliveries.filter(
             (delivery: UserOnCallLogTimeline): boolean => {
               return ids.includes(delivery.id!.toString());
+            },
+          );
+        }
+
+        // One page's notifications: the record's feed names their channels.
+        if (data.query.onCallDutyPolicyExecutionLogTimelineId) {
+          const stepId: string = String(
+            data.query.onCallDutyPolicyExecutionLogTimelineId,
+          );
+
+          return this.deliveries.filter(
+            (delivery: UserOnCallLogTimeline): boolean => {
+              return (
+                delivery.onCallDutyPolicyExecutionLogTimelineId?.toString() ===
+                stepId
+              );
             },
           );
         }
@@ -1247,6 +1268,8 @@ export default class QuietChannelsWorld {
       delivery.projectId = PROJECT_ID;
       delivery.userId = userId;
       delivery.onCallDutyPolicyExecutionLogId = this.run!.id!;
+      delivery.onCallDutyPolicyExecutionLogTimelineId = stepId;
+      delivery.createdAt = this.nextDeliveryTime();
       delivery.status = UserNotificationStatus.Sending;
       delivery[method] = ObjectID.generate();
       this.deliveries.push(delivery);
@@ -1302,6 +1325,146 @@ export default class QuietChannelsWorld {
       },
       props: { isRoot: true },
     });
+  }
+
+  /*
+   * The deliveries' own clock: the run's, a millisecond on for each, so the
+   * page's notifications are in the order they went out.
+   */
+  private deliveriesWritten: number = 0;
+
+  private nextDeliveryTime(): Date {
+    this.deliveriesWritten++;
+    return new Date(this.clock.getTime() + this.deliveriesWritten);
+  }
+
+  // A person's page as it stands: their latest step that paged them.
+  private latestPageOf(
+    userId: ObjectID,
+  ): OnCallDutyPolicyExecutionLogTimeline | undefined {
+    return [...this.steps]
+      .reverse()
+      .find((candidate: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+        return (
+          candidate.alertSentToUserId?.toString() === userId.toString() &&
+          candidate.status !== OnCallDutyExecutionLogTimelineStatus.Skipped
+        );
+      });
+  }
+
+  /*
+   * One more notification of a person's page goes out after the page's own
+   * entry - a call by a later rule of their own On-Call Rules: written as
+   * Sending, through the delivery's real create hook, then marked Sent.
+   */
+  public async notifyAgain(
+    userId: ObjectID,
+    method: keyof OnCallPageNotificationMethods,
+  ): Promise<UserOnCallLogTimeline> {
+    const step: OnCallDutyPolicyExecutionLogTimeline =
+      this.latestPageOf(userId)!;
+
+    const delivery: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+    delivery.id = ObjectID.generate();
+    delivery.projectId = PROJECT_ID;
+    delivery.userId = userId;
+    delivery.onCallDutyPolicyExecutionLogId = this.run!.id!;
+    delivery.onCallDutyPolicyExecutionLogTimelineId = step.id!;
+    delivery.createdAt = this.nextDeliveryTime();
+    delivery.status = UserNotificationStatus.Sending;
+    delivery[method] = ObjectID.generate();
+    this.deliveries.push(delivery);
+
+    await (
+      UserOnCallLogTimelineService as unknown as Record<
+        string,
+        (...args: Array<unknown>) => Promise<unknown>
+      >
+    )["onCreateSuccess"]!.call(
+      UserOnCallLogTimelineService,
+      {
+        createBy: { data: delivery, props: { isRoot: true } },
+        carryForward: null,
+      },
+      delivery,
+    );
+
+    delivery.status = UserNotificationStatus.Sent;
+
+    await (
+      UserOnCallLogTimelineService as unknown as Record<
+        string,
+        (...args: Array<unknown>) => Promise<unknown>
+      >
+    )["onUpdateSuccess"]!.call(
+      UserOnCallLogTimelineService,
+      {
+        updateBy: {
+          query: { _id: delivery.id.toString() },
+          data: { status: UserNotificationStatus.Sent },
+          props: { isRoot: true },
+        },
+        carryForward: null,
+      },
+      [delivery.id],
+    );
+
+    await this.settle();
+
+    return delivery;
+  }
+
+  /*
+   * A notification of a person's page could not be sent after all - its
+   * provider refused it: marked Error through the delivery's real update
+   * hook, with the status it had before, as the notification services mark
+   * one. The latest of the page's notifications by that method.
+   */
+  public async failNotification(
+    userId: ObjectID,
+    method: keyof OnCallPageNotificationMethods,
+  ): Promise<void> {
+    const step: OnCallDutyPolicyExecutionLogTimeline =
+      this.latestPageOf(userId)!;
+
+    const delivery: UserOnCallLogTimeline = this.deliveries
+      .filter((candidate: UserOnCallLogTimeline): boolean => {
+        return (
+          candidate.onCallDutyPolicyExecutionLogTimelineId?.toString() ===
+            step.id!.toString() && Boolean(candidate[method])
+        );
+      })
+      .pop()!;
+
+    const statusBefore: UserNotificationStatus | undefined = delivery.status;
+
+    delivery.status = UserNotificationStatus.Error;
+    delivery.statusMessage = "The provider refused the message.";
+
+    await (
+      UserOnCallLogTimelineService as unknown as Record<
+        string,
+        (...args: Array<unknown>) => Promise<unknown>
+      >
+    )["onUpdateSuccess"]!.call(
+      UserOnCallLogTimelineService,
+      {
+        updateBy: {
+          query: { _id: delivery.id!.toString() },
+          data: {
+            status: UserNotificationStatus.Error,
+            statusMessage: delivery.statusMessage,
+          },
+          props: { isRoot: true },
+        },
+        carryForward: {
+          statusBeforeUpdate: { [delivery.id!.toString()]: statusBefore },
+        },
+      },
+      [delivery.id],
+    );
+
+    await this.settle();
   }
 
   // ---- Driving the run ----
@@ -1531,17 +1694,33 @@ export default class QuietChannelsWorld {
    * is the page they were sent - not a line that says they were skipped,
    * which is no page to acknowledge.
    */
-  public async acknowledge(userId: ObjectID): Promise<void> {
-    const step: OnCallDutyPolicyExecutionLogTimeline | undefined = [
-      ...this.steps,
-    ]
-      .reverse()
-      .find((candidate: OnCallDutyPolicyExecutionLogTimeline): boolean => {
-        return (
-          candidate.alertSentToUserId?.toString() === userId.toString() &&
-          candidate.status !== OnCallDutyExecutionLogTimelineStatus.Skipped
-        );
-      });
+  public async acknowledge(
+    userId: ObjectID,
+    via?: keyof OnCallPageNotificationMethods | undefined,
+  ): Promise<void> {
+    const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
+      this.latestPageOf(userId);
+
+    /*
+     * Answered from one of the page's notifications - a call's 1, an SMS's
+     * link: that notification is acknowledged first, as answering one is.
+     */
+    if (via && step) {
+      const answeredFrom: UserOnCallLogTimeline | undefined = this.deliveries
+        .filter((delivery: UserOnCallLogTimeline): boolean => {
+          return (
+            delivery.onCallDutyPolicyExecutionLogTimelineId?.toString() ===
+              step.id!.toString() && Boolean(delivery[via])
+          );
+        })
+        .pop();
+
+      if (answeredFrom) {
+        answeredFrom.isAcknowledged = true;
+        answeredFrom.acknowledgedAt = new Date(this.clock);
+        answeredFrom.status = UserNotificationStatus.Acknowledged;
+      }
+    }
 
     this.recordAcknowledged = true;
     this.recordStateName = "Acknowledged";
@@ -1677,6 +1856,8 @@ export default class QuietChannelsWorld {
         delivery.projectId = PROJECT_ID;
         delivery.userId = target.userId;
         delivery.onCallDutyPolicyExecutionLogId = this.run!.id!;
+        delivery.onCallDutyPolicyExecutionLogTimelineId = created.id!;
+        delivery.createdAt = this.nextDeliveryTime();
         delivery.status = UserNotificationStatus.Sending;
         delivery[method] = ObjectID.generate();
         this.deliveries.push(delivery);

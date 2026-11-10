@@ -828,6 +828,8 @@ const MonitorCreate: FunctionComponent<
         deviceName: data.device.name || "",
         seedIds: seedIds,
         origin: PingMonitorOrigin.DevicePage,
+        // Its criteria's words in the reader's language (#6542).
+        translator: translator,
       });
     } catch (err) {
       setError(API.getFriendlyMessage(err));

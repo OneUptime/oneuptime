@@ -7,6 +7,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import MonitorRootCauseValue from "../../../Components/EventView/MonitorRootCauseValue";
 import AlertRootCauseMetricChart from "../../../Components/Alert/AlertRootCauseMetricChart";
 
 const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -41,6 +42,13 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showDetailsInNumberOfColumns: 1,
           modelType: Alert,
           id: "model-detail-alert-root-cause",
+          /*
+           * What a monitor wrote reads in the reader's language as far as
+           * it goes: its findings are worded from the evaluation details.
+           */
+          selectMoreFields: {
+            evaluationDetails: true,
+          },
           fields: [
             {
               field: {
@@ -48,7 +56,16 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "",
               placeholder: "No root cause identified for this alert.",
-              fieldType: FieldType.Markdown,
+              fieldType: FieldType.Element,
+              getElement: (item: Alert): ReactElement => {
+                return (
+                  <MonitorRootCauseValue
+                    rootCause={item.rootCause}
+                    evaluationDetails={item.evaluationDetails}
+                    placeholder="No root cause identified for this alert."
+                  />
+                );
+              },
             },
           ],
           modelId: modelId,

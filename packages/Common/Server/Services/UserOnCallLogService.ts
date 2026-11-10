@@ -38,6 +38,7 @@ import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import logger from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
+import { ON_CALL_PAGE_SENT_STATUS_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 
 /*
  * The status message the zero-rule dead-end wrote before the fallback existed,
@@ -670,12 +671,15 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    // update oncall timeline item as well.
+    /*
+     * Update oncall timeline item as well. The record's feed names the
+     * notifications that just went out (OnCallPageChannel), not this.
+     */
     await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
       id: createdItem.onCallDutyPolicyExecutionLogTimelineId!,
       data: {
         status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
-        statusMessage: "Alert Sent",
+        statusMessage: ON_CALL_PAGE_SENT_STATUS_MESSAGE,
       },
       props: {
         isRoot: true,

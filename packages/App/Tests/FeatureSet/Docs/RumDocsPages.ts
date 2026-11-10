@@ -49,9 +49,21 @@ export const RUM_REPLAY_PAGES: ReadonlyArray<RumDocsPageEntry> = [
   { page: RUM_TROUBLESHOOTING, navTitle: "RUM Troubleshooting" },
 ];
 
+/*
+ * Issue #6444: the application's Product Analytics pages, Users and
+ * Sessions, between the setup pages and the replay pages in the nav.
+ * RumProductAnalyticsDocsFacts holds the English page to the product.
+ */
+export const PRODUCT_ANALYTICS: string = "rum/product-analytics";
+
+export const RUM_ANALYTICS_PAGES: ReadonlyArray<RumDocsPageEntry> = [
+  { page: PRODUCT_ANALYTICS, navTitle: "Product Analytics" },
+];
+
 // Every page of the RUM nav group, in nav order.
 export const RUM_PAGES: ReadonlyArray<RumDocsPageEntry> = [
   ...RUM_SETUP_PAGES,
+  ...RUM_ANALYTICS_PAGES,
   ...RUM_REPLAY_PAGES,
 ];
 
@@ -123,6 +135,7 @@ export const APPLICATION_SIDE_MENU: ReadonlyArray<{
     items: ["Overview", "Recommendations", "Documentation"],
   },
   { section: "Observability", items: ["Metrics", "Logs", "Traces", "Clients"] },
+  { section: "Product Analytics", items: ["Users", "Sessions"] },
   {
     section: "Session Replay",
     items: [
@@ -272,6 +285,14 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "mobile",
   ],
   [BROWSER_SETUP]: ["backend"],
+  [PRODUCT_ANALYTICS]: [
+    "A signed-in user counts once",
+    "An anonymous browser counts once",
+    "A session from an older recorder",
+    "13 months.",
+    "No names stored.",
+    "Erased on request.",
+  ],
   [WEB_VITALS]: [
     "mean",
     "one value per page load",
