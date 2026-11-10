@@ -6889,6 +6889,13 @@ router.post(
         ...(readBoundedStringFromBody(rawFilters, "route") && {
           route: readBoundedStringFromBody(rawFilters, "route"),
         }),
+        /* One of the application's own signals, by name (issue #6443). */
+        ...(readBoundedStringFromBody(rawFilters, "customSignalName") && {
+          customSignalName: readBoundedStringFromBody(
+            rawFilters,
+            "customSignalName",
+          ),
+        }),
         ...(typeof rawFilters["minDurationMs"] === "number" &&
           Number.isFinite(rawFilters["minDurationMs"]) && {
             minDurationMs: rawFilters["minDurationMs"],

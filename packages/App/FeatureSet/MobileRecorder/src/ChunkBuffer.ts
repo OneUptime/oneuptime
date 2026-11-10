@@ -2,10 +2,14 @@ import {
   RrwebEvent,
   RrwebEventType,
   SESSION_REPLAY_FLUSH_BYTES,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
   SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES,
   SESSION_REPLAY_ROLLING_BUFFER_BYTES,
   SESSION_REPLAY_ROLLING_BUFFER_MS,
+  SessionReplayCustomSignalCount,
   SessionReplayFidelityNotice,
+  SessionReplayNumericSignalKey,
   SessionReplaySignalCounts,
 } from "./Contract";
 import { byteLength, emptySignalCounts } from "./Sanitize";
@@ -45,13 +49,20 @@ export default class ReplayChunkBuffer {
     new Set<SessionReplayFidelityNotice>();
   private signals: SessionReplaySignalCounts = emptySignalCounts();
   private droppedEvents: number = 0;
+  private customSignalEvents: number = 0;
 
   public append(
     event: RrwebEvent,
     options?: {
       route?: string;
       fidelityNotices?: Array<SessionReplayFidelityNotice>;
-      signal?: keyof SessionReplaySignalCounts;
+      signal?: SessionReplayNumericSignalKey;
+      /*
+       * The event marks a signal of the application's own: counted by name
+       * on the envelope (signals.customSignals), as the browser's Chunker
+       * counts it.
+       */
+      customSignal?: { name: string; isFrustration: boolean };
     },
   ): boolean {
     let serialized: string;
@@ -88,8 +99,49 @@ export default class ReplayChunkBuffer {
       const current: number = this.signals[options.signal] ?? 0;
       this.signals[options.signal] = current + 1;
     }
+    if (options?.customSignal) {
+      this.countCustomSignal(
+        options.customSignal.name,
+        options.customSignal.isFrustration,
+      );
+    }
 
     return true;
+  }
+
+  /*
+   * Whether this chunk takes another signal marker. Capped like the
+   * browser's: a signal that fires in a loop is one moment a second (the
+   * matcher's cooldown), and fifty of them a chunk is plenty to see it.
+   */
+  public hasRoomForCustomSignal(): boolean {
+    return (
+      this.customSignalEvents <
+      SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK
+    );
+  }
+
+  private countCustomSignal(name: string, isFrustration: boolean): void {
+    this.customSignalEvents += 1;
+    const counts: Array<SessionReplayCustomSignalCount> =
+      this.signals.customSignals ?? [];
+    let entry: SessionReplayCustomSignalCount | undefined = counts.find(
+      (candidate: SessionReplayCustomSignalCount): boolean => {
+        return candidate.name === name;
+      },
+    );
+    if (!entry) {
+      if (counts.length >= SESSION_REPLAY_MAX_CUSTOM_SIGNALS) {
+        return;
+      }
+      entry = { name, count: 0, frustrationCount: 0 };
+      counts.push(entry);
+    }
+    entry.count += 1;
+    if (isFrustration) {
+      entry.frustrationCount += 1;
+    }
+    this.signals.customSignals = counts;
   }
 
   public appendMany(
@@ -130,7 +182,7 @@ export default class ReplayChunkBuffer {
       endUnixMs: this.endUnixMs,
       hasFullSnapshot: this.hasFullSnapshot,
       routes: this.routes.slice(),
-      signals: { ...this.signals },
+      signals: this.copySignals(),
       fidelityNotices: Array.from(this.fidelity),
       droppedEvents: this.droppedEvents,
     };
@@ -140,6 +192,21 @@ export default class ReplayChunkBuffer {
 
   public clear(): void {
     this.reset();
+  }
+
+  /* The counts, with each signal's own entry copied too. */
+  private copySignals(): SessionReplaySignalCounts {
+    const signals: SessionReplaySignalCounts = { ...this.signals };
+    if (this.signals.customSignals) {
+      signals.customSignals = this.signals.customSignals.map(
+        (
+          entry: SessionReplayCustomSignalCount,
+        ): SessionReplayCustomSignalCount => {
+          return { ...entry };
+        },
+      );
+    }
+    return signals;
   }
 
   private addRoute(route: string): void {
@@ -171,6 +238,7 @@ export default class ReplayChunkBuffer {
     this.fidelity.clear();
     this.signals = emptySignalCounts();
     this.droppedEvents = 0;
+    this.customSignalEvents = 0;
   }
 }
 

@@ -18,6 +18,12 @@ import {
   SessionReplayRecorderKind,
   SessionReplaySignalCounts,
 } from "Common/Types/Rum/SessionReplay";
+import {
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
+  SessionReplayCustomSignalCount,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import { sanitizeSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
 import SessionIdentity from "Common/Utils/Rum/SessionIdentity";
 import SessionReplayMaskingMode, {
@@ -586,7 +592,106 @@ export default class SessionReplayEnvelopeParser {
       signals.customEventCount = customEventCount;
     }
 
+    const customSignals: Array<SessionReplayCustomSignalCount> =
+      this.readCustomSignalCounts(raw["customSignals"]);
+
+    if (customSignals.length > 0) {
+      signals.customSignals = customSignals;
+    }
+
     return signals;
+  }
+
+  /*
+   * The application's own signals, counted by name (issue #6443). Optional
+   * and additive like the engagement counters: absent from an older
+   * recorder, and anything malformed is dropped entry by entry rather than
+   * rejecting the chunk.
+   *
+   * The envelope is attacker-controllable (a scraped ingestion key is a
+   * public credential by design), and these names render on the session
+   * list, so each one is held to what a recorder could have sent: a name
+   * the settings page would accept, whole counts no larger than the markers
+   * one chunk can hold, and no more than one application's worth of names.
+   * A name sent twice is counted once, with its larger counts - a merge
+   * that cannot be used to inflate a total.
+   */
+  private static readCustomSignalCounts(
+    value: unknown,
+  ): Array<SessionReplayCustomSignalCount> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const counts: Array<SessionReplayCustomSignalCount> = [];
+
+    for (const entry of value.slice(0, SESSION_REPLAY_MAX_CUSTOM_SIGNALS * 2)) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        continue;
+      }
+
+      const raw: JSONObject = entry as JSONObject;
+      const name: string =
+        typeof raw["name"] === "string" ? raw["name"].trim() : "";
+
+      if (
+        name.length === 0 ||
+        name.length > SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH ||
+        this.hasControlCharacter(name)
+      ) {
+        continue;
+      }
+
+      const count: number = Math.min(
+        this.readNonNegativeInteger(raw["count"]),
+        SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK,
+      );
+
+      if (count === 0) {
+        continue;
+      }
+
+      const frustrationCount: number = Math.min(
+        this.readNonNegativeInteger(raw["frustrationCount"]),
+        count,
+      );
+
+      const existing: SessionReplayCustomSignalCount | undefined = counts.find(
+        (candidate: SessionReplayCustomSignalCount): boolean => {
+          return candidate.name === name;
+        },
+      );
+
+      if (existing) {
+        existing.count = Math.max(existing.count, count);
+        existing.frustrationCount = Math.max(
+          existing.frustrationCount,
+          frustrationCount,
+        );
+        continue;
+      }
+
+      if (counts.length >= SESSION_REPLAY_MAX_CUSTOM_SIGNALS) {
+        continue;
+      }
+
+      counts.push({ name, count, frustrationCount });
+    }
+
+    return counts;
+  }
+
+  /* Control characters, which no name the settings page accepts holds. */
+  private static hasControlCharacter(value: string): boolean {
+    for (let index: number = 0; index < value.length; index++) {
+      const code: number = value.charCodeAt(index);
+
+      if (code < 0x20 || code === 0x7f) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private static readOptionalNonNegativeInteger(

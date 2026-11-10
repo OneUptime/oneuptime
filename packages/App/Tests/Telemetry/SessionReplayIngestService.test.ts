@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { readSessionReplayFrustrationSignalsConfig } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -393,6 +394,7 @@ function buildPolicy(
     lcpBudgetMs: 0,
     longTaskBudgetMs: 0,
     slowRequestBudgetMs: 0,
+    frustrationSignals: readSessionReplayFrustrationSignalsConfig(null),
     configEpoch: 1234,
     ...overrides,
   };
@@ -2862,6 +2864,136 @@ describe("SessionReplayIngestService.processFromQueue - engagement, tags, traits
     expect(rows[0]!["customEventCount"]).toBe(3);
     expect(rows[1]!["clickCount"]).toBe(0);
     expect(rows[1]!["customEventCount"]).toBe(0);
+  });
+
+  /*
+   * Issue #6443: the application's own signals, counted by name on the
+   * envelope. The chunk row stores the chunk's totals and names; the
+   * provisional header carries them across chunks like the built-in
+   * counters, so a session captured because one of its own frustration
+   * signals fired is in the Frustration tab before it is finalized.
+   */
+  describe("signals of the application's own", () => {
+    const WITH_SIGNALS: Partial<SessionReplayChunkEnvelope> = {
+      chunkIndex: 0,
+      signals: {
+        ...buildEnvelope().signals,
+        customSignals: [
+          { name: "Payment failed", count: 2, frustrationCount: 2 },
+          { name: "Help opened", count: 1, frustrationCount: 0 },
+        ],
+      },
+    };
+
+    test("the chunk row carries the chunk's totals and sorted names, none from an older recorder", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([WITH_SIGNALS, { chunkIndex: 1 }])),
+      );
+
+      const rows: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+
+      expect(rows[0]!["customSignalCount"]).toBe(3);
+      expect(rows[0]!["customSignalFrustrationCount"]).toBe(2);
+      expect(rows[0]!["customSignalNames"]).toEqual([
+        "Help opened",
+        "Payment failed",
+      ]);
+      expect(rows[1]!["customSignalCount"]).toBe(0);
+      expect(rows[1]!["customSignalFrustrationCount"]).toBe(0);
+      expect(rows[1]!["customSignalNames"]).toEqual([]);
+    });
+
+    test("the provisional header keeps them through a later clean chunk, and a retry does not double them", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([WITH_SIGNALS])),
+      );
+      submitMock.mockClear();
+
+      /* A clean final chunk, then chunk 0 again as a retry delivers it. */
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 2, isFinal: true }])),
+      );
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([WITH_SIGNALS])),
+      );
+
+      const headers: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+      /* The final chunk's version, and the retry's if it wrote one. */
+      expect(headers.length).toBeGreaterThanOrEqual(1);
+
+      for (const header of headers) {
+        /* Merged with max, like the built-in counters: never summed here. */
+        expect(header["customSignalCount"]).toBe(3);
+        expect(header["customSignalFrustrationCount"]).toBe(2);
+        expect(header["customSignalNames"]).toEqual([
+          "Help opened",
+          "Payment failed",
+        ]);
+      }
+    });
+
+    test("a final chunk's own signals join the names the header already had", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([WITH_SIGNALS])),
+      );
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 1,
+              isFinal: true,
+              signals: {
+                ...buildEnvelope().signals,
+                customSignals: [
+                  { name: "Checkout error", count: 1, frustrationCount: 1 },
+                ],
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["customSignalCount"]).toBe(3);
+      expect(header["customSignalFrustrationCount"]).toBe(2);
+      expect(header["customSignalNames"]).toEqual([
+        "Checkout error",
+        "Help opened",
+        "Payment failed",
+      ]);
+    });
+
+    test("a carry written before custom signals existed reads as none", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      /* Strip the new fields from the stored carry, as an older build wrote it. */
+      for (const [key, value] of Array.from(redisStrings.entries())) {
+        if (!value.includes("customSignalNames")) {
+          continue;
+        }
+        const carry: JSONObject = JSON.parse(value) as JSONObject;
+        delete carry["customSignalCount"];
+        delete carry["customSignalFrustrationCount"];
+        delete carry["customSignalNames"];
+        redisStrings.set(key, JSON.stringify(carry));
+      }
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 1, isFinal: true }])),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["customSignalCount"]).toBe(0);
+      expect(header["customSignalNames"]).toEqual([]);
+    });
   });
 
   test("the header's engagement aggregates are zero - the finalizer owns them", async () => {

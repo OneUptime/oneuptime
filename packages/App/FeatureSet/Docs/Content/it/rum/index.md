@@ -42,10 +42,10 @@ Il menu laterale di un'applicazione raggruppa le sue pagine così; **Impostazion
 | --- | --- |
 | **Base** | **Panoramica**, **Raccomandazioni**, **Documentazione** |
 | **Osservabilità** | **Metriche**, **Registri**, **Tracce**, **Client** |
-| **Riproduzione delle sessioni** | **Riproduzione delle sessioni**, **Flussi utente**, **Utenti delle riproduzioni**, **Integrità**, **Policy di riproduzione**, **Registro degli accessi alle riproduzioni**, **Documentazione** |
+| **Riproduzione delle sessioni** | **Riproduzione delle sessioni**, **Flussi utente**, **Utenti delle riproduzioni**, **Integrità**, **Policy di riproduzione**, **Segnali di frustrazione**, **Registro degli accessi alle riproduzioni**, **Documentazione** |
 | **Impostazioni** | **Impostazioni** |
 | **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA** |
-| **Avanzato** | **Elimina applicazione** |
+| **Avanzato** | **Registri di audit**, **Elimina applicazione** |
 
 ## Come OneUptime riconosce il RUM
 

@@ -770,6 +770,112 @@ describe("SessionReplayEnvelopeParser.parse — additive fields", () => {
     );
   });
 
+  /*
+   * Issue #6443: the application's own signals, counted by name. The names
+   * render on the session list and the envelope is attacker-controllable,
+   * so each entry is held to what a recorder could have sent.
+   */
+  describe("customSignals", () => {
+    function signalsOf(customSignals: JSONValue): JSONValue {
+      const parsed: Extract<SessionReplayParseResult, { isValid: true }> =
+        parseValid(
+          frameBuffer({
+            envelope: baseEnvelope({
+              signals: { errorCount: 1, customSignals },
+            }),
+            payload: "x",
+          }),
+        );
+
+      return (parsed.frames[0]!.envelope.signals.customSignals ??
+        null) as JSONValue;
+    }
+
+    test("keeps sane counts by name", () => {
+      expect(
+        signalsOf([
+          { name: "Checkout error", count: 2, frustrationCount: 2 },
+          { name: "  Help opened  ", count: 1, frustrationCount: 0 },
+        ]),
+      ).toEqual([
+        { name: "Checkout error", count: 2, frustrationCount: 2 },
+        { name: "Help opened", count: 1, frustrationCount: 0 },
+      ]);
+    });
+
+    test("is absent from an older recorder's envelope, and when nothing usable is sent", () => {
+      const older: Extract<SessionReplayParseResult, { isValid: true }> =
+        parseValid(
+          frameBuffer({
+            envelope: baseEnvelope({ signals: { errorCount: 1 } }),
+            payload: "x",
+          }),
+        );
+
+      expect("customSignals" in older.frames[0]!.envelope.signals).toBe(false);
+      expect(signalsOf("Checkout error")).toBeNull();
+      expect(signalsOf({ name: "Checkout error", count: 1 })).toBeNull();
+      expect(signalsOf([])).toBeNull();
+    });
+
+    test("drops entries no recorder could have sent", () => {
+      expect(
+        signalsOf([
+          null,
+          "Checkout error",
+          ["Checkout error", 1],
+          { name: "", count: 1 },
+          { name: "   ", count: 1 },
+          { name: "x".repeat(41), count: 1 },
+          { name: "Line\nbreak", count: 1 },
+          { name: 7, count: 1 },
+          { name: "No hits", count: 0, frustrationCount: 0 },
+          { name: "Negative", count: -2 },
+          { name: "Fraction", count: 1.5 },
+          { name: "Text count", count: "3" },
+          { name: "Kept", count: 1 },
+        ]),
+      ).toEqual([{ name: "Kept", count: 1, frustrationCount: 0 }]);
+    });
+
+    test("caps counts at what one chunk can hold, and frustration at the count", () => {
+      expect(
+        signalsOf([
+          { name: "Flood", count: 1_000_000_000, frustrationCount: 9e15 },
+          { name: "More frustrated than hit", count: 2, frustrationCount: 5 },
+        ]),
+      ).toEqual([
+        { name: "Flood", count: 50, frustrationCount: 50 },
+        { name: "More frustrated than hit", count: 2, frustrationCount: 2 },
+      ]);
+    });
+
+    test("counts a name sent twice once, with its larger counts", () => {
+      expect(
+        signalsOf([
+          { name: "Retry", count: 3, frustrationCount: 1 },
+          { name: "Retry", count: 2, frustrationCount: 2 },
+        ]),
+      ).toEqual([{ name: "Retry", count: 3, frustrationCount: 2 }]);
+    });
+
+    test("keeps at most twenty names", () => {
+      const many: Array<JSONValue> = [];
+
+      for (let index: number = 0; index < 30; index++) {
+        many.push({ name: `Signal ${index}`, count: 1, frustrationCount: 1 });
+      }
+
+      const kept: Array<{ name: string }> = signalsOf(many) as Array<{
+        name: string;
+      }>;
+
+      expect(kept).toHaveLength(20);
+      expect(kept[0]!.name).toBe("Signal 0");
+      expect(kept[19]!.name).toBe("Signal 19");
+    });
+  });
+
   test("capabilities are filtered to the known list, deduplicated and canonically ordered", () => {
     const result: Extract<SessionReplayParseResult, { isValid: true }> =
       parseValid(
