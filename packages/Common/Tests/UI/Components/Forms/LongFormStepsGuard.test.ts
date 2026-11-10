@@ -368,6 +368,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
       "A dashboard widget's settings, built from the widget's own argument list and already drawn as one small form per argument section in the side panel, not as one long dialog.",
   },
   {
+    file: `${DASHBOARD}/Components/StatusPage/StatusPageResourcePanel.tsx`,
+    form: "ModelFormModal: Status Page > Resources",
+    reason:
+      "Add Monitor and Edit resource on Status Page > Resources, both built by getStatusPageResourceFormFields (StatusPageResourceFormFields.tsx, whose shape StatusPageResourceFormsGuard pins): the monitor or monitor group, its display name and description, a grid group's row and column, then the display options folded under More fields. One short page with the options closed; a Next between picking the monitor and naming it would only slow down the add an operator repeats most.",
+  },
+  {
     file: `${DASHBOARD}/Components/NumberPrefix/NumberPrefixCard.tsx`,
     form: "CardModelDetail #1",
     reason:
