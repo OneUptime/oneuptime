@@ -115,6 +115,7 @@
     "Up + Out",
     "VIP",
     "VLAN",
+    "VLAN {{vlanId}}",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Vital",

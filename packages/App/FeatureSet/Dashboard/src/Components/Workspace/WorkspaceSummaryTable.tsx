@@ -18,6 +18,12 @@ import React, {
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
 } from "Common/Types/Workspace/WorkspaceType";
+import {
+  WORKSPACE_SUMMARY_TYPE_COPY,
+  WorkspaceSummaryTypeCopy,
+} from "./WorkspaceSummaryCopy";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import WorkspaceNotificationSummary from "Common/Models/DatabaseModels/WorkspaceNotificationSummary";
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import WorkspaceNotificationSummaryItem from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryItem";
@@ -75,6 +81,7 @@ export interface ComponentProps {
 const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
 
@@ -272,6 +279,14 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
 
   const typeLabel: string = props.summaryType;
 
+  // This kind's sentences, each worded whole (WorkspaceSummaryCopy).
+  const copy: WorkspaceSummaryTypeCopy =
+    WORKSPACE_SUMMARY_TYPE_COPY[props.summaryType];
+
+  const workspaceName: string = getWorkspaceTypeDisplayName(
+    props.workspaceType,
+  );
+
   return (
     <Fragment>
       <ModelTable<WorkspaceNotificationSummary>
@@ -307,8 +322,8 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
-        singularName={`${typeLabel} Summary`}
-        pluralName={`${typeLabel} Summaries`}
+        singularName={copy.singularName}
+        pluralName={copy.pluralName}
         id={`workspace-summary-table-${props.summaryType}`}
         name={`${typeLabel} Workspace Summaries`}
         isDeleteable={true}
@@ -316,11 +331,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         createEditModalWidth={ModalWidth.Large}
         isCreateable={true}
         cardProps={{
-          title: `${typeLabel} Summary - ${getWorkspaceTypeDisplayName(props.workspaceType)}`,
-          description: `Set up recurring ${typeLabel.toLowerCase()} summary reports posted to ${getWorkspaceTypeDisplayName(props.workspaceType)}. Each summary includes stats like total count, MTTA/MTTR, severity breakdown, and a list of ${typeLabel.toLowerCase()}s with links.`,
+          title: translator.translateTemplate(copy.cardTitle, {
+            workspace: workspaceName,
+          }),
+          description: translator.translateTemplate(copy.cardDescription, {
+            workspace: workspaceName,
+          }),
         }}
         showAs={ShowAs.List}
-        noItemsMessage={`No ${typeLabel.toLowerCase()} summary rules configured yet. Create one to start receiving periodic reports.`}
+        noItemsMessage={translator.translateTemplate(copy.noItemsMessage)}
         /*
          * A new summary goes out every week, as its other defaults - the
          * last 7 days, a "Weekly ... Summary" - already assumed, so it can
@@ -429,7 +448,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             required: true,
             stepId: "basic",
-            placeholder: `Weekly ${typeLabel} Summary`,
+            placeholder: translator.translateTemplate(copy.namePlaceholder),
             validation: {
               minLength: 2,
             },
@@ -442,7 +461,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: `e.g., Weekly ${typeLabel.toLowerCase()} summary for the engineering team.`,
+            placeholder: translator.translateTemplate(
+              copy.descriptionPlaceholder,
+            ),
           },
           {
             field: {
@@ -450,7 +471,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             stepId: "basic",
             title: "Channel Names",
-            description: `Enter one or more ${getWorkspaceTypeDisplayName(props.workspaceType)} channel names (comma-separated) where the summary will be posted.`,
+            description: translator.translateTemplate(
+              "Enter one or more {{workspace}} channel names (comma-separated) where the summary will be posted.",
+              { workspace: workspaceName },
+            ),
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "#incidents-summary, #engineering",
@@ -877,7 +901,14 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             title: "Lookback",
             type: FieldType.Element,
             getElement: (value: WorkspaceNotificationSummary): ReactElement => {
-              return <span>{value.numberOfDaysOfData} days</span>;
+              return (
+                <span>
+                  {translator.translatePlural(
+                    { one: "{{count}} day", other: "{{count}} days" },
+                    value.numberOfDaysOfData || 0,
+                  )}
+                </span>
+              );
             },
           },
           {
@@ -903,7 +934,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Send Test Summary Now`}
           error={testError}
-          description={`Send the "${testSummary.name}" summary to ${getWorkspaceTypeDisplayName(props.workspaceType)} now, with the last ${testSummary.numberOfDaysOfData || 7} days of data. The regular schedule is not affected.`}
+          description={translator.translatePlural(
+            {
+              one: 'Send the "{{name}}" summary to {{workspace}} now, with the last {{count}} day of data. The regular schedule is not affected.',
+              other:
+                'Send the "{{name}}" summary to {{workspace}} now, with the last {{count}} days of data. The regular schedule is not affected.',
+            },
+            testSummary.numberOfDaysOfData || 7,
+            { name: testSummary.name || "", workspace: workspaceName },
+          )}
           submitButtonText={"Send Now"}
           onClose={() => {
             setShowTestModal(false);
@@ -929,7 +968,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           description={
             testError
               ? `The test summary could not be sent. Please check your channel names and workspace connection settings.`
-              : `The test summary was sent successfully. Check your ${getWorkspaceTypeDisplayName(props.workspaceType)} channel to see how it looks.`
+              : translator.translateTemplate(
+                  "The test summary was sent successfully. Check your {{workspace}} channel to see how it looks.",
+                  { workspace: workspaceName },
+                )
           }
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}

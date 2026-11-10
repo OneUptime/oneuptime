@@ -474,7 +474,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
     return [
       {
         id: "edge-calls",
-        title: translateString("Calls and errors") || "Calls and errors",
+        title: translateString("Calls and errors"),
         description: `${fromName} → ${toName}`,
         type: ChartType.LINE,
         props: {
@@ -499,10 +499,8 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
       },
       {
         id: "edge-latency",
-        title: translateString("Average latency") || "Average latency",
-        description:
-          translateString("How long the callee took to answer") ||
-          "How long the callee took to answer",
+        title: translateString("Average latency"),
+        description: translateString("How long the callee took to answer"),
         type: ChartType.LINE,
         props: {
           data: withTranslatedSeriesNames(latencySeries, translator),
@@ -564,9 +562,15 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                   {formatCallRate(rel.callCount!, props.metricsWindowSeconds)}
                 </span>
                 <span style={{ color: healthColor }}>
-                  {formatErrorRate(rel.callCount, rel.errorCount)} errors
+                  {translator.translateTemplate("{{rate}} errors", {
+                    rate: formatErrorRate(rel.callCount, rel.errorCount),
+                  })}
                 </span>
-                <span>avg {formatDurationMs(rel.avgDurationMs)}</span>
+                <span>
+                  {translator.translateTemplate("avg {{duration}}", {
+                    duration: formatDurationMs(rel.avgDurationMs),
+                  })}
+                </span>
               </div>
             </div>
           ) : (
@@ -599,7 +603,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                 data-testid="edge-history-header"
               >
                 <h3 className="text-sm font-semibold text-gray-900">
-                  {translateString("History") || "History"}
+                  {translateString("History")}
                 </h3>
                 <div className="flex items-center gap-2">
                   {loaded && isLoading ? (
@@ -611,7 +615,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                         icon={IconProp.Refresh}
                         className="h-3 w-3 animate-spin text-gray-400"
                       />
-                      {translateString("Refreshing") || "Refreshing"}
+                      {translateString("Refreshing")}
                     </span>
                   ) : (
                     <></>
@@ -699,7 +703,9 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
           )}
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Open</h3>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Open")}
+            </h3>
             <ul className="mt-2 space-y-2 text-sm">
               {loaded?.result.callerServiceId && (
                 <li>

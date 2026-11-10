@@ -24,6 +24,12 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  formatInline,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   formatCallRate,
   formatDurationMs,
@@ -333,6 +339,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
@@ -914,7 +921,10 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             className="w-full rounded-md text-left text-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            aria-label={`${t("View details for")} ${otherLabel}`}
+            aria-label={translator.translateTemplate(
+              "View details for {{name}}",
+              { name: otherLabel },
+            )}
             onClick={open}
           >
             {sentence} <span aria-hidden={true}>→</span>
@@ -927,7 +937,18 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             {typeLabel ? t(typeLabel) : ""}
             {typeLabel && hasMetrics ? <InlineSeparator /> : null}
             {hasMetrics
-              ? `${formatCallRate(row.callCount!, props.metricsWindowSeconds)} · ${formatErrorRate(row.callCount, row.errorCount)} errors · avg ${formatDurationMs(row.avgDurationMs)}`
+              ? formatInline(
+                  [
+                    formatCallRate(row.callCount!, props.metricsWindowSeconds),
+                    translator.translateTemplate("{{rate}} errors", {
+                      rate: formatErrorRate(row.callCount, row.errorCount),
+                    }),
+                    translator.translateTemplate("avg {{duration}}", {
+                      duration: formatDurationMs(row.avgDurationMs),
+                    }),
+                  ],
+                  translator,
+                )
               : ""}
           </p>
         )}
@@ -1417,7 +1438,12 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                         )}
                         className="font-medium text-indigo-600 hover:text-indigo-800"
                       >
-                        {t("Network device:")} {device.name || "device"}
+                        {translator.translateTemplate(
+                          "Network device: {{name}}",
+                          {
+                            name: device.name || translatableTerm("device"),
+                          },
+                        )}
                       </Link>
                     </li>
                   )}

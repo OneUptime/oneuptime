@@ -484,7 +484,9 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           field: {
             rowAxisValue: true,
           },
-          title: `${props.gridPlacement.rowLabel} (Row)`,
+          title: translator.translateTemplate("{{axis}} (Row)", {
+            axis: props.gridPlacement.rowLabel,
+          }),
           description: "Row these resources belong to in the grid.",
           fieldType: FormFieldSchemaType.Dropdown,
           dropdownOptions: props.gridPlacement.rowValues.map(
@@ -493,13 +495,17 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
             },
           ),
           required: true,
-          placeholder: `Select ${props.gridPlacement.rowLabel.toLowerCase()}`,
+          placeholder: translator.translateTemplate("Select {{axis}}", {
+            axis: props.gridPlacement.rowLabel.toLowerCase(),
+          }),
         },
         {
           field: {
             columnAxisValue: true,
           },
-          title: `${props.gridPlacement.columnLabel} (Column)`,
+          title: translator.translateTemplate("{{axis}} (Column)", {
+            axis: props.gridPlacement.columnLabel,
+          }),
           description: "Column these resources belong to in the grid.",
           fieldType: FormFieldSchemaType.Dropdown,
           dropdownOptions: props.gridPlacement.columnValues.map(
@@ -508,7 +514,9 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
             },
           ),
           required: true,
-          placeholder: `Select ${props.gridPlacement.columnLabel.toLowerCase()}`,
+          placeholder: translator.translateTemplate("Select {{axis}}", {
+            axis: props.gridPlacement.columnLabel.toLowerCase(),
+          }),
         },
       );
     }

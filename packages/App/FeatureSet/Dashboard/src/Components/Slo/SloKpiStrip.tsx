@@ -7,7 +7,7 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import {
-  formatDurationCompact,
+  formatDurationCompactInLanguage,
   formatErrorBudgetRemainingOfTotal,
 } from "Common/Utils/Slo/SloDuration";
 import {
@@ -15,10 +15,7 @@ import {
   SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
 } from "Common/Utils/Slo/SloEvaluation";
 import { getSloBudgetTier, SloBudgetTier } from "Common/Utils/Slo/SloHealth";
-import {
-  getSloBudgetRemainingText,
-  getSloTargetText,
-} from "Common/Utils/Slo/SloOverviewText";
+import { getSloBudgetRemainingText } from "Common/Utils/Slo/SloOverviewText";
 import {
   getRollingWindowFill,
   getSliDeltaText,
@@ -35,6 +32,8 @@ import {
   formatSloPercent,
   SLO_NOT_EVALUATED_TEXT,
 } from "Common/Utils/Slo/SloWidgetFormat";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -73,6 +72,7 @@ const RUNWAY_TONE_TEXT_CLASS: Record<SloProjectionTone, string> = {
 const SloKpiStrip: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const slo: ServiceLevelObjective = props.slo;
 
   // ---- SLI -----------------------------------------------------------------
@@ -83,17 +83,22 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     targetPercentage: slo.targetPercentage,
   });
 
-  const targetText: string | null = getSloTargetText(slo.targetPercentage);
+  const targetText: string | null = formatSloPercent(slo.targetPercentage);
 
   const sliDescription: string =
     sliText === null
       ? targetText
-        ? `${targetText} · not evaluated yet`
-        : SLO_NOT_EVALUATED_TEXT
+        ? translator.translateTemplate(
+            "Target {{target}} · not evaluated yet",
+            {
+              target: targetText,
+            },
+          )
+        : translator.translateTemplate(SLO_NOT_EVALUATED_TEXT)
       : getSliDeltaText({
           currentSliPercentage: slo.currentSliPercentage,
           targetPercentage: slo.targetPercentage,
-        }) || "No target set";
+        }) || translator.translateTemplate("No target set");
 
   // ---- Error budget ----------------------------------------------------------
 
@@ -114,18 +119,26 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     multiMonitorMode: slo.multiMonitorMode,
   });
 
-  let budgetFallbackText: string = SLO_NOT_EVALUATED_TEXT;
+  let budgetFallbackText: string = translator.translateTemplate(
+    SLO_NOT_EVALUATED_TEXT,
+  );
 
   if (budgetText !== null) {
     if (
       typeof slo.errorBudgetRemainingPercentage === "number" &&
       slo.errorBudgetRemainingPercentage < 0
     ) {
-      budgetFallbackText = "Allowed downtime has been exceeded";
+      budgetFallbackText = translator.translateTemplate(
+        "Allowed downtime has been exceeded",
+      );
     } else if (slo.errorBudgetRemainingPercentage === 0) {
-      budgetFallbackText = "All allowed downtime has been used";
+      budgetFallbackText = translator.translateTemplate(
+        "All allowed downtime has been used",
+      );
     } else {
-      budgetFallbackText = "Remaining share of the allowed downtime";
+      budgetFallbackText = translator.translateTemplate(
+        "Remaining share of the allowed downtime",
+      );
     }
   }
 
@@ -165,19 +178,24 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     burnRateClassName = "text-amber-700";
   }
 
-  const burnRateWindowText: string = formatDurationCompact(
+  const burnRateWindowText: string = formatDurationCompactInLanguage(
     SLO_CURRENT_BURN_RATE_WINDOW_MINUTES * 60,
+    translator.language,
   );
 
   // A rule that looks back further is not compared with the last hour.
-  const comparableLongWindowText: string = formatDurationCompact(
+  const comparableLongWindowText: string = formatDurationCompactInLanguage(
     SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES * 60,
+    translator.language,
   );
 
   const burnRateDescription: string =
     burnRateText === null
-      ? SLO_NOT_EVALUATED_TEXT
-      : `Over the last ${burnRateWindowText} · 1× spends the budget exactly over the window`;
+      ? translator.translateTemplate(SLO_NOT_EVALUATED_TEXT)
+      : translator.translateTemplate(
+          "Over the last {{window}} · 1× spends the budget exactly over the window",
+          { window: burnRateWindowText },
+        );
 
   // ---- Runway ----------------------------------------------------------------
 
@@ -254,9 +272,17 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
                 {isAtOrAboveRuleThreshold ? (
                   <span
                     data-testid="slo-kpi-burn-rate-badge"
-                    title={`The last ${burnRateWindowText}'s burn is at or above ${formatSloBurnRate(
-                      props.lowestEnabledBurnRateThreshold,
-                    )}, the lowest threshold among this SLO's enabled burn rate rules that look back ${comparableLongWindowText} or less.`}
+                    title={translator.translateTemplate(
+                      "The burn over the last {{window}} is at or above {{threshold}}, the lowest threshold among this SLO's enabled burn rate rules that look back {{longWindow}} or less.",
+                      {
+                        window: burnRateWindowText,
+                        threshold:
+                          formatSloBurnRate(
+                            props.lowestEnabledBurnRateThreshold,
+                          ) || "",
+                        longWindow: comparableLongWindowText,
+                      },
+                    )}
                   >
                     <StatusBadge
                       text="Rule threshold reached"

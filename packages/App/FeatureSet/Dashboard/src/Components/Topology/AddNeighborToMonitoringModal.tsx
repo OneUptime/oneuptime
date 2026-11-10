@@ -26,6 +26,8 @@ import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ProbeUtil from "../../Utils/Probe";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -110,6 +112,7 @@ const SNMP_COMMUNITY_FIELD_DESCRIPTION: string =
 const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [probes, setProbes] = useState<Array<Probe>>([]);
   const [inherited, setInherited] = useState<InheritedPlacement>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -434,10 +437,15 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
    * the loading branch the second was the word "Cancel" rendered disabled
    * under a spinner.
    */
+  const title: string = translator.translateTemplate(
+    "Add {{name}} to monitoring",
+    { name: props.node.name },
+  );
+
   if (error) {
     return (
       <ConfirmModal
-        title={`Add ${props.node.name} to monitoring`}
+        title={title}
         description={error}
         submitButtonText="Close"
         onSubmit={props.onClose}
@@ -454,7 +462,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
      */
     return (
       <ConfirmModal
-        title={`Add ${props.node.name} to monitoring`}
+        title={title}
         description="Reading what the map already knows about this device..."
         submitButtonText="Cancel"
         onSubmit={props.onClose}
@@ -466,7 +474,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
     <ModelFormModal<NetworkDevice>
       modelType={NetworkDevice}
       name="Add Unmanaged Neighbour To Monitoring"
-      title={`Add ${props.node.name} to monitoring`}
+      title={title}
       description={[draft.provenance, ...draft.warnings].join(" ")}
       submitButtonText="Add Device"
       modalWidth={ModalWidth.Medium}

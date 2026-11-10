@@ -249,9 +249,7 @@ describe("a page with nothing on it draws nothing it cannot fill", () => {
     expect(emptyState).toContain("kind={TableEmptyStateKind.Empty}");
     expect(emptyState).toContain('title="No network topology discovered yet."');
     expect(emptyState).toContain("actionElement={props.footer}");
-    expect(live).toContain(
-      '{translateString("Add a device") || "Add a device"}',
-    );
+    expect(live).toContain('{translateString("Add a device")}');
   });
 
   test("an empty Alert Policies page looks like every other empty page, the recommended policy first", () => {

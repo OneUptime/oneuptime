@@ -114,6 +114,7 @@
     "Up + Out",
     "VIP",
     "VLAN",
+    "VLAN {{vlanId}}",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",

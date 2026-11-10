@@ -8,21 +8,25 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import Card from "Common/UI/Components/Card/Card";
-import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
 import { SLO_EVALUATION_CADENCE_MINUTES } from "Common/Utils/Slo/SloEvaluation";
 import {
   getSliTypeText,
-  getSloAtRiskText,
   getSloDowntimeStatusesText,
   getSloMultiMonitorModeText,
-  getSloWindowText,
   SloMultiMonitorModeText,
 } from "Common/Utils/Slo/SloOverviewText";
+import {
+  getSloAllowedDowntimeTextInLanguage,
+  getSloAtRiskTextInLanguage,
+  getSloWindowTextInLanguage,
+} from "./SloOverviewTextInLanguage";
 import {
   getSloAllowedDowntime,
   SloAllowedDowntime,
 } from "Common/Utils/Slo/SloProjection";
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -50,6 +54,7 @@ interface ConfigurationRow {
 const SloConfigurationSummaryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const slo: ServiceLevelObjective = props.slo;
 
   const settingsRoute: Route = RouteUtil.populateRouteParams(
@@ -76,20 +81,32 @@ const SloConfigurationSummaryCard: FunctionComponent<ComponentProps> = (
       key: "objective",
       label: "Objective",
       value: formatSloPercent(slo.targetPercentage)
-        ? `${formatSloPercent(slo.targetPercentage)} uptime`
+        ? translator.translateTemplate("{{percent}} uptime", {
+            percent: formatSloPercent(slo.targetPercentage) || "",
+          })
         : "No target set",
       description: allowedDowntime
-        ? `${formatDurationCompact(allowedDowntime.seconds)} of downtime allowed ${allowedDowntime.periodText}`
+        ? getSloAllowedDowntimeTextInLanguage(
+            {
+              seconds: allowedDowntime.seconds,
+              windowType: slo.windowType,
+              windowDays: slo.windowDays,
+            },
+            translator,
+          )
         : undefined,
     },
     {
       key: "window",
       label: "Compliance window",
-      value: getSloWindowText({
-        windowType: slo.windowType,
-        windowDays: slo.windowDays,
-        timezone: slo.timezone,
-      }),
+      value: getSloWindowTextInLanguage(
+        {
+          windowType: slo.windowType,
+          windowDays: slo.windowDays,
+          timezone: slo.timezone,
+        },
+        translator,
+      ),
       description:
         slo.windowType === SloWindowType.CalendarMonth
           ? "The budget resets to full at the start of every month."
@@ -98,7 +115,10 @@ const SloConfigurationSummaryCard: FunctionComponent<ComponentProps> = (
     {
       key: "at-risk",
       label: "At risk",
-      value: getSloAtRiskText(slo.atRiskThresholdPercentage),
+      value: getSloAtRiskTextInLanguage(
+        slo.atRiskThresholdPercentage,
+        translator,
+      ),
     },
     {
       key: "downtime-statuses",
@@ -123,7 +143,7 @@ const SloConfigurationSummaryCard: FunctionComponent<ComponentProps> = (
                         : undefined,
                     }}
                   ></span>
-                  {status.name || "Unnamed status"}
+                  {status.name || translator.translateText("Unnamed status")}
                 </span>
               );
             })}
@@ -140,7 +160,13 @@ const SloConfigurationSummaryCard: FunctionComponent<ComponentProps> = (
       key: "indicator",
       label: "Indicator",
       value: getSliTypeText(slo.sliType),
-      description: `Evaluated every ${SLO_EVALUATION_CADENCE_MINUTES} minutes.`,
+      description: translator.translatePlural(
+        {
+          one: "Evaluated every {{count}} minute.",
+          other: "Evaluated every {{count}} minutes.",
+        },
+        SLO_EVALUATION_CADENCE_MINUTES,
+      ),
     },
   ];
 
@@ -168,13 +194,22 @@ const SloConfigurationSummaryCard: FunctionComponent<ComponentProps> = (
               data-testid={`slo-configuration-${row.key}`}
               className="py-3 first:pt-0 last:pb-0"
             >
+              {/*
+               * Each label, fixed value and fixed description is the English
+               * text, looked up here; a sentence the card worded above has
+               * no key and is drawn as it is.
+               */}
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                {row.label}
+                {translator.translateText(row.label)}
               </dt>
-              <dd className="mt-1 text-sm text-gray-900">{row.value}</dd>
+              <dd className="mt-1 text-sm text-gray-900">
+                {typeof row.value === "string"
+                  ? translator.translateText(row.value)
+                  : row.value}
+              </dd>
               {row.description ? (
                 <dd className="mt-0.5 text-xs text-gray-500">
-                  {row.description}
+                  {translator.translateText(row.description)}
                 </dd>
               ) : (
                 <></>

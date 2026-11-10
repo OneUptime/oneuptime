@@ -12,6 +12,8 @@ import Dropdown, {
 import Input from "Common/UI/Components/Input/Input";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 
 export interface ComponentProps {
@@ -106,6 +108,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const [showOptions, setShowOptions] = useState<boolean>(false);
   const optionsId: string = useId();
   const hasHiddenKinds: boolean = Array.from(props.availableKinds).some(
@@ -138,7 +141,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    const savingText: string = translateString("Saving…") || "Saving…";
+    const savingText: string = translateString("Saving…");
     const error: ReactElement = controls.error ? (
       <p
         role="alert"
@@ -157,12 +160,9 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             data-testid="network-topology-make-default"
-            title={
-              translateString(
-                "Every network map in this project will open on this layout. People can still switch while they look.",
-              ) ||
-              "Every network map in this project will open on this layout. People can still switch while they look."
-            }
+            title={translateString(
+              "Every network map in this project will open on this layout. People can still switch while they look.",
+            )}
             disabled={controls.isSaving}
             className={`rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${getHandDrawnButtonStateClassName(
               {
@@ -174,8 +174,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
           >
             {controls.isSaving
               ? savingText
-              : translateString("Make default for everyone") ||
-                "Make default for everyone"}
+              : translateString("Make default for everyone")}
           </button>
           {error}
         </div>
@@ -195,17 +194,14 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
         >
           {translateString(
             "Everyone in this project opens network maps on this layout.",
-          ) || "Everyone in this project opens network maps on this layout."}
+          )}
         </span>
         <button
           type="button"
           data-testid="network-topology-clear-default"
-          title={
-            translateString(
-              "Each map opens on its own default again: Automatic for all devices, By network layer for a site.",
-            ) ||
-            "Each map opens on its own default again: Automatic for all devices, By network layer for a site."
-          }
+          title={translateString(
+            "Each map opens on its own default again: Automatic for all devices, By network layer for a site.",
+          )}
           disabled={controls.isSaving}
           className={`rounded font-medium text-indigo-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${getHandDrawnButtonStateClassName(
             {
@@ -215,9 +211,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
           )}`}
           onClick={controls.onClear}
         >
-          {controls.isSaving
-            ? savingText
-            : translateString("Clear default") || "Clear default"}
+          {controls.isSaving ? savingText : translateString("Clear default")}
         </button>
         {error}
       </div>
@@ -249,7 +243,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
               className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
               onClick={props.onResetFilters}
             >
-              {translateString("Clear filters") || "Clear filters"}
+              {translateString("Clear filters")}
             </button>
           ) : (
             <></>
@@ -264,7 +258,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
               setShowOptions(!showOptions);
             }}
           >
-            {translateString("Map options") || "Map options"}
+            {translateString("Map options")}
             {optionFilterCount > 0 ? (
               <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700">
                 {optionFilterCount}
@@ -285,11 +279,11 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
         >
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              {translateString("Arrange the map") || "Arrange the map"}
+              {translateString("Arrange the map")}
             </p>
             <div
               role="group"
-              aria-label="Topology layout"
+              aria-label={translateString("Topology layout")}
               className="flex flex-wrap gap-1.5"
             >
               {LAYOUTS.map((option: LayoutOption): ReactElement => {
@@ -314,7 +308,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
                         data-testid="network-topology-layout-default-tag"
                         className={`ml-1.5 rounded px-1 py-px text-[10px] font-semibold uppercase tracking-wide ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-500"}`}
                       >
-                        {translateString("Default") || "Default"}
+                        {translateString("Default")}
                       </span>
                     ) : (
                       <></>
@@ -327,18 +321,17 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
               {translateString(layoutDescription) || layoutDescription}{" "}
               {translateString(
                 "Dragged positions are saved for each layout on this browser.",
-              ) ||
-                "Dragged positions are saved for each layout on this browser."}
+              )}
             </p>
             {renderDefaultLayoutControls()}
           </div>
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              {translateString("Include on the map") || "Include on the map"}
+              {translateString("Include on the map")}
             </p>
             <div
               role="group"
-              aria-label="Node types"
+              aria-label={translateString("Node types")}
               className="flex flex-wrap gap-1.5"
             >
               {(
@@ -394,7 +387,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
                 data-testid="network-topology-vlan-filter"
               >
                 <p className="mb-1 text-xs font-medium text-gray-600">
-                  {translateString("Endpoint VLAN") || "Endpoint VLAN"}
+                  {translateString("Endpoint VLAN")}
                 </p>
                 <Dropdown
                   ariaLabel="Endpoint VLAN"
@@ -413,8 +406,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
                 <p className="mt-1 text-xs text-gray-500">
                   {translateString(
                     "Filters endpoints. Network devices stay visible for context.",
-                  ) ||
-                    "Filters endpoints. Network devices stay visible for context."}
+                  )}
                 </p>
               </div>
             ) : (
@@ -443,10 +435,16 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
           aria-live="polite"
         >
           {props.healthFilterMode !== "all"
-            ? `${props.healthFilterMatchCount} of ${props.healthSummary.total} match this health filter. Connected neighbors stay dimmed for context.`
-            : translateString(
-                "Select a health filter to focus on a problem.",
-              ) || "Select a health filter to focus on a problem."}
+            ? translator.translateTemplate(
+                "{{matched}} of {{total}} match this health filter. Connected neighbors stay dimmed for context.",
+                {
+                  matched: translator.formatNumber(
+                    props.healthFilterMatchCount,
+                  ),
+                  total: translator.formatNumber(props.healthSummary.total),
+                },
+              )
+            : translateString("Select a health filter to focus on a problem.")}
         </p>
       </div>
     </div>

@@ -43,6 +43,8 @@ import ResourceGrid from "Common/UI/Components/StatusPage/ResourceGrid";
 import ResourceList from "Common/UI/Components/StatusPage/ResourceList";
 import API from "Common/UI/Utils/API/API";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
@@ -191,6 +193,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   // The group chips below are in the reader's language.
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const statusPageGroupId: ObjectID | null = props.selection.statusPageGroupId
     ? new ObjectID(props.selection.statusPageGroupId)
@@ -684,7 +687,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           field: {
             rowAxisValue: true,
           },
-          title: `${rowLabel} (Row)`,
+          title: translator.translateTemplate("{{axis}} (Row)", {
+            axis: rowLabel,
+          }),
           description: "Row this resource belongs to in the grid.",
           fieldType:
             rowValues.length > 0
@@ -695,14 +700,18 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           required: true,
           placeholder:
             rowValues.length > 0
-              ? `Select ${rowLabel.toLowerCase()}`
+              ? translator.translateTemplate("Select {{axis}}", {
+                  axis: rowLabel.toLowerCase(),
+                })
               : "Define rows on the group first",
         },
         {
           field: {
             columnAxisValue: true,
           },
-          title: `${columnLabel} (Column)`,
+          title: translator.translateTemplate("{{axis}} (Column)", {
+            axis: columnLabel,
+          }),
           description: "Column this resource belongs to in the grid.",
           fieldType:
             columnValues.length > 0
@@ -713,11 +722,20 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           required: true,
           placeholder:
             columnValues.length > 0
-              ? `Select ${columnLabel.toLowerCase()}`
+              ? translator.translateTemplate("Select {{axis}}", {
+                  axis: columnLabel.toLowerCase(),
+                })
               : "Define columns on the group first",
         },
       ];
-    }, [isGrid, rowValues, columnValues, rowLabel, columnLabel]);
+    }, [
+      isGrid,
+      rowValues,
+      columnValues,
+      rowLabel,
+      columnLabel,
+      translator.language,
+    ]);
 
   type GetResourceFormFieldsFunction = (data: {
     targetType: StatusPageResourceTargetType;
@@ -861,12 +879,14 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
   /* Rendering                                                           */
   /* ------------------------------------------------------------------ */
 
+  // The group's name as typed, or OneUptime's own name in the reader's words.
   const title: string =
-    props.selection.type === StatusPageResourceSelectionType.Ungrouped
+    (props.selection.type === StatusPageResourceSelectionType.Ungrouped
       ? props.hasGroups
-        ? "Top of page"
-        : "All resources"
-      : props.statusPageGroup?.name || "Untitled group";
+        ? translator.translateText("Top of page")
+        : translator.translateText("All resources")
+      : props.statusPageGroup?.name ||
+        translator.translateText("Untitled group")) || "";
 
   const titleIcon: IconProp =
     props.selection.type === StatusPageResourceSelectionType.Ungrouped
@@ -907,7 +927,8 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
      */
     return (
       <span className="text-gray-500">
-        {statusPageResource.displayName || "Unknown resource"}
+        {statusPageResource.displayName ||
+          translator.translateText("Unknown resource")}
       </span>
     );
   };
@@ -1161,7 +1182,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
               onClick={props.onBack}
             >
               <Icon icon={IconProp.ChevronLeft} className="h-3.5 w-3.5" />
-              All groups
+              {translator.translateText("All groups")}
             </button>
           ) : (
             <></>
@@ -1190,7 +1211,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
               {props.breadcrumbSteps.length > 0 ? (
                 <nav
                   className="mb-0.5 flex min-w-0 flex-wrap items-center gap-1 text-xs text-gray-400"
-                  aria-label="Group path"
+                  aria-label={translator.translateText("Group path")}
                   data-testid="status-page-resource-panel-breadcrumb"
                 >
                   {props.breadcrumbSteps.map(
@@ -1306,7 +1327,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             elementToBeShownInsteadOfButton={
               <button
                 type="button"
-                aria-label="More actions"
+                aria-label={translator.translateText("More actions")}
                 data-testid="status-page-resource-panel-more"
                 className={MENU_TRIGGER_CLASS_NAME}
               >
@@ -1339,7 +1360,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         data-testid="status-page-resource-panel-sub-groups"
       >
         <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-          Sub groups
+          {translator.translateText("Sub groups")}
         </p>
         <div className="flex flex-wrap gap-1.5">
           {props.subGroups.map((subGroup: StatusPageGroup) => {
@@ -1364,7 +1385,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
                   className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
                 />
                 <span className="truncate">
-                  {subGroup.name || "Untitled group"}
+                  {subGroup.name || translator.translateText("Untitled group")}
                 </span>
               </button>
             );
@@ -1392,17 +1413,22 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         data-testid="status-page-resource-panel-grid-setup"
       >
         <p className="text-xs font-medium text-amber-900">
-          This group is laid out as a grid, but it has no{" "}
           {rowValues.length === 0 && columnValues.length === 0
-            ? "rows or columns"
+            ? translator.translateText(
+                "This group is laid out as a grid, but it has no rows or columns yet.",
+              )
             : rowValues.length === 0
-              ? "rows"
-              : "columns"}{" "}
-          yet.
+              ? translator.translateText(
+                  "This group is laid out as a grid, but it has no rows yet.",
+                )
+              : translator.translateText(
+                  "This group is laid out as a grid, but it has no columns yet.",
+                )}
         </p>
         <p className="mt-0.5 text-xs text-amber-800">
-          Monitors are placed in a cell of the grid, so there is nowhere to put
-          one until the axes exist.
+          {translator.translateText(
+            "Monitors are placed in a cell of the grid, so there is nowhere to put one until the axes exist.",
+          )}
         </p>
 
         {props.canEditGroup ? (
@@ -1439,7 +1465,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           <Input
             isSearchOrFilter={true}
             type={InputType.TEXT}
-            placeholder={`Search in ${title}...`}
+            placeholder={translator.translateTemplate("Search in {{name}}...", {
+              name: title,
+            })}
             value={searchText}
             dataTestId="status-page-resource-panel-search"
             outerDivClassName="relative w-full"
@@ -1456,16 +1484,20 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             role="status"
             data-testid="status-page-resource-panel-filter-count"
           >
-            {filteredResources.length.toLocaleString("en-US")} of{" "}
-            {statusPageResources.length.toLocaleString("en-US")} shown
             {/*
-             * Said only where it is true. A filtered list's neighbours are not
-             * the real neighbours, so the reorder is withheld rather than
-             * allowed to write the wrong order.
+             * The reorder note is said only where it is true. A filtered
+             * list's neighbours are not the real neighbours, so the reorder
+             * is withheld rather than allowed to write the wrong order.
              */}
-            {props.canEdit && !isGrid
-              ? " · drag to reorder is off while filtering"
-              : ""}
+            {translator.translateTemplate(
+              props.canEdit && !isGrid
+                ? "{{shown}} of {{total}} shown · drag to reorder is off while filtering"
+                : "{{shown}} of {{total}} shown",
+              {
+                shown: translator.formatNumber(filteredResources.length),
+                total: translator.formatNumber(statusPageResources.length),
+              },
+            )}
           </span>
         ) : (
           <>
@@ -1479,7 +1511,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
                 className="max-sm:hidden text-xs text-gray-400 sm:inline"
                 data-testid="status-page-resource-panel-reorder-hint"
               >
-                Drag a row to change the order visitors see
+                {translator.translateText(
+                  "Drag a row to change the order visitors see",
+                )}
               </span>
             ) : (
               <></>
@@ -1520,16 +1554,25 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 
         <h3 className="mt-4 text-sm font-semibold text-gray-900">
           {isNoMatch
-            ? "No resources match your search"
-            : "No monitors here yet"}
+            ? translator.translateText("No resources match your search")
+            : translator.translateText("No monitors here yet")}
         </h3>
 
         <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
           {isNoMatch
-            ? `Nothing in ${title} matches “${searchText}”.`
+            ? translator.translateTemplate(
+                "Nothing in {{name}} matches “{{search}}”.",
+                { name: title, search: searchText },
+              )
             : canAddToSelection
-              ? `Add a monitor to ${title} and visitors will see its status here.`
-              : `Nothing has been added to ${title} yet.`}
+              ? translator.translateTemplate(
+                  "Add a monitor to {{name}} and visitors will see its status here.",
+                  { name: title },
+                )
+              : translator.translateTemplate(
+                  "Nothing has been added to {{name}} yet.",
+                  { name: title },
+                )}
         </p>
 
         {isNoMatch ? (
@@ -1744,9 +1787,13 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
           data-testid="status-page-resource-panel-truncated"
         >
-          Showing the first {statusPageResources.length.toLocaleString("en-US")}{" "}
-          of {totalResourceCount.toLocaleString("en-US")} resources in this
-          group.
+          {translator.translateTemplate(
+            "Showing the first {{shown}} of {{total}} resources in this group.",
+            {
+              shown: translator.formatNumber(statusPageResources.length),
+              total: translator.formatNumber(totalResourceCount),
+            },
+          )}
         </div>
       ) : (
         <></>
@@ -1758,7 +1805,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         <ModelFormModal<StatusPageResource>
           modelType={StatusPageResource}
           name="Status Page > Resources"
-          title={`Add a monitor to ${title}`}
+          title={translator.translateTemplate("Add a monitor to {{name}}", {
+            name: title,
+          })}
           description="Pick the monitor visitors will see the status of here."
           submitButtonText="Add Monitor"
           initialValues={initialValuesForCreate}
@@ -1809,9 +1858,14 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
       {resourceToDelete ? (
         <ConfirmModal
           title="Remove resource from status page"
-          description={`Are you sure you want to remove "${StatusPageResourceExplorerUtil.getResourceName(
-            resourceToDelete,
-          )}" from this status page? The monitor itself is not deleted.`}
+          description={translator.translateTemplate(
+            'Are you sure you want to remove "{{name}}" from this status page? The monitor itself is not deleted.',
+            {
+              name: StatusPageResourceExplorerUtil.getResourceName(
+                resourceToDelete,
+              ),
+            },
+          )}
           submitButtonText="Remove"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isDeleting}

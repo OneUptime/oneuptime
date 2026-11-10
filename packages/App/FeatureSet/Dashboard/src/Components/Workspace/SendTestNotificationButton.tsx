@@ -25,6 +25,8 @@ import {
   TestSendLock,
   TestSendTargets,
 } from "../TestSend/TestSendLock";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   // API route under APP_API_URL, e.g. "/slack/channels/test".
@@ -50,6 +52,7 @@ type SendTestStatus = "idle" | "sending" | "sent" | "failed";
 const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [status, setStatus] = useState<SendTestStatus>("idle");
   const [error, setError] = useState<string>("");
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
@@ -151,7 +154,13 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
       >
         {status === "sent" && (
           <span
-            title={`Test notification sent to ${props.destinationName}. Check ${props.workspaceName} to confirm it arrived.`}
+            title={translator.translateTemplate(
+              "Test notification sent to {{destination}}. Check {{workspace}} to confirm it arrived.",
+              {
+                destination: props.destinationName,
+                workspace: props.workspaceName,
+              },
+            )}
             className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700"
             data-testid="send-test-notification-sent"
           >
@@ -166,7 +175,9 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
              * alone carries the result there so the control stays narrow;
              * the word stays available to screen readers.
              */}
-            <span className="max-sm:sr-only sm:not-sr-only">Sent</span>
+            <span className="max-sm:sr-only sm:not-sr-only">
+              {translator.translateText("Sent")}
+            </span>
           </span>
         )}
 
@@ -181,7 +192,9 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
               size={SizeProp.Regular}
               className="h-4 w-4"
             />
-            <span className="max-sm:sr-only sm:not-sr-only">Failed</span>
+            <span className="max-sm:sr-only sm:not-sr-only">
+              {translator.translateText("Failed")}
+            </span>
           </span>
         )}
       </span>
@@ -200,7 +213,10 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
         isLoading={status === "sending"}
         disabled={status === "sending" || lock.isLocked}
         tooltip={lock.isLocked ? lock.tooltip : undefined}
-        ariaLabel={`Send test notification to ${props.destinationName}`}
+        ariaLabel={translator.translateTemplate(
+          "Send test notification to {{destination}}",
+          { destination: props.destinationName },
+        )}
         dataTestId="send-test-notification-button"
         className="!w-auto whitespace-nowrap !text-sm md:!ml-0"
         onClick={() => {
@@ -220,7 +236,13 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
       {showErrorModal && (
         <ConfirmModal
           title="Test Notification Failed"
-          description={`OneUptime could not send a test notification to ${props.destinationName} in ${props.workspaceName}.`}
+          description={translator.translateTemplate(
+            "OneUptime could not send a test notification to {{destination}} in {{workspace}}.",
+            {
+              destination: props.destinationName,
+              workspace: props.workspaceName,
+            },
+          )}
           error={error}
           submitButtonText="Close"
           submitButtonType={ButtonStyleType.NORMAL}

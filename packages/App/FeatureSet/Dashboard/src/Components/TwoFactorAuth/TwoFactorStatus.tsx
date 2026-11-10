@@ -9,9 +9,12 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const TwoFactorStatus: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isEnabled, setIsEnabled] = React.useState<boolean | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [loadError, setLoadError] = React.useState<string>("");
@@ -39,7 +42,9 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
 
         if (!user || typeof user.enableTwoFactorAuth !== "boolean") {
           throw new Error(
-            "Your two-factor authentication status could not be loaded.",
+            translator.translateText(
+              "Your two-factor authentication status could not be loaded.",
+            ),
           );
         }
 
@@ -106,7 +111,9 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
                 icon={isEnabled ? IconProp.ShieldCheck : IconProp.Lock}
                 className="h-4 w-4"
               />
-              {isEnabled ? "Enabled" : "Not enabled"}
+              {isEnabled
+                ? translator.translateText("Enabled")
+                : translator.translateText("Not enabled")}
             </span>
           ) : undefined
         }
@@ -152,8 +159,12 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
             />
             <p className="text-sm leading-6 text-gray-600">
               {isEnabled
-                ? "Use an authenticator app or security key for your second step."
-                : "Set up an authenticator app or security key below, then enable two-factor authentication for your account."}
+                ? translator.translateText(
+                    "Use an authenticator app or security key for your second step.",
+                  )
+                : translator.translateText(
+                    "Set up an authenticator app or security key below, then enable two-factor authentication for your account.",
+                  )}
             </p>
           </div>
         )}

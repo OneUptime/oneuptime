@@ -3,6 +3,7 @@ import {
   getNetworkQuickActionRoute,
 } from "../Network/NetworkQuickActions";
 import NetworkDeviceGraph from "./NetworkDeviceGraph";
+import OneUptimeDate from "Common/Types/Date";
 import NetworkTopologyToolbar from "./NetworkTopologyToolbar";
 import {
   canChangeProjectDefaultLayout,
@@ -523,13 +524,18 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     return [
       {
         value: ALL_VLANS,
-        label: translateString("All VLANs") || "All VLANs",
+        label: translateString("All VLANs"),
       },
       ...sorted.map((vlanId: number): DropdownOption => {
-        return { value: vlanId.toString(), label: `VLAN ${vlanId}` };
+        return {
+          value: vlanId.toString(),
+          label: translator.translateTemplate("VLAN {{vlanId}}", {
+            vlanId: vlanId,
+          }),
+        };
       }),
     ];
-  }, [topology, translateString]);
+  }, [topology, translateString, translator.language]);
 
   /*
    * If the selected VLAN disappears from a refresh (its endpoints aged
@@ -672,7 +678,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           setDefaultLayoutError(
             translateString(
               "We couldn't change the default layout. Try again.",
-            ) || "We couldn't change the default layout. Try again.",
+            ),
           );
         }
       })
@@ -724,8 +730,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         );
         if (isMounted.current) {
           setExportError(
-            translateString("We couldn't create the PDF. Try again.") ||
-              "We couldn't create the PDF. Try again.",
+            translateString("We couldn't create the PDF. Try again."),
           );
         }
       })
@@ -917,7 +922,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
        * Looked up here: Link draws its children as they are given, so a
        * bare string stayed English in every language.
        */}
-      {translateString("Add a device") || "Add a device"}
+      {translateString("Add a device")}
     </Link>
   );
 
@@ -989,10 +994,14 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
             className={`h-1.5 w-1.5 rounded-full ${error ? "bg-amber-500" : "bg-emerald-500"}`}
           />
           {error
-            ? "Refresh failed"
+            ? translator.translateText("Refresh failed")
             : lastUpdated
-              ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`
-              : "Updates every minute"}
+              ? translator.translateTemplate("Updated {{time}}", {
+                  time: OneUptimeDate.getLocalTimeString(lastUpdated, {
+                    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+                  }),
+                })
+              : translator.translateText("Updates every minute")}
         </span>
       }
       buttons={[
@@ -1117,7 +1126,10 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           className="mb-3 rounded-md bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-800"
           data-testid="network-topology-refresh-error"
         >
-          {`${error} — showing the last map that loaded.`}
+          {translator.translateTemplate(
+            "{{error}} — showing the last map that loaded.",
+            { error: error },
+          )}
         </div>
       ) : (
         <></>
@@ -1127,8 +1139,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
           {translateString(
             "This map shows part of a large network. Open a specific site to explore a smaller area.",
-          ) ||
-            "This map shows part of a large network. Open a specific site to explore a smaller area."}
+          )}
         </div>
       ) : (
         <></>
@@ -1138,7 +1149,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
           {translateString(
             "Showing up to 2,000 endpoints because this network is large.",
-          ) || "Showing up to 2,000 endpoints because this network is large."}
+          )}
         </div>
       ) : (
         <></>
@@ -1146,9 +1157,14 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
 
       {topology.droppedEndpointCount && topology.droppedEndpointCount > 0 ? (
         <p className="mb-3 text-xs text-gray-500">
-          {`${topology.droppedEndpointCount} ${
-            topology.droppedEndpointCount === 1 ? "endpoint" : "endpoints"
-          } not shown (no attached switch in view)`}
+          {translator.translatePlural(
+            {
+              one: "{{count}} endpoint not shown (no attached switch in view)",
+              other:
+                "{{count}} endpoints not shown (no attached switch in view)",
+            },
+            topology.droppedEndpointCount,
+          )}
         </p>
       ) : (
         <></>
@@ -1177,7 +1193,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
             className="font-medium text-indigo-600 underline hover:text-indigo-800"
             onClick={restoreAllHiddenNodes}
           >
-            {translateString("Show them") || "Show them"}
+            {translateString("Show them")}
           </button>
         </p>
       ) : (
@@ -1225,7 +1241,8 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
                 return (
                   <li key={index}>
                     <span className="font-medium">
-                      {warning.ruleName || "Link rule"}
+                      {warning.ruleName ||
+                        translator.translateText("Link rule")}
                     </span>
                     {`: ${warning.message}`}
                     {/*
@@ -1238,7 +1255,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
                     {warning.sites && warning.sites.length > 0 ? (
                       <details className="mt-1">
                         <summary className="cursor-pointer select-none text-amber-900 underline">
-                          {describeSiteListToggle(warning)}
+                          {describeSiteListToggle(warning, translator)}
                         </summary>
                         <ul className="mt-1 list-disc space-y-0.5 pl-4">
                           {warning.sites.map(
@@ -1247,7 +1264,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
                             ): ReactElement => {
                               return (
                                 <li key={site.siteId}>
-                                  {describeWarningSite(site)}
+                                  {describeWarningSite(site, translator)}
                                 </li>
                               );
                             },
@@ -1255,9 +1272,13 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
                         </ul>
                         {hidden > 0 ? (
                           <div className="mt-1 italic">
-                            {`${hidden} more site${
-                              hidden === 1 ? "" : "s"
-                            } not listed here.`}
+                            {translator.translatePlural(
+                              {
+                                one: "{{count}} more site not listed here.",
+                                other: "{{count}} more sites not listed here.",
+                              },
+                              hidden,
+                            )}
                           </div>
                         ) : (
                           <></>
@@ -1287,17 +1308,16 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
          */}
         <span>
           <span className="font-medium text-gray-700">
-            {translateString("Read the map:") || "Read the map:"}
+            {translateString("Read the map:")}
           </span>{" "}
           {translateString(
             "devices are nodes, lines are network connections, and the numbers on a device are its ports up / down.",
-          ) ||
-            "devices are nodes, lines are network connections, and the numbers on a device are its ports up / down."}
+          )}
         </span>
         <span>
           {translateString(
             "Click to inspect · Drag to arrange · Updates every minute",
-          ) || "Click to inspect · Drag to arrange · Updates every minute"}
+          )}
         </span>
       </div>
 

@@ -231,19 +231,26 @@ describe("search, then health — in that order", () => {
    * the product disagree about their own vocabulary.
    */
   test("plurals of the customer's noun go through the shared pluraliser", () => {
+    /*
+     * The noun inside a sentence comes from childNounInSentence, which
+     * pluralises the customer's word with the shared pluraliser and gives
+     * OneUptime's own "sites" in the reader's language (#6658).
+     */
     expect(EXPLORER_CODE).toContain(
       squash(
-        "const childTypeLabelPlural: string = pluralChildLabel(childTypeLabel);",
+        "const childrenInSentence: TemplateValue = childNounInSentence( childTypeLabel, true, );",
       ),
     );
     /*
-     * The aria-label on the jump button is the one place a bare
-     * .toLowerCase() is correct: it names ONE site, so the noun is singular
-     * there by construction. Every other use must be the plural helper.
+     * The aria-label on the jump button names ONE site, so it asks for the
+     * singular. No sentence in the explorer lower-cases or pluralises the
+     * noun by hand any more.
      */
-    expect(EXPLORER_CODE.split("childTypeLabel.toLowerCase()").length - 1).toBe(
-      1,
+    expect(EXPLORER_CODE).toContain(
+      squash("child: childNounInSentence(childTypeLabel, false),"),
     );
+    expect(EXPLORER_CODE).not.toContain("childTypeLabel.toLowerCase()");
+    expect(EXPLORER_CODE).not.toContain("childTypeLabelPlural");
   });
 });
 
@@ -355,7 +362,9 @@ describe("nothing is hidden without saying so", () => {
    */
   test("a refresh failure keeps the level it already has", () => {
     expect(EXPLORER_CODE).toContain(
-      squash("`${error} — showing the last level that loaded.`"),
+      squash(
+        'translator.translateTemplate( "{{error}} — showing the last level that loaded.", { error: error }, )',
+      ),
     );
   });
 });
@@ -490,7 +499,9 @@ describe("the filter's effect reaches a screen reader", () => {
 
   test("the jump button names the site it opens", () => {
     expect(EXPLORER_CODE).toContain(
-      squash("aria-label={`Open ${focusedSite.name}"),
+      squash(
+        'aria-label={translator.translateTemplate( "Open {{site}}, the first {{child}} that needs a look", { site: focusedSite.name,',
+      ),
     );
   });
 
@@ -779,7 +790,7 @@ describe("the explorer's search reaches every level of the hierarchy", () => {
     );
     expect(EXPLORER_CODE).toContain(
       squash(
-        "isRemoteSearchable(normalizedSearch) ? `No ${childTypeLabelPlural}",
+        'isRemoteSearchable(normalizedSearch) ? translator.translateTemplate( "No {{children}} at this level match. Click the search box',
       ),
     );
     expect(EXPLORER_CODE).toContain(
