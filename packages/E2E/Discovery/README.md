@@ -48,9 +48,10 @@ devices with no address left out, Hide from map and Show on map behind a confirm
 deletes nothing, selecting all 320 devices of `?devices=many` in one request, Unseen Devices
 (issue #6389: the line under the list, its Change opening the folded More settings at the
 card, and a pick saved on the project's row, which the fixture records on
-`window.__discoveryFixture.updates`), and a 390px screen. Its last test takes the list at 1280, 1024, 768 and 390px, dark, and in German and
-Persian (`?lang=de`, `?lang=fa`: the fixture server serves the Dashboard's locale files and
-`TailwindReadingDirection.js`, as index.ejs does), with Inter, and fails on any sideways scroll.
+`window.__discoveryFixture.updates`), and a 390px screen. Its last test takes the list at
+1280, 1024, 768 and 390px, dark, and in German and Persian (`?lang=de`, `?lang=fa`: the
+fixture server serves the Dashboard's locale files and `TailwindReadingDirection.js`, as
+index.ejs does), with Inter, and fails on any sideways scroll.
 
 Screenshots are written to `output/playwright/discovery/`. The screenshots in
 `packages/E2E/Discovery/screenshots/` document the reviewed UI for issue #3672 and use the
