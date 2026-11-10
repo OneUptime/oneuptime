@@ -46561,6 +46561,8 @@
   "Error Budget Policy Alert Resolved": "Alerta da política de orçamento de erros resolvido",
   "Error Budget Policy Incident Declared": "Incidente da política de orçamento de erros declarado",
   "Error Budget Policy Incident Resolved": "Incidente da política de orçamento de erros resolvido",
+  "Error Budget Policy Deployments Frozen": "Implantações congeladas pela política de orçamento de erros",
+  "Error Budget Policy Deployments Allowed": "Implantações permitidas pela política de orçamento de erros",
   "another branch": "outro ramo",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "mais {{count}} arquivo",

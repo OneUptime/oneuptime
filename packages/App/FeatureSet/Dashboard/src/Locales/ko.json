@@ -46561,6 +46561,8 @@
   "Error Budget Policy Alert Resolved": "오류 예산 정책 경고 해결됨",
   "Error Budget Policy Incident Declared": "오류 예산 정책 인시던트 선언됨",
   "Error Budget Policy Incident Resolved": "오류 예산 정책 인시던트 해결됨",
+  "Error Budget Policy Deployments Frozen": "오류 예산 정책 배포 동결됨",
+  "Error Budget Policy Deployments Allowed": "오류 예산 정책 배포 허용됨",
   "another branch": "다른 브랜치",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "파일 {{count}}개 더",

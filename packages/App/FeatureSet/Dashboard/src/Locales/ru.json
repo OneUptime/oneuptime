@@ -46561,6 +46561,8 @@
   "Error Budget Policy Alert Resolved": "Оповещение политики бюджета ошибок устранено",
   "Error Budget Policy Incident Declared": "Инцидент политики бюджета ошибок объявлен",
   "Error Budget Policy Incident Resolved": "Инцидент политики бюджета ошибок устранён",
+  "Error Budget Policy Deployments Frozen": "Развертывания заморожены политикой бюджета ошибок",
+  "Error Budget Policy Deployments Allowed": "Развертывания разрешены политикой бюджета ошибок",
   "another branch": "другой ветке",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "ещё {{count}} файл",

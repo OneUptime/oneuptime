@@ -46561,6 +46561,8 @@
   "Error Budget Policy Alert Resolved": "错误预算策略警报已解决",
   "Error Budget Policy Incident Declared": "错误预算策略事件已声明",
   "Error Budget Policy Incident Resolved": "错误预算策略事件已解决",
+  "Error Budget Policy Deployments Frozen": "错误预算策略已冻结部署",
+  "Error Budget Policy Deployments Allowed": "错误预算策略已允许部署",
   "another branch": "另一个分支",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "另外 {{count}} 个文件",

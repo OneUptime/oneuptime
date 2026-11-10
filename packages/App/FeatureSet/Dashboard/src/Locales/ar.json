@@ -46561,6 +46561,8 @@
   "Error Budget Policy Alert Resolved": "Error Budget Policy Alert Resolved",
   "Error Budget Policy Incident Declared": "Error Budget Policy Incident Declared",
   "Error Budget Policy Incident Resolved": "Error Budget Policy Incident Resolved",
+  "Error Budget Policy Deployments Frozen": "تجميد عمليات النشر بموجب سياسة ميزانية الأخطاء",
+  "Error Budget Policy Deployments Allowed": "السماح بعمليات النشر بموجب سياسة ميزانية الأخطاء",
   "another branch": "another branch",
   "{{amount}} USD": "{{amount}} دولار أمريكي",
   "{{count}} more file": "{{count}} more file",

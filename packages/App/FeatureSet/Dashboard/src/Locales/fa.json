@@ -46561,6 +46561,8 @@
   "Error Budget Policy Alert Resolved": "هشدار سیاست بودجه خطا برطرف شد",
   "Error Budget Policy Incident Declared": "حادثه سیاست بودجه خطا اعلام شد",
   "Error Budget Policy Incident Resolved": "حادثه سیاست بودجه خطا برطرف شد",
+  "Error Budget Policy Deployments Frozen": "Deploymentها با سیاست بودجه خطا فریز شدند",
+  "Error Budget Policy Deployments Allowed": "Deploymentها با سیاست بودجه خطا مجاز شدند",
   "another branch": "شاخه‌ای دیگر",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "{{count}} فایل دیگر",

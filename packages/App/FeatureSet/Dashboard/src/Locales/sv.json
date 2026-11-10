@@ -46561,6 +46561,8 @@
   "Error Budget Policy Alert Resolved": "Larm från felbudgetpolicy löst",
   "Error Budget Policy Incident Declared": "Incident från felbudgetpolicy deklarerad",
   "Error Budget Policy Incident Resolved": "Incident från felbudgetpolicy löst",
+  "Error Budget Policy Deployments Frozen": "Distributioner frysta av felbudgetpolicy",
+  "Error Budget Policy Deployments Allowed": "Distributioner tillåtna av felbudgetpolicy",
   "another branch": "en annan gren",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "{{count}} fil till",

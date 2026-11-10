@@ -46561,6 +46561,8 @@
   "Error Budget Policy Alert Resolved": "एरर बजट नीति अलर्ट सुलझाया गया",
   "Error Budget Policy Incident Declared": "एरर बजट नीति घटना घोषित की गई",
   "Error Budget Policy Incident Resolved": "एरर बजट नीति घटना सुलझाई गई",
+  "Error Budget Policy Deployments Frozen": "एरर बजट नीति ने डिप्लॉयमेंट फ़्रीज़ किए",
+  "Error Budget Policy Deployments Allowed": "एरर बजट नीति ने डिप्लॉयमेंट की अनुमति दी",
   "another branch": "किसी दूसरी ब्रांच",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "{{count}} और फ़ाइल",
