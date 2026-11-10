@@ -1478,6 +1478,12 @@ import RunnerOwnerTeamService, {
 import RunnerOwnerUserService, {
   Service as RunnerOwnerUserServiceType,
 } from "Common/Server/Services/RunnerOwnerUserService";
+import TeamOwnerTeamService, {
+  Service as TeamOwnerTeamServiceType,
+} from "Common/Server/Services/TeamOwnerTeamService";
+import TeamOwnerUserService, {
+  Service as TeamOwnerUserServiceType,
+} from "Common/Server/Services/TeamOwnerUserService";
 import RunbookVariableService, {
   Service as RunbookVariableServiceType,
 } from "Common/Server/Services/RunbookVariableService";
@@ -1854,6 +1860,8 @@ import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
+import TeamOwnerTeam from "Common/Models/DatabaseModels/TeamOwnerTeam";
+import TeamOwnerUser from "Common/Models/DatabaseModels/TeamOwnerUser";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
@@ -5298,6 +5306,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<RunnerOwnerUser, RunnerOwnerUserServiceType>(
         RunnerOwnerUser,
         RunnerOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamOwnerTeam, TeamOwnerTeamServiceType>(
+        TeamOwnerTeam,
+        TeamOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamOwnerUser, TeamOwnerUserServiceType>(
+        TeamOwnerUser,
+        TeamOwnerUserService,
       ).getRouter(),
     );
 

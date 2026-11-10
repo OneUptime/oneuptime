@@ -48218,5 +48218,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} levert niet de juiste tijd",
   "{{monitorName}} is offline": "{{monitorName}} is offline",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: te veel slechte AI-antwoorden",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nEen sonde geldt als losgekoppeld als er drie minuten lang niets van is gehoord. Monitoren die alleen op een losgekoppelde sonde draaien, worden pas weer gecontroleerd als de sonde terug is. Dit wordt automatisch opgelost zodra alle sondes die deze monitor volgt, weer verbonden zijn."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nEen sonde geldt als losgekoppeld als er drie minuten lang niets van is gehoord. Monitoren die alleen op een losgekoppelde sonde draaien, worden pas weer gecontroleerd als de sonde terug is. Dit wordt automatisch opgelost zodra alle sondes die deze monitor volgt, weer verbonden zijn.",
+  "This team comes with every project and can't have owners.": "Dit team hoort bij elk project en kan geen eigenaren hebben.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "Personen en teams die voor dit team zorgen. Met teamrechten die beperkt zijn tot de teams waarvan ze eigenaar zijn, nodigen ze mensen uit, verwijderen ze hen en wijzigen ze wat het team mag.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Voeg een teamgenoot of een team toe om te zorgen voor wie er in dit team zit en wat het mag.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Voeg personen toe als eigenaren van je teams. Eigenaren zorgen voor wie er in een team zit en wat het mag.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Voeg teams toe als eigenaren van je teams. De leden van een eigenaarsteam zorgen voor wie er in het team in eigendom zit en wat het mag.",
+  "Owned Team": "Team in eigendom",
+  "Owned Team ID": "ID van team in eigendom",
+  "Team Team Owner": "Eigenaarsteam van team",
+  "Team Team Owners": "Eigenaarsteams van team",
+  "Team User Owner": "Eigenaarsgebruiker van team",
+  "Team User Owners": "Eigenaarsgebruikers van team"
 }

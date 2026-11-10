@@ -399,6 +399,30 @@ export default class GrantablePermission {
   }
 
   /*
+   * Whether the signed-in user holds one of `permissions` for the whole
+   * project - at scope All, its labels narrowing nothing, as
+   * canGrantPermission reads a row - and no block takes any of them away:
+   * then what one of them allows reaches every record, not only the ones
+   * they own. Never looser than the server, so a default built on it is
+   * one the server accepts. A master admin always does, as on the server.
+   */
+  public static canCurrentUserActOnWholeProject(
+    permissions: Array<Permission>,
+  ): boolean {
+    if (User.isMasterAdmin()) {
+      return true;
+    }
+
+    const rows: PermissionRows = this.getCurrentUserPermissionRows();
+
+    return (
+      permissions.some((permission: Permission): boolean => {
+        return canGrantPermission({ permission: permission, rows: rows });
+      }) && !isBlockedFromAny({ permissions: permissions, rows: rows })
+    );
+  }
+
+  /*
    * Whether the signed-in user may add someone to a team with these
    * permission rows, each at the scope and labels it has
    * (canGrantTeamPermission). A team with no rows is handed on by anyone; a

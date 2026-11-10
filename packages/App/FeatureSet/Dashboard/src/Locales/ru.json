@@ -48218,5 +48218,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} не отдаёт точное время",
   "{{monitorName}} is offline": "{{monitorName}} не в сети",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: слишком много плохих ответов ИИ",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nЗонд считается отключённым, если от него ничего не поступало в течение трёх минут. Мониторы, которые работают только на отключённом зонде, не проверяются, пока он не вернётся. Это будет устранено автоматически, как только все зонды, за которыми следит этот монитор, снова подключатся."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nЗонд считается отключённым, если от него ничего не поступало в течение трёх минут. Мониторы, которые работают только на отключённом зонде, не проверяются, пока он не вернётся. Это будет устранено автоматически, как только все зонды, за которыми следит этот монитор, снова подключатся.",
+  "This team comes with every project and can't have owners.": "Эта команда есть в каждом проекте, и у неё не может быть владельцев.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "Люди и команды, которые отвечают за эту команду. С правами команд, ограниченными командами, которыми они владеют, они приглашают в неё людей, удаляют их и меняют, что ей разрешено.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Добавьте коллегу или команду, чтобы они отвечали за состав этой команды и за то, что ей разрешено.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Добавьте людей в качестве владельцев ваших команд. Владельцы отвечают за состав команды и за то, что ей разрешено.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Добавьте команды в качестве владельцев ваших команд. Участники команды-владельца отвечают за состав команды, которой она владеет, и за то, что ей разрешено.",
+  "Owned Team": "Команда во владении",
+  "Owned Team ID": "ID команды во владении",
+  "Team Team Owner": "Команда-владелец команды",
+  "Team Team Owners": "Команды-владельцы команды",
+  "Team User Owner": "Пользователь-владелец команды",
+  "Team User Owners": "Пользователи-владельцы команды"
 }

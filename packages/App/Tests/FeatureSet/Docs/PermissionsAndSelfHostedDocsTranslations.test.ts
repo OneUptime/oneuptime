@@ -147,7 +147,14 @@ const PERMISSIONS: Record<string, Array<string>> = {
     // What Add Permission offers a scope for, and what it offers none for.
     "Create Workflow",
     "Edit Workflow",
+    "Create Label",
+    // The team permissions Owned narrows to the teams you own (Team owners).
     "Create Team",
+    "Edit Team",
+    "Delete Team",
+    "Invite New Members",
+    "Remove Team Members",
+    "Edit Team Permissions",
   ],
 };
 

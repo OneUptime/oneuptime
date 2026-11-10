@@ -24,6 +24,7 @@ import {
 import CustomRole from "../../Models/DatabaseModels/CustomRole";
 import Label from "../../Models/DatabaseModels/Label";
 import Model from "../../Models/DatabaseModels/CustomRolePermission";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 
 /*
  * THE PERMISSIONS IN A CUSTOM ROLE.
@@ -224,6 +225,13 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // What a role holds is every team's with it (CustomRoleService).
+    CustomRoleService.assertNotLimitedToOwnedTeams(
+      Model,
+      createBy.props,
+      DatabaseRequestType.Create,
+    );
+
     const projectId: ObjectID | undefined =
       createBy.props.isRoot || createBy.props.isMasterAdmin
         ? createBy.data.projectId || createBy.props.tenantId
@@ -337,6 +345,12 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    CustomRoleService.assertNotLimitedToOwnedTeams(
+      Model,
+      updateBy.props,
+      DatabaseRequestType.Update,
+    );
 
     const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
       updateBy,
@@ -495,6 +509,12 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    CustomRoleService.assertNotLimitedToOwnedTeams(
+      Model,
+      deleteBy.props,
+      DatabaseRequestType.Delete,
+    );
+
     const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
       deleteBy,
       {

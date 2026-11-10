@@ -48218,5 +48218,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} لا يقدّم وقتًا دقيقًا",
   "{{monitorName}} is offline": "{{monitorName}} غير متصل",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: كثرة إجابات الذكاء الاصطناعي السيئة",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nيُعدّ المسبار غير متصل إذا لم تصل منه أي إشارة لمدة ثلاث دقائق. لا تُفحص المراقبات التي تعمل على مسبار غير متصل فقط حتى يعود. يُحَلّ هذا تلقائيًا بمجرد أن تتصل جميع المسابير التي تتابعها هذه المراقبة من جديد."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nيُعدّ المسبار غير متصل إذا لم تصل منه أي إشارة لمدة ثلاث دقائق. لا تُفحص المراقبات التي تعمل على مسبار غير متصل فقط حتى يعود. يُحَلّ هذا تلقائيًا بمجرد أن تتصل جميع المسابير التي تتابعها هذه المراقبة من جديد.",
+  "This team comes with every project and can't have owners.": "هذا الفريق موجود في كل مشروع ولا يمكن أن يكون له مالكون.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "الأشخاص والفرق الذين يتولّون أمر هذا الفريق. بصلاحيات فرق مقصورة على الفرق التي يملكونها، يدعون الأشخاص إليه، ويزيلونهم منه، ويغيّرون ما يُسمح له بفعله.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "أضف زميلًا أو فريقًا ليتولّى أمر من ينتمي إلى هذا الفريق وما يُسمح له بفعله.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "أضف أشخاصًا كمالكين لفرقك. يتولّى المالكون أمر من ينتمي إلى الفريق وما يُسمح له بفعله.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "أضف فرقًا كمالكة لفرقك. يتولّى أعضاء الفريق المالك أمر من ينتمي إلى الفريق المملوك وما يُسمح له بفعله.",
+  "Owned Team": "الفريق المملوك",
+  "Owned Team ID": "معرّف الفريق المملوك",
+  "Team Team Owner": "الفريق المالك للفريق",
+  "Team Team Owners": "الفرق المالكة للفريق",
+  "Team User Owner": "المستخدم المالك للفريق",
+  "Team User Owners": "المستخدمون المالكون للفريق"
 }
