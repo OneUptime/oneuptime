@@ -11,7 +11,7 @@ import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaint
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
 import WorkspaceNotificationRuleService, {
-  NotificationFor,
+  NotificationForRecordKey,
 } from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
@@ -102,12 +102,12 @@ const THREAD_ID: string = "1700000000.000100";
 
 /*
  * The records a channel is created for and its log rows are filed under. A
- * security case and a hunt have neither: their rules only post to channels
- * that exist.
+ * security case, a hunt and an SLO have neither: their rules only post to
+ * channels that exist.
  */
 type RecordField = Exclude<
-  keyof NotificationFor,
-  "securityCaseId" | "securityHuntId"
+  NotificationForRecordKey,
+  "securityCaseId" | "securityHuntId" | "serviceLevelObjectiveId"
 >;
 
 interface RecordCase {

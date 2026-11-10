@@ -13,6 +13,7 @@ import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React from "react";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -166,6 +167,7 @@ import { readScheduleFirstLayer } from "../../../Types/OnCallDutyPolicy/Schedule
 import Permission from "../../../Types/Permission";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
+import { loadPeoplePicker } from "../../../UI/Components/PeoplePicker/LazyPeoplePicker";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
@@ -228,6 +230,15 @@ function member(id: string, name: string, email: string): TeamMember {
   teamMember.user = user;
   return teamMember;
 }
+
+/*
+ * A form draws its people picker from a file of its own, loaded by the first
+ * form that has one (LazyPeoplePicker). Loaded once here, as on a page where
+ * a form with one has been drawn before, so the picker is there with the form.
+ */
+beforeAll(async () => {
+  await loadPeoplePicker();
+});
 
 beforeEach(() => {
   permissionsForTest = [Permission.ProjectAdmin];

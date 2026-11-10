@@ -13,7 +13,7 @@
 | **Distinct Count** | 열에 담긴 서로 다른 값의 수 |
 | **최소**, **최대**, **평균**, **합계** | 숫자 열의 값(행이 없을 때의 합계는 0) |
 | **Invalid Percent** | 지정한 목록에 없는 값의 비율 |
-| **Format Mismatch Percent** | 지정한 형식(Email, UUID, Country Code 등)이 아니거나 직접 작성한 정규식과 일치하지 않는 값의 비율(SQL Server를 제외한 모든 엔진) |
+| **Format Mismatch Percent** | 지정한 형식(Email, UUID, Country Code 등)이 아니거나 직접 작성한 정규식과 일치하지 않는 값의 비율(SQL Server와 Dataverse를 제외한 모든 엔진) |
 | **Orphan Count** | 값이 다른 테이블의 열에서 일치하는 값을 찾지 못하는 행 |
 | **Row Count** | 테이블의 행 수. **분할 기준** 과 함께 쓸 때 가장 유용합니다 |
 | **사용자 지정 SQL** | 직접 작성한 읽기 전용 SELECT 하나가 `value` 라는 이름으로 반환하는 숫자 (MongoDB에서는 집계 파이프라인이 반환하는 숫자) |
@@ -48,7 +48,7 @@
 
 검사는 데이터베이스를 두고 애플리케이션과 경쟁하며, 쿼리가 읽은 양으로 과금하는 웨어하우스에서는 비용이 듭니다. 세 가지가 이를 관리합니다.
 
-- **샘플 비율** 은 전체 행 대신 일부 행만 읽으며, Null Percent, Average, Invalid Percent, Format Mismatch Percent처럼 비율을 읽는 검사에 쓰입니다. 대부분의 엔진은 테이블의 페이지 전체를 건너뜁니다. MySQL, Redshift, ClickHouse, MongoDB는 여전히 모든 행을 읽지만 나머지 작업은 줄어듭니다. 뷰는 이를 거부할 수 있으며, 그러면 검사가 그렇게 알려 줍니다.
+- **샘플 비율** 은 전체 행 대신 일부 행만 읽으며, Null Percent, Average, Invalid Percent, Format Mismatch Percent처럼 비율을 읽는 검사에 쓰입니다. 대부분의 엔진은 테이블의 페이지 전체를 건너뜁니다. MySQL, Redshift, ClickHouse, MongoDB는 여전히 모든 행을 읽지만 나머지 작업은 줄어듭니다. Dataverse에서는 샘플링하지 않으며, 검사가 모든 행을 읽습니다. 뷰는 이를 거부할 수 있으며, 그러면 검사가 그렇게 알려 줍니다.
 - **설정** 아래의 **검사가 읽을 수 있는 최대량(GB)** 은 BigQuery나 Athena의 검사가 그 기가바이트 수보다 많이 읽기 전에 중단시킵니다. 바꾸기 전에는 10입니다.
 - **설정** 아래의 **데이터베이스가 바쁠 때 대기** 는 PostgreSQL, MySQL, SQL Server 데이터베이스가 바빠 보이면 실행할 차례가 된 검사를 다음 수집으로 미룹니다. 끄기 전까지는 켜져 있으며, 검사가 기다렸을 때는 데이터베이스에 표시됩니다.
 

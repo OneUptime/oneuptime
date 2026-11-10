@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB læses med sin egen driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/` eller `mongodb://` med et replica sets værter. En database i stien er den eneste, der overvåges; uden en overvåges hver database, brugeren må læse, og `{ role: "read", db: "orders" }` i stedet for `readAnyDatabase` begrænser den til én. Hver samlings dokumenter, størrelse og skrivninger kommer fra `$collStats`, og hvornår den sidst fik et dokument, fra dens nyeste `_id`. Dens felter kommer fra dens validators JSON-skema, ellers fra navnene og typerne på felterne i dens 100 nyeste dokumenter, udregnet i databasen, så ingen værdi forlader den. Dokumenter læses på en sekundær, hvor der er en, og en brugerdefineret kontrol er en aggregeringspipeline som JSON.
+@tab Microsoft Dataverse
+OneUptime logger ind i miljøet som en app. Registrer en i Microsoft Entra ID, og giv den en klienthemmelighed. Tilføj den derefter til miljøet som programbruger: åbn miljøet i Power Platform admin center og derefter **Settings** > **Users + permissions** > **Application users** > **New app user**. Giv den en sikkerhedsrolle, der må læse de tabeller, du overvåger.
+
+Forbind med JSON:
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+Eller med en Dataverse-forbindelsesstreng i den form, SDK'erne bruger: `AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`. Udelad tenanten, så siger miljøet selv, hvilken det ligger i.
+
+Et miljø indeholder hundredvis af egne tabeller, så kun disse overvåges: de centrale forretningstabeller (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` og `annotation`) og dine egne brugerdefinerede tabeller. Tabellerne fra Microsofts apps, hvis navne starter med `msdyn_`, `adx_` eller et andet `ms`-præfiks, udelades. Angiv enhver anden tabel med dens logiske navn for også at overvåge den: `"tables": ["msdyn_workorder", "systemuser"]`.
+
+Hvert femte minut giver Web API hver tabels definition, dens rækker og dens nyeste `modifiedon`, som er, hvornår den sidst blev ændret. Rækkerne kommer fra den optælling, Dataverse laver én gang om dagen, så de kan være op til en dag bagud. Kolonnerne læses én gang i timen. Hver indsamling sender to anmodninger og én mere pr. overvåget tabel, og de tæller med i appens grænse på 6.000 anmodninger på fem minutter. Når Dataverse beder den om at sætte tempoet ned, venter resten af læsningerne til næste indsamling. Udeluk en tabel for at holde op med at læse den.
+
+Tjek kører som skrivebeskyttet SQL på miljøets TDS-endpoint, på port 1433 eller 5558, logget ind som den samme app. Det er slået til, medmindre en administrator har slået det fra. Hvor adgangskontrol på brugerniveau er slået til for det, skal appens rolle have rettigheden **Allow user to access TDS endpoint**. Dets SQL har ingen regulære udtryk, ingen `WITH` og ingen stikprøve, så et tjek dér læser hver række.
 :::
 
 ## Hvad der læses, og hvor ofte
@@ -162,6 +178,8 @@ Hver sti vises derefter under **Tabeller**: dens nyeste objekt er, hvornår den 
 - **Tabeller viser ingen seneste ændring.** Login kan ikke læse motorens statistik: giv det, som fanen for din motor viser, eller vent, til en tabels rækker har ændret sig to gange.
 - **En tabel mangler.** Den ligger i et skema, som login ikke må bruge, eller den er udelukket på databasen. Giv `USAGE` på dens skema, eller fjern udelukkelsen.
 - **En MySQL-tabel har ingen kolonner.** Login skal have `REFERENCES`, som ovenfor: det viser en tabels kolonner uden at give nogen læsning af dens rækker.
+- **Et Dataverse-miljø siger, at det har afvist appen.** Tilføj appen til miljøet som programbruger med en sikkerhedsrolle, der må læse tabellerne, som på fanen Microsoft Dataverse.
+- **En Dataverse-tabel mangler.** Kun de centrale forretningstabeller og dine egne brugerdefinerede tabeller overvåges. Angiv den i `tables` med dens logiske navn.
 
 ## Næste trin
 

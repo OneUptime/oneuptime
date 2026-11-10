@@ -104,6 +104,7 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("ClickHouse"),
   translationKey("Databricks"),
   translationKey("Amazon Athena"),
+  translationKey("Microsoft Dataverse"),
   translationKey("Logs"),
   translationKey("Traces"),
   translationKey("Exceptions"),

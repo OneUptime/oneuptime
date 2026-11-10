@@ -23,6 +23,7 @@ import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/compo
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
@@ -59,11 +60,23 @@ const TAB_NAMES: Array<TopologyView> = [
   "Network",
 ];
 
+/*
+ * Each view's name on its tab, in the reader's language. TAB_NAMES are the
+ * views' own names, which the code and the link use; looked up as they
+ * were, "Service Map" had no translation and was the one English tab in
+ * every language.
+ */
+export const TOPOLOGY_VIEW_LABELS: Record<TopologyView, string> = {
+  "Service Map": translationKey("Service Map"),
+  Infrastructure: translationKey("Infrastructure"),
+  Network: translationKey("Network"),
+};
+
 type TelemetryView = Exclude<TopologyView, "Network">;
 
-const LOADING_LABELS: Record<TelemetryView, string> = {
-  "Service Map": "Loading service map…",
-  Infrastructure: "Loading infrastructure…",
+export const TOPOLOGY_LOADING_LABELS: Record<TelemetryView, string> = {
+  "Service Map": translationKey("Loading service map…"),
+  Infrastructure: translationKey("Loading infrastructure…"),
 };
 
 function readInitialTab(): TopologyView {
@@ -190,7 +203,8 @@ const TopologyPage: FunctionComponent<
       >
         <CompactLoader />
         <p className="text-sm text-gray-500">
-          {translateString(LOADING_LABELS[view]) || LOADING_LABELS[view]}
+          {translateString(TOPOLOGY_LOADING_LABELS[view]) ||
+            TOPOLOGY_LOADING_LABELS[view]}
         </p>
       </div>
     );
@@ -333,13 +347,16 @@ const TopologyPage: FunctionComponent<
           const selected: boolean = activeTabName === tabName;
           const info: { icon: IconProp; description: string } =
             viewDescriptions[tabName];
+          const label: string =
+            translateString(TOPOLOGY_VIEW_LABELS[tabName]) ||
+            TOPOLOGY_VIEW_LABELS[tabName];
           return (
             <button
               type="button"
               key={tabName}
               id={`topology-view-${index}`}
               role="tab"
-              aria-label={translateString(tabName) || tabName}
+              aria-label={label}
               aria-selected={selected}
               aria-controls="topology-view-panel"
               tabIndex={selected ? 0 : -1}
@@ -360,7 +377,7 @@ const TopologyPage: FunctionComponent<
                 <span
                   className={`block text-sm font-semibold ${selected ? "text-indigo-900" : "text-gray-800"}`}
                 >
-                  {translateString(tabName)}
+                  {label}
                 </span>
                 <span
                   aria-hidden={true}

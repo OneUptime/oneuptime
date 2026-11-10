@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB est lu par son propre pilote : `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, ou `mongodb://` avec les hôtes d'un replica set. Une base nommée dans le chemin est la seule surveillée ; sans elle, chaque base que l'utilisateur peut lire est surveillée, et `{ role: "read", db: "orders" }` à la place de `readAnyDatabase` le limite à une seule. Les documents, la taille et les écritures de chaque collection viennent de `$collStats`, et le moment où elle a reçu son dernier document, de son `_id` le plus récent. Ses champs viennent du schéma JSON de son validateur, ou sinon des noms et types des champs de ses 100 documents les plus récents, calculés dans la base pour qu'aucune valeur n'en sorte. Les documents sont lus sur un secondaire quand il y en a un, et un contrôle personnalisé est un pipeline d'agrégation, en JSON.
+@tab Microsoft Dataverse
+OneUptime se connecte à l'environnement en tant qu'application. Inscrivez-en une dans Microsoft Entra ID et donnez-lui un secret client. Ajoutez-la ensuite à l'environnement en tant qu'utilisateur d'application : dans le Power Platform admin center, ouvrez l'environnement, puis **Settings** > **Users + permissions** > **Application users** > **New app user**. Donnez-lui un rôle de sécurité qui peut lire les tables que vous surveillez.
+
+Connectez-vous avec du JSON :
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+Ou avec une chaîne de connexion Dataverse, au format qu'acceptent ses SDK : `AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`. Omettez le locataire, et l'environnement indique celui dans lequel il se trouve.
+
+Un environnement contient des centaines de tables qui lui sont propres, si bien que seules celles-ci sont surveillées : les principales tables métier (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` et `annotation`) et vos propres tables personnalisées. Les tables des applications de Microsoft, dont les noms commencent par `msdyn_`, `adx_` ou un autre préfixe `ms`, sont écartées. Indiquez toute autre table par son nom logique pour la surveiller aussi : `"tables": ["msdyn_workorder", "systemuser"]`.
+
+Toutes les cinq minutes, la Web API donne la définition de chaque table, ses lignes et son `modifiedon` le plus récent, c'est-à-dire quand elle a changé pour la dernière fois. Les lignes viennent du décompte que Dataverse fait une fois par jour : elles ont donc jusqu'à un jour de retard. Les colonnes sont lues une fois par heure. Chaque collecte fait deux requêtes, plus une par table surveillée, qui comptent dans la limite de l'application de 6 000 requêtes en cinq minutes. Quand Dataverse demande de ralentir, les lectures restantes attendent la collecte suivante. Excluez une table pour ne plus la lire.
+
+Les contrôles s'exécutent comme du SQL en lecture seule sur le point de terminaison TDS de l'environnement, sur le port 1433 ou 5558, en se connectant avec la même application. Ce point de terminaison est activé sauf si un administrateur l'a désactivé. Là où le contrôle d'accès au niveau de l'utilisateur est activé pour lui, le rôle de l'application a besoin du privilège **Allow user to access TDS endpoint**. Son SQL n'a ni expressions régulières, ni `WITH`, ni échantillon, si bien qu'un contrôle y lit chaque ligne.
 :::
 
 ## Ce qui est lu, et à quelle fréquence
@@ -162,6 +178,8 @@ Chaque chemin apparaît alors sous **Tables** : son objet le plus récent est sa
 - **Les tables n'affichent aucune dernière modification.** Le compte ne peut pas lire les statistiques du moteur : accordez ce que liste l'onglet de votre moteur, ou attendez que les lignes d'une table aient changé deux fois.
 - **Une table manque.** Elle se trouve dans un schéma que le compte ne peut pas utiliser, ou elle est exclue sur la base de données. Accordez `USAGE` sur son schéma, ou supprimez l'exclusion.
 - **Une table MySQL n'a aucune colonne.** Le compte a besoin de `REFERENCES`, comme ci-dessus : il montre les colonnes d'une table sans donner aucune lecture de ses lignes.
+- **Un environnement Dataverse indique qu'il a refusé l'application.** Ajoutez l'application à l'environnement en tant qu'utilisateur d'application, avec un rôle de sécurité qui peut lire les tables, comme dans l'onglet Microsoft Dataverse.
+- **Une table Dataverse manque.** Seules les principales tables métier et vos propres tables personnalisées sont surveillées. Indiquez-la dans `tables`, par son nom logique.
 
 ## Prochaines étapes
 

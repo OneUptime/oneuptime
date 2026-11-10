@@ -44,6 +44,15 @@ import AthenaApi, {
   describeScanLimit,
   readAthenaConnection,
 } from "./AthenaApi";
+import DataverseApi, {
+  asSentence,
+  DataverseTable,
+  DataverseThrottledError,
+  inlineDataverseSqlParameters,
+  isCountedDataverseTable,
+  readDataverseConnection,
+  selectDataverseTables,
+} from "./DataverseApi";
 import { MongoCheckStatement, readMongoCheckStatement } from "./MongoDbChecks";
 import { isMongoSystemDatabase, readMongoUri } from "./MongoUri";
 import { MAX_SEGMENTS_PER_CHECK } from "../../../Types/DataObservability/DataCheckType";
@@ -245,6 +254,12 @@ export interface CollectedTable {
    * then means "not read this time", and the last known time stands.
    */
   isChangeTimeFromData?: boolean | undefined;
+  /*
+   * True when this collection left the table's columns unread by design
+   * (Dataverse reads them once an hour): columns is null, and the columns
+   * last read stand, compared again at the next read.
+   */
+  columnsNotRead?: boolean | undefined;
 }
 
 // Where the database itself shows one table feeding another.
@@ -338,6 +353,9 @@ interface RawTable {
   readCount: number | null;
   secondsSinceRead: number | null;
   columnsAreInferred?: boolean | undefined;
+  // The engine's change time is its data's (Dataverse's modifiedon): see CollectedTable.
+  isChangeTimeFromData?: boolean | undefined;
+  columnsNotRead?: boolean | undefined;
 }
 
 interface RawColumn {
@@ -4809,6 +4827,450 @@ class MongoCatalog implements CatalogSession {
   }
 }
 
+// The schema Dataverse's SQL endpoint puts every table in.
+export const DATAVERSE_SCHEMA: string = "dbo";
+// How many tables' newest changes one Dataverse collection reads at once.
+const DATAVERSE_PARALLEL_READS: number = 4;
+// The longest a check runs on Dataverse's SQL endpoint, which ends a query itself after five minutes.
+export const DATAVERSE_SQL_TIMEOUT_IN_MS: number = 120_000;
+// What a driver says when no server answered on a port: the other port may answer.
+const NETWORK_ERROR_CODES: ReadonlyArray<string> = [
+  "ESOCKET",
+  "ETIMEOUT",
+  "ECONNRESET",
+  "ECONNREFUSED",
+];
+
+/*
+ * An attribute's type, as a column's: its AttributeTypeName without "Type"
+ * (StringType is string, LookupType lookup), else its AttributeType.
+ */
+export function readDataverseColumnType(attribute: JSONObject): string {
+  const typeName: unknown = attribute["AttributeTypeName"];
+  const named: string = readText(
+    typeName && typeof typeName === "object"
+      ? (typeName as JSONObject)["Value"]
+      : "",
+    MAX_COLUMN_TYPE_LENGTH,
+  ).trim();
+  const type: string = named
+    ? named.replace(/Type$/, "")
+    : readText(attribute["AttributeType"], MAX_COLUMN_TYPE_LENGTH).trim();
+
+  return (type || "unknown").toLowerCase();
+}
+
+/*
+ * A Dataverse table's columns, by its attribute definitions: every column
+ * that can be read, in the order of its column number. A column derived
+ * from another (a lookup's name, kept with the lookup) is left out: it
+ * comes and goes with the column it is of. A column is NOT NULL only when
+ * Dataverse itself requires it (SystemRequired): one a form requires can
+ * still be empty.
+ */
+export function readDataverseColumns(
+  table: string,
+  attributes: Array<JSONObject>,
+): Array<RawColumn> {
+  const columns: Array<RawColumn> = [];
+
+  attributes.forEach((attribute: JSONObject, index: number) => {
+    const name: string = readText(
+      attribute["LogicalName"],
+      MAX_COLUMN_NAME_LENGTH,
+    )
+      .trim()
+      .toLowerCase();
+    const attributeOf: unknown = attribute["AttributeOf"];
+
+    if (
+      !name ||
+      attribute["IsValidForRead"] === false ||
+      (typeof attributeOf === "string" && attributeOf.trim().length > 0)
+    ) {
+      return;
+    }
+
+    const requiredLevel: unknown = attribute["RequiredLevel"];
+    const required: string = readText(
+      requiredLevel && typeof requiredLevel === "object"
+        ? (requiredLevel as JSONObject)["Value"]
+        : requiredLevel,
+      40,
+    );
+    const columnNumber: number = Number(attribute["ColumnNumber"]);
+
+    columns.push({
+      schema: DATAVERSE_SCHEMA,
+      table,
+      column: {
+        name,
+        dataType: readDataverseColumnType(attribute),
+        isNullable: required !== "SystemRequired",
+        position:
+          Number.isInteger(columnNumber) && columnNumber > 0
+            ? columnNumber
+            : index + 1,
+      },
+    });
+  });
+
+  return columns;
+}
+
+// Why Dataverse's SQL endpoint could not be used, saying what to turn on, short enough to be kept whole.
+export function describeDataverseSqlError(error: unknown): string {
+  const code: string = String((error as { code?: unknown })?.code ?? "");
+  const message: string = asSentence(describeError(error).slice(0, 80));
+
+  if (code === "ELOGIN") {
+    return `Dataverse's SQL endpoint refused the app: ${message} Checks run on the TDS endpoint: turn it on, and where user level access control is on, give the app's role the Allow user to access TDS endpoint privilege.`;
+  }
+
+  return `Dataverse's SQL endpoint could not be reached: ${message} Checks run on the TDS endpoint, on port 1433 or 5558; table health does not need it.`;
+}
+
+function isNetworkError(error: unknown): boolean {
+  return NETWORK_ERROR_CODES.includes(
+    String((error as { code?: unknown })?.code ?? ""),
+  );
+}
+
+/*
+ * Microsoft Dataverse, an environment at a time (DataverseApi). Every
+ * collection reads the tables' definitions, rows and newest changes from
+ * the Web API, and the columns once an hour - when the query history of
+ * the other engines is read, and at a store's first collection. Each read
+ * is a request against the app's limits, so an excluded table is left out
+ * before anything of it is read, and a 429 leaves the rest of the reads to
+ * the next collection. A table's change time is its newest modifiedon, its
+ * data's own time: a table not read this time keeps the last one.
+ *
+ * A data check runs on the TDS endpoint, opened only when one is due, as
+ * read-only SQL in SQL Server's dialect, its values written in.
+ */
+class DataverseCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "dataverse";
+  private readonly api: DataverseApi;
+  private pool: mssql.ConnectionPool | null = null;
+  private isThrottled: boolean = false;
+
+  private constructor(api: DataverseApi) {
+    this.api = api;
+  }
+
+  public static async open(
+    connectionString: string,
+  ): Promise<DataverseCatalog> {
+    return new DataverseCatalog(
+      new DataverseApi({
+        connection: readDataverseConnection(connectionString),
+      }),
+    );
+  }
+
+  // Leaves the reads after a 429 to the next collection, and says so once.
+  private noteThrottled(error: unknown, warnings: Array<string>): boolean {
+    if (!(error instanceof DataverseThrottledError)) {
+      return false;
+    }
+
+    if (!this.isThrottled) {
+      this.isThrottled = true;
+      warnings.push(
+        `${error.message} What was not read this time is read at the next collection.`,
+      );
+    }
+
+    return true;
+  }
+
+  private async readRows(
+    watched: Array<DataverseTable>,
+    warnings: Array<string>,
+  ): Promise<Map<string, number>> {
+    const counted: Array<string> = watched
+      .filter(isCountedDataverseTable)
+      .map((table: DataverseTable): string => {
+        return table.logicalName;
+      });
+
+    if (counted.length === 0) {
+      return new Map();
+    }
+
+    try {
+      return await this.api.countRows(counted);
+    } catch (error) {
+      if (!this.noteThrottled(error, warnings)) {
+        warnings.push(
+          `Row counts were left out: ${describeError(error).slice(0, 200)}`,
+        );
+      }
+
+      return new Map();
+    }
+  }
+
+  // How long ago each table last changed, a few tables at once; null for an empty table.
+  private async readChanges(
+    watched: Array<DataverseTable>,
+    now: Date,
+    warnings: Array<string>,
+  ): Promise<Map<string, number | null>> {
+    const ages: Map<string, number | null> = new Map();
+    const failed: Array<string> = [];
+    let firstError: string = "";
+    let next: number = 0;
+
+    const readNext: () => Promise<void> = async (): Promise<void> => {
+      while (!this.isThrottled && next < watched.length) {
+        const table: DataverseTable = watched[next]!;
+
+        next++;
+
+        try {
+          const changedAt: Date | null = await this.api.readNewestChange(
+            table.entitySetName,
+          );
+
+          ages.set(
+            table.logicalName,
+            changedAt
+              ? Math.max(
+                  0,
+                  Math.floor((now.getTime() - changedAt.getTime()) / 1000),
+                )
+              : null,
+          );
+        } catch (error) {
+          if (this.noteThrottled(error, warnings)) {
+            return;
+          }
+
+          failed.push(table.logicalName);
+          firstError = firstError || describeError(error);
+        }
+      }
+    };
+
+    await Promise.all(
+      Array.from(
+        { length: Math.min(DATAVERSE_PARALLEL_READS, watched.length) },
+        (): Promise<void> => {
+          return readNext();
+        },
+      ),
+    );
+
+    if (failed.length > 0) {
+      warnings.push(
+        `When ${failed.length === 1 ? "1 table" : `${failed.length} tables`} last changed could not be read (${failed.slice(0, 10).join(", ")}${failed.length > 10 ? ", ..." : ""}): ${firstError.slice(0, 200)}`,
+      );
+    }
+
+    return ages;
+  }
+
+  /*
+   * The tables' columns, and which tables Dataverse returned the columns
+   * of; null when none were read. A table it did not return is unread,
+   * never a table with no columns.
+   */
+  private async readColumns(
+    watched: Array<DataverseTable>,
+    maxColumns: number,
+    warnings: Array<string>,
+  ): Promise<{ columns: Array<RawColumn>; tables: Set<string> } | null> {
+    if (this.isThrottled || watched.length === 0) {
+      return null;
+    }
+
+    let definitions: Map<string, Array<JSONObject>>;
+
+    try {
+      definitions = await this.api.listColumns(
+        watched.map((table: DataverseTable): string => {
+          return table.logicalName;
+        }),
+      );
+    } catch (error) {
+      if (!this.noteThrottled(error, warnings)) {
+        warnings.push(
+          `Columns were not read this time: ${describeError(error).slice(0, 200)}`,
+        );
+      }
+
+      return null;
+    }
+
+    const columns: Array<RawColumn> = [];
+    const tables: Set<string> = new Set();
+
+    for (const table of watched) {
+      const attributes: Array<JSONObject> | undefined = definitions.get(
+        table.logicalName,
+      );
+
+      if (!attributes) {
+        continue;
+      }
+
+      tables.add(table.logicalName);
+
+      for (const column of readDataverseColumns(
+        table.logicalName,
+        attributes,
+      )) {
+        if (columns.length < maxColumns) {
+          columns.push(column);
+        }
+      }
+    }
+
+    return { columns, tables };
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const now: Date = new Date();
+    const warnings: Array<string> = [];
+    const excluded: Set<string> = readExclusions(options.exclusions);
+    const selection: ReturnType<typeof selectDataverseTables> =
+      selectDataverseTables(await this.api.listTables(), this.api.namedTables);
+
+    if (selection.unknownNames.length > 0) {
+      warnings.push(
+        `The connection names tables this environment does not have, or that cannot be watched: ${selection.unknownNames.slice(0, 20).join(", ")}${selection.unknownNames.length > 20 ? ", ..." : ""}.`,
+      );
+    }
+
+    const watched: Array<DataverseTable> = selection.tables
+      .filter((table: DataverseTable): boolean => {
+        return !isExcluded(DATAVERSE_SCHEMA, table.logicalName, excluded);
+      })
+      .slice(0, options.maxTables);
+    const rows: Map<string, number> = await this.readRows(watched, warnings);
+    const changes: Map<string, number | null> = this.isThrottled
+      ? new Map()
+      : await this.readChanges(watched, now, warnings);
+    const columnRead: {
+      columns: Array<RawColumn>;
+      tables: Set<string>;
+    } | null =
+      readLookback(options) > 0
+        ? await this.readColumns(watched, options.maxColumns, warnings)
+        : null;
+    const columnsUnknown: Array<string> = [];
+    const tables: Array<RawTable> = watched.map(
+      (table: DataverseTable): RawTable => {
+        const isColumnsRead: boolean = Boolean(
+          columnRead?.tables.has(table.logicalName),
+        );
+
+        if (!isColumnsRead) {
+          columnsUnknown.push(keyOf(DATAVERSE_SCHEMA, table.logicalName));
+        }
+
+        return {
+          schema: DATAVERSE_SCHEMA,
+          name: table.logicalName,
+          kind: DataAssetKind.Table,
+          estimatedRows: rows.has(table.logicalName)
+            ? rows.get(table.logicalName)!
+            : null,
+          sizeInBytes: null,
+          writeCount: null,
+          secondsSinceChange: changes.get(table.logicalName) ?? null,
+          readCount: null,
+          secondsSinceRead: null,
+          isChangeTimeFromData: true,
+          ...(isColumnsRead ? {} : { columnsNotRead: true }),
+        };
+      },
+    );
+
+    return {
+      tables,
+      columns: columnRead?.columns || [],
+      warnings,
+      secondsSinceStatsReset: null,
+      columnsUnknown,
+    };
+  }
+
+  // The TDS endpoint, signed in with the app's token: port 1433, else 5558 where no server answered.
+  private async openSql(): Promise<mssql.ConnectionPool> {
+    if (this.pool) {
+      return this.pool;
+    }
+
+    const token: string = await this.api.getAccessToken();
+    let lastError: unknown = null;
+
+    for (const port of this.api.sqlPorts) {
+      const pool: mssql.ConnectionPool = new mssql.ConnectionPool({
+        server: this.api.host,
+        port,
+        authentication: {
+          type: "azure-active-directory-access-token",
+          options: { token },
+        },
+        connectionTimeout: CONNECT_TIMEOUT_IN_MS,
+        requestTimeout: DATAVERSE_SQL_TIMEOUT_IN_MS,
+        pool: { max: 1, min: 0, idleTimeoutMillis: 1_000 },
+        options: {
+          encrypt: true,
+          trustServerCertificate: false,
+          appName: APPLICATION_NAME,
+        },
+      });
+
+      try {
+        await pool.connect();
+        this.pool = pool;
+
+        return pool;
+      } catch (error) {
+        lastError = error;
+
+        try {
+          await pool.close();
+        } catch {
+          // It never opened.
+        }
+
+        // A server that answered and refused the app refuses it on the other port too.
+        if (!isNetworkError(error)) {
+          break;
+        }
+      }
+    }
+
+    throw new Error(describeDataverseSqlError(lastError));
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    const pool: mssql.ConnectionPool = await this.openSql();
+    const result: mssql.IResult<Record<string, unknown>> = await pool
+      .request()
+      .query(inlineDataverseSqlParameters(sql, params));
+
+    return result.recordset ? Array.from(result.recordset) : [];
+  }
+
+  public async close(): Promise<void> {
+    if (this.pool) {
+      const pool: mssql.ConnectionPool = this.pool;
+
+      this.pool = null;
+      await pool.close();
+    }
+  }
+}
+
 async function openCatalog(
   connection: DatabaseConnection,
 ): Promise<CatalogSession> {
@@ -4835,6 +5297,8 @@ async function openCatalog(
       return await OracleCatalog.open(connection.connectionString);
     case "mongodb":
       return await MongoCatalog.open(connection.connectionString);
+    case "dataverse":
+      return await DataverseCatalog.open(connection.connectionString);
     default:
       throw new Error(
         `Data Observability cannot collect ${String(connection.engine)} databases yet.`,

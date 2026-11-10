@@ -486,7 +486,16 @@ const Navbar: FunctionComponent<ComponentProps> = (
                   className="mr-1.5 h-4 w-4 transition-transform duration-150 group-hover:scale-110"
                   thick={ThickProp.Thick}
                 />
-                <span>{activeMoreItem.title}</span>
+                {/*
+                 * In the reader's words, as Home beside it and the menu it
+                 * opens already are: the Admin Dashboard hands its sections
+                 * over in English, and its page's own section ("Projects")
+                 * was the one English word in its header in every language.
+                 */}
+                <span>
+                  {translateString(activeMoreItem.title) ??
+                    activeMoreItem.title}
+                </span>
                 <Icon
                   icon={IconProp.ChevronDown}
                   className={`ml-1.5 h-3 w-3 text-gray-500 transition-transform duration-200 ${

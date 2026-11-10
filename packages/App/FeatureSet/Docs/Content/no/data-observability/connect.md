@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB leses med sin egen driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/` eller `mongodb://` med vertene til et replica set. En database i stien er den eneste som overvåkes; uten en overvåkes hver database brukeren kan lese, og `{ role: "read", db: "orders" }` i stedet for `readAnyDatabase` begrenser den til én. Dokumentene, størrelsen og skrivingene til hver samling kommer fra `$collStats`, og når den sist fikk et dokument, fra dens nyeste `_id`. Feltene kommer fra validatorens JSON-skjema, ellers fra navnene og typene til feltene i de 100 nyeste dokumentene, regnet ut i databasen slik at ingen verdi forlater den. Dokumenter leses på en sekundær der det finnes en, og en egendefinert kontroll er en aggregeringspipeline som JSON.
+@tab Microsoft Dataverse
+OneUptime logger på miljøet som en app. Registrer en i Microsoft Entra ID, og gi den en klienthemmelighet. Legg den deretter til i miljøet som programbruker: åpne miljøet i Power Platform admin center, og deretter **Settings** > **Users + permissions** > **Application users** > **New app user**. Gi den en sikkerhetsrolle som kan lese tabellene du overvåker.
+
+Koble til med JSON:
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+Eller med en Dataverse-tilkoblingsstreng, i den formen SDK-ene bruker: `AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`. Utelat leietakeren, så sier miljøet selv hvilken det ligger i.
+
+Et miljø har hundrevis av egne tabeller, så bare disse overvåkes: de sentrale forretningstabellene (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` og `annotation`) og de egendefinerte tabellene dine. Tabellene til Microsofts apper, der navnene starter med `msdyn_`, `adx_` eller et annet `ms`-prefiks, utelates. Oppgi en hvilken som helst annen tabell med det logiske navnet for å overvåke den også: `"tables": ["msdyn_workorder", "systemuser"]`.
+
+Hvert femte minutt gir Web API-et hver tabells definisjon, rader og nyeste `modifiedon`, som er når den sist ble endret. Radene kommer fra tellingen Dataverse gjør én gang om dagen, så de kan ligge opptil en dag etter. Kolonnene leses én gang i timen. Hver innsamling sender to forespørsler, og én til per overvåket tabell, som telles med i appens grense på 6000 forespørsler på fem minutter. Når Dataverse ber den senke tempoet, venter resten av lesingene til neste innsamling. Utelat en tabell for å slutte å lese den.
+
+Sjekker kjører som skrivebeskyttet SQL på miljøets TDS-endepunkt, på port 1433 eller 5558, pålogget som den samme appen. Det er på med mindre en administrator har slått det av. Der tilgangskontroll på brukernivå er slått på for det, trenger appens rolle rettigheten **Allow user to access TDS endpoint**. Endepunktets SQL har verken regulære uttrykk, `WITH` eller utvalg, så en sjekk der leser hver rad.
 :::
 
 ## Hva som leses, og hvor ofte
@@ -162,6 +178,8 @@ Hver sti vises deretter under **Tabeller**: det nyeste objektet er når den sist
 - **Tabeller viser ingen siste endring.** Brukeren kan ikke lese databasemotorens statistikk: gi det fanen for databasemotoren din viser, eller vent til antall rader i en tabell har endret seg to ganger.
 - **En tabell mangler.** Den ligger i et skjema brukeren ikke kan bruke, eller den er utelatt på databasen. Gi `USAGE` på skjemaet, eller fjern utelatelsen.
 - **En MySQL-tabell har ingen kolonner.** Brukeren trenger `REFERENCES`, som ovenfor: det viser kolonnene i en tabell uten å gi noen lesing av radene.
+- **Et Dataverse-miljø sier at det avviste appen.** Legg appen til i miljøet som programbruker, med en sikkerhetsrolle som kan lese tabellene, som på fanen Microsoft Dataverse.
+- **En Dataverse-tabell mangler.** Bare de sentrale forretningstabellene og de egendefinerte tabellene dine overvåkes. Oppgi den i `tables`, med det logiske navnet.
 
 ## Neste steg
 

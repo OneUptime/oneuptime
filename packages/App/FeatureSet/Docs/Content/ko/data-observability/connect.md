@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB는 자체 드라이버로 읽습니다: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/` 또는 레플리카 세트의 호스트를 지정한 `mongodb://`. 경로에 데이터베이스가 있으면 그 데이터베이스만 모니터링합니다. 없으면 로그인이 읽을 수 있는 모든 데이터베이스를 모니터링하며, `readAnyDatabase` 대신 `{ role: "read", db: "orders" }`를 부여하면 하나로 제한됩니다. 각 컬렉션의 문서, 크기, 쓰기는 `$collStats`에서, 마지막으로 문서를 받은 시각은 가장 최신 `_id`에서 가져옵니다. 필드는 검증기의 JSON 스키마에서, 없으면 가장 최신 문서 100개의 필드 이름과 유형에서 가져오며, 데이터베이스 안에서 계산되므로 어떤 값도 밖으로 나가지 않습니다. 문서는 세컨더리가 있으면 세컨더리에서 읽고, 사용자 지정 검사는 JSON 형식의 집계 파이프라인입니다.
+@tab Microsoft Dataverse
+OneUptime은 앱으로 환경에 로그인합니다. Microsoft Entra ID에 앱을 등록하고 클라이언트 시크릿을 만듭니다. 그런 다음 그 앱을 애플리케이션 사용자로 환경에 추가합니다: Power Platform admin center에서 환경을 열고 **Settings** > **Users + permissions** > **Application users** > **New app user** 를 선택합니다. 감시할 테이블을 읽을 수 있는 보안 역할을 부여하세요.
+
+JSON으로 연결합니다.
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+또는 Dataverse SDK에서 쓰는 형식의 Dataverse 연결 문자열로 연결합니다: `AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`. 테넌트를 생략하면 환경이 자신이 속한 테넌트를 알려 줍니다.
+
+환경에는 자체 테이블이 수백 개 있으므로, 다음 테이블만 감시합니다. 핵심 비즈니스 테이블(`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task`, `annotation`)과 직접 만든 사용자 지정 테이블입니다. 이름이 `msdyn_`, `adx_` 또는 다른 `ms` 접두사로 시작하는 Microsoft 앱의 테이블은 제외됩니다. 그 밖의 테이블도 감시하려면 논리적 이름으로 지정하세요: `"tables": ["msdyn_workorder", "systemuser"]`.
+
+Web API는 5분마다 각 테이블의 정의, 행 수, 가장 최신 `modifiedon` 을 제공합니다. 이것이 테이블이 마지막으로 바뀐 시점입니다. 행 수는 Dataverse가 하루에 한 번 세는 값에서 가져오므로, 최대 하루까지 늦을 수 있습니다. 열은 한 시간에 한 번 읽습니다. 각 수집은 요청을 2개 보내고, 감시하는 테이블마다 1개씩 더 보냅니다. 이 요청들은 앱의 한도인 5분당 6,000개 요청에 포함됩니다. Dataverse가 속도를 늦추라고 요청하면, 나머지 읽기는 다음 수집까지 기다립니다. 테이블을 더 이상 읽지 않으려면 그 테이블을 제외하세요.
+
+검사는 환경의 TDS 엔드포인트(포트 1433 또는 5558)에서 같은 앱으로 로그인해 읽기 전용 SQL로 실행됩니다. TDS 엔드포인트는 관리자가 끄지 않았다면 켜져 있습니다. TDS 엔드포인트에 사용자 수준 액세스 제어가 켜져 있으면, 앱의 역할에 **Allow user to access TDS endpoint** 권한이 필요합니다. 이 SQL은 정규식, `WITH`, 샘플링을 지원하지 않으므로 Dataverse의 검사는 모든 행을 읽습니다.
 :::
 
 ## 읽는 항목과 주기
@@ -162,6 +178,8 @@ PostgreSQL이나 SQL Server의 읽기 복제본은 쓰기 카운터가 움직이
 - **테이블에 마지막 변경이 표시되지 않습니다.** 로그인이 엔진의 통계를 읽을 수 없습니다. 엔진 탭에 나열된 권한을 부여하거나, 테이블의 행 수가 두 번 바뀔 때까지 기다리세요.
 - **테이블이 보이지 않습니다.** 로그인이 사용할 수 없는 스키마에 있거나, 데이터베이스에서 제외되어 있습니다. 그 스키마에 대한 `USAGE` 를 부여하거나, 제외를 해제하세요.
 - **MySQL 테이블에 열이 없습니다.** 로그인에 위와 같이 `REFERENCES` 가 필요합니다. 테이블의 행을 읽을 권한은 주지 않으면서 테이블의 열을 보여 줍니다.
+- **Dataverse 환경이 앱을 거부했다고 표시됩니다.** Microsoft Dataverse 탭에 나온 대로, 테이블을 읽을 수 있는 보안 역할과 함께 앱을 애플리케이션 사용자로 환경에 추가하세요.
+- **Dataverse 테이블이 보이지 않습니다.** 핵심 비즈니스 테이블과 직접 만든 사용자 지정 테이블만 감시합니다. 그 테이블을 논리적 이름으로 `tables` 에 지정하세요.
 
 ## 다음 단계
 

@@ -5,6 +5,7 @@ import {
   DatabaseConnection,
   parseSqlServerConnectionString,
 } from "../DataSecurity/Content/DatabaseSampler";
+import { readDataverseConnection } from "./DataverseApi";
 import { readMongoUri } from "./MongoUri";
 import { readOracleConnection } from "./OracleConnection";
 
@@ -91,6 +92,9 @@ export function getDatabaseConnectionHosts(
           return host.host;
         },
       );
+    // Its Web API is guarded request by request; its SQL endpoint, for checks, is a driver's socket.
+    case "dataverse":
+      return [readDataverseConnection(value).host];
     default:
       return [];
   }

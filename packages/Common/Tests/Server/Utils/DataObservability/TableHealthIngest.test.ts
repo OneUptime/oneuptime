@@ -302,6 +302,77 @@ describe("planAssetUpdate", () => {
     expect(plan.collectionState["readCount"]).toBe(12);
   });
 
+  test("columns left unread this time by design stay known, so the next read is compared with them", () => {
+    const unread: AssetPlan = planAssetUpdate(
+      previous(),
+      table({ columns: null, columnsNotRead: true }),
+      COLLECTED_AT,
+    );
+
+    expect(unread.collectionState["columnsKnown"]).toBe(true);
+    expect(unread.columns).toBe(null);
+    expect(unread.columnChanges).toEqual([]);
+
+    // The next read, an hour on, finds a column gone: compared with the columns last read.
+    const next: AssetPlan = planAssetUpdate(
+      previous(),
+      table({
+        columns: [
+          { name: "id", dataType: "bigint", isNullable: false, position: 1 },
+        ],
+      }),
+      COLLECTED_AT,
+    );
+
+    expect(
+      next.columnChanges.map((change: { kind: string; column: string }) => {
+        return `${change.kind}:${change.column}`;
+      }),
+    ).toEqual([`${DataAssetColumnChangeKind.Removed}:total`]);
+  });
+
+  test("columns that could not be read, or were never known, are compared with none", () => {
+    expect(
+      planAssetUpdate(previous(), table({ columns: null }), COLLECTED_AT)
+        .collectionState["columnsKnown"],
+    ).toBe(false);
+    expect(
+      planAssetUpdate(
+        null,
+        table({ columns: null, columnsNotRead: true }),
+        COLLECTED_AT,
+      ).collectionState["columnsKnown"],
+    ).toBe(false);
+    expect(
+      planAssetUpdate(
+        previous({ columns: null }),
+        table({ columns: null, columnsNotRead: true }),
+        COLLECTED_AT,
+      ).collectionState["columnsKnown"],
+    ).toBe(false);
+  });
+
+  test("a change time from the table's data that was not read leaves the last one standing", () => {
+    expect(
+      detectChangeTime(
+        previous(),
+        table({ secondsSinceChange: null, isChangeTimeFromData: true }),
+        COLLECTED_AT,
+      ),
+    ).toEqual(previous().lastChangedAt);
+    expect(
+      detectChangeTime(
+        previous(),
+        table({
+          secondsSinceChange: 60,
+          isChangeTimeFromData: true,
+          estimatedRows: 999_999,
+        }),
+        COLLECTED_AT,
+      ),
+    ).toEqual(new Date(COLLECTED_AT.getTime() - 60_000));
+  });
+
   test("a table whose numbers did not move is not written again", () => {
     const plan: AssetPlan = planAssetUpdate(previous(), table(), COLLECTED_AT);
 

@@ -13,7 +13,7 @@ Voeg een controle toe op het tabblad **Controles** van een tabel:
 | **Distinct Count** | Hoeveel verschillende waarden de kolom bevat |
 | **Minimum**, **Maximum**, **Gemiddelde**, **Som** | Van een numerieke kolom (een Som over nul rijen is 0) |
 | **Invalid Percent** | Percentage waarden buiten een lijst die je opgeeft |
-| **Format Mismatch Percent** | Percentage waarden die niet in een door jou gekozen formaat staan, zoals Email, UUID of Country Code, of die niet overeenkomen met een reguliere expressie van jou (elke engine behalve SQL Server) |
+| **Format Mismatch Percent** | Percentage waarden die niet in een door jou gekozen formaat staan, zoals Email, UUID of Country Code, of die niet overeenkomen met een reguliere expressie van jou (elke engine behalve SQL Server en Dataverse) |
 | **Orphan Count** | Rijen waarvan de waarde geen tegenhanger heeft in de kolom van een andere tabel |
 | **Row Count** | Rijen in de tabel, het nuttigst met **Segmenteren op** |
 | **Aangepaste SQL** | Het getal dat een eigen alleen-lezen SELECT teruggeeft, met de naam `value` (bij MongoDB dat van een aggregatiepijplijn) |
@@ -48,7 +48,7 @@ De **Status** van een controle, op **Controles** en op het tabblad **Controles**
 
 Een controle concurreert met je applicatie om de database, en op een warehouse dat afrekent op wat een query leest, kost ze geld. Drie dingen houden dat in de hand:
 
-- **Steekproefpercentage** leest een deel van de rijen in plaats van alle, voor een controle die een ratio leest: Null Percent, Gemiddelde, Invalid Percent en Format Mismatch Percent. De meeste engines slaan hele pagina's van de tabel over; MySQL, Redshift, ClickHouse en MongoDB lezen nog steeds elke rij, en worden het werk op de rest bespaard. Een view kan het weigeren, en de controle meldt dat.
+- **Steekproefpercentage** leest een deel van de rijen in plaats van alle, voor een controle die een ratio leest: Null Percent, Gemiddelde, Invalid Percent en Format Mismatch Percent. De meeste engines slaan hele pagina's van de tabel over; MySQL, Redshift, ClickHouse en MongoDB lezen nog steeds elke rij, en worden het werk op de rest bespaard. Dataverse neemt geen steekproef: een controle daar leest elke rij. Een view kan het weigeren, en de controle meldt dat.
 - **Maximaal te lezen door een controle (GB)**, onder **Instellingen**, stopt een controle op BigQuery of Athena voordat ze meer dan zoveel gigabyte leest. Het is 10 totdat je het wijzigt.
 - **Wachten wanneer een database druk is**, onder **Instellingen**, laat verschuldigde controles tot de volgende verzamelronde liggen wanneer een PostgreSQL-, MySQL- of SQL Server-database druk lijkt. Het staat aan totdat je het uitzet, en de database meldt wanneer controles hebben gewacht.
 

@@ -16,7 +16,7 @@ Jede Ansicht der Topologie entsteht aus einer anderen Art von Telemetrie:
 
 ```mermaid title="Woher jede Ansicht der Topologie kommt"
 flowchart LR
-    traces["Traces und eBPF,<br/>alle 10 Minuten gelesen"] --> serviceMap["Service Map"]
+    traces["Traces und eBPF,<br/>alle 10 Minuten gelesen"] --> serviceMap["Dienstkarte"]
     resources["Hosts, Cluster und<br/>Container, die melden"] --> infrastructure["Infrastruktur"]
     neighbours["Nachbarn, die Geräte<br/>über LLDP melden"] --> network["Netzwerk"]
 ```
@@ -32,11 +32,11 @@ flowchart LR
 
 ## Die Topologie öffnen
 
-Gehen Sie zu **Produkte → Observability → Topologie**. **Inventar → Topologiekarte** öffnet dieselbe Seite. Sie öffnet sich auf der **Service Map**, für den Zeitraum **Letzter Tag**.
+Gehen Sie zu **Produkte → Observability → Topologie**. **Inventar → Topologiekarte** öffnet dieselbe Seite. Sie öffnet sich auf der **Dienstkarte**, für den Zeitraum **Letzter Tag**.
 
 | Ansicht | Die Frage, die sie beantwortet |
 | --- | --- |
-| **Service Map** | Welche Dienste hängen voneinander ab? |
+| **Dienstkarte** | Welche Dienste hängen voneinander ab? |
 | **Infrastruktur** | Was läuft wo in Ihrer Infrastruktur? |
 | **Netzwerk** | Wie sind Ihre Netzwerkgeräte verbunden? |
 
@@ -44,7 +44,7 @@ Neben der Zeitauswahl fügt **Inaktive anzeigen** hinzu, was im Zeitraum nicht g
 
 ## Die Dienstkarte lesen
 
-Die **Service Map** zeichnet jeden Dienst, der gemeldet hat, und die Datenbanken, APIs und Message Broker, die er aufruft, auch wenn diese selbst keine Telemetrie senden. Pfeile zeigen vom Aufrufer zum Aufgerufenen, und dickere Linien tragen mehr Anfragen. Die Zahlen darüber sagen, wie viele Dienste, Abhängigkeiten und Verbindungen sie zeichnet und wie viele Aufmerksamkeit brauchen.
+Die **Dienstkarte** zeichnet jeden Dienst, der gemeldet hat, und die Datenbanken, APIs und Message Broker, die er aufruft, auch wenn diese selbst keine Telemetrie senden. Pfeile zeigen vom Aufrufer zum Aufgerufenen, und dickere Linien tragen mehr Anfragen. Die Zahlen darüber sagen, wie viele Dienste, Abhängigkeiten und Verbindungen sie zeichnet und wie viele Aufmerksamkeit brauchen.
 
 Jeder Dienst zeigt seinen Status, berechnet aus den Aufrufen, die er in den letzten 15 Minuten empfangen hat:
 
@@ -80,7 +80,7 @@ Klicken Sie auf einen Pfeil, um seine Anfragerate, Fehlerrate und durchschnittli
 
 - **Durchsuchen Sie sie, wie Sie wollen.** Zeigen Sie sie als **Liste** oder **Karte**, von Ihrer gesamten Infrastruktur bis zu einem einzelnen Pod. Die Zahlen darüber sagen, wie viele Ressourcen und Workloads sie zeichnet, wie viele Dienste sie zuordnen kann und wie viele stille Ressourcen sie weglässt.
 - **Eine Ressource finden.** Suchen Sie sie nach Namen und klicken Sie auf **Details anzeigen**, um ihre Seite zu öffnen.
-- **Zwischen den Ansichten wechseln.** Ein Dienst, der bei einer Ressource aufgeführt ist, öffnet sich auf der **Service Map**, und die Ressourcen, auf denen ein Dienst läuft, öffnen sich in **Infrastruktur**.
+- **Zwischen den Ansichten wechseln.** Ein Dienst, der bei einer Ressource aufgeführt ist, öffnet sich auf der **Dienstkarte**, und die Ressourcen, auf denen ein Dienst läuft, öffnen sich in **Infrastruktur**.
 
 ## Die eigene Karte einer Ressource öffnen
 

@@ -1,4 +1,11 @@
 import OneUptimeDate from "Common/Types/Date";
+import {
+  formatRelativeAmount,
+  formatRelativeDate,
+  getDateDisplayLanguage,
+  isEnglishDateLanguage,
+  RelativeDateUnit,
+} from "Common/Types/DateLanguage";
 import ScheduledMaintenanceStartUtil, {
   ScheduledMaintenancePhaseOfState,
 } from "Common/Utils/ScheduledMaintenanceStart";
@@ -581,6 +588,11 @@ const pluralise: PluraliseFunction = (count: number, unit: string): string => {
  * "in less than a minute". Minutes are floored so "in 1 minute" never
  * overstates how long is left; hours and days are rounded. Returns "" for
  * a missing or invalid date.
+ *
+ * In the language dates are written in (DateLanguage), as the tile's date
+ * above it is: "خلال ساعتين", "vor 3 Tagen", and under a minute that
+ * language's "now". Written in English it was the one English line under
+ * an Arabic or German maintenance window's Starts and Ends.
  */
 export const formatScheduledMaintenanceRelativeTime: (
   value: DateInput,
@@ -596,21 +608,43 @@ export const formatScheduledMaintenanceRelativeTime: (
   const isFuture: boolean = differenceInMs > 0;
   const minutes: number = Math.floor(Math.abs(differenceInMs) / (60 * 1000));
 
-  let amount: string = "";
+  let count: number = 0;
+  let unit: RelativeDateUnit = "minute";
 
-  if (minutes < 1) {
-    amount = "less than a minute";
-  } else if (minutes < 60) {
-    amount = pluralise(minutes, "minute");
-  } else {
+  if (minutes >= 1 && minutes < 60) {
+    count = minutes;
+  } else if (minutes >= 60) {
     const hours: number = Math.round(minutes / 60);
 
     if (hours < 24) {
-      amount = pluralise(hours, "hour");
+      count = hours;
+      unit = "hour";
     } else {
-      amount = pluralise(Math.round(minutes / (24 * 60)), "day");
+      count = Math.round(minutes / (24 * 60));
+      unit = "day";
     }
   }
+
+  const language: string = getDateDisplayLanguage();
+
+  if (!isEnglishDateLanguage(language)) {
+    const worded: string | null =
+      count === 0
+        ? formatRelativeDate({ date: now, now: now, locale: language })
+        : formatRelativeAmount({
+            count: count,
+            unit: unit,
+            isFuture: isFuture,
+            locale: language,
+          });
+
+    if (worded) {
+      return worded;
+    }
+  }
+
+  const amount: string =
+    count === 0 ? "less than a minute" : pluralise(count, unit);
 
   return isFuture ? `in ${amount}` : `${amount} ago`;
 };
