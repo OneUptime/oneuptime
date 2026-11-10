@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Conecta una base de datos
 
-Abre **Observabilidad de datos**, ve a **Bases de datos** y elige **Conectar una base de datos**. Elige el motor y proporciona una cadena de conexión de solo lectura, o el nombre de la variable de entorno de la que la lee tu sonda. [Conectar una base de datos](/docs/data-observability/connect) muestra el usuario de cada motor.
+Abre **Observabilidad de datos** y elige **Conectar una base de datos**, en **Vista general** o en **Bases de datos**. Elige el motor y proporciona una cadena de conexión de solo lectura, o el nombre de la variable de entorno de la que la lee tu sonda. [Conectar una base de datos](/docs/data-observability/connect) muestra el usuario de cada motor.
 
-### Revisa sus tablas
+### Activa sus alertas recomendadas
+
+Una base de datos que conectas se abre en sus **Alertas recomendadas**, porque nadie se entera de lo que pasa en sus tablas hasta que alguna está activa. Añade las que quieras: una tabla que llega tarde, una cuyas filas caen bruscamente o son inusualmente pocas, una cuyas columnas cambian y una base de datos que deja de informar. Cada una es un monitor normal: la guardia, los propietarios, las ventanas de mantenimiento y las páginas de estado funcionan como con cualquier otro.
+
+### Lee la vista general
 
 En menos de cinco minutos sus tablas aparecen en **Tablas**, cada una con sus filas, su tamaño y cuándo cambió por última vez. La frescura de una tabla se conoce en cuanto ha cambiado dos veces: **Actualizada** mientras mantiene su ritmo, **Con retraso** en cuanto lo pierde.
 
-### Añade las alertas recomendadas
-
-En **Bases de datos**, elige **Alertas recomendadas** para la base de datos y añade las que quieras: una tabla que llega tarde, una cuyas filas caen bruscamente o son inusualmente pocas, una cuyas columnas cambian y una base de datos que deja de informar. Cada una es un monitor normal: la guardia, los propietarios, las ventanas de mantenimiento y las páginas de estado funcionan como con cualquier otro.
+**Vista general** dice entonces qué necesita a alguien ahora, lo peor primero: una base de datos que no se pudo leer, una ejecución de canalización que falló o llega tarde, una comprobación que falla o no se pudo ejecutar, una conciliación que se desvió, y un producto de datos o una tabla con retraso. Cada elemento dice quién es su propietario y si su alerta está abierta, o que nadie recibe aviso porque su base de datos no tiene ninguna alerta activa, y abre la página donde se corrige. Mientras el proyecto no esté configurado, **Vista general** muestra los pasos que faltan: alertas en cada base de datos, propietarios para las tablas, una comprobación y las ejecuciones de tus canalizaciones.
 :::
+
+## Dónde está cada cosa
+
+El menú sigue las preguntas que le haces a tus datos. Su primera sección reúne las páginas de cada día: **Vista general**, **Tablas**, **Canalizaciones**, **Cambios de esquema**, **Bases de datos** y **Rutas de almacenamiento**. **Calidad** reúne las reglas que los datos deben cumplir, **Comprobaciones** y **Conciliaciones**, y **Uso**, quién depende de ellos y cuánto cuestan: **Productos de datos**, **Paneles de BI**, **Gasto del almacén** y **Tablas sin uso**. **Reglas** (**Reglas del propietario** y **Reglas de etiquetas**), **Ayuda** y **Avanzado** (**Ajustes** y **Tablas eliminadas**) siguen plegadas hasta que las abres.
 
 ## Cuánto cuesta
 

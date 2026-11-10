@@ -3,6 +3,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import { InboundEmailDomain, IsBillingEnabled } from "../EnvironmentConfig";
 import { UpdateResult } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import { ActiveMonitoringMeteredPlan } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
 import CreateLimit from "../Types/Database/CreateLimit";
@@ -123,6 +124,9 @@ import OpenStackMonitorDependencies from "../Utils/OpenStack/OpenStackMonitorDep
 import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import MonitorTurnedOff from "../Utils/Monitor/MonitorTurnedOff";
+import LatestIncomingRequest, {
+  ReadersCopyRewrite,
+} from "../Utils/Monitor/LatestIncomingRequest";
 import ProbeMonitorsNotification, {
   ProbeAffectedMonitor,
   ProbeMonitorsNotificationContent,
@@ -1921,6 +1925,29 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * Keep request content changed: an Incoming Request monitor's latest
+     * request, as people read it, is written again from the request as it
+     * came, so the switch covers it now and not from the next request on.
+     * Each monitor in a try/catch of its own, as a side effect never fails
+     * the save.
+     */
+    if (onUpdate.updateBy.data.keepResponseContent !== undefined) {
+      for (const monitorId of updatedItemIds) {
+        try {
+          await this.rewriteLatestIncomingRequestForReaders(monitorId);
+        } catch (error) {
+          logger.error(
+            "Writing the latest incoming request again after Keep request content changed failed in MonitorService.onUpdateSuccess",
+            {
+              monitorId: monitorId?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+        }
+      }
+    }
+
+    /*
      * SLO monitor rules match on labels, type, name and description, so an edit to
      * any of those fields can pull this monitor into an SLO's error budget or
      * push it out of one. Keyed on `!== undefined` rather than on a non-empty
@@ -1986,6 +2013,54 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return onUpdate;
+  }
+
+  /*
+   * An Incoming Request monitor's latest request, as people read it
+   * (Monitor.incomingMonitorRequest), written again from the request as it
+   * came by the monitor's switch as it stands now (LatestIncomingRequest):
+   * after the switch changed, and once for each monitor whose request was
+   * kept once only, before the two copies were split. One statement, and
+   * only while the monitor still holds what was read - a request that came
+   * in meanwhile wrote both copies itself. True when it wrote.
+   */
+  public async rewriteLatestIncomingRequestForReaders(
+    monitorId: ObjectID,
+  ): Promise<boolean> {
+    const monitor: Model | null = await this.findOneById({
+      id: monitorId,
+      select: {
+        keepResponseContent: true,
+        incomingMonitorRequest: true,
+        incomingMonitorRequestAsReceived: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!monitor) {
+      return false;
+    }
+
+    const rewrite: ReadersCopyRewrite | null =
+      LatestIncomingRequest.getReadersCopyRewrite(monitor);
+
+    if (!rewrite) {
+      return false;
+    }
+
+    return await this.compareAndSetColumnsByIdWithoutHooks({
+      id: monitorId,
+      // JSON columns: their deep partial type is too deep to check here.
+      data: rewrite.data as unknown as PartialEntity<Model>,
+      expectedData: rewrite.expectedData as unknown as PartialEntity<Model>,
+      /*
+       * A copy the server keeps, not an edit: the save that changed the
+       * switch moved updatedAt already.
+       */
+      skipUpdateDateColumn: true,
+    });
   }
 
   /*

@@ -21,9 +21,10 @@ import { redactForPersistence } from "./MonitorPayloadRedaction";
  *
  *   - the monitor's own logs: a row per check (MonitorLog.logBody), the log
  *     of each status change (MonitorStatusTimeline.statusChangeLog), a
- *     server's latest report (Monitor.serverMonitorResponse), and a probe's
- *     latest check as a reader gets it (MonitorProbe.lastMonitoringLog,
- *     see MonitorProbeService);
+ *     server's latest report (Monitor.serverMonitorResponse), an Incoming
+ *     Request monitor's latest request (Monitor.incomingMonitorRequest, see
+ *     LatestIncomingRequest), and a probe's latest check as a reader gets it
+ *     (MonitorProbe.lastMonitoringLog, see MonitorProbeService);
  *   - an incident or an alert: its evaluation details, the monitor summary
  *     (the card the monitor page shows, frozen) and the raw check
  *     (createdStateLog, and the state timeline's log);
@@ -66,8 +67,9 @@ import { redactForPersistence } from "./MonitorPayloadRedaction";
  * the check as it arrived. The two copies that are judged again later are
  * kept as they came: a probe's latest check, for probe agreement, which
  * people get redacted (MonitorProbeService); and an Incoming Request
- * monitor's latest request, for its heartbeat, which people still read as
- * it came (https://github.com/OneUptime/oneuptime/issues/6402).
+ * monitor's latest request, for its heartbeat, which only the server reads
+ * (Monitor.incomingMonitorRequestAsReceived) - people read the copy beside
+ * it, cut here (toStoredLatestRequest).
  */
 
 // The monitor types whose check carries a body this switch is about.
@@ -231,6 +233,23 @@ export default class MonitorRecordEvidence {
         monitorStep: input.monitorStep,
       }),
     ) as unknown as JSONObject;
+  }
+
+  /*
+   * An Incoming Request monitor's latest request as people read it
+   * (Monitor.incomingMonitorRequest): the request cut as the monitor's logs
+   * keep it, by its switch, and made storable for jsonb. Written beside the
+   * request as it came, which the heartbeat judges again
+   * (LatestIncomingRequest).
+   */
+  public static toStoredLatestRequest(input: {
+    request: IncomingMonitorRequest;
+    keepResponseContent: boolean;
+  }): IncomingMonitorRequest {
+    return MonitorRecordEvidence.toStoredCheck({
+      dataToProcess: input.request,
+      keepResponseContent: input.keepResponseContent,
+    }) as unknown as IncomingMonitorRequest;
   }
 
   /*

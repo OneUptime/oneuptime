@@ -113,7 +113,9 @@ import bulkAddStatusPageMonitors, {
   BulkAddStatusPageMonitorsOptions,
   BulkAddStatusPageMonitorsResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/BulkAddStatusPageMonitors";
-import BulkAddStatusPageMonitorsModal from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/BulkAddStatusPageMonitorsModal";
+import BulkAddStatusPageMonitorsModal, {
+  BulkAddStatusPageResult,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/BulkAddStatusPageMonitorsModal";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPageMonitorRule from "../../../Models/DatabaseModels/StatusPageMonitorRule";
@@ -412,8 +414,9 @@ describe("BulkAddStatusPageMonitorsModal", () => {
   });
 
   test("adds the selected monitors with the shared resource options", async () => {
-    const onComplete: (result: BulkAddStatusPageMonitorsResult) => void =
-      jest.fn((_result: BulkAddStatusPageMonitorsResult): void => {});
+    const onComplete: (result: BulkAddStatusPageResult) => void = jest.fn(
+      (_result: BulkAddStatusPageResult): void => {},
+    );
     const view: ReturnType<typeof render> = renderModal({ onComplete });
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));

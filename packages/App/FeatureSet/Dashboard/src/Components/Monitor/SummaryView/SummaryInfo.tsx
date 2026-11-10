@@ -61,6 +61,14 @@ export interface ComponentProps {
    * is how a probe change comes to read as never having applied.
    */
   probeSummaryState?: MonitorSummaryProbeState | undefined;
+  /*
+   * Set by the monitor overview, whose latest request is the copy the
+   * server cuts for readers (Monitor.incomingMonitorRequest, #6402): its
+   * details then say that secrets and personal data in them are masked.
+   * The Monitoring Logs and the summaries incidents and alerts keep may
+   * hold requests kept before copies were cut, so they leave it out.
+   */
+  areIncomingRequestSecretsMasked?: boolean | undefined;
 }
 
 const SummaryInfo: FunctionComponent<ComponentProps> = (
@@ -384,6 +392,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
               props.incomingRequestMonitorHeartbeatCheckedAt
             }
             incomingMonitorRequest={props.incomingMonitorRequest}
+            areSecretsMasked={props.areIncomingRequestSecretsMasked}
           />
           {renderEvaluationLogs(
             props.incomingMonitorRequest.evaluationSummary ||

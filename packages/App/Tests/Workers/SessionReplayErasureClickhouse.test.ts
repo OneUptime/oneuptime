@@ -19,6 +19,7 @@ import LogService from "Common/Server/Services/LogService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
+import RumProductAnalyticsSessionService from "Common/Server/Services/RumProductAnalyticsSessionService";
 import RumSessionPinService from "Common/Server/Services/RumSessionPinService";
 import {
   afterAll,
@@ -515,6 +516,7 @@ integration(
         LogService,
         SpanService,
         ExceptionInstanceService,
+        RumProductAnalyticsSessionService,
       ]) {
         jest
           .spyOn(

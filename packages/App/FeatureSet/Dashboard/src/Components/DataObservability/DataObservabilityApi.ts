@@ -13,6 +13,8 @@ import {
   DATA_OBSERVABILITY_API_ROUTES,
   DataObservabilityBiSyncResponse,
   DataObservabilityCheckAlertResponse,
+  DataObservabilityCheckHealthRequest,
+  DataObservabilityCheckHealthResponse,
   DataObservabilityCheckSuggestion,
   DataObservabilityConnectStoreRequest,
   DataObservabilityConnectStoreResponse,
@@ -28,7 +30,9 @@ import {
   DataObservabilityStoreSummary,
   DataObservabilityWatchedTables,
   DataObservabilityTableDashboard,
+  MAX_CHECK_HEALTH_IDS,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { DataCheckHealthAnswer } from "Common/Types/DataObservability/DataObservabilityAttention";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -328,6 +332,38 @@ export default class DataObservabilityApi {
     return (Array.isArray(response["columns"])
       ? response["columns"]
       : []) as unknown as Array<DataColumnSensitivity>;
+  }
+
+  // How each of some checks stands now: by check id, the ones found.
+  public static async getCheckHealth(
+    dataCheckIds: Array<string>,
+  ): Promise<Map<string, DataCheckHealthAnswer>> {
+    const answers: Map<string, DataCheckHealthAnswer> = new Map();
+
+    for (
+      let start: number = 0;
+      start < dataCheckIds.length;
+      start += MAX_CHECK_HEALTH_IDS
+    ) {
+      const request: DataObservabilityCheckHealthRequest = {
+        dataCheckIds: dataCheckIds.slice(start, start + MAX_CHECK_HEALTH_IDS),
+      };
+      const body: JSONObject = await post(
+        DATA_OBSERVABILITY_API_ROUTES.checkHealth,
+        request as unknown as JSONObject,
+      );
+      const checks: unknown = body["checks"];
+
+      if (checks && typeof checks === "object" && !Array.isArray(checks)) {
+        for (const [id, answer] of Object.entries(
+          checks as DataObservabilityCheckHealthResponse["checks"],
+        )) {
+          answers.set(id, answer);
+        }
+      }
+    }
+
+    return answers;
   }
 
   public static async runCheckNow(dataCheckId: ObjectID): Promise<void> {
