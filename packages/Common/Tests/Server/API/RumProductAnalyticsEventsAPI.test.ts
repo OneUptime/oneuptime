@@ -46,6 +46,7 @@ import {
   PRODUCT_ANALYTICS_FUNNEL_ROUTE,
   PRODUCT_ANALYTICS_FUNNEL_WINDOWS_MS,
   PRODUCT_ANALYTICS_MAX_SEGMENT_FILTERS,
+  PRODUCT_ANALYTICS_RETENTION_MAX_COHORTS,
   PRODUCT_ANALYTICS_RETENTION_PERIODS,
   PRODUCT_ANALYTICS_RETENTION_ROUTE,
   ProductAnalyticsEventField,
@@ -1489,12 +1490,25 @@ describe("Product analytics event API", () => {
     });
 
     test("a range with more periods than the table holds is refused, and says what to do", async () => {
-      /* The periods read answers 32 days: one more than a day table holds. */
+      /*
+       * The periods read answers one day more than a day table holds: 32,
+       * so a month of 31 days and the part-day either side of it fit.
+       */
+      expect(
+        PRODUCT_ANALYTICS_RETENTION_MAX_COHORTS[
+          ProductAnalyticsRetentionPeriod.Day
+        ],
+      ).toBe(32);
+
       const days: Array<string> = [];
 
-      for (let index: number = 1; index <= 32; index++) {
-        days.push(`2026-03-${String(index).padStart(2, "0")}`);
+      for (let index: number = 0; index < 33; index++) {
+        days.push(
+          new Date(Date.UTC(2026, 2, 1 + index)).toISOString().slice(0, 10),
+        );
       }
+
+      expect(days[32]).toBe("2026-04-02");
 
       querySpy.mockResolvedValue(fakeResultSet([{ paPeriods: days }]) as never);
 

@@ -107,11 +107,12 @@ export class Service extends ProjectReferencesService<Model> {
   private canonicalizeProductAnalyticsUserPropertyKeys(
     data: Record<string, unknown>,
   ): void {
-    const value: unknown = data["productAnalyticsUserPropertyKeys"];
-
-    if (value === undefined) {
+    // A write that leaves the traits alone is not judged on them.
+    if (data["productAnalyticsUserPropertyKeys"] === undefined) {
       return;
     }
+
+    const value: unknown = data["productAnalyticsUserPropertyKeys"];
 
     if (value === null) {
       data["productAnalyticsUserPropertyKeys"] = [];

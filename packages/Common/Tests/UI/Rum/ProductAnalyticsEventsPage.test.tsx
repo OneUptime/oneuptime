@@ -332,6 +332,14 @@ async function waitForRows(
   return rowTexts(testId);
 }
 
+function headersOf(testId: string): Array<string> {
+  return within(screen.getByTestId(testId))
+    .getAllByRole("columnheader")
+    .map((header: HTMLElement): string => {
+      return header.textContent || "";
+    });
+}
+
 function selectRow(testId: string, label: string): void {
   const button: HTMLElement | undefined = screen
     .getAllByTestId(`${testId}-select`)
@@ -535,6 +543,16 @@ describe("ProductAnalyticsEvents: breakdown and segment", () => {
     expect(
       await waitForRows("product-analytics-event-breakdown-bars", 2),
     ).toEqual(["Desktop | 80 | 70 | 67%", "Mobile | 40 | 30 | 33%"]);
+    /*
+     * The share is titled Percent, as the Sessions breakdown titles it:
+     * the bare word Share is a button's in every other language.
+     */
+    expect(headersOf("product-analytics-event-breakdown-bars")).toEqual([
+      "Device type",
+      "Events",
+      "Users",
+      "Percent",
+    ]);
   });
 
   it("a value's row narrows the segment to it: every read again, the chip and the address", async () => {
@@ -679,6 +697,11 @@ describe("ProductAnalyticsEvents: all events", () => {
       "Viewed /pricing | 400 | 200",
       "Signed up | 120 | 100",
       "Search | 80 | 20",
+    ]);
+    expect(headersOf("product-analytics-event-list-bars")).toEqual([
+      "Event",
+      "Events",
+      "Users",
     ]);
     expect(
       screen

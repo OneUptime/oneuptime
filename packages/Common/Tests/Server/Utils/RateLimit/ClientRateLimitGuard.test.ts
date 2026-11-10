@@ -61,6 +61,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "session replay refusals per project and reason, for its health page",
   "packages/App/FeatureSet/Telemetry/Utils/SessionReplayRateLimiter.ts":
     "session replay chunks and bytes per project and application",
+  "packages/App/FeatureSet/Telemetry/Services/ProductAnalyticsEventIngestService.ts":
+    "product analytics events and metric points per project and minute",
   "packages/App/FeatureSet/Workers/Jobs/Rum/FinalizeSessions.ts":
     "the project a worker run starts from",
   "packages/Common/Server/Infrastructure/GlobalCache.ts":

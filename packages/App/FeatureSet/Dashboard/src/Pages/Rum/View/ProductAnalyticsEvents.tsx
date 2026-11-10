@@ -557,7 +557,11 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
                   state.breakdown,
                   translator,
                 )}
-                figureTitles={["Events", "Users", "Share"]}
+                figureTitles={[
+                  translationKey("Events"),
+                  translationKey("Users"),
+                  translationKey("Percent"),
+                ]}
                 onSelect={(value: string): void => {
                   setFilters(
                     addProductAnalyticsFilter(state.filters, {
@@ -622,8 +626,11 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
                   events: names.data.events,
                   translator: translator,
                 })}
-                labelTitle="Event"
-                figureTitles={["Events", "Users"]}
+                labelTitle={translationKey("Event")}
+                figureTitles={[
+                  translationKey("Events"),
+                  translationKey("Users"),
+                ]}
                 selectedKey={eventKey}
                 selectTemplate={OPEN_EVENT_TEMPLATE}
                 onSelect={(key: string): void => {

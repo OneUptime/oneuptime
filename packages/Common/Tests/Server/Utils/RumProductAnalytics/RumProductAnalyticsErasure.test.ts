@@ -1,5 +1,6 @@
 import {
   PRODUCT_ANALYTICS_ERASURE_IDS_PER_MUTATION,
+  PRODUCT_ANALYTICS_SESSION_ID_TABLES,
   ProductAnalyticsErasureFilter,
   buildProductAnalyticsDeleteStatement,
   buildProductAnalyticsErasureFilters,
@@ -15,9 +16,11 @@ import { describe, expect, test } from "@jest/globals";
  * What a session replay erasure request takes from product analytics
  * (issue #6444). The tables keep a session's summary for 13 months - longer
  * than most recordings - so these filters are how a subject the recordings
- * no longer name is still erased. Every one is pinned to the project, and
- * to the application when the request names one: a filter that lost either
- * would erase other people's rows.
+ * no longer name is still erased. Part two adds the events table, every
+ * session's events, recorded or not: it goes wherever the summaries go,
+ * and a user's events by key too. Every filter is pinned to the project,
+ * and to the application when the request names one: a filter that lost
+ * either would erase other people's rows.
  */
 
 const projectId: ObjectID = new ObjectID("6600000000000000000000a1");
@@ -35,6 +38,14 @@ function idsOf(count: number): Array<string> {
   });
 }
 
+function tablesOf(
+  filters: Array<ProductAnalyticsErasureFilter>,
+): Array<AnalyticsTableName> {
+  return filters.map((filter: ProductAnalyticsErasureFilter) => {
+    return filter.tableName;
+  });
+}
+
 function boundArrays(statement: Statement): Array<Array<string>> {
   return params(statement).filter((value: unknown): boolean => {
     return Array.isArray(value);
@@ -42,7 +53,7 @@ function boundArrays(statement: Statement): Array<Array<string>> {
 }
 
 describe("buildProductAnalyticsErasureFilters", () => {
-  test("a list of sessions is removed from the session table by id, in mutations of at most 1000", () => {
+  test("a list of sessions is removed from the summaries and the events by id, in mutations of at most 1000", () => {
     const ids: Array<string> = idsOf(2500);
 
     const filters: Array<ProductAnalyticsErasureFilter> =
@@ -53,12 +64,22 @@ describe("buildProductAnalyticsErasureFilters", () => {
       });
 
     expect(PRODUCT_ANALYTICS_ERASURE_IDS_PER_MUTATION).toBe(1000);
-    expect(filters).toHaveLength(3);
+    expect(PRODUCT_ANALYTICS_SESSION_ID_TABLES).toEqual([
+      AnalyticsTableName.RumProductAnalyticsSession,
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ]);
+
+    // Each chunk of ids, from the summaries and then from the events.
+    expect(tablesOf(filters)).toEqual([
+      AnalyticsTableName.RumProductAnalyticsSession,
+      AnalyticsTableName.RumProductAnalyticsEvent,
+      AnalyticsTableName.RumProductAnalyticsSession,
+      AnalyticsTableName.RumProductAnalyticsEvent,
+      AnalyticsTableName.RumProductAnalyticsSession,
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ]);
 
     for (const filter of filters) {
-      expect(filter.tableName).toBe(
-        AnalyticsTableName.RumProductAnalyticsSession,
-      );
       expect(filter.where.query).toContain("projectId = ");
       expect(filter.where.query).toContain("sessionId IN ");
       expect(filter.where.query).not.toContain("rumApplicationId");
@@ -69,12 +90,19 @@ describe("buildProductAnalyticsErasureFilters", () => {
       filters.map((filter: ProductAnalyticsErasureFilter): number => {
         return boundArrays(filter.where)[0]!.length;
       }),
-    ).toEqual([1000, 1000, 500]);
-    expect(
-      filters.flatMap((filter: ProductAnalyticsErasureFilter) => {
-        return boundArrays(filter.where)[0]!;
-      }),
-    ).toEqual(ids);
+    ).toEqual([1000, 1000, 1000, 1000, 500, 500]);
+
+    for (const tableName of PRODUCT_ANALYTICS_SESSION_ID_TABLES) {
+      expect(
+        filters
+          .filter((filter: ProductAnalyticsErasureFilter): boolean => {
+            return filter.tableName === tableName;
+          })
+          .flatMap((filter: ProductAnalyticsErasureFilter) => {
+            return boundArrays(filter.where)[0]!;
+          }),
+      ).toEqual(ids);
+    }
   });
 
   test("a list's duplicates and empty ids are dropped, and no ids means no delete", () => {
@@ -85,8 +113,14 @@ describe("buildProductAnalyticsErasureFilters", () => {
         sessionIds: ["s1", "", "s1", "s2"],
       });
 
-    expect(filters).toHaveLength(1);
-    expect(boundArrays(filters[0]!.where)).toEqual([["s1", "s2"]]);
+    expect(tablesOf(filters)).toEqual([
+      AnalyticsTableName.RumProductAnalyticsSession,
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ]);
+
+    for (const filter of filters) {
+      expect(boundArrays(filter.where)).toEqual([["s1", "s2"]]);
+    }
 
     expect(
       buildProductAnalyticsErasureFilters({
@@ -106,11 +140,15 @@ describe("buildProductAnalyticsErasureFilters", () => {
         sessionIds: ["s1"],
       });
 
-    expect(filters[0]!.where.query).toContain("AND rumApplicationId = ");
-    expect(params(filters[0]!.where)).toContain(applicationId.toString());
+    expect(filters).toHaveLength(2);
+
+    for (const filter of filters) {
+      expect(filter.where.query).toContain("AND rumApplicationId = ");
+      expect(params(filter.where)).toContain(applicationId.toString());
+    }
   });
 
-  test("a user: the sessions found for them by id, and their monthly rows by key", () => {
+  test("a user: the sessions found for them by id, their monthly rows by key, and every event that named them", () => {
     const filters: Array<ProductAnalyticsErasureFilter> =
       buildProductAnalyticsErasureFilters({
         projectId: projectId,
@@ -119,25 +157,35 @@ describe("buildProductAnalyticsErasureFilters", () => {
         sessionIds: ["s1", "s2"],
       });
 
-    expect(
-      filters.map((filter: ProductAnalyticsErasureFilter) => {
-        return filter.tableName;
-      }),
-    ).toEqual([
+    expect(tablesOf(filters)).toEqual([
       AnalyticsTableName.RumProductAnalyticsSession,
+      AnalyticsTableName.RumProductAnalyticsEvent,
       AnalyticsTableName.RumProductAnalyticsUser,
+      AnalyticsTableName.RumProductAnalyticsEvent,
     ]);
 
     expect(boundArrays(filters[0]!.where)).toEqual([["s1", "s2"]]);
+    expect(boundArrays(filters[1]!.where)).toEqual([["s1", "s2"]]);
 
-    const months: Statement = filters[1]!.where;
+    const months: Statement = filters[2]!.where;
 
     expect(months.query).toContain("personKey = ");
     expect(params(months)).toContain(`u:${userKey}`);
     expect(params(months)).toContain(projectId.toString());
+
+    /*
+     * The events by the key itself, trimmed: the sessions found by id are
+     * capped per run, this is not.
+     */
+    const events: Statement = filters[3]!.where;
+
+    expect(events.query).toContain("identifiedUserKey = ");
+    expect(events.query).not.toContain("sessionId");
+    expect(params(events)).toContain(userKey);
+    expect(params(events)).toContain(projectId.toString());
   });
 
-  test("a user with no sessions left still loses their monthly rows", () => {
+  test("a user with no sessions left still loses their monthly rows and their events", () => {
     const filters: Array<ProductAnalyticsErasureFilter> =
       buildProductAnalyticsErasureFilters({
         projectId: projectId,
@@ -146,12 +194,15 @@ describe("buildProductAnalyticsErasureFilters", () => {
         targetValue: userKey,
       });
 
-    expect(filters).toHaveLength(1);
-    expect(filters[0]!.tableName).toBe(
+    expect(tablesOf(filters)).toEqual([
       AnalyticsTableName.RumProductAnalyticsUser,
-    );
-    expect(filters[0]!.where.query).toContain("AND rumApplicationId = ");
-    expect(params(filters[0]!.where)).toContain(applicationId.toString());
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ]);
+
+    for (const filter of filters) {
+      expect(filter.where.query).toContain("AND rumApplicationId = ");
+      expect(params(filter.where)).toContain(applicationId.toString());
+    }
   });
 
   test("a user request without a key is refused, not run as every anonymous person", () => {
@@ -166,7 +217,7 @@ describe("buildProductAnalyticsErasureFilters", () => {
     }
   });
 
-  test("an application: every row of it, in both tables", () => {
+  test("an application: every row of it, in every table", () => {
     const filters: Array<ProductAnalyticsErasureFilter> =
       buildProductAnalyticsErasureFilters({
         projectId: projectId,
@@ -181,6 +232,7 @@ describe("buildProductAnalyticsErasureFilters", () => {
     ).toEqual([
       AnalyticsTableName.RumProductAnalyticsSession,
       AnalyticsTableName.RumProductAnalyticsUser,
+      AnalyticsTableName.RumProductAnalyticsEvent,
     ]);
 
     for (const filter of filters) {
@@ -209,7 +261,7 @@ describe("buildProductAnalyticsErasureFilters", () => {
     }).toThrow("no application id");
   });
 
-  test("a date range: the session table's sessions that started in it; the monthly rows stay", () => {
+  test("a date range: the sessions that started in it and the events that happened in it; the monthly rows stay", () => {
     const startDate: Date = new Date("2026-01-01T00:00:00.000Z");
     const endDate: Date = new Date("2026-01-31T23:59:59.000Z");
 
@@ -222,10 +274,10 @@ describe("buildProductAnalyticsErasureFilters", () => {
         endDate: endDate,
       });
 
-    expect(filters).toHaveLength(1);
-    expect(filters[0]!.tableName).toBe(
+    expect(tablesOf(filters)).toEqual([
       AnalyticsTableName.RumProductAnalyticsSession,
-    );
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ]);
 
     const where: Statement = filters[0]!.where;
 
@@ -234,6 +286,17 @@ describe("buildProductAnalyticsErasureFilters", () => {
     expect(where.query).toContain("AND rumApplicationId = ");
     expect(params(where)).toContain(applicationId.toString());
     expect(where.query).not.toContain("personKey");
+
+    const events: Statement = filters[1]!.where;
+
+    expect(events.query).toContain("time >= ");
+    expect(events.query).toContain("time <= ");
+    expect(events.query).not.toContain("startTime");
+    expect(events.query).toContain("AND rumApplicationId = ");
+    expect(params(events)).toContain(applicationId.toString());
+    // Both ends bound, to the nanosecond the time column holds.
+    expect(params(events)).toContain("2026-01-01 00:00:00.000000000");
+    expect(params(events)).toContain("2026-01-31 23:59:59.000000000");
   });
 
   test("a date range without both ends is refused", () => {
@@ -307,6 +370,27 @@ describe("buildProductAnalyticsUserSessionLookup", () => {
     expect(params(statement)).toContain(applicationId.toString());
   });
 
+  test("reads the events instead when asked: they hold the sessions no recording kept", () => {
+    const statement: Statement = buildProductAnalyticsUserSessionLookup({
+      databaseName: databaseName,
+      projectId: projectId,
+      identifiedUserKey: userKey,
+      limit: 10000,
+      tableName: AnalyticsTableName.RumProductAnalyticsEvent,
+    });
+
+    expect(statement.query).toContain(
+      "SELECT DISTINCT sessionId AS paSessionId",
+    );
+    expect(params(statement)).toContain(
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    );
+    expect(params(statement)).not.toContain(
+      AnalyticsTableName.RumProductAnalyticsSession,
+    );
+    expect(params(statement)).toContain(userKey);
+  });
+
   test("an empty key is refused: it is every session in which nobody signed in", () => {
     for (const identifiedUserKey of ["", "  "]) {
       expect(() => {
@@ -326,6 +410,7 @@ describe("buildProductAnalyticsDeleteStatement", () => {
     for (const tableName of [
       AnalyticsTableName.RumProductAnalyticsSession,
       AnalyticsTableName.RumProductAnalyticsUser,
+      AnalyticsTableName.RumProductAnalyticsEvent,
     ]) {
       const filters: Array<ProductAnalyticsErasureFilter> =
         buildProductAnalyticsErasureFilters({

@@ -457,7 +457,9 @@ for (const analyzer of [1, 0]) {
           request_timeout: 60000,
           clickhouse_settings: {
             enable_analyzer: analyzer === 1 ? 1 : 0,
-          } as unknown as ClickHouseClientConfigOptions["clickhouse_settings"],
+          } as unknown as NonNullable<
+            ClickHouseClientConfigOptions["clickhouse_settings"]
+          >,
         };
 
         clickhouse = new ClickhouseDatabase(options);
