@@ -6,6 +6,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+/*
+ * The spy type of the jest imported above; the global jest.SpiedFunction
+ * does not accept what its jest.spyOn() returns.
+ */
+import type { SpyInstance } from "jest-mock";
 import { FindOperator } from "typeorm";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import DataAlert from "../../../../Models/DatabaseModels/DataAlert";
@@ -1003,7 +1008,7 @@ describe("a private alert is its owners' and the project's owners' and admins'",
 });
 
 // What the reader logs, kept out of the test's output.
-function quietLogger(): jest.SpiedFunction<typeof logger.error> {
+function quietLogger(): SpyInstance<typeof logger.error> {
   return jest.spyOn(logger, "error").mockImplementation((): void => {
     return;
   });
@@ -1011,7 +1016,7 @@ function quietLogger(): jest.SpiedFunction<typeof logger.error> {
 
 describe("one source that cannot be read leaves the rest", () => {
   test("the reconciliations failing to read: every other item still told, and the failure logged", async () => {
-    const logged: jest.SpiedFunction<typeof logger.error> = quietLogger();
+    const logged: SpyInstance<typeof logger.error> = quietLogger();
 
     jest
       .spyOn(DataReconciliationService, "findBy")
@@ -1228,7 +1233,7 @@ describe("whether anyone owns the tables", () => {
   });
 
   test("a count that fails counts none, and the others still count", async () => {
-    const logged: jest.SpiedFunction<typeof logger.error> = quietLogger();
+    const logged: SpyInstance<typeof logger.error> = quietLogger();
 
     jest
       .spyOn(DataAssetOwnerUserService, "countBy")
