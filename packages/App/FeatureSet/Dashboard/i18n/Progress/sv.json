@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48180,
-    "untranslated": 11060
+    "keys": 48847,
+    "untranslated": 10774
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -202,6 +202,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Precision",
+    "Presentation",
     "Problem",
     "Process",
     "Prompt",
@@ -240,6 +241,7 @@
     "Server",
     "Service Mesh",
     "Session",
+    "Session {{id}}",
     "Shares",
     "Signal",
     "Singapore (+65)",
@@ -327,6 +329,7 @@
     "ip",
     "kubectl set image deployment/web * -n web",
     "libvirt",
+    "live",
     "main",
     "max",
     "median",
@@ -336,6 +339,7 @@
     "monitor",
     "ms",
     "name",
+    "neutral",
     "nova-compute",
     "ns",
     "null",
@@ -389,6 +393,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} CPU",
@@ -408,6 +413,7 @@
     "{{count}} hunts",
     "{{count}} hypervisor",
     "{{count}} incident",
+    "{{count}} live",
     "{{count}} manager",
     "{{count}} managers",
     "{{count}} mon",
@@ -436,6 +442,7 @@
     "{{minutes}} min",
     "{{percent}} full",
     "{{size}} disk",
-    "{{tokens}} tokens"
+    "{{tokens}} tokens",
+    "{{value}} ms"
   ]
 }

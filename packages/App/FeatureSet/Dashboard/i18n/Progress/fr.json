@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48847,
-    "untranslated": 6286
+    "untranslated": 6218
   },
   "sameAsEnglish": [
     " incidents",
@@ -698,6 +698,8 @@
     "{{count}} exception",
     "{{count}} exceptions",
     "{{count}} flow",
+    "{{count}} frustration",
+    "{{count}} image",
     "{{count}} images",
     "{{count}} incident",
     "{{count}} incidents",
@@ -724,13 +726,16 @@
     "{{count}} s",
     "{{count}} service",
     "{{count}} services",
+    "{{count}} session",
     "{{count}} sessions",
+    "{{count}} signal",
     "{{count}} source",
     "{{count}} sources",
     "{{count}} span",
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{count}} trace",
     "{{count}} traces",
     "{{count}} vCPU",
     "{{count}} volume",

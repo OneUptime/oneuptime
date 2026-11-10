@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48847,
-    "untranslated": 10801
+    "untranslated": 10734
   },
   "sameAsEnglish": [
     " is",
@@ -741,11 +741,13 @@
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{count}} stylesheet",
     "{{count}} stylesheets",
     "{{count}} team",
     "{{count}} teams",
     "{{count}} token",
     "{{count}} tokens",
+    "{{count}} trace",
     "{{count}} traces",
     "{{count}} trigger",
     "{{count}} triggers",

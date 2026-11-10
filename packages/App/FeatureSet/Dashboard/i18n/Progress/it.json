@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48847,
-    "untranslated": 10776
+    "untranslated": 10708
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -473,6 +473,7 @@
     "{{count}} host",
     "{{count}} hypervisor",
     "{{count}} load balancer",
+    "{{count}} log",
     "{{count}} manager",
     "{{count}} mon",
     "{{count}} placement group",

@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48847,
-    "untranslated": 10778
+    "untranslated": 10711
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -519,6 +519,7 @@
     "{{count}} floating IP",
     "{{count}} flow",
     "{{count}} flows",
+    "{{count}} frustration",
     "{{count}} hunt",
     "{{count}} hunts",
     "{{count}} hypervisor",
@@ -545,12 +546,15 @@
     "{{count}} s",
     "{{count}} sample",
     "{{count}} samples",
+    "{{count}} session",
     "{{count}} share",
     "{{count}} shares",
+    "{{count}} signal",
     "{{count}} span",
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{count}} stylesheet",
     "{{count}} stylesheets",
     "{{count}} team",
     "{{count}} teams",
