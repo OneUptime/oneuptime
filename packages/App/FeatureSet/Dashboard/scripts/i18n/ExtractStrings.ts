@@ -313,6 +313,18 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Session Replay's recording health: why recordings are missing - each
+   * reason's label, what it means and the button that fixes it - and the
+   * ages, durations and counts its copy writes ("5m ago", "7h"), which the
+   * Recording health page and card, the setup guide and the replay settings
+   * say in the reader's language. Only the words the file marks are read:
+   * its reason codes and field names stay as written.
+   */
+  {
+    directory: "packages/Common/Utils/Rum/SessionReplayHealth.ts",
+    kind: "keys",
+  },
+  /*
    * A serverless function's status - Receiving data, No recent
    * invocations, Waiting for data - and a service's - Receiving data, No
    * recent data, Waiting for data - and what each means: the Serverless
