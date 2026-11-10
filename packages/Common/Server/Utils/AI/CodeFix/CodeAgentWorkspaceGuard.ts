@@ -155,8 +155,9 @@ export default class CodeAgentWorkspaceGuard {
             `Refused: \`git ${subcommand}\` is not available to you. The surrounding ` +
             `pipeline owns this repository's git state — it created the branch, and it ` +
             `stages, commits and pushes your changes once you are done. Running git ` +
-            `yourself would hide your work from it. Edit files with write_file and ` +
-            `leave git alone; read-only git (status, diff, log, show, grep) is allowed.`,
+            `yourself would hide your work from it. Change files with edit_file, ` +
+            `write_file, delete_file and move_file and leave git alone; read-only git ` +
+            `(status, diff, log, show, grep) is allowed.`,
         };
       }
     }

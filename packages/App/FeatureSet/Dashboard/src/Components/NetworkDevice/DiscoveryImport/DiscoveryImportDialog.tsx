@@ -6,14 +6,12 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DEFAULT_DISCOVERY_IMPORT_SETTINGS,
-  DiscoveryImportAlerting,
   DiscoveryImportHostResult,
   DiscoveryImportSettings,
   DiscoveryImportView,
   MAX_HOSTS_PER_DISCOVERY_IMPORT,
   isDiscoveryImportActive,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
-import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { DiscoveryScanStatus } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
@@ -28,7 +26,6 @@ import Modal, {
 } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import { scrollToTopOfScroller } from "Common/UI/Utils/ScrollToTopOfScroller";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -48,7 +45,6 @@ import {
   isSelectableDiscoveredHost,
 } from "../DiscoveredHostFilter";
 import DiscoveryScanStatusMessage from "../DiscoveryScanStatusMessage";
-import { findOrCreateRecommendedTemplate } from "../RecommendedMonitorTemplate";
 import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import DiscoveredHostTable from "./DiscoveredHostTable";
 import {
@@ -59,9 +55,9 @@ import {
   stopDiscoveryImport,
 } from "./DiscoveryImportApi";
 import DiscoveryImportMonitoringStep from "./DiscoveryImportMonitoringStep";
+import { resolveImportMonitorTemplateId } from "./DiscoveryImportTemplateId";
 import {
   DiscoveryImportTemplateChoice,
-  RECOMMENDED_TEMPLATE_CHOICE_VALUE,
   getDiscoveryImportBlocker,
 } from "./DiscoveryImportOutcome";
 import {
@@ -601,37 +597,12 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     setActionError("");
 
     try {
-      let monitorTemplateId: string | undefined = undefined;
-
-      if (settings.alerting === DiscoveryImportAlerting.MonitorTemplate) {
-        if (!pickedTemplate) {
-          throw new BadDataException(
-            "Pick the monitor template each device is monitored with.",
-          );
-        }
-
-        monitorTemplateId = pickedTemplate.id;
-
-        if (
-          !monitorTemplateId &&
-          settings.monitorTemplateId === RECOMMENDED_TEMPLATE_CHOICE_VALUE
-        ) {
-          const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-          if (!projectId || !facts?.seedIds) {
-            throw new BadDataException(
-              "The recommended template could not be created for this project. Pick another template.",
-            );
-          }
-
-          monitorTemplateId = (
-            await findOrCreateRecommendedTemplate({
-              projectId: projectId,
-              seedIds: facts.seedIds,
-            })
-          ).toString();
-        }
-      }
+      const monitorTemplateId: string | undefined =
+        await resolveImportMonitorTemplateId({
+          settings: settings,
+          pickedTemplate: pickedTemplate,
+          seedIds: facts?.seedIds,
+        });
 
       const started: DiscoveryImportView = await startDiscoveryImport({
         scanId: scanId,

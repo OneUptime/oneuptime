@@ -109,6 +109,11 @@ export default class CodeFixClaimQuery {
       `"run"."status" = $2`,
       `"run"."deletedAt" IS NULL`,
       `("run"."codeFixTaskType" IS NULL OR "run"."codeFixTaskType" = ANY($3::text[]))`,
+      /*
+       * Never a turn queued again by itself before its short wait is over
+       * (CodeFixAutoRetry): it would only fail the same way again.
+       */
+      `("run"."nextAttemptAt" IS NULL OR "run"."nextAttemptAt" <= now())`,
     ];
 
     const addParameter: (value: unknown) => string = (

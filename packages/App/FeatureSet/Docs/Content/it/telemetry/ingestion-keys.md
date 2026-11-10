@@ -26,6 +26,7 @@ flowchart TB
 
 - **La chiave decide il progetto.** Non inviate mai un ID di progetto: i dati inviati con una chiave finiscono nel progetto a cui la chiave appartiene.
 - **Le modifiche raggiungono ogni server entro un minuto.** Disattivare una chiave, reimpostarne il segreto o cambiarne le origini, la scadenza o il limite ha effetto entro un minuto circa.
+- **Una chiave può avere budget propri.** Un budget giornaliero e un limite di frequenza al secondo per ogni segnale, entro quelli del suo progetto: vedete [Budget di acquisizione](/docs/telemetry/ingestion-budgets).
 - **Una chiave Server è una password.** Chiunque la possieda può inviare telemetria nel vostro progetto. Conservatela tra i segreti dei vostri server, mai nel controllo di versione né in una pagina web.
 
 ## Server o Browser
@@ -121,6 +122,8 @@ Per cambiare un segreto senza perdere dati, create una seconda chiave, spostate 
 
 Una richiesta rifiutata riceve uno stato e una frase che dice il perché.
 
+Anche la pagina della chiave tiene il conto: **Telemetria rifiutata** elenca ciò che è stato rifiutato dalla chiave negli ultimi 30 giorni, perché, su quale endpoint, quante richieste e quando. Una chiave mancante o digitata male non appartiene a nessun progetto, quindi nulla la conta.
+
 | Risposta | Che cosa significa |
 | --- | --- |
 | `401` con `Missing ingestion token` | La richiesta non ha una chiave. Inviatela in `x-oneuptime-token`. |
@@ -155,4 +158,5 @@ Nulla ha inviato dati con questa chiave da quando OneUptime ha iniziato a regist
 - [Catalogo servizi](/docs/telemetry/services): Vedete i servizi sotto cui è archiviata la vostra telemetria.
 - [Conservazione dei dati](/docs/telemetry/data-retention): Decidete per quanto tempo vengono conservati i dati.
 - [Filtri di scarto e regole di mascheramento](/docs/telemetry/drop-filters-and-scrub-rules): Scartate o mascherate i dati prima che vengano salvati.
+- [Budget di acquisizione](/docs/telemetry/ingestion-budgets): Limitate quanto può inviare ogni chiave in un giorno.
 :::

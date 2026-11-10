@@ -153,6 +153,19 @@ export const SESSION_REPLAY_FILTER_FIELDS: Array<SessionReplayFilterField> = [
     kind: SessionReplayFilterKind.Number,
     type: FieldType.Number,
   },
+  {
+    /*
+     * One of the application's own signals (issue #6443), by the name it
+     * has on the Frustration Signals page. has(customSignalNames, value)
+     * on the server: exact, case included.
+     */
+    field: "customSignalName",
+    title: "Signal of your own",
+    placeholder: "Payment failed",
+    kind: SessionReplayFilterKind.Text,
+    type: FieldType.Text,
+    hint: "The name of one of your own signals, exactly as it is on the Frustration Signals page.",
+  },
 ];
 
 export interface SessionReplayFilterChip {

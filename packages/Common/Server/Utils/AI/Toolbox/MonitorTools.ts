@@ -24,6 +24,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import NotOperationalMonitorQuery from "../../../../Utils/Monitor/NotOperationalMonitorQuery";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -53,7 +54,7 @@ const resolveReadPermissions: () => Array<Permission> =
 export const QueryMonitorsTool: ObservabilityTool = {
   name: "query_monitors",
   description:
-    "List monitors in this project with their current status (name and color). Archived monitors are left out of the list - they are not monitored; pass monitorId to read one. To answer 'which monitors are down / not operational right now?' pass problemsOnly=true — it returns only monitors whose current status is not an operational state. To list monitors in one specific status (e.g. 'Degraded' or 'Offline'), pass monitorStatusName (case-insensitive). Returned monitors are ordered problems-first (worst status first, then name); the result reports the total match count — pass skip to page through more. Pass monitorId to get one monitor's details, its owners (teams and users) and its recent status timeline (when it went up or down).",
+    "List monitors in this project with their current status (name and color). Archived monitors are left out of the list - they are not monitored; pass monitorId to read one. To answer 'which monitors are down / not operational right now?' pass problemsOnly=true — it returns only monitors whose current status is not an operational state, leaving out monitors whose monitoring is turned off (nothing checks them, so their status is stale). To list monitors in one specific status (e.g. 'Degraded' or 'Offline'), pass monitorStatusName (case-insensitive). Returned monitors are ordered problems-first (worst status first, then name); the result reports the total match count — pass skip to page through more. Pass monitorId to get one monitor's details, its owners (teams and users) and its recent status timeline (when it went up or down).",
   inputSchema: {
     type: "object",
     properties: {
@@ -74,7 +75,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
       problemsOnly: {
         type: "boolean",
         description:
-          "true = only monitors whose current status is NOT an operational state (i.e. degraded/offline/any custom problem status). Use this to answer 'what is down right now?'.",
+          "true = only monitors whose current status is NOT an operational state (i.e. degraded/offline/any custom problem status), among those whose monitoring is on. Use this to answer 'what is down right now?'.",
       },
       limit: {
         type: "number",
@@ -309,10 +310,12 @@ export const QueryMonitorsTool: ObservabilityTool = {
     /*
      * "Not operational" is matched through the MonitorStatus flag rather than
      * status names, so custom problem statuses ("Maintenance", "Partial
-     * outage", …) are still caught.
+     * outage", …) are still caught. A monitor with monitoring turned off is
+     * left out, as on the Not Operational list: nothing checks it, so its
+     * status is stale too (NotOperationalMonitorQuery).
      */
     if (problemsOnly) {
-      query.currentMonitorStatus = { isOperationalState: false };
+      Object.assign(query, NotOperationalMonitorQuery.getQuery());
     }
 
     if (monitorStatusName) {

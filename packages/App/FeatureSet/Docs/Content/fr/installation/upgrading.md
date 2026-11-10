@@ -435,6 +435,14 @@ Pour garder les anciennes limites, définissez-les vous-même : **Gravité minim
 
 Les pages IA ont aussi changé dans les menus latéraux Incidents et Alertes. La section **IA** de chaque menu, juste après **Épisodes** et repliée tant que vous ne l'ouvrez pas, contient tout ce que OneUptime AI fait pour ce type de signal : **Analyses** et **Journaux**, qui sont nouvelles, puis **Paramètres**, la page qui s'appelait **Investigation**, et **Règles de remédiation automatique**, la page qui s'appelait **Remédiation**. Leurs adresses sont passées de `…/settings/ai` et `…/settings/auto-remediation-rules` à `…/ai/settings` et `…/ai/auto-remediation-rules`. Les anciennes adresses ouvrent les nouvelles pages, donc les favoris continuent de fonctionner.
 
+### Les exécutions de l'IA n'ont plus qu'une limite de temps
+
+Une exécution de OneUptime AI s'arrêtait auparavant à des nombres fixes, comme 100 appels au modèle et 300 appels d'outils pour une investigation, et 40 appels au modèle et 100 000 jetons de sortie pour une tâche de code. Ils ont disparu : une exécution fait désormais autant d'appels que son travail l'exige, pendant 120 minutes au plus. Une investigation sans limite de temps définie, qui n'en avait aucune auparavant, s'arrête désormais elle aussi à 120 minutes. La détection des boucles arrête toujours une investigation ou une réponse qui tourne en rond, et vous pouvez arrêter n'importe quelle exécution.
+
+Pour un projet existant, une question difficile peut désormais demander plus d'appels qu'avant, et donc plus de jetons et, sur OneUptime Cloud, plus de crédits IA ; les limites quotidiennes du projet plafonnent toujours la journée. Pour limiter davantage chaque exécution, fixez **Appels au modèle par exécution**, **Appels d'outils par exécution**, **Jetons par exécution** ou **Limite de temps par exécution (minutes)** dans **Paramètres du projet → IA → Fonctionnalités IA**, sous **Plus de paramètres**. Une exécution qui en atteint une répond avec ce qu'elle a trouvé et indique quelle limite l'a arrêtée. Rien n'est migré : aucun projet n'avait ces réglages auparavant.
+
+Un Runner antérieur à cette version arrête toujours une tâche de code à 40 appels au modèle et 100 000 jetons de sortie ; mettez-le à jour pour les lever.
+
 ### Les AI Logs reçoivent un index pour les limites quotidiennes de l'IA
 
 Les limites quotidiennes de l'IA d'un projet (**Paramètres du projet → IA → Fonctionnalités IA → Plus de paramètres**) et les limites quotidiennes de jetons des incidents et des alertes additionnent les AI Logs du jour avant chaque appel à l'IA. Jusqu'ici, cela lisait chaque AI Log que le projet avait jamais écrit, et une installation auto-hébergée les garde tous. La mise à niveau ajoute un index sur les AI Logs (`LlmLog`), sur le projet et l'heure de chaque appel, si bien que chaque vérification ne lit que ceux du jour. La page des AI Logs liste aussi plus vite les journaux d'un projet.

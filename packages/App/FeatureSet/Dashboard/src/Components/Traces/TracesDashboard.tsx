@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import React, {
   Fragment,
   FunctionComponent,
@@ -107,7 +108,7 @@ const formatFixed: (
   digits: number,
   translator: Translator,
 ): string => {
-  return value.toLocaleString(translator.language, {
+  return value.toLocaleString(getNumberLocale(translator.language), {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
     useGrouping: false,

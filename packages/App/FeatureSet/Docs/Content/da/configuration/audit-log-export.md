@@ -118,13 +118,17 @@ OneUptime sender hver batch med POST til **URL**, som et JSON-array (`applicatio
 
 ### Syslog
 
-Hver post er én RFC 5424-meddelelse til **Vært** og **Port**, over TLS på port `6514`, medmindre **Protokol** angiver TCP, med facility 13 (log audit) og severity 6 (informational):
+Hver post er én RFC 5424-meddelelse til **Vært** og **Port**, over TLS på port `6514`, medmindre **Protokol** angiver TCP eller UDP, med facility 13 (log audit) og severity 6 (informational):
 
 ```text
 <110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Meddelelser adskilles med oktettælling (RFC 5425), medmindre **Meddelelsesadskillelse** angiver én meddelelse pr. linje. En modtager, hvis certifikat en privat CA har signeret, skal have den CA's certifikat i **CA-certifikat**. Begge venter under **Flere felter**.
+Over TLS og TCP adskilles meddelelser med oktettælling (RFC 5425), medmindre **Meddelelsesadskillelse** angiver én meddelelse pr. linje. En modtager, hvis certifikat en privat CA har signeret, skal have den CA's certifikat i **CA-certifikat**. Begge venter under **Flere felter**.
+
+Over UDP starter **Port** på `514`, og hver meddelelse er sit eget datagram (RFC 5426), så ingen adskilles. UDP sender auditloggen som almindelig tekst, og intet bekræfter, at en meddelelse er kommet frem: når modtagerens vært svarer, at dens port er lukket, mislykkes batchen og forsøges igen, men en meddelelse, der går tabt undervejs, sendes ikke igen. Tjek efter en test over UDP, at testposten er kommet frem. Når hver post skal frem, så vælg TLS eller TCP.
+
+Over UDP er en meddelelse højst **Maksimal meddelelsesstørrelse** bytes: `8192`, medmindre du ændrer den under **Flere felter**, fra `1024` til `65507`. En længere post forkortes, så den passer, og forbliver ét JSON-objekt: først afkortes dens værdier, som auditloggen afkorter dem, fx `[… 1,234 more characters]` eller `[12.3 KB of JSON]`, derefter tælles de ændringer, der stadig ikke passer, i én, fx `[… 12 more changes]`.
 
 ## Hvad der sendes
 
@@ -188,7 +192,7 @@ Et projekts eksport i OneUptime Cloud kan ikke nå en privat netværksadresse. N
 :::
 
 :::details Intet kommer frem
-Tjek, at auditlogning er slået til i projektet, og at nogen har ændret noget, efter eksporten blev gemt. Et lager modtager først en fil, når en batch er fuld eller fem minutter gammel.
+Tjek, at auditlogning er slået til i projektet, og at nogen har ændret noget, efter eksporten blev gemt. Et lager modtager først en fil, når en batch er fuld eller fem minutter gammel. Over UDP smider en firewall meddelelser væk uden at sige det: tjek, at UDP må nå modtagerens port.
 :::
 
 ## Næste skridt

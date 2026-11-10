@@ -181,7 +181,7 @@ export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
     "Network sites in the project. Unhealthy sites are those whose health, rolled up from the devices at and beneath them, is non-operational, such as Degraded or Offline; sites with no data yet are not counted as unhealthy.",
   ),
   fleetEndpoints: translationKey(
-    "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host found so far is counted, including ones not seen recently.",
+    "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host still on the Discovered Devices list is counted, including ones not seen recently.",
   ),
   fleetByVendor: translationKey(
     "Device counts for your six most common vendors, as each device reported over SNMP. Devices with no vendor yet, such as ping-only ones, are grouped as Unknown, and each bar is relative to the largest vendor.",

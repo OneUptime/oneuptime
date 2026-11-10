@@ -3,8 +3,13 @@ import {
   SESSION_REPLAY_FLUSH_BYTES,
   SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES,
   SessionReplayFidelityNotice,
+  SessionReplayNumericSignalKey,
   SessionReplaySignalCounts,
 } from "Common/Types/Rum/SessionReplay";
+import {
+  SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
+  SessionReplayCustomSignalCount,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import { BufferedEvent } from "./RollingBuffer";
 
 /*
@@ -966,16 +971,48 @@ export default class Chunker {
     return this.closedChunkCount >= MAX_SESSION_REPLAY_CHUNKS_PER_SESSION;
   }
 
-  public countSignal(
-    key: keyof SessionReplaySignalCounts,
-    by: number = 1,
-  ): void {
+  public countSignal(key: SessionReplayNumericSignalKey, by: number = 1): void {
     /*
      * The engagement counters are optional on the wire type, so a missing
      * one reads as undefined; every counter this class emits starts at 0
      * (emptySignals), but the arithmetic must not depend on that.
      */
     this.signals[key] = (this.signals[key] || 0) + by;
+  }
+
+  /*
+   * One of the application's own signals happened in this chunk. Counted per
+   * name, and per name how many counted as frustration, on the envelope like
+   * every other counter, so the finalizer can add them up without decoding a
+   * payload. A page has at most SESSION_REPLAY_MAX_CUSTOM_SIGNALS of them, so
+   * a chunk never lists more.
+   */
+  public countCustomSignal(name: string, isFrustration: boolean): void {
+    const counts: Array<SessionReplayCustomSignalCount> =
+      this.signals.customSignals || [];
+
+    let entry: SessionReplayCustomSignalCount | undefined = counts.find(
+      (candidate: SessionReplayCustomSignalCount): boolean => {
+        return candidate.name === name;
+      },
+    );
+
+    if (!entry) {
+      if (counts.length >= SESSION_REPLAY_MAX_CUSTOM_SIGNALS) {
+        return;
+      }
+
+      entry = { name: name, count: 0, frustrationCount: 0 };
+      counts.push(entry);
+    }
+
+    entry.count++;
+
+    if (isFrustration) {
+      entry.frustrationCount++;
+    }
+
+    this.signals.customSignals = counts;
   }
 
   public addFidelityNotice(notice: SessionReplayFidelityNotice | string): void {

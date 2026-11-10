@@ -1124,9 +1124,9 @@ test.describe("Metrics → AI → a finding", () => {
 
     // A finding with its pull request on its way offers no second way.
     await page.goto(`${AI}/insights/${BUCKETS_INSIGHT}`);
-    await expect(
-      page.getByText("View the fix task and pull request"),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByTestId("ai-insight-fix-view-task")).toBeVisible({
+      timeout: 60000,
+    });
     await expect(page.getByTestId("span-metrics-step")).toHaveCount(0);
   });
 
@@ -1273,9 +1273,9 @@ test.describe("Metrics → AI → a finding", () => {
   }, testInfo: TestInfo) => {
     await page.goto(`${AI}/insights/${BUCKETS_INSIGHT}`);
 
-    await expect(
-      page.getByText("View the fix task and pull request"),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByTestId("ai-insight-fix-view-task")).toBeVisible({
+      timeout: 60000,
+    });
     await expect(page.getByTestId("telemetry-ai-fix")).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Create Monitor" }),

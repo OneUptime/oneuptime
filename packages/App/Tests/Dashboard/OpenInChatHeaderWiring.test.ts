@@ -277,8 +277,8 @@ describe("Open in Mattermost in every Dashboard language", () => {
     })
     .sort();
 
-  test("there are seventeen", () => {
-    expect(LOCALES).toHaveLength(17);
+  test("there are eighteen", () => {
+    expect(LOCALES).toHaveLength(18);
   });
 
   test.each(LOCALES)(

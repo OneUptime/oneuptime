@@ -7,6 +7,7 @@ OneUptime når dig på to måder. Den tilkalder dig, når en hændelse eller en 
 - [Hvor du finder dem](#hvor-du-finder-dem): Siderne i brugerindstillingerne, sektion for sektion.
 - [Det starter du med](#det-starter-du-med): De metoder, regler og indstillinger, et nyt medlem får.
 - [Når ingen regel passer](#når-ingen-regel-passer): Hvordan et tilkald alligevel når dig, og hvem der får besked.
+- [Sproget i dine tilkald](#sproget-i-dine-tilkald): Tilkald på det sprog, du har valgt, og hvad der forbliver på engelsk.
 :::
 
 ## Sådan virker det
@@ -96,6 +97,18 @@ Et tilkald kan nå dig for en slags og en alvorlighed, du ikke har en regel for:
 
 Du får en e-mail om det, og det gør vagtpolitikkens ejere også, eller projektets ejere, hvis politikken ingen har. Er intet bekræftet, kan tilkaldet ikke leveres, og e-mailen siger det i stedet. Disse e-mails holdes tilbage, mens tilkaldene bliver ved med at komme, så en storm af tilkald ikke bliver en storm af e-mails. Hvordan du tilføjer den manglende regel, står under [Personlige vagtregler](/docs/notifications/on-call-rules#når-en-alvorlighed-ingen-regel-har).
 
+## Sproget i dine tilkald
+
+Dine tilkald skrives på dit sprog: det, du vælger i sprogmenuen nederst på hver side, eller under **Sprog** på **Brugerprofil**. Indtil du vælger et, er de på engelsk.
+
+| Kanal | Sprog |
+| --- | --- |
+| E-mail, sms, pushnotifikationer og Telegram | Dit sprog |
+| Dine egne beskeder i Slack, Microsoft Teams og Mattermost | Dit sprog |
+| Telefonopkald og WhatsApp | Engelsk |
+
+Det, der ændres, er OneUptimes egne ord: emnelinjer, overskrifter, knapper og sætninger samt de navne, hvert nyt projekt starter med, som Identificeret og Kritisk hændelse. Det, dit team har skrevet, står, som det blev skrevet: titler, beskrivelser, grundårsager og navnene på projekter, teams og statusser, dit projekt selv har navngivet. En sms på et sprog med sin egen skrift, som russisk, japansk eller persisk, fylder flere dele end en på engelsk.
+
 ## Fejlfinding
 
 :::details Jeg havde vagt, men intet nåede mig
@@ -104,6 +117,10 @@ Du får en e-mail om det, og det gør vagtpolitikkens ejere også, eller projekt
 
 :::details Jeg får e-mails om ting, jeg aldrig har bedt om
 Du ejer tingen, direkte eller gennem et team, eller tingen har ingen ejere, og du er projektejer. Slå begivenheden fra under **Brugerindstillinger → Notifikationsindstillinger**, eller skru ned for mængden under **Brugerindstillinger → E-mailindstillinger**.
+:::
+
+:::details Mine tilkald er på engelsk, selvom dashboardet ikke er
+Dashboardet følger din browser, indtil du vælger et sprog. Vælg det i sprogmenuen nederst på hver side eller under **Sprog** på **Brugerprofil**. Telefonopkald og WhatsApp-beskeder forbliver på engelsk.
 :::
 
 :::details Jeg har tilføjet et telefonnummer, men det er ikke i mine regler

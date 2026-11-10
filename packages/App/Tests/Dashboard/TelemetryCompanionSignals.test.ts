@@ -1244,3 +1244,29 @@ describe("page and card wiring", () => {
     );
   });
 });
+
+/*
+ * The telemetry ingestion budget series (issue #5917) are keyed to the
+ * project, not to any service an incident is about, so they never chart as
+ * an incident's companions either.
+ */
+describe("excludeReservedCompanionMetricNames and the ingestion budget series", () => {
+  test("drops every ingestion budget series, in any case or padding, and keeps the rest in order", () => {
+    expect(
+      excludeReservedCompanionMetricNames([
+        "web_vital.lcp",
+        "oneuptime.telemetry.budget.used.bytes",
+        " OneUptime.Telemetry.Budget.Used.Percent ",
+        "oneuptime.telemetry.budget.dropped.bytes",
+        "oneuptime.telemetry.budget.throttled.requests",
+        "http.server.duration",
+      ]),
+    ).toEqual(["web_vital.lcp", "http.server.duration"]);
+  });
+
+  test("keeps a near miss", () => {
+    expect(
+      excludeReservedCompanionMetricNames(["oneuptime.telemetry.budgets"]),
+    ).toEqual(["oneuptime.telemetry.budgets"]);
+  });
+});

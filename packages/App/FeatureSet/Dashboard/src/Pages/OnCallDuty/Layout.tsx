@@ -8,6 +8,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const PageTitleMap: Dictionary<string> = {
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_POLICIES)]:
@@ -32,6 +34,7 @@ const OnCallDutyLayout: FunctionComponent<
   return (
     <Page
       title={PageTitleMap[lastPath]}
+      titleRight={<ProductAboutButton product={ProductKey.OnCall} />}
       breadcrumbLinks={getOnCallDutyBreadcrumbs(path)}
       sideMenu={<DashboardSideMenu />}
     >

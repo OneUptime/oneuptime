@@ -16,6 +16,11 @@ import SessionReplayMaskingMode, {
   parseSessionReplayMaskingMode,
 } from "../../../Types/Rum/SessionReplayMaskingMode";
 import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "../../../Types/Rum/SessionReplay";
+import {
+  SessionReplayFrustrationSignalsConfig,
+  normalizeSessionReplayFrustrationSettings,
+  toSessionReplayFrustrationSignalsConfig,
+} from "../../../Types/Rum/SessionReplayFrustrationSignals";
 import OriginAllowList from "../../../Utils/Telemetry/OriginAllowList";
 import { getApplicationSessionReplayRetentionInDays } from "./SessionReplayRetention";
 
@@ -91,6 +96,7 @@ const RUM_APPLICATION_POLICY_COLUMNS: ReadonlyArray<string> = [
   "sessionReplayLcpBudgetMs",
   "sessionReplayLongTaskBudgetMs",
   "sessionReplaySlowRequestBudgetMs",
+  "sessionReplayFrustrationSignals",
 ];
 
 const PROJECT_POLICY_COLUMNS: ReadonlyArray<string> = [
@@ -179,6 +185,14 @@ export interface SessionReplayGatePolicy {
   lcpBudgetMs: number;
   longTaskBudgetMs: number;
   slowRequestBudgetMs: number;
+
+  /*
+   * What counts as frustration, as the recorders receive it: the built-in
+   * rules (the defaults when the column is null) and the application's own
+   * signals that are switched on. Read leniently, like the columns above:
+   * a damaged row records what an untouched application records.
+   */
+  frustrationSignals: SessionReplayFrustrationSignalsConfig;
 
   /*
    * Advances whenever the application row is updated, so a recorder can
@@ -540,6 +554,11 @@ export default class SessionReplayGateCache {
         slowRequestBudgetMs: this.readNumber(
           appView["sessionReplaySlowRequestBudgetMs"],
           0,
+        ),
+        frustrationSignals: toSessionReplayFrustrationSignalsConfig(
+          normalizeSessionReplayFrustrationSettings(
+            appView["sessionReplayFrustrationSignals"],
+          ),
         ),
         configEpoch: this.getConfigEpoch(app),
       },

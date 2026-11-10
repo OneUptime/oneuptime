@@ -2,8 +2,8 @@ import TaskLogger from "../Utils/TaskLogger";
 
 /*
  * Configuration for the code agent's LLM access. Completions are
- * server-mediated (POST /ai-agent-data/llm-completion), metered and
- * budgeted on the server — NO provider secret ever reaches the worker.
+ * server-mediated (POST /ai-agent-data/llm-completion), metered and held
+ * to the run's limits on the server — NO provider secret ever reaches the worker.
  */
 export interface CodeAgentLLMConfig {
   /*
@@ -18,6 +18,11 @@ export interface CodeAgentTask {
   workingDirectory: string;
   prompt: string;
   context?: string;
+  /*
+   * The time this step may take, when it has its own (a build repair pass):
+   * the agent winds down at the sooner of it and the run's time limit, which
+   * the server gives it. Without it, the run's time limit alone.
+   */
   timeoutMs?: number;
   servicePath?: string; // Path within the repo where the service code lives
   /*

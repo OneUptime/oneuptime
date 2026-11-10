@@ -6,6 +6,8 @@ import {
   auditLogExportUpdatePayload,
   exportConfigFieldName,
   exportSecretFieldName,
+  followAuditLogExportDefaults,
+  getAuditLogExportFollowingFields,
   getAuditLogExportInitialValues,
   getAuditLogExportSchemaVersionOptions,
   readAuditLogExportForm,
@@ -167,8 +169,43 @@ export function getAuditLogExportConnectionFields(data: {
               },
             }
           : {}),
-        ...(field.type === "number"
-          ? { validation: { minValue: 1, maxValue: 65535 } }
+        ...(field.type === "number" &&
+        (field.minValue !== undefined || field.maxValue !== undefined)
+          ? {
+              validation: {
+                ...(field.minValue !== undefined
+                  ? { minValue: field.minValue }
+                  : {}),
+                ...(field.maxValue !== undefined
+                  ? { maxValue: field.maxValue }
+                  : {}),
+              },
+            }
+          : {}),
+        /*
+         * A field others follow (syslog's protocol, which the port follows)
+         * moves them along when it changes, unless they hold a value
+         * someone typed.
+         */
+        ...(getAuditLogExportFollowingFields(definition, field.key).length > 0
+          ? {
+              onChange: (
+                choice: JSONValue,
+                currentValues: FormValues<JSONObject>,
+                setNewFormValues: (values: FormValues<JSONObject>) => void,
+              ): void => {
+                const moved: JSONObject | null = followAuditLogExportDefaults({
+                  definition,
+                  key: field.key,
+                  choice,
+                  values: currentValues as JSONObject,
+                });
+
+                if (moved) {
+                  setNewFormValues(moved as FormValues<JSONObject>);
+                }
+              },
+            }
           : {}),
         /*
          * The catalog's default (us-east-1, SAS, TLS on 6514): the field

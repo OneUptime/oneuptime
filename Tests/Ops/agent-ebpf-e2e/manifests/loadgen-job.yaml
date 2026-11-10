@@ -21,6 +21,17 @@ spec:
       labels:
         app: loadgen
     spec:
+      # The e2e's own workload, not what it tests, so it runs unconfined. On k3s
+      # under ubuntu-26.04, AppArmor labels a container's processes
+      # cri-containerd.apparmor.d//&unconfined, and containerd's generated
+      # profile denies every signal to that label: one process of the container
+      # signalling another (postgres's pg_ctl stopping its init server), or a Go
+      # program its own threads (gosu dropping root). The chart's own pods keep
+      # the runtime's profile, as on a customer's node (#6184; containerd#12886,
+      # fixed in no k3s release yet).
+      securityContext:
+        appArmorProfile:
+          type: Unconfined
       restartPolicy: Never
       nodeSelector:
         e2e.oneuptime.com/client: "true"

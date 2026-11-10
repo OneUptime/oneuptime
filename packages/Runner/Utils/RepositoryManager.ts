@@ -481,9 +481,12 @@ export default class RepositoryManager {
     /*
      * `--all` so a path that is now deleted stages its deletion rather than
      * being silently skipped — an agent that removes a file as part of the
-     * fix must have that removal in the commit.
+     * fix must have that removal in the commit. `--literal-pathspecs` so a
+     * path is staged as written: app/[id]/page.tsx (a route folder of many
+     * web frameworks) read as a pattern also stages app/i/page.tsx.
      */
     await this.runGitCommand(repoPath, [
+      "--literal-pathspecs",
       "add",
       "--all",
       "--",
@@ -522,6 +525,7 @@ export default class RepositoryManager {
 
     try {
       const tracked: string = await this.runGitCommand(repoPath, [
+        "--literal-pathspecs",
         "ls-files",
         "-z",
         "--",

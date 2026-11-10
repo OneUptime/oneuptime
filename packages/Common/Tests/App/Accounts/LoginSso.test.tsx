@@ -1144,7 +1144,7 @@ describe("Accounts single sign-on, in every edition", () => {
       const locales: Array<{ file: string; locale: JSONObject }> =
         readLocales();
 
-      expect(locales).toHaveLength(17);
+      expect(locales).toHaveLength(18);
 
       for (const { file, locale } of locales) {
         for (const key of SSO_LOCALE_KEYS) {

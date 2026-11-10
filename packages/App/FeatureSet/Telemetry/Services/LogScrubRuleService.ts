@@ -14,6 +14,7 @@ import {
   ScrubRegExp,
   scrubRegExpFromBuiltIn,
 } from "Common/Types/Telemetry/ScrubRule";
+import ScrubNestedValuesUtil from "Common/Utils/Telemetry/ScrubNestedValues";
 
 interface CompiledRule {
   rule: LogScrubRule;
@@ -248,6 +249,56 @@ export class LogScrubRuleService {
     return result;
   }
 
+  /*
+   * One rule over a log's attribute values, in place. A text value is
+   * scrubbed as it is; a list or a map - OTLP's lists and key-value lists,
+   * a scope's attributes - text by text, keeping its shape, with numbers
+   * and true or false left alone (Common/Utils/Telemetry/ScrubNestedValues).
+   * A sensitive-keys rule hides every text under a key that looks secret:
+   * the attribute's own key, or a key inside its value. `heldAsText`: the
+   * keys whose values were too deep or too large to read value by value,
+   * and are read as their JSON text.
+   */
+  private static scrubAttributes(
+    attributes: JSONObject,
+    compiled: CompiledRule,
+    heldAsText: ReadonlySet<string>,
+  ): void {
+    const patternType: string = (compiled.rule.patternType as string) || "";
+
+    if (patternType === LogScrubPatternType.SensitiveKeys) {
+      const action: string =
+        (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
+
+      // Key match → every text of the value gets the action.
+      ScrubNestedValuesUtil.hideAttributeTextsUnderSensitiveKeys(
+        attributes,
+        (key: string): boolean => {
+          return compiled.regex.test(key);
+        },
+        (text: string): string => {
+          return this.applyScrubAction(
+            text,
+            action,
+            LogScrubPatternType.SensitiveKeys,
+          );
+        },
+        heldAsText,
+      );
+
+      return;
+    }
+
+    const singleRule: Array<CompiledRule> = [compiled];
+
+    ScrubNestedValuesUtil.scrubAttributeTexts(
+      attributes,
+      (text: string): string => {
+        return this.scrubString(text, singleRule);
+      },
+    );
+  }
+
   public static scrubLog(
     logRow: JSONObject,
     compiledRules: Array<CompiledRule>,
@@ -262,6 +313,19 @@ export class LogScrubRuleService {
      * (Common/Server/Utils/PatternWorkScope.ts).
      */
     PatternWorkScope.handOverRecord(logRow);
+
+    /*
+     * A list or map too deep, or too large, for the rules to read value by
+     * value is held as its JSON text first - as the Log table stores it -
+     * so every rule reads the same value, in time in line with its length.
+     */
+    const heldAsText: ReadonlySet<string> =
+      logRow["attributes"] && typeof logRow["attributes"] === "object"
+        ? ScrubNestedValuesUtil.holdOversizedValuesAsText(
+            logRow["attributes"] as JSONObject,
+            ScrubNestedValuesUtil.newRecordAllowance(),
+          )
+        : new Set<string>();
 
     /*
      * Each rule's `fieldsToScrub` can be "body", "attributes", or
@@ -299,39 +363,17 @@ export class LogScrubRuleService {
         logRow["body"] = this.scrubString(logRow["body"] as string, singleRule);
       }
 
-      // Scrub attributes
+      // Scrub attributes - the text inside lists and maps included.
       if (
         (fieldsToScrub === "attributes" || fieldsToScrub === "both") &&
         logRow["attributes"] &&
         typeof logRow["attributes"] === "object"
       ) {
-        const attributes: JSONObject = logRow["attributes"] as JSONObject;
-        const isKeyTargeted: boolean =
-          (compiled.rule.patternType as string) ===
-          LogScrubPatternType.SensitiveKeys;
-
-        for (const key of Object.keys(attributes)) {
-          if (typeof attributes[key] !== "string") {
-            continue;
-          }
-
-          if (isKeyTargeted) {
-            // Key match → the whole value gets the action.
-            if (compiled.regex.test(key)) {
-              attributes[key] = this.applyScrubAction(
-                attributes[key] as string,
-                (compiled.rule.scrubAction as string) || LogScrubAction.Redact,
-                LogScrubPatternType.SensitiveKeys,
-              );
-            }
-            continue;
-          }
-
-          attributes[key] = this.scrubString(
-            attributes[key] as string,
-            singleRule,
-          );
-        }
+        this.scrubAttributes(
+          logRow["attributes"] as JSONObject,
+          compiled,
+          heldAsText,
+        );
       }
     }
 

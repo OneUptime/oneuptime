@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 Defina isso onde você já prepara as máquinas dos desenvolvedores: um perfil de MDM, um arquivo de configurações gerenciadas ou um perfil de shell dos seus dotfiles. Os valores não podem conter espaços: use sublinhados, ou codificação percentual como `%20`. O Codex não tem atributos de recurso, então defina as mesmas chaves no `[otel.span_attributes]` dele.
 
-Para separar o gasto por aplicação, use o nome do serviço (`OTEL_SERVICE_NAME`, ou a configuração própria da ferramenta). A divisão **Aplicação / Serviço** cobre só ferramentas que enviam spans GenAI.
+Para separar o gasto por aplicação, use o nome do serviço (`OTEL_SERVICE_NAME`, ou a configuração própria da ferramenta). A divisão **Aplicação / Serviço** classifica cada serviço, envie ele spans GenAI ou só métricas.
 
 ### O que deliberadamente não é tratado como o funcionário
 
@@ -144,21 +144,21 @@ Duas coisas para saber antes de ler os números:
 
 Abra **Produtos → IA / LLM** e vá para **Uso**. Ela ordena **Funcionário**, **Equipe**, **Modelo**, **Provedor** e **Aplicação / Serviço** por gasto, nos últimos 7 dias, a menos que você escolha outro período. Chamadas que não citam ninguém são contadas em **Sem atribuição**: uma linha grande de **Sem atribuição** mostra qual ferramenta ainda precisa ter a identidade definida.
 
-### As métricas de assistentes de programação são um recurso alternativo, não uma soma
+### As métricas de assistentes de programação são contadas ao lado das chamadas das suas aplicações
 
-Os spans GenAI vêm primeiro: as métricas só são lidas para um número que os spans não informaram, e os dois nunca são somados ([por quê](/docs/telemetry/ai-llm-observability#primeiro-os-spans-as-métricas-completam)). Para os assistentes de programação isso tem uma consequência direta: **se o mesmo projeto recebe spans GenAI com custo, o gasto dos assistentes de programação não aparece.** Dê aos assistentes de programação um projeto só deles, com sua própria chave de ingestão.
+Cada serviço é contado pelo que envia ([como](/docs/telemetry/ai-llm-observability#cada-serviço-é-contado-pelo-que-envia)). As métricas de um assistente de programação chegam sob o próprio serviço dele, então o gasto dele é somado às chamadas de IA que as suas aplicações enviam ao mesmo projeto, nunca no lugar delas, e uma aplicação que envia spans GenAI e métricas das mesmas chamadas é contada uma vez, pelos spans.
 
-Quando o recurso alternativo se aplica, é isto que cada divisão pode mostrar para uma ferramenta que envia só métricas:
+É isto que cada divisão mostra para uma ferramenta que envia só métricas:
 
 | Divisão | Das métricas |
 | --- | --- |
 | **Funcionário** | Sim, de cada chave de identidade acima, com e sem o prefixo `resource.` |
 | **Equipe** | Sim, das chaves de equipe |
 | **Modelo** | Sim: o Claude Code e o Codex enviam um `model` sem prefixo, o Cursor `cursor.model.name` |
-| **Provedor** | Não: as métricas dos assistentes de programação não citam nenhum provedor |
-| **Aplicação / Serviço** | Não: as métricas deles não pertencem a nenhum serviço do OneUptime |
+| **Provedor** | Em **Sem atribuição**: as métricas dos assistentes de programação não citam nenhum provedor |
+| **Aplicação / Serviço** | Sim: cada ferramenta sob o serviço que as métricas dela citam, como `cursor` |
 
-Uma linha lida das métricas carrega só o custo: as células de chamadas e tokens mostram `—`, porque um contador de gasto não tem detalhe por chamada, e um 0 ali diria que a pessoa não fez nenhuma chamada. A tabela é marcada como **das métricas GenAI**.
+Uma linha lida das métricas diz **Das métricas de uso** sob o nome dela. A célula de chamadas dela mostra `—`, porque um contador não tem detalhe por chamada, e um 0 ali diria que a pessoa não fez nenhuma chamada; as células de tokens dela mostram os tokens que as métricas dela contaram.
 
 ## Sem OpenTelemetry? Coloque um gateway na frente
 
@@ -188,7 +188,7 @@ O Codex também envia suas métricas para a OpenAI por padrão: veja [OpenAI Cod
 
 ## O que o OneUptime ainda não faz
 
-- **Nenhum conector de administração de ferramentas de programação.** O OneUptime lê as contas da OpenAI, Anthropic, Azure, Bedrock e Vertex AI por trás das ferramentas ([Contas de provedores de IA](/docs/telemetry/ai-provider-accounts)), mas não a Admin API do Cursor, o faturamento do Copilot no GitHub, nem as APIs do Windsurf ou da JetBrains.
+- **Nenhum conector de administração de ferramentas de programação, a não ser o do Cursor.** O OneUptime lê as contas da OpenAI, Anthropic, Azure, Bedrock e Vertex AI por trás das ferramentas, e a Admin API de uma equipe do Cursor ([Contas de provedores de IA](/docs/telemetry/ai-provider-accounts)), mas não o faturamento do Copilot no GitHub, nem as APIs do Windsurf ou da JetBrains.
 - **O custo é uma estimativa, a menos que uma ferramenta o informe.** Um custo informado é usado como está; caso contrário, o OneUptime calcula o preço dos tokens pelos preços de tabela. O próprio `cursor.cost.usage` do Cursor é uma estimativa.
 - **A identidade nos registros de log não é lida.** O `user.email` do Codex, que ele envia só nos logs, não é ligado ao gasto.
 - **O `cursor.user.email` do Cursor ainda não é lido**, então os usuários do Cursor aparecem como seu número inteiro `cursor.user.id`.
@@ -197,11 +197,11 @@ O Codex também envia suas métricas para a OpenAI por padrão: veja [OpenAI Cod
 
 ## Por onde começar
 
-Implante nesta ordem; cada passo é útil por si só. Use um projeto que ainda não recebe spans GenAI das suas próprias aplicações, ou [a regra do recurso alternativo](#as-métricas-de-assistentes-de-programação-são-um-recurso-alternativo-não-uma-soma) mantém o gasto dos assistentes de programação fora da página.
+Implante nesta ordem; cada passo é útil por si só. Os assistentes de programação podem dividir um projeto com as suas próprias aplicações: [cada um é contado ao lado delas](#as-métricas-de-assistentes-de-programação-são-contadas-ao-lado-das-chamadas-das-suas-aplicações).
 
 1. **Gemini CLI**, se alguém usa. Ele envia `user.email` sem configuração, então mostra a atribuição funcionando de ponta a ponta. Ative também os traces dele: ele não envia nenhuma métrica de custo.
 2. **Claude Code**: um arquivo de configurações gerenciadas para a frota, `user.email` de graça, uma métrica de custo real, e taxa de aceitação, commits, pull requests e linhas de código por desenvolvedor.
-3. **Cursor**, no plano Enterprise: uma tela no painel do Cursor, nenhuma máquina de desenvolvedor tocada, embora as pessoas cheguem como números inteiros.
+3. **Cursor**, no plano Enterprise: uma tela no painel do Cursor, nenhuma máquina de desenvolvedor tocada, embora as pessoas cheguem como números inteiros. No plano Teams, ou para o que o Cursor cobrou por pessoa, conecte a chave de API de administrador dele como uma [conta de provedor](/docs/telemetry/ai-provider-accounts#cursor), com ou sem a exportação.
 4. **Copilot e Codex**, que precisam de uma identidade definida em cada máquina. Faça isso quando preparar as máquinas: chamadas que chegaram sem identidade não podem ser atribuídas depois.
 5. **Um gateway LiteLLM** para todo o resto, com uma chave virtual por funcionário.
 

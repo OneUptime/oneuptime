@@ -253,8 +253,8 @@ describe("what the taken-away columns said", () => {
     ).toEqual([]);
   });
 
-  test("there are seventeen Dashboard locales", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("there are eighteen Dashboard locales", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
   });
 
   test.each(LOCALE_FILES)(

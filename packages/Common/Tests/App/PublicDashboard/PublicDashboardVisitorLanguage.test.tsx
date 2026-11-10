@@ -63,6 +63,7 @@ const LANGUAGES: Array<string> = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
 
 const readLocale: (language: string) => Record<string, string> = (
@@ -186,6 +187,8 @@ describe("the visitor's language", () => {
   test.each<[Array<string>, string]>([
     [["de-DE", "en"], "de"],
     [["fa-IR"], "fa"],
+    [["ar-SA"], "ar"],
+    [["ar-EG", "en"], "ar"],
     [["zh-HK"], "zh-TW"],
     [["xx-YY", "ja"], "ja"],
     [["xx-YY"], "en"],
@@ -262,6 +265,7 @@ describe("a visitor's page moving onto a new version, in the visitor's language"
   test.each<[string, string, string]>([
     ["de-DE", "de", "ltr"],
     ["fa-IR", "fa", "rtl"],
+    ["ar-AE", "ar", "rtl"],
   ])(
     "a browser in %s reads it in its own words, the way its language reads",
     async (browserLanguage: string, language: string, direction: string) => {

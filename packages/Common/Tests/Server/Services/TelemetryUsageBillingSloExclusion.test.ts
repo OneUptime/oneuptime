@@ -46,6 +46,8 @@ import ObjectID from "../../../Types/ObjectID";
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
+import TelemetryIngestionBudgetMetricType from "../../../Types/Telemetry/TelemetryIngestionBudgetMetricType";
+import TelemetryIngestionBudgetMetricTypeUtil from "../../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -328,12 +330,18 @@ describe("the staging loop uses the shared exclusion", () => {
 
 const RUM_APPLICATION_ID: string = "88888888-8888-4888-8888-888888888888";
 
-const EVERY_BUDGET_METRIC_NAME: Array<string> = (
-  Object.values(SessionReplayBudgetMetricType) as Array<string>
-).sort();
+/*
+ * The session replay budget series and, since #5917, the telemetry ingestion
+ * budget series: both are OneUptime's own readings about a budget, written
+ * past ingest, so neither may cost the project they report on anything.
+ */
+const EVERY_BUDGET_METRIC_NAME: Array<string> = [
+  ...(Object.values(SessionReplayBudgetMetricType) as Array<string>),
+  ...(Object.values(TelemetryIngestionBudgetMetricType) as Array<string>),
+].sort();
 
 describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
-  test("is exactly the session replay budget series, every one of them", () => {
+  test("is exactly the session replay and ingestion budget series, every one of them", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort()).toEqual(
       EVERY_BUDGET_METRIC_NAME,
     );
@@ -341,9 +349,10 @@ describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
 
   test("names only series OTLP ingest refuses, so no customer row can be stored under one for free", () => {
     for (const name of TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES) {
-      expect(SessionReplayBudgetMetricTypeUtil.isReservedMetricName(name)).toBe(
-        true,
-      );
+      expect(
+        SessionReplayBudgetMetricTypeUtil.isReservedMetricName(name) ||
+          TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name),
+      ).toBe(true);
     }
   });
 

@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 Set it wherever you already provision developer machines: an MDM profile, a managed settings file, or a shell profile from your dotfiles. Values cannot contain spaces: use underscores, or percent-encoding such as `%20`. Codex has no resource attributes, so set the same keys in its `[otel.span_attributes]` instead.
 
-To separate spend by application, use the service name (`OTEL_SERVICE_NAME`, or the tool's own setting). The **Application / Service** breakdown covers only tools that send GenAI spans.
+To separate spend by application, use the service name (`OTEL_SERVICE_NAME`, or the tool's own setting): the **Application / Service** breakdown ranks each service, whether it sends GenAI spans or only metrics.
 
 ### What is deliberately not treated as the employee
 
@@ -144,21 +144,21 @@ Two things to know before you read the numbers:
 
 Open **Products → AI / LLM** and go to **Usage**. It ranks **Employee**, **Team**, **Model**, **Provider** and **Application / Service** by spend, over the last 7 days unless you pick another range. Calls that name nobody are counted under **Unattributed**: a big **Unattributed** row tells you which tool still needs its identity set.
 
-### Coding-assistant metrics are a fallback, not an addition
+### Coding-assistant metrics are counted beside your apps' calls
 
-GenAI spans come first: the metrics are read only for a figure the spans reported nothing for, and the two are never added together ([why](/docs/telemetry/ai-llm-observability#spans-come-first-metrics-fill-in)). For coding assistants that has one blunt consequence: **if the same project receives GenAI spans with cost, the coding assistants' spend does not show.** Give the coding assistants a project of their own, with its own ingestion key.
+Each service is counted from what it sends ([how](/docs/telemetry/ai-llm-observability#each-service-is-counted-from-what-it-sends)). A coding assistant's metrics arrive under its own service, so its spend is added to the AI calls your apps send to the same project, never put in their place, and an app that sends GenAI spans and metrics for the same calls is counted once, from its spans.
 
-When the fallback does apply, this is what each breakdown can show for a tool that sends only metrics:
+This is what each breakdown shows for a tool that sends only metrics:
 
 | Breakdown | From metrics |
 | --- | --- |
 | **Employee** | Yes, from every identity key above, bare and `resource.`-prefixed |
 | **Team** | Yes, from the team keys |
 | **Model** | Yes: Claude Code and Codex send a bare `model`, Cursor `cursor.model.name` |
-| **Provider** | No: the coding assistants' metrics name no provider |
-| **Application / Service** | No: their metrics belong to no OneUptime service |
+| **Provider** | Under **Unattributed**: the coding assistants' metrics name no provider |
+| **Application / Service** | Yes: each tool under the service its metrics name, such as `cursor` |
 
-A row read from metrics carries cost only: its calls and token cells show `—`, because a spend counter has no per-call detail, and a 0 there would claim the person made no calls. The table is marked **from GenAI metrics**.
+A row read from metrics says **From usage metrics** under its name. Its calls cell shows `—`, because a counter has no per-call detail, and a 0 there would claim the person made no calls; its token cells show the tokens its metrics counted.
 
 ## No OpenTelemetry? Put a gateway in front
 
@@ -188,7 +188,7 @@ Codex also sends its metrics to OpenAI by default: see [OpenAI Codex](/docs/tele
 
 ## What OneUptime does not do yet
 
-- **No coding-tool admin connectors.** OneUptime reads the OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts behind the tools ([AI Provider Accounts](/docs/telemetry/ai-provider-accounts)), but not Cursor's Admin API, GitHub's Copilot billing, or Windsurf's or JetBrains' APIs.
+- **No coding-tool admin connector but Cursor's.** OneUptime reads the OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts behind the tools, and a Cursor team's Admin API ([AI Provider Accounts](/docs/telemetry/ai-provider-accounts)), but not GitHub's Copilot billing, or Windsurf's or JetBrains' APIs.
 - **Cost is an estimate unless a tool reports it.** A reported cost is used as it is; otherwise OneUptime prices tokens at list prices. Cursor's `cursor.cost.usage` is itself an estimate.
 - **Identity on log records is not read.** Codex's `user.email`, which it sends only on logs, is not joined to spend.
 - **Cursor's `cursor.user.email` is not read yet**, so Cursor users show as their `cursor.user.id` integer.
@@ -197,11 +197,11 @@ Codex also sends its metrics to OpenAI by default: see [OpenAI Codex](/docs/tele
 
 ## Where to start
 
-Roll out in this order; each step is useful on its own. Use a project that does not already receive GenAI spans from your own apps, or [the fallback rule](#coding-assistant-metrics-are-a-fallback-not-an-addition) keeps the coding assistants' spend off the page.
+Roll out in this order; each step is useful on its own. The coding assistants can share a project with your own apps: [each is counted beside them](#coding-assistant-metrics-are-counted-beside-your-apps-calls).
 
 1. **Gemini CLI**, if anyone uses it. It sends `user.email` with no setup, so it shows attribution working end to end. Turn on its traces too: it sends no cost metric.
 2. **Claude Code**: one managed settings file for the fleet, `user.email` for free, a real cost metric, and acceptance rate, commits, pull requests and lines of code per developer.
-3. **Cursor**, on the Enterprise plan: one screen in Cursor's dashboard, no developer machine touched, though people arrive as integers.
+3. **Cursor**, on the Enterprise plan: one screen in Cursor's dashboard, no developer machine touched, though people arrive as integers. On the Teams plan, or for what Cursor charged by person, connect its Admin API key as a [provider account](/docs/telemetry/ai-provider-accounts#cursor), with or without the export.
 4. **Copilot and Codex**, which both need an identity set on each machine. Do it when you provision machines: calls that arrived without one cannot be attributed later.
 5. **A LiteLLM gateway** for everything else, with one virtual key per employee.
 

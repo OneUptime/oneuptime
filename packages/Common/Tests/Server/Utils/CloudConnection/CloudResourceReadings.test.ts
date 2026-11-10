@@ -3,6 +3,7 @@ import CloudResourceReadingsWriter, {
   CollectedCloudReadings,
   CloudReadingsWriteResult,
   collectCloudResourceReadings,
+  getSplitSeriesSignature,
   readDatapointTimeMs,
 } from "../../../../Server/Utils/CloudConnection/CloudResourceReadings";
 import {
@@ -689,5 +690,142 @@ describe("CloudResourceReadingsWriter", () => {
 
     expect(result).toEqual({ written: 1, needingAttention: 1, cleared: 0 });
     expect(writes()[0]!.parameters[4]).toEqual([CloudHealthSeverity.Critical]);
+  });
+});
+
+describe("a Service Bus namespace's readings, read split per queue", () => {
+  const SUBSCRIPTION: string = "aaaaaaaa-0000-4000-8000-000000000001";
+  const NAMESPACE_ID: string = `/subscriptions/${SUBSCRIPTION}/resourceGroups/rg/providers/Microsoft.ServiceBus/namespaces/sb-orders`;
+  const DEAD_LETTERED: string = getAzureStoredMetricName(
+    "DeadletteredMessages",
+    "Average",
+  );
+
+  function queueSet(
+    entity: string | null,
+    points: Array<{ timeMs: number; value: number }>,
+  ): CloudMetricGroup["metrics"][number]["datapointSets"][number] {
+    const attributes: Array<OtlpAttribute> = [
+      stringAttribute("azuremonitor.resource_id", NAMESPACE_ID),
+      stringAttribute("name", "sb-orders"),
+      stringAttribute("type", "Microsoft.ServiceBus/namespaces"),
+      stringAttribute("resource_group", "rg"),
+      stringAttribute("location", "westeurope"),
+      stringAttribute("timegrain", "PT1M"),
+    ];
+
+    if (entity !== null) {
+      attributes.push(stringAttribute("metadata_entityname", entity));
+    }
+
+    return { attributes, points };
+  }
+
+  function readingOf(
+    sets: Array<CloudMetricGroup["metrics"][number]["datapointSets"][number]>,
+  ): { value: number; time: string } | undefined {
+    const group: CloudMetricGroup = {
+      resourceAttributes: [
+        ...connectionResourceAttributes({
+          serviceName: "azure-production",
+          connectionId: CONNECTION.toString(),
+          cloudProvider: CloudProvider.Azure,
+        }),
+        stringAttribute("azuremonitor.subscription_id", SUBSCRIPTION),
+      ],
+      metrics: [{ name: DEAD_LETTERED, unit: "Count", datapointSets: sets }],
+    };
+
+    const entry: CollectedCloudReadings | undefined = Array.from(
+      collectCloudResourceReadings(buildMetricsPayloads([group])).values(),
+    )[0];
+
+    return entry?.readings["deadletteredmessages"] as
+      | { value: number; time: string }
+      | undefined;
+  }
+
+  test("is the sum of its queues at the newest minute: the namespace's whole count", () => {
+    expect(
+      readingOf([
+        queueSet("orders", [
+          { timeMs: T1, value: 1 },
+          { timeMs: T2, value: 4 },
+        ]),
+        queueSet("invoices", [
+          { timeMs: T1, value: 2 },
+          { timeMs: T2, value: 5 },
+        ]),
+        queueSet("-NamespaceOnlyMetric-", [{ timeMs: T2, value: 1 }]),
+      ]),
+    ).toEqual({
+      value: 10,
+      time: new Date(T2).toISOString(),
+      metric: DEAD_LETTERED,
+    });
+  });
+
+  test("a queue whose newest point is older is not part of the newest minute's sum", () => {
+    expect(
+      readingOf([
+        queueSet("invoices", [{ timeMs: T1, value: 7 }]),
+        queueSet("orders", [{ timeMs: T2, value: 4 }]),
+      ]),
+    ).toEqual(
+      expect.objectContaining({ value: 4, time: new Date(T2).toISOString() }),
+    );
+    // In either order.
+    expect(
+      readingOf([
+        queueSet("orders", [{ timeMs: T2, value: 4 }]),
+        queueSet("invoices", [{ timeMs: T1, value: 7 }]),
+      ]),
+    ).toEqual(expect.objectContaining({ value: 4 }));
+  });
+
+  test("a queue's series sent twice is counted once, whatever the case of its name", () => {
+    expect(
+      readingOf([
+        queueSet("orders", [{ timeMs: T2, value: 4 }]),
+        queueSet("Orders", [{ timeMs: T2, value: 4 }]),
+        queueSet("invoices", [{ timeMs: T2, value: 5 }]),
+      ]),
+    ).toEqual(expect.objectContaining({ value: 9 }));
+  });
+
+  test("an unsplit total beside split series is never added to them: the first read at a time wins", () => {
+    // The namespace's total first: its queues are already in it.
+    expect(
+      readingOf([
+        queueSet(null, [{ timeMs: T2, value: 20 }]),
+        queueSet("orders", [{ timeMs: T2, value: 4 }]),
+        queueSet("invoices", [{ timeMs: T2, value: 5 }]),
+      ]),
+    ).toEqual(expect.objectContaining({ value: 20 }));
+    // The queues first: the total does not add to their sum.
+    expect(
+      readingOf([
+        queueSet("orders", [{ timeMs: T2, value: 4 }]),
+        queueSet("invoices", [{ timeMs: T2, value: 5 }]),
+        queueSet(null, [{ timeMs: T2, value: 20 }]),
+      ]),
+    ).toEqual(expect.objectContaining({ value: 9 }));
+  });
+
+  test("a series' split signature is its dimension values, sorted and lowercased; none for an unsplit one", () => {
+    expect(
+      getSplitSeriesSignature([
+        stringAttribute("name", "sb-orders"),
+        stringAttribute("metadata_operationresult", "Success"),
+        stringAttribute("metadata_entityname", "Orders"),
+      ]),
+    ).toBe("metadata_entityname=orders\nmetadata_operationresult=success");
+    expect(
+      getSplitSeriesSignature([
+        stringAttribute("name", "sb-orders"),
+        stringAttribute("type", "Microsoft.ServiceBus/namespaces"),
+      ]),
+    ).toBe("");
+    expect(getSplitSeriesSignature([])).toBe("");
   });
 });

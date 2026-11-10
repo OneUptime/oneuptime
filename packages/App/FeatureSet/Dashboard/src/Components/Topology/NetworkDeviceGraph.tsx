@@ -1712,6 +1712,13 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                                       ? 0
                                       : labelLineHeightFor(nodeView.kind)
                                   }
+                                  {...(nodeView.hasSecondaryLabelLine &&
+                                  lineIndex === nodeView.labelLines.length - 1
+                                    ? {
+                                        fill: TOPOLOGY_DRAWING_STYLE.labelSecondaryColor,
+                                        "data-label-line": "secondary",
+                                      }
+                                    : {})}
                                 >
                                   {line}
                                 </tspan>

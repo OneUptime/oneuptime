@@ -12,7 +12,9 @@ import {
 import {
   AKS_ID,
   CONNECTION_ID,
+  EVENT_HUBS_ID,
   MINUTE_MS,
+  SERVICE_BUS_ID,
   SITE_ID,
   STORAGE_ID,
   SUBSCRIPTION,
@@ -30,10 +32,12 @@ import {
 /*
  * Azure Monitor's diagnostic records, read as OTLP: a platform metric's
  * minute as the very gauge a connection's read writes - only the key
- * metrics its reads read a minute at a time, of the resources its reads
- * hold, on the read's own datapoint attributes and the ARM id in the
- * reads' casing - and a resource log as a record of the resource whose Logs
- * tab reads it, its body what it says, its level as its severity.
+ * metrics its reads read a minute at a time and leave to a stream (none a
+ * diagnostic setting cannot export, none of a Service Bus or Event Hubs
+ * namespace), of the resources its reads hold, on the read's own datapoint
+ * attributes and the ARM id in the reads' casing - and a resource log as a
+ * record of the resource whose Logs tab reads it, its body what it says,
+ * its level as its severity.
  */
 
 function decode(
@@ -261,6 +265,120 @@ describe("a platform metric's minute", () => {
         return metric["name"];
       }),
     ).toEqual(["azure_transactions_total"]);
+  });
+
+  test("one a diagnostic setting cannot export is left to the read, which keeps writing it, should Azure send it after all", () => {
+    const decoded: AzureDiagnosticDecoded = decode([
+      eventOf([
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Network In Total",
+          total: 4096,
+          count: 1,
+          minimum: 4096,
+          maximum: 4096,
+        }),
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Percentage CPU",
+          total: 12,
+          count: 1,
+          minimum: 12,
+          maximum: 12,
+        }),
+      ]),
+    ]);
+
+    expect(decoded.leftToRead).toBe(1);
+    expect(decoded.datapoints).toBe(1);
+    expect(
+      metricsOf(decoded).map((metric: JSONObject) => {
+        return metric["name"];
+      }),
+    ).toEqual(["azure_percentage_cpu_average"]);
+  });
+
+  test("a Service Bus or Event Hubs namespace's are left to the read, which writes each queue's own series - exported or not - and leaves no sighting", () => {
+    const decoded: AzureDiagnosticDecoded = decode([
+      eventOf([
+        // Exported, as the namespace's total of every queue.
+        metricRecord({
+          resourceId: SERVICE_BUS_ID,
+          metricName: "IncomingMessages",
+          total: 40,
+          count: 1,
+          minimum: 40,
+          maximum: 40,
+        }),
+        metricRecord({
+          resourceId: SERVICE_BUS_ID,
+          metricName: "ActiveMessages",
+          total: 7,
+          count: 1,
+          minimum: 7,
+          maximum: 7,
+        }),
+        metricRecord({
+          resourceId: EVENT_HUBS_ID,
+          metricName: "IncomingMessages",
+          total: 900,
+          count: 1,
+          minimum: 900,
+          maximum: 900,
+        }),
+        metricRecord({
+          resourceId: EVENT_HUBS_ID,
+          metricName: "ServerErrors",
+          total: 1,
+          count: 1,
+          minimum: 1,
+          maximum: 1,
+        }),
+      ]),
+    ]);
+
+    expect(decoded.leftToRead).toBe(4);
+    expect(decoded.datapoints).toBe(0);
+    expect(decoded.resourceMetrics).toEqual([]);
+    // No sighting: the read never leaves a namespace's metrics to a stream.
+    expect(decoded.sightings).toEqual([]);
+  });
+
+  test("a stream of only what the read keeps is no stream of the type: its sighting names the types written, and no other", () => {
+    const decoded: AzureDiagnosticDecoded = decode([
+      eventOf([
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Network In Total",
+          total: 1,
+          count: 1,
+          minimum: 1,
+          maximum: 1,
+        }),
+        metricRecord({
+          resourceId: SERVICE_BUS_ID,
+          metricName: "IncomingMessages",
+          total: 1,
+          count: 1,
+          minimum: 1,
+          maximum: 1,
+        }),
+        metricRecord({
+          resourceId: SITE_ID,
+          metricName: "Requests",
+          total: 1,
+          count: 1,
+          minimum: 1,
+          maximum: 1,
+        }),
+      ]),
+    ]);
+
+    expect(
+      decoded.sightings.map((sighting: CloudStreamSighting) => {
+        return [sighting.accountId, sighting.region, sighting.namespaces];
+      }),
+    ).toEqual([[SUBSCRIPTION, "eastus", ["Microsoft.Web/sites"]]]);
   });
 
   test("its sighting is the subscription, the resource's own region and its type: what the read leaves to the stream", () => {

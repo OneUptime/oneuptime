@@ -226,23 +226,27 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mb-4 space-y-3">
+      {/*
+       * Beside the side menu the card is narrow: the search gives way, and
+       * Map options keeps its words on one line.
+       */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="w-full sm:max-w-sm">
+        <div className="w-full min-w-0 sm:max-w-sm sm:flex-1">
           <Input
             isSearchOrFilter={true}
             dataTestId="network-topology-search"
             ariaLabel="Find a network device"
-            placeholder="Find a device by name or vendor…"
+            placeholder="Search by name, IP, MAC or vendor"
             value={props.searchText}
             onChange={props.onSearchChange}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:flex-none">
           {hasFilters ? (
             <button
               type="button"
               data-testid="network-topology-reset-filters"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+              className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
               onClick={props.onResetFilters}
             >
               {translateString("Clear filters") || "Clear filters"}
@@ -255,7 +259,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
             aria-expanded={showOptions}
             aria-controls={optionsId}
             data-testid="network-topology-options-toggle"
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${showOptions ? "border-indigo-200 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"}`}
+            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-2 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${showOptions ? "border-indigo-200 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"}`}
             onClick={() => {
               setShowOptions(!showOptions);
             }}

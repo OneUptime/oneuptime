@@ -1,5 +1,9 @@
 import OneUptimeDate from "../../Types/Date";
-import { getDigitsOf, isEnglishDateLanguage } from "../../Types/DateLanguage";
+import {
+  getNumberLocale,
+  getDigitsOf,
+  isEnglishDateLanguage,
+} from "../../Types/DateLanguage";
 import EventInterval from "../../Types/Events/EventInterval";
 import StatusPageReportPeriodType from "../../Types/StatusPage/StatusPageReportPeriodType";
 import {
@@ -158,7 +162,7 @@ export default class StatusPageReportText {
     let parts: Array<Intl.NumberFormatPart>;
 
     try {
-      parts = new Intl.NumberFormat(language, {
+      parts = new Intl.NumberFormat(getNumberLocale(language), {
         style: "percent",
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,

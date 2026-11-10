@@ -6,8 +6,9 @@ import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import DataToProcess from "./DataToProcess";
-import { redactForPersistence } from "./MonitorPayloadRedaction";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
 
 /*
  * Maximum rows held in memory before we force a flush, and the
@@ -113,6 +114,14 @@ export default class MonitorLogUtil {
     monitorId: ObjectID;
     projectId: ObjectID;
     dataToProcess: DataToProcess;
+    /*
+     * Whether the monitor keeps response content
+     * (MonitorRecordEvidence.keepsResponseContent): off, the row keeps no
+     * body and no headers of the response or the request.
+     */
+    keepResponseContent: boolean;
+    // The step the check ran: the row names the destination it configures.
+    monitorStep?: MonitorStep | undefined;
   }): void {
     if (!data.monitorId) {
       return;
@@ -151,12 +160,17 @@ export default class MonitorLogUtil {
            * what gets masked. logBody is readable by Permission.Viewer, which
            * makes it the widest-reach sink in the product — anything
            * credential-shaped in it is readable by the least-privileged role
-           * OneUptime grants. See MonitorPayloadRedaction.
+           * OneUptime grants. So it is cut by the rules an incident's
+           * evidence is cut by: credential names, then the headers, bodies,
+           * texts and destination of the check (MonitorRecordEvidence).
            * https://github.com/OneUptime/oneuptime/issues/3360
+           * https://github.com/OneUptime/oneuptime/issues/6341
            */
-          logBody: redactForPersistence(
-            JSON.parse(JSON.stringify(data.dataToProcess)),
-          ),
+          logBody: MonitorRecordEvidence.redactCheck({
+            check: JSON.parse(JSON.stringify(data.dataToProcess)),
+            keepResponseContent: data.keepResponseContent,
+            monitorStep: data.monitorStep,
+          }),
           retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
         };
 

@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 En webapp trenger en **Nettleser**-nøkkel, og en mobilapp en **Server**-nøkkel: se [Nettleseroppsett](/docs/rum/browser-setup) og [Mobiloppsett](/docs/rum/mobile-setup). Eksportendepunktene avviser også en feil nøkkel med `401`, slik OTLP-spesifikasjonen krever, så et veloppdragent SDK logger avvisningen i stedet for å prøve på nytt. Den linjen er lett å overse i nettleserkonsollen, og denne sjekken svarer direkte.
 
+OneUptime teller også hva den avviser fra en nøkkel den kjenner. Nøkkelens side under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** viser under **Avvist telemetri** hva som er avvist de siste 30 dagene, og **Oppsettsjekk** på applikasjonens side **Dokumentasjon** sier hvilken type telemetri som avvises, hvorfor og hvordan du retter det. En manglende eller ukjent nøkkel peker ikke på noe prosjekt, så ingenting teller den: denne sjekken og `401` er alt som finnes.
+
 ## Sjekk hva som forlater nettleseren
 
 Åpne nettleserens utviklerverktøy på appens side, velg fanen Nettverk og filtrer på `otlp`. Du ser etter `POST /otlp/v1/traces` besvart med en `2xx`-status.
@@ -121,6 +123,7 @@ Det tomme diagrammet på applikasjonens **Oversikt** sier hvilket tilfelle det e
 | **Ingen unntak i dette tidsrommet** eller **Ingen logger i dette tidsrommet** | Noen kom tidligere, og diagrammet sier når den siste kom. Velg det lengre tidsrommet det tilbyr. |
 | **Ingenting har kommet fra denne appen ennå** | Ingen telemetri av noe slag kommer inn: start med [Sjekk nøkkelen](#sjekk-nøkkelen). |
 | **OpenTelemetry SDK-et rapporterer ikke** | Bare øktavspilling rapporterer fra denne appen: sett opp SDK-et som i [Nettleseroppsett](/docs/rum/browser-setup). |
+| **Unntak blir avvist** eller **Logger blir avvist** | OneUptime har avvist dem etter at den siste kom inn, og diagrammet sier hvorfor og når: nøkkelen er slått av eller utløpt, den tillater ikke nettstedets opprinnelse, en grense eller et budsjett er brukt opp, eller prosjektet har ingen betalingsmetode. Knappen retter det: **Velg en annen nøkkel**, **Åpne nøkkelen**, **Se budsjetter** eller **Legg til en betalingsmetode**. |
 
 Unntak trenger en feilhåndterer, fordi SDK-et ikke fanger ufangede feil: [Rapporter ufangede feil](/docs/rum/browser-setup#rapporter-ufangede-feil) har koden. En feil som en error boundary eller en `try`/`catch` håndterer, når aldri vinduet, så registrer den der du håndterer den, med `span.recordException`.
 

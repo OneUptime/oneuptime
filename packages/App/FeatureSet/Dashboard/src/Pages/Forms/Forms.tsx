@@ -26,6 +26,11 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useProductFirstRun, {
+  ProductFirstRun,
+} from "../../Components/ProductOnboarding/UseProductFirstRun";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * Forms: every form of the project, what each one creates and whether it is
@@ -46,6 +51,10 @@ const TARGET_ICONS: Record<FormTargetType, IconProp> = {
 const Forms: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  // Until the first one, the page explains the product under the empty table.
+  const firstRun: ProductFirstRun = useProductFirstRun<Form>({
+    modelType: Form,
+  });
   const { translateString } = useTranslateValue();
 
   const tx: (text: string) => string = (text: string): string => {
@@ -56,6 +65,9 @@ const Forms: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <ModelTable<Form>
         modelType={Form}
+        refreshToggle={firstRun.refreshToken}
+        showCreateForm={firstRun.showCreateForm}
+        emptyState={firstRun.getEmptyState()}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
         rowSwitch={{ column: "isEnabled" }}
         id="forms-table"
@@ -149,6 +161,7 @@ const Forms: FunctionComponent<PageComponentProps> = (
           return item;
         }}
         onCreateSuccess={async (item: Form): Promise<Form> => {
+          firstRun.onRecordCreated();
           // A new form opens on its builder: its questions are the next step.
           if (item._id) {
             Navigation.navigate(
@@ -261,6 +274,14 @@ const Forms: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+      {firstRun.isFirstRun && (
+        <ProductShowcase
+          product={ProductKey.Forms}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
+          startButton={firstRun.startButton}
+        />
+      )}
     </Fragment>
   );
 };

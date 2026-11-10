@@ -1,6 +1,6 @@
 # 流式传输 Azure Monitor 指标和日志
 
-已连接的 Azure 订阅可以把 Azure Monitor 指标和资源日志流式传输到 OneUptime。诊断设置把它们发送到你订阅中的事件中心，OneUptime 每分钟读取这些事件中心：关键指标在 Azure Monitor 拿到后几分钟内到达，而不必等连接的下一次读取；资源日志作为 OneUptime 日志到达，每条都归档在它所涉及的资源下。在 Azure Cloud Shell 中运行一条命令即可完成设置，无需运行任何东西。
+已连接的 Azure 订阅可以把 Azure Monitor 指标和资源日志流式传输到 OneUptime。诊断设置把它们发送到你订阅中的事件中心，OneUptime 每分钟读取这些事件中心：大多数关键指标在 Azure Monitor 拿到后几分钟内到达，而不必等连接的下一次读取；资源日志作为 OneUptime 日志到达，每条都归档在它所涉及的资源下。在 Azure Cloud Shell 中运行一条命令即可完成设置，无需运行任何东西。
 
 :::cards
 - [工作原理](#工作原理): 诊断设置发送到每个区域的事件中心，OneUptime 读取它们。
@@ -22,7 +22,7 @@ flowchart TB
 
 - **每个区域一个事件中心。** 诊断设置只能发送到资源所在区域的事件中心，因此命令会在你的资源所在的每个区域创建一个 Event Hubs 命名空间，全部放在同一个资源组中，并把每个资源的诊断设置指向其所在区域的事件中心。
 - **OneUptime 读取它们。** Azure Monitor 只发送到事件中心、存储账户或 Log Analytics 工作区，从不发送到你的地址：由 OneUptime 读取的事件中心，是你无需运行任何东西的方式。OneUptime 以连接自己的应用身份登录，该应用只能读取这些事件中心。
-- **读取把流式传输的指标交给流。** 当流在某个区域传送某种资源类型的关键指标时，连接的读取会停止写入这些指标，因此不会有数据点被计算两次。读取会继续发现资源、它们的状态和变更，并在 15 分钟没有事件后重新接手这些指标。
+- **读取把流式传输的指标交给流。** 当流在某个区域传送某种资源类型的关键指标时，连接的读取会停止写入流所携带的那些指标，因此不会有数据点被计算两次，并继续写入[流无法携带的那些](#到达的内容)。读取会继续发现资源、它们的状态和变更，并在 15 分钟没有事件后重新接手这些指标。
 - **OneUptime 无法读取时也不会丢失任何数据。** 事件会在事件中心里等待 OneUptime 读取，只要事件中心还保留着它们；OneUptime 会记住每个分区读到了哪里，从停下的地方继续。
 
 ## 开始之前
@@ -41,7 +41,7 @@ flowchart TB
 
 ### 选择要流式传输的内容
 
-**指标** 按分钟流式传输每个资源的每个关键指标：也就是 OneUptime 为每个资源绘制图表并据以评估它的指标。**指标和日志** 加上每个资源自己的日志，即 Azure 为它保留的每个类别；**日志** 只流式传输资源日志。
+**指标** 按分钟流式传输每个资源的关键指标，也就是 OneUptime 为每个资源绘制图表并据以评估它的指标，但[诊断设置无法发送的那些](#到达的内容)除外，连接会继续读取它们。**指标和日志** 加上每个资源自己的日志，即 Azure 为它保留的每个类别；**日志** 只流式传输资源日志。
 
 ### 开启读取
 
@@ -75,7 +75,20 @@ flowchart TB
 | 资源日志 | 到达日志浏览器中连接的遥测服务下，订阅、区域和类别作为属性 |
 | OneUptime 认识的资源的日志 | 也到达该资源：它在云中的页面会多出一个 **日志** 标签页 |
 
-流传送的是连接按分钟读取的关键指标。连接以更粗的粒度读取的指标，例如存储账户的已用容量，仍由读取负责。日志按资源的 ARM ID 归档在该资源下，以 `cloud.resource_id` 携带，并把类别、操作、结果和属性保留为属性，例如 `azure.category`。
+流传送的是连接按分钟读取的关键指标。其余的仍由读取按计划继续写入：连接以更粗的粒度读取的指标，例如容器注册表的已用存储，以及诊断设置无法发送的每个关键指标，即 Azure Monitor 支持的指标列表在 DS Export 列中标记为不可导出的指标：
+
+- 虚拟机和规模集：`Network In Total`、`Network Out Total`。
+- 磁盘：`Composite Disk Read Bytes/sec`、`Composite Disk Write Bytes/sec`、`Composite Disk Read Operations/sec`、`Composite Disk Write Operations/sec`。
+- Azure Cosmos DB 账户：`TotalRequests`、`TotalRequestUnits`、`NormalizedRUConsumption`、`ServerSideLatency`。
+- 存储账户：`UsedCapacity`。
+- AKS 群集：`kube_pod_status_ready`。
+- 应用程序网关：`ApplicationGatewayTotalTime`、`Throughput`。
+- 防火墙：`Throughput`。
+- NAT 网关：`ByteCount`、`SNATConnectionCount`、`DatapathAvailability`。
+
+Service Bus 或 Event Hubs 命名空间不流式传输任何指标。读取按每个队列、主题和事件中心读取它的关键指标，命名空间自己的总计是它们之和；而诊断设置只发送命名空间的总计，并且完全不发送 Service Bus 命名空间 6 个关键指标中的 4 个，或 Event Hubs 命名空间 4 个中的 2 个。因此无论是否流式传输，读取都会写入全部这些指标，不会有消息被计算两次。
+
+日志按资源的 ARM ID 归档在该资源下，以 `cloud.resource_id` 携带，并把类别、操作、结果和属性保留为属性，例如 `azure.category`。
 
 虚拟机、规模集、磁盘、网络接口、虚拟网络、专用终结点、NAT 网关、DNS 区域和 App Service 计划不发送自己的资源日志，因此它们的页面没有 **日志** 标签页。存储账户的日志是其各项服务的日志，容器应用的日志是其环境的日志。
 

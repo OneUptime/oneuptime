@@ -285,7 +285,7 @@ describe("RemediationCommandToolkit — an inline kubectl change whose job never
     ).not.toContain("try again");
   });
 
-  it("never reuses a never-ran command's step id, and counts it toward the run's command budget", async () => {
+  it("never reuses a never-ran command's step id, and counts it toward the run's limit of commands", async () => {
     poll
       .mockResolvedValueOnce(
         jobRow({
@@ -321,7 +321,9 @@ describe("RemediationCommandToolkit — an inline kubectl change whose job never
 
     const overBudget: ToolCallOutcome = await execute(target);
     expect(overBudget.success).toBe(false);
-    expect(overBudget.textForLlm).toContain("command budget");
+    expect(overBudget.textForLlm).toContain(
+      `This remediation has sent ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands that change things, the most one remediation may send.`,
+    );
     expect(enqueueKubectl).toHaveBeenCalledTimes(
       MAX_AUTO_EXECUTED_COMMANDS_PER_RUN,
     );
@@ -573,7 +575,7 @@ describe("RemediationCommandToolkit — an inline kubectl change the enqueue ref
     expect(recordOutcome).not.toHaveBeenCalled();
   });
 
-  it("its step id is never reused and it counts toward the command budget", async () => {
+  it("its step id is never reused and it counts toward the limit of commands", async () => {
     enqueueKubectl.mockRejectedValueOnce(new Error("queue unavailable"));
     poll.mockResolvedValue(
       jobRow({

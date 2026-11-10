@@ -13,6 +13,18 @@ export interface ComponentProps {
   text: string;
   type?: StatusBadgeType | undefined;
   className?: string | undefined;
+  /*
+   * The text is drawn as given, never looked up: a name someone typed - a
+   * session's own signal, "Payment failed" - which a translation of the
+   * same English words would otherwise replace.
+   */
+  isUserContent?: boolean | undefined;
+  /*
+   * The badge keeps to one line, never wider than the box it is in: words
+   * too long for the room end in "..." - a name someone typed can be long.
+   * Without it a badge wraps, as one of a few short words may.
+   */
+  isOneLine?: boolean | undefined;
 }
 
 const statusStyles: Record<StatusBadgeType, string> = {
@@ -33,12 +45,35 @@ const StatusBadge: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const type: StatusBadgeType = props.type || StatusBadgeType.Neutral;
   const { translateString } = useTranslateValue();
+  const text: string = props.isUserContent
+    ? props.text
+    : translateString(props.text) ?? props.text;
+
+  if (props.isOneLine) {
+    return (
+      <span
+        className={`inline-flex min-w-0 max-w-full items-center whitespace-nowrap px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusStyles[type]} ${props.className || ""}`}
+      >
+        {/*
+         * A name reads the way it is written - an English one on a Persian
+         * page ends in "..." at its own end, not before its first word.
+         */}
+        <span
+          className="min-w-0 truncate"
+          dir={props.isUserContent ? "auto" : undefined}
+          data-testid="status-badge-text"
+        >
+          {text}
+        </span>
+      </span>
+    );
+  }
 
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusStyles[type]} ${props.className || ""}`}
     >
-      {translateString(props.text) ?? props.text}
+      {text}
     </span>
   );
 };

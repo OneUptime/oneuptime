@@ -262,7 +262,7 @@ describe("the notify checkbox descriptions are translated", () => {
 
   test("covers every dashboard locale", () => {
     expect(localeFiles).toContain("en.json");
-    expect(localeFiles.length).toBe(17);
+    expect(localeFiles.length).toBe(18);
   });
 
   test("English maps the quiet description to itself", () => {

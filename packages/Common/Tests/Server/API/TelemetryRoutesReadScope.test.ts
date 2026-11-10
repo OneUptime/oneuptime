@@ -15,6 +15,12 @@ import ProfileSampleService from "../../../Server/Services/ProfileSampleService"
 import TelemetryAttributeService from "../../../Server/Services/TelemetryAttributeService";
 import LlmConversationService from "../../../Server/Services/LlmConversationService";
 import LlmMetricUsageReader from "../../../Server/Utils/Telemetry/LlmMetricUsageReader";
+import LlmUsageReader, {
+  LlmUsageReadQuery,
+} from "../../../Server/Utils/Telemetry/LlmUsageReader";
+import { emptyLlmUsageResponse } from "../../../Types/Telemetry/LlmUsageApi";
+import Metric from "../../../Models/AnalyticsModels/Metric";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import LlmSetupCheckReader, {
   LlmSetupCheckQuery,
 } from "../../../Server/Utils/Telemetry/LlmSetupCheckReader";
@@ -691,6 +697,19 @@ const ROUTE_CASES: Array<RouteCase> = [
     "read",
     { dimension: "employee" },
     { totals: {}, groups: [], truncated: false },
+    false,
+  ),
+  /*
+   * The AI / LLM Usage tab (#6349): the AI calls and the usage metrics. Its
+   * AI calls take the route's own scope (this matrix); its metrics take the
+   * metric model's, pinned in the usage route's describe below.
+   */
+  aggregationCase(
+    "/telemetry/llm/usage",
+    LlmUsageReader,
+    "read",
+    { dimension: "employee" },
+    emptyLlmUsageResponse(),
     false,
   ),
   /*
@@ -1888,6 +1907,152 @@ describe("the AI / LLM conversation routes", () => {
   });
 });
 
+/*
+ * A conversation's prompts and answers an app sent as GenAI log events, and
+ * the list titles read from them, are LOGS: both conversation routes hand
+ * the reads the caller's log scope - what they may read on the Logs page -
+ * apart from the trace scope the calls themselves are read in, and none
+ * when they may read no app's logs.
+ */
+describe("the AI / LLM conversation routes read log events in the caller's log scope", () => {
+  const LIST: string = "/telemetry/llm/conversations";
+  const DETAIL: string = "/telemetry/llm/conversation";
+
+  interface LogScopes {
+    list: TelemetryReadScope | null;
+    detail: TelemetryReadScope | null;
+  }
+
+  function principalWith(permissions: Array<UserPermission>): Principal {
+    const permissionMap: JSONObject = {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: permissions,
+      },
+    } as unknown as JSONObject;
+
+    return {
+      request: {
+        userType: UserType.User,
+        tenantId: PROJECT_ID,
+        userTenantAccessPermission: permissionMap,
+        userAuthorization: { userId: USER_ID },
+      } as unknown as JSONObject,
+      props: {
+        tenantId: PROJECT_ID,
+        userId: USER_ID,
+        userType: UserType.User,
+        userTeamIds: [TEAM_ID],
+        userTenantAccessPermission: permissionMap as never,
+      },
+    };
+  }
+
+  async function logScopesOf(principal: Principal): Promise<LogScopes> {
+    currentPrincipal = principal;
+    const list: Spy = spyOn(LlmConversationService, "listConversations");
+    list.mockResolvedValue({
+      summary: null,
+      conversations: [],
+      hasMore: false,
+    });
+    const detail: Spy = spyOn(LlmConversationService, "getConversation");
+    detail.mockResolvedValue({ transcript: { steps: [] } });
+
+    const listed: CallResult = await callRoute({
+      uri: LIST,
+      principal: principal,
+      body: {},
+    });
+    const opened: CallResult = await callRoute({
+      uri: DETAIL,
+      principal: principal,
+      body: { key: "c:conv-1" },
+    });
+
+    expect(listed.thrownToNext).toBeUndefined();
+    expect(listed.errorResponse).toBeUndefined();
+    expect(opened.thrownToNext).toBeUndefined();
+    expect(opened.errorResponse).toBeUndefined();
+
+    return {
+      list: (list.mock.calls[0]![0] as { logScope: TelemetryReadScope | null })
+        .logScope,
+      detail: (
+        detail.mock.calls[0]![0] as { logScope: TelemetryReadScope | null }
+      ).logScope,
+    };
+  }
+
+  test.each(PRINCIPALS)(
+    "a %s reader's log events keep exactly the services whose logs they may read",
+    async (principalName: PrincipalName) => {
+      const scopes: LogScopes = await logScopesOf(
+        principalFor(principalName, Permission.ProjectMember),
+      );
+
+      for (const scope of [scopes.list, scopes.detail]) {
+        expect(scope).not.toBeNull();
+        expect(
+          filterOf(TelemetryReadScopeUtil.toServiceFilter(scope!)),
+        ).toEqual(EXPECTED[principalName]);
+      }
+    },
+  );
+
+  test("a reader of traces who may not read logs: no log scope, and the calls are still read", async () => {
+    const scopes: LogScopes = await logScopesOf(
+      principalWith([
+        row(Permission.ReadTelemetryServiceTraces, {
+          scope: PermissionScope.All,
+        }),
+      ]),
+    );
+
+    expect(scopes.list).toBeNull();
+    expect(scopes.detail).toBeNull();
+  });
+
+  test("traces of every app, logs of label A's: the log scope is label A's apps", async () => {
+    const scopes: LogScopes = await logScopesOf(
+      principalWith([
+        row(Permission.ReadTelemetryServiceTraces, {
+          scope: PermissionScope.All,
+        }),
+        row(Permission.ReadTelemetryServiceLog, {
+          scope: PermissionScope.Labels,
+          labelIds: [LABEL_A],
+        }),
+      ]),
+    );
+
+    for (const scope of [scopes.list, scopes.detail]) {
+      expect(TelemetryReadScopeUtil.getReadableIds(scope!)).toEqual([
+        SERVICE_A.toString().toLowerCase(),
+      ]);
+      expect(TelemetryReadScopeUtil.isReadable(scope!, SERVICE_C)).toBe(false);
+    }
+  });
+
+  test("logs granted for a label no app carries: no log scope", async () => {
+    const scopes: LogScopes = await logScopesOf(
+      principalWith([
+        row(Permission.ReadTelemetryServiceTraces, {
+          scope: PermissionScope.All,
+        }),
+        row(Permission.ReadTelemetryServiceLog, {
+          scope: PermissionScope.Labels,
+          labelIds: [ObjectID.generate()],
+        }),
+      ]),
+    );
+
+    expect(scopes.list).toBeNull();
+    expect(scopes.detail).toBeNull();
+  });
+});
+
 describe("every /telemetry/* route", () => {
   // Routes whose scope cases live outside ROUTE_CASES, and where.
   const TESTED_ON_THEIR_OWN: Record<string, string> = {
@@ -2220,6 +2385,195 @@ describe("the AI / LLM setup check reads each signal in the caller's scope", () 
 
     expect(result.errorResponse).toBeDefined();
     expect(read).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The Usage tab's read counts the AI calls (spans: the matrix above) and
+ * the usage metrics, which take the metric model's scope - for these
+ * readers the same services. A caller who may not read metrics gets the
+ * AI calls alone (metricFilter null, and the answer says the metrics were
+ * left out), never metrics read unscoped.
+ */
+describe("the AI / LLM usage route", () => {
+  const USAGE: string = "/telemetry/llm/usage";
+
+  function stubRead(): Spy {
+    const read: Spy = spyOn(LlmUsageReader, "read");
+    read.mockResolvedValue(emptyLlmUsageResponse());
+    return read;
+  }
+
+  function queryOf(read: Spy): LlmUsageReadQuery {
+    return read.mock.calls[0]![0] as LlmUsageReadQuery;
+  }
+
+  test.each(PRINCIPALS)(
+    "a %s reader's usage metrics keep exactly the services they may read",
+    async (principalName: PrincipalName) => {
+      currentPrincipal = principalFor(principalName, Permission.ProjectMember);
+      const read: Spy = stubRead();
+
+      const result: CallResult = await callRoute({
+        uri: USAGE,
+        principal: currentPrincipal,
+        body: {},
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.errorResponse).toBeUndefined();
+      expect(filterOf(queryOf(read).metricFilter)).toEqual(
+        EXPECTED[principalName],
+      );
+      expect(queryOf(read).metricFilter).not.toBeNull();
+    },
+  );
+
+  test("a caller who may not read metrics reads the AI calls alone", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = stubRead();
+    const getServiceFilter: typeof TelemetryReadAccess.getServiceFilter =
+      TelemetryReadAccess.getServiceFilter.bind(TelemetryReadAccess);
+
+    spyOn(TelemetryReadAccess, "getServiceFilter").mockImplementation(
+      async (
+        data: Parameters<typeof TelemetryReadAccess.getServiceFilter>[0],
+      ) => {
+        if (data.modelType === Metric) {
+          throw new NotAuthorizedException("You may not read metrics.");
+        }
+
+        return await getServiceFilter(data);
+      },
+    );
+
+    const result: CallResult = await callRoute({
+      uri: USAGE,
+      principal: currentPrincipal,
+      body: {},
+    });
+
+    expect(result.thrownToNext).toBeUndefined();
+    expect(result.errorResponse).toBeUndefined();
+    expect(queryOf(read).metricFilter).toBeNull();
+    expect(filterOf(queryOf(read))).toEqual(EXPECTED["project-wide"]);
+  });
+
+  test("a metrics scope that could not be looked up fails the read, never reads as the role", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = stubRead();
+    const getServiceFilter: typeof TelemetryReadAccess.getServiceFilter =
+      TelemetryReadAccess.getServiceFilter.bind(TelemetryReadAccess);
+    const lookupFailed: Error = new Error("connection reset");
+
+    spyOn(TelemetryReadAccess, "getServiceFilter").mockImplementation(
+      async (
+        data: Parameters<typeof TelemetryReadAccess.getServiceFilter>[0],
+      ) => {
+        if (data.modelType === Metric) {
+          throw lookupFailed;
+        }
+
+        return await getServiceFilter(data);
+      },
+    );
+
+    const result: CallResult = await callRoute({
+      uri: USAGE,
+      principal: currentPrincipal,
+      body: {},
+    });
+
+    expect(result.thrownToNext).toBe(lookupFailed);
+    expect(read.mock.calls).toHaveLength(0);
+  });
+
+  test("reads the asked range and dimension", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = stubRead();
+
+    await callRoute({
+      uri: USAGE,
+      principal: currentPrincipal,
+      body: {
+        startTime: "2026-10-28T00:00:00.000Z",
+        endTime: "2026-11-04T00:00:00.000Z",
+        dimension: "service",
+      },
+    });
+
+    expect(queryOf(read).startTime.toISOString()).toBe(
+      "2026-10-28T00:00:00.000Z",
+    );
+    expect(queryOf(read).endTime.toISOString()).toBe(
+      "2026-11-04T00:00:00.000Z",
+    );
+    expect(queryOf(read).dimension).toBe("service");
+    // A person's read is never a budget's: no budget scope.
+    expect(queryOf(read).serviceId).toBeUndefined();
+    expect(queryOf(read).llmSystem).toBeUndefined();
+    expect(queryOf(read).llmModel).toBeUndefined();
+  });
+
+  test("a dimension it does not know reads totals", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = stubRead();
+
+    await callRoute({
+      uri: USAGE,
+      principal: currentPrincipal,
+      body: { dimension: "everything" },
+    });
+
+    expect(queryOf(read).dimension).toBe("none");
+  });
+
+  test("no range reads the past week", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = stubRead();
+
+    await callRoute({ uri: USAGE, principal: currentPrincipal, body: {} });
+
+    expect(
+      Math.round(
+        (queryOf(read).endTime.getTime() - queryOf(read).startTime.getTime()) /
+          86400000,
+      ),
+    ).toBe(7);
+  });
+
+  test("a range that ends before it starts is refused", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = stubRead();
+
+    const result: CallResult = await callRoute({
+      uri: USAGE,
+      principal: currentPrincipal,
+      body: {
+        startTime: "2026-11-04T00:00:00.000Z",
+        endTime: "2026-10-28T00:00:00.000Z",
+      },
+    });
+
+    expect(result.errorResponse).toBeDefined();
+    expect(read.mock.calls).toHaveLength(0);
+  });
+
+  test("answers what the read answered", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmUsageReader, "read");
+    read.mockResolvedValue({
+      ...emptyLlmUsageResponse(),
+      metricsLeftOut: true,
+    });
+
+    await callRoute({ uri: USAGE, principal: currentPrincipal, body: {} });
+
+    const body: JSONObject = (
+      Response.sendJsonObjectResponse as unknown as jest.Mock
+    ).mock.calls[0]![2] as JSONObject;
+
+    expect(body["metricsLeftOut"]).toBe(true);
   });
 });
 

@@ -367,6 +367,30 @@ describe("summarizeReplayTabs from a realistic manifest", () => {
     expect(tabs[2]?.frustrationCount).toBe(0);
   });
 
+  test("counts the application's own frustration signals with the built-in ones, never its markers", () => {
+    const response: JSONObject = manifestResponse();
+    const tabRows: Array<JSONObject> = response["tabs"] as Array<JSONObject>;
+    const payChunks: Array<JSONObject> = (tabRows[0] as JSONObject)[
+      "chunks"
+    ] as Array<JSONObject>;
+    const checkoutChunks: Array<JSONObject> = (tabRows[1] as JSONObject)[
+      "chunks"
+    ] as Array<JSONObject>;
+
+    /* Three of the application's own signals; two counted as frustration. */
+    (payChunks[1] as JSONObject)["customSignalCount"] = 3;
+    (payChunks[1] as JSONObject)["customSignalFrustrationCount"] = 2;
+    /* A marker only: a hit, never a frustration. */
+    (checkoutChunks[0] as JSONObject)["customSignalCount"] = 1;
+    (checkoutChunks[0] as JSONObject)["customSignalFrustrationCount"] = 0;
+
+    const summarized: Array<ReplayTabSummary> = summarize(response, null);
+
+    /* rage 1 + dead 2 + error-click 1 + refresh-rage 1 + own 2 */
+    expect(summarized[1]?.frustrationCount).toBe(7);
+    expect(summarized[0]?.frustrationCount).toBe(0);
+  });
+
   test("a blank chunk url does not hide a page the tab did report", () => {
     const response: JSONObject = manifestResponse();
     const tabRows: Array<JSONObject> = response["tabs"] as Array<JSONObject>;

@@ -63,7 +63,11 @@ function webhook(): IncomingMonitorRequest {
   return {
     projectId: PROJECT_ID,
     monitorId: MONITOR_ID,
-    requestHeaders: { "x-signature": "sig\u0000nature" },
+    /*
+     * A header no rule masks: a credential's would be (the log is cut as
+     * the monitor's logs are - MonitorCheckCopiesRedaction.test.ts).
+     */
+    requestHeaders: { "x-delivery-label": "sig\u0000nature" },
     requestBody: {
       status: "firing\u0000",
       ["labels\u0000"]: { host: "db-1" },
@@ -132,7 +136,7 @@ describe("MonitorStatusTimelineUtil stores a statusChangeLog Postgres can hold",
       ["labels\uFFFD"]: { host: "db-1" },
     });
     expect(statusChangeLog["requestHeaders"]).toEqual({
-      "x-signature": "sig\uFFFDnature",
+      "x-delivery-label": "sig\uFFFDnature",
     });
     // Everything else is the JSON copy it always was.
     expect(statusChangeLog["incomingRequestReceivedAt"]).toBe(

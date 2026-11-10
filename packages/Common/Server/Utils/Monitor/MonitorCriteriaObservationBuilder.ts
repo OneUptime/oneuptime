@@ -70,6 +70,7 @@ import ExceptionLearnedBaselineUtil from "./ExceptionLearnedBaseline";
 import { isExceptionCountAnomaly } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import PerEntityCriteriaFanOut from "./PerEntityCriteriaFanOut";
 import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
+import MonitorQuotedValue from "./MonitorQuotedValue";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
 import Dictionary from "../../../Types/Dictionary";
 
@@ -82,6 +83,13 @@ const TRAILING_PERIOD: RegExp = /\.$/;
  * that runs past the sample's end is seen whole by the rules.
  */
 const SAMPLED_BODY_CHARS: number = 2000;
+
+/*
+ * How much of a script's result, or of one of its log lines, a sentence
+ * quotes; and of its error, whose first words say what went wrong.
+ */
+const SCRIPT_RESULT_CHARS: number = 120;
+const SCRIPT_ERROR_CHARS: number = 80;
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -1394,14 +1402,16 @@ export default class MonitorCriteriaObservationBuilder {
         input.dataToProcess,
       );
 
+    /*
+     * What a script returned, printed or threw is quoted as a root cause
+     * may quote it: redacted, on one line and bounded (MonitorQuotedValue).
+     */
     const resultValues: Array<string> = syntheticResponses
-      .map((response: SyntheticMonitorResponse) => {
-        return MonitorCriteriaMessageFormatter.formatResultValue(
-          response.result,
-        );
+      .filter((response: SyntheticMonitorResponse) => {
+        return response.result !== undefined && response.result !== null;
       })
-      .filter((value: string) => {
-        return value !== "undefined";
+      .map((response: SyntheticMonitorResponse) => {
+        return MonitorCriteriaObservationBuilder.quoteResult(response.result);
       });
 
     if (resultValues.length > 0) {
@@ -1416,15 +1426,17 @@ export default class MonitorCriteriaObservationBuilder {
       );
 
     if (customCodeResponse && customCodeResponse.result !== undefined) {
-      const formatted: string =
-        MonitorCriteriaMessageFormatter.formatResultValue(
-          customCodeResponse.result,
-        );
-
-      return `Result Value was ${MonitorCriteriaMessageFormatter.formatSnippet(formatted)}.`;
+      return `Result Value was ${MonitorCriteriaObservationBuilder.quoteResult(customCodeResponse.result)}.`;
     }
 
     return "Result value was unavailable.";
+  }
+
+  // A script's result, quoted: a result of null reads as null.
+  private static quoteResult(result: unknown): string {
+    return result === null
+      ? "null"
+      : MonitorQuotedValue.quote(result, SCRIPT_RESULT_CHARS);
   }
 
   private static describeErrorObservation(input: {
@@ -1443,7 +1455,7 @@ export default class MonitorCriteriaObservationBuilder {
         return Boolean(value);
       })
       .map((error: string) => {
-        return MonitorCriteriaMessageFormatter.formatSnippet(error, 80);
+        return MonitorQuotedValue.quote(error, SCRIPT_ERROR_CHARS);
       });
 
     if (errors.length > 0) {
@@ -1456,11 +1468,17 @@ export default class MonitorCriteriaObservationBuilder {
       );
 
     if (customCodeResponse?.scriptError) {
-      return `Script error: ${MonitorCriteriaMessageFormatter.formatSnippet(customCodeResponse.scriptError, 80)}.`;
+      return `Script error: ${MonitorQuotedValue.quote(customCodeResponse.scriptError, SCRIPT_ERROR_CHARS)}.`;
     }
 
     if (customCodeResponse?.logMessages?.length) {
-      return `Script log messages: ${MonitorCriteriaMessageFormatter.formatList(customCodeResponse.logMessages)}.`;
+      const logMessages: Array<string> = customCodeResponse.logMessages.map(
+        (message: string) => {
+          return MonitorQuotedValue.quote(message, SCRIPT_RESULT_CHARS);
+        },
+      );
+
+      return `Script log messages: ${MonitorCriteriaMessageFormatter.formatList(logMessages)}.`;
     }
 
     return "No script errors were reported.";

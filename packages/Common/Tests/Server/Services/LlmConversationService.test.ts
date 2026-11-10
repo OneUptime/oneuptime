@@ -54,6 +54,7 @@ function detailQuery(
     key: { kind: LlmConversationKeyKind.Conversation, value: "conv-1" },
     startTime: new Date("2026-10-09T08:00:00.000Z"),
     endTime: new Date("2026-10-11T09:00:00.000Z"),
+    logScope: null,
     ...overrides,
   };
 }
@@ -168,6 +169,47 @@ describe("the list statement", () => {
     ).not.toContain(" HAVING ");
   });
 
+  /*
+   * An agent run's or a wrapper span's repeat of what its calls report is
+   * left out (LlmCountedCallsSql), as the Usage tab and the transcript
+   * count them: a conversation run by an agent framework that records the
+   * run's totals no longer reads as twice its cost.
+   */
+  test("each model call's cost and tokens count once", () => {
+    expect(sql).toContain(
+      "sum(if((cityHash64(traceId, spanId, 'c') IN (SELECT cityHash64(traceId, ifNull(parentSpanId, ''), arrayJoin(",
+    );
+    expect(sql).toContain(
+      ", 0, llmCost)) AS costUsd, sum(if((cityHash64(traceId, spanId, 't') IN (",
+    );
+    expect(sql).toContain(
+      ", 0, llmInputTokens)) AS inputTokens, sum(if((cityHash64(traceId, spanId, 't') IN (",
+    );
+    expect(sql).toContain(", 0, llmOutputTokens)) AS outputTokens, ");
+    expect(sql).not.toContain("sum(llmCost)");
+    expect(sql).not.toContain("sum(llmInputTokens)");
+    expect(sql).not.toContain("sum(llmOutputTokens)");
+  });
+
+  /*
+   * The calls inside a wrapper are read with the caller's scope, never the
+   * conversation's filters: a filter on a model keeps the conversations
+   * that used it, and their calls of other models still cover their
+   * wrappers.
+   */
+  test("the calls inside a wrapper are read with the caller's scope alone", () => {
+    // The outer WHERE, and three figures' sets of four reads each.
+    expect(sql.split("AND primaryEntityId IN (").length - 1).toBe(13);
+    expect(sql.split("AND primaryEntityId NOT IN (").length - 1).toBe(13);
+    // The conversation filters are in the HAVING alone.
+    const having: string = sql.slice(sql.indexOf(" HAVING "));
+
+    for (const filter of ["llmRequestModel = ", "llmUserEmail ILIKE "]) {
+      expect(having).toContain(filter);
+      expect(sql.split(filter).length).toBe(having.split(filter).length);
+    }
+  });
+
   test("'any' issue keeps every conversation with a problem, by status too", () => {
     const anyIssue: string = LlmConversationService.buildListStatement(
       listQuery({ issue: "any" }),
@@ -233,6 +275,13 @@ describe("the summary statement", () => {
   test("an outer aggregate never shares its alias with the inner column it reads", () => {
     expect(sql).toContain("sum(inner_callCount) AS callCount");
     expect(sql).not.toMatch(/sum\(callCount\) AS callCount/);
+  });
+
+  test("each model call's cost and tokens count once, as in the list", () => {
+    expect(sql).toContain(", 0, llmCost)) AS inner_costUsd, ");
+    expect(sql).toContain(", 0, llmInputTokens)) AS inner_inputTokens, ");
+    expect(sql).toContain(", 0, llmOutputTokens)) AS inner_outputTokens, ");
+    expect(sql).not.toContain("sum(llmCost)");
   });
 });
 
@@ -490,6 +539,20 @@ describe("the answer count statement (the AI / LLM monitor)", () => {
     expect(sql).toContain(
       "countIf((llmCallKind = 'answer' OR (llmCallKind = '' AND llmRequestModel != '')) AND (",
     );
+  });
+
+  /*
+   * The monitor counts answers and adds up no tokens or cost, so nothing a
+   * wrapper repeats reaches it: an agent run is not an answer.
+   */
+  test("it adds up no tokens or cost", () => {
+    const sql: string =
+      LlmConversationService.buildAnswerCountStatement(countQuery()).query;
+
+    expect(sql).not.toContain("llmCost");
+    expect(sql).not.toContain("llmInputTokens");
+    expect(sql).not.toContain("llmOutputTokens");
+    expect(sql).not.toContain("llmCallKind = 'agent'");
   });
 
   test("each problem it counts is one OR'd condition on llmIssues", () => {

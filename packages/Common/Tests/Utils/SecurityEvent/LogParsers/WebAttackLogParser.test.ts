@@ -115,9 +115,20 @@ describe("WebAttackLogParser", () => {
   test("every marker is found whatever its case", () => {
     for (const group of WEB_ATTACK_MARKERS) {
       for (const marker of group.markers) {
-        expect(readWebAttackKind(`GET /x?q=${marker.toUpperCase()}`)).toBe(
-          group.kind,
-        );
+        /*
+         * A Log4Shell marker counts before a lookup (WebAttackLog4ShellLookup
+         * test): "${jndi:" then where to look, "%24%7bjndi" then its colon.
+         */
+        const lookup: string =
+          group.kind !== WebAttackKind.Log4Shell
+            ? ""
+            : marker.endsWith(":")
+              ? "ldap://x}"
+              : "%3Aldap://x}";
+
+        expect(
+          readWebAttackKind(`GET /x?q=${marker.toUpperCase()}${lookup}`),
+        ).toBe(group.kind);
       }
     }
   });

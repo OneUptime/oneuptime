@@ -34,6 +34,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * Where each repository is hosted, by id, for the mark beside its name on
@@ -202,6 +204,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <CodeTaskList
             scope={{ allRepositories: true }}
+            showFilters={true}
             repositoryNames={repositoryNames}
             repositoryHosts={repositoryHosts}
             onCount={(count: number) => {
@@ -272,6 +275,15 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             connection={connection}
             onConnectOtherHost={connectDialog.open}
           />
+          {/* What Code does once a repository is in (ProductOnboarding). */}
+          <div className="mt-6">
+            {/* The connect card above says what Code does, and its steps. */}
+            <ProductShowcase
+              product={ProductKey.Code}
+              hidesSteps={true}
+              hidesDescription={true}
+            />
+          </div>
           {/* Tasks that never found a repository stay readable. */}
           {data && data.tasksWithoutRepositoryCount > 0 ? renderTasks() : <></>}
         </div>

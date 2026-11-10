@@ -701,8 +701,9 @@ describe("the pages draw switches first, and fold the limits", () => {
     /*
      * Switch first. Then the project's AI context (#5198), in sight: what
      * OneUptime AI should know about the team's systems, one quiet line
-     * with none written. The page's other card - the project's Daily
-     * limits - is folded under More settings, after both.
+     * with none written. The page's other cards - the project's Daily
+     * limits and its Limits per run (#6440) - are folded under More
+     * settings, after both.
      */
     expect(page.indexOf("<ProjectAiContextCard />")).toBeGreaterThan(
       page.indexOf(
@@ -716,7 +717,10 @@ describe("the pages draw switches first, and fold the limits", () => {
     expect(page.indexOf("<CardModelDetail")).toBeGreaterThan(
       page.indexOf("<AdvancedPageSection"),
     );
-    expect(page.split("<CardModelDetail").length - 1).toBe(1);
+    expect(page.lastIndexOf("<CardModelDetail")).toBeLessThan(
+      page.indexOf("</AdvancedPageSection>"),
+    );
+    expect(page.split("<CardModelDetail").length - 1).toBe(2);
 
     expect(confirmation).toContain("if (isTurningOn) { return undefined; }");
     expect(confirmation).toContain("submitButtonType: ButtonStyleType.DANGER");
@@ -1293,7 +1297,7 @@ describe("translations", () => {
       "Every new incident is investigated unless you narrow it down here.",
       "Every new alert is investigated unless you narrow it down here.",
       "Investigation limits",
-      "Investigations start right away and run until they are done unless you set a limit here.",
+      "Investigations start right away and run until they are done, within the project's time limit per run, unless you set a limit here.",
       "Daily limits",
       "How much incident AI work may run each day (UTC). Ask AI is never limited.",
       "How much alert AI work may run each day (UTC). Ask AI is never limited.",
@@ -1301,6 +1305,13 @@ describe("translations", () => {
       "The most tokens alert AI work may use each day: investigations, remediation and fix tasks. Leave empty for no limit, or set 0 to pause it.",
       "How many fix pull requests OneUptime AI may start for incidents each day. Leave empty for no limit, or 0 to pause them.",
       "How many fix pull requests OneUptime AI may start for alerts each day. Leave empty for no limit, or 0 to pause them.",
+      /*
+       * An empty investigation time limit is the project's time limit per
+       * run (issue #6440), no longer "No time limit".
+       */
+      "The project's time limit",
+      "Stop an incident investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
+      "Stop an alert investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
     ]),
   );
 
@@ -1325,7 +1336,6 @@ describe("translations", () => {
     "Every severity",
     "No cooldown",
     "No limit",
-    "No time limit",
     "Configured",
     "Advanced",
   ];

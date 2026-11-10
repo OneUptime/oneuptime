@@ -748,6 +748,7 @@ integration("AI conversations against ClickHouse", () => {
         },
         startTime: windowStart,
         endTime: windowEnd,
+        logScope: null,
       });
 
     expect(detail.truncated).toBe(false);
@@ -777,6 +778,7 @@ integration("AI conversations against ClickHouse", () => {
         key: { kind: LlmConversationKeyKind.Request, value: TRACE_REQUEST },
         startTime: windowStart,
         endTime: windowEnd,
+        logScope: null,
       });
 
     expect(detail.transcript.callCount).toBe(3);
@@ -803,6 +805,7 @@ integration("AI conversations against ClickHouse", () => {
         },
         startTime: windowStart,
         endTime: windowEnd,
+        logScope: null,
       });
 
     const failure: LlmTranscriptStep | undefined = detail.transcript.steps.find(
@@ -826,6 +829,7 @@ integration("AI conversations against ClickHouse", () => {
         startTime: windowStart,
         endTime: windowEnd,
         excludedServiceIds: [internalToolId],
+        logScope: null,
       });
 
     expect(detail.transcript.callCount).toBe(0);
@@ -842,6 +846,7 @@ integration("AI conversations against ClickHouse", () => {
         },
         startTime: windowStart,
         endTime: windowEnd,
+        logScope: null,
       });
 
     expect(detail.transcript.callCount).toBe(1);
@@ -861,6 +866,7 @@ integration("AI conversations against ClickHouse", () => {
       key: { kind: LlmConversationKeyKind.Conversation, value: "conv-quick" },
       startTime: windowStart,
       endTime: windowEnd,
+      logScope: null,
     });
   }
 

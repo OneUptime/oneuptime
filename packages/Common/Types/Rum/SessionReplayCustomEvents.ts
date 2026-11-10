@@ -1,5 +1,9 @@
 import { SessionRotationReason } from "../../Utils/Rum/SessionIdentity";
 import { isSessionReplayStringMap } from "../../Utils/Rum/SessionReplayStringMap";
+import {
+  SessionReplayCustomSignalTrigger,
+  isSessionReplayCustomSignalTrigger,
+} from "./SessionReplayFrustrationSignals";
 
 /*
  * The rrweb type-5 custom events the recorder embeds in the payload
@@ -63,6 +67,12 @@ export interface SessionReplayCustomEventTagMap {
   readonly IdlePaused: "oneuptime.idle-paused";
   /* Input came back after an idle pause; capture resumed on a snapshot. */
   readonly IdleResumed: "oneuptime.idle-resumed";
+  /*
+   * One of the application's own signals happened (a click on an element,
+   * a page, a track() event or an error it named on its Frustration
+   * Signals page). Capped per chunk.
+   */
+  readonly CustomSignal: "oneuptime.signal";
 }
 
 export const SessionReplayCustomEventTag: SessionReplayCustomEventTagMap = {
@@ -83,6 +93,7 @@ export const SessionReplayCustomEventTag: SessionReplayCustomEventTagMap = {
   Tags: "oneuptime.tags",
   IdlePaused: "oneuptime.idle-paused",
   IdleResumed: "oneuptime.idle-resumed",
+  CustomSignal: "oneuptime.signal",
 };
 
 export type SessionReplayCustomEventTagValue =
@@ -353,6 +364,23 @@ export interface SessionReplayCustomPayload {
 
 export interface SessionReplayCustomDroppedPayload {
   count: number;
+}
+
+/*
+ * A signal of the application's own. Carries the signal's NAME, which the
+ * application chose, and never what it matched: not the error's text, not
+ * the page's address, not the element's content. isFrustration is whether
+ * it counted as frustration when it happened, so a later change to the
+ * signal does not rewrite what this recording says.
+ */
+export interface SessionReplayCustomSignalPayload {
+  name: string;
+  trigger: SessionReplayCustomSignalTrigger;
+  isFrustration: boolean;
+  atUnixMs: number;
+  /* Present for click signals. Viewport coordinates, never content. */
+  x?: number;
+  y?: number;
 }
 
 /*
@@ -633,6 +661,19 @@ export function isSessionReplayCustomDroppedPayload(
   value: unknown,
 ): value is SessionReplayCustomDroppedPayload {
   return isRecord(value) && isFiniteNumber(value["count"]);
+}
+
+export function isSessionReplayCustomSignalPayload(
+  value: unknown,
+): value is SessionReplayCustomSignalPayload {
+  return (
+    isRecord(value) &&
+    typeof value["name"] === "string" &&
+    value["name"].length > 0 &&
+    isSessionReplayCustomSignalTrigger(value["trigger"]) &&
+    typeof value["isFrustration"] === "boolean" &&
+    isFiniteNumber(value["atUnixMs"])
+  );
 }
 
 export function isSessionReplayIdentifyPayload(

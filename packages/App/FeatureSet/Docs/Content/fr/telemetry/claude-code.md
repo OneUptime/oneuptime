@@ -64,7 +64,7 @@ Les variables sont lues au démarrage de Claude Code. Les métriques sont envoy�
 
 ### Vérifier que les données arrivent
 
-Ouvrez **Métriques** et cherchez `claude_code.token.usage`, puis ouvrez **Produits → IA / LLM** et allez dans **Utilisation** : votre coût apparaît sous votre e-mail, marqué **depuis les métriques GenAI**.
+Ouvrez **Métriques** et cherchez `claude_code.token.usage`, puis ouvrez **Produits → IA / LLM** et allez dans **Utilisation** : votre coût apparaît sous votre e-mail, marqué **Depuis les métriques d'utilisation**.
 :::
 
 Pour envoyer les métriques et les événements à des endroits différents, définissez plutôt `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` et `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, avec le chemin complet (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 Sous **Produits → IA / LLM → Utilisation**, `claude_code.cost.usage` alimente les tableaux **Employé**, **Équipe** et **Modèle**, et `claude_code.token.usage` les totaux de jetons. Deux règles décident de ce que vous voyez :
 
-- **Les métriques prennent le relais des spans ; elles ne s'y ajoutent jamais.** Si le même projet reçoit des spans GenAI avec un coût depuis vos propres applications, les dépenses de Claude Code n'apparaissent pas. Envoyez Claude Code dans un projet à lui. Voir [Les spans d'abord, les métriques en relais](/docs/telemetry/ai-llm-observability#les-spans-dabord-les-métriques-en-relais).
-- **Une ligne issue des métriques ne porte que le coût.** Ses cellules d'appels et de jetons affichent `—`, et les tableaux **Fournisseur** et **Application / Service** restent vides : les métriques ne nomment aucun fournisseur et n'appartiennent à aucun service OneUptime.
+- **Claude Code est compté à côté de vos applications.** Ses métriques arrivent sous son propre service, donc ses dépenses s'ajoutent aux appels d'IA que vos applications envoient au même projet. Si vous activez ses traces (bêta), activez-les pour tout le monde : dès lors, Claude Code est compté depuis ses traces seules, une fois. Voir [Chaque service est compté à partir de ce qu'il envoie](/docs/telemetry/ai-llm-observability#chaque-service-est-compté-à-partir-de-ce-quil-envoie).
+- **Une ligne issue des métriques ne nomme aucun appel.** Elle indique **Depuis les métriques d'utilisation** sous son nom, sa cellule d'appels affiche `—`, et le tableau **Fournisseur** la range sous **Non attribué** : les métriques ne nomment aucun fournisseur.
 
 Tout le reste, comme le taux d'acceptation, les lignes de code, les commits et les pull requests par développeur, ou les dépenses par `query_source`, se représente sur un [tableau de bord](/docs/dashboards/index) à partir des métriques ci-dessous, et s'alerte avec une [surveillance des métriques](/docs/monitor/metrics-monitor).
 

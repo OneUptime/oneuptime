@@ -1746,10 +1746,17 @@ describe("when an episode's card's ranges start and end, as its Overview works t
     ).toBe(CREATED_AT);
   });
 
-  test.each<ResolvedStateList>([
+  /*
+   * Typed where it is declared: Jest 28's test.each (@jest/globals) takes no
+   * type argument for a list of single values, and infers StateListType[]
+   * from a bare literal, which the callback's ResolvedStateList does not take.
+   */
+  const lists: Array<ResolvedStateList> = [
     StateListType.IncidentState,
     StateListType.AlertState,
-  ])(
+  ];
+
+  test.each(lists)(
     "%s: open, resolved, Closed after Resolved, reopened and resolved again",
     (list: ResolvedStateList) => {
       const episode: IncidentEpisodeRootCauseRow = { createdAt: CREATED_AT };

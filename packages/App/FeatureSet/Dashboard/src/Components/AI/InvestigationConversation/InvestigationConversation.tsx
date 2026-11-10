@@ -14,6 +14,11 @@ import {
 import WidgetRenderer from "../../AIChat/Widgets/WidgetRenderer";
 import AnswerCitationChip from "./AnswerCitationChip";
 import AnswerSources from "./AnswerSources";
+import InvestigationStopNote from "../InvestigationReport/InvestigationStopNote";
+import {
+  AnswerStopNoteSplit,
+  splitAnswerStopNote,
+} from "Common/Utils/AI/InvestigationReport";
 import ConversationComposer from "./ConversationComposer";
 import { EventStanding } from "../../../Utils/EventDuration";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
@@ -517,34 +522,57 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * An answer a limit stopped ends with OneUptime's line saying so: it is
+     * drawn under the answer as the AI card draws it (InvestigationStopNote),
+     * its setting a link the card builds, not an italic paragraph whose link
+     * was dotted text in safe mode.
+     */
+    const answer: AnswerStopNoteSplit = splitAnswerStopNote(
+      message.content || "",
+    );
+
     return (
       <div className="mt-0.5 space-y-3">
         {message.content ? (
-          <div className="text-sm leading-6 text-gray-700">
-            {/*
-              Safe mode: the answer is shaped by telemetry an attacker can
-              influence, so links and images never render — navigation is
-              only through the server-minted citations.
-            */}
-            <MarkdownViewer
-              text={message.content}
-              safeMode={true}
-              inlineReferences={{
-                renderCitation: (citationId: string): ReactElement | null => {
-                  const citation: AIChatCitation | undefined =
-                    message.citations.find(
-                      (candidate: AIChatCitation): boolean => {
-                        return candidate.id === citationId;
-                      },
-                    );
+          <>
+            {answer.answerMarkdown.trim() ? (
+              <div className="text-sm leading-6 text-gray-700">
+                {/*
+                  Safe mode: the answer is shaped by telemetry an attacker
+                  can influence, so links and images never render —
+                  navigation is only through the server-minted citations.
+                */}
+                <MarkdownViewer
+                  text={answer.answerMarkdown}
+                  safeMode={true}
+                  inlineReferences={{
+                    renderCitation: (
+                      citationId: string,
+                    ): ReactElement | null => {
+                      const citation: AIChatCitation | undefined =
+                        message.citations.find(
+                          (candidate: AIChatCitation): boolean => {
+                            return candidate.id === citationId;
+                          },
+                        );
 
-                  return citation ? (
-                    <AnswerCitationChip citation={citation} />
-                  ) : null;
-                },
-              }}
-            />
-          </div>
+                      return citation ? (
+                        <AnswerCitationChip citation={citation} />
+                      ) : null;
+                    },
+                  }}
+                />
+              </div>
+            ) : (
+              <></>
+            )}
+            {answer.stopNote ? (
+              <InvestigationStopNote note={answer.stopNote} />
+            ) : (
+              <></>
+            )}
+          </>
         ) : isWaiting ? (
           <p className="text-sm leading-6 text-gray-700">
             {awaitingApproval.length > 1

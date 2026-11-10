@@ -26,6 +26,7 @@ flowchart TB
 
 - **Der Schlüssel bestimmt das Projekt.** Sie senden nie eine Projekt-ID: Daten, die mit einem Schlüssel gesendet werden, landen in dem Projekt, zu dem der Schlüssel gehört.
 - **Änderungen erreichen jeden Server innerhalb einer Minute.** Einen Schlüssel ausschalten, sein Geheimnis zurücksetzen oder seine Ursprünge, sein Ablaufdatum oder sein Limit ändern wirkt nach etwa einer Minute.
+- **Ein Schlüssel kann eigene Budgets haben.** Ein Tagesbudget und ein Ratenlimit pro Sekunde für jedes Signal, innerhalb der Budgets seines Projekts: siehe [Ingestion-Budgets](/docs/telemetry/ingestion-budgets).
 - **Ein Server-Schlüssel ist ein Passwort.** Wer ihn hat, kann Telemetrie in Ihr Projekt senden. Bewahren Sie ihn in den Geheimnissen Ihrer Server auf, nie in der Versionsverwaltung oder auf einer Webseite.
 
 ## Server oder Browser
@@ -121,6 +122,8 @@ Um ein Geheimnis ohne Datenverlust zu wechseln, legen Sie einen zweiten Schlüss
 
 Eine abgelehnte Anfrage wird mit einem Status und einem Satz beantwortet, der den Grund nennt.
 
+Die Seite des Schlüssels zählt mit: **Abgelehnte Telemetrie** listet, was in den letzten 30 Tagen von dem Schlüssel abgelehnt wurde, warum, an welchem Endpunkt, wie viele Anfragen und wann. Ein fehlender oder vertippter Schlüssel gehört zu keinem Projekt, daher zählt ihn nichts.
+
 | Antwort | Was sie bedeutet |
 | --- | --- |
 | `401` mit `Missing ingestion token` | Die Anfrage hat keinen Schlüssel. Senden Sie ihn in `x-oneuptime-token`. |
@@ -155,4 +158,5 @@ Seit OneUptime die Nutzung aufzeichnet, hat nichts Daten mit diesem Schlüssel g
 - [Dienstkatalog](/docs/telemetry/services): Die Dienste sehen, unter denen Ihre Telemetrie abgelegt wird.
 - [Datenaufbewahrung](/docs/telemetry/data-retention): Festlegen, wie lange die Daten aufbewahrt werden.
 - [Drop-Filter & Scrub-Regeln](/docs/telemetry/drop-filters-and-scrub-rules): Daten verwerfen oder maskieren, bevor sie gespeichert werden.
+- [Ingestion-Budgets](/docs/telemetry/ingestion-budgets): Begrenzen, wie viel jeder Schlüssel an einem Tag senden darf.
 :::

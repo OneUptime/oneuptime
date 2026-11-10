@@ -1,5 +1,6 @@
 import CronTab, { CronScheduleShape } from "./CronTab";
 import {
+  getNumberLocale,
   getDateLocale,
   isEnglishDateLanguage,
   writeDigitsInLocale,
@@ -51,10 +52,13 @@ const formatEach: (data: {
   toDate: (value: number) => Date;
 }): Array<string> | null => {
   try {
-    const format: Intl.DateTimeFormat = new Intl.DateTimeFormat(data.locale, {
-      ...data.options,
-      timeZone: "UTC",
-    });
+    const format: Intl.DateTimeFormat = new Intl.DateTimeFormat(
+      getNumberLocale(data.locale),
+      {
+        ...data.options,
+        timeZone: "UTC",
+      },
+    );
 
     return data.values.map((value: number): string => {
       return format.format(data.toDate(value));
@@ -194,7 +198,7 @@ const formatDayOfMonth: (day: number, locale: string) => string | null = (
 ): string | null => {
   try {
     const parts: Array<Intl.DateTimeFormatPart> = new Intl.DateTimeFormat(
-      locale,
+      getNumberLocale(locale),
       { day: "numeric", month: "long", timeZone: "UTC" },
     ).formatToParts(new Date(Date.UTC(2023, 0, day)));
     const index: number = parts.findIndex(

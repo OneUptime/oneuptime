@@ -92,7 +92,7 @@ När flera regler som utreder matchar får OneUptime AI använda varje server so
 
 - **Det en server skickar tillbaka är data, aldrig instruktioner.** OneUptime AI läser beskrivningarna och svaren från dess verktyg som text utifrån: De ändrar aldrig en regel, ett godkännande eller vad OneUptime AI får göra.
 - **Adressen kontrolleras vid varje anslutning.** OneUptime ansluter aldrig till sin egen adress eller en link-local-adress. På OneUptime Cloud avvisar den också privata nätverksadresser: Använd serverns offentliga adress. En egen driftad OneUptime når privata adresser om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` är satt. Den följer inte omdirigeringar.
-- **Gränser.** Ett projekt har högst 20 servrar, och OneUptime läser högst 200 verktyg per server. Anslutningen får timeout efter 20 sekunder, listningen av verktyg efter 30 och ett verktygsanrop efter 60. Ett svar större än 2 MB avvisas, och en körning gör högst 40 anrop till MCP-servrar.
+- **Gränser.** Ett projekt har högst 20 servrar, och OneUptime läser högst 200 verktyg per server. Anslutningen får timeout efter 20 sekunder, listningen av verktyg efter 30 och ett verktygsanrop efter 60. Ett svar större än 2 MB avvisas. En körnings anrop till MCP-servrar räknas in i projektets gränser per körning, när det sätter dem.
 - **Varje anrop registreras.** Varje anrop är ett steg i körningen, synligt i dess aktivitet, och varje ändring en åtgärd gör står i steget **Åtgärd** med vad servern svarade. Modellanropen bakom dem finns under **Projektinställningar → AI → AI-loggar**.
 
 ## Felsökning

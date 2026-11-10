@@ -7,7 +7,7 @@ import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
@@ -18,6 +18,10 @@ import {
   TelemetryFirstStepsCopy,
   TelemetryFirstStepsSignal,
 } from "./TelemetryFirstSteps";
+import {
+  TelemetryFirstRunHost,
+  useTelemetryFirstRunHost,
+} from "./TelemetryFirstRunHost";
 
 /*
  * The empty Logs, Traces or Metrics explorer of a project that may not be
@@ -26,6 +30,9 @@ import {
  * longer range for a project whose data is simply older than the window.
  * Drawn like every other empty list (TableEmptyState), as AI / LLM
  * Conversations draws its own. See TelemetryFirstSteps.ts for when.
+ *
+ * Under a product's explanation (TelemetryFirstRunHost) it says when it is
+ * drawn, and leaves the setup guide to the explanation's own button.
  */
 
 // Side room below sm, where TableEmptyState has none of its own (sm:px-6).
@@ -79,10 +86,20 @@ const TelemetryFirstStepsEmptyState: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const copy: TelemetryFirstStepsCopy =
     TELEMETRY_FIRST_STEPS_COPY[props.signal];
+  const host: TelemetryFirstRunHost | null = useTelemetryFirstRunHost();
+  const onFirstStepsShown: (() => void) | undefined = host?.onFirstStepsShown;
 
-  const actions: Array<TableEmptyStateAction> = [
-    getTelemetryFirstStepsSetupAction(props.signal),
-  ];
+  useEffect(() => {
+    onFirstStepsShown?.();
+  }, [onFirstStepsShown]);
+
+  /*
+   * The explanation above offers the setup guide as its button ("Send your
+   * first logs"): a second one here would compete with it.
+   */
+  const actions: Array<TableEmptyStateAction> = host?.offersSetup
+    ? []
+    : [getTelemetryFirstStepsSetupAction(props.signal)];
 
   const onTimeRangeChange:
     | ((timeRange: RangeStartAndEndDateTime) => void)

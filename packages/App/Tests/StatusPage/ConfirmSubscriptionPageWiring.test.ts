@@ -150,7 +150,7 @@ describe("a link that confirms nothing", () => {
         return file.endsWith(".json");
       });
 
-    expect(files).toHaveLength(17);
+    expect(files).toHaveLength(18);
 
     const english: {
       subscribe: { confirm: Record<string, string> };

@@ -318,6 +318,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryMetrics";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
+import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
 import OneUptimeDate from "../../../Types/Date";
 import {
   WebVitalDefinition,
@@ -479,6 +480,8 @@ interface Scenario {
    * range has none. Two years ago by default: an app that reports them.
    */
   newestException?: Promise<Date | null> | undefined;
+  // What the project's keys were refused in the past day (issue #6378).
+  refusals?: Array<Record<string, unknown>> | undefined;
 }
 
 const DAY_MS: number = 24 * 60 * 60 * 1000;
@@ -523,7 +526,14 @@ function arrange(scenario: Scenario = {}): void {
     );
   });
   getListMock.mockImplementation(async (args: unknown) => {
-    if ((args as { modelType?: unknown }).modelType !== TelemetryException) {
+    const modelType: unknown = (args as { modelType?: unknown }).modelType;
+
+    if (modelType === TelemetryIngestionKeyRefusal) {
+      const rows: Array<Record<string, unknown>> = scenario.refusals ?? [];
+      return { data: rows, count: rows.length, skip: 0, limit: 100 };
+    }
+
+    if (modelType !== TelemetryException) {
       return { data: [], count: 0, skip: 0, limit: 10 };
     }
 
@@ -1570,11 +1580,17 @@ describe("RUM overview: why Exceptions and Logs are empty", () => {
       within(dialog).getByText("Add the error handlers to src/telemetry.ts"),
     ).toBeInTheDocument();
     expect(dialog.textContent).toContain('window.addEventListener("error"');
-    // The trace exporter the app has sends them: no key is asked for.
+    /*
+     * The trace exporter the app has sends them: no key is asked for. (The
+     * empty charts read what the project's keys were refused, issue #6378.)
+     */
     expect(
       getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+        const modelType: unknown = (call[0] as { modelType?: unknown })
+          .modelType;
         return (
-          (call[0] as { modelType?: unknown }).modelType !== TelemetryException
+          modelType !== TelemetryException &&
+          modelType !== TelemetryIngestionKeyRefusal
         );
       }),
     ).toHaveLength(0);
@@ -1755,7 +1771,7 @@ describe("RUM overview: why Exceptions and Logs are empty", () => {
 
     expect(screen.queryByTestId("rum-exceptions-empty")).toBeNull();
     expect(screen.queryByTestId("rum-logs-empty")).toBeNull();
-    // Nothing to explain, so the newest exception is never read.
+    // Nothing to explain, so neither the newest exception nor the refusals are read.
     expect(getListMock).not.toHaveBeenCalled();
   });
 
@@ -1802,5 +1818,128 @@ describe("RUM overview: why Exceptions and Logs are empty", () => {
         delete TRANSLATIONS[key];
       }
     }
+  });
+});
+
+describe("RUM overview: telemetry refused at ingest", () => {
+  const HOUR_MS: number = 60 * 60 * 1000;
+
+  // Nothing has come from the app for five hours.
+  const SILENT_APP: Record<string, unknown> = {
+    ...TRACKED_APP,
+    lastSeenAt: ago(5 * HOUR_MS),
+    tracesLastReceivedAt: ago(5 * HOUR_MS),
+    logsLastReceivedAt: ago(5 * HOUR_MS),
+  };
+
+  function refusalRow(
+    extra: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      reason: "key-disabled",
+      surface: "otel-traces",
+      refusedCount: 250,
+      firstRefusedAt: ago(4 * HOUR_MS),
+      lastRefusedAt: ago(10 * 60 * 1000),
+      telemetryIngestionKeyId: "6c3d0000-0000-4000-8000-0000000000f6",
+      telemetryIngestionKey: {
+        name: "Checkout key",
+        keyType: "Server",
+        pinnedServiceName: "checkout-web",
+      },
+      ...extra,
+    };
+  }
+
+  function refusalReads(): number {
+    return getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+      return (
+        (call[0] as { modelType?: unknown }).modelType ===
+        TelemetryIngestionKeyRefusal
+      );
+    }).length;
+  }
+
+  test("the app's key turned off and the project's budget used up: each empty chart says what refused it, and the fix", async () => {
+    const traces: Record<string, unknown> = refusalRow();
+    arrange({
+      app: SILENT_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(ago(3 * DAY_MS)),
+      refusals: [
+        traces,
+        refusalRow({
+          reason: "project-daily-budget",
+          surface: "otel-logs",
+          telemetryIngestionKey: { name: "Backend key", keyType: "Server" },
+        }),
+      ],
+    });
+    await renderPage();
+
+    expect(textOf("exceptions", "title")).toBe("Exceptions are being refused");
+    expect(textOf("exceptions", "detail")).toBe(
+      'The key "Checkout key" is turned off, so everything sent with it is refused.',
+    );
+    expect(textOf("exceptions", "evidence")).toBe(
+      `The latest was refused ${OneUptimeDate.fromNow(
+        traces["lastRefusedAt"] as Date,
+        new Date(),
+      )}.`,
+    );
+
+    expect(textOf("logs", "title")).toBe("Logs are being refused");
+    expect(
+      within(emptyChart("logs")).getByRole("link", { name: "See budgets" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/usage-history`,
+    );
+
+    fireEvent.click(
+      within(emptyChart("exceptions")).getByRole("button", {
+        name: "Pick another key",
+      }),
+    );
+    await flush();
+
+    expect(screen.getByTestId("rum-pick-key-setup")).toBeInTheDocument();
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Pick another key",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    await flush();
+    expect(screen.queryByTestId("rum-pick-key-setup")).toBeNull();
+  });
+
+  test("telemetry that arrived after the refusal: the chart's own answer", async () => {
+    const lastLog: Date = ago(3 * 60 * 1000);
+    arrange({
+      app: { ...SILENT_APP, logsLastReceivedAt: lastLog },
+      signals: Promise.resolve(NO_SIGNALS),
+      refusals: [
+        refusalRow({ surface: "otel-logs", lastRefusedAt: ago(HOUR_MS) }),
+      ],
+    });
+    await renderPage();
+
+    expect(textOf("logs", "title")).not.toBe("Logs are being refused");
+  });
+
+  test("read once a chart is empty, and again on every refresh", async () => {
+    arrange({
+      app: SILENT_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+      refusals: [refusalRow()],
+    });
+    await renderPage();
+
+    expect(refusalReads()).toBe(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
+    await flush();
+
+    expect(refusalReads()).toBe(2);
+    expect(textOf("exceptions", "title")).toBe("Exceptions are being refused");
   });
 });

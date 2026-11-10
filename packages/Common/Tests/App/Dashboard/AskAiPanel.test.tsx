@@ -1945,7 +1945,11 @@ describe("an answer, quietly", () => {
     const toggleSteps: HTMLElement = screen.getByTestId(
       "ai-chat-live-steps-toggle",
     );
-    expect(toggleSteps).toHaveTextContent("3 steps");
+    /*
+     * Starting and the search: the model call that chose the search
+     * answered, and is no step of its own (issue #6437).
+     */
+    expect(toggleSteps).toHaveTextContent("2 steps");
     expect(toggleSteps).toHaveAttribute("aria-expanded", "false");
 
     await act(async () => {

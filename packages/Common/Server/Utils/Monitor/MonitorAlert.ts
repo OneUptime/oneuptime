@@ -34,6 +34,7 @@ import DataToProcess from "./DataToProcess";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorEvaluationDetailsCapture, {
   GetEvaluationDetails,
 } from "./MonitorEvaluationDetailsCapture";
@@ -109,9 +110,12 @@ export default class MonitorAlert {
     /*
      * Whether the monitor keeps response content on its records
      * (Monitor.keepResponseContent): the state timeline's copy of a check
-     * that resolves one keeps no body when it does not. Kept when absent.
+     * that resolves one keeps no body and no headers when it does not.
+     * Kept when absent.
      */
     keepResponseContent?: boolean | undefined;
+    // The step the check ran: the state timeline's copy names its destination.
+    monitorStep?: MonitorStep | undefined;
   }): Promise<Array<Alert>> {
     /*
      * check active alerts and if there are open alerts, do not create another
@@ -189,6 +193,7 @@ export default class MonitorAlert {
           rootCause: rootCause,
           dataToProcess: input.dataToProcess,
           keepResponseContent: input.keepResponseContent,
+          monitorStep: input.monitorStep,
         });
 
         input.evaluationSummary?.events.push({
@@ -325,6 +330,10 @@ export default class MonitorAlert {
         keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
           input.monitor,
         ),
+        monitorStep: MonitorRecordEvidence.findCheckStep({
+          monitor: input.monitor,
+          check: input.dataToProcess,
+        }),
       });
 
       input.evaluationSummary?.events.push({
@@ -450,6 +459,10 @@ export default class MonitorAlert {
             keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
               input.monitor,
             ),
+            monitorStep: MonitorRecordEvidence.findCheckStep({
+              monitor: input.monitor,
+              check: input.dataToProcess,
+            }),
             breachingSeriesFingerprints,
             breachingSeriesFingerprintsByCriteriaId:
               input.breachingSeriesFingerprintsByCriteriaId,
@@ -823,8 +836,8 @@ export default class MonitorAlert {
            * for this and the next alert.
            */
           /*
-           * Redacted as the monitor's own log is, and without its bodies
-           * when the monitor keeps no response content
+           * Redacted as the monitor's own log is, and without its body and
+           * headers when the monitor keeps no response content
            * (MonitorRecordEvidence).
            */
           alert.createdStateLog = MonitorRecordEvidence.toStoredCheck({
@@ -832,6 +845,10 @@ export default class MonitorAlert {
             keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
               input.monitor,
             ),
+            monitorStep: MonitorRecordEvidence.findCheckStep({
+              monitor: input.monitor,
+              check: input.dataToProcess,
+            }),
           });
 
           /*
@@ -1240,6 +1257,7 @@ export default class MonitorAlert {
       | IncomingMonitorRequest
       | DataToProcess;
     keepResponseContent?: boolean | undefined;
+    monitorStep?: MonitorStep | undefined;
   }): Promise<void> {
     const resolvedStateId: ObjectID =
       await AlertStateTimelineService.getResolvedStateIdForProject(
@@ -1262,6 +1280,7 @@ export default class MonitorAlert {
       alertStateTimeline.stateChangeLog = MonitorRecordEvidence.toStoredCheck({
         dataToProcess: input.dataToProcess as DataToProcess,
         keepResponseContent: input.keepResponseContent !== false,
+        monitorStep: input.monitorStep,
       });
     }
 
@@ -1354,8 +1373,11 @@ export default class MonitorAlert {
    * Alert auto-resolve lists templates by criteria; the presence of any
    * template for a criteria means "this criteria's alerts are configured
    * to auto-resolve".
+   *
+   * Turning monitoring off asks the same (MonitorTurnedOff): it resolves
+   * exactly the alerts this says the monitor would have resolved.
    */
-  private static isAutoResolveConfiguredForAlert(input: {
+  public static isAutoResolveConfiguredForAlert(input: {
     openAlert: Alert;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
   }): boolean {

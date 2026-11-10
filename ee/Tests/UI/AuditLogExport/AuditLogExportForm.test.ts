@@ -11,7 +11,9 @@ import {
   describeAuditLogExportTarget,
   exportConfigFieldName,
   exportSecretFieldName,
+  followAuditLogExportDefaults,
   formatAuditLogExportDuration,
+  getAuditLogExportFollowingFields,
   getAuditLogExportHealth,
   getAuditLogExportInitialValues,
   getAuditLogExportSchemaVersionOptions,
@@ -25,9 +27,10 @@ import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLog
 import {
   AuditLogExportDestinationCatalog,
   AuditLogExportDestinationDefinition,
+  getAuditLogExportDestinationDefinition,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import HashedString from "Common/Types/HashedString";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 
 /*
@@ -418,6 +421,200 @@ describe("the form's values for a saved export", () => {
     expect(getAuditLogExportInitialValues(undefined, undefined)).toEqual({
       name: "",
     });
+  });
+});
+
+/*
+ * Issue #6392: syslog over UDP. Picking UDP moves a port nobody typed to
+ * 514, and back to 6514 for TLS; framing and the CA certificate are TLS's
+ * and TCP's, the maximum message size UDP's own.
+ */
+describe("syslog over UDP in the form", () => {
+  const syslog: AuditLogExportDestinationDefinition =
+    getAuditLogExportDestinationDefinition(SYSLOG)!;
+  const PORT: string = exportConfigFieldName(SYSLOG, "port");
+  const PROTOCOL: string = exportConfigFieldName(SYSLOG, "protocol");
+
+  const follow: (
+    choice: JSONValue | undefined,
+    values: JSONObject,
+    key?: string,
+  ) => JSONObject | null = (
+    choice: JSONValue | undefined,
+    values: JSONObject,
+    key: string = "protocol",
+  ): JSONObject | null => {
+    return followAuditLogExportDefaults({
+      definition: syslog,
+      key,
+      choice,
+      values,
+    });
+  };
+
+  test("sends the host, the port as a number, UDP and the size; never a framing or a certificate", () => {
+    expect(
+      readAuditLogExportForm({
+        destinationType: SYSLOG,
+        [exportConfigFieldName(SYSLOG, "host")]: " siem.acme.internal ",
+        [PORT]: "514",
+        [PROTOCOL]: "udp",
+        [exportConfigFieldName(SYSLOG, "framing")]: "octet-counting",
+        [exportConfigFieldName(SYSLOG, "caCertificate")]:
+          "-----BEGIN CERTIFICATE-----\nMIIB\n",
+        [exportConfigFieldName(SYSLOG, "maxMessageSize")]: "2048",
+      }).config,
+    ).toEqual({
+      host: "siem.acme.internal",
+      port: 514,
+      protocol: "udp",
+      maxMessageSize: 2048,
+    });
+  });
+
+  test("over TLS and TCP the size is not sent, and framing is", () => {
+    for (const protocol of ["tls", "tcp"]) {
+      expect(
+        readAuditLogExportForm({
+          destinationType: SYSLOG,
+          [exportConfigFieldName(SYSLOG, "host")]: "siem.acme.internal",
+          [PORT]: "6514",
+          [PROTOCOL]: protocol,
+          [exportConfigFieldName(SYSLOG, "framing")]: "newline",
+          [exportConfigFieldName(SYSLOG, "maxMessageSize")]: "2048",
+        }).config,
+      ).toEqual({
+        host: "siem.acme.internal",
+        port: 6514,
+        protocol,
+        framing: "newline",
+      });
+    }
+  });
+
+  test("only the port follows the protocol", () => {
+    expect(
+      getAuditLogExportFollowingFields(syslog, "protocol").map(
+        (field: { key: string }): string => {
+          return field.key;
+        },
+      ),
+    ).toEqual(["port"]);
+    expect(getAuditLogExportFollowingFields(syslog, "host")).toEqual([]);
+    expect(
+      getAuditLogExportFollowingFields(
+        getAuditLogExportDestinationDefinition(S3)!,
+        "region",
+      ),
+    ).toEqual([]);
+  });
+
+  test("picking UDP moves the port nobody typed to 514, and TLS moves it back to 6514", () => {
+    const values: JSONObject = {
+      destinationType: SYSLOG,
+      [exportConfigFieldName(SYSLOG, "host")]: "siem.acme.internal",
+      [PORT]: "6514",
+      [PROTOCOL]: "tls",
+    };
+
+    const overUdp: JSONObject | null = follow("udp", values);
+
+    expect(overUdp).toEqual({ ...values, [PORT]: "514" });
+    // The values the form had are left as they were.
+    expect(values[PORT]).toBe("6514");
+
+    expect(follow("tls", { ...values, [PORT]: "514" })).toEqual({
+      ...values,
+      [PORT]: "6514",
+    });
+  });
+
+  test("TCP has no port of its own: a port that followed UDP goes back to 6514", () => {
+    expect(follow("tcp", { [PORT]: "514" })).toEqual({ [PORT]: "6514" });
+    // And a TLS port stays where it is.
+    expect(follow("tcp", { [PORT]: "6514" })).toBeNull();
+  });
+
+  test("a port someone typed stays, whatever is picked", () => {
+    for (const choice of ["udp", "tls", "tcp"]) {
+      for (const typed of ["1514", "601", "10514"]) {
+        expect([choice, typed, follow(choice, { [PORT]: typed })]).toEqual([
+          choice,
+          typed,
+          null,
+        ]);
+      }
+    }
+  });
+
+  test("an empty port, or one never touched, takes the choice's default", () => {
+    expect(follow("udp", { [PORT]: "" })).toEqual({ [PORT]: "514" });
+    expect(follow("udp", { [PORT]: "  " })).toEqual({ [PORT]: "514" });
+    expect(follow("udp", {})).toEqual({ [PORT]: "514" });
+    expect(follow("tls", {})).toEqual({ [PORT]: "6514" });
+  });
+
+  test("a pick handed over as the dropdown's option reads as its value", () => {
+    expect(follow({ label: "UDP", value: "udp" }, { [PORT]: "6514" })).toEqual({
+      [PORT]: "514",
+    });
+  });
+
+  test("nothing moves when the pick is the one the port already follows, or a field nothing follows", () => {
+    expect(follow("udp", { [PORT]: "514" })).toBeNull();
+    expect(follow("tls", { [PORT]: "6514" })).toBeNull();
+    expect(follow("newline", { [PORT]: "6514" }, "framing")).toBeNull();
+    expect(follow(undefined, { [PORT]: "514" })).toEqual({ [PORT]: "6514" });
+  });
+
+  test("an export saved over UDP without a port opens on 514, the port it sends to", () => {
+    expect(
+      getAuditLogExportInitialValues(
+        savedExport({
+          destinationType: SYSLOG,
+          config: { host: "10.20.0.15", protocol: "udp" },
+        }),
+        SYSLOG,
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        [PORT]: "514",
+        [PROTOCOL]: "udp",
+      }),
+    );
+
+    expect(
+      getAuditLogExportInitialValues(
+        savedExport({
+          destinationType: SYSLOG,
+          config: { host: "10.20.0.15", protocol: "udp", port: 1514 },
+        }),
+        SYSLOG,
+      )[PORT],
+    ).toBe("1514");
+
+    // Over TLS, as before: 6514.
+    expect(
+      getAuditLogExportInitialValues(
+        savedExport({
+          destinationType: SYSLOG,
+          config: { host: "10.20.0.15" },
+        }),
+        SYSLOG,
+      )[PORT],
+    ).toBe("6514");
+  });
+
+  test("a host is all a UDP export needs before it can be tested", () => {
+    expect(
+      auditLogExportTestDisabledReason({
+        values: {
+          destinationType: SYSLOG,
+          [exportConfigFieldName(SYSLOG, "host")]: "10.20.0.15",
+          [PROTOCOL]: "udp",
+        },
+      }),
+    ).toBeUndefined();
   });
 });
 

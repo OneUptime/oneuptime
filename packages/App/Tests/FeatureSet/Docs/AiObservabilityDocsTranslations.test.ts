@@ -125,6 +125,8 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
 
 // Bold words that name a product opened from the Products menu.
 const MENU_ITEMS: Record<string, Array<string>> = {
+  // Where prompts and answers sent as log events can be read too.
+  [LLM]: ["Logs"],
   [CLAUDE_CODE]: ["Metrics"],
   [CURSOR]: ["Logs", "Metrics"],
   [CODEX]: ["Logs"],
@@ -196,11 +198,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Log records are not read for identity.",
     "`gemini_cli.token.usage` is left out on purpose.",
     "Only input and output tokens are counted.",
-    "if the same project receives GenAI spans with cost, the coding assistants' spend does not show.",
     "Use LiteLLM with one virtual key per employee.",
     "A gateway sees only traffic sent through it.",
     "A gateway sees the model call, not the agent.",
-    "No coding-tool admin connectors.",
+    "No coding-tool admin connector but Cursor's.",
     "Cost is an estimate unless a tool reports it.",
     "Identity on log records is not read.",
     "Cursor's `cursor.user.email` is not read yet",
@@ -216,14 +217,13 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Other sign-ins send no email.",
     "`user.id` is not a person.",
     "Teams and cost centres",
-    "The metrics fill in for spans; they are never added to them.",
-    "A row from metrics carries cost only.",
+    "Claude Code is counted beside your apps.",
+    "A row from metrics names no call.",
   ],
   [CURSOR]: [
     "Cursor's Enterprise plan.",
     "An endpoint Cursor can reach from the internet.",
     "Cursor names a person by `cursor.user.id`, an integer only Cursor can turn into a name, and often leaves it out for cloud agents.",
-    "if the same project receives GenAI spans with cost, Cursor's spend does not show.",
     "Metrics are sent at most once.",
     "Logs are sent at least once",
     "There is no ordering.",
@@ -257,17 +257,17 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
   {
     from: ASSISTANTS,
     to: LLM,
-    anchor: "spans-come-first-metrics-fill-in",
+    anchor: "each-service-is-counted-from-what-it-sends",
   },
   {
     from: CLAUDE_CODE,
     to: LLM,
-    anchor: "spans-come-first-metrics-fill-in",
+    anchor: "each-service-is-counted-from-what-it-sends",
   },
   {
     from: CURSOR,
     to: LLM,
-    anchor: "spans-come-first-metrics-fill-in",
+    anchor: "each-service-is-counted-from-what-it-sends",
   },
   {
     from: CURSOR,
@@ -277,7 +277,7 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
   {
     from: CODEX,
     to: LLM,
-    anchor: "spans-come-first-metrics-fill-in",
+    anchor: "each-service-is-counted-from-what-it-sends",
   },
   {
     from: LLM,

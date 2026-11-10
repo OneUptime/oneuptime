@@ -98,6 +98,7 @@ import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
 import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
 import "./Jobs/NetworkDeviceDiscovery/RunDiscoveryImports";
 import "./Jobs/NetworkDeviceDiscovery/SweepDiscoveryImports";
+import "./Jobs/NetworkDeviceDiscovery/AgeOutDiscoveredDevices";
 
 // Network Sites
 import "./Jobs/NetworkSite/RecomputeStaleRollups";
@@ -433,6 +434,8 @@ import "./Jobs/Rum/PublishSessionReplayBudgetMetrics";
  */
 import "./Jobs/TelemetryUsage/MeterTelemetryUsage";
 import "./Jobs/TelemetryUsage/DeleteOldTelemetryUsage";
+// Telemetry ingestion budgets as metrics, and the owners' warning emails.
+import "./Jobs/TelemetryIngestionBudget/PublishTelemetryIngestionBudgetMetrics";
 
 /*
  * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry

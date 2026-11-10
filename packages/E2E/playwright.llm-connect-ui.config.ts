@@ -8,14 +8,19 @@ import path from "path";
  * only a browser can show is checked here: the checklist ticking itself,
  * the three ways in, a connection made from its tile with its test, the
  * privacy of a company AI tool, the list's status and actions, Usage's
- * provider accounts, and all of it at desktop and phone width, in the dark
- * theme and in Japanese.
+ * provider accounts, Usage's AI calls and usage metrics counted together,
+ * and all of it at desktop and phone width, in the dark theme and in
+ * Japanese and German.
  */
 const port: string = process.env["LLM_CONNECT_FIXTURE_PORT"] || "4393";
 
 export default defineConfig({
   testDir: "./LlmConnect",
-  testMatch: ["LlmConnect.spec.ts", "LlmProviderUsage.spec.ts"],
+  testMatch: [
+    "LlmConnect.spec.ts",
+    "LlmProviderUsage.spec.ts",
+    "LlmUsageCounting.spec.ts",
+  ],
   timeout: 90000,
   expect: { timeout: 15000 },
   workers: 1,

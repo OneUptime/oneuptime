@@ -36,6 +36,7 @@ import { ProfileTypeActivity } from "Common/Utils/Profiles/ProfileTypes";
 import AppLink from "../AppLink/AppLink";
 import { getChangeEventMarkerLabel } from "../Metrics/Utils/UseEventTimeReferenceLines";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { useReportTelemetryDataShown } from "../Telemetry/TelemetryFirstRunHost";
 import {
   SHOW_PAST_WEEK_ACTION,
   TelemetryFirstStepsSignal,
@@ -241,6 +242,8 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
   }, [urlState.profileType, choices]);
 
   const hasData: boolean = Boolean(types.data && types.data.length > 0);
+  // Under the Profiles page's explanation: data drawn means it gives way.
+  useReportTelemetryDataShown(hasData);
   const kindKey: string = `${kind.selection}|${kind.queryTypes.join(",")}`;
 
   const comparison: ProfilesWindowPair | null = useMemo(() => {

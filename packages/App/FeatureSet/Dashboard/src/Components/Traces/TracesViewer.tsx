@@ -78,6 +78,7 @@ import TraceRow from "./TraceRow";
 import SpanDetailsPanel from "./SpanDetailsPanel";
 import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { useReportTelemetryDataShown } from "../Telemetry/TelemetryFirstRunHost";
 import {
   showsTelemetryFirstSteps,
   TelemetryFirstStepsSignal,
@@ -835,6 +836,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }, [initialUrlState]);
 
   const [spans, setSpans] = useState<Array<Span>>([]);
+  // Under the Traces page's explanation: data drawn means it gives way.
+  useReportTelemetryDataShown(spans.length > 0);
   /*
    * The list endpoint's `count` — a lower bound, not a total: it skips
    * COUNT(*) and answers `skip + rows + 1` when more rows follow. The total
