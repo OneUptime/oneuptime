@@ -33,7 +33,7 @@ export const MONITORS_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Operational"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Uptime"), value: "99.98%" },
+      { label: translationKey("Availability"), value: "99.98%" },
       { label: translationKey("Response time"), value: "182 ms" },
       { label: translationKey("Status Code"), value: "200" },
       { label: translationKey("Probes"), value: "3" },
@@ -255,13 +255,13 @@ export const STATUS_PAGES_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Operational"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Uptime"), value: "99.95%" },
+      { label: translationKey("Availability"), value: "99.95%" },
       { label: translationKey("Components"), value: "6" },
       { label: translationKey("Subscribers"), value: "1,284" },
       { label: translationKey("Incidents"), value: "1" },
     ],
     chart: {
-      label: translationKey("Uptime"),
+      label: translationKey("Availability"),
       values: [100, 100, 100, 99.9, 100, 100, 98.7, 100, 100, 100, 100, 100],
       range: translationKey("Last 90 days"),
     },

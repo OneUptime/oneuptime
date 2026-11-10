@@ -16,7 +16,10 @@ import {
   ShowcaseRow,
   ShowcaseStat,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcase";
-import { TELEMETRY_FIRST_RUNS } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/TelemetryFirstRunShowcase";
+import {
+  TELEMETRY_FIRST_RUNS,
+  TELEMETRY_SETUP_DESCRIPTION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/TelemetryFirstRunShowcase";
 import CEPH_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Ceph/CephClusterShowcase";
 import CLOUD_ENVIRONMENT_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudEnvironmentShowcase";
 import CLOUD_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudShowcase";
@@ -426,15 +429,16 @@ const GLOBAL_SAME_AS_ENGLISH: Array<string> = JSON.parse(
 
 /*
  * The words the products' explanations add: the products' own showcases,
- * the About button and dialog, and the telemetry products' first step and
- * link. The resources' showcases are their lists' words, translated with
- * those lists.
+ * the How it works button and its dialog, and the telemetry products' first
+ * step, link and setup dialog's line. The resources' showcases are their
+ * lists' words, translated with those lists.
  */
 function getProductWords(): Array<string> {
   const words: Set<string> = new Set<string>([
     PRODUCT_ABOUT_TEXT,
     PRODUCT_EXAMPLE_DESCRIPTION,
     RESOURCE_SHOWCASE_DOCS_TEXT,
+    TELEMETRY_SETUP_DESCRIPTION,
   ]);
 
   for (const [product, onboarding] of ONBOARDINGS) {
@@ -624,11 +628,37 @@ describe("each explanation is complete", () => {
       }
     }
   });
+
+  /*
+   * The Dashboard's "Uptime" is how long a host or a device has run (a
+   * Proxmox node's, a network device's), and most languages translate it
+   * so: German "Laufzeit", Japanese "稼働時間", Chinese "运行时间". Over a
+   * share of time up it would read "runtime 99.98%"; that is Availability.
+   */
+  test("an example's share of time up is its availability, not its uptime", () => {
+    const uptimes: Array<string> = [];
+
+    for (const [product, onboarding] of ONBOARDINGS) {
+      if (isResource(product)) {
+        continue;
+      }
+      for (const stat of onboarding.showcase.preview.stats) {
+        if (stat.label === "Uptime") {
+          uptimes.push(`${product}: ${stat.label} ${stat.value}`);
+        }
+      }
+      if (onboarding.showcase.preview.chart.label === "Uptime") {
+        uptimes.push(`${product}: its chart`);
+      }
+    }
+
+    expect(uptimes).toEqual([]);
+  });
 });
 
 describe("the explanation is where each product is", () => {
   test.each(ONBOARDINGS)(
-    "%s: About sits beside its page's title",
+    "%s: How it works sits beside its page's title",
     (product: ProductKey) => {
       const layout: string = read(LAYOUTS[product]);
       const about: RegExp = new RegExp(

@@ -1839,7 +1839,7 @@
   "Automatically resolve this incident when this criteria is no longer met": "Automatically resolve this incident when this criteria is no longer met",
   "Automatically resolve this incident when this criteria is no longer met.": "Automatically resolve this incident when this criteria is no longer met.",
   "Automatically route calls to whoever is currently on-call based on your rotation schedules.": "Automatically route calls to whoever is currently on-call based on your rotation schedules.",
-  "Availability": "Availability",
+  "Availability": "التوافر",
   "Available": "Available",
   "Available IPs (IPAM)": "Available IPs (IPAM)",
   "Average API server request duration.": "Average API server request duration.",

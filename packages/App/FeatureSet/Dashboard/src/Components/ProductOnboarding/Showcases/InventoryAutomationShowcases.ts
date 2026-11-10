@@ -140,7 +140,7 @@ export const DASHBOARDS_SHOWCASE: ResourceShowcase = {
       { label: translationKey("Requests"), value: "1,920" },
       { label: translationKey("Error rate"), value: "0.4%" },
       { label: translationKey("Latency"), value: "184 ms" },
-      { label: translationKey("Uptime"), value: "99.98%" },
+      { label: translationKey("Availability"), value: "99.98%" },
     ],
     chart: {
       label: translationKey("Requests"),
