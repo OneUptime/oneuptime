@@ -2,7 +2,7 @@
 
 How a OneUptime release is cut, made green and shipped - for the people and the
 agents who do it. Releases run as a loop: as soon as one is out, the next one is
-cut from `main`.
+cut from `main`, once `main` has pull requests the last one did not ship.
 
 The other release guides cover one part each:
 [the mobile apps](packages/MobileApp/RELEASING.md),
@@ -89,6 +89,11 @@ the branch into `release`, which is exactly the tree the release run will build.
 Its checks are the release's gate. In the description, say what the release is
 (`main` at which commit), and keep a list of the fixes made in the branch.
 
+Keep the title starting with "Release": the release notes leave a pull request
+into `release` with such a title out (`RELEASE_GATE_TITLE` in
+`Scripts/Release/GenerateReleaseNotes.js`) and list each fix made in the branch
+as a commit of its own, under its title's type and area.
+
 ### 4. Give the release the runners
 
 ```bash
@@ -125,9 +130,19 @@ push restarts the pull request's checks with all fixes so far.
   Common Test, App Test, the browser suites, ...) between people or agents, each
   in a worktree of their own, all pushing to the release branch. Run single test
   files locally, not whole folders.
+- After every push to the release branch, merge the branch into `main`:
 
-`main` has no say here: whatever it has merged since the cut waits for the next
-release.
+  ```bash
+  bash Scripts/Release/MergeReleaseBranchIntoMain.sh release-14.0.106
+  ```
+
+  It computes the merge without a checkout, pushes "Merge release-14.0.106 into
+  main", and does nothing when `main` already has the branch. So `main` gets each
+  fix as soon as it exists, and the pull requests merged into `main` meanwhile
+  are built on them. On a conflict it pushes nothing and prints the files: merge
+  those by hand, keeping both sides' intent. The merges only go this way - the
+  release branch never takes `main`'s new commits; whatever `main` merges after
+  the cut waits for the next release.
 
 ### 6. Merge the release pull request when every check is green
 
@@ -139,22 +154,18 @@ gh pr merge <number> --merge   # --admin if the code-owner review is still missi
 Merge it with a merge commit (not squash, not rebase): the merge's push to
 `release` starts the release run.
 
-### 7. Merge the release branch back into `main` right away
+### 7. Merge the release branch into `main` right away
 
-As soon as the pull request is merged - not once the release run has finished:
+As soon as the pull request is merged - not once the release run has finished -
+merge the branch into `main` one last time:
 
 ```bash
-git fetch origin main release-14.0.106
-git checkout -B merge-release-back origin/main
-git merge --no-ff origin/release-14.0.106 -m "Merge release-14.0.106 back into main"
-git push origin HEAD:main
+bash Scripts/Release/MergeReleaseBranchIntoMain.sh release-14.0.106
 ```
 
-This brings the version bump and every fix made in the release branch to `main`
-at once, so what merges into `main` from then on builds on them, and the next
-release branch starts from a `main` with the last release's fixes in it. If
-`main` changed the same lines since the cut, resolve the conflict keeping both
-intents, and run the tests of the files involved before pushing.
+After the merges of step 5 this is usually only the last fixes, or nothing. Then
+`main` has the version bump and every fix the release ships, and the next
+release branch starts from them.
 
 ### 8. Follow the release run until OneUptime has released
 
@@ -172,9 +183,9 @@ Keep `PrioritizeReleaseRuns.sh` running through it. The release is out when
 - A job that failed for a transient reason (a registry timeout, a runner lost):
   `gh run rerun <run id> --failed`.
 - A failure in the code, before anything was published: fix it in the release
-  branch, as in step 5, and merge the branch into `release` again, and into
-  `main` again as in step 7. The version has no GitHub release yet, so the new
-  run goes ahead.
+  branch, as in step 5 (which merges it into `main` too), and merge the branch
+  into `release` again. The version has no GitHub release yet, so the new run
+  goes ahead.
 - A failure after the GitHub release was published, in a job that only publishes
   elsewhere (a package manager): re-run it once its cause is fixed, or fix it in
   the next release. `Publish the infrastructure agent to winget` depends on
@@ -184,8 +195,22 @@ Keep `PrioritizeReleaseRuns.sh` running through it. The release is out when
   unless the run is dispatched with them turned on:
   [packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md).
 
-### 9. Start the next release
+### 9. Start the next release - if `main` has something new
 
-Once OneUptime has released, go back to step 1 with the next patch version, cut
-from `main` as it is now, and restart `PrioritizeReleaseRuns.sh` with the new
-branch's name. Stop it for good only when no release is in flight.
+Once OneUptime has released, see whether any pull request has merged into `main`
+since the release was cut:
+
+```bash
+git fetch origin main release
+git log --oneline --no-merges origin/release..origin/main
+```
+
+These are the commits on `main` that `release` does not have; the merges of the
+release branch into `main` add nothing of their own, so they are not listed.
+
+- Something listed: go back to step 1 with the next patch version, cut from
+  `main` as it is now, and restart `PrioritizeReleaseRuns.sh` with the new
+  branch's name.
+- Nothing listed: there is nothing to release. Stop `PrioritizeReleaseRuns.sh`,
+  so `main` and pull requests get their CI again, and check again later; cut the
+  next release when something has merged.
