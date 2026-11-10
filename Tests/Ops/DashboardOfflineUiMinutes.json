@@ -89,7 +89,7 @@
     "test-permissions-per-tab-ui": 0.5,
     "test-postmortem-rules-ui": 1.3,
     "test-postmortems-ui": 0.8,
-    "test-product-onboarding-ui": 2.0,
+    "test-product-onboarding-ui": 0.7,
     "test-profiles-ui": 2.8,
     "test-proxmox-pages-ui": 2.8,
     "test-public-addresses-ui": 1.2,
