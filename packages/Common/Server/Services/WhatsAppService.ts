@@ -13,6 +13,7 @@ import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import { NotificationDeliveryChannel } from "../Utils/Telemetry/NotificationDeliveryMetrics";
 
 export class WhatsAppService extends BaseService {
   public constructor() {
@@ -46,6 +47,7 @@ export class WhatsAppService extends BaseService {
     const blockedProjectRefusal: HTTPErrorResponse | null =
       await BlockedProjectNotifications.getRefusal({
         channel: "WhatsApp message",
+        deliveryChannel: NotificationDeliveryChannel.WhatsApp,
         projectId: options.projectId,
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
       });

@@ -13,6 +13,7 @@ import WebhookMessage from "../../Types/Webhook/WebhookMessage";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import { NotificationDeliveryChannel } from "../Utils/Telemetry/NotificationDeliveryMetrics";
 
 export class WebhookService extends BaseService {
   public constructor() {
@@ -43,6 +44,7 @@ export class WebhookService extends BaseService {
     const blockedProjectRefusal: HTTPErrorResponse | null =
       await BlockedProjectNotifications.getRefusal({
         channel: "Webhook",
+        deliveryChannel: NotificationDeliveryChannel.Webhook,
         projectId: options.projectId,
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
       });

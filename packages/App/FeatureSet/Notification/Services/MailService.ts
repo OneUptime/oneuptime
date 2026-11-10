@@ -61,7 +61,12 @@ import EmailSize, {
   EmailWithinLimit,
   MAX_EMAIL_BYTES,
 } from "Common/Server/Utils/Mail/EmailSize";
-import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+  NotificationProviderConfig,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import { createHash } from "crypto";
@@ -1479,38 +1484,29 @@ export default class MailService {
         }
       | undefined,
   ): Promise<void> {
-    const startNs: bigint = process.hrtime.bigint();
-    let outcome: "success" | "failure" = "success";
+    // How it went, for the platform's operator (NotificationDeliveryMetrics).
+    await NotificationDeliveryMetrics.measureDispatch(
+      {
+        channel: NotificationDeliveryChannel.Email,
+        isOnCallPage: Boolean(options?.userOnCallLogTimelineId),
+      },
+      async (dispatch: NotificationDispatch): Promise<void> => {
+        /*
+         * One message goes to one mailbox. An address read back from a row
+         * stored before every address was held to one mailbox can still hold a
+         * list or a display name (Email keeps such a value readable but marks
+         * it); it is refused here rather than handed to a transport, which
+         * would deliver to every address in it.
+         */
+        if (!Email.isValid(mail.toEmail.toString())) {
+          throw new BadDataException(
+            `Email ${mail.toEmail.toString()} is not in valid format.`,
+          );
+        }
 
-    try {
-      /*
-       * One message goes to one mailbox. An address read back from a row
-       * stored before every address was held to one mailbox can still hold a
-       * list or a display name (Email keeps such a value readable but marks
-       * it); it is refused here rather than handed to a transport, which
-       * would deliver to every address in it.
-       */
-      if (!Email.isValid(mail.toEmail.toString())) {
-        throw new BadDataException(
-          `Email ${mail.toEmail.toString()} is not in valid format.`,
-        );
-      }
-
-      await this.sendInternal(mail, options);
-    } catch (err) {
-      outcome = "failure";
-      throw err;
-    } finally {
-      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
-      const durationMs: number = Number(elapsedNs) / 1e6;
-      const attributes: Record<string, string> = {
-        "notification.channel": "email",
-        outcome,
-      };
-
-      AppMetrics.getNotificationCounter().add(1, attributes);
-      AppMetrics.getNotificationDuration().record(durationMs, attributes);
-    }
+        await this.sendInternal(mail, options, dispatch);
+      },
+    );
   }
 
   private static async sendInternal(
@@ -1536,8 +1532,18 @@ export default class MailService {
           teamId?: ObjectID | undefined;
         }
       | undefined,
+    dispatch: NotificationDispatch,
   ): Promise<void> {
     let emailLog: EmailLog | undefined = undefined;
+
+    /*
+     * A mail server the caller handed over is a project's own (its SMTP
+     * config, a status page's); the server's own settings are filled in
+     * below when there is none.
+     */
+    const providerConfig: NotificationProviderConfig = options?.emailServer
+      ? NotificationProviderConfig.Project
+      : NotificationProviderConfig.Global;
 
     if (options && options.projectId) {
       emailLog = new EmailLog();
@@ -1679,6 +1685,11 @@ export default class MailService {
         (!options || !options.emailServer) &&
         emailServerType === EmailServerType.Sendgrid
       ) {
+        dispatch.setProvider(
+          NotificationDeliveryProvider.SendGrid,
+          NotificationProviderConfig.Global,
+        );
+
         const sendgridConfig: SendGridConfig | null = await getSendgridConfig();
 
         if (!sendgridConfig) {
@@ -1776,6 +1787,8 @@ export default class MailService {
           },
         });
 
+        dispatch.markSucceeded();
+
         await this.recordSent({
           emailLog: emailLog,
           userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
@@ -1856,6 +1869,13 @@ export default class MailService {
       const projectId: ObjectID | undefined = options.projectId;
       const timeout: number | undefined = options.timeout;
 
+      dispatch.setProvider(
+        NotificationDeliveryMetrics.getMailProvider(
+          toMailTransportType(emailServer.transportType),
+        ),
+        providerConfig,
+      );
+
       const imagesRefused: Error | null = await this.sendEvenWithoutImages({
         mail: mail,
         envelope: envelope,
@@ -1879,6 +1899,8 @@ export default class MailService {
           });
         },
       });
+
+      dispatch.markSucceeded();
 
       await this.recordSent({
         emailLog: emailLog,

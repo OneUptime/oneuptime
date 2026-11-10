@@ -58,6 +58,10 @@ import {
   TRUNCATED_TEXT_NOTE,
 } from "../../Utils/MessageFit";
 import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+} from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import GlobalConfigService from "./GlobalConfigService";
 import { PUSH_NOTIFICATION_NOT_SENT_TURNED_OFF_REASON } from "../../Types/PushNotification/PushNotificationsTurnedOff";
 
@@ -673,6 +677,7 @@ export default class PushNotificationService {
     if (
       await BlockedProjectNotifications.getRefusal({
         channel: "Push notification",
+        deliveryChannel: NotificationDeliveryChannel.Push,
         projectId: options.projectId,
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
       })
@@ -728,16 +733,41 @@ export default class PushNotificationService {
     for (const device of request.devices) {
       if (request.deviceType === PushDeviceType.Web) {
         promises.push(
-          this.sendWebPushNotification(device.token, request.message, options),
+          this.measureDeviceSend(
+            {
+              provider: NotificationDeliveryProvider.WebPush,
+              options: options,
+            },
+            (): Promise<void> => {
+              return this.sendWebPushNotification(
+                device.token,
+                request.message,
+                options,
+              );
+            },
+          ),
         );
       } else if (isExpoPushDeviceType(request.deviceType)) {
+        const deviceType: PushDeviceType = request.deviceType;
+
         // The same devices UserPushService marks when Expo says a token is gone.
         promises.push(
-          this.sendExpoPushNotification(
-            device.token,
-            request.message,
-            request.deviceType,
-            options,
+          this.measureDeviceSend(
+            {
+              // Without an Expo access token, pushes go through the relay.
+              provider: PushNotificationService.hasExpoAccessToken()
+                ? NotificationDeliveryProvider.Expo
+                : NotificationDeliveryProvider.PushRelay,
+              options: options,
+            },
+            (): Promise<ExpoPushAccepted | undefined> => {
+              return this.sendExpoPushNotification(
+                device.token,
+                request.message,
+                deviceType,
+                options,
+              );
+            },
           ),
         );
       } else {
@@ -920,6 +950,31 @@ export default class PushNotificationService {
     if (errorCount > 0 && successCount === 0) {
       throw new Error(failureMessage);
     }
+  }
+
+  /*
+   * One device's send, recorded for the platform's operator
+   * (NotificationDeliveryMetrics): a push is handed to its provider once
+   * for every device, and each can be accepted or refused on its own.
+   * Settles as `send` does.
+   */
+  private static measureDeviceSend<T>(
+    data: {
+      provider: NotificationDeliveryProvider;
+      options: PushNotificationOptions;
+    },
+    send: () => Promise<T>,
+  ): Promise<T> {
+    return NotificationDeliveryMetrics.measureDispatch(
+      {
+        channel: NotificationDeliveryChannel.Push,
+        provider: data.provider,
+        isOnCallPage: Boolean(data.options.userOnCallLogTimelineId),
+      },
+      (): Promise<T> => {
+        return send();
+      },
+    );
   }
 
   // A device's failed send, as its push log and the on-call timeline say it.
@@ -1890,6 +1945,12 @@ export default class PushNotificationService {
     }
 
     logger.debug(PUSH_NOTIFICATION_NOT_SENT_TURNED_OFF_REASON);
+
+    // Not sent, for the platform's operator (NotificationDeliveryMetrics).
+    NotificationDeliveryMetrics.recordNotSent({
+      channel: NotificationDeliveryChannel.Push,
+      isOnCallPage: Boolean(options.userOnCallLogTimelineId),
+    });
 
     await UserOnCallLogTimelineService.markNotSent({
       userOnCallLogTimelineId: options.userOnCallLogTimelineId,

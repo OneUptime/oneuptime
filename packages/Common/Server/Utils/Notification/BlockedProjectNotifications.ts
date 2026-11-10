@@ -1,6 +1,9 @@
 import ProjectService from "../../Services/ProjectService";
 import UserOnCallLogTimelineService from "../../Services/UserOnCallLogTimelineService";
 import logger from "../Logger";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+} from "../Telemetry/NotificationDeliveryMetrics";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import ObjectID from "../../../Types/ObjectID";
@@ -40,6 +43,12 @@ export default class BlockedProjectNotifications {
     channel: string;
     projectId?: ObjectID | null | undefined;
     userOnCallLogTimelineId?: ObjectID | null | undefined;
+    /*
+     * The channel as the platform's delivery metrics name it: a refusal is
+     * counted there as not sent (NotificationDeliveryMetrics), since it
+     * never reaches the sender that counts the rest.
+     */
+    deliveryChannel?: NotificationDeliveryChannel | undefined;
   }): Promise<HTTPErrorResponse | null> {
     if (!data.projectId) {
       return null;
@@ -54,6 +63,13 @@ export default class BlockedProjectNotifications {
     );
 
     logger.debug(reason, { projectId: data.projectId.toString() });
+
+    if (data.deliveryChannel) {
+      NotificationDeliveryMetrics.recordNotSent({
+        channel: data.deliveryChannel,
+        isOnCallPage: Boolean(data.userOnCallLogTimelineId),
+      });
+    }
 
     await UserOnCallLogTimelineService.markNotSent({
       userOnCallLogTimelineId: data.userOnCallLogTimelineId || undefined,

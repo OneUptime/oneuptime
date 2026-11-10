@@ -15,6 +15,7 @@ import SMS from "../../Types/SMS/SMS";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import { NotificationDeliveryChannel } from "../Utils/Telemetry/NotificationDeliveryMetrics";
 
 export class SmsService extends BaseService {
   public constructor() {
@@ -59,6 +60,7 @@ export class SmsService extends BaseService {
     const blockedProjectRefusal: HTTPErrorResponse | null =
       await BlockedProjectNotifications.getRefusal({
         channel: "SMS",
+        deliveryChannel: NotificationDeliveryChannel.SMS,
         projectId: options.projectId,
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
       });

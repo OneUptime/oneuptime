@@ -10,6 +10,12 @@ import CustomChannelEdition, {
   CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
 } from "Common/Server/Utils/Notification/CustomChannelEdition";
 import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryOutcome,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -43,7 +49,35 @@ export default class CustomChannelSender {
     isTest?: boolean | undefined;
     userOnCallLogTimelineId?: ObjectID | undefined;
   }): Promise<CustomChannelDeliveryResult> {
-    const result: CustomChannelDeliveryResult = await this.deliver(input);
+    /*
+     * How it went, for the platform's operator (NotificationDeliveryMetrics):
+     * by the channel's id and name, as an installation's custom channels
+     * are told apart. A test - its admin trying it - is not counted, and a
+     * request that throws is left to core, which records it as failed when
+     * it gets no answer (CustomNotificationChannelDeliveryService).
+     */
+    const dispatch: NotificationDispatch =
+      NotificationDeliveryMetrics.startDispatch({
+        channel: NotificationDeliveryChannel.CustomChannel,
+        provider: NotificationDeliveryProvider.CustomChannel,
+        isOnCallPage: Boolean(input.userOnCallLogTimelineId),
+        customChannel: {
+          id: input.customNotificationChannelId.toString(),
+        },
+      });
+
+    const result: CustomChannelDeliveryResult = await this.deliver(
+      input,
+      dispatch,
+    );
+
+    if (!input.isTest) {
+      dispatch.end(
+        result.ok
+          ? NotificationDeliveryOutcome.Success
+          : NotificationDeliveryOutcome.Failure,
+      );
+    }
 
     if (input.userOnCallLogTimelineId) {
       await UserOnCallLogTimelineService.updateOneById({
@@ -63,17 +97,22 @@ export default class CustomChannelSender {
     return result;
   }
 
-  private static async deliver(input: {
-    customNotificationChannelId: ObjectID;
-    eventType: string;
-    payload: JSONObject;
-    isTest?: boolean | undefined;
-  }): Promise<CustomChannelDeliveryResult> {
+  private static async deliver(
+    input: {
+      customNotificationChannelId: ObjectID;
+      eventType: string;
+      payload: JSONObject;
+      isTest?: boolean | undefined;
+    },
+    dispatch: NotificationDispatch,
+  ): Promise<CustomChannelDeliveryResult> {
     /*
      * Asked again here, as well as by core before it hands a request over:
      * the license can lapse between the two.
      */
     if (!CustomChannelEdition.isActive()) {
+      dispatch.markNotSent();
+
       return {
         ok: false,
         message: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
@@ -96,15 +135,25 @@ export default class CustomChannelSender {
       });
 
     if (!channel || !channel.webhookUrl) {
+      // Its admin deleted it: the rules that point at it send nothing.
+      dispatch.markNotSent();
+
       return {
         ok: false,
         message: "Not sent: this custom channel no longer exists.",
       };
     }
 
+    dispatch.setCustomChannel({
+      id: input.customNotificationChannelId.toString(),
+      name: channel.name,
+    });
+
     const name: string = channel.name || "the custom channel";
 
     if (channel.isEnabled === false && !input.isTest) {
+      dispatch.markNotSent();
+
       return {
         ok: false,
         message: `Not sent: ${name} is turned off. Your administrator can turn it on in the Admin Dashboard, under Settings > Notifications > Custom Channels.`,
