@@ -11,6 +11,14 @@
  *           @oneuptime/dashboard and @oneuptime/admin-dashboard specifiers ee UI
  *           code uses to reach frontend internals.
  *
+ * Both projects run with Common's test timeout (60 s), set once at the top
+ * level. With `projects`, Jest reads a global option such as testTimeout only
+ * at the top level, and a project's options only in its entry: anything set
+ * in the other place is dropped without a word. Each project here used to set
+ * its own testTimeout, so neither applied and every ee test ran with Jest's
+ * default of 5 seconds (#6382). Tests/Server/JestConfig.test.ts keeps every
+ * option where Jest reads it.
+ *
  * Run it with ee's own jest 28.1.3 (node_modules/.bin/jest), never the repo
  * root's jest 30.
  *
@@ -134,6 +142,13 @@ const deriveUiModuleNameMapper = (commonJestConfig) => {
 const commonJestConfig = readCommonJestConfig();
 
 module.exports = {
+  /*
+   * For every test in both projects. Here, not in a project entry, where
+   * Jest drops it. Common's value, as the ui project's other settings are,
+   * so ee's tests get the time Common's own tests get. --testTimeout on the
+   * command line still wins.
+   */
+  testTimeout: commonJestConfig.testTimeout,
   projects: [
     {
       displayName: "server",
@@ -148,7 +163,6 @@ module.exports = {
       globals: TS_JEST_GLOBALS,
       moduleNameMapper: { ...ANCHORED_CORE_MAPPERS },
       modulePaths: MODULE_PATHS,
-      testTimeout: 30000,
     },
     {
       displayName: "ui",
@@ -167,7 +181,6 @@ module.exports = {
       globals: TS_JEST_GLOBALS,
       moduleNameMapper: deriveUiModuleNameMapper(commonJestConfig),
       modulePaths: MODULE_PATHS,
-      testTimeout: commonJestConfig.testTimeout || 60000,
     },
   ],
 };

@@ -4,6 +4,14 @@ import FilterCondition from "../Filter/FilterCondition";
 import { JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  fillTemplate,
+  TemplateValues,
+  translationKey,
+  Translator,
+} from "../Translator";
 import Typeof from "../Typeof";
 import { CriteriaAlert } from "./CriteriaAlert";
 import {
@@ -60,6 +68,21 @@ export interface MonitorCriteriaInstanceType {
  */
 const criteriaWithIdGeneratedOnParse: WeakSet<MonitorCriteriaInstance> =
   new WeakSet<MonitorCriteriaInstance>();
+
+/*
+ * The words of a new monitor's default criteria for a caller with no reader:
+ * the server, the API, a monitor made from a template. Each sentence is its
+ * English template filled with its values as written (fillTemplate), word
+ * for word what these defaults have always read - a monitor's name is never
+ * taken for a date to put back into English, as an English sentence of a
+ * reader's translator does with a date written in the reader's language.
+ */
+const ENGLISH_WORDS: Translator = {
+  ...createTranslator(undefined, DEFAULT_LANGUAGE),
+  translateTemplate: (template: string, values?: TemplateValues): string => {
+    return fillTemplate(template, values);
+  },
+};
 
 export default class MonitorCriteriaInstance extends DatabaseProperty {
   /*
@@ -170,6 +193,29 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     };
   }
 
+  /*
+   * The words a new monitor's default criteria are written with - every
+   * criteria's name and description, and the title and description of each
+   * incident and alert it opens - are OneUptime's suggestion to the person
+   * creating the monitor. Once saved they are the project's own text, which
+   * its people edit like anything they typed. So they are written in that
+   * person's language: the Dashboard hands the builders below the reader's
+   * Translator, and each sentence is looked up whole, its values ({{days}},
+   * {{monitorName}}) filled in after. Filter values, keywords and ids are
+   * never translated. Without a translator - the server, the API, a monitor
+   * made from a template - every sentence is English, word for word as
+   * before (ENGLISH_WORDS).
+   *
+   * Dashboard/scripts/i18n/ExtractStrings.ts reads this file as a "keys"
+   * root: every template passed to translateTemplate, or marked with
+   * translationKey, is a key of the Dashboard's locale files.
+   */
+  private static getWordsTranslator(
+    translator: Translator | undefined,
+  ): Translator {
+    return translator || ENGLISH_WORDS;
+  }
+
   public static getDefaultOnlineMonitorCriteriaInstance(arg: {
     monitorType: MonitorType;
     monitorStatusId: ObjectID;
@@ -177,7 +223,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     metricOptions?: {
       metricAliases: Array<string>;
     };
+    // The reader's, to write the words in their language (getWordsTranslator).
+    translator?: Translator | undefined;
   }): MonitorCriteriaInstance | null {
+    const translator: Translator = MonitorCriteriaInstance.getWordsTranslator(
+      arg.translator,
+    );
+    const values: TemplateValues = { monitorName: arg.monitorName };
+
     if (arg.monitorType === MonitorType.IncomingRequest) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -198,8 +251,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the request body of ${arg.monitorName} does not contain "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          'This criteria checks if the request body of {{monitorName}} does not contain "{{keyword}}"',
+          {
+            ...values,
+            keyword:
+              MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+          },
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -225,8 +288,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the email body of ${arg.monitorName} does not contain "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          'This criteria checks if the email body of {{monitorName}} does not contain "{{keyword}}"',
+          {
+            ...values,
+            keyword:
+              MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+          },
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -264,8 +337,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         createAlerts: false,
-        name: "AI answers are fine",
-        description: `This criteria checks that no more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the answers ${arg.monitorName} counts were bad`,
+        name: translator.translateTemplate("AI answers are fine"),
+        description: translator.translateTemplate(
+          "This criteria checks that no more than {{percent}}% of the answers {{monitorName}} counts were bad",
+          {
+            ...values,
+            percent: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+          },
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -297,8 +376,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         createAlerts: false,
-        name: `Check if ${arg.monitorName} is clear`,
-        description: `This criteria checks that ${arg.monitorName} has no matching security events`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is clear",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks that {{monitorName}} has no matching security events",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -324,8 +409,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         createAlerts: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is online",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -351,8 +442,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         createAlerts: false,
-        name: `Check if ${arg.monitorName} has no exceptions`,
-        description: `This criteria checks if the ${arg.monitorName} has no exceptions.`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} has no exceptions",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} has no exceptions.",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -398,8 +495,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         createAlerts: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is sending data.`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is sending data.",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -445,8 +548,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         createAlerts: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is online",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -472,8 +581,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         createAlerts: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is online",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -499,8 +614,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is online",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -526,8 +647,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} certificate is valid`,
-        description: `This criteria checks if the ${arg.monitorName} SSL certificate is valid`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} certificate is valid",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} SSL certificate is valid",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -556,8 +683,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is online",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -583,8 +716,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is online",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -616,8 +755,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is online",
+          values,
+        ),
       };
 
       if (
@@ -642,7 +787,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         );
 
-        monitorCriteriaInstance.data.description = `This criteria checks if the ${arg.monitorName} is online and responds with a 2xx or 3xx status code`;
+        monitorCriteriaInstance.data.description = translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is online and responds with a 2xx or 3xx status code",
+          values,
+        );
       }
 
       return monitorCriteriaInstance;
@@ -668,8 +816,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} SNMP device is online`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} SNMP device is online",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -695,8 +849,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} DNS resolution is online`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} DNS resolution is online",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -722,8 +882,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} database query ran successfully`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} database query ran successfully",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -756,8 +922,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if ${arg.monitorName} is reachable and its health metrics were collected`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is online",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if {{monitorName}} is reachable and its health metrics were collected",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -789,8 +961,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is not expired`,
-        description: `This criteria checks if the ${arg.monitorName} domain registration was read successfully and is not expired`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is not expired",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} domain registration was read successfully and is not expired",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -816,8 +994,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} DNSSEC chain is valid`,
-        description: `This criteria checks if the ${arg.monitorName} DNSSEC chain is valid end-to-end`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} DNSSEC chain is valid",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} DNSSEC chain is valid end-to-end",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -860,8 +1044,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} serves good time`,
-        description: `This criteria checks if the ${arg.monitorName} time server answers, is synchronized, and its clock is within ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms of the probe's`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} serves good time",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} time server answers, is synchronized, and its clock is within {{offset}} ms of the probe's",
+          { ...values, offset: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS },
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -892,8 +1082,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is operational`,
-        description: `This criteria checks if the ${arg.monitorName} external status page is reachable and has no active incidents`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is operational",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} external status page is reachable and has no active incidents",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -924,12 +1120,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if every probe is connected`,
+        name: translator.translateTemplate("Check if every probe is connected"),
         /*
          * "this monitor", not its name: "every probe Probe health watches"
          * reads as a typo, and a renamed monitor would keep the old name.
          */
-        description: `This criteria checks if every probe this monitor watches is connected`,
+        description: translator.translateTemplate(
+          "This criteria checks if every probe this monitor watches is connected",
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -965,7 +1163,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     monitorType: MonitorType;
     alertSeverityId: ObjectID;
     monitorName: string;
+    // The reader's, to write the words in their language (getWordsTranslator).
+    translator?: Translator | undefined;
   }): MonitorCriteriaInstance | null {
+    const translator: Translator = MonitorCriteriaInstance.getWordsTranslator(
+      arg.translator,
+    );
+    const values: TemplateValues = { monitorName: arg.monitorName };
+
     if (arg.monitorType === MonitorType.SSLCertificate) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -990,8 +1195,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: [],
         alerts: [
           {
-            title: `${arg.monitorName} certificate expires soon`,
-            description: `The SSL certificate of ${arg.monitorName} expires soon. Renew it before it expires, so visitors do not see a certificate error.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} certificate expires soon",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "The SSL certificate of {{monitorName}} expires soon. Renew it before it expires, so visitors do not see a certificate error.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1001,8 +1212,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: false,
         createIncidents: false,
         createAlerts: true,
-        name: `Check if ${arg.monitorName} certificate expires soon`,
-        description: `This criteria checks if the ${arg.monitorName} SSL certificate is valid but expires in ${MonitorCriteriaInstance.DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS} days or less`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} certificate expires soon",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} SSL certificate is valid but expires in {{days}} days or less",
+          {
+            ...values,
+            days: MonitorCriteriaInstance.DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS,
+          },
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -1031,8 +1251,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: [],
         alerts: [
           {
-            title: `${arg.monitorName} domain expires soon`,
-            description: `The registration of ${arg.monitorName} expires soon. Renew it with your registrar before it expires, or the websites and email that use it stop working.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} domain expires soon",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "The registration of {{monitorName}} expires soon. Renew it with your registrar before it expires, or the websites and email that use it stop working.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1042,8 +1268,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: false,
         createIncidents: false,
         createAlerts: true,
-        name: `Check if ${arg.monitorName} domain expires soon`,
-        description: `This criteria checks if the ${arg.monitorName} domain registration expires in ${MonitorCriteriaInstance.DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS} days or less`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} domain expires soon",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} domain registration expires in {{days}} days or less",
+          {
+            ...values,
+            days: MonitorCriteriaInstance.DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS,
+          },
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -1061,7 +1296,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     metricOptions?: {
       metricAliases: Array<string>;
     };
+    // The reader's, to write the words in their language (getWordsTranslator).
+    translator?: Translator | undefined;
   }): MonitorCriteriaInstance {
+    const translator: Translator = MonitorCriteriaInstance.getWordsTranslator(
+      arg.translator,
+    );
+    const values: TemplateValues = { monitorName: arg.monitorName };
     const monitorCriteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
 
@@ -1084,8 +1325,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1097,16 +1344,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is offline",
+          values,
+        ),
       };
     }
 
@@ -1124,8 +1383,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} SNMP device is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} SNMP device is currently offline.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1137,16 +1402,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} SNMP device is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} SNMP device is currently offline.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} SNMP device is offline`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} SNMP device is offline",
+          values,
+        ),
       };
     }
 
@@ -1164,8 +1441,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} DNS resolution is currently failing.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} DNS resolution is currently failing.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1177,16 +1460,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} DNS resolution is currently failing.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} DNS resolution is currently failing.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} DNS resolution is failing`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} DNS resolution is failing",
+          values,
+        ),
       };
     }
 
@@ -1204,8 +1499,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is not reachable, or the health check could not connect.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is not reachable, or the health check could not connect.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1217,16 +1518,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is not reachable, or the health check could not connect.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is not reachable, or the health check could not connect.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if ${arg.monitorName} is offline`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if {{monitorName}} is offline",
+          values,
+        ),
       };
 
       return monitorCriteriaInstance;
@@ -1246,8 +1559,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} database query is currently failing.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} database query is currently failing.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1259,16 +1578,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} database query is currently failing.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} database query is currently failing.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} database query is failing`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} database query is failing",
+          values,
+        ),
       };
     }
 
@@ -1297,8 +1628,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} domain check failed`,
-            description: `${arg.monitorName} domain registration has expired, or its registration data could not be retrieved.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} domain check failed",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} domain registration has expired, or its registration data could not be retrieved.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1310,16 +1647,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} domain check failed`,
-            description: `${arg.monitorName} domain registration has expired, or its registration data could not be retrieved.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} domain check failed",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} domain registration has expired, or its registration data could not be retrieved.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} domain check failed`,
-        description: `This criteria checks if the ${arg.monitorName} domain registration has expired or could not be read`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} domain check failed",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} domain registration has expired or could not be read",
+          values,
+        ),
       };
     }
 
@@ -1337,8 +1686,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} DNSSEC chain is broken`,
-            description: `${arg.monitorName} DNSSEC validation is currently failing.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} DNSSEC chain is broken",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} DNSSEC validation is currently failing.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1350,16 +1705,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} DNSSEC chain is broken`,
-            description: `${arg.monitorName} DNSSEC validation is currently failing.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} DNSSEC chain is broken",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} DNSSEC validation is currently failing.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} DNSSEC chain is broken`,
-        description: `This criteria checks if the ${arg.monitorName} DNSSEC chain is broken`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} DNSSEC chain is broken",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} DNSSEC chain is broken",
+          values,
+        ),
       };
     }
 
@@ -1393,8 +1760,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is not serving good time`,
-            description: `${arg.monitorName} did not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is not serving good time",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} did not answer, is not synchronized, or its clock is {{offset}} ms or more away from the probe's.",
+              { ...values, offset: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS },
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1406,16 +1779,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} is not serving good time`,
-            description: `${arg.monitorName} did not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is not serving good time",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} did not answer, is not synchronized, or its clock is {{offset}} ms or more away from the probe's.",
+              { ...values, offset: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS },
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} is not serving good time`,
-        description: `This criteria checks if the ${arg.monitorName} time server does not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is not serving good time",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} time server does not answer, is not synchronized, or its clock is {{offset}} ms or more away from the probe's",
+          { ...values, offset: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS },
+        ),
       };
     }
 
@@ -1458,8 +1843,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} has an active incident or outage`,
-            description: `${arg.monitorName} external status page is reporting an active incident or a non-operational component.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} has an active incident or outage",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} external status page is reporting an active incident or a non-operational component.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1471,16 +1862,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} has an active incident or outage`,
-            description: `${arg.monitorName} external status page is reporting an active incident or a non-operational component.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} has an active incident or outage",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} external status page is reporting an active incident or a non-operational component.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} has an active incident or outage`,
-        description: `This criteria checks if the ${arg.monitorName} external status page is unreachable, has an active incident, or has a degraded, partial, or major outage`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} has an active incident or outage",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} external status page is unreachable, has an active incident, or has a degraded, partial, or major outage",
+          values,
+        ),
       };
     }
 
@@ -1517,8 +1920,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is not responding, or is responding with an error status code.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is not responding, or is responding with an error status code.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1528,8 +1937,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is not responding, or is responding with an error status code.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is not responding, or is responding with an error status code.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1538,8 +1953,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline or responds with an error status code`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is offline or responds with an error status code",
+          values,
+        ),
       };
     }
 
@@ -1567,8 +1988,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName}: too many bad AI answers`,
-            description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
+            title: translator.translateTemplate(
+              "{{monitorName}}: too many bad AI answers",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "More than {{percent}}% of the AI's answers were bad.",
+              {
+                percent: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+              },
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1577,8 +2006,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName}: too many bad AI answers`,
-            description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
+            title: translator.translateTemplate(
+              "{{monitorName}}: too many bad AI answers",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "More than {{percent}}% of the AI's answers were bad.",
+              {
+                percent: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+              },
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1588,8 +2025,15 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: true,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: "Too many bad AI answers",
-        description: `This criteria fires when more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the answers ${arg.monitorName} counts, and at least ${MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS} of them, were bad`,
+        name: translator.translateTemplate("Too many bad AI answers"),
+        description: translator.translateTemplate(
+          "This criteria fires when more than {{percent}}% of the answers {{monitorName}} counts, and at least {{minimum}} of them, were bad",
+          {
+            ...values,
+            percent: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+            minimum: MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS,
+          },
+        ),
       };
     }
 
@@ -1608,8 +2052,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: [],
         alerts: [
           {
-            title: `${arg.monitorName} detected security events`,
-            description: `${arg.monitorName} found matching security events.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} detected security events",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} found matching security events.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1619,8 +2069,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: true,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} found security events`,
-        description: `This criteria fires when ${arg.monitorName} finds matching security events`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} found security events",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria fires when {{monitorName}} finds matching security events",
+          values,
+        ),
       };
     }
 
@@ -1638,8 +2094,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1648,8 +2110,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1659,8 +2127,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is offline",
+          values,
+        ),
       };
     }
 
@@ -1678,8 +2152,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} has exceptions`,
-            description: `${arg.monitorName} has active exceptions.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} has exceptions",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} has active exceptions.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1688,8 +2168,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} has exceptions`,
-            description: `${arg.monitorName} has active exceptions.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} has exceptions",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} has active exceptions.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1699,8 +2185,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} has exceptions`,
-        description: `This criteria checks if the ${arg.monitorName} has exceptions.`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} has exceptions",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} has exceptions.",
+          values,
+        ),
       };
     }
 
@@ -1736,8 +2228,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} has sent no data for the whole evaluation window.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} has sent no data for the whole evaluation window.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1746,8 +2244,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} has sent no data for the whole evaluation window.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} has sent no data for the whole evaluation window.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1757,8 +2261,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} has stopped sending data.`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} has stopped sending data.",
+          values,
+        ),
       };
     } else if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
       monitorCriteriaInstance.data = {
@@ -1791,8 +2301,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1801,8 +2317,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1812,8 +2334,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is offline",
+          values,
+        ),
       };
     }
 
@@ -1831,8 +2359,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1841,8 +2375,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1852,8 +2392,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is offline",
+          values,
+        ),
       };
     }
 
@@ -1871,8 +2417,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1882,8 +2434,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1892,8 +2450,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is offline",
+          values,
+        ),
       };
     }
 
@@ -1915,8 +2479,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline. The request body contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}".`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              '{{monitorName}} is currently offline. The request body contains "{{keyword}}".',
+              {
+                ...values,
+                keyword:
+                  MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+              },
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1926,8 +2500,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline. The request body contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}".`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              '{{monitorName}} is currently offline. The request body contains "{{keyword}}".',
+              {
+                ...values,
+                keyword:
+                  MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+              },
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1936,8 +2520,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the request body of ${arg.monitorName} contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          'This criteria checks if the request body of {{monitorName}} contains "{{keyword}}"',
+          {
+            ...values,
+            keyword:
+              MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+          },
+        ),
       };
     }
 
@@ -1959,8 +2553,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline. The email body contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}".`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              '{{monitorName}} is currently offline. The email body contains "{{keyword}}".',
+              {
+                ...values,
+                keyword:
+                  MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+              },
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1970,8 +2574,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline. The email body contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}".`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              '{{monitorName}} is currently offline. The email body contains "{{keyword}}".',
+              {
+                ...values,
+                keyword:
+                  MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+              },
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1980,8 +2594,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the email body of ${arg.monitorName} contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          'This criteria checks if the email body of {{monitorName}} contains "{{keyword}}"',
+          {
+            ...values,
+            keyword:
+              MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+          },
+        ),
       };
     }
 
@@ -2002,8 +2626,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -2013,8 +2643,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} is offline",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} is currently offline.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -2023,8 +2659,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} is offline",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} is offline",
+          values,
+        ),
       };
     }
 
@@ -2042,8 +2684,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: FilterCondition.Any,
         alerts: [
           {
-            title: `${arg.monitorName} certificate is not valid`,
-            description: `The SSL certificate of ${arg.monitorName} is not valid, or could not be checked.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} certificate is not valid",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "The SSL certificate of {{monitorName}} is not valid, or could not be checked.",
+              values,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -2060,8 +2708,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} certificate is not valid`,
-            description: `The SSL certificate of ${arg.monitorName} is not valid, or could not be checked.`,
+            title: translator.translateTemplate(
+              "{{monitorName}} certificate is not valid",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "The SSL certificate of {{monitorName}} is not valid, or could not be checked.",
+              values,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -2070,8 +2724,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} certificate is not valid`,
-        description: `This criteria checks if the ${arg.monitorName} SSL certificate is not valid or could not be checked`,
+        name: translator.translateTemplate(
+          "Check if {{monitorName}} certificate is not valid",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if the {{monitorName}} SSL certificate is not valid or could not be checked",
+          values,
+        ),
       };
     }
 
@@ -2096,8 +2756,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
-            description: MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
+            title: translator.translateTemplate(
+              MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
+            ),
+            description: translator.translateTemplate(
+              MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
+            ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -2109,25 +2773,37 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
-            description: MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
+            title: translator.translateTemplate(
+              MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
+            ),
+            description: translator.translateTemplate(
+              MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
+            ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if a probe is disconnected`,
-        description: `This criteria checks if any probe this monitor watches is disconnected`,
+        name: translator.translateTemplate("Check if a probe is disconnected"),
+        description: translator.translateTemplate(
+          "This criteria checks if any probe this monitor watches is disconnected",
+        ),
       };
     }
 
     return monitorCriteriaInstance;
   }
 
-  // The title of the incident and alert a Probe Status monitor opens by default.
-  public static readonly PROBE_DISCONNECTED_TITLE: string =
-    "Probe disconnected: {{disconnectedProbeNames}}";
+  /*
+   * The title of the incident and alert a Probe Status monitor opens by
+   * default. {{disconnectedProbeNames}} is not filled in here: it is a
+   * template variable the incident is created with (MonitorTemplateUtil), so
+   * a translation keeps it as it is.
+   */
+  public static readonly PROBE_DISCONNECTED_TITLE: string = translationKey(
+    "Probe disconnected: {{disconnectedProbeNames}}",
+  );
 
   /*
    * What a Probe Status monitor's default incident and alert say. The first
@@ -2135,9 +2811,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
    * means, what it costs and what happens next, so the person paged knows
    * without reading the docs. It names no monitor: the incident is the
    * monitor's own, and a renamed monitor would keep its old name here.
+   * {{probeStatusSummary}} is a template variable too, filled in when the
+   * incident is created.
    */
   public static readonly PROBE_DISCONNECTED_DESCRIPTION: string =
-    "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.";
+    translationKey(
+      "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.",
+    );
 
   public static getNewMonitorCriteriaInstanceAsJSON(): JSONObject {
     return {

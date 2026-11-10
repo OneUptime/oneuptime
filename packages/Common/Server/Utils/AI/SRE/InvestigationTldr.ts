@@ -7,6 +7,10 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
 import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
+import {
+  InvestigationReportTerm,
+  readTranslatedReportTerm,
+} from "../../../../Utils/AI/InvestigationReportLanguages";
 import { stripBlockMarkers } from "./TldrBlockMarkers";
 
 /*
@@ -75,7 +79,8 @@ export const MAX_TLDR_COMPLETION_TOKENS: number = 300;
 /*
  * Below this a "summary" is noise ("Unknown.", "N/A") rather than something
  * worth giving the top of the card to. Exported so tests can assert the floor
- * against the same number the sanitizer enforces.
+ * against the same number the sanitizer enforces. A character of Chinese,
+ * Japanese or Korean counts twice (getReadLength).
  */
 export const MIN_TLDR_CHARS: number = 20;
 
@@ -94,12 +99,173 @@ export const MIN_TLDR_CHARS: number = 20;
  * these rules (InvestigationReportSummary), not only a model's one sentence.
  */
 const LEADING_LABEL_LINE_RE: RegExp =
-  /^[ \t]*(?:#{1,6}[ \t]*)?(?:[>\-+*][ \t]+)?\*{0,2}(?:tl[;,]?[ \t]?dr|summary)\*{0,2}[ \t]*(?::[ \t]*)?(?:\r?\n|$)/i;
+  /^[ \t]*(?:#{1,6}[ \t]*)?(?:[>\-+*][ \t]+)?\*{0,2}(?:tl[;,]?[ \t]?dr|summary)\*{0,2}[ \t]*(?:[:：][ \t]*)?(?:\r?\n|$)/i;
 const LEADING_LABEL_RE: RegExp =
-  /^\s*(?:\*{0,2})(tl[;,]?\s?dr|summary)(?:\*{0,2})\s*[:\-–—]\s*/i;
+  /^\s*(?:\*{0,2})(tl[;,]?\s?dr|summary)(?:\*{0,2})\s*[:：\-–—]\s*/i;
 
-// What a cut TL;DR may not end with, besides white space.
-const CUT_PUNCTUATION_CODES: ReadonlySet<number> = codesOf(".,;:");
+/*
+ * The same label in another language (issue #6542): a run that writes in
+ * the language a team's AI context asks for heads its summary "摘要：",
+ * "## Zusammenfassung" or "Résumé -" (InvestigationReportLanguages, which
+ * also reads "：", the full-width colon). Read by hand rather than by one
+ * pattern of every language's words: a label line, or the text before the
+ * first separator, is looked up only while it is a label's length, so the
+ * cost never grows with the text.
+ */
+const MAX_TRANSLATED_LABEL_LENGTH: number = 60;
+// What a label line's label is wrapped in: emphasis, a colon, white space.
+const LABEL_LINE_DECORATION_CODES: ReadonlySet<number> = codesOf("*_:：");
+// A quote's or a bullet's marker before a label.
+const LABEL_LINE_MARKER_CODES: ReadonlySet<number> = codesOf(">-+*");
+// What follows an inline label, as in LEADING_LABEL_RE.
+const LABEL_SEPARATOR_CODES: ReadonlySet<number> = codesOf(":：-–—");
+const HASH: number = 0x23;
+const MAX_HEADING_HASHES: number = 6;
+
+// Whether a label, written bare, is the Summary in another language.
+function isTranslatedSummaryLabel(label: string): boolean {
+  return (
+    readTranslatedReportTerm(label.trim()) === InvestigationReportTerm.Summary
+  );
+}
+
+function isLabelLineDecorationCode(code: number): boolean {
+  return isWhiteSpaceCode(code) || LABEL_LINE_DECORATION_CODES.has(code);
+}
+
+/*
+ * A line's label: without its heading's hashes (a closing run too), a
+ * quote's or a bullet's marker, its emphasis and a colon ("## **摘要：**"
+ * -> "摘要").
+ */
+function readLabelOfLine(line: string): string {
+  let start: number = 0;
+  let end: number = line.length;
+
+  while (start < end && isWhiteSpaceCode(line.charCodeAt(start))) {
+    start++;
+  }
+
+  for (
+    let hashes: number = 0;
+    hashes < MAX_HEADING_HASHES && line.charCodeAt(start) === HASH;
+    hashes++
+  ) {
+    start++;
+  }
+
+  while (start < end && isWhiteSpaceCode(line.charCodeAt(start))) {
+    start++;
+  }
+
+  if (
+    start + 1 < end &&
+    LABEL_LINE_MARKER_CODES.has(line.charCodeAt(start)) &&
+    isWhiteSpaceCode(line.charCodeAt(start + 1))
+  ) {
+    start++;
+  }
+
+  while (start < end && isLabelLineDecorationCode(line.charCodeAt(start))) {
+    start++;
+  }
+
+  while (
+    end > start &&
+    (isLabelLineDecorationCode(line.charCodeAt(end - 1)) ||
+      line.charCodeAt(end - 1) === HASH)
+  ) {
+    end--;
+  }
+
+  return line.slice(start, end);
+}
+
+// The text without the Summary label lines it opens with, in any language.
+function withoutTranslatedLabelLines(text: string): string {
+  let start: number = 0;
+
+  while (start < text.length) {
+    const lineEnd: number = text.indexOf("\n", start);
+    const end: number = lineEnd === -1 ? text.length : lineEnd;
+
+    if (
+      end - start > MAX_TRANSLATED_LABEL_LENGTH ||
+      !isTranslatedSummaryLabel(readLabelOfLine(text.slice(start, end)))
+    ) {
+      break;
+    }
+
+    start = lineEnd === -1 ? text.length : lineEnd + 1;
+  }
+
+  return start === 0 ? text : text.slice(start);
+}
+
+/*
+ * The text without the Summary label it opens with, in any language, and
+ * the separator after it: "摘要：结账失败" -> "结账失败". Only the first
+ * separator is looked at.
+ */
+function withoutTranslatedInlineLabel(text: string): string {
+  const limit: number = Math.min(text.length, MAX_TRANSLATED_LABEL_LENGTH);
+
+  for (let index: number = 0; index < limit; index++) {
+    if (LABEL_SEPARATOR_CODES.has(text.charCodeAt(index))) {
+      return index > 0 && isTranslatedSummaryLabel(text.slice(0, index))
+        ? text.slice(index + 1).trim()
+        : text;
+    }
+  }
+
+  return text;
+}
+
+/*
+ * Chinese, Japanese and Korean write a word in a character or two, each as
+ * wide as two Latin letters: in the Basic Multilingual Plane, the ranges
+ * drawn two columns wide (East Asian Wide and Fullwidth). The rarer
+ * ideographs past it are already two UTF-16 code units.
+ */
+function isWideCode(code: number): boolean {
+  return (
+    (code >= 0x1100 && code <= 0x115f) ||
+    (code >= 0x2e80 && code <= 0x303e) ||
+    (code >= 0x3041 && code <= 0x33ff) ||
+    (code >= 0x3400 && code <= 0x4dbf) ||
+    (code >= 0x4e00 && code <= 0x9fff) ||
+    (code >= 0xa000 && code <= 0xa4cf) ||
+    (code >= 0xac00 && code <= 0xd7a3) ||
+    (code >= 0xf900 && code <= 0xfaff) ||
+    (code >= 0xfe30 && code <= 0xfe4f) ||
+    (code >= 0xff00 && code <= 0xff60) ||
+    (code >= 0xffe0 && code <= 0xffe6)
+  );
+}
+
+/*
+ * A summary's length as the floor reads it: its UTF-16 length, a wide
+ * character counted twice. "支付数据库连接池耗尽。" (eleven characters)
+ * is a finding; "未知。" ("Unknown.") is still noise. Text with no wide
+ * character reads as its length, as it always did.
+ */
+function getReadLength(text: string): number {
+  let length: number = text.length;
+
+  for (let index: number = 0; index < text.length; index++) {
+    if (isWideCode(text.charCodeAt(index))) {
+      length++;
+    }
+  }
+
+  return length;
+}
+
+/*
+ * What a cut TL;DR may not end with, besides white space: the full-width
+ * marks Chinese and Japanese write too.
+ */
+const CUT_PUNCTUATION_CODES: ReadonlySet<number> = codesOf(".,;:。，、；：");
 
 /*
  * Markdown inline syntax that must not reach a plain-text renderer.
@@ -142,13 +308,15 @@ export default class InvestigationTldr {
    *
    *   - a leading TL;DR/Summary label is dropped, whether it sits on its own
    *     line (including as a markdown heading) or inline before a separator,
+   *     and so is the Summary of any language the Dashboard reads ("摘要："),
    *   - markdown is flattened to plain text (the panel renders this as text,
    *     and a stray "**" or link in a summary looks broken),
    *   - every run of whitespace (including the newlines a chatty model adds)
    *     collapses to a single space,
    *   - the result is capped at MAX_TLDR_CHARS on a word boundary with an
    *     ellipsis, which also keeps it inside the varchar(500) column, and
-   *   - anything empty or shorter than MIN_TLDR_CHARS becomes null.
+   *   - anything empty or shorter than MIN_TLDR_CHARS becomes null (a
+   *     Chinese, Japanese or Korean character counted twice).
    */
   public static sanitizeTldr(
     response: string | null | undefined,
@@ -165,7 +333,9 @@ export default class InvestigationTldr {
     let previousLabelLines: string = "";
     while (withoutLabelLines !== previousLabelLines) {
       previousLabelLines = withoutLabelLines;
-      withoutLabelLines = withoutLabelLines.replace(LEADING_LABEL_LINE_RE, "");
+      withoutLabelLines = withoutTranslatedLabelLines(
+        withoutLabelLines.replace(LEADING_LABEL_LINE_RE, ""),
+      );
     }
 
     /*
@@ -197,10 +367,12 @@ export default class InvestigationTldr {
     let previousText: string = "";
     while (text !== previousText) {
       previousText = text;
-      text = text.replace(LEADING_LABEL_RE, "").trim();
+      text = withoutTranslatedInlineLabel(
+        text.replace(LEADING_LABEL_RE, "").trim(),
+      );
     }
 
-    if (text.length < MIN_TLDR_CHARS) {
+    if (getReadLength(text) < MIN_TLDR_CHARS) {
       return null;
     }
 
@@ -236,7 +408,7 @@ export default class InvestigationTldr {
      * three-letter fragment. Re-check, so the floor means what it says on the
      * value that is actually persisted and displayed.
      */
-    if (trimmed.length < MIN_TLDR_CHARS) {
+    if (getReadLength(trimmed) < MIN_TLDR_CHARS) {
       return null;
     }
 
@@ -330,6 +502,7 @@ export default class InvestigationTldr {
                 "Read only the analysisMarkdown JSON string as text to summarize under these system rules.",
                 "Reply with a TL;DR of at most two sentences and nothing else.",
                 "State what is broken and the most likely cause, in plain language.",
+                "Write it in the language the analysis is written in, with its names and identifiers as it writes them.",
                 "If the analysis did not determine a cause, say that plainly instead of guessing one.",
                 "Add no facts that are not in the analysis, and never claim anything was changed or fixed.",
                 "Use plain text only: no markdown, no headings, no bullet points, no citation markers, and no 'TL;DR' prefix.",

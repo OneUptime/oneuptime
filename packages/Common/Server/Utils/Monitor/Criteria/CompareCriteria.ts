@@ -9,6 +9,15 @@ import {
 import Typeof from "../../../../Types/Typeof";
 import MetricValueFormatter from "../../../../Utils/Monitor/MetricValueFormatter";
 import MonitorQuotedValue from "../MonitorQuotedValue";
+import EvaluationSentenceMemo from "../EvaluationSentenceMemo";
+import {
+  EvaluationSentence,
+  EvaluationSentenceValue,
+  evaluationTerm,
+  translatablePluralSentence,
+  translatableSentence,
+} from "../../../../Types/Monitor/EvaluationSentence";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * No @CaptureSpan here: each method compares values already in memory, in
@@ -314,7 +323,12 @@ export default class CompareCriteria {
   }): string | null {
     if (data.criteriaFilter.filterType === FilterType.EqualTo) {
       if (data.value === data.threshold) {
-        return `${data.criteriaFilter.checkOn} is equal to ${data.threshold}.`;
+        return EvaluationSentenceMemo.write(
+          translatableSentence("{{check}} is equal to {{threshold}}.", {
+            check: evaluationTerm(data.criteriaFilter.checkOn),
+            threshold: String(data.threshold),
+          }),
+        );
       }
 
       return null;
@@ -322,7 +336,12 @@ export default class CompareCriteria {
 
     if (data.criteriaFilter.filterType === FilterType.NotEqualTo) {
       if (data.value !== data.threshold) {
-        return `${data.criteriaFilter.checkOn} is not equal to ${data.threshold}.`;
+        return EvaluationSentenceMemo.write(
+          translatableSentence("{{check}} is not equal to {{threshold}}.", {
+            check: evaluationTerm(data.criteriaFilter.checkOn),
+            threshold: String(data.threshold),
+          }),
+        );
       }
 
       return null;
@@ -337,7 +356,11 @@ export default class CompareCriteria {
   }): string | null {
     if (data.criteriaFilter.filterType === FilterType.IsEmpty) {
       if (data.value === null || data.value === undefined) {
-        return `${data.criteriaFilter.checkOn} is empty.`;
+        return EvaluationSentenceMemo.write(
+          translatableSentence("{{check}} is empty.", {
+            check: evaluationTerm(data.criteriaFilter.checkOn),
+          }),
+        );
       }
 
       return null;
@@ -349,7 +372,12 @@ export default class CompareCriteria {
          * A root cause goes out in email, Slack and Teams: the value is
          * redacted, put on one line and bounded (MonitorQuotedValue).
          */
-        return `${data.criteriaFilter.checkOn} is not empty. Value: ${MonitorQuotedValue.quote(data.value)}`;
+        return EvaluationSentenceMemo.write(
+          translatableSentence("{{check}} is not empty. Value: {{value}}", {
+            check: evaluationTerm(data.criteriaFilter.checkOn),
+            value: MonitorQuotedValue.quote(data.value),
+          }),
+        );
       }
 
       return null;
@@ -674,8 +702,30 @@ export default class CompareCriteria {
      */
     metricName?: string | undefined;
   }): string {
-    let message: string = "";
+    /*
+     * Its English, remembered with the sentence it is filled from, so the
+     * evaluation summary can store the sentence beside it for the Dashboard
+     * to word in each reader's language (EvaluationSentenceMemo).
+     */
+    return EvaluationSentenceMemo.write(
+      CompareCriteria.getCompareSentence(data),
+    );
+  }
 
+  /*
+   * What getCompareMessage says, as the sentence (EvaluationSentence) its
+   * English is filled from: every word of it a template, every value - the
+   * check's name, the readings, the threshold - a value of the sentence. The
+   * English is word for word what this method wrote as text before.
+   */
+  public static getCompareSentence(data: {
+    values: Array<number | boolean> | number | boolean | string;
+    threshold: number | string | boolean;
+    criteriaFilter: CriteriaFilter;
+    metricDisplayName?: string | undefined;
+    unit?: string | undefined;
+    metricName?: string | undefined;
+  }): EvaluationSentence {
     /*
      * Name the type the window was judged with. A boolean series saved with
      * an aggregate is judged as All Values, so it must not read as an average.
@@ -688,63 +738,10 @@ export default class CompareCriteria {
         data.criteriaFilter.metricMonitorOptions.metricAggregationType;
     }
 
-    /*
-     * Name the quantifier or the aggregation. Before this, only the two
-     * set quantifiers were named and the four reducing aggregations
-     * produced a bare "Metric Value is 82.62 which is greater than 90",
-     * which reads as a contradiction unless you already know the number
-     * shown is a five-minute average.
-     */
-    switch (evaluationType) {
-      case EvaluateOverTimeType.AnyValue:
-        message += "Any value of";
-        break;
-      case EvaluateOverTimeType.AllValues:
-        message += "All values of";
-        break;
-      case EvaluateOverTimeType.Average:
-        message += "The average of";
-        break;
-      case EvaluateOverTimeType.Sum:
-        message += "The sum of";
-        break;
-      case EvaluateOverTimeType.MaximumValue:
-        message += "The maximum of";
-        break;
-      case EvaluateOverTimeType.MunimumValue:
-        message += "The minimum of";
-        break;
-      default:
-        break;
-    }
-
-    /*
-     * Prefer a metric-specific display name over the generic "Metric Value"
-     * label when evaluating metric monitors.
-     */
-    let label: string =
-      data.metricDisplayName &&
-      data.criteriaFilter.checkOn === CheckOn.MetricValue
-        ? data.metricDisplayName
-        : data.criteriaFilter.checkOn;
-
-    if (data.criteriaFilter.checkOn === CheckOn.DiskUsagePercent) {
-      const diskPath: string =
-        data.criteriaFilter.serverMonitorOptions?.diskPath || "/";
-
-      label += ` on disk ${diskPath}`;
-    }
-
-    if (
-      data.criteriaFilter.evaluateOverTime &&
-      data.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
-    ) {
-      const minutes: number =
-        data.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes;
-      label += ` over the last ${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
-    }
-
-    message += ` ${label}`;
+    const label: EvaluationSentenceValue = CompareCriteria.getLabelValue({
+      criteriaFilter: data.criteriaFilter,
+      metricDisplayName: data.metricDisplayName,
+    });
 
     /*
      * Format each number in its own unit and scale, including the threshold
@@ -776,8 +773,8 @@ export default class CompareCriteria {
         return typeof value === "number" && Number.isFinite(value);
       })
     ) {
-      const numericMessage: string | null =
-        CompareCriteria.getNumericCompareMessage({
+      const numericSentence: EvaluationSentence | null =
+        CompareCriteria.getNumericCompareSentence({
           values: numericValues as Array<number>,
           isSeries: Array.isArray(data.values),
           threshold: data.threshold,
@@ -790,103 +787,269 @@ export default class CompareCriteria {
           withUnit,
         });
 
-      if (numericMessage !== null) {
-        return numericMessage;
+      if (numericSentence !== null) {
+        return numericSentence;
       }
     }
 
+    /*
+     * Name the quantifier or the aggregation. Before this, only the two
+     * set quantifiers were named and the four reducing aggregations
+     * produced a bare "Metric Value is 82.62 which is greater than 90",
+     * which reads as a contradiction unless you already know the number
+     * shown is a five-minute average.
+     */
+    const subject: EvaluationSentenceValue =
+      CompareCriteria.getQuantifiedSubject({
+        evaluationType: evaluationType,
+        label: label,
+      });
+
     if (
-      data.criteriaFilter.filterType !== FilterType.True &&
-      data.criteriaFilter.filterType !== FilterType.False
+      data.criteriaFilter.filterType === FilterType.True ||
+      data.criteriaFilter.filterType === FilterType.False
     ) {
-      /*
-       * A text value is what the monitored system sent - a query's result,
-       * a record, a script's error - so it is quoted as a root cause may
-       * quote it (MonitorQuotedValue). A number is the evaluation's own.
-       */
-      const formattedValues: string =
-        typeof data.values === "string"
-          ? MonitorQuotedValue.quote(data.values)
-          : CompareCriteria.formatCriteriaValues(data.values, withUnit);
-      message += ` is ${formattedValues} which is`;
+      return translatableSentence("{{subject}} is {{value}}.", {
+        subject: subject,
+        value: CompareCriteria.getStatedValue(data.threshold),
+      });
     }
+
+    /*
+     * A text value is what the monitored system sent - a query's result,
+     * a record, a script's error - so it is quoted as a root cause may
+     * quote it (MonitorQuotedValue). A number is the evaluation's own.
+     */
+    const values: EvaluationSentenceValue =
+      typeof data.values === "string"
+        ? MonitorQuotedValue.quote(data.values)
+        : CompareCriteria.getCriteriaValuesValue(data.values, withUnit);
+
+    const threshold: EvaluationSentenceValue =
+      CompareCriteria.getSingleValueValue(data.threshold, withUnit);
+
+    // A text threshold is the filter's own text, never in a unit.
+    const textThreshold: EvaluationSentenceValue =
+      CompareCriteria.getSingleValueValue(data.threshold);
+
+    const compared: Record<string, EvaluationSentenceValue> = {
+      subject: subject,
+      values: values,
+      threshold: threshold,
+    };
 
     switch (data.criteriaFilter.filterType) {
       case FilterType.GreaterThan:
-        message += ` greater than ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is greater than {{threshold}}.",
+          compared,
+        );
       case FilterType.GreaterThanOrEqualTo:
-        message += ` greater than or equal to ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is greater than or equal to {{threshold}}.",
+          compared,
+        );
       case FilterType.LessThan:
-        message += ` less than ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is less than {{threshold}}.",
+          compared,
+        );
       case FilterType.LessThanOrEqualTo:
-        message += ` less than or equal to ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is less than or equal to {{threshold}}.",
+          compared,
+        );
       case FilterType.NotEqualTo:
-        message += ` not equal to ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is not equal to {{threshold}}.",
+          compared,
+        );
       case FilterType.EqualTo:
-        message += ` equal to ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is equal to {{threshold}}.",
+          compared,
+        );
       case FilterType.Contains:
-        message += ` contains ${CompareCriteria.formatSingleValue(data.threshold)}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is contains {{threshold}}.",
+          { ...compared, threshold: textThreshold },
+        );
       case FilterType.NotContains:
-        message += ` does not contain ${CompareCriteria.formatSingleValue(data.threshold)}. `;
-        break;
-      case FilterType.True:
-        message += ` is ${data.threshold}. `;
-        break;
-      case FilterType.False:
-        message += ` is ${data.threshold}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is does not contain {{threshold}}.",
+          { ...compared, threshold: textThreshold },
+        );
       case FilterType.StartsWith:
-        message += ` starts with ${CompareCriteria.formatSingleValue(data.threshold)}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is starts with {{threshold}}.",
+          { ...compared, threshold: textThreshold },
+        );
       case FilterType.EndsWith:
-        message += ` ends with ${CompareCriteria.formatSingleValue(data.threshold)}. `;
-        break;
+        return translatableSentence(
+          "{{subject}} is {{values}} which is ends with {{threshold}}.",
+          { ...compared, threshold: textThreshold },
+        );
+      default:
+        return translatableSentence("{{subject}} is {{values}} which is", {
+          subject: subject,
+          values: values,
+        });
     }
-
-    return message.trim();
   }
 
-  private static getNumericCompareMessage(data: {
+  /*
+   * What a filter checks, as a sentence names it: the check's name (a term
+   * the reader's language words), or a metric's own display name as
+   * written; the disk it reads; the window it is judged over.
+   */
+  private static getLabelValue(data: {
+    criteriaFilter: CriteriaFilter;
+    metricDisplayName?: string | undefined;
+  }): EvaluationSentenceValue {
+    /*
+     * Prefer a metric-specific display name over the generic "Metric Value"
+     * label when evaluating metric monitors.
+     */
+    let label: EvaluationSentenceValue =
+      data.metricDisplayName &&
+      data.criteriaFilter.checkOn === CheckOn.MetricValue
+        ? data.metricDisplayName
+        : evaluationTerm(data.criteriaFilter.checkOn);
+
+    if (data.criteriaFilter.checkOn === CheckOn.DiskUsagePercent) {
+      const diskPath: string =
+        data.criteriaFilter.serverMonitorOptions?.diskPath || "/";
+
+      label = translatableSentence("{{label}} on disk {{diskPath}}", {
+        label: label,
+        diskPath: diskPath,
+      });
+    }
+
+    if (
+      data.criteriaFilter.evaluateOverTime &&
+      data.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
+    ) {
+      const minutes: number =
+        data.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes;
+
+      label = translatablePluralSentence(
+        {
+          one: translationKey("{{label}} over the last {{count}} minute"),
+          other: translationKey("{{label}} over the last {{count}} minutes"),
+        },
+        minutes,
+        { label: label },
+      );
+    }
+
+    return label;
+  }
+
+  // "Any value of Is Online", "The average of CPU Usage (in %)", or the label.
+  private static getQuantifiedSubject(data: {
+    evaluationType: EvaluateOverTimeType | undefined;
+    label: EvaluationSentenceValue;
+  }): EvaluationSentenceValue {
+    const values: Record<string, EvaluationSentenceValue> = {
+      label: data.label,
+    };
+
+    switch (data.evaluationType) {
+      case EvaluateOverTimeType.AnyValue:
+        return translatableSentence("Any value of {{label}}", values);
+      case EvaluateOverTimeType.AllValues:
+        return translatableSentence("All values of {{label}}", values);
+      case EvaluateOverTimeType.Average:
+        return translatableSentence("The average of {{label}}", values);
+      case EvaluateOverTimeType.Sum:
+        return translatableSentence("The sum of {{label}}", values);
+      case EvaluateOverTimeType.MaximumValue:
+        return translatableSentence("The maximum of {{label}}", values);
+      case EvaluateOverTimeType.MunimumValue:
+        return translatableSentence("The minimum of {{label}}", values);
+      default:
+        return data.label;
+    }
+  }
+
+  // A true/false filter's value as it is stated: "true", "false", or as written.
+  private static getStatedValue(
+    threshold: number | string | boolean,
+  ): EvaluationSentenceValue {
+    const stated: string = `${threshold}`;
+
+    return stated === "true" || stated === "false"
+      ? evaluationTerm(stated)
+      : stated;
+  }
+
+  private static getNumericCompareSentence(data: {
     values: Array<number>;
     isSeries: boolean;
     threshold: number;
     filterType: FilterType;
     evaluationType: EvaluateOverTimeType | undefined;
-    label: string;
+    label: EvaluationSentenceValue;
     withUnit: ((value: number) => string) | undefined;
-  }): string | null {
-    const relations: Partial<Record<FilterType, string>> = {
-      [FilterType.GreaterThan]: "above",
-      [FilterType.GreaterThanOrEqualTo]: "at or above",
-      [FilterType.LessThan]: "below",
-      [FilterType.LessThanOrEqualTo]: "at or below",
-      [FilterType.EqualTo]: "equal to",
-      [FilterType.NotEqualTo]: "different from",
-    };
-    const relation: string | undefined = relations[data.filterType];
+  }): EvaluationSentence | null {
     const predicate: ((value: number) => boolean) | null =
       CompareCriteria.getNumericPredicate(data);
+    const threshold: string = CompareCriteria.formatSingleValue(
+      data.threshold,
+      data.withUnit,
+    );
 
-    if (!relation || !predicate) {
+    let comparison: EvaluationSentence | null = null;
+
+    switch (data.filterType) {
+      case FilterType.GreaterThan:
+        comparison = translatableSentence("above the {{threshold}} threshold", {
+          threshold: threshold,
+        });
+        break;
+      case FilterType.GreaterThanOrEqualTo:
+        comparison = translatableSentence(
+          "at or above the {{threshold}} threshold",
+          { threshold: threshold },
+        );
+        break;
+      case FilterType.LessThan:
+        comparison = translatableSentence("below the {{threshold}} threshold", {
+          threshold: threshold,
+        });
+        break;
+      case FilterType.LessThanOrEqualTo:
+        comparison = translatableSentence(
+          "at or below the {{threshold}} threshold",
+          { threshold: threshold },
+        );
+        break;
+      case FilterType.EqualTo:
+        comparison = translatableSentence(
+          "equal to the {{threshold}} threshold",
+          { threshold: threshold },
+        );
+        break;
+      case FilterType.NotEqualTo:
+        comparison = translatableSentence(
+          "different from the {{threshold}} threshold",
+          { threshold: threshold },
+        );
+        break;
+      default:
+        comparison = null;
+    }
+
+    if (!comparison || !predicate) {
       return null;
     }
 
-    const aggregations: Partial<Record<EvaluateOverTimeType, string>> = {
-      [EvaluateOverTimeType.Average]: "average",
-      [EvaluateOverTimeType.Sum]: "sum",
-      [EvaluateOverTimeType.MaximumValue]: "maximum",
-      [EvaluateOverTimeType.MunimumValue]: "minimum",
-    };
-    const aggregation: string | undefined = data.evaluationType
-      ? aggregations[data.evaluationType]
-      : undefined;
+    const isAggregated: boolean =
+      data.evaluationType === EvaluateOverTimeType.Average ||
+      data.evaluationType === EvaluateOverTimeType.Sum ||
+      data.evaluationType === EvaluateOverTimeType.MaximumValue ||
+      data.evaluationType === EvaluateOverTimeType.MunimumValue;
     const reducedValues: Array<number> = CompareCriteria.reduceWindow({
       values: data.values,
       evaluationType: data.evaluationType,
@@ -913,25 +1076,45 @@ export default class CompareCriteria {
       maximum,
       data.withUnit,
     );
-    const subject: string = aggregation
-      ? `The ${aggregation} of ${data.label}`
+    const subject: EvaluationSentenceValue = isAggregated
+      ? CompareCriteria.getAggregatedSubject(data.evaluationType, data.label)
       : data.label;
-    let observation: string =
+    let observation: EvaluationSentence =
       low === high
-        ? `${subject} was ${low}`
-        : `${subject} ranged from ${low} to ${high}`;
+        ? translatableSentence("{{subject}} was {{value}}", {
+            subject: subject,
+            value: low,
+          })
+        : translatableSentence("{{subject}} ranged from {{low}} to {{high}}", {
+            subject: subject,
+            low: low,
+            high: high,
+          });
 
-    if (data.isSeries && !aggregation) {
-      let readings: string = "1 reading";
+    if (data.isSeries && !isAggregated) {
+      let readings: EvaluationSentence = translatableSentence("1 reading");
       if (reportedValues.length < data.values.length) {
-        readings = `${reportedValues.length} of ${data.values.length} readings`;
+        readings = translatableSentence("{{count}} of {{total}} readings", {
+          count: String(reportedValues.length),
+          total: String(data.values.length),
+        });
       } else if (data.values.length > 1) {
-        readings = `all ${data.values.length} readings`;
+        readings = translatableSentence("all {{count}} readings", {
+          count: String(data.values.length),
+        });
       }
-      observation += ` ${low === high ? "in" : "across"} ${readings}`;
+      observation =
+        low === high
+          ? translatableSentence("{{observation}} in {{readings}}", {
+              observation: observation,
+              readings: readings,
+            })
+          : translatableSentence("{{observation}} across {{readings}}", {
+              observation: observation,
+              readings: readings,
+            });
     }
 
-    const comparison: string = `${relation} the ${CompareCriteria.formatSingleValue(data.threshold, data.withUnit)} threshold`;
     const matches: boolean =
       data.evaluationType === EvaluateOverTimeType.AnyValue
         ? matchingValues.length > 0
@@ -939,17 +1122,71 @@ export default class CompareCriteria {
 
     if (!matches) {
       // Direct callers can request a description even when a filter did not match.
-      const requirement: string = aggregation
-        ? `the ${aggregation}`
-        : !data.isSeries
-          ? "the value"
-          : data.evaluationType === EvaluateOverTimeType.AnyValue
-            ? "at least one reading"
-            : "every reading";
-      return `${observation}. The condition requires ${requirement} to be ${comparison}.`;
+      return translatableSentence(
+        "{{observation}}. The condition requires {{requirement}} to be {{comparison}}.",
+        {
+          observation: observation,
+          requirement: CompareCriteria.getRequirement({
+            evaluationType: data.evaluationType,
+            isAggregated: isAggregated,
+            isSeries: data.isSeries,
+          }),
+          comparison: comparison,
+        },
+      );
     }
 
-    return `${observation}, ${comparison}.`;
+    return translatableSentence("{{observation}}, {{comparison}}.", {
+      observation: observation,
+      comparison: comparison,
+    });
+  }
+
+  // "The average of {{label}}": a reducing aggregation names what it reduced.
+  private static getAggregatedSubject(
+    evaluationType: EvaluateOverTimeType | undefined,
+    label: EvaluationSentenceValue,
+  ): EvaluationSentenceValue {
+    switch (evaluationType) {
+      case EvaluateOverTimeType.Average:
+        return translatableSentence("The average of {{label}}", { label });
+      case EvaluateOverTimeType.Sum:
+        return translatableSentence("The sum of {{label}}", { label });
+      case EvaluateOverTimeType.MaximumValue:
+        return translatableSentence("The maximum of {{label}}", { label });
+      case EvaluateOverTimeType.MunimumValue:
+        return translatableSentence("The minimum of {{label}}", { label });
+      default:
+        return label;
+    }
+  }
+
+  // What the condition holds to the threshold: "the average", "every reading".
+  private static getRequirement(data: {
+    evaluationType: EvaluateOverTimeType | undefined;
+    isAggregated: boolean;
+    isSeries: boolean;
+  }): EvaluationSentence {
+    if (data.isAggregated) {
+      switch (data.evaluationType) {
+        case EvaluateOverTimeType.Average:
+          return translatableSentence("the average");
+        case EvaluateOverTimeType.Sum:
+          return translatableSentence("the sum");
+        case EvaluateOverTimeType.MaximumValue:
+          return translatableSentence("the maximum");
+        default:
+          return translatableSentence("the minimum");
+      }
+    }
+
+    if (!data.isSeries) {
+      return translatableSentence("the value");
+    }
+
+    return data.evaluationType === EvaluateOverTimeType.AnyValue
+      ? translatableSentence("at least one reading")
+      : translatableSentence("every reading");
   }
 
   /*
@@ -1000,11 +1237,14 @@ export default class CompareCriteria {
    * string because the string is not always one number: a large window
    * collapses to "N samples between X and Y", and both X and Y need the
    * unit of their own scale.
+   *
+   * A value of a sentence (EvaluationSentence): the numbers as written, and
+   * the words around them a sentence of their own.
    */
-  private static formatCriteriaValues(
+  private static getCriteriaValuesValue(
     values: Array<number | boolean> | number | boolean | string,
     withUnit?: ((value: number) => string) | undefined,
-  ): string {
+  ): EvaluationSentenceValue {
     if (Array.isArray(values)) {
       /*
        * For a small number of values, list them verbatim so the message
@@ -1016,6 +1256,10 @@ export default class CompareCriteria {
       const MAX_INLINE: number = 5;
 
       if (values.length <= MAX_INLINE) {
+        if (values.length === 1) {
+          return CompareCriteria.getSingleValueValue(values[0], withUnit);
+        }
+
         return values
           .map((value: number | boolean) => {
             return CompareCriteria.formatSingleValue(value, withUnit);
@@ -1032,10 +1276,14 @@ export default class CompareCriteria {
       if (numericValues.length === values.length && numericValues.length > 0) {
         const min: number = Math.min(...numericValues);
         const max: number = Math.max(...numericValues);
-        return `${numericValues.length} samples between ${CompareCriteria.formatSingleValue(
-          min,
-          withUnit,
-        )} and ${CompareCriteria.formatSingleValue(max, withUnit)}`;
+        return translatableSentence(
+          "{{count}} samples between {{low}} and {{high}}",
+          {
+            count: String(numericValues.length),
+            low: CompareCriteria.formatSingleValue(min, withUnit),
+            high: CompareCriteria.formatSingleValue(max, withUnit),
+          },
+        );
       }
 
       // Fall back to a truncated list when not all values are numeric
@@ -1045,10 +1293,32 @@ export default class CompareCriteria {
           return CompareCriteria.formatSingleValue(value, withUnit);
         })
         .join(", ");
-      return `${head}, … (${values.length} values total)`;
+      return translatableSentence("{{values}}, … ({{count}} values total)", {
+        values: head,
+        count: String(values.length),
+      });
     }
 
-    return CompareCriteria.formatSingleValue(values, withUnit);
+    return CompareCriteria.getSingleValueValue(values, withUnit);
+  }
+
+  /*
+   * One value as a sentence holds it: a number as written, true, false and
+   * unknown as words the reader's language words, a text as it is.
+   */
+  private static getSingleValueValue(
+    value: number | boolean | string | null | undefined,
+    withUnit?: ((value: number) => string) | undefined,
+  ): EvaluationSentenceValue {
+    if (
+      value === null ||
+      value === undefined ||
+      typeof value === Typeof.Boolean
+    ) {
+      return evaluationTerm(CompareCriteria.formatSingleValue(value, withUnit));
+    }
+
+    return CompareCriteria.formatSingleValue(value, withUnit);
   }
 
   private static formatSingleValue(

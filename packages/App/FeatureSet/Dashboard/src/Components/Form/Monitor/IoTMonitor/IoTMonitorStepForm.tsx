@@ -36,6 +36,8 @@ import {
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { IoTMetricDefinition } from "Common/Types/Monitor/IotMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
@@ -74,6 +76,7 @@ const aggregationOptions: Array<DropdownOption> = [
 const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -299,6 +302,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
             props.defaultIncidentSeverityId || ObjectID.generate(),
           defaultAlertSeverityId:
             props.defaultAlertSeverityId || ObjectID.generate(),
+          translator: translator,
         }),
       );
     }

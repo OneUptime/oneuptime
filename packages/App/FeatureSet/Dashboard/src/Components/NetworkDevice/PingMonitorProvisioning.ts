@@ -13,7 +13,10 @@ import {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * "Create a Ping monitor for this device and bind it" — the one client-side
@@ -172,6 +175,8 @@ export async function provisionPingMonitorForDevice(
     deviceName: data.deviceName,
     seedIds: seedIds,
     origin: data.origin,
+    // Its criteria's words in the language of the person provisioning it.
+    translator: getGlobalTranslator(),
   });
 
   const response: HTTPResponse<
