@@ -948,6 +948,8 @@ import { KeepEditedDiscoveredDevices1809080463892 } from "./1809080463892-KeepEd
 import { AddIncomingMonitorRequestAsReceived1809080466402 } from "./1809080466402-AddIncomingMonitorRequestAsReceived";
 import { AddTeamOwners1809086561000 } from "./1809086561000-AddTeamOwners";
 import { AddCallOutcomeTrackingToCallLog1809090000000 } from "./1809090000000-AddCallOutcomeTrackingToCallLog";
+import { AddCallOutcomeTrackingToCallLogIndexAndKey1809090010000 } from "./1809090010000-AddCallOutcomeTrackingToCallLogIndexAndKey";
+import { AddNotificationChannelsToOnCallDutyPolicyExecutionLogTimeline1809090065850 } from "./1809090065850-AddNotificationChannelsToOnCallDutyPolicyExecutionLogTimeline";
 
 export default [
   InitialMigration,
@@ -1900,4 +1902,6 @@ export default [
   AddIncomingMonitorRequestAsReceived1809080466402,
   AddTeamOwners1809086561000,
   AddCallOutcomeTrackingToCallLog1809090000000,
+  AddCallOutcomeTrackingToCallLogIndexAndKey1809090010000,
+  AddNotificationChannelsToOnCallDutyPolicyExecutionLogTimeline1809090065850,
 ];

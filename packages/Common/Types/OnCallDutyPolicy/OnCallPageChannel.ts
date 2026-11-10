@@ -239,6 +239,23 @@ export function sortOnCallPageChannels(
 }
 
 /*
+ * The channels an on-call step keeps of its page (its notificationChannels,
+ * as the API hands it over): each channel known here once, in the list's
+ * order. Null when it holds no list at all - a step written before steps
+ * kept one - for a reader to show nothing, rather than that the page
+ * reached nobody.
+ */
+export function readOnCallPageChannels(
+  value: unknown,
+): Array<OnCallPageChannel> | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return sortOnCallPageChannels(value as Array<OnCallPageChannel>);
+}
+
+/*
  * The channels a page went out to its person by: every notification of it
  * that went out (isOnCallPageNotificationOut), each channel once. One that
  * could not be sent is told of on its own, not counted here.

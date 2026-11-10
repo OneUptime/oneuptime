@@ -14423,7 +14423,7 @@
   "Phone Number which will be used for call notifications.": "Phone Number which will be used for call notifications.",
   "Phone Number which will be used for receiving routed incoming calls.": "Phone Number which will be used for receiving routed incoming calls.",
   "Phone Numbers & Twilio Configuration": "फ़ोन नंबर और Twilio कॉन्फ़िगरेशन",
-  "Phone call": "Phone call",
+  "Phone call": "फ़ोन कॉल",
   "Phone numbers need the country code, for example +15551234567.": "Phone numbers need the country code, for example +15551234567.",
   "Phone numbers that route incoming calls to an incoming call policy.": "Phone numbers that route incoming calls to an incoming call policy.",
   "Pick a color for the series, or leave on Auto to use the theme palette.": "Pick a color for the series, or leave on Auto to use the theme palette.",
@@ -48232,5 +48232,6 @@
   "Team Team Owner": "टीम टीम स्वामी",
   "Team Team Owners": "टीम टीम स्वामी",
   "Team User Owner": "टीम उपयोगकर्ता स्वामी",
-  "Team User Owners": "टीम उपयोगकर्ता स्वामी"
+  "Team User Owners": "टीम उपयोगकर्ता स्वामी",
+  "Notified Via": "सूचित करने का माध्यम"
 }
