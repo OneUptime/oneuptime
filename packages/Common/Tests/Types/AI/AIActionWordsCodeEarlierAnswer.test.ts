@@ -135,7 +135,15 @@ describe("the English the model, the exports and older readers get", () => {
   });
 });
 
-describe.each(DASHBOARD_LANGUAGES)("%s", (language: string) => {
+/*
+ * Every Dashboard language words it: Arabic too, which came after the list
+ * the other card lines are held to (DASHBOARD_LANGUAGES), with the count of
+ * the files a card leaves out (moreFiles), so the line reads whole in Arabic
+ * for any number of files.
+ */
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES, "ar"];
+
+describe.each(LANGUAGES)("%s", (language: string) => {
   const translator: Translator = dashboardTranslator(language);
   const words: Record<string, string> = readDashboardLocale(language);
 
@@ -195,6 +203,42 @@ describe("right to left, list separators, and a language not worded yet", () => 
     expect(drawn).toContain(isolated("config/servers.ts"));
     expect(withoutIsolateMarks(drawn)).toBe(
       describeAIActionSentence(sentence, persian),
+    );
+  });
+
+  test("Arabic reads right to left, lists the files with its own comma, and counts them in a form that reads right for any count", () => {
+    const arabic: Translator = dashboardTranslator("ar");
+    const words: Record<string, string> = readDashboardLocale("ar");
+    const sentence: AIActionSentence = lineOf(2);
+
+    expect(getAIActionSentenceDirection(sentence, arabic)).toBe("rtl");
+    expect(describeAIActionSentence(sentence, arabic)).toContain(
+      "config/servers.ts، config/mail.ts",
+    );
+
+    const drawn: string = describeAIActionSentence(sentence, arabic, {
+      setsValuesApart: true,
+    });
+
+    expect(drawn).toContain(isolated("config/servers.ts"));
+    expect(withoutIsolateMarks(drawn)).toBe(
+      describeAIActionSentence(sentence, arabic),
+    );
+
+    /*
+     * i18next reads Arabic's general form for 0, 2, 3 to 10, 11 to 99 and
+     * 100 and up (Locales/ARABIC.md): the count stands as a label, never
+     * before a noun whose form it would have to agree with.
+     */
+    expect(words[PLURAL.other]).toContain("(العدد: {{count}})");
+    expect(words[AI_ACTION_PLURAL_LINES.moreFiles.other]).toBe(
+      "{{count}} من الملفات الأخرى",
+    );
+    expect(describeAIActionSentence(lineOf(5), arabic)).toContain(
+      ".env.example، 2 من الملفات الأخرى",
+    );
+    expect(describeAIActionSentence(lineOf(1), arabic)).not.toContain(
+      "{{count}}",
     );
   });
 
