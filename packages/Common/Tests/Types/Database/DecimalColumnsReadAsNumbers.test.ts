@@ -457,6 +457,8 @@ describe("the decimal and bigint numbers the API answers", () => {
         .sort(),
     ).toEqual([
       "TelemetryUsageBilling.dataIngestedInGB",
+      // How much of a Traces row was exceptions (issue #6356).
+      "TelemetryUsageBilling.exceptionDataIngestedInGB",
       "TelemetryUsageBilling.totalCostInUSD",
     ]);
     expect(wrapped.filter(isInTheOpenApiSpec)).toEqual([]);
