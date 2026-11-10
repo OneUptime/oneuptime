@@ -28,6 +28,11 @@ import {
   TelemetryIngestBodySize,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestBodySize";
 import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import {
+  ProductAnalyticsParsedEvent,
+  ProductAnalyticsParsedMetric,
+  ProductAnalyticsWireContext,
+} from "Common/Types/Rum/ProductAnalyticsEvents";
 
 export enum TelemetryType {
   Logs = "logs",
@@ -43,6 +48,7 @@ export enum TelemetryType {
   TelemetryMonitorEvaluation = "telemetry-monitor-evaluation",
   KubernetesCostIngest = "kubernetes-cost-ingest",
   SessionReplay = "session-replay",
+  ProductAnalyticsEvents = "product-analytics-events",
 }
 
 export type ProbeIngestJobType =
@@ -215,6 +221,27 @@ export interface SessionReplayIngestJobData {
   countryCode: string;
 }
 
+/*
+ * One product analytics batch (issue #6444, part two), already parsed and
+ * judged by the route: its events and metric points on the server's clock,
+ * the application it was gated against, and the signed-in user's key - the
+ * one-way HMAC, never the reference, which does not leave the request.
+ */
+export interface ProductAnalyticsEventsJobData {
+  projectId: string;
+  rumApplicationId: string;
+  batchId: string;
+  receivedAtUnixMs: number;
+  countryCode: string;
+  sessionId: string;
+  visitorId: string;
+  identifiedUserKey: string;
+  userProperties: Record<string, string>;
+  context: ProductAnalyticsWireContext;
+  events: Array<ProductAnalyticsParsedEvent>;
+  metrics: Array<ProductAnalyticsParsedMetric>;
+}
+
 export interface TelemetryIngestJobData {
   type: TelemetryType;
   projectId?: string;
@@ -291,6 +318,8 @@ export interface TelemetryIngestJobData {
    * leave every staged blob to expire on its own 6-hour TTL.
    */
   sessionReplayIngest?: SessionReplayIngestJobData;
+  // ProductAnalyticsEvents-specific
+  productAnalyticsEvents?: ProductAnalyticsEventsJobData;
 }
 
 // Legacy interfaces for backward compatibility
@@ -1423,6 +1452,45 @@ export default class TelemetryQueueService {
       logger.debug(`Added session replay ingestion job: ${jobId}`);
     } catch (error) {
       logger.error(`Error adding session replay ingestion job:`);
+      logger.error(error);
+      throw error;
+    }
+  }
+
+  /*
+   * Enqueue one product analytics batch. Like the replay chunk, the caller
+   * awaits this before answering the recorder and answers 503 if it throws,
+   * so a batch that never reached the queue is sent again. The batch is
+   * small (a hundred events at most) and already parsed, so it travels in
+   * the job itself.
+   */
+  public static async addProductAnalyticsEventsJob(
+    data: ProductAnalyticsEventsJobData,
+  ): Promise<void> {
+    try {
+      const jobData: TelemetryIngestJobData = {
+        type: TelemetryType.ProductAnalyticsEvents,
+        projectId: data.projectId,
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        productAnalyticsEvents: data,
+      };
+
+      const jobId: string = `product-analytics-events-${data.projectId}-${data.batchId}-${ObjectID.generate().toString()}`;
+
+      await Queue.addJob(
+        QueueName.Telemetry,
+        jobId,
+        "ProcessTelemetry",
+        jobData as unknown as JSONObject,
+        {
+          /* The random suffix makes the id unique; see the replay job. */
+          skipExistenceCheck: true,
+        },
+      );
+
+      logger.debug(`Added product analytics events job: ${jobId}`);
+    } catch (error) {
+      logger.error(`Error adding product analytics events job:`);
       logger.error(error);
       throw error;
     }

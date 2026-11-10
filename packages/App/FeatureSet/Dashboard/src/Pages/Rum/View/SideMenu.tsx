@@ -137,6 +137,64 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.PresentationChartLine}
         />
+        <SideMenuItem
+          link={{
+            title: "Events",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.CursorArrowRays}
+        />
+        <SideMenuItem
+          link={{
+            title: "Funnels",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Funnel}
+        />
+        <SideMenuItem
+          link={{
+            title: "User Retention",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.TableCells}
+        />
+        <SideMenuItem
+          link={{
+            title: "User Flows",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Share}
+        />
+        <SideMenuItem
+          link={{
+            title: "Analytics Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Session Replay">
@@ -149,16 +207,6 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Film}
-        />
-        <SideMenuItem
-          link={{
-            title: "User Flows",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Share}
         />
         <SideMenuItem
           link={{

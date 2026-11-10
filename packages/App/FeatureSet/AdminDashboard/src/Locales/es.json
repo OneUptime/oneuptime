@@ -615,13 +615,13 @@
       },
       "ingestionBudgets": {
         "dailyCardTitle": "Presupuestos diarios predeterminados",
-        "dailyCardDescription": "Lo máximo de cada señal de telemetría que cada proyecto puede enviar en un día de presupuesto, contado descomprimido a medida que llega. Cuando un presupuesto se agota, esa señal se rechaza hasta que el presupuesto se restablece. El presupuesto propio de un proyecto, fijado en su página en Proyectos, prevalece sobre estos. Deje una señal vacía para no tener límite.",
+        "dailyCardDescription": "Lo máximo de cada señal de telemetría que cada proyecto puede enviar en un día de presupuesto. Cuando se agota, esa señal se rechaza hasta que el presupuesto se restablece. El presupuesto propio de un proyecto prevalece. Deje una señal vacía para no tener límite.",
         "dailyEditButton": "Editar presupuestos diarios predeterminados",
         "resetCardTitle": "Advertencia y restablecimiento",
         "resetCardDescription": "Cuándo se advierte a los proyectos de que un presupuesto se está agotando, y cuándo vuelve a empezar cada día de presupuesto.",
         "resetEditButton": "Editar advertencia y restablecimiento",
         "rateCardTitle": "Límites de frecuencia predeterminados",
-        "rateCardDescription": "Opcional. La velocidad máxima a la que cada proyecto puede enviar cada señal, para que una ráfaga no pueda agotar en minutos el presupuesto de un día. Las solicitudes más rápidas reciben un 429 con Retry-After, y los emisores las reintentan. Deje una señal vacía para no tener límite.",
+        "rateCardDescription": "Opcional. La velocidad máxima a la que cada proyecto puede enviar cada señal, para que una ráfaga no pueda agotar en minutos el presupuesto de un día. Las solicitudes más rápidas reciben un 429 y se reintentan. Deje una señal vacía para no tener límite.",
         "rateEditButton": "Editar límites de frecuencia predeterminados"
       }
     },

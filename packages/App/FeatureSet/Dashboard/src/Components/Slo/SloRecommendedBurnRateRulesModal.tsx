@@ -34,7 +34,7 @@ const SloRecommendedBurnRateRulesModal: FunctionComponent<ComponentProps> = (
   return (
     <ConfirmModal
       title="Add recommended rules"
-      description="These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule."
+      description="These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them like any other rule."
       submitButtonText="Add rules"
       onSubmit={props.onSubmit}
       onClose={props.onClose}

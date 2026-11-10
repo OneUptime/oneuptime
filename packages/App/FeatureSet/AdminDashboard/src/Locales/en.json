@@ -615,13 +615,13 @@
       },
       "ingestionBudgets": {
         "dailyCardTitle": "Default Daily Budgets",
-        "dailyCardDescription": "The most of each telemetry signal every project may send in a budget day, counted decompressed as it arrives. Once a budget is used up, that signal is refused until the budget resets. A project's own budget, set on its page under Projects, wins over these. Leave a signal empty for no limit.",
+        "dailyCardDescription": "The most of each telemetry signal every project may send in a budget day. Once it is used up, that signal is refused until the budget resets. A project's own budget wins. Leave a signal empty for no limit.",
         "dailyEditButton": "Edit Default Daily Budgets",
         "resetCardTitle": "Warning and Reset",
         "resetCardDescription": "When projects are warned that a budget is running out, and when each budget day starts again.",
         "resetEditButton": "Edit Warning and Reset",
         "rateCardTitle": "Default Rate Limits",
-        "rateCardDescription": "Optional. The fastest every project may send each signal, so one burst cannot use up a day's budget in minutes. Faster requests are answered 429 with Retry-After, and senders retry them. Leave a signal empty for no limit.",
+        "rateCardDescription": "Optional. The fastest every project may send each signal, so one burst cannot use up a day's budget in minutes. Faster requests are answered 429 and retried. Leave a signal empty for no limit.",
         "rateEditButton": "Edit Default Rate Limits"
       }
     },

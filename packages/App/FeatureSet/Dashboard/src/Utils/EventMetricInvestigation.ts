@@ -1,5 +1,9 @@
 import ChartEventKind from "Common/UI/Components/Charts/Types/ChartEventKind";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import ResolvedStateUtil, {
+  ResolvedStateList,
+} from "Common/Utils/ResolvedState";
 
 /*
  * What a metric investigation on an incident, alert or episode page is
@@ -150,13 +154,42 @@ export interface EventMomentTimelineEntry {
   startsAt?: Date | undefined;
 }
 
-// What the moments read of the project's states.
+/*
+ * What the moments read of the project's states: their places in the list
+ * as well as their flags, since a state placed after the acknowledged or the
+ * resolved one counts as acknowledged or resolved too.
+ */
 export interface EventMomentState {
   _id?: string | undefined;
   name?: string | undefined;
+  order?: number | undefined;
   isAcknowledgedState?: boolean | undefined;
   isResolvedState?: boolean | undefined;
 }
+
+type GetStateChangeRoleFunction = (change: {
+  list: ResolvedStateList;
+  states: Array<EventMomentState>;
+  stateId: string | undefined;
+}) => EventMomentRole;
+
+// What a move into `stateId` is marked as (see getEventMoments).
+const getStateChangeRole: GetStateChangeRoleFunction = (change: {
+  list: ResolvedStateList;
+  states: Array<EventMomentState>;
+  stateId: string | undefined;
+}): EventMomentRole => {
+  if (ResolvedStateUtil.isResolved(change)) {
+    return EventMomentRole.Resolved;
+  }
+
+  // Asked second: a state that counts as resolved counts as acknowledged too.
+  if (AcknowledgedStateUtil.isAcknowledged(change)) {
+    return EventMomentRole.Acknowledged;
+  }
+
+  return EventMomentRole.StateChanged;
+};
 
 /*
  * The moments of an event the charts mark, in time order:
@@ -166,12 +199,21 @@ export interface EventMomentState {
  * - every change of its state after the one it was opened in, which the
  *   start already marks: acknowledged, resolved, reopened, or a state of the
  *   project's own such as Monitoring.
+ *
+ * A change is marked as what the state it moved into counts as, by the one
+ * rule every page reads (Common/Utils/ResolvedState, AcknowledgedState): a
+ * resolve into the project's resolved state or one of its own placed after
+ * it ("Closed"), an acknowledgement into its acknowledged state or one
+ * placed after that short of resolved ("Investigating"), and any other a
+ * change of state.
  */
 export function getEventMoments(input: {
   startedAt?: Date | null | undefined;
   impactStartedAt?: Date | null | undefined;
   timeline: Array<EventMomentTimelineEntry>;
   states: Array<EventMomentState>;
+  // Which list the states are: the project's incident or alert states.
+  stateList: ResolvedStateList;
 }): Array<EventMoment> {
   const moments: Array<EventMoment> = [];
   const startedMs: number = toMs(input.startedAt);
@@ -221,11 +263,11 @@ export function getEventMoments(input: {
 
     moments.push({
       date: new Date(toMs(change.startsAt)),
-      role: state?.isResolvedState
-        ? EventMomentRole.Resolved
-        : state?.isAcknowledgedState
-          ? EventMomentRole.Acknowledged
-          : EventMomentRole.StateChanged,
+      role: getStateChangeRole({
+        list: input.stateList,
+        states: input.states,
+        stateId: change.stateId,
+      }),
       stateName: state?.name?.trim() || "",
     });
   }

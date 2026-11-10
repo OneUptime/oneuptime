@@ -469,6 +469,26 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "MonitorStatusTimelineReconciler.restoreMissingStatusTimelinesBatch MonitorStatusTimeline":
       Why.Bookkeeping,
   },
+  /*
+   * The hourly age-out (#6389) forgetting the Hide from map preference of
+   * a discovered device it removes, one nothing has seen for the project's
+   * retention: the row the preference names is gone, and nothing draws it
+   * again. Nobody hid or showed anything.
+   */
+  "packages/Common/Server/Utils/NetworkDevice/DiscoveredDeviceAgeOut.ts": {
+    "buildAgeOutStatement NetworkTopologySuppression": Why.Bookkeeping,
+  },
+  /*
+   * Hide from map and Show on map for a selection of discovered devices,
+   * and the map's Show them (#5775): each suppression written or removed
+   * is the person's Create or Delete, as the map's own Hide and Show are.
+   */
+  "packages/Common/Server/Utils/NetworkDevice/DiscoveredDevices.ts": {
+    "DiscoveredDevices.removeSuppressions NetworkTopologySuppression":
+      Why.Recorded,
+    "DiscoveredDevices.writeSuppressions NetworkTopologySuppression":
+      Why.Recorded,
+  },
   "packages/Common/Server/Utils/OnCall/FirstPagedAt.ts": {
     "(module) Alert": Why.Bookkeeping,
     "(module) Incident": Why.Bookkeeping,

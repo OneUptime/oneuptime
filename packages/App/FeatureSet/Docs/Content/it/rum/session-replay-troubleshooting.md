@@ -285,6 +285,18 @@ Questi registrano ciò che il tuo codice ha chiesto al registratore. Servono a c
 | `api-stop` | È stato chiamato `stop()`. L'ultimo frammento è stato inviato e la sessione è stata chiusa; non viene registrato nulla per il resto della vita della pagina. |
 | `api-no-recorder` | Una delle chiamate sopra è stata eseguita senza alcun registratore attivo — di solito perché è stata eseguita prima che l'artefatto del registratore si caricasse. Inserisci invece voci `[command, ...arguments]` in `window.OneUptimeReplayQueue`, e vengono applicate non appena arriva. |
 
+### Eventi di analisi del prodotto
+
+Questi vengono dagli eventi che il registratore invia per l'[Analisi del prodotto](/docs/rum/product-analytics#inviare-eventi-e-metriche), accanto alla registrazione.
+
+| code | cosa significa |
+| --- | --- |
+| `analytics-started` | L'applicazione ha gli eventi di analisi del prodotto attivi, quindi il registratore invia l'inizio di ogni sessione, le sue visualizzazioni di pagina e le tue chiamate a `track()` e `metric()`. `userPropertyKeys` dice quante proprietà utente conserva. |
+| `analytics-stopped` | Il server non accetta gli eventi di questa pagina, quindi da essa non ne vengono più inviati. `status` 204 significa che l'applicazione li ha disattivati, o ha disattivato la Riproduzione delle sessioni, 403 che l'origine della pagina non è consentita, e 400 che questo registratore ha inviato un lotto che il server non sa leggere; `reason` dice quale. |
+| `metric-analytics-off` | `metric()` è stato chiamato mentre l'applicazione ha gli eventi di analisi del prodotto disattivati. Non è stato inviato nulla: attivali in **Impostazioni di analisi**. |
+| `metric-name-refused` | `metric()` ha ricevuto un nome che non può inviare. Un nome inizia con una lettera, contiene solo lettere, cifre, `_`, `.`, `-` e `/`, è lungo al massimo 100 caratteri e non inizia con `oneuptime.`. |
+| `metric-value-refused` | `metric()` ha ricevuto un valore che non è un numero finito. Non è stato inviato nulla. |
+
 ## Nessuna richiesta nella scheda Rete
 
 Segui questo elenco; è ordinato in base a quanto spesso ogni causa è la risposta.

@@ -825,6 +825,15 @@ export const RumRoutePath: Dictionary<string> = {
   [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON]: `${RouteParams.ModelID}/product-analytics-users/${RouteParams.SubModelID}`,
   [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS]: `${RouteParams.ModelID}/product-analytics-sessions`,
   /*
+   * Product analytics events (issue #6444, part two): what people do -
+   * events, funnels, retention - and the switch that sends them. The
+   * same top-level hyphenated segments as Users and Sessions.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS]: `${RouteParams.ModelID}/product-analytics-events`,
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS]: `${RouteParams.ModelID}/product-analytics-funnels`,
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION]: `${RouteParams.ModelID}/product-analytics-retention`,
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS]: `${RouteParams.ModelID}/product-analytics-settings`,
+  /*
    * A sibling of /session-replay rather than a child, for the same reason
    * as the audit page: a child segment would be shadowed by a session
    * whose id happened to be "settings".
@@ -7212,6 +7221,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS]
     }`,
   ),
 

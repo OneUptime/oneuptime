@@ -42,8 +42,8 @@ Il menu laterale di un'applicazione raggruppa le sue pagine così; **Impostazion
 | --- | --- |
 | **Base** | **Panoramica**, **Raccomandazioni**, **Documentazione** |
 | **Osservabilità** | **Metriche**, **Registri**, **Tracce**, **Client** |
-| **Analisi del prodotto** | **Utenti**, **Sessioni** |
-| **Riproduzione delle sessioni** | **Riproduzione delle sessioni**, **Flussi utente**, **Utenti delle riproduzioni**, **Integrità**, **Policy di riproduzione**, **Segnali di frustrazione**, **Registro degli accessi alle riproduzioni**, **Documentazione** |
+| **Analisi del prodotto** | **Utenti**, **Sessioni**, **Eventi**, **Funnel**, **Fidelizzazione degli utenti**, **Flussi utente**, **Impostazioni di analisi** |
+| **Riproduzione delle sessioni** | **Riproduzione delle sessioni**, **Utenti delle riproduzioni**, **Integrità**, **Policy di riproduzione**, **Segnali di frustrazione**, **Registro degli accessi alle riproduzioni**, **Documentazione** |
 | **Impostazioni** | **Impostazioni** |
 | **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA** |
 | **Avanzato** | **Registri di audit**, **Elimina applicazione** |
@@ -82,7 +82,7 @@ OneUptime trova l'applicazione tramite `service.name`, senza distinguere maiusco
 | **Core Web Vitals** | Una scheda nella panoramica con LCP, INP, CLS, FCP e TTFB, ciascuno valutato secondo le soglie di Google, e l'INP di ogni route di un'app a pagina singola. Vedi [Core Web Vitals](/docs/rum/web-vitals) e [App a pagina singola](/docs/rum/web-vitals#app-a-pagina-singola). |
 | **Metriche**, **Registri**, **Tracce** | Gli explorer della telemetria, limitati a questa applicazione. |
 | **Client** | Le piattaforme browser e i modelli di dispositivo su cui l'applicazione è stata usata: un breve elenco per piattaforma, mai una riga per utente. |
-| **Analisi del prodotto** | Utenti attivi, nuovi, di ritorno e inattivi, e sessioni per dispositivo, browser, paese e pagina, contati dalle sessioni registrate: vedi [Analisi del prodotto](/docs/rum/product-analytics). |
+| **Analisi del prodotto** | Utenti attivi, nuovi, di ritorno e inattivi e sessioni per dispositivo, browser, paese e pagina, contati dalle sessioni registrate, e gli eventi che la tua app invia, come andamenti, funnel e fidelizzazione: vedi [Analisi del prodotto](/docs/rum/product-analytics). |
 | **Riproduzione delle sessioni** | Registrazioni di sessioni reali, accanto ai loro errori, tracce e log: vedi [Riproduzione delle sessioni](/docs/telemetry/session-replay). |
 | **Raccomandazioni** | Monitor pronti all'uso per l'applicazione: Core Web Vitals scadenti, richieste fallite, eccezioni del browser e, appena registra, budget della Session Replay. |
 

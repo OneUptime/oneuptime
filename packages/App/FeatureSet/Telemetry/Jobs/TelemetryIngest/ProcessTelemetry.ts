@@ -42,6 +42,7 @@ import TelemetryIngestionBudget from "Common/Server/Utils/Telemetry/TelemetryIng
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
 import SessionReplayIngestService from "../../Services/SessionReplayIngestService";
+import ProductAnalyticsEventIngestService from "../../Services/ProductAnalyticsEventIngestService";
 import { JSONObject } from "Common/Types/JSON";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
 
@@ -598,6 +599,17 @@ if (DisableQueueWorkers) {
                 });
               }
               logger.debug(`Successfully processed session replay ingest job`);
+              break;
+
+            case TelemetryType.ProductAnalyticsEvents:
+              if (jobData.productAnalyticsEvents) {
+                await ProductAnalyticsEventIngestService.processFromQueue(
+                  jobData.productAnalyticsEvents,
+                );
+              }
+              logger.debug(
+                `Successfully processed product analytics events job`,
+              );
               break;
 
             default:

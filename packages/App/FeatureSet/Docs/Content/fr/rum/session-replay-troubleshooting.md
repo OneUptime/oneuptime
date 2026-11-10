@@ -285,6 +285,18 @@ Ces lignes consignent ce que votre propre code a demandé à l'enregistreur. Ell
 | `api-stop` | `stop()` a été appelé. Le dernier fragment a été envoyé et la session scellée ; plus rien n'est enregistré pour le reste de la vie de la page. |
 | `api-no-recorder` | L'un des appels ci-dessus s'est exécuté alors qu'aucun enregistreur n'était actif — en général parce qu'il s'est exécuté avant le chargement de l'artefact de l'enregistreur. Poussez plutôt des entrées `[command, ...arguments]` dans `window.OneUptimeReplayQueue`, et elles sont appliquées dès son arrivée. |
 
+### Événements d'analyse produit
+
+Ces codes viennent des événements que l'enregistreur envoie pour l'[Analyse produit](/docs/rum/product-analytics#envoyer-des-événements-et-des-métriques), à côté de l'enregistrement.
+
+| code | signification |
+| --- | --- |
+| `analytics-started` | L'application a les événements d'analyse produit activés : l'enregistreur envoie donc le début de chaque session, ses pages vues et vos appels à `track()` et `metric()`. `userPropertyKeys` indique combien de propriétés utilisateur il garde. |
+| `analytics-stopped` | Le serveur n'accepte pas les événements de cette page, donc elle n'en envoie plus. `status` 204 signifie que l'application les a désactivés, ou a désactivé la Relecture de session, 403 que l'origine de la page n'est pas autorisée, et 400 que cet enregistreur a envoyé un lot que le serveur ne sait pas lire ; `reason` précise lequel. |
+| `metric-analytics-off` | `metric()` a été appelé alors que l'application a les événements d'analyse produit désactivés. Rien n'a été envoyé : activez-les dans **Paramètres d'analyse**. |
+| `metric-name-refused` | `metric()` a reçu un nom qu'il ne peut pas envoyer. Un nom commence par une lettre, ne contient que des lettres, des chiffres, `_`, `.`, `-` et `/`, fait 100 caractères au plus et ne commence pas par `oneuptime.`. |
+| `metric-value-refused` | `metric()` a reçu une valeur qui n'est pas un nombre fini. Rien n'a été envoyé. |
+
 ## Aucune requête dans l'onglet Réseau
 
 Parcourez cette liste dans l'ordre ; elle est classée selon la fréquence à laquelle chaque cause est la bonne réponse.

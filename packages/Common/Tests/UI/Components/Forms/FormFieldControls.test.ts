@@ -3,6 +3,7 @@ import { loadCodeEditor } from "../../../../UI/Components/CodeEditor/LazyCodeEdi
 import { loadYamlEditor } from "../../../../UI/Components/CodeEditor/LazyYamlEditor";
 import { loadFilePicker } from "../../../../UI/Components/FilePicker/LazyFilePicker";
 import { loadMarkdownEditor } from "../../../../UI/Components/Markdown.tsx/LazyMarkdownEditor";
+import { loadPeoplePicker } from "../../../../UI/Components/PeoplePicker/LazyPeoplePicker";
 import {
   getLoadControl,
   loadAllFormFieldControls,
@@ -30,6 +31,7 @@ const FIRST_LOAD_TYPES: Array<FormFieldSchemaType> = Object.values(
     FormFieldSchemaType.File,
     FormFieldSchemaType.ImageFile,
     FormFieldSchemaType.MultipleFiles,
+    FormFieldSchemaType.PeoplePicker,
   ].includes(fieldType);
 });
 
@@ -48,6 +50,7 @@ describe("getLoadControl", () => {
     [FormFieldSchemaType.File, loadFilePicker],
     [FormFieldSchemaType.ImageFile, loadFilePicker],
     [FormFieldSchemaType.MultipleFiles, loadFilePicker],
+    [FormFieldSchemaType.PeoplePicker, loadPeoplePicker],
   ] as Array<[FormFieldSchemaType, () => Promise<unknown>]>)(
     "a %s field draws with its own file",
     (fieldType: FormFieldSchemaType, loadControl: () => Promise<unknown>) => {
@@ -150,6 +153,7 @@ describe("loadAllFormFieldControls", () => {
     expect(typeof (await loadYamlEditor())).toBe("function");
     expect(typeof (await loadMarkdownEditor())).toBe("function");
     expect(typeof (await loadFilePicker())).toBe("function");
+    expect(typeof (await loadPeoplePicker())).toBe("function");
   });
 
   test("says so when one of them cannot be loaded", async () => {

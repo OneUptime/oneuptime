@@ -310,7 +310,11 @@ describe("Product Analytics: the Users page", () => {
     const people: string = source("peopleCard");
     const person: string = source("personPage");
 
-    expect(people).toContain('title="People"');
+    // Its title is a constant: the card draws it with a search and without.
+    expect(people).toContain(
+      'const PEOPLE_CARD_TITLE: string = translationKey("People");',
+    );
+    expect(people).toContain("title={PEOPLE_CARD_TITLE}");
     expect(source("format")).toContain(
       '[ProductAnalyticsPeopleFilter.Anonymous]:\n    translationKey("Anonymous visitors"),',
     );

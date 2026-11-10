@@ -184,6 +184,7 @@
   "Wi-Fi",
   "Windows",
   "YAML",
+  "[\"plan\", \"role\"]",
   "^GET /api/",
   "arn:aws:iam::123456789012:role/OneUptimeReadOnly",
   "crsr_...",

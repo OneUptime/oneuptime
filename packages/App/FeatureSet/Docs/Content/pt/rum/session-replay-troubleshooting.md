@@ -285,6 +285,18 @@ Estes registram o que o seu próprio código pediu ao gravador. Servem para conf
 | `api-stop` | `stop()` foi chamado. O último fragmento foi enviado e a sessão foi selada; nada é gravado pelo resto da vida da página. |
 | `api-no-recorder` | Uma das chamadas acima rodou sem nenhum gravador ativo — normalmente porque rodou antes de o artefato do gravador carregar. Coloque entradas `[command, ...arguments]` em `window.OneUptimeReplayQueue` em vez disso, e elas são aplicadas assim que ele chega. |
 
+### Eventos de análise de produto
+
+Estes vêm dos eventos que o gravador envia para a [Análise de produto](/docs/rum/product-analytics#enviar-eventos-e-métricas), ao lado da gravação.
+
+| code | o que significa |
+| --- | --- |
+| `analytics-started` | A aplicação tem os eventos de análise de produto ativados, por isso o gravador envia o início de cada sessão, as suas visualizações de página e as suas chamadas a `track()` e `metric()`. `userPropertyKeys` diz quantas propriedades de usuário ele mantém. |
+| `analytics-stopped` | O servidor não aceita os eventos desta página, por isso nenhum é enviado dela de novo. `status` 204 significa que a aplicação os desativou, ou desativou a Reprodução de sessões, 403 que a origem da página não é permitida, e 400 que este gravador enviou um lote que o servidor não consegue ler; `reason` diz qual. |
+| `metric-analytics-off` | `metric()` foi chamado enquanto a aplicação tem os eventos de análise de produto desativados. Nada foi enviado: ative-os em **Configurações de análise**. |
+| `metric-name-refused` | `metric()` recebeu um nome que não pode enviar. Um nome começa por uma letra, só tem letras, dígitos, `_`, `.`, `-` e `/`, tem no máximo 100 caracteres e não começa por `oneuptime.`. |
+| `metric-value-refused` | `metric()` recebeu um valor que não é um número finito. Nada foi enviado. |
+
 ## Nenhuma requisição na aba Rede
 
 Siga esta lista; ela está ordenada pela frequência com que cada causa é a resposta.

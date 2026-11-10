@@ -45,8 +45,8 @@ const ENGLISH: Record<string, unknown> = readLocale("en");
 // The incident and alert AI pages, written on the pages themselves.
 const LANE_WORDS: ReadonlyArray<string> = [
   "Investigations start right away and run until they are done, within the project's time limit per run, unless you set a limit here.",
-  "Stop an incident investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
-  "Stop an alert investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
+  "An incident investigation stops after this many minutes and reports what it found. Leave empty for the project's time limit: 120 minutes by default.",
+  "An alert investigation stops after this many minutes and reports what it found. Leave empty for the project's time limit: 120 minutes by default.",
   "The project's time limit",
 ];
 
@@ -86,6 +86,14 @@ const RETIRED: ReadonlyArray<string> = [
    */
   "Stop an incident investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
   "Stop an alert investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
+  /*
+   * Their next wording, and the card's and the time field's first, each
+   * longer than a description may be (ShortDescriptionsGuard).
+   */
+  "Stop an incident investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
+  "Stop an alert investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
+  "How far one OneUptime AI run may go: an investigation, an Ask AI or chat answer, a triage, a fix or a code task. With nothing set, a run makes as many calls as its work needs, for up to 120 minutes. A run that reaches a limit answers with what it found, and says which limit stopped it.",
+  "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.",
 ];
 
 const PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
@@ -265,7 +273,7 @@ describe("the limits per run in every language", () => {
     for (const text of LANE_WORDS.slice(1, 3)) {
       expect([text, arabic[text]]).toEqual([
         text,
-        expect.stringContaining("120 دقيقة، ما لم يضبط المشروع مهلة خاصة به."),
+        expect.stringContaining("المهلة الزمنية للمشروع: 120 دقيقة افتراضيًا."),
       ]);
     }
   });

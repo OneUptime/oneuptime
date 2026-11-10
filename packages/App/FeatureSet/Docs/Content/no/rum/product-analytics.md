@@ -1,17 +1,19 @@
 # Produktanalyse
 
-Produktanalyse teller menneskene som bruker en RUM-applikasjon, og hvordan øktene deres går: aktive, nye, tilbakevendende, påloggede og inaktive brukere, og økter etter enhet, nettleser, land og side. Den teller øktene som [Øktavspilling](/docs/telemetry/session-replay) tar opp, så den trenger ikke noe eget snippet, og den tar vare på tallene sine i 13 måneder, lenge etter at opptakene er utløpt.
+Produktanalyse teller menneskene som bruker en RUM-applikasjon, hvordan øktene deres går, og hva de gjør: aktive, nye, tilbakevendende, påloggede og inaktive brukere, økter etter enhet, nettleser, land og side, og hendelsene appen din sender, som trender, trakter og lojalitet. Den teller øktene som [Øktavspilling](/docs/telemetry/session-replay) tar opp, og hendelsene opptakeren dens sender, så den trenger ikke noe eget snippet, og den tar vare på tallene sine i 13 måneder, lenge etter at opptakene er utløpt.
 
 :::cards
-- [Hvordan personer telles](#hvordan-personer-telles): En pålogget bruker én gang, en anonym nettleser én gang.
 - [Brukere](#brukere): Aktive, nye, tilbakevendende, påloggede, alle og inaktive brukere.
 - [Økter](#økter): Hvor mange, hvor lenge, og etter enhet, nettleser, land og side.
-- [Personvern og oppbevaring](#personvern-og-oppbevaring): 13 måneder, ingen navn lagret, slettet på forespørsel.
+- [Send hendelser og målinger](#send-hendelser-og-målinger): Hva folk gjør, og tallene siden din måler.
+- [Hendelser](#hendelser): Hvor ofte noe skjedde, hvem som gjorde det, og hvor.
+- [Trakter](#trakter): Hvem som gikk videre, trinn for trinn, og hvor lang tid det tok.
+- [Brukerlojalitet](#brukerlojalitet): Hvem som kom tilbake, kohort for kohort.
 :::
 
 ## Hvordan personer telles
 
-Sidemenyen til en applikasjon har en seksjon **Produktanalyse** med to sider, **Brukere** og **Økter**. Begge teller øktene som Øktavspilling tar opp, så de begynner når applikasjonens opptaker gjør det, og en økt som avspillingspolicyen ikke tar opp, telles ikke. Hver økt teller for én person, eller for ingen:
+Sidemenyen til en applikasjon har en seksjon **Produktanalyse**: **Brukere**, **Økter**, **Hendelser**, **Trakter**, **Brukerlojalitet**, **Brukerflyter** og **Analyseinnstillinger**. **Brukere** og **Økter** teller øktene som Øktavspilling tar opp, så de begynner når applikasjonens opptaker gjør det, og en økt som avspillingspolicyen ikke tar opp, telles ikke. Hver økt teller for én person, eller for ingen:
 
 ```mermaid title="Hvem en økt teller for"
 flowchart TB
@@ -25,6 +27,8 @@ flowchart TB
 - **En pålogget bruker telles én gang**, på hver nettleser og enhet vedkommende bruker: brukeren kjennes igjen på enveis-hashen av referansen siden din ga `identify()` (se [Identifiser brukerne dine](/docs/telemetry/session-replay#identifiser-brukerne-dine)).
 - **En anonym nettleser telles én gang**, via sin [anonyme besøks-ID](/docs/telemetry/session-replay#anonyme-besøkende). To nettlesere er to besøkende, og øktene en nettleser hadde før noen logget på i den, forblir dens besøkendes.
 - **En økt fra en eldre opptaker**, som ikke sendte noen besøks-ID, teller som en økt, men ikke som en person.
+
+**Hendelser**, **Trakter** og **Brukerlojalitet** teller personer på samme måte, ut fra hendelsene opptakeren sender fra hver økt, tatt opp eller ikke (se [Send hendelser og målinger](#send-hendelser-og-målinger)).
 
 Dager telles i din egen tidssone.
 
@@ -53,15 +57,83 @@ De tre første viser også hvordan de endret seg fra perioden før. Under flisen
 - **Øktlengde** deler de avsluttede øktene inn etter hvor lenge de varte, fra under 10 sekunder til over 30 minutter. En økt som fortsatt tas opp, har ingen lengde ennå.
 - **Oppdeling** rangerer brukere og økter etter enhetstype, nettleser, operativsystem, land, appversjon, inngangsside eller side, flest brukere først.
 
+## Send hendelser og målinger
+
+Hendelser sendes så lenge **Send produktanalysehendelser** er slått på, på applikasjonens side **Analyseinnstillinger**. Den er slått på fra start for en ny applikasjon, og av for en applikasjon som ble opprettet før den fantes, så slå den på der. Øktavspilling må også være slått på for applikasjonen, siden det er opptakeren dens som sender hendelsene; React Native-opptakeren sender ingen ennå.
+
+Hver økt nettleseropptakeren kjører i, sender selv starten sin og hver side den viser, inkludert rutebytter i en enkeltsideapp, enten avspillingens utvalg og policy tar opp økten eller ikke. Dine egne hendelser og tall kommer fra koden på siden din:
+
+```js
+OneUptimeReplay.track("Signed up", { plan: "pro" });
+OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
+```
+
+| Kall | Hva det sender |
+| --- | --- |
+| `track(name, properties?)` | En hendelse som **Hendelser**, **Trakter** og **Brukerlojalitet** teller, og en markør på avspillingens tidslinje når økten tas opp. `name` ≤ 64 tegn; ≤ 20 egenskaper med streng-, tall- eller boolske verdier, nøkkel ≤ 40 tegn, verdi ≤ 200 tegn. |
+| `metric(name, value, attributes?)` | Et tall siden din har målt, som et punkt i en av applikasjonens målinger (se [Dashbord og varsler](#dashbord-og-varsler)). `name` ≤ 100 tegn av bokstaver, sifre, `_`, `.`, `-` og `/`, som begynner med en bokstav og ikke med `oneuptime.`; `value` et endelig tall; `attributes` som egenskapene til `track()`. |
+
+Før opptakeren er lastet, legger du de samme kallene i `window.OneUptimeReplayQueue` som `["track", name, properties]` og `["metric", name, value, attributes]` (se [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
+
+- **Hver økt, tatt opp eller ikke.** Avspillingens utvalg og opplastingspolicyen avgjør hvilke økter som tas opp, ikke hvilke som telles. Ingenting sendes under Do Not Track eller Global Privacy Control, og ingenting tas vare på fra en opprinnelse applikasjonen ikke tillater. Når policyen krever samtykke, venter hendelsene på `grantConsent()`, høyst 500 av dem, og `revokeConsent()` forkaster dem.
+- **Maskert som opptaket.** Under _Mask all text_ maskeres verdiene til egenskaper og attributter før de forlater siden. En side sendes som stien sin, uten spørring og fragment.
+- **I små puljer**, hvert 5. sekund og når fanen skjules. En hendelse som når OneUptime mer enn 3 dager etter at den skjedde, forkastes, og et prosjekt kan sende 60 000 hendelser og målepunkter i minuttet, alle applikasjonene til sammen; utover det venter opptakeren og sender dem på nytt.
+
+`metric()` sender ingenting mens hendelsene er slått av, og `getDiagnostics().productAnalytics` sier om de er slått på (se [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
+
+### Brukeregenskaper
+
+For å dele opp og segmentere hendelser etter hvem som utførte dem, oppgir du nøkler for egenskaper fra `identify()` under **Brukeregenskaper for analyse** på **Analyseinnstillinger**, for eksempel `["plan", "role"]`, høyst 20, sammenlignet nøyaktig slik de er skrevet. Hver hendelse bærer da disse egenskapene til den påloggede brukeren, slik siden din ga dem til `identify()`. De andre egenskapene forlater aldri siden, og ingen gjør det mens **Registrer sluttbrukerens identitet** er slått av. Ikke oppgi egenskaper som inneholder personopplysninger, for eksempel en e-postadresse.
+
+## Hendelser
+
+**Hendelser** viser én hendelse om gangen: appens hyppigste hendelse til du velger en annen, eller den mest viste siden så lenge appen ikke sender noen. Velgeren viser også **Økt startet** og hver side som er vist, og **Alle hendelser** nedenfor viser hver hendelse i tidsrommet med hvor mange ganger den skjedde og hvor mange personer som utførte den; velg én for å se den ovenfor.
+
+- Flisene teller hendelsens **Hendelser**, med hvor mange hver person utførte i snitt, dens **Brukere** og dens **Økter**.
+- **Hendelser og brukere** tegner for hver dag hvor mange ganger hendelsen skjedde, og hvor mange personer som utførte den den dagen.
+- **Oppdeling** rangerer hendelsen etter enhetstype, nettleser, operativsystem, land, appversjon, side, hendelsesegenskap eller brukeregenskap, med hver verdis hendelser, brukere og andel. Velg en verdi for å vise bare den.
+
+**Segment** avgrenser siden til hendelsene der feltene har verdiene du velger: **Legg til filter**, deretter et felt og en verdi, sammenlignet nøyaktig. Et segment har høyst 5 filtre, og en hendelse må samsvare med alle. Sidens adresse beholder hendelsen, tidsrommet, segmentet og oppdelingen, så en lenke åpner den samme visningen.
+
+## Trakter
+
+**Trakter** følger personer gjennom 2 til 6 trinn i rekkefølge, hvert trinn en hendelse slik **Hendelser** viser dem. Av personene som utførte det første trinnet i tidsrommet, teller den hvor mange som deretter utførte det andre, så det tredje, alle innenfor tiden du velger fra deres første trinn: **Innen 1 time**, **Innen 1 dag**, **Innen 7 dager**, **Innen 14 dager** eller **Innen 30 dager**. **Legg til trinn** legger til ett.
+
+Under **Konvertering** står andelen personer som utførte hvert trinn, og for hvert trinn hvor mange personer som nådde det, hvor stor andel av personene i det første trinnet det er, hvor mange som falt fra siden trinnet før, og mediantiden de brukte fra det. Den som prøvde mer enn én gang, telles én gang, etter forsøket som kom lengst.
+
+Segmentet til en trakt, og til en lojalitetstabell, bruker feltene hver hendelse bærer og brukeregenskaper, ikke en hendelses egne egenskaper, siden trinnene er forskjellige hendelser.
+
+## Brukerlojalitet
+
+**Brukerlojalitet** grupperer personer etter dagen, uken eller måneden i tidsrommet da de første gang utførte én hendelse, **Personer som utførte**, og viser hvor stor andel av hver gruppe som utførte en annen, **Og kom tilbake for å utføre**, i den perioden og i hver periode etter. Begge er **Økt startet** til du velger andre.
+
+**Kohorter** angir perioden: **Per dag**, **Per uke** eller **Per måned**. Når tidsrommet har flere perioder enn én tabell viser, 32 dager, 26 uker eller 13 måneder, gjør siden kohortene lengre og sier fra.
+
+Hver rad er en kohort og hvor mange personer den har, og hver celle andelen av dem som kom tilbake i den perioden, mørkere jo flere som gjorde det. En periode som ikke har begynt ennå, står tom.
+
+## Dashbord og varsler
+
+Hver hendelse telles også, minutt for minutt, som en av applikasjonens målinger, og hvert kall til `metric()` er et punkt i en egen måling, under navnet kallet oppgir. Vis dem i diagram på applikasjonens side **Målinger**, legg dem til i et dashbord, eller varsle på dem med en metrikk-overvåking; **Åpne Målinger** under **Alle hendelser** åpner siden.
+
+| Måling | Hva den teller | Etter |
+| --- | --- | --- |
+| `oneuptime.rum.product.events` | `track()`-hendelsene dine, per minutt | `event.name` |
+| `oneuptime.rum.product.sessions` | Økter som startet, per minutt | `device.type` |
+| `oneuptime.rum.product.page.views` | Viste sider, per minutt | `device.type` |
+
+Disse tre faktureres ikke, og `metric()` avviser et navn som begynner med `oneuptime.`, så ingenting siden din sender, kan utgi seg for dem. `metric()`-punktene dine lagres og faktureres som applikasjonens andre målinger.
+
 ## Personvern og oppbevaring
 
-- **13 måneder.** En måneds tall fjernes den første dagen i den 13. måneden etter, så de siste 12 hele månedene alltid er der, uansett opptakenes egen oppbevaring (7 dager som standard).
-- **Ingen navn lagret.** Tallene tar vare på en pålogget brukers enveisnøkkel og en nettlesers besøks-ID, aldri referansen, egenskapene eller en IP-adresse. En rad navngir en pålogget bruker bare så lenge et av vedkommendes opptak fortsatt er lagret, og bare for en rolle som kan lese identitet; ellers står det **Pålogget bruker** eller **Anonym besøkende** og starten av ID-en.
-- **Slettet på forespørsel.** En sletteforespørsel fjerner også de samsvarende tallene her (se [Slett økter](/docs/telemetry/session-replay#slett-økter)).
+- **13 måneder.** En måneds tall fjernes den første dagen i den 13. måneden etter, så de siste 12 hele månedene alltid er der, uansett opptakenes egen oppbevaring (7 dager som standard). Hendelser lagres på samme måte.
+- **Ingen navn lagret.** Tallene tar vare på en pålogget brukers enveisnøkkel og en nettlesers besøks-ID, aldri referansen eller en IP-adresse, og av egenskapene bare brukeregenskapene du oppgir. En rad navngir en pålogget bruker bare så lenge et av vedkommendes opptak fortsatt er lagret, og bare for en rolle som kan lese identitet; ellers står det **Pålogget bruker** eller **Anonym besøkende** og starten av ID-en.
+- **Slettet på forespørsel.** En sletteforespørsel fjerner også de samsvarende tallene og hendelsene her (se [Slett økter](/docs/telemetry/session-replay#slett-økter)).
 
 ## Hvem kan se det
 
-Å lese de to sidene krever det samme som å lese øktlisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som prosjekteiere og administratorer har. Å se hvem en pålogget bruker er, og å søke etter personer på navn, krever identitetstillatelsen som [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) beskriver.
+Å lese disse sidene krever det samme som å lese øktlisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som prosjekteiere og administratorer har. Å se hvem en pålogget bruker er, og å søke etter personer på navn, krever identitetstillatelsen som [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) beskriver.
+
+Å slå hendelsene på eller av krever `EditRumApplication` (_Edit RUM Application_) eller rollen som prosjekteier, administrator eller medlem. Å oppgi brukeregenskaper krever `EditRumApplication` eller rollen som eier eller administrator, siden det avgjør hva som tas vare på om påloggede personer.
 
 ## Neste steg
 

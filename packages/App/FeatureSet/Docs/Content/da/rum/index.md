@@ -42,8 +42,8 @@ En applikations egen sidemenu grupperer dens sider sådan; **Indstillinger**, **
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Anbefalinger**, **Dokumentation** |
 | **Observabilitet** | **Metrikker**, **Protokoller**, **Spor**, **Klienter** |
-| **Produktanalyse** | **Brugere**, **Sessioner** |
-| **Sessionsafspilning** | **Sessionsafspilning**, **Brugerforløb**, **Brugere i afspilninger**, **Sundhed**, **Afspilningspolitik**, **Frustrationssignaler**, **Adgangslog for afspilninger**, **Dokumentation** |
+| **Produktanalyse** | **Brugere**, **Sessioner**, **Begivenheder**, **Tragte**, **Fastholdelse af brugere**, **Brugerforløb**, **Analyseindstillinger** |
+| **Sessionsafspilning** | **Sessionsafspilning**, **Brugere i afspilninger**, **Sundhed**, **Afspilningspolitik**, **Frustrationssignaler**, **Adgangslog for afspilninger**, **Dokumentation** |
 | **Indstillinger** | **Indstillinger** |
 | **Udvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avanceret** | **Auditlogs**, **Slet applikation** |
@@ -82,7 +82,7 @@ OneUptime finder applikationen ud fra `service.name` uden hensyn til store og sm
 | **Core Web Vitals** | Et kort i oversigten med LCP, INP, CLS, FCP og TTFB, hver vurderet efter Googles grænser, og INP for hver rute i en single-page-app. Se [Core Web Vitals](/docs/rum/web-vitals) og [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrikker**, **Protokoller**, **Spor** | Telemetri-explorerne, begrænset til denne applikation. |
 | **Klienter** | De browserplatforme og enhedsmodeller, applikationen er blevet brugt på: en kort liste pr. platform, aldrig en række pr. bruger. |
-| **Produktanalyse** | Aktive, nye, tilbagevendende og inaktive brugere samt sessioner efter enhed, browser, land og side, talt ud fra de optagne sessioner: se [Produktanalyse](/docs/rum/product-analytics). |
+| **Produktanalyse** | Aktive, nye, tilbagevendende og inaktive brugere samt sessioner efter enhed, browser, land og side, talt ud fra de optagne sessioner, og de begivenheder, din app sender, som tendenser, tragte og fastholdelse: se [Produktanalyse](/docs/rum/product-analytics). |
 | **Sessionsafspilning** | Optagelser af rigtige sessioner ved siden af deres fejl, spor og logs: se [Sessionsafspilning](/docs/telemetry/session-replay). |
 | **Anbefalinger** | Færdige monitorer til applikationen: dårlige Core Web Vitals, mislykkede forespørgsler, browserundtagelser og, så snart den optager, budgetter for Session Replay. |
 

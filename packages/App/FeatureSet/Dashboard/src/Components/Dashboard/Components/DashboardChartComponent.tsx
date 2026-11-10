@@ -32,7 +32,7 @@ import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import ExplorerLink from "../../Metrics/Utils/ExplorerLink";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
-import InvestigationDrawer from "../../Telemetry/InvestigationDrawer";
+import InvestigationDrawer from "../../Telemetry/LazyInvestigationDrawer";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
 } from "../../Metrics/Utils/UseEventTimeReferenceLines";

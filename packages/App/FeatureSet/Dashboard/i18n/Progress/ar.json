@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48994,
-    "untranslated": 37737
+    "keys": 49075,
+    "untranslated": 36790
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -25,6 +25,7 @@
     "Canonical Sunbeam",
     "ClickHouse",
     "CloudKitty",
+    "CloudWatch Metric Streams",
     "CrowdStrike",
     "DE",
     "DES",

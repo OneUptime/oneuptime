@@ -1729,6 +1729,112 @@ export default class RumApplication extends BaseModel {
   public sessionReplayMonthlyBudgetInGB?: number = undefined;
 
   /*
+   * Product analytics events (issue #6444, part two). On, the browser
+   * recorder also sends small batches of events - a session starting, a
+   * page viewed, a track() call - and metric() points from EVERY session,
+   * recorded or not, so Events, Funnels and User Retention count everyone.
+   * Session Replay must be on for the application (the events ride its
+   * recorder, its consent and its privacy signals). The React Native
+   * recorder sends none yet.
+   *
+   * The column defaults to false so no existing application starts sending
+   * a new request from its users' browsers unasked; RumApplicationService
+   * switches it on for an application created from now on
+   * (applyNewApplicationDefaults), unless the create says otherwise.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Product Analytics Events",
+    description:
+      "When enabled, the browser recorder sends product analytics events (session starts, page views and track() calls) and metric() points from every session, whether or not Session Replay records it, for the Events, Funnels and User Retention pages. On for applications created from now on; off for existing ones until it is switched on. Session Replay must be enabled for the application.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isProductAnalyticsEnabled?: boolean = undefined;
+
+  /*
+   * The identify() traits product analytics keeps on each event, so events,
+   * funnels and retention can be broken down and segmented by them (plan,
+   * role, company size). Only these, matched as written, and only when the
+   * application captures user identity; every other trait never leaves the
+   * page. The same narrower ACL as the identity switch: it decides what is
+   * kept about signed-in people for a year and a month.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Product Analytics User Properties",
+    description:
+      "The identify() trait keys product analytics keeps on each event, for breakdowns and segments (at most 20). Matched as written. Only kept while user-identity capture is on; every other trait is dropped before it leaves the page.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public productAnalyticsUserPropertyKeys?: Array<string> = undefined;
+
+  /*
    * The next two columns exist purely so a support engineer can answer
    * "why is nothing being recorded?" from the application row itself,
    * without querying ClickHouse or reading ingest logs. They are written

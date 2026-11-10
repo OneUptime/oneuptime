@@ -285,6 +285,18 @@ De här registrerar vad din egen kod bad inspelaren om. De finns till för att b
 | `api-stop` | `stop()` anropades. Den sista chunken laddades upp och sessionen förseglades; ingenting spelas in under resten av sidans livstid. |
 | `api-no-recorder` | Ett av anropen ovan kördes utan någon aktiv inspelare — vanligtvis för att det kördes innan inspelarens artefakt hade laddats. Lägg i stället `[command, ...arguments]`-poster i `window.OneUptimeReplayQueue`, så tillämpas de så snart den kommer. |
 
+### Produktanalyshändelser
+
+De här kommer från de händelser som inspelaren skickar för [Produktanalys](/docs/rum/product-analytics#skicka-händelser-och-mätvärden), vid sidan av inspelningen.
+
+| code | vad det betyder |
+| --- | --- |
+| `analytics-started` | Applikationen har produktanalyshändelser på, så inspelaren skickar varje sessions start, dess sidvisningar och dina anrop till `track()` och `metric()`. `userPropertyKeys` säger hur många användaregenskaper den behåller. |
+| `analytics-stopped` | Servern tar inte emot sidans händelser, så inga skickas från den igen. `status` 204 betyder att applikationen har dem eller Sessionsuppspelning av, 403 att sidans ursprung inte är tillåtet, och 400 att den här inspelaren skickade en omgång som servern inte kan läsa; `reason` säger vilket. |
+| `metric-analytics-off` | `metric()` anropades medan applikationen har produktanalyshändelser av. Inget skickades: slå på dem under **Analysinställningar**. |
+| `metric-name-refused` | `metric()` fick ett namn som den inte kan skicka. Ett namn börjar med en bokstav, innehåller bara bokstäver, siffror, `_`, `.`, `-` och `/`, är högst 100 tecken långt och börjar inte med `oneuptime.`. |
+| `metric-value-refused` | `metric()` fick ett värde som inte är ett ändligt tal. Inget skickades. |
+
 ## Ingen förfrågan på fliken Nätverk
 
 Gå igenom den här listan; den är sorterad efter hur ofta varje orsak är svaret.

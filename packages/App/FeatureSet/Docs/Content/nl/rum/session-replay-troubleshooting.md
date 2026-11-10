@@ -285,6 +285,18 @@ Deze leggen vast wat je eigen code aan de recorder vroeg. Ze zijn er om te beves
 | `api-stop` | `stop()` werd aangeroepen. De laatste chunk is geüpload en de sessie is afgesloten; er wordt niets meer opgenomen zolang de pagina bestaat. |
 | `api-no-recorder` | Een van de aanroepen hierboven werd uitgevoerd zonder actieve recorder — meestal omdat ze werd uitgevoerd voordat het recorderartefact was geladen. Zet in plaats daarvan `[command, ...arguments]`-items in `window.OneUptimeReplayQueue`, dan worden ze toegepast zodra hij er is. |
 
+### Productanalysegebeurtenissen
+
+Deze komen van de gebeurtenissen die de recorder voor [Productanalyse](/docs/rum/product-analytics#gebeurtenissen-en-metrieken-verzenden) verzendt, naast de opname.
+
+| code | wat het betekent |
+| --- | --- |
+| `analytics-started` | De applicatie heeft productanalysegebeurtenissen aan staan, dus de recorder verzendt het begin van elke sessie, de paginaweergaven en je aanroepen van `track()` en `metric()`. `userPropertyKeys` zegt hoeveel gebruikerseigenschappen hij bewaart. |
+| `analytics-stopped` | De server neemt de gebeurtenissen van deze pagina niet aan, dus er worden er geen meer vanaf verzonden. `status` 204 betekent dat de applicatie ze of Sessieherhaling uit heeft staan, 403 dat de origin van de pagina niet is toegestaan, en 400 dat deze recorder een batch verzond die de server niet kan lezen; `reason` zegt welke. |
+| `metric-analytics-off` | `metric()` werd aangeroepen terwijl de applicatie productanalysegebeurtenissen uit heeft staan. Er is niets verzonden: zet ze aan onder **Analyse-instellingen**. |
+| `metric-name-refused` | `metric()` kreeg een naam die hij niet kan verzenden. Een naam begint met een letter, bevat alleen letters, cijfers, `_`, `.`, `-` en `/`, is hooguit 100 tekens lang en begint niet met `oneuptime.`. |
+| `metric-value-refused` | `metric()` kreeg een waarde die geen eindig getal is. Er is niets verzonden. |
+
 ## Geen verzoek op het tabblad Netwerk
 
 Loop deze lijst door; hij is gesorteerd op hoe vaak elke oorzaak het antwoord is.

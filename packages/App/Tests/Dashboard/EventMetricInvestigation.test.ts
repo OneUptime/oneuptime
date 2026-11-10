@@ -1,5 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import ChartEventKind from "Common/UI/Components/Charts/Types/ChartEventKind";
+import { ResolvedStateList } from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   ALERT_STARTED_COLOR,
   EVENT_MOMENT_COLORS,
@@ -29,6 +31,7 @@ function at(iso: string): Date {
   return new Date(iso);
 }
 
+// With no place in the list (order), each state counts as its flags alone say.
 const STATES: Array<EventMomentState> = [
   { _id: "identified", name: "Identified" },
   { _id: "acknowledged", name: "Acknowledged", isAcknowledgedState: true },
@@ -53,6 +56,7 @@ describe("the moments of an event", () => {
         { stateId: "resolved", startsAt: at("2026-11-05T07:02:00.000Z") },
       ],
       states: STATES,
+      stateList: StateListType.IncidentState,
     });
 
     expect(rolesOf(moments)).toEqual([
@@ -72,6 +76,7 @@ describe("the moments of an event", () => {
         { stateId: "identified", startsAt: at("2026-11-05T05:44:00.000Z") },
       ],
       states: STATES,
+      stateList: StateListType.IncidentState,
     });
 
     expect(rolesOf(moments)).toEqual([
@@ -87,6 +92,7 @@ describe("the moments of an event", () => {
       impactStartedAt: at("2026-11-05T05:20:00.000Z"),
       timeline: [],
       states: STATES,
+      stateList: StateListType.IncidentState,
     });
 
     expect(rolesOf(moments)).toEqual([
@@ -107,6 +113,7 @@ describe("the moments of an event", () => {
             impactStartedAt,
             timeline: [],
             states: STATES,
+            stateList: StateListType.IncidentState,
           }),
         ),
       ).toEqual(["started:@2026-11-05T05:44:00.000Z"]);
@@ -120,6 +127,7 @@ describe("the moments of an event", () => {
           impactStartedAt: at("2026-11-05T05:20:00.000Z"),
           timeline: [],
           states: [],
+          stateList: StateListType.IncidentState,
         }),
       ),
     ).toEqual(["impact-started:@2026-11-05T05:20:00.000Z"]);
@@ -136,6 +144,7 @@ describe("the moments of an event", () => {
         { stateId: "resolved", startsAt: new Date("nonsense") },
       ],
       states: STATES,
+      stateList: StateListType.IncidentState,
     });
 
     expect(rolesOf(moments)).toEqual([
@@ -146,7 +155,151 @@ describe("the moments of an event", () => {
   });
 
   test("nothing known is nothing marked", () => {
-    expect(getEventMoments({ timeline: [], states: [] })).toEqual([]);
+    expect(
+      getEventMoments({
+        timeline: [],
+        states: [],
+        stateList: StateListType.IncidentState,
+      }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * A change is marked as what the state it moved into counts as, by the rule
+ * every page reads (Common/Utils/ResolvedState, AcknowledgedState): a state
+ * the project placed after Resolved ("Closed") counts as resolved, and one
+ * placed after Acknowledged, short of Resolved ("Investigating"), as
+ * acknowledged - flagged or not. Read by the flags alone, both were marked
+ * as a plain change of state.
+ */
+describe("a change into a state the project placed after a built-in one", () => {
+  const PLACED_STATES: Array<EventMomentState> = [
+    { _id: "identified", name: "Identified", order: 1 },
+    {
+      _id: "acknowledged",
+      name: "Acknowledged",
+      order: 2,
+      isAcknowledgedState: true,
+    },
+    { _id: "investigating", name: "Investigating", order: 3 },
+    { _id: "resolved", name: "Resolved", order: 4, isResolvedState: true },
+    { _id: "closed", name: "Closed", order: 5 },
+  ];
+
+  test.each([
+    [StateListType.IncidentState],
+    [StateListType.AlertState],
+  ] as Array<[ResolvedStateList]>)(
+    "in a project's %s list: after Resolved is a resolve, after Acknowledged an acknowledgement",
+    (stateList: ResolvedStateList) => {
+      const moments: Array<EventMoment> = getEventMoments({
+        startedAt: STARTED_AT,
+        timeline: [
+          { stateId: "identified", startsAt: at("2026-11-05T05:44:00.000Z") },
+          {
+            stateId: "acknowledged",
+            startsAt: at("2026-11-05T05:50:00.000Z"),
+          },
+          {
+            stateId: "investigating",
+            startsAt: at("2026-11-05T06:30:00.000Z"),
+          },
+          { stateId: "resolved", startsAt: at("2026-11-05T07:02:00.000Z") },
+          { stateId: "closed", startsAt: at("2026-11-05T09:00:00.000Z") },
+        ],
+        states: PLACED_STATES,
+        stateList: stateList,
+      });
+
+      expect(rolesOf(moments)).toEqual([
+        "started:@2026-11-05T05:44:00.000Z",
+        "acknowledged:Acknowledged@2026-11-05T05:50:00.000Z",
+        "acknowledged:Investigating@2026-11-05T06:30:00.000Z",
+        "resolved:Resolved@2026-11-05T07:02:00.000Z",
+        "resolved:Closed@2026-11-05T09:00:00.000Z",
+      ]);
+    },
+  );
+
+  test("a move straight into a state placed after Resolved is a resolve", () => {
+    expect(
+      rolesOf(
+        getEventMoments({
+          startedAt: STARTED_AT,
+          timeline: [
+            { stateId: "identified", startsAt: STARTED_AT },
+            { stateId: "closed", startsAt: at("2026-11-05T07:02:00.000Z") },
+          ],
+          states: PLACED_STATES,
+          stateList: StateListType.IncidentState,
+        }),
+      ),
+    ).toEqual([
+      "started:@2026-11-05T05:44:00.000Z",
+      "resolved:Closed@2026-11-05T07:02:00.000Z",
+    ]);
+  });
+
+  test("a move straight into a state placed after Acknowledged, short of Resolved, is an acknowledgement", () => {
+    expect(
+      rolesOf(
+        getEventMoments({
+          startedAt: STARTED_AT,
+          timeline: [
+            { stateId: "identified", startsAt: STARTED_AT },
+            {
+              stateId: "investigating",
+              startsAt: at("2026-11-05T06:30:00.000Z"),
+            },
+          ],
+          states: PLACED_STATES,
+          stateList: StateListType.AlertState,
+        }),
+      ),
+    ).toEqual([
+      "started:@2026-11-05T05:44:00.000Z",
+      "acknowledged:Investigating@2026-11-05T06:30:00.000Z",
+    ]);
+  });
+
+  test("a state the project placed above Acknowledged is still a change of state", () => {
+    expect(
+      rolesOf(
+        getEventMoments({
+          startedAt: STARTED_AT,
+          timeline: [
+            { stateId: "identified", startsAt: STARTED_AT },
+            { stateId: "triaged", startsAt: at("2026-11-05T05:47:00.000Z") },
+            {
+              stateId: "acknowledged",
+              startsAt: at("2026-11-05T05:50:00.000Z"),
+            },
+          ],
+          states: [
+            { _id: "identified", name: "Identified", order: 1 },
+            { _id: "triaged", name: "Triaged", order: 2 },
+            {
+              _id: "acknowledged",
+              name: "Acknowledged",
+              order: 3,
+              isAcknowledgedState: true,
+            },
+            {
+              _id: "resolved",
+              name: "Resolved",
+              order: 4,
+              isResolvedState: true,
+            },
+          ],
+          stateList: StateListType.IncidentState,
+        }),
+      ),
+    ).toEqual([
+      "started:@2026-11-05T05:44:00.000Z",
+      "state-changed:Triaged@2026-11-05T05:47:00.000Z",
+      "acknowledged:Acknowledged@2026-11-05T05:50:00.000Z",
+    ]);
   });
 });
 

@@ -253,12 +253,13 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 );
 ```
 
-`grantConsent`、 `revokeConsent`、 `stop`、 `identify`、 `setTags`、 `addTag` はレコーダーの起動前に適用されるため、キュー内の同意の判断が何かをアップロードするかどうかを決め、キュー内の身元は最初のチャンクから送られます。 `track`、 `captureSession`、 `onSessionChange` は起動直後に実行されます。
+`grantConsent`、 `revokeConsent`、 `stop`、 `identify`、 `setTags`、 `addTag` はレコーダーの起動前に適用されるため、キュー内の同意の判断が何かをアップロードするかどうかを決め、キュー内の身元は最初のチャンクから送られます。 `track`、 `metric`、 `captureSession`、 `onSessionChange` は起動直後に実行されます。
 
 | メソッド | 役割 |
 | --- | --- |
 | `identify(userRef, traits?)` | エンドユーザーをセッションに、つまりそのすべてのページとタブに、最初から紐付けます ( [ユーザーを識別する](#ユーザーを識別する) を参照)。 `traits` は文字列、数値、真偽値の値を持つオブジェクトで (キーは 20 個以下、キーは 40 文字以下、値は 200 文字以下)、 _Mask all text_ ではマスクされ、 **エンドユーザーの身元をキャプチャ** がオンの場合にだけアップロードされます。同じユーザーで再び呼び出すと、次のチャンクで身元 (と新しい特性があればそれ) が再送されます。別のユーザーを示すと、セッションが終わり、その人の新しいセッションが始まります。 |
-| `track(name, properties?)` | ビジネスイベント ( `"checkout_failed"`) をタイムラインに記録します。 `name` は 64 文字以下、プロパティのキーは 20 個以下で、値の制限は特性と同じです。15 秒のチャンクあたり最大 50 件で、それを超えるとチャンクは件数付きの「events dropped」マーカーを一つ持ちます。 |
+| `track(name, properties?)` | ビジネスイベント ( `"checkout_failed"`) をタイムラインに記録します。 `name` は 64 文字以下、プロパティのキーは 20 個以下で、値の制限は特性と同じです。15 秒のチャンクあたり最大 50 件で、それを超えるとチャンクは件数付きの「events dropped」マーカーを一つ持ちます。プロダクト分析イベントがオンなら、録画の有無にかかわらずすべてのセッションから、アプリケーションの [プロダクト分析](/docs/rum/product-analytics#イベントとメトリクスを送信する) ページが数えるイベントにもなります。 |
+| `metric(name, value, attributes?)` | ページが測定した数値 ( `"cart.value"` 、 `42.5` ) を、アプリケーションのメトリクスのポイントとして送ります。任意の属性を付けられ、その上限は `track()` のプロパティと同じです。プロダクト分析イベントがオンである必要があります。 [プロダクト分析](/docs/rum/product-analytics#イベントとメトリクスを送信する) を参照してください。 |
 | `setTags(tags)` / `addTag(key, value)` | セッション単位のタグ ( `{ build: "1.4.2", experiment: "new-checkout" }`) で、20 個以下、キーは 32 文字以下、値は 128 文字以下です。セッション一覧で `tag:key=value` で検索でき、セッションの詳細に表示されます。 `setTags` はマップ全体を **置き換える** ため、二回目の `setTags({ experiment })` は、一回目で設定した `build` タグを削除します。 `addTag` は一つのキーを設定し、ほかはそのまま残します。マップは `setTags` の一回の呼び出しで組み立てるか、各値がわかるたびに `addTag` を使ってください。 |
 | `captureSession(reason?)` | _On error or frustration_ では、このセッションにリングバッファーからのアップロードを強制します。 _Always_ ではアップロードは変わりませんが、 `reason` (80 文字以下) はタイムラインに印として付きます。独自の「問題を報告」ボタンから使ってください。 |
 | `onSessionChange(listener)` | `listener(sessionId, tabId)` は、セッションがあればすぐに呼ばれ、ID が変わるたびに再び呼ばれます。ユーザーが 30 分のアイドルの後に戻ったとき、4 時間の上限、 `identify()` が別のユーザーを示したとき、または同じ訪問者の別のタブが先にセッションを切り替えたときです。購読を解除する関数を返します。 **任意** です。自分のオリジンへのリクエストは、これがなくてもバックエンドのスパン、ログ、例外を録画に関連付けます ( [ほかのテレメトリとの関連付け](#ほかのテレメトリとの関連付け) を参照)。ブラウザー用 OpenTelemetry SDK のスパンなど、ページ自身が生成するテレメトリに `session.id` を設定するために使います。 [ページ自身のブラウザーテレメトリ](#ページ自身のブラウザーテレメトリ) を参照してください。 |
@@ -286,6 +287,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | `decisions` | 各ゲートの回答。 `isSampled`、 `captureTrigger`、 `consentMode`、 `consentState`、 `uploadsAllowed`、 `uploadBlockedBy` ( `consent`、 `transport`、 `null`)、 `lastDirective` とその理由、 `startDecision` ( `recording-and-uploading`、 `recording-into-memory`、 `not-sampled`、 `not-started`)。 |
 | `capabilities` | このレコーダーのビルドがキャプチャするもの。 `click-events`、 `web-vitals`、 `custom-events`、 `traits`、 `tags`、 `visibility`、 `visitor-id`。ダッシュボードの **ヘルス** ページには最新のセッションについて同じ一覧が表示されるため、長く開いたままの古いページからの録画を簡単に見つけられます。 |
 | `tags`、 `hasTraits`、 `triggerReason`、 `isRecording`、 `isUploading`、 `sessionId`、 `tabId`、 `visitorId`、 `version` | セッションの現在の状態。 `isRecording` は、レコーダーが実際に録画している間だけ true です。 `visitorId` は、レコーダーが存在するまでは `null`、同意が取り消されている間は `""` です。 |
+| `productAnalytics` | [プロダクト分析イベント](/docs/rum/product-analytics#イベントとメトリクスを送信する) の状態です。 `state` は `on` 、 `off` (アプリケーションでオフ)、または停止した理由 ( `not-enabled` 、 `origin-not-allowed` 、 `refused` 、 `stopped` ) です。 `pending` は送信待ちのもの、 `dropped` は待ちが多すぎて破棄されたイベントの数です。 |
 | `records` | 安定したコード付きの直近 250 件の判断。アーティファクトが存在する前のローダーの判断も含みます。各コードは [セッションリプレイのトラブルシューティング](/docs/rum/session-replay-troubleshooting#コード) で説明しています。 |
 
 ## プライバシー
@@ -661,7 +663,7 @@ flowchart TB
 
 ### ユーザーフロー
 
-**ユーザーフロー** は、アプリケーションのサイドメニューの **セッションリプレイ** セクションの `.../user-flows` にあります。選んだ期間 (既定は 1 週間) の録画から、人がアプリのページからページへどう移動するかを描きます。どこから入り、次にどのページへ行き、どこで離脱し、どこで行き来しているかです。
+**ユーザーフロー** は、アプリケーションのサイドメニューの **プロダクト分析** セクションの `.../user-flows` にあります。選んだ期間 (既定は 1 週間) の録画から、人がアプリのページからページへどう移動するかを描きます。どこから入り、次にどのページへ行き、どこで離脱し、どこで行き来しているかです。
 
 フローマップには、ステップごとに 1 列があります。ページは、そのステップでのセッション数を高さとする箱で、2 つの箱の間の帯の太さは、その移動をしたセッションの数に比例します。箱から出ている赤い短い線は、そこでアプリを離れたセッションです。灰色のフェードは、パスが最後の列の先へ続くことを意味します。琥珀色の帯は、ほとんどのセッションがすでに見たページに戻った帯です。箱の赤い点は、そのページでエラーが起きたセッションがあったことを意味します。箱や帯にポインターを合わせるとマップ上のトラフィックをたどれ、クリックすると詳細パネルが開きます。
 

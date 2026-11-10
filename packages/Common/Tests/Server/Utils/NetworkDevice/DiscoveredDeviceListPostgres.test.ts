@@ -1,5 +1,7 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
+import NetworkTopologySuppression from "../../../../Models/DatabaseModels/NetworkTopologySuppression";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
+import AuditLogService from "../../../../Server/Services/AuditLogService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkSiteService from "../../../../Server/Services/NetworkSiteService";
 import DiscoveredDevices, {
@@ -57,6 +59,8 @@ import { DataSource } from "typeorm";
  *     the reason) only for rows not monitored and not hidden yet, showing
  *     removes it, and "Show them" removes the project's every one and no
  *     other project's;
+ *   - each suppression written or removed reaches the audit log as the row
+ *     the database holds, its id included, by the person;
  *   - a few thousand endpoints of one site are listed quickly;
  *   - the list says how long the project keeps a device nothing sees
  *     (issue #6389), from the Project row the migration gave a default.
@@ -854,6 +858,148 @@ describePostgres("the Discovered Devices list on Postgres", () => {
       ).toEqual({ changed: 2 });
       expect(await suppressions()).toEqual([]);
       expect(await suppressions(otherProjectId)).toHaveLength(1);
+    });
+
+    test("each suppression written or removed is recorded as the row the database holds, by the person", async () => {
+      const recordCreate: jest.SpyInstance = jest
+        .spyOn(AuditLogService, "recordCreate")
+        .mockImplementation(async (): Promise<void> => {
+          return undefined;
+        }) as unknown as jest.SpyInstance;
+      const recordDelete: jest.SpyInstance = jest
+        .spyOn(AuditLogService, "recordDelete")
+        .mockImplementation(async (): Promise<void> => {
+          return undefined;
+        }) as unknown as jest.SpyInstance;
+
+      type Row = Record<string, string | null>;
+
+      const byNodeKey: (rows: Array<Row>) => Array<Row> = (
+        rows: Array<Row>,
+      ): Array<Row> => {
+        return [...rows].sort((a: Row, b: Row): number => {
+          return String(a["nodeKey"]) < String(b["nodeKey"]) ? -1 : 1;
+        });
+      };
+
+      // What an entry was handed, as the database would say it.
+      const handed: (item: NetworkTopologySuppression) => Row = (
+        item: NetworkTopologySuppression,
+      ): Row => {
+        return {
+          _id: item.id?.toString() || null,
+          projectId: item.projectId?.toString() || null,
+          nodeKey: item.nodeKey || null,
+          nodeName: item.nodeName ?? null,
+          reason: item.reason ?? null,
+          createdByUserId: item.createdByUserId?.toString() || null,
+        };
+      };
+      const held: () => Promise<Array<Row>> = async (): Promise<Array<Row>> => {
+        return byNodeKey(
+          await database.query(
+            `SELECT "_id"::text AS "_id", "projectId"::text AS "projectId",
+               "nodeKey", "nodeName", "reason",
+               "createdByUserId"::text AS "createdByUserId"
+             FROM "NetworkTopologySuppression"
+             WHERE "projectId" = $1`,
+            [projectId.toString()],
+          ),
+        );
+      };
+
+      const tablet: string = await addEndpoint({
+        macAddress: "00:00:00:00:01:41",
+        classification: "Loading dock tablet",
+      });
+      const scanner: string = await addEndpoint({
+        macAddress: "00:00:00:00:01:42",
+        classification: "Shelf scanner",
+      });
+
+      await DiscoveredDevices.hideFromMap({
+        projectId: projectId,
+        props: props,
+        endpointIds: [tablet, scanner],
+      });
+
+      const written: Array<Row> = await held();
+
+      expect(written).toHaveLength(2);
+      expect(
+        byNodeKey(
+          recordCreate.mock.calls.map((call: Array<unknown>): Row => {
+            const data: {
+              createdItem: NetworkTopologySuppression;
+              props: DatabaseCommonInteractionProps;
+            } = call[0] as {
+              createdItem: NetworkTopologySuppression;
+              props: DatabaseCommonInteractionProps;
+            };
+
+            expect(data.props).toBe(props);
+            return handed(data.createdItem);
+          }),
+        ),
+      ).toEqual(written);
+
+      for (const row of written) {
+        expect(row["createdByUserId"]).toBe(PERSON.toString());
+        expect(row["reason"]).toBe(HIDDEN_FROM_LIST_REASON);
+      }
+
+      // Shown again by the person, then the rest by the map's Show them.
+      await DiscoveredDevices.showOnMap({
+        projectId: projectId,
+        props: props,
+        endpointIds: [tablet],
+      });
+      await database.query(
+        `INSERT INTO "NetworkTopologySuppression"
+          ("_id", "version", "projectId", "nodeKey")
+         VALUES ($1, 1, $2, $3)`,
+        [
+          ObjectID.generate().toString(),
+          projectId.toString(),
+          `device:${ObjectID.generate().toString()}`,
+        ],
+      );
+
+      const left: Array<Row> = await held();
+
+      expect(left).toHaveLength(2);
+
+      await DiscoveredDevices.showEverythingOnMap({
+        projectId: projectId,
+        props: props,
+      });
+
+      const removed: Array<Row> = recordDelete.mock.calls.map(
+        (call: Array<unknown>): Row => {
+          const data: {
+            deletedItem: NetworkTopologySuppression;
+            itemId: ObjectID;
+            props: DatabaseCommonInteractionProps;
+          } = call[0] as {
+            deletedItem: NetworkTopologySuppression;
+            itemId: ObjectID;
+            props: DatabaseCommonInteractionProps;
+          };
+
+          expect(data.props).toBe(props);
+          expect(data.itemId.toString()).toBe(data.deletedItem.id?.toString());
+          return handed(data.deletedItem);
+        },
+      );
+
+      // The tablet, by the person's selection; then the map's Show them.
+      expect(removed[0]).toEqual(
+        written.find((row: Row): boolean => {
+          return row["nodeKey"] === `endpoint:${tablet}`;
+        }),
+      );
+      expect(byNodeKey(removed.slice(1))).toEqual(left);
+      expect(await held()).toEqual([]);
     });
   });
 

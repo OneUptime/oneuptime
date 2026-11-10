@@ -26,6 +26,10 @@ import { getMacSearchHex } from "../../../Utils/NetworkDevice/DiscoveredDeviceId
  * the unit suite can read them; DiscoveredDeviceListPostgres.test.ts runs
  * them on Postgres.
  *
+ * What the bulk actions write - the map's suppressions - DiscoveredDevices
+ * writes itself, where it records each one in the audit log by the person
+ * who hid or showed it (StatementParams builds those statements too).
+ *
  * Devices are joined by hash rather than per row: a site may hold
  * thousands of endpoints, and NetworkDevice has no index on its MAC, so a
  * lookup per row would read every device once per endpoint.
@@ -398,88 +402,6 @@ export function buildClassifyStatement(
 SELECT ${ROW_COLUMNS}
 FROM classified c
 ORDER BY c."id" ASC`,
-    params: params.values,
-  };
-}
-
-/*
- * Suppressions for endpoint nodes not already hidden. Written in one
- * statement however many there are - hiding three thousand rows one create
- * at a time would outlive the request - with the columns the model's own
- * create writes, `version` included (it has no database default).
- *
- * Both writes answer through a SELECT over their RETURNING rows: TypeORM's
- * Postgres driver answers a bare DELETE or UPDATE with [rows, rowCount]
- * rather than the rows, so a count read off it would always be two.
- */
-export function buildHideStatement(data: {
-  projectId: string;
-  userId?: string | undefined;
-  reason: string;
-  rows: Array<{ id: string; nodeKey: string; nodeName: string }>;
-}): DiscoveredDeviceStatement {
-  const params: StatementParams = new StatementParams();
-  const project: string = params.add(data.projectId);
-  const user: string = params.add(data.userId || null);
-  const reason: string = params.add(data.reason);
-  const ids: string = params.add(
-    data.rows.map((row: { id: string }): string => {
-      return row.id;
-    }),
-  );
-  const keys: string = params.add(
-    data.rows.map((row: { nodeKey: string }): string => {
-      return row.nodeKey;
-    }),
-  );
-  const names: string = params.add(
-    data.rows.map((row: { nodeName: string }): string => {
-      return row.nodeName;
-    }),
-  );
-
-  return {
-    sql: `WITH added AS (
-INSERT INTO "NetworkTopologySuppression"
-  ("_id", "createdAt", "updatedAt", "version", "projectId", "nodeKey", "nodeName", "reason", "createdByUserId")
-SELECT v."id"::uuid, now(), now(), 1, ${project}::uuid, v."nodeKey", v."nodeName", ${reason}, ${user}::uuid
-FROM unnest(${ids}::text[], ${keys}::text[], ${names}::text[]) AS v("id", "nodeKey", "nodeName")
-WHERE NOT EXISTS (
-  SELECT 1 FROM "NetworkTopologySuppression" s
-  WHERE s."projectId" = ${project}::uuid
-    AND s."nodeKey" = v."nodeKey"
-    AND s."deletedAt" IS NULL
-)
-RETURNING "nodeKey"
-)
-SELECT "nodeKey" FROM added`,
-    params: params.values,
-  };
-}
-
-/*
- * Removes suppressions - these node keys, or with none given every one of
- * the project's - the way a person's restore of one node removes it.
- */
-export function buildShowStatement(data: {
-  projectId: string;
-  nodeKeys?: Array<string> | undefined;
-}): DiscoveredDeviceStatement {
-  const params: StatementParams = new StatementParams();
-  const project: string = params.add(data.projectId);
-  const filters: Array<string> = [`"projectId" = ${project}::uuid`];
-
-  if (data.nodeKeys) {
-    filters.push(`"nodeKey" = ANY(${params.add(data.nodeKeys)}::text[])`);
-  }
-
-  return {
-    sql: `WITH removed AS (
-DELETE FROM "NetworkTopologySuppression"
-WHERE ${filters.join(" AND ")}
-RETURNING "nodeKey"
-)
-SELECT "nodeKey" FROM removed`,
     params: params.values,
   };
 }

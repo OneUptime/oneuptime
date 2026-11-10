@@ -1172,6 +1172,17 @@ router.get(
          * says: changes apply to sessions recorded from now on.
          */
         frustrationSignals: policy.frustrationSignals,
+        /*
+         * Events from every session, sampled or not (issue #6444). The
+         * traits are named only when identity is captured: without it no
+         * reference, and so no trait, may leave the page.
+         */
+        productAnalytics: {
+          enabled: policy.isProductAnalyticsEnabled,
+          userPropertyKeys: policy.captureUserIdentity
+            ? policy.productAnalyticsUserPropertyKeys
+            : [],
+        },
         recordCanvas: policy.recordCanvas,
         captureUserIdentity: policy.captureUserIdentity,
         /*

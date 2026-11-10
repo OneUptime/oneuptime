@@ -14,6 +14,7 @@ import SyncWebhooksIngestAPI from "./API/SyncWebhooksIngest";
 import PyroscopeAPI from "./API/Pyroscope";
 import SourceMapIngestAPI from "./API/SourceMapIngest";
 import SessionReplayIngestAPI from "./API/SessionReplayIngest";
+import ProductAnalyticsEventIngestAPI from "./API/ProductAnalyticsEventIngest";
 import TelemetryWriterAPI from "./API/TelemetryWriter";
 // OpAMP: the hosts OneUptime installs and configures (HostCollectorAgent)
 import HostCollectorOpAmpAPI from "./API/HostCollectorOpAmp";
@@ -125,6 +126,11 @@ const TelemetryFeatureSet: FeatureSet = {
        * router's byte cap.
        */
       app.use(TELEMETRY_PREFIXES, SessionReplayIngestAPI);
+      /*
+       * Product analytics events from the same recorders (issue #6444):
+       * /session-replay/v1/events, under the same body-parser bypass.
+       */
+      app.use(TELEMETRY_PREFIXES, ProductAnalyticsEventIngestAPI);
 
       /*
        * Internal cluster-key-protected insert endpoint for the
