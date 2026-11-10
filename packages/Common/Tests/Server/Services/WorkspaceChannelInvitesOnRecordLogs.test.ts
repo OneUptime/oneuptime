@@ -53,7 +53,7 @@ import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
 import WorkspaceNotificationRuleService, {
-  NotificationFor,
+  NotificationForRecordKey,
 } from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
@@ -134,12 +134,12 @@ const LINK: URL = URL.fromString("https://oneuptime.example/record/1");
 
 /*
  * The records a channel is created for and its log rows are filed under. A
- * security case and a hunt have neither: their rules only post to channels
- * that exist.
+ * security case, a hunt and an SLO have neither: their rules only post to
+ * channels that exist.
  */
 type RecordField = Exclude<
-  keyof NotificationFor,
-  "securityCaseId" | "securityHuntId"
+  NotificationForRecordKey,
+  "securityCaseId" | "securityHuntId" | "serviceLevelObjectiveId"
 >;
 
 const RECORD_FIELDS: Array<RecordField> = [

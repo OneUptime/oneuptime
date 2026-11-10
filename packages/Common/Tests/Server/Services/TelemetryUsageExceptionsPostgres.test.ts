@@ -99,7 +99,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * row is synthetic. ClickHouse is not used: its usage scans are answered
  * here, as the unit suites answer them.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_TELEMETRY_USAGE_EXCEPTIONS_TESTS"] === "true"
     ? describe
     : describe.skip;
