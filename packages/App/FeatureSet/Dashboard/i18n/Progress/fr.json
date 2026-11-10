@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48180,
-    "untranslated": 6372
+    "keys": 48847,
+    "untranslated": 6286
   },
   "sameAsEnglish": [
     " incidents",
@@ -468,6 +468,7 @@
     "Service",
     "Services",
     "Session",
+    "Session {{id}}",
     "Sessions",
     "Signal",
     "Site",
@@ -673,6 +674,7 @@
     "x86",
     "z",
     "zone",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{amount}}, ratio {{ratio}}",
     "{{count}} CPU",
     "{{count}} Kubernetes",
@@ -696,6 +698,7 @@
     "{{count}} exception",
     "{{count}} exceptions",
     "{{count}} flow",
+    "{{count}} images",
     "{{count}} incident",
     "{{count}} incidents",
     "{{count}} instance",
@@ -721,12 +724,14 @@
     "{{count}} s",
     "{{count}} service",
     "{{count}} services",
+    "{{count}} sessions",
     "{{count}} source",
     "{{count}} sources",
     "{{count}} span",
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{count}} traces",
     "{{count}} vCPU",
     "{{count}} volume",
     "{{count}} volumes",
@@ -735,6 +740,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{protocol}} port {{port}}",
-    "{{up}}/{{count}} OSD up"
+    "{{up}}/{{count}} OSD up",
+    "{{value}} ms"
   ]
 }
