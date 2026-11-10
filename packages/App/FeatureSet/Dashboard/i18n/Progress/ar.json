@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 47463,
-    "untranslated": 33378
+    "untranslated": 30446
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -49,6 +49,7 @@
     "Edge",
     "Enter",
     "Flavors",
+    "Gemini for Google Workspace",
     "Google Calendar",
     "Google SecOps",
     "Groq",
@@ -145,13 +146,17 @@
     "compute-07 · RegionOne",
     "customer facing|tier-1",
     "db-primary",
+    "deployment",
     "email@company.com",
     "emailuser@company.com",
     "f3a1c0d2e4b64f7c8a9d0e1f2a3b4c5d",
     "false",
+    "finance@yourcompany.com, accounting@yourcompany.com",
     "govc",
     "hh",
+    "horizontal pod autoscaler",
     "ip",
+    "job",
     "kubectl set image deployment/web * -n web",
     "libvirt",
     "main",
@@ -172,6 +177,7 @@
     "p95 (ms)",
     "p95 {{latency}}",
     "p99 (ms)",
+    "pod",
     "prod, staging",
     "prod-.*",
     "prod-eu",
@@ -189,6 +195,7 @@
     "vApp {{name}}",
     "vCenter",
     "vSphere Client",
+    "vertical pod autoscaler",
     "x86",
     "you@company.com",
     "z",
