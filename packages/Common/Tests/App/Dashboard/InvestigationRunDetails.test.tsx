@@ -85,6 +85,7 @@ import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import { AIRunEventResultSummary } from "../../../Types/AI/AIChatTypes";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import OneUptimeDate from "../../../Types/Date";
 import { InvestigationEvidenceItem } from "../../../Types/AI/InvestigationEvidence";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -1199,13 +1200,31 @@ describe("InvestigationRunDetails run times", () => {
   const STARTED_AT: Date = new Date("2026-11-09T14:00:00.000Z");
   const COMPLETED_AT: Date = new Date("2026-11-09T14:06:00.000Z");
 
+  /*
+   * When the report is read: a run of today says its time of day, one of an
+   * earlier day its date too - so the clock is the test's, not the day the
+   * suite happens to run on.
+   */
+  let readAt: Date = COMPLETED_AT;
+
+  beforeEach(() => {
+    readAt = COMPLETED_AT;
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+      return new Date(readAt.getTime());
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   function activitySummary(): HTMLElement | null {
     return within(panelFor(activityTab())).queryByTestId(
       "activity-run-summary",
     );
   }
 
-  test("the activity says when the run started, how long it took and its steps", () => {
+  function renderCompletedRun(): void {
     renderDetails({
       run: {
         status: AIRunStatus.Completed,
@@ -1215,9 +1234,34 @@ describe("InvestigationRunDetails run times", () => {
     });
     openDetails();
     fireEvent.click(activityTab());
+  }
+
+  test("the activity says when the run started, how long it took and its steps", () => {
+    renderCompletedRun();
 
     expect(activitySummary()).toHaveTextContent(
       /^Started \d{1,2}:\d{2}(\s?[AP]M)? · took 6 minutes · 2 steps$/,
+    );
+    expect(activitySummary()!.querySelector("time")).toHaveAttribute(
+      "dateTime",
+      STARTED_AT.toISOString(),
+    );
+  });
+
+  test("a run of an earlier day says its date as well as its time", () => {
+    readAt = OneUptimeDate.addRemoveDays(COMPLETED_AT, 2);
+
+    renderCompletedRun();
+
+    // A date may hold a narrow no-break space: both sides read as one space.
+    const oneLine: (text: string) => string = (text: string): string => {
+      return text.replace(/\s+/g, " ").trim();
+    };
+
+    expect(oneLine(activitySummary()!.textContent || "")).toBe(
+      oneLine(
+        `Started ${OneUptimeDate.getDateAsLocalShortDateTimeString(STARTED_AT)} · took 6 minutes · 2 steps`,
+      ),
     );
     expect(activitySummary()!.querySelector("time")).toHaveAttribute(
       "dateTime",
