@@ -17,6 +17,11 @@ import {
   readDtoString,
   readDtoStringArray,
 } from "../../Types/Rum/SessionReplayApi";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "../../Types/Translator";
 
 /*
  * diagnoseRecordingHealth: one pure function that turns the ingest-status
@@ -61,6 +66,19 @@ const HOUR_MS: number = 60 * MINUTE_MS;
 const DAY_MS: number = 24 * HOUR_MS;
 
 /*
+ * The words below are the reader's when the caller hands its Translator in
+ * (the Dashboard passes useTranslator()), and English, word for word as
+ * they always were, without one: what a unit test and the server get. Each
+ * is a key of the Dashboard's locales, read from this file by the
+ * extractor (SOURCE_ROOTS in scripts/i18n/ExtractStrings.ts).
+ */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+function translateWord(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
+/*
  * "12s ago", "5m ago", "7h ago", "3d ago". A future or sub-second time is
  * "just now" (clock skew between the browser and the server is normal); a
  * non-finite input is "unknown" so a bad timestamp can never render as
@@ -69,64 +87,92 @@ const DAY_MS: number = 24 * HOUR_MS;
 export function formatRelativeAge(
   fromUnixMs: number,
   nowUnixMs: number,
+  translator: Translator = ENGLISH,
 ): string {
   if (!Number.isFinite(fromUnixMs) || !Number.isFinite(nowUnixMs)) {
-    return "unknown";
+    return translateWord("unknown", translator);
   }
 
   const ageMs: number = nowUnixMs - fromUnixMs;
 
   if (ageMs < SECOND_MS) {
-    return "just now";
+    return translateWord("just now", translator);
   }
 
   if (ageMs < MINUTE_MS) {
-    return `${Math.floor(ageMs / SECOND_MS)}s ago`;
+    return translator.translateTemplate("{{count}}s ago", {
+      count: Math.floor(ageMs / SECOND_MS),
+    });
   }
 
   if (ageMs < HOUR_MS) {
-    return `${Math.floor(ageMs / MINUTE_MS)}m ago`;
+    return translator.translateTemplate("{{count}}m ago", {
+      count: Math.floor(ageMs / MINUTE_MS),
+    });
   }
 
   if (ageMs < DAY_MS) {
-    return `${Math.floor(ageMs / HOUR_MS)}h ago`;
+    return translator.translateTemplate("{{count}}h ago", {
+      count: Math.floor(ageMs / HOUR_MS),
+    });
   }
 
-  return `${Math.floor(ageMs / DAY_MS)}d ago`;
+  return translator.translateTemplate("{{count}}d ago", {
+    count: Math.floor(ageMs / DAY_MS),
+  });
 }
 
 /* "1h", "6h", "3d" - a duration rather than an age, for "no chunk for 7h". */
-export function formatDurationForCopy(durationMs: number): string {
+export function formatDurationForCopy(
+  durationMs: number,
+  translator: Translator = ENGLISH,
+): string {
   if (!Number.isFinite(durationMs) || durationMs < 0) {
-    return "unknown";
+    return translateWord("unknown", translator);
   }
 
   if (durationMs < MINUTE_MS) {
-    return `${Math.floor(durationMs / SECOND_MS)}s`;
+    return translator.translateTemplate("{{count}}s", {
+      count: Math.floor(durationMs / SECOND_MS),
+    });
   }
 
   if (durationMs < HOUR_MS) {
-    return `${Math.floor(durationMs / MINUTE_MS)}m`;
+    return translator.translateTemplate("{{count}}m", {
+      count: Math.floor(durationMs / MINUTE_MS),
+    });
   }
 
   if (durationMs < DAY_MS) {
-    return `${Math.floor(durationMs / HOUR_MS)}h`;
+    return translator.translateTemplate("{{count}}h", {
+      count: Math.floor(durationMs / HOUR_MS),
+    });
   }
 
-  return `${Math.floor(durationMs / DAY_MS)}d`;
+  return translator.translateTemplate("{{count}}d", {
+    count: Math.floor(durationMs / DAY_MS),
+  });
 }
 
 /*
- * A count for copy: "1,234", or "unknown" for null. Formatted by hand
- * rather than toLocaleString so the sentence is identical in every
- * browser locale and in tests.
+ * A count for copy: "1,234", or "unknown" for null. Without a translator it
+ * is formatted by hand rather than toLocaleString, so the sentence is
+ * identical in every browser locale and in tests; with one, in the digits
+ * and grouping of the reader's language ("1.234" in German).
  */
-export function formatCountForCopy(count: number | null): string {
+export function formatCountForCopy(
+  count: number | null,
+  translator?: Translator,
+): string {
   if (count === null || !Number.isFinite(count)) {
-    return "unknown";
+    return translateWord("unknown", translator || ENGLISH);
   }
 
   const rounded: number = Math.max(0, Math.floor(count));
+
+  if (translator) {
+    return translator.formatNumber(rounded);
+  }
   const digits: string = String(rounded);
   let formatted: string = "";
 
@@ -143,21 +189,32 @@ export function formatCountForCopy(count: number | null): string {
   return formatted;
 }
 
-/* "1 GB", "512 MB", "2.5 GB". Byte budgets are set in whole GB or MB. */
-export function formatBytesForCopy(bytes: number): string {
+/*
+ * "1 GB", "512 MB", "2.5 GB". Byte budgets are set in whole GB or MB. The
+ * unit is written as it is in every language; with a translator the
+ * figure is the reader's ("2,5 GB" in German).
+ */
+export function formatBytesForCopy(
+  bytes: number,
+  translator?: Translator,
+): string {
   if (!Number.isFinite(bytes) || bytes < 0) {
-    return "unknown";
+    return translateWord("unknown", translator || ENGLISH);
   }
 
   const gb: number = bytes / (1024 * 1024 * 1024);
 
   if (gb >= 1) {
-    return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`;
+    const figure: number = Number.isInteger(gb)
+      ? gb
+      : Math.round(gb * 10) / 10;
+
+    return `${translator ? translator.formatNumber(figure) : Number.isInteger(gb) ? String(gb) : gb.toFixed(1)} GB`;
   }
 
-  const mb: number = bytes / (1024 * 1024);
+  const mb: number = Math.round(bytes / (1024 * 1024));
 
-  return `${Math.round(mb)} MB`;
+  return `${translator ? translator.formatNumber(mb) : String(mb)} MB`;
 }
 
 /* ISO string -> unix ms, or null when absent or unparseable. */

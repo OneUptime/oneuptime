@@ -1,6 +1,8 @@
 import React, {
   ForwardedRef,
+  FunctionComponent,
   ReactElement,
+  ReactNode,
   forwardRef,
   useCallback,
   useEffect,
@@ -13,6 +15,15 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Clipboard from "Common/UI/Utils/Clipboard";
 import OneUptimeDate from "Common/Types/Date";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { useWriteDatesInSentenceLanguage } from "Common/UI/Utils/SentenceLanguage";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  formatInline,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { formatReplayOffset, formatReplayWallClock } from "./ReplayTimeFormat";
 import { SealedReasonCopy } from "./FidelityNoticeCopy";
 import {
@@ -167,8 +178,9 @@ export interface ReplayHeaderProps {
  * this session, so its first rows are the nearest older ones by
  * construction, and "oldest in the window" is then a true claim.
  */
-const REPLAY_USER_SESSIONS_TRUNCATED_TITLE: string =
-  "More sessions than the switcher can show; open the session list for this user";
+const REPLAY_USER_SESSIONS_TRUNCATED_TITLE: string = translationKey(
+  "More sessions than the switcher can show; open the session list for this user",
+);
 
 /* What the shell drives from the keyboard map ("c") and the rail rows. */
 export interface ReplayHeaderHandle {
@@ -201,6 +213,7 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
 /* What a copy was of, so the announcement and the fallback name it. */
 type CopyKind = "link" | "session-id";
 
+/* English keys, looked up where the header draws them. */
 interface CopyKindCopy {
   announcement: string;
   fallbackPrompt: string;
@@ -209,18 +222,67 @@ interface CopyKindCopy {
 
 const COPY_KIND_COPY: Record<CopyKind, CopyKindCopy> = {
   link: {
-    announcement: "Link copied to the clipboard.",
-    fallbackPrompt:
+    announcement: translationKey("Link copied to the clipboard."),
+    fallbackPrompt: translationKey(
       "The clipboard is not available here; copy the link by hand:",
-    fieldLabel: "Link to this moment",
+    ),
+    fieldLabel: translationKey("Link to this moment"),
   },
   "session-id": {
-    announcement: "Session id copied to the clipboard.",
-    fallbackPrompt:
+    announcement: translationKey("Session id copied to the clipboard."),
+    fallbackPrompt: translationKey(
       "The clipboard is not available here; copy the session id by hand:",
-    fieldLabel: "Session id",
+    ),
+    fieldLabel: translationKey("Session id"),
   },
 };
+
+interface ReplayHeaderStartedAtProps {
+  startTimeUnixMs: number;
+}
+
+/*
+ * When the recording started, written in the language of the sentence it
+ * is drawn in ("Recorded {{time}}"): while the reader's language has no
+ * wording of that sentence, the date is English too, never a German date
+ * inside English words.
+ */
+const ReplayHeaderStartedAt: FunctionComponent<ReplayHeaderStartedAtProps> = (
+  props: ReplayHeaderStartedAtProps,
+): ReactElement => {
+  const writeDates: <T>(write: () => T) => T =
+    useWriteDatesInSentenceLanguage();
+
+  return (
+    <span
+      className="min-w-0 truncate text-gray-700"
+      data-testid="replay-header-started-at"
+    >
+      {writeDates((): string => {
+        return OneUptimeDate.getDateAsLocalFormattedString(
+          new Date(props.startTimeUnixMs),
+          false,
+          false,
+          true,
+        );
+      })}
+    </span>
+  );
+};
+
+/*
+ * The words of "Recorded {{time}}" around the date, each a box of its own
+ * in the flex row (loose text there loses the spaces at its ends), drawn
+ * as the label the date is read by.
+ */
+function renderRecordedText(text: string): ReactNode {
+  return <span className="shrink-0 text-gray-400">{text}</span>;
+}
+
+/* The words of "Session {{id}}" around the id, each a box of its own. */
+function renderSessionText(text: string): ReactNode {
+  return <span>{text}</span>;
+}
 
 type CopyLinkState =
   | { status: "idle" }
@@ -234,6 +296,10 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
   props: ReplayHeaderProps,
   ref: ForwardedRef<ReplayHeaderHandle>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const translateLine: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
   const [copyState, setCopyState] = useState<CopyLinkState>({
     status: "idle",
   });
@@ -347,9 +413,10 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
   let identityClassName: string;
 
   if (props.identity.label === null) {
-    identityText = "Identity hidden";
-    identityTitle =
-      "The end user's identity needs the identity permission to view.";
+    identityText = translateLine("Identity hidden");
+    identityTitle = translateLine(
+      "The end user's identity needs the identity permission to view.",
+    );
     identityClassName = "text-gray-500";
   } else if (props.identity.label.length === 0) {
     const visitorId: string = props.identity.visitorId ?? "";
@@ -360,13 +427,18 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
        * comparing two rows; the full id is a random token the menu below
        * already groups by, so nothing is lost by shortening it here.
        */
-      identityText = `Visitor ${visitorId.slice(0, 6)}`;
-      identityTitle =
-        "Anonymous visitor. The recorder links this browser's sessions with a random id so you can follow one person without identify().";
+      identityText = translator.translateTemplate("Visitor {{id}}", {
+        id: visitorId.slice(0, 6),
+      });
+      identityTitle = translateLine(
+        "Anonymous visitor. The recorder links this browser's sessions with a random id so you can follow one person without identify().",
+      );
       identityClassName = "text-gray-700";
     } else {
-      identityText = "Anonymous";
-      identityTitle = "The page did not call OneUptimeReplay.identify().";
+      identityText = translateLine("Anonymous");
+      identityTitle = translateLine(
+        "The page did not call OneUptimeReplay.identify().",
+      );
       identityClassName = "text-gray-600";
     }
   } else {
@@ -417,9 +489,11 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
         <span
           data-testid="replay-user-sessions-unavailable"
           className="text-xs text-gray-400"
-          title="This session carries neither a user reference nor a visitor id, so its siblings cannot be found. Call OneUptimeReplay.identify() or update the recorder."
+          title={translator.translateText(
+            "This session carries neither a user reference nor a visitor id, so its siblings cannot be found. Call OneUptimeReplay.identify() or update the recorder.",
+          )}
         >
-          Not linked to other sessions
+          {translator.translateText("Not linked to other sessions")}
         </span>
       );
     } else if (
@@ -431,7 +505,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
           className="text-xs text-gray-400"
           data-testid="replay-user-sessions-loading"
         >
-          Finding other sessions…
+          {translator.translateText("Finding other sessions…")}
         </span>
       );
     } else if (userSessions.status === "error") {
@@ -440,7 +514,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
           className="text-xs text-amber-700"
           data-testid="replay-user-sessions-error"
         >
-          Couldn&apos;t load other sessions
+          {translator.translateText("Couldn't load other sessions")}
         </span>
       );
     } else if (userSessions.sessions.length < 2) {
@@ -448,9 +522,11 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
         <span
           data-testid="replay-user-sessions-only"
           className="text-xs text-gray-500"
-          title="No other session from this person in the 30 days before this one"
+          title={translator.translateText(
+            "No other session from this person in the 30 days before this one",
+          )}
         >
-          Only session in 30 days
+          {translator.translateText("Only session in 30 days")}
         </span>
       );
     } else {
@@ -506,15 +582,6 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
     props.startTimeUnixMs,
     props.currentTimeMs,
   );
-  const startedAt: string | null =
-    props.startTimeUnixMs !== null
-      ? OneUptimeDate.getDateAsLocalFormattedString(
-          new Date(props.startTimeUnixMs),
-          false,
-          false,
-          true,
-        )
-      : null;
 
   const offsetText: string = `${formatReplayOffset(
     props.currentTimeMs,
@@ -522,17 +589,30 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
 
   const shortSessionId: string = props.sessionId.slice(0, 8);
 
+  /*
+   * "Viewport: 1440x900". The label is the player's English word for the
+   * fact, read in the reader's language; the value is the recording's.
+   */
+  const describeFact: (fact: ReplayHeaderFact) => string = (
+    fact: ReplayHeaderFact,
+  ): string => {
+    return translator.translateTemplate("{{label}}: {{value}}", {
+      label: translatableTerm(fact.label),
+      value: fact.value,
+    });
+  };
+
   /* One line of facts for narrow widths; the title carries the labels. */
-  const factsLine: string = props.facts
-    .map((fact: ReplayHeaderFact): string => {
+  const factsLine: string = formatInline(
+    props.facts.map((fact: ReplayHeaderFact): string => {
       return fact.value;
-    })
-    .join(" · ");
-  const factsTitle: string = props.facts
-    .map((fact: ReplayHeaderFact): string => {
-      return `${fact.label}: ${fact.value}`;
-    })
-    .join(" · ");
+    }),
+    translator,
+  );
+  const factsTitle: string = formatInline(
+    props.facts.map(describeFact),
+    translator,
+  );
 
   const hasTabRow: boolean =
     props.tabs.length > 1 || Boolean(props.continueInTab);
@@ -555,18 +635,20 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
        * text-lg line. It stays as the region's heading for screen readers
        * and for the tests that name this landmark.
        */}
-      <h2 className="sr-only">Session recording</h2>
+      <h2 className="sr-only">
+        {translator.translateText("Session recording")}
+      </h2>
 
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
         <a
           href={props.backHref}
           onClick={handleBackClick}
           data-testid="replay-back-link"
-          title="Back to the session list"
+          title={translator.translateText("Back to the session list")}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           <Icon icon={IconProp.ArrowLeft} className="h-4 w-4" />
-          All recordings
+          {translator.translateText("All recordings")}
         </a>
 
         {/* ReplayToolbarDivider draws no responsive rule of its own. */}
@@ -578,7 +660,9 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
           className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
           data-testid="replay-header-identity-row"
         >
-          <span className="sr-only">User and device</span>
+          <span className="sr-only">
+            {translator.translateText("User and device")}
+          </span>
           <span
             data-testid="replay-header-user"
             className={`min-w-0 max-w-[18rem] truncate text-sm ${identityClassName}`}
@@ -590,11 +674,16 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
             <button
               type="button"
               className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-700"
-              title="Open the details panel to read the traits"
+              title={translator.translateText(
+                "Open the details panel to read the traits",
+              )}
               onClick={props.onOpenDetails}
               data-testid="replay-header-traits"
             >
-              {traitCount} trait{traitCount === 1 ? "" : "s"}
+              {translator.translatePlural(
+                { one: "{{count}} trait", other: "{{count}} traits" },
+                traitCount,
+              )}
             </button>
           )}
           {userSessionsElement}
@@ -605,25 +694,31 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
             dataTestId="replay-live-pill"
             tone="live"
             hasPulse={true}
-            title="Still being recorded; new footage is added as it arrives"
+            title={translator.translateText(
+              "Still being recorded; new footage is added as it arrives",
+            )}
           >
-            Live
+            {translator.translateText("Live")}
           </ReplayPill>
         )}
+        {/*
+         * The finalizer's reason, in the words FidelityNoticeCopy gives it:
+         * English keys, looked up here because the pill draws them as given.
+         */}
         {props.sealedReason && props.sealedReason.severity === "warn" && (
           <ReplayPill
             dataTestId="replay-sealed-pill"
             tone="warning"
             icon={IconProp.Alert}
-            title={props.sealedReason.description}
+            title={translator.translateText(props.sealedReason.description)}
           >
-            {props.sealedReason.title}
+            {translator.translateText(props.sealedReason.title)}
           </ReplayPill>
         )}
 
         <div
           role="group"
-          aria-label="Session recording controls"
+          aria-label={translator.translateText("Session recording controls")}
           data-testid="replay-header-toolbar"
           className="flex w-full flex-wrap items-center justify-start gap-2 md:ml-auto md:w-auto md:justify-end"
         >
@@ -705,7 +800,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                     )}
                     <span
                       className="max-md:hidden max-w-full truncate md:inline"
-                      title={`${fact.label}: ${fact.value}`}
+                      title={describeFact(fact)}
                       data-testid="replay-header-fact"
                     >
                       {fact.value}
@@ -719,13 +814,33 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
         )}
 
         <span className="flex min-w-0 items-center gap-1">
-          <span className="shrink-0 text-gray-400">Recorded</span>
-          <span
-            className="min-w-0 truncate text-gray-700"
-            data-testid="replay-header-started-at"
-          >
-            {startedAt ?? "Start time unavailable"}
-          </span>
+          {props.startTimeUnixMs !== null ? (
+            /*
+             * One sentence, so a language puts the date where its grammar
+             * does, and the date is written in the sentence's language.
+             */
+            <TranslatedSentence
+              template="Recorded {{time}}"
+              slots={{
+                time: (
+                  <ReplayHeaderStartedAt
+                    startTimeUnixMs={props.startTimeUnixMs}
+                  />
+                ),
+              }}
+              renderText={renderRecordedText}
+            />
+          ) : (
+            <>
+              {renderRecordedText(translateLine("Recorded"))}
+              <span
+                className="min-w-0 truncate text-gray-700"
+                data-testid="replay-header-started-at"
+              >
+                {translator.translateText("Start time unavailable")}
+              </span>
+            </>
+          )}
         </span>
 
         {separator}
@@ -734,12 +849,18 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
           className="flex shrink-0 items-center gap-1"
           title={props.sessionId}
         >
-          Session <span className="font-mono">{shortSessionId}</span>
+          <TranslatedSentence
+            template="Session {{id}}"
+            slots={{
+              id: <span className="font-mono">{shortSessionId}</span>,
+            }}
+            renderText={renderSessionText}
+          />
           <button
             type="button"
             data-testid="replay-copy-session-id"
-            title="Copy the session id"
-            aria-label="Copy the session id"
+            title={translator.translateText("Copy the session id")}
+            aria-label={translator.translateText("Copy the session id")}
             className="inline-flex h-5 w-5 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             onClick={(): void => {
               copyValue(props.sessionId, "session-id");
@@ -753,17 +874,24 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
           data-testid="replay-header-clock"
           className="flex min-w-0 shrink-0 items-center gap-1.5 tabular-nums md:ml-auto"
         >
-          <span className="sr-only">Playback position</span>
+          <span className="sr-only">
+            {translator.translateText("Playback position")}
+          </span>
           {wallClock && (
             <span
               className="font-mono font-semibold text-gray-900"
-              title="Wall-clock time at the playhead"
+              title={translator.translateText(
+                "Wall-clock time at the playhead",
+              )}
               data-testid="replay-header-wall-clock"
             >
               {wallClock}
             </span>
           )}
-          <span className="text-gray-500" title="Playhead / recording length">
+          <span
+            className="text-gray-500"
+            title={translator.translateText("Playhead / recording length")}
+          >
             {offsetText}
           </span>
         </span>
@@ -796,7 +924,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
         }
       >
         {copyState.status === "copied"
-          ? COPY_KIND_COPY[copyState.kind].announcement
+          ? translator.translateText(COPY_KIND_COPY[copyState.kind].announcement)
           : ""}
       </div>
 
@@ -805,13 +933,19 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
           className="mt-1.5 flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-xs text-gray-700"
           data-testid="replay-copy-link-fallback"
         >
-          <span>{COPY_KIND_COPY[copyState.kind].fallbackPrompt}</span>
+          <span>
+            {translator.translateText(
+              COPY_KIND_COPY[copyState.kind].fallbackPrompt,
+            )}
+          </span>
           <input
             ref={fallbackInputRef}
             type="text"
             readOnly={true}
             value={copyState.value}
-            aria-label={COPY_KIND_COPY[copyState.kind].fieldLabel}
+            aria-label={translator.translateText(
+              COPY_KIND_COPY[copyState.kind].fieldLabel,
+            )}
             className="min-w-0 w-full flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-[11px] text-gray-800"
             onFocus={(event: React.FocusEvent<HTMLInputElement>): void => {
               event.currentTarget.select();
@@ -824,7 +958,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
               setCopyState({ status: "idle" });
             }}
           >
-            Close
+            {translator.translateText("Close")}
           </button>
         </div>
       )}

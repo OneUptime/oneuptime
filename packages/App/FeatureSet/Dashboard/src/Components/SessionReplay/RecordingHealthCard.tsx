@@ -18,6 +18,12 @@ import {
   RecordingHealthSeverity,
 } from "Common/Types/Rum/SessionReplayHealth";
 import { formatRelativeAge } from "Common/Utils/Rum/SessionReplayHealth";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -261,34 +267,61 @@ export function RecordingHealthDiagnosisBanner(props: {
   );
 }
 
+/*
+ * The policy's choices by the words the settings page gives them. Each is a
+ * key of the Dashboard's locales, looked up where it is drawn (labelEnum).
+ */
 export const CAPTURE_TRIGGER_LABELS: Record<string, string> = {
-  [SessionReplayCaptureTrigger.Always]: "Always",
-  [SessionReplayCaptureTrigger.OnErrorOrFrustration]: "On error or frustration",
+  [SessionReplayCaptureTrigger.Always]: translationKey("Always"),
+  [SessionReplayCaptureTrigger.OnErrorOrFrustration]: translationKey(
+    "On error or frustration",
+  ),
 };
 
 export const CONSENT_MODE_LABELS: Record<string, string> = {
-  [SessionReplayConsentMode.NotRequired]: "Not required",
-  [SessionReplayConsentMode.RequireExplicit]: "Explicit consent required",
+  [SessionReplayConsentMode.NotRequired]: translationKey("Not required"),
+  [SessionReplayConsentMode.RequireExplicit]: translationKey(
+    "Explicit consent required",
+  ),
 };
 
 export const MASKING_MODE_LABELS: Record<string, string> = {
-  [SessionReplayMaskingMode.MaskSensitiveInputsOnly]:
+  [SessionReplayMaskingMode.MaskSensitiveInputsOnly]: translationKey(
     "Sensitive inputs masked, page text recorded",
-  [SessionReplayMaskingMode.MaskInputsOnly]:
+  ),
+  [SessionReplayMaskingMode.MaskInputsOnly]: translationKey(
     "All inputs masked, page text recorded",
-  [SessionReplayMaskingMode.MaskAllText]: "All text masked (wireframe)",
+  ),
+  [SessionReplayMaskingMode.MaskAllText]: translationKey(
+    "All text masked (wireframe)",
+  ),
 };
 
-/* A raw enum value never reaches the screen; unknown values say so. */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * A raw enum value never reaches the screen; unknown values say so. In the
+ * reader's language when the caller hands its Translator in, in English
+ * without one.
+ */
 export function labelEnum(
   labels: Record<string, string>,
   value: string,
+  translator: Translator = ENGLISH,
 ): string {
   if (value.length === 0) {
-    return "not reported";
+    return translator.translateText("not reported") || "not reported";
   }
 
-  return labels[value] ?? `unrecognised value (${value})`;
+  const label: string | undefined = labels[value];
+
+  if (label === undefined) {
+    return translator.translateTemplate("unrecognised value ({{value}})", {
+      value: value,
+    });
+  }
+
+  return translator.translateText(label) || label;
 }
 
 export interface RecorderDiagnosticsPasteBoxProps {

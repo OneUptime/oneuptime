@@ -8,6 +8,11 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
   FILTER_LABEL_CELL_CLASS_NAME,
   FILTER_LABEL_CLASS_NAME,
   FILTER_ROW_CLASS_NAME,
@@ -52,6 +57,7 @@ export interface ComponentProps {
 const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Edits are a draft until Apply, which is how FilterViewer's own modal
    * behaves (tempFilterDataForModal). The component is mounted only while
@@ -108,7 +114,9 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
           value={options.filter((option: DropdownOption): boolean => {
             return option.value.toString() === value;
           })}
-          placeholder={`Filter by ${field.title}`}
+          placeholder={translator.translateTemplate("Filter by {{field}}", {
+            field: translatableTerm(field.title),
+          })}
           ariaLabel={field.title}
           dataTestId={`session-filter-${field.field}`}
           className="relative rounded-md w-full overflow-visible"
@@ -140,7 +148,8 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
          * these rows taller than the ones FiltersForm renders.
          */
         outerDivClassName="relative rounded-md shadow-sm w-full"
-        ariaLabel={field.title}
+        // Input names itself with this as it is.
+        ariaLabel={translator.translateText(field.title)}
         dataTestId={`session-filter-${field.field}`}
         onChange={(inputValue: string): void => {
           setField(field.field, inputValue);
@@ -154,14 +163,19 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
 
   type GetHintFunction = (field: SessionReplayFilterField) => string | null;
 
+  // The line under a field, in the reader's language.
   const getHint: GetHintFunction = (
     field: SessionReplayFilterField,
   ): string | null => {
     if (field.field === "identifiedUserRef" && props.isIdentityFilterIgnored) {
-      return "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the session replay identity permission.";
+      return (
+        translator.translateText(
+          "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the session replay identity permission.",
+        ) || null
+      );
     }
 
-    return field.hint ?? null;
+    return field.hint ? translator.translateText(field.hint) || null : null;
   };
 
   return (
@@ -211,7 +225,7 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
                     className={FILTER_LABEL_CLASS_NAME}
                     data-testid={`session-filter-label-${field.field}`}
                   >
-                    {field.title}
+                    {translator.translateText(field.title)}
                   </label>
                 </div>
 
@@ -245,8 +259,13 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
                         setField(field.field, "");
                       }}
                       className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                      aria-label={`Clear ${field.title} filter`}
-                      title={`Clear ${field.title}`}
+                      aria-label={translator.translateTemplate(
+                        "Clear {{label}} filter",
+                        { label: translatableTerm(field.title) },
+                      )}
+                      title={translator.translateTemplate("Clear {{label}}", {
+                        label: translatableTerm(field.title),
+                      })}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

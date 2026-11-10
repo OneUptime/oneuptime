@@ -8,6 +8,13 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  composedValue,
+  TemplateValues,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { ReplaySignal } from "./Rail/ReplaySignalTypes";
 import {
   REPLAY_TIMELINE_LANES,
@@ -24,6 +31,7 @@ import {
   clampOffset,
   clusterMarkers,
   describeCluster,
+  describeTrackBand,
   markerSeekTarget,
   nudgeOffset,
   offsetToPercent,
@@ -59,6 +67,10 @@ import {
  * activity and markers on chunk state, and the per-lane marker arrays are
  * memoised here), so a tick reconciles a handful of elements rather than
  * one per chunk and one per signal.
+ *
+ * Each of those children reads the reader's language itself
+ * (useTranslator) rather than being handed a Translator: one built per
+ * render is a new object every tick, and would defeat their memo.
  */
 
 export const REPLAY_TIMELINE_DEFAULT_WIDTH_PX: number = 1000;
@@ -194,7 +206,8 @@ interface TimelineLegendItem {
  * stand for: each className here is the fill TrackBand actually paints
  * (REPLAY_TRACK_BAND_PAINT for the full-height kinds). Only the paused
  * swatch carries its pattern as well: its white fill and dashed edge alone
- * would read as "Tab in background" or "Approximate" at 8px.
+ * would read as "Tab in background" or "Approximate" at 8px. Each label
+ * is an English key, looked up where the legend draws it.
  */
 const TIMELINE_LEGEND_ITEMS: Array<TimelineLegendItem> = [
   { label: "Loaded", swatchClassName: "bg-indigo-400" },
@@ -261,6 +274,7 @@ interface BandProps {
 const TrackBandComponent: FunctionComponent<BandProps> = (
   props: BandProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { band, durationMs } = props;
   const left: number = offsetToPercent(band.startMs, durationMs);
   const width: number = Math.max(
@@ -297,17 +311,33 @@ const TrackBandComponent: FunctionComponent<BandProps> = (
   const isBackground: boolean = band.kind === "background-tab";
   const isPaused: boolean = band.kind === "paused";
   const paint: ReplayTrackBandPaint = REPLAY_TRACK_BAND_PAINT[band.kind];
+
+  /*
+   * The label in the reader's language ("18 Sek. fehlen"), and inside the
+   * band's name in the name's language: a composed value, so an English
+   * name never holds a German label.
+   */
+  const label: string = describeTrackBand(band, translator);
+  const labelValue: TemplateValues = {
+    label: composedValue((sentence: Translator): string => {
+      return describeTrackBand(band, sentence);
+    }),
+  };
   const accessibleName: string = isGap
-    ? `Recording gap: ${band.label}`
+    ? translator.translateTemplate("Recording gap: {{label}}", labelValue)
     : isBackground
-      ? `Tab in background: ${band.label}`
+      ? translator.translateTemplate("Tab in background: {{label}}", labelValue)
       : isPaused
-        ? `Recording paused while the page was idle: ${band.label}`
-        : `Idle: ${band.label}${
-            band.fidelity === "coarse"
-              ? " (estimated until the chunk loads)"
-              : ""
-          }`;
+        ? translator.translateTemplate(
+            "Recording paused while the page was idle: {{label}}",
+            labelValue,
+          )
+        : band.fidelity === "coarse"
+          ? translator.translateTemplate(
+              "Idle: {{label}} (estimated until the chunk loads)",
+              labelValue,
+            )
+          : translator.translateTemplate("Idle: {{label}}", labelValue);
 
   return (
     <div
@@ -341,7 +371,7 @@ const TrackBandComponent: FunctionComponent<BandProps> = (
                 : "text-gray-600"
           }`}
         >
-          {band.label}
+          {label}
         </span>
       )}
     </div>
@@ -370,16 +400,19 @@ interface ActivityStripProps {
 const ActivityStripComponent: FunctionComponent<ActivityStripProps> = (
   props: ActivityStripProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { activity, durationMs } = props;
 
   return (
     <div className="mb-1 flex items-center gap-2">
       <div className={LANE_GUTTER_CLASS}>
-        <span className="sr-only">Activity</span>
+        <span className="sr-only">{translator.translateText("Activity")}</span>
       </div>
       <div
         data-testid="timeline-activity"
-        title="Activity: how busy each stretch of the recording is"
+        title={translator.translateText(
+          "Activity: how busy each stretch of the recording is",
+        )}
         aria-hidden="true"
         className="relative h-1 flex-1 overflow-hidden rounded-full bg-gray-100"
       >
@@ -474,14 +507,16 @@ interface MarkerLaneProps {
 const MarkerLaneComponent: FunctionComponent<MarkerLaneProps> = (
   props: MarkerLaneProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const clusters: Array<ReplayMarkerCluster> = useMemo(() => {
     return clusterMarkers(props.markers, props.durationMs, props.widthPx);
   }, [props.markers, props.durationMs, props.widthPx]);
+  const laneLabel: string = REPLAY_TIMELINE_LANE_LABELS[props.lane];
 
   return (
     <div className="flex items-center gap-2">
       <div className={LANE_LABEL_CLASS}>
-        {REPLAY_TIMELINE_LANE_LABELS[props.lane]}
+        {translator.translateText(laneLabel)}
       </div>
       <div
         data-testid={`timeline-lane-${props.lane}`}
@@ -504,7 +539,7 @@ const MarkerLaneComponent: FunctionComponent<MarkerLaneProps> = (
               0,
               offsetToPercent(cluster.endOffsetMs, props.durationMs) - left,
             );
-            const title: string = describeCluster(cluster);
+            const title: string = describeCluster(cluster, translator);
 
             /*
              * A pill with the count, sitting at the first marker; the seek
@@ -526,11 +561,20 @@ const MarkerLaneComponent: FunctionComponent<MarkerLaneProps> = (
                   data-lane={props.lane}
                   data-count={cluster.count}
                   title={title}
-                  aria-label={`${cluster.count} ${
-                    REPLAY_TIMELINE_LANE_LABELS[props.lane]
-                  } markers from ${formatReplayOffset(cluster.offsetMs)} to ${formatReplayOffset(
-                    cluster.endOffsetMs,
-                  )}`}
+                  aria-label={translator.translatePlural(
+                    {
+                      one: "{{count}} {{lane}} marker from {{from}} to {{to}}",
+                      other:
+                        "{{count}} {{lane}} markers from {{from}} to {{to}}",
+                    },
+                    cluster.count,
+                    {
+                      /* The lane's name as its gutter shows it. */
+                      lane: translatableTerm(laneLabel),
+                      from: formatReplayOffset(cluster.offsetMs),
+                      to: formatReplayOffset(cluster.endOffsetMs),
+                    },
+                  )}
                   className={`absolute top-1/2 flex h-4 min-w-[1.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     PILL_TONE_CLASS[first.tone]
                   }`}
@@ -603,6 +647,7 @@ const MarkerLane: React.NamedExoticComponent<MarkerLaneProps> =
 const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
   props: ReplayTimelineProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const trackRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const isDraggingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
@@ -973,7 +1018,9 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
 
       {/* The seekable track. */}
       <div className="flex items-center gap-2">
-        <div className={LANE_LABEL_CLASS}>Recording</div>
+        <div className={LANE_LABEL_CLASS}>
+          {translator.translateText(REPLAY_TIMELINE_LANE_LABELS.track)}
+        </div>
         <div className="relative flex-1">
           {hoverMs !== null && hoverPercent !== null && dragMs === null && (
             <div
@@ -1026,13 +1073,17 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
             data-testid="timeline-track"
             role="slider"
             tabIndex={0}
-            aria-label="Replay position"
+            aria-label={translator.translateText("Replay position")}
             aria-valuemin={0}
             aria-valuemax={Math.round(Math.max(0, durationMs))}
             aria-valuenow={Math.round(playheadMs)}
-            aria-valuetext={`${formatReplayOffset(playheadMs)} of ${formatReplayOffset(
-              durationMs,
-            )}`}
+            aria-valuetext={translator.translateTemplate(
+              "{{position}} of {{duration}}",
+              {
+                position: formatReplayOffset(playheadMs),
+                duration: formatReplayOffset(durationMs),
+              },
+            )}
             className="relative h-7 w-full cursor-pointer touch-none rounded-lg bg-gray-100 ring-1 ring-inset ring-gray-200 transition-shadow hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -1160,7 +1211,7 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
                           : undefined
                       }
                     />
-                    {item.label}
+                    {translator.translateText(item.label)}
                   </span>
                 );
               },
