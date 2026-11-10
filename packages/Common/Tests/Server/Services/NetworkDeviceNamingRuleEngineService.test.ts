@@ -28,6 +28,7 @@ import {
 import { DeviceNameRegistry } from "../../../Utils/NetworkDevice/Naming/DeviceNamingPlanner";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The naming rules on the server (OneUptime issue #6619): the engine reads
@@ -127,20 +128,19 @@ interface ProjectState {
  * plan's read of selected devices and the apply's read of current names.
  */
 function mockProject(state: ProjectState): {
-  ruleRead: jest.SpiedFunction<typeof NetworkDeviceNamingRuleService.findBy>;
-  siteRead: jest.SpiedFunction<typeof NetworkSiteService.findAllBy>;
-  update: jest.SpiedFunction<typeof NetworkDeviceService.updateOneById>;
+  ruleRead: SpyInstance<typeof NetworkDeviceNamingRuleService.findBy>;
+  siteRead: SpyInstance<typeof NetworkSiteService.findAllBy>;
+  update: SpyInstance<typeof NetworkDeviceService.updateOneById>;
 } {
   const devices: Array<NetworkDevice> = state.devices || [];
 
-  const ruleRead: jest.SpiedFunction<
-    typeof NetworkDeviceNamingRuleService.findBy
-  > = jest.spyOn(NetworkDeviceNamingRuleService, "findBy").mockResolvedValue(
-    (state.rules || []).filter((rule: NetworkDeviceNamingRule) => {
-      return rule.isEnabled !== false;
-    }),
-  );
-  const siteRead: jest.SpiedFunction<typeof NetworkSiteService.findAllBy> = jest
+  const ruleRead: SpyInstance<typeof NetworkDeviceNamingRuleService.findBy> =
+    jest.spyOn(NetworkDeviceNamingRuleService, "findBy").mockResolvedValue(
+      (state.rules || []).filter((rule: NetworkDeviceNamingRule) => {
+        return rule.isEnabled !== false;
+      }),
+    );
+  const siteRead: SpyInstance<typeof NetworkSiteService.findAllBy> = jest
     .spyOn(NetworkSiteService, "findAllBy")
     .mockResolvedValue(state.sites || SITES);
 
@@ -183,10 +183,9 @@ function mockProject(state: ProjectState): {
       },
     );
 
-  const update: jest.SpiedFunction<typeof NetworkDeviceService.updateOneById> =
-    jest
-      .spyOn(NetworkDeviceService, "updateOneById")
-      .mockResolvedValue(undefined as never);
+  const update: SpyInstance<typeof NetworkDeviceService.updateOneById> = jest
+    .spyOn(NetworkDeviceService, "updateOneById")
+    .mockResolvedValue(undefined as never);
 
   return { ruleRead: ruleRead, siteRead: siteRead, update: update };
 }
