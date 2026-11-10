@@ -29,6 +29,14 @@ import {
   isSessionReplayWebVitalPayload,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  TemplateValue,
+  Translator,
+} from "Common/Types/Translator";
+import {
   REPLAY_TIMELINE_EXTRACTION_CAPS,
   ReplayActivityInterval,
   ReplayTimelineEvent,
@@ -195,20 +203,46 @@ export interface ChunkExtraction {
   activityIntervals: Array<ReplayActivityInterval>;
 }
 
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * A failure in the player's own words - the chunk transport's "Could not
+ * load recording data (HTTP 503)." - rather than a server's or a library's.
+ * Its message is the English (what a test and the "Copy diagnostic" action
+ * read); `wording` says the same in whichever language it is composed with,
+ * so a sentence that quotes the failure (ChunkLoadError's, the engine's)
+ * quotes it in the language that sentence is drawn in.
+ */
+export class ReplayWordedError extends Error {
+  public readonly wording: ComposedValue;
+
+  public constructor(wording: ComposedValue) {
+    super(wording.compose(ENGLISH));
+    this.name = "ReplayWordedError";
+    this.wording = wording;
+  }
+}
+
 /*
  * Thrown by loadPage/ensureChunk once every retry is spent. Carries what
  * the engine needs to say something specific: which chunks, how many
  * tries, and whether it was the viewer leaving (aborted) rather than the
  * network failing.
+ *
+ * `message` is the English; `wording`, when the thrower gives one, says it
+ * in a reader's language (ReplayWordedError). Without one the message is
+ * quoted as it is written.
  */
 export class ChunkLoadError extends Error {
   public readonly chunkIndexes: Array<number>;
   public readonly attempts: number;
   public readonly isAborted: boolean;
   public readonly isTimeout: boolean;
+  public readonly wording: ComposedValue;
 
   public constructor(options: {
     message: string;
+    wording?: ComposedValue | undefined;
     chunkIndexes: Array<number>;
     attempts: number;
     isAborted: boolean;
@@ -220,7 +254,30 @@ export class ChunkLoadError extends Error {
     this.attempts = options.attempts;
     this.isAborted = options.isAborted;
     this.isTimeout = options.isTimeout;
+    this.wording =
+      options.wording ??
+      composedValue((): string => {
+        return options.message;
+      });
   }
+}
+
+/*
+ * What a failure says, for a sentence that quotes it: the wording of one in
+ * the player's own words (a ReplayWordedError, a ChunkLoadError), and the
+ * message of any other as it is written - a server's or a library's words,
+ * the same in every language. Null when it says nothing.
+ */
+export function getReplayErrorWording(error: unknown): TemplateValue | null {
+  if (error instanceof ReplayWordedError || error instanceof ChunkLoadError) {
+    return error.wording;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return null;
 }
 
 export interface ChunkLoaderOptions {
@@ -1025,7 +1082,8 @@ export default class ChunkLoader {
   ): Promise<ArrayBuffer | null> {
     const maxAttempts: number = 1 + this.retryDelaysMs.length;
     const attemptTimeoutMs: number = this.attemptTimeoutMs(chunkIndexes);
-    let lastMessage: string = "";
+    // Why the last attempt failed, quoted in the sentence that reports it.
+    let lastReason: TemplateValue = "";
     let lastWasTimeout: boolean = false;
 
     for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
@@ -1054,11 +1112,10 @@ export default class ChunkLoader {
         }
 
         lastWasTimeout = timedOut;
-        lastMessage = timedOut
-          ? `no response within ${Math.round(attemptTimeoutMs / 1000)}s`
-          : err instanceof Error && err.message
-            ? err.message
-            : "the request failed";
+        lastReason = ChunkLoader.describeAttemptFailure(
+          err,
+          timedOut ? Math.round(attemptTimeoutMs / 1000) : null,
+        );
       } finally {
         clearTimeout(timeout);
         this.controllers.delete(controller);
@@ -1075,10 +1132,15 @@ export default class ChunkLoader {
       }
     }
 
+    const wording: ComposedValue = ChunkLoader.describeFetchFailure(
+      chunkIndexes,
+      maxAttempts,
+      lastReason,
+    );
+
     throw new ChunkLoadError({
-      message: `Could not fetch ${ChunkLoader.describeChunkRange(
-        chunkIndexes,
-      )} after ${maxAttempts} attempts (${lastMessage}).`,
+      message: wording.compose(ENGLISH),
+      wording: wording,
       chunkIndexes: chunkIndexes,
       attempts: maxAttempts,
       isAborted: false,
@@ -1106,15 +1168,79 @@ export default class ChunkLoader {
     );
   }
 
-  private static describeChunkRange(chunkIndexes: Array<number>): string {
+  /*
+   * Why one attempt failed: no answer within its deadline, the transport's
+   * own failure (in the player's words, or a server's as written), or -
+   * when it said nothing - that the request failed.
+   */
+  private static describeAttemptFailure(
+    err: unknown,
+    timedOutAfterSeconds: number | null,
+  ): TemplateValue {
+    if (timedOutAfterSeconds !== null) {
+      return composedValue((translator: Translator): string => {
+        return translator.translateTemplate("no response within {{seconds}}s", {
+          seconds: timedOutAfterSeconds,
+        });
+      });
+    }
+
+    return (
+      getReplayErrorWording(err) ??
+      composedValue((translator: Translator): string => {
+        return translator.translateText("the request failed") || "";
+      })
+    );
+  }
+
+  /*
+   * "Could not fetch chunks 3 to 5 after 3 attempts (no response within
+   * 20s)." One whole sentence for each way of naming what was asked for,
+   * and for one attempt or several.
+   */
+  private static describeFetchFailure(
+    chunkIndexes: Array<number>,
+    attempts: number,
+    reason: TemplateValue,
+  ): ComposedValue {
     const first: number | undefined = chunkIndexes[0];
     const last: number | undefined = chunkIndexes[chunkIndexes.length - 1];
 
-    if (first === undefined || last === undefined) {
-      return "footage";
-    }
+    return composedValue((translator: Translator): string => {
+      if (first === undefined || last === undefined) {
+        return translator.translatePlural(
+          {
+            one: "Could not fetch footage after {{count}} attempt ({{reason}}).",
+            other:
+              "Could not fetch footage after {{count}} attempts ({{reason}}).",
+          },
+          attempts,
+          { reason: reason },
+        );
+      }
 
-    return first === last ? `chunk ${first}` : `chunks ${first} to ${last}`;
+      if (first === last) {
+        return translator.translatePlural(
+          {
+            one: "Could not fetch chunk {{chunk}} after {{count}} attempt ({{reason}}).",
+            other:
+              "Could not fetch chunk {{chunk}} after {{count}} attempts ({{reason}}).",
+          },
+          attempts,
+          { chunk: first, reason: reason },
+        );
+      }
+
+      return translator.translatePlural(
+        {
+          one: "Could not fetch chunks {{first}} to {{last}} after {{count}} attempt ({{reason}}).",
+          other:
+            "Could not fetch chunks {{first}} to {{last}} after {{count}} attempts ({{reason}}).",
+        },
+        attempts,
+        { first: first, last: last, reason: reason },
+      );
+    });
   }
 
   private static raceWithAbort<T>(

@@ -8,14 +8,21 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
 import { SessionReplayGap } from "Common/Types/Rum/SessionReplay";
 import Clipboard from "Common/UI/Utils/Clipboard";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ComposedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  isComposedValue,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useClipboardCopy, {
   ClipboardCopy,
 } from "Common/UI/Utils/UseClipboardCopy";
@@ -59,7 +66,18 @@ import ReplayScreenshotActions from "./ReplayScreenshotActions";
  * The stage itself renders the sr-only data-testid="replay-phase" live
  * region; this file renders one only in the no-footage mode, where there
  * is no stage at all, so there is always exactly one on the page.
+ *
+ * Every word drawn here is looked up in the reader's language when it is
+ * drawn, a whole sentence at a time: the engine's errors and notices too,
+ * which it keeps in English with their wording (ReplayEngineError).
  */
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed string in `translator`'s language, where a string is required.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) ?? text;
+}
 
 export interface ReplayNavigationUrl {
   offsetMs: number;
@@ -160,21 +178,32 @@ export const REPLAY_GAP_TOAST_MS: number = 2000;
 export const REPLAY_IDLE_SKIP_TOAST_MS: number = 1500;
 
 /*
- * The words for a skipped band, by kind. A paused stretch says WHY it was
- * skipped, because unlike an idle skip it happens with Skip idle off: a
- * viewer who never asked for a jump is owed the reason there was nothing
- * to watch.
+ * The words for a skipped band, by kind, in `translator`'s language. A
+ * paused stretch says WHY it was skipped, because unlike an idle skip it
+ * happens with Skip idle off: a viewer who never asked for a jump is owed
+ * the reason there was nothing to watch.
  */
-export function describeIdleSkip(band: ReplayIdleBand): string {
-  const length: string = formatReplayDuration(band.endMs - band.startMs);
+export function describeIdleSkip(
+  band: ReplayIdleBand,
+  translator: Translator = ENGLISH,
+): string {
+  const duration: string = formatReplayDuration(band.endMs - band.startMs);
 
   switch (band.kind) {
     case "background-tab":
-      return `Skipped ${length} in the background`;
+      return translator.translateTemplate(
+        "Skipped {{duration}} in the background",
+        { duration: duration },
+      );
     case "paused":
-      return `Skipped ${length}: recording paused while the page was idle`;
+      return translator.translateTemplate(
+        "Skipped {{duration}}: recording paused while the page was idle",
+        { duration: duration },
+      );
     case "idle":
-      return `Skipped ${length} idle`;
+      return translator.translateTemplate("Skipped {{duration}} idle", {
+        duration: duration,
+      });
     default: {
       /* Exhaustiveness: a new band kind needs its own words. */
       const unreachable: never = band.kind;
@@ -183,17 +212,34 @@ export function describeIdleSkip(band: ReplayIdleBand): string {
   }
 }
 
-/* The stage chip's words for the band under the playhead, by kind. */
-export function describeIdleBandChip(band: ReplayIdleBand): string {
-  const length: string = formatReplayDuration(band.endMs - band.startMs);
+/*
+ * The stage chip's words for the band under the playhead, by kind, in
+ * `translator`'s language.
+ */
+export function describeIdleBandChip(
+  band: ReplayIdleBand,
+  translator: Translator = ENGLISH,
+): string {
+  const duration: string = formatReplayDuration(band.endMs - band.startMs);
 
   switch (band.kind) {
     case "background-tab":
-      return `Tab was in the background for ${length}`;
+      return translator.translateTemplate(
+        "Tab was in the background for {{duration}}",
+        { duration: duration },
+      );
     case "paused":
-      return `Recording paused · ${length}`;
+      return translator.translateTemplate("Recording paused · {{duration}}", {
+        duration: duration,
+      });
     case "idle":
-      return `Idle ${length}${band.fidelity === "coarse" ? " (approx.)" : ""}`;
+      return band.fidelity === "coarse"
+        ? translator.translateTemplate("Idle {{duration}} (approx.)", {
+            duration: duration,
+          })
+        : translator.translateTemplate("Idle {{duration}}", {
+            duration: duration,
+          });
     default: {
       const unreachable: never = band.kind;
       return unreachable;
@@ -203,15 +249,19 @@ export function describeIdleBandChip(band: ReplayIdleBand): string {
 
 /*
  * What a paused band means, for the chip's tooltip: the chip has room for
- * the length, not for the reason.
+ * the length, not for the reason. English; looked up where it is drawn.
  */
-export const REPLAY_PAUSED_BAND_EXPLANATION: string =
-  "Nobody touched the page, so the recorder paused and nothing was recorded until the next input.";
+export const REPLAY_PAUSED_BAND_EXPLANATION: string = translationKey(
+  "Nobody touched the page, so the recorder paused and nothing was recorded until the next input.",
+);
 
 /* The session the ended card offers next: the user's next newer session. */
 export interface ReplayNextUserSession {
   sessionId: string;
-  /* When, where and how long - the button's tooltip. */
+  /*
+   * When, where and how long - the button's tooltip, in the reader's
+   * language: drawn as it is.
+   */
   description: string;
 }
 
@@ -290,11 +340,14 @@ export interface ReplayStageOverlaysProps {
 
   /*
    * A shell-level transient notice ("Opened at the moment of the log
-   * line"), drawn like the engine's own seek-clamped notice.
+   * line"), drawn like the engine's own seek-clamped notice: English text
+   * is looked up by its English, a wording is composed in the reader's
+   * language.
    */
-  shellNotice?: string | null | undefined;
+  shellNotice?: string | ComposedValue | null | undefined;
   /* No-footage mode: replaces the stage with an explained empty state. */
   absence?: ReplayFootageAbsence | null | undefined;
+  /* English copy (getSealedReasonCopy), looked up where it is drawn. */
   sealedReason?: SealedReasonCopy | null | undefined;
   /*
    * Footage may still be recorded into this session: not finalized AND
@@ -328,41 +381,85 @@ const PILL_CLASS: string =
 
 /* ---- Absence copy. ---- */
 
+/*
+ * The title and a description are English, handed to EmptyState, which
+ * looks them up; a description with values in it (the expired one) is
+ * already in the reader's language. The phase word is English, looked up
+ * where it is drawn.
+ */
 interface AbsenceCopy {
   title: string;
   description: string;
   phaseWord: string;
 }
 
+/*
+ * When and why the footage expired, as one whole sentence for each of what
+ * the server said: the retention's days, the day it expired, both or
+ * neither. The date is in the sentence's language.
+ */
+function describeExpiry(
+  absence: Extract<ReplayFootageAbsence, { kind: "expired" }>,
+  translator: Translator,
+): string {
+  const expiredOn: string | null =
+    absence.expiresAtUnixMs !== null
+      ? OneUptimeDate.getDateAsLocalFormattedString(
+          new Date(absence.expiresAtUnixMs),
+          true,
+        )
+      : null;
+  const days: number | null = absence.retentionDays;
+
+  if (days !== null) {
+    return expiredOn
+      ? translator.translatePlural(
+          {
+            one: "The recording expired after {{count}} day per your retention on {{date}}.",
+            other:
+              "The recording expired after {{count}} days per your retention on {{date}}.",
+          },
+          days,
+          { date: expiredOn },
+        )
+      : translator.translatePlural(
+          {
+            one: "The recording expired after {{count}} day per your retention.",
+            other:
+              "The recording expired after {{count}} days per your retention.",
+          },
+          days,
+        );
+  }
+
+  return expiredOn
+    ? translator.translateTemplate(
+        "The recording expired under the application's retention on {{date}}.",
+        { date: expiredOn },
+      )
+    : translateLine(
+        "The recording expired under the application's retention.",
+        translator,
+      );
+}
+
 function describeAbsence(
   absence: ReplayFootageAbsence,
   sealedReason: SealedReasonCopy | null | undefined,
+  translator: Translator,
 ): AbsenceCopy {
   switch (absence.kind) {
     case "expired": {
-      // In English, as the sentence it goes into is.
-      const expiredOn: string | null =
-        absence.expiresAtUnixMs !== null
-          ? inEnglishDates((): string => {
-              return OneUptimeDate.getDateAsLocalFormattedString(
-                new Date(absence.expiresAtUnixMs as number),
-                true,
-              );
-            })
-          : null;
-      const retention: string =
-        absence.retentionDays !== null
-          ? `after ${absence.retentionDays} day${
-              absence.retentionDays === 1 ? "" : "s"
-            } per your retention`
-          : "under the application's retention";
-
       return {
         title: "Footage expired",
-        description: `The recording expired ${retention}${
-          expiredOn ? ` on ${expiredOn}` : ""
-        }. Its logs, traces and exceptions follow the telemetry retention, not the recording's, so they still load in the rail; the session facts are in Details.`,
-        phaseWord: "expired",
+        description: joinSentences([
+          describeExpiry(absence, translator),
+          translateLine(
+            "Its logs, traces and exceptions follow the telemetry retention, not the recording's, so they still load in the rail; the session facts are in Details.",
+            translator,
+          ),
+        ]),
+        phaseWord: translationKey("expired"),
       };
     }
     case "recording-lost":
@@ -371,14 +468,14 @@ function describeAbsence(
         description:
           sealedReason?.description ||
           "A recording existed but its chunks never landed, or expired before it could be finalized. Nothing from this session is playable; its logs, traces and errors still load in the rail.",
-        phaseWord: "lost",
+        phaseWord: translationKey("lost"),
       };
     case "not-yet-uploaded":
       return {
         title: "Waiting for the first chunk",
         description:
           "This session is live and the recorder has not flushed any footage yet. The player checks for new chunks every 30 seconds and starts on its own when the first one lands.",
-        phaseWord: "waiting",
+        phaseWord: translationKey("waiting"),
       };
     case "none-stored":
     default:
@@ -387,7 +484,7 @@ function describeAbsence(
         description:
           sealedReason?.description ||
           "The session ended without a single chunk of footage. The signals in the rail are everything that remains of it.",
-        phaseWord: "empty",
+        phaseWord: translationKey("empty"),
       };
   }
 }
@@ -570,6 +667,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
     const copy: AbsenceCopy = describeAbsence(
       props.absence,
       props.sealedReason,
+      translator,
     );
 
     return (
@@ -585,7 +683,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           aria-live="polite"
           aria-atomic="true"
         >
-          {copy.phaseWord}
+          {translator.translateText(copy.phaseWord)}
         </span>
         {/*
          * my-auto rather than justify-center: auto margins centre the
@@ -614,7 +712,13 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                   className="text-xs text-gray-500"
                   data-testid="replay-footage-absent-sealed"
                 >
-                  {props.sealedReason.title}: {props.sealedReason.description}
+                  {translator.translateTemplate("{{title}}: {{description}}", {
+                    title: translateLine(props.sealedReason.title, translator),
+                    description: translateLine(
+                      props.sealedReason.description,
+                      translator,
+                    ),
+                  })}
                 </p>
               ) : undefined
             }
@@ -645,10 +749,12 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           />
           <div className="min-w-0">
             <div className="text-sm font-semibold text-gray-900">
-              Playback stopped
+              {translator.translateText("Playback stopped")}
             </div>
             <p className="mt-1 text-xs text-gray-700">
-              {snapshot.error.message}
+              {snapshot.error.wording
+                ? snapshot.error.wording.compose(translator)
+                : translator.translateText(snapshot.error.message)}
             </p>
           </div>
         </div>
@@ -660,7 +766,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
               className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-700"
               onClick={props.onRetry}
             >
-              Retry
+              {translator.translateText("Retry")}
             </button>
           )}
           <button
@@ -669,13 +775,15 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50"
             onClick={handleCopyDiagnostic}
           >
-            {isDiagnosticCopied ? "Diagnostic copied" : "Copy diagnostic"}
+            {isDiagnosticCopied
+              ? translator.translateText("Diagnostic copied")
+              : translator.translateText("Copy diagnostic")}
           </button>
         </div>
         {diagnosticText !== null && (
           <textarea
             readOnly={true}
-            aria-label="Diagnostic details"
+            aria-label={translator.translateText("Diagnostic details")}
             data-testid="replay-overlay-diagnostic-text"
             className="mt-2 h-24 w-full rounded-lg border border-gray-300 bg-gray-50 p-2 font-mono text-[10px] text-gray-700"
             value={diagnosticText}
@@ -694,7 +802,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         className={PILL_CLASS}
       >
         <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
-        Loading footage
+        {translator.translateText("Loading footage")}
       </div>
     );
   } else if (phase === "seeking") {
@@ -705,14 +813,16 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         className={PILL_CLASS}
       >
         <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
-        Seeking to {formatReplayOffset(snapshot.pendingSeekMs ?? currentTimeMs)}
+        {translator.translateTemplate("Seeking to {{time}}", {
+          time: formatReplayOffset(snapshot.pendingSeekMs ?? currentTimeMs),
+        })}
       </div>
     );
   } else if (phase === "buffering" && bufferingStage !== "hidden") {
     const waitingCopy: string =
       snapshot.buffer === "stalled"
-        ? "Waiting for the next footage"
-        : "Buffering";
+        ? translateLine("Waiting for the next footage", translator)
+        : translateLine("Buffering", translator);
 
     centreOverlay = (
       <div
@@ -724,14 +834,14 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
         {bufferingStage === "retry" ? (
           <span className="inline-flex items-center gap-2">
-            Still loading
+            {translator.translateText("Still loading")}
             <button
               type="button"
               data-testid="replay-overlay-still-loading-retry"
               className="rounded bg-white/15 px-2 py-0.5 text-[11px] font-semibold hover:bg-white/25"
               onClick={props.onStillLoadingRetry}
             >
-              Retry
+              {translator.translateText("Retry")}
             </button>
           </span>
         ) : (
@@ -747,8 +857,10 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         className={`${PILL_CLASS} bg-amber-900/85`}
       >
         <Icon icon={IconProp.Forward} className="h-3.5 w-3.5" />
-        Skipped {formatReplayDuration(gapToast.value.missingMs)} - the recorder
-        never delivered this stretch
+        {translator.translateTemplate(
+          "Skipped {{duration}} - the recorder never delivered this stretch",
+          { duration: formatReplayDuration(gapToast.value.missingMs) },
+        )}
       </div>
     );
   } else if (idleToast) {
@@ -760,7 +872,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         className={PILL_CLASS}
       >
         <Icon icon={IconProp.Forward} className="h-3.5 w-3.5" />
-        {describeIdleSkip(idleToast.value)}
+        {describeIdleSkip(idleToast.value, translator)}
       </div>
     );
   } else if (phase === "ended" && props.isLive) {
@@ -778,8 +890,9 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         className={PILL_CLASS}
       >
         <span className="h-2 w-2 animate-pulse rounded-full bg-red-400" />
-        Caught up with the live recording - waiting for the next chunk (checked
-        every 30 seconds)
+        {translator.translateText(
+          "Caught up with the live recording - waiting for the next chunk (checked every 30 seconds)",
+        )}
       </div>
     );
   } else if (phase === "ended") {
@@ -789,9 +902,13 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         role="status"
         className="pointer-events-auto max-h-full overflow-y-auto rounded-xl bg-white p-5 text-center shadow-2xl ring-1 ring-gray-200"
       >
-        <div className="text-sm font-semibold text-gray-900">Replay ended</div>
+        <div className="text-sm font-semibold text-gray-900">
+          {translator.translateText("Replay ended")}
+        </div>
         <p className="mt-1 text-xs text-gray-600">
-          {formatReplayDuration(snapshot.durationMs)} of footage played out.
+          {translator.translateTemplate("{{duration}} of footage played out.", {
+            duration: formatReplayDuration(snapshot.durationMs),
+          })}
         </p>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           <button
@@ -801,7 +918,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             onClick={props.onWatchAgain}
           >
             <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-            Watch again
+            {translator.translateText("Watch again")}
           </button>
           {props.continueInTab &&
             (props.onContinueInTab || props.onSwitchTab) && (
@@ -821,7 +938,9 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                 }}
               >
                 <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
-                Continue in {props.continueInTab.label}
+                {translator.translateTemplate("Continue in {{tab}}", {
+                  tab: props.continueInTab.label,
+                })}
               </button>
             )}
           {props.nextUserSession && props.onOpenNextUserSession && (
@@ -839,7 +958,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
               }}
             >
               <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
-              Next session by this user
+              {translator.translateText("Next session by this user")}
             </button>
           )}
         </div>
@@ -851,8 +970,8 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         type="button"
         data-testid="replay-overlay-paused"
         className="pointer-events-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-900/60 text-white shadow-2xl ring-1 ring-white/25 backdrop-blur-sm transition-all hover:scale-105 hover:bg-gray-900/80"
-        title="Play (Space)"
-        aria-label="Play"
+        title={translator.translateText("Play (Space)")}
+        aria-label={translator.translateText("Play")}
         onClick={props.onPlayPause}
       >
         <Icon icon={IconProp.Play} className="h-6 w-6" />
@@ -900,10 +1019,12 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         <span
           ref={urlTextRef}
           className="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-600"
-          title={currentUrl || "No page URL is known yet"}
+          title={
+            currentUrl || translator.translateText("No page URL is known yet")
+          }
           data-testid="replay-url-text"
         >
-          {currentUrl || "URL not recorded yet"}
+          {currentUrl || translator.translateText("URL not recorded yet")}
         </span>
         {currentUrl && (
           <ReplayToolButton
@@ -962,8 +1083,8 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             rel="noopener noreferrer"
             data-testid="replay-url-open"
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
-            title="Open the page in a new tab"
-            aria-label="Open the page in a new tab"
+            title={translator.translateText("Open the page in a new tab")}
+            aria-label={translator.translateText("Open the page in a new tab")}
           >
             <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
           </a>
@@ -972,7 +1093,9 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           <span
             data-testid="replay-viewport-chip"
             className="ml-1 max-sm:hidden shrink-0 items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[11px] tabular-nums text-gray-500 ring-1 ring-inset ring-gray-200 sm:inline-flex"
-            title="Recorded viewport and the scale it is drawn at"
+            title={translator.translateText(
+              "Recorded viewport and the scale it is drawn at",
+            )}
           >
             {viewportLabel}
             {isScaledFit && (
@@ -1066,15 +1189,17 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                     ? "hover:bg-gray-900"
                     : "cursor-default opacity-90"
                 }`}
-                title={`${
+                title={joinSentences([
                   idleBand.kind === "paused"
-                    ? `${REPLAY_PAUSED_BAND_EXPLANATION} `
-                    : ""
-                }${
+                    ? translateLine(REPLAY_PAUSED_BAND_EXPLANATION, translator)
+                    : "",
                   canSkipIdle
-                    ? "Skip past this stretch (s)"
-                    : "The stretch ends in under two seconds"
-                }`}
+                    ? translateLine("Skip past this stretch (s)", translator)
+                    : translateLine(
+                        "The stretch ends in under two seconds",
+                        translator,
+                      ),
+                ])}
                 onClick={(): void => {
                   if (canSkipIdle) {
                     props.onSkipIdle(idleBand);
@@ -1087,9 +1212,11 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                   }
                   className="h-3.5 w-3.5"
                 />
-                {describeIdleBandChip(idleBand)}
+                {describeIdleBandChip(idleBand, translator)}
                 {canSkipIdle && (
-                  <span className="text-indigo-200">skip &gt;</span>
+                  <span className="text-indigo-200">
+                    {translator.translateText("skip >")}
+                  </span>
                 )}
               </button>
             )}
@@ -1101,7 +1228,9 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                 className={`${PILL_CLASS} bg-amber-900/85`}
               >
                 <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
-                {snapshot.notice.message}
+                {snapshot.notice.wording
+                  ? snapshot.notice.wording.compose(translator)
+                  : translator.translateText(snapshot.notice.message)}
               </span>
             )}
 
@@ -1112,7 +1241,9 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                 className={PILL_CLASS}
               >
                 <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
-                {props.shellNotice}
+                {isComposedValue(props.shellNotice)
+                  ? props.shellNotice.compose(translator)
+                  : translator.translateText(props.shellNotice)}
               </span>
             )}
           </div>

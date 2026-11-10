@@ -20,7 +20,18 @@ import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import {
@@ -28,7 +39,6 @@ import {
   RecordingHealthStatus,
 } from "Common/Types/Rum/SessionReplayHealth";
 import {
-  formatCountForCopy,
   formatRelativeAge,
   parseHealthTimestamp,
 } from "Common/Utils/Rum/SessionReplayHealth";
@@ -51,6 +61,12 @@ import { RecordingHealthDiagnosisBanner } from "./RecordingHealthCard";
 
 const SESSION_REPLAY_LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
 
+/*
+ * What the live checks say without a translator: English, word for word,
+ * as a unit test reads them. The guide hands its reader's translator in.
+ */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
 export interface ComponentProps {
   rumApplicationId: ObjectID;
 }
@@ -66,33 +82,66 @@ export interface LiveCheck {
 }
 
 /*
+ * Why "Watch it" could not open the newest session, kept as what happened
+ * rather than as words, so it is said in the reader's language when drawn.
+ */
+type WatchError =
+  | { kind: "no-session" }
+  | { kind: "failed"; reason: string }
+  | null;
+
+/*
  * The three checks, as a pure function of the status so the flips can be
  * pinned in a test with fixed clocks. Order matters: each row's cause
- * assumes the rows above it are done.
+ * assumes the rows above it are done. Each title and detail is a whole
+ * sentence looked up with `translator`; without one, English word for word.
  */
 export function buildLiveChecks(
   status: RecordingHealthStatus | null,
   nowUnixMs: number,
+  translator: Translator = ENGLISH,
 ): Array<LiveCheck> {
+  // A fixed line in the reader's language; a line is a string.
+  const translateLine: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
+  // "12s ago", in the language its sentence is drawn in.
+  const ageOf: (fromUnixMs: number) => ComposedValue = (
+    fromUnixMs: number,
+  ): ComposedValue => {
+    return composedValue((sentence: Translator): string => {
+      return formatRelativeAge(fromUnixMs, nowUnixMs, sentence);
+    });
+  };
+
+  const loadedTitle: string = translateLine("Recorder loaded on your site");
+  const chunkTitle: string = translateLine("First chunk received");
+  const playableTitle: string = translateLine("First session ready to watch");
+
   if (!status) {
+    const waitingForStatus: string = translateLine(
+      "Waiting for the health status.",
+    );
+
     return [
       {
         key: "loaded",
         state: "unknown",
-        title: "Recorder loaded on your site",
-        detail: "Waiting for the health status.",
+        title: loadedTitle,
+        detail: waitingForStatus,
       },
       {
         key: "chunk",
         state: "unknown",
-        title: "First chunk received",
-        detail: "Waiting for the health status.",
+        title: chunkTitle,
+        detail: waitingForStatus,
       },
       {
         key: "playable",
         state: "unknown",
-        title: "First session ready to watch",
-        detail: "Waiting for the health status.",
+        title: playableTitle,
+        detail: waitingForStatus,
       },
     ];
   }
@@ -110,16 +159,24 @@ export function buildLiveChecks(
   const loaded: LiveCheck = {
     key: "loaded",
     state: hasLoaded ? "done" : "pending",
-    title: "Recorder loaded on your site",
+    title: loadedTitle,
     detail: hasLoaded
       ? loadedAt !== null
-        ? `Policy fetched ${formatRelativeAge(loadedAt, nowUnixMs)}.`
-        : "A chunk arrived, so the recorder has loaded."
+        ? translator.translateTemplate("Policy fetched {{when}}.", {
+            when: ageOf(loadedAt),
+          })
+        : translateLine("A chunk arrived, so the recorder has loaded.")
       : !status.policy.isProjectEnabled
-        ? "The recorder can still load, but session replay is switched off for this project, so it will record nothing. Turn it on first."
+        ? translateLine(
+            "The recorder can still load, but session replay is switched off for this project, so it will record nothing. Turn it on first.",
+          )
         : !status.policy.isApplicationEnabled
-          ? "The recorder can still load, but session replay is switched off for this application, so it will record nothing. Turn it on first."
-          : "No page has fetched this application's policy yet. Paste the tag above, reload a page that carries it, and this flips within about 10 seconds. If it stays here: the tag is not on the page, its identifier does not match, or a CSP script-src rule blocked it.",
+          ? translateLine(
+              "The recorder can still load, but session replay is switched off for this application, so it will record nothing. Turn it on first.",
+            )
+          : translateLine(
+              "No page has fetched this application's policy yet. Paste the tag above, reload a page that carries it, and this flips within about 10 seconds. If it stays here: the tag is not on the page, its identifier does not match, or a CSP script-src rule blocked it.",
+            ),
   };
 
   const sample: number = status.policy.samplePercentage;
@@ -127,38 +184,57 @@ export function buildLiveChecks(
   let chunkCause: string;
 
   if (!hasLoaded) {
-    chunkCause = "Waits on the recorder loading.";
+    chunkCause = translateLine("Waits on the recorder loading.");
   } else if (sample <= 0) {
-    chunkCause =
-      "Sampling is 0%, so no session is recorded. Set it to 100% to record the next visitor.";
+    chunkCause = translateLine(
+      "Sampling is 0%, so no session is recorded. Set it to 100% to record the next visitor.",
+    );
   } else if (
     status.policy.consentMode === SessionReplayConsentMode.RequireExplicit
   ) {
-    chunkCause =
-      "Consent is required and no page has called OneUptimeReplay.grantConsent() yet; nothing uploads until one does.";
+    chunkCause = translateLine(
+      "Consent is required and no page has called OneUptimeReplay.grantConsent() yet; nothing uploads until one does.",
+    );
   } else if (
     status.policy.captureTrigger ===
     SessionReplayCaptureTrigger.OnErrorOrFrustration
   ) {
-    chunkCause =
-      "The trigger is On error or frustration, so a visit where nothing goes wrong uploads nothing. Throw an error on an instrumented page, call OneUptimeReplay.captureSession(), or switch the trigger to Always.";
+    chunkCause = translator.translateTemplate(
+      "The trigger is {{trigger}}, so a visit where nothing goes wrong uploads nothing. Throw an error on an instrumented page, call OneUptimeReplay.captureSession(), or switch the trigger to {{always}}.",
+      {
+        trigger: translatableTerm("On error or frustration"),
+        always: translatableTerm("Always"),
+      },
+    );
   } else if (sample < 100) {
-    chunkCause = `Sampling is ${sample}%, so about 1 in ${Math.max(
-      1,
-      Math.round(100 / sample),
-    )} visits records. Load a few pages, or set sampling to 100% while testing.`;
+    /*
+     * "1 in 10 visits": the count of visits decides the noun's form, as in
+     * every plural (Russian says "1 из 21 посещения").
+     */
+    chunkCause = translator.translatePlural(
+      {
+        one: "Sampling is {{percent}}%, so about 1 in {{count}} visit records. Load a few pages, or set sampling to 100% while testing.",
+        other:
+          "Sampling is {{percent}}%, so about 1 in {{count}} visits records. Load a few pages, or set sampling to 100% while testing.",
+      },
+      Math.max(1, Math.round(100 / sample)),
+      { percent: translator.formatNumber(sample) },
+    );
   } else {
-    chunkCause =
-      "The policy is fetched but no chunk has landed. Uploads flush every 15s, so a request is being blocked on the way: check the browser console for a CSP connect-src or ad-blocker refusal of the ingest URL.";
+    chunkCause = translateLine(
+      "The policy is fetched but no chunk has landed. Uploads flush every 15s, so a request is being blocked on the way: check the browser console for a CSP connect-src or ad-blocker refusal of the ingest URL.",
+    );
   }
 
   const chunk: LiveCheck = {
     key: "chunk",
     state: chunkAt !== null ? "done" : "pending",
-    title: "First chunk received",
+    title: chunkTitle,
     detail:
       chunkAt !== null
-        ? `Last chunk ${formatRelativeAge(chunkAt, nowUnixMs)}.`
+        ? translator.translateTemplate("Last chunk {{when}}.", {
+            when: ageOf(chunkAt),
+          })
         : chunkCause,
   };
 
@@ -167,30 +243,94 @@ export function buildLiveChecks(
 
   if (chunkAt === null) {
     playableState = "pending";
-    playableDetail = "Waits on the first chunk.";
+    playableDetail = translateLine("Waits on the first chunk.");
   } else if (status.playableSessionsLast24h === null) {
     playableState = "unknown";
-    playableDetail =
-      "Chunks are arriving but the session count could not be read. Refresh the list; the session is most likely there.";
+    playableDetail = translateLine(
+      "Chunks are arriving but the session count could not be read. Refresh the list; the session is most likely there.",
+    );
   } else if (status.playableSessionsLast24h > 0) {
     playableState = "done";
-    playableDetail = `${formatCountForCopy(status.playableSessionsLast24h)} playable session${
-      status.playableSessionsLast24h === 1 ? "" : "s"
-    } in the last 24h.`;
+    playableDetail = translator.translatePlural(
+      {
+        one: "{{count}} playable session in the last 24h.",
+        other: "{{count}} playable sessions in the last 24h.",
+      },
+      status.playableSessionsLast24h,
+    );
   } else {
     playableState = "pending";
-    playableDetail =
-      "A chunk arrived but no session is playable yet: the session is still being written, or its only chunk was dropped after acceptance. This usually resolves within a minute.";
+    playableDetail = translateLine(
+      "A chunk arrived but no session is playable yet: the session is still being written, or its only chunk was dropped after acceptance. This usually resolves within a minute.",
+    );
   }
 
   const playable: LiveCheck = {
     key: "playable",
     state: playableState,
-    title: "First session ready to watch",
+    title: playableTitle,
     detail: playableDetail,
   };
 
   return [loaded, chunk, playable];
+}
+
+export interface LiveCheckCadence {
+  // The last refresh failed while an earlier status is still shown.
+  hasRefreshFailed: boolean;
+  fetchedAtUnixMs: number | null;
+  nowUnixMs: number;
+  // A session is ready, so the list above refreshes with the checks.
+  isListRefreshing: boolean;
+}
+
+/*
+ * The line under the checks: whether the last refresh failed, then how
+ * often they refresh. Each is a whole sentence of its own; without a
+ * translator, English word for word.
+ */
+export function describeLiveCheckCadence(
+  cadence: LiveCheckCadence,
+  translator: Translator = ENGLISH,
+): string {
+  const fetchedAtUnixMs: number | null = cadence.fetchedAtUnixMs;
+  const seconds: string = translator.formatNumber(
+    Math.round(SESSION_REPLAY_HEALTH_POLL_FAST_MS / 1000),
+  );
+  let failure: string = "";
+
+  if (cadence.hasRefreshFailed) {
+    failure =
+      fetchedAtUnixMs === null
+        ? translator.translateText(
+            "The last refresh failed; showing the status read earlier.",
+          ) || "The last refresh failed; showing the status read earlier."
+        : translator.translateTemplate(
+            "The last refresh failed; showing the status read {{when}}.",
+            {
+              when: composedValue((sentence: Translator): string => {
+                return formatRelativeAge(
+                  fetchedAtUnixMs,
+                  cadence.nowUnixMs,
+                  sentence,
+                );
+              }),
+            },
+          );
+  }
+
+  return joinSentences([
+    failure,
+    cadence.isListRefreshing
+      ? translator.translateTemplate(
+          "Checks refresh every {{seconds}}s while this page is open; the list above refreshes with them.",
+          { seconds: seconds },
+        )
+      : translator.translateTemplate(
+          "Checks refresh every {{seconds}}s while this page is open.",
+          { seconds: seconds },
+        ),
+  ]);
 }
 
 /*
@@ -201,6 +341,10 @@ export function buildLiveChecks(
  */
 export const SETUP_GUIDE_DOCS_PATH: string = "/telemetry/session-replay";
 
+/*
+ * One step. Its title is English, a key of the Dashboard's locales, and is
+ * drawn in the reader's language.
+ */
 function Step(props: {
   index: number;
   title: string;
@@ -209,6 +353,8 @@ function Step(props: {
   /* Heading slug on SETUP_GUIDE_DOCS_PATH that continues this step. */
   docsAnchor?: string | undefined;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="flex gap-3" data-testid={`setup-step-${props.index}`}>
       <div className="flex flex-col items-center">
@@ -220,7 +366,7 @@ function Step(props: {
       <div className="min-w-0 flex-1 pb-6">
         <div className="flex flex-wrap items-baseline gap-x-3">
           <span className="text-sm font-medium text-gray-900">
-            {props.title}
+            {translator.translateText(props.title)}
           </span>
           {props.docsAnchor && (
             <Link
@@ -232,7 +378,7 @@ function Step(props: {
               )}
             >
               <span data-testid={`setup-step-${props.index}-docs`}>
-                Read the docs on this
+                {translator.translateText("Read the docs on this")}
               </span>
             </Link>
           )}
@@ -287,13 +433,14 @@ function LiveCheckRow(props: {
 const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const health: SessionReplayHealthSnapshot = useSessionReplayHealth(
     props.rumApplicationId,
     { pollIntervalMs: SESSION_REPLAY_HEALTH_POLL_FAST_MS },
   );
 
   const [isOpeningSession, setIsOpeningSession] = useState<boolean>(false);
-  const [watchError, setWatchError] = useState<string>("");
+  const [watchError, setWatchError] = useState<WatchError>(null);
   const watchGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const oneuptimeUrl: string = getOneUptimeUrl();
@@ -301,6 +448,7 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
   const checks: Array<LiveCheck> = buildLiveChecks(
     health.status,
     health.nowUnixMs,
+    translator,
   );
 
   /*
@@ -315,7 +463,7 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
       const generation: number = watchGenerationRef.current;
 
       setIsOpeningSession(true);
-      setWatchError("");
+      setWatchError(null);
 
       try {
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -349,9 +497,7 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
           : "";
 
         if (!sessionId) {
-          setWatchError(
-            "No playable session came back from the list. The count and the list disagree for a moment while a session is being written; try again in a few seconds.",
-          );
+          setWatchError({ kind: "no-session" });
           return;
         }
 
@@ -363,9 +509,10 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
         );
       } catch (err: unknown) {
         if (generation === watchGenerationRef.current) {
-          setWatchError(
-            `Could not open the newest session: ${API.getFriendlyMessage(err as HTTPErrorResponse)}`,
-          );
+          setWatchError({
+            kind: "failed",
+            reason: API.getFriendlyMessage(err as HTTPErrorResponse),
+          });
         }
       } finally {
         if (generation === watchGenerationRef.current) {
@@ -378,6 +525,16 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
     (check: LiveCheck): boolean => {
       return check.key === "playable";
     },
+  );
+
+  const cadence: string = describeLiveCheckCadence(
+    {
+      hasRefreshFailed: Boolean(health.error) && health.status !== null,
+      fetchedAtUnixMs: health.fetchedAtUnixMs,
+      nowUnixMs: health.nowUnixMs,
+      isListRefreshing: playableCheck?.state === "done",
+    },
+    translator,
   );
 
   /*
@@ -418,30 +575,40 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
             className="mb-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700"
             data-testid="setup-guide-health-error"
           >
-            <span className="font-medium text-gray-900">
-              {describeHealthError(health.error).title}.
-            </span>{" "}
-            {describeHealthError(health.error).detail} The steps below still
-            apply.
+            <TranslatedSentence
+              template="{{title}}. {{detail}} The steps below still apply."
+              slots={{
+                title: (
+                  <span className="font-medium text-gray-900">
+                    {describeHealthError(health.error, translator).title}
+                  </span>
+                ),
+                detail: describeHealthError(health.error, translator).detail,
+              }}
+            />
           </div>
         )}
 
         <Step index={1} title="Create a telemetry ingestion key">
-          <>
-            The recorder authenticates with an ingestion key. Create one under{" "}
-            <Link
-              className="text-indigo-600 hover:text-indigo-800"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route,
-              )}
-            >
-              Project Settings &gt; Telemetry &amp; APM &gt; Ingestion Keys
-            </Link>
-            : the new key opens on its own page, with the token. It sits in your
-            page&apos;s JavaScript, so treat it as public: it grants ingestion
-            only and cannot read anything back out of your project. If you give
-            the key its own allowed origins, they must include your site too.
-          </>
+          <TranslatedSentence
+            template="The recorder authenticates with an ingestion key. Create one under {{ingestionKeys}}: the new key opens on its own page, with the token. It sits in your page's JavaScript, so treat it as public: it grants ingestion only and cannot read anything back out of your project. If you give the key its own allowed origins, they must include your site too."
+            slots={{
+              ingestionKeys: (
+                <Link
+                  className="text-indigo-600 hover:text-indigo-800"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[
+                      PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS
+                    ] as Route,
+                  )}
+                >
+                  {translator.translateText(
+                    "Project Settings > Telemetry & APM > Ingestion Keys",
+                  )}
+                </Link>
+              ),
+            }}
+          />
         </Step>
 
         <Step
@@ -450,13 +617,13 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
           docsAnchor="identify-your-users"
         >
           <>
-            Put this on every page you want recorded. The tab picks the
-            framework; the tag is the same. Then call <code>identify()</code> as
-            soon as your page knows who is signed in: that is what groups
-            sessions by person and makes <code>user:</code> search work. Without
-            it, sessions from the same browser are still grouped under an
-            anonymous visitor id, but the list cannot name anyone or follow a
-            person across devices.
+            <TranslatedSentence
+              template="Put this on every page you want recorded. The tab picks the framework; the tag is the same. Then call {{identify}} as soon as your page knows who is signed in: that is what groups sessions by person and makes {{userSearch}} search work. Without it, sessions from the same browser are still grouped under an anonymous visitor id, but the list cannot name anyone or follow a person across devices."
+              slots={{
+                identify: <code>identify()</code>,
+                userSearch: <code>user:</code>,
+              }}
+            />
             <div className="mt-2">
               <SessionReplayInstallSnippet
                 appIdentifier={appIdentifier}
@@ -473,13 +640,17 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
           docsAnchor="content-security-policy"
         >
           <>
-            If your site sets a Content-Security-Policy, <code>script-src</code>{" "}
-            decides whether the recorder loads and <code>connect-src</code>{" "}
-            whether it uploads. Both fail silently in your users&apos; browsers,
-            so this is the most common cause of a list that stays empty. Add{" "}
-            <code>{oneuptimeUrl}</code> to your existing <code>script-src</code>{" "}
-            and <code>connect-src</code> values - keep{" "}
-            <code>&apos;self&apos;</code> and everything else already there:
+            <TranslatedSentence
+              template="If your site sets a Content-Security-Policy, {{scriptSrc}} decides whether the recorder loads and {{connectSrc}} whether it uploads. Both fail silently in your users' browsers, so this is the most common cause of a list that stays empty. Add {{url}} to your existing {{scriptSrcAgain}} and {{connectSrcAgain}} values - keep {{self}} and everything else already there:"
+              slots={{
+                scriptSrc: <code>script-src</code>,
+                connectSrc: <code>connect-src</code>,
+                url: <code>{oneuptimeUrl}</code>,
+                scriptSrcAgain: <code>script-src</code>,
+                connectSrcAgain: <code>connect-src</code>,
+                self: <code>&apos;self&apos;</code>,
+              }}
+            />
             <div className="mt-2" data-testid="setup-csp-snippet">
               <CodeBlock
                 code={buildCspSnippet(oneuptimeUrl)}
@@ -487,7 +658,7 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
               />
             </div>
             <div className="mt-1 text-xs text-gray-500">
-              No CSP on your site? Skip this step.
+              {translator.translateText("No CSP on your site? Skip this step.")}
             </div>
           </>
         </Step>
@@ -499,27 +670,40 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
         >
           <>
             <span data-testid="setup-correlation-automatic">
-              Nothing to install for your own backend. While a session uploads,
-              the recorder adds a <code>traceparent</code> and a{" "}
-              <code>tracestate</code> carrying the session id to the requests
-              your page makes to its own origin. Every backend service that
-              continues W3C trace context then has its spans linked to the
-              recording at ingest, and its logs and exceptions join the
-              recording by trace id.
+              <TranslatedSentence
+                template="Nothing to install for your own backend. While a session uploads, the recorder adds a {{traceparent}} and a {{tracestate}} carrying the session id to the requests your page makes to its own origin. Every backend service that continues W3C trace context then has its spans linked to the recording at ingest, and its logs and exceptions join the recording by trace id."
+                slots={{
+                  traceparent: <code>traceparent</code>,
+                  tracestate: <code>tracestate</code>,
+                }}
+              />
             </span>{" "}
             <span data-testid="setup-correlation-cross-origin">
-              For an API on another origin, add it to{" "}
-              <em>Trace propagation origins</em> in this application&apos;s
-              replay policy. It must allow <code>traceparent</code> in{" "}
-              <code>Access-Control-Allow-Headers</code>; those requests get a{" "}
-              <code>traceparent</code> only and match by trace id. To stop the
-              automatic headers, turn off <em>Same-origin trace propagation</em>{" "}
-              on the same page.
+              <TranslatedSentence
+                template="For an API on another origin, add it to {{propagationOrigins}} in this application's replay policy. It must allow {{traceparent}} in {{allowHeaders}}; those requests get a {{traceparentOnly}} only and match by trace id. To stop the automatic headers, turn off {{sameOriginPropagation}} on the same page."
+                slots={{
+                  propagationOrigins: (
+                    <em>
+                      {translator.translateText("Trace propagation origins")}
+                    </em>
+                  ),
+                  traceparent: <code>traceparent</code>,
+                  allowHeaders: <code>Access-Control-Allow-Headers</code>,
+                  traceparentOnly: <code>traceparent</code>,
+                  sameOriginPropagation: (
+                    <em>
+                      {translator.translateText(
+                        "Same-origin trace propagation",
+                      )}
+                    </em>
+                  ),
+                }}
+              />
             </span>
             <div className="mt-3 text-xs text-gray-500">
-              Optional: if this page also runs the OpenTelemetry browser SDK,
-              this stamps its own spans (page loads, route changes, errors) with
-              the session id too.
+              {translator.translateText(
+                "Optional: if this page also runs the OpenTelemetry browser SDK, this stamps its own spans (page loads, route changes, errors) with the session id too.",
+              )}
             </div>
             {/*
              * Only the optional snippet. This step used to render the whole
@@ -569,28 +753,11 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
               })}
               {health.isLoading && (
                 <div className="py-2 text-xs text-gray-500">
-                  Reading the health status…
+                  {translator.translateText("Reading the health status…")}
                 </div>
               )}
               {!health.isLoading && (
-                <div className="py-2 text-xs text-gray-500">
-                  {health.error && health.status !== null
-                    ? `The last refresh failed; showing the status read ${
-                        health.fetchedAtUnixMs === null
-                          ? "earlier"
-                          : formatRelativeAge(
-                              health.fetchedAtUnixMs,
-                              health.nowUnixMs,
-                            )
-                      }. `
-                    : ""}
-                  Checks refresh every{" "}
-                  {Math.round(SESSION_REPLAY_HEALTH_POLL_FAST_MS / 1000)}s while
-                  this page is open
-                  {playableCheck?.state === "done"
-                    ? "; the list above refreshes with them."
-                    : "."}
-                </div>
+                <div className="py-2 text-xs text-gray-500">{cadence}</div>
               )}
             </div>
             {watchError && (
@@ -598,7 +765,15 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
                 className="mt-2 text-xs text-rose-700"
                 data-testid="setup-watch-error"
               >
-                {watchError}
+                {watchError.kind === "no-session"
+                  ? translator.translateText(
+                      "No playable session came back from the list. The count and the list disagree for a moment while a session is being written; try again in a few seconds.",
+                    )
+                  : translator.translateTemplate(
+                      "Could not open the newest session: {{reason}}",
+                      { reason: watchError.reason },
+                      { setsValuesApart: true },
+                    )}
               </div>
             )}
           </>
@@ -612,12 +787,12 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
             />
             <div className="text-xs text-gray-600">
               <span className="font-medium text-gray-800">
-                Still nothing after all that?
+                {translator.translateText("Still nothing after all that?")}
               </span>{" "}
-              The installation test on this application&apos;s Replay Policy
-              page lists every switch, budget and refusal reason the server
-              knows, and explains the recorder&apos;s own diagnostics from the
-              browser.
+              {translator.translateTemplate(
+                "The installation test on this application's {{replayPolicy}} page lists every switch, budget and refusal reason the server knows, and explains the recorder's own diagnostics from the browser.",
+                { replayPolicy: translatableTerm("Replay Policy") },
+              )}
             </div>
           </div>
 
@@ -653,7 +828,7 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
             >
               <>
                 <Icon icon={IconProp.Book} className="h-4 w-4" />
-                Full documentation
+                {translator.translateText("Full documentation")}
               </>
             </Link>
           </div>

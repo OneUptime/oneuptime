@@ -31,6 +31,9 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { SESSION_REPLAY_MAX_USER_REF_LENGTH } from "Common/Types/Rum/SessionReplay";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * "Record this user's next session."
@@ -96,6 +99,7 @@ export interface ComponentProps {
 const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const pinnedApplicationId: string | null = props.rumApplicationId
     ? props.rumApplicationId.toString()
     : null;
@@ -226,10 +230,21 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
 
   const dropdownOptions: Array<DropdownOption> = applications.map(
     (application: RumApplication): DropdownOption => {
-      return {
-        label: application.name || application._id?.toString() || "Unnamed",
-        value: application._id?.toString() || "",
-      };
+      const name: string =
+        application.name || application._id?.toString() || "";
+
+      /*
+       * An application is drawn by the name it was given, never looked up
+       * as a translation key; only the stand-in for a nameless one is ours,
+       * and the Dropdown translates it.
+       */
+      return name
+        ? {
+            label: name,
+            value: application._id?.toString() || "",
+            isUserContent: true,
+          }
+        : { label: "Unnamed", value: application._id?.toString() || "" };
     },
   );
 
@@ -254,12 +269,14 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-gray-900">
-              Record a specific user&apos;s next session
+              {translator.translateText(
+                "Record a specific user's next session",
+              )}
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              A named customer reports something you cannot reproduce. Arm their
-              reference here and their next page load that supplies it records
-              from its first event, instead of waiting for an error to fire.
+              {translator.translateText(
+                "A named customer reports something you cannot reproduce. Arm their reference here and their next page load that supplies it records from its first event, instead of waiting for an error to fire.",
+              )}
             </p>
           </div>
         </div>
@@ -278,17 +295,18 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
               className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
             />
             <div className="text-sm text-gray-600">
-              Arming a recording of a named person is a capture-policy change,
-              so it needs the Edit RUM Application permission (project owners,
-              admins and telemetry admins have it). Ask a project admin to arm
-              the target for you.
+              {translator.translateText(
+                "Arming a recording of a named person is a capture-policy change, so it needs the Edit RUM Application permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.",
+              )}
             </div>
           </div>
         )}
 
         {!isLoading && canArm && !hasApplication && !error && (
           <div className="text-sm text-gray-500">
-            No RUM applications yet. Create one first, then target a user here.
+            {translator.translateText(
+              "No RUM applications yet. Create one first, then target a user here.",
+            )}
           </div>
         )}
 
@@ -298,7 +316,7 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
               {pinnedApplicationId === null && dropdownOptions.length > 1 && (
                 <div className="w-full sm:w-64">
                   <label className="mb-1.5 block text-xs font-medium text-gray-700">
-                    Application
+                    {translator.translateText("Application")}
                   </label>
                   <Dropdown
                     options={dropdownOptions}
@@ -324,7 +342,7 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
 
               <div className="w-full sm:max-w-sm">
                 <label className="mb-1.5 block text-xs font-medium text-gray-700">
-                  End-user reference
+                  {translator.translateText("End-user reference")}
                 </label>
                 <Input
                   value={userRef}
@@ -381,7 +399,7 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
                   void runAction("status");
                 }}
               >
-                Check whether a target is pending
+                {translator.translateText("Check whether a target is pending")}
               </button>
               <button
                 type="button"
@@ -397,7 +415,7 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
                   void runAction("clear");
                 }}
               >
-                Cancel target
+                {translator.translateText("Cancel target")}
               </button>
             </div>
           </div>
@@ -426,9 +444,10 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
               className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
             />
             <div className="text-sm text-emerald-800">
-              Target armed for <code>{normalizedUserRef}</code>. The next page
-              load that supplies this reference at load time will be recorded
-              from its first event. It expires in 24 hours.
+              <TranslatedSentence
+                template="Target armed for {{reference}}. The next page load that supplies this reference at load time will be recorded from its first event. It expires in 24 hours."
+                slots={{ reference: <code>{normalizedUserRef}</code> }}
+              />
             </div>
           </div>
         )}
@@ -443,8 +462,9 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
               className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
             />
             <div className="text-sm text-gray-600">
-              No target is pending for this reference. Either none was set, it
-              expired, or the user&apos;s session already consumed it.
+              {translator.translateText(
+                "No target is pending for this reference. Either none was set, it expired, or the user's session already consumed it.",
+              )}
             </div>
           </div>
         )}
@@ -453,22 +473,26 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
       <div className="border-t border-gray-100 bg-gray-50 px-5 py-3">
         <ul className="space-y-1 text-xs text-gray-500">
           <li>
-            The target expires after 24 hours and is consumed by the first
-            session that matches it.
+            {translator.translateText(
+              "The target expires after 24 hours and is consumed by the first session that matches it.",
+            )}
           </li>
           <li>
-            Only an HMAC of the reference is stored, which is why there is no
-            list of pending targets - you can only ask about a reference you
-            already know. The reference is compared exactly, after trimming.
+            {translator.translateText(
+              "Only an HMAC of the reference is stored, which is why there is no list of pending targets - you can only ask about a reference you already know. The reference is compared exactly, after trimming.",
+            )}
           </li>
           <li>
-            The user&apos;s page must supply the same reference at load time (
-            <code>data-oneuptime-user-ref</code> or the init global) for the
-            one-shot to fire. An <code>identify()</code> call later in the
-            session is too late for it, but still makes the session searchable
-            by <code>user:</code> in the list, with any traits you pass.
+            <TranslatedSentence
+              template="The user's page must supply the same reference at load time ({{attribute}} or the init global) for the one-shot to fire. An {{identify}} call later in the session is too late for it, but still makes the session searchable by {{userSearch}} in the list, with any traits you pass."
+              slots={{
+                attribute: <code>data-oneuptime-user-ref</code>,
+                identify: <code>identify()</code>,
+                userSearch: <code>user:</code>,
+              }}
+            />
           </li>
-          <li>Consent gates still apply.</li>
+          <li>{translator.translateText("Consent gates still apply.")}</li>
         </ul>
       </div>
     </div>

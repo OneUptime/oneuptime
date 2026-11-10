@@ -15,11 +15,23 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
+import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatInline,
+  formatList,
+  toSentenceTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import URL from "Common/Types/API/URL";
 import Route from "Common/Types/API/Route";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -28,10 +40,10 @@ import { JSONObject } from "Common/Types/JSON";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ChunkLoader, {
+  ReplayWordedError,
   SessionReplayChunkFetchRequest,
   SessionReplayRecordedEvent,
 } from "./ChunkLoader";
@@ -230,6 +242,42 @@ export const LIVE_MANIFEST_POLL_MS: number = 30 * 1000;
 
 /* "Opened at the moment of the log line" stays up this long. */
 const SHELL_NOTICE_MS: number = 4000;
+
+/*
+ * The shell's words are looked up in the reader's language when they are
+ * drawn. Words made outside a render - a failure kept in state, a note
+ * built once per manifest - are kept as their wording (a ComposedValue)
+ * and composed when drawn; ENGLISH writes the English the state keeps.
+ */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/* A manifest failure, or the shell's own failure with its wording. */
+type ReplayShellFailure = ReplayManifestFailure & {
+  wording?: ComposedValue | undefined;
+};
+
+/*
+ * A capture note's title as the summary line names it. English lowercases
+ * the whole title, as it always has ("2 capture notes: canvas not
+ * recorded, web fonts not captured"); another language cases it the way
+ * its own sentences do (toSentenceTerm: a German noun keeps its capital).
+ */
+function inCaptureNoteSummary(title: string, sentence: Translator): string {
+  return sentence.language === DEFAULT_LANGUAGE
+    ? title.toLowerCase()
+    : toSentenceTerm(title, sentence.language);
+}
+
+/* "Recording truncated. This session reached the maximum ...": one note. */
+function describeNoticeNote(
+  copy: { title: string; description: string },
+  translator: Translator,
+): string {
+  return translator.translateTemplate("{{title}}. {{description}}", {
+    title: copy.title,
+    description: copy.description,
+  });
+}
 
 type ReplayerConstructor = new (
   events: Array<SessionReplayRecordedEvent>,
@@ -665,6 +713,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
    */
   const rumApplicationIdString: string = props.rumApplicationId.toString();
   const { sessionId } = props;
+  const translator: Translator = useTranslator();
 
   const urlState: ReplayPlayerUrlState = useMemo((): ReplayPlayerUrlState => {
     if (props.initialUrlState) {
@@ -693,7 +742,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
   const [manifest, setManifest] = useState<SessionReplayManifest | null>(null);
   const [manifestFailure, setManifestFailure] =
-    useState<ReplayManifestFailure | null>(null);
+    useState<ReplayShellFailure | null>(null);
   const [reloadToken, setReloadToken] = useState<number>(0);
   const [replayerFactory, setReplayerFactory] =
     useState<ReplayerFactory | null>(null);
@@ -882,8 +931,16 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       );
 
       if (!response.ok) {
-        throw new Error(
-          `Could not load recording data (HTTP ${response.status}).`,
+        const status: number = response.status;
+
+        // In the player's words: quoted by the loader's and the engine's.
+        throw new ReplayWordedError(
+          composedValue((sentence: Translator): string => {
+            return sentence.translateTemplate(
+              "Could not load recording data (HTTP {{status}}).",
+              { status: status },
+            );
+          }),
         );
       }
 
@@ -1021,11 +1078,21 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         });
       } catch (err) {
         if (!isCancelled) {
+          // The browser's or the server's words, quoted as they are.
+          const reason: string = API.getFriendlyMessage(err);
+          const wording: ComposedValue = composedValue(
+            (sentence: Translator): string => {
+              return sentence.translateTemplate(
+                "The replay engine could not be downloaded. {{reason}}",
+                { reason: reason },
+              );
+            },
+          );
+
           setManifestFailure({
             kind: "error",
-            message: `The replay engine could not be downloaded. ${API.getFriendlyMessage(
-              err,
-            )}`,
+            message: wording.compose(ENGLISH),
+            wording: wording,
             isRetryable: true,
           });
         }
@@ -1880,54 +1947,100 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return { logs: logs, traces: traces, errors: errors };
   }, [backendSnapshot, telemetrySignals, allSignals]);
 
-  /* Static, manifest-level notes about the recording (not runtime state). */
-  const recordingNotes: Array<string> = useMemo(() => {
+  /*
+   * Static, manifest-level notes about the recording (not runtime state),
+   * each kept as its wording and composed in the reader's language when
+   * the banner is drawn.
+   */
+  const recordingNotes: Array<ComposedValue> = useMemo(() => {
     if (!manifest) {
       return [];
     }
 
-    const notes: Array<string> = [];
+    const notes: Array<ComposedValue> = [];
 
     if (manifest.isChunkIndexTruncated) {
       notes.push(
-        "This session has more chunks than the index can return, so the timeline stops short of the full recording.",
+        composedValue((inLanguage: Translator): string => {
+          return (
+            inLanguage.translateText(
+              "This session has more chunks than the index can return, so the timeline stops short of the full recording.",
+            ) || ""
+          );
+        }),
       );
     }
 
-    if (manifest.gaps.length > 0) {
+    const gapCount: number = manifest.gaps.length;
+
+    if (gapCount > 0) {
       notes.push(
-        `${manifest.gaps.length} gap${
-          manifest.gaps.length === 1 ? "" : "s"
-        } in this recording; playback jumps forward at each one instead of guessing what happened.`,
+        composedValue((inLanguage: Translator): string => {
+          return inLanguage.translatePlural(
+            {
+              one: "{{count}} gap in this recording; playback jumps forward at each one instead of guessing what happened.",
+              other:
+                "{{count}} gaps in this recording; playback jumps forward at each one instead of guessing what happened.",
+            },
+            gapCount,
+          );
+        }),
       );
     }
 
     for (const notice of manifest.fidelityNotices) {
-      const copy: FidelityNoticeCopy = getFidelityNoticeCopy(notice);
-
       if (getFidelityNoticeSeverity(notice) === "playback") {
-        notes.push(`${copy.title}. ${copy.description}`);
+        notes.push(
+          composedValue((inLanguage: Translator): string => {
+            return describeNoticeNote(
+              getFidelityNoticeCopy(notice, inLanguage),
+              inLanguage,
+            );
+          }),
+        );
       }
     }
 
     if (sealedReason && sealedReason.severity === "warn") {
-      notes.push(`${sealedReason.title}. ${sealedReason.description}`);
+      const reason: string = manifest.sealedReason;
+
+      notes.push(
+        composedValue((inLanguage: Translator): string => {
+          const copy: SealedReasonCopy | null = getSealedReasonCopy(
+            reason,
+            inLanguage,
+          );
+
+          return copy ? describeNoticeNote(copy, inLanguage) : "";
+        }),
+      );
     }
 
     return notes;
   }, [manifest, sealedReason]);
 
-  const captureNotes: Array<FidelityNoticeCopy> = useMemo(() => {
+  /* The fidelity notices the capture notes list, by code. */
+  const captureNoticeCodes: Array<string> = useMemo(() => {
     if (!manifest) {
       return [];
     }
 
-    return manifest.fidelityNotices
-      .filter((notice: string): boolean => {
-        return getFidelityNoticeSeverity(notice) !== "playback";
-      })
-      .map(getFidelityNoticeCopy);
+    return manifest.fidelityNotices.filter((notice: string): boolean => {
+      return getFidelityNoticeSeverity(notice) !== "playback";
+    });
   }, [manifest]);
+
+  const getCaptureNotes: (
+    inLanguage: Translator,
+  ) => Array<FidelityNoticeCopy> = (
+    inLanguage: Translator,
+  ): Array<FidelityNoticeCopy> => {
+    return captureNoticeCodes.map((notice: string): FidelityNoticeCopy => {
+      return getFidelityNoticeCopy(notice, inLanguage);
+    });
+  };
+
+  const captureNotes: Array<FidelityNoticeCopy> = getCaptureNotes(translator);
 
   const isCurrentAssetFailureReport: boolean =
     engine !== null && assetFailureReport.engine === engine;
@@ -1962,21 +2075,33 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     });
   }, [assetFailures]);
 
-  /* What the replay could not load, ahead of what the recorder could not capture. */
-  const playbackAssetNotes: Array<ReplayPlaybackAssetNote> =
-    useMemo((): Array<ReplayPlaybackAssetNote> => {
-      if (!manifest) {
-        return [];
-      }
+  /*
+   * What the replay could not load, ahead of what the recorder could not
+   * capture - in the language it is asked for in.
+   */
+  const getPlaybackAssetNotes: (
+    inLanguage: Translator,
+  ) => Array<ReplayPlaybackAssetNote> = (
+    inLanguage: Translator,
+  ): Array<ReplayPlaybackAssetNote> => {
+    if (!manifest) {
+      return [];
+    }
 
-      return buildReplayPlaybackAssetNotes({
+    return buildReplayPlaybackAssetNotes(
+      {
         failures: assetFailures,
         isTruncated: areAssetFailuresTruncated,
         maskingMode: manifest.details.maskingMode,
         recorderKind: manifest.details.recorderKind,
         docsRoot: DOCS_URL.toString(),
-      });
-    }, [manifest, assetFailures, areAssetFailuresTruncated]);
+      },
+      inLanguage,
+    );
+  };
+
+  const playbackAssetNotes: Array<ReplayPlaybackAssetNote> =
+    getPlaybackAssetNotes(translator);
 
   /* ---- URL: rail / q / tab / signal mirror the view state. ---- */
 
@@ -2502,32 +2627,45 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
    * The ended card's onward step (the "what happened next" question a
    * viewer has the moment a recording runs out): the same newer session
    * the header's arrow and "}" open, described the way the sessions menu
-   * describes its rows. One clock read for the whole card.
+   * describes its rows. One clock read for the whole card; its facts are
+   * set on one line in the reader's language when it is drawn.
    */
-  const nextUserSession: ReplayNextUserSession | null =
-    useMemo((): ReplayNextUserSession | null => {
-      const newer: ReplayUserSessionItem | null = adjacentUserSessions.newer;
+  const nextUserSessionFacts: {
+    sessionId: string;
+    description: ReplayUserSessionDescription;
+  } | null = useMemo((): {
+    sessionId: string;
+    description: ReplayUserSessionDescription;
+  } | null => {
+    const newer: ReplayUserSessionItem | null = adjacentUserSessions.newer;
 
-      if (!newer) {
-        return null;
-      }
+    if (!newer) {
+      return null;
+    }
 
-      const description: ReplayUserSessionDescription =
-        describeReplayUserSession(newer, Date.now());
+    return {
+      sessionId: newer.sessionId,
+      description: describeReplayUserSession(newer, Date.now()),
+    };
+  }, [adjacentUserSessions]);
 
-      return {
-        sessionId: newer.sessionId,
-        description: [
-          description.when,
-          description.path || "Unknown page",
-          description.duration,
-        ]
-          .filter((part: string): boolean => {
+  const nextUserSession: ReplayNextUserSession | null = nextUserSessionFacts
+    ? {
+        sessionId: nextUserSessionFacts.sessionId,
+        description: formatInline(
+          [
+            nextUserSessionFacts.description.when,
+            nextUserSessionFacts.description.path ||
+              translator.translateText("Unknown page") ||
+              "",
+            nextUserSessionFacts.description.duration,
+          ].filter((part: string): boolean => {
             return part.length > 0;
-          })
-          .join(" · "),
-      };
-    }, [adjacentUserSessions]);
+          }),
+          translator,
+        ),
+      }
+    : null;
 
   /* "{" and "}": the same two steps the header's arrow buttons take. */
   const openOlderUserSession: () => void = useCallback((): void => {
@@ -2681,7 +2819,13 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         currentTimeMs: latest?.currentTimeMs ?? null,
         durationMs: latest?.durationMs ?? null,
         loadedChunkIndexes: latest?.loadedChunkIndexes ?? [],
-        error: latest?.error ?? null,
+        // The English message: the diagnostic is read by support, not the viewer.
+        error: latest?.error
+          ? {
+              message: latest.error.message,
+              retryable: latest.error.retryable,
+            }
+          : null,
         engine: current?.getDiagnostics() ?? null,
         userAgent:
           typeof navigator !== "undefined" ? navigator.userAgent : null,
@@ -2846,27 +2990,39 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     if (manifestFailure.kind === "error") {
       return (
         <ErrorMessage
-          message={manifestFailure.message}
+          message={
+            manifestFailure.wording
+              ? manifestFailure.wording.compose(translator)
+              : manifestFailure.message
+          }
           onRefreshClick={reload}
         />
       );
     }
 
+    /*
+     * The server's own sentence (a value, as it wrote it), then ours, each
+     * whole: the day the footage expired, in the sentence's language, and
+     * where its telemetry can still be found.
+     */
     const emptyCopy: { title: string; description: string; icon: IconProp } =
       manifestFailure.kind === "expired"
         ? {
             title: "Footage expired",
-            description: `${manifestFailure.message}${
+            description: joinSentences([
+              manifestFailure.message,
               manifestFailure.expiresAtIso
-                ? ` Expired on ${inEnglishDates((): string => {
-                    // The server's English message leads this sentence.
-                    return OneUptimeDate.getDateAsLocalFormattedString(
-                      manifestFailure.expiresAtIso as string,
+                ? translator.translateTemplate("Expired on {{date}}.", {
+                    date: OneUptimeDate.getDateAsLocalFormattedString(
+                      manifestFailure.expiresAtIso,
                       true,
-                    );
-                  })}.`
-                : ""
-            } Its logs, traces and exceptions can still be found by session id.`,
+                    ),
+                  })
+                : "",
+              translator.translateText(
+                "Its logs, traces and exceptions can still be found by session id.",
+              ) || "",
+            ]),
             icon: IconProp.VideoCameraSlash,
           }
         : manifestFailure.kind === "erased"
@@ -2908,7 +3064,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               />
               <span
                 className="font-mono text-xs text-gray-400"
-                title="Session id"
+                title={translator.translateText("Session id")}
               >
                 {sessionId}
               </span>
@@ -2963,7 +3119,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   } as React.CSSProperties
                 }
                 role="status"
-                aria-label="Loading the recording"
+                aria-label={translator.translateText("Loading the recording")}
               />
             </div>
           </div>
@@ -3142,14 +3298,19 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                 <Icon icon={IconProp.Alert} className="h-3 w-3" />
               </span>
               <span>
-                {recordingNotes.length} note
-                {recordingNotes.length === 1 ? "" : "s"} about this recording
+                {translator.translatePlural(
+                  {
+                    one: "{{count}} note about this recording",
+                    other: "{{count}} notes about this recording",
+                  },
+                  recordingNotes.length,
+                )}
               </span>
             </summary>
             <ul className="mt-1 space-y-0.5 text-xs text-amber-800">
               {recordingNotes.map(
-                (note: string, index: number): ReactElement => {
-                  return <li key={index}>{note}</li>;
+                (note: ComposedValue, index: number): ReactElement => {
+                  return <li key={index}>{note.compose(translator)}</li>;
                 },
               )}
             </ul>
@@ -3260,7 +3421,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                             } as React.CSSProperties
                           }
                           role="status"
-                          aria-label="Loading the replay engine"
+                          aria-label={translator.translateText(
+                            "Loading the replay engine",
+                          )}
                           data-testid="replay-stage-placeholder"
                         />
                       )}
@@ -3351,17 +3514,41 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                     className="h-3 w-3 shrink-0 transition-transform group-open:rotate-90"
                   />
                   <span className="min-w-0 truncate">
-                    {playbackAssetNotes.length + captureNotes.length} capture
-                    note
-                    {playbackAssetNotes.length + captureNotes.length === 1
-                      ? ""
-                      : "s"}
-                    :{" "}
-                    {[...playbackAssetNotes, ...captureNotes]
-                      .map((note: FidelityNoticeCopy): string => {
-                        return note.title.toLowerCase();
-                      })
-                      .join(", ")}
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} capture note: {{titles}}",
+                        other: "{{count}} capture notes: {{titles}}",
+                      },
+                      playbackAssetNotes.length + captureNotes.length,
+                      {
+                        titles: composedValue(
+                          (sentence: Translator): string => {
+                            /*
+                             * The titles in the summary's own language:
+                             * the reader's, or English while theirs has
+                             * no wording of the summary.
+                             */
+                            const notes: Array<FidelityNoticeCopy> =
+                              sentence.language === translator.language
+                                ? [...playbackAssetNotes, ...captureNotes]
+                                : [
+                                    ...getPlaybackAssetNotes(sentence),
+                                    ...getCaptureNotes(sentence),
+                                  ];
+
+                            return formatList(
+                              notes.map((note: FidelityNoticeCopy): string => {
+                                return inCaptureNoteSummary(
+                                  note.title,
+                                  sentence,
+                                );
+                              }),
+                              sentence,
+                            );
+                          },
+                        ),
+                      },
+                    )}
                   </span>
                 </summary>
                 <div className="mt-2 space-y-2">
@@ -3393,10 +3580,14 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                                * warning is added for screen readers only.
                                */}
                               <span>
-                                Why they go missing, and how to allow them
+                                {translator.translateText(
+                                  "Why they go missing, and how to allow them",
+                                )}
                                 <span className="sr-only">
                                   {" "}
-                                  (opens in a new tab)
+                                  {translator.translateText(
+                                    "(opens in a new tab)",
+                                  )}
                                 </span>
                               </span>
                               <Icon
@@ -3462,8 +3653,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               <div
                 role="separator"
                 aria-orientation="vertical"
-                aria-label="Resize the events rail"
-                title="Drag to resize the rail"
+                aria-label={translator.translateText("Resize the events rail")}
+                title={translator.translateText("Drag to resize the rail")}
                 data-testid="replay-rail-resize-handle"
                 className="absolute -left-2 top-0 max-xl:hidden h-full w-3 cursor-col-resize xl:block"
                 onPointerDown={handleRailResizeStart}
@@ -3480,12 +3671,16 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                 type="button"
                 data-testid="replay-rail-expand"
                 className="flex h-full w-10 flex-col items-center justify-start gap-2 rounded-lg border border-gray-200 bg-white py-3 text-gray-500 hover:text-gray-800"
-                title="Show the events rail"
+                title={translator.translateText("Show the events rail")}
                 onClick={toggleRailCollapsed}
               >
                 <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
                 <span className="text-[10px] [writing-mode:vertical-rl]">
-                  Events {allSignals.length > 0 ? `(${allSignals.length})` : ""}
+                  {allSignals.length > 0
+                    ? translator.translateTemplate("Events ({{count}})", {
+                        count: allSignals.length,
+                      })
+                    : translator.translateText("Events")}
                 </span>
               </button>
             )}
