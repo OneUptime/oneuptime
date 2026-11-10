@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 47623,
-    "untranslated": 11063
+    "untranslated": 10660
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -420,6 +420,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} B",
     "{{count}} CPU",
     "{{count}} CPUs",

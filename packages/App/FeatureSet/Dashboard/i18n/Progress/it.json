@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 47623,
-    "untranslated": 11075
+    "untranslated": 10673
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -321,6 +321,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Viewport",
     "Vital",
     "Volume",
     "Web",
@@ -446,6 +447,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{controlPlane}} control plane, {{workers}}",
     "{{count}} B",
     "{{count}} CPU",
