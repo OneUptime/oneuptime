@@ -49129,5 +49129,6 @@
   "Enter this setup key in your authenticator app instead.": "Em vez disso, insira esta chave de configuração na sua aplicação de autenticação.",
   "If your app asks, choose a time-based key.": "Se a aplicação pedir, escolha uma chave baseada no tempo.",
   "QR code": "Código QR",
-  "The QR code could not be shown.": "Não foi possível mostrar o código QR."
+  "The QR code could not be shown.": "Não foi possível mostrar o código QR.",
+  "Microsoft Dataverse": "Microsoft Dataverse"
 }

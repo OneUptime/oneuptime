@@ -61,6 +61,7 @@ const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.AwsAthena, label: "Amazon Athena" },
   { value: DataStoreKind.Oracle, label: "Oracle" },
   { value: DataStoreKind.MongoDb, label: "MongoDB" },
+  { value: DataStoreKind.Dataverse, label: "Microsoft Dataverse" },
 ];
 
 /*
@@ -196,7 +197,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
               ? translator.translateTemplate("For this database: {{example}}", {
                   example: props.suggestion.connectionExample,
                 })
-              : "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks and Athena. Documentation shows each engine's.",
+              : "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks, Athena and Dataverse. Documentation shows each engine's.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (

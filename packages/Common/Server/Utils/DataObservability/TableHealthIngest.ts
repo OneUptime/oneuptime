@@ -357,7 +357,16 @@ export function planAssetUpdate(
     writeCount: table.writeCount,
     // The read counter as of the last read kept, to the hour (DataAssetReads).
     readCount: reads.state.readCount,
-    columnsKnown: table.columns !== null,
+    /*
+     * Columns left unread this time by design (Dataverse reads them once an
+     * hour) leave the columns last read known, so the next read is compared
+     * with them; columns that could not be read are compared with none.
+     */
+    columnsKnown:
+      table.columns !== null ||
+      (table.columnsNotRead === true &&
+        previous !== null &&
+        previous.columns !== null),
   };
 
   const isRestored: boolean = previous?.isDropped === true;

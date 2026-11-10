@@ -20,7 +20,9 @@ import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
 import { LLMMessage } from "../LLM/LLMService";
 import {
   checkCustomSql,
+  DATAVERSE_NO_WITH_MESSAGE,
   quoteIdentifier,
+  STARTS_WITH_WITH,
   tableReference,
 } from "./DataCheckSql";
 import { getCollectorEngineOfKind } from "./DataObservabilityEngines";
@@ -123,7 +125,9 @@ export function buildCheckFromSentencePrompt(data: {
       "Rules:",
       "- Start with SELECT or WITH. One statement only: no semicolons, no comments, never INSERT, UPDATE, DELETE, MERGE, DDL or a function that writes.",
       `- Read only the table given, written exactly as ${table}, and only the columns listed, quoted as listed.`,
-      `- Write SQL for ${data.engine}.`,
+      data.engine === "dataverse"
+        ? "- Write SQL for Microsoft Dataverse's TDS endpoint: SQL Server's T-SQL, read-only, with no WITH (common table expressions), no window functions (OVER) and no table hints. Start with SELECT."
+        : `- Write SQL for ${data.engine}.`,
       "- Alias the number AS value.",
       'Answer with JSON only, no prose and no code fence: {"name": "a short name for the check", "sql": "the query", "alertCondition": "Above" or "Below", "alertThreshold": a number, "explanation": "one sentence on what the query counts"}.',
       'For a rule that must never be broken, count the rows that break it and alert Above 0. Example: "orders never have a negative total" becomes {"name": "Orders with a negative total", "sql": "SELECT COUNT(*) AS value FROM \\"public\\".\\"orders\\" WHERE \\"total\\" < 0", "alertCondition": "Above", "alertThreshold": 0, "explanation": "Counts orders whose total is below zero."}',
@@ -203,6 +207,10 @@ export function readCheckSuggestion(
     sql = checkCustomSql(
       typeof answer["sql"] === "string" ? answer["sql"] : "",
     );
+
+    if (engine === "dataverse" && STARTS_WITH_WITH.test(sql)) {
+      throw new BadDataException(DATAVERSE_NO_WITH_MESSAGE);
+    }
 
     const namesItsValue: RegExp = /\bAS\s+["`[]?value["`\]]?/i;
 

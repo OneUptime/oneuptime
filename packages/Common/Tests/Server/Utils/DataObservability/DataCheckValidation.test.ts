@@ -122,6 +122,69 @@ describe("validateDataCheck", () => {
     }).not.toThrow();
   });
 
+  test("Dataverse's SQL endpoint: no regular expressions, no sample and no WITH, each said", () => {
+    expect(() => {
+      validateDataCheck(
+        {
+          checkType: DataCheckType.FormatMismatchPercent,
+          columnName: "status",
+          pattern: "^[a-z]+$",
+        },
+        facts("dataverse"),
+      );
+    }).toThrow("Dataverse's SQL has no regular expressions");
+    expect(() => {
+      validateDataCheck(
+        {
+          checkType: DataCheckType.NullPercent,
+          columnName: "status",
+          samplePercent: 10,
+        },
+        facts("dataverse"),
+      );
+    }).toThrow("it takes no sample");
+    expect(() => {
+      validateDataCheck(
+        {
+          checkType: DataCheckType.CustomSql,
+          customSql:
+            "WITH s AS (SELECT status FROM t) SELECT COUNT(*) AS value FROM s",
+        },
+        facts("dataverse"),
+      );
+    }).toThrow("Dataverse's SQL has no WITH");
+    expect(() => {
+      validateDataCheck(
+        {
+          checkType: DataCheckType.InvalidPercent,
+          columnName: "status",
+          acceptedValues: ["1", "2"],
+        },
+        facts("dataverse"),
+      );
+    }).not.toThrow();
+    expect(() => {
+      validateDataCheck(
+        {
+          checkType: DataCheckType.FailingRows,
+          customSql: "SELECT id FROM t WHERE status IS NULL",
+        },
+        facts("dataverse"),
+      );
+    }).not.toThrow();
+    // The same check elsewhere is unchanged.
+    expect(() => {
+      validateDataCheck(
+        {
+          checkType: DataCheckType.NullPercent,
+          columnName: "status",
+          samplePercent: 10,
+        },
+        facts("postgresql"),
+      );
+    }).not.toThrow();
+  });
+
   test("an interval outside the offered ones, or a threshold condition with no threshold", () => {
     refuses({ checkType: DataCheckType.RowCount, intervalInMinutes: 7 });
     refuses({

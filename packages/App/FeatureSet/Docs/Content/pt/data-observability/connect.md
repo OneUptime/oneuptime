@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 O MongoDB é lido pelo próprio driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, ou `mongodb://` com os hosts de um replica set. Um banco de dados no caminho é o único monitorado; sem ele, cada banco que o usuário pode ler é monitorado, e `{ role: "read", db: "orders" }` no lugar de `readAnyDatabase` o limita a um. Os documentos, o tamanho e as escritas de cada coleção vêm de `$collStats`, e quando ela recebeu o último documento, do seu `_id` mais recente. Seus campos vêm do esquema JSON do validador ou, senão, dos nomes e tipos dos campos dos seus 100 documentos mais recentes, calculados no banco para que nenhum valor saia dele. Os documentos são lidos em um secundário quando há um, e uma verificação personalizada é um pipeline de agregação, em JSON.
+@tab Microsoft Dataverse
+O OneUptime se conecta ao ambiente como um aplicativo. Registre um no Microsoft Entra ID e dê a ele um segredo do cliente. Depois, adicione-o ao ambiente como usuário de aplicativo: no Power Platform admin center, abra o ambiente e depois **Settings** > **Users + permissions** > **Application users** > **New app user**. Dê a ele uma função de segurança que possa ler as tabelas que você observa.
+
+Conecte-se com JSON:
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+Ou com uma string de conexão do Dataverse, no formato que os SDKs dele aceitam: `AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`. Omita o tenant e o ambiente diz em qual ele está.
+
+Um ambiente contém centenas de tabelas próprias, então só estas são observadas: as principais tabelas de negócio (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` e `annotation`) e as suas próprias tabelas personalizadas. As tabelas dos aplicativos da Microsoft, cujos nomes começam com `msdyn_`, `adx_` ou outro prefixo `ms`, ficam de fora. Informe qualquer outra tabela pelo nome lógico dela para observá-la também: `"tables": ["msdyn_workorder", "systemuser"]`.
+
+A cada cinco minutos, a Web API dá a definição de cada tabela, as linhas dela e o `modifiedon` mais recente, que é quando ela mudou pela última vez. As linhas vêm da contagem que o Dataverse faz uma vez por dia, então podem estar até um dia atrasadas. As colunas são lidas uma vez por hora. Cada coleta faz duas requisições, e mais uma por tabela observada, que contam para o limite do aplicativo de 6.000 requisições em cinco minutos. Quando o Dataverse pede que ela desacelere, o restante das leituras espera a próxima coleta. Exclua uma tabela para parar de lê-la.
+
+As verificações rodam como SQL somente leitura no endpoint TDS do ambiente, na porta 1433 ou 5558, conectadas como o mesmo aplicativo. O endpoint fica ativado, a menos que um administrador o tenha desativado. Onde o controle de acesso no nível do usuário estiver ativado para ele, a função do aplicativo precisa do privilégio **Allow user to access TDS endpoint**. O SQL dele não tem expressões regulares, nem `WITH`, nem amostra, então uma verificação ali lê todas as linhas.
 :::
 
 ## O que é lido, e com que frequência
@@ -162,6 +178,8 @@ Cada caminho passa então a aparecer em **Tabelas**: o objeto mais recente dele 
 - **As tabelas não mostram a última alteração.** O login não consegue ler as estatísticas do mecanismo: conceda o que a aba do seu mecanismo lista, ou espere as linhas de uma tabela mudarem duas vezes.
 - **Uma tabela está faltando.** Ela está em um esquema que o login não pode usar, ou está excluída no banco de dados. Conceda `USAGE` no esquema dela, ou remova a exclusão.
 - **Uma tabela do MySQL não tem colunas.** O login precisa de `REFERENCES`, como acima: ele mostra as colunas de uma tabela sem dar nenhuma leitura das linhas dela.
+- **Um ambiente do Dataverse diz que recusou o aplicativo.** Adicione o aplicativo ao ambiente como usuário de aplicativo, com uma função de segurança que possa ler as tabelas, como na aba Microsoft Dataverse.
+- **Uma tabela do Dataverse está faltando.** Só as principais tabelas de negócio e as suas próprias tabelas personalizadas são observadas. Informe-a em `tables`, pelo nome lógico dela.
 
 ## Próximos passos
 

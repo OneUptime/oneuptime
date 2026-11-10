@@ -19,6 +19,11 @@ import {
 } from "./DatabricksApi";
 import { AthenaConnection, readAthenaConnection } from "./AthenaApi";
 import {
+  DataverseConnection,
+  getDataverseOrganization,
+  readDataverseConnection,
+} from "./DataverseApi";
+import {
   OracleConnectAttributes,
   readOracleConnection,
 } from "./OracleConnection";
@@ -187,6 +192,21 @@ export function readConnectionTarget(
       return {
         databaseName: readName(athena.database),
         host: readName(`athena.${athena.region}.amazonaws.com`),
+        port: 443,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // Dataverse's: the environment's organization and host. Never the app's secret.
+  if (connection.engine === "dataverse") {
+    try {
+      const dataverse: DataverseConnection = readDataverseConnection(value);
+
+      return {
+        databaseName: readName(getDataverseOrganization(dataverse.host)),
+        host: readName(dataverse.host),
         port: 443,
       };
     } catch {

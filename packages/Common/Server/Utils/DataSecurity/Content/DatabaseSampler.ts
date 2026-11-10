@@ -77,7 +77,8 @@ export type DatabaseEngine =
   | "databricks"
   | "athena"
   | "oracle"
-  | "mongodb";
+  | "mongodb"
+  | "dataverse";
 
 export const DATABASE_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "postgresql",
@@ -285,8 +286,19 @@ export function getConnectionSecrets(connectionString: string): Array<string> {
 
     const key: string = pair.slice(0, equals).trim().toLowerCase();
 
-    if (key === "password" || key === "pwd") {
-      secrets.add(pair.slice(equals + 1).trim());
+    // A Dataverse connection string's ClientSecret=, beside a database's Password=.
+    if (
+      key === "password" ||
+      key === "pwd" ||
+      key === "clientsecret" ||
+      key === "secret"
+    ) {
+      secrets.add(
+        pair
+          .slice(equals + 1)
+          .trim()
+          .replace(/^(["'])(.*)\1$/, "$2"),
+      );
     }
   }
 

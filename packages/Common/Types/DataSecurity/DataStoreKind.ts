@@ -44,6 +44,7 @@ export enum DataStoreKind {
   ClickHouse = "ClickHouse",
   Databricks = "Databricks",
   AwsAthena = "Amazon Athena",
+  Dataverse = "Microsoft Dataverse",
   TelemetryLogs = "Logs",
   TelemetryTraces = "Traces",
   TelemetryExceptions = "Exceptions",
@@ -192,6 +193,8 @@ export const DATA_STORE_KINDS: ReadonlyArray<DataStoreKindInfo> = [
   kind(K.AwsAthena, P.Aws, F.Warehouse, {
     cloudResourceType: "AWS::Glue::Database",
   }),
+  // Dynamics 365's and Power Apps' data, read over its Web API: connected by hand, like Snowflake.
+  kind(K.Dataverse, P.SelfManaged, F.Database),
   kind(K.TelemetryLogs, P.OneUptime, F.Telemetry, {
     contentScannable: true,
     icon: IconProp.Logs,

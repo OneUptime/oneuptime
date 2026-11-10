@@ -13,7 +13,7 @@ Fügen Sie eine Prüfung im Tab **Prüfungen** einer Tabelle hinzu:
 | **Distinct Count** | Wie viele verschiedene Werte die Spalte enthält |
 | **Minimum**, **Maximum**, **Durchschnitt**, **Summe** | Die Werte einer numerischen Spalte (eine Summe über keine Zeilen ist 0) |
 | **Invalid Percent** | Prozentsatz der Werte außerhalb einer Liste, die Sie angeben |
-| **Format Mismatch Percent** | Prozentsatz der Werte, die nicht in einem Format sind, das Sie wählen, etwa Email, UUID oder Country Code, oder die nicht auf einen regulären Ausdruck von Ihnen passen (jede Engine außer SQL Server) |
+| **Format Mismatch Percent** | Prozentsatz der Werte, die nicht in einem Format sind, das Sie wählen, etwa Email, UUID oder Country Code, oder die nicht auf einen regulären Ausdruck von Ihnen passen (jede Engine außer SQL Server und Dataverse) |
 | **Orphan Count** | Zeilen, deren Wert keine Entsprechung in der Spalte einer anderen Tabelle hat |
 | **Zeilenanzahl** | Zeilen in der Tabelle, am nützlichsten mit **Segmentieren nach** |
 | **Benutzerdefiniertes SQL** | Die Zahl, die ein schreibgeschütztes SELECT von Ihnen zurückgibt, benannt `value` (bei MongoDB die einer Aggregations-Pipeline) |
@@ -48,7 +48,7 @@ Der **Status** einer Prüfung, unter **Prüfungen** und auf dem Tab **Prüfungen
 
 Eine Prüfung konkurriert mit Ihrer Anwendung um die Datenbank, und bei einem Warehouse, das nach dem abrechnet, was eine Abfrage liest, kostet sie Geld. Drei Dinge halten das im Griff:
 
-- **Stichprobenanteil (%)** liest einen Teil der Zeilen statt aller, für eine Prüfung, die eine Rate liest: Null Percent, Durchschnitt, Invalid Percent und Format Mismatch Percent. Die meisten Engines überspringen ganze Seiten der Tabelle; MySQL, Redshift, ClickHouse und MongoDB lesen weiterhin jede Zeile und sparen sich die Arbeit für den Rest. Eine Sicht kann es ablehnen, und die Prüfung sagt das.
+- **Stichprobenanteil (%)** liest einen Teil der Zeilen statt aller, für eine Prüfung, die eine Rate liest: Null Percent, Durchschnitt, Invalid Percent und Format Mismatch Percent. Die meisten Engines überspringen ganze Seiten der Tabelle; MySQL, Redshift, ClickHouse und MongoDB lesen weiterhin jede Zeile und sparen sich die Arbeit für den Rest. Dataverse nimmt keine Stichprobe: Eine Prüfung liest dort jede Zeile. Eine Sicht kann es ablehnen, und die Prüfung sagt das.
 - **Maximal von einer Prüfung lesbar (GB)** unter **Einstellungen** stoppt eine Prüfung bei BigQuery oder Athena, bevor sie mehr als so viele Gigabyte liest. Der Wert ist 10, bis Sie ihn ändern.
 - **Warten, wenn eine Datenbank ausgelastet ist** unter **Einstellungen** lässt fällige Prüfungen für die nächste Erfassung liegen, wenn eine PostgreSQL-, MySQL- oder SQL-Server-Datenbank ausgelastet wirkt. Es ist eingeschaltet, bis Sie es ausschalten, und die Datenbank sagt, wann Prüfungen gewartet haben.
 

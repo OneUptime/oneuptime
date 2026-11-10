@@ -49129,5 +49129,6 @@
   "Enter this setup key in your authenticator app instead.": "대신 인증 앱에 이 설정 키를 입력하세요.",
   "If your app asks, choose a time-based key.": "앱에서 묻는 경우 시간 기반 키를 선택하세요.",
   "QR code": "QR 코드",
-  "The QR code could not be shown.": "QR 코드를 표시할 수 없습니다."
+  "The QR code could not be shown.": "QR 코드를 표시할 수 없습니다.",
+  "Microsoft Dataverse": "Microsoft Dataverse"
 }

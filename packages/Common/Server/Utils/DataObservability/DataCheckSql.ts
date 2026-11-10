@@ -2,6 +2,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import {
   DataCheckType,
   FAILING_ROW_CHECK_TYPES,
+  isQueryCheckType,
   isSampleableCheckType,
   MAX_ACCEPTED_VALUES,
   MAX_FAILING_ROWS,
@@ -47,8 +48,8 @@ export interface DataCheckStatement {
   sql: string;
   /*
    * In order, for the engine's placeholders: $1 (PostgreSQL), ? (MySQL,
-   * Snowflake, BigQuery), @p0 (SQL Server), {p1:String} (ClickHouse), :p1
-   * (Databricks).
+   * Snowflake, BigQuery), @p0 (SQL Server, and Dataverse, which writes
+   * them in), {p1:String} (ClickHouse), :p1 (Databricks).
    */
   params: Array<string>;
   // Whether the statement reads one row per segment.
@@ -83,6 +84,7 @@ export function quoteIdentifier(engine: DatabaseEngine, name: string): string {
     case "clickhouse":
       return `\`${name.replace(/[`\\]/g, "\\$&")}\``;
     case "sqlserver":
+    case "dataverse":
       return `[${name.replace(/\]/g, "]]")}]`;
     default:
       return `"${name.replace(/"/g, '""')}"`;
@@ -430,6 +432,33 @@ export function checkCustomSql(value: string): string {
   return sql;
 }
 
+/*
+ * Dataverse's SQL endpoint reads a subset of SQL Server's dialect, so a
+ * check there is written as SQL Server's, with what the endpoint lacks
+ * refused: regular expressions, a sample (it reads every row) and WITH.
+ */
+export const DATAVERSE_NO_REGEX_MESSAGE: string =
+  "Dataverse's SQL has no regular expressions: use an Invalid Percent check, or Custom SQL with LIKE.";
+export const DATAVERSE_NO_WITH_MESSAGE: string =
+  "Dataverse's SQL has no WITH: write the query as one SELECT, with a subquery where it needs one.";
+// A query that starts with a common table expression, which Dataverse's SQL lacks.
+export const STARTS_WITH_WITH: RegExp = /^\s*with\b/i;
+
+function forDataverse(target: DataCheckTarget): DataCheckTarget {
+  if (target.type === DataCheckType.FormatMismatchPercent) {
+    throw new BadDataException(DATAVERSE_NO_REGEX_MESSAGE);
+  }
+
+  if (
+    isQueryCheckType(target.type) &&
+    STARTS_WITH_WITH.test(target.customSql || "")
+  ) {
+    throw new BadDataException(DATAVERSE_NO_WITH_MESSAGE);
+  }
+
+  return { ...target, samplePercent: null };
+}
+
 export function buildDataCheckStatement(
   engine: DatabaseEngine,
   target: DataCheckTarget,
@@ -437,6 +466,10 @@ export function buildDataCheckStatement(
   // MongoDB has no SQL: an aggregation pipeline (MongoDbChecks).
   if (engine === "mongodb") {
     return buildMongoCheckStatement(target);
+  }
+
+  if (engine === "dataverse") {
+    return buildDataCheckStatement("sqlserver", forDataverse(target));
   }
 
   const params: Array<string> = [];
@@ -554,6 +587,10 @@ export function buildDataCheckSampleStatement(
     return null;
   }
 
+  if (engine === "dataverse") {
+    return buildDataCheckSampleStatement("sqlserver", forDataverse(target));
+  }
+
   const params: Array<string> = [];
 
   if (target.type === DataCheckType.FailingRows) {
@@ -608,6 +645,10 @@ export function buildFreshnessStatement(
 ): { sql: string; params: Array<string> } {
   if (engine === "mongodb") {
     return buildMongoLatestStatement(target);
+  }
+
+  if (engine === "dataverse") {
+    return buildFreshnessStatement("sqlserver", target);
   }
 
   return {

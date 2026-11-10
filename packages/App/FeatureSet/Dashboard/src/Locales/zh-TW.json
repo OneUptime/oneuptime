@@ -49129,5 +49129,6 @@
   "Enter this setup key in your authenticator app instead.": "請改為在驗證器應用程式中輸入此設定金鑰。",
   "If your app asks, choose a time-based key.": "如果應用程式詢問，請選擇以時間為基礎的金鑰。",
   "QR code": "QR 碼",
-  "The QR code could not be shown.": "無法顯示 QR 碼。"
+  "The QR code could not be shown.": "無法顯示 QR 碼。",
+  "Microsoft Dataverse": "Microsoft Dataverse"
 }
