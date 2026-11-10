@@ -20,7 +20,6 @@ const ProductAnalyticsEventsSwitchCopy: {
   cardDescription: string;
   switchTitle: string;
   switchDescription: string;
-  offTitle: string;
   offDescription: string;
   replayOffNote: string;
   propertiesCardTitle: string;
@@ -37,12 +36,12 @@ const ProductAnalyticsEventsSwitchCopy: {
   switchDescription: translationKey(
     "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.",
   ),
-  offTitle: translationKey("Product analytics events are off"),
   offDescription: translationKey(
     "Turn them on to count every session's start, page views and the events your app sends with track(). Nothing changes on your pages: the recorder you installed for Session Replay sends them.",
   ),
+  // {{replayPolicy}}: a link to the page, in the words of its menu item.
   replayOffNote: translationKey(
-    "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.",
+    "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.",
   ),
   propertiesCardTitle: translationKey("User Properties for Analytics"),
   propertiesCardDescription: translationKey(

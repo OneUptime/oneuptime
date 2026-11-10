@@ -48035,7 +48035,6 @@
   "Product Analytics Event": "Productanalysegebeurtenis",
   "Product Analytics Events": "Productanalysegebeurtenissen",
   "Product Analytics User Properties": "Gebruikerseigenschappen voor productanalyse",
-  "Product analytics events are off": "Productanalysegebeurtenissen staan uit",
   "Proxmox Cluster Details": "Proxmox-clusterdetails",
   "Raw Error Message": "Onbewerkte foutmelding",
   "Recieved In Minutes": "Ontvangen in minuten",
@@ -48093,7 +48092,6 @@
   "Server Process Name": "Naam van serverproces",
   "Server Process PID": "PID van serverproces",
   "Server heartbeat last received {{minutes}} minutes ago.": "Laatste serverheartbeat {{minutes}} minuten geleden ontvangen.",
-  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.": "Sessieherhaling staat uit voor deze applicatie, en het is de recorder daarvan die de gebeurtenissen verzendt. Schakel die ook in onder Herhalingsbeleid.",
   "Session started": "Sessie gestart",
   "Sessions it happened in at least once.": "Sessies waarin het minstens één keer gebeurde.",
   "Show only {{value}}": "Alleen {{value}} tonen",
@@ -48202,7 +48200,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}; aan het ingestelde filter is niet voldaan.",
   "{{percent}} did every step": "{{percent}} deed elke stap",
   "{{percent}} went on": "{{percent}} ging door",
-  "Every session the browser recorder runs in sends its start and its page views on its own. Send your own events and numbers from your app's code:": "Elke sessie waarin de browserrecorder draait, verzendt zelf haar begin en haar paginaweergaven. Verzend uw eigen gebeurtenissen en getallen vanuit de code van uw app:",
   "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "De browserrecorder verzendt het begin van elke sessie, de paginaweergaven en uw track()- en metric()-aanroepen vanuit elke sessie, opgenomen of niet. Toestemming, Do Not Track en de toegestane origins gelden zoals voor opnamen.",
   "{{subject}} is {{values}} which is": "{{subject}} is {{values}} en daarmee",
   "{{subject}} is {{values}} which is contains {{threshold}}.": "{{subject}} is {{values}} en bevat {{threshold}}.",
@@ -48339,5 +48336,8 @@
   "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.": "Sms-berichten aan de mensen in dit project, zoals bereikbaarheidsmeldingen, gaan voortaan via deze configuratie. Oproepen houden de projectstandaard die ze hebben.",
   "The calls to people in this project, such as on-call alerts, will go through this config. SMS keep the project default they have.": "Oproepen aan de mensen in dit project, zoals bereikbaarheidsmeldingen, gaan voortaan via deze configuratie. Sms-berichten houden de projectstandaard die ze hebben.",
   "Is Project Default for Calls": "Is Project Default for Calls",
-  "Is Project Default for SMS": "Is Project Default for SMS"
+  "Is Project Default for SMS": "Is Project Default for SMS",
+  "Install the recorder": "De recorder installeren",
+  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Sessieherhaling staat uit voor deze applicatie, en het is de recorder daarvan die de gebeurtenissen verzendt. Schakel die ook in onder {{replayPolicy}}.",
+  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "Sessiestarts en paginaweergaven komen vanzelf binnen van elke pagina waarop de browserrecorder is geïnstalleerd. Om te tellen wat mensen daar doen, verzendt u gebeurtenissen en getallen vanuit de code van uw app:"
 }

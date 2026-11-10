@@ -48035,7 +48035,6 @@
   "Product Analytics Event": "प्रोडक्ट एनालिटिक्स इवेंट",
   "Product Analytics Events": "प्रोडक्ट एनालिटिक्स इवेंट",
   "Product Analytics User Properties": "प्रोडक्ट एनालिटिक्स उपयोगकर्ता प्रॉपर्टी",
-  "Product analytics events are off": "प्रोडक्ट एनालिटिक्स इवेंट बंद हैं",
   "Proxmox Cluster Details": "Proxmox क्लस्टर विवरण",
   "Raw Error Message": "मूल त्रुटि संदेश",
   "Recieved In Minutes": "मिनटों में प्राप्त",
@@ -48093,7 +48092,6 @@
   "Server Process Name": "सर्वर प्रक्रिया का नाम",
   "Server Process PID": "सर्वर प्रक्रिया PID",
   "Server heartbeat last received {{minutes}} minutes ago.": "सर्वर का अंतिम हार्टबीट {{minutes}} मिनट पहले मिला।",
-  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.": "इस एप्लिकेशन के लिए सेशन रीप्ले बंद है, और इवेंट उसी का रिकॉर्डर भेजता है। इसे रीप्ले नीति में भी चालू करें।",
   "Session started": "सेशन शुरू हुआ",
   "Sessions it happened in at least once.": "वे सेशन जिनमें यह कम से कम एक बार हुआ।",
   "Show only {{value}}": "केवल {{value}} दिखाएँ",
@@ -48202,7 +48200,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}; कॉन्फ़िगर किया गया फ़िल्टर पूरा नहीं हुआ।",
   "{{percent}} did every step": "{{percent}} ने हर चरण किया",
   "{{percent}} went on": "{{percent}} आगे बढ़े",
-  "Every session the browser recorder runs in sends its start and its page views on its own. Send your own events and numbers from your app's code:": "जिस भी सेशन में ब्राउज़र रिकॉर्डर चलता है, वह अपनी शुरुआत और अपने पेज व्यू अपने आप भेजता है। अपने ऐप के कोड से अपने इवेंट और संख्याएँ भेजें:",
   "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "ब्राउज़र रिकॉर्डर हर सेशन से, चाहे वह रिकॉर्ड हुआ हो या नहीं, सेशन की शुरुआत, उसके पेज व्यू और आपके track() और metric() कॉल भेजता है। सहमति, Do Not Track और अनुमत ऑरिजिन वैसे ही लागू होते हैं जैसे रिकॉर्डिंग पर।",
   "{{subject}} is {{values}} which is": "{{subject}}: {{values}}",
   "{{subject}} is {{values}} which is contains {{threshold}}.": "{{subject}}: {{values}}, जिसमें {{threshold}} शामिल है।",
@@ -48339,5 +48336,8 @@
   "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.": "इस प्रोजेक्ट के लोगों को भेजे जाने वाले SMS, जैसे ऑन-कॉल अलर्ट, इस कॉन्फ़िगरेशन के ज़रिए जाएंगे। कॉल अपने मौजूदा प्रोजेक्ट डिफ़ॉल्ट से ही जाती रहेंगी।",
   "The calls to people in this project, such as on-call alerts, will go through this config. SMS keep the project default they have.": "इस प्रोजेक्ट के लोगों को की जाने वाली कॉल, जैसे ऑन-कॉल अलर्ट, इस कॉन्फ़िगरेशन के ज़रिए जाएंगी। SMS अपने मौजूदा प्रोजेक्ट डिफ़ॉल्ट से ही जाते रहेंगे।",
   "Is Project Default for Calls": "Is Project Default for Calls",
-  "Is Project Default for SMS": "Is Project Default for SMS"
+  "Is Project Default for SMS": "Is Project Default for SMS",
+  "Install the recorder": "रिकॉर्डर इंस्टॉल करें",
+  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "इस एप्लिकेशन के लिए सेशन रीप्ले बंद है, और इवेंट उसी का रिकॉर्डर भेजता है। इसे {{replayPolicy}} में भी चालू करें।",
+  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "सेशन की शुरुआत और पेज व्यू हर उस पेज से अपने आप आते हैं जिस पर ब्राउज़र रिकॉर्डर इंस्टॉल है। वहाँ लोग क्या करते हैं, यह गिनने के लिए अपने ऐप के कोड से इवेंट और संख्याएँ भेजें:"
 }

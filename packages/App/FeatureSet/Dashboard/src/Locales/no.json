@@ -48035,7 +48035,6 @@
   "Product Analytics Event": "Produktanalysehendelse",
   "Product Analytics Events": "Produktanalysehendelser",
   "Product Analytics User Properties": "Brukeregenskaper for produktanalyse",
-  "Product analytics events are off": "Produktanalysehendelser er slått av",
   "Proxmox Cluster Details": "Detaljer for Proxmox-klynge",
   "Raw Error Message": "Rå feilmelding",
   "Recieved In Minutes": "Mottatt innen (minutter)",
@@ -48093,7 +48092,6 @@
   "Server Process Name": "Navn på serverprosess",
   "Server Process PID": "PID for serverprosess",
   "Server heartbeat last received {{minutes}} minutes ago.": "Siste hjerteslag fra serveren ble mottatt for {{minutes}} minutter siden.",
-  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.": "Øktavspilling er slått av for denne applikasjonen, og det er opptakeren dens som sender hendelsene. Slå den også på under Avspillingspolicy.",
   "Session started": "Økt startet",
   "Sessions it happened in at least once.": "Økter der det skjedde minst én gang.",
   "Show only {{value}}": "Vis bare {{value}}",
@@ -48202,7 +48200,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}; det konfigurerte filteret ble ikke oppfylt.",
   "{{percent}} did every step": "{{percent}} utførte alle trinn",
   "{{percent}} went on": "{{percent}} gikk videre",
-  "Every session the browser recorder runs in sends its start and its page views on its own. Send your own events and numbers from your app's code:": "Hver økt nettleseropptakeren kjører i, sender selv starten sin og sidevisningene sine. Send dine egne hendelser og tall fra appens kode:",
   "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "Nettleseropptakeren sender starten på hver økt, sidevisningene og track()- og metric()-kallene dine fra hver økt, tatt opp eller ikke. Samtykke, Do Not Track og de tillatte opprinnelsene gjelder som for opptak.",
   "{{subject}} is {{values}} which is": "{{subject}} er {{values}}, som er",
   "{{subject}} is {{values}} which is contains {{threshold}}.": "{{subject}} er {{values}}, som inneholder {{threshold}}.",
@@ -48339,5 +48336,8 @@
   "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.": "SMS-er til personene i dette prosjektet, som vaktvarsler, vil gå gjennom denne konfigurasjonen. Anrop beholder prosjektstandarden de har.",
   "The calls to people in this project, such as on-call alerts, will go through this config. SMS keep the project default they have.": "Anrop til personene i dette prosjektet, som vaktvarsler, vil gå gjennom denne konfigurasjonen. SMS-er beholder prosjektstandarden de har.",
   "Is Project Default for Calls": "Is Project Default for Calls",
-  "Is Project Default for SMS": "Is Project Default for SMS"
+  "Is Project Default for SMS": "Is Project Default for SMS",
+  "Install the recorder": "Installer opptakeren",
+  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Øktavspilling er slått av for denne applikasjonen, og det er opptakeren dens som sender hendelsene. Slå den også på under {{replayPolicy}}.",
+  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "Øktstarter og sidevisninger kommer av seg selv fra hver side nettleseropptakeren er installert på. For å telle hva folk gjør der, send hendelser og tall fra appens kode:"
 }

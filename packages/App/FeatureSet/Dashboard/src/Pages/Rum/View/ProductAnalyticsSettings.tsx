@@ -14,6 +14,9 @@ import ProductAnalyticsEventsSwitchCopy, {
   PRODUCT_ANALYTICS_EVENTS_SWITCH_COLUMN,
   PRODUCT_ANALYTICS_EVENTS_SWITCH_TEST_ID,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsEventsSwitchCopy";
+import { ProductAnalyticsReplayOffNote } from "../../../Components/ProductAnalytics/ProductAnalyticsEventsGate";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 
 /*
  * Product Analytics > Analytics Settings (issue #6444, part two): whether
@@ -75,6 +78,26 @@ const RumApplicationProductAnalyticsSettings: FunctionComponent<
         getDescription={(): string => {
           return ProductAnalyticsEventsSwitchCopy.switchDescription;
         }}
+        select={{ isSessionReplayEnabled: true }}
+        /*
+         * Session Replay off: its recorder, which sends the events, never
+         * loads - said under the switch, with the way to turn it on.
+         */
+        getDetails={(item: RumApplication): ReactElement | null => {
+          if (item.isSessionReplayEnabled !== false) {
+            return null;
+          }
+
+          return (
+            <div className="flex items-start gap-1.5 text-sm text-amber-800">
+              <Icon
+                icon={IconProp.Alert}
+                className="mt-0.5 h-4 w-4 flex-none text-amber-600"
+              />
+              <ProductAnalyticsReplayOffNote rumApplicationId={modelId} />
+            </div>
+          );
+        }}
         dataTestId={PRODUCT_ANALYTICS_EVENTS_SWITCH_TEST_ID}
       />
       <CardModelDetail<RumApplication>
@@ -86,6 +109,7 @@ const RumApplicationProductAnalyticsSettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit User Properties"
+        editModalTitle="Edit User Properties"
         formFields={[
           {
             field: { productAnalyticsUserPropertyKeys: true },

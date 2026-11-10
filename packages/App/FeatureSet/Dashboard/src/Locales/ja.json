@@ -48035,7 +48035,6 @@
   "Product Analytics Event": "プロダクト分析イベント",
   "Product Analytics Events": "プロダクト分析イベント",
   "Product Analytics User Properties": "プロダクト分析のユーザープロパティ",
-  "Product analytics events are off": "プロダクト分析イベントはオフです",
   "Proxmox Cluster Details": "Proxmox クラスターの詳細",
   "Raw Error Message": "生のエラーメッセージ",
   "Recieved In Minutes": "分以内に受信",
@@ -48093,7 +48092,6 @@
   "Server Process Name": "サーバープロセス名",
   "Server Process PID": "サーバープロセスの PID",
   "Server heartbeat last received {{minutes}} minutes ago.": "サーバーのハートビートを最後に受信したのは {{minutes}} 分前です。",
-  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.": "このアプリケーションではセッションリプレイがオフになっていますが、イベントを送信するのはそのレコーダーです。リプレイポリシーでもオンにしてください。",
   "Session started": "セッション開始",
   "Sessions it happened in at least once.": "1 回以上発生したセッション。",
   "Show only {{value}}": "{{value}} のみ表示",
@@ -48202,7 +48200,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}（設定されたフィルターの条件を満たしていません）。",
   "{{percent}} did every step": "{{percent}} がすべてのステップを完了",
   "{{percent}} went on": "{{percent}} が次へ進んだ",
-  "Every session the browser recorder runs in sends its start and its page views on its own. Send your own events and numbers from your app's code:": "ブラウザーレコーダーが動作するすべてのセッションは、開始とページビューを自動で送信します。独自のイベントと数値はアプリのコードから送信します:",
   "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "ブラウザーレコーダーは、記録の有無にかかわらず、すべてのセッションから各セッションの開始、ページビュー、track() と metric() の呼び出しを送信します。同意、Do Not Track、許可されたオリジンは、記録と同じように適用されます。",
   "{{subject}} is {{values}} which is": "{{subject}}は {{values}}",
   "{{subject}} is {{values}} which is contains {{threshold}}.": "{{subject}}は {{values}} で、{{threshold}} を含んでいます。",
@@ -48339,5 +48336,8 @@
   "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.": "オンコールアラートなど、このプロジェクトのメンバーへの SMS は、この設定を経由するようになります。通話は現在のプロジェクトのデフォルトのままです。",
   "The calls to people in this project, such as on-call alerts, will go through this config. SMS keep the project default they have.": "オンコールアラートなど、このプロジェクトのメンバーへの通話は、この設定を経由するようになります。SMS は現在のプロジェクトのデフォルトのままです。",
   "Is Project Default for Calls": "通話のプロジェクトのデフォルト",
-  "Is Project Default for SMS": "SMS のプロジェクトのデフォルト"
+  "Is Project Default for SMS": "SMS のプロジェクトのデフォルト",
+  "Install the recorder": "レコーダーをインストール",
+  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "このアプリケーションではセッションリプレイがオフになっていますが、イベントを送信するのはそのレコーダーです。{{replayPolicy}}でもオンにしてください。",
+  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "セッションの開始とページビューは、ブラウザーレコーダーがインストールされているすべてのページから自動で届きます。そこでユーザーが何をしているかを数えるには、アプリのコードからイベントと数値を送信します:"
 }

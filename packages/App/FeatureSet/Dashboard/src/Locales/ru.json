@@ -48035,7 +48035,6 @@
   "Product Analytics Event": "Событие продуктовой аналитики",
   "Product Analytics Events": "События продуктовой аналитики",
   "Product Analytics User Properties": "Свойства пользователей для продуктовой аналитики",
-  "Product analytics events are off": "События продуктовой аналитики выключены",
   "Proxmox Cluster Details": "Сведения о кластере Proxmox",
   "Raw Error Message": "Исходное сообщение об ошибке",
   "Recieved In Minutes": "Получено в течение (мин)",
@@ -48093,7 +48092,6 @@
   "Server Process Name": "Имя процесса сервера",
   "Server Process PID": "PID процесса сервера",
   "Server heartbeat last received {{minutes}} minutes ago.": "Последний heartbeat сервера получен {{minutes}} мин назад.",
-  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.": "Воспроизведение сеансов для этого приложения выключено, а события отправляет именно его рекордер. Включите его также в разделе «Политика воспроизведения».",
   "Session started": "Сеанс начат",
   "Sessions it happened in at least once.": "Сеансы, в которых это произошло хотя бы раз.",
   "Show only {{value}}": "Показать только {{value}}",
@@ -48202,7 +48200,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}; настроенный фильтр не выполнен.",
   "{{percent}} did every step": "Прошли все шаги: {{percent}}",
   "{{percent}} went on": "Перешли дальше: {{percent}}",
-  "Every session the browser recorder runs in sends its start and its page views on its own. Send your own events and numbers from your app's code:": "Каждый сеанс, в котором работает браузерный рекордер, сам отправляет своё начало и просмотры страниц. Отправляйте собственные события и числа из кода приложения:",
   "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "Браузерный рекордер отправляет начало каждого сеанса, просмотры страниц и ваши вызовы track() и metric() из каждого сеанса, записанного или нет. Согласие, Do Not Track и разрешённые источники применяются так же, как к записям.",
   "{{subject}} is {{values}} which is": "{{subject}}: {{values}}",
   "{{subject}} is {{values}} which is contains {{threshold}}.": "{{subject}}: {{values}} — содержит {{threshold}}.",
@@ -48339,5 +48336,8 @@
   "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.": "SMS участникам этого проекта, например оповещения дежурных, будут идти через эту конфигурацию. Звонки остаются на своей конфигурации по умолчанию.",
   "The calls to people in this project, such as on-call alerts, will go through this config. SMS keep the project default they have.": "Звонки участникам этого проекта, например оповещения дежурных, будут идти через эту конфигурацию. SMS остаются на своей конфигурации по умолчанию.",
   "Is Project Default for Calls": "Is Project Default for Calls",
-  "Is Project Default for SMS": "Is Project Default for SMS"
+  "Is Project Default for SMS": "Is Project Default for SMS",
+  "Install the recorder": "Установить рекордер",
+  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Воспроизведение сеансов для этого приложения выключено, а события отправляет именно его рекордер. Включите его также в разделе «{{replayPolicy}}».",
+  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "Начала сеансов и просмотры страниц приходят сами с каждой страницы, на которой установлен браузерный рекордер. Чтобы считать, что люди там делают, отправляйте события и числа из кода приложения:"
 }

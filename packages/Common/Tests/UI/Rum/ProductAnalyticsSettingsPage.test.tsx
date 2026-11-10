@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -19,6 +20,10 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import PermissionGate, {
@@ -36,8 +41,8 @@ import { getJestSpyOn } from "../../Spy";
  * keep, as chips. The switch's words say what it sends, from which
  * sessions, and that consent and Do Not Track still apply; the panel the
  * Events, Funnels and Retention pages show while it is off holds the same
- * switch, and says when Session Replay, whose recorder sends the events,
- * is off too.
+ * switch, and both say when Session Replay, whose recorder sends the
+ * events, is off too - with the way to the page that turns it on.
  *
  * CardModelDetail is a stand-in that records its props (its own suite draws
  * it); the switch card is the real one, over a stand-in ModelAPI.
@@ -96,6 +101,14 @@ const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const PAGE_PATH: string = `/dashboard/${PROJECT_ID}/rum/${APP_ID}/product-analytics-settings`;
 
 let stored: JSONObject = {};
+
+// The application's Replay Policy page, for the project the address names.
+function replayPolicyPath(): string {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS] as Route,
+    { modelId: new ObjectID(APP_ID) },
+  ).toString();
+}
 
 function drawPage(): void {
   window.history.replaceState(null, "", PAGE_PATH);
@@ -233,6 +246,43 @@ describe("Analytics Settings", () => {
     expect(write.data).toEqual({ isProductAnalyticsEnabled: false });
   });
 
+  test("with Session Replay off, says under the switch that its recorder sends the events, with the way to Replay Policy", async () => {
+    stored = { isProductAnalyticsEnabled: true, isSessionReplayEnabled: false };
+    drawPage();
+
+    const note: HTMLElement = await screen.findByTestId(
+      "product-analytics-events-replay-off",
+    );
+
+    expect(note).toHaveTextContent(
+      "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.",
+    );
+    expect(
+      screen.getByTestId(`${PRODUCT_ANALYTICS_EVENTS_SWITCH_TEST_ID}-details`),
+    ).toContainElement(note);
+    expect(screen.getByRole("link", { name: "Replay Policy" })).toHaveAttribute(
+      "href",
+      replayPolicyPath(),
+    );
+    expect(
+      (getItemMock.mock.calls[0]![0] as { select: JSONObject }).select,
+    ).toEqual(expect.objectContaining({ isSessionReplayEnabled: true }));
+  });
+
+  test("with Session Replay on, says nothing of it", async () => {
+    stored = { isProductAnalyticsEnabled: true, isSessionReplayEnabled: true };
+    drawPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("switch", { name: "Send product analytics events" }),
+      ).toHaveAttribute("aria-checked", "true");
+    });
+    expect(
+      screen.queryByTestId("product-analytics-events-replay-off"),
+    ).not.toBeInTheDocument();
+  });
+
   test("the user properties card edits one JSON list and shows it as chips", () => {
     drawPage();
 
@@ -248,6 +298,9 @@ describe("Analytics Settings", () => {
         .description,
     ).toBe(ProductAnalyticsEventsSwitchCopy.propertiesCardDescription);
     expect(properties["isEditable"]).toBe(true);
+    /* Its dialog is titled for what it edits, not the whole application. */
+    expect(properties["editButtonText"]).toBe("Edit User Properties");
+    expect(properties["editModalTitle"]).toBe("Edit User Properties");
 
     const formFields: Array<{
       field: Record<string, boolean>;
@@ -326,27 +379,36 @@ describe("the user property chips", () => {
 });
 
 describe("the panels the pages show before there is anything to read", () => {
-  test("events off: what turning them on does, the switch, and - with Session Replay off - that its recorder sends them", async () => {
+  function drawn(element: ReactElement): void {
+    window.history.replaceState(null, "", PAGE_PATH);
+    render(<MemoryRouter>{element}</MemoryRouter>);
+  }
+
+  test("events off: the switch, saying what turning it on does; once on, what it sends", async () => {
     const onSaved: MockFunction = getJestMockFunction();
 
-    render(
+    drawn(
       <ProductAnalyticsEventsOff
         rumApplicationId={new ObjectID(APP_ID)}
-        isSessionReplayEnabled={false}
+        isSessionReplayEnabled={true}
         onSaved={onSaved as unknown as (isOn: boolean) => void}
       />,
     );
 
-    expect(
-      screen.getByText(ProductAnalyticsEventsSwitchCopy.offTitle),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("product-analytics-events-replay-off"),
-    ).toHaveTextContent(ProductAnalyticsEventsSwitchCopy.replayOffNote);
-
+    const panel: HTMLElement = screen.getByTestId(
+      "product-analytics-events-off",
+    );
     const toggle: HTMLElement = screen.getByRole("switch", {
       name: "Send product analytics events",
     });
+
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(panel).toHaveTextContent(
+      ProductAnalyticsEventsSwitchCopy.offDescription,
+    );
+    expect(panel).not.toHaveTextContent(
+      ProductAnalyticsEventsSwitchCopy.switchDescription,
+    );
 
     await act(async () => {
       fireEvent.click(toggle);
@@ -358,10 +420,47 @@ describe("the panels the pages show before there is anything to read", () => {
     expect(
       (updateByIdMock.mock.calls[0]![0] as { data: JSONObject }).data,
     ).toEqual({ isProductAnalyticsEnabled: true });
+    expect(panel).toHaveTextContent(
+      ProductAnalyticsEventsSwitchCopy.switchDescription,
+    );
+  });
+
+  test("events off with Session Replay off: a warning under the switch, either way it is set, with the way to Replay Policy", async () => {
+    drawn(
+      <ProductAnalyticsEventsOff
+        rumApplicationId={new ObjectID(APP_ID)}
+        isSessionReplayEnabled={false}
+        onSaved={(): void => {}}
+      />,
+    );
+
+    const warning: HTMLElement = screen.getByTestId(
+      "product-analytics-events-off-switch-warning",
+    );
+
+    expect(warning).toHaveTextContent(
+      "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.",
+    );
+    expect(
+      within(warning).getByRole("link", { name: "Replay Policy" }),
+    ).toHaveAttribute("href", replayPolicyPath());
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("switch", { name: "Send product analytics events" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      screen.getByTestId("product-analytics-events-replay-off"),
+    ).toBeInTheDocument();
   });
 
   test("events off with Session Replay on says nothing of it", () => {
-    render(
+    drawn(
       <ProductAnalyticsEventsOff
         rumApplicationId={new ObjectID(APP_ID)}
         isSessionReplayEnabled={true}
@@ -374,16 +473,58 @@ describe("the panels the pages show before there is anything to read", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("none yet: both calls, written left to right whatever the page's direction", () => {
-    render(<ProductAnalyticsNoEventsYet isSessionReplayEnabled={true} />);
+  test("none yet: both calls, written left to right whatever the page's direction, with a copy button, the guide and the recorder's install page", () => {
+    drawn(
+      <ProductAnalyticsNoEventsYet
+        rumApplicationId={new ObjectID(APP_ID)}
+        isSessionReplayEnabled={true}
+      />,
+    );
 
     const snippet: HTMLElement = screen.getByTestId(
       "product-analytics-events-snippet",
     );
 
     expect(snippet).toHaveAttribute("dir", "ltr");
-    expect(snippet.textContent).toBe(
+    expect(snippet.querySelector("code")?.textContent).toBe(
       'OneUptimeReplay.track("Signed up", { plan: "pro" });\nOneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });',
+    );
+    expect(
+      within(snippet).getByRole("button", { name: "Copy to clipboard" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "How to send events and metrics" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Install the recorder" }),
+    ).toHaveAttribute(
+      "href",
+      RouteUtil.populateRouteParams(
+        RouteMap[
+          PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
+        ] as Route,
+        { modelId: new ObjectID(APP_ID) },
+      ).toString(),
+    );
+    expect(
+      screen.queryByTestId("product-analytics-events-replay-off"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("none yet, with Session Replay off: says its recorder sends them, with the way to Replay Policy", () => {
+    drawn(
+      <ProductAnalyticsNoEventsYet
+        rumApplicationId={new ObjectID(APP_ID)}
+        isSessionReplayEnabled={false}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("product-analytics-events-replay-off"),
+    ).toHaveTextContent("Turn it on under Replay Policy too.");
+    expect(screen.getByRole("link", { name: "Replay Policy" })).toHaveAttribute(
+      "href",
+      replayPolicyPath(),
     );
   });
 });

@@ -61,9 +61,9 @@ import ProductAnalyticsEventPicker from "../../../Components/ProductAnalytics/Pr
 import ProductAnalyticsSegmentBar from "../../../Components/ProductAnalytics/ProductAnalyticsSegmentBar";
 import ProductAnalyticsRetentionTable from "../../../Components/ProductAnalytics/ProductAnalyticsRetentionTable";
 import {
-  ProductAnalyticsEventsOff,
+  ProductAnalyticsEventsSwitchPanel,
   ProductAnalyticsEventsSwitchState,
-  ProductAnalyticsNoEventsYet,
+  ProductAnalyticsNothingKept,
   useProductAnalyticsEventsSwitch,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsEventsGate";
 import { toProductAnalyticsPersonProperties } from "./ProductAnalyticsFunnels";
@@ -192,18 +192,6 @@ const RumApplicationProductAnalyticsRetention: FunctionComponent<
 
   const dataStartedAt: number | null = names.data?.dataStartedAt ?? null;
   const isEmpty: boolean = Boolean(names.data && dataStartedAt === null);
-  const offPanel: ReactElement =
-    analytics.isEnabled === false ? (
-      <ProductAnalyticsEventsOff
-        rumApplicationId={modelId}
-        isSessionReplayEnabled={analytics.isSessionReplayEnabled}
-        onSaved={(isOn: boolean): void => {
-          analytics.setIsEnabled(isOn);
-        }}
-      />
-    ) : (
-      <></>
-    );
   const hasNobody: boolean = Boolean(
     retention.data &&
       retention.data.cohorts.every(
@@ -218,18 +206,19 @@ const RumApplicationProductAnalyticsRetention: FunctionComponent<
   if (names.error) {
     body = <ErrorMessage message={names.error} onRefreshClick={refresh} />;
   } else if (isEmpty) {
-    body =
-      analytics.isEnabled === false ? (
-        offPanel
-      ) : (
-        <ProductAnalyticsNoEventsYet
-          isSessionReplayEnabled={analytics.isSessionReplayEnabled}
-        />
-      );
+    body = (
+      <ProductAnalyticsNothingKept
+        rumApplicationId={modelId}
+        analytics={analytics}
+      />
+    );
   } else {
     body = (
       <div className="space-y-5" data-testid="product-analytics-retention-page">
-        {offPanel}
+        <ProductAnalyticsEventsSwitchPanel
+          rumApplicationId={modelId}
+          analytics={analytics}
+        />
         <ProductAnalyticsCountingSince
           dataStartedAt={dataStartedAt}
           startTime={period.startValue}

@@ -101,6 +101,7 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
 });
 
 import RumApplicationProductAnalyticsEvents, {
+  PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS,
   buildProductAnalyticsEventTiles,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/ProductAnalyticsEvents";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -429,6 +430,13 @@ describe("ProductAnalyticsEvents: the event", () => {
     });
     /* A default is never written into the address. */
     expect(window.location.search).toBe("");
+    /* The picker is named on the page, not only to a screen reader. */
+    expect(
+      within(screen.getByTestId("product-analytics-events-page")).getByText(
+        "Event",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Event" })).toBeInTheDocument();
   });
 
   it("says how often it happened, by how many, in how many sessions, and how often each person did it", async () => {
@@ -725,6 +733,77 @@ describe("ProductAnalyticsEvents: all events", () => {
     expect(searchParams().get("event")).toBe("page:/pricing");
   });
 
+  it("folds a long list after ten, the most frequent first, and opens it whole", async () => {
+    const many: Array<JSONObject> = Array.from(
+      { length: PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS + 3 },
+      (_value: unknown, index: number): JSONObject => {
+        return {
+          kind: "custom",
+          name: `Step ${index + 1}`,
+          events: 1000 - index,
+          users: 10,
+          lastSeenAt: 1,
+        };
+      },
+    );
+
+    mockReads({ names: names({ events: many, hasMore: true }) });
+
+    renderPage();
+
+    const folded: Array<string> = await waitForRows(
+      "product-analytics-event-list-bars",
+      PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS,
+    );
+
+    expect(folded[0]).toBe("Step 1 | 1,000 | 10");
+
+    const toggle: HTMLElement = screen.getByTestId(
+      "product-analytics-event-list-toggle",
+    );
+
+    expect(toggle).toHaveTextContent("Show 3 more");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    /* Folded, the toggle says what is left; the cap is said under the whole list. */
+    expect(
+      screen.queryByText("Only the most frequent events are listed."),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(
+      (
+        await waitForRows(
+          "product-analytics-event-list-bars",
+          PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS + 3,
+        )
+      ).slice(-1),
+    ).toEqual(["Step 13 | 988 | 10"]);
+    expect(toggle).toHaveTextContent("Show fewer");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByText("Only the most frequent events are listed."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    await waitForRows(
+      "product-analytics-event-list-bars",
+      PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS,
+    );
+  });
+
+  it("a list of ten or fewer has nothing to fold", async () => {
+    mockReads({});
+
+    renderPage();
+
+    await waitForRows("product-analytics-event-list-bars", 4);
+    expect(
+      screen.queryByTestId("product-analytics-event-list-toggle"),
+    ).not.toBeInTheDocument();
+  });
+
   it("says where else the events go: the metric each is counted as, and a link to Metrics", async () => {
     mockReads({});
 
@@ -735,6 +814,10 @@ describe("ProductAnalyticsEvents: all events", () => {
     );
 
     expect(note).toHaveTextContent(ProductAnalyticsDerivedMetric.Events);
+    /* The metric's name is drawn as code, left to right, as it is typed. */
+    expect(
+      within(note).getByText(ProductAnalyticsDerivedMetric.Events).tagName,
+    ).toBe("CODE");
     expect(
       within(note).getByRole("link", { name: "Open Metrics" }),
     ).toHaveAttribute(
@@ -797,10 +880,14 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
       "product-analytics-events-off",
     );
 
-    expect(off).toHaveTextContent("Product analytics events are off");
+    expect(off).toHaveTextContent(
+      "Turn them on to count every session's start, page views and the events your app sends with track().",
+    );
     expect(screen.queryByText("No events yet")).not.toBeInTheDocument();
 
-    const toggle: HTMLElement = within(off).getByRole("switch");
+    const toggle: HTMLElement = within(off).getByRole("switch", {
+      name: "Send product analytics events",
+    });
 
     expect(toggle).toHaveAttribute("aria-checked", "false");
 
@@ -814,8 +901,34 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
     expect(
       (updateByIdMock.mock.calls[0]![0] as { data: JSONObject }).data,
     ).toEqual({ isProductAnalyticsEnabled: true });
-    /* Saved: the page says what it says with events on. */
+    /*
+     * Saved: the page says how to send them, under the switch, which stays
+     * - on, and saying so - so the press shows what it did and can be
+     * taken back.
+     */
     expect(await screen.findByText("No events yet")).toBeInTheDocument();
+    expect(screen.getByTestId("product-analytics-events-off")).toBe(off);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByTestId("product-analytics-events-off-switch-status"),
+    ).toHaveTextContent("Saved");
+    expect(off).toHaveTextContent(
+      "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session",
+    );
+  });
+
+  it("while the switch is read, an application with nothing kept says nothing of events yet", async () => {
+    getItemMock.mockImplementation((): Promise<unknown> => {
+      return new Promise((): void => {});
+    });
+    mockReads({ names: names({ events: [], dataStartedAt: null }) });
+
+    renderPage();
+
+    expect(
+      await screen.findByTestId("product-analytics-nothing-kept"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No events yet")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("product-analytics-events-off"),
     ).not.toBeInTheDocument();
@@ -839,6 +952,88 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
     expect(page.firstElementChild?.getAttribute("data-testid")).toBe(
       "product-analytics-events-off",
     );
+
+    /* Turned back on here, the switch stays above what is kept, on. */
+    const toggle: HTMLElement = within(page).getByRole("switch", {
+      name: "Send product analytics events",
+    });
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+
+    await waitFor(() => {
+      expect(toggle).toHaveAttribute("aria-checked", "true");
+    });
+    expect(
+      within(page).getByTestId("product-analytics-events-off-switch-status"),
+    ).toHaveTextContent("Saved");
+    expect(page.firstElementChild?.getAttribute("data-testid")).toBe(
+      "product-analytics-events-off",
+    );
+  });
+
+  it("while the events' names are read, the picker says so, and the tiles and the breakdown wait rather than show nothing", async () => {
+    mockReads({});
+
+    const answer: (...args: Array<unknown>) => unknown =
+      postMock.getMockImplementation() as (...args: Array<unknown>) => unknown;
+    let answerNames: () => void = (): void => {};
+
+    postMock.mockImplementation((...args: Array<unknown>): unknown => {
+      const url: string = (
+        args[0] as { url: { toString: () => string } }
+      ).url.toString();
+
+      if (url.endsWith("/product-analytics/event-names")) {
+        return new Promise((resolve: (value: unknown) => void): void => {
+          answerNames = (): void => {
+            resolve(answer(...args));
+          };
+        });
+      }
+
+      return answer(...args);
+    });
+
+    renderPage();
+
+    const picker: HTMLElement = await screen.findByRole("combobox", {
+      name: "Event",
+    });
+
+    expect(
+      within(screen.getByTestId("product-analytics-events-page")).getByText(
+        "Loading events...",
+      ),
+    ).toBeInTheDocument();
+    expect(picker).toBeInTheDocument();
+    expect(
+      Array.from(
+        screen
+          .getByTestId("product-analytics-event-tiles")
+          .querySelectorAll("[aria-busy]"),
+      ).map((tile: Element): string | null => {
+        return tile.getAttribute("aria-busy");
+      }),
+    ).toEqual(["true", "true", "true"]);
+    expect(
+      screen.getByTestId("product-analytics-event-breakdown-loading"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("product-analytics-event-breakdown-bars"),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      answerNames();
+    });
+
+    await waitForTiles("120");
+    expect(screen.queryByText("Loading events...")).not.toBeInTheDocument();
+    await waitForRows("product-analytics-event-breakdown-bars", 2);
+    expect(
+      screen.queryByTestId("product-analytics-event-breakdown-loading"),
+    ).not.toBeInTheDocument();
   });
 
   it("a refused read says why, with a way to try again, and no list", async () => {

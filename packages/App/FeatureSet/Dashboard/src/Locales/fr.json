@@ -48035,7 +48035,6 @@
   "Product Analytics Event": "Événement d'analyse produit",
   "Product Analytics Events": "Événements d'analyse produit",
   "Product Analytics User Properties": "Propriétés utilisateur de l'analyse produit",
-  "Product analytics events are off": "Les événements d'analyse produit sont désactivés",
   "Proxmox Cluster Details": "Détails du cluster Proxmox",
   "Raw Error Message": "Message d'erreur brut",
   "Recieved In Minutes": "Reçu dans le délai (minutes)",
@@ -48093,7 +48092,6 @@
   "Server Process Name": "Nom du processus serveur",
   "Server Process PID": "PID du processus serveur",
   "Server heartbeat last received {{minutes}} minutes ago.": "Dernier signal de présence du serveur reçu il y a {{minutes}} minutes.",
-  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.": "La relecture de session est désactivée pour cette application, et c'est son enregistreur qui envoie les événements. Activez-la aussi dans Politique de relecture.",
   "Session started": "Session démarrée",
   "Sessions it happened in at least once.": "Sessions dans lesquelles il s'est produit au moins une fois.",
   "Show only {{value}}": "Afficher uniquement {{value}}",
@@ -48202,7 +48200,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}} ; le filtre configuré n'est pas satisfait.",
   "{{percent}} did every step": "{{percent}} ont effectué toutes les étapes",
   "{{percent}} went on": "{{percent}} ont continué",
-  "Every session the browser recorder runs in sends its start and its page views on its own. Send your own events and numbers from your app's code:": "Chaque session dans laquelle l'enregistreur du navigateur s'exécute envoie d'elle-même son début et ses pages vues. Envoyez vos propres événements et valeurs depuis le code de votre app :",
   "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "L'enregistreur du navigateur envoie le début de chaque session, ses pages vues et vos appels à track() et metric() depuis chaque session, enregistrée ou non. Le consentement, Do Not Track et les origines autorisées s'appliquent comme pour les enregistrements.",
   "{{subject}} is {{values}} which is": "{{subject}} : {{values}}, ce qui est",
   "{{subject}} is {{values}} which is contains {{threshold}}.": "{{subject}} : {{values}}, ce qui contient {{threshold}}.",
@@ -48339,5 +48336,8 @@
   "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.": "Les SMS destinés aux personnes de ce projet, comme les alertes d'astreinte, passeront par cette configuration. Les appels gardent la configuration par défaut qu'ils ont.",
   "The calls to people in this project, such as on-call alerts, will go through this config. SMS keep the project default they have.": "Les appels destinés aux personnes de ce projet, comme les alertes d'astreinte, passeront par cette configuration. Les SMS gardent la configuration par défaut qu'ils ont.",
   "Is Project Default for Calls": "Valeur par défaut du projet pour les appels",
-  "Is Project Default for SMS": "Valeur par défaut du projet pour les SMS"
+  "Is Project Default for SMS": "Valeur par défaut du projet pour les SMS",
+  "Install the recorder": "Installer l'enregistreur",
+  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "La relecture de session est désactivée pour cette application, et c'est son enregistreur qui envoie les événements. Activez-la aussi dans {{replayPolicy}}.",
+  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "Les débuts de session et les pages vues arrivent d'eux-mêmes depuis chaque page où l'enregistreur du navigateur est installé. Pour compter ce que les gens y font, envoyez des événements et des valeurs depuis le code de votre app :"
 }

@@ -71,9 +71,9 @@ import ProductAnalyticsFunnelChart, {
   describeProductAnalyticsFunnelCompletion,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsFunnelChart";
 import {
-  ProductAnalyticsEventsOff,
+  ProductAnalyticsEventsSwitchPanel,
   ProductAnalyticsEventsSwitchState,
-  ProductAnalyticsNoEventsYet,
+  ProductAnalyticsNothingKept,
   useProductAnalyticsEventsSwitch,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsEventsGate";
 
@@ -109,6 +109,43 @@ export function pickDefaultProductAnalyticsFunnelSteps(
   }
 
   return [SESSION_START_EVENT, SESSION_START_EVENT];
+}
+
+/*
+ * The step Add step adds: the application's most frequent event of its own
+ * that is not a step yet, else its most viewed page that is not, else a
+ * session's start - never a copy of a step already there while another
+ * event is left.
+ */
+export function pickNextProductAnalyticsFunnelStep(
+  events: ReadonlyArray<ProductAnalyticsEventNameDto>,
+  steps: ReadonlyArray<ProductAnalyticsEventRef>,
+): ProductAnalyticsEventRef {
+  const taken: Set<string> = new Set<string>(
+    steps.map(encodeProductAnalyticsEvent),
+  );
+
+  for (const kind of [
+    ProductAnalyticsEventKind.Custom,
+    ProductAnalyticsEventKind.Page,
+  ]) {
+    const next: ProductAnalyticsEventNameDto | undefined = events.find(
+      (event: ProductAnalyticsEventNameDto): boolean => {
+        return (
+          event.kind === kind &&
+          !taken.has(
+            encodeProductAnalyticsEvent({ kind: event.kind, name: event.name }),
+          )
+        );
+      },
+    );
+
+    if (next) {
+      return { kind: next.kind, name: next.name };
+    }
+  }
+
+  return SESSION_START_EVENT;
 }
 
 /* The segment a funnel or a cohort can take: fields every event carries, and user properties. */
@@ -254,44 +291,51 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
           translator: translator,
         })
       : null;
-  const offPanel: ReactElement =
-    analytics.isEnabled === false ? (
-      <ProductAnalyticsEventsOff
-        rumApplicationId={modelId}
-        isSessionReplayEnabled={analytics.isSessionReplayEnabled}
-        onSaved={(isOn: boolean): void => {
-          analytics.setIsEnabled(isOn);
-        }}
-      />
-    ) : (
-      <></>
-    );
-
   let body: ReactElement;
 
   if (names.error) {
     body = <ErrorMessage message={names.error} onRefreshClick={refresh} />;
   } else if (isEmpty) {
-    body =
-      analytics.isEnabled === false ? (
-        offPanel
-      ) : (
-        <ProductAnalyticsNoEventsYet
-          isSessionReplayEnabled={analytics.isSessionReplayEnabled}
-        />
-      );
+    body = (
+      <ProductAnalyticsNothingKept
+        rumApplicationId={modelId}
+        analytics={analytics}
+      />
+    );
   } else {
     const shownSteps: Array<ProductAnalyticsEventRef> = steps || [];
 
     body = (
       <div className="space-y-5" data-testid="product-analytics-funnels-page">
-        {offPanel}
+        <ProductAnalyticsEventsSwitchPanel
+          rumApplicationId={modelId}
+          analytics={analytics}
+        />
         <ProductAnalyticsCountingSince
           dataStartedAt={dataStartedAt}
           startTime={period.startValue}
           template={COUNTING_SINCE_EVENTS}
         />
-        <div className="space-y-3" data-testid="product-analytics-funnel-steps">
+        <div className="space-y-4" data-testid="product-analytics-funnel-steps">
+          {steps ? (
+            <></>
+          ) : (
+            /* The steps come with the application's events: two rows to come. */
+            <div
+              className="space-y-2"
+              data-testid="product-analytics-funnel-steps-loading"
+              aria-hidden="true"
+            >
+              {[0, 1].map((row: number): ReactElement => {
+                return (
+                  <div key={row} className="flex items-center gap-2">
+                    <div className="h-6 w-6 flex-none animate-pulse rounded-full bg-gray-100" />
+                    <div className="h-[38px] min-w-0 flex-1 animate-pulse rounded-md bg-gray-100 sm:max-w-md" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <ol className="space-y-2">
             {shownSteps.map(
               (step: ProductAnalyticsEventRef, index: number): ReactElement => {
@@ -362,7 +406,7 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
               },
             )}
           </ol>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
             <Button
               title="Add step"
               icon={IconProp.Add}
@@ -385,33 +429,42 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
               }
               dataTestId="product-analytics-funnel-add-step"
               onClick={(): void => {
-                setSteps([...shownSteps, SESSION_START_EVENT]);
+                setSteps([
+                  ...shownSteps,
+                  pickNextProductAnalyticsFunnelStep(
+                    names.data?.events || [],
+                    shownSteps,
+                  ),
+                ]);
               }}
             />
-            <div className="w-full sm:w-56">
-              <Dropdown
-                options={windowOptions}
-                value={windowOptions.find((option: DropdownOption): boolean => {
-                  return option.value === String(state.windowMs);
-                })}
-                isClearable={false}
-                ariaLabel={
-                  translator.translateText("Time to finish the funnel") || ""
-                }
-                dataTestId="product-analytics-funnel-window"
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ): void => {
-                  const windowMs: number = Number(value);
+          </div>
+          <div className="w-full space-y-1 sm:w-56">
+            <span className="block text-xs font-medium text-gray-500">
+              {translator.translateText("Time to finish the funnel")}
+            </span>
+            <Dropdown
+              options={windowOptions}
+              value={windowOptions.find((option: DropdownOption): boolean => {
+                return option.value === String(state.windowMs);
+              })}
+              isClearable={false}
+              ariaLabel={
+                translator.translateText("Time to finish the funnel") || ""
+              }
+              dataTestId="product-analytics-funnel-window"
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const windowMs: number = Number(value);
 
-                  if (PRODUCT_ANALYTICS_FUNNEL_WINDOWS_MS.includes(windowMs)) {
-                    setState((previous: ProductAnalyticsEventsUrlState) => {
-                      return { ...previous, windowMs: windowMs };
-                    });
-                  }
-                }}
-              />
-            </div>
+                if (PRODUCT_ANALYTICS_FUNNEL_WINDOWS_MS.includes(windowMs)) {
+                  setState((previous: ProductAnalyticsEventsUrlState) => {
+                    return { ...previous, windowMs: windowMs };
+                  });
+                }
+              }}
+            />
           </div>
           <ProductAnalyticsSegmentBar
             filters={state.filters}

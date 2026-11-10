@@ -80,6 +80,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import RumApplicationProductAnalyticsRetention from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/ProductAnalyticsRetention";
 import {
+  RETENTION_COHORT_COLUMN_CLASS_NAME,
   RETENTION_LIGHT_TEXT_SHADE,
   buildProductAnalyticsRetentionRows,
   describeProductAnalyticsCohort,
@@ -198,10 +199,43 @@ describe("a retention table's rows", () => {
     expect(rows[0]!.cells[1]!.title).toBe("Week 1: 1 of 4 came back (25%)");
     expect(rows[0]!.cells[1]!.shade).toBeLessThan(RETENTION_LIGHT_TEXT_SHADE);
     expect(rows[0]!.cells[2]).toBeNull();
-    /* An empty cohort is 0%, never a division by nothing. */
-    expect(rows[1]!.cells[0]).toEqual(
-      expect.objectContaining({ text: "0%", shade: 0 }),
-    );
+    /* A cohort nobody is in has no shares: a share of nobody says nothing. */
+    expect(rows[1]!.people).toBe("0");
+    expect(rows[1]!.cells).toEqual([null, null, null]);
+  });
+
+  test("starts at the first cohort anyone is in: the periods before it are rows of nobody", () => {
+    const rows: ReturnType<typeof buildProductAnalyticsRetentionRows> =
+      buildProductAnalyticsRetentionRows({
+        retention: {
+          period: ProductAnalyticsRetentionPeriod.Week,
+          timeZone: "UTC",
+          cohorts: [
+            { start: "2026-09-28", people: 0, returning: [0, 0, 0, 0] },
+            { start: "2026-10-05", people: 0, returning: [0, 0, 0] },
+            { start: "2026-10-12", people: 3, returning: [3, 1] },
+            { start: "2026-10-19", people: 0, returning: [0] },
+          ],
+        },
+        translator: english,
+      });
+
+    expect(
+      rows.map((row: { cohort: string; people: string }): string => {
+        return `${row.cohort}: ${row.people}`;
+      }),
+    ).toEqual(["Oct 12, 2026: 3", "Oct 19, 2026: 0"]);
+    /* Nobody at all: every cohort stays, for the page to say so. */
+    expect(
+      buildProductAnalyticsRetentionRows({
+        retention: {
+          period: ProductAnalyticsRetentionPeriod.Week,
+          timeZone: "UTC",
+          cohorts: [{ start: "2026-10-05", people: 0, returning: [0] }],
+        },
+        translator: english,
+      }),
+    ).toHaveLength(1);
   });
 
   test.each([
@@ -276,6 +310,25 @@ describe("ProductAnalyticsRetention", () => {
       screen.getAllByTestId("product-analytics-retention-table-empty"),
     ).toHaveLength(3);
     expect(window.location.search).toBe("");
+    /*
+     * The cohort column holds the table's start edge while a phone scrolls
+     * the periods, on the card's background - the left, or the right in a
+     * language read right to left.
+     */
+    expect(RETENTION_COHORT_COLUMN_CLASS_NAME).toBe(
+      "sticky start-0 z-10 bg-white",
+    );
+
+    const table: HTMLElement = screen.getByTestId(
+      "product-analytics-retention-table",
+    );
+
+    for (const cohort of [
+      within(table).getByRole("columnheader", { name: "Cohort" }),
+      ...within(table).getAllByRole("rowheader"),
+    ]) {
+      expect(cohort.className).toContain(RETENTION_COHORT_COLUMN_CLASS_NAME);
+    }
   });
 
   it("picks the start and the return events, and keeps them in the address", async () => {

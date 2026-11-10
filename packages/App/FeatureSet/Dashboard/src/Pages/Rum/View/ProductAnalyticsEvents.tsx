@@ -7,6 +7,7 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import Card from "Common/UI/Components/Card/Card";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -89,10 +90,10 @@ import {
 import ProductAnalyticsEventPicker from "../../../Components/ProductAnalytics/ProductAnalyticsEventPicker";
 import ProductAnalyticsSegmentBar from "../../../Components/ProductAnalytics/ProductAnalyticsSegmentBar";
 import {
-  ProductAnalyticsEventsOff,
+  ProductAnalyticsEventsSwitchPanel,
   ProductAnalyticsEventsSwitchState,
   ProductAnalyticsMetricsNote,
-  ProductAnalyticsNoEventsYet,
+  ProductAnalyticsNothingKept,
   useProductAnalyticsEventsSwitch,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsEventsGate";
 
@@ -107,6 +108,12 @@ import {
 
 export const SHOW_ONLY_TEMPLATE: string = translationKey("Show only {{value}}");
 export const OPEN_EVENT_TEMPLATE: string = translationKey("Open {{value}}");
+
+/*
+ * All events lists this many, the most frequent first, until it is opened
+ * whole: an application may send two hundred, a bar each.
+ */
+export const PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS: number = 10;
 
 export function buildProductAnalyticsEventTiles(data: {
   trend: ProductAnalyticsEventTrendDto | null;
@@ -227,6 +234,7 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
     },
   );
   const [reloadToken, setReloadToken] = useState<number>(0);
+  const [isEventListOpen, setIsEventListOpen] = useState<boolean>(false);
   const analytics: ProductAnalyticsEventsSwitchState =
     useProductAnalyticsEventsSwitch(modelId);
 
@@ -405,47 +413,42 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
     });
   }
 
-  const offPanel: ReactElement =
-    analytics.isEnabled === false ? (
-      <ProductAnalyticsEventsOff
-        rumApplicationId={modelId}
-        isSessionReplayEnabled={analytics.isSessionReplayEnabled}
-        onSaved={(isOn: boolean): void => {
-          analytics.setIsEnabled(isOn);
-        }}
-      />
-    ) : (
-      <></>
-    );
+  /* Until the names arrive there is no event to read: the page waits with them. */
+  const isWaitingForNames: boolean = names.isLoading && !names.data;
 
   let body: ReactElement;
 
   if (names.error) {
     body = <ErrorMessage message={names.error} onRefreshClick={refresh} />;
   } else if (isEmpty) {
-    body =
-      analytics.isEnabled === false ? (
-        offPanel
-      ) : (
-        <ProductAnalyticsNoEventsYet
-          isSessionReplayEnabled={analytics.isSessionReplayEnabled}
-        />
-      );
+    body = (
+      <ProductAnalyticsNothingKept
+        rumApplicationId={modelId}
+        analytics={analytics}
+      />
+    );
   } else {
     body = (
       <div className="space-y-5" data-testid="product-analytics-events-page">
-        {offPanel}
+        <ProductAnalyticsEventsSwitchPanel
+          rumApplicationId={modelId}
+          analytics={analytics}
+        />
         <ProductAnalyticsCountingSince
           dataStartedAt={dataStartedAt}
           startTime={period.startValue}
           template={COUNTING_SINCE_EVENTS}
         />
         <div className="flex flex-col gap-3">
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md space-y-1">
+            <span className="block text-xs font-medium text-gray-500">
+              {translator.translateText("Event")}
+            </span>
             <ProductAnalyticsEventPicker
               events={names.data?.events || []}
               value={event}
               ariaLabel="Event"
+              isLoading={isWaitingForNames}
               dataTestId="product-analytics-event-picker"
               onChange={(picked: ProductAnalyticsEventRef): void => {
                 setState((previous: ProductAnalyticsEventsUrlState) => {
@@ -468,7 +471,7 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
             <ProductAnalyticsTiles
               tiles={buildProductAnalyticsEventTiles({
                 trend: trend.data,
-                isLoading: trend.isLoading,
+                isLoading: trend.isLoading || isWaitingForNames,
                 translator: translator,
               })}
               dataTestId="product-analytics-event-tiles"
@@ -483,7 +486,7 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
               syncId={`product-analytics-events-${modelId.toString()}`}
               showLegend={true}
               yAllowDecimals={false}
-              loading={trend.isLoading && !trend.data}
+              loading={(trend.isLoading || isWaitingForNames) && !trend.data}
               description="Each day's count of the event, and of the people who did it that day. Days are in your time zone."
             />
           </Fragment>
@@ -538,6 +541,22 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
                 "Nothing to break down: the event did not happen in this range and segment.",
               )}
             </p>
+          ) : !breakdown.data ? (
+            /* Read for the first time: rows to come, not an empty table. */
+            <div
+              className="space-y-4 pt-1"
+              data-testid="product-analytics-event-breakdown-loading"
+              aria-hidden="true"
+            >
+              {[0, 1, 2].map((row: number): ReactElement => {
+                return (
+                  <div key={row} className="space-y-2">
+                    <div className="h-3 w-40 animate-pulse rounded bg-gray-100" />
+                    <div className="h-1.5 w-full animate-pulse rounded-full bg-gray-100" />
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div
               className={
@@ -623,7 +642,12 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
             <div data-testid="product-analytics-event-list">
               <ProductAnalyticsBars
                 rows={buildProductAnalyticsEventListRows({
-                  events: names.data.events,
+                  events: isEventListOpen
+                    ? names.data.events
+                    : names.data.events.slice(
+                        0,
+                        PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS,
+                      ),
                   translator: translator,
                 })}
                 labelTitle={translationKey("Event")}
@@ -646,7 +670,44 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
                 }}
                 dataTestId="product-analytics-event-list-bars"
               />
-              {names.data.hasMore ? (
+              {names.data.events.length >
+              PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS ? (
+                <button
+                  type="button"
+                  className="mt-3 inline-flex items-center gap-1 rounded text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  aria-expanded={isEventListOpen}
+                  data-testid="product-analytics-event-list-toggle"
+                  onClick={(): void => {
+                    setIsEventListOpen(!isEventListOpen);
+                  }}
+                >
+                  <Icon
+                    icon={
+                      isEventListOpen
+                        ? IconProp.ChevronUp
+                        : IconProp.ChevronDown
+                    }
+                    className="h-4 w-4"
+                  />
+                  {isEventListOpen
+                    ? translator.translateText("Show fewer")
+                    : translator.translatePlural(
+                        {
+                          one: "Show {{count}} more",
+                          other: "Show {{count}} more",
+                        },
+                        names.data.events.length -
+                          PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS,
+                      )}
+                </button>
+              ) : (
+                <></>
+              )}
+              {/* Said under the whole list: folded, its toggle says what is left. */}
+              {names.data.hasMore &&
+              (isEventListOpen ||
+                names.data.events.length <=
+                  PRODUCT_ANALYTICS_EVENT_LIST_FOLDED_ROWS) ? (
                 <p className="mt-2 text-xs text-gray-500">
                   {translator.translateText(
                     "Only the most frequent events are listed.",

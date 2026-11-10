@@ -48035,7 +48035,6 @@
   "Product Analytics Event": "Evento di analisi del prodotto",
   "Product Analytics Events": "Eventi di analisi del prodotto",
   "Product Analytics User Properties": "Proprietà utente dell'analisi del prodotto",
-  "Product analytics events are off": "Gli eventi di analisi del prodotto sono disattivati",
   "Proxmox Cluster Details": "Dettagli del cluster Proxmox",
   "Raw Error Message": "Messaggio di errore grezzo",
   "Recieved In Minutes": "Ricevuto in minuti",
@@ -48093,7 +48092,6 @@
   "Server Process Name": "Nome del processo del server",
   "Server Process PID": "PID del processo del server",
   "Server heartbeat last received {{minutes}} minutes ago.": "L'ultimo heartbeat del server è stato ricevuto {{minutes}} minuti fa.",
-  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.": "La riproduzione delle sessioni è disattivata per questa applicazione, ed è il suo registratore a inviare gli eventi. Attivala anche in Policy di riproduzione.",
   "Session started": "Sessione iniziata",
   "Sessions it happened in at least once.": "Sessioni in cui è avvenuto almeno una volta.",
   "Show only {{value}}": "Mostra solo {{value}}",
@@ -48202,7 +48200,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}; il filtro configurato non è stato soddisfatto.",
   "{{percent}} did every step": "{{percent}} ha completato tutti i passaggi",
   "{{percent}} went on": "{{percent}} è andato avanti",
-  "Every session the browser recorder runs in sends its start and its page views on its own. Send your own events and numbers from your app's code:": "Ogni sessione in cui è attivo il registratore del browser invia da sé il proprio inizio e le proprie visualizzazioni di pagina. Invia i tuoi eventi e numeri dal codice della tua app:",
   "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "Il registratore del browser invia l'inizio di ogni sessione, le sue visualizzazioni di pagina e le tue chiamate a track() e metric() da ogni sessione, registrata o no. Il consenso, Do Not Track e le origini consentite si applicano come per le registrazioni.",
   "{{subject}} is {{values}} which is": "{{subject}}: {{values}}",
   "{{subject}} is {{values}} which is contains {{threshold}}.": "{{subject}}: {{values}} (contiene {{threshold}}).",
@@ -48339,5 +48336,8 @@
   "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.": "Gli SMS alle persone di questo progetto, come gli avvisi di reperibilità, passeranno da questa configurazione. Le chiamate mantengono la configurazione predefinita che hanno.",
   "The calls to people in this project, such as on-call alerts, will go through this config. SMS keep the project default they have.": "Le chiamate alle persone di questo progetto, come gli avvisi di reperibilità, passeranno da questa configurazione. Gli SMS mantengono la configurazione predefinita che hanno.",
   "Is Project Default for Calls": "Is Project Default for Calls",
-  "Is Project Default for SMS": "Is Project Default for SMS"
+  "Is Project Default for SMS": "Is Project Default for SMS",
+  "Install the recorder": "Installa il registratore",
+  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "La riproduzione delle sessioni è disattivata per questa applicazione, ed è il suo registratore a inviare gli eventi. Attivala anche in {{replayPolicy}}.",
+  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "Gli inizi delle sessioni e le visualizzazioni di pagina arrivano da sé da ogni pagina in cui è installato il registratore del browser. Per contare cosa fanno le persone lì, invia eventi e numeri dal codice della tua app:"
 }

@@ -22,7 +22,9 @@ import {
  * column for each period after it - how many of them did the return event
  * then, as a share of the cohort, printed in the cell and shaded by it so
  * a glance down a column finds where people stop coming back. A period
- * that has not begun yet is left empty, not written as 0.
+ * that has not begun yet is left empty, not written as 0, and so is every
+ * period of a cohort nobody is in: a share of nobody says nothing. The
+ * cohort column stays in view while a narrow screen scrolls the periods.
  */
 
 export interface ProductAnalyticsRetentionCell {
@@ -36,7 +38,7 @@ export interface ProductAnalyticsRetentionRow {
   key: string;
   cohort: string;
   people: string;
-  // Null: the period has not begun.
+  // Null: the period has not begun, or nobody is in the cohort.
   cells: Array<ProductAnalyticsRetentionCell | null>;
 }
 
@@ -78,66 +80,87 @@ export function buildProductAnalyticsRetentionRows(data: {
   translator: Translator;
 }): Array<ProductAnalyticsRetentionRow> {
   const translator: Translator = data.translator;
-
-  return data.retention.cohorts.map(
-    (
-      cohort: ProductAnalyticsRetentionCohortDto,
-    ): ProductAnalyticsRetentionRow => {
-      const label: string = describeProductAnalyticsCohort({
-        start: cohort.start,
-        period: data.retention.period,
-        language: translator.language,
-      });
-
-      return {
-        key: cohort.start,
-        cohort: label,
-        people: formatProductAnalyticsCount(cohort.people, translator),
-        cells: cohort.returning.map(
-          (
-            count: number | null,
-            index: number,
-          ): ProductAnalyticsRetentionCell | null => {
-            if (count === null) {
-              return null;
-            }
-
-            const share: number = cohort.people > 0 ? count / cohort.people : 0;
-            const text: string = formatProductAnalyticsShare({
-              part: count,
-              whole: cohort.people,
-              language: translator.language,
-            });
-
-            return {
-              text: text,
-              shade: getProductAnalyticsRetentionShade(share),
-              title: translator.translateTemplate(
-                "{{column}}: {{count}} of {{people}} came back ({{percent}})",
-                {
-                  column: describeProductAnalyticsRetentionColumn({
-                    period: data.retention.period,
-                    index: index,
-                    translator: translator,
-                  }),
-                  count: formatProductAnalyticsCount(count, translator),
-                  people: formatProductAnalyticsCount(
-                    cohort.people,
-                    translator,
-                  ),
-                  percent: text,
-                },
-              ),
-            };
-          },
-        ),
-      };
+  /*
+   * The table starts at the first cohort anyone is in: the periods before
+   * it - before counting started, or before anyone did the start event -
+   * would be rows of nobody.
+   */
+  const firstWithPeople: number = data.retention.cohorts.findIndex(
+    (cohort: ProductAnalyticsRetentionCohortDto): boolean => {
+      return cohort.people > 0;
     },
   );
+
+  return data.retention.cohorts
+    .slice(Math.max(firstWithPeople, 0))
+    .map(
+      (
+        cohort: ProductAnalyticsRetentionCohortDto,
+      ): ProductAnalyticsRetentionRow => {
+        const label: string = describeProductAnalyticsCohort({
+          start: cohort.start,
+          period: data.retention.period,
+          language: translator.language,
+        });
+
+        return {
+          key: cohort.start,
+          cohort: label,
+          people: formatProductAnalyticsCount(cohort.people, translator),
+          cells: cohort.returning.map(
+            (
+              count: number | null,
+              index: number,
+            ): ProductAnalyticsRetentionCell | null => {
+              if (count === null || cohort.people === 0) {
+                return null;
+              }
+
+              const share: number =
+                cohort.people > 0 ? count / cohort.people : 0;
+              const text: string = formatProductAnalyticsShare({
+                part: count,
+                whole: cohort.people,
+                language: translator.language,
+              });
+
+              return {
+                text: text,
+                shade: getProductAnalyticsRetentionShade(share),
+                title: translator.translateTemplate(
+                  "{{column}}: {{count}} of {{people}} came back ({{percent}})",
+                  {
+                    column: describeProductAnalyticsRetentionColumn({
+                      period: data.retention.period,
+                      index: index,
+                      translator: translator,
+                    }),
+                    count: formatProductAnalyticsCount(count, translator),
+                    people: formatProductAnalyticsCount(
+                      cohort.people,
+                      translator,
+                    ),
+                    percent: text,
+                  },
+                ),
+              };
+            },
+          ),
+        };
+      },
+    );
 }
 
 /* Light text on the cells shaded past half, dark text on the rest. */
 export const RETENTION_LIGHT_TEXT_SHADE: number = 0.5;
+
+/*
+ * The cohort column holds its place at the table's start edge - the left,
+ * or the right on a page read right to left - while the periods scroll
+ * under it, on the card's own background.
+ */
+export const RETENTION_COHORT_COLUMN_CLASS_NAME: string =
+  "sticky start-0 z-10 bg-white";
 
 const ProductAnalyticsRetentionTable: FunctionComponent<{
   retention: ProductAnalyticsRetentionDto;
@@ -172,7 +195,7 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
           <tr>
             <th
               scope="col"
-              className="whitespace-nowrap px-2 py-1.5 text-start text-xs font-medium uppercase tracking-wider text-gray-500"
+              className={`${RETENTION_COHORT_COLUMN_CLASS_NAME} whitespace-nowrap px-2 py-1.5 text-start text-xs font-medium uppercase tracking-wider text-gray-500`}
             >
               {translator.translateText("Cohort")}
             </th>
@@ -205,7 +228,7 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
               <tr key={row.key} data-testid={`${props.dataTestId}-row`}>
                 <th
                   scope="row"
-                  className="whitespace-nowrap px-2 py-1.5 text-start font-medium text-gray-900"
+                  className={`${RETENTION_COHORT_COLUMN_CLASS_NAME} whitespace-nowrap px-2 py-1.5 text-start font-medium text-gray-900`}
                 >
                   {row.cohort}
                 </th>

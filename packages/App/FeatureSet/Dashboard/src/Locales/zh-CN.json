@@ -48035,7 +48035,6 @@
   "Product Analytics Event": "产品分析事件",
   "Product Analytics Events": "产品分析事件",
   "Product Analytics User Properties": "产品分析用户属性",
-  "Product analytics events are off": "产品分析事件已关闭",
   "Proxmox Cluster Details": "Proxmox 集群详情",
   "Raw Error Message": "原始错误消息",
   "Recieved In Minutes": "在指定分钟内收到",
@@ -48093,7 +48092,6 @@
   "Server Process Name": "服务器进程名称",
   "Server Process PID": "服务器进程 PID",
   "Server heartbeat last received {{minutes}} minutes ago.": "最后一次收到服务器心跳是在 {{minutes}} 分钟前。",
-  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.": "此应用的会话回放已关闭，而发送事件的正是它的录制器。请同时在“回放策略”中开启它。",
   "Session started": "会话已开始",
   "Sessions it happened in at least once.": "至少发生过一次的会话。",
   "Show only {{value}}": "仅显示 {{value}}",
@@ -48202,7 +48200,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}（未满足配置的筛选条件）。",
   "{{percent}} did every step": "{{percent}} 完成了所有步骤",
   "{{percent}} went on": "{{percent}} 进入下一步",
-  "Every session the browser recorder runs in sends its start and its page views on its own. Send your own events and numbers from your app's code:": "运行浏览器录制器的每个会话都会自动发送其开始和页面浏览。请从应用代码中发送您自己的事件和数值：",
   "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "无论是否录制，浏览器录制器都会从每个会话发送会话的开始、页面浏览以及您的 track() 和 metric() 调用。同意设置、Do Not Track 和允许的来源与录制时一样适用。",
   "{{subject}} is {{values}} which is": "{{subject}}为 {{values}}",
   "{{subject}} is {{values}} which is contains {{threshold}}.": "{{subject}}为 {{values}}，包含 {{threshold}}。",
@@ -48339,5 +48336,8 @@
   "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.": "发给此项目成员的短信（例如值班警报）将通过此配置发送。呼叫仍使用其现有的项目默认配置。",
   "The calls to people in this project, such as on-call alerts, will go through this config. SMS keep the project default they have.": "打给此项目成员的电话（例如值班警报）将通过此配置拨出。短信仍使用其现有的项目默认配置。",
   "Is Project Default for Calls": "Is Project Default for Calls",
-  "Is Project Default for SMS": "Is Project Default for SMS"
+  "Is Project Default for SMS": "Is Project Default for SMS",
+  "Install the recorder": "安装录制器",
+  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "此应用的会话回放已关闭，而发送事件的正是它的录制器。请同时在“{{replayPolicy}}”中开启它。",
+  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "会话开始和页面浏览会从每个安装了浏览器录制器的页面自动传来。要统计用户在那里做了什么，请从应用代码中发送事件和数值："
 }

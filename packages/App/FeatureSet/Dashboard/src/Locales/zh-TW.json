@@ -48035,7 +48035,6 @@
   "Product Analytics Event": "產品分析事件",
   "Product Analytics Events": "產品分析事件",
   "Product Analytics User Properties": "產品分析使用者屬性",
-  "Product analytics events are off": "產品分析事件已關閉",
   "Proxmox Cluster Details": "Proxmox 叢集詳細資料",
   "Raw Error Message": "原始錯誤訊息",
   "Recieved In Minutes": "在指定分鐘內收到",
@@ -48093,7 +48092,6 @@
   "Server Process Name": "伺服器處理程序名稱",
   "Server Process PID": "伺服器處理程序 PID",
   "Server heartbeat last received {{minutes}} minutes ago.": "最近一次收到伺服器心跳是在 {{minutes}} 分鐘前。",
-  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under Replay Policy too.": "此應用程式的工作階段重播已關閉，而傳送事件的正是它的錄製器。請同時在「重播政策」中開啟它。",
   "Session started": "工作階段已開始",
   "Sessions it happened in at least once.": "至少發生過一次的工作階段。",
   "Show only {{value}}": "只顯示 {{value}}",
@@ -48202,7 +48200,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}（未符合設定的篩選條件）。",
   "{{percent}} did every step": "{{percent}} 完成了所有步驟",
   "{{percent}} went on": "{{percent}} 進入下一步",
-  "Every session the browser recorder runs in sends its start and its page views on its own. Send your own events and numbers from your app's code:": "執行瀏覽器錄製器的每個工作階段都會自動傳送其開始和頁面瀏覽。請從應用程式程式碼傳送您自己的事件和數值：",
   "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "無論是否錄製，瀏覽器錄製器都會從每個工作階段傳送工作階段的開始、頁面瀏覽以及您的 track() 和 metric() 呼叫。同意設定、Do Not Track 和允許的來源與錄製時一樣適用。",
   "{{subject}} is {{values}} which is": "{{subject}}為 {{values}}",
   "{{subject}} is {{values}} which is contains {{threshold}}.": "{{subject}}為 {{values}}，包含 {{threshold}}。",
@@ -48339,5 +48336,8 @@
   "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.": "傳送給此專案成員的簡訊（例如待命警示）將透過此設定傳送。通話仍使用其現有的專案預設。",
   "The calls to people in this project, such as on-call alerts, will go through this config. SMS keep the project default they have.": "撥給此專案成員的通話（例如待命警示）將透過此設定撥出。簡訊仍使用其現有的專案預設。",
   "Is Project Default for Calls": "Is Project Default for Calls",
-  "Is Project Default for SMS": "Is Project Default for SMS"
+  "Is Project Default for SMS": "Is Project Default for SMS",
+  "Install the recorder": "安裝錄製器",
+  "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "此應用程式的工作階段重播已關閉，而傳送事件的正是它的錄製器。請同時在「{{replayPolicy}}」中開啟它。",
+  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "工作階段開始和頁面瀏覽會從每個安裝了瀏覽器錄製器的頁面自動傳來。若要統計使用者在那裡做了什麼，請從應用程式程式碼傳送事件和數值："
 }

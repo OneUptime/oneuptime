@@ -26,6 +26,7 @@ import { ProductAnalyticsEventKind } from "../../../Types/Rum/ProductAnalyticsEv
 import {
   PRODUCT_ANALYTICS_FUNNEL_MAX_STEPS,
   ProductAnalyticsEventNameDto,
+  ProductAnalyticsEventRef,
   ProductAnalyticsFunnelDto,
 } from "../../../Types/Rum/ProductAnalyticsEventReads";
 import PermissionGate, {
@@ -90,6 +91,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import RumApplicationProductAnalyticsFunnels, {
   pickDefaultProductAnalyticsFunnelSteps,
+  pickNextProductAnalyticsFunnelStep,
   toProductAnalyticsPersonProperties,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/ProductAnalyticsFunnels";
 import {
@@ -260,6 +262,53 @@ describe("the default funnel", () => {
     ]);
   });
 
+  test("Add step adds the most frequent event of the application's own not yet a step, else its most viewed page not yet one, else a session's start", () => {
+    const events: Array<ProductAnalyticsEventNameDto> = [
+      event(ProductAnalyticsEventKind.Session, ""),
+      event(ProductAnalyticsEventKind.Page, "/pricing"),
+      event(ProductAnalyticsEventKind.Custom, "Signed up"),
+      event(ProductAnalyticsEventKind.Custom, "Purchased"),
+    ];
+    const session: ProductAnalyticsEventRef = {
+      kind: ProductAnalyticsEventKind.Session,
+      name: "",
+    };
+
+    expect(
+      pickNextProductAnalyticsFunnelStep(events, [
+        session,
+        { kind: ProductAnalyticsEventKind.Custom, name: "Signed up" },
+      ]),
+    ).toEqual({ kind: ProductAnalyticsEventKind.Custom, name: "Purchased" });
+    expect(
+      pickNextProductAnalyticsFunnelStep(events, [
+        session,
+        { kind: ProductAnalyticsEventKind.Custom, name: "Signed up" },
+        { kind: ProductAnalyticsEventKind.Custom, name: "Purchased" },
+      ]),
+    ).toEqual({ kind: ProductAnalyticsEventKind.Page, name: "/pricing" });
+    /* A page of the same name as an event is another event. */
+    expect(
+      pickNextProductAnalyticsFunnelStep(
+        [
+          event(ProductAnalyticsEventKind.Custom, "/pricing"),
+          event(ProductAnalyticsEventKind.Page, "/pricing"),
+        ],
+        [session, { kind: ProductAnalyticsEventKind.Page, name: "/pricing" }],
+      ),
+    ).toEqual({ kind: ProductAnalyticsEventKind.Custom, name: "/pricing" });
+    /* Every event a step already: a session's start, as before. */
+    expect(
+      pickNextProductAnalyticsFunnelStep(
+        [event(ProductAnalyticsEventKind.Page, "/pricing")],
+        [session, { kind: ProductAnalyticsEventKind.Page, name: "/pricing" }],
+      ),
+    ).toEqual(session);
+    expect(pickNextProductAnalyticsFunnelStep([], [session, session])).toEqual(
+      session,
+    );
+  });
+
   test("a funnel's segment offers the people's properties, never one event's own", () => {
     expect(
       toProductAnalyticsPersonProperties({
@@ -417,6 +466,14 @@ describe("ProductAnalyticsFunnels", () => {
         screen.getAllByTestId("product-analytics-funnel-step"),
       ).toHaveLength(3);
     });
+    /* The step added is the most frequent event of its own not yet a step. */
+    await waitFor(() => {
+      expect(lastFunnelRequest()["steps"]).toEqual([
+        { kind: "session", name: "" },
+        { kind: "page", name: "/pricing" },
+        { kind: "custom", name: "Signed up" },
+      ]);
+    });
     await chooseProductAnalyticsOption(stepPicker(3), "Purchased");
 
     await waitFor(() => {
@@ -490,6 +547,12 @@ describe("ProductAnalyticsFunnels", () => {
       name: "Time to finish the funnel",
     });
 
+    /* Named on the page too, under the steps it times. */
+    expect(
+      within(screen.getByTestId("product-analytics-funnel-steps")).getByText(
+        "Time to finish the funnel",
+      ),
+    ).toBeInTheDocument();
     expect(openProductAnalyticsOptions(windowPicker)).toEqual([
       "Within 1 hour",
       "Within 1 day",

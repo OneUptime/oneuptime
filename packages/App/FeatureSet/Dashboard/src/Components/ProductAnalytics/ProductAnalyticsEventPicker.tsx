@@ -5,7 +5,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { ProductAnalyticsEventKind } from "Common/Types/Rum/ProductAnalyticsEvents";
 import {
   ProductAnalyticsEventNameDto,
@@ -35,7 +35,15 @@ export interface ProductAnalyticsEventPickerProps {
   ariaLabel: string;
   dataTestId: string;
   placeholder?: string | undefined;
+  /*
+   * The events are on their way: the picker says so, with a spinner,
+   * instead of offering an empty list to pick from.
+   */
+  isLoading?: boolean | undefined;
 }
+
+export const PRODUCT_ANALYTICS_EVENTS_LOADING: string =
+  translationKey("Loading events...");
 
 export function buildProductAnalyticsEventOptions(data: {
   events: ReadonlyArray<ProductAnalyticsEventNameDto>;
@@ -117,7 +125,15 @@ const ProductAnalyticsEventPicker: FunctionComponent<
       value={selectedOption}
       isClearable={false}
       ariaLabel={translator.translateText(props.ariaLabel) || props.ariaLabel}
-      placeholder={props.placeholder}
+      placeholder={
+        props.isLoading ? PRODUCT_ANALYTICS_EVENTS_LOADING : props.placeholder
+      }
+      isLoading={props.isLoading}
+      loadingMessage={
+        props.isLoading
+          ? translator.translateText(PRODUCT_ANALYTICS_EVENTS_LOADING)
+          : undefined
+      }
       dataTestId={props.dataTestId}
       onChange={(value: DropdownValue | Array<DropdownValue> | null): void => {
         const event: ProductAnalyticsEventRef | null =
