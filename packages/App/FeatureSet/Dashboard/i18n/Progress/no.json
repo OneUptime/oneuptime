@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48180,
-    "untranslated": 11067
+    "keys": 48847,
+    "untranslated": 10782
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -350,6 +350,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} CPU",
@@ -399,6 +400,7 @@
     "{{minutes}} min",
     "{{percent}} full",
     "{{size}} disk",
-    "{{tokens}} tokens"
+    "{{tokens}} tokens",
+    "{{value}} ms"
   ]
 }
