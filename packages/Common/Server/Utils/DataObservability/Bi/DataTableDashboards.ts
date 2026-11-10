@@ -2,6 +2,11 @@ import DataAssetLineage from "../../../../Models/DatabaseModels/DataAssetLineage
 import DataDashboard from "../../../../Models/DatabaseModels/DataDashboard";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import {
+  DataBiRefreshStatus,
+  DataDashboardRefreshHistory,
+  readDataDashboardRefreshHistory,
+} from "../../../../Types/DataObservability/DataDashboardActivity";
 import ObjectID from "../../../../Types/ObjectID";
 import DataAssetLineageService from "../../../Services/DataAssetLineageService";
 import DataDashboardService from "../../../Services/DataDashboardService";
@@ -13,7 +18,9 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
  * The real impact of bad data is the dashboard someone opens. A table's
  * dashboards are those whose charts query it, and those built on the
  * tables built from it, two steps down its lineage: a late source table's
- * alert lists the revenue dashboard that reads a model built from it.
+ * alert lists the revenue dashboard that reads a model built from it. Each
+ * says, where its tool does, how often it is opened and how its last
+ * refresh went.
  */
 
 export interface TableDashboard {
@@ -25,6 +32,24 @@ export interface TableDashboard {
   owner: string | null;
   // The table built from this one that the dashboard reads; null when it reads this one.
   via: { dataAssetId: string; table: string } | null;
+  // Views and viewers in the last 28 days, and the latest view; null where its tool does not say.
+  viewCount?: number | null;
+  viewerCount?: number | null;
+  lastViewedAt?: string | null;
+  // How the last refresh of its data went, when, and a failed one's error.
+  lastRefreshStatus?: DataBiRefreshStatus | null;
+  lastRefreshAt?: string | null;
+  lastRefreshError?: string | null;
+}
+
+function toTime(value: Date | string | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const at: Date = new Date(value);
+
+  return Number.isNaN(at.getTime()) ? null : at.toISOString();
 }
 
 // How far down a table's lineage its dashboards are looked for.
@@ -107,6 +132,12 @@ export default class DataTableDashboards {
         tool: true,
         folder: true,
         owner: true,
+        viewCount: true,
+        viewerCount: true,
+        lastViewedAt: true,
+        lastRefreshStatus: true,
+        lastRefreshAt: true,
+        refreshHistory: true,
         dataAssets: { _id: true },
       },
       sort: { name: SortOrder.Ascending },
@@ -140,6 +171,9 @@ export default class DataTableDashboards {
                 },
               ) || null;
 
+      const refresh: DataDashboardRefreshHistory | null =
+        readDataDashboardRefreshHistory(dashboard.refreshHistory);
+
       return {
         dataDashboardId: dashboard.id!.toString(),
         name: dashboard.name || "",
@@ -148,6 +182,12 @@ export default class DataTableDashboards {
         folder: dashboard.folder || null,
         owner: dashboard.owner || null,
         via: nearest,
+        viewCount: dashboard.viewCount ?? null,
+        viewerCount: dashboard.viewerCount ?? null,
+        lastViewedAt: toTime(dashboard.lastViewedAt),
+        lastRefreshStatus: dashboard.lastRefreshStatus || null,
+        lastRefreshAt: toTime(dashboard.lastRefreshAt),
+        lastRefreshError: refresh?.last?.error || null,
       };
     });
   }

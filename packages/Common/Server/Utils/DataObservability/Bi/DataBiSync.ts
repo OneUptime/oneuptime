@@ -4,6 +4,11 @@ import DataDashboard from "../../../../Models/DatabaseModels/DataDashboard";
 import DataBiTool, {
   isDataBiTool,
 } from "../../../../Types/DataObservability/DataBiTool";
+import {
+  DataBiRefreshStatus,
+  DataDashboardRefreshHistory,
+  getDataDashboardRefreshTime,
+} from "../../../../Types/DataObservability/DataDashboardActivity";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -18,10 +23,21 @@ import OpenLineageIngest, { ProjectCatalog } from "../OpenLineageIngest";
 import { UsageAsset } from "../TableUsageMatching";
 import {
   BiDashboardRead,
+  BiToolRead,
   MAX_BI_DASHBOARDS,
-  readBiDashboards,
+  readBiTool,
 } from "./BiConnectors";
 import { matchBiTables } from "./BiMatching";
+import {
+  BiUsageLedger,
+  BiUsageRead,
+  BiUsageSummary,
+  BiViewTally,
+  groupBiViewTallies,
+  mergeBiUsage,
+  readBiUsageLedger,
+  summarizeBiUsage,
+} from "./BiUsage";
 
 /*
  * A BI TOOL'S DASHBOARDS, READ AND KEPT.
@@ -32,6 +48,13 @@ import { matchBiTables } from "./BiMatching";
  * made to match what it says: new ones made, changed ones updated, gone
  * ones deleted. A read that fails keeps the dashboards of the last one and
  * says why on the tool.
+ *
+ * Where the tool says (Power BI), each dashboard also keeps its views - the
+ * hours read now added to its ledger (BiUsage), the range of hours read kept
+ * on the tool after the dashboards are - and the latest refreshes of its
+ * data. Views or refreshes that could not be read leave the dashboards' as
+ * they were, and the tool says why as a warning, not an error: its
+ * dashboards were read.
  */
 
 export interface DataBiSyncResult {
@@ -41,6 +64,69 @@ export interface DataBiSyncResult {
 }
 
 const MAX_ERROR_LENGTH: number = 500;
+const MAX_WARNING_LENGTH: number = 1_000;
+
+// What a read could not read, each warning whole, and never the credentials.
+export function getWarningText(
+  warnings: Array<string>,
+  credentialsText: string,
+): string {
+  const secrets: Array<string> = getConnectionSecrets(credentialsText || "{}");
+
+  return warnings
+    .map((warning: string): string => {
+      return secrets.reduce((text: string, secret: string): string => {
+        return text.split(secret).join("****");
+      }, warning);
+    })
+    .join(" ")
+    .slice(0, MAX_WARNING_LENGTH);
+}
+
+// A dashboard's views, as its columns keep them.
+export function getUsageFields(data: {
+  ledger: unknown;
+  usage: BiUsageRead;
+  tallies: Array<BiViewTally>;
+  now: Date;
+}): {
+  usageLedger: JSONObject;
+  viewCount: number;
+  viewerCount: number;
+  lastViewedAt: Date | null;
+  usageSummary: JSONObject;
+} {
+  const ledger: BiUsageLedger = mergeBiUsage({
+    ledger: readBiUsageLedger(data.ledger),
+    read: data.usage,
+    tallies: data.tallies,
+    now: data.now,
+  });
+  const summary: BiUsageSummary = summarizeBiUsage(ledger, data.now);
+
+  return {
+    usageLedger: ledger as unknown as JSONObject,
+    viewCount: summary.viewCount,
+    viewerCount: summary.viewerCount,
+    lastViewedAt: summary.lastViewedAt,
+    usageSummary: summary.summary as unknown as JSONObject,
+  };
+}
+
+// A dashboard's refreshes, as its columns keep them: all null when it has none.
+export function getRefreshFields(refresh: DataDashboardRefreshHistory | null): {
+  lastRefreshStatus: DataBiRefreshStatus | null;
+  lastRefreshAt: Date | null;
+  refreshHistory: JSONObject | null;
+} {
+  const at: string | null = getDataDashboardRefreshTime(refresh?.last || null);
+
+  return {
+    lastRefreshStatus: refresh?.last?.status || null,
+    lastRefreshAt: at ? new Date(at) : null,
+    refreshHistory: refresh ? (refresh as unknown as JSONObject) : null,
+  };
+}
 
 export default class DataBiSync {
   // Every enabled tool, one after another: one that fails never stops the others.
@@ -78,6 +164,8 @@ export default class DataBiSync {
           tool: true,
           baseUrl: true,
           credentials: true,
+          usageReadFrom: true,
+          usageReadUntil: true,
         },
         props: { isRoot: true },
       });
@@ -109,27 +197,44 @@ export default class DataBiSync {
         throw new Error("The credentials are not JSON.");
       }
 
-      const read: Array<BiDashboardRead> = await readBiDashboards(
-        tool as DataBiTool,
-        { baseUrl: connection.baseUrl || "", credentials },
-      );
+      const read: BiToolRead = await readBiTool(tool as DataBiTool, {
+        baseUrl: connection.baseUrl || "",
+        credentials,
+        usageCursor: {
+          from: connection.usageReadFrom
+            ? new Date(connection.usageReadFrom)
+            : null,
+          until: connection.usageReadUntil
+            ? new Date(connection.usageReadUntil)
+            : null,
+        },
+      });
       const catalog: ProjectCatalog = await OpenLineageIngest.readCatalog(
         connection.projectId,
       );
       const result: DataBiSyncResult = await DataBiSync.keep({
         connection,
         tool: tool as DataBiTool,
-        read: read.slice(0, MAX_BI_DASHBOARDS),
+        read: read.dashboards.slice(0, MAX_BI_DASHBOARDS),
         catalog,
+        usage: read.usage,
       });
 
+      // The hours of views read are kept once every dashboard holds them.
       await DataBiConnectionService.updateOneById({
         id: connection.id,
         data: {
           lastSyncedAt: OneUptimeDate.getCurrentDate(),
           lastSyncError: "",
+          lastSyncWarning: getWarningText(read.warnings, credentialsText),
           dashboardCount: result.dashboardCount,
           matchedTableCount: result.matchedTableCount,
+          ...(read.usage
+            ? {
+                usageReadFrom: new Date(read.usage.range.from),
+                usageReadUntil: new Date(read.usage.range.until),
+              }
+            : {}),
         },
         props: { isRoot: true },
       });
@@ -160,10 +265,18 @@ export default class DataBiSync {
     tool: DataBiTool;
     read: Array<BiDashboardRead>;
     catalog: ProjectCatalog;
+    // The views read with the dashboards, where the tool says.
+    usage?: BiUsageRead | null | undefined;
+    now?: Date | undefined;
   }): Promise<DataBiSyncResult> {
+    const now: Date = data.now || OneUptimeDate.getCurrentDate();
     const existing: Array<DataDashboard> = await DataDashboardService.findBy({
       query: { dataBiConnectionId: data.connection.id! },
-      select: { _id: true, externalId: true },
+      select: {
+        _id: true,
+        externalId: true,
+        ...(data.usage ? { usageLedger: true } : {}),
+      },
       limit: MAX_BI_DASHBOARDS + 500,
       skip: 0,
       props: { isRoot: true },
@@ -173,6 +286,9 @@ export default class DataBiSync {
         return [dashboard.externalId || "", dashboard];
       }),
     );
+    const tallies: Map<string, Array<BiViewTally>> = data.usage
+      ? groupBiViewTallies(data.usage.tallies)
+      : new Map();
     const seen: Set<string> = new Set();
     const matchedTables: Set<string> = new Set();
 
@@ -216,11 +332,29 @@ export default class DataBiSync {
       const known: DataDashboard | undefined = byExternalId.get(
         dashboard.externalId,
       );
+      // Views and refreshes are written only when they were read: else they stay as they were.
+      const usageFields: ReturnType<typeof getUsageFields> | null = data.usage
+        ? getUsageFields({
+            ledger: known?.usageLedger,
+            usage: data.usage,
+            tallies: tallies.get(dashboard.externalId) || [],
+            now,
+          })
+        : null;
+      const refreshFields: ReturnType<typeof getRefreshFields> | null =
+        dashboard.refresh !== undefined
+          ? getRefreshFields(dashboard.refresh)
+          : null;
 
       if (known?.id) {
         await DataDashboardService.updateOneById({
           id: known.id,
-          data: { ...fields, dataAssets } as never,
+          data: {
+            ...fields,
+            ...(usageFields || {}),
+            ...(refreshFields || {}),
+            dataAssets,
+          } as never,
           props: { isRoot: true },
         });
         continue;
@@ -250,6 +384,29 @@ export default class DataBiSync {
       }
       model.tableCount = fields.tableCount;
       model.dataAssets = dataAssets;
+
+      if (usageFields) {
+        model.usageLedger = usageFields.usageLedger;
+        model.viewCount = usageFields.viewCount;
+        model.viewerCount = usageFields.viewerCount;
+        model.usageSummary = usageFields.usageSummary;
+
+        if (usageFields.lastViewedAt) {
+          model.lastViewedAt = usageFields.lastViewedAt;
+        }
+      }
+
+      if (refreshFields?.refreshHistory) {
+        model.refreshHistory = refreshFields.refreshHistory;
+
+        if (refreshFields.lastRefreshStatus) {
+          model.lastRefreshStatus = refreshFields.lastRefreshStatus;
+        }
+
+        if (refreshFields.lastRefreshAt) {
+          model.lastRefreshAt = refreshFields.lastRefreshAt;
+        }
+      }
 
       await DataDashboardService.create({
         data: model,
