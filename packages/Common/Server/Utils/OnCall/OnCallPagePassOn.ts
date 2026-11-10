@@ -273,7 +273,26 @@ export default class OnCallPagePassOn {
     );
 
     /*
-     * Their pages first: the notifications still due stop now, and the
+     * The notification they escalated it from first: the record's feed
+     * names the channel they escalated it by - "escalated the page ... via
+     * SMS" - and reads it from that notification when their page, below,
+     * says they escalated it.
+     */
+    if (data.viaUserOnCallLogTimelineId) {
+      await UserOnCallLogTimelineService.updateOneById({
+        id: data.viaUserOnCallLogTimelineId,
+        data: {
+          status: UserNotificationStatus.PassedOn,
+          statusMessage: ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    /*
+     * Then their pages: the notifications still due stop now, and the
      * run's timeline says they passed it on - which is what the look at who
      * is left, below, reads.
      */
@@ -283,19 +302,6 @@ export default class OnCallPagePassOn {
         data: {
           status: UserNotificationExecutionStatus.PassedOn,
           statusMessage: ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (data.viaUserOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: data.viaUserOnCallLogTimelineId,
-        data: {
-          status: UserNotificationStatus.PassedOn,
-          statusMessage: ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
         },
         props: {
           isRoot: true,
