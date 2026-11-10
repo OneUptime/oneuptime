@@ -147,6 +147,8 @@ const INLINE_CODE: RegExp = /`([^`\n]+)`/g;
 const NAVBAR_CATEGORY: RegExp = /category: (\w+)Category/;
 const SPLICE_OFFSET: RegExp = /sections\.splice\((-?\d+), 0,/;
 const MIN_LENGTH: RegExp = /minLength:\s*(\d+)/;
+const MIN_VALUE: RegExp = /minValue:\s*(\d+)/;
+const MAX_VALUE: RegExp = /maxValue:\s*(\d+)/;
 const AMOUNT_ABOVE: RegExp = /if \(amount > (\d+)\)/;
 const AMOUNT_BELOW: RegExp = /if \(amount < (\d+)\)/;
 // An amount in dollars as the page writes it: $0.10, $2, $1,000.
