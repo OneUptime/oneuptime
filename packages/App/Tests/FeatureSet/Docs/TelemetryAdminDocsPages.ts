@@ -80,13 +80,14 @@ export const TELEMETRY_ADMIN_PAGES: ReadonlyArray<TelemetryAdminDocsPageEntry> =
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     /*
-     * The Topology page's first tab, and the statuses the service map draws
-     * that no locale has. Its Some errors and High error rate are keys since
-     * the queues' topology map draws them too (MessageQueueTopologyModel),
-     * so the service map's t() reads them from the locale, as every other
-     * Dashboard label is read.
+     * The statuses the service map draws that no locale has. Its Some
+     * errors and High error rate are keys since the queues' topology map
+     * draws them too (MessageQueueTopologyModel), so the service map's t()
+     * reads them from the locale, as every other Dashboard label is read.
+     * The page's first tab, Service Map, is a key since #6633's UI review,
+     * so each language names it as its Dashboard draws it.
      */
-    [TOPOLOGY]: ["Service Map", "Entry point", "No calls observed"],
+    [TOPOLOGY]: ["Entry point", "No calls observed"],
     // The Enterprise Edition's retention-by-type form.
     [DATA_RETENTION]: [
       "Edit Overrides",

@@ -15747,7 +15747,7 @@
   "Search inventory...": "ابحث في الجرد...",
   "Search labels...": "ابحث في التسميات...",
   "Search log messages": "البحث في رسائل السجلات",
-  "Search logs... (e.g. severity:error service:api \"connection refused\")": "البحث في السجلات... (مثلًا severity:error service:api \"connection refused\")",
+  "Search logs... (e.g. severity:error service:api \"connection refused\")": "البحث في السجلات... (مثلًا service:api \"connection refused\" severity:error)",
   "Search metric names": "البحث في أسماء المقاييس",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "البحث في المقاييس — مثلًا name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "البحث في أنواع المراقبة...",
@@ -49121,5 +49121,8 @@
   "{{count}} profiles": "الملفات التعريفية: {{count}}",
   "{{count}} profiles_one": "{{count}} ملف تعريفي",
   "{{count}} security events": "الأحداث الأمنية: {{count}}",
-  "{{count}} security events_one": "{{count}} حدث أمني"
+  "{{count}} security events_one": "{{count}} حدث أمني",
+  "Loading infrastructure…": "جارٍ تحميل البنية التحتية…",
+  "Loading service map…": "جارٍ تحميل خريطة الخدمات…",
+  "Service Map": "خريطة الخدمات"
 }

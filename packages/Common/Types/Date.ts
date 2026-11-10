@@ -490,10 +490,37 @@ export default class OneUptimeDate {
     }
 
     const instant: Date = date;
-
-    return this.inReaderDigits((): string => {
+    const english: () => string = (): string => {
       return this.inCurrentTimezone(instant).format(timeFormat);
-    });
+    };
+
+    if (!use12HourFormat) {
+      return this.inReaderDigits(english);
+    }
+
+    /*
+     * A 12-hour clock's half of the day in the reader's words, as Intl
+     * writes it: "2:30 م", "午後2:30", "۲:۳۰ ب.ظ.". Written by moment it
+     * was English's "PM" on every page - the one English word in an Arabic
+     * monitor's "Refreshed at" and under a histogram's bars.
+     */
+    return writeInDateDisplayLanguage(
+      english,
+      (_language: string, locale: string): string | null => {
+        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getCurrentTimezoneNames(),
+          options: {
+            hour: "numeric",
+            ...(includeMinutes ? { minute: "2-digit" } : {}),
+            ...(includeMinutes && includeSeconds ? { second: "2-digit" } : {}),
+            hour12: true,
+          },
+        });
+
+        return format ? format.format(instant) : null;
+      },
+    );
   }
 
   /*

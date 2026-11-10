@@ -49121,5 +49121,8 @@
   "{{count}} profiles": "{{count}} perfiles",
   "{{count}} profiles_one": "{{count}} perfil",
   "{{count}} security events": "{{count}} eventos de seguridad",
-  "{{count}} security events_one": "{{count}} evento de seguridad"
+  "{{count}} security events_one": "{{count}} evento de seguridad",
+  "Loading infrastructure…": "Cargando la infraestructura…",
+  "Loading service map…": "Cargando el mapa de servicios…",
+  "Service Map": "Mapa de servicios"
 }

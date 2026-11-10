@@ -49121,5 +49121,8 @@
   "{{count}} profiles": "프로파일 {{count}}개",
   "{{count}} profiles_one": "{{count}} profile",
   "{{count}} security events": "보안 이벤트 {{count}}개",
-  "{{count}} security events_one": "{{count}} security event"
+  "{{count}} security events_one": "{{count}} security event",
+  "Loading infrastructure…": "인프라 불러오는 중…",
+  "Loading service map…": "서비스 맵 불러오는 중…",
+  "Service Map": "서비스 맵"
 }

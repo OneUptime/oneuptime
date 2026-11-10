@@ -49121,5 +49121,8 @@
   "{{count}} profiles": "{{count}} प्रोफ़ाइल",
   "{{count}} profiles_one": "{{count}} प्रोफ़ाइल",
   "{{count}} security events": "{{count}} सुरक्षा इवेंट",
-  "{{count}} security events_one": "{{count}} सुरक्षा इवेंट"
+  "{{count}} security events_one": "{{count}} सुरक्षा इवेंट",
+  "Loading infrastructure…": "बुनियादी ढांचा लोड हो रहा है…",
+  "Loading service map…": "सेवा मानचित्र लोड हो रहा है…",
+  "Service Map": "सेवा मानचित्र"
 }

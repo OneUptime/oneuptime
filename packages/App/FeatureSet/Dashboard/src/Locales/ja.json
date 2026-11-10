@@ -49121,5 +49121,8 @@
   "{{count}} profiles": "プロファイル {{count}} 件",
   "{{count}} profiles_one": "{{count}} profile",
   "{{count}} security events": "セキュリティイベント {{count}} 件",
-  "{{count}} security events_one": "{{count}} security event"
+  "{{count}} security events_one": "{{count}} security event",
+  "Loading infrastructure…": "インフラストラクチャを読み込み中…",
+  "Loading service map…": "サービスマップを読み込み中…",
+  "Service Map": "サービスマップ"
 }

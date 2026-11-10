@@ -49121,5 +49121,8 @@
   "{{count}} profiles": "{{count}} Profile",
   "{{count}} profiles_one": "{{count}} Profil",
   "{{count}} security events": "{{count}} Sicherheitsereignisse",
-  "{{count}} security events_one": "{{count}} Sicherheitsereignis"
+  "{{count}} security events_one": "{{count}} Sicherheitsereignis",
+  "Loading infrastructure…": "Infrastruktur wird geladen…",
+  "Loading service map…": "Dienstkarte wird geladen…",
+  "Service Map": "Dienstkarte"
 }

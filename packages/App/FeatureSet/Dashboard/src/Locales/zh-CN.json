@@ -49121,5 +49121,8 @@
   "{{count}} profiles": "{{count}} 个性能剖析",
   "{{count}} profiles_one": "{{count}} profile",
   "{{count}} security events": "{{count}} 个安全事件",
-  "{{count}} security events_one": "{{count}} security event"
+  "{{count}} security events_one": "{{count}} security event",
+  "Loading infrastructure…": "正在加载基础设施…",
+  "Loading service map…": "正在加载服务地图…",
+  "Service Map": "服务地图"
 }

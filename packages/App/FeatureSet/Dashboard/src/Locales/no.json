@@ -49121,5 +49121,8 @@
   "{{count}} profiles": "{{count}} profiler",
   "{{count}} profiles_one": "{{count}} profil",
   "{{count}} security events": "{{count}} sikkerhetshendelser",
-  "{{count}} security events_one": "{{count}} sikkerhetshendelse"
+  "{{count}} security events_one": "{{count}} sikkerhetshendelse",
+  "Loading infrastructure…": "Laster infrastruktur…",
+  "Loading service map…": "Laster tjenestekart…",
+  "Service Map": "Tjenestekart"
 }
