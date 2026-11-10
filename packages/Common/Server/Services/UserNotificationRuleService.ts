@@ -95,6 +95,7 @@ import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
 import TelegramMessage from "../../Types/Telegram/TelegramMessage";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
+import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
 import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
 import {
   renderWhatsAppTemplate,
@@ -1147,13 +1148,22 @@ export class Service extends ProjectReferencesService<Model> {
     options: ExecuteNotificationRuleOptions,
   ): Promise<boolean> {
     /*
-     * If the project has a default Twilio config set, use it for all
-     * team-member SMS and Calls in this rule. Otherwise the global config
-     * is used by the notification service.
+     * The project's default Twilio config for SMS, and its default for
+     * calls - one config, when it is the default for both - for the
+     * team-member SMS and calls of this rule (Types/CallAndSMS/
+     * TwilioConfigDefaults). Without one, the notification service sends
+     * through the global config.
      */
-    const projectTwilioConfig: TwilioConfig | undefined =
+    const projectTwilioConfigForSms: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         options.projectId,
+        TwilioMessageKind.SMS,
+      );
+
+    const projectTwilioConfigForCalls: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        options.projectId,
+        TwilioMessageKind.Call,
       );
 
     const logTimelineItem: UserOnCallLogTimeline = this.buildLogTimelineItem(
@@ -1664,7 +1674,7 @@ export class Service extends ProjectReferencesService<Model> {
 
         SmsService.sendSms(smsMessage, {
           projectId: alert.projectId,
-          customTwilioConfig: projectTwilioConfig,
+          customTwilioConfig: projectTwilioConfigForSms,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
           userId: notificationRuleItem.userId!,
@@ -1723,7 +1733,7 @@ export class Service extends ProjectReferencesService<Model> {
 
         SmsService.sendSms(smsMessage, {
           projectId: incident.projectId,
-          customTwilioConfig: projectTwilioConfig,
+          customTwilioConfig: projectTwilioConfigForSms,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
           userId: notificationRuleItem.userId!,
@@ -1778,7 +1788,7 @@ export class Service extends ProjectReferencesService<Model> {
 
         SmsService.sendSms(smsMessage, {
           projectId: alertEpisode.projectId,
-          customTwilioConfig: projectTwilioConfig,
+          customTwilioConfig: projectTwilioConfigForSms,
           userOnCallLogTimelineId: updatedLog.id!,
           alertEpisodeId: alertEpisode.id!,
           userId: notificationRuleItem.userId!,
@@ -1837,7 +1847,7 @@ export class Service extends ProjectReferencesService<Model> {
          */
         SmsService.sendSms(smsMessage, {
           projectId: incidentEpisode.projectId,
-          customTwilioConfig: projectTwilioConfig,
+          customTwilioConfig: projectTwilioConfigForSms,
           userOnCallLogTimelineId: updatedLog.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
@@ -2719,7 +2729,7 @@ export class Service extends ProjectReferencesService<Model> {
 
         CallService.makeCall(callRequest, {
           projectId: alert.projectId,
-          customTwilioConfig: projectTwilioConfig,
+          customTwilioConfig: projectTwilioConfigForCalls,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
           userId: notificationRuleItem.userId!,
@@ -2776,7 +2786,7 @@ export class Service extends ProjectReferencesService<Model> {
 
         CallService.makeCall(callRequest, {
           projectId: incident.projectId,
-          customTwilioConfig: projectTwilioConfig,
+          customTwilioConfig: projectTwilioConfigForCalls,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
           userId: notificationRuleItem.userId!,
@@ -2830,7 +2840,7 @@ export class Service extends ProjectReferencesService<Model> {
 
         CallService.makeCall(callRequest, {
           projectId: alertEpisode.projectId,
-          customTwilioConfig: projectTwilioConfig,
+          customTwilioConfig: projectTwilioConfigForCalls,
           userOnCallLogTimelineId: updatedLog.id!,
           alertEpisodeId: alertEpisode.id!,
           userId: notificationRuleItem.userId!,
@@ -2888,7 +2898,7 @@ export class Service extends ProjectReferencesService<Model> {
          */
         CallService.makeCall(callRequest, {
           projectId: incidentEpisode.projectId,
-          customTwilioConfig: projectTwilioConfig,
+          customTwilioConfig: projectTwilioConfigForCalls,
           userOnCallLogTimelineId: updatedLog.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,

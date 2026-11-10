@@ -94,13 +94,14 @@ export const ProjectNotificationChannelsCopy: {
 /*
  * SMS and calls go through the project's own Twilio account, and are not
  * paid from the balance, only when one of its Twilio configs is the project
- * default (ProjectCallSMSConfigService.getProjectDefaultTwilioConfig) - and
- * only the ones that config is used for: a default used for SMS only makes
- * no calls, and its project's calls are paid from the balance, as are the
- * SMS of a project whose default is used for calls only
- * (Common/Types/CallAndSMS/TwilioConfigUse). A project's first config becomes
- * the default; a config that is not the default sends nothing to the
- * project's members.
+ * default for them (ProjectCallSMSConfigService.getProjectDefaultTwilioConfig).
+ * A project has a default for SMS and one for calls, and a config is the
+ * default only for what it is used for (Common/Types/CallAndSMS/
+ * TwilioConfigDefaults): while a project's only default is used for SMS
+ * only, its calls are paid from the balance, as are the SMS of a project
+ * whose only default is used for calls only. A project's first config
+ * becomes the default; a config that is not the default sends nothing to
+ * the project's members.
  */
 const TWILIO_SMS_BALANCE_NOTE: string = translationKey(
   "Paid from the project's balance, unless the project's default Twilio Config sends SMS.",

@@ -5,6 +5,7 @@ import {
   GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
   GLOBAL_TWILIO_CONFIG_SELECT,
   GLOBAL_TWILIO_CONFIG_USE_SELECT,
+  PROJECT_DEFAULT_TWILIO_CONFIG_SELECT,
   PROJECT_TWILIO_CONFIG_SELECT,
   PROJECT_TWILIO_CONFIG_USE_SELECT,
 } from "../../../Server/Utils/TwilioConfigSelect";
@@ -185,7 +186,7 @@ describe("the server's reads of a Twilio config", () => {
   test("the readers that send - the project default, status pages, test sends, incoming calls and the server's own - use the lists", () => {
     const uses: Record<string, string> = {
       "Common/Server/Services/ProjectCallSMSConfigService.ts":
-        "PROJECT_TWILIO_CONFIG_SELECT",
+        "PROJECT_DEFAULT_TWILIO_CONFIG_SELECT",
       "Common/Server/Services/StatusPageSubscriberService.ts":
         "PROJECT_TWILIO_CONFIG_SELECT",
       "App/FeatureSet/Notification/API/SMS.ts": "PROJECT_TWILIO_CONFIG_SELECT",
@@ -280,8 +281,25 @@ describe("TwilioConfigSelect's lists", () => {
       true,
     );
     expect(
+      PROJECT_DEFAULT_TWILIO_CONFIG_SELECT[PROJECT_USE_COLUMN as "usedFor"],
+    ).toBe(true);
+    expect(
       GLOBAL_TWILIO_CONFIG_SELECT[GLOBAL_USE_COLUMN as "twilioUsedFor"],
     ).toBe(true);
+  });
+
+  /*
+   * A project's default is read to send through it like any other config,
+   * with what it is the project default for beside it (issue #6574): every
+   * column of a project's list, and the three flags - nothing else.
+   */
+  test("a project's default's list is a project's list and what the config is the default for", () => {
+    expect(PROJECT_DEFAULT_TWILIO_CONFIG_SELECT).toEqual({
+      ...PROJECT_TWILIO_CONFIG_SELECT,
+      isProjectDefault: true,
+      isProjectDefaultForSms: true,
+      isProjectDefaultForCalls: true,
+    });
   });
 
   /*

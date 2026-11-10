@@ -5,6 +5,8 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import FindBy from "../../../Server/Types/Database/FindBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import UpdateByID from "../../../Server/Types/Database/UpdateByID";
+import { TwilioConfigUse } from "../../../Types/CallAndSMS/TwilioConfigUse";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -40,11 +42,14 @@ import {
  * always sends one - is kept, and a project that already has a config keeps
  * the one it uses.
  *
- * A config saved as the default takes the default from the project's other
- * configs once it exists (onCreateSuccess, onUpdateSuccess), never before:
+ * A config saved as the default becomes the default for what it is used
+ * for - SMS, calls or both - taking that from the project's other configs
+ * once it exists (onCreateSuccess, onUpdateSuccess), never before:
  * DatabaseService refuses a caller who may not create or change a config
  * before any hook runs, and onBeforeCreate itself only decides the new
- * config's flag.
+ * config's flag. (What the rule gives each config is pinned in
+ * TwilioConfigDefaults.test.ts, and end to end over a table in
+ * ProjectCallSMSConfigDefaultPerKind.test.ts.)
  *
  * These pin ProjectCallSMSConfigService: onBeforeCreate on its own, the full
  * create() path for a non-root member (where whatever the hook writes is
@@ -162,6 +167,47 @@ const buildConfig: BuildConfigFunction = (
 let configsInProject: number;
 let countCalls: Array<CountBy<ProjectCallSMSConfig>>;
 let updateCalls: Array<UpdateBy<ProjectCallSMSConfig>>;
+// The rule's writes: each config's flags, by its id.
+let flagWrites: Array<UpdateByID<ProjectCallSMSConfig>>;
+let findCalls: Array<FindBy<ProjectCallSMSConfig>>;
+// The project's configs, as a read of them all finds them.
+let storedConfigs: Array<ProjectCallSMSConfig>;
+
+const OTHER_CONFIG_ID: ObjectID = new ObjectID(
+  "1a000000-0000-4000-8000-000000000005",
+);
+
+interface StoredConfigOptions {
+  id: ObjectID;
+  use?: TwilioConfigUse | undefined;
+  isProjectDefault?: boolean | undefined;
+  isProjectDefaultForSms?: boolean | undefined;
+  isProjectDefaultForCalls?: boolean | undefined;
+}
+
+// A config as the rule reads it from the table.
+const storedConfig: (options: StoredConfigOptions) => ProjectCallSMSConfig = (
+  options: StoredConfigOptions,
+): ProjectCallSMSConfig => {
+  const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+  config._id = options.id.toString();
+  config.projectId = PROJECT_ID;
+  config.usedFor = options.use || TwilioConfigUse.CallsAndSms;
+  config.isProjectDefault = options.isProjectDefault === true;
+  config.isProjectDefaultForSms = options.isProjectDefaultForSms === true;
+  config.isProjectDefaultForCalls = options.isProjectDefaultForCalls === true;
+  return config;
+};
+
+// The project's default for SMS and calls, made before the config written.
+const currentDefault: () => ProjectCallSMSConfig = (): ProjectCallSMSConfig => {
+  return storedConfig({
+    id: OTHER_CONFIG_ID,
+    isProjectDefault: true,
+    isProjectDefaultForSms: true,
+    isProjectDefaultForCalls: true,
+  });
+};
 
 /*
  * The project's configs, as countBy answers for them: a query for one
@@ -171,6 +217,9 @@ let updateCalls: Array<UpdateBy<ProjectCallSMSConfig>>;
 const mockStorage: () => void = (): void => {
   countCalls = [];
   updateCalls = [];
+  flagWrites = [];
+  findCalls = [];
+  storedConfigs = [];
 
   jest
     .spyOn(ProjectCallSMSConfigService, "countBy")
@@ -198,6 +247,43 @@ const mockStorage: () => void = (): void => {
         return 0;
       },
     );
+
+  jest
+    .spyOn(ProjectCallSMSConfigService, "updateOneById")
+    .mockImplementation(
+      async (updateById: UpdateByID<ProjectCallSMSConfig>): Promise<number> => {
+        flagWrites.push(updateById);
+        return 1;
+      },
+    );
+
+  /*
+   * A read by id is the update's "which projects did it write"; a read by
+   * project is the rule's read of the project's configs.
+   */
+  jest
+    .spyOn(ProjectCallSMSConfigService, "findBy")
+    .mockImplementation(
+      async (
+        findBy: FindBy<ProjectCallSMSConfig>,
+      ): Promise<Array<ProjectCallSMSConfig>> => {
+        findCalls.push(findBy);
+
+        if (findBy.query._id) {
+          const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+          config._id = CONFIG_ID.toString();
+          config.projectId = PROJECT_ID;
+          return [config];
+        }
+
+        return storedConfigs;
+      },
+    );
+};
+
+// Every write before or by the rule: by query (none now) and by id.
+const writeCount: () => number = (): number => {
+  return updateCalls.length + flagWrites.length;
 };
 
 // The hook's own count of the project's configs, if it made one.
@@ -287,29 +373,54 @@ const runUpdateSuccess: (
 };
 
 /*
- * The one write that takes the default from the project's other configs:
- * every other default config of the project, as root, keeping `keepId`.
+ * The rule's writes once a config used for calls and SMS is made the
+ * default while another is the default for both: the other gives up both
+ * first, then the config takes them - each by its id, as root. Nothing is
+ * written by query.
  */
 const expectDefaultTakenFromOthers: (
   projectId: ObjectID,
   keepId: ObjectID,
 ) => void = (projectId: ObjectID, keepId: ObjectID): void => {
-  expect(updateCalls).toHaveLength(1);
+  const projectRead: FindBy<ProjectCallSMSConfig> | undefined = findCalls.find(
+    (findBy: FindBy<ProjectCallSMSConfig>): boolean => {
+      return Boolean(findBy.query.projectId);
+    },
+  );
 
-  const updateBy: UpdateBy<ProjectCallSMSConfig> = updateCalls[0]!;
-
-  expect(Object.keys(updateBy.query).sort()).toEqual([
-    "_id",
-    "isProjectDefault",
-    "projectId",
-  ]);
-  expect((updateBy.query.projectId as ObjectID).toString()).toBe(
+  expect((projectRead?.query.projectId as ObjectID).toString()).toBe(
     projectId.toString(),
   );
-  expect(updateBy.query.isProjectDefault).toBe(true);
-  expect(JSON.stringify(updateBy.query._id)).toContain(keepId.toString());
-  expect(updateBy.data).toEqual({ isProjectDefault: false });
-  expect(updateBy.props).toEqual({ isRoot: true });
+  expect(projectRead?.props).toEqual({ isRoot: true });
+  expect(updateCalls).toHaveLength(0);
+  expect(
+    flagWrites.map((updateById: UpdateByID<ProjectCallSMSConfig>) => {
+      return {
+        id: updateById.id.toString(),
+        data: updateById.data,
+        props: updateById.props,
+      };
+    }),
+  ).toEqual([
+    {
+      id: OTHER_CONFIG_ID.toString(),
+      data: {
+        isProjectDefault: false,
+        isProjectDefaultForSms: false,
+        isProjectDefaultForCalls: false,
+      },
+      props: { isRoot: true },
+    },
+    {
+      id: keepId.toString(),
+      data: {
+        isProjectDefault: true,
+        isProjectDefaultForSms: true,
+        isProjectDefaultForCalls: true,
+      },
+      props: { isRoot: true },
+    },
+  ]);
 };
 
 beforeEach(() => {
@@ -339,7 +450,7 @@ describe.each([
       expect(result.createBy.data.isProjectDefault).toBe(true);
       expect(projectCounts()).toHaveLength(1);
       // Decided here; nothing else is changed until the config is saved.
-      expect(updateCalls).toHaveLength(0);
+      expect(writeCount()).toBe(0);
     });
 
     test("a null choice says nothing either: the first config becomes the default", async () => {
@@ -364,7 +475,7 @@ describe.each([
 
       expect(result.createBy.data.isProjectDefault).toBeUndefined();
       expect(projectCounts()).toHaveLength(1);
-      expect(updateCalls).toHaveLength(0);
+      expect(writeCount()).toBe(0);
     });
 
     test.each([2, 3, 25])(
@@ -378,7 +489,7 @@ describe.each([
         );
 
         expect(result.createBy.data.isProjectDefault).toBeUndefined();
-        expect(updateCalls).toHaveLength(0);
+        expect(writeCount()).toBe(0);
       },
     );
 
@@ -392,7 +503,7 @@ describe.each([
 
       expect(result.createBy.data.isProjectDefault).toBe(false);
       expect(projectCounts()).toHaveLength(0);
-      expect(updateCalls).toHaveLength(0);
+      expect(writeCount()).toBe(0);
     });
 
     test("an explicit false on a later config is kept, without counting", async () => {
@@ -405,7 +516,7 @@ describe.each([
 
       expect(result.createBy.data.isProjectDefault).toBe(false);
       expect(projectCounts()).toHaveLength(0);
-      expect(updateCalls).toHaveLength(0);
+      expect(writeCount()).toBe(0);
     });
 
     test("an explicit true on a later config is kept, and nothing else is changed before it is saved", async () => {
@@ -418,7 +529,7 @@ describe.each([
 
       expect(result.createBy.data.isProjectDefault).toBe(true);
       expect(projectCounts()).toHaveLength(0);
-      expect(updateCalls).toHaveLength(0);
+      expect(writeCount()).toBe(0);
     });
 
     test("counts the project's configs as root, by project and nothing else", async () => {
@@ -455,7 +566,7 @@ describe.each([
       await expect(
         runBeforeCreate(buildConfig(), buildProps()),
       ).rejects.toThrow("count failed");
-      expect(updateCalls).toHaveLength(0);
+      expect(writeCount()).toBe(0);
     });
   },
 );
@@ -468,7 +579,7 @@ describe("ProjectCallSMSConfigService onBeforeCreate without a project", () => {
 
     expect(result.createBy.data.isProjectDefault).toBeUndefined();
     expect(countCalls).toHaveLength(0);
-    expect(updateCalls).toHaveLength(0);
+    expect(writeCount()).toBe(0);
   });
 });
 
@@ -478,11 +589,62 @@ describe("ProjectCallSMSConfigService onCreateSuccess", () => {
       isProjectDefault: true,
     });
     created._id = CONFIG_ID.toString();
+    storedConfigs = [
+      currentDefault(),
+      storedConfig({ id: CONFIG_ID, isProjectDefault: true }),
+    ];
 
     const result: ProjectCallSMSConfig = await runCreateSuccess(created);
 
     expect(result).toBe(created);
     expectDefaultTakenFromOthers(PROJECT_ID, CONFIG_ID);
+    // The config handed back says what it became the default for.
+    expect(result.isProjectDefault).toBe(true);
+    expect(result.isProjectDefaultForSms).toBe(true);
+    expect(result.isProjectDefaultForCalls).toBe(true);
+  });
+
+  test("a config used for SMS only saved as the default takes the SMS, and leaves the calls where they are", async () => {
+    const created: ProjectCallSMSConfig = buildConfig({
+      isProjectDefault: true,
+    });
+    created._id = CONFIG_ID.toString();
+    created.usedFor = TwilioConfigUse.SmsOnly;
+    storedConfigs = [
+      currentDefault(),
+      storedConfig({
+        id: CONFIG_ID,
+        use: TwilioConfigUse.SmsOnly,
+        isProjectDefault: true,
+      }),
+    ];
+
+    const result: ProjectCallSMSConfig = await runCreateSuccess(created);
+
+    expect(
+      flagWrites.map((updateById: UpdateByID<ProjectCallSMSConfig>) => {
+        return [updateById.id.toString(), updateById.data];
+      }),
+    ).toEqual([
+      [
+        OTHER_CONFIG_ID.toString(),
+        {
+          isProjectDefault: true,
+          isProjectDefaultForSms: false,
+          isProjectDefaultForCalls: true,
+        },
+      ],
+      [
+        CONFIG_ID.toString(),
+        {
+          isProjectDefault: true,
+          isProjectDefaultForSms: true,
+          isProjectDefaultForCalls: false,
+        },
+      ],
+    ]);
+    expect(result.isProjectDefaultForSms).toBe(true);
+    expect(result.isProjectDefaultForCalls).toBe(false);
   });
 
   test.each([
@@ -498,7 +660,8 @@ describe("ProjectCallSMSConfigService onCreateSuccess", () => {
 
       await runCreateSuccess(created);
 
-      expect(updateCalls).toHaveLength(0);
+      expect(findCalls).toHaveLength(0);
+      expect(writeCount()).toBe(0);
     },
   );
 });
@@ -569,7 +732,7 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(saved.isProjectDefault).not.toBe(true);
-    expect(updateCalls).toHaveLength(0);
+    expect(writeCount()).toBe(0);
   });
 
   test("a member's first config switched off on the form is saved off", async () => {
@@ -582,7 +745,7 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
       });
 
     expect(saved.isProjectDefault).toBe(false);
-    expect(updateCalls).toHaveLength(0);
+    expect(writeCount()).toBe(0);
   });
 
   test.each([
@@ -601,13 +764,17 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
       ).rejects.toBeInstanceOf(NotAuthorizedException);
 
       expect(countCalls).toHaveLength(0);
-      expect(updateCalls).toHaveLength(0);
+      expect(writeCount()).toBe(0);
       expect(save).not.toHaveBeenCalled();
     },
   );
 
   test("a member's config saved as the default takes it from the others once it exists", async () => {
     configsInProject = 1;
+    storedConfigs = [
+      currentDefault(),
+      storedConfig({ id: CONFIG_ID, isProjectDefault: true }),
+    ];
 
     const saved: ProjectCallSMSConfig =
       await ProjectCallSMSConfigService.create({
@@ -617,15 +784,37 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(saved.isProjectDefault).toBe(true);
+    expect(saved.isProjectDefaultForSms).toBe(true);
+    expect(saved.isProjectDefaultForCalls).toBe(true);
     // Taken after the save, from the configs of the caller's project only.
     expect(save.mock.invocationCallOrder[0]!).toBeLessThan(
-      (ProjectCallSMSConfigService.updateBy as unknown as MockFunction).mock
-        .invocationCallOrder[0]!,
+      (ProjectCallSMSConfigService.updateOneById as unknown as MockFunction)
+        .mock.invocationCallOrder[0]!,
     );
-    expect(updateCalls).toHaveLength(1);
-    expect((updateCalls[0]!.query.projectId as ObjectID).toString()).toBe(
-      PROJECT_ID.toString(),
-    );
+    expectDefaultTakenFromOthers(PROJECT_ID, CONFIG_ID);
+  });
+
+  test("what a member's create says the config is the default for is not saved: the rule says it", async () => {
+    configsInProject = 1;
+
+    const config: ProjectCallSMSConfig = buildConfig({
+      projectId: undefined,
+      isProjectDefault: false,
+    });
+    config.isProjectDefaultForSms = true;
+    config.isProjectDefaultForCalls = true;
+
+    const saved: ProjectCallSMSConfig =
+      await ProjectCallSMSConfigService.create({
+        data: config,
+        props: configCreatorProps(),
+      });
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(saved.isProjectDefault).toBe(false);
+    expect(saved.isProjectDefaultForSms).toBe(false);
+    expect(saved.isProjectDefaultForCalls).toBe(false);
+    expect(writeCount()).toBe(0);
   });
 
   test("a member who may only read configs is refused, and nothing is counted, changed or saved", async () => {
@@ -639,7 +828,7 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
     ).rejects.toBeInstanceOf(NotAuthorizedException);
 
     expect(projectCounts()).toHaveLength(0);
-    expect(updateCalls).toHaveLength(0);
+    expect(writeCount()).toBe(0);
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -653,45 +842,29 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
       }),
     ).rejects.toBeInstanceOf(NotAuthorizedException);
 
-    expect(updateCalls).toHaveLength(0);
+    expect(writeCount()).toBe(0);
     expect(save).not.toHaveBeenCalled();
   });
 });
 
 describe("ProjectCallSMSConfigService onUpdateSuccess", () => {
-  let findCalls: Array<FindBy<ProjectCallSMSConfig>>;
-
-  beforeEach(() => {
-    findCalls = [];
-
-    jest
-      .spyOn(ProjectCallSMSConfigService, "findBy")
-      .mockImplementation(
-        async (
-          findBy: FindBy<ProjectCallSMSConfig>,
-        ): Promise<Array<ProjectCallSMSConfig>> => {
-          findCalls.push(findBy);
-
-          const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
-          config._id = CONFIG_ID.toString();
-          config.projectId = PROJECT_ID;
-          return [config];
-        },
-      );
-  });
-
   test("making a config the default takes it from the others in its project, keeping the config", async () => {
+    storedConfigs = [
+      currentDefault(),
+      storedConfig({ id: CONFIG_ID, isProjectDefault: true }),
+    ];
+
     const result: OnUpdate<ProjectCallSMSConfig> = await runUpdateSuccess(
       { isProjectDefault: true },
       [CONFIG_ID],
     );
 
     // The project is read from the config the update wrote, by its id.
-    expect(findCalls).toHaveLength(1);
     expect(JSON.stringify(findCalls[0]!.query._id)).toContain(
       CONFIG_ID.toString(),
     );
     expect(findCalls[0]!.props).toEqual({ isRoot: true });
+    expect(findCalls).toHaveLength(2);
     expectDefaultTakenFromOthers(PROJECT_ID, CONFIG_ID);
     expect(result.updateBy.data).toEqual({ isProjectDefault: true });
   });
@@ -700,19 +873,131 @@ describe("ProjectCallSMSConfigService onUpdateSuccess", () => {
     await runUpdateSuccess({ isProjectDefault: true }, []);
 
     expect(findCalls).toHaveLength(0);
-    expect(updateCalls).toHaveLength(0);
+    expect(writeCount()).toBe(0);
   });
 
   test.each([
-    ["turning the default off", { isProjectDefault: false }],
     ["renaming the config", { name: "Backup Twilio" }],
+    ["changing its numbers", { twilioPrimaryPhoneNumber: "+15557654321" }],
   ])(
-    "%s leaves the project's other configs alone",
+    "%s leaves the project's defaults alone, unread",
     async (_label: string, data: Record<string, unknown>) => {
       await runUpdateSuccess(data, [CONFIG_ID]);
 
       expect(findCalls).toHaveLength(0);
-      expect(updateCalls).toHaveLength(0);
+      expect(writeCount()).toBe(0);
     },
   );
+
+  test("the rule's own write is not settled again", async () => {
+    await runUpdateSuccess(
+      {
+        isProjectDefault: true,
+        isProjectDefaultForSms: true,
+        isProjectDefaultForCalls: false,
+      },
+      [CONFIG_ID],
+    );
+
+    expect(findCalls).toHaveLength(0);
+    expect(writeCount()).toBe(0);
+  });
+
+  test("turning the default off leaves the project's other configs alone when none of them is a default", async () => {
+    storedConfigs = [
+      storedConfig({ id: OTHER_CONFIG_ID }),
+      // As the update left it: off, and still holding what it held.
+      storedConfig({
+        id: CONFIG_ID,
+        isProjectDefaultForSms: true,
+        isProjectDefaultForCalls: true,
+      }),
+    ];
+
+    await runUpdateSuccess({ isProjectDefault: false }, [CONFIG_ID]);
+
+    expect(
+      flagWrites.map((updateById: UpdateByID<ProjectCallSMSConfig>) => {
+        return [updateById.id.toString(), updateById.data];
+      }),
+    ).toEqual([
+      [
+        CONFIG_ID.toString(),
+        {
+          isProjectDefault: false,
+          isProjectDefaultForSms: false,
+          isProjectDefaultForCalls: false,
+        },
+      ],
+    ]);
+  });
+
+  test("turning the SMS default off gives the SMS back to the default for calls, when it is used for SMS too", async () => {
+    storedConfigs = [
+      storedConfig({
+        id: OTHER_CONFIG_ID,
+        isProjectDefault: true,
+        isProjectDefaultForCalls: true,
+      }),
+      storedConfig({
+        id: CONFIG_ID,
+        use: TwilioConfigUse.SmsOnly,
+        isProjectDefaultForSms: true,
+      }),
+    ];
+
+    await runUpdateSuccess({ isProjectDefault: false }, [CONFIG_ID]);
+
+    expect(
+      flagWrites.map((updateById: UpdateByID<ProjectCallSMSConfig>) => {
+        return [updateById.id.toString(), updateById.data];
+      }),
+    ).toEqual([
+      [
+        CONFIG_ID.toString(),
+        {
+          isProjectDefault: false,
+          isProjectDefaultForSms: false,
+          isProjectDefaultForCalls: false,
+        },
+      ],
+      [
+        OTHER_CONFIG_ID.toString(),
+        {
+          isProjectDefault: true,
+          isProjectDefaultForSms: true,
+          isProjectDefaultForCalls: true,
+        },
+      ],
+    ]);
+  });
+
+  test("a default made SMS only stops being the default for calls", async () => {
+    storedConfigs = [
+      storedConfig({
+        id: CONFIG_ID,
+        use: TwilioConfigUse.SmsOnly,
+        isProjectDefault: true,
+        isProjectDefaultForSms: true,
+        isProjectDefaultForCalls: true,
+      }),
+    ];
+
+    await runUpdateSuccess({ usedFor: TwilioConfigUse.SmsOnly }, [CONFIG_ID]);
+
+    expect(
+      flagWrites.map((updateById: UpdateByID<ProjectCallSMSConfig>) => {
+        return [updateById.id.toString(), updateById.data];
+      }),
+    ).toEqual([
+      [
+        CONFIG_ID.toString(),
+        {
+          isProjectDefault: true,
+          isProjectDefaultForSms: true,
+          isProjectDefaultForCalls: false,
+        },
+      ],
+    ]);
+  });
 });
