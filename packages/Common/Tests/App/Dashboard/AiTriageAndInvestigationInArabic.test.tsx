@@ -58,8 +58,9 @@ jest.mock("../../../UI/Utils/API/API", () => {
       post: (...args: Array<unknown>) => {
         return postMock(...args);
       },
-      getFriendlyMessage: () => {
-        return "Request failed";
+      // The server's own words, as the real API reads them off a refusal.
+      getFriendlyMessage: (error: unknown) => {
+        return (error as { message?: string }).message || "Request failed";
       },
     },
   };
@@ -91,6 +92,7 @@ import {
 } from "../../../Types/AI/AIRunAttempt";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
@@ -129,6 +131,11 @@ const INSIGHT_TITLE: string = "Worker job count increased";
 const EVIDENCE: string = "The worker queue grew to 13,191,243 jobs.";
 const PROVIDER_ERROR: string =
   "OpenAICompatible API request failed: The LLM provider did not respond within 120 seconds.";
+// The server's refusals of Try again, in its own words: English.
+const TRIAGE_REFUSAL: string =
+  "Only a triage that did not finish can be tried again.";
+const INVESTIGATION_REFUSAL: string =
+  "This incident's investigation is queued or running already.";
 
 const AR: Record<string, string> = readDashboardLocale("ar");
 const EN: Record<string, string> = readDashboardLocale("en");
@@ -156,6 +163,42 @@ function word(key: string): string {
   });
 
   return AR[key]!;
+}
+
+/*
+ * Try again refused: by the server, in its own words - English, whatever
+ * the reader's language - or by a request that got no answer, in the
+ * button's own words, Arabic.
+ */
+type TryAgainRefusal = [
+  string,
+  () => Promise<unknown>,
+  () => string, // what the card says, read in the test
+];
+
+function tryAgainRefusals(serverWords: string): Array<TryAgainRefusal> {
+  return [
+    [
+      "the server's refusal, in its own English words",
+      (): Promise<unknown> => {
+        return Promise.resolve(
+          new HTTPErrorResponse(400, { message: serverWords }, {}),
+        );
+      },
+      (): string => {
+        return serverWords;
+      },
+    ],
+    [
+      "a request that got no answer, in the button's own Arabic words",
+      (): Promise<unknown> => {
+        return Promise.reject(undefined);
+      },
+      (): string => {
+        return word("The run could not start again. Try again in a moment.");
+      },
+    ],
+  ];
 }
 
 /*
@@ -339,6 +382,8 @@ function eventsJson(steps: Array<Step>): Array<JSONObject> {
 interface FakeServer {
   triage: JSONObject;
   investigation: JSONObject;
+  // How the server answers Try again, for a triage or an investigation.
+  tryAgain: () => Promise<unknown>;
 }
 
 let server: FakeServer;
@@ -404,7 +449,13 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  server = { triage: failedTriage(), investigation: failedInvestigation() };
+  server = {
+    triage: failedTriage(),
+    investigation: failedInvestigation(),
+    tryAgain: (): Promise<unknown> => {
+      throw new Error("Try again was not pressed");
+    },
+  };
   getItemMock.mockReset();
   getItemMock.mockImplementation(() => {
     return Promise.resolve(buildInsight());
@@ -424,6 +475,13 @@ beforeEach(() => {
         return Promise.resolve(
           new HTTPResponse<JSONObject>(200, server.investigation, {}),
         );
+      }
+
+      if (
+        url.endsWith("/ai-insight/triage-try-again") ||
+        url.endsWith("/ai-investigation/try-again")
+      ) {
+        return server.tryAgain();
       }
 
       throw new Error(`Unexpected request: ${url}`);
@@ -759,6 +817,53 @@ describe("the insight's AI Triage, in Arabic, right to left", () => {
     ).toBeGreaterThan(16);
   });
 
+  /*
+   * The provider's error and the server's refusal of Try again are English
+   * whatever the reader's language: laid out right to left, as the page
+   * is, an English line has its full stop at its start. Each is laid out
+   * by its own first letter (dir="auto"), and the button's own Arabic
+   * words still read right to left.
+   */
+  test("the provider's error under Details is laid out by its own first letter", async () => {
+    const panel: HTMLElement = await renderInsightPage();
+
+    expect(
+      within(panel).getByTestId("ai-triage-failure-details"),
+    ).toHaveAttribute("dir", "auto");
+  });
+
+  test.each(tryAgainRefusals(TRIAGE_REFUSAL))(
+    "Try again refused - %s - is laid out by its own first letter",
+    async (
+      _refusal: string,
+      answer: () => Promise<unknown>,
+      said: () => string,
+    ) => {
+      server.tryAgain = answer;
+      const panel: HTMLElement = await renderInsightPage();
+
+      await act(async () => {
+        fireEvent.click(
+          within(panel).getByTestId("ai-triage-failure-try-again"),
+        );
+      });
+
+      const refusal: HTMLElement = within(panel).getByTestId(
+        "ai-triage-failure-try-again-error",
+      );
+      expect(refusal).toHaveAttribute("role", "alert");
+      expect(refusal).toHaveTextContent(said());
+      expect(refusal).toHaveAttribute("dir", "auto");
+      // Around it, the card is still Arabic.
+      expect(
+        englishOn(panel, [
+          within(panel).getByTestId("ai-triage-failure-details"),
+          refusal,
+        ]),
+      ).toEqual([]);
+    },
+  );
+
   test.each([
     [AIRunStatus.Running, "Triaging…"],
     [AIRunStatus.Queued, "Queued — waiting for a worker…"],
@@ -874,6 +979,52 @@ describe("the AI investigation card, in Arabic", () => {
       word("What OneUptime AI found, and what it is doing about it."),
     );
   });
+
+  /*
+   * The provider's error and the server's refusal of Try again are English
+   * whatever the reader's language: laid out right to left, as the page
+   * is, an English line has its full stop at its start. Each is laid out
+   * by its own first letter (dir="auto"), and the button's own Arabic
+   * words still read right to left.
+   */
+  test("the provider's error under Details is laid out by its own first letter", async () => {
+    await renderInvestigationCard();
+
+    expect(screen.getByTestId("investigation-error-details")).toHaveAttribute(
+      "dir",
+      "auto",
+    );
+  });
+
+  test.each(tryAgainRefusals(INVESTIGATION_REFUSAL))(
+    "Try again refused - %s - is laid out by its own first letter",
+    async (
+      _refusal: string,
+      answer: () => Promise<unknown>,
+      said: () => string,
+    ) => {
+      server.tryAgain = answer;
+      const card: HTMLElement = await renderInvestigationCard();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("investigation-error-try-again"));
+      });
+
+      const refusal: HTMLElement = screen.getByTestId(
+        "investigation-error-try-again-error",
+      );
+      expect(refusal).toHaveAttribute("role", "alert");
+      expect(refusal).toHaveTextContent(said());
+      expect(refusal).toHaveAttribute("dir", "auto");
+      // Around it, the card is still Arabic.
+      expect(
+        englishOn(card, [
+          screen.getByTestId("investigation-error-details"),
+          refusal,
+        ]),
+      ).toEqual([]);
+    },
+  );
 
   test.each([
     ["running", "OneUptime AI is investigating"],
