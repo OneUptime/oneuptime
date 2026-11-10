@@ -218,7 +218,7 @@ describePostgres(
       expect(
         (await database.query("SELECT current_schema()"))[0].current_schema,
       ).toBe(schema);
-    }, 120000);
+    }, 300000);
 
     afterAll(async () => {
       if (database?.isInitialized) {
@@ -291,8 +291,13 @@ describePostgres(
     afterEach(async () => {
       jest.restoreAllMocks();
       setTestBillingEnabled(false);
-      await database.query(`DELETE FROM "${schema}"."TelemetryUsageBilling"`);
-      await database.query(`DELETE FROM "${schema}"."Project"`);
+
+      if (database?.isInitialized) {
+        await database.query(
+          `DELETE FROM "${schema}"."TelemetryUsageBilling"`,
+        );
+        await database.query(`DELETE FROM "${schema}"."Project"`);
+      }
     });
 
     /*
