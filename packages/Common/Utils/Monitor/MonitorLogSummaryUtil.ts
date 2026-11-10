@@ -149,12 +149,10 @@ export default class MonitorLogSummaryUtil {
 
     if (props.telemetryMonitorSummary) {
       /*
-       * A row is one check that has run: no next check to wait for, and
-       * what it saw beside when it ran - the same words as its Observed
-       * column.
+       * A row is one check that has run (a past check, as the snapshot
+       * util marks it): what it saw beside when it ran - the same words as
+       * its Observed column.
        */
-      props.telemetryMonitorSummary.isPastCheck = true;
-
       const observation: TelemetryObservation | null =
         this.getTelemetryObservation({
           monitorType: data.monitorType,

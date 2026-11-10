@@ -542,11 +542,14 @@ export default class MonitorSummarySnapshotUtil {
     if (snapshot.telemetryMonitorSummary) {
       /*
        * Only "monitored at". The live card's companion field is "next
-       * check at", which has no meaning on a frozen capture, and
-       * TelemetryMonitorView already renders "-" for a missing one.
+       * check at", which has no meaning on a frozen capture: an incident's
+       * or alert's check, or a Monitoring Logs row, has run, so it is a
+       * past check and TelemetryMonitorView leaves "Next Check At" out
+       * rather than drawing it as "-".
        */
       props.telemetryMonitorSummary = {
         lastCheckedAt: snapshot.telemetryMonitorSummary.monitoredAt,
+        isPastCheck: true,
       };
     }
 
