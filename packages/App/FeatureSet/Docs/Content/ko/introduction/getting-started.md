@@ -93,6 +93,7 @@ flowchart TB
 - [API 레퍼런스](/docs/api-reference/api-reference): REST API로 OneUptime을 자동화합니다.
 - [CLI](/docs/cli/index): 터미널과 CI에서 OneUptime을 관리합니다.
 - [Terraform 프로바이더](/docs/terraform/index): 모니터, 상태 페이지, 온콜을 코드로 관리합니다.
+- [Crossplane 프로바이더](/docs/crossplane/index): Crossplane으로 Kubernetes에서 프로젝트를 관리합니다.
 :::
 
 ### 관리

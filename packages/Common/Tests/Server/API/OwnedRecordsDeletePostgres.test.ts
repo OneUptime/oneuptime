@@ -365,9 +365,17 @@ const SWEPT_KINDS: Array<OwningKind> = Array.from(OwnerTableRegistry.entries())
     return { name: name, modelType: modelType, pair: pair };
   });
 
-// A JSON column whose rows are read through a shape of their own.
-const JSON_COLUMN_VALUES: Dictionary<unknown> = {
+/*
+ * A column whose rows are read through a shape of their own: a JSON column
+ * read as its type, and a probe's and an AI agent's version, read as a
+ * Version - 1.0.0, what ProbeService and AIAgentService write when a create
+ * leaves it out. A delete reads every column of an audited record for the
+ * audit log, so these are read back as the app reads them.
+ */
+const SHAPED_COLUMN_VALUES: Dictionary<unknown> = {
   dashboardViewConfig: { _type: "DashboardViewConfig", components: [] },
+  probeVersion: "1.0.0",
+  aiAgentVersion: "1.0.0",
 };
 
 // A kind's own read and delete permissions (Read Monitor, Delete Monitor).
@@ -573,8 +581,8 @@ describePostgres(
           continue;
         }
 
-        if (column.name in JSON_COLUMN_VALUES) {
-          filled[column.name] = JSON_COLUMN_VALUES[column.name];
+        if (column.name in SHAPED_COLUMN_VALUES) {
+          filled[column.name] = SHAPED_COLUMN_VALUES[column.name];
         } else if (column.udt === "uuid") {
           filled[column.name] = ObjectID.generate();
         } else if (

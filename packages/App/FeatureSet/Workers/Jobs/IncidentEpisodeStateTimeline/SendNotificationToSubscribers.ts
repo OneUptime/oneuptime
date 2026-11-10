@@ -1119,6 +1119,7 @@ RunCron(
                         return StatusPageSubscriberWebhookUtil.sendWebhookNotification(
                           {
                             webhookUrl: subscriberWebhook,
+                            isAddedByTeam: subscriber.isAddedByTeam,
                             payload: {
                               eventType: "EpisodeStateChanged",
                               statusPageId: statuspage.id!.toString(),

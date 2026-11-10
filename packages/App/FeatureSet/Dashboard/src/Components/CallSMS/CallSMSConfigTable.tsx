@@ -6,7 +6,10 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+  RowActionConfirmation,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -19,7 +22,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   PermissionGateResult,
@@ -28,10 +31,14 @@ import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSCon
 import TwilioConfigDefaultCopy, {
   TwilioConfigDefaultState,
   getDefaultSwitchDescription,
+  getProjectDefaultPillText,
+  getSetDefaultTitle,
+  getStopDefaultConfirmDescription,
   getTwilioConfigCardDescription,
   getTwilioConfigDefaultState,
   isDefaultSwitchOnWhenCreating,
 } from "./TwilioConfigDefaultCopy";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TwilioConfigNumbersCopy, {
   getTwilioConfigNumbersForExport,
 } from "./TwilioConfigNumbersCopy";
@@ -141,9 +148,12 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   /*
-   * Whether the project has a Twilio config, and whether one of them is the
-   * default: what the card says, and what the create form starts with.
-   * Counted apart from the table's own list, which filters can narrow.
+   * Whether the project has a Twilio config, and whether the SMS and the
+   * calls its configs send each have a project default among them: what
+   * the card says, and what the create form starts with. Read apart from
+   * the table's own list, which filters and pages can narrow - a project
+   * has a handful of configs, and only what each sends and is the default
+   * for is read.
    */
   const [defaultState, setDefaultState] = useState<TwilioConfigDefaultState>(
     TwilioConfigDefaultState.Unknown,
@@ -160,20 +170,23 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
     let nextState: TwilioConfigDefaultState = TwilioConfigDefaultState.Unknown;
 
     try {
-      const [configCount, defaultCount]: [number, number] = await Promise.all([
-        ModelAPI.count<ProjectCallSMSConfig>({
+      const configs: ListResult<ProjectCallSMSConfig> =
+        await ModelAPI.getList<ProjectCallSMSConfig>({
           modelType: ProjectCallSMSConfig,
           query: {},
-        }),
-        ModelAPI.count<ProjectCallSMSConfig>({
-          modelType: ProjectCallSMSConfig,
-          query: {
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            usedFor: true,
             isProjectDefault: true,
+            isProjectDefaultForSms: true,
+            isProjectDefaultForCalls: true,
           },
-        }),
-      ]);
+          sort: {},
+        });
 
-      nextState = getTwilioConfigDefaultState({ configCount, defaultCount });
+      nextState = getTwilioConfigDefaultState(configs.data);
     } catch {
       // Claims nothing: the form starts the switch off, the card says the rule.
       nextState = TwilioConfigDefaultState.Unknown;
@@ -192,31 +205,44 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
     }, [defaultState]);
 
   /*
-   * Making a config the default writes one column, which a role may be
-   * allowed to edit or not: the row action is locked, with the reason, for
-   * someone who may not, and hidden while the permissions are still loading.
+   * Making a config the default, or stopping, writes one column, which a
+   * role may be allowed to edit or not: the row actions are locked, with
+   * the reason, for someone who may not, and hidden while the permissions
+   * are still loading.
    */
   const setDefaultGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
     new ProjectCallSMSConfig(),
     "isProjectDefault",
   );
 
-  const makeProjectDefault: (
+  const isDefaultActionShown: boolean =
+    setDefaultGate.isAllowed || Boolean(setDefaultGate.disabledReason);
+
+  /*
+   * The one write behind every default action of a row: true makes the
+   * config the default for everything it is used for, taking that - and
+   * only that - from the configs that had it; false gives it all up, and
+   * a default config that sends what it gave up takes it
+   * (Common/Types/CallAndSMS/TwilioConfigDefaults). The server writes what
+   * each config is the default for, so the rows are read again.
+   */
+  const saveProjectDefault: (
     item: ProjectCallSMSConfig,
+    isProjectDefault: boolean,
     onCompleteAction: VoidFunction,
     onError: ErrorFunction,
   ) => Promise<void> = async (
     item: ProjectCallSMSConfig,
+    isProjectDefault: boolean,
     onCompleteAction: VoidFunction,
     onError: ErrorFunction,
   ): Promise<void> => {
     try {
-      // The server takes the default from the config that had it.
       await ModelAPI.updateById<ProjectCallSMSConfig>({
         modelType: ProjectCallSMSConfig,
         id: new ObjectID(item["_id"]?.toString() || ""),
         data: {
-          isProjectDefault: true,
+          isProjectDefault: isProjectDefault,
         },
       });
 
@@ -229,6 +255,44 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
       onCompleteAction();
       onError(err as Error);
     }
+  };
+
+  const makeProjectDefault: (
+    item: ProjectCallSMSConfig,
+    onCompleteAction: VoidFunction,
+    onError: ErrorFunction,
+  ) => Promise<void> = async (
+    item: ProjectCallSMSConfig,
+    onCompleteAction: VoidFunction,
+    onError: ErrorFunction,
+  ): Promise<void> => {
+    await saveProjectDefault(item, true, onCompleteAction, onError);
+  };
+
+  /*
+   * "Set as Project Default" in the row's menu, named for what the config
+   * would take (getSetDefaultTitle): one action for each name, each on
+   * the rows it names - on every config but one that is the default for
+   * everything it sends. So a config for calls only says it takes the
+   * calls, and the default for SMS keeps them.
+   */
+  const getSetDefaultAction: (
+    title: string,
+  ) => ActionButtonSchema<ProjectCallSMSConfig> = (
+    title: string,
+  ): ActionButtonSchema<ProjectCallSMSConfig> => {
+    return {
+      title: title,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      icon: IconProp.Check,
+      placement: ActionButtonPlacement.MoreMenu,
+      disabled: !setDefaultGate.isAllowed,
+      tooltip: setDefaultGate.disabledReason,
+      isVisible: (item: ProjectCallSMSConfig): boolean => {
+        return isDefaultActionShown && getSetDefaultTitle(item) === title;
+      },
+      onClick: makeProjectDefault,
+    };
   };
 
   const [showCallTestModal, setShowCallTestModal] = useState<boolean>(false);
@@ -362,26 +426,50 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
               }
             },
           },
+          /*
+           * One click to send the project's SMS, its calls or both through
+           * this config instead, in the ⋯ menu, so the test buttons stay
+           * the row's own: "Set as Project Default", or "... for SMS" /
+           * "... for Calls" where the config would take only those.
+           */
+          getSetDefaultAction(TwilioConfigDefaultCopy.setDefaultTitle),
+          getSetDefaultAction(TwilioConfigDefaultCopy.setSmsDefaultTitle),
+          getSetDefaultAction(TwilioConfigDefaultCopy.setCallsDefaultTitle),
           {
             /*
-             * One click to send the project's SMS and calls through this
-             * config instead: on every row but the default's, in the ⋯
-             * menu, so the test buttons stay the row's own.
+             * The default's way back, asked first: what it is the default
+             * for stops going through it. The Edit form has no default
+             * switch (see the switch below).
              */
-            title: TwilioConfigDefaultCopy.setDefaultTitle,
+            title: TwilioConfigDefaultCopy.stopDefaultTitle,
             buttonStyleType: ButtonStyleType.OUTLINE,
-            icon: IconProp.Check,
+            icon: IconProp.Close,
             placement: ActionButtonPlacement.MoreMenu,
             disabled: !setDefaultGate.isAllowed,
             tooltip: setDefaultGate.disabledReason,
             isVisible: (item: ProjectCallSMSConfig): boolean => {
-              return (
-                !item.isProjectDefault &&
-                (setDefaultGate.isAllowed ||
-                  Boolean(setDefaultGate.disabledReason))
-              );
+              return isDefaultActionShown && item.isProjectDefault === true;
             },
-            onClick: makeProjectDefault,
+            getConfirmation: (
+              item: ProjectCallSMSConfig,
+            ): RowActionConfirmation => {
+              return {
+                title: translator.translateTemplate(
+                  TwilioConfigDefaultCopy.stopDefaultConfirmTitle,
+                  { config: item.name || "" },
+                ),
+                description: getStopDefaultConfirmDescription(item),
+                submitButtonText:
+                  TwilioConfigDefaultCopy.stopDefaultConfirmButton,
+              };
+            },
+            onClick: async (
+              item: ProjectCallSMSConfig,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ): Promise<void> => {
+              await saveProjectDefault(item, false, onCompleteAction, onError);
+            },
           },
         ]}
         isDeleteable={true}
@@ -416,10 +504,14 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
            * the primary one: the first SMS number, and how many more of
            * each kind there are - and what the config is used for, which
            * says which of them it sends from and which tests it offers.
+           * And what it is the project default for, which the Project
+           * Default column says and the row's ⋯ menu offers to change.
            */
           usedFor: true,
           twilioSmsPhoneNumbers: true,
           twilioSecondaryPhoneNumbers: true,
+          isProjectDefaultForSms: true,
+          isProjectDefaultForCalls: true,
         }}
         formFields={[
           {
@@ -572,8 +664,15 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
           /*
            * On for the project's first config (createInitialValues), with
            * help that says why; off, where its column starts, for any other.
-           * Its help names what goes through the default: the SMS and calls
+           * Its help names what goes through the config: the SMS and calls
            * of the project's people, or only the ones the config sends.
+           *
+           * On the create form only. Saved on, it makes the config the
+           * default for everything it sends; an Edit form would send it
+           * back on as it read it, and a config that is the default for
+           * calls alone - beside a default for SMS only - would take the
+           * SMS on every save of a new name. A config already made becomes
+           * the default, or stops being one, from its row's ⋯ menu.
            */
           {
             field: {
@@ -583,6 +682,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             stepId: "twilio-info",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            doNotShowWhenEditing: true,
             description: getDefaultSwitchDescription(
               defaultState,
               TwilioConfigUse.CallsAndSms,
@@ -597,6 +697,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             stepId: "twilio-info",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            doNotShowWhenEditing: true,
             description: getDefaultSwitchDescription(
               defaultState,
               TwilioConfigUse.SmsOnly,
@@ -611,6 +712,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             stepId: "twilio-info",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            doNotShowWhenEditing: true,
             description: getDefaultSwitchDescription(
               defaultState,
               TwilioConfigUse.CallsOnly,
@@ -799,11 +901,24 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             },
             title: "Project Default",
             type: FieldType.Boolean,
+            /*
+             * "Default", or "Default for SMS" / "Default for calls" for the
+             * default for one of the two: a config for SMS only beside one
+             * for calls only, both the default, each says what for.
+             */
             getElement: (item: ProjectCallSMSConfig): ReactElement => {
-              if (item.isProjectDefault) {
-                return <Pill text="Default" color={Green} />;
+              const pillText: string | undefined =
+                getProjectDefaultPillText(item);
+
+              if (pillText) {
+                // The pill draws it in the reader's language.
+                return <Pill text={pillText} color={Green} />;
               }
               return <span className="text-gray-400">-</span>;
+            },
+            // As the row says it.
+            getExportValue: (item: ProjectCallSMSConfig): string => {
+              return getProjectDefaultPillText(item) || "";
             },
           },
           {

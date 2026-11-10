@@ -21,8 +21,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *     nothing to make calls from;
  *   - Calls only: the primary number calls go out from; nothing for SMS.
  *
- * What an account is not used for goes through OneUptime's own Twilio
- * account, as it would without a config: each answer says so.
+ * What an account is not used for goes through the project default for
+ * it - a config for SMS only and one for calls only can both be the
+ * default, each for what it sends (Types/CallAndSMS/TwilioConfigDefaults,
+ * #6574) - or through OneUptime's own Twilio account where there is none,
+ * as it would without a config: each answer says so.
  *
  * Kept free of React, so App/Tests can read these exact strings. Every
  * sentence is wrapped in translationKey() so npm run i18n:extract finds it;
@@ -57,11 +60,11 @@ export const TwilioConfigUseCopy: {
   ),
   smsOnlyTitle: translationKey("SMS only"),
   smsOnlyDescription: translationKey(
-    "Calls go through OneUptime's own Twilio account instead.",
+    "Calls go through the project default for calls, or OneUptime's own Twilio account if there is none.",
   ),
   callsOnlyTitle: translationKey("Calls only"),
   callsOnlyDescription: translationKey(
-    "SMS go through OneUptime's own Twilio account instead.",
+    "SMS go through the project default for SMS, or OneUptime's own Twilio account if there is none.",
   ),
   callsOnlyPrimaryPhoneNumberDescription: translationKey(
     "Calls go out from this number.",

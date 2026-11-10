@@ -61,8 +61,9 @@ Disse destinationer er omfattet, fordi målet er en URL, som et godkendt medlem 
 - HTTP-forespørgsler fra workflow-komponenten **Custom JavaScript**
 - Projektets webhook-notifikationer (hændelser, alarmer, monitorer, vagt, planlagt vedligeholdelse, hændelser på statussider)
 - **Bruger-webhooks** til vagt
+- Webhook-abonnenter på statussider, som dit team tilføjer, fra dashboardet, med en API-nøgle eller af et workflow
 
-**Ikke** omfattet, og det bliver de aldrig: **webhooks for abonnenter på statussider**. Enhver besøgende på en offentlig statusside kan registrere en, så at løsne den destination ville lade alle på internettet få din server til at POSTe ind i dit private netværk. Det kan ikke konfigureres.
+**Ikke** omfattet, og det bliver de aldrig: **webhook-abonnenter, der tilmelder sig på en statusside**. Enhver besøgende på en offentlig statusside kan tilmelde en, så at løsne den destination ville lade alle på internettet få din server til at POSTe ind i dit private netværk. Deres webhooks når kun offentlige adresser, også efter at nogen på dit team har redigeret en af dem. Det kan ikke konfigureres.
 
 Udgående forbindelser, der ikke er webhooks – eksterne datakilder, LLM-udbydere, SMTP-servere (et projekts SMTP-indstillinger og workflow-komponenten **Email**), SMTP-OAuth-token-endpoints, OIDC-discovery og HTTP-trin i runbooks – styres særskilt, af `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, og tillader allerede private områder på selvhostede installationer. Se [Andre udgående forbindelser](#andre-udgående-forbindelser).
 
@@ -182,6 +183,7 @@ At slå den til åbner **ikke** loopback, link-local eller cloud-metadata-endpoi
 Kør workflowet eller monitoren igen. Hvis det stadig afvises, nævner fejlbeskeden, hvilken port der er lukket:
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ – API-serverens indstilling mangler.
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, eller _"...is not allowed. Use a webhook URL on the public internet."_ på selve statussiden – webhooken tilhører en abonnent, der tilmeldte sig på statussiden, og ingen indstilling omfatter den. Lad i stedet dit team tilføje den som webhook-abonnent, fra dashboardet, med en API-nøgle eller af et workflow.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – en privat (egen) probe kørte monitoren, og dens kontakt er slået fra. Bemærk, at den sættes på proben, ikke på API-serveren.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – en medfølgende (global) probe kørte monitoren, og dens kontakt er slået fra. Slå den til for den probe som beskrevet ovenfor, hvis alle projekter på instansen må nå det netværk; vælg ellers en privat probe på monitoren.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – en global probe med `BILLING_ENABLED=true` i sit miljø kørte monitoren. Automatisk registrerede globale probes forbliver kun offentlige dér, uanset hvad deres kontakt siger; udrul en privat probe inde i målets netværk, og vælg den på monitoren.
@@ -196,7 +198,7 @@ Kør workflowet eller monitoren igen. Hvis det stadig afvises, nævner fejlbeske
 At åbne for dette ændrer reelt, hvad din OneUptime-instans kan bringes til at nå, så det er værd at gøre det bevidst:
 
 - **Foretræk tilladelseslisten frem for den generelle kontakt.** At nævne `mattermost.internal` er en langt mindre tilladelse end at åbne alle RFC-1918-adresser.
-- **Alle, der kan oprette et workflow eller en monitor af typen API, Website, External Status Page eller Custom JavaScript Code, kan nå alt, hvad du har tilladt.** Behandl medlemskab af de projekter derefter.
+- **Alle, der kan oprette et workflow eller en monitor af typen API, Website, External Status Page eller Custom JavaScript Code eller tilføje en abonnent til en statusside, kan nå alt, hvad du har tilladt.** Behandl medlemskab af de projekter derefter.
 - **Svarets indhold kommer tilbage.** En API-komponent i et workflow returnerer status, headere og body i workflow-loggen, så en tilladt vært kan læses, ikke kun skrives til.
 - **Omdirigeringer følges aldrig** ved webhook-forespørgsler, så en tilladt offentlig vært ikke kan sende serveren videre til en intern vært i et andet hop.
 - **Afgræns pr. probe i stedet for for hele instansen, hvor du kan.** En probe udrullet inde i ét netværk er en snævrere tilladelse end at åbne API-serverens udgående trafik.

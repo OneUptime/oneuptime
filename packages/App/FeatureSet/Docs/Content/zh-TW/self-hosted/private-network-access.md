@@ -61,8 +61,9 @@ Ping、Port、SSL 憑證、DNS、DNSSEC、SNMP / 網路裝置、SQL 查詢、資
 - 工作流程 **Custom JavaScript** 元件發出的 HTTP 請求
 - 專案 Webhook 通知（事件、警示、監測器、待命、排定維護、狀態頁面事件）
 - 待命**使用者 Webhook**
+- 你的團隊從儀表板、用 API 金鑰或由工作流程新增的狀態頁面 Webhook 訂閱者
 
-**不**受此管控、將來也不會受此管控的是 **狀態頁面訂閱者 Webhook**。任何造訪公開狀態頁面的人都能註冊一個，因此放寬這個目標會讓網際網路上的任何人都能讓你的伺服器向你的私有網路傳送 POST 請求。這一點無法設定。
+**不**受此管控、將來也不會受此管控的是 **在狀態頁面上自行註冊的 Webhook 訂閱者**。任何造訪公開狀態頁面的人都能註冊一個，因此放寬這個目標會讓網際網路上的任何人都能讓你的伺服器向你的私有網路傳送 POST 請求。即使你團隊中有人編輯過其中一個，它們的 Webhook 也只能連到公開位址。這一點無法設定。
 
 不是 Webhook 的對外連線（外部資料來源、LLM 供應商、SMTP 伺服器（專案的 SMTP 設定和工作流程 **Email** 元件）、SMTP OAuth 權杖端點、OIDC 探索和 Runbook HTTP 步驟）由 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 另外管理，在自行託管安裝中已經允許私有範圍。請參閱[其他對外連線](#其他對外連線)。
 
@@ -182,6 +183,7 @@ probes:
 再次執行工作流程或監測器。如果仍被拒絕，錯誤訊息會指出是哪道關卡關閉了：
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ — 缺少 API 伺服器設定。
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_ 或者，狀態頁面本身顯示的 _"...is not allowed. Use a webhook URL on the public internet."_ — 該 Webhook 屬於在狀態頁面上自行註冊的訂閱者，沒有任何設定能涵蓋它。請改由你的團隊從儀表板、用 API 金鑰或透過工作流程把它新增為 Webhook 訂閱者。
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ — 執行該監測器的是私有（自訂）探測器，且它的開關是關閉的。請注意，這項設定是在探測器上，而不是在 API 伺服器上。
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — 執行該監測器的是隨附（全域）探測器，且它的開關是關閉的。如果執行個體上的每個專案都可以存取那個網路，請依上文所述為該探測器開啟開關；否則，請在監測器上選擇一個私有探測器。
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — 執行該監測器的是環境中有 `BILLING_ENABLED=true` 的全域探測器。在那裡，自動註冊的全域探測器無論開關如何設定都只存取公開網路；請在目標網路內部署一個私有探測器，並在監測器上選擇它。
@@ -196,7 +198,7 @@ probes:
 開放這項存取會實實在在地改變你的 OneUptime 執行個體能被用來存取的範圍，因此值得審慎對待：
 
 - **優先使用允許清單，而不是全面性的布林開關。** 寫明 `mattermost.internal` 的授權範圍，遠小於開放所有 RFC-1918 位址。
-- **任何能建立工作流程，或建立 API、Website、External Status Page、Custom JavaScript Code 監測器的人，都能存取你允許的一切。** 請據此看待這些專案的成員資格。
+- **任何能建立工作流程，或建立 API、Website、External Status Page、Custom JavaScript Code 監測器，或新增狀態頁面訂閱者的人，都能存取你允許的一切。** 請據此看待這些專案的成員資格。
 - **回應本文會被傳回。** 工作流程 API 元件會把狀態、標頭和本文傳回到工作流程日誌中，因此被允許的主機不僅可寫入，也可讀取。
 - **Webhook 請求從不跟隨重新導向。** 因此被允許的公開主機無法在第二個躍點把伺服器轉向內部主機。
 - **盡可能以探測器劃定範圍，而不是整個執行個體。** 部署在單一網路內的探測器，比開放 API 伺服器的對外流量授權範圍更窄。
