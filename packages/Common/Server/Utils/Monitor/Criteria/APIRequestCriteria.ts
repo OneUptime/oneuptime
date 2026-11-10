@@ -10,6 +10,8 @@ import {
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import Typeof from "../../../../Types/Typeof";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import EvaluationSentenceMemo from "../EvaluationSentenceMemo";
+import { translatableSentence } from "../../../../Types/Monitor/EvaluationSentence";
 
 export default class APIRequestCriteria {
   @CaptureSpan()
@@ -214,7 +216,11 @@ export default class APIRequestCriteria {
           responseBody &&
           (responseBody as string).includes(threshold as string)
         ) {
-          return `Response body contains ${threshold}.`;
+          return EvaluationSentenceMemo.write(
+            translatableSentence("Response body contains {{text}}.", {
+              text: String(threshold),
+            }),
+          );
         }
         return null;
       }
@@ -225,7 +231,11 @@ export default class APIRequestCriteria {
           responseBody &&
           !(responseBody as string).includes(threshold as string)
         ) {
-          return `Response body does not contain ${threshold}.`;
+          return EvaluationSentenceMemo.write(
+            translatableSentence("Response body does not contain {{text}}.", {
+              text: String(threshold),
+            }),
+          );
         }
         return null;
       }
@@ -245,7 +255,11 @@ export default class APIRequestCriteria {
           headerKeys &&
           headerKeys.includes(threshold as string)
         ) {
-          return `Response header contains ${threshold}.`;
+          return EvaluationSentenceMemo.write(
+            translatableSentence("Response header contains {{text}}.", {
+              text: String(threshold),
+            }),
+          );
         }
         return null;
       }
@@ -256,7 +270,11 @@ export default class APIRequestCriteria {
           headerKeys &&
           !headerKeys.includes(threshold as string)
         ) {
-          return `Response header does not contain ${threshold}.`;
+          return EvaluationSentenceMemo.write(
+            translatableSentence("Response header does not contain {{text}}.", {
+              text: String(threshold),
+            }),
+          );
         }
         return null;
       }
@@ -276,7 +294,12 @@ export default class APIRequestCriteria {
           headerValues &&
           headerValues.includes(threshold as string)
         ) {
-          return `Response header threshold contains ${threshold}.`;
+          return EvaluationSentenceMemo.write(
+            translatableSentence(
+              "Response header threshold contains {{text}}.",
+              { text: String(threshold) },
+            ),
+          );
         }
         return null;
       }
@@ -287,7 +310,12 @@ export default class APIRequestCriteria {
           headerValues &&
           !headerValues.includes(threshold as string)
         ) {
-          return `Response header threshold does not contain ${threshold}.`;
+          return EvaluationSentenceMemo.write(
+            translatableSentence(
+              "Response header threshold does not contain {{text}}.",
+              { text: String(threshold) },
+            ),
+          );
         }
         return null;
       }

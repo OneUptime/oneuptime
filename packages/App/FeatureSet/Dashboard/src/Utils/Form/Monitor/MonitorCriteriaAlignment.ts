@@ -8,6 +8,7 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import CriteriaFilterUtil from "./CriteriaFilter";
 import CriteriaNameUtil from "./CriteriaName";
 
@@ -33,6 +34,13 @@ export interface CriteriaSeedIds {
 
 export interface CriteriaSeedOptions extends CriteriaSeedIds {
   monitorName: string;
+  /*
+   * The reader's, whose language the form writes the out-of-the-box
+   * criteria's words in (#6542): defaults written in it read as untouched
+   * (isUntouchedDefaultFor), and criteria re-seeded for a new monitor type
+   * are written in it too. Without one, English.
+   */
+  translator?: Translator | undefined;
 }
 
 export interface MonitorStepsAlignmentResult {
@@ -445,6 +453,11 @@ export default class MonitorCriteriaAlignmentUtil {
    * Compared on content, ignoring the ObjectIDs generated fresh for every
    * criteria, incident and alert - those differ between two seeds of the
    * same type and say nothing about whether the user has edited anything.
+   *
+   * The words count, written as the defaults write them: in the reader's
+   * language (seedOptions.translator), as the form seeds them now, or in
+   * English, as a form read in English, the server or the API seeded them
+   * (#6542). Either way nobody has worked on them yet.
    */
   public static isUntouchedDefaultFor(data: {
     monitorCriteria: MonitorCriteria;
@@ -453,16 +466,25 @@ export default class MonitorCriteriaAlignmentUtil {
   }): boolean {
     const { monitorCriteria, monitorType, seedOptions } = data;
 
-    const defaultMonitorCriteria: MonitorCriteria =
-      MonitorCriteria.getDefaultMonitorCriteria({
-        monitorType: monitorType,
-        ...seedOptions,
-      });
+    const fingerprint: string =
+      MonitorCriteriaAlignmentUtil.fingerprint(monitorCriteria);
 
-    return (
-      MonitorCriteriaAlignmentUtil.fingerprint(monitorCriteria) ===
-      MonitorCriteriaAlignmentUtil.fingerprint(defaultMonitorCriteria)
-    );
+    const translators: Array<Translator | undefined> = seedOptions.translator
+      ? [seedOptions.translator, undefined]
+      : [undefined];
+
+    return translators.some((translator: Translator | undefined): boolean => {
+      return (
+        fingerprint ===
+        MonitorCriteriaAlignmentUtil.fingerprint(
+          MonitorCriteria.getDefaultMonitorCriteria({
+            ...seedOptions,
+            monitorType: monitorType,
+            translator: translator,
+          }),
+        )
+      );
+    });
   }
 
   /*

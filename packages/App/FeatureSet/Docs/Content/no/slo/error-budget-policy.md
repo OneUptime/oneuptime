@@ -1,11 +1,12 @@
 # Feilbudsjettpolicy
 
-En feilbudsjettpolicy skriver ned hva teamet ditt har avtalt å gjøre mens feilbudsjettet til et SLO tømmes, for eksempel å gå gjennom risikable endringer når halvparten er brukt, eller å fryse utgivelser når alt er brukt. OneUptime plasserer SLO-et i nivået i policyen som budsjettet har nådd, viser teamets avtale for det nivået på sidene til SLO-et, kan utløse et varsel eller erklære en hendelse når SLO-et går inn i et nivå, og forteller CI/CD-pipelinene dine om de skal holde utgivelser tilbake. Det er praksisen med feilbudsjettpolicy fra [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+En feilbudsjettpolicy skriver ned hva teamet ditt har avtalt å gjøre mens feilbudsjettet til et SLO tømmes, for eksempel å gå gjennom risikable endringer når halvparten er brukt, eller å fryse utgivelser når alt er brukt. OneUptime plasserer SLO-et i nivået i policyen som budsjettet har nådd, viser teamets avtale for det nivået på sidene til SLO-et, kan utløse et varsel eller erklære en hendelse når SLO-et går inn i et nivå, publiserer hver endring av nivå i kanalene i Slack, Microsoft Teams eller Mattermost som du velger, og forteller CI/CD-pipelinene dine om de skal holde utgivelser tilbake. Det er praksisen med feilbudsjettpolicy fra [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Slik fungerer nivåer](#slik-fungerer-nivåer): Hvilket nivå som gjelder, og når SLO-et forlater det.
 - [Sett opp en policy](#sett-opp-en-policy): Start med den anbefalte policyen, eller skriv dine egne nivåer.
 - [Varsler og hendelser](#varsler-og-hendelser): Varsle teamet ditt når SLO-et går inn i et nivå.
+- [Publiser i Slack, Microsoft Teams og Mattermost](#publiser-i-slack-microsoft-teams-og-mattermost): Gi en kanal beskjed når et SLO går inn i et nivå, uten å varsle noen.
 - [Distribusjonssperre](#distribusjonssperre): Hold utgivelser tilbake fra CI/CD mens et nivå fryser distribusjoner.
 - [Les nivået via API-et](#les-nivået-via-api-et): Sjekk nivået fra CI og skript.
 :::
@@ -88,6 +89,7 @@ Ingen av dem utløser et varsel eller erklærer en hendelse før du slår det p�
 - **Oversikt** for SLO-et viser nivået det er i og hva teamet har avtalt å gjøre der, så alle som åpner SLO-et ser avtalen som gjelder nå. Mens nivået fryser distribusjoner, viser et rødt merke under navnet på nivået siden når.
 - Diagrammet **Nedbrenning av feilbudsjett** tegner en linje med etikett ved terskelen til hvert nivå, ved siden av linjen for risikoterskelen.
 - **Feed** for SLO-et viser hver endring av nivå: nivået SLO-et forlot og nivået det gikk inn i, gjenværende budsjett, hva teamet har avtalt å gjøre i det nye nivået, og om endringen frøs distribusjoner eller tillot dem igjen.
+- Kanalene i Slack, Microsoft Teams og Mattermost som reglene dine nevner, får den samme meldingen: se [Publiser i Slack, Microsoft Teams og Mattermost](#publiser-i-slack-microsoft-teams-og-mattermost).
 - **Revisjonslogger** for SLO-et registrerer hver endring av nivå, og hver gang distribusjoner fryses eller tillates igjen, som en endring OneUptime har gjort selv, og viser dem derfor bare med **Lagre systemhendelser** slått på: se [Slå på revisjonslogger](/docs/slo/feed-and-audit-logs#slå-på-revisjonslogger). Å legge til, redigere og fjerne et nivå registreres på personen som gjorde det.
 - Lese-API-et til SLO-et returnerer nivået, og om distribusjoner er tillatt: se [Les nivået via API-et](#les-nivået-via-api-et) og [Distribusjonssperre](#distribusjonssperre).
 
@@ -121,6 +123,43 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 ```
 
 Den innebygde beskrivelsen nevner nivået, setter gjenværende budsjett opp mot terskelen til nivået og sier hva teamet har avtalt å gjøre i det.
+
+## Publiser i Slack, Microsoft Teams og Mattermost
+
+En regel kan publisere hver endring i feilbudsjettpolicyen til et SLO i kanalene i Slack, Microsoft Teams eller Mattermost som teamet ditt leser, uten å varsle noen: når SLO-et går inn i et nivå, kommer seg til et mindre alvorlig nivå eller forlater alle nivåer, og når distribusjonene fryses eller tillates igjen. Hver regel velger SLO-ene og endringene den publiserer. Koble først workspacet til prosjektet: se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) eller [Mattermost](/docs/workspace-connections/mattermost).
+
+:::steps
+### Åpne seksjonen Arbeidsområde for SLO-er
+
+Gå til **SLOs** → **Arbeidsområde** → **Slack**, eller **Microsoft Teams**, eller **Mattermost**. Seksjonen **Arbeidsområde** viser bare chat-workspacene prosjektet ditt har koblet til.
+
+### Opprett en regel
+
+Klikk på **Opprett Varslingsregel for SLO-er** og gi den et **Regelnavn**. Under **Hvilke SLO-er** beholder du **Alle SLO-er**, eller du velger **Bare SLO-er som oppfyller betingelsene** og legger til betingelser: se [Hva en regel samsvarer med](#hva-en-regel-samsvarer-med).
+
+### Velg hvor den publiserer
+
+Under **Deretter i Slack** angir du kanalene regelen publiserer i. I Microsoft Teams velger du et team og kanalene i det, eller chatter som OneUptime-appen er lagt til i. Et SLO får ingen egen kanal, så en regel publiserer bare i kanaler og chatter du allerede har.
+:::
+
+Meldingen beskriver endringen med ordene fra **Feed** for SLO-et: nivået SLO-et forlot og nivået det gikk inn i, hvordan distribusjonene endret seg, gjenværende feilbudsjett, terskelen til det nye nivået og hva teamet har avtalt å gjøre der, slik teamet skrev det. En omtale i den avtalen, for eksempel `<!channel>`, publiseres som tekst og varsler ingen.
+
+- En endring publiseres én gang, etter at evalueringen som førte til den, er lagret. En evaluering som ikke lagres, publiserer ingenting, og den neste publiserer endringen.
+- Ingenting publiseres mens SLO-et blir i nivået sitt, uansett hvor lenge budsjettet svinger rundt en terskel: se [Å gå inn i et nivå og forlate det](#å-gå-inn-i-et-nivå-og-forlate-det).
+- Å slå **Frys distribusjoner** på eller av for nivået SLO-et er i, publiserer en egen melding.
+- Et SLO som er pauset, feilkonfigurert, deaktivert eller arkivert, beholder nivået sitt og publiserer ingenting.
+- En melding som ikke kan sendes, logges, og evalueringen, feeden til SLO-et og det nivået utløser, fortsetter uten den.
+
+### Hva en regel samsvarer med
+
+| Betingelse | Hva den samsvarer med |
+| --- | --- |
+| **SLOs** | SLO-ene du velger, eller alle SLO-er unntatt dem. |
+| **SLO-etiketter** | Etikettene til SLO-et: hvilken som helst av dem du velger, alle sammen eller ingen av dem. |
+| **SLO-navn** | Navnet på SLO-et: lik teksten din eller ikke, inneholder den eller ikke, begynner eller slutter med den. |
+| **Endring i feilbudsjettpolicy** | Hva som endret seg: **Gikk inn i et mer alvorlig nivå**, **Kom tilbake til et mindre alvorlig nivå**, **Forlot alle nivåer**, **Distribusjoner frosset** eller **Distribusjoner tillatt igjen**. |
+
+En endring av nivå som frøs distribusjoner, eller tillot dem igjen, er én melding som teller som begge endringene. En regel for **Distribusjoner frosset** publiserer altså også endringen når SLO-et går inn i et nivå som fryser dem: En utgivelseskanal får vite om hver frysing.
 
 ## Når budsjettet ikke måles
 
@@ -259,7 +298,7 @@ Disse tillatelsene ligger i SLO-gruppen til en rolle. Rollene Project Owner og P
 
 ## Ikke tilgjengelig ennå
 
-Noen deler av en feilbudsjettpolicy er ikke tilgjengelige ennå: arbeidsflytutløsere og Slack- eller Microsoft Teams-varsler for hvert nivå, en policy som flere SLO-er deler, å kvittere for et nivå eller gi et unntak fra det, og nivåer som bygger på rekkevidden til budsjettet i stedet for gjenværende budsjett. OneUptime stopper ikke en utgivelse selv: Det gjør en pipeline som sjekker `deploymentsAllowed`, slik [Distribusjonssperre](#distribusjonssperre) viser.
+Noen deler av en feilbudsjettpolicy er ikke tilgjengelige ennå: en egen arbeidsflytutløser for hvert nivå, en policy som flere SLO-er deler, å kvittere for et nivå eller gi et unntak fra det, og nivåer som bygger på rekkevidden til budsjettet i stedet for gjenværende budsjett. OneUptime stopper ikke en utgivelse selv: Det gjør en pipeline som sjekker `deploymentsAllowed`, slik [Distribusjonssperre](#distribusjonssperre) viser.
 
 ## Neste steg
 

@@ -76,7 +76,7 @@ export const PROJECT_BILLING_CONTACT_UPDATE_PERMISSIONS: ReadonlyArray<Permissio
  * billing pages and through the API - the plan and subscription, the
  * reseller it was bought from, the contact details, both balances and their
  * Auto Recharge, the paid channel switches, the AI spend settings and the
- * usage the plan counts. Every
+ * limits on each AI run, and the usage the plan counts. Every
  * member reads most of these anyway (Project User); the billing roles read
  * them by name, so an API key given only a billing role reads them too.
  */
@@ -114,6 +114,11 @@ export const PROJECT_BILLING_READ_COLUMNS: ReadonlyArray<string> = [
   "enableAi",
   "aiDailyTokenLimit",
   "aiDailySpendLimitInUSD",
+  // The limits on each AI run, which decide what a run may cost (#6440).
+  "aiRunMaxModelCalls",
+  "aiRunMaxToolCalls",
+  "aiRunMaxTokens",
+  "aiRunTimeLimitInMinutes",
   // Usage the plan counts.
   "workflowRunsInLast30Days",
 ];

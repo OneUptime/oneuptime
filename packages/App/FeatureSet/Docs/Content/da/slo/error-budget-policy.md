@@ -1,11 +1,12 @@
 # Fejlbudgetpolitik
 
-En fejlbudgetpolitik skriver ned, hvad dit team har aftalt at gøre, mens et SLO's fejlbudget løber ud, for eksempel at gennemgå risikable ændringer, når halvdelen er brugt, eller at fastfryse udgivelser, når det hele er brugt. OneUptime placerer SLO'et i det niveau i politikken, som dets budget har nået, viser teamets aftale for niveauet på SLO'ets sider, kan udløse en advarsel eller erklære en hændelse, når SLO'et går ind i et niveau, og fortæller dine CI/CD-pipelines, om de skal holde udgivelser tilbage. Det er praksissen med en fejlbudgetpolitik fra [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+En fejlbudgetpolitik skriver ned, hvad dit team har aftalt at gøre, mens et SLO's fejlbudget løber ud, for eksempel at gennemgå risikable ændringer, når halvdelen er brugt, eller at fastfryse udgivelser, når det hele er brugt. OneUptime placerer SLO'et i det niveau i politikken, som dets budget har nået, viser teamets aftale for niveauet på SLO'ets sider, kan udløse en advarsel eller erklære en hændelse, når SLO'et går ind i et niveau, slår hvert skift af niveau op i de kanaler i Slack, Microsoft Teams eller Mattermost, du vælger, og fortæller dine CI/CD-pipelines, om de skal holde udgivelser tilbage. Det er praksissen med en fejlbudgetpolitik fra [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Sådan fungerer niveauer](#sådan-fungerer-niveauer): Hvilket niveau der gælder, og hvornår SLO'et forlader det.
 - [Opsæt en politik](#opsæt-en-politik): Start med den anbefalede politik, eller skriv dine egne niveauer.
 - [Advarsler og hændelser](#advarsler-og-hændelser): Alarmér dit team, når SLO'et går ind i et niveau.
+- [Slå op i Slack, Microsoft Teams og Mattermost](#slå-op-i-slack-microsoft-teams-og-mattermost): Giv en kanal besked, når et SLO går ind i et niveau, uden at alarmere nogen.
 - [Udrulningsspærre](#udrulningsspærre): Hold udgivelser tilbage fra CI/CD, mens et niveau fryser udrulninger.
 - [Læs niveauet via API'et](#læs-niveauet-via-apiet): Tjek niveauet fra CI og scripts.
 :::
@@ -88,6 +89,7 @@ Ingen af dem udløser en advarsel eller erklærer en hændelse, før du slår de
 - SLO'ets **Oversigt** viser det niveau, det er i, og hvad teamet har aftalt at gøre der, så alle, der åbner SLO'et, ser den aftale, der gælder nu. Mens niveauet fryser udrulninger, viser et rødt mærke under dets navn, siden hvornår.
 - Diagrammet **Burn-down af fejlbudget** tegner en linje med etiket ved hvert niveaus tærskel ved siden af risikotærsklens linje.
 - SLO'ets **Feed** viser hvert skift af niveau: det niveau, SLO'et forlod, og det niveau, det gik ind i, det resterende budget, hvad teamet har aftalt at gøre i det nye niveau, og om skiftet frøs udrulninger eller tillod dem igen.
+- De kanaler i Slack, Microsoft Teams og Mattermost, som dine regler nævner, får det samme opslag: se [Slå op i Slack, Microsoft Teams og Mattermost](#slå-op-i-slack-microsoft-teams-og-mattermost).
 - SLO'ets **Auditlogs** registrerer hvert skift af niveau, og hver gang udrulninger fryses eller tillades igen, som en ændring, OneUptime selv har lavet, og viser det derfor kun med **Gem systemhændelser** slået til: se [Slå auditlogs til](/docs/slo/feed-and-audit-logs#slå-auditlogs-til). At tilføje, redigere og fjerne et niveau registreres under den person, der gjorde det.
 - SLO'ets læse-API returnerer niveauet, og om udrulninger er tilladt: se [Læs niveauet via API'et](#læs-niveauet-via-apiet) og [Udrulningsspærre](#udrulningsspærre).
 
@@ -121,6 +123,43 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 ```
 
 Den indbyggede beskrivelse nævner niveauet, holder det resterende budget op mod niveauets tærskel og siger, hvad teamet har aftalt at gøre i det.
+
+## Slå op i Slack, Microsoft Teams og Mattermost
+
+En regel kan slå hvert skift i et SLO's fejlbudgetpolitik op i de kanaler i Slack, Microsoft Teams eller Mattermost, som dit team læser, uden at alarmere nogen: når SLO'et går ind i et niveau, kommer sig til et mindre alvorligt niveau eller forlader alle niveauer, og når dets udrulninger fryses eller tillades igen. Hver regel vælger de SLO'er og de skift, den slår op. Forbind først workspacet med projektet: se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) eller [Mattermost](/docs/workspace-connections/mattermost).
+
+:::steps
+### Åbn sektionen Arbejdsområde for SLO'er
+
+Gå til **SLOs** → **Arbejdsområde** → **Slack**, eller **Microsoft Teams**, eller **Mattermost**. Sektionen **Arbejdsområde** viser kun de chat-workspaces, dit projekt har forbundet.
+
+### Opret en regel
+
+Klik på **Opret Notifikationsregel for SLO'er**, og giv den et **Regelnavn**. Under **Hvilke SLO'er** beholder du **Alle SLO'er**, eller du vælger **Kun SLO'er, der opfylder betingelserne** og tilføjer betingelser: se [Hvad en regel matcher](#hvad-en-regel-matcher).
+
+### Vælg, hvor den slår op
+
+Under **Derefter i Slack** angiver du de kanaler, reglen slår op i. I Microsoft Teams vælger du et team og dets kanaler, eller chats, som OneUptime-appen er føjet til. Et SLO får ikke sin egen kanal, så en regel slår kun op i kanaler og chats, du allerede har.
+:::
+
+Beskeden beskriver skiftet med ordene fra SLO'ets **Feed**: det niveau, SLO'et forlod, og det niveau, det gik ind i, hvad der skete med udrulningerne, det resterende fejlbudget, det nye niveaus tærskel, og hvad teamet har aftalt at gøre der, sådan som teamet skrev det. En omtale i aftalen, såsom `<!channel>`, slås op som tekst og giver ingen besked.
+
+- Et skift slås op én gang, efter at den evaluering, der førte til det, er gemt. En evaluering, der ikke gemmes, slår intet op, og den næste slår skiftet op.
+- Intet slås op, så længe SLO'et bliver i sit niveau, uanset hvor længe budgettet svinger omkring en tærskel: se [At gå ind i et niveau og forlade det](#at-gå-ind-i-et-niveau-og-forlade-det).
+- At slå **Frys udrulninger** til eller fra for det niveau, SLO'et er i, slår sin egen besked op.
+- Et SLO, der er sat på pause, forkert konfigureret, deaktiveret eller arkiveret, beholder sit niveau og slår intet op.
+- En besked, der ikke kan sendes, logges, og evalueringen, SLO'ets feed og det, niveauet udløser, fortsætter uden den.
+
+### Hvad en regel matcher
+
+| Betingelse | Hvad den matcher |
+| --- | --- |
+| **SLOs** | De SLO'er, du vælger, eller alle SLO'er undtagen dem. |
+| **SLO-etiketter** | SLO'ets etiketter: en hvilken som helst af dem, du vælger, dem alle eller ingen af dem. |
+| **SLO-navn** | SLO'ets navn: lig med din tekst eller ej, indeholder den eller ej, begynder eller slutter med den. |
+| **Ændring i fejlbudgetpolitik** | Hvad der ændrede sig: **Gik ind i et mere alvorligt niveau**, **Kom tilbage til et mindre alvorligt niveau**, **Forlod alle niveauer**, **Udrulninger frosset** eller **Udrulninger tilladt igen**. |
+
+Et skift af niveau, der frøs udrulninger eller tillod dem igen, er én besked, der tæller som begge skift. En regel for **Udrulninger frosset** slår altså også et skift op, når SLO'et går ind i et niveau, der fryser dem: En udgivelseskanal hører om hver frysning.
 
 ## Når budgettet ikke måles
 
@@ -259,7 +298,7 @@ Disse tilladelser ligger i en rolles SLO-gruppe. Rollerne Project Owner og Proje
 
 ## Endnu ikke tilgængeligt
 
-Nogle dele af en fejlbudgetpolitik er endnu ikke tilgængelige: workflow-udløsere og Slack- eller Microsoft Teams-notifikationer for hvert niveau, en politik, som flere SLO'er deler, at kvittere for et niveau eller give en undtagelse fra det, og niveauer, der bygger på budgettets rækkevidde i stedet for det resterende budget. OneUptime stopper ikke selv en udgivelse: Det gør en pipeline, der tjekker `deploymentsAllowed`, som [Udrulningsspærre](#udrulningsspærre) viser.
+Nogle dele af en fejlbudgetpolitik er endnu ikke tilgængelige: en særskilt workflow-udløser for hvert niveau, en politik, som flere SLO'er deler, at kvittere for et niveau eller give en undtagelse fra det, og niveauer, der bygger på budgettets rækkevidde i stedet for det resterende budget. OneUptime stopper ikke selv en udgivelse: Det gør en pipeline, der tjekker `deploymentsAllowed`, som [Udrulningsspærre](#udrulningsspærre) viser.
 
 ## Næste trin
 

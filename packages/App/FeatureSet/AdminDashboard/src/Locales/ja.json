@@ -2057,7 +2057,7 @@
   "The secret that goes with the access key ID. It is stored encrypted.": "アクセスキー ID と対になるシークレットです。暗号化して保存されます。",
   "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.": "送信者の ID が検証されている AWS リージョン (例: us-east-1、eu-west-1) です。",
   "Enter an AWS Region code, such as us-east-1.": "us-east-1 のような AWS リージョンコードを入力してください。",
-  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.": "Mail Send 権限を持つ SendGrid の API キーです (SendGrid の Settings > API Keys)。暗号化して保存されます。",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.": "Mail Send 権限を持つ SendGrid の API キーです (SendGrid の Settings > API Keys)。暗号化して保存されます。",
   "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.": "Mailgun アカウントの API キー、またはこのドメイン用に作成した送信キーです。暗号化して保存されます。",
   "The sending domain, as Mailgun lists it under Sending > Domains.": "Mailgun の Sending > Domains に表示されている送信ドメインです。",
   "Enter a domain, such as mg.example.com.": "mg.example.com のようなドメインを入力してください。",

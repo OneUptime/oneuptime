@@ -263,6 +263,51 @@ export default class OwnedScopePermission {
       return null;
     }
 
+    return OwnedScopePermission.getRowsGrantingOnlyAsOwned(
+      modelType,
+      props,
+      type,
+    );
+  }
+
+  /*
+   * WHETHER EVERY ROW THAT GRANTS `type` ON THIS MODEL IS SCOPED TO OWNED,
+   * whether the scope narrows the model or not. On a model with nothing to
+   * own, such a grant reaches every record (narrowsRecords) - which is right
+   * for a permission whose Owned answer means nothing anywhere, and wrong
+   * where the same permission is narrowed on other tables and the model's
+   * records reach past them: a custom role is given to teams of every owner,
+   * so Edit Team Permissions scoped to the teams someone owns may not change
+   * one (CustomRoleService.assertNotLimitedToOwnedTeams). False for root, a
+   * master admin, and a caller with no row granting it at all.
+   */
+  public static isGrantedOnlyAsOwned<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return false;
+    }
+
+    return (
+      OwnedScopePermission.getRowsGrantingOnlyAsOwned(
+        modelType,
+        props,
+        type,
+      ) !== null
+    );
+  }
+
+  /*
+   * The caller's rows that grant `type` on this model, when every one of
+   * them is scoped to Owned; null when one is not, or none grants it.
+   */
+  private static getRowsGrantingOnlyAsOwned<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Array<UserPermission> | null {
     /*
      * The permissions whose rows grant this operation, as the table check
      * reads them: the model's own, and its operational-resource wildcard

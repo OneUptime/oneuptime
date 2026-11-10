@@ -12,6 +12,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
   RowsCallerMayWriteRead,
@@ -44,7 +45,26 @@ import {
  *
  * The real onBeforeUpdate runs, and what it carries forward goes to the
  * real onUpdateSuccess; the database and MonitorTurnedOff are stubbed.
+ *
+ * On a server without billing (TestBillingFlag): where billing is on, as in
+ * CI, turning monitoring on also passes the pay-as-you-go gate, which reads
+ * the project's billing (MonitorPayAsYouGoBilling's suite) - nothing of
+ * turning it off.
  */
+
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-0e0e-4aaa-8bbb-000000000001",
@@ -137,6 +157,8 @@ function editor(): DatabaseCommonInteractionProps {
 }
 
 beforeEach(() => {
+  setTestBillingEnabled(false);
+
   storedMonitors = [
     { id: CHECKED, name: "Checkout API", disableActiveMonitoring: false },
     { id: ALREADY_OFF, name: "Legacy API", disableActiveMonitoring: true },

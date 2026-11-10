@@ -1,6 +1,7 @@
 import { AddKubernetesClusterAiAccess1794400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794400000000-AddKubernetesClusterAiAccess";
 import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796100000000-AddKubernetesAiAgentAndAiDefaults";
 import { RemoveRunbookCredentials1805780000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805780000000-RemoveRunbookCredentials";
+import { AddAiAgentResetAt1808996200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808996200000-AddAiAgentResetAt";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -124,6 +125,26 @@ const DEFAULTS_MOVED_LATER: Array<MovedDefault> = [
     table: "KubernetesCluster",
     property: "isAiInvestigationEnabled",
     migration: new AddKubernetesAiAgentAndAiDefaults1796100000000(),
+  },
+];
+
+/*
+ * AI columns of the cluster a LATER migration added. This migration has
+ * shipped, so they are not among its columns: each is compared with the
+ * migration that adds it instead (whose own suite pins its DDL).
+ */
+interface AddedLater {
+  table: string;
+  property: string;
+  migration: MigrationInterface;
+}
+
+const COLUMNS_ADDED_LATER: Array<AddedLater> = [
+  // When the cluster's AI agent was last reset (issue #6302).
+  {
+    table: "KubernetesCluster",
+    property: "aiAgentResetAt",
+    migration: new AddAiAgentResetAt1808996200000(),
   },
 ];
 
@@ -471,7 +492,13 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
         return (
           column.target === KubernetesCluster &&
           (column.propertyName.startsWith("ai") ||
-            column.propertyName.startsWith("isAi"))
+            column.propertyName.startsWith("isAi")) &&
+          !COLUMNS_ADDED_LATER.some((later: AddedLater): boolean => {
+            return (
+              later.table === "KubernetesCluster" &&
+              later.property === column.propertyName
+            );
+          })
         );
       })
       .map((column: ColumnMetadataArgs): string => {
@@ -550,6 +577,40 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
       expect(
         registeredNames.indexOf(column.droppedLater!.name!),
       ).toBeGreaterThan(registeredNames.indexOf(OWN_CLASS_NAME));
+    },
+  );
+
+  test.each(COLUMNS_ADDED_LATER)(
+    "$table.$property: a later migration adds it, not this one",
+    async (later: AddedLater) => {
+      expect(
+        getMetadataArgsStorage().columns.some(
+          (declared: ColumnMetadataArgs): boolean => {
+            return (
+              declared.target === KubernetesCluster &&
+              declared.propertyName === later.property
+            );
+          },
+        ),
+      ).toBe(true);
+
+      expect(
+        (await recordQueries("up")).filter((statement: string): boolean => {
+          return statement.includes(`ADD "${later.property}"`);
+        }),
+      ).toEqual([]);
+      expect(
+        (await recordQueries("up", later.migration)).some(
+          (statement: string): boolean => {
+            return statement.startsWith(
+              `ALTER TABLE "${later.table}" ADD "${later.property}" `,
+            );
+          },
+        ),
+      ).toBe(true);
+      expect(registeredNames.indexOf(later.migration.name!)).toBeGreaterThan(
+        registeredNames.indexOf(OWN_CLASS_NAME),
+      );
     },
   );
 

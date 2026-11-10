@@ -2057,7 +2057,7 @@
   "The secret that goes with the access key ID. It is stored encrypted.": "액세스 키 ID와 짝을 이루는 비밀 키입니다. 암호화되어 저장됩니다.",
   "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.": "발신자 자격 증명이 확인된 AWS 리전입니다(예: us-east-1 또는 eu-west-1).",
   "Enter an AWS Region code, such as us-east-1.": "us-east-1과 같은 AWS 리전 코드를 입력하세요.",
-  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.": "Mail Send 권한이 있는 SendGrid API 키입니다(SendGrid의 Settings > API Keys). 암호화되어 저장됩니다.",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.": "Mail Send 권한이 있는 SendGrid API 키입니다(SendGrid의 Settings > API Keys). 암호화되어 저장됩니다.",
   "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.": "Mailgun 계정의 API 키 또는 이 도메인용으로 만든 발신 키입니다. 암호화되어 저장됩니다.",
   "The sending domain, as Mailgun lists it under Sending > Domains.": "Mailgun의 Sending > Domains에 표시된 발신 도메인입니다.",
   "Enter a domain, such as mg.example.com.": "mg.example.com과 같은 도메인을 입력하세요.",

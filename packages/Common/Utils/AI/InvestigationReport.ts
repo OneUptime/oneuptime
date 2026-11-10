@@ -9,6 +9,13 @@
  * those parts out separately, and the server wants the evidence labels and
  * the incident/alert numbers the note mentions.
  *
+ * The model writes the note in the language the team's AI context asks for,
+ * headings included (issue #6542): a heading or an Impact label in any
+ * language the Dashboard reads is read as the English one
+ * (InvestigationReportLanguages), with the full-width colon and brackets
+ * Chinese and Japanese write. What the server writes - the heading, the
+ * stop note, the Evidence checked list, the footer - stays English.
+ *
  * Everything here is text-only and free of React and server code (it reads
  * only the stop note's openings, from Types) so it loads the same in
  * the dashboard bundle, the API server and Common jest. None of it turns
@@ -22,6 +29,10 @@ import {
   INCIDENT_AI_INVESTIGATION_LIMITS_LOCATION,
   PROJECT_AI_RUN_LIMITS_LOCATION,
 } from "../../Types/AI/AIAgentRunLimits";
+import {
+  InvestigationReportTerm,
+  readTranslatedReportTerm,
+} from "./InvestigationReportLanguages";
 
 export const AI_ROOT_CAUSE_HEADING_TEXT: string =
   "AI — Automated Root Cause Analysis";
@@ -289,6 +300,26 @@ const KNOWN_LABELS: Map<string, LabelKind> = new Map<string, LabelKind>([
   ["evidence checked", "EvidenceChecked"],
 ]);
 
+/*
+ * The section a heading of another language names: "摘要" is the Summary,
+ * "Belege" the Evidence (InvestigationReportLanguages). An Impact label's
+ * word is no heading.
+ */
+const TRANSLATED_HEADING_KINDS: ReadonlyMap<
+  InvestigationReportTerm,
+  InvestigationReportSectionKind
+> = new Map<InvestigationReportTerm, InvestigationReportSectionKind>([
+  [InvestigationReportTerm.Summary, InvestigationReportSectionKind.Summary],
+  [InvestigationReportTerm.Impact, InvestigationReportSectionKind.Impact],
+  [InvestigationReportTerm.RootCause, InvestigationReportSectionKind.RootCause],
+  [InvestigationReportTerm.Evidence, InvestigationReportSectionKind.Evidence],
+  [InvestigationReportTerm.RuledOut, InvestigationReportSectionKind.RuledOut],
+  [InvestigationReportTerm.NextSteps, InvestigationReportSectionKind.NextSteps],
+]);
+
+// The colons a label ends with: ASCII, and the full-width one CJK text writes.
+const LABEL_COLONS: ReadonlyArray<string> = [":", "\uFF1A"];
+
 // What a brand heading says after "AI — ", lower case.
 const BRAND_HEADING_MARKERS: ReadonlyArray<string> = [
   "automated root cause analysis",
@@ -319,16 +350,22 @@ const ATX_HEADING_REGEX: RegExp = /^ {0,3}#{1,6}(?:[ \t]+(?![ \t])(.*))?$/;
 const THEMATIC_BREAK_REGEX: RegExp =
   /^ {0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$/;
 
-const LEADING_PARENTHETICAL_REGEX: RegExp = /^[ \t]*(\([^()]{1,80}\))/;
+/*
+ * "(medium confidence)" after a bold label, in ASCII brackets or the
+ * full-width ones Chinese and Japanese write: "（中等置信度）".
+ */
+const LEADING_PARENTHETICAL_REGEX: RegExp =
+  /^[ \t]*([(（][^()（）]{1,80}[)）])/;
 /*
  * Longest text worth looking up as a label: the longest known label plus a
  * decorative prefix, a colon and a "(medium confidence)" style qualifier.
  */
 const MAX_KNOWN_LABEL_INPUT_LENGTH: number = 160;
 const LEADING_NUMBERING_REGEX: RegExp = /^\d{1,2}[.)][ \t]+/;
-const ENDS_WITH_SENTENCE_PUNCTUATION_REGEX: RegExp = /[.!?]$/;
+// A sentence's end, in the scripts that end one otherwise too: "。", "؟", "।".
+const ENDS_WITH_SENTENCE_PUNCTUATION_REGEX: RegExp = /[.!?。！？؟।]$/;
 // A label needs some text beyond emphasis markers and punctuation ("**_**").
-const HAS_LABEL_TEXT_REGEX: RegExp = /[^\s*_~`#:.—–-]/;
+const HAS_LABEL_TEXT_REGEX: RegExp = /[^\s*_~`#:：.—–-]/;
 const CITATION_MARKER_TEST_REGEX: RegExp = /\[C\d{1,3}\]/;
 
 /*
@@ -341,9 +378,14 @@ const CITATION_MARKER_TEST_REGEX: RegExp = /\[C\d{1,3}\]/;
  * label ending at every place, each try reading on to that separator.
  */
 const STRONG_LEAD_REGEX: RegExp = /^(?=.*$)(\*\*|__)(\*|_)?(.+?)\2?\1(.*)$/;
-const SEPARATOR_PREFIX_REGEX: RegExp = /^(?:[:—–]|-{1,2})[ \t]*/;
-// The text before the first ":" of a plain "Summary: body" line.
-const PLAIN_LABEL_REGEX: RegExp = /^[A-Za-z][A-Za-z \t;,()]{0,60}$/;
+const SEPARATOR_PREFIX_REGEX: RegExp = /^(?:[:：—–]|-{1,2})[ \t]*/;
+/*
+ * The text before the first colon of a plain "Summary: body" line: a
+ * letter, then letters, spaces and ";,()" - in any script, with the marks
+ * Hindi writes its vowels with, the joiners Persian writes inside a word
+ * and the full-width brackets ("摘要：", "سرویس‌ها:", "सारांश:").
+ */
+const PLAIN_LABEL_REGEX: RegExp = /^\p{L}[\p{L}\p{M}\p{Cf} \t;,()（）]{0,60}$/u;
 
 // Bold-only lines longer than this read as emphasised prose, not a label.
 const MAX_BOLD_LABEL_LENGTH: number = 80;
@@ -650,27 +692,55 @@ function stripLeadingDecoration(label: string): string {
  * quadratically over a long run of spaces, and this text is model-authored:
  * one 20 KB line froze the parser for a minute when they were regexes.
  */
+// Either colon: ":", or the full-width "：" Chinese and Japanese write.
 function endsWithColon(value: string): boolean {
-  return value.trimEnd().endsWith(":");
+  const trimmed: string = value.trimEnd();
+
+  return LABEL_COLONS.some((colon: string): boolean => {
+    return trimmed.endsWith(colon);
+  });
 }
 
 function stripTrailingColon(value: string): string {
   const trimmed: string = value.trimEnd();
 
-  return trimmed.endsWith(":") ? trimmed.slice(0, -1).trimEnd() : trimmed;
+  return endsWithColon(trimmed) ? trimmed.slice(0, -1).trimEnd() : trimmed;
 }
 
-// "Most likely root cause (medium confidence)" -> "Most likely root cause".
+// The first colon of either kind, or -1.
+function indexOfFirstColon(value: string): number {
+  let first: number = -1;
+
+  for (const colon of LABEL_COLONS) {
+    const index: number = value.indexOf(colon);
+
+    if (index !== -1 && (first === -1 || index < first)) {
+      first = index;
+    }
+  }
+
+  return first;
+}
+
+/*
+ * "Most likely root cause (medium confidence)" -> "Most likely root cause",
+ * and "最可能的根本原因（中等置信度）" -> "最可能的根本原因": ASCII or
+ * full-width brackets, either way round.
+ */
 function stripTrailingParenthetical(value: string): string {
   const trimmed: string = value.trimEnd();
 
-  if (!trimmed.endsWith(")")) {
+  if (!trimmed.endsWith(")") && !trimmed.endsWith("）")) {
     return trimmed;
   }
 
-  const open: number = trimmed.lastIndexOf("(");
+  const open: number = Math.max(
+    trimmed.lastIndexOf("("),
+    trimmed.lastIndexOf("（"),
+  );
+  const inside: string = open === -1 ? "" : trimmed.slice(open + 1, -1);
 
-  if (open === -1 || trimmed.slice(open + 1, -1).includes(")")) {
+  if (open === -1 || inside.includes(")") || inside.includes("）")) {
     return trimmed;
   }
 
@@ -779,14 +849,23 @@ function lookupLabel(label: string): LabelKind | null {
     return null;
   }
 
-  const key: string = stripTrailingColon(
+  const bare: string = stripTrailingColon(
     stripTrailingParenthetical(stripLeadingDecoration(label)),
-  )
+  );
+  const key: string = bare
     .replace(WHITESPACE_RUN_REGEX, " ")
     .trim()
     .toLowerCase();
+  const englishKind: LabelKind | undefined = KNOWN_LABELS.get(key);
 
-  return KNOWN_LABELS.get(key) || null;
+  if (englishKind) {
+    return englishKind;
+  }
+
+  // A heading in another language: "摘要", "Zusammenfassung", "الملخص".
+  const term: InvestigationReportTerm | null = readTranslatedReportTerm(bare);
+
+  return term ? TRANSLATED_HEADING_KINDS.get(term) || null : null;
 }
 
 function looksLikeBoldLabel(title: string): boolean {
@@ -832,7 +911,8 @@ function matchStrongLead(content: string): LabelLineMatch | null {
   let inlineBody: string = "";
   let isBare: boolean = false;
 
-  if (restTrimmed === "" || restTrimmed === ":") {
+  // "**Summary**" and "**Summary**:" (or "**摘要**：").
+  if (restTrimmed === "" || LABEL_COLONS.includes(restTrimmed)) {
     isBare = qualifier === "";
   } else {
     const separator: RegExpExecArray | null =
@@ -848,7 +928,12 @@ function matchStrongLead(content: string): LabelLineMatch | null {
     }
   }
 
-  const title: string = tidyTitle(qualifier ? `${label} ${qualifier}` : label);
+  // A full-width bracket keeps to its word, as Chinese and Japanese write it.
+  const title: string = tidyTitle(
+    qualifier
+      ? `${label}${qualifier.startsWith("（") ? "" : " "}${qualifier}`
+      : label,
+  );
   const kind: LabelKind | null = lookupLabel(label);
 
   isBare = isBare && looksLikeBoldLabel(title);
@@ -860,9 +945,9 @@ function matchStrongLead(content: string): LabelLineMatch | null {
   return { kind, title, inlineBody, isBare };
 }
 
-// "Summary: body" — only for known labels.
+// "Summary: body" (or "摘要：body") — only for known labels.
 function matchPlainLabel(content: string): LabelLineMatch | null {
-  const colon: number = content.indexOf(":");
+  const colon: number = indexOfFirstColon(content);
 
   if (colon <= 0) {
     return null;
@@ -2195,9 +2280,6 @@ const BULLET_START_REGEX: RegExp = /^ {0,3}(?:[-*+]|\d{1,3}[.)])[ \t]+/;
  */
 const BOLD_LABEL_REGEX: RegExp = /^\*\*([^*\n]{1,200}?)\*\*[ \t]*/;
 
-// The colons a label ends with: ASCII, and the full-width one CJK text writes.
-const LABEL_COLONS: ReadonlyArray<string> = [":", "\uFF1A"];
-
 // Text without the colon (and the spaces around it) it ends with.
 function withoutTrailingColon(text: string): string {
   const trimmed: string = text.trim();
@@ -2378,6 +2460,19 @@ const IMPACT_ASPECT_WORDS: ReadonlyArray<{
   },
 ];
 
+/*
+ * The aspect a label of another language names: "用户" and "Benutzer" are
+ * the users (InvestigationReportLanguages).
+ */
+const TRANSLATED_IMPACT_ASPECTS: ReadonlyMap<
+  InvestigationReportTerm,
+  InvestigationImpactAspect
+> = new Map<InvestigationReportTerm, InvestigationImpactAspect>([
+  [InvestigationReportTerm.Users, InvestigationImpactAspect.Users],
+  [InvestigationReportTerm.Services, InvestigationImpactAspect.Services],
+  [InvestigationReportTerm.Slos, InvestigationImpactAspect.Slos],
+]);
+
 // The aspect a line's label names, read as the report's labels are.
 export function getImpactAspect(
   labelMarkdown: string,
@@ -2393,7 +2488,10 @@ export function getImpactAspect(
     }
   }
 
-  return null;
+  const term: InvestigationReportTerm | null =
+    readTranslatedReportTerm(labelMarkdown);
+
+  return term ? TRANSLATED_IMPACT_ASPECTS.get(term) || null : null;
 }
 
 /*

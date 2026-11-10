@@ -466,7 +466,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT"
 
 - 在曾为事件（或警报）启用自动补救规则，或为其任何 Kubernetes 集群或主机开启了修复的项目中，该开关为开启状态。在其他所有地方，它为关闭状态。
 - 在设置了规则的情况下，现在只有与其中某条规则匹配的事件才会被修复。到目前为止，无论规则怎么说，OneUptime AI 都会修复它所关联的集群和主机上的每个事件，因此启用了规则且为某个集群或主机开启了修复的项目会多出一条规则：**Fix every incident with OneUptime AI**（或 **Fix every alert with OneUptime AI**），它匹配每一个事件并让 OneUptime AI 修复。删除它即可只修复你的其他规则匹配的内容。
-- 自动补救规则现在会问三个问题：哪些事件（其条件）、**修复方式**（**OneUptime AI** 或 **运行手册**）以及 **批准**（**修复前先询问** 或 **无需询问直接修复**）。没有 AI 设置的现有规则是 **运行手册** 规则，会像以前一样运行其运行手册；让 AI 编写命令或选择运行手册的规则会继续这样做。它们的其他设置（命令允许列表、命令 Runner、验证窗口和自动解决）会保留，并通过 API 或 Terraform 设置：仪表板不再显示它们。
+- 自动补救规则现在会问三个问题：哪些事件（其条件）、**修复方式**（**OneUptime AI** 或 **运行手册**）以及 **审批**（**修复前先询问** 或 **无需询问直接修复**）。没有 AI 设置的现有规则是 **运行手册** 规则，会像以前一样运行其运行手册；让 AI 编写命令或选择运行手册的规则会继续这样做。它们的其他设置（命令允许列表、命令 Runner、验证窗口和自动解决）会保留，并通过 API 或 Terraform 设置：仪表板不再显示它们。
 - 这些规则从单独的页面移到了 AI 设置页面上的 **更多设置** 中，旁边是新的 **调查规则**，它会收窄哪些事件（或警报）被调查；没有调查规则时，全部都会被调查。`…/ai/auto-remediation-rules` 和 `…/settings/auto-remediation-rules` 会打开 AI 设置页面。
 
 API 客户端和 Terraform 配置可以用项目的 `enableAutomaticIncidentRemediation` 和 `enableAutomaticAlertRemediation`（Terraform 中为 `enable_automatic_incident_remediation` 和 `enable_automatic_alert_remediation`）开启修复，并在规则的 `remediationAction` 中说明它用什么修复（`OneUptimeAI` 或 `Runbooks`）。在不指定它的情况下创建、带有运行手册且没有 AI 设置的规则，是 **运行手册** 规则，与以前的运行方式相同。

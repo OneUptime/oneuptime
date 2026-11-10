@@ -87,7 +87,7 @@ SMS だけ、または通話だけに使うアカウントには、もう一方�
 
 ## 3. ネットワークアクセスを設定する
 
-送信は外向きのアクセスだけで動きます。配信状況の更新、キーパッドでの確認応答、着信には、Twilio からサーバーへの到達が必要です。
+送信は外向きのアクセスだけで動きます。配信状況の更新、通話の結果、キーパッドでの確認応答、着信には、Twilio からサーバーへの到達が必要です。
 
 ```mermaid title="外向きの送信と内向きのコールバック"
 sequenceDiagram
@@ -109,6 +109,7 @@ sequenceDiagram
 | --- | --- |
 | SMS の送信 | いいえ。ただし配信ステータスの更新にはコールバックが必要です。 |
 | 単純なテスト用の音声通話 | いいえ。OneUptime は読み上げの指示を外向きの API リクエストに含めて送ります。 |
+| オンコールの電話に応答があったかどうか | はい。Twilio が各通話の終わり方を知らせるので、応答がなかったことをインシデントのフィードで伝えられます。なくても電話は発信されます。 |
 | 1 を押してオンコールのアラートに確認応答する | はい。Twilio がキーパッド入力を OneUptime に送ります。 |
 | 着信ポリシー | はい。Twilio が通話の指示を要求し、発信の結果を報告します。 |
 
@@ -117,13 +118,14 @@ sequenceDiagram
 | メソッド | パス | 用途 |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS の配信ステータス |
+| POST | `/notification/call/status-callback/:callLogId/:token` | 通話の結果 |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | キーパッドでの確認応答 |
 | POST | `/notification/incoming-call/voice` | 任意: 着信の指示 |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | 任意: 着信のルーティング結果 |
 
-SMS と確認応答の URL は OneUptime が自動で生成します。そのトークンを固定の Webhook URL に置き換えないでください。着信については [着信ポリシー](/docs/on-call/incoming-call-policy)の手順に従ってください。番号を割り当てると、その番号の Webhook が設定されます。
+SMS、通話の結果、確認応答の URL は OneUptime が自動で生成します。そのトークンを固定の Webhook URL に置き換えないでください。着信については [着信ポリシー](/docs/on-call/incoming-call-policy)の手順に従ってください。番号を割り当てると、その番号の Webhook が設定されます。
 
-Twilio は [公開されていて到達できる Webhook URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview) を必要とします。公的に信頼された TLS 証明書を使い、プロキシを通しても元のホスト、プロトコル、パス、クエリパラメーター、本文、 `X-Twilio-Signature` ヘッダーを保ってください。着信のハンドラーは Twilio の署名を検証します。SMS の配信ではメッセージごとの URL トークン、キーパッドでの確認応答では署名付きのクエリトークンを使います。トークンを共有のログやスクリーンショットに含めないでください。[Twilio の Webhook のセキュリティ](https://www.twilio.com/docs/usage/webhooks/webhooks-security)を参照してください。
+Twilio は [公開されていて到達できる Webhook URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview) を必要とします。公的に信頼された TLS 証明書を使い、プロキシを通しても元のホスト、プロトコル、パス、クエリパラメーター、本文、 `X-Twilio-Signature` ヘッダーを保ってください。着信のハンドラーは Twilio の署名を検証します。SMS の配信と通話の結果ではメッセージや通話ごとの URL トークン、キーパッドでの確認応答では署名付きのクエリトークンを使います。トークンを共有のログやスクリーンショットに含めないでください。[Twilio の Webhook のセキュリティ](https://www.twilio.com/docs/usage/webhooks/webhooks-security)を参照してください。
 
 ### プライベートなデプロイからコールバックを公開する
 
@@ -142,7 +144,7 @@ Twilio は [公開されていて到達できる Webhook URL](https://www.twilio
 Twilio の通常の Webhook の送信元アドレスは変わるため、SIP やメディアの IP 範囲をコールバックの許可リストに使わないでください。対象となる Twilio のエディションでは [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy) を利用できます。自分のエディションが対象か、どの製品に対応しているかを確認し、Twilio が現在公開している範囲でファイアウォールを設定してください。利用する場合も、コールバックの検証は続けます。
 
 > [!WARNING]
-> ポリシーで内向きの接続が禁止されている場合、SMS の送信と単純なインラインの音声再生は外向きの HTTPS で動きます。SMS の配信状況の更新、キーパッドでの確認応答、着信のルーティングは、到達できるコールバックがなければ動きません。完全に切り離されたインストールでは Twilio を使えません。
+> ポリシーで内向きの接続が禁止されている場合、SMS の送信と単純なインラインの音声再生は外向きの HTTPS で動きます。SMS の配信状況の更新、通話の結果、キーパッドでの確認応答、着信のルーティングは、到達できるコールバックがなければ動きません。完全に切り離されたインストールでは Twilio を使えません。
 
 開発では、Twilio の [Webhook のテストガイド](https://www.twilio.com/docs/usage/webhooks/webhook-testing)で公開トンネルの使い方が説明されています。必要なルートだけを許可するプロキシに転送し、得られたホスト名を上記のように設定し、テストが終わったら停止してください。トンネルでも内向きのアクセスは開かれます。
 

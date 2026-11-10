@@ -77,6 +77,7 @@ Una regola di notifica dice quali eventi vengono pubblicati in Slack, e dove. Og
 | **Manutenzione programmata** | Un elenco di regole |
 | **Monitor** | Un elenco di regole |
 | **Reperibilità** | Un elenco di regole |
+| **SLOs** | Un elenco di regole |
 
 Creare una regola passa per quattro passaggi:
 
@@ -86,6 +87,8 @@ Creare una regola passa per quattro passaggi:
 | **Condizioni** | A quali eventi si applica la regola, per esempio per gravità, stato, etichetta, monitor o parole nel titolo. Vengono verificate quando un evento viene creato e di nuovo a ogni aggiornamento che OneUptime pubblica su di esso, quindi una regola per gli incidenti riconosciuti agisce quando un incidente viene riconosciuto. Una nuova regola vale per ogni evento, per esempio **Tutti gli incidenti**. Per restringerla, scegli **Solo gli incidenti che soddisfano le condizioni** e aggiungi le condizioni. Con due o più, **Condizione di corrispondenza** dice se devono corrispondere tutte o ne basta una. |
 | **Destinazione** | Dove pubblica: **Pubblica in canali esistenti** con i nomi dei canali, **Crea un canale per ogni incidente** (o avviso, episodio, evento, monitor o policy di reperibilità) con chi ci entra, o entrambi. Sotto il passaggio, **Cosa fa questa regola** lo dice a frasi, come la scheda della regola. |
 | **Video Call** | Solo incidenti e avvisi: avvia una chiamata per ciascuno. Vedi [Videochiamate](/docs/workspace-connections/video-calls). |
+
+Una regola degli SLO pubblica le modifiche della policy del budget di errore di uno SLO: quando lo SLO entra in un livello, torna a uno meno grave o esce da tutti i livelli, e quando le sue distribuzioni vengono congelate o di nuovo consentite. Pubblica solo in canali esistenti, perché uno SLO non ha un canale tutto suo. Vedi [Pubblicare in Slack, Microsoft Teams e Mattermost](/docs/slo/error-budget-policy#pubblicare-in-slack-microsoft-teams-e-mattermost).
 
 Un canale creato dalla regola prende il nome dal suo record: l'incidente INC-42 riceve `inc-42`, l'avviso ALT-7 riceve `alt-7` e, in un progetto senza prefissi di numero, l'incidente 42 riceve `incident-42`. Il testo in **Prefisso del nome del canale** va davanti, quindi `prod-` dà `prod-inc-42`, e il modulo mostra il nome mentre scrivi. Per un evento di manutenzione pianificata, il prefisso prende il posto del suo prefisso di numero: SM-5 riceve `sm-5` e `maint-` dà `maint-5`. Slack accetta lettere minuscole, numeri, `-` e `_`, fino a 80 caratteri. Se esiste già un canale con quel nome, come quello di un altro progetto o uno archiviato, OneUptime aggiunge `-2`, `-3` e così via.
 

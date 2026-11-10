@@ -2057,7 +2057,7 @@
   "The secret that goes with the access key ID. It is stored encrypted.": "與存取金鑰 ID 配套的私密金鑰。它會加密儲存。",
   "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.": "寄件者身分經過驗證的 AWS 區域，例如 us-east-1 或 eu-west-1。",
   "Enter an AWS Region code, such as us-east-1.": "請輸入 AWS 區域代碼，例如 us-east-1。",
-  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.": "具有 Mail Send 權限的 SendGrid API 金鑰，可在 SendGrid 的 Settings > API Keys 中取得。它會加密儲存。",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.": "具有 Mail Send 權限的 SendGrid API 金鑰，可在 SendGrid 的 Settings > API Keys 中取得。它會加密儲存。",
   "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.": "您 Mailgun 帳戶的 API 金鑰，或為此網域建立的寄件金鑰。它會加密儲存。",
   "The sending domain, as Mailgun lists it under Sending > Domains.": "寄件網域，即 Mailgun 在 Sending > Domains 下列出的網域。",
   "Enter a domain, such as mg.example.com.": "請輸入網域，例如 mg.example.com。",

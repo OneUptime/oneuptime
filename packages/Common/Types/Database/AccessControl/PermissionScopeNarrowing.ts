@@ -969,6 +969,7 @@ const NARROWED_BY_OWNERS: ReadonlyArray<Permission> = [
   Permission.CreateDataAssetOwnerTeam,
   Permission.CreateDataAssetOwnerUser,
   Permission.CreateNetworkSiteStatusTimeline,
+  Permission.CreateProjectTeam,
   Permission.CreateSecurityCaseEvidence,
   Permission.CreateSecurityCaseNote,
   Permission.CreateSecurityCaseTask,
@@ -976,6 +977,7 @@ const NARROWED_BY_OWNERS: ReadonlyArray<Permission> = [
   Permission.DeleteDataAssetOwnerTeam,
   Permission.DeleteDataAssetOwnerUser,
   Permission.DeleteNetworkSiteStatusTimeline,
+  Permission.DeleteProjectTeam,
   Permission.DeleteSecurityCaseEvidence,
   Permission.DeleteSecurityCaseNote,
   Permission.DeleteSecurityCaseTask,
@@ -983,10 +985,13 @@ const NARROWED_BY_OWNERS: ReadonlyArray<Permission> = [
   Permission.EditDataAssetOwnerTeam,
   Permission.EditDataAssetOwnerUser,
   Permission.EditNetworkSiteStatusTimeline,
+  Permission.EditProjectTeam,
+  Permission.EditProjectTeamPermissions,
   Permission.EditSecurityCaseEvidence,
   Permission.EditSecurityCaseNote,
   Permission.EditSecurityCaseTask,
   Permission.EditSecurityPlaybookRun,
+  Permission.InviteProjectTeamMembers,
   Permission.ReadDataAssetFeed,
   Permission.ReadNetworkSiteStatusTimeline,
   Permission.ReadSecurityCaseEvidence,
@@ -995,6 +1000,7 @@ const NARROWED_BY_OWNERS: ReadonlyArray<Permission> = [
   Permission.ReadSecurityCaseTask,
   Permission.ReadSecurityDetection,
   Permission.ReadSecurityPlaybookRun,
+  Permission.RemoveProjectTeamMembers,
 ];
 
 // The lists above, by permission: what narrows each one.

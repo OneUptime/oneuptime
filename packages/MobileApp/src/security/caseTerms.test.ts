@@ -188,6 +188,8 @@ describe("the triage report as the phone draws it", () => {
 });
 
 describe("the triage's Summary, lifted above the rest of the report", () => {
+  // The joiner Persian writes inside a word.
+  const ZWNJ: string = String.fromCharCode(0x200c);
   const HEADING: string = "## 🧠 AI — Security Case Triage";
   const LEAD: string = `${TRIAGE_INJECTION_LEAD_PREFIX} - a sign of an attempt to steer the triage.`;
   const FOOTER: string =
@@ -252,6 +254,80 @@ describe("the triage's Summary, lifted above the rest of the report", () => {
     expect(split(LEAD, "", "**Summary**", "A spray.").summary).toBe("A spray.");
   });
 
+  test("in the language the team's AI context asks for, by that language's word for it", () => {
+    const shapes: Array<Array<string>> = [
+      ["**摘要**", "一次密码喷洒。"],
+      ["**摘要：**", "一次密码喷洒。"],
+      ["**摘要**：", "一次密码喷洒。"],
+      ["**摘要**：一次密码喷洒。"],
+      ["**摘要：** 一次密码喷洒。"],
+      ["**摘要：**一次密码喷洒。"],
+      ["**摘要** — 一次密码喷洒。"],
+      ["**摘要（高置信度）**", "一次密码喷洒。"],
+      ["## 摘要", "一次密码喷洒。"],
+      ["摘要：一次密码喷洒。"],
+      ["摘要: 一次密码喷洒。"],
+      ["**总结**", "一次密码喷洒。"],
+      ["**Zusammenfassung**", "一次密码喷洒。"],
+      ["Zusammenfassung: 一次密码喷洒。"],
+      ["**Résumé :**", "一次密码喷洒。"],
+      ["**الملخص**", "一次密码喷洒。"],
+      ["الملخص: 一次密码喷洒。"],
+      [`**جمع${ZWNJ}بندی**`, "一次密码喷洒。"],
+      ["**جمعبندی**", "一次密码喷洒。"],
+      ["**요약**", "一次密码喷洒。"],
+      ["**サマリー**", "一次密码喷洒。"],
+      ["**Итоги**", "一次密码喷洒。"],
+      ["**सारांश**", "一次密码喷洒。"],
+    ];
+
+    for (const shape of shapes) {
+      expect(split(...shape, "", "**评估**", "恶意。")).toEqual({
+        summary: "一次密码喷洒。",
+        rest: "**评估**\n恶意。",
+      });
+    }
+  });
+
+  test("its first paragraph ends at a label of any language, and at either colon", () => {
+    const enders: Array<string> = [
+      "影响：30 个用户。",
+      "证据：十四行。",
+      "根本原因（可能）：密码泄露。",
+      "已排除的原因：流量激增。",
+      "下一步：暂停该账户。",
+      "摘要：再说一遍。",
+      "**证据**",
+      "## 证据",
+      "Belege: vierzehn Zeilen.",
+      "Ursache: ein Leck.",
+      "الأدلة: أربعة عشر سطرًا.",
+      "Evidence：fourteen rows.",
+      "Impact: 30 users.",
+      "Ruled out: a traffic spike.",
+      // Full-width letters, which the parser reads as the plain ones.
+      "Ｂｅｌｅｇｅ：vierzehn Zeilen.",
+    ];
+
+    for (const ender of enders) {
+      expect(split("**摘要**", "一次密码喷洒。", ender, "更多。")).toEqual({
+        summary: "一次密码喷洒。",
+        rest: `${ender}\n更多。`,
+      });
+    }
+  });
+
+  test("lines of another language that only read like labels stay in it", () => {
+    expect(
+      split(
+        "**摘要**",
+        "一次密码喷洒：",
+        "注意：该地址是新的。",
+        "Hinweis: neu.",
+      ).summary,
+    ).toBe("一次密码喷洒：\n注意：该地址是新的。\nHinweis: neu.");
+  });
+
   test("its first paragraph, which a line that could open anything else ends sooner", () => {
     const enders: Array<string> = [
       "",
@@ -306,6 +382,14 @@ describe("the triage's Summary, lifted above the rest of the report", () => {
       ["Summary"],
       ["#Summary", "A spray."],
       ["####### Summary", "A spray."],
+      ["**评估**", "恶意。"],
+      ["**摘要**是下面的。"],
+      ["摘要表：一次喷洒。"],
+      [`${ZWNJ}摘要：一次喷洒。`],
+      // Full-width letters: the parser reads the word, the app lifts only a word as written.
+      ["**Ｚｕｓａｍｍｅｎｆａｓｓｕｎｇ**", "Ein Spray."],
+      ["Ｓｕｍｍａｒｙ: A spray."],
+      [`**摘${" ".repeat(170)}要**`, "A spray."],
     ];
 
     for (const lines of reports) {
@@ -334,6 +418,16 @@ describe("the triage's Summary, lifted above the rest of the report", () => {
     expect(readSummaryLabel("**")).toBeNull();
     expect(readSummaryLabel("****")).toBeNull();
     expect(readSummaryLabel("")).toBeNull();
+    expect(readSummaryLabel("**摘要**")).toEqual({ text: "" });
+    expect(readSummaryLabel("**摘要：** 一次喷洒。")).toEqual({
+      text: "一次喷洒。",
+    });
+    expect(readSummaryLabel("摘要：一次喷洒。")).toEqual({
+      text: "一次喷洒。",
+    });
+    expect(readSummaryLabel("摘 要：")).toEqual({ text: "" });
+    expect(readSummaryLabel("这是**摘要**。")).toBeNull();
+    expect(readSummaryLabel("**摘要表**")).toBeNull();
   });
 
   test("reads megabytes of one shape in time in line with their length", () => {
@@ -347,6 +441,11 @@ describe("the triage's Summary, lifted above the rest of the report", () => {
       `**Summary**\n${"x\n".repeat(long / 2)}`,
       `**Summary** ${"-".repeat(long)}`,
       `## ${"#".repeat(long)}`,
+      `${"摘".repeat(long)}：`,
+      `**${"要".repeat(long)}**`,
+      `**摘要**\n${"证".repeat(long)}：`,
+      `**摘要**\n${"（".repeat(long)}）：`,
+      `**摘要**\n${"：".repeat(long)}`,
     ];
 
     for (const report of worst) {

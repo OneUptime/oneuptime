@@ -6,6 +6,7 @@ import CreateLimit from "../Types/Database/CreateLimit";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -34,6 +35,7 @@ import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
 import Route from "../../Types/API/Route";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Query from "../../Types/BaseDatabase/Query";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
@@ -1404,6 +1406,66 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       deleteBy: deleteBy,
       carryForward: members,
     };
+  }
+
+  /*
+   * Remove from Project takes someone off every team of the project, or off
+   * none. A delete removes only the memberships its caller may delete - with
+   * Remove Team Members scoped to Owned, those of the teams they, or the
+   * team holding it, own - and keeps the rest without a word: the person
+   * would stay in the project, on the teams left, though the caller was
+   * told they had left it. So a caller who may remove only some of
+   * someone's memberships is refused, before anything is removed, and told
+   * where to remove them from the teams they may. OneUptime's own removals
+   * and a master admin's reach every membership.
+   */
+  @CaptureSpan()
+  public async assertCallerMayRemoveUserFromProject(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    const memberships: number = (
+      await this.countBy({
+        query: {
+          userId: data.userId,
+          projectId: data.projectId,
+        },
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
+
+    // The same memberships, as far as the caller's own delete reaches.
+    const removableQuery: Query<TeamMember> =
+      await ModelPermission.checkDeleteQueryPermission(
+        TeamMember,
+        {
+          userId: data.userId,
+          projectId: data.projectId,
+        } as Query<TeamMember>,
+        data.props,
+      );
+
+    const removable: number = (
+      await this.countBy({
+        query: removableQuery,
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
+
+    if (removable < memberships) {
+      throw new BadDataException(
+        Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY,
+      );
+    }
   }
 
   /*

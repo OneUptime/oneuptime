@@ -1,6 +1,7 @@
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TelemetryAlertRuleUtil, {
   TelemetryAlertRule,
@@ -50,26 +51,106 @@ export const opensAlert: (action: TelemetryAlertRuleAction) => boolean = (
   );
 };
 
+interface DefaultCriteriaWords {
+  // The names of the rule and of its opposite.
+  names: Array<string>;
+  // The titles of what the rule opens.
+  titles: Array<string>;
+}
+
 /*
- * The names the out-of-the-box criteria gave a telemetry monitor's rule and
- * its opposite (MonitorCriteriaInstance's defaults), for this monitor.
+ * The words the out-of-the-box criteria (MonitorCriteriaInstance's
+ * defaults) give a telemetry monitor's rule and its opposite, for this
+ * monitor, read off the defaults themselves: in English, the words of
+ * every monitor made before the rule editor and of every monitor the
+ * server or the API makes, and - given the reader's translator - in the
+ * reader's language too, the words the Dashboard now writes a new
+ * monitor's defaults in (#6542).
  */
-export const getLegacyRuleNames: (monitorName: string) => Array<string> = (
-  monitorName: string,
-): Array<string> => {
-  return [
-    `Check if ${monitorName} is offline`,
-    `Check if ${monitorName} is online`,
-    `Check if ${monitorName} has exceptions`,
-    `Check if ${monitorName} has no exceptions`,
-  ];
+const getDefaultCriteriaWords: (data: {
+  monitorName: string;
+  translator?: Translator | undefined;
+}) => DefaultCriteriaWords = (data: {
+  monitorName: string;
+  translator?: Translator | undefined;
+}): DefaultCriteriaWords => {
+  const words: DefaultCriteriaWords = { names: [], titles: [] };
+
+  const add: (list: Array<string>, text: string | undefined) => void = (
+    list: Array<string>,
+    text: string | undefined,
+  ): void => {
+    if (text && !list.includes(text)) {
+      list.push(text);
+    }
+  };
+
+  // The ids say nothing about the words.
+  const seedId: ObjectID = ObjectID.generate();
+
+  const translators: Array<Translator | undefined> = data.translator
+    ? [undefined, data.translator]
+    : [undefined];
+
+  for (const translator of translators) {
+    for (const monitorType of TelemetryAlertRuleUtil.RULE_MONITOR_TYPES) {
+      const criteria: MonitorCriteria =
+        MonitorCriteria.getDefaultMonitorCriteria({
+          monitorType: monitorType,
+          monitorName: data.monitorName,
+          onlineMonitorStatusId: seedId,
+          offlineMonitorStatusId: seedId,
+          defaultIncidentSeverityId: seedId,
+          defaultAlertSeverityId: seedId,
+          translator: translator,
+        });
+
+      for (const instance of criteria.data?.monitorCriteriaInstanceArray ||
+        []) {
+        add(words.names, instance.data?.name);
+
+        for (const incident of instance.data?.incidents || []) {
+          add(words.titles, incident.title);
+        }
+
+        for (const alert of instance.data?.alerts || []) {
+          add(words.titles, alert.title);
+        }
+      }
+    }
+  }
+
+  return words;
 };
 
-// The titles the out-of-the-box criteria gave what they open.
-export const getLegacyTitles: (monitorName: string) => Array<string> = (
+/*
+ * The names the out-of-the-box criteria gave a telemetry monitor's rule and
+ * its opposite, for this monitor: "Check if Checkout is offline", "... is
+ * online", "... has exceptions", "... has no exceptions" - and, given the
+ * reader's translator, the same in their language.
+ */
+export const getLegacyRuleNames: (
   monitorName: string,
+  translator?: Translator | undefined,
+) => Array<string> = (
+  monitorName: string,
+  translator?: Translator | undefined,
 ): Array<string> => {
-  return [`${monitorName} is offline`, `${monitorName} has exceptions`];
+  return getDefaultCriteriaWords({ monitorName, translator }).names;
+};
+
+/*
+ * The titles the out-of-the-box criteria gave what they open ("Checkout is
+ * offline", "Checkout has exceptions"), and their reader's-language ones.
+ */
+export const getLegacyTitles: (
+  monitorName: string,
+  translator?: Translator | undefined,
+) => Array<string> = (
+  monitorName: string,
+  translator?: Translator | undefined,
+): Array<string> => {
+  return getDefaultCriteriaWords({ monitorName, translator }).titles;
 };
 
 const getRuleName: (
@@ -221,7 +302,7 @@ const getRuleWrittenTitles: (data: {
   translator: Translator;
 }): Array<string> => {
   return [
-    ...getLegacyTitles(data.monitorName),
+    ...getLegacyTitles(data.monitorName, data.translator),
     data.translator.translateTemplate("{{monitorName}}: {{ruleName}}", {
       monitorName: data.monitorName,
       ruleName: getRuleName(data.monitorType, data.previous),
@@ -300,7 +381,9 @@ export const applyConditionChange: (data: {
   const isWrittenName: boolean =
     !previousName ||
     previousName === getRuleName(data.monitorType, previous) ||
-    getLegacyRuleNames(data.monitorName).includes(previousName);
+    getLegacyRuleNames(data.monitorName, data.translator).includes(
+      previousName,
+    );
 
   if (isWrittenName) {
     result.name = getRuleName(data.monitorType, next);

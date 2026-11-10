@@ -1,5 +1,6 @@
 import FilterCondition from "../Filter/FilterCondition";
 import { CheckOn, FilterType } from "./CriteriaFilter";
+import { EvaluationSentence } from "./EvaluationSentence";
 
 export type MonitorEvaluationEventType =
   | "criteria-met"
@@ -71,6 +72,12 @@ export interface MonitorEvaluationFilterResult {
   filterType?: FilterType | undefined;
   value?: string | number | undefined;
   message: string;
+  /*
+   * The message as the sentence it was filled from, for the Dashboard to
+   * word in each reader's language (EvaluationSentence). Absent for a
+   * message the engine does not write as one yet: it reads as stored.
+   */
+  messageSentence?: EvaluationSentence | undefined;
   met: boolean;
 }
 
@@ -90,6 +97,13 @@ export interface MonitorEvaluationEvent {
   type: MonitorEvaluationEventType;
   title: string;
   message?: string | undefined;
+  /*
+   * The title and the message as the sentences they were filled from, for
+   * the Dashboard to word in each reader's language (EvaluationSentence):
+   * `title` and `message` are their English, as stored.
+   */
+  titleSentence?: EvaluationSentence | undefined;
+  messageSentence?: EvaluationSentence | undefined;
   relatedCriteriaId?: string | undefined;
   relatedIncidentId?: string | undefined;
   relatedIncidentNumber?: number | undefined;

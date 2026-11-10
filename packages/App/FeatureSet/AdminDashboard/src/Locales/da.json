@@ -2057,7 +2057,7 @@
   "The secret that goes with the access key ID. It is stored encrypted.": "Den hemmelighed, der hører til adgangsnøgle-id'et. Den gemmes krypteret.",
   "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.": "Den AWS-region, hvor din afsenders identitet er verificeret, f.eks. us-east-1 eller eu-west-1.",
   "Enter an AWS Region code, such as us-east-1.": "Angiv en AWS-regionskode, f.eks. us-east-1.",
-  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.": "En SendGrid-API-nøgle med tilladelsen Mail Send, fra Settings > API Keys i SendGrid. Den gemmes krypteret.",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.": "En SendGrid-API-nøgle med tilladelsen Mail Send, fra Settings > API Keys i SendGrid. Den gemmes krypteret.",
   "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.": "En API-nøgle fra din Mailgun-konto eller en afsendelsesnøgle lavet til dette domæne. Den gemmes krypteret.",
   "The sending domain, as Mailgun lists it under Sending > Domains.": "Afsenderdomænet, som Mailgun viser det under Sending > Domains.",
   "Enter a domain, such as mg.example.com.": "Angiv et domæne, f.eks. mg.example.com.",

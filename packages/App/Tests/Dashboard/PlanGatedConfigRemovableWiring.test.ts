@@ -387,6 +387,8 @@ describe("the Growth pages become the plan note below the plan", () => {
     ["Monitor", ["Monitor"], []],
     // The rules that post security cases, and the rules that post what hunts find.
     ["SecurityEvents", ["SecurityCase", "SecurityHunt"], []],
+    // The rules that post SLOs' error budget policy changes.
+    ["Slo", ["ServiceLevelObjective"], []],
   ] as Array<[string, Array<string>, Array<string>]>) {
     for (const workspace of ["Slack", "MicrosoftTeams"]) {
       WORKSPACE_PAGES.push([

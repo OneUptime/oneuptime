@@ -101,6 +101,7 @@ import {
   BulkActionButtonSchema,
   BulkActionFailed,
   BulkActionOnClickProps,
+  BulkActionUnchanged,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
@@ -118,6 +119,7 @@ import Email from "../../../Types/Email";
 import IconProp from "../../../Types/Icon/IconProp";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import UserUtil from "../../../UI/Utils/User";
 
 /*
  * Rendering the real modal pulls in Formik and the people picker's portalled
@@ -1604,5 +1606,254 @@ describe("useBulkOwnerActions", () => {
     expect(onBulkActionStart).not.toHaveBeenCalled();
     // The list was never opened, so nothing was searched either.
     expect(getListMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A row that takes no owners (getOwnersDisabledReason) - the Teams list's
+ * Owners and Admin, which the server refuses an owner for (#6592). It is
+ * sent nothing, not even a read: a bulk run lists it as left alone with the
+ * reason, translated, and its row actions stay in the menu, locked.
+ */
+describe("useBulkOwnerActions, for a row that takes no owners", () => {
+  const LOCKED_REASON: string =
+    "This team comes with every project and can't have owners.";
+
+  // The second SLO stands for a team that takes no owners.
+  const LOCKED_CONFIG: BulkOwnerActionsConfig<ServiceLevelObjective> = {
+    ...(SLO_OWNER_CONFIG as BulkOwnerActionsConfig<ServiceLevelObjective>),
+    offerAssignToMeInBulk: true,
+    getOwnersDisabledReason: (
+      item: ServiceLevelObjective,
+    ): string | undefined => {
+      return item._id === SLO_TWO_ID ? LOCKED_REASON : undefined;
+    },
+  };
+
+  const LockedHarness: FunctionComponent<HarnessProps> = (
+    props: HarnessProps,
+  ): ReactElement => {
+    const {
+      bulkActions,
+      modals,
+    }: BulkOwnerActionsResult<ServiceLevelObjective> =
+      useBulkOwnerActions<ServiceLevelObjective>(LOCKED_CONFIG);
+
+    return (
+      <div>
+        {bulkActions.map(
+          (action: BulkActionButtonSchema<ServiceLevelObjective>) => {
+            return (
+              <button
+                key={action.title}
+                type="button"
+                onClick={() => {
+                  void action.onClick({
+                    items: props.items,
+                    onProgressInfo: onProgressInfo,
+                    onBulkActionStart: onBulkActionStart,
+                    onBulkActionEnd: onBulkActionEnd,
+                  } as BulkActionOnClickProps<ServiceLevelObjective>);
+                }}
+              >
+                {`Trigger ${action.title}`}
+              </button>
+            );
+          },
+        )}
+        {modals}
+      </div>
+    );
+  };
+
+  // The run's last report, as the progress dialog reads it.
+  const lastReport: () => ProgressInfo<ServiceLevelObjective> =
+    (): ProgressInfo<ServiceLevelObjective> => {
+      const calls: Array<Array<any>> = onProgressInfo.mock.calls as Array<
+        Array<any>
+      >;
+      return calls[calls.length - 1]![0] as ProgressInfo<ServiceLevelObjective>;
+    };
+
+  const leftAlone: () => Array<{ id: string; reason: string }> = (): Array<{
+    id: string;
+    reason: string;
+  }> => {
+    return (lastReport().unchanged || []).map(
+      (entry: BulkActionUnchanged<ServiceLevelObjective>) => {
+        return {
+          id: entry.item._id || "no-id",
+          reason: String(entry.reason),
+        };
+      },
+    );
+  };
+
+  // The selection's items an owner table was read for.
+  const itemsReadFrom: (modelType: unknown) => Array<string> = (
+    modelType: unknown,
+  ): Array<string> => {
+    return getListCallsFor(modelType).flatMap((listData: any) => {
+      const read: unknown = listData.query?.serviceLevelObjectiveId;
+      return read instanceof Includes
+        ? read.values.map((id: unknown) => {
+            return String(id);
+          })
+        : [];
+    });
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    window.history.replaceState({}, "", `/dashboard/${PROJECT_ID}/slos`);
+    mockLists({});
+    createMock.mockResolvedValue({});
+    deleteItemMock.mockResolvedValue({});
+  });
+
+  test("Add Owner adds to the other rows, and lists that one as left alone, saying why, without asking anything for it", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [makeTeam(TEAM_ONE_ID, "Team One")],
+    });
+
+    render(
+      <LockedHarness items={[makeSlo(SLO_ONE_ID), makeSlo(SLO_TWO_ID)]} />,
+    );
+    await settle();
+    await openOwnerModal("Add Owner");
+    await selectOwner("Alice");
+    await selectOwner("Team One");
+    submitOwnerModal();
+
+    await waitFor(
+      () => {
+        expect(onBulkActionEnd).toHaveBeenCalled();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(
+      (createMock.mock.calls as Array<Array<any>>).map((call: Array<any>) => {
+        return [
+          call[0].modelType,
+          call[0].model.serviceLevelObjectiveId.toString(),
+        ];
+      }),
+    ).toEqual([
+      [ServiceLevelObjectiveOwnerUser, SLO_ONE_ID],
+      [ServiceLevelObjectiveOwnerTeam, SLO_ONE_ID],
+    ]);
+
+    // Its owners were never read either.
+    expect(itemsReadFrom(ServiceLevelObjectiveOwnerUser)).toEqual([SLO_ONE_ID]);
+    expect(itemsReadFrom(ServiceLevelObjectiveOwnerTeam)).toEqual([SLO_ONE_ID]);
+
+    expect(leftAlone()).toEqual([{ id: SLO_TWO_ID, reason: LOCKED_REASON }]);
+    expect(idsOf(lastReport().successItems)).toEqual([SLO_ONE_ID]);
+    expect(lastReport().failed).toEqual([]);
+  });
+
+  test("Remove Owner deletes only the other rows' owners, and lists that one as left alone", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [],
+      ownerUsers: [
+        makeOwnerUserRow({ id: OWNER_ROW_ID, userId: ALICE_ID }),
+        // A row the server would never have let in, read back all the same.
+        makeOwnerUserRow({
+          id: OWNER_ROW_TWO_ID,
+          userId: ALICE_ID,
+          sloId: SLO_TWO_ID,
+        }),
+      ],
+    });
+
+    render(
+      <LockedHarness items={[makeSlo(SLO_ONE_ID), makeSlo(SLO_TWO_ID)]} />,
+    );
+    await settle();
+    await openOwnerModal("Remove Owner");
+    await selectOwner("Alice");
+    submitOwnerModal();
+
+    await waitFor(
+      () => {
+        expect(onBulkActionEnd).toHaveBeenCalled();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(
+      (deleteItemMock.mock.calls as Array<Array<any>>).map(
+        (call: Array<any>) => {
+          return call[0].id.toString();
+        },
+      ),
+    ).toEqual([OWNER_ROW_ID]);
+    expect(itemsReadFrom(ServiceLevelObjectiveOwnerUser)).toEqual([SLO_ONE_ID]);
+    expect(leftAlone()).toEqual([{ id: SLO_TWO_ID, reason: LOCKED_REASON }]);
+  });
+
+  test("Assign to Me says why it left that row alone, not that you own it already", async () => {
+    const { result } = renderHook(() => {
+      return useBulkOwnerActions<ServiceLevelObjective>(LOCKED_CONFIG);
+    });
+
+    const assignToMe: BulkActionButtonSchema<ServiceLevelObjective> =
+      result.current.bulkActions.find(
+        (action: BulkActionButtonSchema<ServiceLevelObjective>) => {
+          return action.title === "Assign to Me";
+        },
+      )!;
+
+    expect(assignToMe).toBeDefined();
+
+    // Signed in as Alice, who owns neither yet.
+    UserUtil.setUserId(new ObjectID(ALICE_ID));
+
+    await act(async () => {
+      await assignToMe.onClick({
+        items: [makeSlo(SLO_TWO_ID)],
+        onProgressInfo: onProgressInfo,
+        onBulkActionStart: onBulkActionStart,
+        onBulkActionEnd: onBulkActionEnd,
+      } as BulkActionOnClickProps<ServiceLevelObjective>);
+    });
+
+    expect(createMock).not.toHaveBeenCalled();
+    expect(getListMock).not.toHaveBeenCalled();
+    expect(leftAlone()).toEqual([{ id: SLO_TWO_ID, reason: LOCKED_REASON }]);
+  });
+
+  test("a row's Assign to Me and Add Owner stay in its menu, locked with the reason, and only on that row", () => {
+    const { result } = renderHook(() => {
+      return useBulkOwnerActions<ServiceLevelObjective>(LOCKED_CONFIG);
+    });
+
+    expect(
+      result.current.rowActions.map((action: any) => {
+        return [
+          action.title,
+          action.getDisabledReason?.(makeSlo(SLO_ONE_ID)),
+          action.getDisabledReason?.(makeSlo(SLO_TWO_ID)),
+        ];
+      }),
+    ).toEqual([
+      ["Assign to Me", undefined, LOCKED_REASON],
+      ["Add Owner", undefined, LOCKED_REASON],
+    ]);
+  });
+
+  test("without a reason given, every row takes owners, as before", () => {
+    const { result } = renderHook(() => {
+      return useBulkOwnerActions<ServiceLevelObjective>(SLO_OWNER_CONFIG);
+    });
+
+    for (const action of result.current.rowActions as Array<any>) {
+      expect(action.getDisabledReason?.(makeSlo(SLO_TWO_ID))).toBeUndefined();
+    }
   });
 });
