@@ -254,10 +254,12 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     };
     fromStep?: MonitorStep | undefined;
   }): MonitorSteps => {
+    // Its criteria's words in the reader's language (#6542).
     const steps: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
       monitorType: data.monitorType,
       monitorName: props.monitorName || "",
       ...data.criteriaSeedOptions,
+      translator: translator,
     });
 
     // A link's address, only for the type it was made for (MonitorStepSeed).
@@ -832,6 +834,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         seedOptions: {
           ...criteriaSeedIds,
           monitorName: props.monitorName || "",
+          // The language seedNewMonitorSteps wrote the defaults' words in.
+          translator: translator,
         },
       });
 

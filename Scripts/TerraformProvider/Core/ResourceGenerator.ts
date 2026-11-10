@@ -303,6 +303,13 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     );
     await this.copyStaticFile("jsonenvelope.go", "internal/provider");
     await this.copyStaticFile("jsonenvelope_test.go", "internal/provider");
+    /*
+     * The provider's one public package: the Crossplane provider
+     * (Scripts/CrossplaneProvider) runs this provider in process through it,
+     * as Go lets no other module import internal/provider.
+     */
+    await this.copyStaticFile("xpprovider.go", "xpprovider");
+    await this.copyStaticFile("xpprovider_test.go", "xpprovider");
     await this.copyStaticFileIfExists("monitorsteps.go", "internal/provider");
     await this.copyStaticFileIfExists(
       "monitorsteps_test.go",

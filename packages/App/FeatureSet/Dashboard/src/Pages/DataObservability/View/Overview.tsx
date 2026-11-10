@@ -1,6 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import DataObservabilityApi from "../../../Components/DataObservability/DataObservabilityApi";
 import StoreStatusPill from "../../../Components/DataObservability/StoreStatusPill";
+import StoreAlertStatus, {
+  isStoreWithoutAlerts,
+} from "../../../Components/DataObservability/StoreAlertStatus";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import PageMap from "../../../Utils/PageMap";
@@ -22,7 +25,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 /*
  * One database at a glance: how many of its tables are watched and late,
  * who reads its catalog and how the last read went - with Collect Now - and
- * the way to its recommended monitors.
+ * the way to its recommended monitors, saying whether any is on: with none,
+ * nobody is told when its tables break.
  */
 const StoreOverviewPage: FunctionComponent<
   PageComponentProps
@@ -72,20 +76,31 @@ const StoreOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
-      <EventStatBar columns={3} ariaLabel="Database health">
+      <EventStatBar
+        columns={3}
+        ariaLabel="Database health"
+        isLaidOutByOwnWidth={true}
+      >
         <EventStatTile
+          variant="segment"
           label="Tables Watched"
           value={translator.formatNumber(store.assetCount)}
           icon={IconProp.TableCells}
-          description="Tables and views in this database."
+          description={translator.translateText(
+            "Tables and views in this database.",
+          )}
         />
         <EventStatTile
+          variant="segment"
           label="Late Tables"
           value={translator.formatNumber(store.lateAssetCount)}
           icon={IconProp.Clock}
-          description="Tables that have gone well past their usual interval without a change."
+          description={translator.translateText(
+            "Tables that have gone well past their usual interval without a change.",
+          )}
         />
         <EventStatTile
+          variant="segment"
           label="Last Collected"
           value={
             store.collectedAt
@@ -95,13 +110,22 @@ const StoreOverviewPage: FunctionComponent<
               : "-"
           }
           icon={IconProp.Refresh}
-          description="The catalog is read every few minutes."
+          description={translator.translateText(
+            "The catalog is read every few minutes.",
+          )}
         />
       </EventStatBar>
 
+      {/*
+       * Stacked, as Data Security's database page has its cards: the
+       * buttons share the title's line, and go under the description when
+       * they would squeeze it - beside the side menu, in German - which
+       * runs across the card, never a word wide.
+       */}
       <Card
         title="Collection"
         description="Who reads this database's catalog, and how the last read went."
+        headerLayout="stacked"
         buttons={[
           {
             title: "Collect Now",
@@ -163,10 +187,15 @@ const StoreOverviewPage: FunctionComponent<
       <Card
         title="Alerts"
         description="Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped."
+        headerLayout="stacked"
         buttons={[
           {
-            title: "View Recommendations",
-            buttonStyle: ButtonStyleType.NORMAL,
+            title: isStoreWithoutAlerts(store)
+              ? "Set Up Alerts"
+              : "View Recommendations",
+            buttonStyle: isStoreWithoutAlerts(store)
+              ? ButtonStyleType.PRIMARY
+              : ButtonStyleType.NORMAL,
             icon: IconProp.Alert,
             onClick: () => {
               Navigation.navigate(
@@ -181,11 +210,22 @@ const StoreOverviewPage: FunctionComponent<
           },
         ]}
       >
-        <p className="px-6 pb-6 text-sm text-gray-600">
-          {translator.translateText(
-            "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.",
+        <div className="space-y-2 px-6 pb-6 text-sm text-gray-600">
+          {isStoreWithoutAlerts(store) ? (
+            <p className="font-medium text-amber-700">
+              {translator.translateText(
+                "No alert is on yet, so nobody is told when one of its tables is late, loses rows or changes its columns.",
+              )}
+            </p>
+          ) : (
+            <StoreAlertStatus store={store} />
           )}
-        </p>
+          <p>
+            {translator.translateText(
+              "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.",
+            )}
+          </p>
+        </div>
       </Card>
 
       {isConfirmingStop ? (

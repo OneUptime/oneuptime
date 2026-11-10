@@ -43,6 +43,11 @@ import MonitorProbe, {
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import OneUptimeDate from "../../../Types/Date";
+import EvaluationEventText from "./EvaluationEventText";
+import {
+  EvaluationSentenceValue,
+  translatableSentence,
+} from "../../../Types/Monitor/EvaluationSentence";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
 import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
@@ -61,6 +66,9 @@ import MonitorAutoResolveTemplates, {
 } from "../../../Utils/Monitor/MonitorAutoResolveTemplates";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import LatestIncomingRequest, {
+  LatestIncomingRequestColumns,
+} from "./LatestIncomingRequest";
 import MonitorEvaluationDetailsCapture, {
   GetEvaluationDetails,
 } from "./MonitorEvaluationDetailsCapture";
@@ -731,20 +739,28 @@ export default class MonitorResourceUtil {
            * the pre-SELECT of the large incomingMonitorRequest jsonb row. See
            * ServiceService.updateLastSeen.
            */
+          /*
+           * Both copies of the latest request, in this one statement
+           * (LatestIncomingRequest): as it came, for the heartbeat job, which
+           * judges it again - a filter on its body needs the body the sender
+           * sent - and which no one else reads; and the copy people read,
+           * cut as the monitor's logs are, by its switch.
+           */
+          const latestRequest: LatestIncomingRequestColumns =
+            LatestIncomingRequest.toColumns({
+              request: incomingMonitorRequest,
+              keepResponseContent:
+                MonitorRecordEvidence.keepsResponseContent(monitor),
+            });
+
           await MonitorService.updateColumnsByIdWithoutHooks({
             id: monitor.id!,
             data: {
               incomingRequestMonitorHeartbeatCheckedAt:
                 OneUptimeDate.getCurrentDate(),
-              /*
-               * Kept as it came, unlike the monitor's logs: the heartbeat
-               * job judges this request again (CheckHeartbeat), and a
-               * filter on its body needs the body the sender sent. People
-               * still read it as it came: to be redacted for them, as a
-               * probe's latest check is.
-               * https://github.com/OneUptime/oneuptime/issues/6402
-               */
-              incomingMonitorRequest: toStorableJson(incomingMonitorRequest),
+              incomingMonitorRequest: latestRequest.incomingMonitorRequest,
+              incomingMonitorRequestAsReceived:
+                latestRequest.incomingMonitorRequestAsReceived,
             } as any,
           });
 
@@ -985,12 +1001,30 @@ export default class MonitorResourceUtil {
           });
 
         // Add probe agreement event to evaluation summary
+        const probeCounts: {
+          agreeing: string;
+          required: string;
+          active: string;
+        } = {
+          agreeing: String(probeAgreementResult.agreementCount),
+          required: String(probeAgreementResult.requiredCount),
+          active: String(probeAgreementResult.totalActiveProbes),
+        };
+
         evaluationSummary.events.push({
           type: "probe-agreement",
-          title: "Probe Agreement Check",
-          message: probeAgreementResult.hasAgreement
-            ? `Probe agreement reached: ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree (${probeAgreementResult.totalActiveProbes} active probes total).`
-            : `Probe agreement not reached: ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree (${probeAgreementResult.totalActiveProbes} active probes total). Skipping status change.`,
+          ...EvaluationEventText.from({
+            title: translatableSentence("Probe Agreement Check"),
+            message: probeAgreementResult.hasAgreement
+              ? translatableSentence(
+                  "Probe agreement reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).",
+                  probeCounts,
+                )
+              : translatableSentence(
+                  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Skipping status change.",
+                  probeCounts,
+                ),
+          }),
           at: OneUptimeDate.getCurrentDate(),
         });
 
@@ -1380,12 +1414,29 @@ export default class MonitorResourceUtil {
               monitorStatusTimelineChange.monitorStatusId,
           );
 
+          /*
+           * The status is the project's own name for it, as written; the
+           * criteria, its name, or "Unnamed criteria" in the reader's words.
+           */
+          const metCriteria: EvaluationSentenceValue =
+            EvaluationEventText.criteriaName(
+              matchedCriteriaInstance.data?.name,
+            );
+
           evaluationSummary.events.push({
             type: "monitor-status-changed",
-            title: "Monitor status updated",
-            message: changedStatusName
-              ? `Monitor status changed to "${changedStatusName}" because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`
-              : `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
+            ...EvaluationEventText.from({
+              title: translatableSentence("Monitor status updated"),
+              message: changedStatusName
+                ? translatableSentence(
+                    'Monitor status changed to "{{status}}" because criteria "{{criteria}}" was met.',
+                    { status: changedStatusName, criteria: metCriteria },
+                  )
+                : translatableSentence(
+                    'Monitor status changed because criteria "{{criteria}}" was met.',
+                    { criteria: metCriteria },
+                  ),
+            }),
             relatedCriteriaId: matchedCriteriaInstance.data?.id,
             at: OneUptimeDate.getCurrentDate(),
           });
@@ -1827,10 +1878,17 @@ export default class MonitorResourceUtil {
 
             evaluationSummary.events.push({
               type: "monitor-status-changed",
-              title: "Monitor status reverted",
-              message: defaultStatusName
-                ? `Monitor status reverted to "${defaultStatusName}" because no monitoring criteria were met.`
-                : "Monitor status reverted to its default state because no monitoring criteria were met.",
+              ...EvaluationEventText.from({
+                title: translatableSentence("Monitor status reverted"),
+                message: defaultStatusName
+                  ? translatableSentence(
+                      'Monitor status reverted to "{{status}}" because no monitoring criteria were met.',
+                      { status: defaultStatusName },
+                    )
+                  : translatableSentence(
+                      "Monitor status reverted to its default state because no monitoring criteria were met.",
+                    ),
+              }),
               at: OneUptimeDate.getCurrentDate(),
             });
           }

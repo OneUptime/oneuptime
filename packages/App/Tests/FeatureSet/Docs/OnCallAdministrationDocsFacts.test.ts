@@ -1440,7 +1440,7 @@ describe("execution logs", () => {
     );
   });
 
-  it("names the timeline's button, title and columns, and the line for a schedule with nobody on call", () => {
+  it("names the timeline's button, title and columns - how each page reached its person among them - and the line for a schedule with nobody on call", () => {
     const table: string = readDashboardSource(
       "Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable.tsx",
     );
@@ -1465,8 +1465,26 @@ describe("execution logs", () => {
     expect(timeline).toContain(
       'translator.translateText("No one was on call")',
     );
+
+    /*
+     * "Notified Via" (#6585): the channels each page went out by, by the
+     * names its chips give them.
+     */
+    const notifiedVia: string = readDashboardSource(
+      "Components/OnCallPolicy/ExecutionLogs/NotifiedVia.tsx",
+    );
+
+    expect(timeline).toContain("title: NOTIFIED_VIA_TITLE,");
+    expect(notifiedVia).toContain(
+      'NOTIFIED_VIA_TITLE: string = translationKey("Notified Via")',
+    );
+
+    for (const label of ["Phone call", "SMS", "Email", "Push notification"]) {
+      expect(notifiedVia).toContain(`translationKey("${label}")`);
+    }
+
     expect(statusTable()).toContain(
-      "**View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. A schedule with nobody on call shows **No one was on call** instead of a person.",
+      "**View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. **Notified Via** shows how each page reached its person: phone call, SMS, email, push notification and so on. A schedule with nobody on call shows **No one was on call** instead of a person.",
     );
   });
 

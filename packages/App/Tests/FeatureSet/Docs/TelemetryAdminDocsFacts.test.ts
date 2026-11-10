@@ -2900,8 +2900,6 @@ describe("the four pages together", () => {
   it("keep in English only the labels no Dashboard locale has, where the Dashboard draws them so", () => {
     const drawnIn: Record<string, string> = {
       "Service Map": "Pages/Topology/TopologyPage.tsx",
-      "Some errors": "Components/Topology/ServiceMapViewModel.ts",
-      "High error rate": "Components/Topology/ServiceMapViewModel.ts",
       "Entry point": "Components/Topology/ServiceMapViewModel.ts",
       "No calls observed": "Components/Topology/ServiceMapViewModel.ts",
     };
@@ -2928,6 +2926,25 @@ describe("the four pages together", () => {
           `"${word}"`,
         ),
       }).toEqual({ word, drawn: true });
+    }
+
+    /*
+     * The service map's legend looks its statuses up in the locale, so the
+     * two that are keys - the queues' topology map draws them too - read
+     * as each language's Dashboard draws them, as other labels do.
+     */
+    expect(
+      readDashboardSource("Components/Topology/ServiceMapGraph.tsx"),
+    ).toContain("{t(SERVICE_STATUS_LABELS[status])}");
+
+    for (const word of [
+      SERVICE_STATUS_LABELS.degraded,
+      SERVICE_STATUS_LABELS.critical,
+    ]) {
+      expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
+        word,
+        isKey: true,
+      });
     }
   });
 

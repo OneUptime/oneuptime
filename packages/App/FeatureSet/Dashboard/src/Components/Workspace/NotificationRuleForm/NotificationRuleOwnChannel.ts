@@ -11,10 +11,13 @@ import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/
  * and, in Microsoft Teams, the chats its rule names, and the server never
  * opens a channel for one or invites anybody. A hunt's rule only posts too
  * (SecurityHuntNotificationRule): what a hunt finds is security data, posted
- * where the team chose to read it.
+ * where the team chose to read it. So does an SLO's rule
+ * (ServiceLevelObjectiveNotificationRule): a change of an SLO's error
+ * budget policy is posted where the team reads it, with no channel for each
+ * SLO.
  *
- * So a security case or hunt rule's Destination step asks only where to
- * post, and what it says it does never mentions a channel of its own,
+ * So a security case, hunt or SLO rule's Destination step asks only where
+ * to post, and what it says it does never mentions a channel of its own,
  * whatever a rule saved through the API holds. React-free, so the rule's
  * copy and App's tests can read it.
  */
@@ -24,6 +27,7 @@ export type ChannelRecordEventType = Exclude<
   NotificationRuleEventType,
   | NotificationRuleEventType.SecurityCase
   | NotificationRuleEventType.SecurityHunt
+  | NotificationRuleEventType.ServiceLevelObjective
 >;
 
 export function canRuleCreateChannel(
@@ -31,7 +35,8 @@ export function canRuleCreateChannel(
 ): eventType is ChannelRecordEventType {
   return (
     eventType !== NotificationRuleEventType.SecurityCase &&
-    eventType !== NotificationRuleEventType.SecurityHunt
+    eventType !== NotificationRuleEventType.SecurityHunt &&
+    eventType !== NotificationRuleEventType.ServiceLevelObjective
   );
 }
 

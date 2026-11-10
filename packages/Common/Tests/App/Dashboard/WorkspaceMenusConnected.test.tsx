@@ -46,6 +46,7 @@ import MonitorsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Mon
 import OnCallDutySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/SideMenu";
 import ScheduledMaintenanceSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/SideMenu";
 import SecurityEventsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/SideMenu";
+import SloSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/SideMenu";
 import ProjectSettingsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/SideMenu";
 import UserSettingsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -141,6 +142,16 @@ const PRODUCT_MENUS: Array<ProductMenu> = [
       PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
     mattermost: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
     connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
+  },
+  // The rules that post SLOs' error budget policy changes.
+  {
+    name: "SLOs",
+    Menu: SloSideMenu as FunctionComponent<Record<string, unknown>>,
+    landing: PageMap.SLOS,
+    slack: PageMap.SLOS_WORKSPACE_CONNECTION_SLACK,
+    microsoftTeams: PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    mattermost: PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST,
+    connect: PageMap.SLOS_WORKSPACE_CONNECTIONS,
   },
 ];
 

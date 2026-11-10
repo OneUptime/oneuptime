@@ -61,8 +61,9 @@ These sinks are covered, because the target is a URL an authenticated member of 
 - HTTP requests made by the workflow **Custom JavaScript** component
 - Project webhook notifications (incidents, alerts, monitors, on-call, scheduled maintenance, status page events)
 - On-call **user webhooks**
+- Status page webhook subscribers your team adds, from the dashboard, with an API key or by a workflow
 
-**Not** covered, and never will be: **status page subscriber webhooks**. Any visitor to a public status page can register one, so relaxing that sink would let anyone on the internet make your server POST into your private network. This is not configurable.
+**Not** covered, and never will be: **webhook subscribers who sign up on a status page**. Any visitor to a public status page can sign one up, so relaxing that sink would let anyone on the internet make your server POST into your private network. Their webhooks reach public addresses only, even after someone on your team edits one. This is not configurable.
 
 Outbound connections that are not webhooks — external data sources, LLM providers, SMTP servers (a project's SMTP settings and the workflow **Email** component), SMTP OAuth token endpoints, OIDC discovery and Runbook HTTP steps — are governed separately, by `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, and already permit private ranges on self-hosted installs. See [Other outbound connections](#other-outbound-connections).
 
@@ -182,6 +183,7 @@ Turning it on does **not** open loopback, link-local or the cloud metadata endpo
 Run the workflow or monitor again. If it is still refused, the error message names which gate is closed:
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ — the API server setting is missing.
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, or _"...is not allowed. Use a webhook URL on the public internet."_ on the status page itself — the webhook belongs to a subscriber who signed up on the status page, which no setting covers. Have your team add it as a webhook subscriber instead, from the dashboard, with an API key or by a workflow.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ — a private (custom) probe ran the monitor, and its switch is off. Note that this is set on the probe, not on the API server.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — a bundled (global) probe ran the monitor, and its switch is off. Turn it on for that probe as described above if every project on the instance may reach that network; otherwise select a private probe on the monitor.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — a global probe with `BILLING_ENABLED=true` in its environment ran the monitor. Auto-registered global probes stay public-only there, whatever their switch says; deploy a private probe inside the target's network and select it on the monitor.
@@ -196,7 +198,7 @@ Run the workflow or monitor again. If it is still refused, the error message nam
 Opening this up is a real change to what your OneUptime instance can be made to reach, so it is worth being deliberate about:
 
 - **Prefer the allowlist to the blanket boolean.** Naming `mattermost.internal` is a much smaller grant than opening every RFC-1918 address.
-- **Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor can reach anything you allowed.** Treat membership in those projects accordingly.
+- **Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor, or add a status page subscriber, can reach anything you allowed.** Treat membership in those projects accordingly.
 - **The response body comes back.** A workflow API component returns the status, headers and body into the workflow log, so an allowed host is readable, not just writable.
 - **Redirects are never followed** on webhook requests, so an allowed public host cannot bounce the server to an internal one on a second hop.
 - **Scope by probe rather than instance-wide where you can.** A probe deployed inside one network is a narrower grant than opening the API server's egress.

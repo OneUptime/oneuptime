@@ -1451,14 +1451,27 @@ describePostgres("PublishedImages against Postgres", () => {
       expect(notAsked).toBeDefined();
     });
 
-    test("getRowsShownUnderSql reads the notes of the records asked about that carry an image", async () => {
+    /*
+     * With each note's own switch: a record shown again publishes only the
+     * images of its notes that are published themselves, so a note waiting
+     * for approval is read too, with its switch off (afterUpdate decides).
+     */
+    test("getRowsShownUnderSql reads the notes of the records asked about that carry an image, with their own switches", async () => {
       const source: PublishedMarkdown = sourceOf("IncidentPublicNote", "note");
       const imageToken: string = token();
+      const waitingToken: string = token();
 
       const { noteId, parentId } = await noteUnder({
         table: "IncidentPublicNote",
         imageToken: imageToken,
         parent: {},
+      });
+
+      const waitingNoteId: string = await insertRecord(source, {
+        projectId: PROJECT_A,
+        note: byToken(waitingToken),
+        incidentId: parentId,
+        isPublished: false,
       });
 
       // Without an image, deleted, or of another record: not read.
@@ -1484,14 +1497,34 @@ describePostgres("PublishedImages against Postgres", () => {
         [[parentId]],
       );
 
-      expect(rows).toEqual([
-        {
-          _id: noteId,
-          projectId: PROJECT_A,
-          incidentId: parentId,
-          note: byToken(imageToken),
-        },
-      ]);
+      const byNote: (
+        a: Record<string, unknown>,
+        b: Record<string, unknown>,
+      ) => number = (
+        a: Record<string, unknown>,
+        b: Record<string, unknown>,
+      ): number => {
+        return String(a["note"]).localeCompare(String(b["note"]));
+      };
+
+      expect([...rows].sort(byNote)).toEqual(
+        [
+          {
+            _id: noteId,
+            projectId: PROJECT_A,
+            incidentId: parentId,
+            isPublished: true,
+            note: byToken(imageToken),
+          },
+          {
+            _id: waitingNoteId,
+            projectId: PROJECT_A,
+            incidentId: parentId,
+            isPublished: false,
+            note: byToken(waitingToken),
+          },
+        ].sort(byNote),
+      );
     });
   });
 

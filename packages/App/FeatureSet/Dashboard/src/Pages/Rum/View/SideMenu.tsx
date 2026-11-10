@@ -6,6 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
@@ -20,6 +21,16 @@ export interface ComponentProps {
 const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * A person's page is one of the people Users lists, so Users stays the
+   * marked entry there, as Executions does on a runbook's run.
+   */
+  const personRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON] as Route,
+    { modelId: props.modelId },
+  );
+  const isOnPersonPage: boolean = Navigation.isOnThisPage(personRoute);
+
   return (
     <SideMenu>
       <SideMenuSection title="Basic">
@@ -97,6 +108,34 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Globe}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Product Analytics">
+        <SideMenuItem
+          link={{
+            title: "Users",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          activeRoute={isOnPersonPage ? personRoute : undefined}
+          icon={IconProp.UserCircle}
+        />
+        <SideMenuItem
+          link={{
+            title: "Sessions",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.PresentationChartLine}
         />
       </SideMenuSection>
 

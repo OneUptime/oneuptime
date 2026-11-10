@@ -1,6 +1,6 @@
 {
     "name": "@oneuptime/root",
-    "version": "14.0.105",
+    "version": "14.0.106",
     "private": true,
     "description": "One Complete Observability platform.",
     "main": "ts",
@@ -88,6 +88,8 @@
         "generate-and-install-terraform-provider-locally": "npm run install-terraform-provider-locally",
         "publish-terraform-provider": "bash ./Scripts/TerraformProvider/publish-terraform-provider.sh",
         "run-terraform-tests": "bash ./packages/E2E/Terraform/e2e-tests/scripts/index.sh",
+        "generate-crossplane-provider": "sh ./Scripts/Install/WithConfig.sh node --require ts-node/register ./Scripts/CrossplaneProvider/GenerateProvider.ts",
+        "test-crossplane-provider-generator": "cd Scripts/CrossplaneProvider && npm test",
         "build-chatgpt-plugin": "bash ./Scripts/MCP/BuildChatGPTPlugin.sh",
         "build-coding-agent-plugin": "node ./Scripts/MCP/BuildCodingAgentPlugin.js"
     },

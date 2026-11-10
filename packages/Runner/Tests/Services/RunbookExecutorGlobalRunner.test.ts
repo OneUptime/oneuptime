@@ -101,6 +101,8 @@ jest.mock("child_process", () => {
 
 import Executor, {
   getJavaScriptSandboxPolicy,
+  GLOBAL_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT,
+  OWN_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT,
 } from "../../Services/RunbookExecutor";
 import AgentClient, { ClaimedJob } from "../../Services/RunnerClient";
 import SSHExecutor from "../../Services/SSHExecutor";
@@ -285,7 +287,7 @@ describe("negative control: a project's own Runner", () => {
     expect(submittedResult()["success"]).toBe(true);
   });
 
-  test("runs a JavaScript step with the sandbox's own default policy, nothing said for it", async () => {
+  test("runs a JavaScript step with the sandbox's own default policy, nothing widened for it", async () => {
     await Executor.executeAndReport(job());
 
     const options: Record<string, unknown> = (
@@ -301,10 +303,13 @@ describe("negative control: a project's own Runner", () => {
 });
 
 describe("getJavaScriptSandboxPolicy", () => {
-  test("says nothing on a project's own Runner, so the sandbox's strict default applies", () => {
+  test("on a project's own Runner, asks for nothing more than the sandbox's strict default, and says to use a Bash step", () => {
     GlobalRunnerMode.setFromServer(false);
 
-    expect(getJavaScriptSandboxPolicy()).toEqual({});
+    expect(getJavaScriptSandboxPolicy()).toEqual({
+      privateNetworkHint:
+        " A JavaScript step reaches public addresses only. Use a Bash step to call an address on this Runner's network.",
+    });
   });
 
   test("on a global Runner, refuses private networks and keeps DNS answers out", () => {
@@ -314,8 +319,44 @@ describe("getJavaScriptSandboxPolicy", () => {
       allowPrivateNetworkRequests: false,
       privateNetworkAccessIsAllowed: false,
       privateNetworkHint:
-        " Global Runners reach the internet only. Pick one of your own Runners for a step that calls an address on your network.",
+        " Global Runners reach the internet only, and so do JavaScript steps on your own Runners. Use a Bash step on one of your own Runners to call an address on your network.",
       includeResolutionDetailInError: false,
     });
+  });
+
+  /*
+   * Issue #6589: a refusal must not send anyone to change something that
+   * changes nothing. No Runner reads the API server's webhook settings, and
+   * picking another Runner does not widen a JavaScript step's sandbox.
+   */
+  test.each([
+    ["a project's own Runner", false],
+    ["a global Runner", true],
+  ])(
+    "on %s, names no setting and never suggests another Runner for the JavaScript step",
+    (_name: string, isGlobal: boolean) => {
+      GlobalRunnerMode.setFromServer(isGlobal);
+
+      const hint: string = String(
+        getJavaScriptSandboxPolicy().privateNetworkHint,
+      );
+
+      expect(hint.startsWith(" ")).toBe(true);
+      expect(hint).toContain("Bash step");
+      expect(hint).not.toMatch(/ALLOW_PRIVATE_NETWORK|ALLOWLIST|PROBE_/);
+      expect(hint).not.toContain("Pick one of your own Runners for a step");
+    },
+  );
+
+  test("the exported hints are the ones each Runner hands the sandbox", () => {
+    GlobalRunnerMode.setFromServer(false);
+    expect(getJavaScriptSandboxPolicy().privateNetworkHint).toBe(
+      OWN_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT,
+    );
+
+    GlobalRunnerMode.setFromServer(true);
+    expect(getJavaScriptSandboxPolicy().privateNetworkHint).toBe(
+      GLOBAL_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT,
+    );
   });
 });

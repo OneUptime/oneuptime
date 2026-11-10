@@ -3,6 +3,7 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONArray, JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
+import { Translator } from "../Translator";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
@@ -34,6 +35,11 @@ export default class MonitorCriteria extends DatabaseProperty {
    * project), the one MonitorRecommendationSeverityMapper calls Warning;
    * without it the warning uses defaultAlertSeverityId like every other
    * default alert.
+   *
+   * translator is the reader's: the Dashboard passes it, so the criteria's
+   * names and descriptions and the incidents' and alerts' words are written
+   * in the language of the person creating the monitor. Without one they
+   * are English (MonitorCriteriaInstance.getWordsTranslator).
    */
   public static getDefaultMonitorCriteria(arg: {
     monitorType: MonitorType;
@@ -43,6 +49,7 @@ export default class MonitorCriteria extends DatabaseProperty {
     defaultIncidentSeverityId: ObjectID;
     defaultAlertSeverityId: ObjectID;
     warningAlertSeverityId?: ObjectID | undefined;
+    translator?: Translator | undefined;
   }): MonitorCriteria {
     const monitorCriteria: MonitorCriteria = new MonitorCriteria();
     const offlineCriteria: MonitorCriteriaInstance =
@@ -52,6 +59,7 @@ export default class MonitorCriteria extends DatabaseProperty {
         incidentSeverityId: arg.defaultIncidentSeverityId,
         alertSeverityId: arg.defaultAlertSeverityId,
         monitorName: arg.monitorName,
+        translator: arg.translator,
       });
 
     const warningCriteria: MonitorCriteriaInstance | null =
@@ -60,6 +68,7 @@ export default class MonitorCriteria extends DatabaseProperty {
         alertSeverityId:
           arg.warningAlertSeverityId || arg.defaultAlertSeverityId,
         monitorName: arg.monitorName,
+        translator: arg.translator,
       });
 
     const onlineCriteria: MonitorCriteriaInstance | null =
@@ -67,6 +76,7 @@ export default class MonitorCriteria extends DatabaseProperty {
         monitorType: arg.monitorType,
         monitorStatusId: arg.onlineMonitorStatusId,
         monitorName: arg.monitorName,
+        translator: arg.translator,
       });
 
     monitorCriteria.data = {

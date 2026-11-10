@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Connecter une base de données
 
-Ouvrez **Observabilité des données**, allez dans **Bases de données** et choisissez **Connecter une base de données**. Choisissez le moteur, puis donnez une chaîne de connexion en lecture seule, ou le nom de la variable d'environnement dans laquelle votre sonde la lit. [Connecter une base de données](/docs/data-observability/connect) montre le compte à créer pour chaque moteur.
+Ouvrez **Observabilité des données** et choisissez **Connecter une base de données**, dans **Vue d'ensemble** ou dans **Bases de données**. Choisissez le moteur, puis donnez une chaîne de connexion en lecture seule, ou le nom de la variable d'environnement dans laquelle votre sonde la lit. [Connecter une base de données](/docs/data-observability/connect) montre le compte à créer pour chaque moteur.
 
-### Voir ses tables
+### Activer ses alertes recommandées
+
+Une base de données que vous connectez s'ouvre sur ses **Alertes recommandées**, car personne n'apprend rien de ses tables tant qu'aucune n'est active. Ajoutez celles que vous voulez : une table en retard, une table dont les lignes chutent fortement ou sont anormalement peu nombreuses, une table dont les colonnes changent, et une base de données qui cesse de remonter des données. Chacune est un moniteur ordinaire : l'astreinte, les propriétaires, les fenêtres de maintenance et les pages de statut fonctionnent comme pour n'importe quel autre.
+
+### Lire la vue d'ensemble
 
 En moins de cinq minutes, ses tables apparaissent sous **Tables**, chacune avec ses lignes, sa taille et le moment de sa dernière modification. La fraîcheur d'une table est connue dès qu'elle a changé deux fois : **À jour** tant qu'elle garde son rythme, **En retard** dès qu'elle le manque.
 
-### Ajouter les alertes recommandées
-
-Dans **Bases de données**, choisissez **Alertes recommandées** pour la base de données, et ajoutez celles que vous voulez : une table en retard, une table dont les lignes chutent fortement ou sont anormalement peu nombreuses, une table dont les colonnes changent, et une base de données qui cesse de remonter des données. Chacune est un moniteur ordinaire : l'astreinte, les propriétaires, les fenêtres de maintenance et les pages de statut fonctionnent comme pour n'importe quel autre.
+La **Vue d'ensemble** dit ensuite ce qui demande quelqu'un maintenant, le plus grave d'abord : une base de données qui n'a pas pu être lue, une exécution de pipeline en échec ou en retard, un contrôle en échec ou qui n'a pas pu s'exécuter, un rapprochement qui a dérivé, et un produit de données ou une table en retard. Chacun dit à qui il appartient et si son alerte est ouverte, ou que personne n'est prévenu parce que sa base de données n'a aucune alerte active, et ouvre la page où il se corrige. Tant que le projet n'est pas configuré, la **Vue d'ensemble** liste les étapes restantes : des alertes sur chaque base de données, des propriétaires pour les tables, un contrôle, et les exécutions de vos pipelines.
 :::
+
+## Où trouver quoi
+
+Le menu suit les questions que vous posez à vos données. Sa première section rassemble les pages de tous les jours : **Vue d'ensemble**, **Tables**, **Pipelines**, **Modifications de schéma**, **Bases de données** et **Chemins de stockage**. **Qualité** rassemble les règles que les données doivent respecter, **Vérifications** et **Rapprochements**, et **Utilisation** qui en dépend et ce qu'elles coûtent : **Produits de données**, **Tableaux de bord BI**, **Dépenses d'entrepôt** et **Tables inutilisées**. **Règles** (**Règles de propriétaire** et **Règles d'étiquettes**), **Aide** et **Avancé** (**Paramètres** et **Tables supprimées**) restent repliées jusqu'à ce que vous les ouvriez.
 
 ## Ce que ça coûte
 

@@ -61,8 +61,9 @@ Deze bestemmingen vallen eronder, omdat het doel een URL is die een geauthentice
 - HTTP-verzoeken van de workflowcomponent **Custom JavaScript**
 - Webhookmeldingen van projecten (incidenten, waarschuwingen, monitors, dienst, gepland onderhoud, gebeurtenissen van statuspagina's)
 - **Gebruikerswebhooks** voor de dienst
+- Webhook-abonnees van statuspagina's die uw team toevoegt, vanuit het dashboard, met een API-sleutel of door een workflow
 
-**Niet** gedekt, en dat blijft zo: **webhooks van abonnees van statuspagina's**. Elke bezoeker van een openbare statuspagina kan er een registreren, dus die bestemming versoepelen zou iedereen op internet uw server in uw privénetwerk laten POSTen. Dit is niet instelbaar.
+**Niet** gedekt, en dat blijft zo: **webhook-abonnees die zich op een statuspagina aanmelden**. Elke bezoeker van een openbare statuspagina kan er een aanmelden, dus die bestemming versoepelen zou iedereen op internet uw server in uw privénetwerk laten POSTen. Hun webhooks bereiken alleen openbare adressen, ook nadat iemand van uw team er een heeft bewerkt. Dit is niet instelbaar.
 
 Uitgaande verbindingen die geen webhooks zijn – externe gegevensbronnen, LLM-providers, SMTP-servers (de SMTP-instellingen van een project en de workflowcomponent **Email**), SMTP-OAuth-tokeneindpunten, OIDC-discovery en HTTP-stappen in runbooks – worden apart geregeld, door `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, en staan privébereiken bij zelf gehoste installaties al toe. Zie [Andere uitgaande verbindingen](#andere-uitgaande-verbindingen).
 
@@ -182,6 +183,7 @@ Aanzetten opent loopback, link-local en het cloudmetadata-eindpunt **niet**. Die
 Voer de workflow of monitor opnieuw uit. Wordt hij nog steeds geweigerd, dan noemt de foutmelding welke poort dicht is:
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ – de instelling van de API-server ontbreekt.
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, of _"...is not allowed. Use a webhook URL on the public internet."_ op de statuspagina zelf – de webhook hoort bij een abonnee die zich op de statuspagina heeft aangemeld, en daarvoor geldt geen enkele instelling. Laat uw team hem in plaats daarvan als webhook-abonnee toevoegen, vanuit het dashboard, met een API-sleutel of door een workflow.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – een privé- (eigen) probe heeft de monitor uitgevoerd, en zijn schakelaar staat uit. Let op: dit stelt u in op de probe, niet op de API-server.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – een meegeleverde (globale) probe heeft de monitor uitgevoerd, en zijn schakelaar staat uit. Zet hem voor die probe aan zoals hierboven beschreven als elk project op de instantie dat netwerk mag bereiken; kies anders een privéprobe voor de monitor.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – een globale probe met `BILLING_ENABLED=true` in zijn omgeving heeft de monitor uitgevoerd. Automatisch geregistreerde globale probes blijven daar alleen openbaar, wat hun schakelaar ook zegt; rol een privéprobe uit binnen het netwerk van het doel en kies die voor de monitor.
@@ -196,7 +198,7 @@ Voer de workflow of monitor opnieuw uit. Wordt hij nog steeds geweigerd, dan noe
 Dit openzetten verandert echt wat uw OneUptime-instantie kan worden gemaakt te bereiken, dus het loont om er bewust mee om te gaan:
 
 - **Geef de voorkeur aan de allowlist boven de algemene schakelaar.** `mattermost.internal` noemen is een veel kleinere toestemming dan elk RFC-1918-adres openzetten.
-- **Wie een workflow of een monitor van het type API, Website, External Status Page of Custom JavaScript Code kan maken, kan alles bereiken wat u hebt toegestaan.** Behandel het lidmaatschap van die projecten daarnaar.
+- **Wie een workflow of een monitor van het type API, Website, External Status Page of Custom JavaScript Code kan maken, of een abonnee aan een statuspagina kan toevoegen, kan alles bereiken wat u hebt toegestaan.** Behandel het lidmaatschap van die projecten daarnaar.
 - **De antwoordtekst komt terug.** Een API-component in een workflow geeft de status, headers en body terug in het workflowlog, dus een toegestane host is leesbaar, niet alleen beschrijfbaar.
 - **Omleidingen worden nooit gevolgd** bij webhookverzoeken, dus een toegestane openbare host kan de server niet met een tweede sprong naar een interne host doorsturen.
 - **Beperk waar mogelijk per probe in plaats van voor de hele instantie.** Een probe die binnen één netwerk is uitgerold, is een smallere toestemming dan het uitgaande verkeer van de API-server openzetten.

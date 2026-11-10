@@ -52,6 +52,17 @@ interface ResourceMove {
   projectId: ObjectID;
 }
 
+/*
+ * A resource shows one thing: a monitor, or a monitor group. A row that named
+ * both was shown as its monitor in the dashboard's list and on most of the
+ * status page, but its subscribers heard about incidents on the group's
+ * monitors, it blocked adding the group to the page again, and it went when
+ * the group was deleted (issue #6540: the edit form wrote a monitor onto a
+ * monitor group's row and left the group).
+ */
+export const BOTH_TARGETS_MESSAGE: string =
+  "A status page resource shows a monitor or a monitor group, not both. Send one of them.";
+
 /**
  * Named after what the operator sees rather than what the column is, because
  * this reads back to them on the resource form.
@@ -345,6 +356,10 @@ export class Service extends ProjectReferencesService<Model> {
       true,
     );
 
+    if (target.monitorId && target.monitorGroupId) {
+      throw new BadDataException(BOTH_TARGETS_MESSAGE);
+    }
+
     if (
       await this.isResourceAlreadyOnStatusPage({
         statusPageId: statusPageId,
@@ -498,10 +513,36 @@ export class Service extends ProjectReferencesService<Model> {
      * Pointing an existing resource at a monitor the page already lists is the
      * same duplicate onBeforeCreate refuses, just reached from the edit form.
      */
+    const updateData: Record<string, unknown> =
+      updateBy.data as unknown as Record<string, unknown>;
+
     const updatedTarget: StatusPageResourceTarget =
-      this.getResourceMonitorTarget(
-        updateBy.data as unknown as Record<string, unknown>,
-      );
+      this.getResourceMonitorTarget(updateData);
+
+    if (updatedTarget.monitorId && updatedTarget.monitorGroupId) {
+      throw new BadDataException(BOTH_TARGETS_MESSAGE);
+    }
+
+    /*
+     * Pointing a resource at a monitor makes it show that monitor instead of
+     * the monitor group it showed, and the other way round: the reference
+     * the write leaves out is cleared, as the edit form means when its link
+     * swaps the picker. A write that names it - a clear included - says
+     * itself what it holds.
+     */
+    if (
+      updatedTarget.monitorId &&
+      !RelationIdUtil.isPresent(updateData, MONITOR_GROUP_KEYS)
+    ) {
+      RelationIdUtil.stamp(updateData, MONITOR_GROUP_KEYS, null);
+    }
+
+    if (
+      updatedTarget.monitorGroupId &&
+      !RelationIdUtil.isPresent(updateData, MONITOR_KEYS)
+    ) {
+      RelationIdUtil.stamp(updateData, MONITOR_KEYS, null);
+    }
 
     if (updatedTarget.monitorId || updatedTarget.monitorGroupId) {
       // Every resource the update writes, and the update held to them.

@@ -6,7 +6,6 @@ import {
   STATUS_PAGE_GROUP_VIEW_MODE_OPTIONS,
   getStatusPageGroupLayoutSection,
 } from "../../../Components/StatusPage/StatusPageGroupFormSections";
-import { getStatusPageResourceFormFields } from "../../../Components/StatusPage/StatusPageResourceFormFields";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -31,7 +30,6 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
-import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import RecordIdModal from "Common/UI/Components/ObjectID/RecordIdModal";
 import { BILLING_ENABLED } from "Common/UI/Config";
@@ -145,6 +143,11 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
    */
   const [isPaneOpenOnMobile, setIsPaneOpenOnMobile] = useState<boolean>(false);
 
+  /*
+   * Which picker Add Monitor opens on, on projects with monitor groups -
+   * the Add form's choice only: an Edit form opens on what its resource
+   * shows (issue #6540).
+   */
   const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
 
   /* Managing the hierarchy itself, which used to be a page of its own. */
@@ -970,52 +973,6 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
   };
 
   /* ------------------------------------------------------------------ */
-  /* The resource form, shared by every way of creating one.             */
-  /* ------------------------------------------------------------------ */
-
-  type GetFooterForMonitorFunction = () => ReactElement;
-
-  const getFooterForMonitor: GetFooterForMonitorFunction = (): ReactElement => {
-    if (!props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {
-      return <></>;
-    }
-
-    return (
-      <Link
-        onClick={() => {
-          setAddMonitorGroup(!addMonitorGroup);
-        }}
-        className="mt-1 text-sm text-gray-500 underline"
-      >
-        <div>
-          <p>
-            {addMonitorGroup
-              ? translator.translateText("Add a Monitor instead.")
-              : translator.translateText("Add a Monitor Group instead.")}
-          </p>
-        </div>
-      </Link>
-    );
-  };
-
-  /*
-   * Asks only for the monitor: the display name follows it until somebody
-   * types their own, and the rest is folded under Advanced
-   * (StatusPageResourceFormFields).
-   */
-  const formFields: Array<ModelField<StatusPageResource>> = useMemo((): Array<
-    ModelField<StatusPageResource>
-  > => {
-    return getStatusPageResourceFormFields({
-      addMonitorGroup: addMonitorGroup,
-      targetFooterElement: getFooterForMonitor(),
-    });
-  }, [
-    addMonitorGroup,
-    props.currentProject?.isFeatureFlagMonitorGroupsEnabled,
-  ]);
-
-  /* ------------------------------------------------------------------ */
   /* Rendering                                                           */
   /* ------------------------------------------------------------------ */
 
@@ -1100,7 +1057,15 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
             setGroupToShowIdFor(selectedGroup);
           }
         }}
-        baseFormFields={formFields}
+        /*
+         * The resource form is the pane's (StatusPageResourceFormFields):
+         * one page, the monitor and its display name, the rest folded under
+         * Advanced. The page keeps only which picker Add Monitor opens on,
+         * so it is the same in every group; Edit opens on what the resource
+         * shows.
+         */
+        isAddingMonitorGroup={addMonitorGroup}
+        onIsAddingMonitorGroupChange={setAddMonitorGroup}
         onResourceCountLoaded={onResourceCountLoaded}
         onBack={onBack}
       />

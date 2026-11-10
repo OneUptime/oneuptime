@@ -93,6 +93,7 @@ flowchart TB
 - [API संदर्भ](/docs/api-reference/api-reference): इसके REST API से OneUptime को स्वचालित करें।
 - [CLI](/docs/cli/index): अपने टर्मिनल और CI से OneUptime प्रबंधित करें।
 - [Terraform प्रोवाइडर](/docs/terraform/index): मॉनिटर, स्थिति पृष्ठ और ऑन-कॉल को कोड के रूप में प्रबंधित करें।
+- [Crossplane प्रोवाइडर](/docs/crossplane/index): Crossplane के साथ Kubernetes से अपना प्रोजेक्ट प्रबंधित करें।
 :::
 
 ### प्रशासन

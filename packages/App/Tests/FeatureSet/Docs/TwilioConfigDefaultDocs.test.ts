@@ -14,7 +14,10 @@ import path from "path";
  *   project's SMS and calls. Now the switch starts on for the project's
  *   first config, a later one starts off, the row menu makes any config the
  *   default, and an API create that leaves isProjectDefault out is treated
- *   the same way (ProjectCallSMSConfigService).
+ *   the same way (ProjectCallSMSConfigService). Saving, the last step, says
+ *   a project has a default for SMS and one for calls, so a config for SMS
+ *   only and one for calls only can both be the default (#6574): it said
+ *   only one config could be.
  * - on-call/incoming-call-policy.md sends people to create a config for an
  *   incoming call policy, which is very often the project's first: it says
  *   that config also takes the project's SMS and calls, and how not to. It
@@ -233,7 +236,7 @@ describe("the docs on a project's first Twilio config", () => {
       // And what an API create gets.
       expect(step).toContain("`isProjectDefault`");
 
-      // Still five steps, the fifth still saying only one is the default.
+      // Still five steps.
       expect(
         steps.map((line: string): string => {
           return line.slice(0, 2);
@@ -241,6 +244,50 @@ describe("the docs on a project's first Twilio config", () => {
       ).toEqual(["1.", "2.", "3.", "4.", "5."]);
     },
   );
+
+  it.each(LANGUAGES)(
+    "%s: the Twilio guide's last step says a config for SMS only and one for calls only can both be the default",
+    (lang: string) => {
+      const words: (english: string) => string = dashboardWords(lang);
+      const step: string | undefined = savingSteps(lang).find(
+        (line: string): boolean => {
+          return line.startsWith("5. ");
+        },
+      );
+
+      expect(step).toBeDefined();
+
+      // The two choices of Use This Account For, as the form names them.
+      for (const use of ["SMS only", "Calls only"]) {
+        expect({
+          lang,
+          use,
+          named: step!.includes(`**${words(use)}**`),
+        }).toEqual({ lang, use, named: true });
+      }
+
+      /*
+       * And it sends the reader to the section that says how: the link the
+       * page's troubleshooting table has for it too.
+       */
+      const page: string = readPage(lang, "self-hosted/twilio-integration.md");
+      const links: Array<string> = step!.match(/\]\(#[^)]+\)/g) || [];
+
+      expect(links).toHaveLength(1);
+      expect(page.split(links[0]!).length - 1).toBeGreaterThanOrEqual(2);
+    },
+  );
+
+  it("English no longer says only one configuration can be the project default", () => {
+    const page: string = readPage("en", "self-hosted/twilio-integration.md");
+
+    expect(page).not.toContain(
+      "Only one configuration can be the project default",
+    );
+    expect(page).toContain(
+      "A project has one default for SMS and one for calls, so a configuration used for **SMS only** and one used for **Calls only** can both be the default",
+    );
+  });
 
   /*
    * The card waits folded under Notification Settings' More settings: most

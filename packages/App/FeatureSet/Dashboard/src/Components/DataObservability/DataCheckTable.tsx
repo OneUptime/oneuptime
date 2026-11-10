@@ -7,7 +7,15 @@ import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import Route from "Common/Types/API/Route";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
+import {
+  CHECK_HEALTH_COPY,
+  CheckHealthCopy,
+  getCheckHealthBeforeAlerts,
+} from "./CheckHealthCopy";
+import {
+  DataCheckHealth,
+  DataCheckHealthAnswer,
+} from "Common/Types/DataObservability/DataObservabilityAttention";
 import { DataAssetColumn } from "Common/Types/DataObservability/DataAssetColumn";
 import {
   DATA_CHECK_FORMATS,
@@ -19,6 +27,7 @@ import {
   DATA_CHECK_INTERVALS_IN_MINUTES,
   DATA_CHECK_TYPES,
   DataCheckAlertCondition,
+  DataCheckRunStatus,
   DataCheckType,
   DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES,
   doesAlertConditionNeedThreshold,
@@ -86,6 +95,12 @@ function getIntervalOptions(translator: Translator): Array<DropdownOption> {
   );
 }
 
+// How a check's last run went: its query ran, or could not.
+const LAST_RUN_OPTIONS: Array<DropdownOption> = [
+  { value: DataCheckRunStatus.Ran, label: "Ran" },
+  { value: DataCheckRunStatus.Failed, label: "Could Not Run" },
+];
+
 const ALERT_OPTIONS: Array<DropdownOption> = DATA_CHECK_ALERT_CONDITIONS.map(
   (condition: DataCheckAlertCondition): DropdownOption => {
     return { value: condition, label: condition };
@@ -124,7 +139,8 @@ function withAcceptedValuesAsList(item: DataCheck): DataCheck {
 
 /*
  * The checks on a table's values - or, with no table, every check of the
- * project - with their last value and run, and their alert. Saving a check
+ * project - with their last value, whether each passes now (its Status:
+ * failing while its alert is open), and their alert. Saving a check
  * makes its monitor match its alert condition (DataCheckAlerts); Run Now
  * runs it at its store's very next collection.
  */
@@ -135,6 +151,9 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const [alertError, setAlertError] = useState<string>("");
   const [failingRowsOf, setFailingRowsOf] = useState<DataCheck | null>(null);
+  const [healthById, setHealthById] = useState<
+    Map<string, DataCheckHealthAnswer>
+  >(new Map());
   const isForOneTable: boolean = Boolean(props.dataAssetId);
   const isPipeline: boolean = props.dataStoreKind === DataStoreKind.MongoDb;
   const columnOptions: Array<DropdownOption> = (props.columns || []).map(
@@ -142,6 +161,54 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
       return { value: column.name, label: column.name };
     },
   );
+
+  /*
+   * Whether each check of the page passes now: its alert, open or not, as
+   * Data Observability's own route reads it - with the reader's alerts, as a
+   * private one is theirs to see. Until it answers, or when it cannot, a
+   * check that ran says only that.
+   */
+  const readHealth: (checks: Array<DataCheck>) => Promise<void> = async (
+    checks: Array<DataCheck>,
+  ): Promise<void> => {
+    const ids: Array<string> = checks
+      .map((check: DataCheck): string => {
+        return check.id?.toString() || "";
+      })
+      .filter(Boolean);
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    try {
+      const answers: Map<string, DataCheckHealthAnswer> =
+        await DataObservabilityApi.getCheckHealth(ids);
+
+      setHealthById((previous: Map<string, DataCheckHealthAnswer>) => {
+        const next: Map<string, DataCheckHealthAnswer> = new Map(previous);
+
+        for (const [id, answer] of answers) {
+          next.set(id, answer);
+        }
+
+        return next;
+      });
+    } catch {
+      // The Status stays what the last run alone says.
+    }
+  };
+
+  const healthOf: (check: DataCheck) => DataCheckHealthAnswer = (
+    check: DataCheck,
+  ): DataCheckHealthAnswer => {
+    return (
+      healthById.get(check.id?.toString() || "") || {
+        health: getCheckHealthBeforeAlerts(check),
+        alert: null,
+      }
+    );
+  };
 
   const syncAlert: (item: DataCheck) => Promise<DataCheck> = async (
     item: DataCheck,
@@ -210,7 +277,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           title: "Checks",
           description: isForOneTable
             ? "Checks on what this table holds: empty or repeated values, values outside a list or pattern, rows with no match, a query of your own. Each runs on a schedule."
-            : "Every check on your tables' values, failing first.",
+            : "Every check on your tables' values, and whether each passes now: a check whose alert is open is failing.",
         }}
         noItemsMessage={
           isForOneTable
@@ -236,8 +303,13 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           return item;
         }}
         onCreateSuccess={syncAlert}
+        onFetchSuccess={(checks: Array<DataCheck>) => {
+          void readHealth(checks);
+        }}
         selectMoreFields={{
           dataAssetId: true,
+          checkType: true,
+          isEnabled: true,
           lastRunAt: true,
           lastRunMessage: true,
           alertThreshold: true,
@@ -514,7 +586,8 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           {
             field: { lastRunStatus: true },
             title: "Last Run",
-            type: FieldType.Text,
+            type: FieldType.Dropdown,
+            filterDropdownOptions: LAST_RUN_OPTIONS,
           },
         ]}
         columns={[
@@ -582,28 +655,65 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { lastRunStatus: true },
-            title: "Last Run",
+            title: "Status",
             type: FieldType.Element,
             getExportValue: (check: DataCheck): string => {
-              return check.lastRunStatus || "";
+              return CHECK_HEALTH_COPY[healthOf(check).health].label;
             },
             getElement: (check: DataCheck): ReactElement => {
+              const answer: DataCheckHealthAnswer = healthOf(check);
+              const copy: CheckHealthCopy = CHECK_HEALTH_COPY[answer.health];
+
               if (!check.lastRunAt) {
-                return <Pill text="Waiting for first run" color={Gray500} />;
+                return (
+                  <div data-check-health={answer.health}>
+                    <Pill text={copy.label} color={copy.color} />
+                  </div>
+                );
               }
 
               return (
-                <div className="min-w-0 space-y-1">
-                  {check.lastRunStatus === "Failed" ? (
-                    <Pill text="Failed" color={Red500} />
-                  ) : (
-                    <Pill text="Ran" color={Green500} />
-                  )}
+                <div
+                  className="min-w-0 space-y-1"
+                  data-check-health={answer.health}
+                >
+                  <Pill text={copy.label} color={copy.color} />
+                  {/*
+                   * A check whose query failed did not run: it was tried, as
+                   * the Overview's Needs Attention says of it too.
+                   */}
                   <span className="block text-xs text-gray-500">
-                    {OneUptimeDate.fromNow(
-                      OneUptimeDate.fromString(check.lastRunAt),
+                    {translator.translateTemplate(
+                      answer.health === DataCheckHealth.CouldNotRun
+                        ? "Last tried {{time}}"
+                        : "Last ran {{time}}",
+                      {
+                        time: OneUptimeDate.fromNow(
+                          OneUptimeDate.fromString(check.lastRunAt),
+                        ),
+                      },
                     )}
                   </span>
+                  {answer.alert ? (
+                    <AppLink
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.ALERT_VIEW] as Route,
+                        { modelId: new ObjectID(answer.alert.alertId) },
+                      )}
+                      className="block text-xs font-medium text-red-700 hover:underline"
+                    >
+                      <span>
+                        {answer.alert.number
+                          ? translator.translateTemplate(
+                              "Alert {{number}} is open",
+                              { number: answer.alert.number },
+                            )
+                          : translator.translateText("An alert is open")}
+                      </span>
+                    </AppLink>
+                  ) : (
+                    <></>
+                  )}
                   {check.lastRunMessage ? (
                     <span className="block whitespace-pre-line text-xs text-red-600">
                       {check.lastRunMessage}

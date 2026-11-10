@@ -680,6 +680,7 @@ RunCron(
             if (subscriber.subscriberWebhook) {
               StatusPageSubscriberWebhookUtil.sendWebhookNotification({
                 webhookUrl: subscriber.subscriberWebhook,
+                isAddedByTeam: subscriber.isAddedByTeam,
                 payload: {
                   eventType: "ScheduledMaintenanceStateChanged",
                   statusPageId: statuspage.id!.toString(),

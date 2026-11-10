@@ -63,6 +63,13 @@ import {
   AuditLogExemptionKind,
 } from "Common/Types/AuditLog/AuditLogCoverage";
 import {
+  AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
+  AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+  AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+  AUDIT_LOG_RETENTION_ERROR,
+  getAuditLogRetentionError,
+} from "Common/Types/AuditLog/AuditLogRetention";
+import {
   ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
   SESSION_REPLAY_PRICE_IN_USD_PER_GB,
   TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
@@ -150,8 +157,6 @@ const TITLE_PROPERTY: RegExp = /title: "([^"]+)"/g;
 const TAB_NAME: RegExp = /name: "([^"]+)"/g;
 const CACHE_TTL: RegExp =
   /PROJECT_SETTINGS_CACHE_TTL_MS: number = (\d+) \* 1000;/;
-const RETENTION_CLAMP: RegExp =
-  /Math\.max\(1, Math\.min\(retentionInDays \|\| (\d+), (\d+)\)\)/;
 const UP_TO_DAYS: RegExp = /up to (\d+) days/;
 
 function english(page: string): string {
@@ -833,11 +838,13 @@ describe("Inviting People", () => {
     expect(users).toContain(
       '"Each selected user will be removed from every team in this project and lose access to it immediately."',
     );
+    // Remove Team Members too (#6561); scoped to Owned, it removes someone from the project only when it reaches every team of theirs.
     expect(sorted(new TeamMember().getDeletePermissions())).toEqual(
       sorted([
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.DeleteProjectTeam,
+        Permission.RemoveProjectTeamMembers,
       ]),
     );
     expect(section(page, "## Remove someone from the project")).toContain(
@@ -2053,6 +2060,50 @@ describe("Audit Logs", () => {
     );
   });
 
+  /*
+   * #6383: the form checked 7 to 180 days, and nothing on the server did,
+   * so the API stored -3. The server refuses what the rule cannot save now,
+   * on create and update (ProjectService.applyAuditLogRetentionRules).
+   */
+  it("states the retention's range, and that the API holds a retention to it", () => {
+    const rows: Array<Array<string>> = tableRows(
+      section(page, "## Turn on audit logging"),
+      "Setting",
+    );
+
+    expect(
+      rows.find((row: Array<string>): boolean => {
+        return row[0] === "**Retention (days)**";
+      }),
+    ).toEqual([
+      "**Retention (days)**",
+      String(AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS),
+      `How many days each entry is kept: from ${AUDIT_LOG_MIN_RETENTION_IN_DAYS} to ${AUDIT_LOG_MAX_RETENTION_IN_DAYS}.`,
+    ]);
+    expect(section(page, "## How long entries are kept")).toContain(
+      `Through the API too, a retention is a whole number of days from ${AUDIT_LOG_MIN_RETENTION_IN_DAYS} to ${AUDIT_LOG_MAX_RETENTION_IN_DAYS}: any other value is refused.`,
+    );
+
+    for (const refused of [
+      AUDIT_LOG_MIN_RETENTION_IN_DAYS - 1,
+      AUDIT_LOG_MAX_RETENTION_IN_DAYS + 1,
+      AUDIT_LOG_MIN_RETENTION_IN_DAYS + 0.5,
+      -3,
+    ]) {
+      expect(getAuditLogRetentionError(refused)).toBe(
+        AUDIT_LOG_RETENTION_ERROR,
+      );
+    }
+
+    const projectService: string = readCommonSource(
+      "Server/Services/ProjectService.ts",
+    );
+
+    expect(
+      projectService.split("this.applyAuditLogRetentionRules(").length - 1,
+    ).toBe(2);
+  });
+
   it("says the audit log can be read through the API, by the permission that reads it", () => {
     expect(new AuditLog().crudApiPath?.toString()).toBe("/audit-log");
     expect(readPackageFile("App/FeatureSet/BaseAPI/Index.ts")).toContain(
@@ -2101,8 +2152,9 @@ describe("Audit Logs", () => {
       "},\n          },",
     );
 
-    expect(capturedNumber(retention, MIN_VALUE)).toBe(7);
-    expect(capturedNumber(retention, MAX_VALUE)).toBe(180);
+    // The form's bounds are the rule's (Common/Types/AuditLog/AuditLogRetention).
+    expect(retention).toContain("minValue: AUDIT_LOG_MIN_RETENTION_IN_DAYS,");
+    expect(retention).toContain("maxValue: AUDIT_LOG_MAX_RETENTION_IN_DAYS,");
 
     const table: string = read("Dashboard/AuditLogs/AuditLogsTable.tsx");
     const columns: string = between(
@@ -2147,10 +2199,18 @@ describe("Audit Logs", () => {
       "A change to these settings applies within a minute.",
     );
 
-    // Kept for the project's retention, at most 180 days, 7 unless set.
-    const clamp: RegExpExecArray | null = RETENTION_CLAMP.exec(recorder);
-
-    expect(clamp?.slice(1)).toEqual(["7", "180"]);
+    /*
+     * Kept for the project's retention, from 7 to 180 days, 7 unless set:
+     * read, and stamped on each entry, by the rule a failing export reckons
+     * with too (#6383).
+     */
+    expect(recorder).toContain("readAuditLogRetentionInDays(");
+    expect(recorder).toContain("return getAuditLogRetentionDate({");
+    expect([
+      AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
+      AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+      AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+    ]).toEqual([7, 7, 180]);
 
     // Recording on the Cloud: the Enterprise plan; self-hosted: the license.
     expect(recorder).toContain(

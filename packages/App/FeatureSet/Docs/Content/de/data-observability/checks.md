@@ -42,6 +42,8 @@ Setzen Sie **Warnen, wenn**, um bei einer Prüfung zu warnen:
 
 Beim Speichern der Prüfung entsteht ein Metrik-Monitor für sie, in Ihrem Namen und mit Ihren Berechtigungen. Wenn Sie die Bedingung leeren, wird der Monitor entfernt.
 
+Der **Status** einer Prüfung, unter **Prüfungen** und auf dem Tab **Prüfungen** ihrer Tabelle, sagt, wie sie steht: **Fehlerhaft**, solange ihre Warnung offen ist, **Bestanden**, solange nicht, und **Ausführung fehlgeschlagen**, wenn ihre Abfrage fehlschlug. Eine Prüfung ohne Warnung zeigt nur **Ausgeführt**, also dass ihre Abfrage lief. Eine fehlerhafte Prüfung und eine, die nicht laufen konnte, stehen auch in der **Übersicht**.
+
 ## Was eine Prüfung kostet
 
 Eine Prüfung konkurriert mit Ihrer Anwendung um die Datenbank, und bei einem Warehouse, das nach dem abrechnet, was eine Abfrage liest, kostet sie Geld. Drei Dinge halten das im Griff:

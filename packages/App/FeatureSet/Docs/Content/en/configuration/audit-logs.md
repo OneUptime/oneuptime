@@ -107,7 +107,7 @@ Resetting the AI agent of a host, a cluster or a cloud account is recorded on th
 
 ## How long entries are kept
 
-Each entry is kept for the **Retention (days)** the project had when it was recorded, then deleted. A new retention applies to new entries: the entries recorded so far keep their dates.
+Each entry is kept for the **Retention (days)** the project had when it was recorded, then deleted. A new retention applies to new entries: the entries recorded so far keep their dates. Through the API too, a retention is a whole number of days from 7 to 180: any other value is refused.
 
 To keep entries longer than 180 days, send them to your own storage or SIEM as they are recorded: see [Audit Log Export](/docs/configuration/audit-log-export). You can also read them through the API with an API key that holds **Read Audit Log**, and store them where you need them. See [API Reference](/docs/api-reference/api-reference).
 

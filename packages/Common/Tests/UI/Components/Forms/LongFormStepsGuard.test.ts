@@ -219,7 +219,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     file: `${DASHBOARD}/Components/StatusPage/BulkAddStatusPageMonitorsModal.tsx`,
     form: "BasicForm: Status Page > Add Multiple Monitors",
     reason:
-      "Adding several monitors to a status page: the monitors, then the folded Advanced options. 'Keep this group in sync' shows only after monitors are picked by label and never on a grid group, and the row and column only on a grid group, where they are the one cell every picked monitor goes in - so it is never more than four rows, and usually two.",
+      "Adding several monitors (or, on its other picker, monitor groups) to a status page: the monitors, then the folded Advanced options. 'Keep this group in sync' shows only after monitors are picked by label and never on a grid group or for monitor groups, and the row and column only on a grid group, where they are the one cell every picked monitor goes in - so it is never more than four rows, and usually two.",
   },
   /*
    * Small wizards whose steps did not earn their place: each split a short
@@ -368,6 +368,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
       "A dashboard widget's settings, built from the widget's own argument list and already drawn as one small form per argument section in the side panel, not as one long dialog.",
   },
   {
+    file: `${DASHBOARD}/Components/StatusPage/StatusPageResourcePanel.tsx`,
+    form: "ModelFormModal: Status Page > Resources",
+    reason:
+      "Add Monitor and Edit resource on Status Page > Resources, both built by getStatusPageResourceFormFields (StatusPageResourceFormFields.tsx, whose shape StatusPageResourceFormsGuard pins): the monitor or monitor group, its display name and description, a grid group's row and column, then the display options folded under More fields. One short page with the options closed; a Next between picking the monitor and naming it would only slow down the add an operator repeats most.",
+  },
+  {
     file: `${DASHBOARD}/Components/NumberPrefix/NumberPrefixCard.tsx`,
     form: "CardModelDetail #1",
     reason:
@@ -421,6 +427,36 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
     reason:
       "The arguments a workflow's manual trigger declares, built from its metadata: one question per argument the workflow author added.",
   },
+  /*
+   * The Admin Dashboard's ingestion budgets, the instance's defaults and a
+   * project's own: IngestionBudgetFormFields builds one field per signal
+   * from TELEMETRY_INGESTION_BUDGET_SIGNALS.
+   */
+  ...[
+    [
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/IngestionBudgets/Index.tsx",
+      "Default Daily Ingestion Budgets",
+    ],
+    [
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/IngestionBudgets/Index.tsx",
+      "Default Ingestion Rate Limits",
+    ],
+    [
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/IngestionBudgets.tsx",
+      "Project Daily Ingestion Budgets",
+    ],
+    [
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/IngestionBudgets.tsx",
+      "Project Ingestion Rate Limits",
+    ],
+  ].map(([file, name]: Array<string>): ListedForm => {
+    return {
+      file: file!,
+      form: `CardModelDetail: ${name}`,
+      reason:
+        "One question asked per telemetry signal, in the order the Usage page lists them: how many GB a day (or MB a second) each may send. Every field is an optional number in the same unit - empty is no limit for the instance, the instance's default for a project - so the five read as one table of limits; a step per signal would split it.",
+    };
+  }),
 ];
 
 /*

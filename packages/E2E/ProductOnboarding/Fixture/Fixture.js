@@ -24,7 +24,8 @@
  *                 Pages/DataObservability/{Layout,Overview}: no database
  *                 connected yet (its overview read says so), and one its
  *                 traces know of, which the page suggests under the
- *                 explanation
+ *                 explanation; or, with data=..., a project using it (see
+ *                 below)
  *
  * And one page of the fixture's own, which holds every product's
  * explanation at once, each as its How it works dialog draws it:
@@ -44,12 +45,25 @@
  *   - statusPages=1   the project has a status page ("Acme Status")
  *   - role=viewer     a project Viewer: reads every list, creates nothing
  *   - counts=fail     every count fails, as an API outage would
+ *   - data=busy       Data Observability in use (#6435): three watched
+ *                     databases - one that could not be read, one with no
+ *                     alert on - and twenty-three things that need someone,
+ *                     the eight most urgent listed (a failed and a late
+ *                     pipeline run, a failing check, a drifted
+ *                     reconciliation, a late data product, late tables, a
+ *                     check that could not run), owned or not, alerted or
+ *                     not; four of its five first steps done
+ *   - data=healthy    every step done and nothing wrong
+ *   - data=connected  one database just connected, not read yet: no table
+ *                     counted, nothing wrong, one of the five steps done
+ *   - data=fail       the Overview's read fails every time, as an outage would
  *   - lang=de|fa      the Dashboard's German or Persian words (Persian reads
  *                     right to left)
  *   - theme=dark      dark mode (set before the bundle by server.js)
  *
  * Recorded on window.__productOnboardingFixture: every count asked
- * (`counts`: the table and the query as sent), every create (`creates`)
+ * (`counts`: the table and the query as sent), every create (`creates`),
+ * every read of Data Observability's own routes (`dataReads`: the route)
  * and every read of a table this fixture does not model, or any other
  * request it does not answer (`unhandled`; the spec fails on any). It also
  * lists every product the explanations page draws (`products`: its key,
@@ -82,6 +96,9 @@ import ResourceShowcaseCard from "../../../App/FeatureSet/Dashboard/src/Componen
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam";
+import DataAssetOwnerUser from "Common/Models/DatabaseModels/DataAssetOwnerUser";
+import DataProduct from "Common/Models/DatabaseModels/DataProduct";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
@@ -98,6 +115,7 @@ import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUse
 import TableView from "Common/Models/DatabaseModels/TableView";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import User from "Common/Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -128,6 +146,11 @@ const language = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const countsFail = params.get("counts") === "fail";
+const dataScenario = ["busy", "healthy", "connected", "fail"].includes(
+  params.get("data"),
+)
+  ? params.get("data")
+  : "new";
 
 const fixture = {
   scenario: {
@@ -135,10 +158,12 @@ const fixture = {
     statusPages: params.get("statusPages") === "1",
     role: params.get("role") === "viewer" ? "viewer" : "owner",
     countsFail,
+    data: dataScenario,
     language,
   },
   counts: [],
   creates: [],
+  dataReads: [],
   unhandled: [],
   // Every product the explanations page draws, in the registry's order.
   products: Object.entries(PRODUCT_ONBOARDINGS).map(([product, onboarding]) => {
@@ -297,10 +322,111 @@ const statusPages = fixture.scenario.statusPages
   : [];
 
 /*
+ * Data Observability in use (data=busy): who owns the tables and the data
+ * product its Needs Attention names. public.orders has three owners,
+ * public.payments one team, public.customers one person; the warehouse's
+ * analytics.daily_sessions nobody; Finance daily revenue its owning team.
+ */
+const DATA = {
+  ordersDb: "70000000-0000-4000-8000-0000000000d1",
+  warehouse: "70000000-0000-4000-8000-0000000000d2",
+  billingDb: "70000000-0000-4000-8000-0000000000d3",
+  orders: "71000000-0000-4000-8000-0000000000d1",
+  payments: "71000000-0000-4000-8000-0000000000d2",
+  dailySessions: "71000000-0000-4000-8000-0000000000d3",
+  customers: "71000000-0000-4000-8000-0000000000d4",
+  nightlyLoad: "72000000-0000-4000-8000-0000000000d1",
+  sessionsSync: "72000000-0000-4000-8000-0000000000d2",
+  ordersEmailCheck: "73000000-0000-4000-8000-0000000000d1",
+  customersIdCheck: "73000000-0000-4000-8000-0000000000d2",
+  ordersReconciliation: "74000000-0000-4000-8000-0000000000d1",
+  revenueProduct: "75000000-0000-4000-8000-0000000000d1",
+  nightlyLoadAlert: "76000000-0000-4000-8000-0000000000d1",
+  ordersEmailAlert: "76000000-0000-4000-8000-0000000000d2",
+  paymentsAlert: "76000000-0000-4000-8000-0000000000d3",
+};
+
+const ADA = record(User, {
+  _id: "41000000-0000-4000-8000-0000000000d1",
+  name: "Ada Lovelace",
+  email: "ada@acme-shop.example",
+});
+const GRACE = record(User, {
+  _id: "41000000-0000-4000-8000-0000000000d2",
+  name: "Grace Hopper",
+  email: "grace@acme-shop.example",
+});
+const PAYMENTS_TEAM = record(Team, {
+  _id: "42000000-0000-4000-8000-0000000000d1",
+  name: "Payments",
+});
+const FINANCE_TEAM = record(Team, {
+  _id: "42000000-0000-4000-8000-0000000000d2",
+  name: "Finance Analytics",
+});
+
+const isDataBusy = dataScenario === "busy";
+
+const dataAssetOwnerUsers = isDataBusy
+  ? [
+      record(DataAssetOwnerUser, {
+        _id: "43000000-0000-4000-8000-0000000000d1",
+        projectId: new ObjectID(PROJECT_ID),
+        dataAssetId: new ObjectID(DATA.orders),
+        user: ADA,
+      }),
+      record(DataAssetOwnerUser, {
+        _id: "43000000-0000-4000-8000-0000000000d2",
+        projectId: new ObjectID(PROJECT_ID),
+        dataAssetId: new ObjectID(DATA.orders),
+        user: GRACE,
+      }),
+      record(DataAssetOwnerUser, {
+        _id: "43000000-0000-4000-8000-0000000000d3",
+        projectId: new ObjectID(PROJECT_ID),
+        dataAssetId: new ObjectID(DATA.customers),
+        user: ADA,
+      }),
+    ]
+  : [];
+
+const dataAssetOwnerTeams = isDataBusy
+  ? [
+      record(DataAssetOwnerTeam, {
+        _id: "44000000-0000-4000-8000-0000000000d1",
+        projectId: new ObjectID(PROJECT_ID),
+        dataAssetId: new ObjectID(DATA.orders),
+        team: PAYMENTS_TEAM,
+      }),
+      record(DataAssetOwnerTeam, {
+        _id: "44000000-0000-4000-8000-0000000000d2",
+        projectId: new ObjectID(PROJECT_ID),
+        dataAssetId: new ObjectID(DATA.payments),
+        team: PAYMENTS_TEAM,
+      }),
+    ]
+  : [];
+
+const dataProducts = isDataBusy
+  ? [
+      record(DataProduct, {
+        _id: DATA.revenueProduct,
+        projectId: new ObjectID(PROJECT_ID),
+        name: "Finance daily revenue",
+        ownerTeam: FINANCE_TEAM,
+      }),
+    ]
+  : [];
+
+/*
  * Every table the pages read, registered up front: a read of anything else
  * is recorded as unhandled and fails the spec.
  */
 const TABLES = {
+  // Who owns what Data Observability's Needs Attention names (data=busy).
+  [tableName(DataAssetOwnerUser)]: dataAssetOwnerUsers,
+  [tableName(DataAssetOwnerTeam)]: dataAssetOwnerTeams,
+  [tableName(DataProduct)]: dataProducts,
   [tableName(Monitor)]: monitors,
   [tableName(MonitorStatus)]: [OPERATIONAL, DEGRADED, OFFLINE],
   [tableName(MonitorOwnerUser)]: [],
@@ -507,33 +633,291 @@ ModelAPI.create = create;
 
 /*
  * Data Observability's own reads (Components/DataObservability/
- * DataObservabilityApi): no database connected, and one its traces know of.
+ * DataObservabilityApi). With no data scenario, no database connected and
+ * one its traces know of; data=busy, data=healthy and data=fail as the
+ * header says. Times are relative to now, so "2 hours ago" reads true.
  */
-const DATA_OBSERVABILITY_ANSWERS = {
-  "/data-observability/overview": { storeCount: 0 },
-  "/data-observability/quality": {},
-  "/data-observability/stores/suggestions": {
-    suggestions: [
-      {
-        id: "traces:postgres:billing-db",
-        dataStoreId: null,
-        name: "billing-db",
-        kind: "postgres",
-        origin: "Traces",
-        connectionExample: null,
+function hoursAgo(hours) {
+  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+}
+
+function dataStore(id, name, kind, fields) {
+  return {
+    dataStoreId: id,
+    name,
+    kind,
+    isTableHealthEnabled: true,
+    collector: "OneUptime",
+    probeName: null,
+    status: "Collected",
+    message: null,
+    collectedAt: hoursAgo(0.1),
+    assetCount: 0,
+    lateAssetCount: 0,
+    alertMonitorCount: 0,
+    ...fields,
+  };
+}
+
+function attentionItem(kind, name, fields) {
+  return {
+    kind,
+    name,
+    where: null,
+    message: null,
+    overdueBySeconds: 0,
+    since: null,
+    dataStoreId: null,
+    dataAssetId: null,
+    dataPipelineId: null,
+    dataCheckId: null,
+    dataProductId: null,
+    dataReconciliationId: null,
+    alert: null,
+    ...fields,
+  };
+}
+
+const BUSY_STORES = [
+  dataStore(DATA.ordersDb, "orders-db", "PostgreSQL", {
+    assetCount: 184,
+    lateAssetCount: 2,
+    alertMonitorCount: 6,
+  }),
+  dataStore(DATA.warehouse, "warehouse", "Snowflake", {
+    assetCount: 1640,
+    lateAssetCount: 7,
+    alertMonitorCount: 0,
+  }),
+  dataStore(DATA.billingDb, "billing-db", "MySQL", {
+    status: "Failed",
+    message: "Access denied for user 'oneuptime_reader'@'10.0.4.12'",
+    collectedAt: hoursAgo(2),
+    alertMonitorCount: 2,
+  }),
+];
+
+// The eight most urgent, worst first, as the server sends them.
+const BUSY_ATTENTION = [
+  attentionItem("Collection Failed", "billing-db", {
+    message: "Access denied for user 'oneuptime_reader'@'10.0.4.12'",
+    since: hoursAgo(2),
+    dataStoreId: DATA.billingDb,
+  }),
+  attentionItem("Pipeline Failed", "nightly_orders_load", {
+    where: "Airflow",
+    message:
+      'Task load_orders failed: relation "staging.orders" does not exist',
+    since: hoursAgo(3),
+    dataPipelineId: DATA.nightlyLoad,
+    alert: {
+      alertId: DATA.nightlyLoadAlert,
+      number: "ALT-42",
+      title: "nightly_orders_load failed",
+    },
+  }),
+  attentionItem("Check Failing", "orders.email is never empty", {
+    where: "public.orders",
+    since: hoursAgo(1),
+    dataStoreId: DATA.ordersDb,
+    dataAssetId: DATA.orders,
+    dataCheckId: DATA.ordersEmailCheck,
+    alert: {
+      alertId: DATA.ordersEmailAlert,
+      number: "ALT-41",
+      title: "orders.email is never empty failed",
+    },
+  }),
+  attentionItem("Reconciliation Drifted", "orders vs warehouse.orders", {
+    since: hoursAgo(5),
+    dataReconciliationId: DATA.ordersReconciliation,
+  }),
+  // As the server sends one: since when, not by how much.
+  attentionItem("Data Product Late", "Finance daily revenue", {
+    since: hoursAgo(2),
+    dataProductId: DATA.revenueProduct,
+  }),
+  attentionItem("Table Late", "analytics.daily_sessions", {
+    where: "warehouse",
+    overdueBySeconds: 26 * 60 * 60,
+    since: hoursAgo(32),
+    dataStoreId: DATA.warehouse,
+    dataAssetId: DATA.dailySessions,
+  }),
+  attentionItem("Table Late", "public.payments", {
+    where: "orders-db",
+    overdueBySeconds: 3 * 60 * 60,
+    since: hoursAgo(9),
+    dataStoreId: DATA.ordersDb,
+    dataAssetId: DATA.payments,
+    alert: {
+      alertId: DATA.paymentsAlert,
+      number: "ALT-40",
+      title: "public.payments is late",
+    },
+  }),
+  attentionItem("Check Could Not Run", "customers has no duplicate ids", {
+    where: "public.customers",
+    message: 'column "customer_id" does not exist',
+    since: hoursAgo(0.5),
+    dataStoreId: DATA.ordersDb,
+    dataAssetId: DATA.customers,
+    dataCheckId: DATA.customersIdCheck,
+  }),
+];
+
+function dataOverview() {
+  if (dataScenario === "busy") {
+    return {
+      storeCount: 3,
+      assetCount: 1824,
+      lateAssetCount: 9,
+      droppedAssetCount: 0,
+      unusedAssetCount: 0,
+      unusedSizeInBytes: 0,
+      schemaChangeCount: 5,
+      failingStoreCount: 1,
+      lateAssets: [],
+      recentChanges: [
+        {
+          dataAssetId: DATA.orders,
+          assetKey: "public.orders",
+          postedAt: hoursAgo(2),
+          feedInfoInMarkdown: "Column **discount_code** was added (text).",
+        },
+      ],
+      stores: BUSY_STORES,
+      attention: BUSY_ATTENTION,
+      attentionCount: 23,
+      failingCheckCount: 3,
+      // Alerts are off on the warehouse: the one step left.
+      setup: {
+        storeCount: 3,
+        storesWithAlertsCount: 2,
+        firstStoreWithoutAlertsId: DATA.warehouse,
+        checkCount: 12,
+        pipelineCount: 4,
+        tableOwnerCount: 5,
+        ownerRuleCount: 0,
       },
-    ],
-  },
-};
+    };
+  }
+
+  if (dataScenario === "healthy") {
+    return {
+      storeCount: 1,
+      assetCount: 184,
+      lateAssetCount: 0,
+      droppedAssetCount: 0,
+      unusedAssetCount: 0,
+      unusedSizeInBytes: 0,
+      schemaChangeCount: 0,
+      failingStoreCount: 0,
+      lateAssets: [],
+      recentChanges: [],
+      stores: [BUSY_STORES[0]],
+      attention: [],
+      attentionCount: 0,
+      failingCheckCount: 0,
+      setup: {
+        storeCount: 1,
+        storesWithAlertsCount: 1,
+        firstStoreWithoutAlertsId: null,
+        checkCount: 12,
+        pipelineCount: 4,
+        tableOwnerCount: 5,
+        ownerRuleCount: 1,
+      },
+    };
+  }
+
+  // Connected a minute ago: its catalog is not read yet, so it has no table and no status.
+  if (dataScenario === "connected") {
+    return {
+      storeCount: 1,
+      assetCount: 0,
+      lateAssetCount: 0,
+      droppedAssetCount: 0,
+      unusedAssetCount: 0,
+      unusedSizeInBytes: 0,
+      schemaChangeCount: 0,
+      failingStoreCount: 0,
+      lateAssets: [],
+      recentChanges: [],
+      stores: [
+        dataStore(DATA.ordersDb, "orders-db", "PostgreSQL", {
+          status: null,
+          collectedAt: null,
+        }),
+      ],
+      attention: [],
+      attentionCount: 0,
+      failingCheckCount: 0,
+      setup: {
+        storeCount: 1,
+        storesWithAlertsCount: 0,
+        firstStoreWithoutAlertsId: DATA.ordersDb,
+        checkCount: 0,
+        pipelineCount: 0,
+        tableOwnerCount: 0,
+        ownerRuleCount: 0,
+      },
+    };
+  }
+
+  return { storeCount: 0 };
+}
+
+function dataObservabilityAnswer(url) {
+  const routes = {
+    "/data-observability/overview": dataOverview,
+    "/data-observability/quality": () => {
+      return {};
+    },
+    // Not billed, so the page draws no cost line.
+    "/data-observability/watched-tables": () => {
+      return { isBilled: false };
+    },
+    "/data-observability/stores/suggestions": () => {
+      return {
+        suggestions: [
+          {
+            id: "traces:postgres:billing-db",
+            dataStoreId: null,
+            name: "billing-db",
+            kind: "postgres",
+            origin: "Traces",
+            connectionExample: null,
+          },
+        ],
+      };
+    },
+  };
+
+  return Object.entries(routes).find(([route]) => {
+    return url.endsWith(route);
+  });
+}
 
 async function handleApi(method, options) {
   const url = options && options.url ? options.url.toString() : "";
-  const answer = Object.entries(DATA_OBSERVABILITY_ANSWERS).find(([route]) => {
-    return method === "POST" && url.endsWith(route);
-  });
+  const answer = method === "POST" ? dataObservabilityAnswer(url) : undefined;
 
   if (answer) {
-    return new HTTPResponse(200, serialize(answer[1]), {});
+    fixture.dataReads.push(answer[0]);
+
+    if (
+      dataScenario === "fail" &&
+      answer[0] === "/data-observability/overview"
+    ) {
+      return new HTTPErrorResponse(
+        500,
+        { message: "Something went wrong. Please try again." },
+        {},
+      );
+    }
+
+    return new HTTPResponse(200, serialize(answer[1]()), {});
   }
 
   fixture.unhandled.push({

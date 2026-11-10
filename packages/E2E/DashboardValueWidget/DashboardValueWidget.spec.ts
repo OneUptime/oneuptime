@@ -282,6 +282,33 @@ const pad: (value: number) => string = (value: number): string => {
   return String(value).padStart(2, "0");
 };
 
+// `date` as the page's Intl writes it in `language`, on the Gregorian calendar, in UTC.
+const localizedDate: (
+  page: Page,
+  date: Date,
+  language: string,
+  options: Intl.DateTimeFormatOptions,
+) => Promise<string> = async (
+  page: Page,
+  date: Date,
+  language: string,
+  options: Intl.DateTimeFormatOptions,
+): Promise<string> => {
+  return await page.evaluate(
+    (data: {
+      iso: string;
+      language: string;
+      options: Intl.DateTimeFormatOptions;
+    }): string => {
+      return new Intl.DateTimeFormat(`${data.language}-u-ca-gregory`, {
+        ...data.options,
+        timeZone: "UTC",
+      }).format(new Date(data.iso));
+    },
+    { iso: date.toISOString(), language, options },
+  );
+};
+
 /*
  * A day of a week's range, as a chart axis labels it: "15 Oct". The month
  * is named the way the page's browser names it (its Intl, as
@@ -300,19 +327,15 @@ const dayLabel: (
   /*
    * A page in another language writes its dates in it, as the Dashboard
    * does (followLanguageForDates): its Intl's day and month, in the
-   * Gregorian calendar and the language's digits ("۲۸ اکتبر").
+   * Gregorian calendar and the language's digits, and the day without
+   * English's leading zero, which no other language writes ("۳ نوامبر",
+   * OneUptimeDate.getDateAsLocalDayMonthString).
    */
   if (language) {
-    return await page.evaluate(
-      (data: { iso: string; language: string }): string => {
-        return new Intl.DateTimeFormat(`${data.language}-u-ca-gregory`, {
-          day: "2-digit",
-          month: "short",
-          timeZone: "UTC",
-        }).format(new Date(data.iso));
-      },
-      { iso: date.toISOString(), language },
-    );
+    return await localizedDate(page, date, language, {
+      day: "numeric",
+      month: "short",
+    });
   }
 
   const month: string = await page.evaluate((iso: string): string => {
@@ -343,7 +366,10 @@ const inDigitsOf: (language: string | undefined, text: string) => string = (
  * The hovered point of a week's line, an hour's bucket, named as a line
  * chart's tooltip names it and in the order of the line's end labels: day
  * first, "15 Oct, 09:00" (Utils/DashboardDateTime getDashboardBucketLabel),
- * in UTC, the suite's timezone - in the page's language when it has one.
+ * in UTC, the suite's timezone - in the page's language when it has one,
+ * where Intl writes and joins the day and the time as the language does:
+ * "۳ نوامبر، ۱۰:۰۰", with Persian's own comma
+ * (OneUptimeDate.getDateAsLocalDayMonthTimeString).
  */
 const hourLabel: (
   page: Page,
@@ -354,7 +380,17 @@ const hourLabel: (
   date: Date,
   language?: string,
 ): Promise<string> => {
-  return `${await dayLabel(page, date, language)}, ${inDigitsOf(language, `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`)}`;
+  if (language) {
+    return await localizedDate(page, date, language, {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
+
+  return `${await dayLabel(page, date)}, ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
 };
 
 /*

@@ -72,6 +72,9 @@ import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityHunt from "../../Models/DatabaseModels/SecurityHunt";
 import SecurityHuntService from "./SecurityHuntService";
+import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import SloErrorBudgetPolicyChange from "../../Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -195,7 +198,25 @@ export interface NotificationFor {
    * no channel of its own.
    */
   securityHuntId?: ObjectID | undefined;
+  /*
+   * An SLO whose error budget policy the evaluation just moved
+   * (SloWorkspaceNotifications): posted to the channels and chats its
+   * Service Level Objective rules name. It has no channel of its own.
+   * serviceLevelObjectivePolicyChanges says what moved - the tier, the
+   * deploy gate, or both - for the rules' Error Budget Policy Change
+   * condition; the SLO's own name and labels are read as it is now.
+   */
+  serviceLevelObjectiveId?: ObjectID | undefined;
+  serviceLevelObjectivePolicyChanges?:
+    | Array<SloErrorBudgetPolicyChange>
+    | undefined;
 }
+
+// The fields of NotificationFor that name a record, by its id.
+export type NotificationForRecordKey = Exclude<
+  keyof NotificationFor,
+  "serviceLevelObjectivePolicyChanges"
+>;
 
 // Slack conversation ids are short upper-case alphanumerics (C0123ABCD, G..., D...).
 const SLACK_CHANNEL_ID_REGEX: RegExp = /^[A-Za-z0-9]{1,64}$/;
@@ -239,6 +260,7 @@ const LATER_CHANNEL_RECORD_WORDS: Record<NotificationRuleEventType, string> = {
   [NotificationRuleEventType.OnCallDutyPolicy]: "on-call policy",
   [NotificationRuleEventType.SecurityCase]: "security case",
   [NotificationRuleEventType.SecurityHunt]: "hunt",
+  [NotificationRuleEventType.ServiceLevelObjective]: "SLO",
 };
 
 /*
@@ -276,14 +298,16 @@ const SECURITY_RULE_PERMISSION_MESSAGES: Readonly<
 
 /*
  * The kinds of record a rule only posts about, in channels and chats that
- * exist: a security case and a hunt never get a channel of their own.
+ * exist: a security case, a hunt and an SLO's error budget policy never get
+ * a channel of their own.
  */
 export function isPostOnlyNotificationRuleEventType(
   eventType: NotificationRuleEventType | undefined,
 ): boolean {
   return (
     eventType === NotificationRuleEventType.SecurityCase ||
-    eventType === NotificationRuleEventType.SecurityHunt
+    eventType === NotificationRuleEventType.SecurityHunt ||
+    eventType === NotificationRuleEventType.ServiceLevelObjective
   );
 }
 
@@ -2086,6 +2110,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       return NotificationRuleEventType.SecurityHunt;
     }
 
+    if (notificationFor.serviceLevelObjectiveId) {
+      return NotificationRuleEventType.ServiceLevelObjective;
+    }
+
     throw new BadDataException("Notification for not found");
   }
 
@@ -2768,7 +2796,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       "scheduledMaintenanceId",
       "monitorId",
       "onCallDutyPolicyId",
-    ] as Array<keyof NotificationFor>) {
+    ] as Array<NotificationForRecordKey>) {
       const id: ObjectID | undefined = notificationFor[key];
 
       if (id) {
@@ -4885,6 +4913,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
+        [NotificationRuleConditionCheckOn.SloName]: undefined,
+        [NotificationRuleConditionCheckOn.Slos]: undefined,
+        [NotificationRuleConditionCheckOn.SloLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]:
+          undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: incident.title || "",
         [NotificationRuleConditionCheckOn.IncidentDescription]:
@@ -4981,6 +5014,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
+        [NotificationRuleConditionCheckOn.SloName]: undefined,
+        [NotificationRuleConditionCheckOn.Slos]: undefined,
+        [NotificationRuleConditionCheckOn.SloLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]:
+          undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5096,6 +5134,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
+        [NotificationRuleConditionCheckOn.SloName]: undefined,
+        [NotificationRuleConditionCheckOn.Slos]: undefined,
+        [NotificationRuleConditionCheckOn.SloLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]:
+          undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5184,6 +5227,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
+        [NotificationRuleConditionCheckOn.SloName]: undefined,
+        [NotificationRuleConditionCheckOn.Slos]: undefined,
+        [NotificationRuleConditionCheckOn.SloLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]:
+          undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: monitor?.name || "",
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5285,6 +5333,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
+        [NotificationRuleConditionCheckOn.SloName]: undefined,
+        [NotificationRuleConditionCheckOn.Slos]: undefined,
+        [NotificationRuleConditionCheckOn.SloLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]:
+          undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5363,6 +5416,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
+        [NotificationRuleConditionCheckOn.SloName]: undefined,
+        [NotificationRuleConditionCheckOn.Slos]: undefined,
+        [NotificationRuleConditionCheckOn.SloLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]:
+          undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5443,6 +5501,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
+        [NotificationRuleConditionCheckOn.SloName]: undefined,
+        [NotificationRuleConditionCheckOn.Slos]: undefined,
+        [NotificationRuleConditionCheckOn.SloLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]:
+          undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5533,6 +5596,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             return label._id?.toString() || "";
           }) || [],
         [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
+        [NotificationRuleConditionCheckOn.SloName]: undefined,
+        [NotificationRuleConditionCheckOn.Slos]: undefined,
+        [NotificationRuleConditionCheckOn.SloLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]:
+          undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5610,6 +5678,62 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       values[NotificationRuleConditionCheckOn.SecurityHuntName] =
         hunt.name || "";
+
+      return values;
+    }
+
+    /*
+     * An SLO whose error budget policy moved: matched by its name, by the
+     * SLO itself (its id) and by its labels' ids, read as it is now - a
+     * renamed SLO is matched by its new name - and by what moved, which the
+     * evaluation that committed it says (serviceLevelObjectivePolicyChanges).
+     */
+    if (data.notificationFor.serviceLevelObjectiveId) {
+      const slo: ServiceLevelObjective | null =
+        await ServiceLevelObjectiveService.findOneById({
+          id: data.notificationFor.serviceLevelObjectiveId,
+          select: {
+            name: true,
+            labels: {
+              _id: true,
+            },
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!slo) {
+        throw new BadDataException("Service Level Objective ID not found");
+      }
+
+      const values: {
+        [key in NotificationRuleConditionCheckOn]:
+          | string
+          | Array<string>
+          | undefined;
+      } = {} as {
+        [key in NotificationRuleConditionCheckOn]:
+          | string
+          | Array<string>
+          | undefined;
+      };
+
+      for (const checkOn of Object.values(NotificationRuleConditionCheckOn)) {
+        values[checkOn] = undefined;
+      }
+
+      values[NotificationRuleConditionCheckOn.SloName] = slo.name || "";
+      values[NotificationRuleConditionCheckOn.Slos] = [
+        data.notificationFor.serviceLevelObjectiveId.toString(),
+      ];
+      values[NotificationRuleConditionCheckOn.SloLabels] =
+        slo.labels?.map((label: Label): string => {
+          return label._id?.toString() || "";
+        }) || [];
+      values[NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange] = [
+        ...(data.notificationFor.serviceLevelObjectivePolicyChanges || []),
+      ];
 
       return values;
     }

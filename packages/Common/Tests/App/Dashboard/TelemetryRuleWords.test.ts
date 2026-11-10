@@ -112,6 +112,21 @@ const RUSSIAN: Translator = translatorFor(
   "ru",
 );
 
+/*
+ * A reader whose language words the out-of-the-box criteria's offline and
+ * online sentences (#6542), and nothing else: every other sentence is
+ * English.
+ */
+const CHINESE: Translator = translatorFor(
+  {
+    ...(englishLocale as unknown as Locale),
+    "Check if {{monitorName}} is offline": "检查 {{monitorName}} 是否离线",
+    "Check if {{monitorName}} is online": "检查 {{monitorName}} 是否在线",
+    "{{monitorName}} is offline": "{{monitorName}} 已离线",
+  },
+  "zh-CN",
+);
+
 const DEGRADED: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const OFFLINE: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
@@ -1095,6 +1110,34 @@ describe("a rule's name and titles follow an edit while OneUptime wrote them", (
     expect(edited.name).not.toBe("Check if Checkout is offline");
   });
 
+  test("so do the ones they wrote in the reader's language", () => {
+    const rule: TelemetryAlertRule = {
+      ...recipeRule(TelemetryRuleRecipeKey.LogsStop),
+      name: "检查 Checkout 是否离线",
+      incident: {
+        ...recipeRule(TelemetryRuleRecipeKey.LogsStop).incident!,
+        title: "Checkout 已离线",
+      },
+    };
+
+    const edited: TelemetryAlertRule = applyConditionChange({
+      monitorType: MonitorType.Logs,
+      previous: rule,
+      next: {
+        ...rule,
+        filterType: FilterType.GreaterThan,
+        threshold: 10,
+        windowInSeconds: 300,
+      },
+      monitorName: "Checkout",
+      translator: CHINESE,
+    });
+
+    expect(edited.incident?.title).toBe("Checkout: too many errors");
+    expect(edited.name).not.toBe("检查 Checkout 是否离线");
+    expect(edited.name).toContain("10");
+  });
+
   test("a name and a title a person typed stay", () => {
     const rule: TelemetryAlertRule = {
       ...recipeRule(TelemetryRuleRecipeKey.ErrorLogs),
@@ -1269,6 +1312,28 @@ describe("a rule's name and titles follow an edit while OneUptime wrote them", (
     expect(getLegacyTitles("Checkout")).toEqual([
       "Checkout is offline",
       "Checkout has exceptions",
+    ]);
+  });
+
+  /*
+   * The Dashboard writes a new monitor's out-of-the-box criteria in the
+   * language of the person creating it (#6542), so their words are known
+   * in it too - after the English every monitor made before, or by the
+   * server, carries.
+   */
+  test("the out-of-the-box words are known in the reader's language too, after the English", () => {
+    expect(getLegacyRuleNames("Checkout", CHINESE)).toEqual([
+      "Check if Checkout is offline",
+      "Check if Checkout is online",
+      "Check if Checkout has exceptions",
+      "Check if Checkout has no exceptions",
+      "检查 Checkout 是否离线",
+      "检查 Checkout 是否在线",
+    ]);
+    expect(getLegacyTitles("Checkout", CHINESE)).toEqual([
+      "Checkout is offline",
+      "Checkout has exceptions",
+      "Checkout 已离线",
     ]);
   });
 });

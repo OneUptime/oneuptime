@@ -8,6 +8,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import NotificationRuleCondition, {
   NotificationRuleConditionCheckOn,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
@@ -43,6 +44,8 @@ export interface ComponentProps {
   // A security case rule's: the project's own case priorities and statuses.
   securityCasePriorities?: Array<SecurityCasePriority> | undefined;
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
+  // An SLO rule's: the project's SLOs, to name the ones it picks.
+  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
 
@@ -247,7 +250,8 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       checkOn === NotificationRuleConditionCheckOn.MonitorLabels ||
       checkOn === NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels ||
       checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels ||
-      checkOn === NotificationRuleConditionCheckOn.SecurityCaseLabels
+      checkOn === NotificationRuleConditionCheckOn.SecurityCaseLabels ||
+      checkOn === NotificationRuleConditionCheckOn.SloLabels
     ) {
       // In natural order, as labels are listed everywhere (Utils/LabelOrder).
       const selectedLabels: Array<Label> = sortLabels<Label>(
@@ -321,8 +325,35 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       );
     }
 
-    // What raised the case: words of a fixed list, in the reader's language.
-    if (checkOn === NotificationRuleConditionCheckOn.SecurityCaseSource) {
+    /*
+     * The SLOs an SLO rule picks, by their names as the team wrote them,
+     * in the project's order: an SLO since deleted is no longer named.
+     */
+    if (checkOn === NotificationRuleConditionCheckOn.Slos) {
+      const names: Array<string> = (props.serviceLevelObjectives || [])
+        .filter((slo: ServiceLevelObjective): boolean => {
+          return selectedIds.includes(slo.id?.toString() || "");
+        })
+        .map((slo: ServiceLevelObjective): string => {
+          return slo.name || "";
+        })
+        .filter((name: string): boolean => {
+          return Boolean(name);
+        });
+
+      valueElement = (
+        <span className="font-medium text-gray-900">{joinList(names)}</span>
+      );
+    }
+
+    /*
+     * What raised the case, and what moved in an SLO's error budget policy:
+     * words of a fixed list, in the reader's language.
+     */
+    if (
+      checkOn === NotificationRuleConditionCheckOn.SecurityCaseSource ||
+      checkOn === NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange
+    ) {
       valueElement = (
         <span className="font-medium text-gray-900">
           {joinList(

@@ -1099,6 +1099,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/rum/web-vitals",
       },
       {
+        title: "Product Analytics",
+        url: "/docs/rum/product-analytics",
+      },
+      {
         title: "Managing Applications",
         url: "/docs/rum/applications",
       },
@@ -1522,6 +1526,20 @@ const DocsNav: NavGroup[] = [
       {
         title: "OpenTofu",
         url: "/docs/terraform/opentofu",
+      },
+    ],
+  },
+  {
+    title: "Crossplane Provider",
+    section: "Developers",
+    links: [
+      {
+        title: "Crossplane Overview",
+        url: "/docs/crossplane/index",
+      },
+      {
+        title: "Managing Resources",
+        url: "/docs/crossplane/managing-resources",
       },
     ],
   },

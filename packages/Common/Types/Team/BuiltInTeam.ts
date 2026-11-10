@@ -10,3 +10,18 @@
  */
 export const BUILT_IN_TEAM_DELETE_MESSAGE: string =
   "This team comes with every project and can't be deleted.";
+
+/*
+ * Why Owners and Admin (whose isTeamEditable is false) have no owners of
+ * their own: their members are the project's owners and admins, and only
+ * the permissions that come with those roles change who is in them - never a
+ * team permission scoped to the teams someone owns. The server refuses an
+ * owner for them with it (TeamOwnerUserService, TeamOwnerTeamService), and
+ * such a team's page says it where other teams list their owners: the
+ * Dashboard holds the same English as a translation key
+ * (BUILT_IN_TEAM_OWNERS_REASON in Components/Team/BuiltInTeamOwners.ts, on
+ * the team's page and the Teams list's Add Owner and Remove Owner; a test keeps
+ * the two equal).
+ */
+export const BUILT_IN_TEAM_OWNERS_MESSAGE: string =
+  "This team comes with every project and can't have owners.";

@@ -1,9 +1,15 @@
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { MessageQueueTopologyResponse } from "Common/Types/MessageQueue/MessageQueueTopology";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -126,6 +132,25 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
   const [selection, setSelection] =
     useState<MessageQueueTopologySelection | null>(null);
   const [page, setPage] = useState<number>(0);
+
+  /*
+   * The table's columns as wide as a person makes them (Common's
+   * Table/ColumnResize), as the service map's list does: a queue's name
+   * gives way to 10rem, the services on either side of it to 8rem, a rate
+   * or a count never.
+   */
+  const tableColumns: ResizableColumns = useResizableColumns({
+    tableKey: "message-queue-topology-table",
+    columns: [
+      { id: "queue", cellNumber: 1 },
+      { id: "publishedBy", cellNumber: 2 },
+      { id: "consumedBy", cellNumber: 3 },
+      { id: "in", cellNumber: 4 },
+      { id: "out", cellNumber: 5 },
+      { id: "errors", cellNumber: 6 },
+      { id: "waiting", cellNumber: 7 },
+    ],
+  });
 
   /*
    * The URL mirrors the filters, debounced for the search box: a
@@ -520,33 +545,91 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
           aria-label={t("Queues and the services on either side of them")}
           tabIndex={0}
         >
+          {tableColumns.styles}
           <table
-            className="w-full text-left text-sm"
+            className={`${tableColumns.getTableWidthClassName("w-full")} text-left text-sm`}
             data-testid="message-queue-topology-table"
+            {...tableColumns.tableAttributes}
           >
             <thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
               <tr>
-                <th scope="col" className="px-5 py-3 font-medium">
-                  {t("Queue")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Published by")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Consumed by")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("In")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Out")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Errors")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Waiting")}
-                </th>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-5 py-3 font-medium"
+                  resize={tableColumns.getResize(
+                    "queue",
+                    t("Queue"),
+                    ColumnWidthKind.Name,
+                  )}
+                >
+                  <span>{t("Queue")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={tableColumns.getResize(
+                    "publishedBy",
+                    t("Published by"),
+                    ColumnWidthKind.Text,
+                  )}
+                >
+                  <span>{t("Published by")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={tableColumns.getResize(
+                    "consumedBy",
+                    t("Consumed by"),
+                    ColumnWidthKind.Text,
+                  )}
+                >
+                  <span>{t("Consumed by")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={tableColumns.getResize(
+                    "in",
+                    t("In"),
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{t("In")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={tableColumns.getResize(
+                    "out",
+                    t("Out"),
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{t("Out")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={tableColumns.getResize(
+                    "errors",
+                    t("Errors"),
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{t("Errors")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={tableColumns.getResize(
+                    "waiting",
+                    t("Waiting"),
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{t("Waiting")}</span>
+                </ResizableHeaderCell>
                 <th scope="col" className="px-5 py-3 font-medium">
                   <span className="sr-only">{t("Actions")}</span>
                 </th>
@@ -652,7 +735,12 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 disabled={currentPage === 0}
-                className="rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: currentPage === 0,
+                    hoverClassName: "hover:bg-gray-50",
+                  },
+                )}`}
                 onClick={() => {
                   setPage(currentPage - 1);
                 }}
@@ -662,7 +750,12 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 disabled={currentPage >= pageCount - 1}
-                className="rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: currentPage >= pageCount - 1,
+                    hoverClassName: "hover:bg-gray-50",
+                  },
+                )}`}
                 onClick={() => {
                   setPage(currentPage + 1);
                 }}

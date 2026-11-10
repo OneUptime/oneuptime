@@ -60,6 +60,34 @@ const RULES_PAGES_UNDER_RULES: ReadonlyArray<string> = [
 
 const RULES_SECTION_TITLE: string = "Rules";
 
+/*
+ * Rules pages whose title does not say Rules, each in the one menu that
+ * lists it. An SLO's Error Budget Policy is its tiers, each a rule for when
+ * the budget left falls below its threshold - what the team does, whether
+ * deployments freeze, and the alert or incident it raises - set up beside
+ * the Burn Rate Rules that watch the same budget.
+ */
+const RULES_PAGES_NOT_TITLED_RULES: ReadonlyArray<{
+  menu: string;
+  page: string;
+}> = [
+  {
+    menu: "Dashboard/src/Pages/Slo/View/SideMenu.tsx",
+    page: "Error Budget Policy",
+  },
+];
+
+function isRulesPage(menu: string, page: string): boolean {
+  return (
+    page.endsWith(" Rules") ||
+    RULES_PAGES_NOT_TITLED_RULES.some(
+      (entry: { menu: string; page: string }): boolean => {
+        return entry.menu === menu && entry.page === page;
+      },
+    )
+  );
+}
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
@@ -396,13 +424,32 @@ describe("rules pages sit in a Rules section", () => {
       const rules: SectionReading | undefined = rulesSectionOf(reading);
 
       for (const link of rules?.links || []) {
-        if (!link.title.endsWith(" Rules")) {
+        if (!isRulesPage(reading.menu, link.title)) {
           strays.push({ menu: reading.menu, page: link.title });
         }
       }
     }
 
     expect(strays).toEqual([]);
+  });
+
+  test("a rules page not titled Rules sits in its menu's Rules section", async () => {
+    const readings: Array<MenuReading> = await allMenuReadings();
+
+    for (const entry of RULES_PAGES_NOT_TITLED_RULES) {
+      const reading: MenuReading | undefined = readings.find(
+        (candidate: MenuReading): boolean => {
+          return candidate.menu === entry.menu;
+        },
+      );
+
+      expect([
+        entry.page,
+        rulesSectionOf(reading!)?.links.map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ]).toEqual([entry.page, expect.arrayContaining([entry.page])]);
+    }
   });
 });
 

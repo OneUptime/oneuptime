@@ -50,8 +50,11 @@ jest.mock("../../../Server/Utils/Logger");
  * EXACTLY ONE DEFAULT PER PROJECT, AND ONLY AFTER THE WRITE SUCCEEDED.
  *
  * A project uses one LLM provider, one AI agent, one saved log, trace and
- * metric view, one Twilio config and one Runner by default. Making a row the default
- * takes the default from the project's other rows of that kind. That used to
+ * metric view and one Runner by default - and one Twilio config for SMS and
+ * one for calls (Types/CallAndSMS/TwilioConfigDefaults): the configs here
+ * are for calls and SMS, so one of them is the default for both. Making a
+ * row the default takes the default from the project's other rows of that
+ * kind. That used to
  * happen in onBeforeCreate / onBeforeUpdate - before DatabaseService's
  * permission check, and before anything else could refuse the write - so a
  * create or update that was then refused, or that failed, had already taken

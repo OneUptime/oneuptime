@@ -3,11 +3,14 @@ import { escapeRegExp } from "./DocsTranslationChecks";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamOwnerTeam from "Common/Models/DatabaseModels/TeamOwnerTeam";
+import TeamOwnerUser from "Common/Models/DatabaseModels/TeamOwnerUser";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import PermissionScopeNarrowing from "Common/Types/Database/AccessControl/PermissionScopeNarrowing";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import { BUILT_IN_TEAM_OWNERS_MESSAGE } from "Common/Types/Team/BuiltInTeam";
 import AndroidNotificationChannel from "Common/Types/PushNotification/AndroidNotificationChannel";
 import PushNotificationLevel, {
   DEFAULT_PUSH_NOTIFICATION_LEVEL,
@@ -85,6 +88,9 @@ const SOURCES: Record<string, string> = {
   ingressConfig: "packages/Nginx/default.conf.template",
   environmentConfig: `${COMMON_SERVER}/EnvironmentConfig.ts`,
   projectService: `${COMMON_SERVER}/Services/ProjectService.ts`,
+  customRoleService: `${COMMON_SERVER}/Services/CustomRoleService.ts`,
+  teamsList: `${DASHBOARD}/Pages/Teams/Index.tsx`,
+  builtInTeamOwners: `${DASHBOARD}/Components/Team/BuiltInTeamOwners.ts`,
   pushService: `${COMMON_SERVER}/Services/PushNotificationService.ts`,
   pushRelay: "packages/App/FeatureSet/Notification/API/PushRelay.ts",
   receiptQueue: `${COMMON_SERVER}/Infrastructure/ExpoPushReceiptQueue.ts`,
@@ -893,7 +899,7 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
     );
     expect(
       PermissionScopeNarrowing.isNarrowedByAnyScope(
-        Permission.CreateProjectTeam,
+        Permission.CreateProjectLabel,
       ),
     ).toBe(false);
     expect(PermissionHelper.getTitle(Permission.CreateWorkflow)).toBe(
@@ -902,8 +908,8 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
     expect(PermissionHelper.getTitle(Permission.EditWorkflow)).toBe(
       "Edit Workflow",
     );
-    expect(PermissionHelper.getTitle(Permission.CreateProjectTeam)).toBe(
-      "Create Team",
+    expect(PermissionHelper.getTitle(Permission.CreateProjectLabel)).toBe(
+      "Create Label",
     );
 
     expect(readSource("teamPermissionTable")).toContain(
@@ -914,13 +920,106 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
     );
 
     expect(page).toContain(
-      "A single permission, added with **Add Permission**, is offered a scope wherever one narrows it, with only the answers that do: **Create Workflow** can be limited to the workflows a team owns, or to some labels, just as **Edit Workflow** can, while a permission on something everyone shares, such as **Create Team**, offers no scope, because none would narrow it.",
+      "A single permission, added with **Add Permission**, is offered a scope wherever one narrows it, with only the answers that do: **Create Workflow** can be limited to the workflows a team owns, or to some labels, just as **Edit Workflow** can, while a permission on something everyone shares, such as **Create Label**, offers no scope, because none would narrow it.",
     );
     expect(page).toContain(
       "A block is never limited to owned resources: it takes a permission away everywhere, or, with labels, from the resources carrying them.",
     );
     expect(page).toContain(
       "A global user override applies to every on-call policy, so adding or deleting one takes the override permission scoped to all resources in the project the same way;",
+    );
+  });
+
+  /*
+   * Issue #6561: a team has owners (TeamOwnerUser, TeamOwnerTeam), and six
+   * team permissions scoped to Owned reach the teams their holder, or the
+   * team holding them, owns (PermissionScopeNarrowing). The Team owners
+   * section is held to the lists, the owner tables and the server's words.
+   */
+  it("says a team has owners, and which team permissions Owned narrows to the teams you own", () => {
+    const narrowed: Array<[Permission, string]> = [
+      [Permission.CreateProjectTeam, "Create Team"],
+      [Permission.EditProjectTeam, "Edit Team"],
+      [Permission.DeleteProjectTeam, "Delete Team"],
+      [Permission.InviteProjectTeamMembers, "Invite New Members"],
+      [Permission.RemoveProjectTeamMembers, "Remove Team Members"],
+      [Permission.EditProjectTeamPermissions, "Edit Team Permissions"],
+    ];
+
+    for (const [permission, title] of narrowed) {
+      expect({
+        permission,
+        scopes: PermissionScopeNarrowing.getScopes(permission),
+      }).toEqual({
+        permission,
+        scopes: [PermissionScope.All, PermissionScope.Owned],
+      });
+      expect(PermissionHelper.getTitle(permission)).toBe(title);
+    }
+
+    const titles: Array<string> = narrowed.map(
+      ([, title]: [Permission, string]): string => {
+        return `**${title}**`;
+      },
+    );
+
+    expect(page).toContain(
+      `Six team permissions can be scoped to Owned: ${titles.slice(0, -1).join(", ")} and ${titles[titles.length - 1]}.`,
+    );
+
+    // Reading teams is never narrowed: a team is picked everywhere.
+    expect(
+      PermissionScopeNarrowing.isNarrowedByAnyScope(Permission.ReadProjectTeam),
+    ).toBe(false);
+    expect(page).toContain(
+      "Reading teams is never narrowed: a team is picked as an owner, an on-call responder and a recipient everywhere, so everyone who may read teams sees every team, who is in it and what it may do.",
+    );
+
+    // Owners are added and removed with Edit Team, and read with the team.
+    const writers: Array<Permission> = [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ];
+
+    for (const owners of [new TeamOwnerUser(), new TeamOwnerTeam()]) {
+      expect(owners.createRecordPermissions).toEqual(writers);
+      expect(owners.deleteRecordPermissions).toEqual(writers);
+      expect(owners.readRecordPermissions).toEqual(
+        new Team().readRecordPermissions,
+      );
+    }
+    expect(page).toContain(
+      "They are shown on the team's page and in the team list, and are added and removed with **Edit Team**. The **Owners** and **Admin** teams, which come with every project, have none.",
+    );
+    expect(BUILT_IN_TEAM_OWNERS_MESSAGE).toBe(
+      "This team comes with every project and can't have owners.",
+    );
+
+    /*
+     * Many teams at once (#6592): the team list's Bulk Actions, over the same
+     * two owner tables, skipping the teams that take no owners.
+     */
+    const teamsList: string = readSource("teamsList");
+    expect(teamsList).toContain("useBulkOwnerActions<Team>({");
+    expect(teamsList).toContain("ownerUserModelType: TeamOwnerUser,");
+    expect(teamsList).toContain("ownerTeamModelType: TeamOwnerTeam,");
+    expect(teamsList).toContain(
+      "getOwnersDisabledReason: getTeamOwnersDisabledReason,",
+    );
+    expect(readSource("builtInTeamOwners")).toContain(
+      "return team.isTeamEditable === false",
+    );
+    expect(page).toContain(
+      "To add or remove owners of several teams at once, select them in the team list and choose **Add Owner** or **Remove Owner** under **Bulk Actions**; **Owners** and **Admin** are skipped.",
+    );
+
+    // A custom role is given to any team, so it changes only over the whole project.
+    expect(readSource("customRoleService")).toContain(
+      "changing one needs Edit Team Permissions for the whole project, not only for the teams you own.",
+    );
+    expect(page).toContain(
+      "It never changes a custom role itself: a custom role can be given to any team, so changing one takes **Edit Team Permissions** for the whole project.",
     );
   });
 

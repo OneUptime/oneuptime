@@ -1060,6 +1060,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
                         return StatusPageSubscriberWebhookUtil.sendWebhookNotification(
                           {
                             webhookUrl: subscriberWebhook,
+                            isAddedByTeam: subscriber.isAddedByTeam,
                             payload: {
                               eventType: "EpisodeCreated",
                               statusPageId: statuspage.id!.toString(),

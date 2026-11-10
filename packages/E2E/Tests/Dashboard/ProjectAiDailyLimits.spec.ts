@@ -19,8 +19,9 @@ import { boxesInOneFrame } from "../../SuiteHelpers/Frames";
  * the server's rules and today's usage.
  *
  *  - More settings starts folded under Enable AI, names its cards - Daily
- *    limits, and Fix approvals (#6148's follow-up: two people approve a
- *    riskier fix) - and says what applies and what AI used today:
+ *    limits, Limits per run (#6440: how far one AI run may go) and Fix
+ *    approvals (#6148's follow-up: two people approve a riskier fix) - and
+ *    says what applies and what AI used today:
  *    "Nothing limits how much OneUptime AI uses each day. Used today: 0
  *    tokens." (with the AI credits spent too, where AI is billed);
  *  - open, it is one card: Daily limits is its section, a divider above
@@ -153,6 +154,7 @@ test.describe("Project Settings → AI → AI Features: daily AI limits", () => 
     await expect(foldHeader()).toHaveAttribute("aria-expanded", "false");
     await expect(section().getByTestId("folded-section-item")).toHaveText([
       "Daily limits",
+      "Limits per run",
       "Fix approvals",
     ]);
     await expect(summary()).toHaveText(
@@ -177,10 +179,10 @@ test.describe("Project Settings → AI → AI Features: daily AI limits", () => 
     const sections: Locator = section().locator(
       '[data-testid="card"][data-card-surface="section"]',
     );
-    // Daily limits, then Fix approvals: each a section of the one card.
+    // Daily limits, Limits per run, then Fix approvals: each a section of the one card.
     const daily: Locator = sections.filter({ hasText: "Daily limits" });
 
-    await expect(sections).toHaveCount(2);
+    await expect(sections).toHaveCount(3);
     await expect(daily).toHaveCount(1);
     await expect(daily.getByTestId("card-details-heading")).toHaveText(
       "Daily limits",

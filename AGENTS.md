@@ -87,6 +87,15 @@ cluster-backed suites that install the chart on a throwaway KinD cluster. That i
 `helm-test` job in the "Common Jobs" workflow. Suites live in `HelmChart/Tests/suites`;
 see `HelmChart/README.md` for how to add one.
 
+### Releasing OneUptime
+
+Releases go through a release branch: `release-<version>` is cut from `main` and bumped, its pull request into
+`release` is the release's CI gate, every red check is fixed in that branch and the branch is merged into `main`
+after every push (`Scripts/Release/MergeReleaseBranchIntoMain.sh`), the branch is merged into `release` once green
+and into `main` once more, and the release run is followed until OneUptime has shipped. The next release is cut
+when `main` has pull requests the last one did not ship. While a release is in flight, `Scripts/Release/PrioritizeReleaseRuns.sh` cancels
+every other workflow run so the release has the runners. [RELEASING.md](RELEASING.md) has every step and command.
+
 ### Release notes
 
 Each release's notes on GitHub, which the upgrade guide sends self-hosters to and the website links to as the Changelog, are written by `Scripts/Release/GenerateReleaseNotes.js` from what the release ships: the title of every pull request and the subject of every commit pushed straight to main. So a title is a line someone reads on the release page. Write it as `type(area): what changed, for the person using OneUptime`, not what the code does.

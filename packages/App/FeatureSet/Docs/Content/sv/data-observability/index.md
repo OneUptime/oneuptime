@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Anslut en databas
 
-Öppna **Dataobserverbarhet**, gå till **Databaser** och välj **Anslut en databas**. Välj motor och ange en anslutningssträng med enbart läsbehörighet, eller namnet på den miljövariabel som din sond läser den från. [Anslut en databas](/docs/data-observability/connect) visar inloggningen för varje motor.
+Öppna **Dataobserverbarhet** och välj **Anslut en databas**, på **Översikt** eller på **Databaser**. Välj motor och ange en anslutningssträng med enbart läsbehörighet, eller namnet på den miljövariabel som din sond läser den från. [Anslut en databas](/docs/data-observability/connect) visar inloggningen för varje motor.
 
-### Se dess tabeller
+### Slå på dess rekommenderade larm
+
+En databas du ansluter öppnas på sidan **Rekommenderade larm**, eftersom ingen får veta något om dess tabeller förrän några av dem är på. Lägg till de larm du vill ha: en tabell som är försenad, en vars rader faller kraftigt eller är ovanligt få, en vars kolumner ändras, och en databas som slutar rapportera. Var och en är en vanlig monitor: jour, ägare, underhållsfönster och statussidor fungerar som för vilken annan som helst.
+
+### Läs översikten
 
 Inom fem minuter visas dess tabeller under **Tabeller**, var och en med sina rader, sin storlek och när den senast ändrades. En tabells aktualitet är känd när den har ändrats två gånger: **Färsk** så länge den håller sin rytm, **Sen** när den missar den.
 
-### Lägg till de rekommenderade larmen
-
-Välj **Rekommenderade larm** för databasen under **Databaser**, och lägg till de larm du vill ha: en tabell som är försenad, en vars rader faller kraftigt eller är ovanligt få, en vars kolumner ändras, och en databas som slutar rapportera. Var och en är en vanlig monitor: jour, ägare, underhållsfönster och statussidor fungerar som för vilken annan som helst.
+**Översikt** visar sedan vad som behöver någon nu, det värsta först: en databas som inte kunde läsas, en pipelinekörning som misslyckades eller är sen, en kontroll som misslyckas eller inte kunde köras, en avstämning som har glidit isär, och en dataprodukt eller tabell som är sen. Varje punkt säger vem som äger den och om dess larm är öppet, eller att ingen får veta något eftersom dess databas inte har något larm på, och öppnar sidan där det rättas till. Tills projektet är konfigurerat visar **Översikt** stegen som återstår: larm på varje databas, ägare till tabellerna, en kontroll och dina pipelinekörningar.
 :::
+
+## Var du hittar vad
+
+Menyn följer de frågor du ställer om dina data. Dess första avsnitt har sidorna för varje dag: **Översikt**, **Tabeller**, **Pipelines**, **Schemaändringar**, **Databaser** och **Lagringssökvägar**. **Kvalitet** har reglerna som data måste följa, **Kontroller** och **Avstämningar**, och **Användning** vem som förlitar sig på dem och vad de kostar: **Dataprodukter**, **BI-instrumentpaneler**, **Lagerkostnad** och **Oanvända tabeller**. **Regler** (**Ägarregler** och **Etikettregler**), **Hjälp** och **Avancerad** (**Inställningar** och **Borttagna tabeller**) är ihopfällda tills du öppnar dem.
 
 ## Vad det kostar
 

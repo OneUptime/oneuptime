@@ -55,6 +55,7 @@ jobs:
           - Common Jobs
           - Common Test
           - Compile
+          - Crossplane Provider
           - Dependency Audit
           - Enterprise Edition Test
           - GitOps Revert Suite

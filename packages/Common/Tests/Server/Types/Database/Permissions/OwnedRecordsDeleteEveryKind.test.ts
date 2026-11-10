@@ -1,11 +1,13 @@
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import BasePermission from "../../../../../Server/Types/Database/Permissions/BasePermission";
+import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/ColumnPermission";
 import DeletePermission from "../../../../../Server/Types/Database/Permissions/DeletePermission";
 import OwnedScopePermission from "../../../../../Server/Types/Database/Permissions/OwnedScopePermission";
 import OwnerTableRegistry from "../../../../../Server/Types/Database/Permissions/OwnerTableRegistry";
 import TablePermission from "../../../../../Server/Types/Database/Permissions/TablePermission";
 import AllModelTypes from "../../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
 import { TableColumnMetadata } from "../../../../../Types/Database/TableColumn";
@@ -397,6 +399,17 @@ const UPDATABLE_KINDS: Array<Kind> = EVERY_KIND.filter(
   },
 );
 
+/*
+ * A kind whose changes the Owned scope does not narrow, because every
+ * signed-in person may make them (CurrentUser), with what holds them: the
+ * only columns of a team membership anyone changes are its invitation's
+ * acceptance, which TeamMemberService lets only the invited person set.
+ */
+const CHANGED_BY_EVERY_SIGNED_IN_USER: Dictionary<string> = {
+  TeamMember:
+    "only the invited person accepts their invitation (TeamMemberService.onBeforeUpdate)",
+};
+
 const READABLE_KINDS: Array<Kind> = EVERY_KIND.filter((kind: Kind): boolean => {
   return (
     scopeablePermissions(kind.modelType, DatabaseRequestType.Read).length > 0
@@ -623,9 +636,48 @@ describe("a change by a caller limited to owned records, every kind the Owned sc
         kind.name,
         reaches(query, kind.column, OWNED_ID),
         reaches(query, kind.column, OTHER_ID),
-      ]).toEqual([kind.name, true, false]);
+      ]).toEqual([
+        kind.name,
+        true,
+        Boolean(CHANGED_BY_EVERY_SIGNED_IN_USER[kind.name]),
+      ]);
     },
   );
+
+  test("a kind every signed-in person changes has no other column to change", () => {
+    expect(Object.keys(CHANGED_BY_EVERY_SIGNED_IN_USER)).toEqual([
+      "TeamMember",
+    ]);
+    expect(
+      TablePermission.getTablePermission(
+        TeamMember,
+        DatabaseRequestType.Update,
+      ),
+    ).toContain(Permission.CurrentUser);
+
+    // Of the columns a write may name: not those every record has.
+    const model: TeamMember = new TeamMember();
+    const changeable: Array<string> = model
+      .getTableColumns()
+      .columns.filter((column: string): boolean => {
+        return (
+          !ColumnPermissions.getExcludedColumnNames().includes(column) &&
+          (model.getColumnAccessControlFor(column)?.update || []).length > 0
+        );
+      })
+      .sort();
+
+    expect(changeable).toEqual([
+      "hasAcceptedInvitation",
+      "invitationAcceptedAt",
+    ]);
+
+    for (const column of changeable) {
+      expect(model.getColumnAccessControlFor(column)?.update).toEqual([
+        Permission.CurrentUser,
+      ]);
+    }
+  });
 
   test.each(UPDATABLE_KINDS)(
     "$name: the same grants over the whole project change every record",
@@ -689,6 +741,18 @@ describe("a read by a caller limited to owned records, every kind the Owned scop
         "ScheduledMaintenanceTemplate",
         "ScheduledMaintenanceTemplateOwnerTeam",
         "ScheduledMaintenanceTemplateOwnerUser",
+        /*
+         * A team is picked as an owner, an on-call responder and a
+         * recipient everywhere: every reader of teams reads every one, who
+         * is in it and what it may do - its owners narrow only its changes.
+         */
+        "Team",
+        "TeamComplianceSetting",
+        "TeamCustomRole",
+        "TeamMember",
+        "TeamOwnerTeam",
+        "TeamOwnerUser",
+        "TeamPermission",
       ].sort(),
     );
   });
