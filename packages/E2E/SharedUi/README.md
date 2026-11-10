@@ -6,8 +6,9 @@ first focus, the Duplicate, Reset and Delete cards (`DuplicateModel`,
 `ResetObjectID`, `ModelDelete`) and their dialogs, `CollapsibleSection` and
 `SideMenuSection`, the pills (`Label`, `BooleanValue`, `DropdownValueBadge`),
 the stat tiles (`InfoCard`), the multi-selects' chips (`Dropdown`,
-`EntityDropdown`), `PeopleAvatar`, and the radios and checkboxes
-(`ChoiceRows`, `Checkbox`; `?section=choices`), and a rule's conditions
+`EntityDropdown`), a single pick open and locked (`Dropdown`),
+`PeopleAvatar`, and the radios and checkboxes (`ChoiceRows`, `Checkbox`;
+`?section=choices`), and a rule's conditions
 (`RuleCriteriaBuilder`, `?section=rules`) at the widths rule forms give
 them. A network device's Connectivity tools are
 the real `DeviceDiagnostics`. It bundles the production components with
@@ -53,6 +54,9 @@ The suite checks what jsdom cannot:
 - a label, a yes/no and a choice are one pill; a stat tile's name has no
   capitals, tracking or dot; a multi-select's chips show whole names on a
   phone;
+- a dropdown that cannot be changed is grey and does not point, while one
+  that can is white and points, also under the pointer; in the dark theme
+  the two are filled apart too;
 - a team's avatar stands out from a dark card at 3:1 on every edge, its
   initials at 4.5:1;
 - in the dark theme, radios and checkboxes are the theme's own rather than the
