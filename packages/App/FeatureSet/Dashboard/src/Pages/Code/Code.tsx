@@ -204,6 +204,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <CodeTaskList
             scope={{ allRepositories: true }}
+            showFilters={true}
             repositoryNames={repositoryNames}
             repositoryHosts={repositoryHosts}
             onCount={(count: number) => {

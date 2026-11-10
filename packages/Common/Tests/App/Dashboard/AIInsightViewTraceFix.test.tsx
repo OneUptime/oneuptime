@@ -282,9 +282,7 @@ describe("a Traces finding's page", () => {
       expect(posted("/telemetry-ai/fix")).toEqual([{ insightId: INSIGHT_ID }]);
     });
 
-    expect(
-      await screen.findByText("View the fix task and pull request"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("View the task")).toBeInTheDocument();
     await waitFor(() => {
       expect(
         screen.queryByTestId(TELEMETRY_AI_FIX_TEST_IDS.strip),

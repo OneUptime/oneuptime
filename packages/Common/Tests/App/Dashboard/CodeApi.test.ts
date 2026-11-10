@@ -5,9 +5,11 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   CodeRepositoryBranchesJSON,
   CodeTaskContextType,
+  CodeTaskListFilter,
   CodeTaskListKind,
   CodeTaskState,
   CodeTaskTurnProgressJSON,
+  MAX_CODE_TASKS_PER_REQUEST,
 } from "../../../Types/AI/CodeTask";
 import { APP_API_URL } from "../../../UI/Config";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -55,6 +57,7 @@ import CodeApi, {
   CodeRepositoryResponse,
   CodeTaskListResponse,
   CodeTaskResponse,
+  getIdBatches,
   getTaskListScopeBody,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 
@@ -571,5 +574,199 @@ describe("every Code route", () => {
     await expect(
       CodeApi.reply({ taskId: TASK_ID, message: "More", context: [] }),
     ).rejects.toBe(refusal);
+  });
+});
+
+describe("a task list's filters, an insight's fix tasks, and trying many again", () => {
+  test("a filter, a search and the counts are asked for only when they say something", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        tasks: [],
+        totalCount: 2,
+        skip: 0,
+        limit: 20,
+        counts: {
+          all: 9,
+          inProgress: 2,
+          waitingForYou: 1,
+          pullRequestOpen: 3,
+          failed: 2,
+          done: 1,
+        },
+      }) as never,
+    );
+
+    const list: CodeTaskListResponse = await CodeApi.listTasks({
+      scope: { repositoryId: REPOSITORY_ID },
+      skip: 0,
+      limit: 20,
+      filter: CodeTaskListFilter.Failed,
+      search: "gateway",
+      withCounts: true,
+    });
+
+    expect(lastCall().data).toEqual({
+      repositoryId: REPOSITORY_ID,
+      filter: "failed",
+      search: "gateway",
+      withCounts: true,
+      skip: 0,
+      limit: 20,
+    });
+    expect(list.count).toBe(2);
+    expect(list.counts).toEqual({
+      all: 9,
+      inProgress: 2,
+      waitingForYou: 1,
+      pullRequestOpen: 3,
+      failed: 2,
+      done: 1,
+    });
+
+    // Every task, no search, no counts: nothing more than before.
+    await CodeApi.listTasks({
+      scope: { repositoryId: REPOSITORY_ID },
+      skip: 0,
+      limit: 20,
+      filter: CodeTaskListFilter.All,
+      search: "",
+      withCounts: false,
+    });
+
+    expect(lastCall().data).toEqual({
+      repositoryId: REPOSITORY_ID,
+      skip: 0,
+      limit: 20,
+    });
+  });
+
+  test("an answer without counts has none", async () => {
+    postMock.mockResolvedValue(
+      answer({ tasks: [], totalCount: 0, skip: 0, limit: 20 }) as never,
+    );
+
+    const list: CodeTaskListResponse = await CodeApi.listTasks({
+      scope: { repositoryId: REPOSITORY_ID },
+      skip: 0,
+      limit: 20,
+    });
+
+    expect(list).not.toHaveProperty("counts");
+  });
+
+  test("an insight's fix tasks are read together - nothing asked for none, and a long list in batches the server reads", async () => {
+    expect(await CodeApi.getTaskSummaries([])).toEqual([]);
+    expect(postMock).not.toHaveBeenCalled();
+
+    const ids: Array<string> = Array.from(
+      { length: MAX_CODE_TASKS_PER_REQUEST + 3 },
+      (_: unknown, index: number): string => {
+        return `00000000-0000-4000-8000-${index.toString().padStart(12, "0")}`;
+      },
+    );
+
+    postMock.mockImplementation(((options: { data: JSONObject }) => {
+      return Promise.resolve(
+        answer({
+          tasks: (options.data["taskIds"] as Array<string>).map(
+            (id: string) => {
+              return { id };
+            },
+          ),
+        }),
+      );
+    }) as never);
+
+    // A repeated id is asked for once.
+    const tasks: Array<{ id: string }> = await CodeApi.getTaskSummaries([
+      ...ids,
+      ids[0]!,
+    ]);
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(lastCall().url).toBe(apiUrl("/summaries"));
+    expect(
+      tasks.map((task: { id: string }) => {
+        return task.id;
+      }),
+    ).toEqual(ids);
+    expect(
+      getIdBatches(ids).map((batch: Array<string>) => {
+        return batch.length;
+      }),
+    ).toEqual([MAX_CODE_TASKS_PER_REQUEST, 3]);
+  });
+
+  test("a summaries answer without tasks reads as none", async () => {
+    postMock.mockResolvedValue(answer({}) as never);
+
+    expect(await CodeApi.getTaskSummaries([TASK_ID])).toEqual([]);
+    expect(lastCall().data).toEqual({ taskIds: [TASK_ID] });
+  });
+
+  test("trying many again adds up what each request did, and why some could not be", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        retried: 1,
+        failed: [{ taskId: REPOSITORY_ID, message: "AI is still working." }],
+      }) as never,
+    );
+
+    expect(await CodeApi.retryMany([TASK_ID, REPOSITORY_ID])).toEqual({
+      retried: 1,
+      failed: [{ taskId: REPOSITORY_ID, message: "AI is still working." }],
+    });
+    expect(lastCall().url).toBe(apiUrl("/retry-many"));
+    expect(lastCall().data).toEqual({ taskIds: [TASK_ID, REPOSITORY_ID] });
+
+    postMock.mockResolvedValue(answer({ retried: "x" }) as never);
+    expect(await CodeApi.retryMany([TASK_ID])).toEqual({
+      retried: 0,
+      failed: [],
+    });
+  });
+
+  test("a working turn AI tries again by itself says which attempt and when; a broken retry is dropped", async () => {
+    const retry: JSONObject = {
+      attempt: 2,
+      maxAttempts: 3,
+      nextAttemptAt: "2026-11-09T10:04:00.000Z",
+      kind: "ProviderUnavailable",
+    };
+
+    postMock.mockResolvedValue(
+      answer({
+        runId: TASK_ID,
+        status: "Queued",
+        state: CodeTaskState.Working,
+        isQueued: true,
+        steps: [],
+        retry,
+      }) as never,
+    );
+
+    const progress: CodeTaskTurnProgressJSON = await CodeApi.getTurnProgress({
+      taskId: TASK_ID,
+      runId: TASK_ID,
+      afterSequence: -1,
+    });
+
+    expect(progress.retry).toEqual(retry);
+
+    postMock.mockResolvedValue(
+      answer({
+        state: CodeTaskState.Working,
+        steps: [],
+        retry: "soon",
+      }) as never,
+    );
+
+    expect(
+      await CodeApi.getTurnProgress({
+        taskId: TASK_ID,
+        runId: TASK_ID,
+        afterSequence: -1,
+      }),
+    ).not.toHaveProperty("retry");
   });
 });

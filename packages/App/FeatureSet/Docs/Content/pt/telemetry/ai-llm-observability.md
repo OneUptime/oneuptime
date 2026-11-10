@@ -319,6 +319,8 @@ As chamadas de IA são armazenadas como spans de trace, então as **Regras de ma
 
 Prompts e respostas enviados como eventos de log são armazenados como logs, então se aplicam a eles as **Regras de mascaramento** e os **Filtros de descarte** dos logs, em **Registros → Configurações**: uma regra que mascara e-mails nos traces não os mascara nos eventos de log. Uma conversa só os mostra a quem também pode ler os logs desse aplicativo, e quem pode lê-los também os encontra na página **Registros**.
 
+Em ambos os casos, uma regra lê cada texto dentro de uma lista ou de um valor estruturado, como as mensagens que uma instrumentação envia como lista em vez de texto JSON, e mantém a forma do valor: um endereço de e-mail em um prompt é mascarado onde quer que esteja. Veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis).
+
 As conversas são lidas com a mesma permissão dos traces: quem pode ler os traces do projeto pode ler suas conversas, e mais ninguém. As conversas de uma ferramenta de IA da empresa são a exceção: só os proprietários e administradores do projeto podem lê-las, a menos que a conexão dela diga outra coisa ([Ferramentas de IA da empresa](/docs/telemetry/ai-company-tools#privacidade)).
 
 ## Atributos que o OneUptime lê

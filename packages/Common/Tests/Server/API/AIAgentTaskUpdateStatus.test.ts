@@ -5,6 +5,7 @@ import CodeFixAgentAuth, {
 import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../Server/Services/AIRunEventService";
+import CodeFixAutoRetry from "../../../Server/Utils/AI/CodeFix/CodeFixAutoRetry";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import Semaphore, {
@@ -388,6 +389,62 @@ describe("POST /ai-agent-task/update-task-status", () => {
 
     expect(succeeded()).toBe(true);
     expect(appendEventSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * An attempt that failed for a reason trying again can fix goes back to
+   * the queue (CodeFixAutoRetry): the run is not failed, gets no RunFailed
+   * event, and the Runner is told it will be tried again.
+   */
+  test("an Error the run will be tried again for is not failed", async () => {
+    const tryAgainSpy: jest.SpyInstance = jest
+      .spyOn(CodeFixAutoRetry, "tryAgainLater")
+      .mockResolvedValue(true);
+
+    await report({
+      status: AIAgentTaskStatus.Error,
+      statusMessage: "The AI could not finish: LLM completion request failed",
+    });
+
+    expect(tryAgainSpy).toHaveBeenCalledWith({
+      runId: runId,
+      failure: "The AI could not finish: LLM completion request failed",
+    });
+    expect(transitionSpy).not.toHaveBeenCalled();
+    expect(appendEventSpy).not.toHaveBeenCalled();
+
+    const sendJson: jest.Mock =
+      Response.sendJsonObjectResponse as unknown as jest.Mock;
+    expect(sendJson.mock.calls[0]![2]).toEqual(
+      expect.objectContaining({ willRetry: true }),
+    );
+  });
+
+  test("an Error that will not be tried again fails the run, as it always did", async () => {
+    jest.spyOn(CodeFixAutoRetry, "tryAgainLater").mockResolvedValue(false);
+
+    await report({
+      status: AIAgentTaskStatus.Error,
+      statusMessage: "Invalid API key provided",
+    });
+
+    expect(transition().set.status).toBe(AIRunStatus.Error);
+    expect(transition().set.errorMessage).toBe("Invalid API key provided");
+    expect(appendEventSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: AIRunEventType.RunFailed }),
+    );
+  });
+
+  test("a Completed report is never tried again", async () => {
+    const tryAgainSpy: jest.SpyInstance = jest.spyOn(
+      CodeFixAutoRetry,
+      "tryAgainLater",
+    );
+
+    await report({ status: AIAgentTaskStatus.Completed });
+
+    expect(tryAgainSpy).not.toHaveBeenCalled();
+    expect(transition().set.status).toBe(AIRunStatus.Completed);
   });
 
   /*
