@@ -89,7 +89,7 @@ Twilio 号码可以同时拨打电话和发送短信，也可以只支持其中�
 
 ## 3. 配置网络访问
 
-仅有出站访问即可发送。投递状态更新、按键确认和来电则需要 Twilio 能访问您的服务器。
+仅有出站访问即可发送。投递状态更新、通话结果、按键确认和来电则需要 Twilio 能访问您的服务器。
 
 ```mermaid title="出站发送，入站回调"
 sequenceDiagram
@@ -111,6 +111,7 @@ sequenceDiagram
 | --- | --- |
 | 提交短信 | 否。不过投递状态更新需要回调。 |
 | 简单的测试语音电话 | 否。OneUptime 在出站 API 请求中附带语音指令。 |
+| 了解值班电话是否被接听 | 是。Twilio 会报告每通电话的结束方式，事件的 Feed 因此能写出有人未接听。没有它，电话也会照常拨出。 |
 | 按 1 确认值班告警 | 是。Twilio 把按键输入提交给 OneUptime。 |
 | 来电策略 | 是。Twilio 请求通话指令并报告拨号结果。 |
 
@@ -119,13 +120,14 @@ sequenceDiagram
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | 短信投递状态 |
+| POST | `/notification/call/status-callback/:callLogId/:token` | 通话结果 |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | 按键确认 |
 | POST | `/notification/incoming-call/voice` | 可选：来电指令 |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | 可选：来电路由结果 |
 
-OneUptime 会自动生成短信和确认的 URL。不要用固定的 webhook URL 替换其中的令牌。来电请按照[来电策略](/docs/on-call/incoming-call-policy)操作，关联号码时会为该号码配置 webhook。
+OneUptime 会自动生成短信、通话结果和确认的 URL。不要用固定的 webhook URL 替换其中的令牌。来电请按照[来电策略](/docs/on-call/incoming-call-policy)操作，关联号码时会为该号码配置 webhook。
 
-Twilio 要求 [webhook URL 可被公开访问](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。请使用公开受信任的 TLS 证书，并在经过代理时保留原始的主机、协议、路径、查询参数、请求体和 `X-Twilio-Signature` 请求头。来电处理程序会验证 Twilio 签名；短信投递使用每条消息独有的 URL 令牌，按键确认使用签名的查询令牌。不要在共享日志或截图中暴露令牌。请参阅 [Twilio webhook 安全](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
+Twilio 要求 [webhook URL 可被公开访问](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。请使用公开受信任的 TLS 证书，并在经过代理时保留原始的主机、协议、路径、查询参数、请求体和 `X-Twilio-Signature` 请求头。来电处理程序会验证 Twilio 签名；短信投递和通话结果使用每条消息或每通电话独有的 URL 令牌，按键确认使用签名的查询令牌。不要在共享日志或截图中暴露令牌。请参阅 [Twilio webhook 安全](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
 
 ### 从私有部署发布回调
 
@@ -144,7 +146,7 @@ Twilio 要求 [webhook URL 可被公开访问](https://www.twilio.com/docs/usage
 Twilio 普通 webhook 的来源地址会变化，因此不要把 SIP 或媒体 IP 范围用作回调的允许列表。符合条件的 Twilio 版本提供 [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy)。请确认您的版本是否符合条件以及支持哪些产品，并用 Twilio 当前公布的地址范围配置防火墙；即使使用它，也要继续验证回调。
 
 > [!WARNING]
-> 如果策略禁止入站连接，提交短信和简单的内联语音播放可以通过出站 HTTPS 工作。短信投递更新、按键确认和来电路由在回调不可访问时无法工作。完全断网的安装无法使用 Twilio。
+> 如果策略禁止入站连接，提交短信和简单的内联语音播放可以通过出站 HTTPS 工作。短信投递更新、通话结果、按键确认和来电路由在回调不可访问时无法工作。完全断网的安装无法使用 Twilio。
 
 开发时，Twilio 的 [webhook 测试指南](https://www.twilio.com/docs/usage/webhooks/webhook-testing)介绍了如何使用公共隧道：把它转发到只允许所需路由的代理，按上述方式配置得到的主机名，测试后停止隧道。隧道同样会开放入站访问。
 

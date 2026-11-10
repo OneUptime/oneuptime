@@ -954,6 +954,16 @@ async function handleApi(method, options) {
     return ok({ note: AI_DRAFT });
   }
 
+  /*
+   * Who approves this kind of public note (POST <note path>/approval/policy,
+   * PublicNoteApprovalRoutes), read by every public notes feed: nobody. The
+   * workspace asks for no approval, as a project does until its owner turns
+   * it on, so a note is published as it is posted.
+   */
+  if (method === "POST" && url.endsWith("/approval/policy")) {
+    return ok({ isRequired: false, steps: [] });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
 }

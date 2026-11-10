@@ -73,7 +73,7 @@ Att skicka larm kräver bara utgående HTTPS till `api.telegram.org`. Att koppla
 
 ### Twilio
 
-När en jourhavande trycker 1 för att bekräfta ett samtal postar Twilio knapptryckningen till `POST /api/user-notification-log-timeline/call/gather-input/*`. Twilios webhook-adresser ändras, om inte din Twilio-utgåva innehåller [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Uppdateringar om SMS-leverans och inkommande samtal beskrivs i [Twilio-integration](/docs/self-hosted/twilio-integration).
+När en jourhavande trycker 1 för att bekräfta ett samtal postar Twilio knapptryckningen till `POST /api/user-notification-log-timeline/call/gather-input/*`. Twilios webhook-adresser ändras, om inte din Twilio-utgåva innehåller [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Uppdateringar om SMS-leverans, samtalsresultat och inkommande samtal beskrivs i [Twilio-integration](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 

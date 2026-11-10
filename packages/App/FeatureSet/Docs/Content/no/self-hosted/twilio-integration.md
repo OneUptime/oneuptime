@@ -89,7 +89,7 @@ Statussider tilbyr bare konfigurasjonene som sender SMS, og **Send test-SMS** og
 
 ## 3. Konfigurer nettverkstilgang
 
-Sending fungerer med bare utgående tilgang. Leveringsoppdateringer, bekreftelse med tastene og innkommende anrop krever at Twilio når serveren din.
+Sending fungerer med bare utgående tilgang. Leveringsoppdateringer, anropsresultater, bekreftelse med tastene og innkommende anrop krever at Twilio når serveren din.
 
 ```mermaid title="Utgående sending, innkommende tilbakekall"
 sequenceDiagram
@@ -111,6 +111,7 @@ Innkommende tilgang avhenger av funksjonen:
 | --- | --- |
 | Sending av SMS | Nei. Oppdateringer av leveringsstatus trenger likevel et tilbakekall. |
 | Et enkelt testanrop med tale | Nei. OneUptime sender de talte instruksjonene med i den utgående API-forespørselen. |
+| Vite om et vaktanrop ble besvart | Ja. Twilio melder hvordan hvert anrop endte, slik at hendelsens feed kan si når noen ikke svarte. Anrop går ut også uten dette. |
 | Trykke 1 for å bekrefte et vaktvarsel | Ja. Twilio sender tasteinndataene til OneUptime. |
 | Retningslinjer for innkommende anrop | Ja. Twilio henter anropsinstruksjoner og rapporterer resultatene av oppringingen. |
 
@@ -119,13 +120,14 @@ Dette er de eksterne stiene gjennom OneUptimes Nginx-gateway. Plassholderne er f
 | Metode | Sti | Formål |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Leveringsstatus for SMS |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Anropsresultat |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Bekreftelse med tastene |
 | POST | `/notification/incoming-call/voice` | Valgfrie instruksjoner for innkommende anrop |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Valgfrie resultater av ruting av innkommende anrop |
 
-OneUptime genererer URL-ene for SMS og bekreftelse automatisk. Ikke erstatt tokenene deres med en fast webhook-URL. For innkommende anrop følger du [retningslinjer for innkommende anrop](/docs/on-call/incoming-call-policy), som konfigurerer webhooken til nummeret når du knytter til et nummer.
+OneUptime genererer URL-ene for SMS, anropsresultater og bekreftelse automatisk. Ikke erstatt tokenene deres med en fast webhook-URL. For innkommende anrop følger du [retningslinjer for innkommende anrop](/docs/on-call/incoming-call-policy), som konfigurerer webhooken til nummeret når du knytter til et nummer.
 
-Twilio krever [offentlig tilgjengelige webhook-URL-er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Bruk et offentlig klarert TLS-sertifikat, og bevar den opprinnelige verten, protokollen, stien, spørringsparameterne, kroppen og headeren `X-Twilio-Signature` gjennom proxyer. Behandlerne for innkommende anrop validerer Twilios signaturer; SMS-levering bruker et URL-token per melding, og bekreftelse med tastene et signert spørringstoken. Ikke vis tokener i delte logger eller skjermbilder. Se [Twilios webhook-sikkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio krever [offentlig tilgjengelige webhook-URL-er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Bruk et offentlig klarert TLS-sertifikat, og bevar den opprinnelige verten, protokollen, stien, spørringsparameterne, kroppen og headeren `X-Twilio-Signature` gjennom proxyer. Behandlerne for innkommende anrop validerer Twilios signaturer; SMS-levering og anropsresultater bruker et URL-token per melding eller anrop, og bekreftelse med tastene et signert spørringstoken. Ikke vis tokener i delte logger eller skjermbilder. Se [Twilios webhook-sikkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Publiser tilbakekall fra en privat installasjon
 
@@ -144,7 +146,7 @@ Dashbordet kan bli værende på en privat ingress: Med delt DNS slår ansatte op
 De vanlige kildeadressene for Twilios webhooker endres, så ikke bruk SIP- eller medie-IP-områder som tillatelsesliste for tilbakekall. Kvalifiserte Twilio-utgaver tilbyr [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Bekreft at utgaven din er kvalifisert, og hvilke produkter som støttes, og konfigurer brannmuren med områdene Twilio publiserer nå; fortsett å validere tilbakekall også når du bruker det.
 
 > [!WARNING]
-> Hvis en retningslinje forbyr innkommende tilkoblinger, kan sending av SMS og enkel innebygd taleavspilling fungere med utgående HTTPS. Oppdateringer av SMS-levering, bekreftelse med tastene og ruting av innkommende anrop fungerer ikke uten tilgjengelige tilbakekall. En helt frakoblet installasjon kan ikke bruke Twilio.
+> Hvis en retningslinje forbyr innkommende tilkoblinger, kan sending av SMS og enkel innebygd taleavspilling fungere med utgående HTTPS. Oppdateringer av SMS-levering, anropsresultater, bekreftelse med tastene og ruting av innkommende anrop fungerer ikke uten tilgjengelige tilbakekall. En helt frakoblet installasjon kan ikke bruke Twilio.
 
 For utvikling beskriver Twilios [veiledning for testing av webhooker](https://www.twilio.com/docs/usage/webhooks/webhook-testing) bruk av en offentlig tunnel: Send den videre til en proxy som bare tillater de nødvendige rutene, konfigurer vertsnavnet du får, som ovenfor, og stopp tunnelen etter testingen. En tunnel åpner likevel for innkommende tilgang.
 

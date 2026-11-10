@@ -946,7 +946,9 @@ import { AddDiscoveredDeviceRetention1809080463890 } from "./1809080463890-AddDi
 import { AddNetworkEndpointLastSeenIndex1809080463891 } from "./1809080463891-AddNetworkEndpointLastSeenIndex";
 import { KeepEditedDiscoveredDevices1809080463892 } from "./1809080463892-KeepEditedDiscoveredDevices";
 import { AddIncomingMonitorRequestAsReceived1809080466402 } from "./1809080466402-AddIncomingMonitorRequestAsReceived";
-import { AddTwilioConfigDefaultPerKind1809086574000 } from "./1809086574000-AddTwilioConfigDefaultPerKind";
+import { AddTeamOwners1809086561000 } from "./1809086561000-AddTeamOwners";
+import { AddCallOutcomeTrackingToCallLog1809090000000 } from "./1809090000000-AddCallOutcomeTrackingToCallLog";
+import { AddTwilioConfigDefaultPerKind1809090657400 } from "./1809090657400-AddTwilioConfigDefaultPerKind";
 
 export default [
   InitialMigration,
@@ -1897,5 +1899,7 @@ export default [
   AddNetworkEndpointLastSeenIndex1809080463891,
   KeepEditedDiscoveredDevices1809080463892,
   AddIncomingMonitorRequestAsReceived1809080466402,
-  AddTwilioConfigDefaultPerKind1809086574000,
+  AddTeamOwners1809086561000,
+  AddCallOutcomeTrackingToCallLog1809090000000,
+  AddTwilioConfigDefaultPerKind1809090657400,
 ];

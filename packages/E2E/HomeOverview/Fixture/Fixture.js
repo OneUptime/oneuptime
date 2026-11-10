@@ -652,6 +652,12 @@ const MONITORS = [
   ["Email delivery", MonitorType.Port, "operational"],
 ];
 
+/*
+ * Every monitor is checked: monitoring is on (disableActiveMonitoring, a
+ * column that is never empty, false by default). Not Operational leaves out
+ * a monitor whose monitoring is off (NotOperationalMonitorQuery), so the
+ * column is set here as the database holds it.
+ */
 if (!isNew) {
   MONITORS.forEach(([name, monitorType, status], index) => {
     insert(Monitor, {
@@ -659,6 +665,7 @@ if (!isNew) {
       name,
       monitorType,
       isArchived: false,
+      disableActiveMonitoring: false,
       ...withIds({ currentMonitorStatus: monitorStatuses[status] }, [
         "currentMonitorStatus",
       ]),
@@ -670,6 +677,7 @@ if (!isNew) {
     name: "Legacy image resizer",
     monitorType: MonitorType.API,
     isArchived: true,
+    disableActiveMonitoring: false,
     ...withIds({ currentMonitorStatus: monitorStatuses.offline }, [
       "currentMonitorStatus",
     ]),

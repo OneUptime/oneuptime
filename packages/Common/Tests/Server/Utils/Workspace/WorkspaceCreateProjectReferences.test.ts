@@ -606,7 +606,7 @@ describe("Slack: SubmitNewIncident", (): void => {
       .mockResolvedValue(MEMBER_PROPS);
     directMessages = jest
       .spyOn(SlackUtil, "sendDirectMessageToUser")
-      .mockResolvedValue();
+      .mockResolvedValue(null);
   });
 
   test("creates the incident with the member's props and every id the view carried", async (): Promise<void> => {
@@ -715,7 +715,7 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
       .mockResolvedValue(MEMBER_PROPS);
     directMessages = jest
       .spyOn(SlackUtil, "sendDirectMessageToUser")
-      .mockResolvedValue();
+      .mockResolvedValue(null);
   });
 
   test("creates the event with the member's props and every id the view carried", async (): Promise<void> => {

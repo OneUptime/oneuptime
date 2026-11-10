@@ -440,14 +440,14 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
             dataTestId="message-queue-topology-drawer-open-queue"
             className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
           >
-            {translator.translateText("Open queue") || "Open queue"}
+            <span>{translator.translateText("Open queue")}</span>
           </AppLink>
           <AppLink
             to={queueRoute(PageMap.MESSAGE_QUEUE_VIEW_TRACES, queue.id)}
             dataTestId="message-queue-topology-drawer-traces"
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            {translator.translateText("View traces") || "View traces"}
+            <span>{translator.translateText("View traces")}</span>
           </AppLink>
           {focusButton(node.key)}
         </div>
@@ -544,7 +544,7 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
               dataTestId="message-queue-topology-drawer-open-service"
               className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
             >
-              {translator.translateText("Open service") || "Open service"}
+              <span>{translator.translateText("Open service")}</span>
             </AppLink>
           ) : (
             <></>
@@ -600,7 +600,7 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
               dataTestId="message-queue-topology-drawer-open-queue"
               className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
             >
-              {translator.translateText("Open queue") || "Open queue"}
+              <span>{translator.translateText("Open queue")}</span>
             </AppLink>
           ) : (
             <></>
@@ -611,7 +611,7 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
               dataTestId="message-queue-topology-drawer-open-service"
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              {translator.translateText("Open service") || "Open service"}
+              <span>{translator.translateText("Open service")}</span>
             </AppLink>
           ) : (
             <></>

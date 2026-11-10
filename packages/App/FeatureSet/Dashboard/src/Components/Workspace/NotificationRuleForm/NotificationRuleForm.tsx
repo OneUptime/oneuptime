@@ -9,6 +9,7 @@ import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPol
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import NotificationRuleInvites, {
@@ -157,6 +158,8 @@ export interface ComponentProps {
   // A security case rule's: the project's own case priorities and statuses.
   securityCasePriorities?: Array<SecurityCasePriority> | undefined;
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
+  // An SLO rule's: the project's SLOs, to pick the ones it is for.
+  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
   teams: Array<Team>;
@@ -290,6 +293,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             scheduledMaintenanceStates={props.scheduledMaintenanceStates}
             securityCasePriorities={props.securityCasePriorities}
             securityCaseStatuses={props.securityCaseStatuses}
+            serviceLevelObjectives={props.serviceLevelObjectives}
             monitorStatus={props.monitorStatus}
             // When they are checked, over the conditions once there are some.
             conditionsDescription={

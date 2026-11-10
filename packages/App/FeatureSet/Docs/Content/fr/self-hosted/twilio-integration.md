@@ -89,7 +89,7 @@ Les pages de statut ne proposent que les configurations qui envoient des SMS, et
 
 ## 3. Configurer l'accès réseau
 
-L'envoi fonctionne avec un accès sortant seul. Les mises à jour de livraison, l'acquittement par clavier et les appels entrants exigent que Twilio puisse joindre votre serveur.
+L'envoi fonctionne avec un accès sortant seul. Les mises à jour de livraison, l'issue des appels, l'acquittement par clavier et les appels entrants exigent que Twilio puisse joindre votre serveur.
 
 ```mermaid title="Envois sortants, callbacks entrants"
 sequenceDiagram
@@ -111,6 +111,7 @@ L'accès entrant dépend de la fonctionnalité :
 | --- | --- |
 | Envoi de SMS | Non. Les mises à jour du statut de livraison ont toutefois besoin d'un callback. |
 | Un simple appel vocal de test | Non. OneUptime fournit les instructions vocales avec la requête API sortante. |
+| Savoir si un appel d'astreinte a été décroché | Oui. Twilio indique comment chaque appel s'est terminé, pour que le fil de l'incident puisse dire quand quelqu'un n'a pas répondu. Les appels partent quand même sans cela. |
 | Appuyer sur 1 pour acquitter une alerte d'astreinte | Oui. Twilio transmet la saisie au clavier à OneUptime. |
 | Politiques d'appels entrants | Oui. Twilio demande les instructions d'appel et signale les résultats de numérotation. |
 
@@ -119,13 +120,14 @@ Voici les chemins externes, via la passerelle Nginx de OneUptime. Les paramètre
 | Méthode | Chemin | Rôle |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Statut de livraison du SMS |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Issue de l'appel |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Acquittement par clavier |
 | POST | `/notification/incoming-call/voice` | Instructions facultatives des appels entrants |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Résultats facultatifs du routage des appels entrants |
 
-OneUptime génère automatiquement les URL des SMS et de l'acquittement. Ne remplacez pas leurs jetons par une URL de webhook statique. Pour les appels entrants, suivez [les politiques d'appels entrants](/docs/on-call/incoming-call-policy), qui configurent le webhook du numéro quand vous rattachez un numéro.
+OneUptime génère automatiquement les URL des SMS, de l'issue des appels et de l'acquittement. Ne remplacez pas leurs jetons par une URL de webhook statique. Pour les appels entrants, suivez [les politiques d'appels entrants](/docs/on-call/incoming-call-policy), qui configurent le webhook du numéro quand vous rattachez un numéro.
 
-Twilio exige des [URL de webhook joignables publiquement](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Utilisez un certificat TLS reconnu publiquement et préservez à travers les proxys l'hôte, le protocole, le chemin, les paramètres de requête, le corps et l'en-tête `X-Twilio-Signature` d'origine. Les gestionnaires d'appels entrants valident les signatures Twilio ; la livraison des SMS utilise un jeton d'URL propre à chaque message, et l'acquittement par clavier un jeton de requête signé. N'exposez pas les jetons dans des journaux partagés ou des captures d'écran. Voir [la sécurité des webhooks Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio exige des [URL de webhook joignables publiquement](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Utilisez un certificat TLS reconnu publiquement et préservez à travers les proxys l'hôte, le protocole, le chemin, les paramètres de requête, le corps et l'en-tête `X-Twilio-Signature` d'origine. Les gestionnaires d'appels entrants valident les signatures Twilio ; la livraison des SMS et l'issue des appels utilisent un jeton d'URL propre à chaque message ou appel, et l'acquittement par clavier un jeton de requête signé. N'exposez pas les jetons dans des journaux partagés ou des captures d'écran. Voir [la sécurité des webhooks Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Publier les callbacks depuis un déploiement privé
 
@@ -144,7 +146,7 @@ Le tableau de bord peut rester sur un ingress privé : avec un DNS scindé, les 
 Les adresses sources ordinaires des webhooks de Twilio changent : n'utilisez donc pas les plages d'IP SIP ou média comme liste d'autorisation des callbacks. Les éditions de Twilio éligibles proposent [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Vérifiez l'éligibilité de votre édition et les produits pris en charge, et configurez votre pare-feu avec les plages publiées actuelles de Twilio ; continuez à valider les callbacks même en l'utilisant.
 
 > [!WARNING]
-> Si une politique interdit les connexions entrantes, l'envoi de SMS et la simple lecture vocale intégrée peuvent fonctionner avec le HTTPS sortant. Les mises à jour de livraison des SMS, l'acquittement par clavier et le routage des appels entrants ne peuvent pas fonctionner sans callbacks joignables. Une installation complètement déconnectée ne peut pas utiliser Twilio.
+> Si une politique interdit les connexions entrantes, l'envoi de SMS et la simple lecture vocale intégrée peuvent fonctionner avec le HTTPS sortant. Les mises à jour de livraison des SMS, l'issue des appels, l'acquittement par clavier et le routage des appels entrants ne peuvent pas fonctionner sans callbacks joignables. Une installation complètement déconnectée ne peut pas utiliser Twilio.
 
 Pour le développement, le [guide de test des webhooks](https://www.twilio.com/docs/usage/webhooks/webhook-testing) de Twilio décrit l'usage d'un tunnel public : faites-le aboutir à un proxy qui n'autorise que les routes nécessaires, configurez le nom d'hôte obtenu comme ci-dessus, et arrêtez-le après les tests. Un tunnel ouvre tout de même un accès entrant.
 

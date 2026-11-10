@@ -36,6 +36,13 @@
  * commit writes it whole, so a version Ask AI saw only part of is one it
  * cannot write whole without dropping the lines it never saw. Reads of one
  * version add up.
+ *
+ * But only the results of this turn are in front of the model (issue
+ * #6365): a new turn replays the earlier turns' questions and answers,
+ * never the files their tools read. So the chat runner marks each record of
+ * an earlier turn as it hands what the model saw to a prepare
+ * (fromEarlierAnswer): its version still says what Ask AI saw - a push
+ * since is still a push since - but its lines are not in hand.
  */
 
 // The kinds of record a result can show the model, as the tool that changes them names them.
@@ -94,6 +101,13 @@ export interface AIChatRecordSeen {
    * which reads as it always did.
    */
   linesShown?: AIChatLinesShown | undefined;
+  /*
+   * A record of a turn before this one (issue #6365), as the chat runner
+   * hands it to a prepare - never as a citation stores it: the model no
+   * longer has that result, as a new turn replays only the answers. What
+   * it says of a version still counts; its lines are not in hand.
+   */
+  fromEarlierAnswer?: boolean | undefined;
 }
 
 // What Ask AI knows of a record: its revision, and each part as last seen.
@@ -250,6 +264,7 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
   const parts: unknown = value["parts"];
   const isPartial: unknown = value["isPartial"];
   const linesShown: unknown = value["linesShown"];
+  const fromEarlierAnswer: unknown = value["fromEarlierAnswer"];
 
   if (
     !Object.values(AIChatRecordSeenType).includes(
@@ -264,7 +279,8 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
     revision < 0 ||
     !Array.isArray(parts) ||
     parts.length > MAX_RECORD_PARTS_SEEN ||
-    (isPartial !== undefined && typeof isPartial !== "boolean")
+    (isPartial !== undefined && typeof isPartial !== "boolean") ||
+    (fromEarlierAnswer !== undefined && typeof fromEarlierAnswer !== "boolean")
   ) {
     return null;
   }
@@ -326,7 +342,33 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
     parts: read,
     ...(isPartial === true ? { isPartial: true } : {}),
     ...(lines ? { linesShown: lines } : {}),
+    ...(fromEarlierAnswer === true ? { fromEarlierAnswer: true } : {}),
   };
+};
+
+type FromEarlierAnswersFunction = (
+  records: ReadonlyArray<unknown> | null | undefined,
+) => Array<AIChatRecordSeen>;
+
+/*
+ * The records of the turns before this one, as a prepare is handed them
+ * (issue #6365): each well-formed one marked as from an earlier answer,
+ * whose text the model no longer has. Stored records are never marked.
+ */
+export const markAIChatRecordsFromEarlierAnswers: FromEarlierAnswersFunction = (
+  records: ReadonlyArray<unknown> | null | undefined,
+): Array<AIChatRecordSeen> => {
+  const marked: Array<AIChatRecordSeen> = [];
+
+  for (const value of records || []) {
+    const record: AIChatRecordSeen | null = readAIChatRecordSeen(value);
+
+    if (record) {
+      marked.push({ ...record, fromEarlierAnswer: true });
+    }
+  }
+
+  return marked;
 };
 
 type RecordKeyFunction = (

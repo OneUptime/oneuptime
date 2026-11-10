@@ -1,5 +1,5 @@
 import ProjectCallSMSConfig from "../../../../Models/DatabaseModels/ProjectCallSMSConfig";
-import { AddTwilioConfigDefaultPerKind1809086574000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809086574000-AddTwilioConfigDefaultPerKind";
+import { AddTwilioConfigDefaultPerKind1809090657400 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809090657400-AddTwilioConfigDefaultPerKind";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import TwilioConfigDefaults, {
   TwilioConfigDefaultFlags,
@@ -24,7 +24,7 @@ import path from "path";
 import { DataSource, MigrationInterface, QueryRunner } from "typeorm";
 
 /*
- * AddTwilioConfigDefaultPerKind1809086574000: a project has a default Twilio
+ * AddTwilioConfigDefaultPerKind1809090657400: a project has a default Twilio
  * config for SMS and one for calls (#6574). It adds
  * ProjectCallSMSConfig.isProjectDefaultForSms and isProjectDefaultForCalls,
  * and moves each project's one default onto them, so every message goes
@@ -41,7 +41,7 @@ import { DataSource, MigrationInterface, QueryRunner } from "typeorm";
  * moves nothing it does not ask to.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809086574000";
+const MIGRATION_TIMESTAMP: string = "1809090657400";
 const MIGRATION_BASE_NAME: string = "AddTwilioConfigDefaultPerKind";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -66,12 +66,12 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddTwilioConfigDefaultPerKind1809086574000()[direction](runner);
+  await new AddTwilioConfigDefaultPerKind1809090657400()[direction](runner);
 
   return statements;
 }
 
-describe("AddTwilioConfigDefaultPerKind1809086574000 SQL contract", () => {
+describe("AddTwilioConfigDefaultPerKind1809090657400 SQL contract", () => {
   test("adds the two columns, false for every config, then moves each project's default onto them", async () => {
     const statements: Array<string> = await statementsOf("up");
 
@@ -133,12 +133,12 @@ describe("AddTwilioConfigDefaultPerKind1809086574000 SQL contract", () => {
     const registered: Array<new () => MigrationInterface> =
       SchemaMigrations.filter(
         (migration: new () => MigrationInterface): boolean => {
-          return migration === AddTwilioConfigDefaultPerKind1809086574000;
+          return migration === AddTwilioConfigDefaultPerKind1809090657400;
         },
       );
 
     expect(registered).toHaveLength(1);
-    expect(new AddTwilioConfigDefaultPerKind1809086574000().name).toBe(
+    expect(new AddTwilioConfigDefaultPerKind1809090657400().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(
@@ -151,7 +151,7 @@ describe("AddTwilioConfigDefaultPerKind1809086574000 SQL contract", () => {
     ).toBe(true);
 
     const at: number = SchemaMigrations.indexOf(
-      AddTwilioConfigDefaultPerKind1809086574000,
+      AddTwilioConfigDefaultPerKind1809090657400,
     );
 
     for (const earlier of SchemaMigrations.slice(0, at)) {
@@ -229,8 +229,8 @@ describePostgres("AddTwilioConfigDefaultPerKind against Postgres", () => {
   const schema: string = `twilio_default_per_kind_${ObjectID.generate()
     .toString()
     .replace(/-/g, "")}`;
-  const migration: AddTwilioConfigDefaultPerKind1809086574000 =
-    new AddTwilioConfigDefaultPerKind1809086574000();
+  const migration: AddTwilioConfigDefaultPerKind1809090657400 =
+    new AddTwilioConfigDefaultPerKind1809090657400();
 
   let database: DataSource;
   let runner: QueryRunner;

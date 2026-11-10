@@ -147,6 +147,17 @@ export default class TeamMemberAPI extends BaseAPI<
 
           ObjectID.validateUUID(userIdParam);
 
+          /*
+           * Every membership or none: a caller who may take the person off
+           * only some of their teams - Remove Team Members scoped to Owned -
+           * is refused, before anything is removed.
+           */
+          await this.service.assertCallerMayRemoveUserFromProject({
+            userId: new ObjectID(userIdParam),
+            projectId: projectId,
+            props: props,
+          });
+
           const numberOfMembershipsDeleted: number =
             await this.service.deleteBy({
               query: {

@@ -48,17 +48,38 @@ describe("SLO list side menu", () => {
     cleanup();
   });
 
-  test("renders the SLO pages, then Settings, then Advanced, then Developer", async () => {
+  test("renders the SLO pages, then Workspace, then Settings, then Advanced, then Developer", async () => {
     await renderSloMenuAt(PageMap.SLOS);
 
     expect(sectionTitlesInOrder()).toEqual([
       "Service Level Objectives",
+      "Workspace",
       "Settings",
       "Advanced",
       "Developer",
     ]);
     expect(linksIn("Service Level Objectives")).toEqual([
       { title: "SLOs", href: routeFor(PageMap.SLOS) },
+    ]);
+    /*
+     * The rules that post SLOs' error budget policy changes. Nothing here
+     * answers which workspaces the project has connected, and a menu that
+     * could not ask lists every workspace (WorkspaceSideMenuSection);
+     * WorkspaceMenusConnected covers the answers.
+     */
+    expect(linksIn("Workspace")).toEqual([
+      {
+        title: "Slack",
+        href: routeFor(PageMap.SLOS_WORKSPACE_CONNECTION_SLACK),
+      },
+      {
+        title: "Microsoft Teams",
+        href: routeFor(PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS),
+      },
+      {
+        title: "Mattermost",
+        href: routeFor(PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST),
+      },
     ]);
     expect(linksIn("Advanced")).toEqual([
       { title: "Archived", href: routeFor(PageMap.SLOS_ARCHIVED) },
@@ -96,6 +117,26 @@ describe("SLO list side menu", () => {
 
       expect(isExpanded("Settings")).toBe(true);
       expect(sectionBody("Settings")).not.toHaveClass("max-h-0");
+    },
+  );
+
+  test("on the SLO list, Workspace is folded like every product's", async () => {
+    await renderSloMenuAt(PageMap.SLOS);
+
+    expect(isExpanded("Workspace")).toBe(false);
+  });
+
+  test.each([
+    [PageMap.SLOS_WORKSPACE_CONNECTION_SLACK, "Slack"],
+    [PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS, "Microsoft Teams"],
+    [PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST, "Mattermost"],
+  ])(
+    "on %s Workspace opens on its own entry, so the current page stays visible",
+    async (pageMapKey: string, title: string) => {
+      await renderSloMenuAt(pageMapKey);
+
+      expect(isExpanded("Workspace")).toBe(true);
+      expect(activeLinkTitles()).toEqual([title]);
     },
   );
 

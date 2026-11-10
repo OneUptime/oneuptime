@@ -8,12 +8,14 @@ import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCa
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
-import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
+import UserOnCallLogTimelineService, {
+  getFeedEventOfStatus,
+} from "../../../Server/Services/UserOnCallLogTimelineService";
 import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
 import OnCallPolicyRunMessage from "../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import URL from "../../../Types/API/URL";
-import { Green500, Red500 } from "../../../Types/BrandColors";
+import { Green500, Red500, Yellow500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -595,6 +597,91 @@ describe("a notification after the page's own entry", () => {
     },
   );
 
+  test("a call that rang and was not picked up is told of, in yellow, of the person - never how it ended", async () => {
+    const call: UserOnCallLogTimeline = notificationOf({
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+      statusMessage:
+        "Call ID: CA0123456789abcdef0123456789abcdef. The call was not answered: the line was busy, or the call was declined.",
+    });
+
+    await notificationEntry(call, OnCallPageNotificationEvent.NotAnswered);
+
+    expect(markdowns()).toEqual([
+      `**Ana Lopez** did not answer the phone call from ${POLICY_IN_SENTENCE_MD} at ${RULE_MD}.`,
+    ]);
+    expect(entries[0]!.color).toEqual(Yellow500);
+    expect(entries[0]!.eventType).toBe("OnCallPolicy");
+    expect(markdowns()[0]).not.toContain("busy");
+    expect(markdowns()[0]).not.toContain("CA0123");
+  });
+
+  test("a second call that rings out is told of once: the first said as much", async () => {
+    notificationOf({
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+    });
+    const second: UserOnCallLogTimeline = notificationOf({
+      minutes: 20,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+    });
+
+    await notificationEntry(second, OnCallPageNotificationEvent.NotAnswered);
+
+    expect(entries).toEqual([]);
+  });
+
+  test("an SMS marked not answered is no news: only a call rings", async () => {
+    const sms: UserOnCallLogTimeline = deliveries[0]!;
+    sms.status = UserNotificationStatus.NotAnswered;
+
+    await notificationEntry(sms, OnCallPageNotificationEvent.NotAnswered);
+
+    expect(entries).toEqual([]);
+  });
+
+  test.each([
+    OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+    OnCallDutyExecutionLogTimelineStatus.PassedOn,
+    OnCallDutyExecutionLogTimelineStatus.Skipped,
+  ])(
+    "a call that rings out once the page is answered (%s) - acknowledged by its SMS while the phone rang - says nothing",
+    async (status: OnCallDutyExecutionLogTimelineStatus) => {
+      line = lineOf({ status: status });
+      const call: UserOnCallLogTimeline = notificationOf({
+        minutes: 0,
+        status: UserNotificationStatus.NotAnswered,
+        method: "userCallId",
+      });
+
+      await notificationEntry(call, OnCallPageNotificationEvent.NotAnswered);
+
+      expect(entries).toEqual([]);
+    },
+  );
+
+  test("a direct page's call not picked up reads as its answer would: from whoever paged", async () => {
+    line = lineOf({
+      isDirectPage: true,
+      status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+    });
+    const call: UserOnCallLogTimeline = notificationOf({
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+    });
+
+    await notificationEntry(call, OnCallPageNotificationEvent.NotAnswered);
+
+    expect(markdowns()).toEqual([
+      "**Ana Lopez** did not answer the phone call from workflow **Page SRE**.",
+    ]);
+    expect(entries[0]!.color).toEqual(Yellow500);
+  });
+
   test("a notification that is not one of this page's is no news of it", async () => {
     const elsewhere: UserOnCallLogTimeline = notificationOf({
       minutes: 10,
@@ -854,6 +941,91 @@ describe("the notification's own hooks ask for its entry", () => {
     expect(asked).toHaveLength(1);
   });
 
+  test("marked not answered - a call that rang out, or found the line busy - asks for a call not answered", async () => {
+    const call: UserOnCallLogTimeline = notificationOf({
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+    });
+
+    await updated(call, UserNotificationStatus.NotAnswered, {
+      statusBeforeUpdate: {
+        [call.id!.toString()]: UserNotificationStatus.Sent,
+      },
+    });
+
+    expect(asked).toEqual([
+      {
+        onCallDutyPolicyExecutionLogTimelineId: LINE,
+        userOnCallLogTimelineId: call.id!,
+        event: OnCallPageNotificationEvent.NotAnswered,
+      },
+    ]);
+  });
+
+  test("marked not answered a second time - Twilio retries a callback - is told of once", async () => {
+    const call: UserOnCallLogTimeline = notificationOf({
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+    });
+
+    await updated(call, UserNotificationStatus.NotAnswered, {
+      statusBeforeUpdate: {
+        [call.id!.toString()]: UserNotificationStatus.NotAnswered,
+      },
+    });
+
+    expect(asked).toEqual([]);
+  });
+
+  test("a call that failed before is a change when it is marked not answered, and the other way round", async () => {
+    const call: UserOnCallLogTimeline = notificationOf({
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+    });
+
+    await updated(call, UserNotificationStatus.NotAnswered, {
+      statusBeforeUpdate: {
+        [call.id!.toString()]: UserNotificationStatus.Error,
+      },
+    });
+
+    call.status = UserNotificationStatus.Error;
+
+    await updated(call, UserNotificationStatus.Error, {
+      statusBeforeUpdate: {
+        [call.id!.toString()]: UserNotificationStatus.NotAnswered,
+      },
+    });
+
+    expect(
+      asked.map((one: { event: OnCallPageNotificationEvent }) => {
+        return one.event;
+      }),
+    ).toEqual([
+      OnCallPageNotificationEvent.NotAnswered,
+      OnCallPageNotificationEvent.Failed,
+    ]);
+  });
+
+  test("a row that reads back as something else - answered between the write and the read - asks for nothing", async () => {
+    const call: UserOnCallLogTimeline = notificationOf({
+      minutes: 10,
+      status: UserNotificationStatus.Acknowledged,
+      method: "userCallId",
+    });
+
+    await updated(call, UserNotificationStatus.NotAnswered, {
+      statusBeforeUpdate: {
+        [call.id!.toString()]: UserNotificationStatus.Sent,
+      },
+    });
+
+    expect(asked).toEqual([]);
+  });
+
   test("marked sent, or acknowledged, asks for nothing: the page's own entries say so", async () => {
     const sms: UserOnCallLogTimeline = notificationOf({
       minutes: 0,
@@ -891,6 +1063,17 @@ describe("the notification's own hooks ask for its entry", () => {
       },
     });
 
+    // So does one that marks a call not answered.
+    held.mockClear();
+
+    await hook("onBeforeUpdate")({
+      query: { _id: sms.id!.toString() },
+      data: { status: UserNotificationStatus.NotAnswered },
+      props: { isRoot: true },
+    });
+
+    expect(held).toHaveBeenCalledTimes(1);
+
     // Any other update reads nothing first.
     held.mockClear();
 
@@ -901,5 +1084,49 @@ describe("the notification's own hooks ask for its entry", () => {
     });
 
     expect(held).not.toHaveBeenCalled();
+  });
+});
+
+describe("what the feed hears of an update, and how it is drawn", () => {
+  test("an update to Error is a notification that could not be sent; to Not Answered, a call not answered", () => {
+    expect(getFeedEventOfStatus(UserNotificationStatus.Error)).toBe(
+      OnCallPageNotificationEvent.Failed,
+    );
+    expect(getFeedEventOfStatus(UserNotificationStatus.NotAnswered)).toBe(
+      OnCallPageNotificationEvent.NotAnswered,
+    );
+  });
+
+  test("an update to any other status - or none - tells the feed nothing", () => {
+    for (const status of [
+      UserNotificationStatus.Sending,
+      UserNotificationStatus.Sent,
+      UserNotificationStatus.Acknowledged,
+      UserNotificationStatus.PassedOn,
+      UserNotificationStatus.Skipped,
+      undefined,
+      null,
+      "Something else",
+    ]) {
+      expect(getFeedEventOfStatus(status)).toBeNull();
+    }
+  });
+
+  test("one that could not be sent is red; a call not answered is a warning - the page still stands - and one sent later is green", () => {
+    expect(
+      OnCallDutyPolicyExecutionLogTimelineService.getNotificationColor(
+        OnCallPageNotificationEvent.Failed,
+      ),
+    ).toEqual(Red500);
+    expect(
+      OnCallDutyPolicyExecutionLogTimelineService.getNotificationColor(
+        OnCallPageNotificationEvent.NotAnswered,
+      ),
+    ).toEqual(Yellow500);
+    expect(
+      OnCallDutyPolicyExecutionLogTimelineService.getNotificationColor(
+        OnCallPageNotificationEvent.SentLater,
+      ),
+    ).toEqual(Green500);
   });
 });

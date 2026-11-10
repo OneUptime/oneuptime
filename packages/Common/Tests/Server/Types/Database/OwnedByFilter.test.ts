@@ -7,6 +7,7 @@ import OwnerTableRegistry, {
 } from "../../../../Server/Types/Database/Permissions/OwnerTableRegistry";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CustomRole from "../../../../Models/DatabaseModels/CustomRole";
 import Label from "../../../../Models/DatabaseModels/Label";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import Service from "../../../../Models/DatabaseModels/Service";
@@ -198,7 +199,29 @@ describe("OwnedByFilter - the owner tables a filter by owners reads", () => {
     expect(sql).not.toContain("primaryEntityId");
   });
 
-  test.each([Label, Team])(
+  /*
+   * A team's owners name it by ownedTeamId: teamId is the column of a team
+   * that owns something, in every owner table - TeamOwnerTeam has both.
+   */
+  test("a team's owners are read by ownedTeamId, and a team that owns one by teamId", () => {
+    const tables: OwnerTablesOfKind = OwnedByFilter.getOwnerTables(Team)!;
+
+    expect(tables.userTable.resourceColumnName).toBe("ownedTeamId");
+    expect(tables.teamTable.resourceColumnName).toBe("ownedTeamId");
+    expect(tables.teamTable.ownerColumnName).toBe("teamId");
+
+    const sql: string = (
+      OwnedByFilter.getIdCondition(
+        Team,
+        new OwnedBy({ teamIds: [SRE_TEAM] }),
+      ) as FindOperator<unknown>
+    ).getSql!("Team._id");
+
+    expect(sql).toContain('"TeamOwnerTeam"."ownedTeamId"');
+    expect(sql).toContain('"TeamOwnerTeam"."teamId" IN (');
+  });
+
+  test.each([Label, CustomRole])(
     "a kind without owners (%p) has no owner tables, and a filter by them is refused",
     (modelType: ModelType) => {
       expect(OwnedByFilter.getOwnerTables(modelType)).toBeNull();

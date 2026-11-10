@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import {
   approveNote,
   fetchApprovalPolicy,
@@ -331,8 +332,13 @@ describe("getNoteIdsToDescribe", () => {
   });
 });
 
+// What jest.spyOn(API, "post") hands back.
+type PostSpy = SpyInstance<
+  (...args: Parameters<typeof API.post>) => ReturnType<typeof API.post>
+>;
+
 describe("the calls", () => {
-  function answer(data: JSONObject): jest.SpyInstance {
+  function answer(data: JSONObject): PostSpy {
     return jest
       .spyOn(API, "post")
       .mockResolvedValue(new HTTPResponse(200, data, {}) as never);
@@ -343,7 +349,7 @@ describe("the calls", () => {
   }
 
   test("each button posts to its note's route", async () => {
-    const post: jest.SpyInstance = answer({});
+    const post: PostSpy = answer({});
 
     await approveNote({ apiPath: "/incident-public-note", noteId: NOTE_ID });
     await rejectNote({
@@ -398,7 +404,7 @@ describe("the calls", () => {
   });
 
   test("summaries: none asked for, none fetched", async () => {
-    const post: jest.SpyInstance = answer({ notes: [] });
+    const post: PostSpy = answer({ notes: [] });
 
     expect(await fetchApprovalSummaries("/incident-public-note", [])).toEqual(
       [],

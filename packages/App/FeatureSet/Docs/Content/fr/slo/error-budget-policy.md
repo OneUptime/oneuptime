@@ -1,11 +1,12 @@
 # Politique de budget d'erreur
 
-Une politique de budget d'erreur écrit ce que votre équipe s'est engagée à faire à mesure que le budget d'erreur d'un SLO diminue, par exemple examiner les changements risqués une fois la moitié dépensée, ou geler les mises en production une fois le budget épuisé. OneUptime place le SLO dans le palier de la politique que son budget a atteint, affiche l'engagement de l'équipe pour ce palier sur les pages du SLO, peut déclencher une alerte ou déclarer un incident quand le SLO entre dans un palier, et indique à vos pipelines CI/CD s'ils doivent retenir les mises en production. C'est la pratique de politique de budget d'erreur du [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+Une politique de budget d'erreur écrit ce que votre équipe s'est engagée à faire à mesure que le budget d'erreur d'un SLO diminue, par exemple examiner les changements risqués une fois la moitié dépensée, ou geler les mises en production une fois le budget épuisé. OneUptime place le SLO dans le palier de la politique que son budget a atteint, affiche l'engagement de l'équipe pour ce palier sur les pages du SLO, peut déclencher une alerte ou déclarer un incident quand le SLO entre dans un palier, publie chaque changement de palier dans les canaux Slack, Microsoft Teams ou Mattermost que vous choisissez, et indique à vos pipelines CI/CD s'ils doivent retenir les mises en production. C'est la pratique de politique de budget d'erreur du [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Fonctionnement des paliers](#fonctionnement-des-paliers): Quel palier s'applique, et quand le SLO le quitte.
 - [Mettre en place une politique](#mettre-en-place-une-politique): Partir de la politique recommandée, ou écrire vos propres paliers.
 - [Alertes et incidents](#alertes-et-incidents): Alerter votre équipe quand le SLO entre dans un palier.
+- [Publier dans Slack, Microsoft Teams et Mattermost](#publier-dans-slack-microsoft-teams-et-mattermost): Prévenir un canal quand un SLO entre dans un palier, sans alerter personne.
 - [Barrière de déploiement](#barrière-de-déploiement): Retenir les mises en production dans la CI/CD tant qu'un palier gèle les déploiements.
 - [Lire le palier par l'API](#lire-le-palier-par-lapi): Vérifier le palier depuis la CI et des scripts.
 :::
@@ -88,6 +89,7 @@ Aucun d'eux ne déclenche d'alerte ni ne déclare d'incident tant que vous ne l'
 - La **Vue d'ensemble** du SLO affiche le palier dans lequel il se trouve et ce que l'équipe s'est engagée à y faire, pour que chaque personne qui ouvre le SLO voie l'engagement qui s'applique maintenant. Tant que le palier gèle les déploiements, un badge rouge sous son nom indique depuis quand.
 - Le graphique **Consommation du budget d'erreur** trace une ligne libellée au seuil de chaque palier, à côté de celle du seuil à risque.
 - Le **Fil d'activité** du SLO publie chaque changement de palier : le palier que le SLO a quitté et celui où il est entré, le budget restant, ce que l'équipe s'est engagée à faire dans le nouveau palier, et si le changement a gelé les déploiements ou les a de nouveau autorisés.
+- Les canaux Slack, Microsoft Teams et Mattermost que nomment vos règles reçoivent la même publication : voir [Publier dans Slack, Microsoft Teams et Mattermost](#publier-dans-slack-microsoft-teams-et-mattermost).
 - Les **Journaux d'audit** du SLO enregistrent chaque changement de palier, ainsi que chaque gel des déploiements et chaque nouvelle autorisation, comme un changement fait par OneUptime lui-même, et ne les affichent donc qu'avec **Stocker les événements système** activé : voir [Activer les journaux d'audit](/docs/slo/feed-and-audit-logs#activer-les-journaux-daudit). L'ajout, la modification et la suppression d'un palier sont enregistrés au nom de la personne qui les a faits.
 - L'API de lecture du SLO renvoie le palier, et si les déploiements sont autorisés : voir [Lire le palier par l'API](#lire-le-palier-par-lapi) et [Barrière de déploiement](#barrière-de-déploiement).
 
@@ -121,6 +123,43 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 ```
 
 La description intégrée nomme le palier, compare le budget restant au seuil du palier et dit ce que l'équipe s'est engagée à y faire.
+
+## Publier dans Slack, Microsoft Teams et Mattermost
+
+Une règle peut publier chaque changement de la politique de budget d'erreur d'un SLO dans les canaux Slack, Microsoft Teams ou Mattermost que lit votre équipe, sans alerter personne : quand le SLO entre dans un palier, revient à un palier moins grave ou sort de tous les paliers, et quand ses déploiements sont gelés ou de nouveau autorisés. Chaque règle choisit les SLO et les changements qu'elle publie. Connectez d'abord l'espace de travail au projet : voir [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) ou [Mattermost](/docs/workspace-connections/mattermost).
+
+:::steps
+### Ouvrir la section Espace de travail des SLO
+
+Allez dans **SLOs** → **Espace de travail** → **Slack**, **Microsoft Teams** ou **Mattermost**. La section **Espace de travail** ne liste que les espaces de discussion que votre projet a connectés.
+
+### Créer une règle
+
+Cliquez sur **Créer : Règle de notification des SLO** et donnez-lui un nom dans **Nom de la règle**. Sous **Quels SLO**, gardez **Tous les SLO**, ou choisissez **Uniquement les SLO qui correspondent aux conditions** et ajoutez des conditions : voir [Ce qu'une règle cible](#ce-quune-règle-cible).
+
+### Choisir où elle publie
+
+Sous **Ensuite, dans Slack**, nommez les canaux dans lesquels la règle publie. Dans Microsoft Teams, choisissez une équipe et ses canaux, ou des conversations auxquelles l'application OneUptime a été ajoutée. Un SLO n'a pas de canal à lui, donc une règle ne publie que dans des canaux et des conversations que vous avez déjà.
+:::
+
+Le message décrit le changement avec les mots du **Fil d'activité** du SLO : le palier que le SLO a quitté et celui où il est entré, l'évolution des déploiements, le budget d'erreur restant, le seuil du nouveau palier, et ce que l'équipe s'est engagée à y faire, tel que l'équipe l'a écrit. Une mention dans cet engagement, comme `<!channel>`, est publiée comme du texte et ne notifie personne.
+
+- Un changement est publié une seule fois, après l'enregistrement de l'évaluation qui l'a produit. Une évaluation qui n'est pas enregistrée ne publie rien, et la suivante publie le changement.
+- Rien n'est publié tant que le SLO reste dans son palier, même si le budget oscille longtemps autour d'un seuil : voir [Entrer dans un palier et en sortir](#entrer-dans-un-palier-et-en-sortir).
+- Activer ou désactiver **Geler les déploiements** pour le palier dans lequel se trouve le SLO publie un message à part.
+- Un SLO en pause, mal configuré, désactivé ou archivé garde son palier et ne publie rien.
+- Un message qui ne peut pas être envoyé est journalisé, et l'évaluation, le fil d'activité du SLO et ce que le palier déclenche continuent sans lui.
+
+### Ce qu'une règle cible
+
+| Condition | Ce qu'elle cible |
+| --- | --- |
+| **SLOs** | Les SLO que vous choisissez, ou tous les SLO sauf ceux-là. |
+| **Étiquettes du SLO** | Les étiquettes du SLO : l'une de celles que vous choisissez, toutes, ou aucune. |
+| **Nom du SLO** | Le nom du SLO : égal à votre texte ou non, le contenant ou non, commençant ou se terminant par ce texte. |
+| **Changement de la politique de budget d'erreur** | Ce qui a changé : **Entré dans un palier plus sévère**, **Revenu à un palier moins sévère**, **Sorti de tous les paliers**, **Déploiements gelés** ou **Déploiements de nouveau autorisés**. |
+
+Un changement de palier qui a gelé les déploiements, ou les a de nouveau autorisés, est un seul message qui porte les deux changements. Une règle pour **Déploiements gelés** publie donc aussi le changement qui fait entrer le SLO dans un palier qui les gèle : un canal dédié aux mises en production est prévenu de chaque gel.
 
 ## Quand le budget n'est pas mesuré
 
@@ -259,7 +298,7 @@ Ces autorisations se trouvent dans le groupe SLO d'un rôle. Les rôles Project 
 
 ## Pas encore disponible
 
-Certaines parties d'une politique de budget d'erreur ne sont pas encore disponibles : des déclencheurs de workflow et des notifications Slack ou Microsoft Teams pour chaque palier, une politique partagée par plusieurs SLO, l'acquittement d'un palier ou l'octroi d'une exception, et des paliers fondés sur l'autonomie du budget plutôt que sur le budget restant. OneUptime n'arrête pas de lui-même une mise en production : c'est un pipeline qui vérifie `deploymentsAllowed` qui le fait, comme le montre [Barrière de déploiement](#barrière-de-déploiement).
+Certaines parties d'une politique de budget d'erreur ne sont pas encore disponibles : un déclencheur de workflow propre à chaque palier, une politique partagée par plusieurs SLO, l'acquittement d'un palier ou l'octroi d'une exception, et des paliers fondés sur l'autonomie du budget plutôt que sur le budget restant. OneUptime n'arrête pas de lui-même une mise en production : c'est un pipeline qui vérifie `deploymentsAllowed` qui le fait, comme le montre [Barrière de déploiement](#barrière-de-déploiement).
 
 ## Prochaines étapes
 

@@ -419,9 +419,17 @@ describe("moving a row of a drag-ordered list", () => {
     expect(findAllBy).not.toHaveBeenCalled();
     expect(written).toEqual([]);
 
+    /*
+     * The one read of the row before the write, which does not take the
+     * row's place in its list either (addListOrderColumnsToSelect). The
+     * status page it belongs to is read all the same: the audit entry of
+     * the edit rolls up to it (AuditLogCoverage's root resource).
+     */
+    expect(findBy).toHaveBeenCalledTimes(1);
+
     const select: Record<string, unknown> = (findBy.mock.calls[0]![0] as any)
       .select;
-    expect(select["statusPageId"]).toBeUndefined();
+    expect(select["order"]).toBeUndefined();
   });
 
   test("clearing a row's number sends it to the end of its list", async () => {

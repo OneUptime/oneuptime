@@ -677,8 +677,9 @@ test.describe("a monitor's row", () => {
     await expect(dialog.getByTestId("modal-title")).toHaveText(
       "Turn off monitoring?",
     );
+    // Turning monitoring off resolves what the monitor would have resolved.
     await expect(dialog).toContainText(
-      "Nothing will check this monitor until monitoring is turned back on",
+      "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.",
     );
     await expect(dialog.getByTestId("row-switch-name")).toHaveText(
       "Checkout API",

@@ -3,6 +3,7 @@ import CustomRolePermission from "./CustomRolePermission";
 import Label from "./Label";
 import Project from "./Project";
 import Team from "./Team";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TeamCustomRole from "./TeamCustomRole";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -74,6 +75,13 @@ import {
     Permission.EditProjectTeamPermissions,
   ],
 })
+/*
+ * A team's permissions are its owners' to change: Edit Team Permissions
+ * scoped to Owned adds, changes and removes them only on the teams its
+ * holder or their teams own - and never beyond what its holder may hand on
+ * (TeamPermissionService.assertCanGrantPermission).
+ */
+@OwnedThrough("teamId", Team)
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/team-permission"))
 @Entity({
@@ -228,6 +236,8 @@ export default class TeamPermission extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
+    // Every permission is a team's: TeamPermissionService refuses one without.
+    required: true,
     title: "Team ID",
     description: "ID of Team this permission belongs in.",
     example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",

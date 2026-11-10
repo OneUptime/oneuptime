@@ -127,6 +127,30 @@ function sectionParagraphs(markdown: string, index: number): Array<string> {
     });
 }
 
+/*
+ * The paragraphs of that section before its first "### " subsection: the
+ * Owners section's own words, which Team owners follows (#6561).
+ */
+function leadParagraphs(markdown: string, index: number): Array<string> {
+  const paragraphs: Array<string> = sectionParagraphs(markdown, index);
+  const subsection: number = paragraphs.findIndex(
+    (paragraph: string): boolean => {
+      return paragraph.startsWith("### ");
+    },
+  );
+
+  return subsection < 0 ? paragraphs : paragraphs.slice(0, subsection);
+}
+
+// The "### " headings of that section, in order.
+function subsectionCount(markdown: string, index: number): number {
+  return sectionParagraphs(markdown, index).filter(
+    (paragraph: string): boolean => {
+      return paragraph.startsWith("### ");
+    },
+  ).length;
+}
+
 function countOf(text: string, needle: string): number {
   return text.split(needle).length - 1;
 }
@@ -150,6 +174,13 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
     expect(sectionParagraphs(page, OWNERS_SECTION)[0]).toMatch(
       /^An owner is a user or a team attached to one specific resource/,
     );
+    // Its one subsection, after its own words: a team's owners.
+    expect(subsectionCount(page, OWNERS_SECTION)).toBe(1);
+    expect(
+      sectionParagraphs(page, OWNERS_SECTION)[
+        leadParagraphs(page, OWNERS_SECTION).length
+      ],
+    ).toBe("### Team owners");
     expect(sectionParagraphs(page, DECISION_SECTION)[0]).toMatch(
       /^For a signed-in user, in order:/,
     );
@@ -159,7 +190,7 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
     "%s closes the Owners section with owners read through the resource, translated",
     (language: string) => {
       const page: string = permissionsPage(language);
-      const owners: Array<string> = sectionParagraphs(page, OWNERS_SECTION);
+      const owners: Array<string> = leadParagraphs(page, OWNERS_SECTION);
 
       expect([
         language,
@@ -174,11 +205,17 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
       expect([
         language,
         owners.length,
-        sectionParagraphs(permissionsPage("en"), OWNERS_SECTION).length,
+        leadParagraphs(permissionsPage("en"), OWNERS_SECTION).length,
       ]).toEqual([
         language,
-        sectionParagraphs(permissionsPage("en"), OWNERS_SECTION).length,
+        leadParagraphs(permissionsPage("en"), OWNERS_SECTION).length,
         owners.length,
+      ]);
+
+      // Then Team owners, as in English.
+      expect([language, subsectionCount(page, OWNERS_SECTION)]).toEqual([
+        language,
+        1,
       ]);
 
       if (language !== "en") {

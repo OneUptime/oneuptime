@@ -89,7 +89,7 @@ Status pages offer only the configurations that send SMS, and **Send Test SMS** 
 
 ## 3. Configure network access
 
-Sending works with outbound access alone. Delivery updates, keypad acknowledgement and incoming calls need Twilio to reach your server.
+Sending works with outbound access alone. Delivery updates, call outcomes, keypad acknowledgement and incoming calls need Twilio to reach your server.
 
 ```mermaid title="Outbound sends, inbound callbacks"
 sequenceDiagram
@@ -111,6 +111,7 @@ Inbound access depends on the feature:
 | --- | --- |
 | SMS submission | No. Delivery status updates do need a callback. |
 | A plain test voice call | No. OneUptime supplies the spoken instructions with the outbound API request. |
+| Knowing whether an on-call call was answered | Yes. Twilio reports how each call ended, so the incident feed can say when a responder did not answer. Calls still go out without it. |
 | Pressing 1 to acknowledge an on-call alert | Yes. Twilio submits the keypad input to OneUptime. |
 | Incoming Call Policies | Yes. Twilio requests call instructions and reports dial results. |
 
@@ -119,13 +120,14 @@ These are the external paths, through OneUptime's Nginx gateway. The placeholder
 | Method | Path | Purpose |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS delivery status |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Call outcome |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Keypad acknowledgement |
 | POST | `/notification/incoming-call/voice` | Optional incoming-call instructions |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Optional incoming-call routing results |
 
-OneUptime generates the SMS and acknowledgement URLs automatically. Do not replace their tokens with a static webhook URL. For incoming calls, follow [Incoming Call Policies](/docs/on-call/incoming-call-policy), which configures the number's webhook when you attach a number.
+OneUptime generates the SMS, call outcome and acknowledgement URLs automatically. Do not replace their tokens with a static webhook URL. For incoming calls, follow [Incoming Call Policies](/docs/on-call/incoming-call-policy), which configures the number's webhook when you attach a number.
 
-Twilio requires [publicly reachable webhook URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use a publicly trusted TLS certificate and preserve the original host, protocol, path, query parameters, body, and `X-Twilio-Signature` header through proxies. Incoming-call handlers validate Twilio signatures; SMS delivery uses a per-message URL token, and keypad acknowledgement uses a signed query token. Do not expose tokens in shared logs or screenshots. See [Twilio webhook security](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio requires [publicly reachable webhook URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use a publicly trusted TLS certificate and preserve the original host, protocol, path, query parameters, body, and `X-Twilio-Signature` header through proxies. Incoming-call handlers validate Twilio signatures; SMS delivery and call outcomes use a URL token per message or call, and keypad acknowledgement uses a signed query token. Do not expose tokens in shared logs or screenshots. See [Twilio webhook security](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Publish callbacks from a private deployment
 
@@ -144,7 +146,7 @@ The dashboard can remain on a private ingress: with split DNS, employees resolve
 Twilio's ordinary webhook source addresses change, so do not use SIP or media IP ranges as a callback allowlist. Eligible Twilio editions provide [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Confirm your edition's eligibility and supported products, and configure your firewall using Twilio's current published ranges; continue validating callbacks even when using it.
 
 > [!WARNING]
-> If policy forbids inbound connections, SMS submission and simple inline voice playback can work with outbound HTTPS. SMS delivery updates, keypad acknowledgement, and incoming call routing cannot work without reachable callbacks. A fully disconnected installation cannot use Twilio.
+> If policy forbids inbound connections, SMS submission and simple inline voice playback can work with outbound HTTPS. SMS delivery updates, call outcomes, keypad acknowledgement, and incoming call routing cannot work without reachable callbacks. A fully disconnected installation cannot use Twilio.
 
 For development, Twilio's [webhook testing guide](https://www.twilio.com/docs/usage/webhooks/webhook-testing) describes using a public tunnel: forward it to a proxy permitting only the required routes, configure the resulting hostname as above, and stop it after testing. A tunnel still exposes inbound access.
 

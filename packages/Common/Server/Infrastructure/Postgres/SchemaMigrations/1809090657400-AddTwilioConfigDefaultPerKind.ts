@@ -22,10 +22,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * hand-written; they touch only a project's default configs, of which
  * there is one a project.
  */
-export class AddTwilioConfigDefaultPerKind1809086574000
+export class AddTwilioConfigDefaultPerKind1809090657400
   implements MigrationInterface
 {
-  public name: string = "AddTwilioConfigDefaultPerKind1809086574000";
+  public name: string = "AddTwilioConfigDefaultPerKind1809090657400";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

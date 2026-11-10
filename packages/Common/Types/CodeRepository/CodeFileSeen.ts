@@ -53,6 +53,14 @@ import {
  * unseen. A commit of Ask AI's own wrote all of a file, and a citation
  * from before OneUptime kept lines reads as all of it.
  *
+ * And a version Ask AI saw is one it still has only in the turn that read
+ * it (issue #6365): a new turn replays the earlier turns' answers, never the
+ * files their tools read. A record from an earlier answer still says what
+ * Ask AI saw of the version - a change since is still a change since - but
+ * only this turn's reads and writes count as the lines in hand. With none
+ * of the version in hand, Ask AI writes it from memory; with some, it
+ * reads it in part, as above.
+ *
  * And a line Ask AI saw is not every value in it (issue #6364): what looks
  * like a secret or personal data reads as a placeholder, "[redacted-ip]",
  * so a version Ask AI writes whole puts the placeholder where the value
@@ -378,6 +386,11 @@ type CodeFileViewsFunction = (data: {
   records: ReadonlyArray<unknown> | null | undefined;
   repositoryId: string;
   filePath: string;
+  /*
+   * Only what the model still has (issue #6365): a record from an earlier
+   * answer is left out.
+   */
+  inHandOnly?: boolean | undefined;
 }) => Array<CodeFileView>;
 
 /*
@@ -391,6 +404,7 @@ export const getCodeFileViews: CodeFileViewsFunction = (data: {
   records: ReadonlyArray<unknown> | null | undefined;
   repositoryId: string;
   filePath: string;
+  inHandOnly?: boolean | undefined;
 }): Array<CodeFileView> => {
   const repositoryId: string = data.repositoryId.trim().toLowerCase();
   const byBranch: Map<string, CodeFileView> = new Map<string, CodeFileView>();
@@ -404,7 +418,8 @@ export const getCodeFileViews: CodeFileViewsFunction = (data: {
     if (
       !record ||
       record.recordType !== AIChatRecordSeenType.CodeFile ||
-      record.isPartial
+      record.isPartial ||
+      (data.inHandOnly && record.fromEarlierAnswer)
     ) {
       continue;
     }
@@ -467,6 +482,13 @@ export enum CodeFileUnseen {
   ReadOnAnotherBranch = "ReadOnAnotherBranch",
   // Ask AI never saw it, and the branch has it.
   NotRead = "NotRead",
+  /*
+   * Ask AI saw this version - read it, or wrote it itself - only in an
+   * earlier answer (issue #6365), and no longer has its text: a new turn
+   * replays the answers, never the files. The change writes all of it from
+   * memory.
+   */
+  ReadInEarlierAnswer = "ReadInEarlierAnswer",
   /*
    * Ask AI saw this version, but only some of its lines (issue #6330): the
    * change writes all of it, and drops what Ask AI never saw.
@@ -549,11 +571,61 @@ const findLinesNotRead: FindLinesNotReadFunction = (data: {
       };
 };
 
+type FindLinesNotInHandFunction = (data: {
+  views: ReadonlyArray<CodeFileView>;
+  // The views of what the model still has (issue #6365); left out, all of them.
+  viewsInHand?: ReadonlyArray<CodeFileView> | undefined;
+  fingerprint: string | null;
+}) => Omit<CodeFileUnseenFinding, "filePath"> | null;
+
+/*
+ * What Ask AI does not have in front of it of a version it saw, to write
+ * it whole (issue #6365): the lines its views of that version showed in
+ * this turn - a view from an earlier answer says only that it saw the
+ * version. None of it in hand: read in an earlier answer.
+ */
+const findLinesNotInHand: FindLinesNotInHandFunction = (data: {
+  views: ReadonlyArray<CodeFileView>;
+  viewsInHand?: ReadonlyArray<CodeFileView> | undefined;
+  fingerprint: string | null;
+}): Omit<CodeFileUnseenFinding, "filePath"> | null => {
+  if (!data.viewsInHand) {
+    return findLinesNotRead({
+      views: data.views,
+      fingerprint: data.fingerprint,
+    });
+  }
+
+  if (data.fingerprint === null) {
+    return null;
+  }
+
+  const fingerprint: string = data.fingerprint;
+
+  if (
+    !data.viewsInHand.some((view: CodeFileView): boolean => {
+      return view.fingerprint === fingerprint;
+    })
+  ) {
+    return { unseen: CodeFileUnseen.ReadInEarlierAnswer };
+  }
+
+  return findLinesNotRead({
+    views: data.viewsInHand,
+    fingerprint: fingerprint,
+  });
+};
+
 type FindCodeFileUnseenFunction = (data: {
   views: ReadonlyArray<CodeFileView>;
   // The branch the change writes to.
   branchName: string;
   now: CodeFileOnBranch;
+  /*
+   * The views of what the model still has: this turn's reads and writes
+   * (issue #6365). Left out, every view is in hand, as before.
+   */
+  viewsInHand?: ReadonlyArray<CodeFileView> | undefined;
 }) => Omit<CodeFileUnseenFinding, "filePath"> | null;
 
 /*
@@ -567,6 +639,7 @@ export const findCodeFileUnseen: FindCodeFileUnseenFunction = (data: {
   views: ReadonlyArray<CodeFileView>;
   branchName: string;
   now: CodeFileOnBranch;
+  viewsInHand?: ReadonlyArray<CodeFileView> | undefined;
 }): Omit<CodeFileUnseenFinding, "filePath"> | null => {
   if (data.now.state === "unreadable") {
     return { unseen: CodeFileUnseen.NotChecked };
@@ -583,7 +656,11 @@ export const findCodeFileUnseen: FindCodeFileUnseenFunction = (data: {
 
   if (onBranch) {
     return onBranch.fingerprint === fingerprintNow
-      ? findLinesNotRead({ views: data.views, fingerprint: fingerprintNow })
+      ? findLinesNotInHand({
+          views: data.views,
+          viewsInHand: data.viewsInHand,
+          fingerprint: fingerprintNow,
+        })
       : { unseen: CodeFileUnseen.ChangedSinceRead };
   }
 
@@ -603,7 +680,11 @@ export const findCodeFileUnseen: FindCodeFileUnseenFunction = (data: {
       return view.fingerprint === fingerprintNow;
     })
   ) {
-    return findLinesNotRead({ views: data.views, fingerprint: fingerprintNow });
+    return findLinesNotInHand({
+      views: data.views,
+      viewsInHand: data.viewsInHand,
+      fingerprint: fingerprintNow,
+    });
   }
 
   let latestWithFile: CodeFileView | null = null;
@@ -652,6 +733,13 @@ export const findCodeFilesUnseen: FindCodeFilesUnseenFunction = (data: {
         }),
         branchName: data.branchName,
         now: file.now,
+        // Only this turn's lines are in hand (issue #6365).
+        viewsInHand: getCodeFileViews({
+          records: data.records,
+          repositoryId: data.repositoryId,
+          filePath: file.filePath,
+          inHandOnly: true,
+        }),
       });
 
     if (found) {

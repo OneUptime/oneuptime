@@ -73,7 +73,7 @@ Enviar alertas só exige HTTPS de saída para `api.telegram.org`. Vincular uma c
 
 ### Twilio
 
-Quando alguém de plantão pressiona 1 em uma chamada para confirmar o acionamento, o Twilio envia a tecla para `POST /api/user-notification-log-timeline/call/gather-input/*`. Os endereços de webhook do Twilio mudam, a menos que a sua edição do Twilio inclua o [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). As atualizações de entrega de SMS e as chamadas recebidas estão descritas em [Integração do Twilio](/docs/self-hosted/twilio-integration).
+Quando alguém de plantão pressiona 1 em uma chamada para confirmar o acionamento, o Twilio envia a tecla para `POST /api/user-notification-log-timeline/call/gather-input/*`. Os endereços de webhook do Twilio mudam, a menos que a sua edição do Twilio inclua o [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). As atualizações de entrega de SMS, o resultado das chamadas e as chamadas recebidas estão descritas em [Integração do Twilio](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 

@@ -230,7 +230,7 @@ describe("MattermostAPI", () => {
       .mockResolvedValue(null);
     sendDirectMessage = jest
       .spyOn(MattermostUtil, "sendDirectMessageToUser")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(null);
 
     jest.spyOn(UserService, "findOneById").mockImplementation(async () => {
       return {

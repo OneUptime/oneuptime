@@ -1263,7 +1263,10 @@ describe("every interleaving of reads in windows, pushes and Ask AI's own commit
     for (const outcome of [
       "nothing",
       ...Object.values(CodeFileUnseen).filter((unseen: CodeFileUnseen) => {
-        return unseen !== CodeFileUnseen.ValuesHidden;
+        return (
+          unseen !== CodeFileUnseen.ValuesHidden &&
+          unseen !== CodeFileUnseen.ReadInEarlierAnswer
+        );
       }),
     ]) {
       expect({ outcome, enough: (said[outcome] || 0) > 100 }).toEqual({
@@ -1273,6 +1276,8 @@ describe("every interleaving of reads in windows, pushes and Ask AI's own commit
     }
     // Values hidden are said of what a change writes, never of what Ask AI saw (issue #6364).
     expect(said[CodeFileUnseen.ValuesHidden]).toBeUndefined();
+    // Every record here is of this turn: none is from an earlier answer (issue #6365).
+    expect(said[CodeFileUnseen.ReadInEarlierAnswer]).toBeUndefined();
     expect(addedUpToAll).toBeGreaterThan(20);
   });
 });

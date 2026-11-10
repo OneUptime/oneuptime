@@ -67,9 +67,9 @@ import ProductBrandingText from "../ProductBrandingText";
  * A page sent names the channels its notifications went out by; a
  * notification the person's own On-Call Rules send later - a call after
  * ten minutes, a push repeated until they answer - is an entry of its own,
- * and so is one that could not be sent; an answer names the channel it
- * came from. A review after the incident reads who was reached, how, when,
- * and what they did:
+ * and so is one that could not be sent, and a call that rang and was not
+ * picked up; an answer names the channel it came from. A review after the
+ * incident reads who was reached, how, when, and what they did:
  *
  *   On-call policy PolicyX paged Nitin Kumar via push notification and
  *     email at Level 1 of 3.
@@ -77,6 +77,8 @@ import ProductBrandingText from "../ProductBrandingText";
  *     of 3.
  *   On-call policy PolicyX paged Nitin Kumar again via phone call at Level
  *     1 of 3.
+ *   Nitin Kumar did not answer the phone call from on-call policy PolicyX
+ *     at Level 1 of 3.
  *   Nitin Kumar acknowledged the page from on-call policy PolicyX at Level
  *     1 of 3 via phone call.
  *
@@ -937,16 +939,20 @@ export default class OnCallFeedText {
 
   /*
    * A notification of a person's page told of after the page's own entry:
-   * one their On-Call Rules sent later, or one that could not be sent
-   * (getOnCallPageNotificationNews says which, and by which channels).
+   * one their On-Call Rules sent later, one that could not be sent, or a
+   * call they did not pick up (getOnCallPageNotificationNews says which,
+   * and by which channels).
    *
    *   On-call policy PolicyX paged Nitin Kumar again via phone call at
    *     Level 1 of 3.
    *   On-call policy PolicyX could not page Nitin Kumar via SMS at Level 1
    *     of 3.
+   *   Nitin Kumar did not answer the phone call from on-call policy
+   *     PolicyX at Level 1 of 3.
    *
-   * Never why one could not be sent (see the header). Empty without a
-   * person or a channel: there is nothing to tell.
+   * Never why one could not be sent (see the header), nor whether a call
+   * rang out or found the line busy. Empty without a person or a channel:
+   * there is nothing to tell.
    */
   public static getStepNotificationMarkdown(
     input: OnCallStepFeedTextInput,
@@ -970,6 +976,13 @@ export default class OnCallFeedText {
       return mdText`${policy} could not page ${recipient}${via} at ${rule}.`.toString();
     }
 
+    // Said of the person, as their answer is: "Nitin did not answer ...".
+    if (notification.event === OnCallPageNotificationEvent.NotAnswered) {
+      return mdText`${recipient} did not answer the ${getChannelList(
+        notification.channels,
+      )} from ${getPolicy(input.policyLink, { isInSentence: true })} at ${rule}.`.toString();
+    }
+
     const again: MarkdownText = notification.isPagedBefore
       ? mdText` again`
       : FeedMarkdown.empty();
@@ -979,7 +992,8 @@ export default class OnCallFeedText {
 
   /*
    * The same for a direct page: "Workflow Page SRE paged Nitin Kumar again
-   * via phone call, on call in schedule Primary."
+   * via phone call, on call in schedule Primary.", "Nitin Kumar did not
+   * answer the phone call from workflow Page SRE."
    */
   public static getDirectPageStepNotificationMarkdown(
     input: OnCallDirectPageStepFeedTextInput,
@@ -1001,6 +1015,13 @@ export default class OnCallFeedText {
 
     if (notification.event === OnCallPageNotificationEvent.Failed) {
       return mdText`${pager} could not page ${recipient}${channels}${via}.`.toString();
+    }
+
+    // As an answer to a direct page is said: of the person, from the pager.
+    if (notification.event === OnCallPageNotificationEvent.NotAnswered) {
+      return mdText`${recipient} did not answer the ${getChannelList(
+        notification.channels,
+      )} from ${getDirectPagePager(input.pager, { isInSentence: true })}.`.toString();
     }
 
     const again: MarkdownText = notification.isPagedBefore

@@ -77,6 +77,7 @@ Eine Benachrichtigungsregel legt fest, welche Ereignisse in Slack gepostet werde
 | **Geplante Wartung** | Eine Liste von Regeln |
 | **Monitore** | Eine Liste von Regeln |
 | **Bereitschaftsdienst** | Eine Liste von Regeln |
+| **SLOs** | Eine Liste von Regeln |
 
 Eine Regel wird in vier Schritten angelegt:
 
@@ -86,6 +87,8 @@ Eine Regel wird in vier Schritten angelegt:
 | **Bedingungen** | Für welche Ereignisse die Regel gilt, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Sie werden geprüft, wenn ein Ereignis erstellt wird, und erneut bei jedem Update, das OneUptime dazu postet, sodass eine Regel für bestätigte Vorfälle greift, sobald ein Vorfall bestätigt wird. Eine neue Regel gilt für jedes Ereignis, etwa **Alle Vorfälle**. Um sie einzugrenzen, wählen Sie **Nur Vorfälle, die den Bedingungen entsprechen** und fügen die Bedingungen hinzu. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
 | **Ziel** | Wohin sie postet: **In vorhandenen Kanälen posten** mit den Kanalnamen, **Einen Kanal für jeden Vorfall erstellen** (oder jede Warnung, Episode, jedes Ereignis, jeden Monitor oder jede Bereitschaftsrichtlinie) mit den Personen, die ihm beitreten, oder beides. Unter dem Schritt sagt **Was diese Regel tut** in Sätzen, was sie tut, wie die Karte der Regel. |
 | **Videoanruf** | Nur Vorfälle und Warnungen: für jeden einen Anruf starten. Siehe [Videoanrufe](/docs/workspace-connections/video-calls). |
+
+Eine SLO-Regel postet die Änderungen der Fehlerbudget-Richtlinie eines SLO: wenn das SLO in eine Stufe eintritt, sich in eine weniger strenge Stufe erholt oder alle Stufen verlässt, und wenn seine Deployments eingefroren oder wieder erlaubt werden. Sie postet nur in bestehenden Kanälen, da ein SLO keinen eigenen Kanal bekommt. Siehe [In Slack, Microsoft Teams und Mattermost posten](/docs/slo/error-budget-policy#in-slack-microsoft-teams-und-mattermost-posten).
 
 Ein Kanal, den die Regel anlegt, wird nach seinem Datensatz benannt: Vorfall INC-42 bekommt `inc-42`, Warnung ALT-7 bekommt `alt-7`, und in einem Projekt ohne Nummernpräfixe bekommt Vorfall 42 `incident-42`. Text in **Präfix für Kanalnamen** steht davor, aus `prod-` wird also `prod-inc-42`, und das Formular zeigt den Namen schon beim Tippen. Bei einem geplanten Wartungsereignis tritt das Präfix an die Stelle seines Nummernpräfixes: SM-5 bekommt `sm-5`, und aus `maint-` wird `maint-5`. Slack nimmt Kleinbuchstaben, Ziffern, `-` und `_`, bis zu 80 Zeichen. Gibt es schon einen Kanal mit diesem Namen, etwa den eines anderen Projekts oder einen archivierten, hängt OneUptime `-2`, `-3` und so weiter an.
 

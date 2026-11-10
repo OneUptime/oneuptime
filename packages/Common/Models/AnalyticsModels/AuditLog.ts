@@ -403,7 +403,7 @@ export default class AuditLog extends AnalyticsBaseModel {
       key: "retentionDate",
       title: "Retention Date",
       description:
-        "Date after which this row is eligible for TTL deletion, computed at ingest time as createdAt + project.auditLogsRetentionInDays.",
+        "Date after which this row is eligible for TTL deletion, computed at ingest time as createdAt plus the project's audit log retention: from 7 to 180 days, 7 when it has none.",
       required: true,
       type: TableColumnType.Date,
       defaultValue: undefined,

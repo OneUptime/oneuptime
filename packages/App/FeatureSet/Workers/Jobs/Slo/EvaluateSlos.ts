@@ -118,17 +118,23 @@ import {
   computeSloPolicyTier,
   formatSloPolicyTierThreshold,
   getSloDeploymentGateChange,
+  getSloErrorBudgetPolicyChanges,
   isMoreSevereSloPolicyTier,
   isSameSloPolicyTier,
 } from "Common/Utils/Slo/SloErrorBudgetPolicy";
+import SloErrorBudgetPolicyChange from "Common/Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
 import {
   SloFeedDeploymentGate,
   SloFeedMarkdown,
+  SloFeedMarkdownParts,
   SloFeedStatusMeasurement,
-  getSloDeploymentGateChangedFeedMarkdown,
-  getSloPolicyTierChangedFeedMarkdown,
+  getSloDeploymentGateChangedFeedParts,
+  getSloFeedChatMarkdown,
+  getSloPolicyTierChangedFeedParts,
   getSloStatusChangedFeedMarkdown,
+  toSloFeedMarkdown,
 } from "Common/Utils/Slo/SloFeedMarkdown";
+import SloWorkspaceNotifications from "Common/Server/Utils/Slo/SloWorkspaceNotifications";
 import {
   getSloDeploymentGateColor,
   getSloPolicyTierColor,
@@ -198,8 +204,10 @@ const SWEEP_LOCK_TIMEOUT_MS: number =
  * - notifies owners on AtRisk / BudgetExhausted transitions,
  * - evaluates multi-window burn rate rules and raises / resolves Alerts,
  * - moves the SLO between the tiers of its error budget policy, answers its
- *   deploy gate (deploymentsAllowed) from the tier it is in, and raises /
- *   resolves what each tier is set to raise.
+ *   deploy gate (deploymentsAllowed) from the tier it is in, posts each such
+ *   change to the SLO's feed and to the Slack, Microsoft Teams and
+ *   Mattermost channels its rules name, and raises / resolves what each
+ *   tier is set to raise.
  */
 RunCron(
   "Slo:EvaluateSlos",
@@ -932,10 +940,12 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
 
   /*
    * What the error budget policy did on this evaluation, for a change this
-   * write committed - after it, so a failed write posts nothing and the next
-   * tick meets the same change again.
+   * write committed - to the SLO's feed and to the Slack, Microsoft Teams
+   * and Mattermost channels whose rules match it - after the write, so a
+   * failed write posts nothing and the next tick meets the same change
+   * again, and a change is posted once.
    */
-  await postPolicyChangeFeedItem({
+  await postPolicyChange({
     slo: slo,
     allPolicyTiers: allPolicyTiers,
     policyTier: policyTier,
@@ -1272,21 +1282,27 @@ function getPolicyTierChange(data: {
 }
 
 /*
- * What the error budget policy posts to the SLO feed for an evaluation, in
- * one place: a sink that follows these changes beyond the feed (a chat
- * message of the same change) belongs here too, after the same committed
- * write.
+ * What the error budget policy posts for an evaluation, in one place, after
+ * the same committed write: the SLO's feed first, then the Slack, Microsoft
+ * Teams and Mattermost channels and chats of the project's Service Level
+ * Objective rules that match the change (SloWorkspaceNotifications), in the
+ * feed item's own words.
  *
  *   - A tier change: ErrorBudgetPolicyTierChanged, which also says when the
- *     change froze deployments or allowed them again.
+ *     change froze deployments or allowed them again - one item, and one
+ *     message, for both.
  *   - No tier change, but the deploy gate flipped - Freeze Deployments was
  *     switched on or off for the tier the SLO is in:
- *     ErrorBudgetPolicyDeploymentsFrozen or ...DeploymentsAllowed.
- *   - Otherwise nothing: a renamed tier refreshes its name quietly.
+ *     ErrorBudgetPolicyDeploymentsFrozen or ...DeploymentsAllowed. A CI
+ *     freeze is what a release channel needs to hear, so it is posted too.
+ *   - Otherwise nothing: a renamed tier refreshes its name quietly, and an
+ *     SLO holding its tier under the hysteresis changed nothing.
  *
- * Never throws: each item catches its own failure.
+ * Never throws: the feed and the channels each catch their own failure, so
+ * a feed item that fails still goes to the channels, and a workspace that
+ * fails costs neither the feed nor the outputs that follow.
  */
-async function postPolicyChangeFeedItem(data: {
+async function postPolicyChange(data: {
   slo: ServiceLevelObjective;
   allPolicyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
   policyTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
@@ -1298,36 +1314,75 @@ async function postPolicyChangeFeedItem(data: {
   const { slo, deploymentGateChange } = data;
 
   if (data.policyTierChange.isTierChange) {
-    await postPolicyTierChangedFeedItem({
+    const previousTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null =
+      data.allPolicyTiers.find(
+        (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+          return isSameSloPolicyTier(
+            tier.id,
+            slo.currentErrorBudgetPolicyTierId,
+          );
+        },
+      ) || null;
+
+    /*
+     * Escalating when the new tier is more severe than the old one. A tier
+     * that no longer exists has no threshold to compare, so entering any
+     * tier after it reads as entering one.
+     */
+    const isEscalation: boolean = Boolean(
+      data.policyTier &&
+        (previousTier
+          ? isMoreSevereSloPolicyTier(data.policyTier, previousTier)
+          : true),
+    );
+
+    const parts: SloFeedMarkdownParts | null =
+      await postPolicyTierChangedFeedItem({
+        slo: slo,
+        previousTierName: slo.currentErrorBudgetPolicyTierName,
+        previousTier: previousTier,
+        newTier: data.policyTier,
+        isEscalation: isEscalation,
+        deployments: {
+          isAllowed: deploymentGateChange.gate.deploymentsAllowed,
+          hasChanged: deploymentGateChange.transition !== null,
+        },
+        budget: data.budget,
+        now: data.now,
+      });
+
+    await postPolicyChangeToWorkspaces({
       slo: slo,
-      previousTierName: slo.currentErrorBudgetPolicyTierName,
-      previousTier:
-        data.allPolicyTiers.find(
-          (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
-            return isSameSloPolicyTier(
-              tier.id,
-              slo.currentErrorBudgetPolicyTierId,
-            );
-          },
-        ) || null,
-      newTier: data.policyTier,
-      deployments: {
-        isAllowed: deploymentGateChange.gate.deploymentsAllowed,
-        hasChanged: deploymentGateChange.transition !== null,
-      },
-      budget: data.budget,
-      now: data.now,
+      parts: parts,
+      changes: getSloErrorBudgetPolicyChanges({
+        isTierChange: true,
+        isInTier: Boolean(data.policyTier),
+        isEscalation: isEscalation,
+        deploymentGateTransition: deploymentGateChange.transition,
+      }),
     });
     return;
   }
 
   if (deploymentGateChange.transition) {
-    await postDeploymentGateChangedFeedItem({
+    const parts: SloFeedMarkdownParts | null =
+      await postDeploymentGateChangedFeedItem({
+        slo: slo,
+        tier: data.policyTier,
+        transition: deploymentGateChange.transition,
+        budget: data.budget,
+        now: data.now,
+      });
+
+    await postPolicyChangeToWorkspaces({
       slo: slo,
-      tier: data.policyTier,
-      transition: deploymentGateChange.transition,
-      budget: data.budget,
-      now: data.now,
+      parts: parts,
+      changes: getSloErrorBudgetPolicyChanges({
+        isTierChange: false,
+        isInTier: Boolean(data.policyTier),
+        isEscalation: false,
+        deploymentGateTransition: deploymentGateChange.transition,
+      }),
     });
   }
 }
@@ -1339,7 +1394,9 @@ async function postPolicyChangeFeedItem(data: {
  * deploy gate. No acting user - the worker decided this - and posted at the
  * evaluation's clock.
  *
- * Never throws: the feed must not cost the outputs that follow.
+ * Says what it wrote, as its parts, for the channels to post the same words;
+ * null when they could not be written. Never throws: the feed must not cost
+ * the outputs that follow.
  */
 async function postPolicyTierChangedFeedItem(data: {
   slo: ServiceLevelObjective;
@@ -1347,14 +1404,18 @@ async function postPolicyTierChangedFeedItem(data: {
   previousTierName: string | undefined;
   previousTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
   newTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
+  // The new tier is more severe than the old one, or the SLO was in none.
+  isEscalation: boolean;
   // The deploy gate after the change.
   deployments: SloFeedDeploymentGate;
   budget: ErrorBudgetResult;
   now: Date;
-}): Promise<void> {
+}): Promise<SloFeedMarkdownParts | null> {
   if (!data.slo.id || !data.slo.projectId) {
-    return;
+    return null;
   }
+
+  let parts: SloFeedMarkdownParts | null = null;
 
   try {
     const sloMarkdownLink: MarkdownText =
@@ -1364,19 +1425,7 @@ async function postPolicyTierChangedFeedItem(data: {
         sloName: data.slo.name || "",
       });
 
-    /*
-     * Escalating when the new tier is more severe than the old one. A tier
-     * that no longer exists has no threshold to compare, so entering any
-     * tier after it reads as entering one.
-     */
-    const isEscalation: boolean = Boolean(
-      data.newTier &&
-        (data.previousTier
-          ? isMoreSevereSloPolicyTier(data.newTier, data.previousTier)
-          : true),
-    );
-
-    const markdown: SloFeedMarkdown = getSloPolicyTierChangedFeedMarkdown({
+    parts = getSloPolicyTierChangedFeedParts({
       sloMarkdownLink: sloMarkdownLink,
       previousTierName: data.previousTierName || data.previousTier?.name,
       newTier: data.newTier
@@ -1386,11 +1435,13 @@ async function postPolicyTierChangedFeedItem(data: {
             whatWeDo: data.newTier.whatWeDo,
           }
         : null,
-      isEscalation: isEscalation,
+      isEscalation: data.isEscalation,
       errorBudgetRemainingPercentage: data.budget.budgetRemainingPercentage,
       errorBudgetRemainingSeconds: data.budget.budgetRemainingSeconds,
       deployments: data.deployments,
     });
+
+    const markdown: SloFeedMarkdown = toSloFeedMarkdown(parts);
 
     await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
       serviceLevelObjectiveId: data.slo.id,
@@ -1411,6 +1462,8 @@ async function postPolicyTierChangedFeedItem(data: {
       } as LogAttributes,
     );
   }
+
+  return parts;
 }
 
 /*
@@ -1420,7 +1473,9 @@ async function postPolicyTierChangedFeedItem(data: {
  * tier's Freeze Deployments is in the audit log), posted at the evaluation's
  * clock.
  *
- * Never throws: the feed must not cost the outputs that follow.
+ * Says what it wrote, as its parts, for the channels to post the same words;
+ * null when they could not be written. Never throws: the feed must not cost
+ * the outputs that follow.
  */
 async function postDeploymentGateChangedFeedItem(data: {
   slo: ServiceLevelObjective;
@@ -1429,13 +1484,15 @@ async function postDeploymentGateChangedFeedItem(data: {
   transition: SloDeploymentGateTransition;
   budget: ErrorBudgetResult;
   now: Date;
-}): Promise<void> {
+}): Promise<SloFeedMarkdownParts | null> {
   if (!data.slo.id || !data.slo.projectId) {
-    return;
+    return null;
   }
 
   const isAllowed: boolean =
     data.transition === SloDeploymentGateTransition.Allowed;
+
+  let parts: SloFeedMarkdownParts | null = null;
 
   try {
     const sloMarkdownLink: MarkdownText =
@@ -1445,7 +1502,7 @@ async function postDeploymentGateChangedFeedItem(data: {
         sloName: data.slo.name || "",
       });
 
-    const markdown: SloFeedMarkdown = getSloDeploymentGateChangedFeedMarkdown({
+    parts = getSloDeploymentGateChangedFeedParts({
       sloMarkdownLink: sloMarkdownLink,
       // The tier's own name, or the one the SLO recorded it under.
       tierName:
@@ -1454,6 +1511,8 @@ async function postDeploymentGateChangedFeedItem(data: {
       errorBudgetRemainingPercentage: data.budget.budgetRemainingPercentage,
       errorBudgetRemainingSeconds: data.budget.budgetRemainingSeconds,
     });
+
+    const markdown: SloFeedMarkdown = toSloFeedMarkdown(parts);
 
     await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
       serviceLevelObjectiveId: data.slo.id,
@@ -1469,6 +1528,53 @@ async function postDeploymentGateChangedFeedItem(data: {
   } catch (err) {
     logger.error(
       `Slo:EvaluateSlos - Error posting the deploy gate feed item for SLO ${data.slo.id.toString()}: ${err}`,
+      {
+        projectId: data.slo.projectId.toString(),
+        sloId: data.slo.id.toString(),
+      } as LogAttributes,
+    );
+  }
+
+  return parts;
+}
+
+/*
+ * The change, posted to the Slack, Microsoft Teams and Mattermost channels
+ * and chats of the project's Service Level Objective rules that match the
+ * SLO and what moved (`changes`), as one message: the feed item's line and
+ * its details, the team's agreement for a new tier among them
+ * (getSloFeedChatMarkdown). Posted whether or not the feed took its item:
+ * the channels are a sink of their own. Nothing when the item's words could
+ * not be written.
+ *
+ * Never throws: a workspace that is down, slow to refuse or misconfigured
+ * is logged, and the evaluation goes on to its history, metrics, owners and
+ * outputs as if nothing had been posted.
+ */
+async function postPolicyChangeToWorkspaces(data: {
+  slo: ServiceLevelObjective;
+  parts: SloFeedMarkdownParts | null;
+  changes: Array<SloErrorBudgetPolicyChange>;
+}): Promise<void> {
+  if (
+    !data.parts ||
+    data.changes.length === 0 ||
+    !data.slo.id ||
+    !data.slo.projectId
+  ) {
+    return;
+  }
+
+  try {
+    await SloWorkspaceNotifications.postPolicyChange({
+      projectId: data.slo.projectId,
+      sloId: data.slo.id,
+      changes: data.changes,
+      markdown: getSloFeedChatMarkdown(data.parts),
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error posting the error budget policy change of SLO ${data.slo.id.toString()} to Slack, Microsoft Teams or Mattermost: ${err}`,
       {
         projectId: data.slo.projectId.toString(),
         sloId: data.slo.id.toString(),
