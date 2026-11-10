@@ -238,6 +238,7 @@ interface OptionPlaces {
 
 const JEST_DEFAULT_TEST_TIMEOUT_IN_MS: number = 5000;
 
+// Which options Jest reads only at the top level, and which only in a project.
 const optionPlaces: (reading: JestReading) => OptionPlaces = (
   reading: JestReading,
 ): OptionPlaces => {
@@ -256,6 +257,7 @@ const optionPlaces: (reading: JestReading) => OptionPlaces = (
         ...[...globalOptions].filter((option: string): boolean => {
           return !projectOptions.has(option);
         }),
+        // Jest 30 keeps it in a project's config, but never applies it.
         "testTimeout",
       ]),
     ],
@@ -275,7 +277,9 @@ describe("ee/jest.config.js puts every option where Jest reads it", () => {
   });
 
   test("every ee test gets Common's test timeout, set at the top level and in no project", () => {
-    expect(jestConfig.testTimeout).toBe(commonJestConfig.testTimeout);
+    expect({ topLevelTestTimeout: jestConfig.testTimeout }).toEqual({
+      topLevelTestTimeout: commonJestConfig.testTimeout,
+    });
     expect(jestConfig.testTimeout).toBeGreaterThan(
       JEST_DEFAULT_TEST_TIMEOUT_IN_MS,
     );
@@ -294,12 +298,15 @@ describe("ee/jest.config.js puts every option where Jest reads it", () => {
         return config.displayName?.name;
       }),
     ).toEqual(["server", "ui"]);
-    expect(reading.globalConfig.testTimeout).toBe(commonJestConfig.testTimeout);
+    expect({
+      testTimeoutJestApplies: reading.globalConfig.testTimeout,
+    }).toEqual({ testTimeoutJestApplies: commonJestConfig.testTimeout });
   });
 
   test("no project sets an option Jest reads only at the top level", () => {
     const { topLevelOnly }: OptionPlaces = optionPlaces(reading);
 
+    // From Jest's reader: it must hold these, or the check passes on nothing.
     expect(topLevelOnly).toEqual(
       expect.arrayContaining([
         "testTimeout",
@@ -326,6 +333,7 @@ describe("ee/jest.config.js puts every option where Jest reads it", () => {
   test("the top level sets no option Jest reads only in a project", () => {
     const { projectOnly }: OptionPlaces = optionPlaces(reading);
 
+    // From Jest's reader: it must hold these, or the check passes on nothing.
     expect(projectOnly).toEqual(
       expect.arrayContaining([
         "testEnvironment",
