@@ -58,6 +58,16 @@ export const TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER: string =
 export const TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER: string =
   "{{TERRAFORM_PROVIDER_MATCHING}}";
 
+/*
+ * The Crossplane provider's package is published with every release, as
+ * provider-oneuptime:v<version>, made from that release's Terraform provider.
+ * The docs name the package of the OneUptime that serves them, by its tag:
+ * OneUptime Cloud's docs the newest, a self-hosted instance's the one made
+ * from it, which knows the fields its API does.
+ */
+export const CROSSPLANE_PROVIDER_VERSION_PLACEHOLDER: string =
+  "{{CROSSPLANE_PROVIDER_VERSION}}";
+
 const MAJOR_VERSION_PATTERN: RegExp = new RegExp("^v?(\\d+)\\.\\d+");
 // A release's version: "14.0.56", or "v14.0.56" as a tag writes it.
 const RELEASE_VERSION_PATTERN: RegExp = new RegExp(
@@ -161,6 +171,29 @@ export function getTerraformProviderMatchingConstraint(
   return `>= ${release[1]}.0, <= ${plain}`;
 }
 
+/*
+ * "v14.0.56" for OneUptime 14.0.56: the package's tag. A development build
+ * names no release, so its docs show the tag's form for the reader to fill
+ * in, as a code sample writes any other value of theirs.
+ */
+export function getCrossplaneProviderVersion(
+  version: string | null = getPlatformVersion(),
+): string {
+  const release: RegExpMatchArray | null = version
+    ? version.trim().match(RELEASE_VERSION_PATTERN)
+    : null;
+
+  if (release) {
+    const plain: string = `${release[1]}.${release[2]}.${release[3]}`;
+
+    if (plain !== DEVELOPMENT_VERSION) {
+      return `v${plain}`;
+    }
+  }
+
+  return "v<version>";
+}
+
 function getIpWhitelistMarkdown(): string {
   if (!IpWhitelist) {
     return "- No IP addresses configured.";
@@ -231,6 +264,14 @@ export default class DocsPlaceholders {
         content,
         TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER,
         getTerraformProviderMajorVersion() || "N",
+      );
+    }
+
+    if (content.includes(CROSSPLANE_PROVIDER_VERSION_PLACEHOLDER)) {
+      content = replaceAll(
+        content,
+        CROSSPLANE_PROVIDER_VERSION_PLACEHOLDER,
+        getCrossplaneProviderVersion(),
       );
     }
 

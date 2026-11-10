@@ -1,0 +1,44 @@
+# Statuses and a severity OneUptime made with the project, observed by their
+# IDs: the provider reads them and never changes or deletes them. The Monitor
+# refers to them by these names.
+apiVersion: crossplane.oneuptime.com/v1alpha1
+kind: MonitorStatusDefinition
+metadata:
+  name: offline
+  namespace: ${NAMESPACE}
+  annotations:
+    crossplane.io/external-name: ${OFFLINE_STATUS_ID}
+spec:
+  managementPolicies: ["Observe"]
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider: {}
+---
+apiVersion: crossplane.oneuptime.com/v1alpha1
+kind: MonitorStatusDefinition
+metadata:
+  name: operational
+  namespace: ${NAMESPACE}
+  annotations:
+    crossplane.io/external-name: ${OPERATIONAL_STATUS_ID}
+spec:
+  managementPolicies: ["Observe"]
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider: {}
+---
+apiVersion: crossplane.oneuptime.com/v1alpha1
+kind: IncidentSeverity
+metadata:
+  name: critical
+  namespace: ${NAMESPACE}
+  annotations:
+    crossplane.io/external-name: ${CRITICAL_SEVERITY_ID}
+spec:
+  managementPolicies: ["Observe"]
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider: {}

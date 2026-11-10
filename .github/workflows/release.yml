@@ -1639,6 +1639,104 @@ jobs:
       - name: Generate and publish Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"
 
+  # Gate: the Crossplane provider's package must pass its e2e suite (installed
+  # by Crossplane in a kind cluster, managing a running OneUptime) before it is
+  # published.
+  crossplane-provider-e2e:
+    uses: ./.github/workflows/crossplane-provider.yml
+    # A concurrency group of this run's own, so no other release run cancels
+    # this release's suite (see the workflow's concurrency).
+    with:
+      release_run_id: ${{ github.run_id }}-crossplane
+    secrets: inherit
+
+  # The Crossplane provider's package, for amd64 and arm64, as
+  # provider-oneuptime:v<version> on GHCR and Docker Hub, signed keyless by
+  # digest as the release's images are. It is made from the Terraform provider
+  # this run generates, so it never differs from the one it wraps.
+  publish-crossplane-provider:
+    runs-on: ubuntu-latest
+    needs: [read-version, crossplane-provider-e2e]
+    # Publishes the package, so it runs only for `release`, as every job that
+    # publishes does (Tests/Ops/ReleaseCriticalPath).
+    if: github.ref == 'refs/heads/release'
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    permissions:
+      contents: read
+      packages: write  # For pushing the package to GHCR
+      id-token: write  # For cosign's keyless signing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: 'npm'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: false
+
+      - name: Set up the Crossplane tools
+        uses: ./.github/actions/setup-crossplane-tools
+
+      # Generation runs both generators through the root's ts-node, against
+      # Common's sources: it needs all three.
+      - name: Install root dependencies
+        uses: ./.github/actions/npm-install
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Script dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts
+
+      - name: Generate Terraform provider
+        run: npm run generate-terraform-provider
+
+      - name: Generate Crossplane provider
+        run: npm run generate-crossplane-provider
+
+      # Defense in depth, as for the Terraform provider: a broken generation
+      # fails here, before anything is pushed.
+      - name: Test generated Crossplane provider
+        working-directory: ./Crossplane/provider-oneuptime
+        run: go test ./...
+
+      - name: Build the provider's packages
+        run: |
+          bash ./Scripts/CrossplaneProvider/build-package.sh \
+            --version "${{needs.read-version.outputs.major_minor}}"
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      # By commit, as sign-images installs it (see there).
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      - name: Publish and sign the provider's package
+        run: |
+          bash ./Scripts/CrossplaneProvider/publish-package.sh \
+            --version "${{needs.read-version.outputs.major_minor}}" \
+            --repository ghcr.io/oneuptime/provider-oneuptime \
+            --repository docker.io/oneuptime/provider-oneuptime \
+            --sign
+
 
 
   # Moves release / enterprise-release onto this version's images only once the

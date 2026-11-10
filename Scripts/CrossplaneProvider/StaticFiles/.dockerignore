@@ -1,0 +1,3 @@
+# The runtime image holds the provider binary only (see Dockerfile).
+*
+!bin/linux_*/provider
