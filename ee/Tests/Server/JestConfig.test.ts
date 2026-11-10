@@ -230,6 +230,7 @@ describe("ee/jest.config.js", () => {
  */
 
 type JestReading = Awaited<ReturnType<typeof readConfigs>>;
+type JestProjectConfig = JestReading["configs"][number];
 
 interface OptionPlaces {
   topLevelOnly: Array<string>;
@@ -246,7 +247,7 @@ const optionPlaces: (reading: JestReading) => OptionPlaces = (
     Object.keys(reading.globalConfig),
   );
   const projectOptions: Set<string> = new Set<string>(
-    reading.configs.flatMap((config: object): Array<string> => {
+    reading.configs.flatMap((config: JestProjectConfig): Array<string> => {
       return Object.keys(config);
     }),
   );
@@ -294,7 +295,7 @@ describe("ee/jest.config.js puts every option where Jest reads it", () => {
 
   test("Jest's own config reader times both projects' tests by it", () => {
     expect(
-      reading.configs.map((config: JestReading["configs"][number]) => {
+      reading.configs.map((config: JestProjectConfig) => {
         return config.displayName?.name;
       }),
     ).toEqual(["server", "ui"]);
