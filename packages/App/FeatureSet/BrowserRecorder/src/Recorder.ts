@@ -4403,6 +4403,54 @@ export default class Recorder {
     return this.identity.sessionId;
   }
 
+  /*
+   * The session product analytics files an event under (ProductAnalytics.ts).
+   * A recorder that runs keeps its session itself - idle and duration
+   * rollover, other tabs' rotations. One the replay sample left out stops
+   * at start() and keeps nothing, so the event itself keeps the shared
+   * session alive here, and rolls it over when it went idle, as a running
+   * recorder would have.
+   */
+  public getAnalyticsSessionId(nowUnixMs: number): string {
+    if (this.startDecision === "not-sampled" && !this.consent.isRevoked()) {
+      this.identity = SessionId.resolveSession(
+        nowUnixMs,
+        this.identity.tabId,
+        this.identity.sessionId,
+      );
+    }
+
+    return this.identity.sessionId;
+  }
+
+  /* What a replay chunk would say about consent: "Granted", "NotRequired" or "Unknown". */
+  public getConsentState(): SessionReplayConsentState {
+    return this.consent.getState();
+  }
+
+  /*
+   * Who the session's events belong to, for product analytics: the user
+   * the session belongs to and the traits this page gave, only while the
+   * application captures identity - as on a replay chunk.
+   */
+  public getAnalyticsIdentity(): {
+    userRef: string;
+    traits: Record<string, string> | null;
+  } {
+    if (!this.config.captureUserIdentity || this.consent.isRevoked()) {
+      return { userRef: "", traits: null };
+    }
+
+    return { userRef: this.getSessionUserRef() || "", traits: this.traits };
+  }
+
+  /* A track() call's properties, masked as the replay masks them. */
+  public maskAnalyticsProperties(
+    map: Record<string, string>,
+  ): Record<string, string> {
+    return this.maskStringMap(map);
+  }
+
   public getTabId(): string {
     return this.identity.tabId;
   }

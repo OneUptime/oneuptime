@@ -52,6 +52,7 @@ import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import { getApplicationSessionReplayRetentionInDays } from "../Utils/SessionReplay/SessionReplayRetention";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
+import { PRODUCT_ANALYTICS_DERIVED_METRICS } from "../../Types/Rum/ProductAnalyticsEvents";
 import TelemetryIngestionBudgetMetricTypeUtil from "../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import {
   AverageSpanRowSizeInBytes,
@@ -141,10 +142,17 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
  * project's budget, so counting them as usage would spend the budget they
  * report on, and only the sweep can write them
  * (TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName).
+ *
+ * The product analytics event counts (oneuptime.rum.product.*, issue #6444)
+ * are left out too: they are counted from events the project already sent,
+ * and only the event pipeline can write them
+ * (isProductAnalyticsDerivedMetricName). The application's own metric()
+ * points are ordinary metrics and are billed like any other.
  */
 export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> = [
   ...SessionReplayBudgetMetricTypeUtil.getAll(),
   ...TelemetryIngestionBudgetMetricTypeUtil.getAll(),
+  ...PRODUCT_ANALYTICS_DERIVED_METRICS,
 ];
 
 /*

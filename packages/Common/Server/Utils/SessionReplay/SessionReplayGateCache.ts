@@ -22,6 +22,7 @@ import {
   toSessionReplayFrustrationSignalsConfig,
 } from "../../../Types/Rum/SessionReplayFrustrationSignals";
 import OriginAllowList from "../../../Utils/Telemetry/OriginAllowList";
+import { normalizeProductAnalyticsUserPropertyKeys } from "../../../Types/Rum/ProductAnalyticsEvents";
 import { getApplicationSessionReplayRetentionInDays } from "./SessionReplayRetention";
 
 /*
@@ -97,6 +98,8 @@ const RUM_APPLICATION_POLICY_COLUMNS: ReadonlyArray<string> = [
   "sessionReplayLongTaskBudgetMs",
   "sessionReplaySlowRequestBudgetMs",
   "sessionReplayFrustrationSignals",
+  "isProductAnalyticsEnabled",
+  "productAnalyticsUserPropertyKeys",
 ];
 
 const PROJECT_POLICY_COLUMNS: ReadonlyArray<string> = [
@@ -193,6 +196,14 @@ export interface SessionReplayGatePolicy {
    * a damaged row records what an untouched application records.
    */
   frustrationSignals: SessionReplayFrustrationSignalsConfig;
+
+  /*
+   * Product analytics events (issue #6444, part two): whether the recorders
+   * send events from every session, and the identify() traits those events
+   * may carry. Events need replay on too: this policy exists only then.
+   */
+  isProductAnalyticsEnabled: boolean;
+  productAnalyticsUserPropertyKeys: Array<string>;
 
   /*
    * Advances whenever the application row is updated, so a recorder can
@@ -560,6 +571,15 @@ export default class SessionReplayGateCache {
             appView["sessionReplayFrustrationSignals"],
           ),
         ),
+        /*
+         * Only an explicit true: the column defaults to false, and a row
+         * that predates it must not start sending events unasked.
+         */
+        isProductAnalyticsEnabled: appView["isProductAnalyticsEnabled"] === true,
+        productAnalyticsUserPropertyKeys:
+          normalizeProductAnalyticsUserPropertyKeys(
+            appView["productAnalyticsUserPropertyKeys"],
+          ),
         configEpoch: this.getConfigEpoch(app),
       },
       refusal: null,

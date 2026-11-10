@@ -161,11 +161,12 @@ describe("bundle hygiene", (): void => {
      * 94102 before), 97 KB since the idle pause (2026-10-02, issue #4208:
      * 97650 gzip after, 96723 before), 100 KB since frustration signals an
      * application defines itself (2026-11-09, issue #6443: 101329 gzip
-     * after, 99229 before); esbuild.config.js carries the measurements and
-     * the itemised reasons. Asserted here as well as there on purpose - see
-     * the loader note below.
+     * after, 99229 before), 103 KB since product analytics events
+     * (2026-11-10, issue #6444: 104156 gzip after, 101329 before);
+     * esbuild.config.js carries the measurements and the itemised reasons.
+     * Asserted here as well as there on purpose - see the loader note below.
      */
-    expect(recorderGzip).toBeLessThanOrEqual(100 * 1024);
+    expect(recorderGzip).toBeLessThanOrEqual(103 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
 
     /*
@@ -238,10 +239,11 @@ describe("bundle hygiene", (): void => {
      * 325 KB since a prerendered page is recorded only once it is opened
      * (2026-10-26: 331411 bytes after, 329727 before), 333 KB since
      * frustration signals an application defines itself (2026-11-09, issue
-     * #6443: 339513 bytes after, 331424 before); esbuild.config.js carries
-     * the measurements and the reasons.
+     * #6443: 339513 bytes after, 331424 before), 342 KB since product
+     * analytics events (2026-11-10, issue #6444: 348775 bytes after, 339513
+     * before); esbuild.config.js carries the measurements and the reasons.
      */
-    expect(recorderBundle.length).toBeLessThan(333 * 1024);
+    expect(recorderBundle.length).toBeLessThan(342 * 1024);
   });
 
   /*

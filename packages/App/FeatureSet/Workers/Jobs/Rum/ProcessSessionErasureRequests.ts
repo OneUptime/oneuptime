@@ -22,6 +22,7 @@ import RumSessionChunkService from "Common/Server/Services/RumSessionChunkServic
 import RumSessionService from "Common/Server/Services/RumSessionService";
 import RumProductAnalyticsSessionService from "Common/Server/Services/RumProductAnalyticsSessionService";
 import RumProductAnalyticsUserService from "Common/Server/Services/RumProductAnalyticsUserService";
+import RumProductAnalyticsEventService from "Common/Server/Services/RumProductAnalyticsEventService";
 import {
   ProductAnalyticsErasureFilter,
   buildProductAnalyticsDeleteStatement,
@@ -1333,6 +1334,14 @@ export async function eraseSessionBatch(data: {
     sessionIds: data.sessionIds,
   });
 
+  /* And the events those sessions sent (product analytics, part two). */
+  await eraseSessionRowsFromTable({
+    service: RumProductAnalyticsEventService,
+    databaseName: data.databaseName,
+    projectId: data.projectId,
+    sessionIds: data.sessionIds,
+  });
+
   /* The header, last of the ClickHouse deletes (see "Chunks first" above). */
   await eraseSessionRowsFromTable({
     service: RumSessionService,
@@ -1369,7 +1378,7 @@ export async function eraseSessionBatch(data: {
 }
 
 export interface ProductAnalyticsErasureResult {
-  /* Deletes submitted on the two product analytics tables. */
+  /* Deletes submitted on the product analytics tables. */
   deletesSubmitted: number;
   /* A user's sessions product analytics still held (ByIdentifiedUserKey). */
   userSessionsFound: number;
@@ -1382,11 +1391,11 @@ export interface ProductAnalyticsErasureResult {
 
 async function readProductAnalyticsSessionIds(
   statement: Statement,
+  service: AnalyticsDatabaseService<AnalyticsBaseModel> = RumProductAnalyticsSessionService,
 ): Promise<Array<string>> {
-  const resultSet: ClickhouseJsonResultSet =
-    (await RumProductAnalyticsSessionService.executeQuery(
-      statement,
-    )) as unknown as ClickhouseJsonResultSet;
+  const resultSet: ClickhouseJsonResultSet = (await service.executeQuery(
+    statement,
+  )) as unknown as ClickhouseJsonResultSet;
 
   const parsed: { data: Array<JSONObject> } = await resultSet.json();
 
@@ -1433,16 +1442,42 @@ export async function eraseProductAnalyticsSubject(data: {
   }
 
   let userSessionIds: Array<string> | undefined = undefined;
+  let lookupFilled: boolean = false;
 
   if (requestType === RumSessionErasureRequestType.ByIdentifiedUserKey) {
-    userSessionIds = await readProductAnalyticsSessionIds(
-      buildProductAnalyticsUserSessionLookup({
-        databaseName: data.databaseName,
-        projectId: projectId,
-        identifiedUserKey: request.targetValue || "",
-        rumApplicationId: request.rumApplicationId,
-        limit: MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
-      }),
+    /*
+     * The user's sessions in the session summaries (recorded ones) and in
+     * the events (every one), each lookup capped like a run's batch.
+     */
+    const [summarized, withEvents]: [Array<string>, Array<string>] =
+      await Promise.all([
+        readProductAnalyticsSessionIds(
+          buildProductAnalyticsUserSessionLookup({
+            databaseName: data.databaseName,
+            projectId: projectId,
+            identifiedUserKey: request.targetValue || "",
+            rumApplicationId: request.rumApplicationId,
+            limit: MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+          }),
+        ),
+        readProductAnalyticsSessionIds(
+          buildProductAnalyticsUserSessionLookup({
+            databaseName: data.databaseName,
+            projectId: projectId,
+            identifiedUserKey: request.targetValue || "",
+            rumApplicationId: request.rumApplicationId,
+            limit: MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+            tableName: AnalyticsTableName.RumProductAnalyticsEvent,
+          }),
+          RumProductAnalyticsEventService,
+        ),
+      ]);
+
+    lookupFilled =
+      summarized.length >= MAX_SESSION_IDS_PER_REQUEST_PER_RUN ||
+      withEvents.length >= MAX_SESSION_IDS_PER_REQUEST_PER_RUN;
+    userSessionIds = Array.from(
+      new Set<string>([...summarized, ...withEvents]),
     );
   }
 
@@ -1462,7 +1497,9 @@ export async function eraseProductAnalyticsSubject(data: {
     const service: AnalyticsDatabaseService<AnalyticsBaseModel> =
       filter.tableName === AnalyticsTableName.RumProductAnalyticsUser
         ? RumProductAnalyticsUserService
-        : RumProductAnalyticsSessionService;
+        : filter.tableName === AnalyticsTableName.RumProductAnalyticsEvent
+          ? RumProductAnalyticsEventService
+          : RumProductAnalyticsSessionService;
 
     await service.execute(
       buildProductAnalyticsDeleteStatement({
@@ -1476,9 +1513,7 @@ export async function eraseProductAnalyticsSubject(data: {
   return {
     deletesSubmitted: filters.length,
     userSessionsFound: userSessionIds ? userSessionIds.length : 0,
-    moreMayRemain: userSessionIds
-      ? userSessionIds.length >= MAX_SESSION_IDS_PER_REQUEST_PER_RUN
-      : false,
+    moreMayRemain: lookupFilled,
   };
 }
 

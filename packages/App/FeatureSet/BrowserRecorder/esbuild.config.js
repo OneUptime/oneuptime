@@ -146,9 +146,23 @@ const FORBIDDEN_IN_BUNDLE = [
  * 331424 / 99229. The loader is unchanged at 13333 / 4912. Both budgets
  * follow the rule: the measured size plus about 1 KB, rounded up to a
  * whole KB.
+ *
+ * Raised again from 333 KB to 342 KB on 2026-11-10 for product analytics
+ * events (issue #6444, src/ProductAnalytics.ts and Common's
+ * ProductAnalyticsEvents): with product analytics on, every session the
+ * replay policy lets the recorder run in - the ones the replay sample
+ * leaves out too - sends its start, its page views (single-page-app routes
+ * and hash routes included), its track() events and the new metric()
+ * points as small JSON batches beside the recording, holding them for
+ * consent and sending a failed batch again under the same id. The reads
+ * behind the Events, Funnels and Retention pages live in a module of their
+ * own (ProductAnalyticsEventReads) so none of them is carried here.
+ * Measured after: recorder.js 348775 bytes raw / 104156 gzip; before it
+ * 339513 / 101329. The loader is unchanged at 13333 / 4912. Both budgets
+ * follow the rule.
  */
 const LOADER_MAX_BYTES = 13.5 * 1024;
-const RECORDER_MAX_BYTES = 333 * 1024;
+const RECORDER_MAX_BYTES = 342 * 1024;
 
 /*
  * Gzip budgets, which are the numbers a customer's browser actually pays.
@@ -232,9 +246,13 @@ const RECORDER_MAX_BYTES = 333 * 1024;
  * application defines itself (issue #6443; the raw budget's note above
  * says what they are). Measured after: recorder.js 101329 gzip; before it
  * 99229, which had left 99 bytes of headroom. Same rule.
+ *
+ * Raised from 100 KB to 103 KB on 2026-11-10 for product analytics events
+ * (issue #6444; the raw budget's note above says what they are). Measured
+ * after: recorder.js 104156 gzip; before it 101329. Same rule.
  */
 const LOADER_MAX_GZIP_BYTES = 5 * 1024;
-const RECORDER_MAX_GZIP_BYTES = 100 * 1024;
+const RECORDER_MAX_GZIP_BYTES = 103 * 1024;
 
 function isInside(directory, candidate) {
   const withSeparator = directory.endsWith(path.sep)

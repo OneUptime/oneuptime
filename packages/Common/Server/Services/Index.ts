@@ -254,6 +254,7 @@ import RumApplicationOwnerTeamService from "./RumApplicationOwnerTeamService";
 import RumSessionChunkService from "./RumSessionChunkService";
 import RumProductAnalyticsSessionService from "./RumProductAnalyticsSessionService";
 import RumProductAnalyticsUserService from "./RumProductAnalyticsUserService";
+import RumProductAnalyticsEventService from "./RumProductAnalyticsEventService";
 import RumSessionReplayViewService from "./RumSessionReplayViewService";
 import RumSessionErasureRequestService from "./RumSessionErasureRequestService";
 import RumSessionPinService from "./RumSessionPinService";
@@ -1247,6 +1248,7 @@ export const AnalyticsServices: Array<
    */
   RumProductAnalyticsSessionService,
   RumProductAnalyticsUserService,
+  RumProductAnalyticsEventService,
   AuditLogService,
   SecurityEventService,
   ThreatIntelIndicatorService,

@@ -24,6 +24,7 @@ import RumSession from "./RumSession";
 import RumSessionChunk from "./RumSessionChunk";
 import RumProductAnalyticsSession from "./RumProductAnalyticsSession";
 import RumProductAnalyticsUser from "./RumProductAnalyticsUser";
+import RumProductAnalyticsEvent from "./RumProductAnalyticsEvent";
 import AuditLog from "./AuditLog";
 import ChangeEvent from "./ChangeEvent";
 import ThreatIntelIndicator from "./ThreatIntelIndicator";
@@ -81,6 +82,8 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
    */
   RumProductAnalyticsSession,
   RumProductAnalyticsUser,
+  /* Product analytics events: written by the ingest worker, no view. */
+  RumProductAnalyticsEvent,
   AuditLog,
   SecurityEvent,
   ChangeEvent,

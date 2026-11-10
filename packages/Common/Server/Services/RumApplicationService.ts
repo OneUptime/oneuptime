@@ -34,6 +34,7 @@ import {
   SessionReplayFrustrationSettingsCheck,
   checkSessionReplayFrustrationSettings,
 } from "../../Utils/Rum/SessionReplayFrustrationSettingsValidation";
+import { normalizeProductAnalyticsUserPropertyKeys } from "../../Types/Rum/ProductAnalyticsEvents";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "rum-application-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -83,6 +84,7 @@ export class Service extends ProjectReferencesService<Model> {
     >;
 
     this.canonicalizeFrustrationSignals(data);
+    this.canonicalizeProductAnalyticsUserPropertyKeys(data);
   }
 
   protected override async checkUpdateBeforeReferences(
@@ -94,6 +96,48 @@ export class Service extends ProjectReferencesService<Model> {
     >;
 
     this.canonicalizeFrustrationSignals(data);
+    this.canonicalizeProductAnalyticsUserPropertyKeys(data);
+  }
+
+  /*
+   * The traits product analytics keeps are stored as the recorders read
+   * them: trimmed, no repeats, at most the trait cap. A value that is not a
+   * list of keys is refused rather than stored and read as none.
+   */
+  private canonicalizeProductAnalyticsUserPropertyKeys(
+    data: Record<string, unknown>,
+  ): void {
+    const value: unknown = data["productAnalyticsUserPropertyKeys"];
+
+    if (value === undefined) {
+      return;
+    }
+
+    if (value === null) {
+      data["productAnalyticsUserPropertyKeys"] = [];
+      return;
+    }
+
+    if (!Array.isArray(value)) {
+      throw new BadDataException(
+        "Product analytics user properties must be a list of trait keys.",
+      );
+    }
+
+    data["productAnalyticsUserPropertyKeys"] =
+      normalizeProductAnalyticsUserPropertyKeys(value);
+  }
+
+  /*
+   * What an application created from now on starts with, where the create
+   * leaves it unset: product analytics events on. The column defaults stay
+   * off, so existing applications - and anything that writes a row without
+   * this service - keep what they had.
+   */
+  public static applyNewApplicationDefaults(data: Model): void {
+    if (data.isProductAnalyticsEnabled === undefined) {
+      data.isProductAnalyticsEnabled = true;
+    }
   }
 
   private canonicalizeFrustrationSignals(data: Record<string, unknown>): void {
@@ -128,6 +172,8 @@ export class Service extends ProjectReferencesService<Model> {
       createBy,
       naming: RUM_APPLICATION_NAMING,
     });
+
+    Service.applyNewApplicationDefaults(createBy.data);
 
     return { createBy, carryForward: null };
   }
