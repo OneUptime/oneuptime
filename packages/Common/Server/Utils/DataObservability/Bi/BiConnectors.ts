@@ -1061,7 +1061,10 @@ export class PowerBiConnector {
     const items: Array<{ read: BiDashboardRead; datasetIds: Array<string> }> =
       readPowerBiItems(workspaces, datasets);
     const warnings: Array<string> = [];
-    let refreshRead: PowerBiRefreshRead = { refreshes: new Map(), warnings };
+    let refreshRead: PowerBiRefreshRead = {
+      refreshes: new Map(),
+      warnings: [],
+    };
 
     try {
       refreshRead = await readPowerBiRefreshes({
@@ -1152,11 +1155,7 @@ export class PowerBiConnector {
     return {
       dashboards,
       usage,
-      warnings: [...refreshRead.warnings, ...warnings].filter(
-        (warning: string, index: number, all: Array<string>): boolean => {
-          return all.indexOf(warning) === index;
-        },
-      ),
+      warnings: [...refreshRead.warnings, ...warnings],
     };
   }
 }
