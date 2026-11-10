@@ -287,6 +287,22 @@ describe("Slack SendMessageToChannel — webhook URL pin", () => {
 
     expect(slackSendMock).toHaveBeenCalledTimes(1);
   });
+
+  test("the workflow's own post is no notification: the platform's delivery metrics leave it out (#6645)", async () => {
+    slackSendMock.mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
+
+    await new SlackSendMessage().run(
+      {
+        text: "Deploy finished",
+        "webhook-url": "https://hooks.slack.com/services/T000/B000/XXXX",
+      },
+      makeOptions(),
+    );
+
+    expect(slackSendMock).toHaveBeenCalledWith(
+      expect.objectContaining({ isNotification: false }),
+    );
+  });
 });
 
 describe("every chat component rejects a missing URL", () => {

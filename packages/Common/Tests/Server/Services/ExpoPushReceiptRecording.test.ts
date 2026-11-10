@@ -221,6 +221,8 @@ describe("a push Expo accepts, sent with this deployment's Expo access token", (
         attempts: 0,
         pushNotificationLogId: logIds[0],
         userOnCallLogTimelineId: TIMELINE_ID.toString(),
+        // For the receipt's delivery metric (#6648): it was a page.
+        isOnCallPage: true,
       });
       expect(entry.sentAt).toBeGreaterThanOrEqual(before);
       expect(entry.sentAt).toBeLessThanOrEqual(after);
@@ -270,12 +272,31 @@ describe("a push Expo accepts, sent with this deployment's Expo access token", (
         return entry.userOnCallLogTimelineId === undefined;
       }),
     ).toBe(true);
+    /*
+     * Each is still a page, as notification.send.count said it for each
+     * device: its receipt's delivery metric says so too (#6648).
+     */
+    expect(
+      entries.map((entry: PendingExpoPushReceipt) => {
+        return entry.isOnCallPage;
+      }),
+    ).toEqual([true, true]);
     // One round trip for the whole send.
     expect(
       redis.calls.filter((call: string) => {
         return call === "exec";
       }),
     ).toHaveLength(1);
+  });
+
+  test("a push that is no page is kept without saying it was one", async () => {
+    await send([PHONE_TOKEN, TABLET_TOKEN]);
+
+    expect(
+      kept().map((entry: [PendingExpoPushReceipt, number]) => {
+        return entry[0].isOnCallPage;
+      }),
+    ).toEqual([undefined, undefined]);
   });
 
   test("a send that writes no push log (no project) keeps the receipt without one", async () => {
@@ -457,6 +478,7 @@ describe("a push sent through the push relay (no Expo access token on this serve
         attempts: 0,
         pushNotificationLogId: logIds[0],
         userOnCallLogTimelineId: TIMELINE_ID.toString(),
+        isOnCallPage: true,
       }),
     ]);
   });
