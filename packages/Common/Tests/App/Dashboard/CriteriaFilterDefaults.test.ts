@@ -947,7 +947,7 @@ describe("the Profiles criteria, in every language", () => {
         return file.replace(/\.json$/, "");
       });
 
-    expect(locales).toHaveLength(17);
+    expect(locales).toHaveLength(18);
 
     for (const locale of locales) {
       const words: Record<string, unknown> = readLocale(locale);

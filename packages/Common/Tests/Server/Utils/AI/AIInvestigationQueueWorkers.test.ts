@@ -624,7 +624,8 @@ describe("AIInvestigationQueue — a handed-back claim is not a failed attempt",
             outcome = await AIInvestigationQueue.failOrRequeue({
               aiRunId: data.aiRunId,
               attemptCount: data.attemptCount,
-              errorMessage: "LLM provider timed out",
+              // Not the provider's: such a failure gets two attempts.
+              errorMessage: "The tool loop crashed",
               isPermanent: false,
             });
           },

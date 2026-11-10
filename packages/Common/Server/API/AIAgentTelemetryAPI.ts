@@ -38,10 +38,13 @@ export default class AIAgentTelemetryAPI {
 
     /*
      * The tools the run is offered, with the repository and services they
-     * read and the run's budget - or none, and why.
+     * read and the run's limits - or none, and why.
      *
      * Request:  { aiAgentId, aiAgentKey, taskId }
-     * Response: { tools, repository, services, reason, budget }
+     * Response: { tools, repository, services, reason, limits, budget }
+     *
+     * `budget` is for a Runner from before #6440; a current one reads
+     * `limits` (Types/AI/CodeAgentRunLimits).
      */
     this.router.post(
       "/ai-agent-data/get-telemetry-tools",
@@ -89,11 +92,12 @@ export default class AIAgentTelemetryAPI {
     );
 
     /*
-     * One tool call. A refusal (the run, the tool, the arguments or the
-     * budget) is a 4xx whose message the worker hands the model.
+     * One tool call. A refusal (the run, the tool, the arguments or a limit
+     * the run reached) is a 4xx whose message the worker hands the model.
      *
      * Request:  { aiAgentId, aiAgentKey, taskId, toolName, arguments }
-     * Response: { output, rowCount, citationLabel, isTruncated, budget }
+     * Response: { output, rowCount, citationLabel, isTruncated, limits,
+     *             budget }
      */
     this.router.post(
       "/ai-agent-data/run-telemetry-tool",

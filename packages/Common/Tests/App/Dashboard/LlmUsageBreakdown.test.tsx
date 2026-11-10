@@ -24,59 +24,44 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The "Usage" leaderboard — who is spending what
  * ---------------------------------------------------------------------------
  *
- * These properties of the page are invisible in a snapshot and each is a real
+ * One read of /telemetry/llm/usage per dimension and range: each group's
+ * calls, tokens and cost, each service counted from the signal it sends -
+ * an app's AI calls, a coding tool's usage metrics - and each model call
+ * once (LlmUsage's and LlmUsageReader's suites pin the arithmetic). These
+ * properties of the page are invisible in a snapshot and each is a real
  * reporting bug if it regresses:
  *
- *  - the ranking. A leaderboard that is not ordered by spend does not answer
- *    the question it exists for.
- *  - the Unattributed row. Spans without an identity attribute are a real
- *    bucket of money. Dropping them would make this page quietly disagree
- *    with the conversation tiles and the budgets, which count every LLM
- *    span.
- *  - the service-id resolution. A raw ObjectID in a manager-facing table is
- *    useless.
- *  - the span-first / metric-fallback rule. Metrics stand in for spans ONLY
- *    when spans reported nothing, and the two are NEVER summed — an emitter
- *    producing both signals would otherwise have every dollar counted twice.
- *  - the metric rollup's grouping keys. Grouping on user.email alone
- *    collapses an id-only fleet (Cursor, Claude Code on API-key auth) into
- *    one Unattributed row.
- *  - what a FAILED cost aggregate renders. Cost is the ranking dimension, so
- *    rows built without it are a table of unmeasured zeros.
+ *  - the ranking, and the share of the cost over EVERY group, with a top
+ *    named only when the table leaves groups out;
+ *  - the Unattributed row: spend whose emitter named nobody is a real
+ *    bucket of money, never dropped, and said what it is in the words of
+ *    the table on screen - only when the table has one;
+ *  - service ids read as names, and the project's id as the Unknown
+ *    Service;
+ *  - where a row's figures came from, when not from AI calls alone, and a
+ *    quiet dash rather than a 0 for what nothing reported: the calls a
+ *    coding tool's metrics never count, tokens or a cost nobody sent, and
+ *    a share of no cost;
+ *  - the services counted from their usage metrics, named, except over the
+ *    services' own table;
+ *  - a FAILED read is the error state, never a table of unmeasured zeros.
  */
 
-const aggregateMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const getCurrentProjectIdMock: MockFunction = getJestMockFunction();
 const fetchUsageMock: MockFunction = getJestMockFunction();
 
-/*
- * The metric fallback reads /telemetry/llm/metric-usage, which counts a
- * counter the way it counts and picks each point's group on the server
- * (LlmMetricUsageReader's suites pin both). Stood in for here by its answer.
- */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmObservabilityReads",
   () => {
     return {
       __esModule: true,
-      fetchLlmMetricUsage: (...args: Array<unknown>) => {
+      fetchLlmUsage: (...args: Array<unknown>) => {
         return fetchUsageMock(...args);
       },
     };
   },
 );
-
-jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
-  return {
-    __esModule: true,
-    default: {
-      aggregate: (...args: Array<unknown>) => {
-        return aggregateMock(...args);
-      },
-    },
-  };
-});
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -101,9 +86,9 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 /*
- * The totals above the table read the same streams through their own
- * aggregates (LlmUsageTotals.test.tsx pins them). Stubbed here so every
- * aggregate this suite counts is the breakdown's own.
+ * The totals above the table read the same route on their own
+ * (LlmUsageTotals.test.tsx pins them). Stubbed here so every read this
+ * suite counts is the breakdown's own.
  */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmUsageTotals",
@@ -117,100 +102,56 @@ jest.mock(
   },
 );
 
-import LlmUsageBreakdown from "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmUsageBreakdown";
+import LlmUsageBreakdown, {
+  toLlmUsageState,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmUsageBreakdown";
 import Service from "../../../Models/DatabaseModels/Service";
-import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
-import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import ObjectID from "../../../Types/ObjectID";
-import { JSONObject } from "../../../Types/JSON";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import {
-  LlmMetricUsageDimension,
-  LlmMetricUsageGroup,
-  emptyLlmMetricUsageFigures,
-} from "../../../Types/Telemetry/LlmMetricUsageApi";
+  LlmUsageDimension,
+  LlmUsageGroup,
+  LlmUsageResponse,
+  LlmUsageService,
+  LlmUsageSource,
+  emptyLlmUsageFigures,
+  emptyLlmUsageResponse,
+} from "../../../Types/Telemetry/LlmUsageApi";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
 
 const CHECKOUT_SERVICE_ID: string = "22222222-2222-4222-8222-222222222222";
+const CLAUDE_CODE_SERVICE_ID: string = "33333333-3333-4333-8333-333333333333";
 
-interface AggregateCall {
-  modelType: { new (): unknown };
-  aggregateBy: JSONObject;
+function group(
+  overrides: Partial<LlmUsageGroup> & { key: string },
+): LlmUsageGroup {
+  return { ...emptyLlmUsageFigures(), ...overrides };
 }
 
-type RowFunction = (data: {
-  value: number;
-  columns?: JSONObject | undefined;
-  attributes?: JSONObject | undefined;
-}) => AggregatedModel;
-
-const row: RowFunction = (data: {
-  value: number;
-  columns?: JSONObject | undefined;
-  attributes?: JSONObject | undefined;
-}): AggregatedModel => {
-  const aggregatedRow: AggregatedModel = {
-    timestamp: new Date("2026-08-20T00:00:00.000Z"),
-    value: data.value,
-    ...(data.columns || {}),
-  };
-
-  if (data.attributes) {
-    aggregatedRow["attributes"] = data.attributes;
-  }
-
-  return aggregatedRow;
-};
-
-type ResultFunction = (rows: Array<AggregatedModel>) => AggregatedResult;
-
-const result: ResultFunction = (
-  rows: Array<AggregatedModel>,
-): AggregatedResult => {
-  return { data: rows };
-};
-
-type ModelNameFunction = (call: AggregateCall) => string;
-
-/*
- * The component passes the model CLASS, so the class name is what tells a
- * Span aggregate apart from a Metric one without importing either model's
- * decorators into the test.
- */
-const modelNameOf: ModelNameFunction = (call: AggregateCall): string => {
-  return (call.modelType as unknown as { name: string }).name;
-};
-
-type ColumnNameFunction = (call: AggregateCall) => string;
-
-const columnOf: ColumnNameFunction = (call: AggregateCall): string => {
-  return String(call.aggregateBy["aggregateColumnName"]);
-};
-
-function metricGroup(
-  overrides: Partial<LlmMetricUsageGroup> & { key: string },
-): LlmMetricUsageGroup {
-  return {
-    ...emptyLlmMetricUsageFigures(),
-    hasCost: true,
-    ...overrides,
-  };
+function service(
+  overrides: Partial<LlmUsageService> & { serviceId: string },
+): LlmUsageService {
+  return { ...emptyLlmUsageFigures(), ...overrides };
 }
 
-function serveMetricGroups(groups: Array<LlmMetricUsageGroup>): void {
+function serve(response: Partial<LlmUsageResponse>): void {
   fetchUsageMock.mockResolvedValue({
-    totals: emptyLlmMetricUsageFigures(),
-    groups: groups,
-    truncated: false,
+    ...emptyLlmUsageResponse(),
+    ...response,
   } as never);
 }
 
-type RowTextsFunction = () => Array<Array<string>>;
+function namedService(id: string, name: string): Service {
+  const value: Service = new Service();
+  value.id = new ObjectID(id);
+  value.name = name;
+  return value;
+}
 
-const renderedRows: RowTextsFunction = (): Array<Array<string>> => {
+const renderedRows: () => Array<Array<string>> = (): Array<Array<string>> => {
   return screen
     .queryAllByTestId("llm-usage-row")
     .map((element: HTMLElement) => {
@@ -222,9 +163,7 @@ const renderedRows: RowTextsFunction = (): Array<Array<string>> => {
     });
 };
 
-type RenderFunction = () => Promise<void>;
-
-const renderBreakdown: RenderFunction = async (): Promise<void> => {
+async function renderBreakdown(): Promise<void> {
   await act(async () => {
     render(
       <MemoryRouter>
@@ -232,14 +171,24 @@ const renderBreakdown: RenderFunction = async (): Promise<void> => {
       </MemoryRouter>,
     );
   });
-};
+}
+
+async function pick(dimension: string): Promise<void> {
+  await act(async () => {
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Usage dimension" })).getByRole(
+        "button",
+        { name: dimension },
+      ),
+    );
+  });
+}
 
 beforeEach(() => {
-  aggregateMock.mockReset();
   getListMock.mockReset();
   getCurrentProjectIdMock.mockReset();
   fetchUsageMock.mockReset();
-  serveMetricGroups([]);
+  serve({});
 
   getCurrentProjectIdMock.mockReturnValue(PROJECT_ID);
   getListMock.mockResolvedValue({ data: [] } as never);
@@ -250,698 +199,688 @@ afterEach(() => {
 });
 
 describe("LlmUsageBreakdown - the ranked leaderboard", () => {
-  test("ranks employees by cost and shows their calls, tokens and share", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (columnOf(aggregateCall) === "llmCost") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 1,
-              columns: { llmUserEmail: "junior@example.com", llmUserId: "" },
-            }),
-            row({
-              value: 9,
-              columns: { llmUserEmail: "senior@example.com", llmUserId: "" },
-            }),
-          ]),
-        );
-      }
-
-      if (columnOf(aggregateCall) === "spanId") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 4,
-              columns: { llmUserEmail: "junior@example.com", llmUserId: "" },
-            }),
-            row({
-              value: 40,
-              columns: { llmUserEmail: "senior@example.com", llmUserId: "" },
-            }),
-          ]),
-        );
-      }
-
-      if (columnOf(aggregateCall) === "llmInputTokens") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 100,
-              columns: { llmUserEmail: "senior@example.com", llmUserId: "" },
-            }),
-          ]),
-        );
-      }
-
-      if (columnOf(aggregateCall) === "llmOutputTokens") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 25,
-              columns: { llmUserEmail: "senior@example.com", llmUserId: "" },
-            }),
-          ]),
-        );
-      }
-
-      if (columnOf(aggregateCall) === "llmTotalTokens") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 125,
-              columns: { llmUserEmail: "senior@example.com", llmUserId: "" },
-            }),
-          ]),
-        );
-      }
-
-      return Promise.resolve(result([]));
+  test("rows in the read's order, with their calls, tokens, cost and share", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 10 },
+      groups: [
+        group({
+          key: "senior@example.com",
+          calls: 40,
+          inputTokens: 100,
+          outputTokens: 25,
+          totalTokens: 125,
+          costUsd: 9,
+          tokenSource: LlmUsageSource.Calls,
+          costSource: LlmUsageSource.Calls,
+        }),
+        group({
+          key: "junior@example.com",
+          calls: 4,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
     });
 
     await renderBreakdown();
 
-    const rows: Array<Array<string>> = renderedRows();
-
-    expect(rows).toHaveLength(2);
-
-    // Ranked by spend, not by the order ClickHouse happened to return.
-    expect(rows[0]![0]).toBe("1");
-    expect(rows[0]![1]).toBe("senior@example.com");
-    expect(rows[0]![2]).toBe("40");
-    expect(rows[0]![3]).toBe("100");
-    expect(rows[0]![4]).toBe("25");
-    expect(rows[0]![5]).toBe("125");
-    expect(rows[0]![6]).toBe("$9.0000");
-    expect(rows[0]![7]).toContain("90.0%");
-
-    expect(rows[1]![0]).toBe("2");
-    expect(rows[1]![1]).toBe("junior@example.com");
-    expect(rows[1]![6]).toBe("$1.0000");
-    expect(rows[1]![7]).toContain("10.0%");
-  });
-
-  test("falls back from the email to the user id, merging both into one person", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (columnOf(aggregateCall) === "llmCost") {
-        return Promise.resolve(
-          result([
-            /*
-             * Cursor emits an opaque id and no email. It must appear as its
-             * own person rather than collapsing into Unattributed.
-             */
-            row({
-              value: 2,
-              columns: { llmUserEmail: "", llmUserId: "cursor-4471" },
-            }),
-          ]),
-        );
-      }
-
-      return Promise.resolve(result([]));
-    });
-
-    await renderBreakdown();
-
-    const rows: Array<Array<string>> = renderedRows();
-
-    expect(rows).toHaveLength(1);
-    expect(rows[0]![1]).toBe("cursor-4471");
-    expect(
-      screen.queryByTestId("llm-usage-unattributed"),
-    ).not.toBeInTheDocument();
-  });
-});
-
-describe("LlmUsageBreakdown - unattributed spend", () => {
-  test("renders an explicit Unattributed row instead of dropping the spend", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (columnOf(aggregateCall) === "llmCost") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 3,
-              columns: { llmUserEmail: "", llmUserId: "" },
-            }),
-            row({
-              value: 1,
-              columns: { llmUserEmail: "named@example.com", llmUserId: "" },
-            }),
-          ]),
-        );
-      }
-
-      return Promise.resolve(result([]));
-    });
-
-    await renderBreakdown();
-
-    const rows: Array<Array<string>> = renderedRows();
-
-    expect(rows).toHaveLength(2);
-    expect(rows[0]![1]).toBe("Unattributed");
-    expect(rows[0]![6]).toBe("$3.0000");
-
-    /*
-     * The unattributed bucket is in the denominator too. If it were dropped,
-     * the named employee would read as 100% of spend and the page would
-     * disagree with the conversation tiles and the budgets.
-     */
-    expect(rows[0]![7]).toContain("75.0%");
-    expect(rows[1]![7]).toContain("25.0%");
-
-    expect(screen.getByTestId("llm-usage-unattributed")).toBeInTheDocument();
-  });
-
-  test("says why attribution can be missing and links to the setup docs", async () => {
-    aggregateMock.mockResolvedValue(result([]) as never);
-
-    await renderBreakdown();
-
-    expect(
-      screen.getByText(/did not send an identity attribute/i),
-    ).toBeInTheDocument();
-
-    const docsLink: HTMLElement = screen.getByRole("link", {
-      name: /attribute AI coding assistant usage/i,
-    });
-
-    expect(docsLink).toHaveAttribute(
-      "href",
-      "/docs/telemetry/ai-coding-assistants",
-    );
-  });
-});
-
-describe("LlmUsageBreakdown - the application dimension", () => {
-  test("resolves primaryEntityId to the service name", async () => {
-    const checkout: Service = new Service();
-    checkout._id = CHECKOUT_SERVICE_ID;
-    checkout.name = "checkout-api";
-
-    getListMock.mockResolvedValue({ data: [checkout] } as never);
-
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (columnOf(aggregateCall) === "llmCost") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 5,
-              columns: { primaryEntityId: CHECKOUT_SERVICE_ID },
-            }),
-            row({
-              value: 1,
-              columns: {
-                primaryEntityId: "33333333-3333-4333-8333-333333333333",
-              },
-            }),
-          ]),
-        );
-      }
-
-      return Promise.resolve(result([]));
-    });
-
-    await renderBreakdown();
-
-    await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Application / Service" }),
-      );
-    });
-
-    const rows: Array<HTMLElement> = screen.getAllByTestId("llm-usage-row");
-
-    expect(within(rows[0]!).getByText("checkout-api")).toBeInTheDocument();
-    expect(
-      within(rows[0]!).queryByText(CHECKOUT_SERVICE_ID),
-    ).not.toBeInTheDocument();
-
-    /*
-     * A service that is not in the list (deleted, or the list request
-     * failed) still gets a row — the id is a poor label but losing the spend
-     * would be worse.
-     */
-    expect(
-      within(rows[1]!).getByText("33333333-3333-4333-8333-333333333333"),
-    ).toBeInTheDocument();
-  });
-});
-
-describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
-  test("consults GenAI metrics only when spans reported nothing, and labels them", async () => {
-    aggregateMock.mockImplementation(() => {
-      // Spans reported nothing at all — this is the fallback's precondition.
-      return Promise.resolve(result([]));
-    });
-    serveMetricGroups([
-      metricGroup({
-        key: "claude@example.com",
-        costUsd: 7,
-        inputTokens: 97_200,
-        outputTokens: 3_000,
-        hasTokens: true,
-      }),
-      // Codex's millionths of a dollar arrive scaled by the server.
-      metricGroup({ key: "codex@example.com", costUsd: 2.5 }),
+    expect(renderedRows()).toEqual([
+      ["1", "senior@example.com", "40", "100", "25", "125", "$9.00", "90.0%"],
+      // Junior's calls reported no token: dashes, never 0s nobody measured.
+      ["2", "junior@example.com", "4", "—", "—", "—", "$1.00", "10.0%"],
     ]);
+    // Calls alone: nothing to say about where the figures came from.
+    expect(screen.queryAllByTestId("llm-usage-row-source")).toHaveLength(0);
+
+    // The dash is the quiet one, lighter than the figures beside it.
+    const junior: HTMLElement = screen.getAllByTestId("llm-usage-row")[1]!;
+
+    expect(within(junior).getAllByTestId("llm-usage-not-counted")).toHaveLength(
+      3,
+    );
+    expect(
+      within(junior).getAllByTestId("llm-usage-not-counted")[0],
+    ).toHaveClass("text-gray-400");
+  });
+
+  test("the share column is named for what it shares out: the cost", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
 
     await renderBreakdown();
 
-    const rows: Array<Array<string>> = renderedRows();
+    /*
+     * "Share of cost", not "Share": the bare word is the product's Share
+     * buttons, and every language words it as the verb (German "Teilen").
+     */
+    const headers: Array<string> = screen
+      .getAllByRole("columnheader")
+      .map((header: HTMLElement): string => {
+        return (header.textContent || "").trim();
+      });
 
-    expect(rows).toHaveLength(2);
-
-    expect(rows[0]![1]).toBe("claude@example.com");
-    expect(rows[0]![6]).toBe("$7.0000");
-    // The metric stream carries no per-call detail...
-    expect(rows[0]![2]).toBe("—");
-    // ...but its tokens, when the person's metrics counted some.
-    expect(rows[0]![3]).toBe((97_200).toLocaleString());
-    expect(rows[0]![4]).toBe((3_000).toLocaleString());
-    expect(rows[0]![5]).toBe((100_200).toLocaleString());
-
-    expect(rows[1]![1]).toBe("codex@example.com");
-    expect(rows[1]![6]).toBe("$2.5000");
-    // No token metric for this person: unknown, not 0.
-    expect(rows[1]![3]).toBe("—");
-
-    expect(screen.getByTestId("llm-usage-source-hint")).toHaveTextContent(
-      "from GenAI metrics",
-    );
+    expect(headers).toContain("Share of cost");
+    expect(headers).not.toContain("Share");
   });
 
-  test("asks the metric read for the dimension and the range on screen", async () => {
-    aggregateMock.mockResolvedValue(result([]) as never);
-    serveMetricGroups([]);
-
+  test("one read for the dimension and the range on screen, again on a switch", async () => {
     await renderBreakdown();
 
     expect(fetchUsageMock).toHaveBeenCalledTimes(1);
 
-    const asked: {
-      range: InBetween<Date>;
-      dimension: LlmMetricUsageDimension;
-    } = fetchUsageMock.mock.calls[0]![0] as {
-      range: InBetween<Date>;
-      dimension: LlmMetricUsageDimension;
-    };
+    const first: { range: InBetween<Date>; dimension: LlmUsageDimension } =
+      fetchUsageMock.mock.calls[0]![0] as {
+        range: InBetween<Date>;
+        dimension: LlmUsageDimension;
+      };
 
-    expect(asked.dimension).toBe(LlmMetricUsageDimension.Employee);
-
-    const days: number =
-      (asked.range.endValue.getTime() - asked.range.startValue.getTime()) /
-      (24 * 60 * 60 * 1000);
-
-    expect(Math.round(days)).toBe(7);
-  });
-
-  test("never sums spans and metrics: a metric-emitting project with spans reads span figures only", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (columnOf(aggregateCall) === "llmCost") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 4,
-              columns: { llmUserEmail: "both@example.com", llmUserId: "" },
-            }),
-          ]),
-        );
-      }
-
-      return Promise.resolve(result([]));
-    });
-    /*
-     * This project DOES publish a cost metric. If the component ever summed
-     * the two signals, $4 of span cost plus $100 of metric cost would
-     * surface as $104 — every dollar counted twice.
-     */
-    serveMetricGroups([metricGroup({ key: "both@example.com", costUsd: 100 })]);
-
-    await renderBreakdown();
-
-    const rows: Array<Array<string>> = renderedRows();
-
-    expect(rows).toHaveLength(1);
-    expect(rows[0]![1]).toBe("both@example.com");
-    expect(rows[0]![6]).toBe("$4.0000");
-
-    // The metric stream is not even read while spans have something to say.
-    expect(fetchUsageMock).not.toHaveBeenCalled();
+    expect(first.dimension).toBe(LlmUsageDimension.Employee);
     expect(
-      screen.queryByTestId("llm-usage-source-hint"),
-    ).not.toBeInTheDocument();
+      first.range.endValue.getTime() - first.range.startValue.getTime(),
+    ).toBeGreaterThan(6.9 * 24 * 60 * 60 * 1000);
+
+    await pick("Team");
+
+    expect(fetchUsageMock).toHaveBeenCalledTimes(2);
+    expect(
+      (fetchUsageMock.mock.calls[1]![0] as { dimension: LlmUsageDimension })
+        .dimension,
+    ).toBe(LlmUsageDimension.Team);
   });
 
-  test("does not substitute metrics when the span aggregate FAILED rather than came back empty", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
+  test("at most 25 rows; the share and the top line are of every group", async () => {
+    const groups: Array<LlmUsageGroup> = [];
 
-      if (modelNameOf(aggregateCall) === "Span") {
-        return Promise.reject(new Error("clickhouse timeout"));
-      }
+    for (let index: number = 0; index < 30; index++) {
+      groups.push(
+        group({
+          key: `person-${index}@example.com`,
+          calls: 1,
+          costUsd: 30 - index,
+          costSource: LlmUsageSource.Calls,
+        }),
+      );
+    }
 
-      return Promise.resolve(result([]));
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 465 },
+      groups: groups,
     });
-    serveMetricGroups([metricGroup({ key: "ghost@example.com", costUsd: 42 })]);
 
     await renderBreakdown();
 
-    // An error is an error. Dressing it up as metric data would be a lie.
-    expect(screen.queryByText("ghost@example.com")).not.toBeInTheDocument();
-    expect(screen.getByText(/Usage could not be loaded/i)).toBeInTheDocument();
-    expect(fetchUsageMock).not.toHaveBeenCalled();
+    expect(renderedRows()).toHaveLength(25);
+    // $30 of $465.
+    expect(renderedRows()[0]![7]).toBe("6.5%");
+    expect(screen.getByTestId("llm-usage-breakdown-top")).toHaveTextContent(
+      "Top 25 of 30 by cost over the selected range.",
+    );
   });
 
   /*
-   * The spans had nothing and the metric read FAILED: before, the table came
-   * back empty - "no spend" - which is not what was measured (#5776).
+   * "Top 25 of 3" says nothing true: a table that leaves no group out says
+   * how it is ranked, and names no top.
    */
-  test("a failed metric read is the error state, never an empty table", async () => {
-    aggregateMock.mockResolvedValue(result([]) as never);
-    fetchUsageMock.mockRejectedValue(new Error("Timeout exceeded") as never);
-
-    await renderBreakdown();
-
-    expect(screen.getByText(/Usage could not be loaded/i)).toBeInTheDocument();
-    expect(screen.queryByText(/No LLM usage found/i)).not.toBeInTheDocument();
-    // No "Top 25 of 0" over a table that could not be read.
-    expect(
-      screen.queryByTestId("llm-usage-breakdown-top"),
-    ).not.toBeInTheDocument();
-  });
-
-  test.each([
-    ["Provider", /do not report a provider/i],
-    ["Application / Service", /not attached to a OneUptime service/i],
-  ])(
-    "the %s dimension does not consult metrics, and says why instead of showing a bare empty state",
-    async (dimensionLabel: string, expectedNote: RegExp) => {
-      aggregateMock.mockResolvedValue(result([]) as never);
-      /*
-       * The metric stream has plenty to say. It just cannot answer THIS
-       * question: a vendor cost counter carries no gen_ai.system and no
-       * OneUptime service id, so there is nothing to group on.
-       */
-      serveMetricGroups([
-        metricGroup({ key: "metric@example.com", costUsd: 12 }),
-      ]);
-
-      await renderBreakdown();
-
-      fetchUsageMock.mockClear();
-
-      await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: dimensionLabel }));
-      });
-
-      expect(fetchUsageMock).not.toHaveBeenCalled();
-      expect(screen.getByText(/No LLM usage found/i)).toBeInTheDocument();
-
-      /*
-       * The whole point of this branch: an unexplained empty table reads as
-       * "OneUptime lost my data". The truth is that the signal does not
-       * exist, and the page has to say so.
-       */
-      expect(
-        screen.getByTestId("llm-usage-no-metric-signal"),
-      ).toHaveTextContent(expectedNote);
-    },
-  );
-
-  test.each([
-    ["Model", LlmMetricUsageDimension.Model, "claude-4-sonnet"],
-    ["Team", LlmMetricUsageDimension.Team, "platform"],
-  ])(
-    "the %s dimension has a metric fallback too, so a metrics-only coding agent is not four empty tabs",
-    async (
-      dimensionLabel: string,
-      dimension: LlmMetricUsageDimension,
-      key: string,
-    ) => {
-      aggregateMock.mockResolvedValue(result([]) as never);
-      serveMetricGroups([metricGroup({ key: key, costUsd: 8 })]);
-
-      await renderBreakdown();
-
-      fetchUsageMock.mockClear();
-
-      await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: dimensionLabel }));
-      });
-
-      expect(
-        (
-          fetchUsageMock.mock.calls[0]![0] as {
-            dimension: LlmMetricUsageDimension;
-          }
-        ).dimension,
-      ).toBe(dimension);
-
-      const rows: Array<Array<string>> = renderedRows();
-
-      expect(rows).toHaveLength(1);
-      expect(rows[0]![1]).toBe(key);
-      expect(rows[0]![6]).toBe("$8.0000");
-
-      // Labelled, exactly as the Employee fallback is.
-      expect(screen.getByTestId("llm-usage-source-hint")).toHaveTextContent(
-        "from GenAI metrics",
-      );
-    },
-  );
-
-  test.each([["Model"], ["Team"]])(
-    "the %s metric fallback never sums spans and metrics either",
-    async (dimensionLabel: string) => {
-      aggregateMock.mockImplementation((call: unknown) => {
-        const aggregateCall: AggregateCall = call as AggregateCall;
-
-        if (columnOf(aggregateCall) === "llmCost") {
-          return Promise.resolve(
-            result([
-              row({
-                value: 3,
-                columns: {
-                  llmRequestModel: "claude-4-sonnet",
-                  llmTeam: "platform",
-                },
-              }),
-            ]),
-          );
-        }
-
-        return Promise.resolve(result([]));
-      });
-      serveMetricGroups([metricGroup({ key: "platform", costUsd: 100 })]);
-
-      await renderBreakdown();
-
-      fetchUsageMock.mockClear();
-
-      await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: dimensionLabel }));
-      });
-
-      const rows: Array<Array<string>> = renderedRows();
-
-      expect(rows).toHaveLength(1);
-      expect(rows[0]![6]).toBe("$3.0000");
-      expect(fetchUsageMock).not.toHaveBeenCalled();
-      expect(
-        screen.queryByTestId("llm-usage-source-hint"),
-      ).not.toBeInTheDocument();
-    },
-  );
-});
-
-/*
- * ---------------------------------------------------------------------------
- * The metric employee rollup's groups
- * ---------------------------------------------------------------------------
- *
- * The server picks each point's person from every recognized identity
- * spelling (LlmMetricUsageReader; its suites pin the keys and their order),
- * so a Cursor-only project's opaque cursor.user.id and a Claude Code fleet's
- * user.account_uuid rank as people. Here: whatever group the read answers
- * is a row, the unattributed one included.
- */
-describe("LlmUsageBreakdown - metric identity grouping", () => {
-  test("an id-only Cursor group ranks as a person, not as Unattributed", async () => {
-    aggregateMock.mockResolvedValue(result([]) as never);
-    serveMetricGroups([
-      metricGroup({ key: "4471", costUsd: 11 }),
-      metricGroup({ key: "acct-9f2", costUsd: 5 }),
-      metricGroup({ key: "", costUsd: 2 }),
-    ]);
-
-    await renderBreakdown();
-
-    const rows: Array<Array<string>> = renderedRows();
-
-    expect(
-      rows.map((rendered: Array<string>): string => {
-        return rendered[1]!;
-      }),
-    ).toEqual(["4471", "acct-9f2", "Unattributed"]);
-  });
-
-  test("the share is of every group's cost, the unattributed one included", async () => {
-    aggregateMock.mockResolvedValue(result([]) as never);
-    serveMetricGroups([
-      metricGroup({ key: "ana@example.com", costUsd: 3 }),
-      metricGroup({ key: "", costUsd: 1 }),
-    ]);
-
-    await renderBreakdown();
-
-    const rows: Array<Array<string>> = renderedRows();
-
-    expect(rows[0]![7]).toContain("75");
-    expect(rows[1]![7]).toContain("25");
-  });
-});
-
-describe("LlmUsageBreakdown - degradation", () => {
-  test("renders a message instead of throwing when every aggregate rejects", async () => {
-    aggregateMock.mockRejectedValue(new Error("boom") as never);
-
-    await renderBreakdown();
-
-    expect(screen.getByText(/Usage could not be loaded/i)).toBeInTheDocument();
-    expect(screen.queryAllByTestId("llm-usage-row")).toHaveLength(0);
-  });
-
-  test("keeps the cost ranking when only the token aggregates fail", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (columnOf(aggregateCall) === "llmCost") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 6,
-              columns: { llmUserEmail: "still@example.com", llmUserId: "" },
-            }),
-          ]),
-        );
-      }
-
-      return Promise.reject(new Error("token aggregate failed"));
-    });
-
-    await renderBreakdown();
-
-    const rows: Array<Array<string>> = renderedRows();
-
-    expect(rows).toHaveLength(1);
-    expect(rows[0]![1]).toBe("still@example.com");
-    expect(rows[0]![6]).toBe("$6.0000");
-    // Missing columns read as zero-valued sums, never as a thrown page.
-    expect(
-      screen.queryByText(/Usage could not be loaded/i),
-    ).not.toBeInTheDocument();
-  });
-
-  /*
-   * The inverse, and the one that was wrong: the COST aggregate fails while
-   * the token and call aggregates succeed. Every group still has a name, a
-   * call count and a token count, so a row is built for each — and its cost,
-   * never measured, sits at its initialized 0. Ranked by cost, that produced
-   * a full leaderboard of "$0.0000" underneath an error banner, on the page
-   * whose entire purpose is ranking people by spend. Those zeros were
-   * fabricated, and $0.0000 does not read as "unknown" to anyone.
-   */
-  test("does not present a cost-ranked leaderboard of $0.0000 when the cost aggregate failed", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (columnOf(aggregateCall) === "llmCost") {
-        return Promise.reject(new Error("cost aggregate failed"));
-      }
-
-      // Everything else is healthy and has plenty of groups to offer.
-      return Promise.resolve(
-        result([
-          row({
-            value: 40,
-            columns: { llmUserEmail: "senior@example.com", llmUserId: "" },
-          }),
-          row({
-            value: 4,
-            columns: { llmUserEmail: "junior@example.com", llmUserId: "" },
-          }),
-        ]),
-      );
-    });
-
-    await renderBreakdown();
-
-    expect(screen.getByText(/Usage could not be loaded/i)).toBeInTheDocument();
-
-    // No rows at all, and in particular no fabricated zero costs.
-    expect(renderedRows()).toHaveLength(0);
-    expect(screen.queryByText("$0.0000")).not.toBeInTheDocument();
-    expect(screen.queryByText("senior@example.com")).not.toBeInTheDocument();
-  });
-
-  test("a cost aggregate that SUCCEEDS with no rows still renders the ordinary empty state", async () => {
-    /*
-     * The distinction the branch above turns on. "No LLM spend in this
-     * window" is a fact about the project; "the query fell over" is a fact
-     * about OneUptime. Conflating them either hides a real outage or invents
-     * one.
-     */
-    aggregateMock.mockResolvedValue(result([]) as never);
-
-    await renderBreakdown();
-
-    expect(screen.getByText(/No LLM usage found/i)).toBeInTheDocument();
-    expect(
-      screen.queryByText(/Usage could not be loaded/i),
-    ).not.toBeInTheDocument();
-    expect(renderedRows()).toHaveLength(0);
-    // Nothing ranked, so no "Top 25 of 0" over it.
-    expect(
-      screen.queryByTestId("llm-usage-breakdown-top"),
-    ).not.toBeInTheDocument();
-  });
-
-  test("the top line counts the rows the table ranks, once it has them", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (columnOf(aggregateCall) === "llmCost") {
-        return Promise.resolve(
-          result([
-            row({
-              value: 3,
-              columns: { llmUserEmail: "one@example.com", llmUserId: "" },
-            }),
-            row({
-              value: 2,
-              columns: { llmUserEmail: "two@example.com", llmUserId: "" },
-            }),
-          ]),
-        );
-      }
-
-      return Promise.resolve(result([]));
+  test("25 groups or fewer: the line says how the table is ranked, and names no top", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 3 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 2,
+          costUsd: 2,
+          costSource: LlmUsageSource.Calls,
+        }),
+        group({
+          key: "bob@example.com",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
     });
 
     await renderBreakdown();
 
     expect(screen.getByTestId("llm-usage-breakdown-top")).toHaveTextContent(
-      "Top 25 of 2 by cost over the selected range.",
+      /^Ranked by cost over the selected range\.$/,
     );
+  });
+
+  test("nothing to share out: the cost and the share are dashes", async () => {
+    serve({
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 3,
+          inputTokens: 10,
+          tokenSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    // No cost reported: never a "$0" that claims the calls were free.
+    expect(renderedRows()[0]![6]).toBe("—");
+    expect(renderedRows()[0]![7]).toBe("—");
+  });
+
+  test("a row with no cost of its own beside rows with one: a dash for its cost and its share, never 0.0%", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 4 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 2,
+          costUsd: 4,
+          costSource: LlmUsageSource.Calls,
+        }),
+        // A tool's token metrics, and no cost metric beside them.
+        group({
+          key: "",
+          inputTokens: 900,
+          totalTokens: 900,
+          tokenSource: LlmUsageSource.Metrics,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(renderedRows()[0]!.slice(6)).toEqual(["$4.00", "100.0%"]);
+    expect(renderedRows()[1]!.slice(6)).toEqual(["—", "—"]);
+  });
+});
+
+describe("LlmUsageBreakdown - unattributed spend", () => {
+  test("renders an explicit Unattributed row instead of dropping the spend", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 10 },
+      groups: [
+        group({
+          key: "",
+          calls: 5,
+          costUsd: 8,
+          costSource: LlmUsageSource.Calls,
+        }),
+        group({
+          key: "ana@example.com",
+          calls: 1,
+          costUsd: 2,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.getByTestId("llm-usage-unattributed")).toHaveTextContent(
+      "Unattributed",
+    );
+    expect(renderedRows()[0]![7]).toBe("80.0%");
+  });
+
+  test("an Unattributed row says what it is, and links to the setup docs", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    const note: HTMLElement = screen.getByTestId("llm-usage-unattributed-note");
+
+    expect(note).toHaveTextContent(
+      "Unattributed is usage that doesn't say who made it, for example sent without user.email. How to attribute AI coding assistant usage",
+    );
+    expect(within(note).getByText("user.email").tagName).toBe("CODE");
+    expect(
+      within(note).getByRole("link", {
+        name: "How to attribute AI coding assistant usage",
+      }),
+    ).toHaveAttribute("href", "/docs/telemetry/ai-coding-assistants");
+  });
+
+  test("the Team table's Unattributed row names the team attribute", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+    await pick("Team");
+
+    const note: HTMLElement = screen.getByTestId("llm-usage-unattributed-note");
+
+    expect(note).toHaveTextContent(
+      "Unattributed is usage that doesn't say which team, for example sent without team.id.",
+    );
+    expect(within(note).getByRole("link")).toHaveAttribute(
+      "href",
+      "/docs/telemetry/ai-coding-assistants",
+    );
+  });
+
+  test("the Model table's Unattributed row: no attribution guide, which sets people and teams", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+    await pick("Model");
+
+    const note: HTMLElement = screen.getByTestId("llm-usage-unattributed-note");
+
+    expect(note).toHaveTextContent(
+      /^Unattributed is usage that doesn't say which model\.$/,
+    );
+    expect(within(note).queryByRole("link")).toBeNull();
+  });
+
+  /*
+   * Usage that is all named needs no footnote: the strip over every table
+   * said how attribution goes missing to projects where none was.
+   */
+  test("no Unattributed row: no note and no link", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.queryByTestId("llm-usage-unattributed-note")).toBeNull();
+    expect(
+      screen.queryByText("How to attribute AI coding assistant usage"),
+    ).toBeNull();
+  });
+
+  test("an empty, loading or failed table has no note", async () => {
+    await renderBreakdown();
+
+    expect(screen.queryByTestId("llm-usage-unattributed-note")).toBeNull();
+  });
+});
+
+describe("LlmUsageBreakdown - services and providers", () => {
+  test("service ids read as names; the project's id is the Unknown Service; a deleted one its id", async () => {
+    getListMock.mockResolvedValue({
+      data: [namedService(CHECKOUT_SERVICE_ID, "checkout-api")],
+    } as never);
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 6 },
+      groups: [
+        group({
+          key: CHECKOUT_SERVICE_ID,
+          calls: 3,
+          costUsd: 3,
+          costSource: LlmUsageSource.Calls,
+        }),
+        group({
+          key: PROJECT_ID.toString(),
+          calls: 2,
+          costUsd: 2,
+          costSource: LlmUsageSource.Calls,
+        }),
+        group({
+          key: "44444444-4444-4444-8444-444444444444",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+    await pick("Application / Service");
+
+    const rows: Array<Array<string>> = renderedRows();
+
+    expect(rows[0]![1]).toBe("checkout-api");
+    expect(rows[1]![1]).toBe("Unknown Service");
+    expect(rows[2]![1]).toBe("44444444-4444-4444-8444-444444444444");
+  });
+
+  test("providers are named the product's way", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 3 },
+      groups: [
+        group({
+          key: "azure.ai.openai",
+          calls: 2,
+          costUsd: 2,
+          costSource: LlmUsageSource.Calls,
+        }),
+        group({
+          key: "",
+          costUsd: 1,
+          costSource: LlmUsageSource.Metrics,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+    await pick("Provider");
+
+    expect(renderedRows()[0]![1]).toBe("Azure OpenAI");
+    expect(renderedRows()[1]![1]).toContain("Unattributed");
+
+    // A coding assistant's metrics name no provider: the note says so.
+    const note: HTMLElement = screen.getByTestId("llm-usage-unattributed-note");
+
+    expect(note).toHaveTextContent(
+      /^Unattributed is usage that doesn't say which provider, such as a coding assistant's usage metrics\.$/,
+    );
+    expect(within(note).queryByRole("link")).toBeNull();
+  });
+});
+
+describe("LlmUsageBreakdown - where a row's figures came from", () => {
+  test("from usage metrics, from both, or (unsaid) from AI calls", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 73.75 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 800,
+          inputTokens: 3_650_000,
+          costUsd: 49.1,
+          tokenSource: LlmUsageSource.Both,
+          costSource: LlmUsageSource.Both,
+        }),
+        group({
+          key: "chen@example.com",
+          inputTokens: 1_000_000,
+          outputTokens: 400_000,
+          totalTokens: 1_400_000,
+          costUsd: 12.25,
+          tokenSource: LlmUsageSource.Metrics,
+          costSource: LlmUsageSource.Metrics,
+        }),
+        group({
+          key: "bob@example.com",
+          calls: 440,
+          inputTokens: 1_320_000,
+          costUsd: 11.4,
+          tokenSource: LlmUsageSource.Calls,
+          costSource: LlmUsageSource.Calls,
+        }),
+        // A cost metric and no token metric: tokens nobody reported.
+        group({
+          key: "dana@example.com",
+          costUsd: 1,
+          costSource: LlmUsageSource.Metrics,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId("llm-usage-row");
+
+    expect(
+      within(rows[0]!).getByTestId("llm-usage-row-source"),
+    ).toHaveTextContent("From AI calls and usage metrics");
+    expect(
+      within(rows[1]!).getByTestId("llm-usage-row-source"),
+    ).toHaveTextContent("From usage metrics");
+    expect(within(rows[2]!).queryByTestId("llm-usage-row-source")).toBeNull();
+
+    // Chen only uses a coding tool: a dash for the calls it never counts.
+    expect(renderedRows()[1]![2]).toBe("—");
+    expect(renderedRows()[1]![3]).toBe("1,000,000");
+    // Dana: no call and no token reported - dashes, never zeros.
+    expect(renderedRows()[3]!.slice(2, 6)).toEqual(["—", "—", "—", "—"]);
+    expect(renderedRows()[3]![6]).toBe("$1.00");
+  });
+
+  test("the services counted from usage metrics are named, the Unknown Service by its name", async () => {
+    getListMock.mockResolvedValue({
+      data: [namedService(CLAUDE_CODE_SERVICE_ID, "claude-code")],
+    } as never);
+    serve({
+      services: [
+        service({
+          serviceId: CLAUDE_CODE_SERVICE_ID,
+          costUsd: 52.25,
+          costSource: LlmUsageSource.Metrics,
+        }),
+        service({
+          serviceId: CHECKOUT_SERVICE_ID,
+          calls: 3,
+          costUsd: 20.5,
+          costSource: LlmUsageSource.Calls,
+        }),
+        service({
+          serviceId: PROJECT_ID.toString(),
+          inputTokens: 5,
+          tokenSource: LlmUsageSource.Metrics,
+        }),
+      ],
+      groups: [group({ key: "ana@example.com", calls: 3, costUsd: 72.75 })],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.getByTestId("llm-usage-metric-services")).toHaveTextContent(
+      "Services counted from usage metrics: claude-code, Unknown Service",
+    );
+  });
+
+  test("over the services' own table, no line: each row says it under its name", async () => {
+    getListMock.mockResolvedValue({
+      data: [namedService(CLAUDE_CODE_SERVICE_ID, "claude-code")],
+    } as never);
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 52.25 },
+      services: [
+        service({
+          serviceId: CLAUDE_CODE_SERVICE_ID,
+          costUsd: 52.25,
+          costSource: LlmUsageSource.Metrics,
+        }),
+      ],
+      groups: [
+        group({
+          key: CLAUDE_CODE_SERVICE_ID,
+          costUsd: 52.25,
+          costSource: LlmUsageSource.Metrics,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.getByTestId("llm-usage-metric-services")).toBeInTheDocument();
+
+    await pick("Application / Service");
+
+    expect(screen.queryByTestId("llm-usage-metric-services")).toBeNull();
+    expect(screen.getByTestId("llm-usage-row-source")).toHaveTextContent(
+      "From usage metrics",
+    );
+    // A service is always named: no Unattributed row, no note.
+    expect(screen.queryByTestId("llm-usage-unattributed-note")).toBeNull();
+  });
+
+  test("past three services, how many more", async () => {
+    const services: Array<LlmUsageService> = [];
+
+    for (let index: number = 0; index < 5; index++) {
+      services.push(
+        service({
+          serviceId: `5555555${index}-5555-4555-8555-555555555555`,
+          costUsd: 10 - index,
+          costSource: LlmUsageSource.Metrics,
+        }),
+      );
+    }
+
+    getListMock.mockResolvedValue({
+      data: services.map((entry: LlmUsageService, index: number): Service => {
+        return namedService(entry.serviceId, `tool-${index}`);
+      }),
+    } as never);
+    serve({
+      services: services,
+      groups: [group({ key: "ana@example.com", costUsd: 40 })],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.getByTestId("llm-usage-metric-services")).toHaveTextContent(
+      "Services counted from usage metrics: tool-0, tool-1, tool-2, +2",
+    );
+  });
+
+  test("no service counted from usage metrics: no line", async () => {
+    serve({
+      services: [
+        service({
+          serviceId: CHECKOUT_SERVICE_ID,
+          calls: 3,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+      groups: [group({ key: "ana@example.com", calls: 3, costUsd: 1 })],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.queryByTestId("llm-usage-metric-services")).toBeNull();
+  });
+
+  test("a role that may not read metrics is told they are left out", async () => {
+    serve({
+      metricsLeftOut: true,
+      groups: [group({ key: "ana@example.com", calls: 3, costUsd: 1 })],
+    });
+
+    await renderBreakdown();
+
+    // What is left out, and the one next step, quietly beside a lock.
+    const leftOut: HTMLElement = screen.getByTestId(
+      "llm-usage-metrics-left-out",
+    );
+
+    expect(leftOut).toHaveTextContent(
+      /^Usage metrics are left out: your role cannot read metrics\. Ask a project admin for access\.$/,
+    );
+    expect(leftOut).toHaveClass("text-gray-500");
+    expect(leftOut).not.toHaveClass("text-amber-700");
+    expect(leftOut.querySelector("svg")).not.toBeNull();
+  });
+});
+
+describe("LlmUsageBreakdown - degradation", () => {
+  test("a failed read is the error state, never a table of zeros", async () => {
+    fetchUsageMock.mockRejectedValue(new Error("Timeout exceeded") as never);
+
+    await renderBreakdown();
+
+    expect(
+      screen.getByText(
+        "Usage could not be loaded for this time range. Try a narrower range or refresh the page.",
+      ),
+    ).toBeInTheDocument();
+    expect(renderedRows()).toEqual([]);
+    expect(screen.queryByTestId("llm-usage-breakdown-top")).toBeNull();
+    expect(screen.queryByTestId("llm-usage-metric-services")).toBeNull();
+    expect(screen.queryByTestId("llm-usage-metrics-left-out")).toBeNull();
+  });
+
+  test("an empty read is the ordinary empty state, with no top line", async () => {
+    await renderBreakdown();
+
+    expect(
+      screen.getByText("No LLM usage found in this time range."),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("llm-usage-breakdown-top")).toBeNull();
+  });
+
+  test("the service names failing to load still draws the table", async () => {
+    getListMock.mockRejectedValue(new Error("no access") as never);
+    serve({
+      groups: [
+        group({
+          key: CHECKOUT_SERVICE_ID,
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+    await pick("Application / Service");
+
+    expect(renderedRows()[0]![1]).toBe(CHECKOUT_SERVICE_ID);
+  });
+
+  test("no project: nothing is read", async () => {
+    getCurrentProjectIdMock.mockReturnValue(null);
+
+    await renderBreakdown();
+
+    expect(fetchUsageMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("toLlmUsageState", () => {
+  test("the services counted, in part or in whole, from usage metrics", () => {
+    expect(
+      toLlmUsageState({
+        ...emptyLlmUsageResponse(),
+        services: [
+          service({ serviceId: "a", costSource: LlmUsageSource.Metrics }),
+          service({ serviceId: "b", tokenSource: LlmUsageSource.Metrics }),
+          service({
+            serviceId: "c",
+            tokenSource: LlmUsageSource.Calls,
+            costSource: LlmUsageSource.Calls,
+          }),
+        ],
+      }).metricServiceIds,
+    ).toEqual(["a", "b"]);
   });
 });

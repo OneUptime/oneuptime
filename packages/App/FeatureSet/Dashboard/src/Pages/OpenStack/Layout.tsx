@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const OpenStackLayout: FunctionComponent<LayoutPageComponentProps> = (
   _props: LayoutPageComponentProps,
@@ -14,6 +16,7 @@ const OpenStackLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={"OpenStack"}
+      titleRight={<ProductAboutButton product={ProductKey.OpenStack} />}
       sideMenu={<SideMenu />}
       breadcrumbLinks={getOpenStackBreadcrumbs(path)}
     >

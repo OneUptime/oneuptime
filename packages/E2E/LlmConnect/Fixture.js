@@ -14,8 +14,13 @@ import LlmConnectPage from "../../App/FeatureSet/Dashboard/src/Pages/Llm/Connect
 import LlmUsagePage from "../../App/FeatureSet/Dashboard/src/Pages/Llm/Usage";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import FA from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import LlmObservabilityConnection from "Common/Models/DatabaseModels/LlmObservabilityConnection";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
+import Service from "Common/Models/DatabaseModels/Service";
+import Color from "Common/Types/Color";
+import { emptyLlmUsageResponse } from "Common/Types/Telemetry/LlmUsageApi";
+import LlmUsageUtil from "Common/Utils/Telemetry/LlmUsage";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import Project from "Common/Models/DatabaseModels/Project";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -46,19 +51,32 @@ import UserUtil from "Common/UI/Utils/User";
  *               failing, and a company AI tool waiting for its first read)
  *               | done (all of that, AI calls and a budget too)
  *               | off (one Bedrock account, turned off)
+ *               | cursor (a Cursor team, its first read still catching up)
+ *   ?otel=      cursor (Cursor's OpenTelemetry Export arrives as well)
+ *   ?usage=     left-out (the Usage tab's metrics left out for the role)
+ *               | fail (the Usage tab's read fails)
+ *               | slow (the Usage tab's reads wait for releaseUsage())
+ *               | metrics-only (no app sends AI calls: a coding fleet)
+ *               | no-cost (calls whose model has no price, no cost metric)
  *   ?role=      owner (default) | member | loading
  *   ?verdict=   pass (default) | warn | auth | permission | settings | slow
+ *               | cursor | cursor-busy | cursor-permission
  *   ?source=    providers (the Usage page's provider accounts)
- *   ?theme=dark   ?lang=ja|de
+ *   ?theme=dark   ?lang=ja|de|fa (Persian is drawn right to left, as the
+ *               Dashboard draws it)
  */
 
 const params = new URLSearchParams(window.location.search);
 const page = params.get("page") || "connect";
 const role = params.get("role") || "owner";
 const dataState = params.get("state") || "empty";
-const language = ["ja", "de"].includes(params.get("lang"))
+const language = ["ja", "de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
+
+// Persian reads right to left, as the Dashboard sets it for the reader.
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
+document.documentElement.lang = language;
 
 if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
@@ -71,6 +89,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: {} },
     ja: { translation: JA },
     de: { translation: DE },
+    fa: { translation: FA },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -162,48 +181,80 @@ const TURNED_OFF = connection("20000000-0000-4000-8000-000000000005", {
   },
 });
 
+/*
+ * A Cursor team read with an Admin API key, as LlmConnectionPullRunner keeps
+ * an hourly read: the past 7 days' totals read back from what is stored,
+ * the team's members, and "partial" while the first read of a busy team
+ * still has earlier hours to read.
+ */
+const CURSOR = connection("20000000-0000-4000-8000-000000000006", {
+  name: "Cursor",
+  provider: "cursor",
+  config: {},
+  lastPulledAt: new Date("2026-10-19T11:00:00.000Z"),
+  lastSuccessfulPullAt: new Date("2026-10-19T11:00:00.000Z"),
+  lastPullResult: {
+    status: "partial",
+    kind: "usage",
+    days: 7,
+    bucket: "hour",
+    hoursRead: 24,
+    complete: false,
+    costUsd: 96.25,
+    inputTokens: 5400000,
+    outputTokens: 610000,
+    requests: 2310,
+    daysWithUsage: 6,
+    // A big team: both numbers of its line are written the reader's way.
+    members: 1248,
+    activeMembers: 1031,
+  },
+});
+
 const connections =
   dataState === "empty"
     ? []
     : dataState === "off"
       ? [TURNED_OFF]
-      : [
-          connection("20000000-0000-4000-8000-000000000001", {
-            name: "OpenAI production",
-            provider: "openai",
-            config: {},
-            lastPulledAt: new Date("2026-10-19T11:45:00.000Z"),
-            lastSuccessfulPullAt: new Date("2026-10-19T11:45:00.000Z"),
-            lastPullResult: {
-              status: "success",
-              kind: "usage",
-              days: 3,
-              costUsd: 182.4,
-              inputTokens: 1200000,
-              outputTokens: 240000,
-            },
-          }),
-          connection("20000000-0000-4000-8000-000000000002", {
-            name: "Foundry East",
-            provider: "azure-openai",
-            config: {
-              tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
-              clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
-              subscriptionId: "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0",
-              cloud: "public",
-            },
-            lastPulledAt: new Date("2026-10-19T11:50:00.000Z"),
-            lastError:
-              'Azure OpenAI and Microsoft Foundry accounts request failed with HTTP 403: {"error":{"code":"AuthorizationFailed","message":"The client does not have authorization to perform action \'Microsoft.CognitiveServices/accounts/read\'."}}',
-            lastPullResult: { status: "failed", failureKind: "permission" },
-          }),
-          connection("20000000-0000-4000-8000-000000000003", {
-            name: "Claude at Sysnetix",
-            provider: "claude-enterprise",
-            config: {},
-            serviceId: new ObjectID(SERVICE_ID),
-          }),
-        ];
+      : dataState === "cursor"
+        ? [CURSOR]
+        : [
+            connection("20000000-0000-4000-8000-000000000001", {
+              name: "OpenAI production",
+              provider: "openai",
+              config: {},
+              lastPulledAt: new Date("2026-10-19T11:45:00.000Z"),
+              lastSuccessfulPullAt: new Date("2026-10-19T11:45:00.000Z"),
+              lastPullResult: {
+                status: "success",
+                kind: "usage",
+                days: 3,
+                costUsd: 182.4,
+                inputTokens: 1200000,
+                outputTokens: 240000,
+              },
+            }),
+            connection("20000000-0000-4000-8000-000000000002", {
+              name: "Foundry East",
+              provider: "azure-openai",
+              config: {
+                tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
+                clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
+                subscriptionId: "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0",
+                cloud: "public",
+              },
+              lastPulledAt: new Date("2026-10-19T11:50:00.000Z"),
+              lastError:
+                'Azure OpenAI and Microsoft Foundry accounts request failed with HTTP 403: {"error":{"code":"AuthorizationFailed","message":"The client does not have authorization to perform action \'Microsoft.CognitiveServices/accounts/read\'."}}',
+              lastPullResult: { status: "failed", failureKind: "permission" },
+            }),
+            connection("20000000-0000-4000-8000-000000000003", {
+              name: "Claude at Sysnetix",
+              provider: "claude-enterprise",
+              config: {},
+              serviceId: new ObjectID(SERVICE_ID),
+            }),
+          ];
 
 const state = {
   // Every connection a form created, as the model it sent.
@@ -221,6 +272,10 @@ const state = {
   // Every setup check and GenAI metric usage read, with what it asked.
   setupChecks: [],
   metricUsages: [],
+  // Every usage read of the Usage tab (/telemetry/llm/usage), with its body.
+  usages: [],
+  // ?usage=slow: the usage reads waiting for releaseUsage().
+  heldUsages: [],
   verdict: params.get("verdict") || "pass",
   held: [],
 };
@@ -299,6 +354,56 @@ const VERDICTS = {
       durationMs: 0,
     },
   },
+  // A Cursor team's last 7 days, and its members (CursorConnector's test).
+  cursor: {
+    status: 200,
+    body: {
+      provider: "cursor",
+      status: "pass",
+      message: "Connected. Found usage in the last 7 days.",
+      counts: {
+        days: 7,
+        models: 4,
+        people: 12,
+        members: 40,
+        inputTokens: 5400000,
+        outputTokens: 610000,
+        requests: 2310,
+        costUsd: 96.25,
+      },
+      durationMs: 2400,
+    },
+  },
+  /*
+   * A busy team: more than CursorConnector's test pages of events in a
+   * week, so its requests are counted, not added up - no cost or tokens.
+   */
+  "cursor-busy": {
+    status: 200,
+    body: {
+      provider: "cursor",
+      status: "pass",
+      message: "Connected. Found 48200 requests in the last 7 days.",
+      counts: {
+        days: 7,
+        requests: 48200,
+        members: 1248,
+      },
+      durationMs: 3100,
+    },
+  },
+  // A key Cursor accepts but that may not read the team: a personal key.
+  "cursor-permission": {
+    status: 200,
+    body: {
+      provider: "cursor",
+      status: "fail",
+      message:
+        "Cursor accepted the key but refused the team members request (HTTP 403: Enterprise access required). Reading a team's usage takes an Admin API key of a team on the Teams or Enterprise plan, which a team admin creates under Settings, Cursor Admin API Keys.",
+      failureKind: "permission",
+      durationMs: 380,
+    },
+  },
 };
 
 function answer(name) {
@@ -315,6 +420,13 @@ window.__llmConnectFixture = {
     const held = state.held.splice(0);
     for (const resolve of held) {
       resolve(answer(name));
+    }
+  },
+  // ?usage=slow: answer the usage reads that are waiting.
+  releaseUsage: () => {
+    const held = state.heldUsages.splice(0);
+    for (const release of held) {
+      release();
     }
   },
 };
@@ -364,6 +476,14 @@ ModelAPI.getList = async (args) => {
   }
   if (args.modelType === TelemetryIngestionKey) {
     return { data: [ingestionKey], count: 1, skip: 0, limit: args.limit };
+  }
+  if (args.modelType === Service) {
+    return {
+      data: TELEMETRY_SERVICES,
+      count: TELEMETRY_SERVICES.length,
+      skip: 0,
+      limit: args.limit,
+    };
   }
   return { data: [], count: 0, skip: 0, limit: args.limit };
 };
@@ -477,6 +597,40 @@ const PROVIDER_POINTS = [
   },
 ];
 
+/*
+ * A Cursor team's points, as CursorConnector writes them: each member by
+ * email, Cursor's model names, no project or key, and what Cursor charged.
+ * They add up to the Cursor connection's last read above.
+ */
+const CURSOR_POINTS = [
+  {
+    model: "claude-4.5-sonnet-thinking",
+    person: "ana@sysnetix.com",
+    provider: "cursor",
+    project: "",
+    key: "",
+    connection: "Cursor",
+    cost: 61.75,
+    estimated: "false",
+    input: 3600000,
+    output: 410000,
+    requests: 1480,
+  },
+  {
+    model: "gpt-5",
+    person: "bob@sysnetix.com",
+    provider: "cursor",
+    project: "",
+    key: "",
+    connection: "Cursor",
+    cost: 34.5,
+    estimated: "false",
+    input: 1800000,
+    output: 200000,
+    requests: 830,
+  },
+];
+
 const ATTRIBUTE_OF = {
   "gen_ai.request.model": "model",
   "user.email": "person",
@@ -499,7 +653,9 @@ AnalyticsModelAPI.aggregate = async (args) => {
   }
 
   const rows = [];
-  for (const point of PROVIDER_POINTS) {
+  for (const point of dataState === "cursor"
+    ? CURSOR_POINTS
+    : PROVIDER_POINTS) {
     const attributes = {};
     for (const key of keys) {
       if (ATTRIBUTE_OF[key]) {
@@ -526,6 +682,251 @@ AnalyticsModelAPI.aggregate = async (args) => {
 };
 
 const COMPANY_TOOLS = ["claude-enterprise", "microsoft-365-copilot"];
+
+/*
+ * The Usage tab's AI calls and usage metrics (/telemetry/llm/usage), as the
+ * server counts them (LlmUsageReader): rows of AI calls and of metric
+ * points, grouped for the asked dimension, folded by the real LlmUsageUtil.
+ * In "done", an app (checkout-api) sends AI calls and - through
+ * OpenLLMetry - usage metrics for the same calls, which are not counted
+ * again, and Claude Code sends only usage metrics, which count beside the
+ * calls. ?otel=cursor adds Cursor's OpenTelemetry Export; ?usage=
+ * left-out answers as for a member who may not read metrics, ?usage=fail
+ * fails the read, ?usage=slow holds it until releaseUsage(), ?usage=
+ * metrics-only drops the app's calls (a coding-assistant fleet), and
+ * ?usage=no-cost prices nothing (a self-hosted model, Claude Code's cost
+ * metric off).
+ */
+const CLAUDE_CODE_SERVICE_ID = "30000000-0000-4000-8000-00000000000a";
+const CURSOR_EXPORT_SERVICE_ID = "30000000-0000-4000-8000-00000000000b";
+
+function telemetryService(id, name, color) {
+  const item = new Service();
+  item._id = id;
+  item.name = name;
+  item.serviceColor = new Color(color);
+  return item;
+}
+
+const TELEMETRY_SERVICES = [
+  telemetryService(SERVICE_ID, "checkout-api", "#6366f1"),
+  telemetryService(CLAUDE_CODE_SERVICE_ID, "claude-code", "#f59e0b"),
+  telemetryService(CURSOR_EXPORT_SERVICE_ID, "cursor", "#10b981"),
+];
+
+// The app's AI calls, each model call once already (the server's rule).
+const USAGE_CALLS = [
+  {
+    service: SERVICE_ID,
+    employee: "ana@sysnetix.com",
+    team: "platform",
+    model: "gpt-4o",
+    provider: "openai",
+    calls: 820,
+    erroredCalls: 12,
+    inputTokens: 1450000,
+    outputTokens: 310000,
+    costUsd: 18.6,
+  },
+  {
+    service: SERVICE_ID,
+    employee: "bob@sysnetix.com",
+    team: "support",
+    model: "gpt-4o-mini",
+    provider: "openai",
+    calls: 420,
+    erroredCalls: 3,
+    inputTokens: 520000,
+    outputTokens: 96000,
+    costUsd: 1.9,
+  },
+];
+
+// Usage metric points, as LlmMetricUsageReader counts them per series.
+const USAGE_POINTS = [
+  // OpenLLMetry's counter for the app's own calls: never added to them.
+  {
+    service: SERVICE_ID,
+    metric: "gen_ai.client.token.usage",
+    tokenType: "input",
+    value: 1970000,
+    employee: "",
+    team: "",
+    model: "gpt-4o",
+    provider: "openai",
+  },
+  {
+    service: CLAUDE_CODE_SERVICE_ID,
+    metric: "claude_code.cost.usage",
+    tokenType: "",
+    value: 42.75,
+    employee: "ana@sysnetix.com",
+    team: "platform",
+    model: "claude-sonnet-4-5",
+    provider: "",
+  },
+  {
+    service: CLAUDE_CODE_SERVICE_ID,
+    metric: "claude_code.cost.usage",
+    tokenType: "",
+    value: 9.5,
+    employee: "chen@sysnetix.com",
+    team: "platform",
+    model: "claude-sonnet-4-5",
+    provider: "",
+  },
+  {
+    service: CLAUDE_CODE_SERVICE_ID,
+    metric: "claude_code.token.usage",
+    tokenType: "input",
+    value: 3200000,
+    employee: "ana@sysnetix.com",
+    team: "platform",
+    model: "claude-sonnet-4-5",
+    provider: "",
+  },
+  {
+    service: CLAUDE_CODE_SERVICE_ID,
+    metric: "claude_code.token.usage",
+    tokenType: "output",
+    value: 410000,
+    employee: "ana@sysnetix.com",
+    team: "platform",
+    model: "claude-sonnet-4-5",
+    provider: "",
+  },
+  {
+    service: CLAUDE_CODE_SERVICE_ID,
+    metric: "claude_code.token.usage",
+    tokenType: "input",
+    value: 800000,
+    employee: "chen@sysnetix.com",
+    team: "platform",
+    model: "claude-sonnet-4-5",
+    provider: "",
+  },
+];
+
+// Cursor's OpenTelemetry Export: a member id, Cursor's model names.
+const CURSOR_EXPORT_POINTS = [
+  {
+    service: CURSOR_EXPORT_SERVICE_ID,
+    metric: "cursor.cost.usage",
+    tokenType: "",
+    value: 7.2,
+    employee: "u-7f3a",
+    team: "",
+    model: "gpt-5",
+    provider: "",
+  },
+  {
+    service: CURSOR_EXPORT_SERVICE_ID,
+    metric: "cursor.token.usage",
+    tokenType: "input",
+    value: 640000,
+    employee: "u-7f3a",
+    team: "",
+    model: "gpt-5",
+    provider: "",
+  },
+];
+
+function usageAnswer(dimension) {
+  if (dataState !== "done") {
+    return emptyLlmUsageResponse();
+  }
+
+  const grouped = dimension !== "none" && dimension !== "service";
+  const spanRows = [];
+  const services = new Map();
+
+  const usageVariant = params.get("usage") || "";
+  const calls =
+    usageVariant === "metrics-only"
+      ? []
+      : USAGE_CALLS.map((call) => {
+          return usageVariant === "no-cost" ? { ...call, costUsd: 0 } : call;
+        });
+
+  for (const call of calls) {
+    const total = services.get(call.service) || {
+      service: call.service,
+      isTotal: true,
+      group: "",
+      calls: 0,
+      erroredCalls: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      costUsd: 0,
+    };
+    total.calls += call.calls;
+    total.erroredCalls += call.erroredCalls;
+    total.inputTokens += call.inputTokens;
+    total.outputTokens += call.outputTokens;
+    total.totalTokens += call.inputTokens + call.outputTokens;
+    total.costUsd += call.costUsd;
+    services.set(call.service, total);
+
+    if (grouped) {
+      spanRows.push({
+        service: call.service,
+        isTotal: false,
+        group: call[dimension] || "",
+        calls: call.calls,
+        erroredCalls: call.erroredCalls,
+        inputTokens: call.inputTokens,
+        outputTokens: call.outputTokens,
+        totalTokens: call.inputTokens + call.outputTokens,
+        costUsd: call.costUsd,
+      });
+    }
+  }
+
+  spanRows.push(...services.values());
+
+  const points = (
+    usageVariant === "left-out"
+      ? []
+      : [
+          ...USAGE_POINTS,
+          ...(params.get("otel") === "cursor" ? CURSOR_EXPORT_POINTS : []),
+        ]
+  ).filter((point) => {
+    return !(
+      usageVariant === "no-cost" && point.metric.endsWith(".cost.usage")
+    );
+  });
+  const metricRows = [];
+
+  for (const point of points) {
+    const row = {
+      metric: point.metric,
+      service: point.service,
+      tokenType: point.tokenType,
+      value: point.value,
+    };
+    metricRows.push({ ...row, group: "", groupAttribute: "", isTotal: true });
+
+    if (grouped) {
+      metricRows.push({
+        ...row,
+        group: point[dimension] || "",
+        groupAttribute: "",
+        isTotal: false,
+      });
+    }
+  }
+
+  return LlmUsageUtil.fold({
+    spanRows: spanRows,
+    metricRows: metricRows,
+    options: {
+      dimension: dimension,
+      metricsLeftOut: params.get("usage") === "left-out",
+    },
+  });
+}
 
 /*
  * The AI / LLM setup check (Common/Types/Telemetry/LlmSetupCheckApi), as the
@@ -560,12 +961,23 @@ function setupCheck() {
       contentInLogs: null,
       uninstrumented: done ? null : [],
     },
-    metrics: [],
+    // Cursor's OpenTelemetry Export, as the check finds its cursor.* metrics.
+    metrics:
+      params.get("otel") === "cursor"
+        ? [
+            {
+              source: "cursor",
+              points: 320,
+              newestAt: "2026-10-19T11:40:00.000Z",
+            },
+          ]
+        : [],
     connections: connections.map((item) => {
       const result = item.lastPullResult || {};
       const isTool = COMPANY_TOOLS.includes(item.provider);
+      // A read that is still catching up has read what it found.
       const used =
-        result.status === "success" &&
+        (result.status === "success" || result.status === "partial") &&
         ((result.costUsd || 0) > 0 || (result.inputTokens || 0) > 0);
 
       return {
@@ -596,6 +1008,32 @@ API.post = async (options) => {
   if (url.endsWith("/telemetry/llm/setup-check")) {
     state.setupChecks.push(JSON.parse(JSON.stringify(options.data || {})));
     return new HTTPResponse(200, setupCheck(), {});
+  }
+
+  // The Usage tab's AI calls and usage metrics, counted as the server does.
+  if (url.endsWith("/telemetry/llm/usage")) {
+    const body = JSON.parse(JSON.stringify(options.data || {}));
+    state.usages.push(body);
+
+    if (params.get("usage") === "fail") {
+      return new HTTPErrorResponse(504, { message: "Timed out" }, {});
+    }
+
+    const answer = new HTTPResponse(
+      200,
+      usageAnswer(body.dimension || "none"),
+      {},
+    );
+
+    if (params.get("usage") === "slow") {
+      return await new Promise((resolve) => {
+        state.heldUsages.push(() => {
+          resolve(answer);
+        });
+      });
+    }
+
+    return answer;
   }
 
   // The GenAI metrics: none in any state; the provider accounts' own are above.

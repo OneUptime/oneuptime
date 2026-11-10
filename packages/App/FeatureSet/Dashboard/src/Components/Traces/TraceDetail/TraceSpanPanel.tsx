@@ -1066,6 +1066,10 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
             attributes={fullSpan?.attributes as JSONObject | undefined}
             events={fullSpan?.events}
             durationLabel={formatDurationNano(span.durationUnixNano)}
+            traceId={props.traceId}
+            spanId={spanId}
+            startTimeUnixNano={span.startTimeUnixNano}
+            endTimeUnixNano={span.endTimeUnixNano}
           />
         );
 

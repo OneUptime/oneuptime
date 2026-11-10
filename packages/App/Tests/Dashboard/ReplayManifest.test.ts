@@ -227,6 +227,31 @@ describe("parseManifest with the current server", () => {
     expect(tabA.chunks[1]?.hasFullSnapshot).toBe(false);
   });
 
+  test("reads each chunk's own-signal counts only when the server sends them (issue #6443)", () => {
+    const response: JSONObject = fullResponse();
+    const tabRows: Array<JSONObject> = response["tabs"] as Array<JSONObject>;
+    /* tab-a is listed second; its rows are chunks 1, 0 and 3. */
+    const rows: Array<JSONObject> = (tabRows[1] as JSONObject)[
+      "chunks"
+    ] as Array<JSONObject>;
+
+    (rows[0] as JSONObject)["customSignalCount"] = 3;
+    (rows[0] as JSONObject)["customSignalFrustrationCount"] = "1";
+    (rows[1] as JSONObject)["customSignalCount"] = 0;
+
+    const tabA: SessionReplayManifestTab = parseManifest(response)
+      .tabs[0] as SessionReplayManifestTab;
+
+    expect(tabA.chunks[1]?.customSignalCount).toBe(3);
+    /* A numeric string, as ClickHouse sends a UInt64. */
+    expect(tabA.chunks[1]?.customSignalFrustrationCount).toBe(1);
+    expect(tabA.chunks[0]?.customSignalCount).toBe(0);
+    /* Absent means not measured, never a zero the timeline would draw. */
+    expect(tabA.chunks[0]).not.toHaveProperty("customSignalFrustrationCount");
+    expect(tabA.chunks[2]).not.toHaveProperty("customSignalCount");
+    expect(tabA.chunks[2]).not.toHaveProperty("customSignalFrustrationCount");
+  });
+
   test("takes firstChunkStartOffsetMs from the server and derives each tab's duration", () => {
     const tabA: SessionReplayManifestTab = manifest
       .tabs[0] as SessionReplayManifestTab;

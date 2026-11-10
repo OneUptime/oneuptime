@@ -76,7 +76,11 @@ const VISITOR_STORAGE_KEY: string = "oneuptime.replay.visitor";
  */
 const USER_STORAGE_KEY: string = "oneuptime.replay.user";
 
-/* Refresh rage: 3+ reloads of the same scrubbed pathname inside a minute. */
+/*
+ * Refresh rage: 3+ reloads of the same scrubbed pathname inside a minute,
+ * unless the application changed the rule on its Frustration Signals page
+ * (the recorder passes its numbers to recordPageLoad and isRefreshRage).
+ */
 const REFRESH_RAGE_WINDOW_MS: number = 60 * 1000;
 const REFRESH_RAGE_THRESHOLD: number = 3;
 
@@ -610,12 +614,20 @@ export default class SessionId {
    * frustration signal that must survive a page load, which makes it a
    * storage concern.
    */
-  public static recordPageLoad(rawUrl: string, nowUnixMs: number): number {
+  /*
+   * windowMs is the application's refresh-rage window (its Frustration
+   * Signals page); the default is the one every recorder before it used.
+   */
+  public static recordPageLoad(
+    rawUrl: string,
+    nowUnixMs: number,
+    windowMs: number = REFRESH_RAGE_WINDOW_MS,
+  ): number {
     const path: string = UrlScrubber.getScrubbedPathname(rawUrl);
 
     const log: Array<ReloadLogEntry> = SessionId.readReloadLog().filter(
       (entry: ReloadLogEntry): boolean => {
-        return nowUnixMs - entry.atUnixMs <= REFRESH_RAGE_WINDOW_MS;
+        return nowUnixMs - entry.atUnixMs <= windowMs;
       },
     );
 
@@ -630,8 +642,11 @@ export default class SessionId {
     }).length;
   }
 
-  public static isRefreshRage(loadCountInWindow: number): boolean {
-    return loadCountInWindow >= REFRESH_RAGE_THRESHOLD;
+  public static isRefreshRage(
+    loadCountInWindow: number,
+    threshold: number = REFRESH_RAGE_THRESHOLD,
+  ): boolean {
+    return loadCountInWindow >= threshold;
   }
 
   /*

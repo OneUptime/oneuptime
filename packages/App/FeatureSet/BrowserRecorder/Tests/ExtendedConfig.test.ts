@@ -3,6 +3,11 @@ import {
   ExtendedReplayConfig,
   readExtendedConfig,
 } from "../src/ExtendedConfig";
+import {
+  SessionReplayFrustrationSignalsConfig,
+  getDefaultSessionReplayFrustrationSettings,
+  toSessionReplayFrustrationSignalsConfig,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
 
 /*
  * The artifact-side normaliser for config fields the loader passes through
@@ -17,6 +22,15 @@ import {
  * unless the server says a literal false.
  */
 
+/*
+ * What counts as frustration is the other exception: absent means the
+ * built-in rules every recorder before it detected, never no detection.
+ */
+const BUILT_IN_FRUSTRATION: SessionReplayFrustrationSignalsConfig =
+  toSessionReplayFrustrationSignalsConfig(
+    getDefaultSessionReplayFrustrationSettings(),
+  );
+
 const DEFAULTS: ExtendedReplayConfig = {
   tracePropagationOrigins: [],
   sameOriginTracePropagation: false,
@@ -25,6 +39,7 @@ const DEFAULTS: ExtendedReplayConfig = {
   slowRequestBudgetMs: 0,
   captureWebVitals: true,
   isTargeted: false,
+  frustrationSignals: BUILT_IN_FRUSTRATION,
 };
 
 function configWithRaw(raw: unknown): LoaderConfig {
@@ -53,6 +68,7 @@ describe("readExtendedConfig", (): void => {
       slowRequestBudgetMs: 5000,
       captureWebVitals: false,
       isTargeted: true,
+      frustrationSignals: BUILT_IN_FRUSTRATION,
     });
   });
 
@@ -247,6 +263,55 @@ describe("readExtendedConfig", (): void => {
           readExtendedConfig(configWithRaw({ isTargeted: hostile })).isTargeted,
         ).toBe(false);
       }
+    });
+  });
+
+  describe("frustrationSignals", (): void => {
+    it("reads the application's rules and its own signals", (): void => {
+      const sent: SessionReplayFrustrationSignalsConfig = {
+        rageClick: {
+          isEnabled: true,
+          clickCount: 5,
+          windowMs: 2000,
+          radiusPx: 50,
+          ignoreSelectors: [".stepper"],
+        },
+        deadClick: { isEnabled: false, timeoutMs: 3000, ignoreSelectors: [] },
+        errorClick: { isEnabled: true, windowMs: 500 },
+        refreshRage: { isEnabled: true, reloadCount: 4, windowSeconds: 30 },
+        customSignals: [
+          {
+            name: "Payment failed",
+            trigger: "event",
+            match: "payment_failed",
+            isFrustration: true,
+          },
+        ],
+      };
+
+      expect(
+        readExtendedConfig(configWithRaw({ frustrationSignals: sent }))
+          .frustrationSignals,
+      ).toEqual(sent);
+    });
+
+    it("is the built-in rules for anything that is not the settings object", (): void => {
+      for (const hostile of ["x", 1, [], null, true]) {
+        expect(
+          readExtendedConfig(configWithRaw({ frustrationSignals: hostile }))
+            .frustrationSignals,
+        ).toEqual(BUILT_IN_FRUSTRATION);
+      }
+    });
+
+    it("pulls a number from a hostile server back inside its range", (): void => {
+      expect(
+        readExtendedConfig(
+          configWithRaw({
+            frustrationSignals: { deadClick: { timeoutMs: 1 } },
+          }),
+        ).frustrationSignals.deadClick.timeoutMs,
+      ).toBe(500);
     });
   });
 });

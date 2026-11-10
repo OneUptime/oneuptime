@@ -460,7 +460,7 @@ describe("a record's labels in a table's cell", () => {
         return fileName.endsWith(".json");
       });
 
-    expect(fileNames).toHaveLength(17);
+    expect(fileNames).toHaveLength(18);
     expect(english["{{count}} more labels"]).toBe("{{count}} more labels");
     expect(english["{{count}} more labels_one"]).toBe("{{count}} more label");
 

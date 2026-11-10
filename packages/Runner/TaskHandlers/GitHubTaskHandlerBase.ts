@@ -42,9 +42,6 @@ import {
  * repository, branch or pull request the run touches. Those are already fixed.
  */
 export default abstract class GitHubTaskHandlerBase extends BaseTaskHandler {
-  // Wall clock for the code agent, matching the other pull-request recipes.
-  protected static readonly CODE_AGENT_TIMEOUT_MS: number = 30 * 60 * 1000;
-
   /*
    * How much of the conversation and diff is worth carrying into the prompt.
    * Past this, more context stops helping and starts crowding out the code the
@@ -215,7 +212,7 @@ export default abstract class GitHubTaskHandlerBase extends BaseTaskHandler {
     const codeAgentTask: CodeAgentTask = {
       workingDirectory: data.repositoryPath,
       prompt: data.prompt,
-      timeoutMs: GitHubTaskHandlerBase.CODE_AGENT_TIMEOUT_MS,
+      // No timeoutMs: the agent keeps to the run's time limit, which the server gives it.
       ...(data.productionTelemetry ? { productionTelemetry: true } : {}),
       ...(data.skipsChangeChecks ? { skipsChangeChecks: true } : {}),
     };

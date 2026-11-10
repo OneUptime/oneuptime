@@ -199,7 +199,7 @@ describe("the site Overview hero", () => {
     ['title={translator.translateTemplate("Uptime ({{days}}d)"', "uptime30d"],
     ['title="Devices"', "devices"],
     ['title="Child Sites"', "childSites"],
-    ['title="Endpoints"', "endpoints"],
+    ['title="Discovered Devices"', "endpoints"],
   ] as Array<[string, NetworkSiteMetric]>)(
     "the tile %s is explained by NETWORK_SITE_METRIC_DESCRIPTIONS.%s",
     (titleProp: string, key: NetworkSiteMetric) => {
@@ -627,7 +627,7 @@ describe("the Network Overview", () => {
     ["Devices", "fleetDevices"],
     ["Interfaces Down", "fleetInterfacesDown"],
     ["Sites", "fleetSites"],
-    ["Endpoints", "fleetEndpoints"],
+    ["Discovered Devices", "fleetEndpoints"],
   ] as Array<[string, NetworkDeviceMetric]>)(
     "the %s card is explained by NETWORK_DEVICE_METRIC_DESCRIPTIONS.%s",
     (title: string, key: NetworkDeviceMetric) => {

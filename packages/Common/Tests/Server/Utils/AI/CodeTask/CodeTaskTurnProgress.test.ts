@@ -14,6 +14,7 @@ import {
   CodeTaskStepKind,
   CodeTaskTurnProgressJSON,
 } from "../../../../../Types/AI/CodeTask";
+import { TransientAIFailureKind } from "../../../../../Types/AI/TransientAIFailure";
 import ObjectID from "../../../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
@@ -195,9 +196,44 @@ describe("CodeTaskPresenter.getTurnProgress", () => {
         status: true,
         needsUserInput: true,
         startedAt: true,
+        // How it stands with its attempts (CodeFixAutoRetry).
+        autoRetryCount: true,
+        nextAttemptAt: true,
+        retryReason: true,
       },
       props: { isRoot: true },
     });
+  });
+
+  test("a turn waiting to be tried again by itself says which attempt is next, when and why, so the page says Retrying as it reads", async () => {
+    const waiting: AIRun = turn({ id: TASK_ID, status: AIRunStatus.Queued });
+    waiting.autoRetryCount = 1;
+    waiting.nextAttemptAt = new Date("2026-11-03T10:04:00.000Z");
+    waiting.retryReason = "Anthropic API error: overloaded_error (529)";
+    findRun.mockResolvedValue(waiting);
+
+    const progress: CodeTaskTurnProgressJSON | null = await progressOf({
+      runId: TASK_ID,
+      afterSequence: -1,
+    });
+
+    expect(progress?.isQueued).toBe(true);
+    expect(progress?.retry).toEqual({
+      attempt: 2,
+      maxAttempts: 3,
+      nextAttemptAt: "2026-11-03T10:04:00.000Z",
+      kind: TransientAIFailureKind.ProviderUnavailable,
+      reason: "Anthropic API error: overloaded_error (529)",
+    });
+  });
+
+  test("a turn never tried again says nothing of attempts", async () => {
+    const progress: CodeTaskTurnProgressJSON | null = await progressOf({
+      runId: TASK_ID,
+      afterSequence: -1,
+    });
+
+    expect(progress?.retry).toBeUndefined();
   });
 
   test("a reply is read only as a turn of this task: another task's run is none of its turns", async () => {

@@ -1,27 +1,21 @@
 import LlmCostBudget from "../../../Models/DatabaseModels/LlmCostBudget";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
-import Span from "../../../Models/AnalyticsModels/Span";
 import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
-import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
-import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
-import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
-import AggregationType from "../../../Types/BaseDatabase/AggregationType";
-import InBetween from "../../../Types/BaseDatabase/InBetween";
-import Includes from "../../../Types/BaseDatabase/Includes";
-import Query from "../../../Types/BaseDatabase/Query";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
-import { getLlmProviderStoredValues } from "../../../Types/Telemetry/LlmProviders";
-import AggregateBy from "../../Types/AnalyticsDatabase/AggregateBy";
+import {
+  LlmUsageDimension,
+  LlmUsageResponse,
+  LlmUsageSource,
+} from "../../../Types/Telemetry/LlmUsageApi";
 import LlmCostBudgetService from "../../Services/LlmCostBudgetService";
 import MetricService from "../../Services/MetricService";
-import SpanService from "../../Services/SpanService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import LlmMetricSpend, { LlmMetricScope } from "./LlmMetricSpend";
+import LlmUsageReader, { LlmUsageReadQuery } from "./LlmUsageReader";
 import LlmBudgetSpendSource from "../../../Types/LlmObservability/LlmBudgetSpendSource";
 import LlmProviderSpend from "../LlmObservability/LlmProviderSpend";
 import TelemetryUtil from "./Telemetry";
@@ -29,12 +23,13 @@ import TelemetryUtil from "./Telemetry";
 /*
  * Evaluates LLM cost budgets against the day's LLM spend.
  *
- * Spend is sourced from GenAI trace spans first and, when a scope produced no
- * span spend at all, from the GenAI metric stream instead (see resolveSpend
- * and Common/Server/Utils/Telemetry/LlmMetricSpend.ts). That second source is
- * what lets a metrics-only emitter — an SDK exporting metrics without traces,
- * or a gateway that publishes spend counters and no spans — hold a budget at
- * all. The two are never summed; see resolveSpend for why.
+ * Spend is what the Usage tab counts for the same scope (LlmUsageReader):
+ * the AI calls (GenAI spans), each model call once, and the usage metrics
+ * (GenAI metrics) - each service counted from the signal it sends, its AI
+ * calls where they report a cost and its usage metrics where they do not.
+ * So a coding tool that sends only metrics counts toward a budget beside
+ * the apps that send calls, and an app that sends both counts once; see
+ * resolveSpend.
  *
  * The worker job (App/FeatureSet/Workers/Jobs/Llm/EvaluateLlmCostBudgets.ts)
  * calls evaluateAllBudgets() on a 15-minute tick. For each enabled budget it
@@ -78,12 +73,26 @@ export const LLM_BUDGET_SERVICE_ID_ATTRIBUTE: string =
 const BUDGET_METRIC_RETENTION_IN_DAYS: number = 15;
 
 /*
- * Which signal a budget's spend figure came from. "none" means every source
- * it counts was empty — a genuinely idle scope, not a failure. "providers"
- * is what the connected AI provider accounts report, for a budget that
- * counts them (LlmCostBudget.spendSource).
+ * Which signal a budget's spend figure came from: the AI calls ("spans"),
+ * the usage metrics ("metrics"), or some services' calls and other
+ * services' metrics ("both"). "none" means every source it counts was
+ * empty — a genuinely idle scope, not a failure. "providers" is what the
+ * connected AI provider accounts report, for a budget that counts them
+ * (LlmCostBudget.spendSource).
  */
-export type LlmSpendSource = "spans" | "metrics" | "providers" | "none";
+export type LlmSpendSource =
+  | "spans"
+  | "metrics"
+  | "both"
+  | "providers"
+  | "none";
+
+const SPEND_SOURCES: Record<LlmUsageSource, LlmSpendSource> = {
+  [LlmUsageSource.Calls]: "spans",
+  [LlmUsageSource.Metrics]: "metrics",
+  [LlmUsageSource.Both]: "both",
+  [LlmUsageSource.None]: "none",
+};
 
 export interface LlmResolvedSpend {
   spendInUSD: number;
@@ -125,47 +134,25 @@ export default class LlmCostBudgetEvaluator {
   }
 
   /**
-   * Build the ClickHouse span filter for a budget: the UTC day so far,
-   * LLM spans only, narrowed by the budget's optional service / provider /
-   * model scoping.
+   * The usage read for a budget: the UTC day so far, totals only, narrowed
+   * by the budget's optional service / provider / model scoping - on the AI
+   * calls and on the usage metrics alike (LlmUsageReader). A provider is
+   * matched under every spelling it is stored or sent as.
    */
-  public static buildSpanQuery(data: {
+  public static buildUsageQuery(data: {
     budget: LlmCostBudget;
     dayStart: Date;
     now: Date;
-  }): Query<Span> {
-    const query: Query<Span> = {
+  }): LlmUsageReadQuery {
+    return {
       projectId: data.budget.projectId!,
-      isLlmSpan: true,
-      /*
-       * Bound rows to the window — aggregateBy's startTimestamp/endTimestamp
-       * only pick the bucket grid, they do not filter rows.
-       */
-      startTime: new InBetween(data.dayStart, data.now),
-    } as Query<Span>;
-
-    if (data.budget.serviceId) {
-      (query as Record<string, unknown>)["primaryEntityId"] =
-        data.budget.serviceId;
-    }
-
-    /*
-     * Every spelling the provider is stored under: ingest stores the
-     * conventions' name (azure.ai.openai), and calls ingested before it did
-     * keep what their instrumentation sent (az.ai.openai, OpenAI).
-     */
-    if (data.budget.llmSystem) {
-      (query as Record<string, unknown>)["llmSystem"] = new Includes(
-        getLlmProviderStoredValues(data.budget.llmSystem),
-      );
-    }
-
-    if (data.budget.llmModel) {
-      (query as Record<string, unknown>)["llmRequestModel"] =
-        data.budget.llmModel;
-    }
-
-    return query;
+      startTime: data.dayStart,
+      endTime: data.now,
+      dimension: LlmUsageDimension.None,
+      serviceId: data.budget.serviceId || undefined,
+      llmSystem: data.budget.llmSystem || undefined,
+      llmModel: data.budget.llmModel || undefined,
+    };
   }
 
   /**
@@ -333,53 +320,24 @@ export default class LlmCostBudgetEvaluator {
   }
 
   /**
-   * Translate a budget's scope into the equivalent metric-stream scope, so
-   * the span query and the metric query narrow to the same slice of traffic.
-   *
-   * Service scoping is exact — Span.primaryEntityId and Metric.primaryEntityId
-   * are the same telemetry-service id. Provider/model scoping matches the
-   * primary semantic-convention attribute keys only; see the caveat on
-   * LlmMetricSpend.
-   */
-  public static buildMetricScope(data: {
-    budget: LlmCostBudget;
-    dayStart: Date;
-    now: Date;
-  }): LlmMetricScope {
-    return {
-      projectId: data.budget.projectId!,
-      startTime: data.dayStart,
-      endTime: data.now,
-      serviceId: data.budget.serviceId,
-      llmSystem: data.budget.llmSystem,
-      llmModel: data.budget.llmModel,
-    };
-  }
-
-  /**
    * The day's spend for a budget, and which telemetry signal it came from.
    *
-   * Spans are authoritative: a GenAI span carries model, tokens and cost on
-   * one row, and it is the only source that can also back the per-call views.
-   * Metrics are consulted ONLY when the span-sourced total is zero.
+   * Each service in the budget's scope is counted from the signal it sends
+   * (LlmUsageUtil): its AI calls when they report a cost, else its usage
+   * metrics. Never both for one service: instrumentations that emit both
+   * signals (OpenLLMetry is the common case) would be counted twice, and for
+   * a budget that gates alerting an inflated figure is worse than a missing
+   * one — it fires on spend that never happened. And never only one for the
+   * whole scope: a coding tool that sends only metrics (Claude Code, Codex,
+   * Cursor's export) counts beside the apps that send calls, where it once
+   * vanished as soon as any app sent a call with a cost.
    *
-   * That ordering is a deliberate fallback rather than a sum. Instrumentations
-   * that emit both signals (OpenLLMetry is the common case) would otherwise be
-   * counted twice, and for a budget that gates alerting an inflated figure is
-   * worse than a missing one — it fires on spend that never happened. The
-   * fallback turns on exactly for the emitters that need it: those publishing
-   * GenAI metrics and no GenAI spans, whose span total is structurally zero.
+   * Each model call counts once: an agent run's or a wrapper span's repeat
+   * of its calls' cost is left out (LlmCountedCallsSql).
    *
-   * Known limit, documented rather than papered over: a scope where SOME
-   * services emit spans and others emit only metrics resolves to "spans" and
-   * under-counts the metrics-only services. Splitting a budget per service is
-   * the workaround; scoping each to its own service gives each the source it
-   * actually has.
-   *
-   * A metric-query failure is allowed to propagate for the same reason the
-   * span aggregate passes timeoutOverflowMode 'throw': returning 0 on error
-   * would silently suppress a real breach. evaluateAllBudgets isolates the
-   * failure to the one budget.
+   * A failed read propagates (both reads 'throw' on a timeout): returning 0
+   * on error would silently suppress a real breach. evaluateAllBudgets
+   * isolates the failure to the one budget.
    */
   @CaptureSpan()
   public static async resolveSpend(data: {
@@ -407,62 +365,21 @@ export default class LlmCostBudgetEvaluator {
         : { spendInUSD: 0, source: "none" };
     }
 
-    const spanSpend: number = await this.getSpanSpendInUSD(data);
-
-    if (spanSpend > 0) {
-      return { spendInUSD: spanSpend, source: "spans" };
-    }
-
-    const metricSpend: number = await LlmMetricSpend.getCostInUSD(
-      this.buildMetricScope(data),
+    const usage: LlmUsageResponse = await LlmUsageReader.read(
+      this.buildUsageQuery(data),
     );
+    const spendInUSD: number = Number.isFinite(usage.totals.costUsd)
+      ? Math.max(0, usage.totals.costUsd)
+      : 0;
 
-    if (metricSpend > 0) {
-      return { spendInUSD: metricSpend, source: "metrics" };
+    if (spendInUSD <= 0) {
+      return { spendInUSD: 0, source: "none" };
     }
 
-    return { spendInUSD: 0, source: "none" };
-  }
-
-  /**
-   * Sum the day's llmCost for the budget's scope from ClickHouse.
-   */
-  @CaptureSpan()
-  private static async getSpanSpendInUSD(data: {
-    budget: LlmCostBudget;
-    dayStart: Date;
-    now: Date;
-  }): Promise<number> {
-    const aggregateBy: AggregateBy<Span> = {
-      query: this.buildSpanQuery(data),
-      aggregationType: AggregationType.Sum,
-      aggregateColumnName: "llmCost",
-      aggregationTimestampColumnName: "startTime",
-      startTimestamp: data.dayStart,
-      endTimestamp: data.now,
-      // One total over the whole window — no time bucketing.
-      aggregationInterval: AggregationInterval.Total,
-      /*
-       * The sum feeds monitors: fail loud on a query timeout — the default
-       * 'break' overflow mode returns silently-partial sums, which would
-       * understate spend and suppress a real budget breach downstream.
-       */
-      timeoutOverflowMode: "throw",
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
+    return {
+      spendInUSD: spendInUSD,
+      source: SPEND_SOURCES[usage.totals.costSource] || "none",
     };
-
-    const result: AggregatedResult = await SpanService.aggregateBy(aggregateBy);
-
-    return (result.data || []).reduce(
-      (acc: number, row: AggregatedModel): number => {
-        return acc + Number(row.value || 0);
-      },
-      0,
-    );
   }
 
   /**

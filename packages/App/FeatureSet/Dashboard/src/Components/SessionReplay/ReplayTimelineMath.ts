@@ -42,6 +42,12 @@ export interface ReplayTimelineChunkInput {
   errorClickCount: number;
   refreshRageCount: number;
   routeCount: number;
+  /*
+   * The application's own signals (issue #6443): every hit, and the hits
+   * that counted as frustration. Absent from an older server: none drawn.
+   */
+  customSignalCount?: number | undefined;
+  customSignalFrustrationCount?: number | undefined;
 }
 
 /* A playback-affecting fidelity notice pinned to a moment (finding 15). */
@@ -427,9 +433,10 @@ function markerTitle(signal: ReplaySignal): string {
 
 /*
  * Lane assignment per kind and severity. Anything not listed (console
- * rows, plain interactions, custom events, performance rows) stays off
- * the timeline: the lanes answer "where did it go wrong", the rail
- * answers "what happened".
+ * rows, plain interactions, the page's own track() events, performance
+ * rows) stays off the timeline: the lanes answer "where did it go wrong",
+ * the rail answers "what happened". The application's own signals are the
+ * exception among custom rows - the customer named them to be found.
  */
 export function assignMarkerLane(
   signal: ReplaySignal,
@@ -492,6 +499,15 @@ export function assignMarkerLane(
       return { lane: "navigation", tone: "sky" };
     case "frustration":
       return { lane: "navigation", tone: "amber" };
+    case "custom":
+      /*
+       * One of the application's own signals that only marks the moment
+       * (issue #6443): a grey tick beside the clicks, where a frustrating
+       * one is amber. The page's own track() events stay off the timeline.
+       */
+      return signal.detail["customSignalTrigger"]
+        ? { lane: "navigation", tone: "gray" }
+        : null;
     default:
       return null;
   }
@@ -553,6 +569,11 @@ export function describeFrustrationCounters(
   push(chunk.deadClickCount, "dead click", "dead clicks");
   push(chunk.errorClickCount, "error click", "error clicks");
   push(chunk.refreshRageCount, "refresh rage", "refresh rages");
+  push(
+    chunk.customSignalFrustrationCount ?? 0,
+    "signal of your own",
+    "signals of your own",
+  );
 
   return parts.length > 0 ? parts.join(" · ") : null;
 }
@@ -626,6 +647,39 @@ export function buildCoarseMarkers(
         severity: "warn",
         title: coarseTitle(chunk, midpointMs, frustration),
         tone: "amber",
+        fidelity: "coarse",
+        isHollow: true,
+        chunkIndex: chunk.chunkIndex,
+      });
+    }
+
+    /*
+     * The application's own signals that only mark the moment (issue
+     * #6443): the frustrating ones are already in the amber marker above.
+     */
+    const markerSignalCount: number = Math.max(
+      0,
+      (chunk.customSignalCount ?? 0) -
+        (chunk.customSignalFrustrationCount ?? 0),
+    );
+
+    if (markerSignalCount > 0) {
+      markers.push({
+        id: `coarse:signals:${chunk.chunkIndex}`,
+        lane: "navigation",
+        offsetMs: midpointMs,
+        kind: "custom",
+        severity: "info",
+        title: coarseTitle(
+          chunk,
+          midpointMs,
+          `${markerSignalCount} ${
+            markerSignalCount === 1
+              ? "signal of your own"
+              : "signals of your own"
+          }`,
+        ),
+        tone: "gray",
         fidelity: "coarse",
         isHollow: true,
         chunkIndex: chunk.chunkIndex,

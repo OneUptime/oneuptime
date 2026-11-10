@@ -182,8 +182,11 @@ export async function processIncomingRequestFromQueue(
    * store. It is still reachable: a relay or ingress that reflects the request
    * target (`X-Original-URI`, `X-Forwarded-Uri`, `Referer`) puts the path into
    * `requestHeaders`, and a sender is free to repeat its own key in the body.
-   * Either way it would land in `Monitor.incomingMonitorRequest`, which -- like
-   * its email sibling -- is `Permission.Viewer` readable.
+   * Either way it would land in the monitor's latest request: in the copy
+   * people read (`Monitor.incomingMonitorRequest`, which -- like its email
+   * sibling -- is `Permission.Viewer` readable, and whose redaction knows
+   * nothing of this key), in its logs, and in the request as it came, which
+   * the heartbeat judges (LatestIncomingRequest).
    *
    * Sweeping the payload for this monitor's own key costs one pass over data we
    * are about to persist anyway and makes the invariant uniform: nothing a

@@ -36,6 +36,11 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "../../../../Types/BaseDatabase/AggregationIntervalUtil";
+import {
+  CloudResourceMetricReadAggregation,
+  chooseCloudResourceMetricAggregation,
+} from "./CloudResourceMetricAggregation";
 import {
   METRIC_ATTRIBUTE_SCHEMA_PROPERTIES,
   MetricReadPlan,
@@ -163,7 +168,8 @@ export const QueryMetricsTool: ObservabilityTool = {
           "P95",
           "P99",
         ],
-        description: "How to aggregate (default Avg).",
+        description:
+          "How to aggregate. Default Avg - or Sum where attributes name a cloud resource whose metric adds up across its parts (a Service Bus or Event Hubs namespace's queues, by azuremonitor.resource_id), its own total.",
       },
       entityId: {
         type: "string",
@@ -196,16 +202,19 @@ export const QueryMetricsTool: ObservabilityTool = {
       maxDays: 30,
     });
 
-    const aggregationTypeString: string =
-      ToolArgs.getString(args, "aggregationType") || "Avg";
+    const requestedAggregation: string | undefined = ToolArgs.getString(
+      args,
+      "aggregationType",
+    );
 
     if (
+      requestedAggregation &&
       !Object.values(AggregationType).includes(
-        aggregationTypeString as AggregationType,
+        requestedAggregation as AggregationType,
       )
     ) {
       throw new BadDataException(
-        `Invalid aggregationType: ${aggregationTypeString}`,
+        `Invalid aggregationType: ${requestedAggregation}`,
       );
     }
 
@@ -216,6 +225,29 @@ export const QueryMetricsTool: ObservabilityTool = {
       attributeFilter,
       groupBy: readGroupBy(args),
     });
+
+    /*
+     * The aggregation, where the model names none: the average, or the Sum
+     * a cloud resource's own number is where its metric arrives once per
+     * part of it (a Service Bus namespace's, once per queue), as its Metrics
+     * tab reads it - at the intervals this read is made in: a grouped
+     * read's trend buckets, or the ones the aggregate API picks for the
+     * window.
+     */
+    const resourceAggregation: CloudResourceMetricReadAggregation =
+      chooseCloudResourceMetricAggregation({
+        requested: requestedAggregation as AggregationType | undefined,
+        metricName,
+        attributes: attributeFilter,
+        aggregationInterval:
+          plan.groupBy.length > 0
+            ? chooseTrendInterval(startTime, endTime)
+            : AggregationIntervalUtil.getAggregationIntervalForWindow({
+                startDate: startTime,
+                endDate: endTime,
+              }),
+      });
+    const aggregationTypeString: string = resourceAggregation.aggregationType;
 
     /*
      * The time filter must be part of the query's WHERE clause. aggregateBy's
@@ -244,7 +276,12 @@ export const QueryMetricsTool: ObservabilityTool = {
       query["primaryEntityId"] = entityId;
     }
 
-    const planNote: string = describeMetricReadPlan(plan);
+    const planNote: string = [
+      describeMetricReadPlan(plan),
+      resourceAggregation.explanation,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     if (plan.groupBy.length > 0) {
       return await readGroupedQueryMetrics({

@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import {
@@ -27,6 +28,15 @@ import {
  * state shows it), and repeating its header's "Create X" button (same label,
  * handler and permission gate), drawn the way the header's is rather than as
  * a filled indigo one.
+ *
+ * A product's own list (Monitors, Incidents, Status Pages, On-Call Policies,
+ * Workflows, Dashboards, Runbooks) explains the product under that empty
+ * state while the project has none (Components/ProductOnboarding), and the
+ * explanation's button is the list's Create: the empty state leaves its own
+ * to it, unless the explanation has none to offer - a read-only member
+ * reads it without one, and the empty state keeps its locked button and
+ * the note that says why. A project that has had one (an archived one
+ * counts) gets the empty state's own button.
  *
  * The "slices" of a list - active incidents, monitors that are not
  * operational - are all clear when empty: a green check, the good news, and
@@ -86,6 +96,12 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
+/*
+ * What ModelAPI.count answers: a new project's zero, unless a test says the
+ * project has had some.
+ */
+let mockCount: number = 0;
+
 // An empty project: every list is empty, every count is zero.
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -103,7 +119,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         return null;
       },
       count: async (): Promise<number> => {
-        return 0;
+        return mockCount;
       },
       deleteItem: async (): Promise<void> => {
         return undefined;
@@ -176,6 +192,12 @@ interface CoreList {
   createLabel: string;
   // What the header shows today, which the empty state must repeat exactly.
   oldFoundSentence: string;
+  /*
+   * The product that explains itself under the list while the project has
+   * none, as its showcase names it (ProductKey): none for a list that is
+   * not a product's first page.
+   */
+  product?: string | undefined;
 }
 
 const CORE_LISTS: Array<CoreList> = [
@@ -187,6 +209,7 @@ const CORE_LISTS: Array<CoreList> = [
     emptySentence: "No monitors yet.",
     createLabel: "Create Monitor",
     oldFoundSentence: "No monitors found.",
+    product: "monitors",
   },
   {
     name: "Incidents",
@@ -196,6 +219,7 @@ const CORE_LISTS: Array<CoreList> = [
     emptySentence: "No incidents yet.",
     createLabel: "Declare Incident",
     oldFoundSentence: "No incidents found.",
+    product: "incidents",
   },
   {
     name: "Status Pages",
@@ -205,6 +229,7 @@ const CORE_LISTS: Array<CoreList> = [
     emptySentence: "No status pages yet.",
     createLabel: "Create Status Page",
     oldFoundSentence: "No status pages found.",
+    product: "status-pages",
   },
   {
     name: "On-Call Policies",
@@ -214,6 +239,7 @@ const CORE_LISTS: Array<CoreList> = [
     emptySentence: "No on-call duty policies yet.",
     createLabel: "Create On-Call Policy",
     oldFoundSentence: "No on-call policy found.",
+    product: "on-call",
   },
   {
     name: "On-Call Schedules",
@@ -232,6 +258,7 @@ const CORE_LISTS: Array<CoreList> = [
     emptySentence: "No workflows yet.",
     createLabel: "Create Workflow",
     oldFoundSentence: "No workflows found.",
+    product: "workflows",
   },
   {
     name: "Dashboards",
@@ -241,6 +268,7 @@ const CORE_LISTS: Array<CoreList> = [
     emptySentence: "No dashboards yet.",
     createLabel: "Create Dashboard",
     oldFoundSentence: "No dashboards found.",
+    product: "dashboards",
   },
   {
     name: "Runbooks",
@@ -250,11 +278,44 @@ const CORE_LISTS: Array<CoreList> = [
     emptySentence: "No runbooks yet.",
     createLabel: "Create Runbook",
     oldFoundSentence: "No runbooks created yet.",
+    product: "runbooks",
   },
 ];
 
 function emptyStateButton(): HTMLElement | null {
   return screen.queryByTestId("empty-table-create-button");
+}
+
+// The product's explanation under the list, while the project has none.
+function showcase(): HTMLElement | null {
+  return screen.queryByTestId("product-showcase");
+}
+
+// The explanation's button: the list's Create, under the empty state.
+function showcaseButton(): HTMLElement | null {
+  const drawn: HTMLElement | null = showcase();
+
+  return drawn
+    ? within(drawn).queryByTestId("resource-showcase-add-button")
+    : null;
+}
+
+/*
+ * The button a new project is offered first: the explanation's on a
+ * product's own list, the empty state's on any other.
+ */
+async function firstButton(list: CoreList): Promise<HTMLElement> {
+  return await waitFor((): HTMLElement => {
+    const button: HTMLElement | null = list.product
+      ? showcaseButton()
+      : emptyStateButton();
+
+    if (!button) {
+      throw new Error(`No ${list.createLabel} button yet`);
+    }
+
+    return button;
+  });
 }
 
 // The sentence is drawn as the empty state's title: a heading, no stop.
@@ -271,6 +332,7 @@ beforeEach(() => {
   isMasterAdminForTest = false;
   permissionsForTest = [Permission.ProjectAdmin];
   navigateCalls = [];
+  mockCount = 0;
   PermissionGate.clearPermissionPropsCache();
   window.history.replaceState(
     window.history.state,
@@ -314,6 +376,7 @@ describe.each(CORE_LISTS)("$name, empty", (list: CoreList) => {
 
   test("says what the list is for, once, in the empty state", async () => {
     await renderEmpty(list);
+    await firstButton(list);
 
     const description: HTMLElement = screen.getByTestId(
       "table-empty-state-description",
@@ -322,9 +385,66 @@ describe.each(CORE_LISTS)("$name, empty", (list: CoreList) => {
     expect((description.textContent || "").trim().length).toBeGreaterThan(20);
     // Not said twice: the card's header leaves it out while the state shows it.
     expect(screen.queryByTestId("card-description")).toBeNull();
+    // ...and the explanation under it, if any, does not say it again.
+    expect(screen.queryByTestId("resource-showcase-description")).toBeNull();
   });
 
-  test("offers the header's create action, as a plain button", async () => {
+  test("offers the header's create action once: under the empty state, or in it", async () => {
+    await renderEmpty(list);
+
+    const button: HTMLElement = await firstButton(list);
+
+    expect(button).toHaveTextContent(list.createLabel);
+    expect(button).not.toBeDisabled();
+
+    if (list.product) {
+      // The product explains itself, and its button is the list's Create.
+      expect(showcase()).toHaveAttribute("data-product", list.product);
+      expect(emptyStateButton()).toBeNull();
+    } else {
+      // Drawn the way the header's is, not as a filled indigo one.
+      expect(button.className).not.toContain("bg-indigo");
+      expect(button.className).toContain("bg-white");
+      expect(showcase()).toBeNull();
+    }
+  });
+
+  test("the empty state has no Refresh? link", async () => {
+    await renderEmpty(list);
+    await firstButton(list);
+
+    expect(screen.queryByTestId("refresh-button")).toBeNull();
+    expect(screen.queryByText("Refresh?")).toBeNull();
+  });
+
+  test("the button sits with the sentence, or under it in the explanation, below the table", async () => {
+    await renderEmpty(list);
+    const button: HTMLElement = await firstButton(list);
+
+    const sentence: HTMLElement = screen.getByText(titleOf(list));
+    const block: HTMLElement | null = sentence.closest(
+      '[data-testid$="-no-items"]',
+    );
+    expect(block).not.toBeNull();
+    // Not inside a table row that spans every column.
+    expect(block!.closest("table")).toBeNull();
+
+    if (list.product) {
+      // After the sentence, outside the table.
+      expect(block!.contains(button)).toBe(false);
+      expect(
+        block!.compareDocumentPosition(showcase()!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(showcase()!.closest("table")).toBeNull();
+    } else {
+      expect(block!.contains(button)).toBe(true);
+    }
+  });
+
+  test("a project that has had one: the empty state's own Create, as a plain button, and no explanation", async () => {
+    // Archived ones, or ones another filter hides.
+    mockCount = 3;
     await renderEmpty(list);
 
     await waitFor(() => {
@@ -334,43 +454,15 @@ describe.each(CORE_LISTS)("$name, empty", (list: CoreList) => {
     expect(emptyStateButton()).not.toBeDisabled();
     expect(emptyStateButton()?.className).not.toContain("bg-indigo");
     expect(emptyStateButton()?.className).toContain("bg-white");
-  });
-
-  test("the empty state has no Refresh? link", async () => {
-    await renderEmpty(list);
-    await waitFor(() => {
-      expect(emptyStateButton()).not.toBeNull();
-    });
-
-    expect(screen.queryByTestId("refresh-button")).toBeNull();
-    expect(screen.queryByText("Refresh?")).toBeNull();
-  });
-
-  test("the button sits with the sentence, below the table", async () => {
-    await renderEmpty(list);
-    await waitFor(() => {
-      expect(emptyStateButton()).not.toBeNull();
-    });
-
-    const sentence: HTMLElement = screen.getByText(titleOf(list));
-    const block: HTMLElement | null = sentence.closest(
-      '[data-testid$="-no-items"]',
-    );
-    expect(block).not.toBeNull();
-    expect(block!.contains(emptyStateButton()!)).toBe(true);
-    // Not inside a table row that spans every column.
-    expect(block!.closest("table")).toBeNull();
+    expect(showcase()).toBeNull();
   });
 });
 
-describe("where the empty-state buttons lead", () => {
+describe("where a new project's first buttons lead", () => {
   test("Create Monitor opens the monitor create page", async () => {
     await renderEmpty(CORE_LISTS[0]!);
-    await waitFor(() => {
-      expect(emptyStateButton()).not.toBeNull();
-    });
 
-    fireEvent.click(emptyStateButton()!);
+    fireEvent.click(await firstButton(CORE_LISTS[0]!));
 
     expect(navigateCalls).toEqual([
       (RouteMap[PageMap.MONITOR_CREATE] as Route)
@@ -381,11 +473,8 @@ describe("where the empty-state buttons lead", () => {
 
   test("Declare Incident opens the incident create page", async () => {
     await renderEmpty(CORE_LISTS[1]!);
-    await waitFor(() => {
-      expect(emptyStateButton()).not.toBeNull();
-    });
 
-    fireEvent.click(emptyStateButton()!);
+    fireEvent.click(await firstButton(CORE_LISTS[1]!));
 
     expect(navigateCalls).toEqual([
       (RouteMap[PageMap.INCIDENT_CREATE] as Route)
@@ -396,12 +485,10 @@ describe("where the empty-state buttons lead", () => {
 
   test("Create Status Page opens the same create form as the header's button", async () => {
     await renderEmpty(CORE_LISTS[2]!);
-    await waitFor(() => {
-      expect(emptyStateButton()).not.toBeNull();
-    });
+    const button: HTMLElement = await firstButton(CORE_LISTS[2]!);
     expect(screen.queryByRole("dialog")).toBeNull();
 
-    fireEvent.click(emptyStateButton()!);
+    fireEvent.click(button);
 
     const dialog: HTMLElement = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Create Status Page");
@@ -410,11 +497,8 @@ describe("where the empty-state buttons lead", () => {
 
   test("Create On-Call Schedule opens its create form", async () => {
     await renderEmpty(CORE_LISTS[4]!);
-    await waitFor(() => {
-      expect(emptyStateButton()).not.toBeNull();
-    });
 
-    fireEvent.click(emptyStateButton()!);
+    fireEvent.click(await firstButton(CORE_LISTS[4]!));
 
     const dialog: HTMLElement = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Create On-Call Schedule");
@@ -433,6 +517,22 @@ describe("the empty-state button is gated like the header's", () => {
     expect(emptyStateButton()).toBeDisabled();
     fireEvent.click(emptyStateButton()!);
     expect(navigateCalls).toEqual([]);
+  });
+
+  test("a viewer still reads what Monitors does, under the locked button, with no button of its own", async () => {
+    permissionsForTest = [Permission.Viewer];
+    await renderEmpty(CORE_LISTS[0]!);
+
+    const explanation: HTMLElement = await screen.findByTestId(
+      "product-showcase",
+      {},
+      { timeout: 10000 },
+    );
+    expect(explanation).toHaveAttribute("data-product", "monitors");
+    expect(
+      within(explanation).queryByTestId("resource-showcase-add-button"),
+    ).toBeNull();
+    expect(emptyStateButton()).toBeDisabled();
   });
 
   test("a viewer is told why, in words a phone can show", async () => {

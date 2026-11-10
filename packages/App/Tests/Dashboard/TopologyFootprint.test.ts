@@ -21,11 +21,17 @@ import {
   ENDPOINT_NODE_HALF_WIDTH,
   LABEL_MAX_HALF_WIDTH,
   NODE_COLLISION_PADDING,
+  DEVICE_SECONDARY_LABEL_MAX_CHARS,
+  ENDPOINT_SECONDARY_LABEL_MAX_CHARS,
   TopologyNodeFootprint,
   buildFootprints,
+  fitLabelLine,
   footprintForNode,
   footprintOrDefault,
+  hasSecondaryLabelLine,
   labelLinesForNode,
+  labelNameLinesForNode,
+  labelSecondaryLineForNode,
   wrapNodeLabel,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyFootprint";
 
@@ -921,5 +927,163 @@ describe("footprintForNode — role-driven silhouettes", () => {
     expect(endpoint.halfWidth).toBe(ENDPOINT_NODE_HALF_WIDTH);
     expect(endpoint.halfHeight).toBe(ENDPOINT_NODE_HALF_HEIGHT);
     expect(endpoint.labelBaselineOffset).toBe(ENDPOINT_LABEL_BASELINE_OFFSET);
+  });
+});
+
+/*
+ * The line under a name (issue #5775): a node's IP beside its name, an
+ * unnamed discovered device's maker under the address it is labelled by,
+ * and an address never split over two lines.
+ */
+describe("the line under a node's name", () => {
+  test("a named endpoint has its address on the line under its name", () => {
+    const endpoint: NetworkTopologyNode = makeEndpoint("endpoint:reg", {
+      name: "Front register",
+      ipAddress: "10.240.0.21",
+      vendor: "Verifone",
+    });
+
+    expect(labelSecondaryLineForNode(endpoint)).toBe("10.240.0.21");
+    expect(labelLinesForNode(endpoint)).toEqual([
+      "Front",
+      "register",
+      "10.240.0.21",
+    ]);
+    expect(hasSecondaryLabelLine(endpoint)).toBe(true);
+  });
+
+  test("an endpoint nothing named is labelled by its address, whole, with its maker under it", () => {
+    const endpoint: NetworkTopologyNode = makeEndpoint("endpoint:anon", {
+      name: "10.240.100.200",
+      ipAddress: "10.240.100.200",
+      vendor: "Verifone",
+    });
+
+    // Fourteen characters, past the endpoint's eleven: still one line.
+    expect(labelLinesForNode(endpoint)).toEqual(["10.240.100.200", "Verifone"]);
+    expect(labelNameLinesForNode(endpoint)).toEqual(["10.240.100.200"]);
+  });
+
+  test("an endpoint known only by its MAC has its maker under it", () => {
+    const endpoint: NetworkTopologyNode = makeEndpoint("endpoint:mac", {
+      name: "aa:bb:cc:dd:ee:01",
+      macAddress: "aa:bb:cc:dd:ee:01",
+      vendor: "Zebra",
+    });
+
+    expect(labelSecondaryLineForNode(endpoint)).toBe("Zebra");
+  });
+
+  test("a managed device has the address it is polled at under its name", () => {
+    const device: NetworkTopologyNode = makeDevice("core-1", {
+      name: "core-switch-01",
+      ipAddress: "10.0.0.1",
+      vendor: "Cisco",
+    });
+
+    expect(labelLinesForNode(device)).toEqual(["core-switch-01", "10.0.0.1"]);
+  });
+
+  test("a device's maker is never the line under its name", () => {
+    const device: NetworkTopologyNode = makeDevice("core-1", {
+      name: "core-switch-01",
+      vendor: "Cisco",
+    });
+
+    expect(labelSecondaryLineForNode(device)).toBe("");
+    expect(labelLinesForNode(device)).toEqual(["core-switch-01"]);
+    expect(hasSecondaryLabelLine(device)).toBe(false);
+  });
+
+  test("an unmanaged peer has its advertised address under its name", () => {
+    const peer: NetworkTopologyNode = makeUnmanaged("unmanaged:ap", {
+      name: "lobby-ap",
+      ipAddress: "10.0.0.40",
+    });
+
+    expect(labelLinesForNode(peer)).toEqual(["lobby-ap", "10.0.0.40"]);
+  });
+
+  test("an address is never repeated under itself, and a name that is one is not split", () => {
+    const device: NetworkTopologyNode = makeDevice("d", {
+      name: "10.250.250.250",
+      ipAddress: "10.250.250.250",
+    });
+
+    expect(labelLinesForNode(device)).toEqual(["10.250.250.250"]);
+    expect(hasSecondaryLabelLine(device)).toBe(false);
+  });
+
+  test("something that is not an address is not drawn as one", () => {
+    const endpoint: NetworkTopologyNode = makeEndpoint("endpoint:x", {
+      name: "Front register",
+      ipAddress: "not an address",
+    });
+
+    expect(labelSecondaryLineForNode(endpoint)).toBe("");
+  });
+
+  test("a long IPv6 address keeps both ends and loses its middle", () => {
+    const address: string = "2001:db8:85a3:0:0:8a2e:370:7334";
+    const device: NetworkTopologyNode = makeDevice("v6", {
+      name: "core-v6",
+      ipAddress: address,
+    });
+    const line: string = labelSecondaryLineForNode(device);
+
+    expect(line.length).toBe(DEVICE_SECONDARY_LABEL_MAX_CHARS);
+    expect(line.startsWith("2001:db8")).toBe(true);
+    expect(line.endsWith("7334")).toBe(true);
+    expect(line).toContain("…");
+  });
+
+  test("a long maker keeps its start, cut to the width of an endpoint's name", () => {
+    const endpoint: NetworkTopologyNode = makeEndpoint("endpoint:v", {
+      name: "aa:bb:cc:dd:ee:02",
+      vendor: "Hewlett Packard Enterprise",
+    });
+    const line: string = labelSecondaryLineForNode(endpoint);
+
+    /*
+     * A hint, not a name: the fifteen characters an address takes would
+     * space the whole map out for "Seiko Epson Corporation".
+     */
+    expect(line).toBe("Hewlett Pa…");
+    expect(line.length).toBe(ENDPOINT_LABEL_MAX_CHARS);
+    expect(line.length).toBeLessThan(ENDPOINT_SECONDARY_LABEL_MAX_CHARS);
+  });
+
+  test("an endpoint's address still takes the whole line under its name", () => {
+    const endpoint: NetworkTopologyNode = makeEndpoint("endpoint:w", {
+      name: "Front register",
+      ipAddress: "192.168.100.254",
+      vendor: "Hewlett Packard Enterprise",
+    });
+
+    expect(labelSecondaryLineForNode(endpoint)).toBe("192.168.100.254");
+  });
+
+  test("the line under a name is reserved by the footprint, one line height lower", () => {
+    const named: TopologyNodeFootprint = footprintForNode(
+      makeEndpoint("endpoint:a", { name: "pos-1" }),
+    );
+    const withAddress: TopologyNodeFootprint = footprintForNode(
+      makeEndpoint("endpoint:a", { name: "pos-1", ipAddress: "10.0.0.11" }),
+    );
+
+    expect(withAddress.labelBottom - named.labelBottom).toBe(
+      ENDPOINT_LABEL_LINE_HEIGHT,
+    );
+    // Nine characters of address claim more width than "pos-1".
+    expect(withAddress.labelHalfWidth).toBeGreaterThan(named.labelHalfWidth);
+    expect(withAddress.labelHalfWidth).toBeLessThanOrEqual(
+      LABEL_MAX_HALF_WIDTH,
+    );
+  });
+
+  test("fitLabelLine leaves text that fits alone", () => {
+    expect(fitLabelLine("10.0.0.1", 15, true)).toBe("10.0.0.1");
+    expect(fitLabelLine("  Zebra  ", 15)).toBe("Zebra");
+    expect(fitLabelLine("", 15)).toBe("");
   });
 });

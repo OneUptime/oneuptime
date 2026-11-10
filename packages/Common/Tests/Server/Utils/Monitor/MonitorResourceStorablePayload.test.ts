@@ -21,7 +21,8 @@
  *
  *   - every jsonb copy monitorResource writes is one Postgres accepts:
  *     MonitorProbe.lastMonitoringLog, Monitor.serverMonitorResponse,
- *     Monitor.incomingMonitorRequest and the revert-to-default
+ *     both copies of an incoming request (Monitor.incomingMonitorRequest
+ *     and incomingMonitorRequestAsReceived) and the revert-to-default
  *     MonitorStatusTimeline.statusChangeLog;
  *   - the result is still evaluated, against the payload exactly as it
  *     arrived. Only the stored copy changes, so a criteria that looks at the
@@ -110,6 +111,7 @@ jest.mock("../../../../Server/Utils/Logger", () => {
 
 import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResource";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import MonitorLogUtil from "../../../../Server/Utils/Monitor/MonitorLogUtil";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorService from "../../../../Server/Services/MonitorService";
@@ -160,6 +162,9 @@ const updateMonitorProbeColumnsMock: jest.Mock =
   MonitorProbeService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
 
 const lockMock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
+
+const saveMonitorLogMock: jest.Mock =
+  MonitorLogUtil.saveMonitorLog as unknown as jest.Mock;
 
 /*
  * The first bytes of a ZIP archive, as a probe decodes them: what a Website
@@ -723,7 +728,7 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
       findMonitorMock.mockResolvedValue(monitor);
     });
 
-    test("stores Monitor.incomingMonitorRequest with U+FFFD for each NUL", async () => {
+    test("stores the request as it came (Monitor.incomingMonitorRequestAsReceived) with U+FFFD for each NUL", async () => {
       await expect(
         MonitorResourceUtil.monitorResource(
           makeRequest(monitor, "binary\u0000payload"),
@@ -731,7 +736,7 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
       ).resolves.toBeDefined();
 
       const stored: IncomingMonitorRequest = storedMonitorColumn(
-        "incomingMonitorRequest",
+        "incomingMonitorRequestAsReceived",
       ) as IncomingMonitorRequest;
 
       expect(stored.requestBody).toBe("binary\uFFFDpayload");
@@ -742,20 +747,60 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
       expect(jsonbWouldRefuse(stored)).toBe(false);
     });
 
-    test("a JSON body has NUL replaced in its keys and values", async () => {
+    test("stores the copy people read (Monitor.incomingMonitorRequest) with U+FFFD for each NUL", async () => {
       await MonitorResourceUtil.monitorResource(
-        makeRequest(monitor, {
-          alerts: [{ ["label\u0000"]: "value\u0000" }],
-        }),
+        makeRequest(monitor, "binary\u0000payload"),
       );
 
       const stored: IncomingMonitorRequest = storedMonitorColumn(
         "incomingMonitorRequest",
       ) as IncomingMonitorRequest;
 
-      expect(stored.requestBody).toEqual({
-        alerts: [{ ["label\uFFFD"]: "value\uFFFD" }],
-      });
+      expect(stored.requestBody).toBe("binary\uFFFDpayload");
+      expect(stored.requestHeaders!["content-type"]).toBe(
+        "application/octet-stream",
+      );
+      expect(jsonbWouldRefuse(stored)).toBe(false);
+    });
+
+    test("a JSON body has NUL replaced in its keys and values, in both copies", async () => {
+      await MonitorResourceUtil.monitorResource(
+        makeRequest(monitor, {
+          alerts: [{ ["label\u0000"]: "value\u0000" }],
+        }),
+      );
+
+      for (const column of [
+        "incomingMonitorRequest",
+        "incomingMonitorRequestAsReceived",
+      ]) {
+        const stored: IncomingMonitorRequest = storedMonitorColumn(
+          column,
+        ) as IncomingMonitorRequest;
+
+        expect(stored.requestBody).toEqual({
+          alerts: [{ ["label\uFFFD"]: "value\uFFFD" }],
+        });
+      }
+    });
+
+    test("both copies are written in the one statement that stamps the heartbeat", async () => {
+      await MonitorResourceUtil.monitorResource(
+        makeRequest(monitor, "binary\u0000payload"),
+      );
+
+      expect(updateMonitorColumnsMock).toHaveBeenCalledTimes(1);
+
+      const write: ColumnsWrite = updateMonitorColumnsMock.mock
+        .calls[0]![0] as ColumnsWrite;
+
+      expect(Object.keys(write.data).sort()).toEqual(
+        [
+          "incomingMonitorRequest",
+          "incomingMonitorRequestAsReceived",
+          "incomingRequestMonitorHeartbeatCheckedAt",
+        ].sort(),
+      );
     });
 
     test("evaluates the request exactly as it arrived", async () => {
@@ -867,6 +912,339 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
       expect(createdTimelines[0]!.monitorStatusId?.toString()).toBe(
         monitor.monitorSteps!.data!.defaultMonitorStatusId!.toString(),
       );
+    });
+
+    // Cut as the monitor's logs are (#6341).
+    test("the log of the revert keeps no body and no headers of a monitor that keeps no response content", async () => {
+      monitor.keepResponseContent = false;
+
+      await MonitorResourceUtil.monitorResource(
+        makeProbeResult({
+          monitor,
+          probeId,
+          monitorStepId: step.id,
+          responseBody: { owner: "jane@acme.example" },
+          responseHeaders: { authorization: "Bearer live-token" },
+        }),
+      );
+
+      const statusChangeLog: JSONObject = createdTimelines[0]!.statusChangeLog!;
+
+      expect(statusChangeLog["responseBody"]).toBeUndefined();
+      expect(statusChangeLog["responseHeaders"]).toBeUndefined();
+      expect(statusChangeLog["isResponseContentOmitted"]).toBe(true);
+      expect(statusChangeLog["responseCode"]).toBe(200);
+    });
+
+    test("the log of the revert masks a credential header and the body's personal data", async () => {
+      await MonitorResourceUtil.monitorResource(
+        makeProbeResult({
+          monitor,
+          probeId,
+          monitorStepId: step.id,
+          responseBody: { owner: "jane@acme.example", status: "ok" },
+          responseHeaders: {
+            authorization: "Bearer live-token",
+            "content-type": "application/json",
+          },
+        }),
+      );
+
+      const statusChangeLog: JSONObject = createdTimelines[0]!.statusChangeLog!;
+
+      expect(statusChangeLog["responseBody"]).toEqual({
+        owner: "[REDACTED]",
+        status: "ok",
+      });
+      expect(statusChangeLog["responseHeaders"]).toEqual({
+        authorization: "[REDACTED]",
+        "content-type": "application/json",
+      });
+    });
+  });
+
+  /*
+   * WHICH COPIES OF A CHECK MONITORRESOURCE CUTS, AND WHICH IT KEEPS AS THEY
+   * CAME (#6341). The rules themselves are pinned on every copy in
+   * MonitorCheckCopiesRedaction.test.ts.
+   */
+  describe("the copies of a check, cut or kept as they came", () => {
+    let step: MonitorStep;
+    let monitor: Monitor;
+    let probeId: ObjectID;
+
+    beforeEach(() => {
+      step = makeStep();
+      monitor = makeMonitor({ monitorType: MonitorType.API, step: step });
+      probeId = ObjectID.generate();
+
+      const monitorProbe: MonitorProbe = new MonitorProbe();
+      monitorProbe.id = ObjectID.generate();
+      monitorProbe.probeId = probeId;
+      monitorProbe.isEnabled = true;
+
+      findMonitorProbesMock.mockResolvedValue([monitorProbe]);
+    });
+
+    test("the monitor's log row is saved by the monitor's switch, with the step the check ran", async () => {
+      monitor.keepResponseContent = false;
+      findMonitorMock.mockResolvedValue(monitor);
+
+      const result: ProbeMonitorResponse = makeProbeResult({
+        monitor,
+        probeId,
+        monitorStepId: step.id,
+        responseBody: { status: "down" },
+      });
+
+      await MonitorResourceUtil.monitorResource(result);
+
+      expect(saveMonitorLogMock).toHaveBeenCalledTimes(1);
+
+      const saved: {
+        dataToProcess: DataToProcess;
+        keepResponseContent: boolean;
+        monitorStep?: MonitorStep | undefined;
+      } = saveMonitorLogMock.mock.calls[0]![0] as {
+        dataToProcess: DataToProcess;
+        keepResponseContent: boolean;
+        monitorStep?: MonitorStep | undefined;
+      };
+
+      expect(saved.keepResponseContent).toBe(false);
+      expect(saved.monitorStep).toBe(step);
+      // The row is cut from the check MonitorLogUtil is handed, never the live one.
+      expect(saved.dataToProcess).toBe(result);
+    });
+
+    test("a monitor read without the switch keeps its response content, as every monitor did", async () => {
+      findMonitorMock.mockResolvedValue(monitor);
+
+      await MonitorResourceUtil.monitorResource(
+        makeProbeResult({
+          monitor,
+          probeId,
+          monitorStepId: step.id,
+          responseBody: { status: "down" },
+        }),
+      );
+
+      expect(
+        (
+          saveMonitorLogMock.mock.calls[0]![0] as {
+            keepResponseContent: boolean;
+          }
+        ).keepResponseContent,
+      ).toBe(true);
+    });
+
+    test("a probe's latest check is kept as the probe sent it: probe agreement judges it again", async () => {
+      monitor.keepResponseContent = false;
+      findMonitorMock.mockResolvedValue(monitor);
+
+      await MonitorResourceUtil.monitorResource(
+        makeProbeResult({
+          monitor,
+          probeId,
+          monitorStepId: step.id,
+          responseBody: { owner: "jane@acme.example" },
+          responseHeaders: { authorization: "Bearer live-token" },
+        }),
+      );
+
+      const stored: ProbeMonitorResponse = storedProbeLog()[
+        step.id.toString()
+      ] as ProbeMonitorResponse;
+
+      expect(stored.responseBody).toEqual({ owner: "jane@acme.example" });
+      expect(stored.responseHeaders).toEqual({
+        authorization: "Bearer live-token",
+      });
+    });
+
+    test("a server's report is stored cut as the monitor's logs are: nothing judges it again", async () => {
+      const serverMonitor: Monitor = makeMonitor({
+        monitorType: MonitorType.Server,
+        step: makeStep(),
+      });
+      findMonitorMock.mockResolvedValue(serverMonitor);
+
+      const report: ServerMonitorResponse = {
+        projectId: serverMonitor.projectId!,
+        monitorId: serverMonitor.id!,
+        hostname: "web-1",
+        requestReceivedAt: OneUptimeDate.getCurrentDate(),
+        onlyCheckRequestReceivedAt: false,
+        failureCause: "disk check as ops@acme.example failed",
+        processes: [
+          {
+            pid: 4242,
+            name: "java",
+            command:
+              "java -jar app.jar --spring.datasource.password=hunter2 --server.port=8080",
+          },
+        ],
+      };
+
+      await MonitorResourceUtil.monitorResource(report);
+
+      const stored: ServerMonitorResponse = storedMonitorColumn(
+        "serverMonitorResponse",
+      ) as ServerMonitorResponse;
+
+      expect(stored.processes![0]!.command).toBe(
+        "java -jar app.jar --spring.datasource.password=[REDACTED] --server.port=8080",
+      );
+      expect(stored.failureCause).toBe("disk check as [REDACTED] failed");
+      // What the online-status job reads back: the host and when it reported.
+      expect(stored.hostname).toBe("web-1");
+      expect(new Date(stored.requestReceivedAt as unknown as string)).toEqual(
+        report.requestReceivedAt,
+      );
+      // The agent's report is evaluated as it came.
+      expect(report.processes![0]!.command).toContain("hunter2");
+    });
+
+    type IncomingRequestFunction = (
+      requestMonitor: Monitor,
+    ) => IncomingMonitorRequest;
+
+    const incomingRequest: IncomingRequestFunction = (
+      requestMonitor: Monitor,
+    ): IncomingMonitorRequest => {
+      return {
+        projectId: requestMonitor.projectId!,
+        monitorId: requestMonitor.id!,
+        requestHeaders: {
+          authorization: "Bearer live-token",
+          "content-type": "application/json",
+        },
+        requestBody: { owner: "jane@acme.example", status: "ok" },
+        requestMethod: HTTPMethod.POST,
+        incomingRequestReceivedAt: OneUptimeDate.getCurrentDate(),
+        onlyCheckForIncomingRequestReceivedAt: false,
+        checkedAt: OneUptimeDate.getCurrentDate(),
+      } as IncomingMonitorRequest;
+    };
+
+    test("an incoming request is kept as it came for the heartbeat job alone: it judges it again", async () => {
+      const requestMonitor: Monitor = makeMonitor({
+        monitorType: MonitorType.IncomingRequest,
+        step: makeStep(),
+      });
+      requestMonitor.keepResponseContent = false;
+      findMonitorMock.mockResolvedValue(requestMonitor);
+
+      await MonitorResourceUtil.monitorResource(
+        incomingRequest(requestMonitor),
+      );
+
+      const stored: IncomingMonitorRequest = storedMonitorColumn(
+        "incomingMonitorRequestAsReceived",
+      ) as IncomingMonitorRequest;
+
+      expect(stored.requestHeaders).toEqual({
+        authorization: "Bearer live-token",
+        "content-type": "application/json",
+      });
+      expect(stored.requestBody).toEqual({
+        owner: "jane@acme.example",
+        status: "ok",
+      });
+      expect(stored.isResponseContentOmitted).toBeUndefined();
+    });
+
+    test("the copy people read of a monitor that keeps no request content has no headers and no body, and says so", async () => {
+      const requestMonitor: Monitor = makeMonitor({
+        monitorType: MonitorType.IncomingRequest,
+        step: makeStep(),
+      });
+      requestMonitor.keepResponseContent = false;
+      findMonitorMock.mockResolvedValue(requestMonitor);
+
+      await MonitorResourceUtil.monitorResource(
+        incomingRequest(requestMonitor),
+      );
+
+      const stored: IncomingMonitorRequest = storedMonitorColumn(
+        "incomingMonitorRequest",
+      ) as IncomingMonitorRequest;
+
+      expect(stored.requestHeaders).toBeUndefined();
+      expect(stored.requestBody).toBeUndefined();
+      expect(stored.isResponseContentOmitted).toBe(true);
+      expect(stored.requestMethod).toBe(HTTPMethod.POST);
+      expect(stored.incomingRequestReceivedAt).toBeDefined();
+    });
+
+    test("the copy people read of a monitor that keeps its request content is cut as its logs are", async () => {
+      const requestMonitor: Monitor = makeMonitor({
+        monitorType: MonitorType.IncomingRequest,
+        step: makeStep(),
+      });
+      requestMonitor.keepResponseContent = true;
+      findMonitorMock.mockResolvedValue(requestMonitor);
+
+      await MonitorResourceUtil.monitorResource(
+        incomingRequest(requestMonitor),
+      );
+
+      const stored: IncomingMonitorRequest = storedMonitorColumn(
+        "incomingMonitorRequest",
+      ) as IncomingMonitorRequest;
+
+      expect(stored.requestHeaders).toEqual({
+        authorization: "[REDACTED]",
+        "content-type": "application/json",
+      });
+      expect(stored.requestBody).toEqual({
+        owner: "[REDACTED]",
+        status: "ok",
+      });
+      expect(stored.isResponseContentOmitted).toBeUndefined();
+      expect(JSON.stringify(stored)).not.toContain("live-token");
+    });
+
+    test("the heartbeat's own run writes neither copy: it carries no new request", async () => {
+      const requestMonitor: Monitor = makeMonitor({
+        monitorType: MonitorType.IncomingRequest,
+        step: makeStep(),
+      });
+      findMonitorMock.mockResolvedValue(requestMonitor);
+
+      await MonitorResourceUtil.monitorResource({
+        ...incomingRequest(requestMonitor),
+        onlyCheckForIncomingRequestReceivedAt: true,
+      });
+
+      const columnsWritten: Array<string> = updateMonitorColumnsMock.mock.calls
+        .map((call: Array<unknown>): Array<string> => {
+          return Object.keys((call[0] as ColumnsWrite).data);
+        })
+        .flat();
+
+      expect(columnsWritten).not.toContain("incomingMonitorRequest");
+      expect(columnsWritten).not.toContain("incomingMonitorRequestAsReceived");
+    });
+
+    test("the request is evaluated as it came, whatever the switch", async () => {
+      const requestMonitor: Monitor = makeMonitor({
+        monitorType: MonitorType.IncomingRequest,
+        step: makeStep(),
+      });
+      requestMonitor.keepResponseContent = false;
+      findMonitorMock.mockResolvedValue(requestMonitor);
+
+      const request: IncomingMonitorRequest = incomingRequest(requestMonitor);
+
+      await MonitorResourceUtil.monitorResource(request);
+
+      expect(evaluatedPayload()).toBe(request);
+      expect(request.requestHeaders).toEqual({
+        authorization: "Bearer live-token",
+        "content-type": "application/json",
+      });
+      expect(request.isResponseContentOmitted).toBeUndefined();
     });
   });
 });

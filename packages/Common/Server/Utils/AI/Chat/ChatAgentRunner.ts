@@ -58,18 +58,22 @@ import {
 import { buildObservabilityChatSystemPrompt } from "./ObservabilityChatPrompt";
 import { ObservabilityAssistantExtraTool } from "./ObservabilityAssistant";
 import {
-  AgentWrapUpReason,
-  buildSkippedToolCallText,
-  buildWrapUpInstruction,
   compactAgentContext,
   CONTINUE_ANSWER_INSTRUCTION,
   joinAnswerContinuation,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
-import {
-  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
-  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
+  AIRunStopDecision,
+  AIRunStopReason,
 } from "../../../../Types/AI/AIAgentRunLimits";
+import LogSeverity from "../../../../Types/Log/LogSeverity";
+import AgentLoopDetector, {
+  AgentLoopToolCall,
+  AgentLoopVerdict,
+} from "../../../../Types/AI/AgentLoopDetector";
+import AIRunLimitsReader from "../AIRunLimitsReader";
 import User from "../../../../Models/DatabaseModels/User";
 import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -189,12 +193,12 @@ type PreparedActionWords = Pick<
 >;
 
 /*
- * Per-turn limits. A turn is not rationed: no wall clock, and step counts
- * that only guard against a runaway loop (AIAgentRunLimits). The model is
- * asked to answer once one is hit.
+ * A turn is not rationed: it makes as many calls as the question needs,
+ * held only to the project's limits per run - none by default - its time
+ * limit, which starts again when it resumes after an approval, and loop
+ * detection (Types/AI/AIAgentRunLimits, AgentLoopDetector). The model is
+ * asked to answer once one is reached, and the answer says which.
  */
-const MAX_LLM_CALLS: number = AI_AGENT_RUNAWAY_MAX_LLM_CALLS;
-const MAX_TOOL_CALLS: number = AI_AGENT_RUNAWAY_MAX_TOOL_CALLS;
 const MAX_HISTORY_MESSAGES: number = 20;
 // A shared incident thread keeps more of its (multi-responder) history.
 const MAX_SHARED_THREAD_HISTORY_MESSAGES: number = 40;
@@ -580,6 +584,11 @@ interface TurnState {
   // The turn's extra tools, so an action card can title an extra mutation.
   extraTools?: Array<ChatExtraTool> | undefined;
   /*
+   * What the latest tool call handed the model, before it was framed with
+   * its citation, and whether it failed: what loop detection compares.
+   */
+  lastToolOutput?: { text: string; isError: boolean } | undefined;
+  /*
    * What the model had been shown of records in the turns before this one:
    * the citations of the history it replays (issue #6291). This turn's own
    * are its citations.
@@ -595,8 +604,9 @@ interface LoopOutcome {
 export default class ChatAgentRunner {
   /*
    * Runs one chat turn detached from the HTTP request: reads history, loops
-   * LLM ↔ tools within budgets, and either finalizes the assistant message or
-   * pauses it to wait for the user to approve pending actions. Never throws.
+   * LLM ↔ tools within the run limits, and either finalizes the assistant
+   * message or pauses it to wait for the user to approve pending actions.
+   * Never throws.
    */
   @CaptureSpan()
   public static async runTurn(request: ChatTurnRequest): Promise<void> {
@@ -941,9 +951,10 @@ export default class ChatAgentRunner {
   }
 
   /*
-   * The ReAct loop. Runs LLM ↔ tools within budgets. Returns { paused: true }
-   * after persisting the turn to wait for approval, or finalizes the message
-   * and run and returns { paused: false } when the model produces its answer.
+   * The ReAct loop. Runs LLM ↔ tools within the run limits. Returns
+   * { paused: true } after persisting the turn to wait for approval, or
+   * finalizes the message and run and returns { paused: false } when the
+   * model produces its answer.
    */
   private static async runAgentLoop(
     request: ChatTurnRequest,
@@ -954,8 +965,21 @@ export default class ChatAgentRunner {
     let finalContent: string = "";
     let finalStopReason: string | undefined = undefined;
     let manifest: AIRunEgressManifest | undefined = undefined;
-    // Set once the model has been told to wrap up; it is only told once.
-    let wrapUpReason: AgentWrapUpReason | null = null;
+    /*
+     * How far the turn may go: read when it starts, and again when it
+     * resumes after an approval (its time limit starts again then).
+     */
+    const runLimits: AIAgentRunLimits = await AIRunLimitsReader.read({
+      projectId: request.projectId,
+    });
+    const loopDetector: AgentLoopDetector = new AgentLoopDetector();
+    // The tokens of the latest call: the least the next one adds.
+    let lastCallTokens: number = 0;
+    /*
+     * Set once a limit (or loop detection) has stopped the turn; the model
+     * is told once, and answers without tools.
+     */
+    let stopReason: AIRunStopReason | null = null;
     // Follow-up calls that finish an answer the output limit cut off.
     let continuationCount: number = 0;
 
@@ -971,21 +995,56 @@ export default class ChatAgentRunner {
 
       const isContinuingAnswer: boolean = continuationCount > 0;
 
-      if (
-        wrapUpReason === null &&
-        !isContinuingAnswer &&
-        (state.llmCallCount >= MAX_LLM_CALLS - 1 ||
-          state.toolCallCount >= MAX_TOOL_CALLS)
-      ) {
-        wrapUpReason = "step_limit";
-        messages.push({
-          role: "user",
-          content: buildWrapUpInstruction(wrapUpReason),
-        });
+      if (stopReason === null && !isContinuingAnswer) {
+        const decision: AIRunStopDecision | null =
+          AIAgentRunLimitsHelper.getStopDecision(runLimits, {
+            llmCallCount: state.llmCallCount,
+            toolCallCount: state.toolCallCount,
+            tokenCount: state.totalTokens,
+            lastCallTokenCount: lastCallTokens,
+            startedAtMs: state.startedAtMs,
+            nowMs: Date.now(),
+          });
+
+        if (decision) {
+          stopReason = decision.reason;
+
+          // A token cap already reached: any call would go past it.
+          if (!decision.mayAnswer) {
+            break;
+          }
+
+          messages.push({
+            role: "user",
+            content: AIAgentRunLimitsHelper.getWrapUpInstruction(
+              decision.reason,
+              runLimits,
+            ),
+          });
+        }
       }
 
-      const budgetExhausted: boolean =
-        wrapUpReason !== null || isContinuingAnswer;
+      if (isContinuingAnswer) {
+        /*
+         * Finishing a cut-off answer makes model calls too, and none past a
+         * cap the project set: the answer keeps what it has, and the note
+         * under it names the cap.
+         */
+        const capReason: AIRunStopReason | null =
+          AIAgentRunLimitsHelper.getContinuationStopReason(runLimits, {
+            llmCallCount: state.llmCallCount,
+            toolCallCount: state.toolCallCount,
+            tokenCount: state.totalTokens,
+            lastCallTokenCount: lastCallTokens,
+          });
+
+        if (capReason) {
+          stopReason = capReason;
+          break;
+        }
+      }
+
+      const mustAnswer: boolean = stopReason !== null || isContinuingAnswer;
 
       /*
        * A long turn keeps its newest evidence in full and elides the oldest
@@ -1009,7 +1068,7 @@ export default class ChatAgentRunner {
         llmProviderId: request.llmProviderId,
         feature: request.feature || OBSERVABILITY_CHAT_FEATURE,
         messages: messages,
-        tools: budgetExhausted ? undefined : this.getToolDefinitions(request),
+        tools: mustAnswer ? undefined : this.getToolDefinitions(request),
         maxTokens: MAX_OUTPUT_TOKENS,
         temperature: TEMPERATURE,
         /*
@@ -1021,7 +1080,8 @@ export default class ChatAgentRunner {
 
       state.llmCallCount++;
       // As OneUptime counts them: cached tokens weigh what they cost.
-      state.totalTokens += AiTokenCount.count(response.llmLog);
+      lastCallTokens = AiTokenCount.count(response.llmLog);
+      state.totalTokens += lastCallTokens;
       state.totalCostInUSDCents += response.llmLog.costInUSDCents || 0;
 
       if (!manifest) {
@@ -1041,7 +1101,7 @@ export default class ChatAgentRunner {
       });
 
       if (
-        !budgetExhausted &&
+        !mustAnswer &&
         response.toolCalls &&
         response.toolCalls.length > 0 &&
         /*
@@ -1068,6 +1128,9 @@ export default class ChatAgentRunner {
          */
         const recordsSeen: Array<AIChatRecordSeen> = this.getRecordsSeen(state);
 
+        // What each call of this round returned, for loop detection.
+        const roundCalls: Array<AgentLoopToolCall> = [];
+
         for (const toolCall of response.toolCalls) {
           // Re-check between tools: a batch can run long and cancel must cut in.
           if (await this.isRunCancelled(request)) {
@@ -1075,16 +1138,24 @@ export default class ChatAgentRunner {
           }
 
           /*
-           * The batch size is model-controlled — the runaway guard must hold
-           * inside the batch too, not just between LLM rounds.
+           * The batch size is model-controlled — the tool-call cap and the
+           * time limit hold inside the batch too, not just between rounds.
            */
-          const overBudget: boolean = state.toolCallCount >= MAX_TOOL_CALLS;
+          const refusal: AIRunStopReason | null =
+            AIAgentRunLimitsHelper.getToolCallRefusal(runLimits, {
+              toolCallCount: state.toolCallCount,
+              startedAtMs: state.startedAtMs,
+              nowMs: Date.now(),
+            });
 
-          if (overBudget) {
+          if (refusal) {
             messages.push({
               role: "tool",
               toolCallId: toolCall.id,
-              content: buildSkippedToolCallText("step_limit"),
+              content: AIAgentRunLimitsHelper.getSkippedToolCallText(
+                refusal,
+                runLimits,
+              ),
             });
             continue;
           }
@@ -1211,8 +1282,42 @@ export default class ChatAgentRunner {
             content: toolResultText,
           });
 
+          roundCalls.push({
+            name: toolCall.name,
+            arguments: toolCall.arguments,
+            output: state.lastToolOutput?.text ?? toolResultText,
+            isError: state.lastToolOutput?.isError ?? false,
+          });
+
           // Keep the run visibly alive during long tool batches.
           await this.heartbeat(request, state);
+        }
+
+        /*
+         * A turn repeating itself is told to change course, and then asked
+         * to answer: no count stops a turn, so this is what stops one stuck.
+         */
+        const verdict: AgentLoopVerdict = loopDetector.recordRound(roundCalls);
+
+        if (verdict === AgentLoopVerdict.Nudge) {
+          messages.push({
+            role: "user",
+            content: loopDetector.getNudgeInstruction(),
+          });
+        } else if (verdict === AgentLoopVerdict.Stop && stopReason === null) {
+          stopReason = AIRunStopReason.Loop;
+
+          logger.info(
+            `AI chat turn ${request.aiRunId.toString()}: stopping a turn that goes in circles (${loopDetector.describeStop()}).`,
+          );
+
+          messages.push({
+            role: "user",
+            content: AIAgentRunLimitsHelper.getWrapUpInstruction(
+              AIRunStopReason.Loop,
+              runLimits,
+            ),
+          });
         }
 
         // Surface progress (citations/widgets/actions so far) on the message.
@@ -1268,6 +1373,39 @@ export default class ChatAgentRunner {
      */
     if (finalStopReason === "length") {
       finalContent = `${finalContent}\n\n_[Answer truncated by the output token limit.]_`;
+    }
+
+    /*
+     * A turn a limit stopped says so, under the answer, in OneUptime's own
+     * words: which limit, and where to change it. Nothing stops a turn
+     * quietly.
+     */
+    if (stopReason) {
+      const stopNote: string = AIRunLimitsReader.getStopNote({
+        projectId: request.projectId,
+        reason: stopReason,
+        limits: runLimits,
+      });
+
+      finalContent = finalContent.trim()
+        ? `${finalContent}\n\n${stopNote}`
+        : stopNote;
+
+      /*
+       * The activity draws a line as text, not Markdown, so it gets the
+       * note without its marks and link - and as a warning, since the
+       * answer above it is what the run found before it stopped.
+       */
+      await this.emitEvent(request, state, {
+        eventType: AIRunEventType.ProgressLog,
+        resultSummary: {
+          message: AIAgentRunLimitsHelper.getStopNoteText({
+            reason: stopReason,
+            limits: runLimits,
+          }),
+          severity: LogSeverity.Warning,
+        },
+      });
     }
 
     if (manifest) {
@@ -1746,7 +1884,11 @@ export default class ChatAgentRunner {
         },
       });
 
-      return `Error calling ${toolCall.name}: ${toolCall.argumentsParseError} Emit the tool call again with valid JSON arguments.`;
+      const parseErrorText: string = `Error calling ${toolCall.name}: ${toolCall.argumentsParseError} Emit the tool call again with valid JSON arguments.`;
+
+      state.lastToolOutput = { text: parseErrorText, isError: true };
+
+      return parseErrorText;
     }
 
     await this.emitEvent(request, state, {
@@ -1792,8 +1934,12 @@ export default class ChatAgentRunner {
         },
       });
 
+      state.lastToolOutput = { text: outcome.textForLlm, isError: true };
+
       return outcome.textForLlm;
     }
+
+    state.lastToolOutput = { text: outcome.textForLlm, isError: false };
 
     // Mint the citation server-side from the validated execution.
     const citationId: string = `C${state.citations.length + 1}`;

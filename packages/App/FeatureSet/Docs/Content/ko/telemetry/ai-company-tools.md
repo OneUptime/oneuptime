@@ -108,6 +108,10 @@ Microsoft Entra ID에서 앱을 등록하고 클라이언트 비밀을 만듭니
 
 다음 도구에는 OneUptime이 사람들의 채팅을 읽을 수 있는 API가 없거나, 다른 방법이 필요합니다.
 
+### Cursor
+
+Cursor의 Admin API는 대화가 아니라 사람별 사용량과 비용을 제공하므로, Cursor 팀은 관리자 API 키로 [공급자 계정](/docs/telemetry/ai-provider-accounts#cursor)으로 연결합니다. Enterprise 요금제에서는 OpenTelemetry Export도 사용량을 발생하는 대로 보냅니다. [Cursor](/docs/telemetry/cursor)를 참고하세요.
+
 ### ChatGPT Enterprise
 
 OpenAI는 요청이 있을 때만 워크스페이스에 Compliance API를 열어 주고 기록에 무엇이 담기는지 공개하지 않으므로, OneUptime은 아직 ChatGPT Enterprise 채팅을 읽을 수 없습니다. OpenAI 조직을 [공급자 계정](/docs/telemetry/ai-provider-accounts#openai)으로 연결하면 API 사용량과 비용이 표시되지만 ChatGPT는 포함되지 않습니다.
@@ -146,7 +150,7 @@ Copilot이라면 앱의 Graph 권한에 관리자 동의를 제공하고, 그룹
 
 :::cards
 - [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 대화를 읽고 다시 재생하며, 답변이 잘못되면 알림을 받습니다.
-- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정의 사용량과 비용.
+- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 계정의 사용량과 비용.
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): 코딩 도구에 대한 엔지니어별 지출.
 - [데이터 보존](/docs/telemetry/data-retention): 대화를 보관하는 기간.
 :::

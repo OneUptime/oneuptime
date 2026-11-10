@@ -35,7 +35,8 @@ const VALUE_ADDRESS_PATTERN: RegExp = /^https:\/\/(?:evil|tracker)\.example/;
  * email and in the record's Slack and Microsoft Teams channels: there each
  * finding is escaped, so it reads as sent and is no link, image, HTML or
  * chat mention. The evaluation summary shows the same findings as plain
- * text, and keeps them exactly as written.
+ * text, as written. The value a finding quotes is on one line, its
+ * credentials and personal data masked (MonitorQuotedValue, #6341).
  */
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
@@ -45,6 +46,9 @@ const SUBJECT: string =
   "<!channel> [Verify your account](https://evil.example/login)";
 const BODY: string =
   "Backup failed <@U0123ABC>\n\n![](https://tracker.example/p.png)\n<img src=x>";
+// The body as a finding quotes it: on one line.
+const QUOTED_BODY: string =
+  "Backup failed <@U0123ABC> ![](https://tracker.example/p.png) <img src=x>";
 
 const CRITERIA_NAME: string = "Backup [failed](https://evil.example/c)";
 
@@ -199,7 +203,7 @@ describe("A root cause quotes what a filter found as text", () => {
     const { rootCause, criteriaResult } = await evaluate(FilterCondition.All);
 
     expect(asRead(rootCause)).toContain(
-      `All filters met.\n- Email body is not empty. Value: ${BODY.split("\n").join(" ")}\n- Email subject contains "verify".`,
+      `All filters met.\n- Email body is not empty. Value: ${QUOTED_BODY}\n- Email subject contains "verify".`,
     );
     // The criteria's name is text too.
     expect(asRead(rootCause)).toContain(`**Criteria Name**: ${CRITERIA_NAME}`);
@@ -207,14 +211,14 @@ describe("A root cause quotes what a filter found as text", () => {
 
     // The evaluation summary is plain text: the findings as written.
     expect(criteriaResult.message).toBe(
-      `All filters met.\n- Email body is not empty. Value: ${BODY}\n- Email subject contains "verify".`,
+      `All filters met.\n- Email body is not empty. Value: ${QUOTED_BODY}\n- Email subject contains "verify".`,
     );
     expect(
       criteriaResult.filters.map((filter: { message: string }): string => {
         return filter.message;
       }),
     ).toEqual([
-      `Email body is not empty. Value: ${BODY}`,
+      `Email body is not empty. Value: ${QUOTED_BODY}`,
       'Email subject contains "verify".',
     ]);
   });
@@ -223,10 +227,10 @@ describe("A root cause quotes what a filter found as text", () => {
     const { rootCause, criteriaResult } = await evaluate(FilterCondition.Any);
 
     expect(asRead(rootCause)).toContain(
-      `**Filter Conditions Met**: Email body is not empty. Value: ${BODY.split("\n").join(" ")}`,
+      `**Filter Conditions Met**: Email body is not empty. Value: ${QUOTED_BODY}`,
     );
     expect(criteriaResult.message).toBe(
-      `Email body is not empty. Value: ${BODY}`,
+      `Email body is not empty. Value: ${QUOTED_BODY}`,
     );
   });
 });

@@ -112,6 +112,7 @@ import BackfillNetworkSiteTypeParents from "./BackfillNetworkSiteTypeParents";
 import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDeviceReachability";
 import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMonitoringMethod";
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
+import AddSessionReplayCustomSignalColumns from "./AddSessionReplayCustomSignalColumns";
 import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
 import EncryptProjectCallSMSConfigTwilioAuthToken from "./EncryptProjectCallSMSConfigTwilioAuthToken";
@@ -126,6 +127,8 @@ import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUni
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
+import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
+import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -966,6 +969,40 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RecordApproversAskedAboutWaitingPublicNotes(),
+  /*
+   * Metrics monitors on a Service Bus or Event Hubs namespace that read its
+   * metrics with the average a minute at a time read the average queue
+   * since Azure reports them once per queue (#6415): each moves to the Sum
+   * its namespace's Metrics tab reads (CloudResourceMetricAggregation), so
+   * it reads the namespace's number again, and says so in its feed.
+   * Postgres-only and idempotent, with no order of its own, so it sits
+   * above the runbook moves, which keep their places right before the last
+   * slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RestoreNamespaceMetricMonitorTotals(),
+  /*
+   * Frustration signals a RUM application defines itself (issue #6443):
+   * adds customSignalCount, customSignalFrustrationCount and
+   * customSignalNames to the session and chunk tables. Metadata-only and
+   * idempotent; sessions recorded before it read as "no signals of the
+   * application's own". After AddSessionReplayEngagementColumns, with no
+   * other order of its own, so it sits above the runbook moves, which keep
+   * their places right before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new AddSessionReplayCustomSignalColumns(),
+  /*
+   * An Incoming Request monitor's latest request is kept twice since #6402:
+   * as it came, for the heartbeat job alone
+   * (Monitor.incomingMonitorRequestAsReceived), and as people read it, cut
+   * as the monitor's logs are, by its Keep request content switch. Each
+   * request kept once, as it came, is split so. After the schema migration
+   * AddIncomingMonitorRequestAsReceived; Postgres-only and idempotent, with
+   * no other order of its own, so it sits above the runbook moves, which
+   * keep their places right before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new RedactLatestIncomingRequests(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

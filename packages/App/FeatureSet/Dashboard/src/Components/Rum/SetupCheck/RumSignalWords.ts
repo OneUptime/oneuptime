@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { PROJECT_WIDE_TELEMETRY_INGEST_REFUSAL_REASONS } from "Common/Types/Telemetry/TelemetryIngestRefusal";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import {
@@ -15,6 +16,13 @@ import {
 } from "../RumSetupGuide";
 import { RUM_EMPTY_SIGNALS_DOCS_URL } from "../RumSignalSetupGuide";
 import { RumSignalDiagnosis } from "./RumSignalDiagnosis";
+import { RumKindRefusal } from "./RumIngestRefusals";
+import {
+  INGEST_REFUSAL_FIXES,
+  INGEST_REFUSAL_FIX_LABELS,
+  IngestRefusalFix,
+  getIngestRefusalReasonText,
+} from "../../Telemetry/IngestRefusalWords";
 
 /*
  * What a RUM application's empty Exceptions and Logs charts, its Logs page
@@ -53,7 +61,16 @@ export type RumSignalAction =
   // The application's Recording Health page.
   | { kind: "recording-health"; label: string }
   | { kind: "set-range"; label: string; range: RangeStartAndEndDateTime }
-  | { kind: "retry"; label: string };
+  | { kind: "retry"; label: string }
+  /*
+   * A refusal's fix (issue #6378): send with another key (the setup guide
+   * in a dialog, its first step the key), the refused key's own page, the
+   * project's budgets, or Billing.
+   */
+  | { kind: "pick-key"; label: string }
+  | { kind: "open-key"; label: string; keyId: string }
+  | { kind: "budgets"; label: string }
+  | { kind: "billing"; label: string };
 
 // An empty chart's (or the Logs page's) block.
 export interface RumSignalEmptyCopy {
@@ -72,6 +89,30 @@ export interface RumSetupCheckLine {
   text: string;
   detail?: string | undefined;
   action?: RumSignalAction | undefined;
+  /*
+   * The refusal the row says (issue #6378), when it says one: rows refused
+   * the same way share one notice (shareRumSetupCheckRefusals).
+   */
+  refusal?: RumKindRefusal | undefined;
+}
+
+// A row of the setup check: its signal and what it says.
+export interface RumSetupCheckRow {
+  signal: RumSetupCheckSignal;
+  line: RumSetupCheckLine;
+}
+
+/*
+ * A refusal several rows of the setup check share, said once above them:
+ * why, and its fix. Red while any of its rows is refused outright, amber
+ * while they all still arrive in part.
+ */
+export interface RumSetupCheckRefusalNotice {
+  tone: "error" | "warning";
+  text: string;
+  action?: RumSignalAction | undefined;
+  // Its rows, in the card's order.
+  signals: Array<RumSetupCheckSignal>;
 }
 
 /* ------------------------------------------------------- Empty charts */
@@ -271,6 +312,29 @@ export const REPLAY_LATEST_CHUNK: string = translationKey(
   "The latest recording came in {{time}}.",
 );
 
+/* ------------------------------------------------------------ Refusals */
+
+/*
+ * What the application sends of a kind is refused at ingest (issue #6378,
+ * RumIngestRefusals): the row says so and when, the reason under it
+ * (IngestRefusalWords), and its fix as the row's action.
+ */
+export const ROW_REFUSED: string = translationKey(
+  "Refused. The latest was refused {{time}}.",
+);
+export const ROW_PARTLY_REFUSED: string = translationKey(
+  "Arriving, but some are refused. The latest was refused {{time}}.",
+);
+export const EXCEPTIONS_REFUSED_TITLE: string = translationKey(
+  "Exceptions are being refused",
+);
+export const LOGS_REFUSED_TITLE: string = translationKey(
+  "Logs are being refused",
+);
+export const REFUSED_LATEST: string = translationKey(
+  "The latest was refused {{time}}.",
+);
+
 /* -------------------------------------------------------------- Helpers */
 
 const TWO_DAYS_MS: number = 2 * 24 * 60 * 60 * 1000;
@@ -317,6 +381,47 @@ function setUpAction(
   };
 }
 
+// A refusal's fix, as an action; undefined when nothing here puts it right.
+export function getRefusalAction(
+  refusal: RumKindRefusal,
+  translator: Translator,
+): RumSignalAction | undefined {
+  const fix: IngestRefusalFix | null =
+    INGEST_REFUSAL_FIXES[refusal.refusal.reason];
+
+  if (!fix) {
+    return undefined;
+  }
+
+  const label: string = translate(translator, INGEST_REFUSAL_FIX_LABELS[fix]);
+
+  if (fix === "open-key") {
+    return { kind: "open-key", label, keyId: refusal.refusal.keyId };
+  }
+
+  return { kind: fix, label };
+}
+
+// A setup check row whose kind is refused.
+function refusalLine(
+  refusal: RumKindRefusal,
+  translator: Translator,
+  now: Date,
+): RumSetupCheckLine {
+  const isRefused: boolean = refusal.state === "refused";
+
+  return {
+    tone: isRefused ? "error" : "warning",
+    text: translator.translateTemplate(
+      isRefused ? ROW_REFUSED : ROW_PARTLY_REFUSED,
+      { time: fromNow(refusal.refusal.lastRefusedAt, now) },
+    ),
+    detail: getIngestRefusalReasonText(refusal.refusal, translator),
+    action: getRefusalAction(refusal, translator),
+    refusal,
+  };
+}
+
 function helpLink(
   translator: Translator,
 ): { text: string; url: string } | undefined {
@@ -338,11 +443,37 @@ export function getRumSignalEmptyCopy(data: {
   client: RumClientKind;
   // Recorded sessions with an error in the range, when they were counted.
   sessionsWithErrors?: number | null | undefined;
+  /*
+   * Whether what carries the signal is refused at ingest (traces carry
+   * exceptions): a refusal nothing has arrived since says so instead of
+   * the answer the arrivals alone would give.
+   */
+  refusal?: RumKindRefusal | null | undefined;
   translator: Translator;
   now: Date;
 }): RumSignalEmptyCopy | null {
   const { signal, diagnosis, client, translator, now } = data;
   const isExceptions: boolean = signal === "exceptions";
+
+  if (
+    data.refusal?.state === "refused" &&
+    diagnosis.state !== "loading" &&
+    diagnosis.state !== "receiving" &&
+    diagnosis.state !== "unknown"
+  ) {
+    return {
+      title: translate(
+        translator,
+        isExceptions ? EXCEPTIONS_REFUSED_TITLE : LOGS_REFUSED_TITLE,
+      ),
+      detail: getIngestRefusalReasonText(data.refusal.refusal, translator),
+      evidence: translator.translateTemplate(REFUSED_LATEST, {
+        time: fromNow(data.refusal.refusal.lastRefusedAt, now),
+      }),
+      action: getRefusalAction(data.refusal, translator),
+      helpLink: helpLink(translator),
+    };
+  }
 
   switch (diagnosis.state) {
     case "loading":
@@ -557,10 +688,25 @@ export function getRumSetupCheckLine(data: {
   signal: Exclude<RumSetupCheckSignal, "sessionReplay">;
   diagnosis: RumSignalDiagnosis;
   client: RumClientKind;
+  /*
+   * Whether what carries the signal is refused at ingest: refused wins
+   * over every answer but loading and unknown; partly refused only over
+   * arriving (it does arrive, so the rest of the answers do not hold).
+   */
+  refusal?: RumKindRefusal | null | undefined;
   translator: Translator;
   now: Date;
 }): RumSetupCheckLine {
   const { signal, diagnosis, client, translator, now } = data;
+
+  if (
+    data.refusal &&
+    diagnosis.state !== "loading" &&
+    diagnosis.state !== "unknown" &&
+    (data.refusal.state === "refused" || diagnosis.state === "receiving")
+  ) {
+    return refusalLine(data.refusal, translator, now);
+  }
 
   switch (diagnosis.state) {
     case "loading":
@@ -644,6 +790,8 @@ export function getSessionReplaySetupCheckLine(data: {
   error: SessionReplayHealthError | null;
   state: RecordingHealthState;
   lastChunkReceivedAt: Date | null;
+  // Whether recordings are refused at ingest, before the recorder's gates.
+  refusal?: RumKindRefusal | null | undefined;
   translator: Translator;
   now: Date;
 }): RumSetupCheckLine | null {
@@ -659,6 +807,25 @@ export function getSessionReplaySetupCheckLine(data: {
     }
 
     return { tone: "off", text: translate(translator, ROW_UNKNOWN) };
+  }
+
+  /*
+   * A refused key turns recordings away before the recorder's own gates
+   * count anything, so its health cannot tell: say so here. Partly refused
+   * only beside recordings that do arrive. Recording turned off is still
+   * the answer (nothing would be recorded with a good key either), and an
+   * unknown health leaves the arrivals unknown too.
+   */
+  if (
+    data.refusal &&
+    data.state !== "disabled-project" &&
+    data.state !== "disabled-app" &&
+    data.state !== "unknown" &&
+    (data.refusal.state === "refused" ||
+      data.state === "healthy" ||
+      data.state === "healthy-quiet")
+  ) {
+    return refusalLine(data.refusal, translator, now);
   }
 
   const tones: Record<RecordingHealthState, RumSetupCheckTone> = {
@@ -693,5 +860,95 @@ export function getSessionReplaySetupCheckLine(data: {
             kind: "recording-health",
             label: translate(translator, OPEN_RECORDING_HEALTH),
           },
+  };
+}
+
+/*
+ * Which refusals read the same: one reason, and for a key's own reason, one
+ * key. A project-wide reason ("This project used up its daily ingestion
+ * budget.") names no key, so it is the same whichever key it refused.
+ */
+function refusalShareKey(refusal: RumKindRefusal): string {
+  const reason: string = refusal.refusal.reason;
+
+  return PROJECT_WIDE_TELEMETRY_INGEST_REFUSAL_REASONS.has(
+    refusal.refusal.reason,
+  )
+    ? reason
+    : `${reason} ${refusal.refusal.keyId}`;
+}
+
+/*
+ * A turned-off key refuses everything sent with it, so every row of the
+ * setup check said the same reason and offered the same fix, five times
+ * over. Rows refused the same way share one notice above them instead
+ * (why, and the fix), and each says only that it is refused and when. A
+ * refusal only one row says stays under that row.
+ */
+export function shareRumSetupCheckRefusals(
+  rows: ReadonlyArray<RumSetupCheckRow>,
+): {
+  notices: Array<RumSetupCheckRefusalNotice>;
+  rows: Array<RumSetupCheckRow>;
+} {
+  const sharers: Map<string, Array<RumSetupCheckRow>> = new Map<
+    string,
+    Array<RumSetupCheckRow>
+  >();
+
+  for (const row of rows) {
+    if (!row.line.refusal) {
+      continue;
+    }
+
+    const key: string = refusalShareKey(row.line.refusal);
+    sharers.set(key, [...(sharers.get(key) || []), row]);
+  }
+
+  const notices: Array<RumSetupCheckRefusalNotice> = [];
+
+  for (const shared of sharers.values()) {
+    if (shared.length < 2) {
+      continue;
+    }
+
+    const first: RumSetupCheckLine = shared[0]!.line;
+
+    notices.push({
+      tone: shared.some((row: RumSetupCheckRow): boolean => {
+        return row.line.tone === "error";
+      })
+        ? "error"
+        : "warning",
+      text: first.detail || "",
+      action: first.action,
+      signals: shared.map((row: RumSetupCheckRow): RumSetupCheckSignal => {
+        return row.signal;
+      }),
+    });
+  }
+
+  return {
+    notices,
+    rows: rows.map((row: RumSetupCheckRow): RumSetupCheckRow => {
+      const isShared: boolean = notices.some(
+        (notice: RumSetupCheckRefusalNotice): boolean => {
+          return notice.signals.includes(row.signal);
+        },
+      );
+
+      if (!isShared) {
+        return row;
+      }
+
+      return {
+        signal: row.signal,
+        line: {
+          tone: row.line.tone,
+          text: row.line.text,
+          refusal: row.line.refusal,
+        },
+      };
+    }),
   };
 }

@@ -15,14 +15,14 @@ Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je ee
 :::
 
 > [!TIP]
-> Je kunt dit ook vanuit GitHub starten. Noem de OneUptime GitHub App in een issue of een pull request en hij implementeert, herziet of beoordeelt ter plekke: zie [GitHub App](/docs/ai/github-app). Het is dezelfde agent, dezelfde Runner en hetzelfde budget; alleen de trigger verschilt.
+> Je kunt dit ook vanuit GitHub starten. Noem de OneUptime GitHub App in een issue of een pull request en hij implementeert, herziet of beoordeelt ter plekke: zie [GitHub App](/docs/ai/github-app). Het is dezelfde agent, dezelfde Runner en dezelfde limieten; alleen de trigger verschilt.
 
 ## AI vragen in een repository
 
 :::steps
 ### Open Code
 
-Open **Producten → Code**. Code opent op **Wat moet AI doen?**: het vak waarin je vraagt, met alle taken eronder, de nieuwste eerst. Is er nog geen repository, dan biedt Code in plaats daarvan **GitHub verbinden** aan, met GitLab, Forgejo of Gitea en elke Git-server eronder (zie [Een repository verbinden](#een-repository-verbinden)). **Repository's**, in het zijmenu, toont de repository's waarin AI kan werken, en bundelt onder **Niet verbonden** de repository's die OneUptime niet meer bereikt. De pagina van elke repository heeft hetzelfde vak voor die repository.
+Open **Producten → Code**. Code opent op **Wat moet AI doen?**: het vak waarin je vraagt, met alle taken eronder, de nieuwste eerst; filter ze op hoe ze ervoor staan, elk filter met zijn aantal, of zoek ze op titel of nummer. Is er nog geen repository, dan biedt Code in plaats daarvan **GitHub verbinden** aan, met GitLab, Forgejo of Gitea en elke Git-server eronder (zie [Een repository verbinden](#een-repository-verbinden)). **Repository's**, in het zijmenu, toont de repository's waarin AI kan werken, en bundelt onder **Niet verbonden** de repository's die OneUptime niet meer bereikt. De pagina van elke repository heeft hetzelfde vak voor die repository, en daar vink je mislukte of gestopte vragen aan om ze allemaal opnieuw te proberen met **Selectie opnieuw proberen**.
 
 ### Kies de repository en de branch
 
@@ -57,15 +57,16 @@ Een verzoek bevat hooguit 10 stukken context. Tokens, sleutels, wachtwoorden en 
 
 ## Het gesprek van een taak
 
-De pagina van een taak is een gesprek: wat er gevraagd is en de toegevoegde context, dan de beurt van AI – de stappen die het zet terwijl het ze zet (de bestanden die het las en bewerkte, waarnaar het zocht, de opdrachten die het uitvoerde), zijn antwoord, de bestanden die het wijzigde met hun diff, en de pull request. Bovenaan de pagina staat waar de taak werkt (de repository en de branch waarvan die uitging), hoeveel regels die wijzigde, met een knop naar de pull request, en hoe de taak ervoor staat:
+De pagina van een taak is een gesprek: wat er gevraagd is en de toegevoegde context, dan de beurt van AI – de stappen die het zet terwijl het ze zet (de bestanden die het las en bewerkte, waarnaar het zocht, de opdrachten die het uitvoerde), zijn antwoord, de bestanden die het wijzigde met hun diff, en de pull request. Bovenaan de pagina staat waar de taak werkt (de repository en de branch waarvan die uitging), hoeveel bestanden en regels die wijzigde, hoe lang AI eraan heeft gewerkt, met een knop naar de pull request, en hoe de taak ervoor staat:
 
 | Status | Wat het betekent |
 | --- | --- |
 | **In de wachtrij** | Hij wacht tot een Runner hem oppakt. |
+| **Nieuwe poging** | Een beurt die AI vanzelf opnieuw probeert, zegt welke poging de volgende is en wanneer; **Nu opnieuw proberen** start hem meteen. |
 | **Bezig…** | AI is ermee bezig. **Stoppen** stopt hem; wat AI al pushte, blijft op de branch. |
 | **Wacht op u** | AI heeft een vraag gesteld. Beantwoord die in het vak hieronder. |
 | **Klaar** | AI is klaar: zijn antwoord, en de pull request als het code wijzigde. |
-| **Mislukt** | De beurt kon niet worden afgerond, en zegt waarom. **Opnieuw proberen** vraagt hetzelfde nog eens. |
+| **Mislukt** | De beurt kon niet worden afgerond, en zegt waarom, en na hoeveel pogingen als AI hem vanzelf opnieuw probeerde. **Opnieuw proberen** vraagt hetzelfde nog eens. |
 | **Gestopt** | Iemand heeft hem gestopt. **Opnieuw proberen** vraagt hetzelfde nog eens. |
 
 Om verder te gaan, schrijf je in het vak onderaan, dat in beeld blijft terwijl het gesprek scrolt: antwoord AI, voeg context toe of vraag om wijzigingen. Elk antwoord is de volgende beurt van dezelfde taak: die werkt op dezelfde branch en pusht naar dezelfde pull request zolang die open is. Een taak doet één beurt tegelijk, dus het vak wacht terwijl AI werkt. Het **Logboek** van elke beurt is het letterlijke verslag van wat die deed. Bij een taak met meer dan één beurt wisselt een keuzelijst boven aan de pagina **Logboek** tussen de beurten.
@@ -97,7 +98,7 @@ flowchart TB
 
 De pagina waarop de taak is gestart, toont live de status. Elke taak staat in zijn repository onder **Producten → Code**: zijn pagina is zijn gesprek, en het **Logboek** van elke beurt heeft een regel voor elk bestand dat de Runner las of schreef en elke opdracht die hij uitvoerde.
 
-Elke run is gebonden aan budgetten die de server afdwingt: hoogstens **40 LLM-aanroepen** en **100.000 uitvoertokens**. De query's op productietelemetrie van een run tellen mee voor dezelfde 40 aanroepen. Een run die er een bereikt, stopt met een samenvatting van het werk tot dan toe in plaats van in een lus te blijven draaien. Herstelruns tellen ook mee voor de dagelijkse AI-limieten van het project, als het project die instelt.
+Een run doet zoveel LLM-aanroepen en query's op productietelemetrie als zijn werk nodig heeft, binnen zijn tijdslimiet: 120 minuten, tenzij het project een eigen limiet instelt. Het project kan elke run tot minder beperken in **Limieten per uitvoering**, onder **Meer instellingen** op **Projectinstellingen → AI → AI-functies**; een run die een limiet bereikt, stopt met een samenvatting van het werk tot dan toe. Een Runner van vóór deze release stopt een run nog steeds bij 40 LLM-aanroepen en 100.000 uitvoertokens: upgrade hem om die grenzen op te heffen. Herstelruns tellen ook mee voor de dagelijkse AI-limieten van het project, als het project die instelt.
 
 ## Waar hersteltaken starten
 
@@ -145,7 +146,7 @@ Wat de agent kan lezen, bepaalt de OneUptime-server op basis van de taak zelf:
 - **Alleen lezen.** De query's draaien op de OneUptime-server, nooit op de Runner, die geen inloggegevens heeft waarmee telemetrie te lezen is. Niets wat ze doen, kan je project veranderen.
 - **Dit project, en alleen de services die bij deze repository horen.** Je koppelt ze niet zelf: het zijn de services waarvoor OneUptime deze repository vindt, zoals het ook de repository van een herstel vindt - de stack traces van hun uitzonderingen lopen door de bestanden ervan, ze heten zoals de repository, of het is de enige repository van het project. De telemetrie van een andere service kan niet worden gelezen.
 - **Geen privé-incidenten**, en tokens, sleutels, wachtwoorden en e-mailadressen worden afgeschermd voordat de agent een resultaat ziet, zoals overal waar OneUptime AI je gegevens leest.
-- **Begrensd.** Hoogstens **12** query's per run, die elk meetellen voor de 40 aanroepen van de run.
+- **Begrensd.** Door de tijdslimiet van de run, en door **Toolaanroepen per uitvoering** als het project die instelt: elke query is één tool-aanroep.
 
 Als er geen service bij de repository hoort, draait de taak zonder productietelemetrie, zoals voorheen.
 
@@ -192,7 +193,7 @@ Niets uit een pull request die uit een fork komt, wordt ooit gelezen als de inst
 Code vraagt niet meer om setup-, build- en testopdrachten, maar een repository die ze heeft, eerder ingesteld of via de API of Terraform, houdt ze. Ze staan alleen-lezen op de kaart **Build- en testopdrachten**, onder **Meer instellingen** op de pagina **Instellingen** van de repository, en **Opdrachten verwijderen** verwijdert alle drie. Zolang er een is ingesteld, controleert elke herstelrun op een eigen Runner zijn wijziging er ook mee voordat de pull request opent:
 
 1. Als de code-agent klaar is, draaien de opdrachten op volgorde in de root van de repository, op de Runner, in de gekloonde werkruimte. Elke opdracht krijgt tot 15 minuten en draait met `CI=true`, zodat niets op invoer wacht; de eerste fout stopt de ronde.
-2. Bij een fout gaat het einde van de uitvoer van de mislukte opdracht terug naar dezelfde code-agent als hersteltaak, met de instructie zijn eigen wijziging te verbeteren in plaats van tests af te zwakken of over te slaan, en de opdrachten draaien opnieuw. Hij doet hoogstens **2** herstelpogingen. Die delen het LLM-budget van de run, en hun wijzigingen komen in dezelfde commit als het herstel.
+2. Bij een fout gaat het einde van de uitvoer van de mislukte opdracht terug naar dezelfde code-agent als hersteltaak, met de instructie zijn eigen wijziging te verbeteren in plaats van tests af te zwakken of over te slaan, en de opdrachten draaien opnieuw. Hij doet hoogstens **2** herstelpogingen. Die tellen mee voor de limieten van de run, en hun wijzigingen komen in dezelfde commit als het herstel.
 3. De uitkomst, geslaagd, mislukt of overgeslagen (geen opdrachten ingesteld, of een globale Runner), staat in een Verification-sectie van de beschrijving van de pull request en wordt vastgelegd bij de pull request van de taak.
 
 Een wijziging die de controle nog steeds niet doorstaat, wordt niet weggegooid: de pull request opent toch, met een duidelijk gemarkeerde sectie "Verification failed" die de mislukte opdracht noemt en eindigt met de uitvoer ervan. Het werk blijft bewaard, en wie beoordeelt, beslist. Een repository zonder ingestelde opdrachten wordt als overgeslagen gemeld, in plaats van een groene build te suggereren.
@@ -328,11 +329,11 @@ Al het andere is gelijk aan de knop:
 ## Als een herstel mislukt
 
 :::details De run geeft een fout
-Het herstel kon niet worden toegepast, de repository of de branch waarvan een vraag uitging was niet bereikbaar, of de LLM-aanroep mislukte. Het gesprek van de taak, en de pagina waarop die is gestart, tonen de reden en bieden aan het opnieuw te proberen. Het **Logboek** van de beurt bevat het volledige runlog.
+Het herstel kon niet worden toegepast, de repository of de branch waarvan een vraag uitging was niet bereikbaar, of de LLM-aanroep mislukte. Een fout die kan overgaan (de aanbieder van het AI-model druk of onbereikbaar, een aanroep met een time-out, het netwerk) wordt vanzelf opnieuw geprobeerd, tot 3 pogingen in totaal, de tweede na 1 minuut en de derde na 4, tenzij de run misschien al een branch heeft gepusht of een pull request heeft geopend. Een fout die opnieuw zou optreden, zoals een sleutel die de aanbieder weigert of geen tegoed meer, wordt niet opnieuw geprobeerd. Mislukt een beurt definitief, dan tonen het gesprek van de taak, en de pagina waarop die is gestart, de reden en bieden aan het opnieuw te proberen. Het **Logboek** van de beurt bevat het volledige runlog.
 :::
 
 :::details De Runner stopt midden in een run
-Een run waarvan de heartbeat langer dan 12 minuten stil is, wordt met een fout beëindigd. Hij komt nooit vanzelf opnieuw in de wachtrij, omdat de Runner al een deel van een herstelbranch gepusht kan hebben; start hem opnieuw waar je hem startte. Een opdracht die de code-agent draait, houdt de heartbeat gaande zolang hij loopt, zodat een lange build of testsuite niet voor een gestopte Runner wordt aangezien.
+Een run waarvan de heartbeat langer dan 12 minuten stil is, wordt op dezelfde manier vanzelf opnieuw geprobeerd als hij niets heeft gepusht, zijn taak geen pull request heeft en hij nog pogingen over heeft. Anders wordt hij met een fout beëindigd, omdat de Runner al een deel van een herstelbranch gepusht kan hebben; start hem opnieuw waar je hem startte. Een opdracht die de code-agent draait, houdt de heartbeat gaande zolang hij loopt, zodat een lange build of testsuite niet voor een gestopte Runner wordt aangezien.
 :::
 
 :::details Geen Runner pakt de taak op

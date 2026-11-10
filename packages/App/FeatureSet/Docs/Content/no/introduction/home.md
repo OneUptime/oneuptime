@@ -48,7 +48,7 @@ Hvert tall teller noe, sier om det trenger deg, og åpner listen bak det.
 | --- | --- | --- |
 | **Aktive hendelser** | Hendelser som ikke er løst | **Alt er i orden** |
 | **Aktive varsler** | Varsler som ikke er løst | **Alt er i orden** |
-| **Ikke-operative monitorer** | Monitorer med en status som ikke er en driftsstatus. Arkiverte monitorer telles ikke. | **Alle i drift** |
+| **Ikke-operative monitorer** | Monitorer med en status som ikke er en driftsstatus. Arkiverte monitorer, og monitorer med overvåking slått av, telles ikke. | **Alle i drift** |
 | **Pågående vedlikehold** | Planlagte vedlikehold som pågår | **Ingen pågår** |
 | **SLO-er i faresonen** | Påslåtte SLO-er som er i faresonen eller har brukt opp feilbudsjettet | **Budsjettene er sunne** |
 

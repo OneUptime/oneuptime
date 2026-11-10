@@ -15,9 +15,10 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * code-fix run the server runs itself, and it only reads: a worker that
  * died mid-review left nothing half done, so the stuck-run sweeper queues
  * it again for the next worker - unlike a code-fix run a Runner works on,
- * which may have pushed a partial branch and is only ever failed. The REAL
- * RunCron and JobDictionary run here; the queues under them and the AI run
- * reads are replaced.
+ * which may have pushed a partial branch: CodeFixRunQueue fails it, or
+ * tries it again in place only when nothing says it pushed anything
+ * (CodeFixAutoRetry, its own suite). The REAL RunCron and JobDictionary run
+ * here; the queues under them and the AI run reads are replaced.
  */
 
 const mockAddJob: jest.Mock = jest.fn(() => {
@@ -139,7 +140,7 @@ beforeEach(() => {
   mockRequeueStale.mockReset();
   mockUpdateRun.mockReset();
   mockRequeueStale.mockResolvedValue(1 as never);
-  mockMarkStaleRunAsError.mockResolvedValue(undefined as never);
+  mockMarkStaleRunAsError.mockResolvedValue(false as never);
 });
 
 describe("the stuck-run sweeper and a pull request's production review", () => {
@@ -171,7 +172,7 @@ describe("the stuck-run sweeper and a pull request's production review", () => {
     expect(mockUpdateRun).not.toHaveBeenCalled();
   });
 
-  test("a code-fix run a Runner worked on is still only failed, never queued again", async () => {
+  test("a code-fix run a Runner worked on goes to CodeFixRunQueue, never to the review's queue", async () => {
     for (const recipe of [
       CodeFixTaskType.CodeRequest,
       CodeFixTaskType.FixException,

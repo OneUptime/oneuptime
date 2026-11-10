@@ -124,10 +124,10 @@ OneUptime leest personen uit spans en uit datapunten van metrieken, nooit uit lo
 
 Met de configuratie hierboven geeft dat dit op het tabblad **Gebruik**:
 
-- De tokens komen uit de spans, per persoon, en `codex.turn.token_usage` wordt er niet bij opgeteld: de twee worden nooit opgeteld ([waarom](/docs/telemetry/ai-llm-observability#spans-eerst-metrieken-vullen-aan)).
+- De tokens komen uit de spans, per persoon, en `codex.turn.token_usage` wordt er niet bij opgeteld: de twee worden nooit opgeteld ([waarom](/docs/telemetry/ai-llm-observability#elke-service-wordt-geteld-uit-wat-hij-stuurt)).
 - De spans van Codex noemen geen model, dus OneUptime kan ze niet prijzen, en hun kosten zijn 0. De kostentotalen nemen de kosten van Codex dan uit `codex.turn.cost_microusd`, voor je omgerekend naar USD.
-- De tabellen **Medewerker**, **Team** en **Model** tonen de rijen van de spans: tokens per persoon, maar geen kosten per persoon.
-- Zonder traces vullen de metrieken die tabellen in plaats daarvan, alleen met kosten, allemaal onder **Niet toegewezen**, omdat de metrieken van Codex niemand noemen.
+- De tabellen **Medewerker** en **Team** tonen de tokens van de spans per persoon, en de kosten van Codex op één rij **Niet toegewezen**, omdat zijn metrieken niemand noemen. De tabel **Model** is omgekeerd: de kosten per model, de tokens onder **Niet toegewezen**.
+- Zonder traces tellen de metrieken de tokens en kosten van Codex: onder **Niet toegewezen** in de tabellen **Medewerker** en **Team**, en per model in de tabel **Model**.
 
 De nauwkeurigste kosten per beurt, met de persoon erbij, staan in het logrecord `codex.turn_cost`. OneUptime koppelt logrecords nog niet aan uitgaven, maar laat de logexporter aanstaan: de geschiedenis is er wanneer dat wel gebeurt.
 

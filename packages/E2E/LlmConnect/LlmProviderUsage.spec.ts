@@ -144,6 +144,41 @@ test.describe("Usage, from the provider accounts", () => {
     await expect(rows(page).nth(1)).toContainText("Amazon Bedrock");
   });
 
+  /*
+   * #5547: a Cursor team read with its Admin API key, under Provider
+   * accounts with the others: each member by email, Cursor named as the
+   * provider, and what Cursor charged - not an estimate.
+   */
+  test("a Cursor team: what each person used, as Cursor billed it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=cursor&source=providers");
+
+    await expect(
+      page.getByTestId("llm-provider-usage-total-cost"),
+    ).toContainText("$96.25");
+    await expect(
+      page.getByTestId("llm-provider-usage-total-requests"),
+    ).toContainText("2,310");
+    await expect(
+      page.getByTestId("llm-provider-usage-estimate-hint"),
+    ).toHaveCount(0);
+
+    await page.getByTestId("llm-provider-usage-dimension-person").click();
+    await expect(rows(page)).toHaveCount(2);
+    await expect(rows(page).nth(0)).toContainText("ana@sysnetix.com");
+    await expect(rows(page).nth(0)).toContainText("$61.75");
+    await expect(rows(page).nth(1)).toContainText("bob@sysnetix.com");
+    await shoot(page, "usage-providers-cursor");
+
+    await page.getByTestId("llm-provider-usage-dimension-provider").click();
+    await expect(rows(page)).toHaveCount(1);
+    await expect(rows(page).nth(0)).toContainText("Cursor");
+    await expect(rows(page).nth(0)).toContainText("$96.25");
+  });
+
   test("with no provider account connected, the way to connect one", async ({
     page,
   }: {

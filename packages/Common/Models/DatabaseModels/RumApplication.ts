@@ -24,6 +24,7 @@ import Permission from "../../Types/Permission";
 import SessionReplayCaptureTrigger from "../../Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "../../Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "../../Types/Rum/SessionReplayMaskingMode";
+import { SessionReplayFrustrationSettings } from "../../Types/Rum/SessionReplayFrustrationSignals";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
@@ -1259,6 +1260,61 @@ export default class RumApplication extends BaseModel {
     default: 0,
   })
   public sessionReplaySlowRequestBudgetMs?: number = undefined;
+
+  /*
+   * What counts as frustration in this application's recordings: the four
+   * built-in rules (rage, dead and error clicks, refresh rage), each with
+   * its numbers or switched off, and up to 20 signals of the application's
+   * own. Null - every row from before this column, and the default - means
+   * the built-in rules exactly as the recorder always had them.
+   *
+   * Written through RumApplicationService, which refuses settings it cannot
+   * stand behind (Utils/Rum/SessionReplayFrustrationSettingsValidation) and
+   * stores the rest canonical. Its name starts with "sessionReplay", so an
+   * edit clears the gate cache like every other policy column, and the
+   * recorders read it on their next page load.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Frustration Signals",
+    description:
+      "What counts as frustration in this application's recordings: the rules for rage clicks, dead clicks, error clicks and refresh rage (each can be changed or switched off), and up to 20 signals of the application's own (a click on an element, a page, an event from track() or an error's text), each counted as frustration or shown as a marker. Empty means the built-in rules: 3 clicks within 1 second in a 30 px radius, 3 seconds with nothing happening after a click, an error within 1 second of a click, and the same page loaded 3 times within 60 seconds.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public sessionReplayFrustrationSignals?: SessionReplayFrustrationSettings =
+    undefined;
 
   @ColumnAccessControl({
     create: [

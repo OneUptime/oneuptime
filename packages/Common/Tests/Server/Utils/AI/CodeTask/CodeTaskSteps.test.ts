@@ -63,6 +63,71 @@ describe("CodeTaskSteps.fromEvents", () => {
     ]);
   });
 
+  /*
+   * The code agent's tools since issue #6441, in the Runner's own words
+   * (packages/Runner/CodeAgents/Tools): an edit and a search by file name
+   * read like a write and a search, a read-only git command like a command
+   * it ran; the rest are said as they happened.
+   */
+  test("the code agent's newer tools become steps too", () => {
+    const steps: Array<CodeTaskStepJSON> = CodeTaskSteps.fromEvents([
+      line('searched file names for "*.test.ts"', { toolName: "find_files" }),
+      line("read src/api/users.ts:1890-1910", { toolName: "read_file" }),
+      line("edited src/api/users.ts (2 replacements)", {
+        toolName: "edit_file",
+      }),
+      line("edited docs/a (draft).md (1 replacement)", {
+        toolName: "edit_file",
+      }),
+      line("ran git diff -- src/api/users.ts", { toolName: "git" }),
+      line("ran git log -- docs/a (draft).md", { toolName: "git" }),
+      line("deleted src/legacy.ts", { toolName: "delete_file" }),
+      line("moved src/a.ts to src/lib/a.ts", { toolName: "move_file" }),
+      line("updated the plan: 1 of 3 steps done; now: Run the tests", {
+        toolName: "update_plan",
+      }),
+      line("read out-1:3000-3100 (run_command npm test)", {
+        toolName: "read_tool_output",
+      }),
+    ]);
+
+    expect(kinds(steps)).toEqual([
+      "Searched: *.test.ts",
+      "Read: src/api/users.ts:1890-1910",
+      "Edited: src/api/users.ts",
+      "Edited: docs/a (draft).md",
+      "Ran: git diff -- src/api/users.ts",
+      // A path's own " (" is kept: only the outcome is cut off.
+      "Ran: git log -- docs/a (draft).md",
+      "Note: deleted src/legacy.ts",
+      "Note: moved src/a.ts to src/lib/a.ts",
+      "Note: updated the plan: 1 of 3 steps done; now: Run the tests",
+      "Note: read out-1:3000-3100 (run_command npm test)",
+    ]);
+  });
+
+  test("a git command that failed or ran out of time is a step marked as an error", () => {
+    const steps: Array<CodeTaskStepJSON> = CodeTaskSteps.fromEvents([
+      line("ran git show v9.9.9 (failed)", { toolName: "git" }),
+      line("ran git blame -- src/huge.ts (timed out)", { toolName: "git" }),
+      line("refused git: unknown action push", { toolName: "git" }),
+      line("edit_file src/a.ts failed: the text to replace did not match", {
+        toolName: "edit_file",
+      }),
+      line("refused edit_file src/a.ts: the result is too large", {
+        toolName: "edit_file",
+      }),
+    ]);
+
+    expect(kinds(steps)).toEqual([
+      "Ran: git show v9.9.9 (error)",
+      "Ran: git blame -- src/huge.ts (error)",
+      "Note: refused git: unknown action push (error)",
+      "Note: edit_file src/a.ts failed: the text to replace did not match (error)",
+      "Note: refused edit_file src/a.ts: the result is too large (error)",
+    ]);
+  });
+
   test("a refused or failed tool call is said as it happened, marked as an error", () => {
     const steps: Array<CodeTaskStepJSON> = CodeTaskSteps.fromEvents([
       line("refused run_command: rm -rf /", { toolName: "run_command" }),

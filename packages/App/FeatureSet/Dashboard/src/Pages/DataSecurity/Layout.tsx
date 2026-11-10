@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * Every Data Security page but a store's and an issue's, which open on
@@ -20,6 +22,7 @@ const DataSecurityLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title="Data Security"
+      titleRight={<ProductAboutButton product={ProductKey.DataSecurity} />}
       breadcrumbLinks={getDataSecurityBreadcrumbs(path)}
       sideMenu={<DataSecuritySideMenu />}
     >

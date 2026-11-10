@@ -3,12 +3,15 @@ import {
   CodeRepositoryTaskStatsJSON,
   CodeTaskBlocker,
   CodeTaskContextInput,
+  CodeTaskListCountsJSON,
+  CodeTaskListFilter,
   CodeTaskListKind,
   CodeTaskRepositoryJSON,
   CodeTaskStepJSON,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
   CodeTaskTurnProgressJSON,
+  MAX_CODE_TASKS_PER_REQUEST,
 } from "Common/Types/AI/CodeTask";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -23,6 +26,22 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
  * CodeTaskAPI). React-free, so tests and the offline fixture can stand in
  * for it, and every page reads the same shapes (Types/AI/CodeTask).
  */
+
+// Ids, without repeats, in the batches the server reads at once.
+export function getIdBatches(ids: Array<string>): Array<Array<string>> {
+  const unique: Array<string> = [...new Set(ids)];
+  const batches: Array<Array<string>> = [];
+
+  for (
+    let start: number = 0;
+    start < unique.length;
+    start += MAX_CODE_TASKS_PER_REQUEST
+  ) {
+    batches.push(unique.slice(start, start + MAX_CODE_TASKS_PER_REQUEST));
+  }
+
+  return batches;
+}
 
 export interface CodeRepositoryListItem extends CodeTaskRepositoryJSON {
   stats: CodeRepositoryTaskStatsJSON;
@@ -45,6 +64,14 @@ export interface CodeTaskListResponse {
   count: number;
   skip: number;
   limit: number;
+  // How many tasks each filter shows, when they were asked for.
+  counts?: CodeTaskListCountsJSON | undefined;
+}
+
+// What a Retry of several tasks did: how many went, and why the rest did not.
+export interface CodeTaskRetryManyResponse {
+  retried: number;
+  failed: Array<{ taskId: string; message: string }>;
 }
 
 export interface CodeTaskResponse {
@@ -124,15 +151,28 @@ export default class CodeApi {
     skip: number;
     limit: number;
     kind?: CodeTaskListKind | undefined;
+    // Only the tasks of one filter (in progress, failed, ...).
+    filter?: CodeTaskListFilter | undefined;
+    // Only the tasks whose title has it, or whose number it is.
+    search?: string | undefined;
+    // Also how many tasks each filter shows, for the list's tabs.
+    withCounts?: boolean | undefined;
   }): Promise<CodeTaskListResponse> {
     const response: JSONObject = await CodeApi.post("/list", {
       ...getTaskListScopeBody(data.scope),
       ...(data.kind && data.kind !== CodeTaskListKind.Tasks
         ? { kind: data.kind }
         : {}),
+      ...(data.filter && data.filter !== CodeTaskListFilter.All
+        ? { filter: data.filter }
+        : {}),
+      ...(data.search ? { search: data.search } : {}),
+      ...(data.withCounts ? { withCounts: true } : {}),
       skip: data.skip,
       limit: data.limit,
     });
+
+    const counts: unknown = response["counts"];
 
     return {
       tasks: (response["tasks"] as unknown as Array<CodeTaskSummaryJSON>) || [],
@@ -140,7 +180,62 @@ export default class CodeApi {
       count: (response["totalCount"] as number) || 0,
       skip: (response["skip"] as number) || 0,
       limit: (response["limit"] as number) || data.limit,
+      ...(counts && typeof counts === "object"
+        ? { counts: counts as CodeTaskListCountsJSON }
+        : {}),
     };
+  }
+
+  /*
+   * Several tasks at a glance, by id: an insight's fix task. Only those the
+   * reader may read come back. The server reads so many ids a request
+   * (MAX_CODE_TASKS_PER_REQUEST), so a longer list goes in several.
+   */
+  public static async getTaskSummaries(
+    taskIds: Array<string>,
+  ): Promise<Array<CodeTaskSummaryJSON>> {
+    const answers: Array<JSONObject> = await Promise.all(
+      getIdBatches(taskIds).map((batch: Array<string>) => {
+        return CodeApi.post("/summaries", { taskIds: batch });
+      }),
+    );
+
+    return answers.flatMap(
+      (response: JSONObject): Array<CodeTaskSummaryJSON> => {
+        return Array.isArray(response["tasks"])
+          ? (response["tasks"] as unknown as Array<CodeTaskSummaryJSON>)
+          : [];
+      },
+    );
+  }
+
+  /*
+   * Ask the failed or stopped turns of several tasks again at once, so many
+   * a request, one request after another.
+   */
+  public static async retryMany(
+    taskIds: Array<string>,
+  ): Promise<CodeTaskRetryManyResponse> {
+    const result: CodeTaskRetryManyResponse = { retried: 0, failed: [] };
+
+    for (const batch of getIdBatches(taskIds)) {
+      const response: JSONObject = await CodeApi.post("/retry-many", {
+        taskIds: batch,
+      });
+
+      result.retried += Number(response["retried"]) || 0;
+
+      if (Array.isArray(response["failed"])) {
+        result.failed.push(
+          ...(response["failed"] as unknown as Array<{
+            taskId: string;
+            message: string;
+          }>),
+        );
+      }
+    }
+
+    return result;
   }
 
   public static async getTask(taskId: string): Promise<CodeTaskResponse> {
@@ -186,6 +281,13 @@ export default class CodeApi {
         ? (response["steps"] as unknown as Array<CodeTaskStepJSON>)
         : [],
       hasMore: response["hasMore"] === true,
+      ...(response["retry"] && typeof response["retry"] === "object"
+        ? {
+            retry: response[
+              "retry"
+            ] as unknown as CodeTaskTurnProgressJSON["retry"],
+          }
+        : {}),
     };
   }
 

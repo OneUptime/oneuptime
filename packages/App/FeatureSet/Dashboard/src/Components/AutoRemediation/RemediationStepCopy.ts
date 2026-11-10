@@ -4,6 +4,11 @@ import {
   RemediationTryAgainResult,
   RemediationTryAgainSignal,
 } from "Common/Types/AutoRemediation/RemediationTryAgain";
+import {
+  REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED,
+  REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
+  RemediationRoundTryAgainRefusal,
+} from "Common/Types/AutoRemediation/RemediationRound";
 import { AutomaticCodeFixBlocker } from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
 import {
   PluralTemplate,
@@ -487,3 +492,145 @@ export const REMEDIATION_FIX_STEP_COPY: {
     "The cluster had already put back what it changed.",
   ),
 };
+
+/*
+ * A ROUND OF AN AI FIX, EXPLAINED (issues #6436, #6487): "No safe fix
+ * found, but it doesn't tell me anything about why ... What did you do ...
+ * did you ask for an approval? What fix wasn't safe? What commands did you
+ * run?" A fix OneUptime AI worked out says what its round did
+ * (RemediationRoundDetails): that it stopped before it found a fix and
+ * why - with Try again - or why it found none, each fix it ruled out with
+ * why not, the commands it checked with, and that nothing ran and nobody
+ * was asked to approve anything.
+ */
+export const REMEDIATION_ROUND_COPY: {
+  // The plan step of a round that stopped without its answer.
+  unfinishedFix: string;
+  unfinishedRunbook: string;
+  // The fact beside the fix's name, and the step's pill.
+  didNotFinish: string;
+  // The notice under the plan step: why it stopped, and what to do.
+  whyItStopped: string;
+  ruledOutHeading: string;
+  checksHeading: string;
+  otherChecks: PluralTemplate;
+  // Each check's mark, as a screen reader says it.
+  checkRan: string;
+  checkFailed: string;
+  checkUnknown: string;
+  checkRunning: string;
+  checkStopped: string;
+  // Whether anything ran, and whether anyone was asked to approve it.
+  nothingAskedNoFix: string;
+  nothingAskedNoRunbook: string;
+  nothingAskedUnfinished: string;
+  nothingAskedUnfinishedRunbook: string;
+  // Unfolds the AI's whole answer under the reason it gave, and folds it.
+  showFullReasoning: string;
+  showLessReasoning: string;
+} = {
+  unfinishedFix: translationKey("Stopped before it found a fix"),
+  unfinishedRunbook: translationKey("Stopped before it picked a runbook"),
+  didNotFinish: translationKey("Did not finish"),
+  whyItStopped: translationKey("Why it stopped"),
+  ruledOutHeading: translationKey("Fixes it ruled out"),
+  checksHeading: translationKey("What it checked"),
+  otherChecks: {
+    one: "It also queried the project's telemetry {{count}} time.",
+    other: "It also queried the project's telemetry {{count}} times.",
+  },
+  checkRan: translationKey("Ran"),
+  checkFailed: translationKey("Failed"),
+  checkUnknown: translationKey("Result unknown"),
+  checkRunning: translationKey("Running"),
+  checkStopped: translationKey("Stopped"),
+  nothingAskedNoFix: translationKey(
+    "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
+  ),
+  nothingAskedNoRunbook: translationKey(
+    "No runbook ran, and nobody was asked to approve one.",
+  ),
+  /*
+   * The step's title already says it stopped before it found one: the
+   * line says only what did not happen.
+   */
+  nothingAskedUnfinished: translationKey(
+    "No fix ran, and nobody was asked to approve one.",
+  ),
+  nothingAskedUnfinishedRunbook: translationKey(
+    "No runbook ran, and nobody was asked to approve one.",
+  ),
+  showFullReasoning: translationKey("Show full reasoning"),
+  showLessReasoning: translationKey("Show less"),
+};
+
+/*
+ * The server's refusals of a round's Try again (RemediationRound), as
+ * keys: the step shows the server's sentence, and these let each locale
+ * word it. The same words as the server's (a test holds it).
+ */
+export const REMEDIATION_ROUND_TRY_AGAIN_REFUSAL_KEYS: Record<
+  RemediationRoundTryAgainRefusal,
+  string
+> = {
+  [RemediationRoundTryAgainRefusal.NoRound]: translationKey(
+    "OneUptime AI did not work this fix out, so there is nothing to try again.",
+  ),
+  [RemediationRoundTryAgainRefusal.StillWorking]: translationKey(
+    "OneUptime AI is still working on this fix.",
+  ),
+  [RemediationRoundTryAgainRefusal.Finished]: translationKey(
+    "OneUptime AI finished working on this fix, so there is nothing to try again.",
+  ),
+  [RemediationRoundTryAgainRefusal.PartlyApplied]: translationKey(
+    "OneUptime AI made a change for this fix before it stopped, so it does not start the fix again: that could make the same change twice. Check what it changed, then finish the fix yourself.",
+  ),
+  [RemediationRoundTryAgainRefusal.IncidentResolved]: translationKey(
+    "This incident is resolved, so OneUptime AI does not try to fix it.",
+  ),
+  [RemediationRoundTryAgainRefusal.AlertResolved]: translationKey(
+    "This alert is resolved, so OneUptime AI does not try to fix it.",
+  ),
+  [RemediationRoundTryAgainRefusal.AlreadyStarted]: translationKey(
+    "Someone has just started this fix again.",
+  ),
+  [RemediationRoundTryAgainRefusal.AiOff]: translationKey(
+    "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+  ),
+  [RemediationRoundTryAgainRefusal.NoProvider]: translationKey(
+    "This project has no AI provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.",
+  ),
+  [RemediationRoundTryAgainRefusal.CreditsUsedUp]: translationKey(
+    "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings > AI > AI Credits.",
+  ),
+  [RemediationRoundTryAgainRefusal.LimitReached]: translationKey(
+    "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
+  ),
+  [RemediationRoundTryAgainRefusal.NotStarted]: translationKey(
+    "The fix could not start again. Try again in a few minutes.",
+  ),
+};
+
+// The server's sentences and these keys are the same words (a test holds it).
+export const REMEDIATION_ROUND_TRY_AGAIN_SERVER_SENTENCES: typeof REMEDIATION_ROUND_TRY_AGAIN_REFUSALS =
+  REMEDIATION_ROUND_TRY_AGAIN_REFUSALS;
+
+/*
+ * The refusal of a reader who may not change the incident or alert: Try
+ * again is not offered to them, but their permission may change while the
+ * page is open. The server's words (REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED).
+ */
+export const REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED_KEYS: Record<
+  "incident" | "alert",
+  string
+> = {
+  incident: translationKey(
+    "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.",
+  ),
+  alert: translationKey(
+    "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.",
+  ),
+};
+
+export const REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED_SERVER_SENTENCES: typeof REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED =
+  REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED;

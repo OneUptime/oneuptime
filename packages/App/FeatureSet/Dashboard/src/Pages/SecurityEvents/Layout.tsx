@@ -13,6 +13,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * Every Security Events page but a case's and a playbook's, which open on
@@ -30,6 +32,7 @@ const SecurityEventsLayout: FunctionComponent<
   return (
     <Page
       title="Security Events"
+      titleRight={<ProductAboutButton product={ProductKey.SecurityEvents} />}
       breadcrumbLinks={nameEntityInTrail({
         links: getSecurityEventsBreadcrumbs(path),
         path: path,

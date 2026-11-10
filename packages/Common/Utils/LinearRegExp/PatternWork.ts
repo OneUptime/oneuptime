@@ -117,9 +117,15 @@ export const TELEMETRY_WORK_PER_CHARACTER: number = 128;
 /*
  * How deep into a record, and how many of its values, are counted when it is
  * handed over: a log row is its body and a map of attributes, a span a few
- * maps more. A record deeper or larger adds no more than this much of it.
+ * maps more. The attributes of a span's events and links sit four levels
+ * down, and a scrub rule reads every text up to 32 levels into an
+ * attribute's list or map (SCRUB_MAX_VALUE_DEPTH in
+ * Utils/Telemetry/ScrubNestedValues.ts; Tests/Utils/LinearRegExp/
+ * PatternWork.test.ts holds the two together), so each text a scrub rule
+ * reads adds its share. A record deeper or larger adds no more than this
+ * much of it.
  */
-const MAX_RECORD_DEPTH: number = 6;
+export const MAX_RECORD_DEPTH: number = 36;
 const MAX_RECORD_VALUES: number = 100_000;
 
 export interface PatternWorkAllowanceOptions {

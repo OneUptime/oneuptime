@@ -64,7 +64,7 @@ export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
 
 ### 確認資料已抵達
 
-開啟 **指標** 並尋找 `claude_code.token.usage`，接著開啟 **產品 → AI / LLM** 並前往 **使用量** ：你的成本會顯示在你的電子郵件下，並標示 **來自 GenAI 指標** 。
+開啟 **指標** 並尋找 `claude_code.token.usage`，接著開啟 **產品 → AI / LLM** 並前往 **使用量** ：你的成本會顯示在你的電子郵件下，並標示 **來自使用量指標** 。
 :::
 
 若要把指標和事件傳送到不同的地方，請改為設定 `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` 和 `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`，並使用完整路徑（`https://oneuptime.com/otlp/v1/metrics`、`https://oneuptime.com/otlp/v1/logs`）。
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 在 **產品 → AI / LLM → 使用量** 中，`claude_code.cost.usage` 會為 **員工** 、 **團隊** 和 **模型** 表格提供資料，`claude_code.token.usage` 則提供 token 總數。你看到的內容由兩條規則決定：
 
-- **指標只補充 span，絕不與之相加。** 如果同一個專案從你自己的應用程式接收帶有成本的 GenAI span，Claude Code 的支出就不會顯示。請把 Claude Code 傳送到單獨的專案。請參閱 [span 優先，指標補充](/docs/telemetry/ai-llm-observability#span-優先指標補充)。
-- **來自指標的資料列只攜帶成本。** 其呼叫和 token 儲存格顯示 `—`， **提供者** 和 **應用程式 / 服務** 表格保持空白：這些指標不指明提供者，也不屬於任何 OneUptime 服務。
+- **Claude Code 與你的應用程式一起計數。** 它的指標歸在它自己的服務下，因此它的支出會加到你的應用程式傳送到同一個專案的 AI 呼叫上。如果你開啟它的追蹤（搶先版），請為所有人開啟：從那時起，Claude Code 只依其追蹤計數，只計一次。請參閱 [每個服務依其傳送的資料計數](/docs/telemetry/ai-llm-observability#每個服務依其傳送的資料計數)。
+- **來自指標的資料列不指明任何呼叫。** 它會在名稱下方註明 **來自使用量指標** ，其呼叫儲存格顯示 `—`， **提供者** 表格會把它歸入 **未歸屬** ：這些指標不指明提供者。
 
 其他所有內容，例如依開發人員劃分的接受率、程式碼行數、提交和提取要求，或依 `query_source` 劃分的支出，都可以根據下方的指標在 [儀表板](/docs/dashboards/index) 上繪製，並用 [指標監控](/docs/monitor/metrics-monitor) 設定警示。
 

@@ -1,6 +1,6 @@
 # Kontoen din
 
-Kontoen din er hvordan OneUptime kjenner deg: e-posten og passordet du logger inn med, navnet og tidssonen din, og det som beskytter innloggingen din. Én konto kan høre til mange prosjekter, og disse innstillingene følger deg inn i hvert av dem. Hvordan OneUptime når deg, og når du varsles, stiller du inn i hvert prosjekt under **Brukerinnstillinger**.
+Kontoen din er hvordan OneUptime kjenner deg: e-posten og passordet du logger inn med, navnet, tidssonen og språket ditt, og det som beskytter innloggingen din. Én konto kan høre til mange prosjekter, og disse innstillingene følger deg inn i hvert av dem. Hvordan OneUptime når deg, og når du varsles, stiller du inn i hvert prosjekt under **Brukerinnstillinger**.
 
 ```mermaid title="Det som hører til kontoen din, og det hvert prosjekt tar vare på for deg"
 flowchart TB
@@ -11,7 +11,7 @@ flowchart TB
 ```
 
 :::cards
-- [Profilen din](#profilen-din): Navnet, e-posten, tidssonen og bildet ditt.
+- [Profilen din](#profilen-din): Navnet, e-posten, tidssonen, språket og bildet ditt.
 - [Logg inn trygt](#logg-inn-trygt): Passordet ditt, innloggingslenker, passnøkler og totrinnsbekreftelse.
 - [Prosjektene dine](#prosjektene-dine): Bytt prosjekt, opprett et, og godta invitasjoner.
 - [Brukerinnstillinger](#det-hvert-prosjekt-tar-vare-på-for-deg): Hvordan OneUptime når deg i hvert prosjekt.
@@ -23,7 +23,7 @@ Klikk på bildet ditt øverst til høyre i dashbordet.
 
 | Punkt | Hva det gjør |
 | --- | --- |
-| **Profil** | Åpner **Brukerprofil**: navnet, e-posten, tidssonen og bildet ditt, og sikkerheten rundt innloggingen. |
+| **Profil** | Åpner **Brukerprofil**: navnet, e-posten, tidssonen, språket og bildet ditt, og sikkerheten rundt innloggingen. |
 | **Admin-innstillinger** | Åpner Admin Dashboard. Bare hovedadministratorer på en selvhostet installasjon ser det. |
 | **Tema** | Velger dashbordets tema: **Lyst**, **Mørkt** eller **System**, som er lyst eller mørkt etter hvordan enheten din er stilt inn. |
 | **Logg ut** | Logger deg ut. |
@@ -35,7 +35,7 @@ Klikk på bildet ditt øverst til høyre i dashbordet.
 :::steps
 ### Åpne profilen din
 
-Klikk på bildet ditt øverst til høyre, og velg **Profil**. Siden **Oversikt** åpnes på kortet **Grunnleggende informasjon**: navnet, e-posten og tidssonen din.
+Klikk på bildet ditt øverst til høyre, og velg **Profil**. Siden **Oversikt** åpnes på kortet **Grunnleggende informasjon**: navnet, e-posten, tidssonen og språket ditt.
 
 ### Rediger opplysningene dine
 
@@ -44,6 +44,7 @@ Klikk på **Rediger Bruker**, og endre det du trenger:
 - **E-post**: adressen du logger inn med. Endrer du den, bekrefter du den nye adressen på nytt.
 - **Fullt navn**: navnet teamet ditt ser overalt i OneUptime.
 - **Tidssone**: tidssonen dashbordet viser og leser tider i, og den som brukes for tidene i varsler til deg.
+- **Språk**: språket i dashbordet i alle nettlesere du logger inn i, og i vakttilkallingene dine. Ikke valgt: tilkallingene er på engelsk, og dashbordet følger nettleseren din.
 
 Klikk på **Lagre endringer**.
 
@@ -146,9 +147,9 @@ Du kan høre til så mange prosjekter du vil. Prosjektvelgeren øverst til venst
 
 ## Språk og tema
 
-Begge lagres i nettleseren din, ikke på kontoen, så still dem inn på nytt i en annen nettleser eller på en annen enhet. De beholdes når du logger ut, så på en delt datamaskin starter neste person med innstillingene dine.
+Temaet ditt lagres i nettleseren din, så still det inn på nytt i en annen nettleser eller på en annen enhet. Språket ditt lagres på kontoen så snart du velger det, og alle nettlesere du logger inn i, starter på det. De beholdes når du logger ut, så på en delt datamaskin starter neste person med innstillingene dine.
 
-- **Språk**: dashbordet starter på nettleserens språk. Bruk språkmenyen nederst på hver side for å bytte. Denne dokumentasjonen har sin egen språkmeny øverst.
+- **Språk**: dashbordet starter på nettleserens språk. Bruk språkmenyen nederst på hver side for å bytte. Valget ditt lagres på kontoen, som **Språk** på profilen din, og OneUptime skriver vakttilkallingene dine på det. Se [Språket i tilkallingene dine](/docs/notifications/index#språket-i-tilkallingene-dine). Denne dokumentasjonen har sin egen språkmeny øverst.
 - **Tema**: velg **Lyst**, **Mørkt** eller **System** i brukermenyen. **System** er lyst eller mørkt etter hvordan enheten din er stilt inn, og skifter med den; alle nettlesere starter med det. Påloggingssidene bruker samme tema.
 
 ## Slett kontoen din

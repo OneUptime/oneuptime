@@ -1,13 +1,26 @@
 # Cursor
 
-Cursor exporteert de telemetrie van zijn team vanaf de eigen servers van Cursor. Een teambeheerder voegt OneUptime één keer toe als bestemming, in het dashboard van Cursor, en de tokens, geschatte kosten en toolaanroepen van het hele team komen binnen: niets te installeren of in te stellen op de machines van ontwikkelaars.
+Cursor exporteert de telemetrie van zijn team vanaf de eigen servers van Cursor. Een teambeheerder voegt OneUptime één keer toe als bestemming, in het dashboard van Cursor, en de tokens, geschatte kosten en toolaanroepen van het hele team komen binnen: niets te installeren of in te stellen op de machines van ontwikkelaars. Ook met het Teams-abonnement kan OneUptime het gebruik van het team en wat Cursor in rekening bracht per persoon lezen, met een beheerders-API-sleutel, in plaats van de export of ernaast.
 
 :::cards
+- [Twee manieren](#twee-manieren): Een beheerders-API-sleutel in OneUptime, of de OpenTelemetry Export van Cursor.
 - [Instellen](#instellen): Maak een sleutel in OneUptime en een bestemming in Cursor.
 - [Wat je krijgt](#wat-je-krijgt-en-wat-niet): Metrieken en logs; geen traces.
 - [Wie wat uitgaf](#toewijzing-aan-medewerkers): Personen komen binnen als gebruikers-id's van Cursor.
 - [Problemen oplossen](#problemen-oplossen): Wat je controleert als er niets binnenkomt.
 :::
+
+## Twee manieren
+
+| | Beheerders-API-sleutel | OpenTelemetry Export |
+| --- | --- | --- |
+| Abonnement bij Cursor | Teams of Enterprise | Enterprise |
+| Instellen | In OneUptime, onder **Producten → AI / LLM → Koppelen** | In het dashboard van Cursor, onder **Team Settings → OpenTelemetry Export** |
+| Wat binnenkomt | Tokens, verzoeken en wat Cursor in rekening bracht, per uur, persoon en model, en hoeveel leden Cursor gebruiken | Tokens, geschatte kosten en toolaanroepen, en een loggebeurtenis per verzoek |
+| Vanaf wanneer | De laatste 30 dagen, daarna elk uur | Terwijl het gebeurt, vanaf de dag dat je hem inschakelt |
+| Staat in **Gebruik** onder | **Provideraccounts** | **Je AI-aanroepen** |
+
+Beide geven gebruik en kosten, geen gesprekken. Gebruik er een of allebei: de twee blijven gescheiden en worden nooit opgeteld, en een budget telt er een van, zoals zijn **Uitgaven tellen vanuit** zegt. Hoe je de sleutel koppelt, staat in [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts#cursor); de rest van deze pagina stelt de OpenTelemetry Export in.
 
 ## Hoe het werkt
 
@@ -116,20 +129,20 @@ Elk record draagt deze resource-attributen:
 
 ### Waar Cursor op het tabblad Gebruik verschijnt
 
-Cursor stuurt metrieken en geen GenAI-spans, en de metrieken vullen alleen spans aan: **als hetzelfde project GenAI-spans met kosten ontvangt, verschijnen de uitgaven van Cursor niet.** Stuur Cursor naar een eigen project. Zie [Spans eerst, metrieken vullen aan](/docs/telemetry/ai-llm-observability#spans-eerst-metrieken-vullen-aan).
+Cursor stuurt metrieken en geen GenAI-spans, onder zijn eigen service, `cursor`, dus worden zijn uitgaven geteld naast de AI-aanroepen die je apps naar hetzelfde project sturen, nooit in hun plaats. Zie [Elke service wordt geteld uit wat hij stuurt](/docs/telemetry/ai-llm-observability#elke-service-wordt-geteld-uit-wat-hij-stuurt).
 
 | Uitsplitsing | Voor Cursor |
 | --- | --- |
 | **Medewerker** | Ja, op `cursor.user.email`, anders `cursor.user.id` |
 | **Team** | Ja, op `cursor.team.id` |
 | **Model** | Ja, op `cursor.model.name` |
-| **Provider** | Nee: Cursor zegt nooit welke provider een aanroep afhandelde |
-| **Applicatie / Service** | Nee: de metrieken van Cursor horen bij geen enkele OneUptime-service |
+| **Provider** | Onder **Niet toegewezen**: Cursor zegt nooit welke provider een aanroep bediende |
+| **Applicatie / Service** | Ja, onder de service `cursor` |
 
-Een Cursor-rij draagt alleen kosten: de cellen voor aanroepen en tokens tonen `—`, omdat `cursor.cost.usage` geen details per aanroep heeft. `cursor.token.usage` voedt nog steeds de tokentotalen boven de tabel (de types `input` en `output`; cachetokens blijven buiten beschouwing), en je kunt het in een dashboard zetten per `cursor.token.type`.
+Een Cursor-rij zegt **Uit gebruiksmetrieken** onder haar naam, en haar cel voor aanroepen toont `—`, omdat een teller geen details per aanroep heeft. Haar kosten komen uit `cursor.cost.usage` en haar tokens uit `cursor.token.usage` (de typen `input` en `output`; cachetokens worden weggelaten), die je ook op een dashboard per `cursor.token.type` kunt tonen.
 
 :::details Een gebruikers-id van Cursor omzetten in een persoon
-Namen en gefactureerde bedragen staan in de Admin API van Cursor, die OneUptime niet aanroept: roep hem zelf aan als je hem nodig hebt. Hij is alleen voor Enterprise, op `https://api.cursor.com`, en neemt een beheerders-API-sleutel als gebruikersnaam met een leeg wachtwoord:
+Namen en gefactureerde bedragen staan in de Admin API van Cursor, die OneUptime leest als je zijn sleutel koppelt als [provideraccount](/docs/telemetry/ai-provider-accounts#cursor): dat account noemt personen bij hun e-mailadres. Om zelf een `cursor.user.id` te koppelen, roep je de API aan op `https://api.cursor.com`, met een beheerders-API-sleutel als gebruikersnaam en een leeg wachtwoord:
 
 ```bash
 curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
@@ -150,7 +163,7 @@ Deze regels veranderen wat je in grafieken ziet, dus ken ze voordat je een gat m
 
 ## Kosten zijn een schatting, geen factuur
 
-Cursor documenteert `cursor.cost.usage` als een schatting naar beste kunnen. Het scheidt inbegrepen gebruik niet van gebruik dat op aanvraag wordt gefactureerd; met je eigen modelsleutels weerspiegelt het alleen het tokentarief van Cursor, niet de factuur van je provider; en een latere `cursor.api.correction` kan gebruik terugnemen dat al was geteld. Lees het als een trend. Voor een getal dat met de factuur overeenkomt, tel je de `chargedCents` uit de Admin API van Cursor op.
+Cursor documenteert `cursor.cost.usage` als een schatting naar beste kunnen. Het scheidt inbegrepen gebruik niet van gebruik dat op aanvraag wordt gefactureerd; met je eigen modelsleutels weerspiegelt het alleen het tokentarief van Cursor, niet de factuur van je provider; en een latere `cursor.api.correction` kan gebruik terugnemen dat al was geteld. Lees het als een trend. Voor een getal dat met de factuur overeenkomt, tel je de `chargedCents` uit de Admin API van Cursor op. Een Cursor-team dat als [provideraccount](/docs/telemetry/ai-provider-accounts#cursor) is gekoppeld, doet dat voor je, per uur.
 
 ## Problemen oplossen
 
@@ -163,7 +176,7 @@ Cursor maakt verbinding vanaf zijn eigen servers: je OTLP-endpoint moet bereikba
 :::
 
 :::details Logs komen binnen, maar het tabblad Gebruik toont geen uitgaven van Cursor
-Het project ontvangt ook GenAI-spans met kosten, dus de metrieken van Cursor worden niet gelezen. Stuur Cursor naar een eigen project, met een eigen ingestiesleutel.
+De uitgaven van Cursor komen uit zijn metrieken, niet uit zijn logs: controleer of het signaal voor metrieken in Cursor aan staat, en zoek `cursor.cost.usage` onder **Metrieken**. Als je rol geen metrieken mag lezen, laat het tabblad Gebruik ze weg en zegt dat.
 :::
 
 :::details Personen verschijnen als getallen
@@ -174,6 +187,7 @@ Dat is `cursor.user.id`, gelezen als Cursor geen `cursor.user.email` stuurt. Kop
 
 :::cards
 - [AI-codeerassistenten](/docs/telemetry/ai-coding-assistants): Hoe uitgaven over elke codeerassistent worden toegewezen.
+- [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts#cursor): Lees het gebruik van een Cursor-team en wat Cursor in rekening bracht met een beheerders-API-sleutel.
 - [AI-gateways](/docs/telemetry/ai-gateways): Volledige traces en prompts voor de modelaanroepen die je eigen apps doen.
 - [Metrics-monitor](/docs/monitor/metrics-monitor): Waarschuw op `cursor.cost.usage`, `cursor.token.usage` of `cursor.tool.calls`.
 :::

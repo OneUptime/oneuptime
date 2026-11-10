@@ -1,3 +1,11 @@
+import {
+  SessionReplayDeadClickRule,
+  SessionReplayErrorClickRule,
+  SessionReplayFrustrationSettings,
+  SessionReplayRageClickRule,
+  getDefaultSessionReplayFrustrationSettings,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
+
 /*
  * Frustration signals: rage click, dead click, error click, refresh rage.
  *
@@ -16,21 +24,26 @@
 
 export const FRUSTRATION_CUSTOM_EVENT_TAG: string = "oneuptime.frustration";
 
-/* Rage click: 3+ clicks inside 1s within a 30px radius. */
-const RAGE_CLICK_WINDOW_MS: number = 1000;
-const RAGE_CLICK_RADIUS_PX: number = 30;
-const RAGE_CLICK_THRESHOLD: number = 3;
-
 /*
- * Dead click: a click on something that LOOKS clickable, is not a native
- * control, and produces no DOM mutation, navigation, scroll or network
- * request. 3s is long enough to cover a slow handler and short enough that
- * the verdict is still about that click.
+ * The rules, each with its numbers or switched off, are the application's
+ * (its Frustration Signals page, SessionReplayFrustrationSignals); without
+ * them the detector uses the built-in ones:
+ *
+ *  - Rage click: 3+ clicks inside 1s within a 30px radius.
+ *  - Dead click: a click on something that LOOKS clickable, is not a native
+ *    control, and produces no DOM mutation, navigation, scroll or network
+ *    request for 3s - long enough to cover a slow handler and short enough
+ *    that the verdict is still about that click.
+ *  - Error click: an error within 1s of a click is attributed to that click.
+ *
+ * A click on an element a rule ignores (or inside one) never feeds that
+ * rule: a quantity stepper clicked five times is somebody ordering five.
  */
-const DEAD_CLICK_TIMEOUT_MS: number = 3000;
-
-/* Error click: an error within 1s of a click is attributed to that click. */
-const ERROR_CLICK_WINDOW_MS: number = 1000;
+export interface FrustrationDetectorRules {
+  rageClick: SessionReplayRageClickRule;
+  deadClick: SessionReplayDeadClickRule;
+  errorClick: SessionReplayErrorClickRule;
+}
 
 /*
  * Native controls whose click is expected to do something the recorder may
@@ -82,6 +95,9 @@ export interface FrustrationSignal {
 export interface FrustrationDetectorOptions {
   emitCustomEvent: (tag: string, payload: unknown) => void;
   onSignal: (signal: FrustrationSignal) => void;
+
+  /* The application's rules; the built-in ones when absent. */
+  rules?: FrustrationDetectorRules;
 }
 
 interface ClickRecord {
@@ -116,6 +132,7 @@ interface RageCluster {
 
 export default class FrustrationDetector {
   private readonly options: FrustrationDetectorOptions;
+  private readonly rules: FrustrationDetectorRules;
 
   private started: boolean = false;
 
@@ -134,6 +151,15 @@ export default class FrustrationDetector {
   public constructor(options: FrustrationDetectorOptions) {
     this.options = options;
 
+    const builtIn: SessionReplayFrustrationSettings =
+      getDefaultSessionReplayFrustrationSettings();
+
+    this.rules = options.rules || {
+      rageClick: builtIn.rageClick,
+      deadClick: builtIn.deadClick,
+      errorClick: builtIn.errorClick,
+    };
+
     this.clickListener = (event: MouseEvent): void => {
       this.handleClick(event);
     };
@@ -149,6 +175,18 @@ export default class FrustrationDetector {
     }
 
     this.started = true;
+
+    /*
+     * Every click rule switched off: nothing here needs a click, so no
+     * listener is installed on the customer's page at all.
+     */
+    if (
+      !this.rules.rageClick.isEnabled &&
+      !this.rules.deadClick.isEnabled &&
+      !this.rules.errorClick.isEnabled
+    ) {
+      return;
+    }
 
     /*
      * Capture phase and passive: the detector must observe clicks a component
@@ -220,12 +258,61 @@ export default class FrustrationDetector {
     const x: number = typeof event.clientX === "number" ? event.clientX : 0;
     const y: number = typeof event.clientY === "number" ? event.clientY : 0;
 
-    this.lastClickAtMs = atMs;
-    this.lastClickX = x;
-    this.lastClickY = y;
+    if (this.rules.errorClick.isEnabled) {
+      this.lastClickAtMs = atMs;
+      this.lastClickX = x;
+      this.lastClickY = y;
+    }
 
-    this.detectRageClick(x, y, atMs);
-    this.armDeadClick(event, x, y, atMs);
+    const rage: SessionReplayRageClickRule = this.rules.rageClick;
+
+    if (
+      rage.isEnabled &&
+      !FrustrationDetector.isIgnored(event.target, rage.ignoreSelectors)
+    ) {
+      this.detectRageClick(x, y, atMs);
+    }
+
+    const dead: SessionReplayDeadClickRule = this.rules.deadClick;
+
+    if (
+      dead.isEnabled &&
+      !FrustrationDetector.isIgnored(event.target, dead.ignoreSelectors)
+    ) {
+      this.armDeadClick(event, x, y, atMs);
+    }
+  }
+
+  /*
+   * Is the click on an element a rule ignores, or inside one? closest()
+   * walks the whole ancestor chain once per selector, which is fine per
+   * click. A selector this browser cannot parse matches nothing: it throws,
+   * and the click is judged as if the selector were not there.
+   */
+  private static isIgnored(
+    target: EventTarget | null,
+    selectors: Array<string>,
+  ): boolean {
+    if (
+      selectors.length === 0 ||
+      !target ||
+      typeof Element === "undefined" ||
+      !(target instanceof Element)
+    ) {
+      return false;
+    }
+
+    for (const selector of selectors) {
+      try {
+        if (target.closest(selector)) {
+          return true;
+        }
+      } catch {
+        // Not a selector this browser reads; it ignores nothing.
+      }
+    }
+
+    return false;
   }
 
   private detectRageClick(x: number, y: number, atMs: number): void {
@@ -233,8 +320,8 @@ export default class FrustrationDetector {
 
     if (cluster) {
       if (
-        atMs - cluster.lastClickAtMs <= RAGE_CLICK_WINDOW_MS &&
-        FrustrationDetector.isWithinRadius(cluster.x, cluster.y, x, y)
+        atMs - cluster.lastClickAtMs <= this.rules.rageClick.windowMs &&
+        this.isWithinRadius(cluster.x, cluster.y, x, y)
       ) {
         cluster.clickCount++;
         cluster.lastClickAtMs = atMs;
@@ -251,7 +338,7 @@ export default class FrustrationDetector {
 
     this.recentClicks = this.recentClicks.filter(
       (click: ClickRecord): boolean => {
-        return atMs - click.atMs <= RAGE_CLICK_WINDOW_MS;
+        return atMs - click.atMs <= this.rules.rageClick.windowMs;
       },
     );
 
@@ -259,11 +346,11 @@ export default class FrustrationDetector {
 
     const nearby: Array<ClickRecord> = this.recentClicks.filter(
       (click: ClickRecord): boolean => {
-        return FrustrationDetector.isWithinRadius(click.x, click.y, x, y);
+        return this.isWithinRadius(click.x, click.y, x, y);
       },
     );
 
-    if (nearby.length < RAGE_CLICK_THRESHOLD) {
+    if (nearby.length < this.rules.rageClick.clickCount) {
       return;
     }
 
@@ -283,7 +370,7 @@ export default class FrustrationDetector {
   private armRageClusterTimer(): ReturnType<typeof setTimeout> {
     return setTimeout((): void => {
       this.closeRageCluster();
-    }, RAGE_CLICK_WINDOW_MS);
+    }, this.rules.rageClick.windowMs);
   }
 
   private closeRageCluster(): void {
@@ -304,7 +391,7 @@ export default class FrustrationDetector {
     });
   }
 
-  private static isWithinRadius(
+  private isWithinRadius(
     x1: number,
     y1: number,
     x2: number,
@@ -312,8 +399,9 @@ export default class FrustrationDetector {
   ): boolean {
     const dx: number = x1 - x2;
     const dy: number = y1 - y2;
+    const radius: number = this.rules.rageClick.radiusPx;
 
-    return dx * dx + dy * dy <= RAGE_CLICK_RADIUS_PX * RAGE_CLICK_RADIUS_PX;
+    return dx * dx + dy * dy <= radius * radius;
   }
 
   private armDeadClick(
@@ -336,7 +424,7 @@ export default class FrustrationDetector {
       y: y,
       timer: setTimeout((): void => {
         this.resolveDeadClick(pending);
-      }, DEAD_CLICK_TIMEOUT_MS),
+      }, this.rules.deadClick.timeoutMs),
     };
 
     this.pendingDeadClicks.push(pending);
@@ -391,11 +479,11 @@ export default class FrustrationDetector {
    * coordinates, so the player can draw it where it happened.
    */
   public notifyError(atUnixMs: number): void {
-    if (this.lastClickAtMs === 0) {
+    if (!this.rules.errorClick.isEnabled || this.lastClickAtMs === 0) {
       return;
     }
 
-    if (atUnixMs - this.lastClickAtMs > ERROR_CLICK_WINDOW_MS) {
+    if (atUnixMs - this.lastClickAtMs > this.rules.errorClick.windowMs) {
       return;
     }
 

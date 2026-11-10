@@ -72,6 +72,8 @@ import {
   LlmServiceOption,
   useLlmServiceNames,
 } from "./useLlmServiceNames";
+import ProductShowcase from "../ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../ProductOnboarding/ProductOnboarding";
 
 /*
  * THE HOME OF AI / LLM OBSERVABILITY: every conversation your AI had.
@@ -756,6 +758,11 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
           <></>
         )}
       </div>
+
+      {/* What AI / LLM shows once conversations arrive (ProductOnboarding). */}
+      {isFirstRun && (
+        <ProductShowcase product={ProductKey.Llm} hidesSteps={true} />
+      )}
     </div>
   );
 };

@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 Définissez-la là où vous provisionnez déjà les postes des développeurs : un profil MDM, un fichier de paramètres gérés ou un profil de shell issu de vos dotfiles. Les valeurs ne peuvent pas contenir d'espaces : utilisez des tirets bas, ou l'encodage pourcent comme `%20`. Codex n'a pas d'attributs de ressource, définissez donc les mêmes clés dans son `[otel.span_attributes]`.
 
-Pour séparer les dépenses par application, utilisez le nom du service (`OTEL_SERVICE_NAME`, ou le paramètre propre à l'outil). La ventilation **Application / Service** ne couvre que les outils qui envoient des spans GenAI.
+Pour séparer les dépenses par application, utilisez le nom du service (`OTEL_SERVICE_NAME`, ou le paramètre propre à l'outil). La ventilation **Application / Service** classe chaque service, qu'il envoie des spans GenAI ou seulement des métriques.
 
 ### Ce qui n'est délibérément pas traité comme l'employé
 
@@ -144,21 +144,21 @@ Deux choses à savoir avant de lire les chiffres :
 
 Ouvrez **Produits → IA / LLM** et allez dans **Utilisation**. Il classe **Employé**, **Équipe**, **Modèle**, **Fournisseur** et **Application / Service** par dépenses, sur les 7 derniers jours si vous ne choisissez pas une autre période. Les appels qui ne nomment personne sont comptés sous **Non attribué** : une grosse ligne **Non attribué** vous dit quel outil a encore besoin de son identité.
 
-### Les métriques des assistants de code sont un relais, pas un ajout
+### Les métriques des assistants de code sont comptées à côté des appels de vos applications
 
-Les spans GenAI passent en premier : les métriques ne sont lues que pour un chiffre que les spans n'ont pas fourni, et les deux ne sont jamais additionnés ([pourquoi](/docs/telemetry/ai-llm-observability#les-spans-dabord-les-métriques-en-relais)). Pour les assistants de code, cela a une conséquence brutale : **si le même projet reçoit des spans GenAI avec un coût, les dépenses des assistants de code n'apparaissent pas.** Donnez aux assistants de code un projet à eux, avec sa propre clé d'ingestion.
+Chaque service est compté à partir de ce qu'il envoie ([comment](/docs/telemetry/ai-llm-observability#chaque-service-est-compté-à-partir-de-ce-quil-envoie)). Les métriques d'un assistant de code arrivent sous son propre service, donc ses dépenses s'ajoutent aux appels d'IA que vos applications envoient au même projet, sans jamais les remplacer, et une application qui envoie des spans GenAI et des métriques pour les mêmes appels est comptée une fois, depuis ses spans.
 
-Quand le relais s'applique, voici ce que chaque ventilation peut montrer pour un outil qui n'envoie que des métriques :
+Voici ce que montre chaque ventilation pour un outil qui n'envoie que des métriques :
 
 | Ventilation | Depuis les métriques |
 | --- | --- |
 | **Employé** | Oui, depuis chaque clé d'identité ci-dessus, avec ou sans le préfixe `resource.` |
 | **Équipe** | Oui, depuis les clés d'équipe |
 | **Modèle** | Oui : Claude Code et Codex envoient un `model` sans préfixe, Cursor `cursor.model.name` |
-| **Fournisseur** | Non : les métriques des assistants de code ne nomment aucun fournisseur |
-| **Application / Service** | Non : leurs métriques n'appartiennent à aucun service OneUptime |
+| **Fournisseur** | Sous **Non attribué** : les métriques des assistants de code ne nomment aucun fournisseur |
+| **Application / Service** | Oui : chaque outil sous le service que nomment ses métriques, comme `cursor` |
 
-Une ligne lue depuis les métriques ne porte que le coût : ses cellules d'appels et de jetons affichent `—`, car un compteur de dépenses n'a aucun détail par appel, et un 0 à cet endroit prétendrait que la personne n'a fait aucun appel. Le tableau est marqué **depuis les métriques GenAI**.
+Une ligne lue depuis les métriques indique **Depuis les métriques d'utilisation** sous son nom. Sa cellule d'appels affiche `—`, car un compteur n'a aucun détail par appel, et un 0 à cet endroit prétendrait que la personne n'a fait aucun appel ; ses cellules de jetons affichent les jetons que ses métriques ont comptés.
 
 ## Pas d'OpenTelemetry ? Placez une passerelle devant
 
@@ -188,7 +188,7 @@ Codex envoie aussi ses métriques à OpenAI par défaut : voir [OpenAI Codex](/d
 
 ## Ce que OneUptime ne fait pas encore
 
-- **Aucun connecteur d'administration des outils de code.** OneUptime lit les comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI derrière les outils ([Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts)), mais ni l'API d'administration de Cursor, ni la facturation Copilot de GitHub, ni les API de Windsurf ou de JetBrains.
+- **Aucun connecteur d'administration des outils de code, sauf celui de Cursor.** OneUptime lit les comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI derrière les outils, et l'API d'administration d'une équipe Cursor ([Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts)), mais ni la facturation Copilot de GitHub, ni les API de Windsurf ou de JetBrains.
 - **Le coût est une estimation, sauf si un outil le fournit.** Un coût fourni est utilisé tel quel ; sinon OneUptime tarifie les jetons aux prix catalogue. Le `cursor.cost.usage` de Cursor est lui-même une estimation.
 - **L'identité des enregistrements de log n'est pas lue.** Le `user.email` de Codex, qu'il n'envoie que dans les logs, n'est pas relié aux dépenses.
 - **Le `cursor.user.email` de Cursor n'est pas encore lu**, donc les utilisateurs de Cursor apparaissent sous leur entier `cursor.user.id`.
@@ -197,11 +197,11 @@ Codex envoie aussi ses métriques à OpenAI par défaut : voir [OpenAI Codex](/d
 
 ## Par où commencer
 
-Déployez dans cet ordre ; chaque étape est utile à elle seule. Utilisez un projet qui ne reçoit pas déjà des spans GenAI de vos propres applications, sinon [la règle du relais](#les-métriques-des-assistants-de-code-sont-un-relais-pas-un-ajout) tient les dépenses des assistants de code hors de la page.
+Déployez dans cet ordre ; chaque étape est utile à elle seule. Les assistants de code peuvent partager un projet avec vos propres applications : [chacun est compté à côté d'elles](#les-métriques-des-assistants-de-code-sont-comptées-à-côté-des-appels-de-vos-applications).
 
 1. **Gemini CLI**, si quelqu'un l'utilise. Il envoie `user.email` sans configuration, il montre donc l'attribution de bout en bout. Activez aussi ses traces : il n'envoie aucune métrique de coût.
 2. **Claude Code** : un fichier de paramètres gérés pour la flotte, `user.email` sans effort, une vraie métrique de coût, ainsi que le taux d'acceptation, les commits, les pull requests et les lignes de code par développeur.
-3. **Cursor**, avec l'offre Enterprise : un écran dans le tableau de bord de Cursor, aucun poste de développeur touché, même si les personnes arrivent sous forme d'entiers.
+3. **Cursor**, avec l'offre Enterprise : un écran dans le tableau de bord de Cursor, aucun poste de développeur touché, même si les personnes arrivent sous forme d'entiers. Avec l'offre Teams, ou pour ce que Cursor a facturé par personne, connectez sa clé d'API d'administration comme [compte de fournisseur](/docs/telemetry/ai-provider-accounts#cursor), avec ou sans l'export.
 4. **Copilot et Codex**, qui ont tous deux besoin d'une identité définie sur chaque poste. Faites-le lors du provisionnement : les appels arrivés sans identité ne peuvent pas être attribués après coup.
 5. **Une passerelle LiteLLM** pour tout le reste, avec une clé virtuelle par employé.
 

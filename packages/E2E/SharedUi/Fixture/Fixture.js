@@ -3,8 +3,8 @@
  * styles, MoreMenu's own trigger, Modal's first focus, the Duplicate, Reset
  * and Delete cards and their dialogs, CollapsibleSection and SideMenuSection,
  * the pills (Pill, BooleanValue, DropdownValueBadge), the stat tiles
- * (InfoCard), the multi-selects' chips, the team avatars, and the radios and
- * checkboxes (ChoiceRows, Checkbox).
+ * (InfoCard), the multi-selects' chips, a single pick open and locked, the
+ * team avatars, and the radios and checkboxes (ChoiceRows, Checkbox).
  *
  * Only the ModelAPI/API data boundary and the synthetic user's permission
  * snapshot are replaced; every component is the production one from this
@@ -676,8 +676,16 @@ const PROBE_OPTIONS = [
   },
 ];
 
+// A single pick's lengths, shortest first, then Never.
+const KEEP_OPTIONS = [
+  { value: 7, label: "7 days" },
+  { value: 30, label: "30 days" },
+  { value: 0, label: "Never" },
+];
+
 function Pills() {
   const [picked, setPicked] = useState(["sg", "fra", "nv"]);
+  const [kept, setKept] = useState(30);
 
   return (
     <div className="space-y-5" data-testid="section-pills">
@@ -771,6 +779,42 @@ function Pills() {
               setPicked(value || []);
             }}
           />
+        </div>
+      </Card>
+
+      {/*
+       * One pick that can be changed and one that is locked, for what the
+       * browser paints them (the UI review of #6389 found a locked one drawn
+       * as white as an open one).
+       */}
+      <Card
+        title="Keep Results For"
+        description="How long this monitor's check results are kept."
+      >
+        <div className="grid max-w-md grid-cols-1 gap-4 sm:grid-cols-2">
+          <div data-testid="single-select">
+            <Dropdown
+              ariaLabel="Keep results for"
+              options={KEEP_OPTIONS}
+              value={KEEP_OPTIONS.find((option) => {
+                return option.value === kept;
+              })}
+              isClearable={false}
+              onChange={(value) => {
+                setKept(value);
+              }}
+            />
+          </div>
+          <div data-testid="single-select-locked">
+            <Dropdown
+              ariaLabel="Keep results for, locked"
+              options={KEEP_OPTIONS}
+              value={KEEP_OPTIONS[1]}
+              isClearable={false}
+              disabled={true}
+              onChange={() => {}}
+            />
+          </div>
         </div>
       </Card>
     </div>

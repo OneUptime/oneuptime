@@ -163,8 +163,8 @@ describe("the probe picker's label in every Dashboard language", () => {
     })
     .sort();
 
-  test("the Dashboard speaks sixteen languages besides English", () => {
-    expect(LANGUAGES).toHaveLength(16);
+  test("the Dashboard speaks seventeen languages besides English", () => {
+    expect(LANGUAGES).toHaveLength(17);
   });
 
   test.each(LANGUAGES)("%s words it, ending in a colon", (code: string) => {

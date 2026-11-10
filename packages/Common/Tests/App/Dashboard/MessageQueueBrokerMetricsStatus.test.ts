@@ -10,22 +10,27 @@ import {
   getMessageQueueBrokerMetricStatusLine,
   getMessageQueueBrokerMetricsHealthLabel,
   getMessageQueueBrokerMetricsLastReceived,
+  getMessageQueueBrokerMetricsSourceLine,
   getMessageQueueBrokerMetricsStatus,
   getMessageQueueBrokerMetricsSummary,
+  getMessageQueueCollectorOnlyLine,
   getMessageQueueMissingMetricsFinding,
   getMessageQueueNamespaceFinding,
   getMessageQueueNamespaceFindingWords,
   getMessageQueueStoppedMetricsFinding,
   isMessageQueueMetricReportedEveryPeriod,
   isMessageQueueMetricReportedWithEverySend,
+  isReadByCloudConnectionOnly,
   shouldReadMessageQueueNamespace,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerMetricsStatus";
 import {
   MessageQueueBrokerMetricArrivals,
   MessageQueueBrokerMetricResult,
+  MessageQueueBrokerMetricSources,
   MessageQueueNamespaceSeries,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
 import OneUptimeDate from "../../../Types/Date";
+import { CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE } from "../../../Types/MessageQueue/MessageQueueCloudConnectionMetrics";
 import {
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
@@ -69,6 +74,8 @@ const WINDOW: { start: Date; end: Date } = {
 
 const SERVICE_BUS: ReadonlyArray<MessageQueueMetricDescriptor> =
   getMessageQueueMetricsForSystem("servicebus");
+const EVENT_HUBS: ReadonlyArray<MessageQueueMetricDescriptor> =
+  getMessageQueueMetricsForSystem("eventhubs");
 const PUBSUB: ReadonlyArray<MessageQueueMetricDescriptor> =
   getMessageQueueMetricsForSystem("gcp_pubsub");
 const KAFKA: ReadonlyArray<MessageQueueMetricDescriptor> =
@@ -81,6 +88,61 @@ const SIZE: string = "azure_size_average";
 const INCOMING: string = "azure_incomingmessages_total";
 const THROTTLED: string = "azure_throttledrequests_total";
 const SEND_LATENCY: string = "azure_serversendlatency_average";
+const OUTGOING: string = "azure_outgoingmessages_total";
+const SERVER_ERRORS: string = "azure_servererrors_total";
+const COMPLETED: string = "azure_completemessage_total";
+const ABANDONED: string = "azure_abandonmessage_total";
+const USER_ERRORS: string = "azure_usererrors_total";
+const QUOTA_EXCEEDED: string = "azure_quotaexceedederrors_total";
+
+/*
+ * What an Azure cloud connection reads of a Service Bus queue: the
+ * namespace's key metrics, split per queue (CloudKeyMetrics).
+ */
+const CONNECTION_READS: Array<string> = [
+  ACTIVE,
+  DEAD_LETTERED,
+  INCOMING,
+  OUTGOING,
+  SERVER_ERRORS,
+  THROTTLED,
+];
+// What only the collector's azure_monitor receiver reads of one.
+const COLLECTOR_ONLY: Array<string> = [
+  SCHEDULED,
+  SIZE,
+  COMPLETED,
+  ABANDONED,
+  USER_ERRORS,
+  SEND_LATENCY,
+];
+
+const CONNECTION: MessageQueueBrokerMetricSources = {
+  connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+  fromCollector: false,
+};
+const CONNECTION_AND_COLLECTOR: MessageQueueBrokerMetricSources = {
+  connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+  fromCollector: true,
+};
+const TWO_CONNECTIONS: MessageQueueBrokerMetricSources = {
+  connectionIds: [
+    "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+    "2a9d4e61-7f2c-4c8b-8d30-6f1a2b4c8e25",
+  ],
+  fromCollector: false,
+};
+const TWO_CONNECTIONS_AND_COLLECTOR: MessageQueueBrokerMetricSources = {
+  connectionIds: [
+    "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+    "2a9d4e61-7f2c-4c8b-8d30-6f1a2b4c8e25",
+  ],
+  fromCollector: true,
+};
+const COLLECTOR: MessageQueueBrokerMetricSources = {
+  connectionIds: [],
+  fromCollector: true,
+};
 
 function ago(ms: number): Date {
   return new Date(NOW.getTime() - ms);
@@ -122,12 +184,20 @@ function quietInRange(name: string): MessageQueueBrokerMetricResult {
   return { ...inRange(name), series: [{ x: ago(5 * MINUTE_MS), y: 0 }] };
 }
 
+// What read the queue lately: by default, nothing the lookback can tell.
+const NO_SOURCES: MessageQueueBrokerMetricSources = {
+  connectionIds: [],
+  fromCollector: false,
+};
+
 function arrivalsOf(
   lastArrivedAt: Record<string, Date> = {},
+  sources: MessageQueueBrokerMetricSources = NO_SOURCES,
 ): MessageQueueBrokerMetricArrivals {
   return {
     since: ago(7 * DAY_MS),
     lastArrivedAt: new Map<string, Date>(Object.entries(lastArrivedAt)),
+    sources: sources,
   };
 }
 
@@ -530,6 +600,484 @@ describe("each metric's verdict", () => {
   });
 });
 
+describe("a queue a cloud connection reads", () => {
+  // Every metric the connection reads arrived in the range, sends among them.
+  const CONNECTED: MessageQueueBrokerMetricsStatus = statusOf({
+    results: CONNECTION_READS.map(
+      (name: string): MessageQueueBrokerMetricResult => {
+        return inRange(name);
+      },
+    ),
+    arrivals: arrivalsOf({}, CONNECTION),
+  });
+
+  test("the catalog's split: what the connection reads, what only the receiver does", () => {
+    expect([...CONNECTION_READS, ...COLLECTOR_ONLY].sort()).toEqual(
+      SERVICE_BUS.map((descriptor: MessageQueueMetricDescriptor): string => {
+        return descriptor.metricName;
+      }).sort(),
+    );
+  });
+
+  test("a connection alone: what it does not read is the collector's, never missing", () => {
+    expect(CONNECTED.sources).toEqual(CONNECTION);
+    for (const name of CONNECTION_READS) {
+      expect({ name, verdict: verdictOf(CONNECTED, name) }).toEqual({
+        name,
+        verdict: ["arriving", null],
+      });
+    }
+    // Even the send latency, though sends arrived: the connection never asks.
+    for (const name of COLLECTOR_ONLY) {
+      expect({ name, verdict: verdictOf(CONNECTED, name) }).toEqual({
+        name,
+        verdict: ["collectorOnly", "notReadByConnection"],
+      });
+    }
+    expect(CONNECTED.missing).toEqual([]);
+    expect(CONNECTED.health).toBe("arriving");
+    expect(CONNECTED.arrivingCount).toBe(6);
+    expect(getMessageQueueBrokerMetricsSummary(CONNECTED)).toBe(
+      "6 of 12 metrics arrived in the selected range.",
+    );
+    expect(getMessageQueueBrokerMetricsHealthLabel(CONNECTED)).toBe("Arriving");
+    expect(
+      getMessageQueueMissingMetricsFinding(CONNECTED, "servicebus"),
+    ).toBeNull();
+  });
+
+  test("a metric a replaced collector sent before is the collector's too, not stopped", () => {
+    const status: MessageQueueBrokerMetricsStatus = statusOf({
+      results: [inRange(ACTIVE), inRange(INCOMING)],
+      arrivals: arrivalsOf({ [SIZE]: ago(3 * DAY_MS) }, CONNECTION),
+    });
+    expect(verdictOf(status, SIZE)).toEqual([
+      "collectorOnly",
+      "notReadByConnection",
+    ]);
+    // Its last arrival is still known.
+    expect(metricOf(status, SIZE).lastArrivedAt?.toISOString()).toBe(
+      ago(3 * DAY_MS).toISOString(),
+    );
+  });
+
+  test("a connection alone: a level it reads that never arrives is missed by the connection", () => {
+    const status: MessageQueueBrokerMetricsStatus = statusOf({
+      results: [inRange(INCOMING), inRange(OUTGOING)],
+      arrivals: arrivalsOf({ [DEAD_LETTERED]: ago(2 * DAY_MS) }, CONNECTION),
+    });
+    expect(verdictOf(status, ACTIVE)).toEqual([
+      "notCollected",
+      "missedByConnection",
+    ]);
+    // One that arrived before and stopped is stopped, whoever reads it.
+    expect(verdictOf(status, DEAD_LETTERED)).toEqual([
+      "stopped",
+      "stoppedWhileOthersArrive",
+    ]);
+    // A count it reads with nothing in the range has nothing to report.
+    expect(verdictOf(status, THROTTLED)).toEqual([
+      "nothingToReport",
+      "onlyWithActivity",
+    ]);
+    expect(namesOf(status.missing)).toEqual([ACTIVE, DEAD_LETTERED]);
+    expect(status.health).toBe("incomplete");
+    expect(getMessageQueueBrokerMetricsHealthLabel(status)).toBe("2 missing");
+  });
+
+  test("a collector beside the connection: the collector's rules, as before", () => {
+    for (const sources of [CONNECTION_AND_COLLECTOR, COLLECTOR]) {
+      const status: MessageQueueBrokerMetricsStatus = statusOf({
+        results: [inRange(ACTIVE), inRange(INCOMING)],
+        arrivals: arrivalsOf({}, sources),
+      });
+      expect(status.sources).toEqual(sources);
+      expect(verdictOf(status, SCHEDULED)).toEqual([
+        "notCollected",
+        "notRequested",
+      ]);
+      expect(verdictOf(status, SEND_LATENCY)).toEqual([
+        "notCollected",
+        "reportedWithSends",
+      ]);
+      expect(verdictOf(status, DEAD_LETTERED)).toEqual([
+        "notCollected",
+        "notRequested",
+      ]);
+      expect(
+        status.metrics.some((metric: MessageQueueBrokerMetricStatus) => {
+          return metric.state === "collectorOnly";
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("Event Hubs: the connection reads its counts, the receiver its other errors and its size", () => {
+    const status: MessageQueueBrokerMetricsStatus = statusOf({
+      messagingSystem: "eventhubs",
+      catalog: EVENT_HUBS,
+      results: [inRange(INCOMING, undefined, EVENT_HUBS)],
+      arrivals: arrivalsOf({}, CONNECTION),
+    });
+    for (const name of [USER_ERRORS, QUOTA_EXCEEDED, SIZE]) {
+      expect({ name, verdict: verdictOf(status, name) }).toEqual({
+        name,
+        verdict: ["collectorOnly", "notReadByConnection"],
+      });
+    }
+    for (const name of [OUTGOING, SERVER_ERRORS, THROTTLED]) {
+      expect({ name, verdict: verdictOf(status, name) }).toEqual({
+        name,
+        verdict: ["nothingToReport", "onlyWithActivity"],
+      });
+    }
+    expect(status.missing).toEqual([]);
+  });
+
+  test("a system no connection reads per queue: its sources change no verdict", () => {
+    const results: Array<MessageQueueBrokerMetricResult> = [
+      inRange(
+        "pubsub.googleapis.com/subscription/num_undelivered_messages",
+        undefined,
+        PUBSUB,
+      ),
+    ];
+    const withoutSources: MessageQueueBrokerMetricsStatus = statusOf({
+      messagingSystem: "gcp_pubsub",
+      catalog: PUBSUB,
+      results: results,
+    });
+    const withConnection: MessageQueueBrokerMetricsStatus = statusOf({
+      messagingSystem: "gcp_pubsub",
+      catalog: PUBSUB,
+      results: results,
+      arrivals: arrivalsOf({}, CONNECTION),
+    });
+    expect(
+      withConnection.metrics.map((metric: MessageQueueBrokerMetricStatus) => {
+        return [metric.state, metric.reason];
+      }),
+    ).toEqual(
+      withoutSources.metrics.map((metric: MessageQueueBrokerMetricStatus) => {
+        return [metric.state, metric.reason];
+      }),
+    );
+    expect(withConnection.sources).toEqual(CONNECTION);
+  });
+
+  test("sources the lookback cannot tell, or no lookback: none, and nothing changes", () => {
+    expect(statusOf({ results: [inRange(ACTIVE)] }).sources).toBeNull();
+    const unread: MessageQueueBrokerMetricsStatus = statusOf({
+      results: [inRange(ACTIVE)],
+      arrivals: null,
+    });
+    expect(unread.sources).toBeNull();
+    expect(verdictOf(unread, SCHEDULED)).toEqual(["notInRange", null]);
+    // Nothing in the range: each says not received, whoever reads them.
+    expect(
+      verdictOf(statusOf({ arrivals: arrivalsOf({}, CONNECTION) }), SCHEDULED),
+    ).toEqual(["notReceived", null]);
+  });
+
+  test("every metric only the receiver reads has the guide's line that adds it", () => {
+    for (const [system, catalog] of [
+      ["servicebus", SERVICE_BUS],
+      ["eventhubs", EVENT_HUBS],
+    ] as Array<[string, ReadonlyArray<MessageQueueMetricDescriptor>]>) {
+      const status: MessageQueueBrokerMetricsStatus = statusOf({
+        messagingSystem: system,
+        catalog: catalog,
+        results: [inRange(INCOMING, undefined, catalog)],
+        arrivals: arrivalsOf({}, CONNECTION),
+      });
+      const collectorOnly: Array<MessageQueueBrokerMetricStatus> =
+        status.metrics.filter((metric: MessageQueueBrokerMetricStatus) => {
+          return metric.state === "collectorOnly";
+        });
+      expect(collectorOnly.length).toBeGreaterThan(0);
+      for (const metric of collectorOnly) {
+        expect({
+          system,
+          id: metric.id,
+          line: metric.configLine !== null,
+        }).toEqual({ system, id: metric.id, line: true });
+      }
+    }
+  });
+
+  test("only a connection reads a queue when one does and no collector does", () => {
+    expect(isReadByCloudConnectionOnly(CONNECTION)).toBe(true);
+    expect(isReadByCloudConnectionOnly(CONNECTION_AND_COLLECTOR)).toBe(false);
+    expect(isReadByCloudConnectionOnly(COLLECTOR)).toBe(false);
+    expect(
+      isReadByCloudConnectionOnly({ connectionIds: [], fromCollector: false }),
+    ).toBe(false);
+    expect(isReadByCloudConnectionOnly(null)).toBe(false);
+    expect(isReadByCloudConnectionOnly(undefined)).toBe(false);
+  });
+
+  test("the lines of the connection's verdicts", () => {
+    const line: (metric: MessageQueueBrokerMetricStatus) => string | null = (
+      metric: MessageQueueBrokerMetricStatus,
+    ): string | null => {
+      return getMessageQueueBrokerMetricStatusLine(metric, {
+        messagingSystem: "servicebus",
+        now: NOW,
+      });
+    };
+    expect(getMessageQueueBrokerMetricStateLabel("collectorOnly")).toBe(
+      "Collector only",
+    );
+    expect(line(metricOf(CONNECTED, SCHEDULED))).toBe(
+      "Only the collector's `azure_monitor` receiver reads it: add `ScheduledMessages: [Average]` to its metrics list.",
+    );
+    expect(line(metricOf(CONNECTED, SEND_LATENCY))).toBe(
+      "Only the collector's `azure_monitor` receiver reads it: add `ServerSendLatency: [Average]` to its metrics list.",
+    );
+    expect(line({ ...metricOf(CONNECTED, SCHEDULED), configLine: null })).toBe(
+      "Only the collector's `azure_monitor` receiver reads it.",
+    );
+    const missed: MessageQueueBrokerMetricsStatus = statusOf({
+      results: [inRange(INCOMING)],
+      arrivals: arrivalsOf({}, CONNECTION),
+    });
+    expect(line(metricOf(missed, ACTIVE))).toBe(
+      "Your cloud connection reads it, and none arrived while this queue's other metrics do: its last read on Cloud > Connect says why.",
+    );
+  });
+
+  test("what reads the queue, as the card says it", () => {
+    expect(
+      getMessageQueueBrokerMetricsSourceLine(
+        { sources: CONNECTION },
+        "servicebus",
+      ),
+    ).toEqual({
+      template: "Read by your cloud connection ({{connections}}).",
+      values: {},
+      namesConnections: true,
+    });
+    expect(
+      getMessageQueueBrokerMetricsSourceLine(
+        { sources: CONNECTION_AND_COLLECTOR },
+        "servicebus",
+      ),
+    ).toEqual({
+      template:
+        "Read by your collector's `{{receiver}}` receiver and your cloud connection ({{connections}}), which skips the metrics the receiver reads.",
+      values: { receiver: "azure_monitor" },
+      namesConnections: true,
+    });
+    // Two connections: said as two, beside a collector too.
+    expect(
+      getMessageQueueBrokerMetricsSourceLine(
+        { sources: TWO_CONNECTIONS },
+        "servicebus",
+      ),
+    ).toEqual({
+      template: "Read by your cloud connections ({{connections}}).",
+      values: {},
+      namesConnections: true,
+    });
+    expect(
+      getMessageQueueBrokerMetricsSourceLine(
+        { sources: TWO_CONNECTIONS_AND_COLLECTOR },
+        "servicebus",
+      ),
+    ).toEqual({
+      template:
+        "Read by your collector's `{{receiver}}` receiver and your cloud connections ({{connections}}), which skip the metrics the receiver reads.",
+      values: { receiver: "azure_monitor" },
+      namesConnections: true,
+    });
+    for (const system of ["servicebus", "eventhubs", "Azure_ServiceBus"]) {
+      expect(
+        getMessageQueueBrokerMetricsSourceLine({ sources: COLLECTOR }, system),
+      ).toEqual({
+        template: "Read by your collector's `{{receiver}}` receiver.",
+        values: { receiver: "azure_monitor" },
+        namesConnections: false,
+      });
+    }
+    // A collector alone on a system no connection reads per queue: nothing to tell apart.
+    expect(
+      getMessageQueueBrokerMetricsSourceLine({ sources: COLLECTOR }, "kafka"),
+    ).toBeNull();
+    // A connection on any system is said.
+    expect(
+      getMessageQueueBrokerMetricsSourceLine({ sources: CONNECTION }, "aws_sqs")
+        ?.template,
+    ).toBe("Read by your cloud connection ({{connections}}).");
+    // Beside a program outside the collector: nothing it could name.
+    expect(
+      getMessageQueueBrokerMetricsSourceLine(
+        { sources: CONNECTION_AND_COLLECTOR },
+        "activemq",
+      ),
+    ).toBeNull();
+    expect(
+      getMessageQueueBrokerMetricsSourceLine({ sources: null }, "servicebus"),
+    ).toBeNull();
+  });
+
+  test("the metrics marked Collector only, said once under what reads the queue: why the summary counts them", () => {
+    expect(getMessageQueueCollectorOnlyLine(CONNECTED, "servicebus")).toBe(
+      "The 6 metrics marked Collector only need the collector's `azure_monitor` receiver.",
+    );
+    // Two connections read no more than one.
+    expect(
+      getMessageQueueCollectorOnlyLine(
+        { ...CONNECTED, sources: TWO_CONNECTIONS },
+        "servicebus",
+      ),
+    ).toBe(
+      "The 6 metrics marked Collector only need the collector's `azure_monitor` receiver.",
+    );
+    expect(
+      getMessageQueueCollectorOnlyLine(
+        {
+          sources: CONNECTION,
+          metrics: CONNECTED.metrics.filter(
+            (metric: MessageQueueBrokerMetricStatus): boolean => {
+              return (
+                metric.state !== "collectorOnly" ||
+                metric.descriptor.metricName === SIZE
+              );
+            },
+          ),
+        },
+        "servicebus",
+      ),
+    ).toBe(
+      "The 1 metric marked Collector only needs the collector's `azure_monitor` receiver.",
+    );
+    // A collector beside the connection reads them: nothing to explain.
+    const both: MessageQueueBrokerMetricsStatus = statusOf({
+      results: CONNECTION_READS.map(
+        (name: string): MessageQueueBrokerMetricResult => {
+          return inRange(name);
+        },
+      ),
+      arrivals: arrivalsOf({}, CONNECTION_AND_COLLECTOR),
+    });
+    expect(getMessageQueueCollectorOnlyLine(both, "servicebus")).toBeNull();
+    // Nothing marked, or nothing a connection reads.
+    expect(
+      getMessageQueueCollectorOnlyLine(
+        { sources: CONNECTION, metrics: [] },
+        "servicebus",
+      ),
+    ).toBeNull();
+    expect(
+      getMessageQueueCollectorOnlyLine(
+        { ...CONNECTED, sources: null },
+        "servicebus",
+      ),
+    ).toBeNull();
+  });
+
+  test("missing metrics a connection alone reads: its last read says why, and no configuration lines", () => {
+    const status: MessageQueueBrokerMetricsStatus = statusOf({
+      results: [inRange(INCOMING)],
+      arrivals: arrivalsOf({}, CONNECTION),
+    });
+    expect(getMessageQueueMissingMetricsFinding(status, "servicebus")).toEqual({
+      kind: "missing",
+      title: "2 metrics do not arrive",
+      description:
+        "Your cloud connection reads these, and none arrived in the selected range while this queue's other metrics did: Active messages, Dead-lettered messages.",
+      steps: [
+        "Check the connection's last read on Cloud > Connect: it says which metrics it could not read.",
+      ],
+      configLines: [],
+      // Its list of connections, not the collector's configuration.
+      cloudConnectionLink: "check",
+      linksCollectorConfiguration: false,
+    });
+    // A collector beside it: the receiver's lines, as before.
+    const both: MessageQueueBrokerMetricsStatus = statusOf({
+      results: [inRange(INCOMING)],
+      arrivals: arrivalsOf({}, CONNECTION_AND_COLLECTOR),
+    });
+    const withCollector: MessageQueueBrokerMetricsFinding | null =
+      getMessageQueueMissingMetricsFinding(both, "servicebus");
+    expect(withCollector?.configLines).toContain(
+      "ScheduledMessages: [Average]",
+    );
+    expect(withCollector?.description).toContain(
+      "so they are most likely not collected",
+    );
+    expect(withCollector?.cloudConnectionLink).toBeNull();
+    expect(withCollector?.linksCollectorConfiguration).toBe(true);
+    // One missing: "this metric", never "these".
+    expect(
+      getMessageQueueMissingMetricsFinding(
+        { missing: status.missing.slice(0, 1), sources: CONNECTION },
+        "servicebus",
+      ),
+    ).toMatchObject({
+      title: "1 metric does not arrive",
+      description:
+        "Your cloud connection reads this metric, and it did not arrive in the selected range while this queue's other metrics did: Active messages.",
+    });
+  });
+
+  test("stopped: a connection's last read, a collector's log, or both", () => {
+    const stopped: (
+      sources: MessageQueueBrokerMetricSources | null,
+    ) => Array<string> | undefined = (
+      sources: MessageQueueBrokerMetricSources | null,
+    ): Array<string> | undefined => {
+      return getMessageQueueStoppedMetricsFinding(
+        {
+          health: "stopped",
+          lastReceivedAt: ago(2 * DAY_MS),
+          sources: sources,
+        },
+        "servicebus",
+        NOW,
+      )?.steps;
+    };
+    const connectionStep: string =
+      "Check the connection's last read on Cloud > Connect: it says why its reads fail, such as an expired secret or a removed permission.";
+    const collectorStep: string =
+      "Check that the collector running the `azure_monitor` receiver is up, and look in its log for errors: an expired credential or a removed permission stops every read.";
+    expect(stopped(CONNECTION)).toEqual([connectionStep]);
+    expect(stopped(CONNECTION_AND_COLLECTOR)).toEqual([
+      connectionStep,
+      collectorStep,
+    ]);
+    expect(stopped(COLLECTOR)).toEqual([collectorStep]);
+    expect(stopped(null)).toEqual([collectorStep]);
+
+    // Its links: the connection's list, the collector's configuration, or both.
+    const links: (
+      sources: MessageQueueBrokerMetricSources | null,
+    ) => [string | null | undefined, boolean | undefined] = (
+      sources: MessageQueueBrokerMetricSources | null,
+    ): [string | null | undefined, boolean | undefined] => {
+      const finding: MessageQueueBrokerMetricsFinding | null =
+        getMessageQueueStoppedMetricsFinding(
+          {
+            health: "stopped",
+            lastReceivedAt: ago(2 * DAY_MS),
+            sources: sources,
+          },
+          "servicebus",
+          NOW,
+        );
+      return [
+        finding?.cloudConnectionLink,
+        finding?.linksCollectorConfiguration,
+      ];
+    };
+    expect(links(CONNECTION)).toEqual(["check", false]);
+    expect(links(CONNECTION_AND_COLLECTOR)).toEqual(["check", true]);
+    expect(links(COLLECTOR)).toEqual([null, true]);
+    expect(links(null)).toEqual([null, true]);
+  });
+});
+
 describe("whether to read what the namespace sends", () => {
   test("only while nothing arrives for a reason other than the range, for a namespace-scoped system and a queue that has one", () => {
     for (const health of ["never", "stopped"] as const) {
@@ -637,6 +1185,7 @@ describe("what the namespace's series say", () => {
       kind: "otherEntitiesOnly",
       namespace: "orders-ns",
       entityCount: 2,
+      fromCloudConnection: false,
     });
     // Others beside totals: the cap left the queue out, whatever else came.
     expect(
@@ -648,6 +1197,36 @@ describe("what the namespace's series say", () => {
       kind: "otherEntitiesOnly",
       namespace: "orders-ns",
       entityCount: 1,
+      fromCloudConnection: false,
+    });
+  });
+
+  test("other queues and topics only, all of them a cloud connection's: its cap, or a queue gone", () => {
+    // An Azure connection reads the namespace per queue (up to 1000 of them).
+    expect(
+      findingOf([
+        series("orders-ns", "invoices", true),
+        series("orders-ns", "payments", true),
+        // Totals beside them say nothing of whose the others are.
+        series("orders-ns", ""),
+      ]),
+    ).toEqual({
+      kind: "otherEntitiesOnly",
+      namespace: "orders-ns",
+      entityCount: 2,
+      fromCloudConnection: true,
+    });
+    // One of them a collector's: the receiver's cap is what to look at.
+    expect(
+      findingOf([
+        series("orders-ns", "invoices", true),
+        series("orders-ns", "payments"),
+      ]),
+    ).toEqual({
+      kind: "otherEntitiesOnly",
+      namespace: "orders-ns",
+      entityCount: 2,
+      fromCloudConnection: false,
     });
   });
 
@@ -902,13 +1481,24 @@ describe("the card's findings", () => {
         "Size: [Average]",
         "ServerSendLatency: [Average]",
       ],
+      cloudConnectionLink: null,
+      linksCollectorConfiguration: true,
     });
+    // One missing: "this metric" and "the line below", never "these".
     expect(
       getMessageQueueMissingMetricsFinding(
         { missing: status.missing.slice(0, 1) },
         "servicebus",
-      )?.title,
-    ).toBe("1 metric does not arrive");
+      ),
+    ).toMatchObject({
+      title: "1 metric does not arrive",
+      description:
+        "Azure Service Bus would have reported this metric in the selected range, and this queue's other metrics arrive, so it is most likely not collected: Dead-lettered messages.",
+      steps: [
+        "Add the line below to the `azure_monitor` receiver's `metrics` list, under the namespace type, and restart the collector.",
+      ],
+      configLines: ["DeadletteredMessages: [Average]"],
+    });
     // Nothing missing, no finding.
     expect(
       getMessageQueueMissingMetricsFinding({ missing: [] }, "servicebus"),
@@ -916,6 +1506,7 @@ describe("the card's findings", () => {
   });
 
   test("missing levels without lines: the step names what reads them", () => {
+    // The backlog arrives, and the oldest message's age does not.
     const pubsub: MessageQueueBrokerMetricsStatus = statusOf({
       messagingSystem: "gcp_pubsub",
       catalog: PUBSUB,
@@ -927,10 +1518,11 @@ describe("the card's findings", () => {
         ),
       ],
     });
+    expect(pubsub.missing).toHaveLength(1);
     const receiver: MessageQueueBrokerMetricsFinding | null =
       getMessageQueueMissingMetricsFinding(pubsub, "gcp_pubsub");
     expect(receiver?.steps).toEqual([
-      "Check that the collector's `googlecloudmonitoring` configuration collects them: the Google Cloud Pub/Sub section of the Queues guide lists what each needs.",
+      "Check that the collector's `googlecloudmonitoring` configuration collects it: the Google Cloud Pub/Sub section of the Queues guide lists what it needs.",
     ]);
     expect(receiver?.configLines).toEqual([]);
 
@@ -938,12 +1530,36 @@ describe("the card's findings", () => {
     expect(
       getMessageQueueMissingMetricsFinding(pubsub, "activemq")?.steps,
     ).toEqual([
-      "Check that the OpenTelemetry JMX Scraper's configuration collects them: the Apache ActiveMQ section of the Queues guide lists what each needs.",
+      "Check that the OpenTelemetry JMX Scraper's configuration collects it: the Apache ActiveMQ section of the Queues guide lists what it needs.",
     ]);
     // Nothing ready-made reads an unknown system's: no step to give.
     expect(
       getMessageQueueMissingMetricsFinding(pubsub, "something-else")?.steps,
     ).toEqual([]);
+
+    // Only acknowledgements arrive: both levels are missing, "them".
+    const both: MessageQueueBrokerMetricsStatus = statusOf({
+      messagingSystem: "gcp_pubsub",
+      catalog: PUBSUB,
+      results: [
+        inRange(
+          "pubsub.googleapis.com/subscription/ack_message_count",
+          undefined,
+          PUBSUB,
+        ),
+      ],
+    });
+    expect(both.missing).toHaveLength(2);
+    expect(
+      getMessageQueueMissingMetricsFinding(both, "gcp_pubsub")?.steps,
+    ).toEqual([
+      "Check that the collector's `googlecloudmonitoring` configuration collects them: the Google Cloud Pub/Sub section of the Queues guide lists what each needs.",
+    ]);
+    expect(
+      getMessageQueueMissingMetricsFinding(both, "activemq")?.steps,
+    ).toEqual([
+      "Check that the OpenTelemetry JMX Scraper's configuration collects them: the Apache ActiveMQ section of the Queues guide lists what each needs.",
+    ]);
   });
 
   test("stopped: when, and what to look at, by what reads the metrics", () => {
@@ -962,6 +1578,8 @@ describe("the card's findings", () => {
         "Check that the collector running the `azure_monitor` receiver is up, and look in its log for errors: an expired credential or a removed permission stops every read.",
       ],
       configLines: [],
+      cloudConnectionLink: null,
+      linksCollectorConfiguration: true,
     });
     expect(
       getMessageQueueStoppedMetricsFinding(status, "activemq", NOW)?.steps,
@@ -1010,6 +1628,58 @@ describe("the card's findings", () => {
     expect(nothing.description).toContain("No Azure Service Bus metric");
     expect(nothing.steps.join(" ")).toContain("Monitoring Reader role");
     expect(nothing.steps.join(" ")).toContain("`AuthorizationFailed` or `401`");
+    // A connected subscription first, the receiver as the other way.
+    expect(nothing.steps).toEqual([
+      "Connect the namespace's Azure subscription on Cloud > Connect, or run the collector's `azure_monitor` receiver: either reads each of its queues and topics.",
+      "Give the connection's app or the receiver's service principal the Monitoring Reader role on the subscription or the namespace.",
+      "Look at the connection's last read on Cloud > Connect, or in the collector's log for `AuthorizationFailed` or `401`: a missing role or an expired client secret stops every read.",
+    ]);
+    // Its links: Connect an Azure subscription, and the collector's setup.
+    expect(nothing.cloudConnectionLink).toBe("connect");
+    expect(nothing.linksCollectorConfiguration).toBe(true);
+    // A collector read the queue, nothing else: the same.
+    expect(
+      getMessageQueueNamespaceFindingWords(
+        { kind: "nothingFromNamespace", namespace: "orders-ns" },
+        "servicebus",
+        undefined,
+        COLLECTOR,
+      ),
+    ).toEqual(nothing);
+
+    // A connection read it, and nothing else: it stopped, or its reads fail.
+    const fromConnection: MessageQueueBrokerMetricsFinding =
+      getMessageQueueNamespaceFindingWords(
+        { kind: "nothingFromNamespace", namespace: "orders-ns" },
+        "servicebus",
+        undefined,
+        CONNECTION,
+      );
+    expect(fromConnection).toEqual({
+      kind: "nothingFromNamespace",
+      title: "Nothing from namespace orders-ns reaches OneUptime",
+      description:
+        "No Azure Service Bus metric of this namespace arrived in the selected range, for any of its queues and topics: your cloud connection stopped reading it, or its reads fail.",
+      steps: [
+        "Check the connection's last read on Cloud > Connect: it says why its reads fail, such as an expired secret or a removed permission.",
+        "Give the connection's app the Monitoring Reader role on the subscription or the namespace.",
+      ],
+      configLines: [],
+      cloudConnectionLink: "check",
+      linksCollectorConfiguration: false,
+    });
+    // Both read it: not "connect one", and both places to look.
+    const fromBoth: MessageQueueBrokerMetricsFinding =
+      getMessageQueueNamespaceFindingWords(
+        { kind: "nothingFromNamespace", namespace: "orders-ns" },
+        "servicebus",
+        undefined,
+        CONNECTION_AND_COLLECTOR,
+      );
+    expect(fromBoth.description).toBe(nothing.description);
+    expect(fromBoth.steps).toEqual(nothing.steps.slice(1));
+    expect(fromBoth.cloudConnectionLink).toBe("check");
+    expect(fromBoth.linksCollectorConfiguration).toBe(true);
 
     const cloud: MessageQueueBrokerMetricsFinding =
       getMessageQueueNamespaceFindingWords(
@@ -1021,7 +1691,15 @@ describe("the card's findings", () => {
         "servicebus",
       );
     expect(cloud.title).toBe("Namespace orders-ns reports totals only");
-    expect(cloud.description).toContain("Your Azure cloud connection");
+    // The connection reads per queue: totals alone mean its reads failed.
+    expect(cloud.description).toBe(
+      "Your Azure cloud connection sent only the namespace's totals in the selected range, not its figures for each queue and topic.",
+    );
+    expect(cloud.steps).toEqual([
+      "Check the connection's last read on Cloud > Connect: it says which resources it could not read.",
+    ]);
+    expect(cloud.cloudConnectionLink).toBe("check");
+    expect(cloud.linksCollectorConfiguration).toBe(false);
     const exported: MessageQueueBrokerMetricsFinding =
       getMessageQueueNamespaceFindingWords(
         {
@@ -1032,11 +1710,20 @@ describe("the card's findings", () => {
         "servicebus",
       );
     expect(exported.description).toContain("diagnostic settings");
-    expect(exported.steps[0]).toContain("`azure_monitor` receiver too");
+    expect(exported.steps).toEqual([
+      "Connect the namespace's Azure subscription on Cloud > Connect, or read the namespace with the collector's `azure_monitor` receiver: either splits every metric by queue and topic (the EntityName dimension).",
+    ]);
+    expect(exported.cloudConnectionLink).toBe("connect");
+    expect(exported.linksCollectorConfiguration).toBe(true);
 
     const others: MessageQueueBrokerMetricsFinding =
       getMessageQueueNamespaceFindingWords(
-        { kind: "otherEntitiesOnly", namespace: "orders-ns", entityCount: 12 },
+        {
+          kind: "otherEntitiesOnly",
+          namespace: "orders-ns",
+          entityCount: 12,
+          fromCloudConnection: false,
+        },
         "servicebus",
       );
     expect(others.title).toBe(
@@ -1044,16 +1731,95 @@ describe("the card's findings", () => {
     );
     expect(
       getMessageQueueNamespaceFindingWords(
-        { kind: "otherEntitiesOnly", namespace: "orders-ns", entityCount: 1 },
+        {
+          kind: "otherEntitiesOnly",
+          namespace: "orders-ns",
+          entityCount: 1,
+          fromCloudConnection: false,
+        },
         "servicebus",
       ).title,
     ).toBe(
       "Metrics arrive for 1 other queue or topic of orders-ns, not this one",
     );
-    expect(others.steps[0]).toContain(
-      "`maximum_number_of_records_per_resource`",
-    );
-    for (const finding of [nothing, cloud, exported, others]) {
+    expect(others.description).toContain("`azure_monitor` receiver asks");
+    expect(others.steps).toEqual([
+      "Raise `maximum_number_of_records_per_resource` above the number of queues and topics in the namespace (1000 in the Queues guide's configuration), and restart the collector.",
+    ]);
+    expect(others.cloudConnectionLink).toBeNull();
+    expect(others.linksCollectorConfiguration).toBe(true);
+
+    /*
+     * A cloud connection sent the others, fewer than it reads: its cap left
+     * nothing out, so the queue is gone or renamed - no cap talk.
+     */
+    const connectionOthers: MessageQueueBrokerMetricsFinding =
+      getMessageQueueNamespaceFindingWords(
+        {
+          kind: "otherEntitiesOnly",
+          namespace: "orders-ns",
+          entityCount: 12,
+          fromCloudConnection: true,
+        },
+        "servicebus",
+      );
+    expect(connectionOthers).toEqual({
+      kind: "otherEntitiesOnly",
+      title: others.title,
+      description:
+        "Your Azure cloud connection read the namespace's other queues and topics in the selected range, and Azure Monitor sent nothing for this one.",
+      steps: [
+        "Check that the queue still exists in the namespace under this name.",
+      ],
+      configLines: [],
+      cloudConnectionLink: null,
+      linksCollectorConfiguration: false,
+    });
+    // As many as it reads: its cap, and the receiver for the rest.
+    const capped: MessageQueueBrokerMetricsFinding =
+      getMessageQueueNamespaceFindingWords(
+        {
+          kind: "otherEntitiesOnly",
+          namespace: "orders-ns",
+          entityCount: CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE,
+          fromCloudConnection: true,
+        },
+        "servicebus",
+      );
+    expect(capped).toEqual({
+      kind: "otherEntitiesOnly",
+      title:
+        "Metrics arrive for 1,000 other queues and topics of orders-ns, not this one",
+      description:
+        "Your Azure cloud connection reads up to 1,000 queues and topics of a namespace, and Azure Monitor sent none of this one's metrics in the selected range.",
+      steps: [
+        "Read the namespace with the collector's `azure_monitor` receiver too, with `maximum_number_of_records_per_resource` above its number of queues and topics.",
+      ],
+      configLines: [],
+      cloudConnectionLink: null,
+      linksCollectorConfiguration: true,
+    });
+    expect(
+      getMessageQueueNamespaceFindingWords(
+        {
+          kind: "otherEntitiesOnly",
+          namespace: "orders-ns",
+          entityCount: CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE - 1,
+          fromCloudConnection: true,
+        },
+        "servicebus",
+      ).steps,
+    ).toEqual(connectionOthers.steps);
+    for (const finding of [
+      nothing,
+      fromConnection,
+      fromBoth,
+      cloud,
+      exported,
+      others,
+      connectionOthers,
+      capped,
+    ]) {
       expect(finding.configLines).toEqual([]);
     }
   });
@@ -1101,7 +1867,24 @@ describe("the card's findings", () => {
             namespace: "orders-ns",
             fromCloudConnection: false,
           },
-          { kind: "otherEntitiesOnly", namespace: "orders-ns", entityCount: 3 },
+          {
+            kind: "otherEntitiesOnly",
+            namespace: "orders-ns",
+            entityCount: 3,
+            fromCloudConnection: false,
+          },
+          {
+            kind: "otherEntitiesOnly",
+            namespace: "orders-ns",
+            entityCount: 3,
+            fromCloudConnection: true,
+          },
+          {
+            kind: "otherEntitiesOnly",
+            namespace: "orders-ns",
+            entityCount: CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE,
+            fromCloudConnection: true,
+          },
         ] as Array<MessageQueueNamespaceFinding>
       ).map(
         (
@@ -1114,10 +1897,67 @@ describe("the card's findings", () => {
           );
         },
       ),
+      // What a cloud connection alone read, and what both did.
+      ...[CONNECTION, CONNECTION_AND_COLLECTOR].map(
+        (
+          sources: MessageQueueBrokerMetricSources,
+        ): MessageQueueBrokerMetricsFinding => {
+          return getMessageQueueNamespaceFindingWords(
+            { kind: "nothingFromNamespace", namespace: "orders-ns" },
+            "servicebus",
+            MARKED,
+            sources,
+          );
+        },
+      ),
     ]) {
       expect(finding).not.toBeNull();
       worded.push(finding!.title, finding!.description, ...finding!.steps);
     }
+    // A queue only a cloud connection reads: its words too.
+    const connected: MessageQueueBrokerMetricsStatus = statusOf({
+      results: [inRange(INCOMING)],
+      arrivals: arrivalsOf({}, CONNECTION),
+    });
+    worded.push(
+      getMessageQueueBrokerMetricStateLabel("collectorOnly", MARKED),
+      String(
+        getMessageQueueBrokerMetricStatusLine(
+          metricOf(connected, SCHEDULED),
+          { messagingSystem: "servicebus", now: NOW },
+          MARKED,
+        ),
+      ),
+      String(
+        getMessageQueueBrokerMetricStatusLine(
+          { ...metricOf(connected, SCHEDULED), configLine: null },
+          { messagingSystem: "servicebus", now: NOW },
+          MARKED,
+        ),
+      ),
+      String(
+        getMessageQueueBrokerMetricStatusLine(
+          metricOf(connected, ACTIVE),
+          { messagingSystem: "servicebus", now: NOW },
+          MARKED,
+        ),
+      ),
+      getMessageQueueMissingMetricsFinding(connected, "servicebus", MARKED)!
+        .description,
+      ...getMessageQueueMissingMetricsFinding(connected, "servicebus", MARKED)!
+        .steps,
+      String(getMessageQueueCollectorOnlyLine(connected, "servicebus", MARKED)),
+      ...getMessageQueueStoppedMetricsFinding(
+        {
+          health: "stopped",
+          lastReceivedAt: ago(DAY_MS),
+          sources: CONNECTION_AND_COLLECTOR,
+        },
+        "servicebus",
+        NOW,
+        MARKED,
+      )!.steps,
+    );
     for (const words of worded) {
       expect({ words, marked: words.startsWith("«") }).toEqual({
         words,

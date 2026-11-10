@@ -30,6 +30,9 @@ import { CodeHostBranch } from "../Utils/CodeRepository/CodeHost/CodeHostTypes";
 import CodeTaskPresenter from "../Utils/AI/CodeTask/CodeTaskPresenter";
 import CodeTaskRuns from "../Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskStats from "../Utils/AI/CodeTask/CodeTaskStats";
+import CodeTaskListQuery, {
+  CodeTaskListScopeFacts,
+} from "../Utils/AI/CodeTask/CodeTaskListQuery";
 import SourceLocator, {
   MAX_FRAMES_LOCATED,
   SourceFrame,
@@ -72,8 +75,11 @@ import {
   CodeTaskContextInput,
   CodeTaskContextInputUtil,
   CodeTaskContextItem,
+  CodeTaskListCountsJSON,
+  CodeTaskListFilter,
   CodeTaskListKind,
   CodeTaskRepositoryConnectionJSON,
+  MAX_CODE_TASKS_PER_REQUEST,
   CodeTaskRepositoryJSON,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
@@ -108,7 +114,13 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
  *                                         page last read it
  *   POST /code-task/create                ask AI something in a repository
  *   POST /code-task/reply/:taskId         reply in a task: its next turn
- *   POST /code-task/retry/:taskId         ask a failed turn again
+ *   POST /code-task/retry/:taskId         ask a failed turn again, or start
+ *                                         a turn waiting to be tried again
+ *                                         by itself now
+ *   POST /code-task/retry-many            ask the failed turns of several
+ *                                         tasks again
+ *   POST /code-task/summaries             several tasks at a glance, by id
+ *                                         (an insight's fix task)
  *   POST /code-task/stop/:taskId          stop the turn in progress
  *   POST /code-task/review-again/:taskId  review a pull request against
  *                                         production again, now
@@ -180,6 +192,8 @@ export default class CodeTaskAPI {
     this.route("/code-task/create", this.createTask);
     this.route("/code-task/reply/:taskId", this.replyToTask);
     this.route("/code-task/retry/:taskId", this.retryTask);
+    this.route("/code-task/retry-many", this.retryTasks);
+    this.route("/code-task/summaries", this.summarizeTasks);
     this.route("/code-task/stop/:taskId", this.stopTask);
     this.route("/code-task/review-again/:taskId", this.reviewAgain);
     this.route(
@@ -421,6 +435,9 @@ export default class CodeTaskAPI {
     });
 
     let codeRepositoryQuery: unknown = QueryHelper.isNull();
+    // The same scope, for the filters' and search's SQL (CodeTaskListQuery).
+    let scopeRepositoryIds: Array<ObjectID> = [];
+    let scopeIncludesNoRepository: boolean = true;
 
     if (allRepositories) {
       /*
@@ -434,10 +451,13 @@ export default class CodeTaskAPI {
         return repository.id!;
       });
 
+      scopeRepositoryIds = repositoryIds;
+
       if (CodeTaskAccess.mayReadTasksWithoutRepository(props)) {
         codeRepositoryQuery = QueryHelper.inOrNull(repositoryIds);
       } else if (repositoryIds.length > 0) {
         codeRepositoryQuery = QueryHelper.any(repositoryIds);
+        scopeIncludesNoRepository = false;
       } else {
         return { tasks: [], totalCount: 0, skip, limit };
       }
@@ -458,6 +478,8 @@ export default class CodeTaskAPI {
       });
 
       codeRepositoryQuery = repositoryId;
+      scopeRepositoryIds = [repositoryId];
+      scopeIncludesNoRepository = false;
     }
 
     const isProductionReviews: boolean =
@@ -480,20 +502,63 @@ export default class CodeTaskAPI {
           ),
     } as unknown as JSONObject;
 
-    const [tasks, count]: [Array<AIRun>, PositiveNumber] = await Promise.all([
-      AIRunService.findBy({
-        query: query as never,
-        select: CODE_TASK_TURN_SELECT,
-        sort: { createdAt: SortOrder.Descending },
+    /*
+     * A filter (in progress, failed, ...) or a search reads the page through
+     * CodeTaskListQuery, which reads each task's latest turn and pull
+     * requests; with `withCounts`, the list's tabs are told how many tasks
+     * each filter shows (of the search, when there is one).
+     */
+    const filter: CodeTaskListFilter = CodeTaskListQuery.readFilter(
+      body["filter"],
+    );
+    const search: string = CodeTaskListQuery.readSearch(body["search"]);
+    const scope: CodeTaskListScopeFacts = {
+      projectId,
+      repositoryIds: scopeRepositoryIds,
+      includeWithoutRepository: scopeIncludesNoRepository,
+      isProductionReviews,
+      search,
+    };
+    const isFiltered: boolean =
+      filter !== CodeTaskListFilter.All || Boolean(search);
+
+    const counts: CodeTaskListCountsJSON | null =
+      body["withCounts"] === true || isFiltered
+        ? await CodeTaskListQuery.readCounts(scope)
+        : null;
+
+    let tasks: Array<AIRun> = [];
+    let totalCount: number = 0;
+
+    if (isFiltered) {
+      const ids: Array<string> = await CodeTaskListQuery.readPage({
+        ...scope,
+        filter,
         limit,
         skip,
-        props: { isRoot: true },
-      }),
-      AIRunService.countBy({
-        query: query as never,
-        props: { isRoot: true },
-      }),
-    ]);
+      });
+
+      tasks = await CodeTaskAPI.readTasksInOrder(projectId, ids);
+      totalCount = counts ? counts[filter] : tasks.length;
+    } else {
+      const [page, count]: [Array<AIRun>, PositiveNumber] = await Promise.all([
+        AIRunService.findBy({
+          query: query as never,
+          select: CODE_TASK_TURN_SELECT,
+          sort: { createdAt: SortOrder.Descending },
+          limit,
+          skip,
+          props: { isRoot: true },
+        }),
+        AIRunService.countBy({
+          query: query as never,
+          props: { isRoot: true },
+        }),
+      ]);
+
+      tasks = page;
+      totalCount = count.toNumber();
+    }
 
     const summaries: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({ projectId, tasks, props });
@@ -505,10 +570,191 @@ export default class CodeTaskAPI {
      */
     return {
       tasks: summaries as unknown as Array<JSONObject>,
-      totalCount: count.toNumber(),
+      totalCount,
       skip,
       limit,
+      ...(counts ? { counts: counts as unknown as JSONObject } : {}),
     };
+  }
+
+  // The tasks by id, in the order given: a filtered page's rows.
+  private static async readTasksInOrder(
+    projectId: ObjectID,
+    ids: Array<string>,
+  ): Promise<Array<AIRun>> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const rows: Array<AIRun> = await AIRunService.findBy({
+      query: {
+        _id: QueryHelper.any(
+          ids.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        ),
+        projectId: projectId,
+        runType: AIRunType.CodeFix,
+      } as never,
+      select: CODE_TASK_TURN_SELECT,
+      limit: ids.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const byId: Map<string, AIRun> = new Map<string, AIRun>();
+
+    for (const row of rows) {
+      byId.set(row.id!.toString().toLowerCase(), row);
+    }
+
+    return ids
+      .map((id: string): AIRun | undefined => {
+        return byId.get(id.toLowerCase());
+      })
+      .filter((row: AIRun | undefined): row is AIRun => {
+        return Boolean(row);
+      });
+  }
+
+  /*
+   * Several tasks at a glance, by id - what a page that shows a task beside
+   * something else reads (an insight's Fix Task card, its status). Only the
+   * tasks the caller may read are answered; any other id, of another
+   * project or of no task, is left out, as a task that is not there.
+   * Body: { taskIds: Array<string> } (at most MAX_CODE_TASKS_PER_REQUEST).
+   */
+  private async summarizeTasks(
+    req: ExpressRequest,
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
+    const body: JSONObject = (req.body as JSONObject) || {};
+    const ids: Array<ObjectID> = CodeTaskAPI.readIds(body["taskIds"]);
+
+    if (ids.length === 0) {
+      return { tasks: [] };
+    }
+
+    const rows: Array<AIRun> = await AIRunService.findBy({
+      query: {
+        _id: QueryHelper.any(ids),
+        projectId: projectId,
+        runType: AIRunType.CodeFix,
+        codeTaskId: QueryHelper.isNull(),
+      } as never,
+      select: CODE_TASK_TURN_SELECT,
+      limit: ids.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const readableRepositoryIds: Set<string> = new Set<string>(
+      (await CodeTaskAccess.listReadableRepositories({ props, projectId })).map(
+        (repository: CodeRepository): string => {
+          return repository.id!.toString();
+        },
+      ),
+    );
+    const mayReadWithoutRepository: boolean =
+      CodeTaskAccess.mayReadTasksWithoutRepository(props);
+
+    const readable: Array<AIRun> = rows.filter((task: AIRun): boolean => {
+      return task.codeRepositoryId
+        ? readableRepositoryIds.has(task.codeRepositoryId.toString())
+        : mayReadWithoutRepository;
+    });
+
+    const summaries: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({ projectId, tasks: readable, props });
+
+    return { tasks: summaries as unknown as Array<JSONObject> };
+  }
+
+  /*
+   * Ask the failed or stopped turns of several tasks again at once - a
+   * list's "Retry selected". Each task is asked as its own Try again is,
+   * with the same checks; one that cannot be (another repository's gate,
+   * a recipe only its page can ask again) is said, and the rest go on.
+   * Body: { taskIds: Array<string> } (at most MAX_CODE_TASKS_PER_REQUEST).
+   */
+  private async retryTasks(
+    req: ExpressRequest,
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
+    const body: JSONObject = (req.body as JSONObject) || {};
+    const ids: Array<ObjectID> = CodeTaskAPI.readIds(body["taskIds"]);
+
+    if (ids.length === 0) {
+      throw new BadDataException("Pick the tasks to try again.");
+    }
+
+    let retried: number = 0;
+    const failed: Array<JSONObject> = [];
+
+    for (const taskId of ids) {
+      try {
+        // Read as its own /retry/:taskId reads it: only its id.
+        const task: AIRun = await this.getTaskTheCallerMayContinue(
+          {
+            params: { taskId: taskId.toString() },
+          } as unknown as ExpressRequest,
+          props,
+          projectId,
+        );
+
+        await CodeTaskRuns.retry({
+          projectId,
+          userId: props.userId!,
+          task,
+        });
+
+        retried++;
+      } catch (error) {
+        failed.push({
+          taskId: taskId.toString(),
+          message:
+            error instanceof Error && error.message
+              ? error.message
+              : "This task could not be tried again.",
+        });
+      }
+    }
+
+    return { retried, failed };
+  }
+
+  /*
+   * Task ids from a body: distinct, valid, at most MAX_CODE_TASKS_PER_REQUEST
+   * - read from a bounded start of the list, so a long one costs nothing.
+   */
+  private static readIds(raw: unknown): Array<ObjectID> {
+    if (!Array.isArray(raw)) {
+      throw new BadDataException("taskIds must be a list of task ids.");
+    }
+
+    const seen: Set<string> = new Set<string>();
+    const ids: Array<ObjectID> = [];
+
+    for (const value of raw.slice(0, MAX_CODE_TASKS_PER_REQUEST * 4)) {
+      if (ids.length >= MAX_CODE_TASKS_PER_REQUEST) {
+        break;
+      }
+
+      if (typeof value !== "string" || !ObjectID.isValidUUID(value)) {
+        continue;
+      }
+
+      const key: string = value.toLowerCase();
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        ids.push(new ObjectID(value));
+      }
+    }
+
+    return ids;
   }
 
   /*

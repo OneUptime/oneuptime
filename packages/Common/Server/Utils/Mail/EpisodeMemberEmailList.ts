@@ -1,4 +1,14 @@
 import SafeHtml from "../../../Types/SafeHtml";
+import {
+  getEnglishPageTranslator,
+  getOnCallPageMemberMonitor,
+  getOnCallPageMemberView,
+} from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
+import {
+  getReadingDirection,
+  RIGHT_TO_LEFT,
+} from "../../../Types/ReadingDirection";
+import { Translator } from "../../../Types/Translator";
 
 /*
  * THE ALERTS OR INCIDENTS OF AN EPISODE, AS THE EMAIL THAT PAGES SOMEONE FOR
@@ -19,6 +29,11 @@ import SafeHtml from "../../../Types/SafeHtml";
  *
  * Every value is plain text and is escaped here: a title and a monitor name
  * are free text a project member typed.
+ *
+ * Its words - "Monitor:" and "View" - are in the language of the person it
+ * pages (OnCallPageWords), English without one; in a language read from
+ * the right the View link sits at the row's end on the left, and the
+ * badge's space is on its left.
  */
 
 export interface EpisodeMemberEmailListItem {
@@ -52,6 +67,19 @@ export const INCIDENT_NUMBER_BADGE: EpisodeMemberEmailListBadge = {
 export const EPISODE_MEMBER_ROW_DIVIDER: string =
   "border-top: 1px solid #e2e8f0;";
 
+/*
+ * The width of a row's View cell: 52px holds English's "View →", and a
+ * longer word ("Ansehen →", "Bekijken →") widens it by a character's
+ * width each, so the link never wraps or breaks inside its word.
+ */
+export const getEpisodeMemberViewCellWidth: (view: string) => number = (
+  view: string,
+): number => {
+  const characters: number = Array.from(view).length;
+
+  return characters <= 6 ? 52 : 52 + (characters - 6) * 9;
+};
+
 export default class EpisodeMemberEmailList {
   /*
    * The list as HTML, or an empty string when there are no members: the
@@ -60,6 +88,7 @@ export default class EpisodeMemberEmailList {
   public static toHtml(
     items: Array<EpisodeMemberEmailListItem>,
     badge: EpisodeMemberEmailListBadge,
+    translator: Translator = getEnglishPageTranslator(),
   ): string {
     if (items.length === 0) {
       return "";
@@ -67,7 +96,12 @@ export default class EpisodeMemberEmailList {
 
     const rows: Array<string> = items.map(
       (item: EpisodeMemberEmailListItem, index: number): string => {
-        return EpisodeMemberEmailList.rowHtml(item, badge, index > 0);
+        return EpisodeMemberEmailList.rowHtml(
+          item,
+          badge,
+          index > 0,
+          translator,
+        );
       },
     );
 
@@ -84,17 +118,31 @@ export default class EpisodeMemberEmailList {
     item: EpisodeMemberEmailListItem,
     badge: EpisodeMemberEmailListBadge,
     followsAnotherRow: boolean,
+    translator: Translator,
   ): string {
     const number: string = SafeHtml.escape(item.number);
     const title: string = SafeHtml.escape(item.title);
     const link: string = SafeHtml.escape(item.link);
-    const monitorName: string = SafeHtml.escape(item.monitorName);
     const divider: string = followsAnotherRow
       ? ` ${EPISODE_MEMBER_ROW_DIVIDER}`
       : "";
-    const monitorLine: string = monitorName
-      ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>`
+    // The whole line escaped once it is worded: the name is a member's text.
+    const monitorLine: string = item.monitorName
+      ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">${SafeHtml.escape(
+          getOnCallPageMemberMonitor(translator, item.monitorName),
+        )}</span>`
       : "";
+    const viewWord: string = getOnCallPageMemberView(translator);
+    const view: string = SafeHtml.escape(viewWord);
+    const viewWidth: number = getEpisodeMemberViewCellWidth(viewWord);
+    const isRightToLeft: boolean =
+      getReadingDirection(translator.language) === RIGHT_TO_LEFT;
+    const badgeSpace: string = isRightToLeft
+      ? "margin-left: 8px;"
+      : "margin-right: 8px;";
+    const viewCellSide: string = isRightToLeft
+      ? "text-align: left; vertical-align: middle; padding-right: 8px;"
+      : "text-align: right; vertical-align: middle; padding-left: 8px;";
 
     return `
             <tr>
@@ -102,12 +150,12 @@ export default class EpisodeMemberEmailList {
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
                   <tr>
                     <td style="vertical-align: middle;">
-                      <span style="display: inline-block; background-color: ${badge.backgroundColor}; color: ${badge.color}; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${number}</span>
+                      <span style="display: inline-block; background-color: ${badge.backgroundColor}; color: ${badge.color}; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; ${badgeSpace}">${number}</span>
                       <a href="${link}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${title}</a>
                       ${monitorLine}
                     </td>
-                    <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
-                      <a href="${link}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
+                    <td width="${viewWidth}" style="${viewCellSide}">
+                      <a href="${link}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">${view}</a>
                     </td>
                   </tr>
                 </table>

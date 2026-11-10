@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const ScheduledMaintenancesLayout: FunctionComponent<
   LayoutPageComponentProps
@@ -14,6 +16,7 @@ const ScheduledMaintenancesLayout: FunctionComponent<
   return (
     <Page
       title={"Status Pages"}
+      titleRight={<ProductAboutButton product={ProductKey.StatusPages} />}
       sideMenu={props.hideSideMenu ? undefined : <SideMenu />}
       breadcrumbLinks={getStatusPagesBreadcrumbs(path)}
     >

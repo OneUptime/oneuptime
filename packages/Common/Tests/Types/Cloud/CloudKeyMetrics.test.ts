@@ -2,8 +2,12 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   AWS_DEFAULT_PERIOD_SECONDS,
   AWS_KEY_METRICS,
+  AZURE_DIMENSION_ATTRIBUTE_PREFIX,
+  AZURE_ENTITY_NAME_ATTRIBUTE,
+  AZURE_ENTITY_NAME_DIMENSION,
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
+  AZURE_MAX_SPLIT_SERIES_PER_METRIC,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   AzureTypeKeyMetrics,
@@ -15,11 +19,17 @@ import {
   getAwsKeyMetrics,
   getAwsNamespaceOfType,
   getAwsStoredMetricName,
+  getAzureKeyMetricOfStoredName,
   getAzureKeyMetrics,
   getAzureStoredMetricName,
   getGcpKeyMetricTypes,
   getKeyMetricCount,
+  isAzureKeyMetricExportedByDiagnosticSettings,
+  isAzureKeyMetricStoredName,
+  isAzureStreamedKeyMetric,
+  isAzureStreamedKeyMetricStoredName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
+import { MESSAGE_QUEUE_METRICS } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import {
   AWS_CLOUDWATCH_DISCOVERY_NAMESPACES,
   getCloudResourceTypeDescriptor,
@@ -234,6 +244,385 @@ describe("Azure", () => {
     expect(
       getAzureStoredMetricName("Composite Disk Read Bytes/sec", "Average"),
     ).toBe("azure_composite_disk_read_bytes/sec_average");
+  });
+});
+
+describe("Azure Service Bus and Event Hubs, split per queue", () => {
+  test("only their namespaces are split, by EntityName, as the azure_monitor receiver names it", () => {
+    const split: Array<string> = AZURE_KEY_METRICS.filter(
+      (entry: AzureTypeKeyMetrics): boolean => {
+        return Boolean(entry.splitByDimension);
+      },
+    ).map((entry: AzureTypeKeyMetrics): string => {
+      return entry.type;
+    });
+
+    expect(split).toEqual([
+      "Microsoft.ServiceBus/namespaces",
+      "Microsoft.EventHub/namespaces",
+    ]);
+    expect(
+      getAzureKeyMetrics("microsoft.servicebus/Namespaces")?.splitByDimension,
+    ).toBe(AZURE_ENTITY_NAME_DIMENSION);
+    expect(AZURE_ENTITY_NAME_DIMENSION).toBe("EntityName");
+    expect(AZURE_DIMENSION_ATTRIBUTE_PREFIX).toBe("metadata_");
+    expect(AZURE_ENTITY_NAME_ATTRIBUTE).toBe("metadata_entityname");
+    // As many queues a namespace as the Queues guide asks the receiver to read.
+    expect(AZURE_MAX_SPLIT_SERIES_PER_METRIC).toBe(1000);
+  });
+
+  test("every metric read of a namespace, with its usual aggregation, is one the Queues catalog files on a queue", () => {
+    const usual: Record<string, string> = {
+      IncomingMessages: "Total",
+      OutgoingMessages: "Total",
+      ActiveMessages: "Average",
+      DeadletteredMessages: "Average",
+      ServerErrors: "Total",
+      ThrottledRequests: "Total",
+    };
+
+    for (const [type, system] of [
+      ["Microsoft.ServiceBus/namespaces", "servicebus"],
+      ["Microsoft.EventHub/namespaces", "eventhubs"],
+    ] as Array<[string, string]>) {
+      for (const metric of getAzureKeyMetrics(type)!.metrics) {
+        const stored: string = getAzureStoredMetricName(metric, usual[metric]!);
+
+        expect(
+          MESSAGE_QUEUE_METRICS.some(
+            (descriptor: { system: string; metricName: string }): boolean => {
+              return (
+                descriptor.system === system && descriptor.metricName === stored
+              );
+            },
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+
+  test("a stored name is a connection's when it is a key metric of the type, whatever its aggregation", () => {
+    const serviceBus: string = "Microsoft.ServiceBus/namespaces";
+
+    expect(
+      isAzureKeyMetricStoredName(serviceBus, "azure_activemessages_average"),
+    ).toBe(true);
+    expect(
+      isAzureKeyMetricStoredName(serviceBus, "AZURE_INCOMINGMESSAGES_TOTAL"),
+    ).toBe(true);
+    expect(
+      isAzureKeyMetricStoredName(serviceBus, "azure_activemessages_maximum"),
+    ).toBe(true);
+    // A metric only a collector reads.
+    expect(
+      isAzureKeyMetricStoredName(serviceBus, "azure_scheduledmessages_average"),
+    ).toBe(false);
+    expect(isAzureKeyMetricStoredName(serviceBus, "azure_size_average")).toBe(
+      false,
+    );
+    expect(
+      isAzureKeyMetricStoredName(
+        "Microsoft.EventHub/namespaces",
+        "azure_activemessages_average",
+      ),
+    ).toBe(false);
+    expect(
+      isAzureKeyMetricStoredName("Microsoft.Nothing/things", "azure_x_total"),
+    ).toBe(false);
+    expect(isAzureKeyMetricStoredName(serviceBus, "")).toBe(false);
+  });
+});
+
+/*
+ * The key metrics a diagnostic setting cannot export: "DS Export: No" in
+ * Microsoft's supported metrics of each type
+ * (learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/
+ * microsoft-<provider>-<type>-metrics), read for every type the read
+ * reads, November 2026. A stream never delivers them, so the read keeps
+ * writing them while it streams.
+ */
+const NOT_EXPORTED_BY_DIAGNOSTIC_SETTINGS: Record<string, Array<string>> = {
+  "Microsoft.Compute/virtualMachines": [
+    "Network In Total",
+    "Network Out Total",
+  ],
+  "Microsoft.Compute/virtualMachineScaleSets": [
+    "Network In Total",
+    "Network Out Total",
+  ],
+  "Microsoft.Compute/disks": [
+    "Composite Disk Read Bytes/sec",
+    "Composite Disk Write Bytes/sec",
+    "Composite Disk Read Operations/sec",
+    "Composite Disk Write Operations/sec",
+  ],
+  "Microsoft.DocumentDB/databaseAccounts": [
+    "TotalRequests",
+    "TotalRequestUnits",
+    "NormalizedRUConsumption",
+    "ServerSideLatency",
+  ],
+  "Microsoft.Storage/storageAccounts": ["UsedCapacity"],
+  "Microsoft.ServiceBus/namespaces": [
+    "ActiveMessages",
+    "DeadletteredMessages",
+    "ServerErrors",
+    "ThrottledRequests",
+  ],
+  "Microsoft.EventHub/namespaces": ["ThrottledRequests", "ServerErrors"],
+  "Microsoft.ContainerService/managedClusters": ["kube_pod_status_ready"],
+  "Microsoft.Network/applicationGateways": [
+    "ApplicationGatewayTotalTime",
+    "Throughput",
+  ],
+  "Microsoft.Network/azureFirewalls": ["Throughput"],
+  "Microsoft.Network/natGateways": [
+    "ByteCount",
+    "SNATConnectionCount",
+    "DatapathAvailability",
+  ],
+};
+
+describe("Azure key metrics a diagnostic setting cannot export", () => {
+  test("are marked on every type Microsoft's tables mark them on, and on no other", () => {
+    const marked: Record<string, Array<string>> = {};
+
+    for (const entry of AZURE_KEY_METRICS) {
+      if (entry.notExportedByDiagnosticSettings !== undefined) {
+        marked[entry.type] = entry.notExportedByDiagnosticSettings;
+      }
+    }
+
+    expect(marked).toEqual(NOT_EXPORTED_BY_DIAGNOSTIC_SETTINGS);
+  });
+
+  test("each marked metric is a key metric of its own type, spelled as read, and marked once", () => {
+    for (const entry of AZURE_KEY_METRICS) {
+      const marks: Array<string> = entry.notExportedByDiagnosticSettings || [];
+
+      // An empty list says nothing: a type with none has no list.
+      expect({ type: entry.type, empty: marks.length === 0 }).toEqual({
+        type: entry.type,
+        empty: entry.notExportedByDiagnosticSettings === undefined,
+      });
+      expect(new Set(marks).size).toBe(marks.length);
+
+      for (const metric of marks) {
+        expect({ type: entry.type, metric, read: true }).toEqual({
+          type: entry.type,
+          metric,
+          read: entry.metrics.includes(metric),
+        });
+      }
+    }
+  });
+
+  test("exported means a key metric of the type its tables do not mark, whatever its case", () => {
+    const vm: string = "Microsoft.Compute/virtualMachines";
+
+    expect(
+      isAzureKeyMetricExportedByDiagnosticSettings(vm, "Percentage CPU"),
+    ).toBe(true);
+    expect(
+      isAzureKeyMetricExportedByDiagnosticSettings(vm, "percentage cpu"),
+    ).toBe(true);
+    expect(
+      isAzureKeyMetricExportedByDiagnosticSettings(vm, "Network In Total"),
+    ).toBe(false);
+    expect(
+      isAzureKeyMetricExportedByDiagnosticSettings(
+        "microsoft.compute/VIRTUALMACHINES",
+        "NETWORK OUT TOTAL",
+      ),
+    ).toBe(false);
+    // Not a key metric of the type, or no type the read reads: never exported here.
+    expect(
+      isAzureKeyMetricExportedByDiagnosticSettings(vm, "CPU Credits Consumed"),
+    ).toBe(false);
+    expect(
+      isAzureKeyMetricExportedByDiagnosticSettings(
+        "Microsoft.Nothing/things",
+        "Percentage CPU",
+      ),
+    ).toBe(false);
+    expect(isAzureKeyMetricExportedByDiagnosticSettings(vm, "")).toBe(false);
+    expect(
+      isAzureKeyMetricExportedByDiagnosticSettings(
+        "Microsoft.ServiceBus/namespaces",
+        "IncomingMessages",
+      ),
+    ).toBe(true);
+    expect(
+      isAzureKeyMetricExportedByDiagnosticSettings(
+        "Microsoft.ServiceBus/namespaces",
+        "ActiveMessages",
+      ),
+    ).toBe(false);
+  });
+
+  test("a stream writes an exported key metric of a type the read does not split, and nothing else", () => {
+    for (const entry of AZURE_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        const marked: boolean = (
+          NOT_EXPORTED_BY_DIAGNOSTIC_SETTINGS[entry.type] || []
+        ).includes(metric);
+
+        expect({
+          type: entry.type,
+          metric,
+          streamed: isAzureStreamedKeyMetric(entry.type, metric),
+        }).toEqual({
+          type: entry.type,
+          metric,
+          streamed: !marked && !entry.splitByDimension,
+        });
+      }
+    }
+  });
+
+  test("a Service Bus or Event Hubs namespace streams none of its metrics, even the two a diagnostic setting exports", () => {
+    for (const type of [
+      "Microsoft.ServiceBus/namespaces",
+      "Microsoft.EventHub/namespaces",
+    ]) {
+      expect(
+        isAzureKeyMetricExportedByDiagnosticSettings(type, "IncomingMessages"),
+      ).toBe(true);
+      expect(isAzureStreamedKeyMetric(type, "IncomingMessages")).toBe(false);
+      expect(isAzureStreamedKeyMetric(type, "OutgoingMessages")).toBe(false);
+    }
+
+    expect(isAzureStreamedKeyMetric("Microsoft.Web/sites", "Requests")).toBe(
+      true,
+    );
+    expect(
+      isAzureStreamedKeyMetric("Microsoft.Nothing/things", "Requests"),
+    ).toBe(false);
+    expect(isAzureStreamedKeyMetric("", "Requests")).toBe(false);
+  });
+
+  test("by its stored name, whatever the aggregation it was read with and its case", () => {
+    const vm: string = "Microsoft.Compute/virtualMachines";
+
+    expect(
+      isAzureStreamedKeyMetricStoredName(vm, "azure_percentage_cpu_average"),
+    ).toBe(true);
+    expect(
+      isAzureStreamedKeyMetricStoredName(vm, "AZURE_PERCENTAGE_CPU_MAXIMUM"),
+    ).toBe(true);
+    expect(
+      isAzureStreamedKeyMetricStoredName(vm, "azure_network_in_total_total"),
+    ).toBe(false);
+    expect(
+      isAzureStreamedKeyMetricStoredName(
+        "Microsoft.Compute/disks",
+        "azure_composite_disk_read_bytes/sec_average",
+      ),
+    ).toBe(false);
+    expect(
+      isAzureStreamedKeyMetricStoredName(
+        "Microsoft.ServiceBus/namespaces",
+        "azure_incomingmessages_total",
+      ),
+    ).toBe(false);
+    expect(
+      isAzureStreamedKeyMetricStoredName(
+        "Microsoft.Storage/storageAccounts",
+        "azure_transactions_total",
+      ),
+    ).toBe(true);
+    // Not a key metric of the type: no stream writes it.
+    expect(
+      isAzureStreamedKeyMetricStoredName(vm, "azure_os_disk_iops_average"),
+    ).toBe(false);
+    expect(isAzureStreamedKeyMetricStoredName(vm, "")).toBe(false);
+  });
+
+  test("a stored name's key metric is Azure Monitor's own spelling", () => {
+    expect(
+      getAzureKeyMetricOfStoredName(
+        "Microsoft.Compute/virtualMachines",
+        "azure_network_out_total_total",
+      ),
+    ).toBe("Network Out Total");
+    expect(
+      getAzureKeyMetricOfStoredName(
+        "microsoft.containerservice/managedclusters",
+        "AZURE_KUBE_POD_STATUS_READY_AVERAGE",
+      ),
+    ).toBe("kube_pod_status_ready");
+    expect(
+      getAzureKeyMetricOfStoredName(
+        "Microsoft.Compute/virtualMachines",
+        "azure_incomingmessages_total",
+      ),
+    ).toBeNull();
+    expect(
+      getAzureKeyMetricOfStoredName(
+        "Microsoft.Nothing/things",
+        "azure_x_total",
+      ),
+    ).toBeNull();
+  });
+
+  /*
+   * The lookup reads a table built once from AZURE_KEY_METRICS: every key
+   * metric of every type is found under the stored name of each
+   * aggregation it can be read with, in any case and with spaces around,
+   * and under no other type, nor under a name no key metric is stored as.
+   */
+  test("every key metric of every type is found by each of its stored names, and only on its own type", () => {
+    const aggregations: Array<string> = [
+      "Average",
+      "Total",
+      "Maximum",
+      "Minimum",
+      "Count",
+    ];
+
+    for (const entry of AZURE_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        for (const aggregation of aggregations) {
+          const stored: string = getAzureStoredMetricName(metric, aggregation);
+
+          expect({
+            type: entry.type,
+            stored,
+            metric: getAzureKeyMetricOfStoredName(entry.type, stored),
+          }).toEqual({ type: entry.type, stored, metric });
+          expect(
+            getAzureKeyMetricOfStoredName(
+              ` ${entry.type.toUpperCase()} `,
+              ` ${stored.toUpperCase()} `,
+            ),
+          ).toBe(metric);
+
+          // Another type that reads no metric of that name does not know it.
+          for (const other of AZURE_KEY_METRICS) {
+            if (
+              other.type !== entry.type &&
+              !other.metrics.some((candidate: string): boolean => {
+                return candidate.toLowerCase() === metric.toLowerCase();
+              })
+            ) {
+              expect({
+                type: other.type,
+                stored,
+                metric: getAzureKeyMetricOfStoredName(other.type, stored),
+              }).toEqual({ type: other.type, stored, metric: null });
+            }
+          }
+        }
+
+        // A name the receiver never stores it as: the aggregation missing.
+        expect(
+          getAzureKeyMetricOfStoredName(
+            entry.type,
+            getAzureStoredMetricName(metric, "").slice(0, -1),
+          ),
+        ).toBeNull();
+      }
+    }
   });
 });
 

@@ -213,7 +213,7 @@ describe("the Monitoring card on a monitor's Settings page", () => {
     const dialog: HTMLElement = screen.getByRole("dialog");
     expect(dialog).toHaveTextContent("Turn off monitoring?");
     expect(dialog).toHaveTextContent(
-      "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.",
+      "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.",
     );
     expect(updateByIdMock).not.toHaveBeenCalled();
 

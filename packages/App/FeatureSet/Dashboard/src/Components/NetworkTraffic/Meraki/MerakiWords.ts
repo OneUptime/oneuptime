@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
@@ -177,9 +178,12 @@ export function getMerakiReadTime(
   );
 
   try {
-    return new Intl.RelativeTimeFormat(options.language || "en", {
-      numeric: "always",
-    }).format(-seconds, "second");
+    return new Intl.RelativeTimeFormat(
+      getNumberLocale(options.language || "en"),
+      {
+        numeric: "always",
+      },
+    ).format(-seconds, "second");
   } catch {
     return `${seconds} ${seconds === 1 ? "second" : "seconds"} ago`;
   }

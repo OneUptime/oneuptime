@@ -3,7 +3,12 @@ import {
   ON_CALL_OBSERVER_PAGE_SMS_ACTION,
   ON_CALL_OBSERVER_PAGE_SMS_LEAD,
 } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
-import { toGsm7Text, toOneLine } from "./Gsm7Text";
+import {
+  isGsm7OutsideLinks,
+  toGsm7Text,
+  toOneLine,
+  toUcs2Text,
+} from "./Gsm7Text";
 import { countSmsSegments, SmsSegmentCount } from "./SmsSegments";
 
 /*
@@ -67,6 +72,19 @@ import { countSmsSegments, SmsSegmentCount } from "./SmsSegments";
  * The text is measured as it is sent: the send path may change it once
  * more (the Notification service puts the installation's own name in place
  * of OneUptime), and `sentAs` says how.
+ *
+ * IN THE LANGUAGE OF THE PERSON IT PAGES. A page is written in its
+ * person's language (Types/UserLanguage); `language` gives the words in
+ * one other than English (Types/OnCallDutyPolicy/OnCallPageWords), around
+ * the same values, fitted by the same rule:
+ *
+ *   OneUptime: Vorfall INC-42 (Kritischer Vorfall) in Acme Prod: Checkout
+ *   API is down. Bestaetigen oder eskalieren: https://oneuptime.com/l/...
+ *
+ * The record there is its kind, number and severity in brackets, where
+ * English puts the severity first ("Critical Incident INC-42"): a severity
+ * the project named itself goes into every language that way. Without
+ * `language` the text is English, exactly as above.
  *
  * Pure, with no Node or browser APIs.
  */
@@ -159,6 +177,40 @@ const MARK: RegExp = /\p{M}/u;
 const LETTER: RegExp = /\p{L}/u;
 const JOINERS: ReadonlySet<number> = new Set<number>([0x200c, 0x200d]);
 
+/*
+ * A page's text message in a language other than English: its words
+ * around the values (Types/OnCallDutyPolicy/OnCallPageWords).
+ */
+export interface OnCallPageSmsLanguage {
+  // The record: its kind, number and severity - "Vorfall INC-42 (Hoch)".
+  describeRecord: (data: {
+    kind: OnCallPageSmsKind;
+    number: string;
+    severityName: string;
+  }) => string;
+  /*
+   * What the text says between the product and the title: the record, the
+   * project (empty once the fitting leaves it out), whether it is a page
+   * again, and who paged whom.
+   */
+  head: (data: {
+    record: string;
+    projectName: string;
+    isPageAgain: boolean;
+    lead: string;
+  }) => string;
+  // The words before the link: "Ack or escalate:".
+  action: string;
+  /*
+   * An observer's page (OnCallObserverPage): what the text says after the
+   * product when no person's page says who paged them - "FYI (observer)" -
+   * and the words before its link, which only marks the page seen: "Mark
+   * seen:".
+   */
+  observerLead: string;
+  observerAction: string;
+}
+
 export interface OnCallPageSmsInput {
   kind: OnCallPageSmsKind;
   /*
@@ -194,6 +246,11 @@ export interface OnCallPageSmsInput {
   isObserverPage?: boolean | undefined;
   // What the send path does to the text before the provider gets it.
   sentAs?: ((text: string) => string) | undefined;
+  /*
+   * The words of a language other than English, for a person who reads
+   * one. Without it the text is English.
+   */
+  language?: OnCallPageSmsLanguage | undefined;
 }
 
 export interface OnCallPageSms {
@@ -208,6 +265,10 @@ export interface OnCallPageSms {
 
 interface PageParts {
   productName: string;
+  // The record's kind, for the words of another language.
+  kind: OnCallPageSmsKind;
+  // Its severity, as written for an SMS.
+  severityName: string;
   what: string;
   number: string;
   projectName: string;
@@ -219,6 +280,15 @@ interface PageParts {
   lead: string;
   // An observer's page: for their information, and its link marks it seen.
   isObserverPage: boolean;
+  // The words of a language other than English, or none for English.
+  language: OnCallPageSmsLanguage | undefined;
+  /*
+   * Whether that language's words are written in GSM-7's characters, as
+   * the values are: true for a language written in Latin letters, whose
+   * accents have plain look-alikes ("Episódio" as "Episodio"), false for
+   * one written in another script, which goes out in UCS-2 anyway.
+   */
+  writesWordsInGsm7: boolean;
 }
 
 // A value on one line, in the characters an SMS carries cheaply.
@@ -280,6 +350,10 @@ const compose: (
   parts: PageParts,
   options: { withProject: boolean; title: string; isTitleCut: boolean },
 ): string => {
+  if (parts.language) {
+    return composeInLanguage(parts, parts.language, options);
+  }
+
   let head: string = parts.lead
     ? `${parts.productName}: ${parts.lead} about ${parts.what}`
     : parts.isObserverPage
@@ -315,6 +389,67 @@ const compose: (
       ? ON_CALL_OBSERVER_PAGE_SMS_ACTION
       : ON_CALL_PAGE_SMS_ACTION
   } ${parts.link}`;
+};
+
+/*
+ * The text from its parts in a language other than English: the same
+ * pieces in the same order - the product, what the page is about, the
+ * title and the link - with that language's words around them.
+ */
+const composeInLanguage: (
+  parts: PageParts,
+  language: OnCallPageSmsLanguage,
+  options: { withProject: boolean; title: string; isTitleCut: boolean },
+) => string = (
+  parts: PageParts,
+  language: OnCallPageSmsLanguage,
+  options: { withProject: boolean; title: string; isTitleCut: boolean },
+): string => {
+  // A language's own words, in the characters its values are written in.
+  const words: (text: string) => string = (text: string): string => {
+    return toOneLine(parts.writesWordsInGsm7 ? toGsm7Text(text) : text);
+  };
+
+  const record: string = words(
+    language.describeRecord({
+      kind: parts.kind,
+      number: parts.number,
+      severityName: parts.severityName,
+    }),
+  );
+
+  /*
+   * An observer's page says it is for their information after the
+   * product, as an English one does - unless a person's page says who
+   * paged them as an observer.
+   */
+  const product: string =
+    parts.isObserverPage && !parts.lead
+      ? `${parts.productName} ${words(language.observerLead)}`
+      : parts.productName;
+
+  let sentence: string = `${product}: ${words(
+    language.head({
+      record: record,
+      projectName: options.withProject ? parts.projectName : "",
+      isPageAgain: parts.isPageAgain,
+      lead: parts.lead,
+    }),
+  )}`;
+
+  if (options.title) {
+    sentence += `: ${options.title}`;
+  }
+
+  if (options.isTitleCut) {
+    sentence += ON_CALL_PAGE_SMS_CUT_MARK;
+  } else if (!SENTENCE_ENDS.has(Array.from(sentence).pop() || "")) {
+    sentence += ".";
+  }
+
+  return `${sentence} ${words(
+    parts.isObserverPage ? language.observerAction : language.action,
+  )} ${parts.link}`;
 };
 
 /*
@@ -391,19 +526,47 @@ export const buildOnCallPageSms: (
       return text;
     });
 
+  /*
+   * A text in a language written in another script - its own words are
+   * not GSM-7's (Russian, Japanese, Persian...) - goes out in UCS-2
+   * whatever its values hold: there each value keeps its punctuation as
+   * written (Gsm7Text's toUcs2Text), which costs the same and reads better,
+   * as a status page's subscriber texts do (SubscriberSms).
+   */
+  const isWrittenInUcs2: boolean = Boolean(
+    input.language &&
+      !isGsm7OutsideLinks(
+        input.isObserverPage === true
+          ? input.language.observerAction
+          : input.language.action,
+      ),
+  );
+
+  const toValue: (value: string | null | undefined) => string = (
+    value: string | null | undefined,
+  ): string => {
+    return isWrittenInUcs2
+      ? toOneLine(toUcs2Text(value || ""))
+      : toSmsValue(value);
+  };
+
   const parts: PageParts = {
     productName: toOneLine(input.productName),
+    kind: input.kind,
+    severityName: toValue(input.severityName),
     what: describeWhatHappened({
       kind: input.kind,
       severityName: toSmsValue(input.severityName),
     }),
-    number: toSmsValue(input.number),
-    projectName: toSmsValue(input.projectName),
-    title: Array.from(toSmsValue(input.title)),
+    number: toValue(input.number),
+    projectName: toValue(input.projectName),
+    title: Array.from(toValue(input.title)),
     link: input.link.trim(),
     isPageAgain: input.isPageAgain === true,
-    lead: toSmsValue(input.lead),
+    lead: toValue(input.lead),
     isObserverPage: input.isObserverPage === true,
+    language: input.language,
+    writesWordsInGsm7: Boolean(input.language) && !isWrittenInUcs2,
   };
 
   const wholeTitle: string = parts.title.join("");

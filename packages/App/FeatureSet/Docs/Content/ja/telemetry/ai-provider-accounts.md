@@ -1,6 +1,6 @@
 # AI プロバイダーアカウント
 
-AI プロバイダーのアカウントが何をどれだけ使い、いくらかかったかを、アプリを変更せずに確認できます。OpenAI、Anthropic、Azure OpenAI と Microsoft Foundry、Amazon Bedrock、Google Vertex AI のアカウントを読み取り専用の認証情報で接続すると、OneUptime がその使用量を 15 分ごとに読み取り、**使用量**、**予算**、アラートを設定できるメトリクスに取り込みます。
+AI プロバイダーのアカウントが何をどれだけ使い、いくらかかったかを、アプリを変更せずに確認できます。OpenAI、Anthropic、Azure OpenAI と Microsoft Foundry、Amazon Bedrock、Google Vertex AI のアカウントを読み取り専用の認証情報で接続すると、OneUptime がその使用量を 15 分ごとに読み取り、**使用量**、**予算**、アラートを設定できるメトリクスに取り込みます。Cursor のチームも同じように管理者 API キーで接続し、毎時間読み取られます。
 
 :::cards
 - [アカウントを接続する](#アカウントを接続する): プロバイダーを選び、認証情報を貼り付け、テストして接続します。
@@ -11,7 +11,7 @@ AI プロバイダーのアカウントが何をどれだけ使い、いくら�
 
 ## 仕組み
 
-OneUptime は 15 分ごとに、接続された各アカウントに UTC の日ごとの使用量を問い合わせ、接続専用のサービスの 3 つのメトリクスとして保存します。各読み取りでは前回の読み取り以降の日を取得し、さらに今日を含む直近 3 日分をもう一度読み取ります。プロバイダーは今日の分を追加し続け、直前の数日を修正するためです。
+OneUptime は 15 分ごとに、接続された各アカウントに UTC の日ごとの使用量を問い合わせ、接続専用のサービスの 3 つのメトリクスとして保存します。各読み取りでは前回の読み取り以降の日を取得し、さらに今日を含む直近 3 日分をもう一度読み取ります。プロバイダーは今日の分を追加し続け、直前の数日を修正するためです。Cursor のチームは代わりに毎時間、時間単位で読み取られます。[Cursor](#cursor) を参照してください。
 
 ```mermaid title="プロバイダー アカウントから使用量と予算へ"
 flowchart TB
@@ -60,10 +60,11 @@ flowchart TB
 | Azure OpenAI と Microsoft Foundry | トークンからの推定 | リソースとモデル | Monitoring Reader を持つアプリ |
 | Amazon Bedrock | トークンからの推定 | リージョンとモデル | CloudWatch を読めるアクセス キー |
 | Google Vertex AI | トークンからの推定 | リージョンとモデル | Monitoring Viewer を持つサービス アカウント |
+| Cursor | Cursor が報告する値 | ユーザー、モデル、サービス アカウント、時間単位 | チームの管理者 API キー |
 
 Anthropic 以外のプロバイダーはリクエスト数も数えます。Anthropic の使用量レポートにはリクエスト数がありません。推定コストには [呼び出しのコスト](/docs/telemetry/ai-llm-observability#呼び出しのコスト) の価格表と **料金** で設定した独自の価格が使われ、推定値として表示されます。価格表にないモデルは、そこで価格を設定するまでコストがありません。
 
-これらの認証情報はどれもモデルを呼び出せません。それぞれが読み取るのは使用量、コスト、メトリクスだけです。
+これらの認証情報はどれもモデルを呼び出せません。それぞれが読み取るのは使用量、コスト、メトリクスだけです。Cursor の管理者 API キーは例外で、支出上限などチームの一部の設定も変更できますが、OneUptime はこのキーで読み取るだけです。
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ OneUptime は、Vertex AI が自社モデル (Gemini や Claude などのパー�
 **プロジェクト ID** を入力し、キー ファイル全体を **サービス アカウント キー (JSON)** に貼り付けます。
 :::
 
+## Cursor
+
+OneUptime は管理者 API キーで Cursor のチームを読み取ります。メンバーのすべてのリクエストを、そのモデル、トークン、Cursor が請求した額とともに時間、ユーザー、モデル、サービス アカウントごとに合計し、過去 7 日間に Cursor を使ったメンバーの人数も読み取ります。サービス アカウントで行われたリクエストは、そのアカウント名が API キーとして表示されます。プロンプト、コード、回答は含まれません。Cursor の Admin API にはそれらがないためです。
+
+:::steps
+### Cursor の管理者 API キーを作成する
+
+Cursor のダッシュボードで Settings, Cursor Admin API Keys を開き、キーを作成します。作成できるのはチームの管理者だけで、キーは Teams プランと Enterprise プランで使えます。キーは `crsr_` で始まります。
+
+### Cursor を接続する
+
+キーを **管理者 API キー** に貼り付けます。テストでは、チームの **メンバー** と、そのうち Cursor を使った人数を示す **ユーザー** も表示されます。
+:::
+
+Cursor は使用量を時間単位で合計し、読み取りは一時間に一回までにするよう求めているため、OneUptime は Cursor のチームを毎時間読み取り、使用量を時間単位で保存します。各読み取りは前回以降の時間に加えて、その前の 3 時間をもう一度読み取ります。Cursor はリクエストを遅れて追加するためです。また、翌日の 6 時間が過ぎた日は、その日全体を読み直します。最初の読み取りは、新しい日から一日ずつ 30 日前までさかのぼります。利用の多いチームでは一分おきに何回かの読み取りが必要で、それが終わるまで、その行には **以前の使用量をまだ読み取り中です** と表示されます。
+
+Enterprise プランでは、Cursor は OpenTelemetry Export で使用量を発生時に送ることもできます。[Cursor](/docs/telemetry/cursor) を参照してください。両者は別々に保たれます。このアカウントは **プロバイダー アカウント** に、エクスポートは **自社の AI 呼び出し** に表示され、合算されることはなく、予算はどちらか一方を数えます。
+
 ## 使用量を見る
 
 **使用量** を開き、**プロバイダー アカウント** を選びます。期間中にアカウントが報告したコスト、トークン、リクエストが、**モデル**、**ユーザー**、**プロバイダー**、**プロジェクトまたはリソース**、**API キー**、**接続** のいずれかでランキング表示されます。プロバイダーは 1 日単位で報告するため、期間は初日の UTC の 0 時から始まります。
@@ -157,7 +176,7 @@ OneUptime は、Vertex AI が自社モデル (Gemini や Claude などのパー�
 | `oneuptime.llm.provider.tokens` | 一日のトークン数。`gen_ai.token.type` ごと: `input` (キャッシュされたトークンを含む)、`output`、`cache_read`、`cache_write` |
 | `oneuptime.llm.provider.requests` | 一日のリクエスト数 |
 
-各ポイントには、その UTC の日の開始時刻が付きます。ポイントには `oneuptime.llm.connection.id` と `oneuptime.llm.connection.name` に加え、プロバイダーが示す `gen_ai.provider.name`、`gen_ai.request.model`、`user.email`、`oneuptime.llm.provider.project`、`oneuptime.llm.provider.api_key` が付きます。推定コストには `oneuptime.llm.cost.estimated` が付きます。
+各ポイントには、その UTC の日の開始時刻が付きます。ポイントには `oneuptime.llm.connection.id` と `oneuptime.llm.connection.name` に加え、プロバイダーが示す `gen_ai.provider.name`、`gen_ai.request.model`、`user.email`、`oneuptime.llm.provider.project`、`oneuptime.llm.provider.api_key` が付きます。推定コストには `oneuptime.llm.cost.estimated` が付きます。Cursor のチームのポイントはそれぞれ一時間分の使用量を持ち、その UTC の時間の始まりのタイムスタンプが付きます。
 
 ## 読み取りのスケジュール
 
@@ -168,6 +187,9 @@ OneUptime は、Vertex AI が自社モデル (Gemini や Claude などのパー�
 | キーまたは権限が拒否された後 | 60 分後 |
 | その他の失敗の後 | 15 分後 |
 | オフ | オンに戻すまで行わない |
+| Cursor のチームの以降の読み取り | 一時間ごと |
+| 途中で止まった Cursor の読み取り | 一分後 |
+| Cursor のチーム、何らかの失敗の後 | 60 分後 |
 
 テレメトリ機能のないプランでは何も読み取りません。接続を削除すると読み取りは止まり、読み取り済みのデータはサービスの保持期間で削除されるまで残ります。
 
@@ -183,6 +205,14 @@ OneUptime はアカウントを読み取るだけで、アプリとプロバイ�
 
 :::details 認証情報は有効だが、接続に必要なデータを読み取れない
 このページがプロバイダーごとに示すロールを付与してください。Azure のサブスクリプションには Monitoring Reader、AWS には 2 つの CloudWatch アクション、Google Cloud のプロジェクトには Monitoring Viewer です。
+:::
+
+:::details Cursor はキーを受け付けたが、チームの使用量を読み取れない
+Teams プランまたは Enterprise プランのチームの管理者 API キーを使ってください。チームの管理者が Cursor のダッシュボードの Settings, Cursor Admin API Keys で作成します。その後、もう一度テストしてください。
+:::
+
+:::details Cursor が OneUptime に速度を落とすよう求めた
+Cursor の Admin API は、チームから一分あたり 20 リクエスト、使用量イベントには 60 リクエストを受け付け、この枠はそれを読み取るすべてのツールで共有されます。OneUptime は一度だけ一分待ってから続けます。それでも Cursor が拒否した場合、読み取りは完全に読み取った分を保持し、一分後に続きを読みます。何も得られなかった読み取りは、一時間後にもう一度試します。
 :::
 
 :::details テストは成功したが、今日の分が表示されない

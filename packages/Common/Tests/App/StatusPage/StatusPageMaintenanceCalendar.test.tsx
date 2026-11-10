@@ -684,8 +684,8 @@ describe("the calendar's words in every status page language", () => {
   // Names that read the same in every language.
   const PRODUCT_NAMES: Array<string> = ["google", "device"];
 
-  test("there are seventeen of them", () => {
-    expect(locales).toHaveLength(17);
+  test("there are eighteen of them", () => {
+    expect(locales).toHaveLength(18);
   });
 
   test.each(locales)("%s has every word, translated", (file: string) => {

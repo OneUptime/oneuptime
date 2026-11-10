@@ -1,4 +1,5 @@
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
+import { isDatabaseServerLogLine } from "./DatabaseServerLogLine";
 import AzureActivityLogParser, {
   AZURE_PREFILTER_WORDS,
 } from "./AzureActivityLogParser";
@@ -47,6 +48,8 @@ import WindowsEventLogParser, {
  * lines, and last an attack string in a request. A line is one kind of
  * record, so the first parser that reads it wins - a WAF's CEF record of
  * an attack is one event, never a second one for the attack string in it.
+ * A database server's own line is none of these: what it holds is the
+ * queries clients sent it (DatabaseServerLogLine).
  */
 
 type LogLineParser = (line: SecurityLogLine) => Array<NormalizedSecurityEvent>;
@@ -299,6 +302,15 @@ export function matchesSecurityLogPrefilter(body: string): boolean {
 export default class SecurityLogParser {
   public static parse(line: SecurityLogLine): Array<NormalizedSecurityEvent> {
     if (!line.body) {
+      return [];
+    }
+
+    /*
+     * A database server's own line holds the queries it ran - another
+     * tool's search for an attack string, an application's UNION ALL
+     * SELECT - never a security record (DatabaseServerLogLine).
+     */
+    if (isDatabaseServerLogLine(line.body)) {
       return [];
     }
 

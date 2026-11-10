@@ -463,27 +463,43 @@ describe("rarely used options", () => {
    *
    * An LLM provider's form is now Provider, then Connection
    * (Common/UI/Components/AI/LlmProviderFormFields), with its description
-   * folded beside them: a project's provider with its default switch, a
-   * global one with its price.
+   * and how long it is given to answer (issue #6438) folded beside them: a
+   * project's provider with its default switch, a global one with its
+   * price.
    */
   test.each([
     [
       `${DASHBOARD}/Pages/Settings/LlmProviders.tsx`,
       "ModelTable",
       "connection",
-      ["description", "isDefault", "additionalParams"],
+      [
+        "description",
+        "isDefault",
+        "additionalParams",
+        "requestTimeoutInSeconds",
+      ],
     ],
     [
       `${DASHBOARD}/Pages/Settings/LlmProviderView.tsx`,
       "CardModelDetail",
       "connection",
-      ["description", "isDefault", "additionalParams"],
+      [
+        "description",
+        "isDefault",
+        "additionalParams",
+        "requestTimeoutInSeconds",
+      ],
     ],
     [
       `${ADMIN_DASHBOARD}/Pages/Settings/LlmProviders/Index.tsx`,
       "ModelTable",
       "connection",
-      ["description", "additionalParams", "costPerMillionTokensInUSDCents"],
+      [
+        "description",
+        "additionalParams",
+        "requestTimeoutInSeconds",
+        "costPerMillionTokensInUSDCents",
+      ],
     ],
     [
       `${DASHBOARD}/Pages/Dashboards/Settings/DataSources.tsx`,

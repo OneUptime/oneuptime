@@ -101,10 +101,10 @@ En hændelse eller advarsel, som en monitor åbner, beholder den kontrol, der å
 - **Værdierne.** Hvad hver værdi, en **JavaScript Expression** læser, indeholdt, da den blev evalueret, fx `responseBody.status = "down"`.
 - **Et uddrag.** Et kort stykke af svaret omkring matchet, med matchet markeret: aldrig hele indholdet.
 
-Hemmeligheder og personoplysninger maskeres, før noget gemmes: headere som `Authorization`, `Cookie` og `Set-Cookie`, felter, hvis navn siger `password`, `token`, `key`, `session` eller `email`, og tekst, der ligner et bearer-token, en JWT, et kortnummer eller en e-mailadresse. Anmodningens URL er den, monitoren blev sat op med, så `{{monitorSecrets.NAME}}` forbliver et navn, og en hemmelig forespørgselsværdi maskeres. En hændelse eller advarsel, der er åbnet manuelt eller før evalueringsdetaljer blev gemt, har ingen.
+Hemmeligheder og personoplysninger maskeres, før noget gemmes: headere som `Authorization`, `Cookie` og `Set-Cookie`, felter, hvis navn siger `password`, `token`, `key`, `session` eller `email`, og tekst, der ligner et bearer-token, en JWT, et kortnummer eller en e-mailadresse. Anmodningens URL er den, monitoren blev sat op med, så `{{monitorSecrets.NAME}}` forbliver et navn, og en hemmelig forespørgselsværdi maskeres. Monitorens **Overvågningslogs** og enhver værdi, som en grundårsag citerer, maskeres på samme måde. En hændelse eller advarsel, der er åbnet manuelt eller før evalueringsdetaljer blev gemt, har ingen.
 
 > [!TIP]
-> Når svarene fra en website- eller API-monitor er følsomme i sig selv, så slå **Behold svarindhold på hændelser og advarsler** fra på kortet **Svarindhold** på dens side **Avanceret → Indstillinger**. Dens hændelser og advarsler beholder så, hvilke filtre der matchede, statuskoden og svartiden, og ingen del af svaret. En monitor for indgående anmodninger har den samme kontakt for de anmodninger, den modtager: **Behold anmodningsindhold på hændelser og advarsler**, på kortet **Anmodningsindhold**. Kontakten gælder for de hændelser og advarsler, der åbnes, efter du ændrer den.
+> Når svarene fra en website- eller API-monitor er følsomme i sig selv, så slå **Behold svarindhold** fra på kortet **Svarindhold** på dens side **Avanceret → Indstillinger**. Dens overvågningslogs, hændelser og advarsler beholder så, hvilke filtre der matchede, statuskoden og svartiden, og ingen del af svaret. En monitor for indgående anmodninger har den samme kontakt for de anmodninger, den modtager: **Behold anmodningsindhold**, på kortet **Anmodningsindhold**. Kontakten gælder for de kontroller, der kører, og de hændelser og advarsler, der åbnes, efter du ændrer den. Den seneste anmodning i oversigten over en monitor for indgående anmodninger følger kontakten med det samme.
 
 ## Ændr en monitors kriterier
 
@@ -148,7 +148,7 @@ Listen er en rækkefølge. Hvor monitorer vises sammen, vinder den status, der s
 
 | Hvor | Hvad statussen afgør |
 | --- | --- |
-| Listen **Monitorer** | Hver monitors aktuelle status. **Ikke operationel** viser monitorerne i enhver status undtagen den driftsklare, med et rødt tal ved siden af. |
+| Listen **Monitorer** | Hver monitors aktuelle status. **Ikke operationel** viser monitorerne i enhver status undtagen den driftsklare, med et rødt tal ved siden af. Monitorer med overvågning slået fra er udeladt: intet tjekker dem, og **Deaktiveret** viser dem. |
 | Statussider | Farven på hver række og dens oppetid: kun statusserne i sidens **Tæller som nedetid** tæller imod den. En ny statusside starter med alle statusser undtagen den driftsklare. Se [Vælg, hvad siden viser](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden). |
 | Monitorgrupper | Gruppens status: den værste blandt dens monitorer. Se [Monitorgrupper](/docs/monitor/monitor-groups). |
 | SLO'er | Den nedetid, et SLO tæller, ud fra dets egen liste over statusser. Se [Hvilke statusser tæller som nedetid](/docs/slo/introduction#hvilke-statusser-der-tæller-som-nedetid). |

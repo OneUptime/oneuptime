@@ -86,6 +86,22 @@ export interface ShowcasePreview {
   // Three or four, one of them in trouble.
   rows: Array<ShowcaseRow>;
   alert?: ShowcaseAlert | undefined;
+  /*
+   * English translation keys. The pill in the example's header, "Connected"
+   * when unset; a product's example says its own ("Live").
+   */
+  badge?: string | undefined;
+  /*
+   * The pill's colour: healthy (green) when unset. An example whose header
+   * names a state its rows draw in another colour says so (an alert that
+   * is only Acknowledged is amber, in its row and its header alike).
+   */
+  badgeStatus?: ShowcaseStatus | undefined;
+  /*
+   * What a screen reader hears for the whole example: "An example of what
+   * you see once one is connected." when unset.
+   */
+  description?: string | undefined;
 }
 
 export interface ResourceShowcase {
@@ -97,7 +113,13 @@ export interface ResourceShowcase {
   description: string;
   // Three short facts about getting started: "One Helm command".
   highlights: Array<string>;
-  // Six, in the order they are read.
+  /*
+   * A product's first steps (ProductOnboarding), two to four of them, drawn
+   * as a numbered list in place of the highlights: the first is what the
+   * showcase's button does ("Create a monitor").
+   */
+  steps?: Array<string> | undefined;
+  // Six, in the order they are read; none leaves out "What you get".
   features: Array<ShowcaseFeature>;
   preview: ShowcasePreview;
 }

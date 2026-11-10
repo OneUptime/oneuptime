@@ -287,8 +287,8 @@ describe("the words, in every language", () => {
     return (text.match(PLACEHOLDER) || []).sort();
   }
 
-  test("seventeen locale files are read", () => {
-    expect(Object.keys(locales)).toHaveLength(17);
+  test("eighteen locale files are read", () => {
+    expect(Object.keys(locales)).toHaveLength(18);
   });
 
   test.each(NEW_KEYS)("%s is in every locale file", (key: string) => {
