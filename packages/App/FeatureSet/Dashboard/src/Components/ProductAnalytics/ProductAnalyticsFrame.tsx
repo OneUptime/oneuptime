@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -62,6 +62,11 @@ export function ProductAnalyticsToolbar(props: {
   timeRange: RangeStartAndEndDateTime;
   onTimeRangeChange: (range: RangeStartAndEndDateTime) => void;
   onRefresh: () => void;
+  /*
+   * The page's saved funnels or retention tables (issue #6630): first, as
+   * the explorers keep their saved views before their range.
+   */
+  savedViews?: ReactNode | undefined;
   dataTestId: string;
 }): ReactElement {
   return (
@@ -69,6 +74,7 @@ export function ProductAnalyticsToolbar(props: {
       key={`${props.dataTestId}-header`}
       dataTestId={props.dataTestId}
     >
+      {props.savedViews}
       <TelemetryTimeRangePicker
         value={props.timeRange}
         onChange={props.onTimeRangeChange}

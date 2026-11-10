@@ -5,6 +5,10 @@ import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
+import {
+  ProductAnalyticsRetentionDefinition,
+  ProductAnalyticsSavedViewType,
+} from "Common/Types/Rum/ProductAnalyticsSavedViews";
 import Card from "Common/UI/Components/Card/Card";
 import Dropdown, {
   DropdownOption,
@@ -66,13 +70,26 @@ import {
   ProductAnalyticsNothingKept,
   useProductAnalyticsEventsSwitch,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsEventsGate";
+import {
+  ProductAnalyticsSavedView,
+  applyProductAnalyticsRetentionDefinition,
+  toProductAnalyticsRetentionDefinition,
+  writeProductAnalyticsSavedViewId,
+} from "../../../Components/ProductAnalytics/ProductAnalyticsSavedViews";
+import ProductAnalyticsSavedViewsMenu, {
+  ProductAnalyticsSavedViewNotice,
+  ProductAnalyticsSavedViewState,
+  useProductAnalyticsSavedViewState,
+} from "../../../Components/ProductAnalytics/ProductAnalyticsSavedViewsMenu";
 import { toProductAnalyticsPersonProperties } from "./ProductAnalyticsFunnels";
 
 /*
  * Product Analytics > Retention (issue #6444, part two): the people who
  * first did a start event in each day, week or month of the range, and how
  * many of them did a return event in each period after - whether people
- * come back, and when they stop.
+ * come back, and when they stop. A retention table is saved under a name
+ * from the toolbar, to open again here or show on a dashboard (issue
+ * #6630).
  */
 
 const RumApplicationProductAnalyticsRetention: FunctionComponent<
@@ -94,24 +111,29 @@ const RumApplicationProductAnalyticsRetention: FunctionComponent<
   const [reloadToken, setReloadToken] = useState<number>(0);
   const analytics: ProductAnalyticsEventsSwitchState =
     useProductAnalyticsEventsSwitch(modelId);
+  const saved: ProductAnalyticsSavedViewState =
+    useProductAnalyticsSavedViewState(ProductAnalyticsSavedViewType.Retention);
 
   useEffect((): void => {
     window.history.replaceState(
       window.history.state,
       "",
-      writeProductAnalyticsEventsUrlState(
-        buildProductAnalyticsUrl(window.location.href, {
-          timeRange: range.timeRange,
-        }),
-        {
-          startEvent: state.startEvent,
-          returnEvent: state.returnEvent,
-          period: state.period,
-          filters: state.filters,
-        },
+      writeProductAnalyticsSavedViewId(
+        writeProductAnalyticsEventsUrlState(
+          buildProductAnalyticsUrl(window.location.href, {
+            timeRange: range.timeRange,
+          }),
+          {
+            startEvent: state.startEvent,
+            returnEvent: state.returnEvent,
+            period: state.period,
+            filters: state.filters,
+          },
+        ),
+        saved.savedViewId,
       ),
     );
-  }, [range.timeRange, state]);
+  }, [range.timeRange, state, saved.savedViewId]);
 
   /* The window, fixed when the range is picked or refreshed, so "now" does not drift. */
   const period: InBetween<Date> = useMemo((): InBetween<Date> => {
@@ -144,35 +166,54 @@ const RumApplicationProductAnalyticsRetention: FunctionComponent<
       },
     );
 
-  const properties: ProductAnalyticsRead<ProductAnalyticsEventPropertiesDto> =
-    useProductAnalyticsRead<ProductAnalyticsEventPropertiesDto>(
-      `${windowKey}|${encodeProductAnalyticsEvent(state.startEvent)}`,
-      (): Promise<ProductAnalyticsEventPropertiesDto> => {
-        return fetchProductAnalyticsEventProperties({
-          rumApplicationId: modelId,
-          startTime: period.startValue,
-          endTime: period.endValue,
-          event: state.startEvent,
-        });
+  /*
+   * Nothing is read for the table while a saved one the address named is
+   * being opened: its events, not the default's, are the ones to read.
+   */
+  const isOpening: boolean = saved.isOpening;
+
+  const properties: ProductAnalyticsRead<ProductAnalyticsEventPropertiesDto | null> =
+    useProductAnalyticsRead<ProductAnalyticsEventPropertiesDto | null>(
+      isOpening
+        ? `${windowKey}|opening`
+        : `${windowKey}|${encodeProductAnalyticsEvent(state.startEvent)}`,
+      (): Promise<ProductAnalyticsEventPropertiesDto | null> => {
+        return isOpening
+          ? Promise.resolve(null)
+          : fetchProductAnalyticsEventProperties({
+              rumApplicationId: modelId,
+              startTime: period.startValue,
+              endTime: period.endValue,
+              event: state.startEvent,
+            });
       },
     );
 
-  const retention: ProductAnalyticsRead<ProductAnalyticsRetentionDto> =
-    useProductAnalyticsRead<ProductAnalyticsRetentionDto>(
-      `${windowKey}|${encodeProductAnalyticsEvent(state.startEvent)}|${encodeProductAnalyticsEvent(state.returnEvent)}|${retentionPeriod}|${JSON.stringify(state.filters)}|${timeZone}`,
-      (): Promise<ProductAnalyticsRetentionDto> => {
-        return fetchProductAnalyticsRetention({
-          rumApplicationId: modelId,
-          startTime: period.startValue,
-          endTime: period.endValue,
-          startEvent: state.startEvent,
-          returnEvent: state.returnEvent,
-          filters: state.filters,
-          period: retentionPeriod,
-          timeZone: timeZone,
-        });
+  const retention: ProductAnalyticsRead<ProductAnalyticsRetentionDto | null> =
+    useProductAnalyticsRead<ProductAnalyticsRetentionDto | null>(
+      isOpening
+        ? `${windowKey}|opening`
+        : `${windowKey}|${encodeProductAnalyticsEvent(state.startEvent)}|${encodeProductAnalyticsEvent(state.returnEvent)}|${retentionPeriod}|${JSON.stringify(state.filters)}|${timeZone}`,
+      (): Promise<ProductAnalyticsRetentionDto | null> => {
+        return isOpening
+          ? Promise.resolve(null)
+          : fetchProductAnalyticsRetention({
+              rumApplicationId: modelId,
+              startTime: period.startValue,
+              endTime: period.endValue,
+              startEvent: state.startEvent,
+              returnEvent: state.returnEvent,
+              filters: state.filters,
+              period: retentionPeriod,
+              timeZone: timeZone,
+            });
       },
     );
+
+  // What is on screen, as the saved retention tables keep it.
+  const definition: ProductAnalyticsRetentionDefinition | null = isOpening
+    ? null
+    : toProductAnalyticsRetentionDefinition(state);
 
   const refresh: () => void = (): void => {
     setReloadToken((token: number): number => {
@@ -194,6 +235,7 @@ const RumApplicationProductAnalyticsRetention: FunctionComponent<
   const isEmpty: boolean = Boolean(names.data && dataStartedAt === null);
   const hasNobody: boolean = Boolean(
     retention.data &&
+      !isOpening &&
       retention.data.cohorts.every(
         (cohort: ProductAnalyticsRetentionDto["cohorts"][number]): boolean => {
           return cohort.people === 0;
@@ -319,7 +361,7 @@ const RumApplicationProductAnalyticsRetention: FunctionComponent<
             message={retention.error}
             onRefreshClick={retention.reload}
           />
-        ) : retention.data ? (
+        ) : retention.data && !isOpening ? (
           hasNobody ? (
             <p
               className="text-sm text-gray-500"
@@ -364,10 +406,48 @@ const RumApplicationProductAnalyticsRetention: FunctionComponent<
             });
           }}
           onRefresh={refresh}
+          savedViews={
+            <ProductAnalyticsSavedViewsMenu
+              rumApplicationId={modelId}
+              viewType={ProductAnalyticsSavedViewType.Retention}
+              definition={definition}
+              savedViewId={saved.savedViewId}
+              isDefinitionInAddress={saved.address.isDefinitionInAddress}
+              isSettled={saved.isSettled}
+              onOpen={(
+                view: ProductAnalyticsSavedView<ProductAnalyticsSavedViewType.Retention>,
+              ): void => {
+                const opened: ProductAnalyticsRetentionDefinition | null =
+                  view.definition;
+
+                if (opened) {
+                  setState((previous: ProductAnalyticsEventsUrlState) => {
+                    return applyProductAnalyticsRetentionDefinition(
+                      previous,
+                      opened,
+                    );
+                  });
+                  saved.setSavedViewId(view.id);
+                }
+              }}
+              onSelect={saved.setSavedViewId}
+              onNotice={saved.setNotice}
+              onSettled={saved.settle}
+              dataTestId="product-analytics-retention-saved"
+            />
+          }
         />,
       ]}
     >
-      {body}
+      <>
+        <ProductAnalyticsSavedViewNotice
+          notice={saved.notice}
+          onClose={(): void => {
+            saved.setNotice(null);
+          }}
+        />
+        {body}
+      </>
     </Card>
   );
 };

@@ -32,9 +32,9 @@ import { DASHBOARD_WIDGET_SORT_ARGUMENT } from "./DashboardWidgetSort";
 
 /*
  * The widgets a public dashboard cannot draw: its API reads no logs, no
- * traces and no security events. Each says so in its place, under its
- * title ("Log charts are not available on public dashboards."), and its
- * title is all it is served. The external Data Source widgets are not
+ * traces, no security events and no product analytics. Each says so in its
+ * place, under its title ("Log charts are not available on public
+ * dashboards."), and its title is all it is served. The external Data Source widgets are not
  * among them: a public dashboard leaves them out altogether, because
  * their settings are the query itself (PublicDashboardViewConfig
  * .sanitize). The page lays out both kinds as the words they are
@@ -47,6 +47,12 @@ export const PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES: ReadonlyArray<DashboardCompo
     DashboardComponentType.TraceTable,
     DashboardComponentType.SecurityEventsList,
     DashboardComponentType.SecurityEventsFlow,
+    /*
+     * A saved funnel's or retention table's people are an application's end
+     * users, read only by those who may list its sessions (issue #6630).
+     */
+    DashboardComponentType.ProductAnalyticsFunnel,
+    DashboardComponentType.ProductAnalyticsRetention,
   ];
 
 /*
@@ -234,6 +240,8 @@ export const PUBLIC_DASHBOARD_WIDGET_SETTINGS: Readonly<
     "severityFilters",
     "maxEvents",
   ]),
+  [DashboardComponentType.ProductAnalyticsFunnel]: undrawn(["savedViewId"]),
+  [DashboardComponentType.ProductAnalyticsRetention]: undrawn(["savedViewId"]),
   [DashboardComponentType.TraceList]: drawn([
     "title",
     "statusFilter",
