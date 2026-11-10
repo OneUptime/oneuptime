@@ -1424,22 +1424,54 @@ export default class QuietChannelsWorld {
     userId: ObjectID,
     method: keyof OnCallPageNotificationMethods,
   ): Promise<void> {
-    const step: OnCallDutyPolicyExecutionLogTimeline =
-      this.latestPageOf(userId)!;
+    await this.markNotification({
+      userId: userId,
+      method: method,
+      status: UserNotificationStatus.Error,
+      statusMessage: "The provider refused the message.",
+    });
+  }
+
+  /*
+   * A call of a person's page rang and was not picked up - Twilio says so
+   * when the call ends (the notification server's call status callback):
+   * marked Not Answered through the delivery's real update hook, with the
+   * status it had before, as the callback marks one. The latest of the
+   * page's calls.
+   */
+  public async missCall(userId: ObjectID): Promise<void> {
+    await this.markNotification({
+      userId: userId,
+      method: "userCallId",
+      status: UserNotificationStatus.NotAnswered,
+      statusMessage: "The call was not answered: it rang out.",
+    });
+  }
+
+  // The latest of a person's page's notifications by a method, marked so.
+  private async markNotification(data: {
+    userId: ObjectID;
+    method: keyof OnCallPageNotificationMethods;
+    status: UserNotificationStatus;
+    statusMessage: string;
+  }): Promise<void> {
+    const step: OnCallDutyPolicyExecutionLogTimeline = this.latestPageOf(
+      data.userId,
+    )!;
 
     const delivery: UserOnCallLogTimeline = this.deliveries
       .filter((candidate: UserOnCallLogTimeline): boolean => {
         return (
           candidate.onCallDutyPolicyExecutionLogTimelineId?.toString() ===
-            step.id!.toString() && Boolean(candidate[method])
+            step.id!.toString() && Boolean(candidate[data.method])
         );
       })
       .pop()!;
 
     const statusBefore: UserNotificationStatus | undefined = delivery.status;
 
-    delivery.status = UserNotificationStatus.Error;
-    delivery.statusMessage = "The provider refused the message.";
+    delivery.status = data.status;
+    delivery.statusMessage = data.statusMessage;
 
     await (
       UserOnCallLogTimelineService as unknown as Record<
@@ -1452,7 +1484,7 @@ export default class QuietChannelsWorld {
         updateBy: {
           query: { _id: delivery.id!.toString() },
           data: {
-            status: UserNotificationStatus.Error,
+            status: data.status,
             statusMessage: delivery.statusMessage,
           },
           props: { isRoot: true },

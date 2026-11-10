@@ -14,8 +14,9 @@ import UserNotificationStatus from "../UserNotification/UserNotificationStatus";
  *
  * The record's feed tells this story (OnCallFeedText): "On-call policy
  * Payments paged Nitin Kumar via push notification and email at Level 1 of
- * 3", "... paged Nitin Kumar again via phone call ...", "Nitin Kumar
- * acknowledged the page ... via phone call". The run's Slack and Microsoft
+ * 3", "... paged Nitin Kumar again via phone call ...", "Nitin Kumar did
+ * not answer the phone call ...", "Nitin Kumar acknowledged the page ...
+ * via phone call". The run's Slack and Microsoft
  * Teams message says the same in its own short words: "Nitin: paged once ·
  * by SMS and email" (OnCallPolicyRunMessage). This file is the one list of
  * the channels both read, so a new channel is named everywhere at once.
@@ -162,7 +163,8 @@ export const ON_CALL_PAGE_SENT_STATUS_MESSAGE: string = "Alert Sent";
 
 /*
  * Whether a notification went out - or is going out - to its person:
- * sending, sent, or answered. One that failed or was skipped did not.
+ * sending, sent, answered, or a call that rang and was not picked up. One
+ * that failed or was skipped did not.
  */
 export function isOnCallPageNotificationOut(
   status: UserNotificationStatus | string | null | undefined,
@@ -171,9 +173,20 @@ export function isOnCallPageNotificationOut(
     status === UserNotificationStatus.Sending ||
     status === UserNotificationStatus.Sent ||
     status === UserNotificationStatus.Acknowledged ||
-    status === UserNotificationStatus.PassedOn
+    status === UserNotificationStatus.PassedOn ||
+    status === UserNotificationStatus.NotAnswered
   );
 }
+
+/*
+ * The channels that ring, and so can be picked up or not: a phone call.
+ * Only a notification by one of them can go unanswered
+ * (UserNotificationStatus.NotAnswered) - an SMS or an email is read when it
+ * is read.
+ */
+export const ON_CALL_PAGE_RINGING_CHANNELS: ReadonlyArray<OnCallPageChannel> = [
+  OnCallPageChannel.Call,
+];
 
 /*
  * The channels one notification went out by - one, as every notification
@@ -306,6 +319,11 @@ export enum OnCallPageNotificationEvent {
    * is gone, the channel is not verified.
    */
   Failed = "Failed",
+  /*
+   * A call that rang and was not picked up: it rang out, or the line was
+   * busy (UserNotificationStatus.NotAnswered).
+   */
+  NotAnswered = "NotAnswered",
 }
 
 // What the feed says of one such notification.
@@ -355,20 +373,43 @@ function isNotificationBefore(
 }
 
 /*
+ * The status a notification before this one had when the feed told of it
+ * the way it tells of this one: one that went out, for one sent later; one
+ * that failed, for a failure; one not answered, for a call not answered.
+ */
+function isToldAs(
+  event: OnCallPageNotificationEvent,
+  status: UserNotificationStatus | string | null | undefined,
+): boolean {
+  switch (event) {
+    case OnCallPageNotificationEvent.Failed:
+      return status === UserNotificationStatus.Error;
+    case OnCallPageNotificationEvent.NotAnswered:
+      return status === UserNotificationStatus.NotAnswered;
+    default:
+      return isOnCallPageNotificationOut(status);
+  }
+}
+
+/*
  * What a notification of a page adds to the record's feed after the page's
  * own entry - or null, when it adds nothing. Each channel is told of once a
  * page: a push the person repeats until they answer, or a second call by a
  * rule of their own, goes out by a channel the feed has named already, and
  * would bury the page under one line a minute. So is each failure: a push
- * token that is gone fails every repeat. `notifications` are all of the
- * page's, this one among them or not.
+ * token that is gone fails every repeat. And so is a call not answered: a
+ * second call that rings out says no more than the first. A call not
+ * answered is told of by its ringing channel only
+ * (ON_CALL_PAGE_RINGING_CHANNELS). `notifications` are all of the page's,
+ * this one among them or not.
  */
 export function getOnCallPageNotificationNews(data: {
   event: OnCallPageNotificationEvent;
   notification: OnCallPageNotification;
   notifications: Array<OnCallPageNotification>;
 }): OnCallPageNotificationNews | null {
-  const isFailed: boolean = data.event === OnCallPageNotificationEvent.Failed;
+  const isSentLater: boolean =
+    data.event === OnCallPageNotificationEvent.SentLater;
 
   const before: Array<OnCallPageNotification> = data.notifications.filter(
     (other: OnCallPageNotification) => {
@@ -383,11 +424,7 @@ export function getOnCallPageNotificationNews(data: {
   const toldChannels: Array<OnCallPageChannel> = [];
 
   for (const other of before) {
-    const isTold: boolean = isFailed
-      ? other.status === UserNotificationStatus.Error
-      : isOnCallPageNotificationOut(other.status);
-
-    if (isTold) {
+    if (isToldAs(data.event, other.status)) {
       toldChannels.push(...getOnCallPageChannelsOf(other));
     }
   }
@@ -395,6 +432,13 @@ export function getOnCallPageNotificationNews(data: {
   const channels: Array<OnCallPageChannel> = getOnCallPageChannelsOf(
     data.notification,
   ).filter((channel: OnCallPageChannel) => {
+    if (
+      data.event === OnCallPageNotificationEvent.NotAnswered &&
+      !ON_CALL_PAGE_RINGING_CHANNELS.includes(channel)
+    ) {
+      return false;
+    }
+
     return !toldChannels.includes(channel);
   });
 
@@ -406,7 +450,7 @@ export function getOnCallPageNotificationNews(data: {
     event: data.event,
     channels: channels,
     isPagedBefore:
-      !isFailed &&
+      isSentLater &&
       before.some((other: OnCallPageNotification) => {
         return isOnCallPageNotificationOut(other.status);
       }),

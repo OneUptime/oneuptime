@@ -73,7 +73,7 @@ At sende alarmer kræver kun udgående HTTPS til `api.telegram.org`. At forbinde
 
 ### Twilio
 
-Når en vagthavende trykker 1 for at kvittere under et opkald, sender Twilio tasten til `POST /api/user-notification-log-timeline/call/gather-input/*`. Twilios webhook-adresser skifter, medmindre din Twilio-udgave omfatter [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Leveringsopdateringer for SMS og indgående opkald er beskrevet i [Twilio-integration](/docs/self-hosted/twilio-integration).
+Når en vagthavende trykker 1 for at kvittere under et opkald, sender Twilio tasten til `POST /api/user-notification-log-timeline/call/gather-input/*`. Twilios webhook-adresser skifter, medmindre din Twilio-udgave omfatter [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Leveringsopdateringer for SMS, opkaldsresultater og indgående opkald er beskrevet i [Twilio-integration](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 

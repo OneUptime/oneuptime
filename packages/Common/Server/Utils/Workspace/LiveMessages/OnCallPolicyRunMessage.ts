@@ -1604,13 +1604,17 @@ export default class OnCallPolicyRunMessage {
       }
     }
 
-    // How each person's pages reached them.
+    /*
+     * How each person's pages reached them. A call that rang and was not
+     * picked up reached them too: "paged once · by call".
+     */
     for (const delivery of data.deliveries) {
       if (
         !delivery.userId ||
         (delivery.status !== UserNotificationStatus.Sent &&
           delivery.status !== UserNotificationStatus.Acknowledged &&
-          delivery.status !== UserNotificationStatus.PassedOn)
+          delivery.status !== UserNotificationStatus.PassedOn &&
+          delivery.status !== UserNotificationStatus.NotAnswered)
       ) {
         continue;
       }

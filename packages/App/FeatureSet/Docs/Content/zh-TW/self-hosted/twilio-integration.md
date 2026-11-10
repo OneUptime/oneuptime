@@ -87,7 +87,7 @@ Twilio 號碼可以同時撥打電話和傳送簡訊，也可以只支援其中�
 
 ## 3. 設定網路存取
 
-只要有輸出存取即可傳送。傳送狀態更新、按鍵確認和來電則需要 Twilio 能存取您的伺服器。
+只要有輸出存取即可傳送。傳送狀態更新、通話結果、按鍵確認和來電則需要 Twilio 能存取您的伺服器。
 
 ```mermaid title="輸出傳送，輸入回呼"
 sequenceDiagram
@@ -109,6 +109,7 @@ sequenceDiagram
 | --- | --- |
 | 送出簡訊 | 否。不過傳送狀態更新需要回呼。 |
 | 簡單的測試語音電話 | 否。OneUptime 在輸出 API 要求中附帶語音指令。 |
+| 得知值班電話是否有人接聽 | 是。Twilio 會回報每通電話的結束方式，事件的 Feed 因此能寫出有人未接聽。沒有它，電話也會照常撥出。 |
 | 按 1 確認值班警示 | 是。Twilio 把按鍵輸入送給 OneUptime。 |
 | 來電原則 | 是。Twilio 要求通話指令並回報撥號結果。 |
 
@@ -117,13 +118,14 @@ sequenceDiagram
 | 方法 | 路徑 | 用途 |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | 簡訊傳送狀態 |
+| POST | `/notification/call/status-callback/:callLogId/:token` | 通話結果 |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | 按鍵確認 |
 | POST | `/notification/incoming-call/voice` | 選用：來電指令 |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | 選用：來電路由結果 |
 
-OneUptime 會自動產生簡訊和確認的 URL。不要用固定的 webhook URL 取代其中的權杖。來電請依照[來電原則](/docs/on-call/incoming-call-policy)操作，連結號碼時會為該號碼設定 webhook。
+OneUptime 會自動產生簡訊、通話結果和確認的 URL。不要用固定的 webhook URL 取代其中的權杖。來電請依照[來電原則](/docs/on-call/incoming-call-policy)操作，連結號碼時會為該號碼設定 webhook。
 
-Twilio 要求 [webhook URL 可被公開存取](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。請使用公開信任的 TLS 憑證，並在經過代理時保留原始的主機、通訊協定、路徑、查詢參數、本文和 `X-Twilio-Signature` 標頭。來電處理常式會驗證 Twilio 簽章；簡訊傳送使用每則訊息專屬的 URL 權杖，按鍵確認使用已簽署的查詢權杖。不要在共用記錄或螢幕截圖中暴露權杖。請參閱 [Twilio webhook 安全性](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
+Twilio 要求 [webhook URL 可被公開存取](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。請使用公開信任的 TLS 憑證，並在經過代理時保留原始的主機、通訊協定、路徑、查詢參數、本文和 `X-Twilio-Signature` 標頭。來電處理常式會驗證 Twilio 簽章；簡訊傳送和通話結果使用每則訊息或每通電話專屬的 URL 權杖，按鍵確認使用已簽署的查詢權杖。不要在共用記錄或螢幕截圖中暴露權杖。請參閱 [Twilio webhook 安全性](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
 
 ### 從私有部署發布回呼
 
@@ -142,7 +144,7 @@ Twilio 要求 [webhook URL 可被公開存取](https://www.twilio.com/docs/usage
 Twilio 一般 webhook 的來源位址會變化，因此不要把 SIP 或媒體 IP 範圍用作回呼的允許清單。符合資格的 Twilio 版本提供 [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy)。請確認您的版本是否符合資格以及支援哪些產品，並用 Twilio 目前公布的位址範圍設定防火牆；即使使用它，也要繼續驗證回呼。
 
 > [!WARNING]
-> 如果原則禁止輸入連線，送出簡訊和簡單的內嵌語音播放可以透過輸出 HTTPS 運作。簡訊傳送更新、按鍵確認和來電路由在回呼無法存取時無法運作。完全斷網的安裝無法使用 Twilio。
+> 如果原則禁止輸入連線，送出簡訊和簡單的內嵌語音播放可以透過輸出 HTTPS 運作。簡訊傳送更新、通話結果、按鍵確認和來電路由在回呼無法存取時無法運作。完全斷網的安裝無法使用 Twilio。
 
 開發時，Twilio 的 [webhook 測試指南](https://www.twilio.com/docs/usage/webhooks/webhook-testing)說明如何使用公開通道：把它轉送到只允許所需路由的代理，依上述方式設定得到的主機名稱，測試後停止通道。通道同樣會開放輸入存取。
 

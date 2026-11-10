@@ -1,5 +1,5 @@
 import SmsService from "../Services/SmsService";
-import crypto from "crypto";
+import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
 import TwilioPhoneNumbers, {
@@ -43,25 +43,6 @@ import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 
 const router: ExpressRouter = Express.getRouter();
-
-// Constant-time comparison of the per-message status-callback token.
-const isStatusCallbackTokenValid: (
-  provided: string,
-  expected: string,
-) => boolean = (provided: string, expected: string): boolean => {
-  const providedBuffer: Buffer = Buffer.from(provided);
-  const expectedBuffer: Buffer = Buffer.from(expected);
-
-  // timingSafeEqual throws on length mismatch, so guard first.
-  if (providedBuffer.length !== expectedBuffer.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(
-    providedBuffer as Uint8Array,
-    expectedBuffer as Uint8Array,
-  );
-};
 
 router.post(
   "/send",

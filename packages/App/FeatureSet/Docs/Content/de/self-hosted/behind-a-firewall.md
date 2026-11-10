@@ -73,7 +73,7 @@ Das Senden von Alarmen braucht nur ausgehendes HTTPS zu `api.telegram.org`. Ein 
 
 ### Twilio
 
-Wenn eine alarmierte Person bei einem Anruf die 1 drückt, um zu bestätigen, sendet Twilio die Taste an `POST /api/user-notification-log-timeline/call/gather-input/*`. Die Webhook-Adressen von Twilio ändern sich, es sei denn, Ihre Twilio-Edition umfasst [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Zustellungsupdates für SMS und eingehende Anrufe beschreibt die Seite [Twilio-Integration](/docs/self-hosted/twilio-integration).
+Wenn eine alarmierte Person bei einem Anruf die 1 drückt, um zu bestätigen, sendet Twilio die Taste an `POST /api/user-notification-log-timeline/call/gather-input/*`. Die Webhook-Adressen von Twilio ändern sich, es sei denn, Ihre Twilio-Edition umfasst [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Zustellungsupdates für SMS, Anrufergebnisse und eingehende Anrufe beschreibt die Seite [Twilio-Integration](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 
