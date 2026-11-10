@@ -89,6 +89,7 @@ En notifikationsregel siger, hvilke begivenheder der slås op i Microsoft Teams,
 | **Planlagt vedligeholdelse** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
 | **Vagtordning** | Én liste med regler |
+| **SLOs** | Én liste med regler |
 
 At oprette en regel går gennem fire trin:
 
@@ -98,6 +99,8 @@ At oprette en regel går gennem fire trin:
 | **Betingelser** | Hvilke begivenheder reglen gælder for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. De kontrolleres, når en begivenhed oprettes, og igen ved hver opdatering, OneUptime slår op om den, så en regel for bekræftede hændelser virker, når en hændelse bekræftes. En ny regel gælder for hver begivenhed, for eksempel **Alle hændelser**. For at indsnævre den vælger du **Kun hændelser, der opfylder betingelserne** og tilføjer betingelserne. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
 | **Destination** | Hvor den slår op: en eksisterende kanal i et team, du vælger, de chats, du vælger, en kanal for hver hændelse (eller advarsel, episode, begivenhed, monitor eller vagtpolitik), der oprettes i et team, du vælger, eller flere af dem sammen. Under trinnet siger **Hvad reglen gør** det i sætninger, ligesom reglens kort. |
 | **Video Call** | Kun hændelser og advarsler: start et opkald for hver. Se [Videoopkald](/docs/workspace-connections/video-calls). |
+
+En regel for SLO'er slår skiftene i et SLO's fejlbudgetpolitik op: når SLO'et går ind i et niveau, kommer sig til et mindre alvorligt niveau eller forlader alle niveauer, og når dets udrulninger fryses eller tillades igen. Den slår kun op i eksisterende kanaler og chats, da et SLO ikke får sin egen kanal. Se [Slå op i Slack, Microsoft Teams og Mattermost](/docs/slo/error-budget-policy#slå-op-i-slack-microsoft-teams-og-mattermost).
 
 En kanal, som reglen opretter, får navn efter sin post: hændelse INC-42 får `inc-42`, advarsel ALT-7 får `alt-7`, og i et projekt uden nummerpræfikser får hændelse 42 `incident-42`. Tekst i **Præfiks for kanalnavn** sættes foran, så `prod-` giver `prod-inc-42`, og formularen viser navnet, mens du skriver. For en planlagt vedligeholdelse træder præfikset i stedet for dens nummerpræfiks: SM-5 får `sm-5`, og `maint-` giver `maint-5`. OneUptime beholder bogstaver, tal, mellemrum, `-` og `_`, op til de 50 tegn, Microsoft Teams tager imod. Har teamet allerede en kanal med det navn, fx et andet projekts eller en, der er slettet inden for de sidste 30 dage, tilføjer OneUptime `-2`, `-3` og så videre.
 

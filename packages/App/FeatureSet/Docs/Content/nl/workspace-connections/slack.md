@@ -77,6 +77,7 @@ Een meldingsregel bepaalt welke gebeurtenissen in Slack worden geplaatst, en waa
 | **Geplande onderhoud** | Eén lijst met regels |
 | **Monitoren** | Eén lijst met regels |
 | **Bereikbaarheidsdienst** | Eén lijst met regels |
+| **SLOs** | Eén lijst met regels |
 
 Een regel aanmaken gaat in vier stappen:
 
@@ -86,6 +87,8 @@ Een regel aanmaken gaat in vier stappen:
 | **Voorwaarden** | Voor welke gebeurtenissen de regel geldt, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Ze worden gecontroleerd wanneer een gebeurtenis wordt aangemaakt en opnieuw bij elke update die OneUptime erover plaatst, dus een regel voor bevestigde incidenten werkt zodra een incident wordt bevestigd. Een nieuwe regel geldt voor elke gebeurtenis, bijvoorbeeld **Alle incidenten**. Om de regel in te perken, kies **Alleen incidenten die aan de voorwaarden voldoen** en voeg de voorwaarden toe. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
 | **Bestemming** | Waar hij plaatst: **In bestaande kanalen plaatsen** met de kanaalnamen, **Een kanaal aanmaken voor elk incident** (of waarschuwing, episode, evenement, monitor of bereikbaarheidsbeleid) met wie er lid van wordt, of allebei. Onder de stap zegt **Wat deze regel doet** het in zinnen, zoals de kaart van de regel. |
 | **Video Call** | Alleen incidenten en waarschuwingen: start voor elk een gesprek. Zie [Videogesprekken](/docs/workspace-connections/video-calls). |
+
+Een regel voor SLO's plaatst de wijzigingen in het foutbudgetbeleid van een SLO: wanneer de SLO een niveau binnengaat, herstelt naar een minder ernstig niveau of elk niveau verlaat, en wanneer zijn implementaties worden bevroren of weer toegestaan. Hij plaatst alleen in bestaande kanalen, omdat een SLO geen eigen kanaal krijgt. Zie [Berichten plaatsen in Slack, Microsoft Teams en Mattermost](/docs/slo/error-budget-policy#berichten-plaatsen-in-slack-microsoft-teams-en-mattermost).
 
 Een kanaal dat de regel aanmaakt, krijgt de naam van zijn record: incident INC-42 krijgt `inc-42`, waarschuwing ALT-7 krijgt `alt-7` en in een project zonder nummervoorvoegsels krijgt incident 42 `incident-42`. Tekst in **Voorvoegsel van de kanaalnaam** komt ervoor, dus `prod-` wordt `prod-inc-42`, en het formulier toont de naam terwijl je typt. Bij een geplande onderhoudsgebeurtenis neemt het voorvoegsel de plaats in van het nummervoorvoegsel: SM-5 krijgt `sm-5` en `maint-` wordt `maint-5`. Slack neemt kleine letters, cijfers, `-` en `_`, tot 80 tekens. Bestaat er al een kanaal met die naam, zoals dat van een ander project of een gearchiveerd kanaal, dan voegt OneUptime `-2`, `-3` enzovoort toe.
 
