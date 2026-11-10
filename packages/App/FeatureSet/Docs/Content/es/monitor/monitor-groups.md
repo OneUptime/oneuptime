@@ -28,6 +28,7 @@ flowchart TB
 
 - **Los monitores archivados no cuentan.** Un monitor archivado no se comprueba, así que su estado está congelado; el grupo lo deja fuera.
 - **Un grupo vacío está operativo.** Un grupo sin monitores, o solo con monitores archivados, muestra su estado operativo. Hasta que añada un monitor, el panel muestra **Aún no hay monitores** en lugar de su estado.
+- **Con el monitoreo desactivado se muestra Deshabilitado.** Cuando el monitoreo está desactivado para todos los monitores de un grupo, nada los comprueba, así que el panel muestra **Deshabilitado** en lugar del estado del grupo.
 - **El orden lo decide usted.** Cuál es el peor estado sigue el orden de **Monitores → Ajustes → Estado del monitor**. Consulte [Estados del monitor](/docs/monitor/criteria-and-statuses#estados-del-monitor).
 
 Un grupo de monitores no es un grupo de una página de estado. Un grupo de una página de estado es un encabezado en una página de estado que contiene filas. Un grupo de monitores es una fila que representa varios monitores, y cualquier página de estado puede mostrarlo.
@@ -80,7 +81,7 @@ Abra un grupo para ver sus páginas en el menú lateral:
 
 | Página | Qué muestra |
 | --- | --- |
-| **Vista general** | **Detalles del grupo de monitores**, **Estado actual** y **Gráfico de tiempo de actividad** con el porcentaje de disponibilidad del grupo en los últimos 90 días. Un grupo sin monitores ofrece **Añadir monitores** en lugar del gráfico. |
+| **Vista general** | **Detalles del grupo de monitores**, **Estado actual**, **Monitoreo** y **Gráfico de tiempo de actividad** con el porcentaje de disponibilidad del grupo en los últimos 90 días. Un grupo sin monitores ofrece **Añadir monitores** en lugar del gráfico. |
 | **Monitores** | **Monitores en el grupo**, con **Añadir monitores** y **Eliminar**. |
 | **Incidentes** | Los incidentes en cualquier monitor del grupo. |
 | **Alertas** | Las alertas en cualquier monitor del grupo. |
@@ -91,6 +92,17 @@ Abra un grupo para ver sus páginas en el menú lateral:
 La disponibilidad de la **Vista general** cuenta como tiempo de inactividad cualquier estado salvo el operativo. Una página de estado solo cuenta los estados de su propia lista **Cuenta como tiempo de inactividad**: consulte [Elegir qué se muestra en la página](/docs/status-pages/index#elegir-qué-se-muestra-en-la-página).
 
 La lista **Grupos de monitores** puede filtrar grupos por propietario y etiqueta, fijar etiquetas y propietarios en muchos grupos a la vez, y exportar o importar grupos como JSON.
+
+## Desactivar el monitoreo de todo un grupo
+
+La tarjeta **Monitoreo** de la **Vista general** de un grupo desactiva el monitoreo, o lo vuelve a activar, para todos los monitores del grupo a la vez.
+
+- **Desactivar el monitoreo** pregunta primero. Después, nada comprueba los monitores del grupo hasta que se vuelva a activar el monitoreo, así que no abren incidentes ni alertas, y el grupo muestra **Deshabilitado** en lugar de su estado.
+- **Activar el monitoreo** guarda al instante. La siguiente comprobación de cada monitor vuelve a fijar su estado.
+
+Desactivar el monitoreo también resuelve los incidentes y alertas abiertos de los monitores que están configurados para resolverse automáticamente, como lo habría hecho cada monitor al recuperarse. Los incidentes y alertas declarados a mano, o cuyos criterios no se resuelven automáticamente, siguen abiertos. Desactivar el monitoreo de un solo monitor, en su página **Ajustes**, hace lo mismo.
+
+La tarjeta cambia los monitores, no el grupo: la tarjeta **Monitoreo** de cada monitor muestra el cambio, y un monitor que se añada al grupo más tarde conserva su propio ajuste. Los monitores archivados se quedan como están. Mientras solo algunos de los monitores tengan el monitoreo desactivado, la tarjeta dice cuántos y ofrece ambos botones.
 
 ## Mostrar un grupo en una página de estado
 

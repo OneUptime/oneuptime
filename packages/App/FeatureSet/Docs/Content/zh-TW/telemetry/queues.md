@@ -218,7 +218,7 @@ broker 知道任何應用程式都看不到的事：有多少訊息在等待、�
 
 在沒有受追蹤的應用程式向佇列發布或從佇列消費時，該佇列的 **已發布**、**已消費** 和 **錯誤** 圖塊以及 **訊息** 圖表會改為讀取 broker 本身的計數：流入的訊息、流出的訊息，以及其錯誤的合計，其中被節流的要求會在 **錯誤** 下另外計算；每一項都會在數字下方註明這一點。有 span 的佇列會保留 span，因為它們說明了哪個服務做了什麼。**p95 processing time** 只來自消費者的追蹤，因為沒有任何 broker 會測量消費者處理一則訊息需要多久：沒有追蹤時，它會顯示 **需要消費者追蹤**。
 
-該區段頂端的 **Broker 指標** 卡片會列出為該佇列的系統繪製的每個指標：它在所選範圍內是否到達了該佇列、最後一次到達是什麼時候，以及其他每個指標為什麼沒有到達。計數可能沒有任何內容可回報（沒有被節流的要求是好消息）；broker 一直在回報卻從未到達的水準值，是 Collector 沒有要求的指標，卡片會列出其設定需要的行；指標也可能停止到達。對於沒有任何指標到達的 Service Bus 或 Event Hubs 佇列，卡片還會讀取其命名空間改為傳送的內容（請參閱 [Broker 健康狀態一直為空](#broker-健康狀態一直為空)）。
+該區段頂端的 **Broker 指標** 卡片會列出為該佇列的系統繪製的每個指標：它在所選範圍內是否到達了該佇列、最後一次到達是什麼時候，以及其他每個指標為什麼沒有到達。計數可能沒有任何內容可回報（沒有被節流的要求是好消息）；broker 一直在回報卻從未到達的水準值，是 Collector 沒有要求的指標，卡片會列出其設定需要的行；指標也可能停止到達。對於沒有任何指標到達的 Service Bus 或 Event Hubs 佇列，卡片還會讀取其命名空間改為傳送的內容（請參閱 [Broker 健康狀態一直為空](#broker-健康狀態一直為空)）。卡片會在摘要下方說明最近是什麼讀取了該佇列的指標：Collector 的接收器、連結到 **雲端 → 連線** 的雲端連線，或兩者都有。對於只有 [已連接的 Azure 訂用帳戶](/docs/telemetry/cloud-accounts) 讀取的佇列，訂用帳戶不讀取的指標會顯示為 **僅 Collector**，並附上把它加到接收器中的行，而不是顯示為缺少。
 
 ### Amazon SNS
 
@@ -595,7 +595,9 @@ OneUptime 不會在佇列頁面上繪製 Event Grid 的指標：Azure Monitor �
 
 ### Azure Event Hubs
 
-以 Collector 的 `azure_monitor` 接收器從 Azure Monitor 讀取命名空間的指標，它會依 EntityName 維度把指標拆分到每個事件中樞。
+已連接的 Azure 訂用帳戶不需執行任何程式，即可依事件中樞讀取命名空間的關鍵指標。若要讀取全部指標，請執行 Collector 的 `azure_monitor` 接收器，它會依 EntityName 維度把指標拆分到每個事件中樞。
+
+[已連接的 Azure 訂用帳戶](/docs/telemetry/cloud-accounts) 會為命名空間中最多 1,000 個事件中樞讀取 `azure_incomingmessages_total`、`azure_outgoingmessages_total`、`azure_servererrors_total` 和 `azure_throttledrequests_total`，無論命名空間有多少個事件中樞，每次讀取都只對每個命名空間呼叫一次 Azure Monitor。其餘三個指標只有接收器讀取，事件中樞的 **Broker 指標** 卡片會把它們標為 **僅 Collector**。兩者都讀取某個事件中樞的同一指標時，會保留接收器的值並捨棄訂用帳戶的值，因此不會重複計算。
 
 接收器透過 `azure_auth` 擴充功能登入。在訂用帳戶上授予服務主體 **Monitoring Reader** 角色：
 
@@ -659,7 +661,9 @@ Azure Monitor 沒有 Event Hubs 的消費者落後指標：它的 `ConsumerLag` 
 
 ### Azure Service Bus
 
-以 Collector 的 `azure_monitor` 接收器從 Azure Monitor 讀取命名空間的指標，它會依 EntityName 維度把指標拆分到每個佇列和主題。
+已連接的 Azure 訂用帳戶不需執行任何程式，即可依佇列和主題讀取命名空間的關鍵指標。若要讀取全部指標，請執行 Collector 的 `azure_monitor` 接收器，它會依 EntityName 維度把指標拆分到每個佇列和主題。
+
+[已連接的 Azure 訂用帳戶](/docs/telemetry/cloud-accounts) 會為命名空間中最多 1,000 個佇列和主題讀取 `azure_activemessages_average`、`azure_deadletteredmessages_average`、`azure_incomingmessages_total`、`azure_outgoingmessages_total`、`azure_servererrors_total` 和 `azure_throttledrequests_total`，無論命名空間有多少個佇列，每次讀取都只對每個命名空間呼叫一次 Azure Monitor：每 5 分鐘讀取一次時，有 50 個佇列的命名空間每小時呼叫 12 次，與只有一個佇列的命名空間相同。其餘六個指標只有接收器讀取，佇列的 **Broker 指標** 卡片會把它們標為 **僅 Collector**。兩者都讀取某個佇列的同一指標時，會保留接收器的值並捨棄訂用帳戶的值，因此不會重複計算。
 
 接收器透過 `azure_auth` 擴充功能登入。在訂用帳戶上授予服務主體 **Monitoring Reader** 角色：
 
@@ -718,7 +722,7 @@ service:
 - `maximum_number_of_records_per_resource` 是 Azure 對每個指標和命名空間傳回的序列數，除非你調高，否則為 10：請讓它高於你的佇列和主題數量（錯誤指標還會依結果進一步拆分每個實體），否則其餘的將不會被回報。
 - Azure Monitor 不會依主題訂閱拆分：主題的計數涵蓋它的所有訂閱。
 - `metrics` 清單收集的正是佇列頁面繪製的內容，每個指標都使用它所繪製的那一種彙總方式；新增一個指標（`IncomingRequests`、`Messages`、…）即可一併收集它。清單早於 `ScheduledMessages`、`Size` 或 `ServerSendLatency` 的 Collector 不會傳送其中任何一個：佇列的 **Broker 指標** 卡片會列出要新增的行。
-- 只有這個接收器會依佇列和主題拆分指標。[已連接的 Azure 訂用帳戶](/docs/telemetry/cloud-accounts) 和匯出指標的診斷設定都會傳送命名空間的總計，不含 `EntityName`，因此兩者都不會到達佇列：訂用帳戶的指標在 **雲端 → 所有資源** 下該命名空間本身的頁面上，而佇列的 **Broker 指標** 卡片會說明其本身的指標為什麼缺少。
+- [已連接的 Azure 訂用帳戶](/docs/telemetry/cloud-accounts) 也會像這個接收器一樣依佇列和主題拆分它的六個指標，而 **雲端 → 所有資源** 下該命名空間本身的頁面會把它們加總。訂用帳戶[串流其指標](/docs/telemetry/cloud-streaming-azure)期間，仍會讀取命名空間的指標：診斷設定只傳送命名空間的總計，不含 `EntityName`，而且六個中有四個根本不傳送。當這個接收器傳送命名空間的總計、不依佇列或主題拆分時，命名空間的頁面保留這些總計，而訂用帳戶的序列只到達各自的佇列，因此不會有訊息被計算兩次。
 - 這些指標都不取決於命名空間的定價層。`ServerSendLatency` 依每次傳送回報，因此在該範圍內沒有收到任何傳送的佇列不會有它。
 - 接收器每天列出一次你的命名空間，因此新的命名空間最多可能需要 24 小時才會出現。
 
@@ -1063,9 +1067,9 @@ service:
 - 它延遲了。`aws_cloudwatch` 會等待 `delay`（10 分鐘）讓 CloudWatch 發布，因此它的點會延遲 11 到 17 分鐘送達，而 Pub/Sub 的指標會延遲幾分鐘送達。
 - 該系統沒有可繪製的指標：Azure Event Grid、NATS、ActiveMQ 以外的 JMS broker 和 BullMQ（請參閱它們各自的小節）。它們的指標在 **指標** 瀏覽器中。
 - 開啟佇列的 **Broker 指標** 卡片：它會列出哪些指標已到達，以及其他指標為什麼沒有到達。對於沒有任何指標到達的 Service Bus 或 Event Hubs 佇列，它還會說明命名空間改為傳送了什麼，是以下三種情況之一。
-- **命名空間沒有傳來任何內容**：沒有 Collector 讀取它，或者每次讀取都失敗。為接收器的服務主體授予 **Monitoring Reader** 角色，並在 Collector 的日誌中尋找 `AuthorizationFailed` 或 `401`：用戶端密碼過期會讓每次讀取都停止。
-- **只有總計**：[已連接的 Azure 訂用帳戶](/docs/telemetry/cloud-accounts) 或診斷設定會把命名空間的指標當成整個命名空間的值傳送，其中沒有佇列或主題。請同時用依 `EntityName` 拆分它們的 `azure_monitor` 接收器讀取該命名空間。
-- **只有其他佇列**：命名空間中其他佇列和主題的指標已到達，但這個佇列的沒有。接收器的 `maximum_number_of_records_per_resource`（除非你調高，否則為 10）把它排除在外：請把它調高到大於命名空間中佇列和主題的數量。
+- **命名空間沒有傳來任何內容**：沒有任何程式讀取它，或者每次讀取都失敗。在 **雲端 → 連線** 中連線它的 Azure 訂用帳戶，或執行 `azure_monitor` 接收器。為連線的應用程式或接收器的服務主體授予 **Monitoring Reader** 角色，並查看連線的上次讀取，或在 Collector 的日誌中尋找 `AuthorizationFailed` 或 `401`：用戶端密碼過期會讓每次讀取都停止。
+- **只有總計**：命名空間的指標以整個命名空間的值到達，其中沒有佇列或主題。診斷設定只會傳送這些：請連線命名空間的訂用帳戶，或同時用 `azure_monitor` 接收器讀取該命名空間，兩者都會依 `EntityName` 拆分它們。[已連接的 Azure 訂用帳戶](/docs/telemetry/cloud-accounts) 只有在開始讀取每個佇列之前，或讀取佇列失敗時，才只傳送這些：原因請見 **雲端 → 連線** 中的上次讀取。
+- **只有其他佇列**：命名空間中其他佇列和主題的指標已到達，但這個佇列的沒有。接收器的 `maximum_number_of_records_per_resource`（除非你調高，否則為 10）把它排除在外：請把它調高到大於命名空間中佇列和主題的數量。已連接的訂用帳戶最多讀取 1,000 個：超出時，請同時用接收器讀取該命名空間。
 
 ### 一個目的地出現兩個佇列
 

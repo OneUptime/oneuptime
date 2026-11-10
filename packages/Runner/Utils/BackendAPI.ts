@@ -1,6 +1,7 @@
 import { ONEUPTIME_BASE_URL } from "../Config";
 import RunnerAPIRequest from "./RunnerAPIRequest";
 import RepositoryTokenRevocation from "./RepositoryTokenRevocation";
+import LlmCompletionError from "./LlmCompletionError";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -11,6 +12,9 @@ import {
   PerformanceFinding,
 } from "Common/Types/AI/CodeFixTaskContext";
 import { CodeTaskAgentDetails } from "Common/Types/AI/CodeTask";
+import CodeAgentRunLimitsUtil, {
+  CodeAgentRunLimits,
+} from "Common/Types/AI/CodeAgentRunLimits";
 import {
   CodeHost,
   CodeHostRunnerInfo,
@@ -260,8 +264,13 @@ const RECORD_PULL_REQUEST_RETRIES: number = 3;
  * Server-mediated LLM completion (B4 Tier 0): the in-house code agent's
  * tool loop calls POST /api/ai-agent-data/llm-completion per turn. The
  * server validates the run (claimed, Running, owned by this agent),
- * resolves the provider, meters the call, and enforces the per-run loop
- * budgets — the worker never holds a provider secret.
+ * resolves the provider, meters the call, and holds the run to its limits
+ * — the worker never holds a provider secret.
+ *
+ * Every answer says the run's limits and what it has used (`limits`,
+ * Types/AI/CodeAgentRunLimits), which the agent winds down on. A server from
+ * before #6440 sends only a `budget`, below, which the agent then winds
+ * down on as it always did.
  */
 export interface LlmCompletionBudget {
   /*
@@ -297,6 +306,8 @@ export interface TelemetryTools {
   repository: string | null;
   services: Array<TelemetryToolService>;
   reason: string | null;
+  // Null from a server from before #6440.
+  limits: CodeAgentRunLimits | null;
   budget: LlmCompletionBudget | null;
 }
 
@@ -306,6 +317,7 @@ export interface TelemetryToolCallResult {
   citationLabel: string;
   isTruncated: boolean;
   // After the call.
+  limits: CodeAgentRunLimits | null;
   budget: LlmCompletionBudget | null;
 }
 
@@ -313,6 +325,8 @@ export interface LlmCompletionResult {
   content: string;
   toolCalls: Array<LLMToolCall>;
   stopReason: "stop" | "tool_use";
+  // The run's limits after this call; null from a server from before #6440.
+  limits: CodeAgentRunLimits | null;
   budget: LlmCompletionBudget;
 }
 
@@ -330,6 +344,7 @@ interface LlmCompletionResponse {
       }
     | string;
   stopReason?: "stop" | "tool_use";
+  limits?: unknown;
   budget?: LlmCompletionBudget;
 }
 
@@ -799,31 +814,54 @@ export default class BackendAPI {
 
   /*
    * One server-mediated LLM completion for a claimed code-fix run (B4 Tier
-   * 0). `taskId` is the AIRun id from get-pending-task. Over-budget and
-   * guard failures come back as 4xx with a clear message, thrown here as an
-   * Error the tool loop turns into an honest run failure.
+   * 0). `taskId` is the AIRun id from get-pending-task. A call past one of
+   * the run's limits, and every guard failure, comes back as 4xx with a
+   * clear message, thrown here as an LlmCompletionError carrying the status
+   * - and a call that got no answer at all as one that says the server
+   * could not be reached - which the tool loop tries again when a repeat
+   * can help (AIRunRetryPolicy) and otherwise turns into an honest run
+   * failure. `timeoutInMs` bounds the wait for the answer, and `signal`
+   * gives it up (the task was aborted).
    */
   public async llmCompletion(data: {
     taskId: string;
     messages: Array<LLMMessage>;
     tools?: Array<LLMToolDefinition> | undefined;
     maxTokens?: number | undefined;
+    timeoutInMs?: number | undefined;
+    signal?: AbortSignal | undefined;
   }): Promise<LlmCompletionResult> {
     const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/llm-completion",
     );
 
-    const response: HTTPResponse<JSONObject> = await API.post({
-      url,
-      data: {
-        ...RunnerAPIRequest.getDefaultRequestBody(),
-        taskId: data.taskId,
-        messages: data.messages as unknown as JSONObject[],
-        ...(data.tools ? { tools: data.tools as unknown as JSONObject[] } : {}),
-        ...(data.maxTokens ? { maxTokens: data.maxTokens } : {}),
-      },
-      options: RunnerAPIRequest.getDefaultRequestOptions(),
-    });
+    let response: HTTPResponse<JSONObject>;
+
+    try {
+      response = await API.post({
+        url,
+        data: {
+          ...RunnerAPIRequest.getDefaultRequestBody(),
+          taskId: data.taskId,
+          messages: data.messages as unknown as JSONObject[],
+          ...(data.tools
+            ? { tools: data.tools as unknown as JSONObject[] }
+            : {}),
+          ...(data.maxTokens ? { maxTokens: data.maxTokens } : {}),
+        },
+        options: RunnerAPIRequest.getDefaultRequestOptions({
+          ...(data.timeoutInMs ? { timeout: data.timeoutInMs } : {}),
+          ...(data.signal ? { signal: data.signal } : {}),
+        }),
+      });
+    } catch (error) {
+      throw new LlmCompletionError({
+        message: `The OneUptime server could not be reached for the model call: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        isNetworkFailure: true,
+      });
+    }
 
     const responseData: LlmCompletionResponse =
       response.data as unknown as LlmCompletionResponse;
@@ -832,8 +870,11 @@ export default class BackendAPI {
       const errorMessage: string =
         typeof responseData?.message === "string"
           ? responseData.message
-          : "LLM completion request failed";
-      throw new Error(errorMessage);
+          : `LLM completion request failed (HTTP ${response.statusCode})`;
+      throw new LlmCompletionError({
+        message: errorMessage,
+        statusCode: response.statusCode,
+      });
     }
 
     const message: { content: string; toolCalls?: Array<LLMToolCall> } =
@@ -848,6 +889,7 @@ export default class BackendAPI {
       toolCalls,
       stopReason:
         responseData.stopReason || (toolCalls.length > 0 ? "tool_use" : "stop"),
+      limits: CodeAgentRunLimitsUtil.fromJSON(responseData.limits),
       budget: responseData.budget || {
         completionCallsUsed: 0,
         maxCompletionCalls: Number.MAX_SAFE_INTEGER,
@@ -892,14 +934,15 @@ export default class BackendAPI {
         typeof data["repository"] === "string" ? data["repository"] : null,
       services: BackendAPI.readTelemetryServices(data["services"]),
       reason: typeof data["reason"] === "string" ? data["reason"] : null,
+      limits: CodeAgentRunLimitsUtil.fromJSON(data["limits"]),
       budget: BackendAPI.readBudget(data["budget"]),
     };
   }
 
   /*
    * One production telemetry tool call, executed by the server. A refusal
-   * (the arguments, the run's scope, its budget) is thrown as an Error whose
-   * message the agent hands the model.
+   * (the arguments, the run's scope, a limit it reached) is thrown as an
+   * Error whose message the agent hands the model.
    */
   public async runTelemetryTool(data: {
     taskId: string;
@@ -938,6 +981,7 @@ export default class BackendAPI {
           ? result["citationLabel"]
           : data.toolName,
       isTruncated: Boolean(result["isTruncated"]),
+      limits: CodeAgentRunLimitsUtil.fromJSON(result["limits"]),
       budget: BackendAPI.readBudget(result["budget"]),
     };
   }

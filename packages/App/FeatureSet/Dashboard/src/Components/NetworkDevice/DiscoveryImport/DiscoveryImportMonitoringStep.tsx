@@ -5,6 +5,7 @@ import {
   DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES,
   DiscoveryImportAlerting,
   DiscoveryImportSettings,
+  DiscoveryImportSource,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
 import ActiveMonitorLimitUtil from "Common/Types/Monitor/ActiveMonitorLimit";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -82,11 +83,24 @@ import {
  * The account on the right ("What this import does") is worked out from the
  * same choices the import is sent with (getDiscoveryImportOutcome), so it can
  * never promise something the import will not do.
+ *
+ * The Discovered Devices list imports through this step too (issue #5775):
+ * its devices answered nothing yet - a switch saw them - so it says who
+ * checks them (the probe of the switch that saw each one), names the
+ * devices in a section of the list's own above these questions
+ * (leadSection), and asks what they are and the SNMP credentials they are
+ * walked with in a fold after them (trailingSection).
  */
 
 export interface DiscoveryImportMonitoringStepProps {
   hosts: Array<DiscoveredNetworkDevice>;
   probeName?: string | undefined;
+  // Where the hosts come from: a scan (left out), or the Discovered Devices list.
+  source?: DiscoveryImportSource | undefined;
+  // Drawn first, above how often the devices are checked.
+  leadSection?: ReactElement | undefined;
+  // Drawn last, under who hears about a problem: a fold of fields, say.
+  trailingSection?: ReactElement | undefined;
   settings: DiscoveryImportSettings;
   onSettingsChange: (settings: DiscoveryImportSettings) => void;
   facts: DiscoveryImportProjectFacts | null;
@@ -114,9 +128,20 @@ function names(
 /*
  * The probe an address monitor runs from, as a sentence names it: the
  * scan's probe by name, or - when the dialog does not know its name - the
- * probe that ran the scan, translated with the sentence it sits in.
+ * probe that ran the scan, translated with the sentence it sits in. A
+ * device from the Discovered Devices list is checked from the probe of the
+ * switch that saw it, which differs from device to device.
  */
-function probeValue(probeName: string | undefined): TemplateValue {
+function probeValue(
+  probeName: string | undefined,
+  source?: DiscoveryImportSource | undefined,
+): TemplateValue {
+  if (source === DiscoveryImportSource.DiscoveredDevices) {
+    return translatableTerm("the probe of the switch that saw it", {
+      inSentence: true,
+    });
+  }
+
   return (
     probeName ||
     translatableTerm("the probe that ran the scan", { inSentence: true })
@@ -179,8 +204,9 @@ export function getTemplateLead(
   translator: Translator,
   choice: DiscoveryImportTemplateChoice,
   probeName: string | undefined,
+  source?: DiscoveryImportSource | undefined,
 ): string {
-  const probe: TemplateValue = probeValue(probeName);
+  const probe: TemplateValue = probeValue(probeName, source);
 
   if (choice.monitorType === MonitorType.Ping) {
     return translator.translateTemplate(
@@ -340,12 +366,14 @@ const TemplatePreview: FunctionComponent<{
   outcome: DiscoveryImportOutcome;
   pollingIntervalInMinutes: number;
   probeName?: string | undefined;
+  source?: DiscoveryImportSource | undefined;
 }> = (props: {
   template: DiscoveryImportTemplateChoice;
   facts: DiscoveryImportProjectFacts | null;
   outcome: DiscoveryImportOutcome;
   pollingIntervalInMinutes: number;
   probeName?: string | undefined;
+  source?: DiscoveryImportSource | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const [showWalkChecks, setShowWalkChecks] = useState<boolean>(false);
@@ -423,7 +451,7 @@ const TemplatePreview: FunctionComponent<{
           className="text-sm text-gray-900"
           data-testid="discovery-import-template-lead"
         >
-          {getTemplateLead(translator, template, props.probeName)}
+          {getTemplateLead(translator, template, props.probeName, props.source)}
         </p>
         <p
           className="mt-0.5 text-xs text-gray-500"
@@ -745,6 +773,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
           outcome={outcome}
           pollingIntervalInMinutes={settings.pollingIntervalInMinutes}
           probeName={props.probeName}
+          source={props.source}
         />
       )}
     </div>
@@ -756,20 +785,25 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
       data-testid="discovery-import-monitoring-step"
     >
       <div className="space-y-6">
+        {props.leadSection}
         <section className="space-y-4">
           <div>
             <h4 className="text-sm font-semibold text-gray-900">
               {translator.translateText("How often they are checked")}
             </h4>
             <p className="mt-0.5 text-sm text-gray-500">
-              {props.probeName
-                ? translator.translateTemplate(
-                    "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.",
-                    { probe: props.probeName },
+              {props.source === DiscoveryImportSource.DiscoveredDevices
+                ? translator.translateText(
+                    "The probe of the switch that saw each device pings it on this schedule, and walks it for interfaces, inventory and health when it has SNMP credentials. You can change it on each device later.",
                   )
-                : translator.translateText(
-                    "The probe that ran the scan pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.",
-                  )}
+                : props.probeName
+                  ? translator.translateTemplate(
+                      "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.",
+                      { probe: props.probeName },
+                    )
+                  : translator.translateText(
+                      "The probe that ran the scan pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.",
+                    )}
             </p>
           </div>
           <div className="max-w-xs">
@@ -921,12 +955,14 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
             </>
           )}
         </section>
+        {props.trailingSection}
       </div>
 
       <OutcomeSummary
         outcome={outcome}
         monitorRoom={facts?.monitorRoom ?? null}
         canPickMonitors={!choiceLockedReason}
+        source={props.source}
       />
     </div>
   );
@@ -977,33 +1013,26 @@ const PolicyNote: FunctionComponent<{
  * "What this import does": the outcome, in sentences, from the same data
  * the import is sent with.
  */
-export const OutcomeSummary: FunctionComponent<{
-  outcome: DiscoveryImportOutcome;
-  monitorRoom: number | null;
-  /*
-   * Whether "A monitor for each device" can be picked at all. When it
-   * cannot - the plan has no room, or the reader may not create monitors -
-   * the summary does not suggest picking a template.
-   */
-  canPickMonitors?: boolean | undefined;
-}> = (props: {
-  outcome: DiscoveryImportOutcome;
-  monitorRoom: number | null;
-  canPickMonitors?: boolean | undefined;
-}): ReactElement => {
-  const translator: Translator = useTranslator();
-  const outcome: DiscoveryImportOutcome = props.outcome;
-
-  const lines: Array<{ key: string; text: string; tone?: "warning" }> = [];
+/*
+ * The summary's lines for devices from the Discovered Devices list (issue
+ * #5775). They answered nothing yet - a switch saw them - so they are
+ * walked with the credentials picked for them, or pinged, and walked with
+ * their site's credentials where the site has some.
+ */
+export function getDiscoveredDeviceOutcomeLines(
+  translator: Translator,
+  outcome: DiscoveryImportOutcome,
+): Array<{ key: string; text: string }> {
+  const lines: Array<{ key: string; text: string }> = [];
 
   if (outcome.snmpHostCount > 0) {
     lines.push({
       key: "snmp",
       text: translator.translatePlural(
         {
-          one: "{{count}} device answered SNMP: it is walked every {{minutes}} min for interfaces, inventory and health, with the credentials that answered it.",
+          one: "{{count}} device is walked every {{minutes}} min for interfaces, inventory and health, with the SNMP credentials you picked.",
           other:
-            "{{count}} devices answered SNMP: they are walked every {{minutes}} min for interfaces, inventory and health, with the credentials that answered them.",
+            "{{count}} devices are walked every {{minutes}} min for interfaces, inventory and health, with the SNMP credentials you picked.",
         },
         outcome.snmpHostCount,
         {
@@ -1019,9 +1048,9 @@ export const OutcomeSummary: FunctionComponent<{
       key: "ping",
       text: translator.translatePlural(
         {
-          one: "{{count}} device answered ping only: it is pinged every {{minutes}} min. Add SNMP credentials later to walk it too.",
+          one: "{{count}} device is pinged every {{minutes}} min. In a site with SNMP credentials, it is walked with them too.",
           other:
-            "{{count}} devices answered ping only: they are pinged every {{minutes}} min. Add SNMP credentials later to walk them too.",
+            "{{count}} devices are pinged every {{minutes}} min. Those in a site with SNMP credentials are walked with them too.",
         },
         outcome.pingOnlyHostCount,
         {
@@ -1030,6 +1059,71 @@ export const OutcomeSummary: FunctionComponent<{
         },
       ),
     });
+  }
+
+  return lines;
+}
+
+export const OutcomeSummary: FunctionComponent<{
+  outcome: DiscoveryImportOutcome;
+  monitorRoom: number | null;
+  /*
+   * Whether "A monitor for each device" can be picked at all. When it
+   * cannot - the plan has no room, or the reader may not create monitors -
+   * the summary does not suggest picking a template.
+   */
+  canPickMonitors?: boolean | undefined;
+  source?: DiscoveryImportSource | undefined;
+}> = (props: {
+  outcome: DiscoveryImportOutcome;
+  monitorRoom: number | null;
+  canPickMonitors?: boolean | undefined;
+  source?: DiscoveryImportSource | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const outcome: DiscoveryImportOutcome = props.outcome;
+
+  const lines: Array<{ key: string; text: string; tone?: "warning" }> = [];
+
+  // The Discovered Devices list's devices answered nothing yet.
+  if (props.source === DiscoveryImportSource.DiscoveredDevices) {
+    lines.push(...getDiscoveredDeviceOutcomeLines(translator, outcome));
+  } else {
+    if (outcome.snmpHostCount > 0) {
+      lines.push({
+        key: "snmp",
+        text: translator.translatePlural(
+          {
+            one: "{{count}} device answered SNMP: it is walked every {{minutes}} min for interfaces, inventory and health, with the credentials that answered it.",
+            other:
+              "{{count}} devices answered SNMP: they are walked every {{minutes}} min for interfaces, inventory and health, with the credentials that answered them.",
+          },
+          outcome.snmpHostCount,
+          {
+            count: translator.formatNumber(outcome.snmpHostCount),
+            minutes: outcome.pollingIntervalInMinutes,
+          },
+        ),
+      });
+    }
+
+    if (outcome.pingOnlyHostCount > 0) {
+      lines.push({
+        key: "ping",
+        text: translator.translatePlural(
+          {
+            one: "{{count}} device answered ping only: it is pinged every {{minutes}} min. Add SNMP credentials later to walk it too.",
+            other:
+              "{{count}} devices answered ping only: they are pinged every {{minutes}} min. Add SNMP credentials later to walk them too.",
+          },
+          outcome.pingOnlyHostCount,
+          {
+            count: translator.formatNumber(outcome.pingOnlyHostCount),
+            minutes: outcome.pollingIntervalInMinutes,
+          },
+        ),
+      });
+    }
   }
 
   if (outcome.appliesVendorTemplates) {

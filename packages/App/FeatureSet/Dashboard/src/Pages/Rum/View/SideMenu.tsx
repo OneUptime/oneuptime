@@ -159,6 +159,18 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Frustration Signals",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.FaceFrown}
+        />
+        <SideMenuItem
+          link={{
             title: "Replay Access Log",
             to: RouteUtil.populateRouteParams(
               RouteMap[

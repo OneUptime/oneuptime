@@ -101,10 +101,10 @@ Een incident of waarschuwing die een monitor opent, bewaart de controle die het 
 - **De waarden.** Wat elke waarde die een **JavaScript Expression** leest bevatte toen die werd geëvalueerd, zoals `responseBody.status = "down"`.
 - **Een fragment.** Een kort stuk van het antwoord rond de overeenkomst, met de overeenkomst gemarkeerd: nooit de hele inhoud.
 
-Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: headers zoals `Authorization`, `Cookie` en `Set-Cookie`, velden waarvan de naam `password`, `token`, `key`, `session` of `email` zegt, en tekst die eruitziet als een bearer-token, een JWT, een kaartnummer of een e-mailadres. De URL van het verzoek is die waarmee de monitor is ingesteld, dus `{{monitorSecrets.NAME}}` blijft een naam, en een geheime querywaarde wordt gemaskeerd. Een incident of waarschuwing die met de hand is geopend, of voordat evaluatiedetails werden bewaard, heeft er geen.
+Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: headers zoals `Authorization`, `Cookie` en `Set-Cookie`, velden waarvan de naam `password`, `token`, `key`, `session` of `email` zegt, en tekst die eruitziet als een bearer-token, een JWT, een kaartnummer of een e-mailadres. De URL van het verzoek is die waarmee de monitor is ingesteld, dus `{{monitorSecrets.NAME}}` blijft een naam, en een geheime querywaarde wordt gemaskeerd. De **Monitoringlogboeken** van de monitor, en elke waarde die een hoofdoorzaak citeert, worden op dezelfde manier gemaskeerd. Een incident of waarschuwing die met de hand is geopend, of voordat evaluatiedetails werden bewaard, heeft er geen.
 
 > [!TIP]
-> Als de antwoorden van een website- of API-monitor op zich gevoelig zijn, zet dan **Antwoordinhoud bewaren bij incidenten en waarschuwingen** uit op de kaart **Antwoordinhoud** van zijn pagina **Geavanceerd → Instellingen**. Zijn incidenten en waarschuwingen bewaren dan welke filters overeenkwamen, de statuscode en de responstijd, en geen enkel deel van het antwoord. Een monitor voor inkomende verzoeken heeft dezelfde schakelaar voor de verzoeken die hij ontvangt: **Verzoekinhoud bewaren bij incidenten en waarschuwingen**, op de kaart **Verzoekinhoud**. De schakelaar geldt voor de incidenten en waarschuwingen die worden geopend nadat u hem wijzigt.
+> Als de antwoorden van een website- of API-monitor op zich gevoelig zijn, zet dan **Antwoordinhoud bewaren** uit op de kaart **Antwoordinhoud** van zijn pagina **Geavanceerd → Instellingen**. Zijn monitoringlogboeken, incidenten en waarschuwingen bewaren dan welke filters overeenkwamen, de statuscode en de responstijd, en geen enkel deel van het antwoord. Een monitor voor inkomende verzoeken heeft dezelfde schakelaar voor de verzoeken die hij ontvangt: **Verzoekinhoud bewaren**, op de kaart **Verzoekinhoud**. De schakelaar geldt voor de controles die worden uitgevoerd, en de incidenten en waarschuwingen die worden geopend, nadat u hem wijzigt.
 
 ## De criteria van een monitor wijzigen
 
@@ -148,7 +148,7 @@ De lijst is een volgorde. Waar monitoren samen worden getoond, wint de status di
 
 | Waar | Wat de status bepaalt |
 | --- | --- |
-| De lijst **Monitoren** | De huidige status van elke monitor. **Niet operationeel** toont de monitoren in elke status behalve de operationele, met een rood getal ernaast. |
+| De lijst **Monitoren** | De huidige status van elke monitor. **Niet operationeel** toont de monitoren in elke status behalve de operationele, met een rood getal ernaast. Monitoren waarvan de bewaking uit staat, ontbreken daar: niets controleert ze, en **Uitgeschakeld** toont ze. |
 | Statuspagina's | De kleur van elke rij, en haar beschikbaarheid: alleen de statussen in **Telt als downtime** van de pagina tellen mee. Een nieuwe statuspagina begint met elke status behalve de operationele. Zie [Kiezen wat de pagina toont](/docs/status-pages/index#kiezen-wat-er-op-de-pagina-komt). |
 | Monitorgroepen | De status van de groep: de slechtste van haar monitoren. Zie [Monitorgroepen](/docs/monitor/monitor-groups). |
 | SLO's | De downtime die een SLO telt, op basis van zijn eigen lijst met statussen. Zie [Welke statussen als downtime tellen](/docs/slo/introduction#welke-statussen-als-downtime-tellen). |

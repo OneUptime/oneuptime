@@ -41,7 +41,8 @@ export const SCRUB_RULE_CUSTOM_PATTERN_TYPE: string =
  * The pattern type that scrubs the whole value of an attribute whose key
  * looks sensitive (password, token, ...). It reads attribute keys, so a
  * rule's fields-to-scrub choice does not apply to it: logs scrub attributes,
- * spans their attributes and event attributes.
+ * spans their attributes, event attributes and link attributes - and the
+ * keys inside a list or map value too (Utils/Telemetry/ScrubNestedValues).
  */
 export const SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE: string =
   LogScrubPatternType.SensitiveKeys;

@@ -1,14 +1,19 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { llmConnectionDocsUrl } from "./LlmConnectApi";
 
 /*
- * The AI tools a company uses that OneUptime cannot read with a key and a
- * click, and what to do for each instead - so nobody is left wondering
- * whether their tool was forgotten.
+ * The AI tools a company uses that OneUptime cannot read as conversations
+ * with a key and a click, and what to do for each instead - so nobody is
+ * left wondering whether their tool was forgotten. Cursor is one people
+ * look for here: its Admin API has usage and cost, not conversations, so
+ * it is connected with the provider accounts - and it can be from here.
  */
 
 export const LLM_COMPANY_TOOLS_DOCS_PATH: string =
@@ -19,9 +24,20 @@ interface OtherTool {
   title: string;
   body: string;
   docsPath: string;
+  // A tool connected another way, which this entry opens.
+  connects?: LlmConnectionProvider | undefined;
 }
 
 export const LLM_OTHER_AI_TOOLS: Array<OtherTool> = [
+  {
+    key: "cursor",
+    title: translationKey("Cursor"),
+    body: translationKey(
+      "Cursor's Admin API gives usage and cost by person, not conversations, so Cursor is connected with your AI provider accounts.",
+    ),
+    docsPath: "/docs/telemetry/ai-provider-accounts#cursor",
+    connects: LlmConnectionProvider.Cursor,
+  },
   {
     key: "chatgpt-enterprise",
     title: translationKey("ChatGPT Enterprise"),
@@ -56,7 +72,16 @@ export const LLM_OTHER_AI_TOOLS: Array<OtherTool> = [
   },
 ];
 
-const LlmOtherAiTools: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+  // Opens a tool's connection form (Cursor's); absent: no button.
+  onConnect?: ((provider: LlmConnectionProvider) => void) | undefined;
+  canConnect?: boolean | undefined;
+  connectDisabledReason?: string | undefined;
+}
+
+const LlmOtherAiTools: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
 
   /*
@@ -80,6 +105,36 @@ const LlmOtherAiTools: FunctionComponent = (): ReactElement => {
       </summary>
       <ul className="divide-y divide-gray-100 border-t border-gray-100">
         {LLM_OTHER_AI_TOOLS.map((tool: OtherTool): ReactElement => {
+          const connects: LlmConnectionProvider | undefined =
+            props.onConnect && tool.connects ? tool.connects : undefined;
+          const canConnect: boolean = props.canConnect !== false;
+
+          const connectButton: ReactElement = connects ? (
+            <button
+              type="button"
+              disabled={!canConnect}
+              data-testid={`llm-other-ai-tool-connect-${tool.key}`}
+              onClick={() => {
+                props.onConnect?.(connects);
+              }}
+              className={`inline-flex items-center gap-1 text-sm font-medium text-indigo-600 ${getHandDrawnButtonStateClassName(
+                {
+                  isLocked: !canConnect,
+                  hoverClassName: "hover:text-indigo-700",
+                },
+              )}`}
+            >
+              <Icon icon={IconProp.Link} className="h-4 w-4" />
+              <span>
+                {translator.translateTemplate("Connect {{provider}}", {
+                  provider: translator.translateText(tool.title) || tool.title,
+                })}
+              </span>
+            </button>
+          ) : (
+            <></>
+          );
+
           return (
             <li
               key={tool.key}
@@ -92,15 +147,28 @@ const LlmOtherAiTools: FunctionComponent = (): ReactElement => {
               <div className="mt-0.5 text-sm text-gray-600">
                 {translator.translateText(tool.body)}
               </div>
-              <a
-                href={llmConnectionDocsUrl(tool.docsPath).toString()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-              >
-                <Icon icon={IconProp.Book} className="h-4 w-4" />
-                <span>{translator.translateText("Read how")}</span>
-              </a>
+              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                {connects ? (
+                  !canConnect && props.connectDisabledReason ? (
+                    <Tooltip text={props.connectDisabledReason}>
+                      {connectButton}
+                    </Tooltip>
+                  ) : (
+                    connectButton
+                  )
+                ) : (
+                  <></>
+                )}
+                <a
+                  href={llmConnectionDocsUrl(tool.docsPath).toString()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  <Icon icon={IconProp.Book} className="h-4 w-4" />
+                  <span>{translator.translateText("Read how")}</span>
+                </a>
+              </div>
             </li>
           );
         })}

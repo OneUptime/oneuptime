@@ -41,6 +41,7 @@ const CONNECTOR_FOLDERS: Record<LlmConnectionProvider, Array<string>> = {
   [LlmConnectionProvider.AzureOpenAI]: ["AzureOpenAI", "Microsoft"],
   [LlmConnectionProvider.AwsBedrock]: ["AwsBedrock"],
   [LlmConnectionProvider.GoogleVertexAI]: ["GoogleVertexAI"],
+  [LlmConnectionProvider.Cursor]: ["Cursor"],
   [LlmConnectionProvider.ClaudeEnterprise]: ["ClaudeEnterprise"],
   [LlmConnectionProvider.Microsoft365Copilot]: [
     "Microsoft365Copilot",

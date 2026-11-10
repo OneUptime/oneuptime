@@ -11,6 +11,7 @@ import {
 } from "Common/Utils/Slo/SloErrorBudgetPolicy";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * "Use the recommended policy" on the real Error Budget Policy page, and the
@@ -284,13 +285,12 @@ test("the Overview shows the tier the SLO is in, and what the team does there, l
 
   // Right under the summary, above the headline numbers.
   const hero: Locator = page.getByTestId("slo-overview-hero");
-  const heroBox: { y: number; height: number } | null =
-    await hero.boundingBox();
-  const cardBox: { y: number } | null = await card.boundingBox();
+  const [heroBox, cardBox] = (await boxesInOneFrame([hero, card])) as [
+    FrameBox,
+    FrameBox,
+  ];
 
-  expect(heroBox).not.toBeNull();
-  expect(cardBox).not.toBeNull();
-  expect(cardBox!.y).toBeGreaterThan(heroBox!.y + heroBox!.height - 1);
+  expect(cardBox.y).toBeGreaterThan(heroBox.y + heroBox.height - 1);
 
   await screenshot(page, "slo-overview-policy-tier-synthetic");
 
@@ -341,15 +341,14 @@ test("the Overview says since when deployments are frozen while the SLO is in a 
   await page.setViewportSize({ width: 390, height: 844 });
   await badge.scrollIntoViewIfNeeded();
 
-  const cardBox: { x: number; width: number } | null = await card.boundingBox();
-  const badgeBox: { x: number; width: number } | null =
-    await badge.boundingBox();
+  const [cardBox, badgeBox] = (await boxesInOneFrame([card, badge])) as [
+    FrameBox,
+    FrameBox,
+  ];
 
-  expect(cardBox).not.toBeNull();
-  expect(badgeBox).not.toBeNull();
-  expect(badgeBox!.x).toBeGreaterThanOrEqual(cardBox!.x);
-  expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(
-    cardBox!.x + cardBox!.width + 1,
+  expect(badgeBox.x).toBeGreaterThanOrEqual(cardBox.x);
+  expect(badgeBox.x + badgeBox.width).toBeLessThanOrEqual(
+    cardBox.x + cardBox.width + 1,
   );
 
   await screenshot(page, "slo-overview-deployments-frozen-mobile-synthetic");

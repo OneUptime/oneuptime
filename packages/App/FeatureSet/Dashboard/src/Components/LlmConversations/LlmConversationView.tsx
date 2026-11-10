@@ -21,6 +21,7 @@ import {
   LlmConversationKey,
   LlmConversationKeyKind,
   LlmConversationKeyUtil,
+  LlmLogEventsRead,
 } from "Common/Types/Telemetry/LlmConversationApi";
 import {
   LlmTranscript,
@@ -37,6 +38,7 @@ import PageMap from "../../Utils/PageMap";
 import LlmIssueBadge from "./LlmIssueBadge";
 import LlmReplayBar from "./LlmReplayBar";
 import LlmTranscriptStepView from "./LlmTranscriptStepView";
+import LlmLogEventsNote from "./LlmLogEventsNote";
 import {
   LlmConversationView as LlmConversationViewData,
   fetchLlmConversation,
@@ -582,7 +584,26 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
           <></>
         )}
 
-        {!transcript.contentRecorded ? (
+        {/*
+         * Prompts and answers the app sends as GenAI log events that were
+         * not shown: the reader may not read its logs, or they could not be
+         * read. Said instead of "not recorded", which they may well be.
+         */}
+        {data.logEvents === LlmLogEventsRead.NotAllowed ||
+        data.logEvents === LlmLogEventsRead.Failed ? (
+          <LlmLogEventsNote
+            state={
+              data.logEvents === LlmLogEventsRead.NotAllowed
+                ? "notAllowed"
+                : "failed"
+            }
+            testIdPrefix="llm-conversation"
+            className="mt-4"
+            onRetry={() => {
+              setReloadToken(reloadToken + 1);
+            }}
+          />
+        ) : !transcript.contentRecorded ? (
           <div
             className="mt-4 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800"
             data-testid="llm-conversation-no-content-note"
@@ -665,6 +686,10 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
                   step.call.spanId,
                 )}
                 setupRoute={setupRoute}
+                isContentHidden={
+                  data.logEvents === LlmLogEventsRead.NotAllowed ||
+                  data.logEvents === LlmLogEventsRead.Failed
+                }
                 onReplayFromHere={() => {
                   replay.goToStep(index);
                   replay.play();

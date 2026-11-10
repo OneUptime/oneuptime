@@ -505,7 +505,7 @@ describe("what the model is told", () => {
 
     expect(runCommand).toBeDefined();
     expect(runCommand!.description).toBe(
-      "Run a shell command in the repository root. It stops after 120 seconds unless timeout_seconds gives it longer. Returns the exit code and combined output (truncated).",
+      "Run a shell command in the repository root. It stops after 120 seconds unless timeout_seconds gives it longer. Returns the exit code and the combined output; a long output shows its start and its end, and read_tool_output reads the rest.",
     );
 
     const schema: JSONObject = runCommand!.inputSchema as JSONObject;

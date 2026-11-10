@@ -1,6 +1,6 @@
 # Stream Azure Monitor-metrikker og -logge
 
-Et forbundet Azure-abonnement kan streame sine Azure Monitor-metrikker og ressourcelogge til OneUptime. Diagnosticeringsindstillinger sender dem til hændelseshubs i dit abonnement, og OneUptime læser hændelseshubbene hvert minut: nøglemetrikker ankommer få minutter efter, at Azure Monitor har dem, i stedet for ved forbindelsens næste læsning, og ressourcelogge ankommer som OneUptime-logge, hver arkiveret under den ressource, den handler om. Én kommando i Azure Cloud Shell sætter det op, og der er intet at køre.
+Et forbundet Azure-abonnement kan streame sine Azure Monitor-metrikker og ressourcelogge til OneUptime. Diagnosticeringsindstillinger sender dem til hændelseshubs i dit abonnement, og OneUptime læser hændelseshubbene hvert minut: de fleste nøglemetrikker ankommer få minutter efter, at Azure Monitor har dem, i stedet for ved forbindelsens næste læsning, og ressourcelogge ankommer som OneUptime-logge, hver arkiveret under den ressource, den handler om. Én kommando i Azure Cloud Shell sætter det op, og der er intet at køre.
 
 :::cards
 - [Sådan virker det](#sådan-virker-det): Diagnosticeringsindstillinger sender til en hændelseshub i hver region, og OneUptime læser dem.
@@ -22,7 +22,7 @@ flowchart TB
 
 - **En hændelseshub i hver region.** En diagnosticeringsindstilling sender kun til en hændelseshub i sin ressources egen region, så kommandoen opretter et Event Hubs-navnerum i hver region, dine ressourcer ligger i, alle i én ressourcegruppe, og retter hver ressources diagnosticeringsindstilling mod hændelseshubben i dens region.
 - **OneUptime læser dem.** Azure Monitor sender kun til en hændelseshub, en lagerkonto eller et Log Analytics-arbejdsområde, aldrig til en adresse hos dig: en hændelseshub, som OneUptime læser, er den vej, hvor du ikke skal køre noget. OneUptime logger ind som forbindelsens egen app, der må læse de hændelseshubs og intet andet.
-- **Læsningerne overlader streamede metrikker til streamen.** Mens streamen leverer en ressourcetypes nøglemetrikker i en region, holder forbindelsens læsninger op med at skrive dem, så intet datapunkt tælles to gange. Læsningerne bliver ved med at finde ressourcer, deres tilstand og deres ændringer, og tager metrikkerne tilbage efter 15 minutter uden en hændelse.
+- **Læsningerne overlader streamede metrikker til streamen.** Mens streamen leverer en ressourcetypes nøglemetrikker i en region, holder forbindelsens læsninger op med at skrive dem, den bærer, så intet datapunkt tælles to gange, og bliver ved med at skrive [dem, den ikke kan bære](#hvad-der-ankommer). Læsningerne bliver ved med at finde ressourcer, deres tilstand og deres ændringer, og tager metrikkerne tilbage efter 15 minutter uden en hændelse.
 - **Intet går tabt, mens OneUptime ikke kan læse.** Hændelser venter i hændelseshubbene, indtil OneUptime læser dem, så længe hændelseshubbene gemmer dem, og OneUptime husker, hvor langt det har læst hver partition, så det fortsætter, hvor det slap.
 
 ## Før du begynder
@@ -41,7 +41,7 @@ Gå til **Cloud → Forbind**, og vælg **Stream metrikker og logge** i Azure-ab
 
 ### Vælg, hvad der skal streames
 
-**Metrikker** streamer hver nøglemetrik for hver ressource, minut for minut: de metrikker, OneUptime viser og bedømmer hver ressource ud fra. **Metrikker og logge** tilføjer hver ressources egne logge, hver kategori, Azure fører for den, og **Protokoller** streamer kun ressourcelogge.
+**Metrikker** streamer hver ressources nøglemetrikker, minut for minut, de metrikker, OneUptime viser og bedømmer hver ressource ud fra, undtagen [dem, en diagnosticeringsindstilling ikke kan sende](#hvad-der-ankommer), som forbindelsen bliver ved med at læse. **Metrikker og logge** tilføjer hver ressources egne logge, hver kategori, Azure fører for den, og **Protokoller** streamer kun ressourcelogge.
 
 ### Slå læsning til
 
@@ -75,7 +75,20 @@ Når det første abonnement ikke er det, OneUptime læser hændelseshubbene i, s
 | Ressourcelogge | I logudforskeren, under forbindelsens telemetritjeneste, med abonnementet, regionen og kategorien som attributter |
 | Logge for en ressource, OneUptime kender | Også på den ressource: dens side i Cloud får en fane **Protokoller** |
 
-Streamen bærer de nøglemetrikker, forbindelsen læser minut for minut. En metrik, den læser med en grovere opløsning, fx en lagerkontos brugte kapacitet, bliver hos læsningerne. En log arkiveres under sin ressource efter ressourcens ARM-id, der bæres som `cloud.resource_id`, og beholder sin kategori, handling, resultat og egenskaber som attributter, fx `azure.category`.
+Streamen bærer de nøglemetrikker, forbindelsen læser minut for minut. Læsningerne bliver ved med at skrive resten efter deres tidsplan: en metrik, de læser med en grovere opløsning, fx et containerregistrys brugte lager, og hver nøglemetrik, en diagnosticeringsindstilling ikke kan sende, og som Azure Monitors liste over understøttede metrikker markerer som ikke eksporterbar i kolonnen DS Export:
+
+- Virtuelle maskiner og skaleringssæt: `Network In Total`, `Network Out Total`.
+- Diske: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
+- Azure Cosmos DB-konti: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
+- Lagerkonti: `UsedCapacity`.
+- AKS-klynger: `kube_pod_status_ready`.
+- Applikationsgateways: `ApplicationGatewayTotalTime`, `Throughput`.
+- Firewalls: `Throughput`.
+- NAT-gateways: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+
+Et Service Bus- eller Event Hubs-navnerum streamer ingen metrikker. Læsningerne læser dets nøglemetrikker for hver kø, hvert topic og hver hændelseshub, og navnerummets egne totaler lægger dem sammen, mens en diagnosticeringsindstilling kun sender navnerummets totaler, og slet ikke 4 af et Service Bus-navnerums 6 nøglemetrikker eller 2 af et Event Hubs-navnerums 4. Så læsningerne skriver dem alle, med eller uden stream, og ingen besked tælles to gange.
+
+En log arkiveres under sin ressource efter ressourcens ARM-id, der bæres som `cloud.resource_id`, og beholder sin kategori, handling, resultat og egenskaber som attributter, fx `azure.category`.
 
 Virtuelle maskiner, skaleringssæt, diske, netværksgrænseflader, virtuelle netværk, private slutpunkter, NAT-gateways, DNS-zoner og App Service-planer sender ingen egne ressourcelogge, så deres sider har ingen fane **Protokoller**. En lagerkontos logge er dens tjenesters, og en container-apps logge er dens miljøs.
 

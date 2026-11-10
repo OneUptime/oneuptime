@@ -10,6 +10,7 @@ import {
   DiscoveryImportHostResult,
   DiscoveryImportMonitorOutcome,
   DiscoveryImportSettings,
+  DiscoveryImportSource,
   DiscoveryImportStatus,
   getRetryableHostResults,
   isDiscoveryImportActive,
@@ -20,8 +21,8 @@ import API from "../../../UI/Utils/API/API";
 
 /*
  * The discovery import API, in memory, for the rendered Dashboard suites
- * (issues #4811-#4813). It answers the dialog's six routes the way the
- * server does - an import recorded on start, worked through a few hosts per
+ * (issues #4811-#4813, and #5775's import from the Discovered Devices
+ * list). It answers the dialogs' seven routes the way the server does - an import recorded on start, worked through a few hosts per
  * read, its failures listed with their reasons, stopped, retried with only
  * what failed - so a test drives the real dialog against a real-shaped
  * record without a network. Every other request is answered 404, so a
@@ -35,6 +36,8 @@ const ROUTE_PREFIX: string = "/api/network-device-discovery-import";
 
 // The routes, read off a request's path.
 const START_ROUTE: RegExp = /\/network-device-discovery-import\/start$/;
+const START_FROM_DISCOVERED_DEVICES_ROUTE: RegExp =
+  /\/network-device-discovery-import\/start-from-discovered-devices$/;
 const ACTIVE_ROUTE: RegExp = /\/network-device-discovery-import\/active$/;
 const LATEST_ROUTE: RegExp =
   /\/network-device-discovery-import\/scan\/([^/?]+)\/latest$/;
@@ -47,7 +50,9 @@ const RETRY_ROUTE: RegExp =
 
 export interface FakeImportRecord {
   id: string;
+  // Empty for an import from the Discovered Devices list.
   scanId: string;
+  source?: DiscoveryImportSource | undefined;
   status: DiscoveryImportStatus;
   settings: DiscoveryImportSettings;
   results: Array<DiscoveryImportHostResult>;
@@ -81,6 +86,11 @@ export interface FakeImportControl {
   // Addresses that answered ping only.
   pingOnly: Set<string>;
   monitorTemplateNames: Map<string, string>;
+  /*
+   * The Discovered Devices list's rows an import from it can be asked for,
+   * by id: one with no address is left out, as the server leaves it out.
+   */
+  discoveredDevices: Map<string, { name: string; ipAddress?: string }>;
 }
 
 export interface FakeServerCall {
@@ -144,6 +154,7 @@ export default class DiscoveryImportFakeServer {
     names: new Map<string, string>(),
     pingOnly: new Set<string>(),
     monitorTemplateNames: new Map<string, string>(),
+    discoveredDevices: new Map<string, { name: string; ipAddress?: string }>(),
   };
 
   private readonly readsBeforeStart: Map<string, number> = new Map<
@@ -217,6 +228,20 @@ export default class DiscoveryImportFakeServer {
       });
   }
 
+  // The bodies imports from the Discovered Devices list started with.
+  public get startFromDiscoveredDevicesBodies(): Array<JSONObject> {
+    return this.calls
+      .filter((call: FakeServerCall): boolean => {
+        return (
+          call.method === "POST" &&
+          START_FROM_DISCOVERED_DEVICES_ROUTE.test(call.path)
+        );
+      })
+      .map((call: FakeServerCall): JSONObject => {
+        return call.body || {};
+      });
+  }
+
   public countCalls(method: "GET" | "POST", route: RegExp): number {
     return this.calls.filter((call: FakeServerCall): boolean => {
       return call.method === method && route.test(call.path);
@@ -259,6 +284,7 @@ export default class DiscoveryImportFakeServer {
     return {
       id: record.id,
       scanId: record.scanId,
+      ...(record.source ? { source: record.source } : {}),
       status: record.status,
       settings: record.settings as unknown as JSONObject,
       progress: summarizeDiscoveryImportResults(
@@ -334,6 +360,10 @@ export default class DiscoveryImportFakeServer {
     path: string,
     body: JSONObject,
   ): HTTPResponse<JSONObject> | HTTPErrorResponse {
+    if (START_FROM_DISCOVERED_DEVICES_ROUTE.test(path)) {
+      return this.startFromDiscoveredDevices(body);
+    }
+
     if (START_ROUTE.test(path)) {
       if (this.control.refuseStart) {
         return refused(400, this.control.refuseStart);
@@ -440,6 +470,77 @@ export default class DiscoveryImportFakeServer {
     }
 
     return refused(404, `No fake for POST ${path}`);
+  }
+
+  /*
+   * An import of rows of the Discovered Devices list: no scan, each device
+   * named as the list names it, and only the ones with an address - the
+   * server refuses a request none of whose devices it can check.
+   */
+  private startFromDiscoveredDevices(
+    body: JSONObject,
+  ): HTTPResponse<JSONObject> | HTTPErrorResponse {
+    if (this.control.refuseStart) {
+      return refused(400, this.control.refuseStart);
+    }
+
+    const settings: DiscoveryImportSettings = readDiscoveryImportSettings(
+      body["settings"],
+    );
+    const wantsMonitors: boolean =
+      settings.alerting === DiscoveryImportAlerting.MonitorTemplate;
+    const endpointIds: Array<string> = Array.isArray(body["endpointIds"])
+      ? (body["endpointIds"] as Array<string>)
+      : [];
+
+    const hosts: Array<{ name: string; ipAddress: string }> = [];
+
+    for (const endpointId of endpointIds) {
+      const device: { name: string; ipAddress?: string } | undefined =
+        this.control.discoveredDevices.get(String(endpointId).toLowerCase());
+
+      if (device?.ipAddress) {
+        hosts.push({ name: device.name, ipAddress: device.ipAddress });
+      }
+    }
+
+    if (hosts.length === 0) {
+      return refused(
+        400,
+        "None of the selected devices has an IP address, so OneUptime cannot check them. A device is listed with its address once a router's ARP table or a network controller reports one.",
+      );
+    }
+
+    const record: FakeImportRecord = this.seed({
+      scanId: "",
+      source: DiscoveryImportSource.DiscoveredDevices,
+      settings: settings,
+      monitorTemplateName: wantsMonitors
+        ? this.control.monitorTemplateNames.get(
+            settings.monitorTemplateId || "",
+          ) || "Network device alert pack"
+        : undefined,
+      results: hosts.map(
+        (host: {
+          name: string;
+          ipAddress: string;
+        }): DiscoveryImportHostResult => {
+          return {
+            ipAddress: host.ipAddress,
+            name: host.name,
+            isPingOnly: !settings.snmpCredentialProfileId,
+            device: DiscoveryImportDeviceOutcome.Pending,
+            monitor: wantsMonitors
+              ? DiscoveryImportMonitorOutcome.Pending
+              : DiscoveryImportMonitorOutcome.NotRequested,
+          };
+        },
+      ),
+    });
+
+    this.readsBeforeStart.set(record.id, this.control.queuedReads);
+
+    return ok({ import: this.view(record, false) });
   }
 
   // One read's worth of work: the next few hosts, as the server would do them.
@@ -555,6 +656,7 @@ export default class DiscoveryImportFakeServer {
 
 export const FAKE_IMPORT_ROUTES: {
   start: RegExp;
+  startFromDiscoveredDevices: RegExp;
   active: RegExp;
   latest: RegExp;
   import: RegExp;
@@ -562,6 +664,7 @@ export const FAKE_IMPORT_ROUTES: {
   retry: RegExp;
 } = {
   start: START_ROUTE,
+  startFromDiscoveredDevices: START_FROM_DISCOVERED_DEVICES_ROUTE,
   active: ACTIVE_ROUTE,
   latest: LATEST_ROUTE,
   import: IMPORT_ROUTE,

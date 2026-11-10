@@ -34,7 +34,26 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Discovery preview</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;window.process.env.NODE_ENV="development";</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class"};</script><style>body{margin:0;background:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+/*
+ * What every index.ejs loads right after the runtime: left and right follow
+ * the page's reading direction, so a Persian page (dir="rtl") is laid out as
+ * production lays it out. On a left-to-right page nothing moves.
+ */
+const readingDirection = path.join(
+  repository,
+  "packages/Common/UI/Styles/TailwindReadingDirection.js",
+);
+/*
+ * The Dashboard's words in German and Persian, for a page opened with
+ * `?lang=de` or `?lang=fa` (Fixture.js): served, not bundled, so the pages
+ * in English load none of them.
+ */
+const locales = path.join(
+  repository,
+  "packages/App/FeatureSet/Dashboard/src/Locales",
+);
+const LOCALE_PATH = /^\/locales\/(de|fa)\.json$/;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Discovery preview</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;window.process.env.NODE_ENV="development";</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class"};</script><style>body{margin:0;background:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 async function main() {
   fs.mkdirSync(output, { recursive: true });
   await esbuild.build(config);
@@ -48,6 +67,19 @@ async function main() {
     if (url.pathname === "/tailwind.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(tailwind).pipe(response);
+      return;
+    }
+    if (url.pathname === "/tailwind-reading-direction.js") {
+      response.setHeader("Content-Type", "application/javascript");
+      fs.createReadStream(readingDirection).pipe(response);
+      return;
+    }
+    const locale = url.pathname.match(LOCALE_PATH);
+    if (locale) {
+      response.setHeader("Content-Type", "application/json");
+      fs.createReadStream(path.join(locales, `${locale[1]}.json`)).pipe(
+        response,
+      );
       return;
     }
     if (url.pathname.startsWith("/dist/")) {

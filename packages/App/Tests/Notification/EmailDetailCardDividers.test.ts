@@ -505,13 +505,14 @@ describe("the card helpers", () => {
     const cards: Array<DetailCard> = cardsOf(html);
 
     expect(cards).toHaveLength(1);
+    // Labels read as on every other card, with no colon (fu-i18n-larger).
     expect(shapeOf(cards[0]!)).toEqual([
-      "Incident Title:",
-      "|Current State:",
-      "|Resources Affected:",
-      "|Severity:",
-      "|Root Cause:",
-      "|Description:",
+      "Incident Title",
+      "|Current State",
+      "|Resources Affected",
+      "|Severity",
+      "|Root Cause",
+      "|Description",
     ]);
     expect(misplacedDividers(readEmailMarkup(html))).toEqual([]);
   });
@@ -710,12 +711,12 @@ describe("the email in the maintainer's screenshot", () => {
 
     expect(detailCards(tree).map(shapeOf)).toEqual([
       [
-        "Alert Title:",
-        "|Current State:",
-        "|Resources Affected:",
-        "|Severity:",
-        "|Root Cause:",
-        "|Description:",
+        "Alert Title",
+        "|Current State",
+        "|Resources Affected",
+        "|Severity",
+        "|Root Cause",
+        "|Description",
       ],
     ]);
     expect(misplacedDividers(tree)).toEqual([]);

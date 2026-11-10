@@ -204,21 +204,8 @@ export function joinAnswerContinuation(
 }
 
 /*
- * Why a run is being asked to answer now. "time_limit" only happens when a
- * project configured one; "step_limit" is the runaway guard.
+ * What a run is told when a limit makes it answer now, and what a tool call
+ * it may no longer make returns, are the run limits' own words
+ * (Types/AI/AIAgentRunLimits: getWrapUpInstruction, getSkippedToolCallText):
+ * they name the limit the run reached, and only that one.
  */
-export type AgentWrapUpReason = "time_limit" | "step_limit";
-
-export function buildWrapUpInstruction(reason: AgentWrapUpReason): string {
-  if (reason === "time_limit") {
-    return "The time limit configured for this investigation has been reached. Answer now with the findings so far, clearly stating what you could and could not verify and what you would check next. Do not request more tools.";
-  }
-
-  return "You have made a very large number of calls in this run. Answer now with the findings so far, clearly stating what you could and could not verify and what you would check next. Do not request more tools.";
-}
-
-export function buildSkippedToolCallText(reason: AgentWrapUpReason): string {
-  return reason === "time_limit"
-    ? "Skipped: the time limit configured for this investigation has been reached. Answer with the data you already have."
-    : "Skipped: this run has made a very large number of calls. Answer with the data you already have.";
-}

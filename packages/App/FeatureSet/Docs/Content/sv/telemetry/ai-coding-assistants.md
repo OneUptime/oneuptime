@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 Sätt den där du redan provisionerar utvecklardatorer: en MDM-profil, en fil med hanterade inställningar eller en skalprofil från dina dotfiles. Värden får inte innehålla blanksteg: använd understreck, eller procentkodning som `%20`. Codex har inga resursattribut, så sätt samma nycklar i dess `[otel.span_attributes]` i stället.
 
-För att dela upp kostnaderna per applikation använder du tjänstnamnet (`OTEL_SERVICE_NAME`, eller verktygets egen inställning). Uppdelningen **Applikation / Tjänst** täcker bara verktyg som skickar GenAI-spans.
+För att dela upp kostnaderna per applikation använder du tjänstnamnet (`OTEL_SERVICE_NAME`, eller verktygets egen inställning). Uppdelningen **Applikation / Tjänst** rangordnar varje tjänst, vare sig den skickar GenAI-spans eller bara mätvärden.
 
 ### Vad som medvetet inte behandlas som den anställde
 
@@ -144,21 +144,21 @@ Två saker att känna till innan du läser siffrorna:
 
 Öppna **Produkter → AI / LLM** och gå till **Användning**. Den rangordnar **Anställd**, **Team**, **Modell**, **Leverantör** och **Applikation / Tjänst** efter kostnad, över de senaste 7 dagarna om du inte väljer en annan period. Anrop som inte nämner någon räknas under **Ej tilldelat**: en stor rad **Ej tilldelat** visar vilket verktyg som fortfarande saknar sin identitet.
 
-### Kodassistentmätvärden är en reserv, inte ett tillägg
+### Kodassistentmätvärden räknas bredvid dina appars anrop
 
-GenAI-spans kommer först: mätvärdena läses bara för ett tal som spans inte rapporterade något för, och de två läggs aldrig ihop ([varför](/docs/telemetry/ai-llm-observability#spans-först-mätvärden-fyller-i)). För kodassistenter får det en tydlig följd: **om samma projekt tar emot GenAI-spans med kostnad visas inte kodassistenternas kostnader.** Ge kodassistenterna ett eget projekt, med en egen intagningsnyckel.
+Varje tjänst räknas utifrån det den skickar ([hur](/docs/telemetry/ai-llm-observability#varje-tjänst-räknas-utifrån-det-den-skickar)). En kodassistents mätvärden kommer in under dess egen tjänst, så dess kostnader läggs till AI-anropen som dina appar skickar till samma projekt, aldrig i stället för dem, och en app som skickar GenAI-spans och mätvärden för samma anrop räknas en gång, från sina spans.
 
-När reserven gäller är det här vad varje uppdelning kan visa för ett verktyg som bara skickar mätvärden:
+Det här visar varje uppdelning för ett verktyg som bara skickar mätvärden:
 
 | Uppdelning | Från mätvärden |
 | --- | --- |
 | **Anställd** | Ja, från varje identitetsnyckel ovan, med och utan prefixet `resource.` |
 | **Team** | Ja, från teamnycklarna |
 | **Modell** | Ja: Claude Code och Codex skickar ett `model` utan prefix, Cursor `cursor.model.name` |
-| **Leverantör** | Nej: kodassistenternas mätvärden nämner ingen leverantör |
-| **Applikation / Tjänst** | Nej: deras mätvärden hör inte till någon OneUptime-tjänst |
+| **Leverantör** | Under **Ej tilldelat**: kodassistenternas mätvärden nämner ingen leverantör |
+| **Applikation / Tjänst** | Ja: varje verktyg under tjänsten som dess mätvärden nämner, till exempel `cursor` |
 
-En rad som lästs från mätvärden bär bara kostnad: dess celler för anrop och tokens visar `—`, eftersom en kostnadsräknare saknar detaljer per anrop, och en 0 där skulle påstå att personen inte gjorde några anrop. Tabellen är märkt med **från GenAI-mätvärden**.
+En rad som lästs från mätvärden säger **Från användningsmätvärden** under sitt namn. Dess cell för anrop visar `—`, eftersom en räknare saknar detaljer per anrop, och en 0 där skulle påstå att personen inte gjorde några anrop; dess celler för tokens visar de tokens som dess mätvärden räknade.
 
 ## Ingen OpenTelemetry? Sätt en gateway framför
 
@@ -188,7 +188,7 @@ Codex skickar också sina mätvärden till OpenAI som standard: se [OpenAI Codex
 
 ## Vad OneUptime inte gör ännu
 
-- **Inga administrationskopplingar mot kodverktyg.** OneUptime läser kontona hos OpenAI, Anthropic, Azure, Bedrock och Vertex AI bakom verktygen ([Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts)), men inte Cursors Admin API, GitHubs Copilot-fakturering eller Windsurfs och JetBrains API:er.
+- **Inga administrationskopplingar mot kodverktyg utom Cursors.** OneUptime läser kontona hos OpenAI, Anthropic, Azure, Bedrock och Vertex AI bakom verktygen, och ett Cursor-teams Admin API ([Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts)), men inte GitHubs Copilot-fakturering eller Windsurfs och JetBrains API:er.
 - **Kostnad är en uppskattning om inte ett verktyg rapporterar den.** En rapporterad kostnad används som den är; annars prissätter OneUptime tokens efter listpriser. Cursors `cursor.cost.usage` är själv en uppskattning.
 - **Identitet på loggposter läses inte.** Codex `user.email`, som det bara skickar på loggar, kopplas inte till kostnaderna.
 - **Cursors `cursor.user.email` läses inte ännu**, så Cursor-användare visas som sitt heltal `cursor.user.id`.
@@ -197,11 +197,11 @@ Codex skickar också sina mätvärden till OpenAI som standard: se [OpenAI Codex
 
 ## Var du börjar
 
-Rulla ut i den här ordningen; varje steg är användbart för sig. Använd ett projekt som inte redan tar emot GenAI-spans från dina egna appar, annars håller [reservregeln](#kodassistentmätvärden-är-en-reserv-inte-ett-tillägg) kodassistenternas kostnader borta från sidan.
+Rulla ut i den här ordningen; varje steg är användbart för sig. Kodassistenterna kan dela projekt med dina egna appar: [var och en räknas bredvid dem](#kodassistentmätvärden-räknas-bredvid-dina-appars-anrop).
 
 1. **Gemini CLI**, om någon använder det. Det skickar `user.email` utan konfiguration, så det visar tilldelningen fungera hela vägen. Slå på dess traces också: det skickar inget kostnadsmätvärde.
 2. **Claude Code**: en fil med hanterade inställningar för flottan, `user.email` utan extra arbete, ett riktigt kostnadsmätvärde samt godkännandegrad, commits, pull requests och kodrader per utvecklare.
-3. **Cursor**, med Enterprise-planen: en skärm i Cursors dashboard, ingen utvecklardator berörd, även om personer kommer in som heltal.
+3. **Cursor**, med Enterprise-planen: en skärm i Cursors dashboard, ingen utvecklardator berörd, även om personer kommer in som heltal. Med Teams-planen, eller för det Cursor tog betalt per person, ansluter du dess administratörs-API-nyckel som ett [leverantörskonto](/docs/telemetry/ai-provider-accounts#cursor), med eller utan exporten.
 4. **Copilot och Codex**, som båda behöver en identitet satt på varje dator. Gör det när du provisionerar datorer: anrop som kom in utan en kan inte tilldelas i efterhand.
 5. **En LiteLLM-gateway** för allt annat, med en virtuell nyckel per anställd.
 

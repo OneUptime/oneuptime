@@ -1,6 +1,6 @@
 # Azure Monitor-metrieken en -logboeken streamen
 
-Een gekoppeld Azure-abonnement kan zijn Azure Monitor-metrieken en resourcelogboeken naar OneUptime streamen. Diagnostische instellingen sturen ze naar Event Hubs in uw abonnement, en OneUptime leest de Event Hubs elke minuut: belangrijke metrieken komen enkele minuten nadat Azure Monitor ze heeft binnen, in plaats van pas bij de volgende leesactie van de koppeling, en resourcelogboeken komen binnen als OneUptime-logboeken, elk gearchiveerd onder de resource waar het over gaat. Eén opdracht in Azure Cloud Shell zet alles op, en er hoeft niets te draaien.
+Een gekoppeld Azure-abonnement kan zijn Azure Monitor-metrieken en resourcelogboeken naar OneUptime streamen. Diagnostische instellingen sturen ze naar Event Hubs in uw abonnement, en OneUptime leest de Event Hubs elke minuut: de meeste belangrijke metrieken komen enkele minuten nadat Azure Monitor ze heeft binnen, in plaats van pas bij de volgende leesactie van de koppeling, en resourcelogboeken komen binnen als OneUptime-logboeken, elk gearchiveerd onder de resource waar het over gaat. Eén opdracht in Azure Cloud Shell zet alles op, en er hoeft niets te draaien.
 
 :::cards
 - [Zo werkt het](#zo-werkt-het): Diagnostische instellingen sturen naar een Event Hub in elke regio, en OneUptime leest ze.
@@ -22,7 +22,7 @@ flowchart TB
 
 - **Een Event Hub in elke regio.** Een diagnostische instelling stuurt alleen naar een Event Hub in de eigen regio van haar resource, dus de opdracht maakt een Event Hubs-namespace in elke regio waar uw resources staan, allemaal in één resourcegroep, en richt de diagnostische instelling van elke resource op die van haar regio.
 - **OneUptime leest ze.** Azure Monitor stuurt alleen naar een Event Hub, een opslagaccount of een Log Analytics-werkruimte, nooit naar een adres van u: een Event Hub die OneUptime leest, is de manier waarbij u niets hoeft te draaien. OneUptime meldt zich aan als de eigen app van de koppeling, die die Event Hubs mag lezen en verder niets.
-- **De leesacties laten gestreamde metrieken aan de stream over.** Zolang de stream de belangrijke metrieken van een resourcetype in een regio levert, schrijven de leesacties van de koppeling ze niet meer, zodat geen datapunt dubbel telt. De leesacties blijven resources, hun status en hun wijzigingen vinden, en nemen de metrieken terug na 15 minuten zonder event.
+- **De leesacties laten gestreamde metrieken aan de stream over.** Zolang de stream de belangrijke metrieken van een resourcetype in een regio levert, schrijven de leesacties van de koppeling de metrieken die hij draagt niet meer, zodat geen datapunt dubbel telt, en blijven ze [de metrieken die hij niet kan dragen](#wat-er-binnenkomt) schrijven. De leesacties blijven resources, hun status en hun wijzigingen vinden, en nemen de metrieken terug na 15 minuten zonder event.
 - **Er gaat niets verloren zolang OneUptime niet kan lezen.** Events wachten in de Event Hubs tot OneUptime ze leest, zolang de Event Hubs ze bewaren, en OneUptime onthoudt tot waar het elke partitie heeft gelezen, zodat het verdergaat waar het was gebleven.
 
 ## Voordat u begint
@@ -41,7 +41,7 @@ Ga naar **Cloud → Koppelen** en kies in de rij van het Azure-abonnement **Metr
 
 ### Kiezen wat er gestreamd wordt
 
-**Metrieken** streamt elke belangrijke metriek van elke resource, per minuut: de metrieken waarmee OneUptime elke resource in grafieken toont en beoordeelt. **Metrieken en logboeken** voegt de eigen logboeken van elke resource toe, elke categorie die Azure ervoor bijhoudt, en **Logboeken** streamt alleen resourcelogboeken.
+**Metrieken** streamt de belangrijke metrieken van elke resource, per minuut, de metrieken waarmee OneUptime elke resource in grafieken toont en beoordeelt, behalve [de metrieken die een diagnostische instelling niet kan sturen](#wat-er-binnenkomt), die de koppeling blijft lezen. **Metrieken en logboeken** voegt de eigen logboeken van elke resource toe, elke categorie die Azure ervoor bijhoudt, en **Logboeken** streamt alleen resourcelogboeken.
 
 ### Het lezen aanzetten
 
@@ -75,7 +75,20 @@ Als het eerste abonnement niet het abonnement is waarin OneUptime de Event Hubs 
 | Resourcelogboeken | In de logboekverkenner, onder de telemetrieservice van de koppeling, met het abonnement, de regio en de categorie als attributen |
 | Logboeken van een resource die OneUptime kent | Ook bij die resource: haar pagina in Cloud krijgt een tabblad **Logboeken** |
 
-De stream draagt de belangrijke metrieken die de koppeling per minuut leest. Een metriek die ze grover leest, zoals de gebruikte capaciteit van een opslagaccount, blijft bij de leesacties. Een logboekregel wordt onder zijn resource gearchiveerd via de ARM-ID van de resource, meegegeven als `cloud.resource_id`, en houdt zijn categorie, bewerking, resultaat en eigenschappen als attributen, zoals `azure.category`.
+De stream draagt de belangrijke metrieken die de koppeling per minuut leest. De leesacties blijven de rest volgens hun schema schrijven: een metriek die ze grover lezen, zoals de gebruikte opslag van een containerregister, en elke belangrijke metriek die een diagnostische instelling niet kan sturen, die de lijst met ondersteunde metrieken van Azure Monitor in de kolom DS Export als niet exporteerbaar markeert:
+
+- Virtuele machines en schaalsets: `Network In Total`, `Network Out Total`.
+- Schijven: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
+- Azure Cosmos DB-accounts: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
+- Opslagaccounts: `UsedCapacity`.
+- AKS-clusters: `kube_pod_status_ready`.
+- Toepassingsgateways: `ApplicationGatewayTotalTime`, `Throughput`.
+- Firewalls: `Throughput`.
+- NAT-gateways: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+
+Een Service Bus- of Event Hubs-namespace streamt geen metrieken. De leesacties lezen zijn belangrijke metrieken voor elke wachtrij, elk topic en elke Event Hub, en de eigen totalen van de namespace tellen die op, terwijl een diagnostische instelling alleen de totalen van de namespace stuurt, en 4 van de 6 belangrijke metrieken van een Service Bus-namespace of 2 van de 4 van een Event Hubs-namespace helemaal niet. Dus schrijven de leesacties ze allemaal, met of zonder stream, en telt geen bericht dubbel.
+
+Een logboekregel wordt onder zijn resource gearchiveerd via de ARM-ID van de resource, meegegeven als `cloud.resource_id`, en houdt zijn categorie, bewerking, resultaat en eigenschappen als attributen, zoals `azure.category`.
 
 Virtuele machines, schaalsets, schijven, netwerkinterfaces, virtuele netwerken, privé-eindpunten, NAT-gateways, DNS-zones en App Service-plannen sturen geen eigen resourcelogboeken, dus hun pagina's hebben geen tabblad **Logboeken**. De logboeken van een opslagaccount zijn die van zijn services, en die van een container-app die van haar omgeving.
 

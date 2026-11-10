@@ -13,6 +13,9 @@ import path from "path";
  *
  *   - with no devices, the page is the first-run path: a probe on the
  *     network, then the two ways in (each opening its form), then alerts;
+ *     and under it what Network shows once a device reports (the product's
+ *     explanation, Components/ProductOnboarding), its steps left to the
+ *     path above;
  *   - with devices, it opens on one sentence about the network's health,
  *     worked out from the same counts the tiles show - the SNMP-failing
  *     count included - and on whether any alert policy is on;
@@ -50,9 +53,13 @@ const GET_STARTED: string = readCode(
 const HERO: string = readCode("Components", "Network", "NetworkHealthHero.tsx");
 
 describe("the Overview with nothing on it", () => {
-  test("shows the first-run path when the project has no devices", () => {
+  test("shows the first-run path when the project has no devices, and what Network shows once one reports under it", () => {
+    /*
+     * The JSX comment over the explanation is stripped to "{ }"; the
+     * explanation leaves its steps to the first-run path above it.
+     */
     expect(OVERVIEW).toMatch(
-      /if \(fleet\.total === 0\) \{ return \( <NetworkGetStarted enabledAlertPolicyCount=\{enabledAlertPolicyCount\} isAddProbeRequested=\{isAddProbeRequested\} \/> \); \}/,
+      /if \(fleet\.total === 0\) \{ return \( <div className="space-y-5"> <NetworkGetStarted enabledAlertPolicyCount=\{enabledAlertPolicyCount\} isAddProbeRequested=\{isAddProbeRequested\} \/> (\{ \} )?<ProductShowcase product=\{ProductKey\.Network\} hidesSteps=\{true\} \/> <\/div> \); \}/,
     );
   });
 

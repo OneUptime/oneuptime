@@ -263,4 +263,91 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
       attemptCount: 1,
     });
   });
+
+  /*
+   * A round of an AI fix tried again (RemediationRound.tryAgain, issue
+   * #6487) names its new run on the round inside the admission, before the
+   * run exists: the run is created with exactly that id, only once the
+   * admission said yes.
+   */
+  describe("a run created with the id its caller names", () => {
+    const NAMED_RUN_ID: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999990",
+    );
+
+    test("is created with that id, after the admission, and handed on by it", async () => {
+      const order: Array<string> = [];
+      const create: jest.SpyInstance = jest
+        .spyOn(AIRunService, "create")
+        .mockImplementation((async (args: { data: AIRun }): Promise<AIRun> => {
+          order.push("create");
+          return args.data;
+        }) as never);
+      const sendToWorkers: jest.SpyInstance = jest
+        .spyOn(AIInvestigationQueue, "sendToWorkers")
+        .mockResolvedValue(undefined);
+
+      const aiRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
+        projectId: PROJECT_ID,
+        subjectIncidentId: INCIDENT_ID,
+        subjectAutoRemediationSuggestionId: SUGGESTION_ID,
+        remediationRunType: AIRunType.RemediationExecution,
+        runId: NAMED_RUN_ID,
+        admitInsideSubjectLock: async (): Promise<boolean> => {
+          order.push("admit");
+          return true;
+        },
+      });
+
+      expect(order).toEqual(["admit", "create"]);
+      expect(aiRunId?.toString()).toBe(NAMED_RUN_ID.toString());
+      const created: AIRun = (create.mock.calls[0]![0] as { data: AIRun }).data;
+      expect(created.id?.toString()).toBe(NAMED_RUN_ID.toString());
+      expect(created.runType).toBe(AIRunType.RemediationExecution);
+      expect(created.triggeredByAutoRemediationSuggestionId).toBe(
+        SUGGESTION_ID,
+      );
+      expect(
+        (sendToWorkers.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+      ).toBe(NAMED_RUN_ID.toString());
+    });
+
+    test("an admission that says no creates nothing", async () => {
+      const create: jest.SpyInstance = jest
+        .spyOn(AIRunService, "create")
+        .mockResolvedValue({ id: RUN_ID } as unknown as AIRun);
+
+      await expect(
+        AIInvestigationQueue.enqueue({
+          projectId: PROJECT_ID,
+          subjectIncidentId: INCIDENT_ID,
+          subjectAutoRemediationSuggestionId: SUGGESTION_ID,
+          remediationRunType: AIRunType.RemediationPlan,
+          runId: NAMED_RUN_ID,
+          admitInsideSubjectLock: async (): Promise<boolean> => {
+            return false;
+          },
+        }),
+      ).resolves.toBeNull();
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    test("negative control: a caller that names no id leaves it to the database", async () => {
+      const create: jest.SpyInstance = jest
+        .spyOn(AIRunService, "create")
+        .mockResolvedValue({ id: RUN_ID } as unknown as AIRun);
+      jest
+        .spyOn(AIInvestigationQueue, "sendToWorkers")
+        .mockResolvedValue(undefined);
+
+      await AIInvestigationQueue.enqueue({
+        projectId: PROJECT_ID,
+        subjectIncidentId: INCIDENT_ID,
+        subjectAutoRemediationSuggestionId: SUGGESTION_ID,
+      });
+
+      const created: AIRun = (create.mock.calls[0]![0] as { data: AIRun }).data;
+      expect(created.id).toBeFalsy();
+    });
+  });
 });

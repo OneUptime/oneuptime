@@ -124,13 +124,17 @@ export const RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS: Record<
  * happened on. Errors are what the replay recorder counts: uncaught errors,
  * unhandled rejections and resource load failures (ErrorRecorder).
  * Frustration is rage clicks + dead clicks + error clicks + refresh rage
- * (FrustrationDetector). The Top paths "With errors" column is a SHARE of
+ * (FrustrationDetector) + the application's own signals that count as
+ * frustration (customSignalFrustrationCount, issue #6443). The Top paths
+ * "With errors" column is a SHARE of
  * the path's sessions with any error in the session, wherever it happened.
  *
  * Duration is the recorded span, first chunk start to last chunk end, so
  * idle time counts.
  *
- * Frustration signals (FrustrationDetector, SessionId): a rage click is 3+
+ * Frustration signals (FrustrationDetector, SessionId), with the default
+ * rules (SESSION_REPLAY_FRUSTRATION_LIMITS) - each application can change
+ * them on its Frustration Signals page: a rage click is 3+
  * clicks inside 1s within 30px; a dead click is a click on something that
  * looks clickable with no DOM change, navigation, scroll or request in 3s;
  * an error click is an error within 1s of a click; refresh rage is the
@@ -226,7 +230,7 @@ export const RUM_USER_FLOW_METRIC_DESCRIPTIONS: Record<
     "Sessions that recorded an error while on this page: an uncaught JavaScript error, an unhandled promise rejection or a file that failed to load. An error is placed on the page the visitor was on when its recording chunk was sent, so one just before moving on can land on the next page.",
   ),
   pageFrustrated: translationKey(
-    "Sessions with a frustration signal on this page: a rage click (3 or more clicks within a second in one spot), a dead click (something that looks clickable did nothing for 3 seconds), an error within a second of a click, or the same page loaded 3 or more times in a minute. Placed on pages the same way as Errors.",
+    "Sessions with a frustration signal on this page: a rage click, a dead click, an error right after a click, the same page loaded again and again, or one of your own signals that counts as frustration, each as the application's Frustration Signals page defines it. Placed on pages the same way as Errors.",
   ),
   loopSessions: translationKey(
     "Sessions that left one of these pages for the other and came straight back, counted once per session however often they went round; the bar and percentage are their share of all analysed sessions. The 10 most common pairs are listed.",
@@ -256,7 +260,7 @@ export const RUM_USER_FLOW_METRIC_DESCRIPTIONS: Record<
     "Sessions whose first recorded page was this one, at this step before the chosen page: they arrived on the application here. The line below is their share of this step's sessions on the page. On the map's last step, sessions that came from further back are not counted.",
   ),
   detailErrorsHere: translationKey(
-    "Sessions at this step with an error recorded on this page, on this visit or another: an uncaught JavaScript error, an unhandled promise rejection or a failed file load. The line below counts frustration signals (rage, dead and error clicks, repeated reloads) the same way. Both are placed on pages as in the Pages table.",
+    "Sessions at this step with an error recorded on this page, on this visit or another: an uncaught JavaScript error, an unhandled promise rejection or a failed file load. The line below counts frustration signals (rage, dead and error clicks, repeated reloads and your own) the same way. Both are placed on pages as in the Pages table.",
   ),
   detailCameFrom: translationKey(
     "Pages visited just before this one, across every analysed session that visited it, not only this step of the map. A session counts once per page, and the percentage is of all sessions that visited this page, so landings add nothing. The 6 most common are listed.",
@@ -287,7 +291,8 @@ export const RUM_USER_FLOW_METRIC_DESCRIPTIONS: Record<
  *    of pageCount, which the recorder counts as ROUTE CHANGES (history /
  *    hash navigations) - the landing page and full page loads add nothing.
  *  - Signals: sum(errorCount) and sum(rage + dead + error click + refresh
- *    rage). A live session's provisional header keeps the MAX of its
+ *    rage + the application's own frustration signals). A live session's
+ *    provisional header keeps the MAX of its
  *    chunks' counts, not the sum, until it is finalized. errorCount is
  *    ErrorRecorder's onError calls: each distinct error once (100 per page
  *    load, then one cap marker), and a repeat of a known one at most once
@@ -309,7 +314,7 @@ export const RUM_REPLAY_USERS_METRIC_DESCRIPTIONS: Record<
     "Recorded time across these sessions, added up. Each runs from its start to its last recorded moment, idle time included; one still recording counts what it has so far. The line below counts page changes made inside the app without a full reload; a page opened by a full load is not counted.",
   ),
   signals: translationKey(
-    "Errors and frustration signals in these sessions, added up. Errors: uncaught JavaScript errors, unhandled promise rejections and failed file loads; an error that keeps repeating adds at most one every 5 seconds. Frustration: rage, dead and error clicks and repeated reloads. A live session can show fewer until it is closed off.",
+    "Errors and frustration signals in these sessions, added up. Errors: uncaught JavaScript errors, unhandled promise rejections and failed file loads; an error that keeps repeating adds at most one every 5 seconds. Frustration: rage, dead and error clicks, repeated reloads and your own. A live session can show fewer until it is closed off.",
   ),
 };
 

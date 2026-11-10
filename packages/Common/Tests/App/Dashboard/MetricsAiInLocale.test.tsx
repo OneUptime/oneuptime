@@ -355,7 +355,7 @@ describe("Metrics → AI → Insights in German", () => {
     }
 
     // Each status where the list says it, and on the status strip.
-    for (const status of ["Handlungsbedarf", "PR geöffnet", "Erkannt"]) {
+    for (const status of ["Handlungsbedarf", "Korrekturaufgabe", "Erkannt"]) {
       expect(screen.getAllByText(status).length).toBeGreaterThan(0);
     }
 
@@ -373,7 +373,7 @@ describe("Metrics → AI → Insights in German", () => {
     // Not one of the inbox's own words is left in English.
     for (const english of [
       "Needs Attention",
-      "Fix Opened",
+      "Fix task",
       "Detected",
       "Seen any time",
       "Last seen: newest first",
@@ -393,7 +393,7 @@ describe("Metrics → AI → Insights in German", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Needs Attention").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Fix Opened").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Fix task").length).toBeGreaterThan(0);
     expect(document.body.textContent).toContain("Showing 3 of 3 insights");
   });
 });

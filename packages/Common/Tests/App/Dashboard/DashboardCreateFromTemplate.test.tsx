@@ -94,6 +94,8 @@ jest.mock("../../../UI/Utils/Translation", () => {
 const getListMock: jest.Mock<any> = jest.fn() as jest.Mock<any>;
 const createMock: jest.Mock<any> = jest.fn() as jest.Mock<any>;
 const createOrUpdateMock: jest.Mock<any> = jest.fn() as jest.Mock<any>;
+// How many dashboards the project has: none, a new project's, unless a test says.
+const countMock: jest.Mock<any> = jest.fn() as jest.Mock<any>;
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -105,8 +107,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: async (): Promise<null> => {
         return null;
       },
-      count: async (): Promise<number> => {
-        return 0;
+      count: (...args: Array<unknown>): unknown => {
+        return countMock(...args);
       },
       deleteItem: async (): Promise<void> => {
         return undefined;
@@ -328,6 +330,9 @@ beforeEach(() => {
     return Promise.resolve(listOf([]));
   });
 
+  countMock.mockReset();
+  countMock.mockResolvedValue(0);
+
   createMock.mockReset();
   createMock.mockImplementation((request: unknown): unknown => {
     const model: Dashboard = (request as CreateRequest).model;
@@ -392,10 +397,21 @@ describe("Create Dashboard", () => {
     expect(screen.queryAllByTestId("dashboard-template-card")).toEqual([]);
   });
 
-  test("the empty list's own Create Dashboard opens it too", async () => {
+  test("a new project's Create Dashboard, under the empty list where Dashboards explains itself, opens it too", async () => {
     const user: UserEvent = await renderPage();
 
-    await user.click(screen.getByTestId("empty-table-create-button"));
+    // The explanation's button, not a second one in the empty table.
+    const showcase: HTMLElement = await screen.findByTestId(
+      "product-showcase",
+      {},
+      SLOW_CI,
+    );
+    expect(showcase).toHaveAttribute("data-product", "dashboards");
+    expect(screen.queryByTestId("empty-table-create-button")).toBeNull();
+
+    await user.click(
+      within(showcase).getByTestId("resource-showcase-add-button"),
+    );
 
     expect(
       await screen.findByRole(
@@ -408,6 +424,25 @@ describe("Create Dashboard", () => {
     expect(
       within(dialog()).getByTestId("dashboard-start-from-scratch"),
     ).toHaveFocus();
+  });
+
+  test("a project with dashboards: the empty list's own Create Dashboard opens it", async () => {
+    // Dashboards the list does not show, archived ones say.
+    countMock.mockResolvedValue(2);
+    const user: UserEvent = await renderPage();
+
+    await user.click(
+      await screen.findByTestId("empty-table-create-button", {}, SLOW_CI),
+    );
+
+    expect(
+      await screen.findByRole(
+        "dialog",
+        { name: "Create a dashboard" },
+        SLOW_CI,
+      ),
+    ).toBeVisible();
+    expect(screen.queryByTestId("product-showcase")).toBeNull();
   });
 
   test("a template's row is named by its title and described by its description", async () => {

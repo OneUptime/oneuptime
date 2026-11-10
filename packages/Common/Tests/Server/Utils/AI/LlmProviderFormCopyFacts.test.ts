@@ -1,4 +1,4 @@
-import API from "../../../../Utils/API";
+import API, { RequestOptions } from "../../../../Utils/API";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
@@ -13,11 +13,14 @@ import {
   LlmProviderFieldNeed,
   LlmProviderTypeCopy,
   getLlmProviderDefaultModel,
+  getLlmProviderShownResponseTimeout,
   needsApiKey,
   needsBaseUrl,
   needsModelName,
   takesApiKey,
 } from "../../../../UI/Components/AI/LlmProviderFormCopy";
+import { getGlobalTranslator } from "../../../../UI/Utils/TranslateTemplate";
+import { getLlmProviderDefaultResponseTimeoutInSeconds } from "../../../../Utils/LLM/LlmProviderResponseTimeout";
 import stubLLMEgressGuard from "./StubLLMEgressGuard";
 import {
   afterEach,
@@ -497,4 +500,60 @@ describe("what the form says a blank field gets is what the server uses", () => 
       });
     }
   });
+});
+
+/*
+ * A run whose provider took too long sends its reader to the provider's
+ * page, which says how long the provider is given: the seconds set, or -
+ * left empty - "120 (default)" (300 for Ollama). That is how long the
+ * server waits for each request.
+ */
+describe("what a provider's page says it waits is how long the server waits", () => {
+  function sentTimeout(spy: PostSpy): number | undefined {
+    return (spy.mock.calls[0]![0] as { options: RequestOptions }).options
+      .timeout;
+  }
+
+  test.each(LLM_PROVIDER_TYPES)(
+    "%s left empty: the default its page names",
+    async (type: LlmType) => {
+      const config: LLMProviderConfig = configFor(type);
+      const spy: PostSpy = replyWith(replyFor(type, config.baseUrl));
+
+      await complete(config);
+
+      const seconds: number =
+        getLlmProviderDefaultResponseTimeoutInSeconds(type);
+      expect(sentTimeout(spy)).toBe(seconds * 1000);
+      expect(
+        getLlmProviderShownResponseTimeout({
+          requestTimeoutInSeconds: undefined,
+          llmType: type,
+          translator: getGlobalTranslator(),
+        }),
+      ).toBe(`${seconds} (default)`);
+    },
+  );
+
+  test.each(LLM_PROVIDER_TYPES)(
+    "%s given its own: the seconds its page shows",
+    async (type: LlmType) => {
+      const config: LLMProviderConfig = {
+        ...configFor(type),
+        requestTimeoutInSeconds: 900,
+      };
+      const spy: PostSpy = replyWith(replyFor(type, config.baseUrl));
+
+      await complete(config);
+
+      expect(sentTimeout(spy)).toBe(900_000);
+      expect(
+        getLlmProviderShownResponseTimeout({
+          requestTimeoutInSeconds: 900,
+          llmType: type,
+          translator: getGlobalTranslator(),
+        }),
+      ).toBe("900");
+    },
+  );
 });

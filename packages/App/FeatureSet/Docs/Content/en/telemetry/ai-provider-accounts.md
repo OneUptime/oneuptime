@@ -1,6 +1,6 @@
 # AI Provider Accounts
 
-See what your AI provider accounts used and what they cost, with no change to your apps. Connect an OpenAI, Anthropic, Azure OpenAI and Microsoft Foundry, Amazon Bedrock or Google Vertex AI account with a credential that can only read, and OneUptime reads its usage every 15 minutes into **Usage**, **Budgets** and metrics you can alert on.
+See what your AI provider accounts used and what they cost, with no change to your apps. Connect an OpenAI, Anthropic, Azure OpenAI and Microsoft Foundry, Amazon Bedrock or Google Vertex AI account with a credential that can only read, and OneUptime reads its usage every 15 minutes into **Usage**, **Budgets** and metrics you can alert on. A Cursor team connects the same way, with its Admin API key, and is read every hour.
 
 :::cards
 - [Connect an account](#connect-an-account): Pick the provider, paste the credential, test it and connect.
@@ -11,7 +11,7 @@ See what your AI provider accounts used and what they cost, with no change to yo
 
 ## How it works
 
-Every 15 minutes, OneUptime asks each connected account for its usage by UTC day and keeps it as three metrics of the connection's own service. Each read takes the days since the last read, and the last 3 days again, today included, because providers keep adding to today and correct the days just past.
+Every 15 minutes, OneUptime asks each connected account for its usage by UTC day and keeps it as three metrics of the connection's own service. Each read takes the days since the last read, and the last 3 days again, today included, because providers keep adding to today and correct the days just past. A Cursor team is read every hour instead, by the hour: see [Cursor](#cursor).
 
 ```mermaid title="From a provider account to Usage and Budgets"
 flowchart TB
@@ -60,10 +60,11 @@ Connected accounts are listed under the tiles, with their **Status** and **Last 
 | Azure OpenAI and Microsoft Foundry | Estimated from tokens | Resource and model | An app with Monitoring Reader |
 | Amazon Bedrock | Estimated from tokens | Region and model | An access key that reads CloudWatch |
 | Google Vertex AI | Estimated from tokens | Region and model | A service account with Monitoring Viewer |
+| Cursor | What Cursor reports | Person, model and service account, by hour | A team's Admin API key |
 
 Every provider but Anthropic counts requests too: Anthropic's usage report has none. An estimated cost uses the price list of [What a call costs](/docs/telemetry/ai-llm-observability#what-a-call-costs) and your own prices from **Pricing**, and is marked as an estimate. A model the price list does not know has no cost until you price it there.
 
-None of these credentials can call a model: each one reads usage, cost or metrics, and nothing else.
+None of these credentials can call a model: each one reads usage, cost or metrics, and nothing else. Cursor's Admin API key is the exception: it can also change some team settings, such as spend limits, and OneUptime only reads with it.
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ In the project, create a service account with the Monitoring Viewer role, and a 
 Fill in **Project ID**, and paste the whole key file as **Service account key (JSON)**.
 :::
 
+## Cursor
+
+OneUptime reads your Cursor team with an Admin API key: every request of its members, with its model, tokens and what Cursor charged for it, added up by hour, person, model and service account, and how many of the members used Cursor in the past 7 days. A request made with a service account shows under the account's name as its API key. It holds no prompts, code or answers: Cursor's Admin API has none.
+
+:::steps
+### Create a Cursor Admin API key
+
+In the Cursor dashboard, open Settings, Cursor Admin API Keys, and create a key. Only a team admin can, and the key comes with the Teams and Enterprise plans. It starts with `crsr_`.
+
+### Connect Cursor
+
+Paste the key as **Admin API key**. The test also shows the team's **Members**, and as **People** how many of them used Cursor.
+:::
+
+Cursor adds its usage up by the hour and asks to be read at most once an hour, so OneUptime reads a Cursor team every hour and keeps its usage by the hour. Each read takes the hours since the last one and the 3 hours before them again, because Cursor adds requests late, and reads a day again in full once 6 hours of the next have passed. The first read goes back 30 days, newest first, a day at a time: a busy team takes a few reads, a minute apart, and its line says **Still reading earlier usage** until they are done.
+
+On the Enterprise plan, Cursor can also send its usage as it happens, with its OpenTelemetry Export: see [Cursor](/docs/telemetry/cursor). The two are kept apart: this account shows under **Provider accounts**, the export under **Your AI calls**, never added together, and a budget counts one of them.
+
 ## See the usage
 
 Open **Usage** and pick **Provider accounts**. It shows the cost, tokens and requests your accounts reported for the time range, ranked by **Model**, **Person**, **Provider**, **Project or resource**, **API key** or **Connection**. The range starts at its first day's UTC midnight, because providers report whole days.
@@ -157,7 +176,7 @@ Each account's usage is kept as three metrics, which you can chart on a [dashboa
 | `oneuptime.llm.provider.tokens` | A day's tokens, by `gen_ai.token.type`: `input` (cached tokens included), `output`, `cache_read` and `cache_write` |
 | `oneuptime.llm.provider.requests` | A day's requests |
 
-Each point is stamped at the start of its UTC day. It carries `oneuptime.llm.connection.id` and `oneuptime.llm.connection.name`, and what the provider names: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` and `oneuptime.llm.provider.api_key`. An estimated cost carries `oneuptime.llm.cost.estimated`.
+Each point is stamped at the start of its UTC day. It carries `oneuptime.llm.connection.id` and `oneuptime.llm.connection.name`, and what the provider names: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` and `oneuptime.llm.provider.api_key`. An estimated cost carries `oneuptime.llm.cost.estimated`. A Cursor team's points hold an hour's usage each, stamped at the start of its UTC hour.
 
 ## How reads are scheduled
 
@@ -168,6 +187,9 @@ Each point is stamped at the start of its UTC day. It carries `oneuptime.llm.con
 | After a key or permission is refused | 60 minutes later |
 | After any other failure | 15 minutes later |
 | Turned off | None until it is turned on |
+| A Cursor team's next ones | Every hour |
+| A Cursor read that stopped part way | A minute later |
+| A Cursor team's, after any failure | 60 minutes later |
 
 A plan without telemetry features reads nothing. Removing a connection stops its reads and keeps what it read until the service's retention removes it.
 
@@ -183,6 +205,14 @@ Check that you copied all of it, that it has not been revoked, and that it is th
 
 :::details The credential works, but it may not read what the connection needs
 Give it the role this page names for the provider: Monitoring Reader on the Azure subscription, the two CloudWatch actions on AWS, Monitoring Viewer on the Google Cloud project.
+:::
+
+:::details Cursor accepted the key, but it may not read the team's usage
+Use an Admin API key of a team on the Teams or Enterprise plan: a team admin creates it in the Cursor dashboard, under Settings, Cursor Admin API Keys. Then test again.
+:::
+
+:::details Cursor asked OneUptime to slow down
+Cursor's Admin API takes 20 requests a minute from a team, 60 for usage events, shared with every tool that reads it. OneUptime waits a minute once and goes on. If Cursor still refuses, the read keeps what it read in full and goes on a minute later; a read that got nothing tries again an hour later.
 :::
 
 :::details The test passes, but nothing shows for today

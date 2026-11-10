@@ -31,6 +31,10 @@ import DeviceReachabilityUtil, {
   NetworkDeviceReachability,
 } from "../NetworkDevice/DeviceReachabilityUtil";
 import { NetworkDeviceControllerLink } from "../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import {
+  getDiscoveredDeviceName,
+  isIpAddressLiteral,
+} from "../NetworkDevice/DiscoveredDeviceIdentity";
 
 export interface TopologyDeviceInput {
   id: string;
@@ -463,6 +467,22 @@ const BUILT_IN_CORE_LAYER_ROLES: ReadonlySet<string> = new Set<string>([
 const ENDPOINT_FRESH_WINDOW_MS: number =
   DeviceReachabilityUtil.getStaleWindowInMinutes(undefined) * 60 * 1000;
 
+/*
+ * How long one endpoint row's sighting stays current, by who saw it: the
+ * window the map keeps an endpoint "up" for and adopts one by its address
+ * within. The Discovered Devices list asks here too (issue #5775), so the
+ * list and the map agree about which rows are current, and so about which
+ * are monitored.
+ */
+export function getEndpointSightingWindowMs(
+  attachmentSource: string | undefined,
+): number {
+  return EndpointAttachmentUtil.getSightingWindowMs(
+    attachmentSource,
+    ENDPOINT_FRESH_WINDOW_MS,
+  );
+}
+
 export default class NetworkTopologyUtil {
   /*
    * Builds the topology graph from every device in a project. Nodes are the
@@ -622,6 +642,17 @@ export default class NetworkTopologyUtil {
          */
         macAddress: normalizeMac(device.macAddress),
       };
+
+      /*
+       * The address it is polled at, when that is an IP: drawn under its
+       * name and searched by (issue #5775). A device registered by a DNS
+       * name has no address of its own to show here - the endpoint row a
+       * switch learned for it may still lend it one (stampAdoptedIdentity).
+       */
+      const polledAddress: string = (device.hostname || "").trim();
+      if (isIpAddressLiteral(polledAddress)) {
+        deviceNode.ipAddress = polledAddress;
+      }
 
       /*
        * The configured role, when the project has one for this key. The
@@ -1138,15 +1169,13 @@ export default class NetworkTopologyUtil {
       const nodeId: string = `endpoint:${endpoint.id}`;
       /*
        * What somebody called it, then what it can be told by: a person's
-       * classification, then the name it has in its controller, ahead of a
-       * maker's name, which every register in a store shares.
+       * classification, the name it has in its controller, its address, its
+       * MAC. Never its maker's name, which every register in a store shares
+       * (issue #5775: a map of identical "Verifone" boxes) - the maker is
+       * the line under an unnamed device's address instead.
        */
       const endpointName: string =
-        endpoint.classification ||
-        endpoint.hostname ||
-        endpoint.vendor ||
-        endpoint.ipAddress ||
-        endpoint.macAddress;
+        getDiscoveredDeviceName(endpoint) || endpoint.macAddress;
       const endpointRole: NetworkTopologyDeviceRole = classifyEndpointRole({
         classification: endpoint.classification,
         vendor: endpoint.vendor,

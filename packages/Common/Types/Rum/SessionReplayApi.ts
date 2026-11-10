@@ -116,6 +116,11 @@ export interface SessionReplayListFiltersDto {
    * 400 when it is not a visitor id shape.
    */
   visitorId?: string;
+  /*
+   * Sessions where one of the application's own signals fired, by its
+   * name as the Frustration signals page shows it (issue #6443). Exact.
+   */
+  customSignalName?: string;
 }
 
 export interface SessionReplayListRequestDto {
@@ -202,6 +207,14 @@ export interface SessionReplayListItemDto {
    * Dashboard falls back to reading "not finalized" as "recording".
    */
   hasRecordingEnded?: boolean;
+  /*
+   * Additive (issue #6443). The application's own signals the session
+   * hit: every hit, the hits that count as frustration, and their sorted
+   * names. Absent from an older server; 0, 0 and [] for an older session.
+   */
+  customSignalCount?: number;
+  customSignalFrustrationCount?: number;
+  customSignalNames?: Array<string>;
 }
 
 export interface SessionReplayListResponseDto {
@@ -452,6 +465,10 @@ export interface SessionReplayManifestHeaderDto {
    * closed, while it keeps polling until the finalized header arrives.
    */
   hasRecordingEnded?: boolean;
+  /* Additive; same meaning as on SessionReplayListItemDto (issue #6443). */
+  customSignalCount?: number;
+  customSignalFrustrationCount?: number;
+  customSignalNames?: Array<string>;
 }
 
 export interface SessionReplayManifestTabDto {

@@ -11,8 +11,10 @@ import {
   SessionReplayCaptureTrigger,
   SessionReplayConfigResponse,
   SessionReplayConsentMode,
+  SessionReplayCustomSignalConfig,
   SessionReplayMaskingMode,
 } from "./Contract";
+import { readCustomSignals } from "./CustomSignals";
 import { ReplayStorage } from "./Storage";
 
 export const CONFIG_FETCH_TIMEOUT_MS: number = 5_000;
@@ -76,6 +78,16 @@ export interface ReplayConnectivity {
   subscribe(listener: (isConnected: boolean | null) => void): () => void;
 }
 
+/*
+ * The part of the application's frustration settings this recorder acts on:
+ * its own page, event and error signals (issue #6443). Kept under the
+ * response's own field name so a cached policy is read back by the same
+ * normalizeReplayConfig as a fresh one.
+ */
+export interface ResolvedFrustrationSignals {
+  customSignals: Array<SessionReplayCustomSignalConfig>;
+}
+
 export interface ResolvedReplayConfig {
   enabled: boolean;
   captureTrigger: SessionReplayCaptureTrigger;
@@ -85,6 +97,7 @@ export interface ResolvedReplayConfig {
   captureUserIdentity: boolean;
   configEpoch: number;
   isTargeted: boolean;
+  frustrationSignals: ResolvedFrustrationSignals;
   disabledReason?: string;
 }
 
@@ -267,6 +280,7 @@ function failClosed(reason: string): ResolvedReplayConfig {
     captureUserIdentity: false,
     configEpoch: 0,
     isTargeted: false,
+    frustrationSignals: { customSignals: [] },
     disabledReason: reason,
   };
 }
@@ -311,6 +325,13 @@ export function normalizeReplayConfig(value: unknown): ResolvedReplayConfig {
         ? config.configEpoch
         : 0,
     isTargeted: config.isTargeted === true,
+    /*
+     * A server from before frustration settings sends none: no signals of
+     * the application's own, which is what such an application has.
+     */
+    frustrationSignals: {
+      customSignals: readCustomSignals(config.frustrationSignals),
+    },
   };
   if (typeof config.disabledReason === "string") {
     resolved.disabledReason = config.disabledReason.slice(0, 100);

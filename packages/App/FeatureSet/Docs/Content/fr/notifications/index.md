@@ -7,6 +7,7 @@ OneUptime vous joint de deux façons. Il vous alerte quand un incident ou une al
 - [Où les trouver](#où-les-trouver): Les pages des paramètres utilisateur, section par section.
 - [Ce dont vous disposez au départ](#ce-dont-vous-disposez-au-départ): Les méthodes, règles et paramètres qu'un nouveau membre reçoit.
 - [Quand aucune règle ne correspond](#quand-aucune-règle-ne-correspond): Comment une alerte vous parvient malgré tout, et qui en est informé.
+- [La langue de vos alertes](#la-langue-de-vos-alertes): Des alertes dans la langue que vous avez choisie, et ce qui reste en anglais.
 :::
 
 ## Comment ça fonctionne
@@ -96,6 +97,18 @@ Une alerte peut vous parvenir pour un type et une gravité pour lesquels vous n'
 
 Vous recevez un e-mail à ce sujet, tout comme les propriétaires de la politique d'astreinte, ou ceux du projet si la politique n'en a pas. Si rien n'est vérifié, l'alerte ne peut pas être livrée, et l'e-mail le dit. Ces e-mails sont retenus tant que les alertes continuent, afin qu'une tempête d'alertes ne devienne pas une tempête d'e-mails. Pour ajouter la règle manquante, voir [Règles d'astreinte personnelles](/docs/notifications/on-call-rules#quand-une-gravité-na-pas-de-règle).
 
+## La langue de vos alertes
+
+Vos alertes sont rédigées dans votre langue : celle que vous choisissez dans le menu des langues en bas de chaque page, ou sous **Langue** dans **Profil utilisateur**. Tant que vous n'en choisissez pas, elles sont en anglais.
+
+| Canal | Langue |
+| --- | --- |
+| E-mail, SMS, notifications push et Telegram | Votre langue |
+| Vos propres messages Slack, Microsoft Teams et Mattermost | Votre langue |
+| Appels téléphoniques et WhatsApp | Anglais |
+
+Ce qui change, ce sont les mots de OneUptime : objets, titres, boutons et phrases, ainsi que les noms avec lesquels chaque nouveau projet démarre, comme Identifié et Incident critique. Ce que votre équipe a écrit reste tel quel : titres, descriptions, causes racines, et noms des projets, des équipes et des états que votre projet a nommés lui-même. Un SMS dans une langue qui a son propre alphabet, comme le russe, le japonais ou le persan, prend plus de parties qu'en anglais.
+
 ## Dépannage
 
 :::details J'étais d'astreinte, mais rien ne m'est parvenu
@@ -104,6 +117,10 @@ Ouvrez **Paramètres utilisateur → Journaux d'astreinte**. Aucune ligne pour l
 
 :::details Je reçois des e-mails sur des éléments que je n'ai jamais demandés
 Vous êtes propriétaire de l'élément, directement ou via une équipe, ou l'élément n'a pas de propriétaire et vous êtes propriétaire du projet. Désactivez l'événement dans **Paramètres utilisateur → Paramètres de notification**, ou réduisez le volume dans **Paramètres utilisateur → Préférences e-mail**.
+:::
+
+:::details Mes alertes sont en anglais, alors que le tableau de bord ne l'est pas
+Le tableau de bord suit votre navigateur tant que vous n'avez pas choisi de langue. Choisissez-la dans le menu des langues en bas de chaque page, ou sous **Langue** dans **Profil utilisateur**. Les appels téléphoniques et les messages WhatsApp restent en anglais.
 :::
 
 :::details J'ai ajouté un numéro de téléphone, mais il n'est pas dans mes règles

@@ -34,7 +34,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     on-call rules, and only once the counts say so;
  *   - on, it asks for the rules; off, or not offered, nothing is sent - not
  *     even the switch's own "on" while it is hidden;
- *   - the project's counts are read only when the list comes back empty.
+ *   - the project's counts are read only when the list comes back empty
+ *     (the list's own count of the policies it shows is read as the page
+ *     opens: while there are none, On-Call explains itself under the
+ *     table - ProductOnboarding).
  */
 
 let permissionsForTest: Array<string> = [];
@@ -188,8 +191,32 @@ interface ProjectState {
 
 let project: ProjectState;
 
+/*
+ * The list's own count, of the policies it shows: whether the page explains
+ * On-Call under its empty table (ProductOnboarding). It is read as the page
+ * opens, whatever the list holds, and is not the ask's.
+ */
+function isListFirstRunCount(call: Array<any>): boolean {
+  const params: { modelType: unknown; query: JSONObject } = call[0] as {
+    modelType: unknown;
+    query: JSONObject;
+  };
+
+  return (
+    params.modelType === OnCallDutyPolicy &&
+    JSON.stringify(params.query) === JSON.stringify({ isArchived: false })
+  );
+}
+
+// The ask's counts: everything but the list's own.
+function askCounts(): Array<Array<any>> {
+  return countMock.mock.calls.filter((call: Array<any>): boolean => {
+    return !isListFirstRunCount(call);
+  });
+}
+
 function countedModels(): Array<string> {
-  return countMock.mock.calls.map((call: Array<any>): string => {
+  return askCounts().map((call: Array<any>): string => {
     return (call[0] as { modelType: { name: string } }).modelType.name;
   });
 }
@@ -399,8 +426,10 @@ describe("a new project's first on-call policy", () => {
     expect(countedModels().sort()).toEqual(
       ["AlertOnCallRule", "IncidentOnCallRule", "OnCallDutyPolicy"].sort(),
     );
+    // Besides the list's own count, once.
+    expect(countMock.mock.calls.filter(isListFirstRunCount)).toHaveLength(1);
 
-    for (const call of countMock.mock.calls) {
+    for (const call of askCounts()) {
       const query: JSONObject = (call[0] as { query: JSONObject }).query;
 
       // The whole project: no isArchived filter, so an archived policy counts.
@@ -411,14 +440,18 @@ describe("a new project's first on-call policy", () => {
 });
 
 describe("a project that is not new", () => {
-  test("with a policy in the list: nothing is counted, nothing offered, nothing sent", async () => {
+  test("with a policy in the list: only the list's own count, nothing offered, nothing sent", async () => {
     project.listedPolicies = 1;
     project.policyCount = 1;
 
     const modal: HTMLElement = await openCreateForm();
 
-    expect(countMock).not.toHaveBeenCalled();
+    // The ask counts nothing; the list counts what it shows, as it opens.
+    expect(askCounts()).toEqual([]);
+    expect(countMock.mock.calls.filter(isListFirstRunCount)).toHaveLength(1);
     expect(switchIn(modal)).toBeNull();
+    // A project with a policy is not explained On-Call under its list.
+    expect(screen.queryByTestId("product-showcase")).toBeNull();
 
     /*
      * The hidden switch still holds its "on": the page drops it from the

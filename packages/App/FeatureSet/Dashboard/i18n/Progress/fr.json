@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 46825,
-    "untranslated": 6379
+    "keys": 47623,
+    "untranslated": 6380
   },
   "sameAsEnglish": [
     " incidents",
@@ -425,6 +425,7 @@
     "Ports",
     "Portugal (+351)",
     "Position",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Principal",
@@ -483,6 +484,7 @@
     "Stacks",
     "Standard",
     "StatusPage",
+    "Switch",
     "TLS",
     "TTL",
     "TX",

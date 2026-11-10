@@ -172,14 +172,14 @@ test.describe("First run: a brand-new project", () => {
     );
   });
 
-  test("the empty Monitors list says No monitors yet, with Create Monitor instead of Refresh", async () => {
+  test("the empty Monitors list says No monitors yet, and explains Monitors with Create Monitor under it", async () => {
     test.setTimeout(180000);
 
     await gotoProjectPage({
       page,
       projectId,
       url: projectUrl(projectId, "/monitors"),
-      ready: page.getByTestId("empty-table-create-button"),
+      ready: page.getByTestId("resource-showcase-add-button"),
     });
 
     // The table draws its empty state in a block of its own, under the header.
@@ -192,11 +192,26 @@ test.describe("First run: a brand-new project", () => {
     await expect(
       emptyState.getByTestId("table-empty-state-description"),
     ).toContainText("Monitors check your websites");
-
-    const create: Locator = page.getByTestId("empty-table-create-button");
-    await expect(create).toHaveText("Create Monitor");
-    // The Refresh link read like a failed load; the button takes its place.
+    // The Refresh link read like a failed load; nothing takes its place now.
     await expect(page.getByTestId("refresh-button")).toHaveCount(0);
+
+    /*
+     * Under the empty table, the product explains itself (ProductOnboarding):
+     * its steps and an example, with Create Monitor as the first step. The
+     * table does not repeat the button.
+     */
+    const showcase: Locator = page.getByTestId("product-showcase");
+    await expect(showcase).toBeVisible();
+    await expect(
+      showcase.getByRole("heading", {
+        name: "Know something is down before your users do",
+      }),
+    ).toBeVisible();
+    await expect(showcase.getByText("Create a monitor")).toBeVisible();
+    await expect(page.getByTestId("empty-table-create-button")).toHaveCount(0);
+
+    const create: Locator = page.getByTestId("resource-showcase-add-button");
+    await expect(create).toHaveText("Create Monitor");
 
     const menu: Locator = page
       .locator('[aria-label="Main navigation"]')

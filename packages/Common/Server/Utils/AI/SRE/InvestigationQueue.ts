@@ -20,6 +20,20 @@ import GracefulShutdown, { ShutdownPriority } from "../../GracefulShutdown";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationSubjectLock from "./InvestigationSubjectLock";
+import AIRunRetryPolicy, { AIRunRetryDecision } from "../AIRunRetryPolicy";
+import AIRunEventService from "../../../Services/AIRunEventService";
+import AIRunEventType from "../../../../Types/AI/AIRunEventType";
+import {
+  AIRunAttemptEnd,
+  AIRunAttemptOutcome,
+  AIRunFailureKind,
+} from "../../../../Types/AI/AIRunAttempt";
+
+// What failOrRequeueWithDetails did with a failed attempt, and how it ended.
+export interface FailedAttemptResult {
+  outcome: "requeued" | "finalized" | "noop";
+  attemptEnd: AIRunAttemptEnd;
+}
 
 /*
  * AI SRE — the durable investigation queue (Phase 2's first item; Q1
@@ -42,15 +56,20 @@ import InvestigationSubjectLock from "./InvestigationSubjectLock";
  *      attemptCount — so two jobs for one run can race and exactly one
  *      wins, and a stale job can never claim (or re-number) a run that
  *      moved on. The attempts that count — attemptCount less
- *      handedBackCount — can therefore never exceed
- *      MAX_INVESTIGATION_ATTEMPTS.
+ *      handedBackCount — can therefore never exceed what the retry
+ *      policy gives the run's failure (AIRunRetryPolicy).
  *   3. A Workers poller sends to the workers whatever is still Queued (a
  *      job that could not be added, a run a cap or the budget held back, a
  *      requeued attempt) and expires runs that sat queued past their
  *      usefulness window.
  *   4. Failed attempts requeue (transient errors and stale heartbeats)
- *      until MAX_ATTEMPTS, then finalize as Error/Stale — G9's retry
- *      policy. Permanent errors (bad configuration) never retry.
+ *      until the retry policy's attempts are spent, then finalize as
+ *      Error/Stale. A failure of the AI provider waits before the next
+ *      attempt (AIRun.retryAt) and gets three attempts; permanent errors
+ *      (bad configuration, a refused key) never retry. Each attempt that
+ *      ends without settling the run says how on an AttemptEnded event,
+ *      and a run that fails for good on its RunFailed event, so no step
+ *      of its activity is left open (issue #6437).
  *   5. A server shutting down hands the runs it is executing back
  *      (handBackRunsInFlight): another server picks each one up within
  *      seconds instead of after the stale sweep's twelve minutes, and the
@@ -61,8 +80,13 @@ import InvestigationSubjectLock from "./InvestigationSubjectLock";
  * are read-only until the single postAnalysis at the end.
  */
 
-// Initial attempt + one retry.
-export const MAX_INVESTIGATION_ATTEMPTS: number = 2;
+/*
+ * Initial attempt + one retry: what a failure that is not the AI
+ * provider's gets, and what a stale attempt gets. A provider failure gets
+ * AIRunRetryPolicy.PROVIDER_FAILURE_MAX_ATTEMPTS.
+ */
+export const MAX_INVESTIGATION_ATTEMPTS: number =
+  AIRunRetryPolicy.OTHER_FAILURE_MAX_ATTEMPTS;
 
 /*
  * G4 cost guardrail, opt-in: a project may cap how many runs go at once in
@@ -242,6 +266,13 @@ export default class AIInvestigationQueue {
      * provider, else the global one.
      */
     llmProviderId?: ObjectID | undefined;
+    /*
+     * The id to create the run with. A round of an AI fix tried again
+     * (RemediationRound.tryAgain) names its new run on the round inside
+     * admitInsideSubjectLock, before the run exists, so no other run - an
+     * older one, or a second press's - ever acts on it.
+     */
+    runId?: ObjectID | undefined;
   }): Promise<ObjectID | null> {
     const { projectId } = data;
 
@@ -331,6 +362,11 @@ export default class AIInvestigationQueue {
       : AIRunType.Investigation;
 
     const run: AIRun = new AIRun();
+
+    if (data.runId) {
+      run.id = data.runId;
+    }
+
     run.projectId = projectId;
     run.runType = runType;
     run.status = AIRunStatus.Queued;
@@ -613,6 +649,7 @@ export default class AIInvestigationQueue {
   public static async processQueuedRuns(): Promise<void> {
     const expiryThreshold: Date =
       OneUptimeDate.getSomeMinutesAgo(QUEUE_TTL_MINUTES);
+    const now: Date = OneUptimeDate.getCurrentDate();
 
     const expiredRuns: Array<AIRun> = await AIRunService.findBy({
       query: {
@@ -623,6 +660,13 @@ export default class AIInvestigationQueue {
         ]),
         status: AIRunStatus.Queued,
         createdAt: QueryHelper.lessThan(expiryThreshold),
+        /*
+         * A run that went back to the queue counts its time there from
+         * then (retryAt), not from when it was created: a run a provider
+         * outage failed twice is not expired while it waits for its next
+         * attempt.
+         */
+        retryAt: QueryHelper.lessThanOrNull(expiryThreshold),
       },
       select: {
         _id: true,
@@ -677,6 +721,8 @@ export default class AIInvestigationQueue {
           AIRunType.RemediationExecution,
         ]),
         status: AIRunStatus.Queued,
+        // A run waiting before its next attempt is not sent before it is due.
+        retryAt: QueryHelper.lessThanEqualToOrNull(now),
       },
       select: {
         _id: true,
@@ -735,14 +781,50 @@ export default class AIInvestigationQueue {
     attemptCount: number;
     errorMessage: string;
     isPermanent: boolean;
+    // The error itself, when there is one: its status code tells more.
+    error?: unknown;
   }): Promise<"requeued" | "finalized" | "noop"> {
+    return (await this.failOrRequeueWithDetails(data)).outcome;
+  }
+
+  /*
+   * failOrRequeue, saying how the attempt ended too: for the AttemptEnded
+   * or RunFailed event its executor writes (AIInvestigationEngine), so the
+   * run's activity says what happened, how many times the run was tried
+   * and when it is tried next. Whether and when is AIRunRetryPolicy's
+   * decision: a provider failure waits a minute, then five, before the
+   * next attempt (retryAt), and gets three attempts in all.
+   */
+  @CaptureSpan()
+  public static async failOrRequeueWithDetails(data: {
+    aiRunId: ObjectID;
+    attemptCount: number;
+    errorMessage: string;
+    isPermanent: boolean;
+    error?: unknown;
+    // The attempt may have changed something outside OneUptime: never rerun it.
+    mayHaveChangedSomething?: boolean | undefined;
+  }): Promise<FailedAttemptResult> {
     const truncatedMessage: string = data.errorMessage.substring(0, 400);
 
     // A claim a server shutting down handed back is not a failed attempt.
     const countedAttempts: number =
       data.attemptCount - this.getHandedBackCount(data);
 
-    if (!data.isPermanent && countedAttempts < MAX_INVESTIGATION_ATTEMPTS) {
+    const decision: AIRunRetryDecision = AIRunRetryPolicy.decide({
+      error: data.error,
+      message: data.errorMessage,
+      attempt: countedAttempts,
+      isPermanent: data.isPermanent,
+      mayHaveChangedSomething: data.mayHaveChangedSomething,
+    });
+
+    if (decision.shouldRetry) {
+      const retryAt: Date = OneUptimeDate.addRemoveSeconds(
+        OneUptimeDate.getCurrentDate(),
+        Math.round(decision.delayInMs / 1000),
+      );
+
       const requeued: number = await AIRunService.attemptStatusTransition({
         aiRunId: data.aiRunId,
         fromStatus: AIRunStatus.Running,
@@ -751,16 +833,22 @@ export default class AIInvestigationQueue {
           status: AIRunStatus.Queued,
           codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
           errorMessage: `Attempt ${data.attemptCount} failed and the run was requeued: ${truncatedMessage}`,
+          retryAt,
         },
       });
 
+      const attemptEnd: AIRunAttemptEnd = AIRunRetryPolicy.toAttemptEnd(
+        decision,
+        retryAt,
+      );
+
       if (requeued > 0) {
         logger.debug(
-          `AI: requeued run ${data.aiRunId.toString()} after attempt ${data.attemptCount} failed.`,
+          `AI: requeued run ${data.aiRunId.toString()} after attempt ${data.attemptCount} failed; the next attempt is due at ${retryAt.toISOString()}.`,
         );
-        return "requeued";
+        return { outcome: "requeued", attemptEnd };
       }
-      return "noop";
+      return { outcome: "noop", attemptEnd };
     }
 
     const finalized: number = await AIRunService.attemptStatusTransition({
@@ -775,7 +863,10 @@ export default class AIInvestigationQueue {
       },
     });
 
-    return finalized > 0 ? "finalized" : "noop";
+    return {
+      outcome: finalized > 0 ? "finalized" : "noop",
+      attemptEnd: AIRunRetryPolicy.toAttemptEnd(decision),
+    };
   }
 
   /*
@@ -817,10 +908,23 @@ export default class AIInvestigationQueue {
           status: AIRunStatus.Queued,
           codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
           errorMessage: `Attempt ${run.attemptCount} stopped reporting progress (the server processing it may have restarted) and the run was requeued.`,
+          // Due at once; its time in the queue starts again.
+          retryAt: OneUptimeDate.getCurrentDate(),
         },
       });
 
       if (requeued > 0) {
+        // The dead attempt cannot say so itself: its steps end here.
+        await this.recordAttemptEnd({
+          run,
+          eventType: AIRunEventType.AttemptEnded,
+          attemptEnd: {
+            outcome: AIRunAttemptOutcome.Stalled,
+            failureKind: AIRunFailureKind.ServerStopped,
+            attempt: (run.attemptCount || 0) - (run.handedBackCount || 0),
+            maxAttempts: MAX_INVESTIGATION_ATTEMPTS,
+          },
+        });
         return "requeued";
       }
     }
@@ -844,6 +948,22 @@ export default class AIInvestigationQueue {
      * transition means the run moved on and another actor owns settlement.
      */
     if (staled > 0) {
+      await this.recordAttemptEnd({
+        run,
+        eventType: AIRunEventType.RunFailed,
+        attemptEnd: {
+          outcome: AIRunAttemptOutcome.GaveUp,
+          failureKind: AIRunFailureKind.ServerStopped,
+          attempt: Math.max(
+            (run.attemptCount || 0) - (run.handedBackCount || 0),
+            1,
+          ),
+          maxAttempts: Math.max(
+            (run.attemptCount || 0) - (run.handedBackCount || 0),
+            1,
+          ),
+        },
+      });
       await this.handOffSettledInvestigationToRemediation(run);
       return "stale";
     }
@@ -883,6 +1003,8 @@ export default class AIInvestigationQueue {
           handedBackCount: handedBackCount + 1,
           codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
           errorMessage: `Attempt ${run.attempt} was handed back to the queue because the server running it shut down.`,
+          // Due at once; its time in the queue starts again.
+          retryAt: OneUptimeDate.getCurrentDate(),
         },
       });
 
@@ -890,6 +1012,16 @@ export default class AIInvestigationQueue {
       if (handedBack === 0) {
         return;
       }
+
+      // The steps the attempt had open end here; the next attempt goes on.
+      await this.recordAttemptEnd({
+        run: { id: run.id, projectId: run.projectId },
+        eventType: AIRunEventType.AttemptEnded,
+        attemptEnd: {
+          outcome: AIRunAttemptOutcome.HandedBack,
+          failureKind: AIRunFailureKind.ServerStopped,
+        },
+      });
 
       await this.sendToWorkers({
         ...run,
@@ -899,6 +1031,37 @@ export default class AIInvestigationQueue {
     } catch (error) {
       logger.error(
         `AI: could not hand run ${run.id.toString()} back; the stale sweep requeues it: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * Say on the run's activity how an attempt ended that cannot say so
+   * itself - its server is gone, or going - after every event it wrote
+   * (AIRunEventService.appendEventToRun, afterLastEvent). Best-effort: the
+   * run has already moved on, and the dashboard reads its state from the
+   * run's status as well.
+   */
+  private static async recordAttemptEnd(data: {
+    run: { id: ObjectID; projectId?: ObjectID | undefined };
+    eventType: AIRunEventType;
+    attemptEnd: AIRunAttemptEnd;
+  }): Promise<void> {
+    if (!data.run.projectId) {
+      return;
+    }
+
+    try {
+      await AIRunEventService.appendEventToRun({
+        projectId: data.run.projectId,
+        aiRunId: data.run.id,
+        eventType: data.eventType,
+        resultSummary: { attemptEnd: data.attemptEnd },
+        afterLastEvent: true,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not record how attempt of run ${data.run.id.toString()} ended: ${error}`,
       );
     }
   }

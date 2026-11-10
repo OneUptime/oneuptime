@@ -28,6 +28,7 @@ flowchart TB
 
 - **Archived monitors do not count.** An archived monitor is not checked, so its status is frozen; the group leaves it out.
 - **An empty group is operational.** A group with no monitors, or with only archived ones, shows your operational status. Until you add a monitor, the Dashboard shows **No monitors yet** in place of its status.
+- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status.
 - **The order is yours.** Which status is worst is the order of **Monitors → Settings → Monitor Status**. See [Monitor statuses](/docs/monitor/criteria-and-statuses#monitor-statuses).
 
 A monitor group is not a status page group. A status page group is a heading on one status page that holds rows. A monitor group is one row that stands for several monitors, and any status page can show it.
@@ -80,7 +81,7 @@ Open a group to see its pages in the side menu:
 
 | Page | What it shows |
 | --- | --- |
-| **Overview** | **Monitor Group Details**, **Current Status**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. A group with no monitors offers **Add Monitors** in place of the graph. |
+| **Overview** | **Monitor Group Details**, **Current Status**, **Monitoring**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. A group with no monitors offers **Add Monitors** in place of the graph. |
 | **Monitors** | **Monitors in Group**, with **Add Monitors** and **Remove**. |
 | **Incidents** | The incidents on any monitor in the group. |
 | **Alerts** | The alerts on any monitor in the group. |
@@ -91,6 +92,17 @@ Open a group to see its pages in the side menu:
 The uptime on **Overview** counts every status but the operational one as downtime. A status page counts only the statuses in its own **Counts as downtime** list: see [Choosing what shows on the page](/docs/status-pages/index#choosing-what-shows-on-the-page).
 
 The **Monitor Groups** list can filter groups by owner and label, set labels and owners on many groups at once, and export or import groups as JSON.
+
+## Turn monitoring off for a whole group
+
+The **Monitoring** card on a group's **Overview** turns monitoring off, or back on, for every monitor in the group at once.
+
+- **Turn off monitoring** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.
+- **Turn monitoring on** saves at once. Each monitor's next check sets its status again.
+
+Turning monitoring off also resolves the monitors' open incidents and alerts that are set to auto-resolve, as each monitor would have on recovery. Incidents and alerts declared by hand, or whose criteria do not auto-resolve, stay open. Turning off one monitor's monitoring, on its **Settings** page, does the same.
+
+The card changes the monitors, not the group: each monitor's own **Monitoring** card shows the change, and a monitor added to the group later keeps its own setting. Archived monitors are left as they are. While only some of the monitors have monitoring off, the card says how many and offers both buttons.
 
 ## Show a group on a status page
 

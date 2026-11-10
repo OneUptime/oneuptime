@@ -117,6 +117,7 @@ import PageMap from "../../Utils/PageMap";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import OpenStackLogRequestLink from "../OpenStack/OpenStackLogRequestLink";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { useReportTelemetryDataShown } from "../Telemetry/TelemetryFirstRunHost";
 import { TelemetryFirstStepsSignal } from "../Telemetry/TelemetryFirstSteps";
 import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
 import useResultTotal, {
@@ -721,6 +722,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   });
 
   const [logs, setLogs] = useState<Array<Log>>([]);
+  // Under the Logs page's explanation: data drawn means it gives way.
+  useReportTelemetryDataShown(logs.length > 0);
   const [error, setError] = useState<string>("");
   /*
    * Why the list did not load (issue #4707). Shown where the rows go, so the

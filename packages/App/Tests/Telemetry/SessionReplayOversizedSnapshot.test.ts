@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { readSessionReplayFrustrationSignalsConfig } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
@@ -258,6 +259,7 @@ function buildPolicy(): SessionReplayGatePolicy {
     lcpBudgetMs: 0,
     longTaskBudgetMs: 0,
     slowRequestBudgetMs: 0,
+    frustrationSignals: readSessionReplayFrustrationSignalsConfig(null),
     configEpoch: 1,
   };
 }

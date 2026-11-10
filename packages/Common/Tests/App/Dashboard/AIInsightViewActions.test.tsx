@@ -337,7 +337,7 @@ describe("AI insight detail — human actions", () => {
     await click("Reopen");
 
     await waitFor(() => {
-      return expect(screen.getByText("Fix Opened")).toBeInTheDocument();
+      return expect(screen.getByText("Fix task")).toBeInTheDocument();
     });
     expect(row.status).toBe(AIInsightStatus.FixOpened);
   });
@@ -455,9 +455,29 @@ describe("AI insight detail — human actions", () => {
       return expect(getListMock).toHaveBeenCalled();
     });
     expect(screen.queryByTestId("ai-insight-fix-production")).toBeNull();
+    expect(screen.getByText("View the task")).toBeInTheDocument();
+  });
+
+  test("its Fix Task card comes first in the side column, over Details, and says what AI does with a fix", async () => {
+    row.fixAiRunId = new ObjectID("33333333-3333-4333-8333-333333333333");
+
+    await renderPage();
+
+    const fixPanel: HTMLElement = (
+      await screen.findByTestId("ai-insight-fix-task")
+    ).closest("section")!;
+    const detailsPanel: HTMLElement = screen
+      .getByRole("heading", { name: "Details" })
+      .closest("section")!;
+    // The task moves and may want the reader; the facts under it do not.
     expect(
-      screen.getByText("View the fix task and pull request"),
-    ).toBeInTheDocument();
+      fixPanel.compareDocumentPosition(detailsPanel) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(fixPanel.parentElement).toBe(detailsPanel.parentElement);
+    expect(fixPanel).toHaveTextContent(
+      "AI opens a pull request for a person to review. Nothing merges by itself.",
+    );
   });
 
   test("a failed action rolls back and says so instead of failing silently", async () => {

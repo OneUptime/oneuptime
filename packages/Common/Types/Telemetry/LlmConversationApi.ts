@@ -141,6 +141,42 @@ export interface LlmConversationListResponse {
   hasMore: boolean;
 }
 
+/*
+ * Whether a conversation view read the prompts and answers its calls sent
+ * as GenAI log events (the OpenTelemetry instrumentations for JavaScript
+ * and Java, and Python's with `true` or `event_only`, send them on the logs
+ * signal, matched to their call by trace and span id):
+ *
+ *   - notNeeded:  no answer lacked its prompt or its answer on its span, so
+ *                 no log was read;
+ *   - read:       the logs were read, and what they said is in the
+ *                 transcript (which may be nothing);
+ *   - notAllowed: the caller may not read the logs of some of these calls'
+ *                 apps, so what those logs say is not shown;
+ *   - failed:     the logs could not be read (a timeout), so what they say
+ *                 is not shown - asking again may read them.
+ */
+export enum LlmLogEventsRead {
+  NotNeeded = "notNeeded",
+  Read = "read",
+  NotAllowed = "notAllowed",
+  Failed = "failed",
+}
+
+export function readLogEventsRead(value: unknown): LlmLogEventsRead {
+  switch (value) {
+    case LlmLogEventsRead.Read:
+      return LlmLogEventsRead.Read;
+    case LlmLogEventsRead.NotAllowed:
+      return LlmLogEventsRead.NotAllowed;
+    case LlmLogEventsRead.Failed:
+      return LlmLogEventsRead.Failed;
+    default:
+      // A server from before log events were read did not read them.
+      return LlmLogEventsRead.NotNeeded;
+  }
+}
+
 export interface LlmConversationDetailRequestBody {
   key: string;
   // The list row's first and last call, when known (ISO).

@@ -145,7 +145,9 @@ describe("Project > Subscription > Active Monitors", () => {
   });
 
   test("numbers are written the way the admin's language writes them", () => {
-    expect(subscriptionSource).toContain("toLocaleString(i18n.language");
+    expect(subscriptionSource).toContain(
+      "toLocaleString(getNumberLocale(i18n.language",
+    );
     expect(detailFields).toContain("formatCount(count)");
     expect(detailFields).toContain("formatCount(limit)");
   });

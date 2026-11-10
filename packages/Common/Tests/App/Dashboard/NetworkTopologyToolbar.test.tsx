@@ -80,6 +80,27 @@ describe("network map controls", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * Issue #5775: the map finds a device by its address too, and says so in
+   * the Discovered Devices list's own words. Beside the side menu the card
+   * is narrow: the search gives way, and Map options stays on one line.
+   */
+  test("the search says it finds addresses too, and gives way to Map options in a narrow card", () => {
+    render(<NetworkTopologyToolbar {...toolbarProps()} />);
+
+    const search: HTMLElement = screen.getByRole("textbox", {
+      name: "Find a network device",
+    });
+    expect(search).toHaveAttribute(
+      "placeholder",
+      "Search by name, IP, MAC or vendor",
+    );
+    expect(search.closest(".sm\\:max-w-sm")).toHaveClass("min-w-0");
+    expect(screen.getByRole("button", { name: /Map options/ })).toHaveClass(
+      "whitespace-nowrap",
+    );
+  });
+
   test("the disclosure is accessible and can be closed again", () => {
     render(<NetworkTopologyToolbar {...toolbarProps()} />);
     openOptions();

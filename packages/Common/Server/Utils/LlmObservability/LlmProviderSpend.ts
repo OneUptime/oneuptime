@@ -22,9 +22,9 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * of oneuptime.llm.provider.cost over a time range, optionally for one
  * provider (gen_ai.provider.name) and one model.
  *
- * A provider's cost points sit at the start of their UTC day, so "today so
- * far" is the sum from today's midnight - the figure a budget compares with
- * its daily limit.
+ * A provider's cost points sit at the start of their UTC day (Cursor's at
+ * the start of their UTC hour), so "today so far" is the sum from today's
+ * midnight - the figure a budget compares with its daily limit.
  */
 
 export interface LlmProviderSpendScope {

@@ -108,7 +108,15 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitColumn,
   ProjectAiDailyLimitReachedAtColumn,
 } from "../../Types/AI/ProjectAiDailyLimits";
+import ProjectAiRunLimits, {
+  PROJECT_AI_RUN_LIMIT_COLUMNS,
+  ProjectAiRunLimitColumn,
+} from "../../Types/AI/ProjectAiRunLimits";
 import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
+import {
+  getDiscoveredDeviceRetentionProblem,
+  toDiscoveredDeviceRetentionInDays,
+} from "../../Types/NetworkDevice/DiscoveredDeviceRetention";
 import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { DefaultTableColumnsUtil } from "../../Types/Table/DefaultTableColumns";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
@@ -636,6 +644,44 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Runs on every create and update, before the write, for each of the
+   * project's own limits on one AI run the data carries (Types/AI/
+   * ProjectAiRunLimits): a blank one is stored as null - no cap, or the
+   * default time limit, which is what clearing the field in the dashboard
+   * means - a typed "50" as the number it is, and a limit must otherwise be
+   * a whole number within its bounds.
+   */
+  public applyAiRunLimitRules(
+    data: Partial<Record<ProjectAiRunLimitColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const column of PROJECT_AI_RUN_LIMIT_COLUMNS) {
+      if (values[column] === undefined) {
+        continue;
+      }
+
+      if (
+        typeof values[column] === "string" &&
+        (values[column] as string).trim().length === 0
+      ) {
+        values[column] = null;
+      }
+
+      values[column] = coerceNumericColumnValue(values[column]);
+
+      const error: string | null = ProjectAiRunLimits.getWriteError(
+        column,
+        values[column],
+      );
+
+      if (error) {
+        throw new BadDataException(error);
+      }
+    }
+  }
+
+  /*
    * Runs on every create and update that writes the project's AI context
    * (Types/AI/AiContext): text, or nothing, and no more than
    * PROJECT_AI_CONTEXT_MAX_CHARACTERS - the limit the settings card counts
@@ -715,6 +761,34 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * How long a device the project's network saw stays on the Discovered
+   * Devices list once nothing sees it (issue #6389): one of the choices in
+   * Types/NetworkDevice/DiscoveredDeviceRetention, or 0 to keep every
+   * device, stored as a number. Anything else is refused with the choices -
+   * null too, since the column always holds a value. A write that leaves it
+   * out is not judged on it.
+   */
+  public applyDiscoveredDeviceRetentionRules(data: {
+    discoveredDeviceRetentionInDays?: unknown;
+  }): void {
+    if (data.discoveredDeviceRetentionInDays === undefined) {
+      return;
+    }
+
+    const problem: string | null = getDiscoveredDeviceRetentionProblem(
+      data.discoveredDeviceRetentionInDays,
+    );
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    data.discoveredDeviceRetentionInDays = toDiscoveredDeviceRetentionInDays(
+      data.discoveredDeviceRetentionInDays,
+    );
+  }
+
+  /*
    * The columns the project's lists show everyone who has not chosen their
    * own (Project.defaultTableColumns): lists' keys to layouts of column ids,
    * within DefaultTableColumnsUtil's limits, stored tidied (each id once, no
@@ -757,12 +831,16 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(data.data);
     this.applyNextNumberRules(data.data);
     this.applyAiDailyLimitRules(data.data);
+    this.applyAiRunLimitRules(data.data);
     this.applyAiContextRules(data.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       data.data as { securityRiskCaseThreshold?: unknown },
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       data.data as { defaultNetworkTopologyLayout?: unknown },
+    );
+    this.applyDiscoveredDeviceRetentionRules(
+      data.data as { discoveredDeviceRetentionInDays?: unknown },
     );
     this.applyDefaultTableColumnsRules(
       data.data as { defaultTableColumns?: unknown },
@@ -1441,6 +1519,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(updateBy.data);
     this.applyNextNumberRules(updateBy.data);
     this.applyAiDailyLimitRules(updateBy.data);
+    this.applyAiRunLimitRules(updateBy.data);
 
     /*
      * The project's ingestion budgets, which only a master admin writes (the
@@ -1457,6 +1536,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       updateBy.data as { defaultNetworkTopologyLayout?: unknown },
+    );
+    this.applyDiscoveredDeviceRetentionRules(
+      updateBy.data as { discoveredDeviceRetentionInDays?: unknown },
     );
     this.applyDefaultTableColumnsRules(
       updateBy.data as { defaultTableColumns?: unknown },

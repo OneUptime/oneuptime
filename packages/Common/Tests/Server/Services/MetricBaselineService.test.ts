@@ -28,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { decodedQueryParams } from "../../Helpers/StatementEcho";
 
 /*
  * What a metric's baseline asks ClickHouse, and what it makes of the answer.
@@ -911,14 +912,14 @@ describe("MetricBaselineService", () => {
       string,
       unknown
     > => {
-      return (
+      return decodedQueryParams(
         statements.find((statement: string | Statement): boolean => {
           return (
             statement instanceof Statement &&
             statement.query.includes("keptUntil")
           );
-        }) as Statement
-      ).query_params;
+        }) as Statement,
+      );
     };
 
     describe("what it reads", () => {

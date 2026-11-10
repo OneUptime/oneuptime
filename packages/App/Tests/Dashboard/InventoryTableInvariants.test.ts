@@ -470,9 +470,16 @@ describe("the pages that mount the table", () => {
   });
 
   test("the Overview offers a way forward when the estate is empty", () => {
+    /*
+     * Inventory's explanation (Components/ProductOnboarding), its button the
+     * setup guide.
+     */
     const overview: string = readPage("Overview.tsx");
 
-    expect(overview).toContain("<EmptyState");
+    expect(overview).toContain(
+      "<ProductShowcase product={ProductKey.Inventory}",
+    );
+    expect(overview).toContain('title: "Read the setup guide"');
     expect(overview).toContain("RouteMap[PageMap.INVENTORY_DOCUMENTATION]");
   });
 });

@@ -42,10 +42,10 @@ El menú lateral de una aplicación agrupa sus páginas así; **Ajustes**, **Des
 | --- | --- |
 | **Básico** | **Vista general**, **Recomendaciones**, **Documentación** |
 | **Observabilidad** | **Métricas**, **Registros**, **Trazas**, **Clientes** |
-| **Reproducción de sesiones** | **Reproducción de sesiones**, **Flujos de usuarios**, **Usuarios de la reproducción**, **Salud**, **Política de reproducción**, **Registro de acceso a las reproducciones**, **Documentación** |
+| **Reproducción de sesiones** | **Reproducción de sesiones**, **Flujos de usuarios**, **Usuarios de la reproducción**, **Salud**, **Política de reproducción**, **Señales de frustración**, **Registro de acceso a las reproducciones**, **Documentación** |
 | **Ajustes** | **Ajustes** |
 | **Desarrolladores** | **Terraform**, **API**, **CLI**, **Asistentes de IA** |
-| **Avanzado** | **Eliminar aplicación** |
+| **Avanzado** | **Registros de auditoría**, **Eliminar aplicación** |
 
 ## Cómo reconoce OneUptime el RUM
 

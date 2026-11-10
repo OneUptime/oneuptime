@@ -218,7 +218,7 @@ A seção **Saúde do broker** de cada fila mostra em gráficos as métricas lis
 
 Onde nenhum aplicativo rastreado publica em uma fila nem consome dela, os blocos **Publicadas**, **Consumidas** e **Erros** e o gráfico **Mensagens** dela leem no lugar as contagens do próprio broker (mensagens que entram, mensagens que saem e os erros dele somados, com as solicitações limitadas contadas à parte em **Erros**), e cada um diz isso abaixo do seu número. Uma fila com spans fica com eles, porque eles dizem qual serviço fez o quê. O bloco **p95 processing time** vem só dos traces dos consumidores, porque nenhum broker mede quanto tempo um consumidor leva com uma mensagem: sem eles, mostra **Requer traços dos consumidores**.
 
-O cartão **Métricas do broker** no topo da seção lista cada métrica mostrada nos gráficos para o sistema da fila: se ela chegou para a fila no intervalo selecionado, quando chegou pela última vez e por que cada uma das outras não chegou. Uma contagem pode não ter nada a informar (nenhuma solicitação limitada é uma boa notícia); um nível que o broker informa o tempo todo e que nunca chega é um que o coletor não pede, e o cartão dá as linhas de que a configuração dele precisa; uma métrica também pode parar de chegar. Para uma fila do Service Bus ou do Event Hubs da qual nenhuma métrica chega, o cartão também lê o que o namespace dela envia no lugar (veja [A saúde do broker continua vazia](#a-saúde-do-broker-continua-vazia)).
+O cartão **Métricas do broker** no topo da seção lista cada métrica mostrada nos gráficos para o sistema da fila: se ela chegou para a fila no intervalo selecionado, quando chegou pela última vez e por que cada uma das outras não chegou. Uma contagem pode não ter nada a informar (nenhuma solicitação limitada é uma boa notícia); um nível que o broker informa o tempo todo e que nunca chega é um que o coletor não pede, e o cartão dá as linhas de que a configuração dele precisa; uma métrica também pode parar de chegar. Para uma fila do Service Bus ou do Event Hubs da qual nenhuma métrica chega, o cartão também lê o que o namespace dela envia no lugar (veja [A saúde do broker continua vazia](#a-saúde-do-broker-continua-vazia)). Abaixo do resumo, o cartão diz o que leu as métricas da fila ultimamente: o receptor do coletor, suas conexões de nuvem, com link para **Nuvem → Conectar**, ou ambos. Numa fila que só uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) lê, uma métrica que a assinatura não lê aparece como **Somente coletor**, com a linha que a adiciona ao receptor, em vez de faltando.
 
 ### Amazon SNS
 
@@ -595,7 +595,9 @@ O OneUptime não mostra as métricas do Event Grid na página de uma fila: o Azu
 
 ### Azure Event Hubs
 
-Leia as métricas do namespace no Azure Monitor com o receptor `azure_monitor` do coletor, que as divide por event hub segundo a dimensão EntityName.
+Uma assinatura do Azure conectada lê as métricas principais do namespace para cada event hub, sem nada para executar. Para ler todas, execute o receptor `azure_monitor` do coletor, que as divide por event hub segundo a dimensão EntityName.
+
+Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) lê `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` e `azure_throttledrequests_total` de até 1.000 event hubs de um namespace, com uma chamada ao Azure Monitor por namespace a cada leitura, não importa quantos event hubs o namespace tenha. As outras três só o receptor lê, e o cartão **Métricas do broker** de um event hub as marca como **Somente coletor**. Quando os dois leem uma métrica de um event hub, fica a do receptor e a da assinatura é deixada de fora, então nada é contado duas vezes.
 
 O receptor entra pela extensão `azure_auth`. Dê à entidade de serviço a função **Monitoring Reader** na assinatura:
 
@@ -659,7 +661,9 @@ O Azure Monitor não tem métrica de atraso dos consumidores para o Event Hubs: 
 
 ### Azure Service Bus
 
-Leia as métricas do namespace no Azure Monitor com o receptor `azure_monitor` do coletor, que as divide por fila e tópico segundo a dimensão EntityName.
+Uma assinatura do Azure conectada lê as métricas principais do namespace para cada fila e tópico, sem nada para executar. Para ler todas, execute o receptor `azure_monitor` do coletor, que as divide por fila e tópico segundo a dimensão EntityName.
+
+Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) lê `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` e `azure_throttledrequests_total` de até 1.000 filas e tópicos de um namespace, com uma chamada ao Azure Monitor por namespace a cada leitura, não importa quantas filas o namespace tenha: com uma leitura a cada 5 minutos, um namespace de 50 filas custa 12 chamadas por hora, o mesmo que um namespace de uma só fila. As outras seis só o receptor lê, e o cartão **Métricas do broker** de uma fila as marca como **Somente coletor**. Quando os dois leem uma métrica de uma fila, fica a do receptor e a da assinatura é deixada de fora, então nada é contado duas vezes.
 
 O receptor entra pela extensão `azure_auth`. Dê à entidade de serviço a função **Monitoring Reader** na assinatura:
 
@@ -718,7 +722,7 @@ service:
 - `maximum_number_of_records_per_resource` é quantas séries o Azure retorna por métrica e namespace, 10 a menos que você aumente: mantenha-o acima do seu número de filas e tópicos (as métricas de erro dividem ainda cada entidade por resultado), ou os demais não serão informados.
 - O Azure Monitor não divide por assinatura de tópico: as contagens de um tópico cobrem todas as assinaturas dele.
 - A lista `metrics` coleta exatamente o que a página da fila mostra nos gráficos, cada uma com a única agregação que mostra; adicione uma métrica (`IncomingRequests`, `Messages`, …) para coletá-la também. Um coletor cuja lista é anterior a `ScheduledMessages`, `Size` ou `ServerSendLatency` não envia nenhuma delas: o cartão **Métricas do broker** da fila nomeia as linhas a adicionar.
-- Só este receptor divide as métricas por fila e tópico. Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) e uma configuração de diagnóstico que exporta métricas enviam os totais do namespace, sem `EntityName`, então nenhuma delas chega a uma fila: a página do próprio namespace em **Nuvem → Todos os recursos** tem as da assinatura, e o cartão **Métricas do broker** de uma fila diz por que faltam as dela.
+- Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) divide suas seis métricas por fila e tópico, como este receptor, e a página do próprio namespace em **Nuvem → Todos os recursos** as soma. Enquanto a assinatura [transmite suas métricas](/docs/telemetry/cloud-streaming-azure), ela continua lendo as de um namespace: uma configuração de diagnóstico envia só os totais do namespace, sem `EntityName`, e quatro das seis nem chega a enviar. Onde este receptor envia os totais de um namespace, sem dividir por fila nem tópico, a página do namespace mantém esses totais, e as séries da assinatura chegam só às suas filas, então nenhuma mensagem é contada duas vezes.
 - Nenhuma dessas métricas depende do nível do namespace. `ServerSendLatency` é informada a cada envio, então uma fila para a qual nada foi enviado no intervalo não tem nenhuma.
 - O receptor lista seus namespaces uma vez por dia, então um namespace novo pode levar até 24 horas para aparecer.
 
@@ -1063,9 +1067,9 @@ Quando os spans dela a nomeiam de fato, crie-a manualmente com o mesmo sistema e
 - Está atrasada. O `aws_cloudwatch` espera `delay` (10 minutos) para o CloudWatch publicar, então os pontos dele chegam com 11 a 17 minutos de atraso, e as métricas do Pub/Sub chegam com minutos de atraso.
 - O sistema não tem métricas nos gráficos: Azure Event Grid, NATS, brokers JMS que não sejam o ActiveMQ e BullMQ (veja as seções deles). As métricas deles estão no explorador **Métricas**.
 - Abra o cartão **Métricas do broker** da fila: ele lista quais métricas chegam e por que as outras não. Para uma fila do Service Bus ou do Event Hubs da qual nenhuma métrica chega, ele também diz o que o namespace envia no lugar, uma de três coisas.
-- **Nada do namespace**: nenhum coletor o lê, ou toda leitura falha. Dê à entidade de serviço do receptor a função **Monitoring Reader** e procure `AuthorizationFailed` ou `401` no log do coletor: um segredo do cliente expirado interrompe toda leitura.
-- **Só totais**: uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) ou uma configuração de diagnóstico envia as métricas do namespace para o namespace como um todo, sem nenhuma fila ou tópico nelas. Leia o namespace também com o receptor `azure_monitor`, que as divide por `EntityName`.
-- **Só outras filas**: chegam métricas de outras filas e tópicos do namespace, mas não desta. O `maximum_number_of_records_per_resource` do receptor (10 a menos que você aumente) a deixou de fora: aumente-o acima do número de filas e tópicos do namespace.
+- **Nada do namespace**: nada o lê, ou toda leitura falha. Conecte a assinatura do Azure dele em **Nuvem → Conectar**, ou execute o receptor `azure_monitor`. Dê ao aplicativo da conexão ou à entidade de serviço do receptor a função **Monitoring Reader**, e veja a última leitura da conexão, ou procure `AuthorizationFailed` ou `401` no log do coletor: um segredo do cliente expirado interrompe toda leitura.
+- **Só totais**: as métricas do namespace chegam para o namespace como um todo, sem nenhuma fila ou tópico nelas. Uma configuração de diagnóstico só envia esses totais: conecte a assinatura do namespace, ou leia-o também com o receptor `azure_monitor`; qualquer um dos dois as divide por `EntityName`. Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) só enviou esses totais antes de ler cada fila, ou quando as leituras das filas falham: a última leitura dela em **Nuvem → Conectar** diz por quê.
+- **Só outras filas**: chegam métricas de outras filas e tópicos do namespace, mas não desta. O `maximum_number_of_records_per_resource` do receptor (10 a menos que você aumente) a deixou de fora: aumente-o acima do número de filas e tópicos do namespace. Uma assinatura conectada lê até 1.000 deles: acima disso, leia o namespace também com o receptor.
 
 ### Duas filas para um só destino
 

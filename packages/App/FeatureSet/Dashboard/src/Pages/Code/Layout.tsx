@@ -7,6 +7,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * What each of Code's own pages is titled. Code's first page has no title
@@ -58,6 +60,7 @@ const CodeLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={heading.title}
+      titleRight={<ProductAboutButton product={ProductKey.Code} />}
       description={heading.description}
       sideMenu={<CodeSideMenu />}
       breadcrumbLinks={getCodeBreadcrumbs(path)}

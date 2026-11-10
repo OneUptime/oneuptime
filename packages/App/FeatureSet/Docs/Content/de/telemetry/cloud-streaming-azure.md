@@ -1,6 +1,6 @@
 # Azure-Monitor-Metriken und -Protokolle streamen
 
-Ein verbundenes Azure-Abonnement kann seine Azure-Monitor-Metriken und Ressourcenprotokolle an OneUptime streamen. Diagnoseeinstellungen senden sie an Event Hubs in Ihrem Abonnement, und OneUptime liest die Event Hubs jede Minute: Schlüsselmetriken kommen wenige Minuten, nachdem Azure Monitor sie hat, an statt erst beim nächsten Lesevorgang der Verbindung, und Ressourcenprotokolle kommen als OneUptime-Protokolle an, jedes unter der Ressource abgelegt, um die es geht. Ein Befehl in Azure Cloud Shell richtet alles ein, und es gibt nichts zu betreiben.
+Ein verbundenes Azure-Abonnement kann seine Azure-Monitor-Metriken und Ressourcenprotokolle an OneUptime streamen. Diagnoseeinstellungen senden sie an Event Hubs in Ihrem Abonnement, und OneUptime liest die Event Hubs jede Minute: die meisten Schlüsselmetriken kommen wenige Minuten, nachdem Azure Monitor sie hat, an statt erst beim nächsten Lesevorgang der Verbindung, und Ressourcenprotokolle kommen als OneUptime-Protokolle an, jedes unter der Ressource abgelegt, um die es geht. Ein Befehl in Azure Cloud Shell richtet alles ein, und es gibt nichts zu betreiben.
 
 :::cards
 - [So funktioniert es](#so-funktioniert-es): Diagnoseeinstellungen senden an einen Event Hub in jeder Region, und OneUptime liest sie.
@@ -22,7 +22,7 @@ flowchart TB
 
 - **Ein Event Hub in jeder Region.** Eine Diagnoseeinstellung sendet nur an einen Event Hub in der eigenen Region ihrer Ressource, deshalb legt der Befehl in jeder Region, in der Ihre Ressourcen liegen, einen Event-Hubs-Namespace an, alle in einer Ressourcengruppe, und richtet die Diagnoseeinstellung jeder Ressource auf den Event Hub ihrer Region aus.
 - **OneUptime liest sie.** Azure Monitor sendet nur an einen Event Hub, ein Speicherkonto oder einen Log-Analytics-Arbeitsbereich, nie an eine Adresse von Ihnen: Ein Event Hub, den OneUptime liest, ist der Weg, bei dem Sie nichts betreiben müssen. OneUptime meldet sich als die eigene App der Verbindung an, die diese Event Hubs lesen darf und sonst nichts.
-- **Die Lesevorgänge überlassen gestreamte Metriken dem Stream.** Solange der Stream die Schlüsselmetriken eines Ressourcentyps in einer Region zustellt, schreiben die Lesevorgänge der Verbindung sie nicht mehr, sodass kein Datenpunkt doppelt gezählt wird. Die Lesevorgänge finden weiter Ressourcen, ihren Zustand und ihre Änderungen, und übernehmen die Metriken nach 15 Minuten ohne Ereignis wieder.
+- **Die Lesevorgänge überlassen gestreamte Metriken dem Stream.** Solange der Stream die Schlüsselmetriken eines Ressourcentyps in einer Region zustellt, schreiben die Lesevorgänge der Verbindung die, die er trägt, nicht mehr, sodass kein Datenpunkt doppelt gezählt wird, und schreiben [die, die er nicht tragen kann](#was-ankommt), weiter. Die Lesevorgänge finden weiter Ressourcen, ihren Zustand und ihre Änderungen, und übernehmen die Metriken nach 15 Minuten ohne Ereignis wieder.
 - **Nichts geht verloren, während OneUptime nicht lesen kann.** Ereignisse warten in den Event Hubs, bis OneUptime sie liest, so lange die Event Hubs sie aufbewahren, und OneUptime merkt sich, bis wohin es jede Partition gelesen hat, und macht dort weiter, wo es aufgehört hat.
 
 ## Bevor Sie beginnen
@@ -41,7 +41,7 @@ Gehen Sie zu **Cloud → Verbinden** und wählen Sie in der Zeile des Azure-Abon
 
 ### Wählen, was gestreamt wird
 
-**Metriken** streamt jede Schlüsselmetrik jeder Ressource, minutengenau: die Metriken, die OneUptime für jede Ressource darstellt und nach denen es sie bewertet. **Metriken und Protokolle** fügt die eigenen Protokolle jeder Ressource hinzu, jede Kategorie, die Azure für sie führt, und **Protokolle** streamt nur Ressourcenprotokolle.
+**Metriken** streamt die Schlüsselmetriken jeder Ressource minutengenau, die Metriken, die OneUptime für jede Ressource darstellt und nach denen es sie bewertet, außer [denen, die eine Diagnoseeinstellung nicht senden kann](#was-ankommt) und die die Verbindung weiter liest. **Metriken und Protokolle** fügt die eigenen Protokolle jeder Ressource hinzu, jede Kategorie, die Azure für sie führt, und **Protokolle** streamt nur Ressourcenprotokolle.
 
 ### Das Lesen einschalten
 
@@ -75,7 +75,20 @@ Wenn das erste Abonnement nicht das ist, in dem OneUptime die Event Hubs liest, 
 | Ressourcenprotokolle | Im Protokoll-Explorer, unter dem Telemetriedienst der Verbindung, mit Abonnement, Region und Kategorie als Attributen |
 | Protokolle einer Ressource, die OneUptime kennt | Auch an dieser Ressource: Ihre Seite in Cloud erhält einen Tab **Protokolle** |
 
-Der Stream trägt die Schlüsselmetriken, die die Verbindung minutengenau liest. Eine Metrik, die sie gröber liest, etwa die belegte Kapazität eines Speicherkontos, bleibt bei den Lesevorgängen. Ein Protokoll wird über die ARM-ID der Ressource unter ihr abgelegt, als `cloud.resource_id` mitgeführt, und behält Kategorie, Operation, Ergebnis und Eigenschaften als Attribute, etwa `azure.category`.
+Der Stream trägt die Schlüsselmetriken, die die Verbindung minutengenau liest. Den Rest schreiben die Lesevorgänge weiter nach ihrem Zeitplan: eine Metrik, die sie gröber lesen, etwa den belegten Speicher einer Container Registry, und jede Schlüsselmetrik, die eine Diagnoseeinstellung nicht senden kann und die die Liste der von Azure Monitor unterstützten Metriken in der Spalte DS Export als nicht exportierbar führt:
+
+- Virtuelle Computer und Skalierungsgruppen: `Network In Total`, `Network Out Total`.
+- Datenträger: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
+- Azure Cosmos DB-Konten: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
+- Speicherkonten: `UsedCapacity`.
+- AKS-Cluster: `kube_pod_status_ready`.
+- Application Gateways: `ApplicationGatewayTotalTime`, `Throughput`.
+- Firewalls: `Throughput`.
+- NAT-Gateways: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+
+Ein Service-Bus- oder Event-Hubs-Namespace streamt keine Metriken. Die Lesevorgänge lesen seine Schlüsselmetriken für jede Warteschlange, jedes Topic und jeden Event Hub, und die eigenen Summen des Namespace zählen diese zusammen, während eine Diagnoseeinstellung nur die Summen des Namespace sendet, und 4 der 6 Schlüsselmetriken eines Service-Bus-Namespace oder 2 der 4 eines Event-Hubs-Namespace gar nicht. Deshalb schreiben die Lesevorgänge sie alle, ob gestreamt wird oder nicht, und keine Nachricht wird doppelt gezählt.
+
+Ein Protokoll wird über die ARM-ID der Ressource unter ihr abgelegt, als `cloud.resource_id` mitgeführt, und behält Kategorie, Operation, Ergebnis und Eigenschaften als Attribute, etwa `azure.category`.
 
 Virtuelle Computer, Skalierungsgruppen, Datenträger, Netzwerkschnittstellen, virtuelle Netzwerke, private Endpunkte, NAT-Gateways, DNS-Zonen und App-Service-Pläne senden keine eigenen Ressourcenprotokolle, deshalb haben ihre Seiten keinen Tab **Protokolle**. Die Protokolle eines Speicherkontos sind die seiner Dienste, und die einer Container-App die ihrer Umgebung.
 

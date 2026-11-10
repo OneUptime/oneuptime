@@ -1,0 +1,457 @@
+{
+  "Something went wrong": "حدث خطأ ما",
+  "An unexpected error has occurred. Please reload the page to continue": "حدث خطأ غير متوقع. يُرجى إعادة تحميل الصفحة للمتابعة",
+  "Error details": "تفاصيل الخطأ",
+  "a11y": {
+    "skipToMainContent": "انتقل إلى المحتوى الرئيسي",
+    "loading": "جارٍ التحميل...",
+    "moreLinks": "روابط أخرى",
+    "navigation": "التنقل"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "submit": "إرسال",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "loading": "جارٍ التحميل...",
+    "search": "بحث",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "yes": "نعم",
+    "no": "لا",
+    "statusPage": "صفحة الحالة"
+  },
+  "language": {
+    "label": "اللغة",
+    "switchLanguage": "تغيير اللغة"
+  },
+  "theme": {
+    "switchToDark": "التبديل إلى المظهر الداكن",
+    "switchToLight": "التبديل إلى المظهر الفاتح"
+  },
+  "nav": {
+    "overview": "نظرة عامة",
+    "incidents": "الحوادث",
+    "announcements": "الإعلانات",
+    "scheduledEvents": "الأحداث المجدولة",
+    "subscribe": "اشتراك",
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج"
+  },
+  "overview": {
+    "uptimeSuffix": "% وقت التشغيل",
+    "operational": "يعمل بشكل طبيعي",
+    "noResourcesInGroup": "لم تُضف أي موارد إلى هذه المجموعة.",
+    "activeIncidents": "الحوادث النشطة",
+    "scheduledMaintenanceEvents": "أحداث الصيانة المجدولة",
+    "allClearTitle": "كل شيء يعمل على ما يرام",
+    "allClearDescription": "لم تُضف أي موارد إلى صفحة الحالة هذه بعد. يُرجى إضافة بعض الموارد من لوحة المعلومات.",
+    "allResourcesAre": "حالة جميع الموارد: {{status}}",
+    "someResourcesAre": "حالة بعض الموارد: {{status}}",
+    "someResourcesAreUnder": "بعض الموارد في حالة: {{status}}",
+    "oneSubGroup": "مجموعة واحدة",
+    "subGroupCount": "المجموعات: {{total}}"
+  },
+  "eventItem": {
+    "affectedResources": "الموارد المتأثرة",
+    "stateChangedTo": "تغيّرت الحالة إلى",
+    "view": "عرض {{eventType}}",
+    "updateTo": "تحديث بشأن {{eventType}}",
+    "postedOn": "نُشر في"
+  },
+  "monitorOverview": {
+    "daysAgo": "قبل {{days}} يومًا",
+    "today": "اليوم",
+    "notAvailable": "غير متاح",
+    "underMaintenance": "قيد الصيانة"
+  },
+  "uptimeHistory": {
+    "graphLabel": "سجل وقت التشغيل لآخر {{total}} يومًا",
+    "dayLabel": "{{date}}: وقت التشغيل {{uptime}}%",
+    "dayLabelWithIncidents": "{{date}}: وقت التشغيل {{uptime}}%، الحوادث: {{total}}",
+    "dayLabelNoData": "{{date}}: لا توجد بيانات",
+    "dayLabelNoDataWithIncidents": "{{date}}: لا توجد بيانات، الحوادث: {{total}}",
+    "uptime": "وقت التشغيل",
+    "noMonitoringData": "لا توجد بيانات مراقبة لهذا اليوم",
+    "incidents": "الحوادث",
+    "noIncidents": "لا توجد حوادث",
+    "noIncidentsDescription": "لم يُبلَّغ عن أي حوادث في هذا اليوم.",
+    "declared": "تم الإعلان",
+    "oneIncidentOnThisDay": "أُبلغ عن حادثة واحدة في هذا اليوم",
+    "incidentsOnThisDay": "الحوادث المبلَّغ عنها في هذا اليوم: {{total}}",
+    "scheduledMaintenance": "الصيانة المجدولة",
+    "dayLabelWithMaintenance": "{{label}}، {{maintenance}}",
+    "oneMaintenanceEvent": "حدث صيانة مجدولة واحد",
+    "maintenanceEvents": "أحداث الصيانة المجدولة: {{total}}",
+    "moreMaintenance": "+{{total}} أخرى"
+  },
+  "liveStatus": {
+    "updated": "آخر تحديث: {{time}}",
+    "refresh": "تحديث",
+    "refreshing": "جارٍ التحديث",
+    "refreshFailed": "تعذّر التحديث. تُعرض آخر حالة معروفة."
+  },
+  "search": {
+    "label": "البحث في الموارد",
+    "placeholder": "البحث في الموارد",
+    "clear": "مسح البحث",
+    "resultCount": "الموارد: {{matched}} من {{total}}",
+    "noMatchesInGroup": "لا توجد موارد هنا تطابق بحثك.",
+    "noResultsTitle": "لا توجد موارد مطابقة",
+    "noResultsDescription": "لا شيء في هذه الصفحة يطابق «{{query}}». جرّب بحثًا أقصر."
+  },
+  "incidents": {
+    "title": "الحوادث",
+    "singular": "حادثة",
+    "active": "الحوادث النشطة",
+    "resolved": "الحوادث المحلولة",
+    "none": "لا توجد حادثة",
+    "noneDescription": "لم تُنشر أي حوادث على صفحة الحالة هذه.",
+    "postmortem": "تقرير ما بعد الحادثة",
+    "declaredAt": "أُعلنت في ",
+    "report": "تقرير الحادثة",
+    "notFound": "لم يُعثر على الحادثة في صفحة الحالة هذه."
+  },
+  "episodes": {
+    "report": "تقرير الحلقة",
+    "none": "لا توجد حلقة",
+    "notFound": "لم يُعثر على الحلقة في صفحة الحالة هذه."
+  },
+  "announcements": {
+    "title": "الإعلانات",
+    "singular": "إعلان",
+    "active": "الإعلانات النشطة",
+    "past": "الإعلانات السابقة",
+    "none": "لا يوجد إعلان",
+    "noneDescription": "لم تُنشر أي إعلانات على هذه الصفحة حتى الآن.",
+    "announcedAt": "أُعلن في ",
+    "notFound": "لم يُعثر على الإعلان في صفحة الحالة هذه."
+  },
+  "scheduledEvents": {
+    "title": "الأحداث المجدولة",
+    "singular": "حدث مجدول",
+    "scheduledMaintenance": "الصيانة المجدولة",
+    "ongoing": "الأحداث الجارية",
+    "upcoming": "الأحداث المجدولة",
+    "completed": "الأحداث المكتملة",
+    "none": "لا توجد أحداث مجدولة",
+    "noneDescription": "لم تُنشر أي أحداث مجدولة لصفحة الحالة هذه.",
+    "scheduledAt": "مجدول في ",
+    "report": "تقرير الحدث المجدول",
+    "notFound": "لم يُعثر على أي حدث مجدول لصفحة الحالة هذه.",
+    "calendar": {
+      "subscribe": "الاشتراك في التقويم",
+      "subscribeTitle": "الاشتراك في الصيانة المجدولة",
+      "subscribeDescription": "احصل على الصيانة المجدولة لهذه الصفحة في تطبيق التقويم لديك. يبقى محدّثًا تلقائيًا.",
+      "eventTitle": "إضافة إلى التقويم",
+      "eventDescription": "أضف حدث الصيانة هذا إلى تطبيق التقويم لديك.",
+      "addToCalendar": "إضافة إلى التقويم",
+      "addHeading": "أضف إلى التقويم",
+      "google": "Google Calendar",
+      "googleHint": "يفتح Google Calendar في علامة تبويب جديدة",
+      "device": "Apple Calendar / Outlook",
+      "deviceHint": "يفتح تطبيق التقويم على هذا الجهاز",
+      "deviceFileHint": "ينزّل الحدث لتطبيق التقويم على هذا الجهاز",
+      "copyHeading": "أو انسخ الرابط",
+      "copyHint": "الصقه في أي تطبيق تقويم يمكنه الاشتراك في تقويم عبر عنوان URL.",
+      "copy": "نسخ الرابط",
+      "copied": "تم النسخ!",
+      "copyFailed": "لم يسمح متصفحك لهذه الصفحة بنسخ الرابط. الرابط محدد أعلاه، لذا يمكنك نسخه بنفسك.",
+      "done": "تم",
+      "refreshNote": "تتحقق تطبيقات التقويم من التغييرات وفق جدولها الخاص، لذا قد يستغرق ظهور التحديث بضع ساعات."
+    }
+  },
+  "subscribe": {
+    "title": "اشتراك",
+    "submit": "اشتراك",
+    "newSubscription": "اشتراك جديد",
+    "manageExisting": "إدارة اشتراك قائم",
+    "sendManagementLink": "إرسال رابط الإدارة",
+    "subscribedSuccessfully": "تم اشتراكك بنجاح.",
+    "emailSentCheckSpam": "أُرسلت رسالة بالرابط إلى بريدك الإلكتروني. إذا لم تجدها، يُرجى التحقق من مجلد الرسائل غير المرغوب فيها.",
+    "manageLinkSent": "إذا كان هناك اشتراك يطابق التفاصيل التي أدخلتها، فقد أرسلنا رابطًا لإدارته.",
+    "manageLinkSentEmail": "إذا كان لهذا البريد الإلكتروني اشتراك، فقد أرسلنا إليه رابطًا لإدارته. إذا لم تجد الرسالة، يُرجى التحقق من مجلد الرسائل غير المرغوب فيها.",
+    "menu": {
+      "email": "البريد الإلكتروني",
+      "sms": "رسائل SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "خطافات الويب"
+    },
+    "email": {
+      "title": "الاشتراك عبر البريد الإلكتروني",
+      "description": "ستُرسل جميع تحديثاتنا إلى عنوان البريد الإلكتروني هذا.",
+      "yourEmail": "بريدك الإلكتروني",
+      "placeholder": "subscriber@company.com",
+      "managePrompt": "يُرجى إدخال البريد الإلكتروني الذي اشتركت به",
+      "manageDescription": "سنرسل إليك رابط إدارة الاشتراك على هذا البريد الإلكتروني.",
+      "managePlaceholder": "email@yourcompany.com",
+      "signedInEmailDescription": "تشترك بعنوان البريد الإلكتروني الذي تسجّل الدخول به.",
+      "signInToSubscribe": "سجّل الدخول إلى صفحة الحالة هذه للاشتراك فيها."
+    },
+    "sms": {
+      "title": "الاشتراك عبر رسائل SMS",
+      "description": "ستُرسل جميع تحديثاتنا إلى رقم الهاتف هذا.",
+      "yourPhoneNumber": "رقم هاتفك",
+      "placeholder": "+11234567890",
+      "managePrompt": "يُرجى إدخال رقم الهاتف الذي اشتركت به",
+      "manageDescription": "سنرسل إليك رابط إدارة الاشتراك على رقم الهاتف هذا.",
+      "confirmationSent": "أرسلنا رسالة نصية إلى رقم الهاتف هذا. افتح الرابط الذي فيها لتأكيد اشتراكك."
+    },
+    "slack": {
+      "title": "الاشتراك عبر Slack",
+      "description": "ستُرسل جميع تحديثاتنا إلى خطاف الويب هذا في Slack.",
+      "workspaceName": "اسم مساحة عمل Slack",
+      "workspaceNameDescription": "أدخل اسم مساحة عمل Slack للتحقق.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "عنوان URL لـ Incoming Webhook في Slack",
+      "webhookUrlDescription": "ستُرسل تحديثات صفحة الحالة إلى خطاف الويب هذا في Slack.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "يُرجى إدخال اسم مساحة عمل Slack التي اشتركت بها",
+      "manageDescription": "سنرسل إليك رابط إدارة الاشتراك إلى مساحة العمل هذه."
+    },
+    "microsoftTeams": {
+      "title": "الاشتراك عبر Microsoft Teams",
+      "description": "ستُرسل جميع تحديثاتنا إلى خطاف الويب هذا في Teams.",
+      "workspaceName": "اسم مساحة عمل Microsoft Teams",
+      "workspaceNameDescription": "أدخل اسم مساحة عمل Microsoft Teams للتحقق.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "عنوان URL لـ Incoming Webhook في Microsoft Teams",
+      "webhookUrlDescription": "ستُرسل تحديثات صفحة الحالة إلى خطاف الويب هذا في Teams.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "يُرجى إدخال اسم مساحة عمل Microsoft Teams التي اشتركت بها",
+      "manageDescription": "سنرسل إليك رابط إدارة الاشتراك إلى مساحة العمل هذه."
+    },
+    "webhook": {
+      "title": "الاشتراك عبر خطاف الويب",
+      "description": "ستُرسل جميع تحديثاتنا كطلبات JSON POST إلى عنوان URL لخطاف الويب هذا.",
+      "webhookUrl": "عنوان URL لخطاف الويب",
+      "webhookUrlDescription": "سيُرسل طلب JSON POST إلى عنوان URL هذا عند كل حدث في صفحة الحالة.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
+    "resources": {
+      "all": "الاشتراك في جميع الموارد",
+      "allDescription": "اختر هذا الخيار إذا أردت الاشتراك في جميع الموارد.",
+      "select": "اختر الموارد للاشتراك فيها",
+      "selectDescription": "يُرجى اختيار الموارد التي تريد الاشتراك فيها."
+    },
+    "eventTypes": {
+      "all": "الاشتراك في جميع أنواع الأحداث",
+      "allDescription": "اختر هذا الخيار إذا أردت الاشتراك في جميع أنواع الأحداث.",
+      "select": "اختر أنواع الأحداث للاشتراك فيها",
+      "selectDescription": "يُرجى اختيار أنواع الأحداث التي تريد الاشتراك فيها."
+    },
+    "update": {
+      "title": "تحديث الاشتراك",
+      "description": "يمكنك هنا تحديث تفضيلات اشتراكك أو إلغاء الاشتراك.",
+      "saved": "تم حفظ تغييراتك.",
+      "submit": "تحديث الاشتراك",
+      "unsubscribe": "إلغاء الاشتراك",
+      "unsubscribeDescription": "يُرجى اختيار هذا إذا أردت إلغاء الاشتراك في جميع الموارد.",
+      "linkNotValid": "انتهت صلاحية رابط إدارة اشتراكك هذا أو أنه غير صالح. للحصول على رابط جديد، استخدم «إدارة اشتراك قائم» في صفحة الاشتراك.",
+      "getNewLink": "احصل على رابط جديد",
+      "loadFailed": "تعذّر تحميل هذا الرابط. يُرجى المحاولة مرة أخرى لاحقًا."
+    },
+    "confirm": {
+      "title": "تأكيد الاشتراك",
+      "success": "تم تأكيد الاشتراك بنجاح",
+      "linkNotValid": "انتهت صلاحية رابط تأكيد اشتراكك هذا أو أنه غير صالح. يعمل الرابط لمدة 24 ساعة بعد إرساله. للحصول على رابط جديد، اشترك مرة أخرى.",
+      "subscribeAgain": "اشترك مرة أخرى"
+    },
+    "unsubscribe": {
+      "title": "إلغاء الاشتراك",
+      "titleWithName": "إلغاء الاشتراك في {{statusPageName}}",
+      "confirmPrompt": "هل تريد التوقف عن تلقي الإشعارات من صفحة الحالة هذه؟",
+      "channelEmail": "عنوان البريد الإلكتروني",
+      "channelSms": "رقم الهاتف",
+      "channelSlack": "مساحة عمل Slack",
+      "channelMicrosoftTeams": "مساحة عمل Microsoft Teams",
+      "channelWebhook": "خطاف الويب",
+      "addedByTeamWarning": "أضاف هذا الاشتراكَ الفريقُ الذي يدير صفحة الحالة هذه. إذا كان عنوانًا مشتركًا، مثل قائمة بريدية، فإن إلغاء الاشتراك يوقف هذه الإشعارات لكل من يتلقاها، وسيُبلَّغ الفريق بذلك.",
+      "confirmButton": "إلغاء الاشتراك",
+      "manageInstead": "اختر الإشعارات التي تتلقاها بدلًا من ذلك",
+      "manageSubscription": "إدارة اشتراكك",
+      "success": "تم إلغاء اشتراكك. لن تتلقى أي إشعارات أخرى من صفحة الحالة هذه.",
+      "alreadyUnsubscribed": "أُلغي هذا الاشتراك بالفعل. لا تتلقى إشعارات من صفحة الحالة هذه.",
+      "outOfDateLink": "رابط إلغاء الاشتراك هذا قديم. لإلغاء الاشتراك، استخدم رابط إلغاء الاشتراك في رسالة حديثة من صفحة الحالة هذه.",
+      "invalidLink": "رابط إلغاء الاشتراك هذا غير صالح. ربما يكون غير مكتمل، أو ربما أُزيل الاشتراك. لإلغاء الاشتراك، استخدم رابط إلغاء الاشتراك في رسالة حديثة من صفحة الحالة هذه.",
+      "failed": "تعذّر إلغاء اشتراكك. يُرجى المحاولة مرة أخرى.",
+      "loadFailed": "تعذّر تحميل رابط إلغاء الاشتراك هذا. يُرجى المحاولة مرة أخرى لاحقًا."
+    },
+    "preferences": {
+      "title": "التفضيلات",
+      "description": "اختر ما تريد أن تُبلَّغ به.",
+      "summary": {
+        "everything": "ستتلقى كل تحديث من صفحة الحالة هذه.",
+        "pickedResources": "ستتلقى التحديثات الخاصة بالموارد التي اخترتها فقط.",
+        "pickedEventTypes": "ستتلقى التحديثات الخاصة بأنواع الأحداث التي اخترتها فقط.",
+        "pickedResourcesAndEventTypes": "ستتلقى التحديثات الخاصة بالموارد وأنواع الأحداث التي اخترتها فقط.",
+        "noResources": "لم تختر أي موارد بعد.",
+        "noEventTypes": "لم تختر أي أنواع أحداث بعد."
+      }
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "login": "تسجيل الدخول"
+    },
+    "login": {
+      "welcomeBack": "مرحبًا بعودتك!",
+      "loginPrompt": "يُرجى تسجيل الدخول لعرض {{statusPageName}}",
+      "forgotPassword": "هل نسيت كلمة المرور؟",
+      "submit": "تسجيل الدخول",
+      "or": "أو",
+      "logInWithSso": "تسجيل الدخول عبر SSO",
+      "emailSignInLink": "أرسل إليّ رابط تسجيل الدخول عبر البريد الإلكتروني"
+    },
+    "sso": {
+      "title": "تسجيل الدخول عبر SSO",
+      "loginPrompt": "يُرجى تسجيل الدخول لعرض {{statusPageName}}",
+      "noProviders": "لم يُضبط أي موفّر SSO أو يُفعَّل",
+      "notAvailable": "تسجيل الدخول الموحد (SSO) غير متاح لصفحة الحالة هذه. سجّل الدخول ببريدك الإلكتروني وكلمة المرور بدلًا من ذلك.",
+      "backToLogin": "العودة إلى تسجيل الدخول",
+      "logInWithPassword": "تسجيل الدخول بكلمة المرور"
+    },
+    "forgotPassword": {
+      "title": "نسيت كلمة المرور",
+      "description": "إذا نسيت كلمة مرورك لـ {{statusPageName}}، فأدخل بريدك الإلكتروني وسنرسل إليك رابط إعادة تعيين كلمة المرور.",
+      "success": "أرسلنا إليك رابط إعادة تعيين كلمة المرور عبر البريد الإلكتروني. لا تنسَ التحقق من مجلد الرسائل غير المرغوب فيها.",
+      "sendLink": "إرسال رابط إعادة تعيين كلمة المرور",
+      "rememberPassword": "هل تتذكر كلمة مرورك؟"
+    },
+    "resetPassword": {
+      "description": "أنشئ كلمة مرور جديدة لحسابك في {{statusPageName}}.",
+      "instructions": "يُرجى إدخال كلمة مرورك الجديدة وسنحدّثها.",
+      "success": "تم تحديث كلمة مرورك. يُرجى تسجيل الدخول.",
+      "submit": "إعادة تعيين كلمة المرور",
+      "knowPassword": "هل تعرف كلمة مرورك؟"
+    },
+    "magicLink": {
+      "title": "تسجيل الدخول برابط",
+      "description": "أدخل عنوان بريدك الإلكتروني وسنرسل إليك رابطًا يسجّل دخولك إلى {{statusPageName}}. لا حاجة إلى كلمة مرور.",
+      "submit": "أرسل إليّ رابط تسجيل الدخول عبر البريد الإلكتروني",
+      "sentTitle": "تحقق من بريدك الإلكتروني",
+      "sent": "إذا كان بإمكان {{email}} تسجيل الدخول إلى {{statusPageName}}، فإن رابط تسجيل الدخول في طريقه إليك. يعمل الرابط مرة واحدة وتنتهي صلاحيته بعد {{minutes}} دقيقة.",
+      "notReceived": "ليس في صندوق الوارد؟ تحقق من مجلد الرسائل غير المرغوب فيها، أو اطلب من فريق صفحة الحالة إضافتك.",
+      "sendAnother": "إرسال رابط آخر"
+    },
+    "magicLinkLogin": {
+      "title": "تسجيل الدخول إلى {{statusPageName}}",
+      "description": "استخدم الزر أدناه لإكمال تسجيل الدخول.",
+      "submit": "تسجيل الدخول",
+      "noLink": "تحتاج هذه الصفحة إلى رابط تسجيل الدخول من بريدك الإلكتروني. افتح الرابط مرة أخرى، أو اطلب رابطًا جديدًا.",
+      "turnedOff": "روابط تسجيل الدخول معطّلة لصفحة الحالة هذه. يُرجى تسجيل الدخول ببريدك الإلكتروني وكلمة المرور.",
+      "requestNewLink": "أرسل إليّ رابطًا جديدًا عبر البريد الإلكتروني"
+    },
+    "masterPassword": {
+      "prompt": "أدخل كلمة المرور لعرض صفحة الحالة هذه.",
+      "passwordRequired": "كلمة المرور مطلوبة.",
+      "passwordLabel": "كلمة المرور",
+      "submit": "فتح صفحة الحالة"
+    },
+    "signingOut": "جارٍ تسجيل خروجك..."
+  },
+  "errors": {
+    "notFound": {
+      "title": "الصفحة غير موجودة.",
+      "description": "الصفحة التي تبحث عنها غير موجودة."
+    },
+    "forbidden": {
+      "title": "محظور",
+      "description": "ليس لديك إذن للوصول إلى هذه الصفحة."
+    },
+    "generic": "حدث خطأ ما. يُرجى المحاولة مرة أخرى.",
+    "addressNotSetUp": {
+      "title": "لم يُضبط OneUptime لهذا العنوان",
+      "description": "فتحت {{visited}}، لكن OneUptime هذا مضبوط ليُفتح على {{configured}}.",
+      "openConfigured": "افتح OneUptime على {{configured}}",
+      "hostHeading": "استخدم هذا العنوان لـ OneUptime",
+      "hostStep": "في config.env، اضبط HOST على هذا العنوان:",
+      "restartStep": "ثم شغّل OneUptime مرة أخرى:",
+      "helm": "على Kubernetes، اضبط host في قيم Helm على هذا العنوان بدلًا من ذلك، ثم رقِّ الإصدار.",
+      "domainHeading": "هل هذا نطاق صفحة حالة؟",
+      "domainSteps": "أضفه إلى صفحة الحالة ضمن النطاقات المخصصة، ثم تحقق منه. تظهر صفحة الحالة هنا بعد التحقق منه.",
+      "proxyTitle": "لم يمرّر الوكيل (Proxy) هذا العنوان",
+      "proxyDescription": "فتحت {{visited}}، وهو العنوان الذي ضُبط له OneUptime هذا، لكن الطلب وصل إلى OneUptime باسم مضيف آخر.",
+      "proxyHeading": "مرّر اسم المضيف",
+      "proxySteps": "يجب أن يمرّر الوكيل (Proxy) الموجود أمام OneUptime اسم المضيف الذي طلبه المتصفح. يفعل Caddy ذلك افتراضيًا. بالنسبة إلى Nginx أو Apache، أضف هذا السطر:",
+      "noPageTitle": "لا توجد صفحة حالة على هذا العنوان",
+      "noPageDescription": "{{visited}} ليس عنوان صفحة حالة.",
+      "copy": "نسخ",
+      "copied": "تم النسخ!",
+      "copyFailed": "لم يسمح متصفحك لهذه الصفحة بنسخ السطر. السطر محدد أعلاه، لذا يمكنك نسخه بنفسك."
+    }
+  },
+  "footer": {
+    "poweredBy": "مدعوم من OneUptime"
+  },
+  "statusNames": {
+    "identified": "تم التحديد",
+    "acknowledged": "تم الإقرار",
+    "resolved": "تم الحل",
+    "criticalIncident": "حادثة حرجة",
+    "majorIncident": "حادثة كبرى",
+    "minorIncident": "حادثة طفيفة",
+    "operational": "يعمل بشكل طبيعي",
+    "degraded": "متدهور",
+    "offline": "غير متصل",
+    "scheduled": "مجدول",
+    "ongoing": "جارٍ",
+    "ended": "انتهى",
+    "completed": "مكتمل"
+  },
+  "Subscriber ID is required": "معرّف المشترك مطلوب",
+  "Token is required": "الرمز المميز مطلوب",
+  "{{field}} cannot be less than {{minLength}} characters.": "يجب ألا يقل عدد أحرف {{field}} عن {{minLength}}.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "يجب ألا يزيد عدد أحرف {{field}} عن {{maxLength}}.",
+  "{{field}} should not have spaces.": "يجب ألا يحتوي {{field}} على مسافات.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "يمكن أن يحتوي {{field}} على أحرف وأرقام وشرطات (-) وشرطات سفلية (_) فقط.",
+  "{{field}} should not have numbers.": "يجب ألا يحتوي {{field}} على أرقام.",
+  "{{field}} should be a future date.": "يجب أن يكون {{field}} تاريخًا في المستقبل.",
+  "{{field}} should be a number.": "يجب أن يكون {{field}} رقمًا.",
+  "{{field}} should not be more than {{maxValue}}.": "يجب ألا يزيد {{field}} عن {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "يجب ألا يقل {{field}} عن {{minValue}}.",
+  "{{field}} is required.": "{{field}} مطلوب.",
+  "{{field}} should match {{matchField}}": "يجب أن يطابق {{field}} {{matchField}}",
+  "Email is not valid.": "البريد الإلكتروني غير صالح.",
+  "Next": "التالي",
+  "Opens in a new tab": "يُفتح في علامة تبويب جديدة",
+  "Loading the latest version": "جارٍ تحميل أحدث إصدار",
+  "A newer version of this page is available. It's loading now.": "يتوفر إصدار أحدث من هذه الصفحة. جارٍ تحميله الآن.",
+  "You're offline": "أنت غير متصل بالإنترنت",
+  "This page will come back as soon as you're online again, just as you left it.": "ستعود هذه الصفحة فور عودتك إلى الاتصال، كما تركتها تمامًا.",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "تحتاج هذه الصفحة إلى اتصال بالإنترنت لتُحمَّل. ستُحمَّل فور عودتك إلى الاتصال.",
+  "Can't reach the server": "تعذّر الوصول إلى الخادم",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "ربما يُعاد تشغيله بعد تحديث. ستُحمَّل هذه الصفحة فور عودة الخادم.",
+  "A newer version of this page is ready": "إصدار أحدث من هذه الصفحة جاهز",
+  "This page needs the new version to open. Reloading discards changes you haven't saved.": "تحتاج هذه الصفحة إلى الإصدار الجديد لتُفتح. تؤدي إعادة التحميل إلى فقدان التغييرات التي لم تحفظها.",
+  "This page couldn't be loaded": "تعذّر تحميل هذه الصفحة",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "تعذّر تنزيل ملف تحتاجه من الخادم. حاول إعادة التحميل بعد لحظات.",
+  "Try now": "حاول الآن",
+  "Reload page": "إعادة تحميل الصفحة",
+  "Loading the latest version...": "جارٍ تحميل أحدث إصدار...",
+  "You're offline. This will load when you're back online.": "أنت غير متصل بالإنترنت. سيُحمَّل هذا فور عودتك إلى الاتصال.",
+  "Can't reach the server. Trying again automatically.": "تعذّر الوصول إلى الخادم. ستُعاد المحاولة تلقائيًا.",
+  "This needs the latest version. Save your changes, then reload the page.": "يحتاج هذا إلى أحدث إصدار. احفظ تغييراتك، ثم أعد تحميل الصفحة.",
+  "This couldn't be loaded.": "تعذّر تحميل هذا.",
+  "Try again": "حاول مرة أخرى",
+  "Loading...": "جارٍ التحميل...",
+  "Loading": "جارٍ التحميل",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} ليس JSON صالحًا. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} ليس YAML صالحًا. {{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "تنبيه",
+    "danger": "خطر",
+    "important": "مهم",
+    "info": "معلومات",
+    "note": "ملاحظة",
+    "tip": "نصيحة",
+    "warning": "تحذير"
+  }
+}

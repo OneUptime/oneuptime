@@ -51,6 +51,7 @@ import FilterCondition from "Common/Types/Filter/FilterCondition";
 import ObjectID from "Common/Types/ObjectID";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -1213,12 +1214,18 @@ describe("Home Page & Shortcuts", () => {
     ).toEqual(["not-operational-monitors", "slos-needing-attention"]);
   });
 
-  it("counts what the numbers count: archived monitors left out, turned-on SLOs at risk or out of budget", () => {
+  it("counts what the numbers count: archived monitors and monitors with monitoring off left out, turned-on SLOs at risk or out of budget", () => {
     const counting: string = oneLine(OVERVIEW_DATA_SOURCE);
 
+    // The Not Operational list's own query (#6400).
     expect(counting).toContain(
-      "isArchived: false, currentMonitorStatus: { isOperationalState: false",
+      "projectId: projectId, ...NotOperationalMonitorQuery.getQuery(),",
     );
+    expect(NotOperationalMonitorQuery.getQuery()).toEqual({
+      isArchived: false,
+      disableActiveMonitoring: false,
+      currentMonitorStatus: { isOperationalState: false },
+    });
     expect(counting).toContain("isEnabled: true, isArchived: false");
     expect(counting).toContain("SloStatus.AtRisk");
     expect(counting).toContain("SloStatus.BudgetExhausted");
@@ -1228,7 +1235,7 @@ describe("Home Page & Shortcuts", () => {
     );
 
     expect((rows[2] as Array<string>)[1]).toBe(
-      "Monitors whose status is not an operational one. Archived monitors are left out.",
+      "Monitors whose status is not an operational one. Archived monitors, and monitors with monitoring turned off, are left out.",
     );
     expect((rows[4] as Array<string>)[1]).toBe(
       "Turned-on SLOs that are at risk or have used up their error budget",
@@ -1679,7 +1686,7 @@ describe("Your Account", () => {
 
     expect(overview).toContain('title: "Basic Info"');
 
-    for (const field of ["Email", "Full Name", "Timezone"]) {
+    for (const field of ["Email", "Full Name", "Timezone", "Language"]) {
       expect(overview).toContain(`title: "${field}"`);
       expect(YOUR_ACCOUNT).toContain(`- **${field}**: `);
     }
@@ -1852,7 +1859,7 @@ describe("Your Account", () => {
     ).toEqual(rows);
   });
 
-  it("keeps language and theme in the browser: the browser's language first, the device's theme unless Light or Dark was picked", () => {
+  it("keeps the theme in the browser and a picked language in the account: the browser's language first, the device's theme unless Light or Dark was picked", () => {
     const i18n: string = dashboard("Utils/i18n.ts");
 
     expect(i18n).toContain('order: ["localStorage", "navigator", "htmlTag"]');
@@ -1907,8 +1914,37 @@ describe("Your Account", () => {
     }
 
     expect(DEFAULT_THEME_PREFERENCE).toBe(ThemePreference.System);
-    expect(YOUR_ACCOUNT).toContain(
+    expect(YOUR_ACCOUNT).not.toContain(
       "Both are saved in your browser, not in your account",
+    );
+    expect(YOUR_ACCOUNT).toContain(
+      "Your theme is saved in your browser, so set it again on another browser or device.",
+    );
+    /*
+     * A picked language is the account's (User.language): the language menu
+     * saves it, and every browser starts in it once the page is up
+     * (UserLanguageInit, mounted beside the time zone's).
+     */
+    expect(YOUR_ACCOUNT).toContain(
+      "Your language is saved in your account once you pick it, and every browser you sign in on starts in it.",
+    );
+    expect(
+      dashboard("Components/LanguageSwitcher/LanguageSwitcher.tsx"),
+    ).toContain(
+      "await UserLanguageUtil.saveSignedInUserLanguage(nextLanguage);",
+    );
+    expect(dashboard("App.tsx")).toContain("<UserLanguageInit />");
+
+    const languageInit: string = dashboard(
+      "Components/UserLanguage/UserLanguageInit.tsx",
+    );
+
+    expect(languageInit).toContain("await followUserLanguage(");
+    expect(languageInit).toContain(
+      "await UserLanguageUtil.readSignedInUserLanguage(),",
+    );
+    expect(YOUR_ACCOUNT).toContain(
+      "Your pick is saved to your account, as **Language** on your profile is, and OneUptime writes your on-call pages in it.",
     );
     // Signing out leaves both: the sign-in page opens next (KeptAfterSignOut.ts).
     expect(YOUR_ACCOUNT).toContain(

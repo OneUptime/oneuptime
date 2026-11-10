@@ -118,13 +118,17 @@ OneUptime skickar varje batch med POST till **URL**, som en JSON-array (`applica
 
 ### Syslog
 
-Varje post är ett RFC 5424-meddelande till **Värd** och **Port**, över TLS på port `6514` om inte **Protokoll** anger TCP, med facility 13 (log audit) och severity 6 (informational):
+Varje post är ett RFC 5424-meddelande till **Värd** och **Port**, över TLS på port `6514` om inte **Protokoll** anger TCP eller UDP, med facility 13 (log audit) och severity 6 (informational):
 
 ```text
 <110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Meddelanden avgränsas med oktetträkning (RFC 5425), om inte **Meddelandeavgränsning** anger ett meddelande per rad. En mottagare vars certifikat en privat CA har signerat behöver den CA:ns certifikat i **CA-certifikat**. Båda väntar under **Fler fält**.
+Över TLS och TCP avgränsas meddelanden med oktetträkning (RFC 5425), om inte **Meddelandeavgränsning** anger ett meddelande per rad. En mottagare vars certifikat en privat CA har signerat behöver den CA:ns certifikat i **CA-certifikat**. Båda väntar under **Fler fält**.
+
+Över UDP börjar **Port** på `514`, och varje meddelande är ett eget datagram (RFC 5426), så inget avgränsas. UDP skickar granskningsloggen som klartext, och inget bekräftar att ett meddelande kom fram: när mottagarens värd svarar att porten är stängd misslyckas batchen och försöks igen, men ett meddelande som försvinner på vägen skickas inte igen. Kontrollera efter ett test över UDP att testposten kom fram. När varje post måste komma fram, välj TLS eller TCP.
+
+Över UDP är ett meddelande högst **Maximal meddelandestorlek** byte: `8192` om du inte ändrar det under **Fler fält**, från `1024` till `65507`. En längre post förkortas så att den får plats och förblir ett JSON-objekt: först kortas dess värden, så som granskningsloggen kortar dem, till exempel `[… 1,234 more characters]` eller `[12.3 KB of JSON]`, sedan räknas de ändringar som fortfarande inte får plats i en enda, till exempel `[… 12 more changes]`.
 
 ## Vad som skickas
 
@@ -188,7 +192,7 @@ Ett projekts export i OneUptime Cloud kan inte nå en privat nätverksadress. N�
 :::
 
 :::details Inget kommer fram
-Kontrollera att granskningsloggning är påslagen i projektet och att någon ändrat något efter att exporten sparades. Lagring får en fil först när en batch är full eller fem minuter gammal.
+Kontrollera att granskningsloggning är påslagen i projektet och att någon ändrat något efter att exporten sparades. Lagring får en fil först när en batch är full eller fem minuter gammal. Över UDP kastar en brandvägg meddelanden utan att säga till: kontrollera att UDP får nå mottagarens port.
 :::
 
 ## Nästa steg

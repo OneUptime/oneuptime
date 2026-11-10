@@ -65,6 +65,18 @@ export function getRemediationFixStepDetailsId(
 }
 
 /*
+ * The id of a step's title line - its press, or the line itself - which
+ * the keyboard is put on when what the reader pressed went away (a round
+ * tried again: its Try again goes with the step that offered it).
+ */
+export function getRemediationFixStepTitleId(
+  idPrefix: string,
+  kind: RemediationFixStepKind,
+): string {
+  return `${idPrefix}-${kind}-title`;
+}
+
+/*
  * A step's mark: how it went, with the AI card's colours. A done rollback
  * is an undo, not a tick: what ran was taken back.
  */
@@ -137,6 +149,10 @@ const RemediationFixStepList: FunctionComponent<ComponentProps> = (
             props.idPrefix,
             step.kind,
           );
+          const titleId: string = getRemediationFixStepTitleId(
+            props.idPrefix,
+            step.kind,
+          );
           const actions: ReactNode = props.renderActions?.(step.kind);
 
           /*
@@ -205,6 +221,7 @@ const RemediationFixStepList: FunctionComponent<ComponentProps> = (
                 {step.hasDetails ? (
                   <button
                     type="button"
+                    id={titleId}
                     data-testid="remediation-fix-step-toggle"
                     aria-expanded={isOpen}
                     // Names what it opens while that is drawn.
@@ -223,15 +240,26 @@ const RemediationFixStepList: FunctionComponent<ComponentProps> = (
                     />
                   </button>
                 ) : (
-                  <div className="flex items-start">{titleRow}</div>
+                  <div
+                    id={titleId}
+                    tabIndex={-1}
+                    className="flex items-start focus:outline-none"
+                  >
+                    {titleRow}
+                  </div>
                 )}
 
                 {/*
                   Why, or what went wrong. What OneUptime AI or an agent wrote
                   reads in its own direction, two lines of it: the open step
-                  has all of it (and so says it once, not twice).
+                  has all of it (and so says it once, not twice) - as it has
+                  a summary its details say again (isSummaryInDetails).
                 */}
-                {step.summary && !(isOpen && step.isSummaryWritten) ? (
+                {step.summary &&
+                !(
+                  isOpen &&
+                  (step.isSummaryWritten || step.isSummaryInDetails)
+                ) ? (
                   <p
                     dir={step.isSummaryWritten ? "auto" : undefined}
                     data-testid={

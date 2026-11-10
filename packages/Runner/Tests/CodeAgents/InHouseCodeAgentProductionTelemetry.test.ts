@@ -15,9 +15,12 @@
  *     chose; the server decides what the run may read.
  *   - NEVER A WORKSPACE TOOL. A server tool named like read_file or
  *     write_file is not taken: a file write must never leave the Runner.
- *   - THE BUDGET. Calls stop being offered once the run's are spent, a call
- *     past them is refused here, and the calls made since the last
- *     completion count in the wind-down, as the server counts them.
+ *   - AN OLDER SERVER'S BUDGET. A server from before #6440 gives the calls
+ *     a count of their own (these tests' mocks send no `limits`): they stop
+ *     being offered once the run's are spent, a call past them is refused
+ *     here, and the calls made since the last completion count in the
+ *     wind-down, as that server counts them. A current server's limits -
+ *     no count of their own - are InHouseCodeAgentRunLimits.test.ts's.
  *   - WITHOUT TELEMETRY THE TASK GOES ON. A server that offers none, or
  *     cannot say (an older one), leaves the task as it was.
  * ---------------------------------------------------------------------------
@@ -351,6 +354,58 @@ describe("offering production telemetry", () => {
     ).toHaveLength(1);
     expect(runTelemetryToolMock).not.toHaveBeenCalled();
     expect(fs.existsSync(path.join(workspace, "src", "new.ts"))).toBe(true);
+  });
+
+  // Every tool the Runner has now (issue #6441), not only the first ones.
+  test("no name of the Runner's own tools, nor ask_question, is ever a server tool", async () => {
+    const runnerNames: Array<string> = [
+      "read_file",
+      "edit_file",
+      "write_file",
+      "delete_file",
+      "move_file",
+      "list_directory",
+      "find_files",
+      "search_files",
+      "git",
+      "read_tool_output",
+      "update_plan",
+      "run_command",
+      "ask_question",
+    ];
+    getTelemetryToolsMock.mockResolvedValue(
+      offer({
+        tools: [...runnerNames, "query_traces"].map(telemetryTool),
+      }),
+    );
+    llmCompletionMock
+      .mockResolvedValueOnce(
+        completion({
+          toolCalls: [
+            toolCall("edit_file", {
+              path: "src/checkout.ts",
+              old_text: "x",
+              new_text: "y",
+            }),
+          ],
+        }),
+      )
+      .mockResolvedValue(completion({ content: "Done." }));
+
+    await runAgent(makeWorkspace(), { productionTelemetry: true });
+
+    const offered: Array<string> = toolNames(requests()[0]);
+
+    for (const name of runnerNames) {
+      expect(
+        offered.filter((offeredName: string): boolean => {
+          return offeredName === name;
+        }).length,
+      ).toBeLessThanOrEqual(1);
+    }
+
+    expect(offered).toContain("query_traces");
+    expect(runTelemetryToolMock).not.toHaveBeenCalled();
   });
 });
 

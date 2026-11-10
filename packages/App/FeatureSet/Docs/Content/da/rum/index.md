@@ -42,10 +42,10 @@ En applikations egen sidemenu grupperer dens sider sådan; **Indstillinger**, **
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Anbefalinger**, **Dokumentation** |
 | **Observabilitet** | **Metrikker**, **Protokoller**, **Spor**, **Klienter** |
-| **Sessionsafspilning** | **Sessionsafspilning**, **Brugerforløb**, **Brugere i afspilninger**, **Sundhed**, **Afspilningspolitik**, **Adgangslog for afspilninger**, **Dokumentation** |
+| **Sessionsafspilning** | **Sessionsafspilning**, **Brugerforløb**, **Brugere i afspilninger**, **Sundhed**, **Afspilningspolitik**, **Frustrationssignaler**, **Adgangslog for afspilninger**, **Dokumentation** |
 | **Indstillinger** | **Indstillinger** |
 | **Udvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avanceret** | **Slet applikation** |
+| **Avanceret** | **Auditlogs**, **Slet applikation** |
 
 ## Sådan genkender OneUptime RUM
 

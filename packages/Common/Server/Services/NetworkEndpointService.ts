@@ -2,6 +2,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/NetworkEndpoint";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import EndpointAttachmentUtil, {
   EndpointAttachment,
@@ -12,7 +13,9 @@ import EndpointAttachmentUtil, {
   EndpointUpsertDecision,
 } from "../../Utils/Monitor/EndpointAttachmentUtil";
 import OuiLookupUtil from "../Utils/Monitor/OuiLookupUtil";
+import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
 
 /*
@@ -101,9 +104,70 @@ function truncateShortText(value: string | undefined): string | undefined {
     : value;
 }
 
+/*
+ * The columns whose change by a person keeps a device on the Discovered
+ * Devices list for good (see onUpdatePermitted): everything a person may
+ * change on one but its classification.
+ */
+export const EDIT_KEEPING_COLUMNS: ReadonlyArray<string> = [
+  "vendor",
+  "ipAddress",
+  "siteId",
+  "site",
+];
+
+// Whether an update's data changes one of EDIT_KEEPING_COLUMNS.
+export function isEditThatKeepsTheDevice(data: unknown): boolean {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+
+  return EDIT_KEEPING_COLUMNS.some((column: string): boolean => {
+    return (data as Record<string, unknown>)[column] !== undefined;
+  });
+}
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A device a person added, or whose vendor, address or site a person
+   * changed, stays on the Discovered Devices list however long nothing sees
+   * it (issue #6389): its editedAt says when. Stamped on every create and
+   * every such update a person, an API key or a workflow makes - never on
+   * the server's own writes, which run as root or as statements of their
+   * own (the upserts below). A classification keeps a device for as long
+   * as it has one, so a change of it alone stamps nothing: cleared, the
+   * device ages again like any other.
+   *
+   * Stamped once the write passed every permission check: no caller may
+   * write the column itself.
+   */
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    if (onCreate.createBy.props.isRoot) {
+      return;
+    }
+
+    onCreate.createBy.data.editedAt = OneUptimeDate.getCurrentDate();
+  }
+
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (updateBy.props.isRoot || !isEditThatKeepsTheDevice(updateBy.data)) {
+      return;
+    }
+
+    (updateBy.data as unknown as { editedAt?: Date }).editedAt =
+      OneUptimeDate.getCurrentDate();
   }
 
   /*

@@ -44,7 +44,7 @@ Alla tre finns under **Produkter → AI / LLM → Anslut**. Använd en, två ell
 | Väg in | Vad du får | Hur |
 | --- | --- | --- |
 | **Dina appar** | Varje AI-anrop medan det sker: konversationen, personen, prompten och svaret, tokens, kostnad och fel | OpenTelemetry från din kod eller en gateway, i fem steg |
-| **Dina konton hos AI-leverantörer** | Vad varje konto hos OpenAI, Anthropic, Azure, Bedrock eller Vertex AI använde och kostade, per dag | Inloggningsuppgifter som bara läser, och ingen kod: [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts) |
+| **Dina konton hos AI-leverantörer** | Vad varje konto hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI eller Cursor använde och kostade, per dag eller per timme | Inloggningsuppgifter som bara läser, och ingen kod: [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts) |
 | **Ditt företags AI-verktyg** | Vad dina medarbetare frågar Claude Enterprise eller Microsoft 365 Copilot, per person | Inloggningsuppgifter som bara läser, och ingen kod: [Företagets AI-verktyg](/docs/telemetry/ai-company-tools) |
 
 Leverantörskonton och kodassistenter ger användning och kostnad, aldrig ett anrop: de fyller **Användning**, och **Konversationer** och **Anrop** förblir tomma tills dina appar skickar sina AI-anrop eller ett AI-verktyg i företaget ansluts. [Kontrollera vad som kommer in](#kontrollera-vad-som-kommer-in) visar vilken väg som ger vad.
@@ -57,7 +57,8 @@ Leverantörskonton och kodassistenter ger användning och kostnad, aldrig ett an
 | --- | --- |
 | Ingen app har skickat något AI-anrop | [Skicka dina AI-anrop](#skicka-dina-ai-anrop): anslutna leverantörskonton ger användning och kostnad per dag, aldrig ett anrop |
 | En app anropar en AI-leverantörs API, och ingen GenAI-instrumentering registrerar det | Lägg till en för appens språk: kontrollen hittade appens HTTP-klientspans till `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` eller en annan AI-leverantörs API |
-| Anrop kommer in utan promptar eller svar | [Registrera vad som sades](#registrera-vad-som-sades) på spannen: promptar och svar som skickas som logghändelser visas inte |
+| Anrop kommer in utan promptar eller svar | [Registrera vad som sades](#registrera-vad-som-sades), på spannen eller som logghändelser |
+| Promptar och svar kommer in som logghändelser | Inget: konversationer läser dem, och den som kan läsa appens loggar kan också läsa dem på sidan **Loggar** |
 | Anropen ligger strax utanför perioden | Listan erbjuder perioden som innehåller det senaste |
 | Ett leverantörskonto läser ingen användning | Dess rad anger den senaste dagen med användning, eller den första lästa dagen; en Azure-anslutning som inte hittar någon resurs behöver Monitoring Reader där resurserna finns |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Nyare OpenTelemetry-instrumenteringar tar `span_only`, `event_only` eller `span_and_event` i stället för `true`. Utan registrerat innehåll visar en konversation ändå sina tider, sin kostnad och sina problem. Prompter kan innehålla känsliga data: [Integritet och maskering](#integritet-och-maskering) visar hur du maskerar dem innan de lagras.
 
-Konversationer läser det som registreras på anropets span. OpenTelemetry-instrumenteringen för Python registrerar det där med `span_only`; instrumenteringarna för JavaScript och Java, och den för Python med `true`, skickar det som logghändelser, som konversationer inte läser, och **Konfigurationskontroll** säger det. Azures AI Inference SDK registrerar det på spannet med `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI med `EnableSensitiveData`; OpenAI-biblioteket för .NET registrerar ingenting.
+Konversationer läser det som registreras på anropets span, och de logghändelser som appen skickar med anropets trace- och span-id. OpenTelemetry-instrumenteringen för Python registrerar det på spannet med `span_only`; instrumenteringarna för JavaScript och Java, och den för Python med `true` eller `event_only`, skickar det som logghändelser, som når OneUptime med appens loggar. Azures AI Inference SDK registrerar det på spannet med `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI med `EnableSensitiveData`; OpenAI-biblioteket för .NET registrerar ingenting.
 
 ### Gruppera anrop i konversationer
 
@@ -240,35 +241,36 @@ Ett färdigt larm skapar ett larm som löser sig själv, och visar monitorn som 
 
 Fliken **Användning** visar anrop, tokens och kostnad för en tidsperiod (de senaste 7 dagarna om du inte väljer en annan) och en tabell över de 25 största i en av fem uppdelningar: **Anställd**, **Team**, **Modell**, **Leverantör** och **Applikation / Tjänst**. Anrop som inte nämner någon räknas under **Ej tilldelat** och slängs aldrig.
 
-Det här är **Dina AI-anrop**. Välj **Leverantörskonton** i stället för att se vad dina anslutna konton hos OpenAI, Anthropic, Azure, Bedrock och Vertex AI fakturerades: se [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts#se-användningen). De två läggs aldrig ihop.
+Det här är **Dina AI-anrop**. Välj **Leverantörskonton** i stället för att se vad dina anslutna konton hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI och Cursor fakturerades: se [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts#se-användningen). De två läggs aldrig ihop.
 
 Personer och team kommer från identitetsattribut på anropet: se [Tilldelning till anställda och team](/docs/telemetry/ai-coding-assistants#tilldelning-till-anställda-och-team).
 
-### Spans först, mätvärden fyller i
+### Varje tjänst räknas utifrån det den skickar
 
-GenAI-spans bär modellen, tokens och kostnaden för ett anrop, så där de finns svarar de på allt. Vissa verktyg publicerar token- och kostnadsmätvärden och inga GenAI-spans, som de flesta kodassistenter. OneUptime läser bara de mätvärdena för ett tal som spans inte rapporterade något för, och lägger aldrig ihop de två: många instrumenteringar skickar båda för samma anrop, och att lägga ihop dem skulle räkna varje dollar två gånger.
+AI-användning kommer i två former. GenAI-spans är AI-anrop: ett per anrop, med dess modell, tokens och kostnad. GenAI-mätvärden är användningsmätvärden: räknare för tokens och kostnad som de flesta kodassistenter skickar i stället för spans, och som vissa instrumenteringar skickar bredvid sina spans, för samma anrop. Att lägga ihop båda skulle räkna de anropen två gånger, så OneUptime räknar varje tjänst utifrån en av dem: dess tokens från dess AI-anrop när de rapporterar tokens, annars från dess användningsmätvärden, och dess kostnad på samma sätt, för sig. En kodassistent som bara skickar mätvärden räknas då bredvid apparna som skickar spans, i samma projekt, och en app som skickar båda räknas en gång.
 
-```mermaid title="Var ett tal på fliken Användning kommer ifrån"
+```mermaid title="Var en tjänsts tokens eller kostnad kommer ifrån"
 flowchart TB
-    spans{"Rapporterar<br/>GenAI-spans det?"}
-    spans -->|"Ja"| fromSpans["Visas<br/>från spans"]
-    spans -->|"Nej"| metrics{"Rapporterar<br/>GenAI-mätvärden det?"}
-    metrics -->|"Ja"| fromMetrics["Visas från mätvärden,<br/>märkt med<br/>från GenAI-mätvärden"]
-    metrics -->|"Nej"| nothing["Inget<br/>att visa"]
+    spans{"Rapporterar dess<br/>AI-anrop det?"}
+    spans -->|"Ja"| fromSpans["Räknat från<br/>AI-anrop"]
+    spans -->|"Nej"| metrics{"Rapporterar dess<br/>användningsmätvärden<br/>det?"}
+    metrics -->|"Ja"| fromMetrics["Räknat från<br/>användningsmätvärden"]
+    metrics -->|"Nej"| nothing["Inget<br/>att räkna"]
 ```
 
-| Var | Vad som faller tillbaka på mätvärden | När |
+| Var | Från AI-anrop | Från användningsmätvärden |
 | --- | --- | --- |
-| Indata- och utdatatokens | Båda totalerna | Spans tokentotaler är båda 0 |
-| Kostnad (USD) | Kostnaden, med Codex kostnad i mikro-USD omräknad till USD | Spans kostnadstotal är 0 |
-| LLM-anrop | Inget: bara spans | — |
-| Tabellerna **Anställd**, **Team**, **Modell** | Kostnad, och tokens där mätvärdena räknar dem; cellen för anrop visar `—` | Den tabellen hittade inga rader från spans |
-| Tabellerna **Leverantör**, **Applikation / Tjänst** | Inget: bara spans | — |
-| Konversationer | Inget: konversationer byggs från spans | — |
+| Indata- och utdatatokens | Varje modellanrops tokens, en gång | En tjänsts tokens, när dess AI-anrop inte rapporterar några |
+| Kostnad (USD) | Varje modellanrops kostnad, en gång | En tjänsts kostnad, när dess AI-anrop inte rapporterar någon, med Codex kostnad i mikro-USD omräknad till USD |
+| AI-anrop | Varje AI-anrop, så som **Anrop** listar dem | Aldrig: ett mätvärde räknar inga anrop |
+| Tabellerna **Anställd**, **Team**, **Modell**, **Leverantör**, **Applikation / Tjänst** | Varje rads anrop, tokens och kostnad | Tokens och kostnad för tjänsterna som räknas från mätvärden, under den person, det team, den modell eller den leverantör som deras punkter nämner |
+| Konversationer | Byggda från AI-anrop | Aldrig |
 
-Ett tal från mätvärden är märkt med **från GenAI-mätvärden**, eftersom det saknar matchande rader under **Anrop**. Så fort dina GenAI-spans rapporterar ett tal visas alltså inte andelen från ett verktyg som bara skickar mätvärden. För att se ett sådant verktygs kostnader för sig skickar du det till ett eget projekt, där inga GenAI-spans kommer in.
+Under varje tal säger fliken Användning var det kommer ifrån: **Från AI-anrop**, **Från användningsmätvärden** eller **Från AI-anrop och användningsmätvärden** när vissa tjänster skickade anrop och andra mätvärden. En tabellrad som räknats från användningsmätvärden säger det under sitt namn, och dess cell för anrop visar `—` när den inte har något AI-anrop, eftersom ett mätvärde saknar detaljer per anrop; tabellens rubrik nämner tjänsterna som räknats från användningsmätvärden, utom i **Applikation / Tjänst**, där raderna är tjänsterna själva. Ett användningsmätvärde som inte nämner någon tjänst räknas under **Okänd tjänst**, en tjänst som alla andra. Om din roll får läsa traces men inte mätvärden utelämnas användningsmätvärdena, och tabellen säger det.
 
-Ett token- eller kostnadsmätvärde är en räknare. En deltaräknares punkter läggs ihop; en kumulativ räknare, standard i OpenTelemetry-SDK:erna, räknar hur mycket den växte under perioden, varje serie för sig, så en löpande total som exporteras varje minut räknas en gång. Budgetar räknar GenAI-mätvärden på samma sätt.
+Varje modellanrop räknas en gång. En agentkörning, eller ett ramverks span runt SDK:ns eget span, upprepar ofta tokens och kostnad för anropen i den: ett spans tokens, eller dess kostnad, utelämnas varhelst ett anrop i det rapporterar dem, och en agentkörning behåller sina egna tal när inget anrop i den gör det. Budgetar och listan **Konversationer** räknar på samma sätt, medan **Anrop** listar varje span med dess egna tal.
+
+Ett token- eller kostnadsmätvärde är en räknare. En deltaräknares punkter läggs ihop; en kumulativ räknare, standard i OpenTelemetry-SDK:erna, räknar hur mycket den växte under tidsperioden, varje serie för sig, så att en löpande total som exporteras varje minut räknas en gång, och en minskning läses som en omstart från 0, så som Prometheus `increase()` läser den. Budgetar räknar GenAI-mätvärden på samma sätt.
 
 ## Vad ett anrop kostar
 
@@ -282,7 +284,7 @@ För att prissätta en modell själv (ett förhandlat pris, en finjusterad model
 
 ## Dagliga kostnadsbudgetar
 
-En budget följer en dags kostnader, i USD, över UTC-dygnet. Var 15:e minut summerar OneUptime dagens AI-kostnader (från spans, eller från GenAI-kostnadsmätvärden när inget span rapporterade något), visar dem på budgeten och publicerar två mätvärden. En budget vars **Räkna utgifter från** är **Leverantörskonton** räknar i stället vad dina anslutna konton fakturerades: se [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts#budgetar-och-larm).
+En budget följer en dags kostnader, i USD, över UTC-dygnet. Var 15:e minut summerar OneUptime dagens AI-kostnader (varje tjänst från sina AI-anrop, eller från sina kostnadsmätvärden när dess anrop inte rapporterar någon kostnad), visar dem på budgeten och publicerar två mätvärden. En budget vars **Räkna utgifter från** är **Leverantörskonton** räknar i stället vad dina anslutna konton fakturerades: se [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts#budgetar-och-larm).
 
 | Mätvärde | Vad det är |
 | --- | --- |
@@ -314,6 +316,10 @@ GenAI-mätvärden som `gen_ai.client.token.usage` och `gen_ai.client.operation.d
 ## Integritet och maskering
 
 AI-anrop lagras som trace-spans, så tracens **Scrub-regler** och **Drop-filter** gäller för dem: maskera ett attribut, eller släpp ett span, innan det lagras. Du hittar båda under **Spår → Inställningar**. Den anställdes e-postkolumn maskeras tillsammans med attributet som den lästes från, så en regel som maskerar e-postadresser täcker den också.
+
+Promptar och svar som skickas som logghändelser lagras som loggar, så det är loggarnas **Scrub-regler** och **Drop-filter** som gäller för dem, under **Loggar → Inställningar**: en regel som maskerar e-postadresser i traces maskerar dem inte i logghändelser. En konversation visar dem bara för den som också kan läsa appens loggar, och den kan också hitta dem på sidan **Loggar**.
+
+Oavsett vilket läser en regel varje text i en lista eller ett strukturerat värde, till exempel meddelanden som en instrumentering skickar som en lista i stället för som JSON-text, och behåller värdets form: en e-postadress i en prompt maskeras var den än står. Se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data).
 
 Konversationer läses med samma behörighet som traces: den som kan läsa projektets traces kan läsa dess konversationer, och ingen annan. Konversationerna från ett av företagets AI-verktyg är undantaget: bara projektets ägare och administratörer kan läsa dem, om inte anslutningen säger något annat ([Företagets AI-verktyg](/docs/telemetry/ai-company-tools#integritet)).
 
@@ -357,6 +363,8 @@ Konversationsvyn läser ett anrops meddelanden från, i denna ordning:
 - de indexerade attributen: OpenLLMetrys `gen_ai.prompt.N.content` och `gen_ai.completion.N.content`, OpenInferences `llm.input_messages.N.message.content` och `llm.output_messages.N.message.content`;
 - meddelandearrayerna i `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` och `output.value`.
 
+När ett anrops span inte har någon prompt eller inget svar läses det från de loggposter som bär anropets trace- och span-id: samma händelser, skickade via loggsignalen, namngivna i postens attribut `event.name` eller i dess fält för händelsenamnet. En post med tracens id men utan span-id hör till tracens enda modellanrop, eller till anropet den skickades under, och lämnas utanför när det inte är ett anrop. Det spannet registrerar vinner, så ett anrop som registrerats på båda sätten visar varje meddelande en gång.
+
 ## Felsökning
 
 :::details Leverantörskonton är anslutna, men Konversationer och Anrop är tomma
@@ -364,7 +372,7 @@ Ett leverantörskonto ger det som det använde och kostade, per dag, aldrig ett 
 :::
 
 :::details Anrop kommer in, men inga konversationer visar text
-Din instrumentering registrerar inte innehåll. Slå på det som [Registrera vad som sades](#registrera-vad-som-sades) visar; anrop som gjordes innan dess förblir utan text.
+Din instrumentering registrerar inte innehåll, eller så skickar den det som logghändelser och appens loggar når inte OneUptime. Slå på det som [Registrera vad som sades](#registrera-vad-som-sades) visar, och skicka loggarna med traces; anrop som gjordes innan dess förblir utan text.
 :::
 
 :::details Varje anrop i en chatt visas som en egen konversation
@@ -375,8 +383,12 @@ Anropen bär inget konversations-id. Sätt `gen_ai.conversation.id` eller `sessi
 Modellen finns inte i den inbyggda prislistan, eller så nämner spannet ingen modell. Lägg till modellens priser på fliken **Priser**; anrop som kommer in efter det prissätts. Ett Azure OpenAI-anrop prissätts efter modellen som betjänade det, `gen_ai.response.model`: när spannet inte nämner någon, prissätt deploymentens namn.
 :::
 
-:::details Fliken Användning säger från GenAI-mätvärden och visar `—` för anrop
-Talen kommer från ett verktyg som skickar mätvärden och inga GenAI-spans, som en kodassistent. Ett mätvärde bär kostnad och tokens men inga detaljer per anrop, så cellerna för anrop förblir tomma. Se [Spans först, mätvärden fyller i](#spans-först-mätvärden-fyller-i).
+:::details Fliken Användning säger Från användningsmätvärden och visar `—` för anrop
+Talen kommer från en tjänst som skickar mätvärden och inga GenAI-spans, till exempel en kodassistent. Ett mätvärde bär kostnad och tokens men inga detaljer per anrop, så cellerna för anrop förblir tomma. Se [Varje tjänst räknas utifrån det den skickar](#varje-tjänst-räknas-utifrån-det-den-skickar).
+:::
+
+:::details Kostnaden på fliken Användning är lägre än kostnaderna under Anrop sammanlagt
+Vissa spans upprepar tokens och kostnad för anropen i dem, till exempel en agentkörning eller ett ramverks span runt SDK:ns eget span. **Anrop** listar varje span med dess egna tal, medan fliken Användning, budgetar och listan **Konversationer** räknar varje modellanrop en gång.
 :::
 
 :::details En budgetmonitor växlar mellan två tillstånd
@@ -386,7 +398,7 @@ Monitorns rullande fönster är kortare än 15 minuter, så ibland hittar den in
 ## Nästa steg
 
 :::cards
-- [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts): Användning och kostnad för dina konton hos OpenAI, Anthropic, Azure, Bedrock och Vertex AI, utan kod.
+- [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts): Användning och kostnad för dina konton hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI och Cursor, utan kod.
 - [Företagets AI-verktyg](/docs/telemetry/ai-company-tools): Vad dina medarbetare frågar Claude Enterprise och Microsoft 365 Copilot.
 - [AI-kodassistenter](/docs/telemetry/ai-coding-assistants): Kostnad per utvecklare för Claude Code, Cursor, Codex, Gemini CLI och Copilot.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Traca alla appars modellanrop från en enda LiteLLM- eller Portkey-gateway.

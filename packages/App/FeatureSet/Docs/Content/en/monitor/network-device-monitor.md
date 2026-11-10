@@ -66,7 +66,7 @@ The Network menu keeps what you open every day in view: **Overview**, **Devices*
 
 | Section | Pages |
 | --- | --- |
-| **Topology** | **Device Topology**, **Endpoints**, **Latency Matrix**, **Site Links**, **Device Links** |
+| **Topology** | **Device Topology**, **Discovered Devices**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Rules** | **Auto Import Rules**, **Site Assignment Rules**, **Owner Rules**, **Label Rules**, **Link Rules** |
 | **Settings** | **Alert Policies**, **SNMP Credentials**, **Device Roles**, **Site Types**, **Address Names**, **OID Collection Templates** |
 | **Advanced** | **SNMP Walk**, **Archived Devices** |
@@ -976,6 +976,19 @@ For the map to fill in:
 
 Click an unmanaged peer and **Add to Monitoring** registers it as a probe-polled device. It takes the probe its neighbours agree on, so it is pinged from its first poll, and you can add credentials later if it turns out to have SNMP.
 
+### Discovered devices
+
+**Network → Topology → Discovered Devices** lists every device your switches, routers and network controllers have seen, monitored or not. It opens on **Not monitored**, the devices still to decide on; **Monitored**, **Hidden from map** and **All** show the others. The map's **Discovered Devices** button opens it and says how many devices are not monitored; on a site's map, it opens that site's list. A device's **Name** is the classification you gave it with **Edit classification**, else its hostname, IP address or MAC address, never its maker. Beside it are its **IP Address**, **MAC Address**, **Vendor**, **Seen On** (the switch, its port and the VLAN), **Last Seen** and **State**: **Monitored**, with a link to the device, **Discovered only**, **Hidden from map** or **Not seen recently**. The search finds a device by its name, IP address, vendor or MAC address, with or without separators. **Last Seen** says when a device was last there.
+
+Select devices, or every device that matches the search, then:
+
+- **Add to monitoring** imports them as a scan's hosts are imported (see [Importing what a scan found](#importing-what-a-scan-found)), with the same choices: how often they are checked, and whether each gets a monitor from a monitor template. A **Device Role** says what they are, and an **SNMP Credential Profile** walks them; with no profile, a device is pinged, and walked with its site's default profile when the site has one. Each device goes into the site it was seen in, keeps the MAC address it was seen with, and is polled by the probe of the switch that saw it. Devices monitored already are left out, and so is a device with no IP address yet, until a router's ARP table or a network controller reports one: the window lists both, with why. Nothing is added twice: a device whose MAC address already belongs to a device in the project, or whose IP address already belongs to a device in its site, reads **Already added**. The import runs on the server, so you can close the window: the list shows the import until it is done.
+- **Hide from map** takes them off the topology map for everyone in the project, once you confirm. Nothing is deleted, and a monitored device is never hidden: the map draws it as the device it is, and its monitoring does not change. **Show on map** puts them back, and **Show them**, beside the map's count of hidden nodes, shows every node hidden in the project again at once.
+
+A row's own buttons do the same for one device. On the map, a node's IP address is drawn under its name, and the search finds a node by its IP address or MAC address too, however a switch printed it. Click a discovered device on the map and its panel offers **Add to Monitoring**, which adds it the same way, as well as **Hide from map**.
+
+A device not seen for 30 days is removed from the list and the map, unless it is monitored, classified, or one someone added or changed. The line under the list says how long devices stay; Project Owners and Project Admins change it under **More settings → Unseen Devices → Remove after**: 7, 14, 30, 60, 90, 180 or 365 days, or **Never**. The list is checked every hour, and nothing a switch or controller saw is removed while it isn't reporting. A removed device that is seen again comes back as a new one, shown on the map even if it was hidden before.
+
 ### Choose the layout the map opens on
 
 **Map options → Arrange the map** lays the map out as **Automatic**, **By network layer**, **Concentric**, **Hub and spoke** or **Parent and child**. The map opens on the layout tagged **Default**: **Automatic** for all devices and **By network layer** for a site, unless your project has chosen a layout for everyone. Anyone can switch layouts while they look; the map opens on the default again next time.
@@ -1018,7 +1031,7 @@ For that, the map has to know which learned MAC is the device's. There are two w
 
 The switch the device hangs off needs **Collect Connected Endpoints** on as well: that is where the port comes from. Addresses are matched within the device's site, since every branch has a `10.0.0.5`; a MAC matches whatever the site.
 
-A [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) does all of this with nothing to turn on. Meraki's client list says which switch and port each client is on, so a device is placed once that switch is a network device here, in the same site. The list gives the device its MAC address too, and what Meraki calls a client appears in the **Hostname** column under **Endpoints**. It is read every two hours, so a new device can take that long to appear. While Meraki reports a client, its port outranks a walked forwarding table, because Meraki can tell an access port from an uplink. A Wi-Fi client is placed on its access point only when it is a device here: the phones on a guest network stay off the map.
+A [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) does all of this with nothing to turn on. Meraki's client list says which switch and port each client is on, so a device is placed once that switch is a network device here, in the same site. The list gives the device its MAC address too, and what Meraki calls a client is the device's name in **Discovered Devices** and on the map, unless you give it a classification of your own. It is read every two hours, so a new device can take that long to appear. While Meraki reports a client, its port outranks a walked forwarding table, because Meraki can tell an access port from an uplink. A Wi-Fi client is placed on its access point only when it is a device here: the phones on a guest network stay off the map.
 
 The device's Overview has a **Connected to** card naming the switch, port and VLAN. A switch, router or firewall that reports its neighbours over LLDP or CDP lists them there instead: its own port, the neighbour (a link when it is a device here) and the port at the far end, with **Open the map** beside them. On the map, the device's drawer shows the same under **Connected to**, and the link's drawer says it was learned from the switch's forwarding table. The Parent-Child view draws the device beneath its switch. A link you drew by hand under **Device Links** for the same pair merges with the learned one rather than doubling it: the learned port replaces a mistyped one, and a parent you set on the hand-drawn link is kept.
 

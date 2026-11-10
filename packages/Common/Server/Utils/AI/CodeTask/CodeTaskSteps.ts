@@ -11,7 +11,10 @@ import {
  * The code agent reports every tool call as a progress line - "[time]
  * [INFO   ] [Handler] read src/api/user.ts" - carrying the tool's name. Those
  * become steps in plain words: Read a file, Edited a file, Searched for a
- * pattern, Ran a command. The pull request a run opened is a step of its own.
+ * pattern or a file name, Ran a command (a read-only git one too). Its other
+ * tools - deleting or moving a file, its plan, reading a long output again -
+ * are said as they happened, as notes. The pull request a run opened is a
+ * step of its own.
  * The pipeline's other lines (cloned, created a branch, pushed) are kept as
  * notes, without their timestamp and severity prefix; the verbatim log is on
  * the task's Log page.
@@ -37,6 +40,9 @@ const NOISE_PREFIXES: Array<string> = [
   "Starting tool loop",
   "Tool loop finished",
 ];
+
+// How the code agent's git tool says a read-only git command did not work.
+const GIT_FAILURE_ENDINGS: Array<string> = [" (failed)", " (timed out)"];
 
 // A step's subject is cut here, so one long command cannot flood the page.
 export const MAX_STEP_SUBJECT_LENGTH: number = 300;
@@ -180,6 +186,47 @@ export default class CodeTaskSteps {
             CodeTaskStepKind.Edited,
             CodeTaskSteps.beforeLastParenthesis(narration.substring(6)),
           );
+        }
+        break;
+      case "edit_file":
+        // "edited src/x.ts (2 replacements)"
+        if (narration.startsWith("edited ")) {
+          return step(
+            CodeTaskStepKind.Edited,
+            CodeTaskSteps.beforeLastParenthesis(narration.substring(7)),
+          );
+        }
+        break;
+      case "find_files":
+        if (narration.startsWith("searched file names for ")) {
+          return step(
+            CodeTaskStepKind.Searched,
+            CodeTaskSteps.unquote(narration.substring(24)),
+          );
+        }
+        break;
+      case "git":
+        /*
+         * "ran git diff -- src/x.ts", or with " (failed)" or " (timed out)"
+         * after it: only that is cut off, since a path may hold " (".
+         */
+        if (narration.startsWith("ran git ")) {
+          const outcome: string | undefined = GIT_FAILURE_ENDINGS.find(
+            (ending: string): boolean => {
+              return narration.endsWith(ending);
+            },
+          );
+
+          return {
+            ...step(
+              CodeTaskStepKind.Ran,
+              narration.substring(
+                4,
+                narration.length - (outcome ? outcome.length : 0),
+              ),
+            ),
+            isError: data.isErrorLine || outcome !== undefined,
+          };
         }
         break;
       case "list_directory":

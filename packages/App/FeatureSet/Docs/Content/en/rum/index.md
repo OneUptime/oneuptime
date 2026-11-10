@@ -42,10 +42,10 @@ An application's own side menu groups its pages like this; **Settings**, **Devel
 | --- | --- |
 | **Basic** | **Overview**, **Recommendations**, **Documentation** |
 | **Observability** | **Metrics**, **Logs**, **Traces**, **Clients** |
-| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Replay Access Log**, **Documentation** |
+| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Frustration Signals**, **Replay Access Log**, **Documentation** |
 | **Settings** | **Settings** |
 | **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** |
-| **Advanced** | **Delete Application** |
+| **Advanced** | **Audit Logs**, **Delete Application** |
 
 ## How OneUptime recognises RUM
 

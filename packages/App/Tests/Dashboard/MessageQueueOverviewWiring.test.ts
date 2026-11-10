@@ -144,12 +144,13 @@ describe("the queue Overview's data loading", () => {
     );
     expect(effect).toContain("telemetryInFlightRef.current = true;");
     /*
-     * The answer, the two reads after it (the services' names, the
-     * namespace's series) and the failure all check it.
+     * The answer, the three reads after it (the services' names, the cloud
+     * connections' names, the namespace's series) and the failure all
+     * check it.
      */
-    expect(countOf(effect, "if (ignore) { return; }")).toBe(4);
+    expect(countOf(effect, "if (ignore) { return; }")).toBe(5);
     expect(effect).toContain(
-      "await Promise.all([readServiceNames(), readNamespace()]);",
+      "await Promise.all([ readServiceNames(), readConnectionNames(), readNamespace(), ]);",
     );
     expect(effect).toContain("return () => { ignore = true; };");
   });
@@ -339,7 +340,7 @@ describe("the queue's telemetry queries", () => {
     const namespace: string = between(
       OVERVIEW,
       "const readNamespace: () => Promise<void> =",
-      "await Promise.all([readServiceNames(), readNamespace()]);",
+      "await Promise.all([ readServiceNames(), readConnectionNames(), readNamespace(), ]);",
     );
     expect(namespace).toContain("!shouldReadMessageQueueNamespace({");
     expect(
@@ -358,6 +359,30 @@ describe("the queue's telemetry queries", () => {
     expect(arrivals).toContain("entityKeys: entityKeys,");
     expect(arrivals).not.toContain("attributes:");
     expect(arrivals).toContain("groupBy: { name: true },");
+    // The week's read is grouped by the cloud connection too: its sources.
+    expect(arrivals).toContain(
+      "groupByAttributeKeys: bySource ? [MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY] : undefined,",
+    );
+    expect(arrivals).toContain(
+      "read(recentSince, AggregationInterval.Minute, false), read(since, AggregationInterval.Hour, true),",
+    );
+    expect(arrivals).toContain(
+      "sources: getMessageQueueBrokerMetricSources(lookback),",
+    );
+
+    // The connections' names: only theirs, only when the arrivals name any.
+    const names: string = between(
+      OVERVIEW,
+      "const readConnectionNames: () => Promise<void> =",
+      "const readNamespace: () => Promise<void> =",
+    );
+    expect(names).toContain(
+      "const ids: Array<string> = arrivals?.sources.connectionIds || []; if (ids.length === 0) { return; }",
+    );
+    expect(names).toContain("modelType: CloudConnection,");
+    expect(names).toContain("select: { _id: true, name: true },");
+    expect(names).toContain("if (ignore) { return; }");
+    expect(OVERVIEW).toContain("connectionNames={connectionNames}");
     expect(OVERVIEW).toContain(
       "fetchMessageQueueBrokerMetricArrivalsCached({ projectId, keys, metrics: catalog, cache: brokerArrivalsCacheRef.current, })",
     );

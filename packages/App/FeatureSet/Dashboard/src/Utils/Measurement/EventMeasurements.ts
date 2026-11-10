@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import AlertMeasurement from "Common/Models/DatabaseModels/AlertMeasurement";
 import AlertMeasurementValue from "Common/Models/DatabaseModels/AlertMeasurementValue";
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -561,7 +562,7 @@ const formatMeasurementAmount: FormatMeasurementAmountFunction = (
       : { maximumFractionDigits: 1 };
 
   try {
-    return amount.toLocaleString(language, options);
+    return amount.toLocaleString(getNumberLocale(language), options);
   } catch {
     return amount.toLocaleString(undefined, options);
   }

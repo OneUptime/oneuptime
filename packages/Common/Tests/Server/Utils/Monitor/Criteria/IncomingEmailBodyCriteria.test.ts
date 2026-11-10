@@ -200,6 +200,43 @@ describe("IncomingEmailCriteria - CheckOn.EmailBody", () => {
   });
 
   /*
+   * "Email body is not empty. Value: ..." is a root cause, and goes out in
+   * email, Slack and Teams: the body is quoted as the incident's evidence
+   * quotes a value - redacted, on one line, bounded (MonitorQuotedValue,
+   * #6341).
+   */
+  describe("Is Not Empty quotes the body as a root cause may", () => {
+    const BODY_NOT_EMPTY: CriteriaFilter = {
+      checkOn: CheckOn.EmailBody,
+      filterType: FilterType.IsNotEmpty,
+      value: undefined,
+    };
+
+    test("credentials and personal data in the body are masked, its lines joined", async () => {
+      expect(
+        await evaluate(
+          "Backup failed for jane@acme.example.\n\nRetry with password=hunter2\nCard on file: 4111 1111 1111 1111",
+          BODY_NOT_EMPTY,
+        ),
+      ).toBe(
+        "Email body is not empty. Value: Backup failed for [REDACTED]. Retry with password=[REDACTED] Card on file: [REDACTED]",
+      );
+    });
+
+    test("a long body is cut where the evaluation details cut a value", async () => {
+      const body: string = `Report: ${"ok ".repeat(400)}`;
+
+      expect(await evaluate(body, BODY_NOT_EMPTY)).toBe(
+        `Email body is not empty. Value: ${body.trim().slice(0, 300)}…`,
+      );
+    });
+
+    test("an empty body is not quoted", async () => {
+      expect(await evaluate("  \n", BODY_NOT_EMPTY)).toBeNull();
+    });
+  });
+
+  /*
    * The arrival-clock check is no longer part of the defaults, but users can
    * still add it by hand, so it must keep working alongside the body check.
    */

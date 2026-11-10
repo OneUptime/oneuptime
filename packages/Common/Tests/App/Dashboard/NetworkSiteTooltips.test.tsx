@@ -326,7 +326,7 @@ describe("the site Overview hero", () => {
     ["Uptime (30d)", "uptime30d"],
     ["Devices", "devices"],
     ["Child Sites", "childSites"],
-    ["Endpoints", "endpoints"],
+    ["Discovered Devices", "endpoints"],
   ];
 
   test("the six metric tiles, and not Site Type, carry an (i)", async () => {

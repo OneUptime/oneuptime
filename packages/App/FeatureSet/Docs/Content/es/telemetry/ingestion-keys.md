@@ -122,6 +122,8 @@ Para cambiar un secreto sin perder datos, cree una segunda clave, pase sus emiso
 
 Una solicitud rechazada recibe un estado y una frase que dice por qué.
 
+La página de la clave también lleva la cuenta: **Telemetría rechazada** muestra lo que se rechazó de la clave en los últimos 30 días, por qué, en qué endpoint, cuántas solicitudes y cuándo. Una clave que falta o está mal escrita no pertenece a ningún proyecto, así que nada la cuenta.
+
 | Respuesta | Qué significa |
 | --- | --- |
 | `401` con `Missing ingestion token` | La solicitud no lleva clave. Envíela en `x-oneuptime-token`. |

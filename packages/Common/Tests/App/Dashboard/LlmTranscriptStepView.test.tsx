@@ -75,6 +75,7 @@ function renderStep(
     isCurrent?: boolean;
     personLabel?: string;
     onReplayFromHere?: (() => void) | undefined;
+    isContentHidden?: boolean;
   } = {},
 ): HTMLElement {
   render(
@@ -86,6 +87,7 @@ function renderStep(
         traceRoute={TRACE_ROUTE}
         setupRoute={SETUP_ROUTE}
         onReplayFromHere={props.onReplayFromHere}
+        isContentHidden={props.isContentHidden}
       />
     </MemoryRouter>,
   );
@@ -471,6 +473,25 @@ describe("failures, unrecorded answers, activity and instructions", () => {
     expect(
       screen.getByText("How to record prompts and answers").closest("a"),
     ).toHaveAttribute("href", SETUP_ROUTE.toString());
+    expect(screen.getByTestId("llm-step-meta")).toBeInTheDocument();
+  });
+
+  test("an answer whose content is hidden - its log events were not read - is not said to be unrecorded", () => {
+    renderStep(makeStep(LlmTranscriptStepType.SilentAnswer, {}), {
+      isContentHidden: true,
+    });
+
+    expect(
+      screen.getByText("The AI answered. What it said isn't shown."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("The AI answered. What it said was not recorded."),
+    ).not.toBeInTheDocument();
+    // Recording is not what is missing: no way to set it up.
+    expect(
+      screen.queryByText("How to record prompts and answers"),
+    ).not.toBeInTheDocument();
+    // Its time, tokens and cost still show.
     expect(screen.getByTestId("llm-step-meta")).toBeInTheDocument();
   });
 

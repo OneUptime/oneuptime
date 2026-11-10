@@ -8,7 +8,10 @@ import AIInvestigationEngine, {
   InvestigationRequest,
 } from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import { ConfidenceSignal } from "../../../../Server/Utils/AI/SRE/ConfidenceSignal";
-import { ObservabilityAssistantResult } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import {
+  ObservabilityAssistantExtraTool,
+  ObservabilityAssistantResult,
+} from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AutoRemediationRuleService from "../../../../Server/Services/AutoRemediationRuleService";
 import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
@@ -37,6 +40,8 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import RunbookTriggerType from "../../../../Types/Runbook/RunbookTriggerType";
 import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
+import { EXPLAIN_NO_FIX_TOOL_NAME } from "../../../../Types/AutoRemediation/RemediationRound";
+import { EXPLAIN_NO_RUNBOOK_RULE } from "../../../../Server/Utils/AI/Remediation/RemediationRoundRun";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -764,9 +769,10 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
   });
 
   /*
-   * A resource round (a Docker host's, a database server's, ...) is named
-   * by its resource on the feed, never as "AI rule ...";
-   * rule and cluster rounds read exactly as before.
+   * A cluster's or a resource's round (a Docker host's, a database
+   * server's, ...) is named by what it ran on, on the feed - as the
+   * execution runner names it - never as "AI rule ..."; a rule round
+   * reads exactly as before.
    */
   describe("how the feed note names the stranded round", () => {
     const RESOURCE_ID: ObjectID = new ObjectID(
@@ -816,14 +822,20 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
       ).select;
       expect(select["resourceType"]).toBe(true);
       expect(select["resourceId"]).toBe(true);
+      expect(select["kubernetesClusterId"]).toBe(true);
+      expect(select["autoRemediationRuleId"]).toBe(true);
     });
 
     it("a resource round is named by its resource", async () => {
       mockPlanningList(resourceRound());
       mockRun({ status: AIRunStatus.Error });
 
+      /*
+       * A command round says what did not happen in its own words, never
+       * "no runbook was proposed" (issue #6436).
+       */
       expect(await settleAndReadFeed()).toBe(
-        '⚡ **AI remediation for Docker host "web-1": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+        '⚡ **AI remediation for Docker host "web-1": the AI fix did not finish** (the planning run failed) — nothing was run or proposed.',
       );
     });
 
@@ -864,10 +876,40 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
       );
     });
 
-    it("negative control: a cluster round's note is unchanged", async () => {
+    /*
+     * It read 'AI rule "AI remediation for cluster "prod-us""': a cluster
+     * round is named by its cluster, as the execution runner names it.
+     */
+    it("a cluster round is named by its cluster", async () => {
       mockPlanningList({
         autoRemediationRuleId: undefined,
         kubernetesClusterId: RULE_ID,
+        ruleNameSnapshot: 'AI remediation for cluster "prod-us"',
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+      });
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **AI remediation for cluster "prod-us": the AI fix did not finish** (the planning run failed) — nothing was run or proposed.',
+      );
+    });
+
+    it("a round on a cluster deleted since is named by the name it carries", async () => {
+      mockPlanningList({
+        autoRemediationRuleId: undefined,
+        kubernetesClusterId: undefined,
+        ruleNameSnapshot: 'AI remediation for cluster "prod-us" (round 2)',
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+      });
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **AI remediation for cluster "prod-us" (round 2): the AI fix did not finish** (the planning run failed) — nothing was run or proposed.',
+      );
+    });
+
+    it("negative control: a rule named like a cluster round keeps its rule label", async () => {
+      mockPlanningList({
         ruleNameSnapshot: 'AI remediation for cluster "prod-us"',
       });
       mockRun({ status: AIRunStatus.Error });
@@ -1336,6 +1378,390 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
 
       expect(recorded.starts).not.toHaveBeenCalled();
       expect(statuses(recorded)).toEqual(["Planning->Suggested"]);
+    });
+  });
+});
+
+/*
+ * A ROUND OF AN AI FIX, TRIED AGAIN - AND ONE THAT ENDS WITHOUT A FIX
+ * (issues #6436, #6487).
+ *
+ * A round tried again (RemediationRound.tryAgain) names its new run on the
+ * suggestion before the run exists: a planning run that is not the round's
+ * own - its older run, or a second press's - never picks for it, and the
+ * sweep leaves a round whose new run is on its way alone. A command round
+ * that did not finish says what did not happen in its own words, never
+ * "No runbook was proposed" (the issue's screenshot). And a planning run
+ * is told to explain a pick of none with explain_no_fix, which it is
+ * handed.
+ */
+describe("RemediationPlanRunner: rounds tried again, and rounds without a fix", () => {
+  const OTHER_RUN_ID: ObjectID = new ObjectID(
+    "99999999-9999-4999-8999-999999999990",
+  );
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe("a planning run that is not the round's own", () => {
+    beforeEach(() => {
+      jest
+        .spyOn(AIRunService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+    });
+
+    it("picks nothing, writes nothing and completes quietly", async () => {
+      mockHappyPathLoads();
+      jest
+        .spyOn(AutoRemediationSuggestionService, "findOneById")
+        .mockResolvedValue(fakeSuggestion({ aiRunId: OTHER_RUN_ID }));
+      const settle: jest.SpyInstance = jest
+        .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+      const executeRun: jest.SpyInstance = jest
+        .spyOn(AIInvestigationEngine, "executeRun")
+        .mockResolvedValue(undefined as never);
+
+      await RemediationPlanRunner.executePlan({
+        aiRunId: RUN_ID,
+        projectId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID,
+        attemptCount: 1,
+      });
+
+      expect(executeRun).not.toHaveBeenCalled();
+      expect(settle).not.toHaveBeenCalled();
+      expect(IncidentFeedService.createIncidentFeedItem).not.toHaveBeenCalled();
+      expect(AIRunService.attemptStatusTransition).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aiRunId: RUN_ID,
+          set: expect.objectContaining({ status: AIRunStatus.Completed }),
+        }),
+      );
+    });
+
+    it("reads whose run the round is", async () => {
+      mockHappyPathLoads();
+      jest
+        .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+      captureContext();
+
+      await RemediationPlanRunner.executePlan({
+        aiRunId: RUN_ID,
+        projectId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID,
+        attemptCount: 1,
+      });
+
+      const select: Record<string, unknown> = (
+        (AutoRemediationSuggestionService.findOneById as unknown as jest.Mock)
+          .mock.calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(select["aiRunId"]).toBe(true);
+    });
+
+    it("negative control: the round's own run picks as before", async () => {
+      mockHappyPathLoads();
+      jest
+        .spyOn(AutoRemediationSuggestionService, "findOneById")
+        .mockResolvedValue(fakeSuggestion({ aiRunId: RUN_ID }));
+      const settle: jest.SpyInstance = jest
+        .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+      captureContext();
+
+      await RemediationPlanRunner.executePlan({
+        aiRunId: RUN_ID,
+        projectId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID,
+        attemptCount: 1,
+      });
+
+      expect(AIInvestigationEngine.executeRun).toHaveBeenCalledTimes(1);
+      expect(settle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          set: expect.objectContaining({
+            status: AutoRemediationSuggestionStatus.Suggested,
+            runbookId: RUNBOOK_A_ID.toString(),
+          }),
+        }),
+      );
+    });
+
+    it("negative control: a round whose run is not linked yet is still the run's own", async () => {
+      mockHappyPathLoads();
+      jest
+        .spyOn(AutoRemediationSuggestionService, "findOneById")
+        .mockResolvedValue(fakeSuggestion({ aiRunId: undefined }));
+      jest
+        .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+      captureContext();
+
+      await RemediationPlanRunner.executePlan({
+        aiRunId: RUN_ID,
+        projectId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID,
+        attemptCount: 1,
+      });
+
+      expect(AIInvestigationEngine.executeRun).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("a pick of none is explained", () => {
+    beforeEach(() => {
+      jest
+        .spyOn(AIRunService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+      jest
+        .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+    });
+
+    it("the planning run is handed explain_no_fix, and only it, as its own tool", async () => {
+      mockHappyPathLoads();
+      captureContext();
+
+      await RemediationPlanRunner.executePlan({
+        aiRunId: RUN_ID,
+        projectId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID,
+        attemptCount: 1,
+      });
+
+      const request: InvestigationRequest = (
+        (AIInvestigationEngine.executeRun as unknown as jest.Mock).mock
+          .calls[0]![0] as { request: InvestigationRequest }
+      ).request;
+      expect(
+        (request.extraTools || []).map(
+          (tool: ObservabilityAssistantExtraTool): string => {
+            return tool.definition.name;
+          },
+        ),
+      ).toEqual([EXPLAIN_NO_FIX_TOOL_NAME]);
+    });
+
+    it("the brief tells it to call the tool when it picks none, naming the candidates as the fixes", async () => {
+      mockHappyPathLoads();
+      const context: { get: () => string } = captureContext();
+
+      await RemediationPlanRunner.executePlan({
+        aiRunId: RUN_ID,
+        projectId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID,
+        attemptCount: 1,
+      });
+
+      expect(context.get()).toContain(EXPLAIN_NO_RUNBOOK_RULE);
+      expect(EXPLAIN_NO_RUNBOOK_RULE).toContain(
+        `call ${EXPLAIN_NO_FIX_TOOL_NAME} once`,
+      );
+      expect(EXPLAIN_NO_RUNBOOK_RULE).toContain("candidate runbook");
+    });
+
+    it("both framings carry the rule, with no placeholder left", () => {
+      for (const mode of [
+        AutoRemediationExecutionMode.Suggest,
+        AutoRemediationExecutionMode.FullAuto,
+        undefined,
+      ]) {
+        const framing: string = getRemediationPlanningFraming(mode);
+
+        expect(framing).toContain(EXPLAIN_NO_RUNBOOK_RULE);
+        expect(framing).not.toContain("{{EXPLAIN_NO_RUNBOOK}}");
+        // Among the rules, before the selection line.
+        expect(framing.indexOf(EXPLAIN_NO_RUNBOOK_RULE)).toBeLessThan(
+          framing.indexOf("SELECTION"),
+        );
+      }
+    });
+  });
+
+  describe("the sweep", () => {
+    function mockPlanningRound(
+      overrides: Partial<Record<string, unknown>> = {},
+    ): void {
+      jest
+        .spyOn(AutoRemediationSuggestionService, "findBy")
+        .mockResolvedValue([fakeSuggestion({ aiRunId: RUN_ID, ...overrides })]);
+    }
+
+    function mockRunRead(run: Partial<Record<string, unknown>> | null): void {
+      jest.spyOn(AIRunService, "findOneById").mockResolvedValue(
+        run
+          ? ({
+              id: RUN_ID,
+              _id: RUN_ID.toString(),
+              ...run,
+            } as unknown as AIRun)
+          : null,
+      );
+    }
+
+    interface Swept {
+      settle: jest.SpyInstance;
+      feed: jest.SpyInstance;
+    }
+
+    async function sweep(): Promise<Swept> {
+      const settle: jest.SpyInstance = jest
+        .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+      const feed: jest.SpyInstance = jest
+        .spyOn(IncidentFeedService, "createIncidentFeedItem")
+        .mockResolvedValue(undefined as never);
+
+      await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+      return { settle, feed };
+    }
+
+    function settledRationale(swept: Swept): string {
+      return String(
+        (
+          swept.settle.mock.calls[0]![0] as {
+            set: { rationaleMarkdown: string };
+          }
+        ).set.rationaleMarkdown,
+      );
+    }
+
+    function feedText(swept: Swept): string {
+      return String(
+        (swept.feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+          .feedInfoInMarkdown,
+      );
+    }
+
+    it("a command round that did not finish says nothing was run or proposed - never that no runbook was", async () => {
+      mockPlanningRound({
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+      });
+      mockRunRead({ status: AIRunStatus.Error });
+
+      const swept: Swept = await sweep();
+
+      expect(settledRationale(swept)).toBe(
+        "The AI fix did not finish — the planning run failed. Nothing was run or proposed.",
+      );
+      expect(feedText(swept)).toBe(
+        '⚡ **AI rule "Restart API pods": the AI fix did not finish** (the planning run failed) — nothing was run or proposed.',
+      );
+      expect(settledRationale(swept)).not.toContain("runbook");
+      expect(feedText(swept)).not.toContain("runbook");
+    });
+
+    it("a command round's words carry each reason it stopped", async () => {
+      const reasons: Array<[AIRunStatus, string]> = [
+        [AIRunStatus.Error, "the planning run failed"],
+        [
+          AIRunStatus.Cancelled,
+          "the planning run expired in the queue before it could start",
+        ],
+        [AIRunStatus.Stale, "the planning run stopped responding"],
+      ];
+
+      for (const [status, reason] of reasons) {
+        jest.restoreAllMocks();
+        mockPlanningRound({
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+        });
+        mockRunRead({ status });
+
+        const swept: Swept = await sweep();
+
+        expect(settledRationale(swept)).toBe(
+          `The AI fix did not finish — ${reason}. Nothing was run or proposed.`,
+        );
+      }
+    });
+
+    it("negative control: a runbook round keeps its words", async () => {
+      mockPlanningRound({
+        suggestionType: AutoRemediationSuggestionType.Runbook,
+      });
+      mockRunRead({ status: AIRunStatus.Error });
+
+      const swept: Swept = await sweep();
+
+      expect(settledRationale(swept)).toBe(
+        "AI planning did not produce a proposal — the planning run failed. No runbook was proposed; you can still start one manually from the Runbooks card.",
+      );
+      expect(feedText(swept)).toBe(
+        '⚡ **AI rule "Restart API pods": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+      );
+    });
+
+    it("negative control: a round saved with no type keeps the runbook words", async () => {
+      mockPlanningRound({ suggestionType: undefined });
+      mockRunRead({ status: AIRunStatus.Error });
+
+      const swept: Swept = await sweep();
+
+      expect(settledRationale(swept)).toContain("No runbook was proposed");
+    });
+
+    it("leaves a round tried again a moment ago alone while its new run is on its way", async () => {
+      mockPlanningRound({ updatedAt: new Date() });
+      mockRunRead(null);
+
+      const swept: Swept = await sweep();
+
+      expect(swept.settle).not.toHaveBeenCalled();
+      expect(swept.feed).not.toHaveBeenCalled();
+    });
+
+    it("settles a round whose run is missing once the grace is over", async () => {
+      mockPlanningRound({
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+        updatedAt: new Date(Date.now() - 30 * 60 * 1000),
+      });
+      mockRunRead(null);
+
+      const swept: Swept = await sweep();
+
+      expect(swept.settle).toHaveBeenCalledTimes(1);
+      expect(settledRationale(swept)).toBe(
+        "The AI fix did not finish — the planning run no longer exists. Nothing was run or proposed.",
+      );
+    });
+
+    it("negative control: a round with a missing run and no change time is settled, as before", async () => {
+      mockPlanningRound({ updatedAt: undefined });
+      mockRunRead(null);
+
+      const swept: Swept = await sweep();
+
+      expect(swept.settle).toHaveBeenCalledTimes(1);
+      expect(settledRationale(swept)).toContain(
+        "the planning run no longer exists",
+      );
+    });
+
+    it("negative control: the grace holds only a missing run - a failed run is settled at once", async () => {
+      mockPlanningRound({ updatedAt: new Date() });
+      mockRunRead({ status: AIRunStatus.Error });
+
+      const swept: Swept = await sweep();
+
+      expect(swept.settle).toHaveBeenCalledTimes(1);
+    });
+
+    it("reads when each Planning round last changed", async () => {
+      mockPlanningRound();
+      mockRunRead({ status: AIRunStatus.Running });
+
+      await sweep();
+
+      const select: Record<string, unknown> = (
+        (AutoRemediationSuggestionService.findBy as unknown as jest.Mock).mock
+          .calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(select["updatedAt"]).toBe(true);
     });
   });
 });

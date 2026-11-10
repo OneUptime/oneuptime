@@ -812,6 +812,11 @@ export const RumRoutePath: Dictionary<string> = {
    */
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: `${RouteParams.ModelID}/session-replay-settings`,
   /*
+   * What counts as frustration in this application's sessions (issue
+   * #6443). A hyphenated sibling for the same reason as the settings page.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS]: `${RouteParams.ModelID}/session-replay-frustration-signals`,
+  /*
    * Recording health on its own page. A hyphenated sibling for the same
    * reason as the audit page: "session-replay/health" would be a session id
    * to the player route.
@@ -7151,6 +7156,14 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS
+      ]
     }`,
   ),
 

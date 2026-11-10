@@ -1,13 +1,26 @@
 # Cursor
 
-Cursor は、チームのテレメトリを Cursor 自身のサーバーからエクスポートします。チームの管理者が Cursor のダッシュボードで OneUptime を送信先として一度追加すると、チーム全体のトークン、推定コスト、ツール呼び出しが届きます。開発者のマシンにインストールや設定をする必要はありません。
+Cursor は、チームのテレメトリを Cursor 自身のサーバーからエクスポートします。チームの管理者が Cursor のダッシュボードで OneUptime を送信先として一度追加すると、チーム全体のトークン、推定コスト、ツール呼び出しが届きます。開発者のマシンにインストールや設定をする必要はありません。Teams プランでも、OneUptime は管理者 API キーを使って、チームの使用量と Cursor が請求した額をユーザーごとに読み取れます。エクスポートの代わりにも、エクスポートと併用しても使えます。
 
 :::cards
+- [二つの方法](#二つの方法): OneUptime での管理者 API キー、または Cursor の OpenTelemetry Export。
 - [セットアップする](#セットアップする): OneUptime でキーを、Cursor で送信先を作成します。
 - [得られるもの](#得られるもの得られないもの): メトリクスとログ。トレースはありません。
 - [誰が何に使ったか](#従業員への帰属): 人は Cursor のユーザー ID として届きます。
 - [トラブルシューティング](#トラブルシューティング): 何も届かないときに確認すること。
 :::
+
+## 二つの方法
+
+| | 管理者 API キー | OpenTelemetry Export |
+| --- | --- | --- |
+| Cursor のプラン | Teams または Enterprise | Enterprise |
+| 設定場所 | OneUptime の **製品 → AI / LLM → 接続** | Cursor のダッシュボードの **Team Settings → OpenTelemetry Export** |
+| 届くもの | トークン、リクエスト、Cursor が請求した額 (時間、ユーザー、モデルごと)、Cursor を使うメンバーの人数 | トークン、推定コスト、ツール呼び出し、リクエストごとのログイベント |
+| いつから | 過去 30 日分、その後は一時間ごと | 発生時に、有効にした日から |
+| **使用量** での表示先 | **プロバイダー アカウント** | **自社の AI 呼び出し** |
+
+どちらも使用量とコストを届け、会話は届けません。一方だけでも両方でも使えます。両者は別々に保たれ、合算されることはなく、予算はその **支出の集計元** のとおり、どちらか一方を数えます。キーの接続については [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts#cursor) を参照してください。このページの残りでは OpenTelemetry Export を設定します。
 
 ## 仕組み
 
@@ -116,20 +129,20 @@ Cursor が話すのは HTTP 上の OTLP で、バイナリの protobuf のみで
 
 ### 使用量タブでの Cursor の表示
 
-Cursor はメトリクスを送り、GenAI スパンは送りません。メトリクスはスパンを補うだけです。 **同じプロジェクトがコスト付きの GenAI スパンを受け取っていると、Cursor の支出は表示されません。** Cursor は専用のプロジェクトに送ってください。[スパンが優先され、メトリクスが補う](/docs/telemetry/ai-llm-observability#スパンが優先されメトリクスが補う)を参照してください。
+Cursor はメトリクスを送り、GenAI スパンは送りません。メトリクスは Cursor 自身のサービス `cursor` の下に届くため、その支出は、アプリが同じプロジェクトに送る AI 呼び出しと並べて数えられ、それに取って代わることはありません。[各サービスは送信するデータから数えられる](/docs/telemetry/ai-llm-observability#各サービスは送信するデータから数えられる)を参照してください。
 
 | 内訳 | Cursor の場合 |
 | --- | --- |
 | **従業員** | はい。`cursor.user.email` 別、なければ `cursor.user.id` 別 |
 | **チーム** | はい。`cursor.team.id` 別 |
 | **モデル** | はい。`cursor.model.name` 別 |
-| **プロバイダー** | いいえ。Cursor はどのプロバイダーが呼び出しを処理したかを伝えない |
-| **アプリケーション / サービス** | いいえ。Cursor のメトリクスはどの OneUptime サービスにも属さない |
+| **プロバイダー** | **帰属なし** の下。Cursor はどのプロバイダーが呼び出しを処理したかを伝えない |
+| **アプリケーション / サービス** | はい。`cursor` サービスの下 |
 
-Cursor の行はコストだけを持ちます。`cursor.cost.usage` には呼び出しごとの詳細がないため、呼び出しとトークンのセルには `—` が表示されます。`cursor.token.usage` は引き続き表の上のトークン合計に使われ (`input` と `output` の種類のみ。キャッシュのトークンは除外)、`cursor.token.type` 別にダッシュボードにグラフ化できます。
+Cursor の行には名前の下に **使用量メトリクスから** と表示され、カウンターには呼び出しごとの詳細がないため、呼び出しのセルには `—` が表示されます。コストは `cursor.cost.usage` から、トークンは `cursor.token.usage` から取得し (`input` と `output` の種類のみ。キャッシュのトークンは除外)、後者は `cursor.token.type` 別にダッシュボードにグラフ化することもできます。
 
 :::details Cursor のユーザー ID を人に変換する
-名前と請求額は Cursor の Admin API にありますが、OneUptime はこれを呼び出しません。必要なら自分で呼び出してください。Enterprise 専用で、`https://api.cursor.com` にあり、管理者の API キーをユーザー名に、パスワードを空にして使います。
+名前と請求額は Cursor の Admin API にあり、キーを [プロバイダーアカウント](/docs/telemetry/ai-provider-accounts#cursor) として接続すると OneUptime がこれを読み取ります。そのアカウントは人をメールアドレスで示します。`cursor.user.id` を自分で突き合わせるには、`https://api.cursor.com` の API を、管理者 API キーをユーザー名に、パスワードを空にして呼び出します。
 
 ```bash
 curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
@@ -150,7 +163,7 @@ curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
 
 ## コストは見積もりで、請求書ではない
 
-Cursor は `cursor.cost.usage` をベストエフォートの見積もりと説明しています。含まれる使用量とオンデマンドで課金される使用量を区別せず、自分のモデルキーを使う場合は Cursor のトークン単価だけを反映してプロバイダーの請求額は反映せず、後から届く `cursor.api.correction` がすでに数えた使用量を取り消すこともあります。傾向として読んでください。請求書と一致する数値が必要なら、Cursor の Admin API の `chargedCents` を合計してください。
+Cursor は `cursor.cost.usage` をベストエフォートの見積もりと説明しています。含まれる使用量とオンデマンドで課金される使用量を区別せず、自分のモデルキーを使う場合は Cursor のトークン単価だけを反映してプロバイダーの請求額は反映せず、後から届く `cursor.api.correction` がすでに数えた使用量を取り消すこともあります。傾向として読んでください。請求書と一致する数値が必要なら、Cursor の Admin API の `chargedCents` を合計してください。[プロバイダーアカウント](/docs/telemetry/ai-provider-accounts#cursor) として接続した Cursor のチームなら、これを時間単位で自動的に行います。
 
 ## トラブルシューティング
 
@@ -163,7 +176,7 @@ Cursor は自社のサーバーから接続します。OTLP エンドポイン�
 :::
 
 :::details ログは届くが、使用量タブに Cursor の支出が表示されない
-プロジェクトがコスト付きの GenAI スパンも受け取っているため、Cursor のメトリクスは読み取られません。Cursor は専用の取り込みキーを持つ専用のプロジェクトに送ってください。
+Cursor の支出はログではなくメトリクスから来ます。Cursor のメトリクスのシグナルが有効になっていることを確認し、 **メトリクス** で `cursor.cost.usage` を探してください。ロールがメトリクスを読めない場合、使用量タブはメトリクスを除外し、そのことを示します。
 :::
 
 :::details 人が数字で表示される
@@ -174,6 +187,7 @@ Cursor は自社のサーバーから接続します。OTLP エンドポイン�
 
 :::cards
 - [AI コーディングアシスタント](/docs/telemetry/ai-coding-assistants): すべてのコーディングアシスタントで支出がどう帰属するか。
+- [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts#cursor): 管理者 API キーで、Cursor のチームの使用量と Cursor が請求した額を読み取ります。
 - [AI ゲートウェイ](/docs/telemetry/ai-gateways): 自社アプリが行うモデル呼び出しの完全なトレースとプロンプト。
 - [メトリクス モニター](/docs/monitor/metrics-monitor): `cursor.cost.usage`、`cursor.token.usage`、`cursor.tool.calls` にアラートを設定します。
 :::

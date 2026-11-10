@@ -269,6 +269,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
 import { CARD_GRID_CELL_TEST_ID } from "../../../UI/Components/Card/CardGrid";
 import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "../../../UI/Components/Card/CardGridLayout";
+import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
 import Service from "../../../Models/DatabaseModels/Service";
 import Metric from "../../../Models/AnalyticsModels/Metric";
@@ -387,6 +388,11 @@ interface Scenario {
    * namespace read (by the `name` attribute, without the key) finds them.
    */
   namespaceSeries?: Array<Record<string, string>> | undefined;
+  /*
+   * The cloud connection that delivered every arrival, as the week's read
+   * (grouped by the connection's id) finds them; a collector's otherwise.
+   */
+  arrivalsConnectionId?: string | undefined;
 }
 
 function kafkaScenario(): Scenario {
@@ -637,6 +643,14 @@ function arrivalRows(request: AggregateRequest): Rows {
         timestamp: new Date(Math.floor(at.getTime() / step) * step),
         name: name,
         value: 3,
+        ...(by.groupByAttributeKeys && scenario.arrivalsConnectionId
+          ? {
+              attributes: {
+                "resource.oneuptime.cloud.connection.id":
+                  scenario.arrivalsConnectionId,
+              },
+            }
+          : {}),
       });
     }
   }
@@ -2187,6 +2201,168 @@ describe("a queue only its broker reports", () => {
 });
 
 /*
+ * A Service Bus queue an Azure cloud connection reads: the connection reads
+ * the namespace's key metrics per queue, and the card says so — naming the
+ * connection, linked to Cloud > Connect — and calls the metrics only the
+ * collector's receiver reads "Collector only", never missing.
+ */
+describe("a queue a cloud connection reads", () => {
+  const CONNECTION_ID: string = "6a1d2c3b-4e5f-4a6b-8c7d-0e1f2a3b4c5d";
+  const CONNECTION_READS: Array<string> = [
+    "azure_activemessages_average",
+    "azure_deadletteredmessages_average",
+    "azure_incomingmessages_total",
+    "azure_outgoingmessages_total",
+    "azure_servererrors_total",
+    "azure_throttledrequests_total",
+  ];
+
+  function connectionScenario(): Scenario {
+    const base: Scenario = serviceBusScenario();
+    const metrics: Scenario["metrics"] = {};
+    const arrivals: Record<string, Date> = {};
+    for (const name of CONNECTION_READS) {
+      metrics[name] = (): Rows => {
+        return perMinute(2);
+      };
+      arrivals[name] = minutesAgo(10);
+    }
+    return {
+      ...base,
+      metrics: metrics,
+      arrivals: arrivals,
+      arrivalsConnectionId: CONNECTION_ID,
+    };
+  }
+
+  function serveConnectionNames(names: () => Promise<unknown>): void {
+    getListMock.mockImplementation((request: unknown) => {
+      const modelType: unknown = (request as { modelType?: unknown }).modelType;
+      if (modelType === CloudConnection) {
+        return names();
+      }
+      return Promise.resolve({ data: [], count: 0 });
+    });
+  }
+
+  test("the card names the connection, linked to Cloud > Connect, and what it does not read is the collector's", async () => {
+    scenario = connectionScenario();
+    serveConnectionNames((): Promise<unknown> => {
+      return Promise.resolve({
+        data: [{ _id: CONNECTION_ID, name: "Contoso production" }],
+        count: 1,
+      });
+    });
+    getItemMock.mockResolvedValue(serviceBusRow());
+
+    await renderLoaded();
+
+    const source: HTMLElement = await screen.findByTestId(
+      "message-queue-broker-metrics-source",
+    );
+    await waitFor(() => {
+      expect(source).toHaveTextContent(
+        "Read by your cloud connection (Contoso production).",
+      );
+    });
+    expect(
+      within(source)
+        .getByTestId("message-queue-broker-metrics-source-connections")
+        .closest("a"),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID_STRING}/cloud/connect`);
+
+    // One lookup of the names, of the connection the arrivals found.
+    const lookups: Array<Array<unknown>> = getListMock.mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType?: unknown }).modelType === CloudConnection
+        );
+      },
+    );
+    expect(lookups).toHaveLength(1);
+    const lookup: {
+      query: { _id: Includes };
+      select: Record<string, boolean>;
+    } = lookups[0]![0] as {
+      query: { _id: Includes };
+      select: Record<string, boolean>;
+    };
+    expect(
+      lookup.query._id.values.map((id: unknown): string => {
+        return String(id);
+      }),
+    ).toEqual([CONNECTION_ID]);
+    expect(lookup.select).toEqual({ _id: true, name: true });
+
+    // Nothing is missing: the six it does not read are the collector's.
+    const status: HTMLElement = screen.getByTestId(
+      "message-queue-broker-metrics-status",
+    );
+    expect(status).toHaveAttribute("data-health", "arriving");
+    const states: Array<string | null> = within(status)
+      .getAllByTestId("message-queue-broker-metric-status")
+      .map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-state");
+      });
+    expect(
+      states.filter((state: string | null): boolean => {
+        return state === "collectorOnly";
+      }),
+    ).toHaveLength(6);
+    expect(
+      states.filter((state: string | null): boolean => {
+        return state === "arriving";
+      }),
+    ).toHaveLength(6);
+    expect(
+      within(status).queryByTestId("message-queue-broker-metrics-finding"),
+    ).toBeNull();
+  });
+
+  test("a connection whose name cannot be read is named by where it is", async () => {
+    scenario = connectionScenario();
+    serveConnectionNames((): Promise<unknown> => {
+      return Promise.reject(new Error("403"));
+    });
+    getItemMock.mockResolvedValue(serviceBusRow());
+
+    await renderLoaded();
+
+    const source: HTMLElement = await screen.findByTestId(
+      "message-queue-broker-metrics-source",
+    );
+    expect(source).toHaveTextContent(
+      "Read by your cloud connection (Cloud > Connect).",
+    );
+  });
+
+  test("a collector alone: the card says its receiver, and no names are looked up", async () => {
+    scenario = {
+      ...serviceBusScenario(),
+      arrivals: { azure_activemessages_average: minutesAgo(10) },
+    };
+    getItemMock.mockResolvedValue(serviceBusRow());
+
+    await renderLoaded();
+
+    const source: HTMLElement = await screen.findByTestId(
+      "message-queue-broker-metrics-source",
+    );
+    expect(source).toHaveTextContent(
+      "Read by your collector's azure_monitor receiver.",
+    );
+    expect(within(source).queryByRole("link")).toBeNull();
+    expect(
+      getListMock.mock.calls.some((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType?: unknown }).modelType === CloudConnection
+        );
+      }),
+    ).toBe(false);
+  });
+});
+
+/*
  * An Azure queue none of whose metrics arrives: the card reads what its
  * namespace sent instead — the one request without the queue's key — and
  * says why none of it reached the queue.
@@ -2277,9 +2453,11 @@ describe("the Broker metrics card's namespace read", () => {
       "Namespace orders-prod reports totals only",
     );
     expect(finding).toHaveTextContent(
-      "Your Azure cloud connection reads this namespace's metrics for the namespace as a whole",
+      "Your Azure cloud connection sent only the namespace's totals in the selected range, not its figures for each queue and topic.",
     );
-    expect(finding).toHaveTextContent("EntityName");
+    expect(finding).toHaveTextContent(
+      "Check the connection's last read on Cloud > Connect: it says which resources it could not read.",
+    );
   });
 
   test("nothing from the namespace: no collector reads it, or its reads fail", async () => {

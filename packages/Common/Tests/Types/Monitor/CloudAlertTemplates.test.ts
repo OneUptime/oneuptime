@@ -3,6 +3,7 @@ import { describe, expect, test } from "@jest/globals";
 import MetricMonitorCriteria from "../../../Server/Utils/Monitor/Criteria/MetricMonitorCriteria";
 import AggregateModel from "../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
+import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
@@ -68,6 +69,10 @@ import {
   readCloudTelemetryAttributes,
 } from "../../../Types/Monitor/CloudAlertTemplates";
 import { getRdsDefaultConnectionLimit } from "../../../Types/Cloud/RdsConnectionLimits";
+import { hasCloudResourceSummedMetrics } from "../../../Types/Cloud/CloudResourceMetricAggregation";
+import { JSONObject } from "../../../Types/JSON";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import MetricQueryCloudAggregation from "../../../Utils/Metrics/MetricQueryCloudAggregation";
 import {
   CriteriaFilter,
   EvaluateOverTimeType,
@@ -2563,3 +2568,158 @@ describe.each(
     });
   },
 );
+
+/*
+ * ---------------------------------------------------------------------------
+ * A namespace's totals (#6460)
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * A Service Bus or Event Hubs namespace's metrics arrive once per queue,
+ * topic and event hub, and the namespace's number is their Sum: a count's
+ * over any interval, an amount held's while an interval is a minute
+ * (CloudResourceMetricAggregation). A monitor OneUptime recommends for a
+ * namespace reads what its Metrics tab and the monitor form read: the
+ * catalog's aggregation at the intervals the monitor reads in. Where no
+ * aggregation reads the namespace's amount (one read whole), it watches its
+ * largest queue against 1: the namespace holds one or more exactly when one
+ * of its queues does. Each query carries its aggregation, so a write fills
+ * none in (MetricQueryCloudAggregation.fillMissingAggregations) and the
+ * data migration moves none (restoreResourceTotals).
+ */
+describe("the monitors recommended for a namespace read its totals", () => {
+  const NAMESPACE_TYPES: Array<string> = [
+    "Microsoft.ServiceBus/namespaces",
+    "Microsoft.EventHub/namespaces",
+  ];
+
+  interface NamespaceStep {
+    label: string;
+    step: MonitorStep;
+  }
+
+  function namespaceSteps(): Array<NamespaceStep> {
+    return NAMESPACE_TYPES.flatMap((type: string): Array<NamespaceStep> => {
+      const attributes: Dictionary<string> = {
+        "azuremonitor.resource_id": `/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/${type}/shop`,
+      };
+
+      return getCloudAlertTemplatesForType({
+        provider: CloudProvider.Azure,
+        resourceType: type,
+      }).map((cloudTemplate: CloudAlertTemplate): NamespaceStep => {
+        return {
+          label: `${type} ${cloudTemplate.id}`,
+          step: cloudTemplate.getMonitorStep(argsFor(attributes)),
+        };
+      });
+    });
+  }
+
+  test("each namespace type adds its metrics up, and is offered its monitors", () => {
+    for (const type of NAMESPACE_TYPES) {
+      expect(
+        hasCloudResourceSummedMetrics({ provider: CloudProvider.Azure, type }),
+      ).toBe(true);
+    }
+
+    expect(
+      namespaceSteps().map((namespaceStep: NamespaceStep): string => {
+        return namespaceStep.label;
+      }),
+    ).toEqual([
+      "Microsoft.ServiceBus/namespaces cloud-azure-messaging-dead-lettered",
+      "Microsoft.ServiceBus/namespaces cloud-azure-messaging-server-errors",
+      "Microsoft.ServiceBus/namespaces cloud-azure-messaging-throttled",
+      "Microsoft.EventHub/namespaces cloud-azure-messaging-server-errors",
+      "Microsoft.EventHub/namespaces cloud-azure-messaging-throttled",
+    ]);
+  });
+
+  test("a count reads its Sum, and an amount held read whole its largest queue against 1", () => {
+    const read: Array<string> = [];
+
+    for (const { label, step } of namespaceSteps()) {
+      const metricMonitor: unknown = step.data!.metricMonitor;
+      const aggregationInterval: AggregationInterval =
+        MetricQueryCloudAggregation.getMetricMonitorReadInterval(metricMonitor);
+      const fires: CriteriaFilter = instancesOf(step)[0]!.data!.filters[0]!;
+
+      for (const query of viewConfigOf(step).queryConfigs) {
+        const filterData: MetricQueryConfigData["metricQueryData"]["filterData"] =
+          query.metricQueryData.filterData;
+        const reads: string = `${label} ${filterData.metricName}`;
+        const catalog: AggregationType | undefined =
+          MetricQueryCloudAggregation.getCatalogAggregation({
+            metricName: filterData.metricName,
+            attributes: filterData.attributes,
+            aggregationInterval,
+          });
+        const byTheMinute: AggregationType | undefined =
+          MetricQueryCloudAggregation.getCatalogAggregation({
+            metricName: filterData.metricName,
+            attributes: filterData.attributes,
+            aggregationInterval: AggregationInterval.Minute,
+          });
+
+        if (catalog) {
+          expect(`${reads}: ${filterData.aggegationType}`).toBe(
+            `${reads}: ${catalog}`,
+          );
+          read.push(`${filterData.metricName} ${aggregationInterval} Sum`);
+        } else if (byTheMinute) {
+          expect(
+            `${reads}: ${filterData.aggegationType} ${fires.filterType} ${fires.value}`,
+          ).toBe(
+            `${reads}: ${AggregationType.Max} ${FilterType.GreaterThanOrEqualTo} 1`,
+          );
+          read.push(`${filterData.metricName} ${aggregationInterval} Max`);
+        } else {
+          // A metric the namespace does not add up is never summed.
+          expect(`${reads}: ${filterData.aggegationType}`).not.toBe(
+            `${reads}: ${AggregationType.Sum}`,
+          );
+          read.push(`${filterData.metricName} ${aggregationInterval} own`);
+        }
+      }
+    }
+
+    // A count and an amount held, each read whole: neither branch is empty.
+    expect(Array.from(new Set(read)).sort()).toEqual([
+      `azure_deadletteredmessages_average ${AggregationInterval.Total} Max`,
+      `azure_servererrors_total ${AggregationInterval.Total} Sum`,
+      `azure_throttledrequests_total ${AggregationInterval.Total} Sum`,
+    ]);
+  });
+
+  test("every query carries its aggregation: a write fills none in, and the data migration moves none", () => {
+    for (const { label, step } of namespaceSteps()) {
+      const monitorSteps: MonitorSteps = new MonitorSteps();
+      monitorSteps.setMonitorStepsInstanceArray([step]);
+      monitorSteps.setDefaultMonitorStatusId(ObjectID.generate());
+      const stored: JSONObject = JSON.parse(
+        JSON.stringify(monitorSteps.toJSON()),
+      ) as JSONObject;
+      const before: string = JSON.stringify(stored);
+      const metricMonitors: Array<Record<string, unknown>> =
+        MetricQueryCloudAggregation.getStoredMetricMonitors(stored);
+
+      expect(`${label}: ${metricMonitors.length}`).toBe(`${label}: 1`);
+      expect(
+        `${label}: ${MetricQueryCloudAggregation.fillMissingAggregationsOfSteps(monitorSteps)}`,
+      ).toBe(`${label}: 0`);
+
+      for (const metricMonitor of metricMonitors) {
+        expect(
+          `${label}: ${MetricQueryCloudAggregation.fillMissingAggregations(metricMonitor)}`,
+        ).toBe(`${label}: 0`);
+        expect(
+          MetricQueryCloudAggregation.restoreResourceTotals(metricMonitor),
+        ).toEqual([]);
+      }
+
+      expect(JSON.stringify(stored)).toBe(before);
+    }
+  });
+});
