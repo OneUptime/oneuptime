@@ -54,6 +54,26 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * How an entry of one notification is drawn: a failure red, a call not
+   * answered as a warning - the page still stands, nobody has answered it
+   * yet - and one sent later as a page sent is.
+   */
+  public getNotificationColor(event: OnCallPageNotificationEvent): Color {
+    switch (event) {
+      case OnCallPageNotificationEvent.Failed:
+        return this.getColorBasedOnStatus(
+          OnCallDutyExecutionLogTimelineStatus.Error,
+        );
+      case OnCallPageNotificationEvent.NotAnswered:
+        return Yellow500;
+      default:
+        return this.getColorBasedOnStatus(
+          OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+        );
+    }
+  }
+
   public getColorBasedOnStatus(
     status: OnCallDutyExecutionLogTimelineStatus,
   ): Color {
@@ -614,8 +634,9 @@ export class Service extends DatabaseService<Model> {
   /*
    * ONE NOTIFICATION OF A PERSON'S PAGE, TOLD OF AFTER THE PAGE'S OWN ENTRY
    * (OnCallFeedText.getStepNotificationMarkdown): one their On-Call Rules
-   * sent later - "paged Nitin again via phone call" - or one that could not
-   * be sent - "could not page Nitin via SMS" - each channel once a page
+   * sent later - "paged Nitin again via phone call" -, one that could not
+   * be sent - "could not page Nitin via SMS" - or a call they did not pick
+   * up - "Nitin did not answer the phone call" - each channel once a page
    * (getOnCallPageNotificationNews). Asked for by the notification's own
    * hooks (UserOnCallLogTimelineService).
    *
@@ -651,12 +672,14 @@ export class Service extends DatabaseService<Model> {
       }
 
       /*
-       * Could not be sent: not once the person has answered - a push's
-       * failure can come back from its provider minutes later, and no longer
-       * tells how the page went.
+       * Could not be sent, or a call not answered: not once the person has
+       * answered - a push's failure can come back from its provider minutes
+       * later, and a call rings out a minute after it went out, while they
+       * acknowledged by its SMS; neither tells how the page went any more.
        */
       if (
-        data.event === OnCallPageNotificationEvent.Failed &&
+        (data.event === OnCallPageNotificationEvent.Failed ||
+          data.event === OnCallPageNotificationEvent.NotAnswered) &&
         (step.status ===
           OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
           step.status === OnCallDutyExecutionLogTimelineStatus.PassedOn ||
@@ -711,11 +734,7 @@ export class Service extends DatabaseService<Model> {
 
       await this.writeToRecordFeeds({
         step: step,
-        displayColor: this.getColorBasedOnStatus(
-          data.event === OnCallPageNotificationEvent.Failed
-            ? OnCallDutyExecutionLogTimelineStatus.Error
-            : OnCallDutyExecutionLogTimelineStatus.NotificationSent,
-        ),
+        displayColor: this.getNotificationColor(data.event),
         feedInfoInMarkdown: feedInfoInMarkdown,
       });
     } catch (error) {

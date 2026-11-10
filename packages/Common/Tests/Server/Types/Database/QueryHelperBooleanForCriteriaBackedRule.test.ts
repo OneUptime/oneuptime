@@ -917,12 +917,25 @@ describe("DatabaseService translates a boolean isEnabled on relation-only rules"
 
         const queries: Array<CapturedQuery> = takeCapturedQueries();
 
-        expect(queries).toHaveLength(1);
-        expectEffectiveEnabledPredicate(queries[0]!, {
-          alias,
-          qualified: true,
-          value: false,
-        });
+        /*
+         * The rows are read before they are deleted with every column, the
+         * rule's lists among them, for the audit log's record of what was
+         * deleted (AuditLogCoverage audits these rules). A read that joins a
+         * list with a limit is paged in two statements, and both locate the
+         * rows with the quoted predicate.
+         */
+        expect(new modelType().enableAuditLogOn?.delete).toBe(true);
+        expect(queries).toHaveLength(2);
+        expect(queries[0]!.sql).toMatch(/^SELECT DISTINCT "distinctAlias"\./);
+
+        for (const query of queries) {
+          expect(query.sql).toContain("LEFT JOIN");
+          expectEffectiveEnabledPredicate(query, {
+            alias,
+            qualified: true,
+            value: false,
+          });
+        }
       });
 
       test("hardDeleteBy renders the same operator for its SELECT and its DELETE", async () => {

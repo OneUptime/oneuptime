@@ -73,7 +73,7 @@ Voor het versturen van meldingen is alleen uitgaand HTTPS naar `api.telegram.org
 
 ### Twilio
 
-Wanneer een responder op 1 drukt om een oproep te bevestigen, stuurt Twilio de toets naar `POST /api/user-notification-log-timeline/call/gather-input/*`. De webhookadressen van Twilio veranderen, tenzij uw Twilio-editie [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy) bevat. Bezorgupdates voor sms en inkomende oproepen worden beschreven in [Twilio-integratie](/docs/self-hosted/twilio-integration).
+Wanneer een responder op 1 drukt om een oproep te bevestigen, stuurt Twilio de toets naar `POST /api/user-notification-log-timeline/call/gather-input/*`. De webhookadressen van Twilio veranderen, tenzij uw Twilio-editie [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy) bevat. Bezorgupdates voor sms, de afloop van oproepen en inkomende oproepen worden beschreven in [Twilio-integratie](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 

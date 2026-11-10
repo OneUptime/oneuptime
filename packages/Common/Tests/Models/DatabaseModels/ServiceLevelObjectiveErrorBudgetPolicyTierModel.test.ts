@@ -11,11 +11,9 @@ import Permission, {
 } from "../../../Types/Permission";
 import { SLO_RECORD_OUTPUT_RELATION_COLUMNS } from "../../../Utils/Slo/SloRecordOutputColumns";
 import { describe, expect, it } from "@jest/globals";
-import {
-  IndexMetadataArgs,
-  JoinTableMetadataArgs,
-  getMetadataArgsStorage,
-} from "typeorm";
+import { getMetadataArgsStorage } from "typeorm";
+import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
+import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
 
 /*
  * The model of a tier of an SLO's error budget policy, and the SLO columns

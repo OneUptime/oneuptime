@@ -87,7 +87,7 @@ As páginas de status oferecem só as configurações que enviam SMS, e **Enviar
 
 ## 3. Configure o acesso à rede
 
-O envio funciona só com acesso de saída. As atualizações de entrega, a confirmação pelo teclado e as chamadas recebidas precisam que o Twilio alcance o seu servidor.
+O envio funciona só com acesso de saída. As atualizações de entrega, o resultado das chamadas, a confirmação pelo teclado e as chamadas recebidas precisam que o Twilio alcance o seu servidor.
 
 ```mermaid title="Envios de saída, callbacks de entrada"
 sequenceDiagram
@@ -109,6 +109,7 @@ O acesso de entrada depende do recurso:
 | --- | --- |
 | Envio de SMS | Não. As atualizações do status de entrega, porém, precisam de um callback. |
 | Uma chamada de voz de teste simples | Não. O OneUptime envia as instruções faladas junto com a requisição de saída à API. |
+| Saber se uma chamada de plantão foi atendida | Sim. O Twilio informa como cada chamada terminou, para que o feed do incidente possa dizer quando alguém não atendeu. As chamadas saem mesmo sem isso. |
 | Pressionar 1 para confirmar um alerta de plantão | Sim. O Twilio envia a entrada do teclado ao OneUptime. |
 | Políticas de chamadas recebidas | Sim. O Twilio pede as instruções da chamada e informa os resultados da discagem. |
 
@@ -117,13 +118,14 @@ Estes são os caminhos externos, pelo gateway Nginx do OneUptime. Os marcadores 
 | Método | Caminho | Finalidade |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Status de entrega do SMS |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Resultado da chamada |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Confirmação pelo teclado |
 | POST | `/notification/incoming-call/voice` | Instruções opcionais de chamadas recebidas |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Resultados opcionais do roteamento de chamadas recebidas |
 
-O OneUptime gera automaticamente as URLs dos SMS e da confirmação. Não substitua os tokens delas por uma URL de webhook fixa. Para chamadas recebidas, siga [as políticas de chamadas recebidas](/docs/on-call/incoming-call-policy), que configuram o webhook do número quando você o associa.
+O OneUptime gera automaticamente as URLs dos SMS, do resultado das chamadas e da confirmação. Não substitua os tokens delas por uma URL de webhook fixa. Para chamadas recebidas, siga [as políticas de chamadas recebidas](/docs/on-call/incoming-call-policy), que configuram o webhook do número quando você o associa.
 
-O Twilio exige [URLs de webhook acessíveis publicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use um certificado TLS de confiança pública e preserve, através dos proxies, o host, o protocolo, o caminho, os parâmetros de consulta, o corpo e o cabeçalho `X-Twilio-Signature` originais. Os handlers de chamadas recebidas validam as assinaturas do Twilio; a entrega de SMS usa um token de URL por mensagem, e a confirmação pelo teclado, um token de consulta assinado. Não exponha os tokens em logs compartilhados nem em capturas de tela. Veja [a segurança dos webhooks do Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+O Twilio exige [URLs de webhook acessíveis publicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use um certificado TLS de confiança pública e preserve, através dos proxies, o host, o protocolo, o caminho, os parâmetros de consulta, o corpo e o cabeçalho `X-Twilio-Signature` originais. Os handlers de chamadas recebidas validam as assinaturas do Twilio; a entrega de SMS e o resultado das chamadas usam um token de URL por mensagem ou chamada, e a confirmação pelo teclado, um token de consulta assinado. Não exponha os tokens em logs compartilhados nem em capturas de tela. Veja [a segurança dos webhooks do Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Publicar callbacks a partir de uma implantação privada
 
@@ -142,7 +144,7 @@ O painel pode ficar num ingress privado: com DNS dividido, os funcionários reso
 Os endereços de origem comuns dos webhooks do Twilio mudam, então não use faixas de IP de SIP ou de mídia como lista de permissões dos callbacks. As edições do Twilio elegíveis oferecem [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Confirme a elegibilidade da sua edição e os produtos compatíveis, e configure o seu firewall com as faixas publicadas atualmente pelo Twilio; continue validando os callbacks mesmo ao usá-lo.
 
 > [!WARNING]
-> Se uma política proíbe conexões de entrada, o envio de SMS e a reprodução de voz simples embutida podem funcionar com HTTPS de saída. As atualizações de entrega de SMS, a confirmação pelo teclado e o roteamento de chamadas recebidas não funcionam sem callbacks acessíveis. Uma instalação totalmente desconectada não pode usar o Twilio.
+> Se uma política proíbe conexões de entrada, o envio de SMS e a reprodução de voz simples embutida podem funcionar com HTTPS de saída. As atualizações de entrega de SMS, o resultado das chamadas, a confirmação pelo teclado e o roteamento de chamadas recebidas não funcionam sem callbacks acessíveis. Uma instalação totalmente desconectada não pode usar o Twilio.
 
 Para desenvolvimento, o [guia de testes de webhooks](https://www.twilio.com/docs/usage/webhooks/webhook-testing) do Twilio descreve o uso de um túnel público: encaminhe-o para um proxy que permita só as rotas necessárias, configure o nome de host resultante como acima e encerre-o depois dos testes. Um túnel ainda assim abre um acesso de entrada.
 

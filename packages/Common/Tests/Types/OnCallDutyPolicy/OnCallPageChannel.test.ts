@@ -2,6 +2,7 @@ import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogT
 import ObjectID from "../../../Types/ObjectID";
 import {
   ON_CALL_PAGE_CHANNELS,
+  ON_CALL_PAGE_RINGING_CHANNELS,
   ON_CALL_PAGE_SENT_STATUS_MESSAGE,
   OnCallPageChannel,
   OnCallPageChannelInfo,
@@ -173,6 +174,12 @@ describe("whether a notification went out", () => {
     );
   });
 
+  test("a call that rang and was not picked up did: it reached their phone", () => {
+    expect(
+      isOnCallPageNotificationOut(UserNotificationStatus.NotAnswered),
+    ).toBe(true);
+  });
+
   test("failed, skipped or unknown did not", () => {
     expect(isOnCallPageNotificationOut(UserNotificationStatus.Error)).toBe(
       false,
@@ -263,6 +270,25 @@ describe("the channels a page went out by", () => {
         }),
       ]),
     ).toEqual([OnCallPageChannel.Email]);
+  });
+
+  test("a call that rang and was not picked up is counted: the page reached their phone", () => {
+    expect(
+      getOnCallPageChannelsOut([
+        notification({
+          id: "a",
+          minutes: 0,
+          status: UserNotificationStatus.NotAnswered,
+          channels: [OnCallPageChannel.Call],
+        }),
+        notification({
+          id: "b",
+          minutes: 0,
+          status: UserNotificationStatus.Sent,
+          channels: [OnCallPageChannel.Email],
+        }),
+      ]),
+    ).toEqual([OnCallPageChannel.Call, OnCallPageChannel.Email]);
   });
 
   test("none went out: none", () => {
@@ -650,5 +676,203 @@ describe("a notification after the page's own entry", () => {
         { ...call },
       ])?.channels,
     ).toEqual([OnCallPageChannel.Call]);
+  });
+});
+
+describe("a call that rang and was not picked up", () => {
+  const sms: OnCallPageNotification = notification({
+    id: "a",
+    minutes: 0,
+    status: UserNotificationStatus.Sent,
+    channels: [OnCallPageChannel.SMS],
+  });
+
+  function notAnswered(
+    one: OnCallPageNotification,
+    all: Array<OnCallPageNotification>,
+  ): OnCallPageNotificationNews | null {
+    return getOnCallPageNotificationNews({
+      event: OnCallPageNotificationEvent.NotAnswered,
+      notification: one,
+      notifications: all,
+    });
+  }
+
+  test("only a phone call rings, and so only a call can go unanswered", () => {
+    expect(ON_CALL_PAGE_RINGING_CHANNELS).toEqual([OnCallPageChannel.Call]);
+
+    for (const channel of ON_CALL_PAGE_RINGING_CHANNELS) {
+      expect(
+        ON_CALL_PAGE_CHANNELS.map((info: OnCallPageChannelInfo) => {
+          return info.channel;
+        }),
+      ).toContain(channel);
+    }
+  });
+
+  test("is told of by its channel, with nobody paged 'again'", () => {
+    const call: OnCallPageNotification = notification({
+      id: "c",
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      channels: [OnCallPageChannel.Call],
+    });
+
+    expect(notAnswered(call, [sms, call])).toEqual({
+      event: OnCallPageNotificationEvent.NotAnswered,
+      channels: [OnCallPageChannel.Call],
+      isPagedBefore: false,
+    });
+  });
+
+  test("a second call that rings out is told of once: the first said as much", () => {
+    const first: OnCallPageNotification = notification({
+      id: "c",
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      channels: [OnCallPageChannel.Call],
+    });
+    const second: OnCallPageNotification = notification({
+      id: "d",
+      minutes: 20,
+      status: UserNotificationStatus.NotAnswered,
+      channels: [OnCallPageChannel.Call],
+    });
+
+    expect(notAnswered(first, [sms, first, second])).not.toBeNull();
+    expect(notAnswered(second, [sms, first, second])).toBeNull();
+  });
+
+  test("an earlier call that went through, or failed, does not hide one that rang out", () => {
+    for (const status of [
+      UserNotificationStatus.Sent,
+      UserNotificationStatus.Acknowledged,
+      UserNotificationStatus.Error,
+    ]) {
+      const earlier: OnCallPageNotification = notification({
+        id: "c",
+        minutes: 0,
+        status: status,
+        channels: [OnCallPageChannel.Call],
+      });
+      const call: OnCallPageNotification = notification({
+        id: "d",
+        minutes: 10,
+        status: UserNotificationStatus.NotAnswered,
+        channels: [OnCallPageChannel.Call],
+      });
+
+      expect(notAnswered(call, [earlier, call])?.channels).toEqual([
+        OnCallPageChannel.Call,
+      ]);
+    }
+  });
+
+  test("an SMS, an email or a push is never 'not answered' - it is read when it is read", () => {
+    for (const channel of [
+      OnCallPageChannel.SMS,
+      OnCallPageChannel.Email,
+      OnCallPageChannel.Push,
+      OnCallPageChannel.WhatsApp,
+      OnCallPageChannel.Telegram,
+    ]) {
+      const one: OnCallPageNotification = notification({
+        id: "c",
+        minutes: 0,
+        status: UserNotificationStatus.NotAnswered,
+        channels: [channel],
+      });
+
+      expect(notAnswered(one, [one])).toBeNull();
+    }
+  });
+
+  test("a notification by a call and an SMS (a rule written through the API) is told of by its call alone", () => {
+    const both: OnCallPageNotification = notification({
+      id: "c",
+      minutes: 0,
+      status: UserNotificationStatus.NotAnswered,
+      channels: [OnCallPageChannel.SMS, OnCallPageChannel.Call],
+    });
+
+    expect(notAnswered(both, [both])?.channels).toEqual([
+      OnCallPageChannel.Call,
+    ]);
+  });
+
+  test("a call that failed is not one that rang out: neither hides the other", () => {
+    const failed: OnCallPageNotification = notification({
+      id: "c",
+      minutes: 0,
+      status: UserNotificationStatus.Error,
+      channels: [OnCallPageChannel.Call],
+    });
+    const rangOut: OnCallPageNotification = notification({
+      id: "d",
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      channels: [OnCallPageChannel.Call],
+    });
+
+    expect(
+      getOnCallPageNotificationNews({
+        event: OnCallPageNotificationEvent.Failed,
+        notification: failed,
+        notifications: [rangOut, failed],
+      })?.channels,
+    ).toEqual([OnCallPageChannel.Call]);
+    expect(notAnswered(rangOut, [failed, rangOut])?.channels).toEqual([
+      OnCallPageChannel.Call,
+    ]);
+  });
+
+  test("a page sent after a call that rang out pages them 'again': the call reached them", () => {
+    const call: OnCallPageNotification = notification({
+      id: "c",
+      minutes: 0,
+      status: UserNotificationStatus.NotAnswered,
+      channels: [OnCallPageChannel.Call],
+    });
+    const later: OnCallPageNotification = notification({
+      id: "d",
+      minutes: 5,
+      status: UserNotificationStatus.Sending,
+      channels: [OnCallPageChannel.SMS],
+    });
+
+    expect(
+      getOnCallPageNotificationNews({
+        event: OnCallPageNotificationEvent.SentLater,
+        notification: later,
+        notifications: [call, later],
+      }),
+    ).toEqual({
+      event: OnCallPageNotificationEvent.SentLater,
+      channels: [OnCallPageChannel.SMS],
+      isPagedBefore: true,
+    });
+  });
+
+  test("and a second call after one that rang out is no news: the feed named calls already", () => {
+    const call: OnCallPageNotification = notification({
+      id: "c",
+      minutes: 0,
+      status: UserNotificationStatus.NotAnswered,
+      channels: [OnCallPageChannel.Call],
+    });
+    const again: OnCallPageNotification = notification({
+      id: "d",
+      minutes: 10,
+      status: UserNotificationStatus.Sending,
+      channels: [OnCallPageChannel.Call],
+    });
+
+    expect(
+      getOnCallPageNotificationNews({
+        event: OnCallPageNotificationEvent.SentLater,
+        notification: again,
+        notifications: [call, again],
+      }),
+    ).toBeNull();
   });
 });

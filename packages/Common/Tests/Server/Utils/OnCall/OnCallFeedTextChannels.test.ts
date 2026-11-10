@@ -108,6 +108,16 @@ function failed(
   };
 }
 
+function notAnswered(
+  channels: Array<OnCallPageChannel>,
+): OnCallPageNotificationNews {
+  return {
+    event: OnCallPageNotificationEvent.NotAnswered,
+    channels: channels,
+    isPagedBefore: false,
+  };
+}
+
 describe("a page sent names the channels it went out by", () => {
   test("one channel", () => {
     expect(
@@ -490,5 +500,114 @@ describe("a notification after the page's own entry", () => {
     expect(markdown).not.toContain("[shift](https://evil.test)");
     expect(markdown).not.toContain(" _Ops_");
     expect(markdown).toContain("again via phone call at ");
+  });
+});
+
+/*
+ * A CALL THAT RANG AND WAS NOT PICKED UP (#6586).
+ *
+ * Twilio says how each call of a page ended. One that rang out, or found
+ * the line busy, is an entry of its own, said of the person - as their
+ * answer is - so a review reads the page's story in order: paged via phone
+ * call, did not answer the phone call, acknowledged via SMS. Never whether
+ * it rang out or was declined: that is the person's own business, and the
+ * call log has it for whoever owns the project's phone numbers.
+ */
+describe("a call they did not pick up", () => {
+  test("is said of the person, from the policy, at the level - as an answer is", () => {
+    expect(
+      OnCallFeedText.getStepNotificationMarkdown(
+        step(),
+        notAnswered([OnCallPageChannel.Call]),
+      ),
+    ).toBe(
+      `${NITIN_MD} did not answer the phone call from ${POLICY_IN_SENTENCE_MD} at ${RULE_MD}.`,
+    );
+  });
+
+  test("the team they were paged as a member of closes the sentence", () => {
+    expect(
+      OnCallFeedText.getStepNotificationMarkdown(
+        step({ teamName: "Payments" }),
+        notAnswered([OnCallPageChannel.Call]),
+      ),
+    ).toBe(
+      `${NITIN_MD} did not answer the phone call from ${POLICY_IN_SENTENCE_MD} at ${RULE_MD}, as a member of **Payments**.`,
+    );
+  });
+
+  test("is never paged 'again', nor 'could not page': the call did reach them", () => {
+    const markdown: string = OnCallFeedText.getStepNotificationMarkdown(
+      step(),
+      notAnswered([OnCallPageChannel.Call]),
+    );
+
+    expect(markdown).not.toContain(" again");
+    expect(markdown).not.toContain("could not page");
+    expect(markdown).not.toContain(" paged ");
+  });
+
+  test("never says how the call ended, nor the number it rang: the message is not read", () => {
+    const markdown: string = OnCallFeedText.getStepNotificationMarkdown(
+      step({
+        statusMessage:
+          "Call ID: CA0123456789abcdef0123456789abcdef. The call was not answered: the line was busy, or the call was declined. +15551234567",
+      }),
+      notAnswered([OnCallPageChannel.Call]),
+    );
+
+    expect(markdown).not.toContain("+1555");
+    expect(markdown).not.toContain("busy");
+    expect(markdown).not.toContain("declined");
+    expect(markdown).not.toContain("CA0123");
+  });
+
+  test("a direct page's: of the person, from whoever paged", () => {
+    expect(
+      OnCallFeedText.getDirectPageStepNotificationMarkdown(
+        directStep({ scheduleName: "Primary" }),
+        notAnswered([OnCallPageChannel.Call]),
+      ),
+    ).toBe(
+      `${NITIN_MD} did not answer the phone call from ${WORKFLOW_IN_SENTENCE_MD}.`,
+    );
+  });
+
+  test("nothing to tell - nobody, or no channel - is nothing", () => {
+    expect(
+      OnCallFeedText.getStepNotificationMarkdown(
+        step({ recipient: undefined }),
+        notAnswered([OnCallPageChannel.Call]),
+      ),
+    ).toBe("");
+    expect(
+      OnCallFeedText.getStepNotificationMarkdown(step(), notAnswered([])),
+    ).toBe("");
+    expect(
+      OnCallFeedText.getDirectPageStepNotificationMarkdown(
+        directStep({ recipient: undefined }),
+        notAnswered([OnCallPageChannel.Call]),
+      ),
+    ).toBe("");
+    expect(
+      OnCallFeedText.getDirectPageStepNotificationMarkdown(
+        directStep(),
+        notAnswered([]),
+      ),
+    ).toBe("");
+  });
+
+  test("names somebody typed stay text: Markdown in a level's or a team's name formats nothing", () => {
+    const markdown: string = OnCallFeedText.getStepNotificationMarkdown(
+      step({
+        ruleName: "**Night** [shift](https://evil.test)",
+        teamName: "_Ops_",
+      }),
+      notAnswered([OnCallPageChannel.Call]),
+    );
+
+    expect(markdown).not.toContain("[shift](https://evil.test)");
+    expect(markdown).not.toContain(" _Ops_");
+    expect(markdown).toContain("did not answer the phone call from ");
   });
 });

@@ -947,6 +947,7 @@ import { AddNetworkEndpointLastSeenIndex1809080463891 } from "./1809080463891-Ad
 import { KeepEditedDiscoveredDevices1809080463892 } from "./1809080463892-KeepEditedDiscoveredDevices";
 import { AddIncomingMonitorRequestAsReceived1809080466402 } from "./1809080466402-AddIncomingMonitorRequestAsReceived";
 import { AddTeamOwners1809086561000 } from "./1809086561000-AddTeamOwners";
+import { AddCallOutcomeTrackingToCallLog1809090000000 } from "./1809090000000-AddCallOutcomeTrackingToCallLog";
 
 export default [
   InitialMigration,
@@ -1898,4 +1899,5 @@ export default [
   KeepEditedDiscoveredDevices1809080463892,
   AddIncomingMonitorRequestAsReceived1809080466402,
   AddTeamOwners1809086561000,
+  AddCallOutcomeTrackingToCallLog1809090000000,
 ];

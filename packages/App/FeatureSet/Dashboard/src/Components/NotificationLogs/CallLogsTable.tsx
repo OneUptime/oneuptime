@@ -9,8 +9,6 @@ import CallLog from "Common/Models/DatabaseModels/CallLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
-import CallStatus from "Common/Types/Call/CallStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -21,6 +19,7 @@ import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import { JSONObject } from "Common/Types/JSON";
+import { CallStatusPill, getCallStatusPill } from "./CallStatusPill";
 
 export interface CallLogsTableProps {
   query?: Query<BaseModel>;
@@ -75,13 +74,9 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
       type: FieldType.Text,
       getElement: (item: CallLog): ReactElement => {
         if (item["status"]) {
-          return (
-            <Pill
-              isMinimal={false}
-              color={item["status"] === CallStatus.Success ? Green : Red}
-              text={item["status"] as string}
-            />
-          );
+          const pill: CallStatusPill = getCallStatusPill(item["status"]);
+
+          return <Pill isMinimal={false} color={pill.color} text={pill.text} />;
         }
         return <></>;
       },

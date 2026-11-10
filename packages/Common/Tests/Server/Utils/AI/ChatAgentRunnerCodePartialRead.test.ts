@@ -344,6 +344,9 @@ const resumeWith: (data: {
 
 const PART: string = `Ask AI read only part of this file, and its version replaces all of it: ${CHARGE}.`;
 
+// What the card says of a file Ask AI read only in a turn before this one (issue #6365).
+const EARLIER: string = `Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: ${CHARGE}.`;
+
 const commitAction: (spies: Spies, id?: string) => AIChatToolAction = (
   spies: Spies,
   id?: string,
@@ -591,7 +594,7 @@ describe("what an earlier turn showed the model, and a turn resumed after an app
     };
   };
 
-  test("read in part in the turn before: the commit from it says so", async () => {
+  test("read in part in the turn before: none of it is in hand now, and the card says so (issue #6365)", async () => {
     startRepository();
     const spies: Spies = installSpies({
       history: earlierTurn([citationOf("C1", readRecord(340, 460))]),
@@ -600,10 +603,33 @@ describe("what an earlier turn showed the model, and a turn resumed after an app
 
     await ChatAgentRunner.runTurn(buildRequest());
 
+    expect(commitAction(spies).description).toBe(EARLIER);
+  });
+
+  test("read in part in the turn before, the rest read in this one: the part from before is not in hand", async () => {
+    startRepository();
+    const spies: Spies = installSpies({
+      history: earlierTurn([citationOf("C1", readRecord(1, 1000))]),
+      turns: [
+        {
+          answer: response({
+            toolCalls: [
+              READ_CALL("call-second-half", { startLine: 1001, endLine: 1400 }),
+              READ_CALL("call-rest", { startLine: 1401, endLine: 1800 }),
+              READ_CALL("call-end", { startLine: 1801, endLine: 2000 }),
+            ],
+          }),
+        },
+        { answer: response({ toolCalls: [COMMIT_CALL(fixed(V1))] }) },
+      ],
+    });
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
     expect(commitAction(spies).description).toBe(PART);
   });
 
-  test("two reads in the turn before that add up to all of it: both carried, nothing to say", async () => {
+  test("two reads in the turn before that add up to all of it: both carried, and none of it in hand now (issue #6365)", async () => {
     startRepository();
     const firstHalf: AIChatRecordSeen = readRecord(1, 1000);
     const secondHalf: AIChatRecordSeen = readRecord(1001, 2000);
@@ -617,15 +643,15 @@ describe("what an earlier turn showed the model, and a turn resumed after an app
 
     await ChatAgentRunner.runTurn(buildRequest());
 
-    expect(commitAction(spies).description).toBeUndefined();
-    // The turn carries both reads of the version, not just the last.
+    expect(commitAction(spies).description).toBe(EARLIER);
+    // The turn carries both reads of the version, not just the last - and stores them unmarked.
     expect(pausedStateOf(spies).recordsSeenBeforeTurn).toEqual([
       firstHalf,
       secondHalf,
     ]);
   });
 
-  test("a citation from before OneUptime kept lines reads as all of the file, as it always did", async () => {
+  test("a citation from before OneUptime kept lines reads as all of the file - read in an earlier answer", async () => {
     startRepository();
     const old: AIChatRecordSeen = seeCodeFile({
       repositoryId: repository.repositoryId.toString(),
@@ -641,7 +667,8 @@ describe("what an earlier turn showed the model, and a turn resumed after an app
     await ChatAgentRunner.runTurn(buildRequest());
 
     expect(old.linesShown).toBeUndefined();
-    expect(commitAction(spies).description).toBeUndefined();
+    // Never "read only part" (#6330): it is all of the file, only not in hand (issue #6365).
+    expect(commitAction(spies).description).toBe(EARLIER);
   });
 
   test("resumed after an approval, the turn still knows every line it read before the pause", async () => {

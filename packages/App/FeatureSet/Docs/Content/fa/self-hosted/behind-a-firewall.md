@@ -73,7 +73,7 @@
 
 ### Twilio
 
-وقتی پاسخ‌دهنده برای تأیید در یک تماس ۱ را فشار می‌دهد، Twilio کلید را به `POST /api/user-notification-log-timeline/call/gather-input/*` می‌فرستد. نشانی‌های وب‌هوک Twilio تغییر می‌کنند، مگر اینکه نسخهٔ Twilio شما [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy) را دربر داشته باشد. به‌روزرسانی‌های تحویل پیامک و تماس‌های ورودی در [یکپارچه‌سازی Twilio](/docs/self-hosted/twilio-integration) شرح داده شده‌اند.
+وقتی پاسخ‌دهنده برای تأیید در یک تماس ۱ را فشار می‌دهد، Twilio کلید را به `POST /api/user-notification-log-timeline/call/gather-input/*` می‌فرستد. نشانی‌های وب‌هوک Twilio تغییر می‌کنند، مگر اینکه نسخهٔ Twilio شما [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy) را دربر داشته باشد. به‌روزرسانی‌های تحویل پیامک، نتیجهٔ تماس‌ها و تماس‌های ورودی در [یکپارچه‌سازی Twilio](/docs/self-hosted/twilio-integration) شرح داده شده‌اند.
 
 ### WhatsApp
 

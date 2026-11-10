@@ -2054,7 +2054,7 @@
   "The secret that goes with the access key ID. It is stored encrypted.": "वह सीक्रेट जो एक्सेस कुंजी ID के साथ आता है। इसे एन्क्रिप्ट करके संग्रहीत किया जाता है।",
   "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.": "वह AWS क्षेत्र जिसमें आपके प्रेषक की पहचान सत्यापित है, जैसे us-east-1 या eu-west-1।",
   "Enter an AWS Region code, such as us-east-1.": "AWS क्षेत्र कोड दर्ज करें, जैसे us-east-1।",
-  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.": "Mail Send अनुमति वाली SendGrid API कुंजी, SendGrid में Settings > API Keys से। इसे एन्क्रिप्ट करके संग्रहीत किया जाता है।",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.": "Mail Send अनुमति वाली SendGrid API कुंजी, SendGrid में Settings > API Keys से। इसे एन्क्रिप्ट करके संग्रहीत किया जाता है।",
   "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.": "आपके Mailgun खाते की API कुंजी, या इस डोमेन के लिए बनाई गई सेंडिंग कुंजी। इसे एन्क्रिप्ट करके संग्रहीत किया जाता है।",
   "The sending domain, as Mailgun lists it under Sending > Domains.": "भेजने वाला डोमेन, जैसा Mailgun उसे Sending > Domains में दिखाता है।",
   "Enter a domain, such as mg.example.com.": "एक डोमेन दर्ज करें, जैसे mg.example.com।",

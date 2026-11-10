@@ -555,12 +555,23 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
           results["incoming webhook card: " + name] = await attempt(() => {
             const card = MicrosoftTeamsUtil["buildMessageCardFromMarkdown"](markdown);
-            const text = (card.sections && card.sections[0] && card.sections[0].text) || "";
+            /*
+             * The card's sections are its text and facts in the order they
+             * were written, and Teams draws a section's text above its
+             * facts (toMessageCardSections): the note is the last thing
+             * drawn when the last section is its text alone. A response
+             * body after a label is a fact, so the note after it is a
+             * section of its own.
+             */
+            const sections = card.sections || [];
+            const last = sections[sections.length - 1] || {};
 
             return {
               "is titled with the first line": card.title === "Before",
               "fits the budget, as Teams counts it": JSON.stringify(card).length * 2 <= 80 * 1024,
-              "ends with the note": text.endsWith("_… (truncated — see OneUptime for the full text)_"),
+              "ends with the note":
+                (last.text || "").endsWith("_… (truncated — see OneUptime for the full text)_") &&
+                !(last.facts && last.facts.length > 0),
             };
           });
 

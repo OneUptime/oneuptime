@@ -161,6 +161,7 @@ const SOURCES: Record<string, string> = {
     "packages/App/FeatureSet/Workers/DataMigrations/UpdateGlobalCongfigFromEnv.ts",
   notificationIndex: `${NOTIFICATION}/Index.ts`,
   smsApi: `${NOTIFICATION}/API/SMS.ts`,
+  callApi: `${NOTIFICATION}/API/Call.ts`,
   incomingCallApi: `${NOTIFICATION}/API/IncomingCall.ts`,
   callTimelineApi: `${COMMON_SERVER}/API/UserOnCallLogTimelineAPI.ts`,
   callTimelineModel:
@@ -3228,12 +3229,16 @@ describe("Twilio Integration, against the notification server and the forms", ()
 
     expect(paths).toEqual([
       "/notification/sms/status-callback/:smsLogId/:token",
+      "/notification/call/status-callback/:callLogId/:token",
       "/api/user-notification-log-timeline/call/gather-input/:itemId?token=...",
       "/notification/incoming-call/voice",
       "/notification/incoming-call/dial-status/:callLogId/:callLogItemId",
     ]);
     expect(index).toContain('const APP_NAME: string = "api/notification";');
     expect(index).toContain('app.use([`/${APP_NAME}/sms`, "/sms"], SmsAPI);');
+    expect(index).toContain(
+      'app.use([`/${APP_NAME}/call`, "/call"], CallAPI);',
+    );
     expect(index).toContain(
       'app.use([`/${APP_NAME}/incoming-call`, "/incoming-call"], IncomingCallAPI);',
     );
@@ -3242,6 +3247,13 @@ describe("Twilio Integration, against the notification server and the forms", ()
         readSource("smsApi"),
         "post",
         "/status-callback/:smsLogId/:token",
+      ),
+    ).toBe(true);
+    expect(
+      registersRoute(
+        readSource("callApi"),
+        "post",
+        "/status-callback/:callLogId/:token",
       ),
     ).toBe(true);
     expect(registersRoute(incoming, "post", "/voice")).toBe(true);

@@ -214,9 +214,17 @@ describe("DatabaseService._updateBy — updateOneById with a model instance no l
     )[0];
     const selectedColumns: Array<string> = Object.keys(findArgs.select);
 
-    // The data columns plus _id and the tenant column — nothing else.
+    /*
+     * The data columns plus _id and the tenant column - and the name its
+     * audit entry calls the scan by, as the audit log records a scan's
+     * changes (AuditLogCoverage; addAuditLogColumnsToUpdateSelect). Nothing
+     * else.
+     */
+    expect(new NetworkDeviceDiscoveryScan().enableAuditLogOn?.update).toBe(
+      true,
+    );
     expect(selectedColumns.sort()).toEqual(
-      ["_id", "projectId", "startedAt", "status"].sort(),
+      ["_id", "name", "projectId", "startedAt", "status"].sort(),
     );
     expect(selectedColumns).not.toContain("isPermissionIf");
 

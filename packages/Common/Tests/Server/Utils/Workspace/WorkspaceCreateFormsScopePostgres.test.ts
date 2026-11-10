@@ -694,7 +694,7 @@ describePostgres(
       jest.spyOn(Response, "sendErrorResponse").mockImplementation(() => {});
       directMessageSpy = jest
         .spyOn(SlackUtil, "sendDirectMessageToUser")
-        .mockResolvedValue();
+        .mockResolvedValue(null);
       showModalSpy = jest
         .spyOn(SlackUtil, "showModalToUser")
         .mockResolvedValue();

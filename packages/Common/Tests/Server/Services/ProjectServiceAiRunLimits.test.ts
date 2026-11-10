@@ -12,10 +12,12 @@ import {
   ProjectAiRunLimitColumn,
 } from "../../../Types/AI/ProjectAiRunLimits";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
 
 /*
@@ -30,21 +32,32 @@ import { getJestSpyOn } from "../../Spy";
  *   - a typed "50" is the number 50;
  *   - anything else must be a whole number within the limit's bounds;
  *   - a write that does not carry a limit leaves it alone;
- *   - a new project starts with none of them.
+ *   - a new project starts with none of them, on a server with billing or
+ *     without.
  *
- * Nothing below the service boundary runs: no database.
+ * Billing is pinned per test (Tests/Server/Enterprise/TestBillingFlag): CI
+ * runs with billing on, where a project is created on a plan, and a suite
+ * that left it to config.env tested only that server there and only the
+ * other one locally. Nothing below the service boundary runs: no database.
  */
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../Server/EnvironmentConfig",
-  ) as Record<string, unknown>;
+  const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
 
-  return {
-    ...actual,
-    NotificationSlackWebhookOnCreateProject: "",
-    NotificationSlackWebhookOnSubscriptionUpdate: "",
-  };
+  const mocked: Record<string, unknown> = billingFlag.withLiveBillingFlag(
+    jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+
+  mocked["NotificationSlackWebhookOnCreateProject"] = "";
+  mocked["NotificationSlackWebhookOnSubscriptionUpdate"] = "";
+
+  return mocked;
 });
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -232,8 +245,20 @@ describe("ProjectService run limits, together", () => {
   });
 });
 
-describe("a new project", () => {
+type Install = {
+  name: string;
+  isBillingEnabled: boolean;
+};
+
+// A server with billing creates every project on a plan; one without, on none.
+const INSTALLS: Array<Install> = [
+  { name: "a server without billing", isBillingEnabled: false },
+  { name: "a server with billing, on a plan", isBillingEnabled: true },
+];
+
+describe.each(INSTALLS)("a new project, on $name", (install: Install) => {
   beforeEach(() => {
+    setTestBillingEnabled(install.isBillingEnabled);
     getJestSpyOn(UserService, "findOneById").mockResolvedValue(
       new User() as never,
     );
@@ -241,17 +266,33 @@ describe("a new project", () => {
       DatabaseConfig,
       "shouldDisableUserProjectCreation",
     ).mockResolvedValue(false as never);
+    // The plan's name, whichever plans this server's configuration lists.
+    getJestSpyOn(ProjectService, "getPlanType").mockReturnValue(
+      PlanType.Growth as never,
+    );
   });
+
+  afterEach(() => {
+    setTestBillingEnabled(false);
+  });
+
+  function newProject(): Project {
+    const project: Project = new Project();
+    project.name = "Acme";
+
+    if (install.isBillingEnabled) {
+      project.paymentProviderPlanId = "price_growth_month";
+    }
+
+    return project;
+  }
 
   /*
    * No project starts with a limit on its runs: the old fixed limits were
    * never stored, so none is copied into a project now.
    */
   it("starts with no limits per run", async () => {
-    const project: Project = new Project();
-    project.name = "Acme";
-
-    const created: Project = await runOnBeforeCreate(project);
+    const created: Project = await runOnBeforeCreate(newProject());
 
     expect(created.aiRunMaxModelCalls).toBeUndefined();
     expect(created.aiRunMaxToolCalls).toBeUndefined();
@@ -260,8 +301,7 @@ describe("a new project", () => {
   });
 
   it("refuses an invalid limit before the project is set up", async () => {
-    const project: Project = new Project();
-    project.name = "Acme";
+    const project: Project = newProject();
     project.aiRunMaxModelCalls = -10;
 
     await expect(runOnBeforeCreate(project)).rejects.toThrow(

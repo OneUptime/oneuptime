@@ -1049,7 +1049,8 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
       ...Object.values(CodeFileUnseen).filter((unseen: CodeFileUnseen) => {
         return (
           unseen !== CodeFileUnseen.ReadInPart &&
-          unseen !== CodeFileUnseen.ValuesHidden
+          unseen !== CodeFileUnseen.ValuesHidden &&
+          unseen !== CodeFileUnseen.ReadInEarlierAnswer
         );
       }),
     ]) {
@@ -1062,5 +1063,7 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
     expect(said[CodeFileUnseen.ReadInPart]).toBeUndefined();
     // Values hidden are said of what a change writes, never of what Ask AI saw (issue #6364).
     expect(said[CodeFileUnseen.ValuesHidden]).toBeUndefined();
+    // Every record here is of this turn: none is from an earlier answer (issue #6365).
+    expect(said[CodeFileUnseen.ReadInEarlierAnswer]).toBeUndefined();
   });
 });

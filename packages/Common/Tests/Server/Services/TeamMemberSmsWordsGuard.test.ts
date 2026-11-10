@@ -345,10 +345,26 @@ describe("the notifications", () => {
     const source: string = read(
       "packages/Common/Server/Services/UserNotificationSettingService.ts",
     );
-    const smsBranch: string = source.slice(
-      source.indexOf("if (notificationSettings.alertBySMS) {"),
-      source.indexOf("if (notificationSettings.alertByCall) {"),
-    );
+    /*
+     * Where the branch that sends by a setting starts, whatever else its
+     * condition asks (a member's chat-only notifications skip it).
+     */
+    const branchStart: (setting: string) => number = (
+      setting: string,
+    ): number => {
+      const match: RegExpExecArray | null = new RegExp(
+        `if \\([^{}]*\\bnotificationSettings\\.${setting}\\) \\{`,
+      ).exec(source);
+
+      return match ? match.index : -1;
+    };
+    const smsStart: number = branchStart("alertBySMS");
+    const callStart: number = branchStart("alertByCall");
+
+    expect(smsStart).toBeGreaterThan(-1);
+    expect(callStart).toBeGreaterThan(smsStart);
+
+    const smsBranch: string = source.slice(smsStart, callStart);
 
     expect(smsBranch).toContain("message: fitNotificationSmsForSending(");
     expect(smsBranch).toContain("...smsMessage,");
