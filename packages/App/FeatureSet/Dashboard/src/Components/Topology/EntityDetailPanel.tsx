@@ -25,6 +25,7 @@ import PageMap from "../../Utils/PageMap";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   formatInline,
   translatableTerm,
@@ -1270,8 +1271,14 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
 
             {props.traffic && (
               <div className="grid gap-2">
-                {renderTraffic("Requests it answered", props.traffic.inbound)}
-                {renderTraffic("Calls it made", props.traffic.outbound)}
+                {renderTraffic(
+                  translationKey("Requests it answered"),
+                  props.traffic.inbound,
+                )}
+                {renderTraffic(
+                  translationKey("Calls it made"),
+                  props.traffic.outbound,
+                )}
                 <p className="text-xs text-gray-400">
                   {t("Latest ~15-minute window.")}
                 </p>

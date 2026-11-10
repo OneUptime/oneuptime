@@ -242,6 +242,11 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
               destination: props.destinationName,
               workspace: props.workspaceName,
             },
+            /*
+             * Drawn and nothing else: "#alerts" in an Arabic sentence keeps
+             * its hash in front.
+             */
+            { setsValuesApart: true },
           )}
           error={error}
           submitButtonText="Close"

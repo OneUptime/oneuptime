@@ -14,6 +14,7 @@ import {
   StatusPageResourceTargetType,
 } from "./StatusPageResourceFormFields";
 import StatusPageResourceTargetSwitch from "./StatusPageResourceTargetSwitch";
+import { gridAxisNameInSentence } from "./StatusPageResourcePanelText";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
@@ -496,7 +497,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           ),
           required: true,
           placeholder: translator.translateTemplate("Select {{axis}}", {
-            axis: props.gridPlacement.rowLabel.toLowerCase(),
+            axis: gridAxisNameInSentence(props.gridPlacement.rowLabel),
           }),
         },
         {
@@ -515,7 +516,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           ),
           required: true,
           placeholder: translator.translateTemplate("Select {{axis}}", {
-            axis: props.gridPlacement.columnLabel.toLowerCase(),
+            axis: gridAxisNameInSentence(props.gridPlacement.columnLabel),
           }),
         },
       );

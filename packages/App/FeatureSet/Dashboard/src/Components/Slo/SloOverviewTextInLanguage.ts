@@ -2,12 +2,17 @@ import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import {
   composedValue,
   createTranslator,
+  getInlineSeparator,
+  SentenceOptions,
   TemplateValue,
   translationKey,
   Translator,
 } from "Common/Types/Translator";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
-import { SLO_EVALUATION_CADENCE_MINUTES } from "Common/Utils/Slo/SloEvaluation";
+import {
+  SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
+  SLO_EVALUATION_CADENCE_MINUTES,
+} from "Common/Utils/Slo/SloEvaluation";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
@@ -17,7 +22,19 @@ import {
   SloHeadlineData,
   SloWindowTextData,
 } from "Common/Utils/Slo/SloOverviewText";
-import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
+import {
+  getSliDelta,
+  SliDelta,
+  SliDeltaSide,
+  SliVersusTargetData,
+  SloBudgetRunway,
+  SloBudgetRunwayKind,
+  SloRollingWindowFill,
+} from "Common/Utils/Slo/SloProjection";
+import {
+  formatSloPercent,
+  SLO_NOT_EVALUATED_TEXT,
+} from "Common/Utils/Slo/SloWidgetFormat";
 
 /*
  * The SLO overview's own words for a setting, in the reader's language.
@@ -180,6 +197,12 @@ export const SLO_OVERVIEW_FIXED_TEXTS: ReadonlyArray<string> = [
   translationKey("Monitor uptime"),
   // getSloDowntimeStatusesText([])
   translationKey("Every non-operational status"),
+  // getSloBudgetRemainingText
+  translationKey("Budget exceeded"),
+  translationKey("No budget left"),
+  // getSloBudgetRunway's reasons for not projecting
+  translationKey("Not projected when downtime is averaged across monitors"),
+  translationKey("Needs a target between 0% and 100%"),
 ];
 
 /** The overview's one-line verdict: getSloHeadline, looked up. */
@@ -252,4 +275,330 @@ export const getSloAllowedDowntimeTextInLanguage: (
     getWindowDays(data.windowDays),
     { duration: duration },
   );
+};
+
+const EM_DASH: string = "—";
+
+/*
+ * A share of the error budget as a duration in a sentence: "12m 30s", and
+ * "under 1s" for a sliver the compact format would floor to "0s" - the
+ * KPI strip's words for the budget (SloDuration's formatBudgetDuration).
+ */
+const sloBudgetDurationValue: (seconds: number) => TemplateValue = (
+  seconds: number,
+): TemplateValue => {
+  return composedValue((sentence: Translator): string => {
+    if (seconds !== 0 && Math.abs(seconds) < 1) {
+      return sentence.translateText("under 1s") || "under 1s";
+    }
+
+    return formatDurationCompactInLanguage(seconds, sentence.language);
+  });
+};
+
+/** "0.026 pp below the 99.9% target": getSliDeltaText, looked up. */
+export const getSliDeltaTextInLanguage: (
+  data: SliVersusTargetData,
+  translator?: Translator,
+  options?: SentenceOptions,
+) => string | null = (
+  data: SliVersusTargetData,
+  translator: Translator = ENGLISH,
+  options?: SentenceOptions,
+): string | null => {
+  const delta: SliDelta | null = getSliDelta(data);
+
+  if (delta === null) {
+    return null;
+  }
+
+  const values: { target: string; delta: string } = {
+    target: delta.targetText,
+    delta: String(delta.percentagePoints),
+  };
+
+  switch (delta.side) {
+    case SliDeltaSide.JustBelow:
+      return translator.translateTemplate(
+        "Just below the {{target}} target",
+        values,
+        options,
+      );
+    case SliDeltaSide.JustAbove:
+      return translator.translateTemplate(
+        "Just above the {{target}} target",
+        values,
+        options,
+      );
+    case SliDeltaSide.OnTarget:
+      return translator.translateTemplate(
+        "Exactly on the {{target}} target",
+        values,
+        options,
+      );
+    case SliDeltaSide.Above:
+      return translator.translateTemplate(
+        "{{delta}} pp above the {{target}} target",
+        values,
+        options,
+      );
+    case SliDeltaSide.Below:
+    default:
+      return translator.translateTemplate(
+        "{{delta}} pp below the {{target}} target",
+        values,
+        options,
+      );
+  }
+};
+
+export interface SloBudgetSecondsData {
+  remainingSeconds: number | undefined | null;
+  totalSeconds: number | undefined | null;
+}
+
+/*
+ * "12m 30s left of 43m 12s" / "5m over budget · 43m 12s allowed":
+ * formatErrorBudgetRemainingOfTotal, looked up. Null before the first
+ * evaluation, so the caller says "not evaluated" its own way.
+ */
+export const getErrorBudgetRemainingOfTotalInLanguage: (
+  data: SloBudgetSecondsData,
+  translator?: Translator,
+  options?: SentenceOptions,
+) => string | null = (
+  data: SloBudgetSecondsData,
+  translator: Translator = ENGLISH,
+  options?: SentenceOptions,
+): string | null => {
+  const remaining: number | null =
+    typeof data.remainingSeconds === "number" && isFinite(data.remainingSeconds)
+      ? data.remainingSeconds
+      : null;
+
+  if (remaining === null) {
+    return null;
+  }
+
+  const total: number | null =
+    typeof data.totalSeconds === "number" &&
+    isFinite(data.totalSeconds) &&
+    data.totalSeconds > 0
+      ? data.totalSeconds
+      : null;
+
+  const remainingValue: TemplateValue = sloBudgetDurationValue(remaining);
+
+  // A zero total is a brand-new SLO's: "of 0s" adds nothing.
+  if (total === null) {
+    return remaining < 0
+      ? translator.translateTemplate(
+          "{{duration}} over budget",
+          { duration: remainingValue },
+          options,
+        )
+      : translator.translateTemplate(
+          "{{duration}} left",
+          { duration: remainingValue },
+          options,
+        );
+  }
+
+  const totalValue: TemplateValue = sloBudgetDurationValue(total);
+
+  return remaining < 0
+    ? translator.translateTemplate(
+        "{{remaining}} over budget · {{total}} allowed",
+        { remaining: remainingValue, total: totalValue },
+        options,
+      )
+    : translator.translateTemplate(
+        "{{remaining}} left of {{total}}",
+        { remaining: remainingValue, total: totalValue },
+        options,
+      );
+};
+
+/*
+ * The error budget's headline: "42.5%" as it is, or the words
+ * getSloBudgetRemainingText answers a spent budget with ("Budget exceeded",
+ * "No budget left"), looked up.
+ */
+export const getSloBudgetRemainingTextInLanguage: (
+  text: string | null,
+  translator?: Translator,
+) => string | null = (
+  text: string | null,
+  translator: Translator = ENGLISH,
+): string | null => {
+  if (text === null) {
+    return null;
+  }
+
+  return translator.translateText(text) || text;
+};
+
+/*
+ * "Window 25% full" (a badge of its own) / "window 25% full" (after other
+ * words on a line): how much of a young rolling window holds data yet.
+ */
+export const getRollingWindowFillTextInLanguage: (
+  fill: SloRollingWindowFill,
+  translator?: Translator,
+  placement?: { afterOtherWords?: boolean | undefined },
+) => string = (
+  fill: SloRollingWindowFill,
+  translator: Translator = ENGLISH,
+  placement?: { afterOtherWords?: boolean | undefined },
+): string => {
+  const values: { percent: string } = { percent: String(fill.percent) };
+
+  if (placement?.afterOtherWords) {
+    return fill.percent < 1
+      ? translator.translateText("window under 1% full") ||
+          "window under 1% full"
+      : translator.translateTemplate("window {{percent}}% full", values);
+  }
+
+  return fill.percent < 1
+    ? translator.translateText("Window under 1% full") || "Window under 1% full"
+    : translator.translateTemplate("Window {{percent}}% full", values);
+};
+
+export interface SloBudgetRunwayText {
+  value: string;
+  description: string;
+}
+
+export interface SloBudgetRunwayTextData {
+  runway: SloBudgetRunway;
+  errorBudgetRemainingSeconds: number | undefined | null;
+  windowDays: number | undefined | null;
+}
+
+/*
+ * The KPI strip's runway tile - "~2d 5h" over "Until exhausted, at the burn
+ * rate of the last 1h" - looked up: getSloBudgetRunway's answer, worded from
+ * its kind the way getSloBudgetRunway words it in English.
+ */
+export const getSloBudgetRunwayTextInLanguage: (
+  data: SloBudgetRunwayTextData,
+  translator?: Translator,
+  options?: SentenceOptions,
+) => SloBudgetRunwayText = (
+  data: SloBudgetRunwayTextData,
+  translator: Translator = ENGLISH,
+  options?: SentenceOptions,
+): SloBudgetRunwayText => {
+  const runway: SloBudgetRunway = data.runway;
+  const lookbackValue: TemplateValue = sloDurationValue(
+    SLO_CURRENT_BURN_RATE_WINDOW_MINUTES * 60,
+  );
+
+  // "... · resets in 12d 4h", for a calendar month.
+  const withReset: (words: string) => string = (words: string): string => {
+    if (runway.secondsUntilReset === null) {
+      return words;
+    }
+
+    return `${words}${getInlineSeparator(translator.language)}${translator.translateTemplate(
+      "resets in {{duration}}",
+      { duration: sloDurationValue(runway.secondsUntilReset) },
+      options,
+    )}`;
+  };
+
+  switch (runway.kind) {
+    case SloBudgetRunwayKind.NotEvaluated:
+      return {
+        value: EM_DASH,
+        description:
+          translator.translateText(SLO_NOT_EVALUATED_TEXT) ||
+          SLO_NOT_EVALUATED_TEXT,
+      };
+    case SloBudgetRunwayKind.NotProjected:
+      return {
+        value: EM_DASH,
+        description:
+          translator.translateText(runway.description) || runway.description,
+      };
+    case SloBudgetRunwayKind.Overspent: {
+      const remaining: number =
+        typeof data.errorBudgetRemainingSeconds === "number" &&
+        isFinite(data.errorBudgetRemainingSeconds)
+          ? data.errorBudgetRemainingSeconds
+          : 0;
+
+      return {
+        value: translator.translateText("Overspent") || "Overspent",
+        description: withReset(
+          remaining < 0
+            ? translator.translateTemplate(
+                "{{duration}} over budget",
+                { duration: sloDurationValue(remaining) },
+                options,
+              )
+            : translator.translateText("Budget fully spent") ||
+                "Budget fully spent",
+        ),
+      };
+    }
+    case SloBudgetRunwayKind.NotBurning:
+      return {
+        value: translator.translateText("Not burning") || "Not burning",
+        description: withReset(
+          translator.translateTemplate(
+            "No budget spent in the last {{window}}",
+            { window: lookbackValue },
+            options,
+          ),
+        ),
+      };
+    case SloBudgetRunwayKind.LastsUntilReset:
+      return {
+        value:
+          translator.translateText("Lasts until reset") || "Lasts until reset",
+        description: translator.translateTemplate(
+          "Resets in {{reset}}, at the burn rate of the last {{window}}",
+          {
+            reset: sloDurationValue(runway.secondsUntilReset || 0),
+            window: lookbackValue,
+          },
+          options,
+        ),
+      };
+    case SloBudgetRunwayKind.Sustainable:
+      return {
+        value: translator.translateText("Sustainable") || "Sustainable",
+        description: translator.translatePlural(
+          {
+            one: "Outlasts the {{count}}-day window, at the burn rate of the last {{window}}",
+            other:
+              "Outlasts the {{count}}-day window, at the burn rate of the last {{window}}",
+          },
+          getWindowDays(data.windowDays),
+          { window: lookbackValue },
+          options,
+        ),
+      };
+    case SloBudgetRunwayKind.RunsOut:
+    default: {
+      const seconds: number = runway.runwaySeconds || 0;
+
+      return {
+        // Under a minute the compact format floors to "~0s", which reads as "now".
+        value:
+          seconds < 60
+            ? translator.translateText("Under 1m") || "Under 1m"
+            : `~${formatDurationCompactInLanguage(seconds, translator.language)}`,
+        description: withReset(
+          translator.translateTemplate(
+            "Until exhausted, at the burn rate of the last {{window}}",
+            { window: lookbackValue },
+            options,
+          ),
+        ),
+      };
+    }
+  }
 };

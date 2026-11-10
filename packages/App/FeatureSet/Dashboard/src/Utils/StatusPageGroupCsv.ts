@@ -311,7 +311,10 @@ function parseBoolean(raw: string, column: string): BooleanParseResult {
 
   return {
     value: undefined,
-    error: `${column} "${raw.trim()}" is not a true/false value. Use true or false (yes/no and 1/0 also work).`,
+    error: translateTemplate(
+      '{{column}} "{{value}}" is not a true/false value. Use true or false (yes/no and 1/0 also work).',
+      { column: column, value: raw.trim() },
+    ),
   };
 }
 
@@ -355,9 +358,14 @@ function parseEnumCell<TEnumValue extends string>(data: {
   if (matched === undefined) {
     return {
       value: undefined,
-      error: `Unknown ${data.column} "${data.raw.trim()}". Valid values: ${Object.keys(
-        data.enumObject,
-      ).join(", ")}.`,
+      error: translateTemplate(
+        'Unknown {{column}} "{{value}}". Valid values: {{values}}.',
+        {
+          column: data.column,
+          value: data.raw.trim(),
+          values: Object.keys(data.enumObject).join(", "),
+        },
+      ),
     };
   }
 

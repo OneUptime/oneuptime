@@ -27,7 +27,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import ProbeUtil from "../../Utils/Probe";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -103,11 +103,14 @@ interface InheritedPlacement {
  */
 const SNMP_STEP_TITLE: string = "SNMP Credentials";
 
-const SNMP_STEP_DESCRIPTION: string =
-  "Leave the community string empty to only ping the device. Add it for interfaces, inventory and health.";
+// The form looks these up in the reader's language.
+const SNMP_STEP_DESCRIPTION: string = translationKey(
+  "Leave the community string empty to only ping the device. Add it for interfaces, inventory and health.",
+);
 
-const SNMP_COMMUNITY_FIELD_DESCRIPTION: string =
-  "Leave it empty to only ping. Used by SNMP V1 and V2c, not V3.";
+const SNMP_COMMUNITY_FIELD_DESCRIPTION: string = translationKey(
+  "Leave it empty to only ping. Used by SNMP V1 and V2c, not V3.",
+);
 
 const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

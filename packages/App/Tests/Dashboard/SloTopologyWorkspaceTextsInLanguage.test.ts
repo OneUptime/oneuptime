@@ -17,8 +17,13 @@ import {
 import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
 import { SLO_EVALUATION_CADENCE_MINUTES } from "Common/Utils/Slo/SloEvaluation";
 import {
+  getSloBudgetRunway,
+  SloBudgetRunwayKind,
+} from "Common/Utils/Slo/SloProjection";
+import {
   getSliTypeText,
   getSloAtRiskText,
+  getSloBudgetRemainingText,
   getSloDowntimeStatusesText,
   getSloHeadline,
   getSloMonitorCountText,
@@ -270,6 +275,30 @@ describe("every fixed answer of SloOverviewText is a key the overview looks up",
     }
 
     answers.add(getSloDowntimeStatusesText([]));
+
+    // The KPI strip's budget headline, past the percentages.
+    for (const percentage of [-5, 0]) {
+      answers.add(getSloBudgetRemainingText(percentage) as string);
+    }
+
+    // The runway's reasons for not projecting.
+    for (const runway of [
+      getSloBudgetRunway({
+        now: new Date(),
+        errorBudgetRemainingSeconds: 10,
+        currentBurnRate: 1,
+        multiMonitorMode: SloMultiMonitorMode.MonitorSecondsAverage,
+      }),
+      getSloBudgetRunway({
+        now: new Date(),
+        errorBudgetRemainingSeconds: 10,
+        currentBurnRate: 1,
+        targetPercentage: 100,
+      }),
+    ]) {
+      expect(runway.kind).toBe(SloBudgetRunwayKind.NotProjected);
+      answers.add(runway.description);
+    }
 
     const unlisted: Array<string> = [...answers].filter(
       (answer: string): boolean => {

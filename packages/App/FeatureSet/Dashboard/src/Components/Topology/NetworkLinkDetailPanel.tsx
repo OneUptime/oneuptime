@@ -9,6 +9,7 @@ import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkCont
 import useTranslateValue from "Common/UI/Utils/Translation";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   LINK_STATE_COLORS,
@@ -40,11 +41,12 @@ export interface ComponentProps {
   onClose: () => void;
 }
 
+// Looked up in the reader's language where the panel draws them.
 const STATE_LABELS: Record<NetworkLinkState, string> = {
-  down: "Link down",
-  saturated: "High utilization",
-  healthy: "Healthy",
-  unknown: "No operational data",
+  down: translationKey("Link down"),
+  saturated: translationKey("High utilization"),
+  healthy: translationKey("Healthy"),
+  unknown: translationKey("No operational data"),
 };
 
 interface EndpointSectionProps {

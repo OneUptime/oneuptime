@@ -9,6 +9,10 @@ import {
   insertBeforeFoldedFields,
 } from "./StatusPageResourceFormFields";
 import StatusPageResourceTargetSwitch from "./StatusPageResourceTargetSwitch";
+import {
+  getResourcePanelSubtitle,
+  gridAxisNameInSentence,
+} from "./StatusPageResourcePanelText";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -701,7 +705,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           placeholder:
             rowValues.length > 0
               ? translator.translateTemplate("Select {{axis}}", {
-                  axis: rowLabel.toLowerCase(),
+                  axis: gridAxisNameInSentence(rowLabel),
                 })
               : "Define rows on the group first",
         },
@@ -723,7 +727,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           placeholder:
             columnValues.length > 0
               ? translator.translateTemplate("Select {{axis}}", {
-                  axis: columnLabel.toLowerCase(),
+                  axis: gridAxisNameInSentence(columnLabel),
                 })
               : "Define columns on the group first",
         },
@@ -1145,31 +1149,16 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
      * groups are edited by selecting those - so a group with sub groups has to
      * say so, or its list looks like the whole of it.
      */
-    const subtitleParts: Array<string> = [];
-
-    if (!isLoading) {
-      subtitleParts.push(
-        StatusPageResourceExplorerUtil.getResourceCountLabel({
-          count: totalResourceCount,
-        }),
-      );
-    }
-
-    const subGroupCountLabel: string | null =
-      StatusPageResourceExplorerUtil.getSubGroupCountLabel({
+    const subtitle: string = getResourcePanelSubtitle(
+      {
+        resourceCount: isLoading ? null : totalResourceCount,
         subGroupCount: props.subGroups.length,
-      });
-
-    if (subGroupCountLabel) {
-      subtitleParts.push(subGroupCountLabel);
-    }
-
-    if (
-      props.selection.type === StatusPageResourceSelectionType.Ungrouped &&
-      props.hasGroups
-    ) {
-      subtitleParts.push("visitors see these first, above every group");
-    }
+        isUngroupedOnPageWithGroups:
+          props.selection.type === StatusPageResourceSelectionType.Ungrouped &&
+          props.hasGroups,
+      },
+      translator,
+    );
 
     return (
       <div className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-start sm:justify-between">
@@ -1259,7 +1248,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
                 className="mt-1 text-sm text-gray-500"
                 data-testid="status-page-resource-panel-subtitle"
               >
-                {subtitleParts.join(" · ")}
+                {subtitle}
               </p>
 
               {isGroupSelected && props.statusPageGroup?.description ? (

@@ -59,7 +59,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { TemplateValue, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValue,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import React, {
   Fragment,
@@ -116,12 +120,15 @@ const REFRESH_INTERVAL_MS: number = 60 * 1000;
 // Debounce for mirroring drill state into the URL (Safari rate-limits it).
 const QUERY_STRING_DEBOUNCE_MS: number = 200;
 
-const CARD_TITLE: string = "Browse by site";
-const CARD_DESCRIPTION: string =
-  "Start with a location to understand its network and find devices that need attention.";
+// The card and the search box look these up in the reader's language.
+const CARD_TITLE: string = translationKey("Browse by site");
+const CARD_DESCRIPTION: string = translationKey(
+  "Start with a location to understand its network and find devices that need attention.",
+);
 
-const SEARCH_PLACEHOLDER: string =
-  "Search sites by name — anywhere in your network";
+const SEARCH_PLACEHOLDER: string = translationKey(
+  "Search sites by name — anywhere in your network",
+);
 
 /*
  * How a load ended. "superseded" is not a failure: a newer request (a
@@ -148,10 +155,12 @@ const FLAT_FALLBACK_COPY: Record<
   Exclude<FlatFallbackReason, null | "requested">,
   string
 > = {
-  "no-sites":
+  "no-sites": translationKey(
     "You're viewing every device in one map. Organize devices into sites to explore your network by location.",
-  "no-attached-devices":
+  ),
+  "no-attached-devices": translationKey(
     "Your devices aren't assigned to sites yet. Set a site on each device to explore its network by location.",
+  ),
 };
 
 const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
@@ -546,8 +555,11 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
     breadcrumb.length > 0 || showDeviceToggle || showToggleFromDeviceView;
 
   const deviceToggleLabels: { level: string; devices: string } = isAtRoot
-    ? { level: "Browse by site", devices: "All devices" }
-    : { level: "Sites here", devices: "Devices here" };
+    ? { level: CARD_TITLE, devices: translationKey("All devices") }
+    : {
+        level: translationKey("Sites here"),
+        devices: translationKey("Devices here"),
+      };
 
   const header: ReactElement = (
     <div className="mb-4 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 md:flex-row md:items-center md:justify-between">

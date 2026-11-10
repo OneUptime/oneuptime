@@ -11,7 +11,11 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import AlertMetricTypeUtil from "Common/Utils/Alerts/AlertMetricType";
 import IncidentMetricTypeUtil from "Common/Utils/Incident/IncidentMetricType";
 import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
-import { createTranslator, Translator } from "Common/Types/Translator";
+import {
+  createTranslator,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import SloMetricTypeUtil, {
   SERVICE_LEVEL_OBJECTIVE_IDS_METRIC_ATTRIBUTE,
   SLO_METRIC_PROJECT_ID_ATTRIBUTE,
@@ -41,6 +45,17 @@ export const SLO_METRICS_TABS: ReadonlyArray<SloMetricsTab> = [
   SloMetricsTab.ErrorBudgetHistory,
   SloMetricsTab.IncidentMetrics,
   SloMetricsTab.AlertMetrics,
+];
+
+/*
+ * The tab names as the keys Tabs looks them up by, so the extractor gives
+ * each one a key (a test keeps the list equal to SloMetricsTab).
+ */
+export const SLO_METRICS_TAB_KEYS: ReadonlyArray<string> = [
+  translationKey("SLO Metrics"),
+  translationKey("Error Budget History"),
+  translationKey("Incident Metrics"),
+  translationKey("Alert Metrics"),
 ];
 
 /*

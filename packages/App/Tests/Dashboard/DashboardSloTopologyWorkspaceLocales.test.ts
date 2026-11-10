@@ -56,6 +56,7 @@ const DASHBOARD_FILES: Array<string> = [
   "Components/StatusPage/BulkAddStatusPageMonitorsModal.tsx",
   "Components/StatusPage/ImportGroupsFromCsvModal.tsx",
   "Components/StatusPage/StatusPageResourcePanel.tsx",
+  "Components/StatusPage/StatusPageResourcePanelText.ts",
   "Components/Topology/AddNeighborToMonitoringModal.tsx",
   "Components/Topology/EdgeDetailPanel.tsx",
   "Components/Topology/EntityDetailPanel.tsx",
@@ -78,10 +79,40 @@ const DASHBOARD_FILES: Array<string> = [
   "Components/Workspace/WorkspaceSummaryCopy.ts",
   "Components/Workspace/WorkspaceSummaryTable.tsx",
   "Pages/Global/UserProfile/TwoFactorAuth.tsx",
+  "Utils/StatusPageGroupCsv.ts",
+];
+
+/*
+ * The files the UI review of #6680 routed through the translator: every key
+ * they look up is worded in every language, not only German, Spanish and
+ * Japanese - a Korean or a Danish SLO overview, topology or resources pane
+ * reads no English either.
+ */
+const REVIEWED_FILES: Array<string> = [
+  "Components/Slo/SloBurnRateRulesSummaryCard.tsx",
+  "Components/Slo/SloFeed.tsx",
+  "Components/Slo/SloKpiStrip.tsx",
+  "Components/Slo/SloMetricsQueryConfig.ts",
+  "Components/Slo/SloOverviewHero.tsx",
+  "Components/Slo/SloOverviewTextInLanguage.ts",
+  "Components/StatusPage/BulkAddStatusPageMonitorsModal.tsx",
+  "Components/StatusPage/StatusPageResourcePanel.tsx",
+  "Components/StatusPage/StatusPageResourcePanelText.ts",
+  "Components/Topology/AddNeighborToMonitoringModal.tsx",
+  "Components/Topology/EntityDetailPanel.tsx",
+  "Components/Topology/InfrastructureGraph.tsx",
+  "Components/Topology/NetworkLinkDetailPanel.tsx",
+  "Components/Topology/NetworkTopologyExplorer.tsx",
+  "Components/Workspace/SendTestNotificationButton.tsx",
+  "Utils/StatusPageGroupCsv.ts",
 ];
 
 // Common's passkey helper: its errors are keys the passkey cards look up.
-const COMMON_FILES: Array<string> = ["packages/Common/UI/Utils/WebAuthn.ts"];
+const COMMON_FILES: Array<string> = [
+  "packages/Common/UI/Utils/WebAuthn.ts",
+  // A resource group navigator row's count tooltip.
+  "packages/Common/UI/Components/StatusPage/ResourceGroupNavigatorText.ts",
+];
 
 /*
  * Words the sentences above put inside them - a count of sites, a site with
@@ -134,13 +165,16 @@ function keptAsWritten(language: string): Set<string> {
 }
 
 // Every key the files look up: a plural's general sentence and its "_one".
-function getKeys(): Array<string> {
+function getKeys(
+  dashboardFiles: Array<string> = DASHBOARD_FILES,
+  commonFiles: Array<string> = COMMON_FILES,
+): Array<string> {
   const keys: Set<string> = new Set<string>();
   const files: Array<string> = [
-    ...DASHBOARD_FILES.map((file: string): string => {
+    ...dashboardFiles.map((file: string): string => {
       return path.join(DASHBOARD, "src", file);
     }),
-    ...COMMON_FILES.map((file: string): string => {
+    ...commonFiles.map((file: string): string => {
       return path.join(REPOSITORY_ROOT, file);
     }),
   ];
@@ -359,6 +393,37 @@ describe("the two-factor, topology, status page, SLO and workspace texts in ever
         });
       }
     }
+  });
+
+  test("every language words every key the files the UI review touched look up", () => {
+    const reviewedKeys: Array<string> = getKeys(REVIEWED_FILES, [
+      "packages/Common/UI/Components/StatusPage/ResourceGroupNavigatorText.ts",
+    ]);
+
+    // The KPI strip's runway, the explorer's search and the CSV import's errors.
+    for (const key of [
+      "Until exhausted, at the burn rate of the last {{window}}",
+      "Search sites by name — anywhere in your network",
+      'Unknown {{column}} "{{value}}". Valid values: {{values}}.',
+    ]) {
+      expect({ key, read: reviewedKeys.includes(key) }).toEqual({
+        key,
+        read: true,
+      });
+    }
+
+    // Every language's gaps at once, so a failure names them all.
+    const missing: Record<string, Array<string>> = {};
+
+    for (const language of LANGUAGES) {
+      const keys: Array<string> = untranslated(language, reviewedKeys);
+
+      if (keys.length > 0) {
+        missing[language] = keys;
+      }
+    }
+
+    expect(missing).toEqual({});
   });
 
   test("every language words what the sentences put inside them", () => {

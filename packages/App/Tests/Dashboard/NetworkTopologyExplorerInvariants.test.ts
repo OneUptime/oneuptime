@@ -764,9 +764,10 @@ describe("the explorer's search reaches every level of the hierarchy", () => {
   });
 
   test("the placeholder says the search reaches the whole network, translated", () => {
+    // Marked as a key, so the extractor finds it and every locale words it.
     expect(EXPLORER_CODE).toContain(
       squash(
-        'const SEARCH_PLACEHOLDER: string = "Search sites by name — anywhere in your network";',
+        'const SEARCH_PLACEHOLDER: string = translationKey( "Search sites by name — anywhere in your network", );',
       ),
     );
     expect(EXPLORER_SEARCH_BOX).toContain(

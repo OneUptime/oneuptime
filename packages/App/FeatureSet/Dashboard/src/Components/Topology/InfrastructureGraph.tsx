@@ -22,7 +22,11 @@ import "reactflow/dist/style.css";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { fillTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  fillTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import computeLayeredLayout, {
   LayoutPoint,
 } from "../../Utils/LayeredGraphLayout";
@@ -612,7 +616,8 @@ export function layoutInfrastructureMap(data: {
         icon: IconProp.TableCells,
         color: "#64748b",
         statusColor: "#94a3b8",
-        statusLabel: "Open the list to see everything",
+        // The node looks its status line up in the reader's language.
+        statusLabel: translationKey("Open the list to see everything"),
         stats: [],
         stacked: true,
         dimmed: false,

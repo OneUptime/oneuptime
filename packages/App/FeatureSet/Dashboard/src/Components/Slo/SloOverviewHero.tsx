@@ -29,12 +29,14 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
+  getRollingWindowFillTextInLanguage,
   getSloEvaluationCadenceText,
   getSloHeadlineInLanguage,
   getSloMonitorCountInLanguage,
@@ -254,8 +256,16 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
                 {headline}
               </h2>
               {slo.description ? (
-                <p className="mt-1.5 max-w-3xl whitespace-pre-line break-words text-sm leading-6 text-gray-600">
-                  {slo.description}
+                <p
+                  data-testid="slo-overview-description"
+                  className="mt-1.5 max-w-3xl whitespace-pre-line break-words text-sm leading-6 text-gray-600"
+                >
+                  {/*
+                   * Written by someone, in their language: an English
+                   * description on an Arabic page keeps its full stop at
+                   * its end.
+                   */}
+                  <IsolatedText text={slo.description} />
                 </p>
               ) : null}
             </div>
@@ -351,7 +361,10 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
                 )}
               >
                 <StatusBadge
-                  text={windowFill.label}
+                  text={getRollingWindowFillTextInLanguage(
+                    windowFill,
+                    translator,
+                  )}
                   type={StatusBadgeType.Info}
                 />
               </span>

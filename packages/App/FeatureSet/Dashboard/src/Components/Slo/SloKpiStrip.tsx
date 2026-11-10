@@ -6,10 +6,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
-import {
-  formatDurationCompactInLanguage,
-  formatErrorBudgetRemainingOfTotal,
-} from "Common/Utils/Slo/SloDuration";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import {
   SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES,
   SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
@@ -18,7 +15,6 @@ import { getSloBudgetTier, SloBudgetTier } from "Common/Utils/Slo/SloHealth";
 import { getSloBudgetRemainingText } from "Common/Utils/Slo/SloOverviewText";
 import {
   getRollingWindowFill,
-  getSliDeltaText,
   getSloBudgetRunway,
   isBurnRateAtOrAboveThreshold,
   isSliBelowTarget,
@@ -32,8 +28,20 @@ import {
   formatSloPercent,
   SLO_NOT_EVALUATED_TEXT,
 } from "Common/Utils/Slo/SloWidgetFormat";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getInlineSeparator,
+  SentenceOptions,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getErrorBudgetRemainingOfTotalInLanguage,
+  getRollingWindowFillTextInLanguage,
+  getSliDeltaTextInLanguage,
+  getSloBudgetRemainingTextInLanguage,
+  getSloBudgetRunwayTextInLanguage,
+  SloBudgetRunwayText,
+} from "./SloOverviewTextInLanguage";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -51,6 +59,13 @@ export interface ComponentProps {
 }
 
 const EM_DASH: string = "—";
+
+/*
+ * The tiles' notes are drawn and nothing else, so each value in them (a
+ * "99.9%", a "1h") is set apart from the words around it: in an Arabic note
+ * a figure keeps its place in the sentence.
+ */
+const NOTE_OPTIONS: SentenceOptions = { setsValuesApart: true };
 
 const RUNWAY_TONE_TEXT_CLASS: Record<SloProjectionTone, string> = {
   [SloProjectionTone.Neutral]: "text-gray-900",
@@ -93,17 +108,23 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
             {
               target: targetText,
             },
+            NOTE_OPTIONS,
           )
         : translator.translateTemplate(SLO_NOT_EVALUATED_TEXT)
-      : getSliDeltaText({
-          currentSliPercentage: slo.currentSliPercentage,
-          targetPercentage: slo.targetPercentage,
-        }) || translator.translateTemplate("No target set");
+      : getSliDeltaTextInLanguage(
+          {
+            currentSliPercentage: slo.currentSliPercentage,
+            targetPercentage: slo.targetPercentage,
+          },
+          translator,
+          NOTE_OPTIONS,
+        ) || translator.translateTemplate("No target set");
 
   // ---- Error budget ----------------------------------------------------------
 
-  const budgetText: string | null = getSloBudgetRemainingText(
-    slo.errorBudgetRemainingPercentage,
+  const budgetText: string | null = getSloBudgetRemainingTextInLanguage(
+    getSloBudgetRemainingText(slo.errorBudgetRemainingPercentage),
+    translator,
   );
 
   const budgetTier: SloBudgetTier = getSloBudgetTier({
@@ -143,10 +164,14 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
   }
 
   const budgetDurationText: string =
-    formatErrorBudgetRemainingOfTotal({
-      remainingSeconds: slo.errorBudgetRemainingSeconds,
-      totalSeconds: slo.errorBudgetTotalSeconds,
-    }) ?? budgetFallbackText;
+    getErrorBudgetRemainingOfTotalInLanguage(
+      {
+        remainingSeconds: slo.errorBudgetRemainingSeconds,
+        totalSeconds: slo.errorBudgetTotalSeconds,
+      },
+      translator,
+      NOTE_OPTIONS,
+    ) ?? budgetFallbackText;
 
   /*
    * A young rolling window's budget is still growing, which is why its
@@ -154,7 +179,11 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
    */
   const budgetDescription: string =
     budgetText !== null && windowFill && windowFill.isNotYetFull
-      ? `${budgetDurationText} · ${windowFill.label.toLowerCase()}`
+      ? `${budgetDurationText}${getInlineSeparator(
+          translator.language,
+        )}${getRollingWindowFillTextInLanguage(windowFill, translator, {
+          afterOtherWords: true,
+        })}`
       : budgetDurationText;
 
   // ---- Burn rate -------------------------------------------------------------
@@ -195,6 +224,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
       : translator.translateTemplate(
           "Over the last {{window}} · 1× spends the budget exactly over the window",
           { window: burnRateWindowText },
+          NOTE_OPTIONS,
         );
 
   // ---- Runway ----------------------------------------------------------------
@@ -209,6 +239,16 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     currentBurnRate: slo.currentBurnRate,
     now: props.now,
   });
+
+  const runwayText: SloBudgetRunwayText = getSloBudgetRunwayTextInLanguage(
+    {
+      runway: runway,
+      errorBudgetRemainingSeconds: slo.errorBudgetRemainingSeconds,
+      windowDays: slo.windowDays,
+    },
+    translator,
+    NOTE_OPTIONS,
+  );
 
   const isRunwayPlaceholder: boolean =
     runway.kind === SloBudgetRunwayKind.NotEvaluated ||
@@ -311,10 +351,10 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
                   : RUNWAY_TONE_TEXT_CLASS[runway.tone]
               }
             >
-              {runway.value}
+              {runwayText.value}
             </span>
           }
-          description={runway.description}
+          description={runwayText.description}
         />
       </EventStatBar>
     </div>

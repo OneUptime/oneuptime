@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49075,
-    "untranslated": 10200
+    "keys": 49575,
+    "untranslated": 10353
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -567,6 +567,7 @@
     "{{count}}d",
     "{{count}}m",
     "{{count}}s",
+    "{{duration}} over budget",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{online}}/{{count}} node online",

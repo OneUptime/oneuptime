@@ -234,23 +234,15 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
                   data-testid="slo-burn-rule-row"
                   className="py-3 first:pt-0"
                 >
+                  {/*
+                   * The name shares its line with the badge; the threshold
+                   * sentence runs the card's whole width under them, so a
+                   * long sentence (German's) never wraps beside a badge.
+                   */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="break-words text-sm font-medium text-gray-900">
-                        {rule.name || translator.translateText("Unnamed rule")}
-                      </p>
-                      <p className="mt-0.5 text-xs text-gray-500">
-                        {threshold !== null
-                          ? getRuleThresholdText({
-                              rule: rule,
-                              threshold: threshold,
-                              translator: translator,
-                            })
-                          : translator.translateText(
-                              "No threshold set — this rule never fires",
-                            )}
-                      </p>
-                    </div>
+                    <p className="min-w-0 break-words text-sm font-medium text-gray-900">
+                      {rule.name || translator.translateText("Unnamed rule")}
+                    </p>
                     {isAtThreshold ? (
                       <StatusBadge
                         text="At threshold"
@@ -261,6 +253,20 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
                       <></>
                     )}
                   </div>
+                  <p
+                    data-testid="slo-burn-rule-threshold"
+                    className="mt-0.5 text-xs text-gray-500"
+                  >
+                    {threshold !== null
+                      ? getRuleThresholdText({
+                          rule: rule,
+                          threshold: threshold,
+                          translator: translator,
+                        })
+                      : translator.translateText(
+                          "No threshold set — this rule never fires",
+                        )}
+                  </p>
 
                   {threshold !== null && isCompared ? (
                     <div className="mt-2 flex items-center gap-2">
