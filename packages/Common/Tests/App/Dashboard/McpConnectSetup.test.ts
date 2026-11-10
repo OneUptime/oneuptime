@@ -18,6 +18,7 @@ import {
   MCP_SERVER_CARD_DESCRIPTION,
   MCP_SIGNED_IN_NOTE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Mcp/McpServerCard";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * Project Settings > AI > MCP Server asks how a client signs in, then shows
@@ -37,24 +38,7 @@ const DRAWN_SLOTS: ReadonlyArray<string> = [
   "addConnector",
 ];
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 const LOCALES: string = path.join(
   __dirname,

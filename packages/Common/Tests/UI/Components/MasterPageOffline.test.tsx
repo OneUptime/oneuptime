@@ -32,6 +32,7 @@ import NewVersion, {
 } from "../../../UI/Utils/NewVersion/NewVersion";
 import { FetchFunction } from "../../../UI/Utils/NewVersion/ServerBuildCheck";
 import UnsavedChanges from "../../../UI/Utils/NewVersion/UnsavedChanges";
+import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 
 /*
  * "The Dashboard's MasterPage replaces the whole page with an English-only
@@ -536,7 +537,7 @@ describe("the offline card in the reader's language", () => {
 
   beforeAll(async () => {
     for (const frontend of FRONTENDS) {
-      for (const language of ["de", "fa", "ja"]) {
+      for (const language of ["de", "fa", "ja", "ar"]) {
         const instance: i18n = createInstance();
 
         await instance.init({
@@ -560,6 +561,7 @@ describe("the offline card in the reader's language", () => {
         [frontend, "de"],
         [frontend, "fa"],
         [frontend, "ja"],
+        [frontend, "ar"],
       ];
     }),
   )("the %s's, in %s", (frontend: string, language: string) => {
@@ -585,7 +587,10 @@ describe("the offline card in the reader's language", () => {
 
     // The card says which language it speaks, and reads its way.
     expect(card).toHaveAttribute("lang", language);
-    expect(card).toHaveAttribute("dir", language === "fa" ? "rtl" : "ltr");
+    expect(card).toHaveAttribute(
+      "dir",
+      isRightToLeftLanguage(language) ? "rtl" : "ltr",
+    );
   });
 
   test("a language with no words for it falls back to English, and says so", () => {

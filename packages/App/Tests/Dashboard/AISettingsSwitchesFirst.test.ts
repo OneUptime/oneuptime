@@ -57,6 +57,7 @@ import Permission from "Common/Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * AI settings pages show each AI behaviour as a switch that saves.
@@ -102,24 +103,7 @@ const COMMON_ROOT: string = path.join(__dirname, "..", "..", "..", "Common");
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const INCIDENT_PAGE: string = "Pages/Incidents/Settings/IncidentAISettings.tsx";
 const ALERT_PAGE: string = "Pages/Alerts/Settings/AlertAISettings.tsx";

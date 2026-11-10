@@ -17,6 +17,7 @@ import {
   getRetriesOnFailureField,
 } from "../../FeatureSet/Dashboard/src/Utils/MonitorRetryHelpText";
 import { DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The "Retries on Failure" field on probe-based monitor steps.
@@ -44,25 +45,7 @@ const DASHBOARD_SRC: string = path.join(
   "src",
 );
 
-const LOCALES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LOCALES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 /*
  * Every monitor type whose step form renders the field, and the variant it has

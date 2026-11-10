@@ -32,6 +32,7 @@ import {
   getGlobalTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The Maintenance Calendar's own page, its external calendars and Calendar
@@ -55,24 +56,7 @@ const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
 const PLACEHOLDER: RegExp = /\{\{\w+\}\}/g;
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readLocale(locale: string): Record<string, string> {
   return JSON.parse(

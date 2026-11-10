@@ -21,6 +21,7 @@ import { drawHuntressSigningSecret } from "../../../Types/Huntress/HuntressWebho
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * Where a Huntress trigger stands, from what its workflow keeps of the last
@@ -42,25 +43,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const LOCALES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LOCALES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 const HOUR: number = 60 * 60 * 1000;
 const NOW: number = new Date("2026-10-09T10:00:00.000Z").getTime();

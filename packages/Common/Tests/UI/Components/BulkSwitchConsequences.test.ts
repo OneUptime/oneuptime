@@ -10,6 +10,7 @@ import {
   BulkSwitchConsequence,
   getBulkSwitchConsequence,
 } from "../../../UI/Components/BulkUpdate/BulkSwitchConsequences";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * Every bulk switch says what it does to the records it turns - "A disabled
@@ -38,24 +39,7 @@ const DASHBOARD_LOCALES: string = path.join(
   "Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 type ModelClass = { new (): BaseModel };
 

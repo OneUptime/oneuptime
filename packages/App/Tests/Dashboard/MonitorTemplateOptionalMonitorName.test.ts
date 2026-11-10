@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * "Default Monitor Name" on a Monitor Template is optional (issue #3486).
@@ -312,25 +313,7 @@ describe("Creating a monitor from a template still needs a name", () => {
  * the locale files to each other, never to the source.
  */
 describe("the new copy is translatable", () => {
-  const LOCALES: Array<string> = [
-    "en",
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LOCALES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
   test.each([BLANK_NAME_DESCRIPTION, "Named after the resource"])(
     "%s is a key in every Dashboard locale",

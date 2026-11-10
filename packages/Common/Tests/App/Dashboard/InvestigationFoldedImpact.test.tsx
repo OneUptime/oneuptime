@@ -111,6 +111,7 @@ import {
 import { InvestigationImpactCounted } from "../../../Utils/AI/InvestigationImpactNumbers";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const COMPLETED_AT: string = "2026-10-29T12:00:00.000Z";
 const RUN_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -434,25 +435,7 @@ describe("in the reader's language", () => {
     __dirname,
     "../../../../App/FeatureSet/Dashboard/src/Locales",
   );
-  const LANGUAGES: Array<string> = [
-    "en",
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LANGUAGES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
   const PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
   const PERSIAN_DIGIT: RegExp = /[\u06F0-\u06F9]/;
   const LATIN_DIGIT: RegExp = /[0-9]/;

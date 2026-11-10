@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * Wiring and copy tests for the Runner UI.
@@ -33,25 +34,7 @@ const DASHBOARD_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const LOCALE_CODES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LOCALE_CODES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 const TRANSLATED_CODES: Array<string> = LOCALE_CODES.filter(
   (code: string): boolean => {

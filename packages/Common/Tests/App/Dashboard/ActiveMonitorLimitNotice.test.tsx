@@ -38,6 +38,7 @@ import {
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
 import { goTo, PROJECT_ID, routeFor } from "./SideMenuHarness";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 interface MutableConfig {
   billingEnabled: boolean;
@@ -611,45 +612,31 @@ describe("in the reader's language", () => {
     );
   });
 
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])("%s has its own words for every sentence", (language: string) => {
-    const STATES: Array<ActiveMonitorLimitStatus> = [
-      { limit: PLAN_500, activeMonitors: 500 },
-      { limit: PLAN_500, activeMonitors: 2881 },
-      { limit: FREE_10, activeMonitors: 10 },
-      { limit: FREE_10, activeMonitors: 14 },
-    ];
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s has its own words for every sentence",
+    (language: string) => {
+      const STATES: Array<ActiveMonitorLimitStatus> = [
+        { limit: PLAN_500, activeMonitors: 500 },
+        { limit: PLAN_500, activeMonitors: 2881 },
+        { limit: FREE_10, activeMonitors: 10 },
+        { limit: FREE_10, activeMonitors: 14 },
+      ];
 
-    STATES.forEach((status: ActiveMonitorLimitStatus): void => {
-      const englishCopy: ActiveMonitorLimitNoticeCopy = copyFor("en", status);
-      const copy: ActiveMonitorLimitNoticeCopy = copyFor(language, status);
+      STATES.forEach((status: ActiveMonitorLimitStatus): void => {
+        const englishCopy: ActiveMonitorLimitNoticeCopy = copyFor("en", status);
+        const copy: ActiveMonitorLimitNoticeCopy = copyFor(language, status);
 
-      expect(copy.title).not.toBe(englishCopy.title);
-      expect(copy.linkText).not.toBe(englishCopy.linkText);
-      expect(copy.action).not.toBe(englishCopy.action);
-      expect(copy.note).not.toBe(englishCopy.note);
-      expect(copy.state).toHaveLength(englishCopy.state.length);
-      copy.state.forEach((sentence: string, at: number): void => {
-        expect(sentence).not.toBe(englishCopy.state[at]);
-        // Every value filled: no placeholder left for the reader to see.
-        expect(sentence).not.toContain("{{");
+        expect(copy.title).not.toBe(englishCopy.title);
+        expect(copy.linkText).not.toBe(englishCopy.linkText);
+        expect(copy.action).not.toBe(englishCopy.action);
+        expect(copy.note).not.toBe(englishCopy.note);
+        expect(copy.state).toHaveLength(englishCopy.state.length);
+        copy.state.forEach((sentence: string, at: number): void => {
+          expect(sentence).not.toBe(englishCopy.state[at]);
+          // Every value filled: no placeholder left for the reader to see.
+          expect(sentence).not.toContain("{{");
+        });
       });
-    });
-  });
+    },
+  );
 });

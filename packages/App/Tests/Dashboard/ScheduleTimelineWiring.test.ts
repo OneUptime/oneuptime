@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The schedule timeline is one component on two pages (On-Call Duty >
@@ -304,25 +305,7 @@ describe("API", () => {
 });
 
 describe("Locales", () => {
-  const LOCALES: Array<string> = [
-    "en",
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LOCALES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
   // Strings rendered through translateString (menus, card and empty-state copy).
   const KEYS: Array<string> = [

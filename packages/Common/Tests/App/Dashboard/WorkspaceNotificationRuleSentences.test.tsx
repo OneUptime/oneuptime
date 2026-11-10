@@ -65,30 +65,14 @@ import {
   getTemplatePlaceholders,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const DASHBOARD: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readJson<T>(file: string): T {
   return JSON.parse(fs.readFileSync(path.join(DASHBOARD, file), "utf8")) as T;

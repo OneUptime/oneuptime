@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * A paid feature can always be switched off, on any plan.
@@ -44,24 +45,7 @@ const DASHBOARD_SRC: string = path.join(
 const COMMON_ROOT: string = path.join(APP_ROOT, "..", "Common");
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const NEW_SENTENCES: Array<string> = [
   "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.",

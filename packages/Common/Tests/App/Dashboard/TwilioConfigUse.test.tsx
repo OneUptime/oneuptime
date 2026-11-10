@@ -273,6 +273,7 @@ import {
 import Phone from "../../../Types/Phone";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
 import Column from "../../../UI/Components/ModelTable/Column";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const PRIMARY: string = "Twilio Primary Phone Number";
 const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
@@ -1161,39 +1162,25 @@ describe("the strings the choice adds", () => {
     }
   });
 
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])("are translated in %s", (language: string) => {
-    const words: Record<string, string> = readLocale(language);
+  test.each([...DASHBOARD_LANGUAGES])(
+    "are translated in %s",
+    (language: string) => {
+      const words: Record<string, string> = readLocale(language);
 
-    for (const key of KEYS) {
-      expect({
-        language,
-        key,
-        translated: Boolean(words[key]) && words[key] !== key,
-      }).toEqual({ language, key, translated: true });
-    }
+      for (const key of KEYS) {
+        expect({
+          language,
+          key,
+          translated: Boolean(words[key]) && words[key] !== key,
+        }).toEqual({ language, key, translated: true });
+      }
 
-    // The answers' words name no product but OneUptime's own account.
-    expect(words[TwilioConfigUseCopy.smsOnlyDescription]).toContain(
-      "OneUptime",
-    );
-  });
+      // The answers' words name no product but OneUptime's own account.
+      expect(words[TwilioConfigUseCopy.smsOnlyDescription]).toContain(
+        "OneUptime",
+      );
+    },
+  );
 });
 
 /*

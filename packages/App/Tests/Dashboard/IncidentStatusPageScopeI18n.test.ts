@@ -4,6 +4,7 @@ import IncidentSubscriberAudience from "Common/Types/StatusPage/IncidentSubscrib
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { STATUS_PAGE_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * Limiting an incident to some status pages shows up across the dashboard:
@@ -34,24 +35,7 @@ const DASHBOARD_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...STATUS_PAGE_LANGUAGES];
 
 // Strings that are the same word in every language, or an existing entry.
 const SHARED_WITH_OTHER_FEATURES: Array<string> = ["Status Page"];

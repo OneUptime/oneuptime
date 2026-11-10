@@ -7,6 +7,7 @@ import path from "path";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
 import IpAddressList from "../../../UI/Components/IpAddressList/IpAddressList";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * A host's IP addresses, as its Overview's Host Details card lists them
@@ -36,24 +37,7 @@ const DASHBOARD_DIR: string = path.resolve(
 const LOCALES_DIR: string = path.join(DASHBOARD_DIR, "src", "Locales");
 const PROGRESS_DIR: string = path.join(DASHBOARD_DIR, "i18n", "Progress");
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // An address of every kind the list tells apart, two of them private.
 const ADDRESSES: string = [

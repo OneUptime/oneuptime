@@ -5,6 +5,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * THE ADMIN DASHBOARD SAYS THE SHARED STRINGS IN THE READER'S LANGUAGE.
@@ -54,24 +55,7 @@ const DASHBOARD_LOCALES: string = path.join(
   "Dashboard/src/Locales",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 
 // The shared components an Admin list, row, dialog and form are drawn with.
 const SHARED_COMPONENTS: ReadonlyArray<string> = [

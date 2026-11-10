@@ -206,7 +206,6 @@
     "Red Hat OpenShift",
     "Redis",
     "RegionOne",
-    "Resend",
     "SELECT * FROM orders WHERE total < 0",
     "SELECT COUNT(*) AS value FROM orders WHERE created_at < now() - interval '1 hour'",
     "SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED'",

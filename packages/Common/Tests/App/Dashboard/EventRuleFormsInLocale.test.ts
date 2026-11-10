@@ -51,6 +51,7 @@ import {
   REMINDERS_SWITCH_SCOPE_COPY,
   RemindersSwitchScopeCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Reminders/RemindersSwitchCopy";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The on-call, privacy, SLA, reminder and runbook rule forms of Incidents,
@@ -73,24 +74,7 @@ const DASHBOARD_SRC: string = path.resolve(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // A language with German's words but not the reminder rule's name sentence.
 const PARTLY_WORDED: string = "zz";

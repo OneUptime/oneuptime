@@ -150,6 +150,7 @@ import { ComponentType, NodeType } from "../../../Types/Workflow/Component";
 import { buildGraphForTemplate } from "../../../Types/Workflow/Templates";
 import Navigation from "../../../UI/Utils/Navigation";
 import { Edge, Node as FlowNode } from "reactflow";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "0198c8ec-2a1d-7f0c-9e75-384194161003",
@@ -925,24 +926,7 @@ describe("the Builder's add button in the Dashboard's languages", () => {
     expect(LANGUAGES).toContain("zh-TW");
   });
 
-  test.each([
-    "da",
-    "de",
-    "es",
-    "fa",
-    "fr",
-    "hi",
-    "it",
-    "ja",
-    "ko",
-    "nl",
-    "no",
-    "pt",
-    "ru",
-    "sv",
-    "zh-CN",
-    "zh-TW",
-  ])(
+  test.each([...DASHBOARD_LANGUAGES])(
     "%s: the button says its language's Add Trigger, then its Add Component",
     async (language: string) => {
       const addTrigger: string = locales[language]!["Add Trigger"] as string;

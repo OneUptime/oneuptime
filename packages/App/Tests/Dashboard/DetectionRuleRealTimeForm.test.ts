@@ -12,6 +12,7 @@ import {
   getRealTimeFormProblem,
   runsInRealTime,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/DetectionRuleRealTime";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * RUN IN REAL TIME on the rule form: any rule but one with a regular
@@ -46,24 +47,7 @@ const RULES_PAGE: string = path.join(
   "DetectionRules.tsx",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // The form's own words for the switch and the interval, as the page writes them.
 const SWITCH_DESCRIPTION: string =

@@ -71,6 +71,7 @@ import {
   createTranslator,
 } from "../../../UI/Utils/TranslateTemplate";
 import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * What the cards say about a device's Meraki dashboard as a source of its
@@ -97,24 +98,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readLocale(code: string): Record<string, unknown> {
   return JSON.parse(

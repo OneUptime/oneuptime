@@ -84,6 +84,7 @@ import {
   getTileTitleWordsClassName,
   TILE_TITLE_LONG_WORDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TileTitleWords";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const DASHBOARD: string = path.resolve(
   __dirname,
@@ -92,24 +93,7 @@ const DASHBOARD: string = path.resolve(
 const SOURCE: string = path.join(DASHBOARD, "src");
 const LOCALES_DIR: string = path.join(SOURCE, "Locales");
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // ResourceOverview's own tile, which translates its tiles itself.
 const OWN_TILE_FILES: ReadonlyArray<string> = [

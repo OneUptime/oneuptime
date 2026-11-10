@@ -15,6 +15,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * AN ISSUE'S RISK SCORE, IN THE READER'S LANGUAGE.
@@ -34,24 +35,7 @@ const ISSUE_RISK_SCORE: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueRiskScore.tsx",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // Every part a score can have: a Critical issue on the worst store there is.
 const FACTORS: Array<RiskScoreFactor> = getRiskScore({

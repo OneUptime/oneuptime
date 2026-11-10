@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createTranslator, Translator } from "../../Types/Translator";
+import { DASHBOARD_LANGUAGES } from "./TranslatedLanguages";
 
 /*
  * The Dashboard's locale files, read as its translations are shipped: for
@@ -15,25 +16,11 @@ const DASHBOARD_DIR: string = path.resolve(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_DIR, "src/Locales");
 
-// Every language the Dashboard is translated into, English aside.
-export const DASHBOARD_LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+/*
+ * Every language the Dashboard is translated into, English aside: the list
+ * the Dashboard offers its readers (TranslatedLanguages).
+ */
+export { DASHBOARD_LANGUAGES };
 
 // The languages whose plurals have no "one" form: their "_one" key is never read.
 const LANGUAGES_WITHOUT_ONE: ReadonlyArray<string> = [

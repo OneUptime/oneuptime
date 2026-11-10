@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * A host's Processes, Windows services and Systemd units pages describe
@@ -24,24 +25,7 @@ const PAGES: ReadonlyArray<string> = [
   "Pages/Host/View/SystemdUnits.tsx",
 ];
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 const TRANSLATOR_CALLS: ReadonlySet<string> = new Set<string>([
   "translateText",

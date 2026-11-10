@@ -24,6 +24,7 @@ import CardSelect, {
   CardSelectCatalog,
   CardSelectOptionGroup,
 } from "../../../UI/Components/CardSelect/CardSelect";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * Create Monitor's More monitor types in the reader's language (issue
@@ -43,24 +44,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 const SELECTED_KEY: string = "Selected: {{name}}";
 const MORE_KEY: string = "More monitor types";

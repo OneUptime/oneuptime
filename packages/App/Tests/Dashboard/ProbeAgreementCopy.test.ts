@@ -12,6 +12,7 @@ import ProbesAndIntervalCopy, {
   PROBE_AGREEMENT_SENTENCE_COUNT_FOR_ALL,
   ProbeAgreementParseResult,
 } from "../../FeatureSet/Dashboard/src/Components/Monitor/ProbesAndIntervalCopy";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * How many of a monitor's probes must agree before its status changes, as
@@ -114,25 +115,7 @@ describe("the sentence", () => {
     expect(getProbeAgreementSentenceCount(3)).toBe(3);
   });
 
-  test.each([
-    "en",
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])(
+  test.each(["en", ...DASHBOARD_LANGUAGES])(
     "the count used for all is never a 'one' form in %s",
     (language: string) => {
       expect(

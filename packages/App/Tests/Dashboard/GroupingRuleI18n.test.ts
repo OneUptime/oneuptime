@@ -7,6 +7,7 @@ import {
   GroupingRuleKind,
   getGroupingRuleUiStrings,
 } from "../../FeatureSet/Dashboard/src/Utils/GroupingRule/GroupingRuleSetup";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The Incident and Alert Grouping Rules pages render every word of their new
@@ -34,24 +35,7 @@ const DASHBOARD_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 /*
  * Strings these pages share with the rest of the Dashboard. They were in

@@ -16,6 +16,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { STATUS_PAGE_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 const STATUS_PAGE_SRC: string = path.join(
   __dirname,
@@ -28,24 +29,7 @@ const STATUS_PAGE_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(STATUS_PAGE_SRC, "Locales");
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...STATUS_PAGE_LANGUAGES];
 
 /*
  * Each block comment, from its opener to the next closer, as one space. Read

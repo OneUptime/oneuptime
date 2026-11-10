@@ -8,6 +8,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * THE TRANSLATION BACKLOG, MORE (#6028): WHAT WAS STILL ENGLISH, OR READ
@@ -40,24 +41,7 @@ const DASHBOARD: string = path.resolve(__dirname, "../../FeatureSet/Dashboard");
 const LOCALES: string = path.join(DASHBOARD, "src", "Locales");
 const PROGRESS: string = path.join(DASHBOARD, "i18n", "Progress");
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // The languages whose plural rules have a "one" form the locale stores.
 const ONE_FORM_LANGUAGES: ReadonlyArray<string> = LANGUAGES.filter(

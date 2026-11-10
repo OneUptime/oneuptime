@@ -59,6 +59,7 @@ import {
   KubernetesMetricsSource,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesMetricsSetup";
 import Route from "../../../Types/API/Route";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const SETUP: string = KUBERNETES_METRICS_SETUP_TEST_ID;
 const SOURCES: Array<[KubernetesMetricsSource]> =
@@ -344,24 +345,7 @@ describe("on an OpenShift cluster", () => {
     },
   );
 
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])(
+  test.each([...DASHBOARD_LANGUAGES])(
     "%s: every OpenShift hint reads in the locale, with its values as code",
     (locale: string) => {
       dictionary = readLocale(locale);

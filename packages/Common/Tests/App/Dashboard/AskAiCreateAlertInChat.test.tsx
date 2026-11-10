@@ -48,6 +48,7 @@ import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * WHAT THE PERSON SEES WHEN ASK AI RAISES AN ALERT (#5301), drawn by the
@@ -78,25 +79,7 @@ const LOCALES_DIR: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
-const LANGUAGES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 function readLocale(language: string): Record<string, string> {
   return JSON.parse(

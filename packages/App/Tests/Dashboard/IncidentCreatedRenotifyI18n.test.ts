@@ -2,6 +2,7 @@ import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedReno
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * Publishing a hidden incident offers "Notify subscribers that this incident
@@ -30,24 +31,7 @@ const DASHBOARD_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const STRINGS: Array<string> = [
   IncidentCreatedRenotify.formFieldTitle,

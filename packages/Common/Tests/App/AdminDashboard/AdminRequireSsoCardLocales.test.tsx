@@ -106,6 +106,7 @@ import {
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../../Types/ObjectID";
 import UserUtil from "../../../UI/Utils/User";
+import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -120,24 +121,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 
 const CARD_TITLE: string = "Require SSO";
 const CARD_DESCRIPTION: string =

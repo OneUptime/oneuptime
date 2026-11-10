@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * THE USAGE PAGES SAY WHAT THEY SAY IN EVERY LANGUAGE (issue #5916).
@@ -32,24 +33,7 @@ const SAME_AS_ENGLISH: Array<string> = JSON.parse(
   ),
 ) as Array<string>;
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // Every string the usage overview and the Usage page added.
 const OVERVIEW_STRINGS: ReadonlyArray<string> = [

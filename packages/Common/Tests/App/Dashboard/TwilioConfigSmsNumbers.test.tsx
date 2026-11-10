@@ -307,6 +307,7 @@ import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSC
 import Phone from "../../../Types/Phone";
 import Column from "../../../UI/Components/ModelTable/Column";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
 const SECONDARY_NUMBERS: string = "Twilio Secondary Phone Numbers";
@@ -1350,24 +1351,7 @@ describe("the strings the form adds", () => {
       });
     }
 
-    for (const language of [
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-    ]) {
+    for (const language of [...DASHBOARD_LANGUAGES]) {
       const words: Record<string, string> = readLocale(language);
 
       for (const key of [

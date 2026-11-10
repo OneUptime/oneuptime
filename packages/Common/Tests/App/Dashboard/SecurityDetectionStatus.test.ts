@@ -25,6 +25,7 @@ import { describeDetectionOverflow } from "../../../Utils/SecurityEvent/Detectio
 import { Green, LightGray, Red, Yellow } from "../../../Types/BrandColors";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import ThreatIntelFeed from "../../../Models/DatabaseModels/ThreatIntelFeed";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * Whether a threat intel feed or a detection rule works, in its Status.
@@ -331,24 +332,7 @@ describe("every Status is worded in every Dashboard language", () => {
     "../../../../App/FeatureSet/Dashboard/src/Locales",
   );
 
-  const LANGUAGES: Array<string> = [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
   const readLocale: (code: string) => Record<string, string> = (
     code: string,

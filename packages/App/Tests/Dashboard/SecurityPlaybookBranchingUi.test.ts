@@ -60,6 +60,7 @@ import {
   emptyStepNameLookup,
   summarizeSecurityPlaybookStep,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookStepSummary";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * RUN THIS STEP in the playbook editor: the one picker a step's branch is
@@ -443,24 +444,7 @@ describe("Run This Step's choices", () => {
       ),
     ];
 
-    for (const language of [
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-    ]) {
+    for (const language of [...DASHBOARD_LANGUAGES]) {
       const words: Record<string, unknown> = JSON.parse(
         fs.readFileSync(
           path.join(

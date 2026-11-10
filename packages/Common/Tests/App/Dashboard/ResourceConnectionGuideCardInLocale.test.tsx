@@ -26,6 +26,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "../../../Types/API/Route";
 import { followLanguageForDates } from "../../../UI/Utils/DateDisplayLanguage";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * THE "HOW DO I CONNECT THIS?" CARD, DRAWN IN EVERY LANGUAGE (issue
@@ -50,24 +51,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 const ONEUPTIME_URL: string = "https://oneuptime.example.com";
 const DOCS: Route = new Route("/dashboard/project-1/resource-1/documentation");

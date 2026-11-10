@@ -20,6 +20,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * THE HELP UNDER A FORM FIELD IS IN THE READER'S LANGUAGE.
@@ -59,24 +60,7 @@ const FEATURE_SET: string = path.join(
  */
 const ENTERPRISE_PRESENT: boolean = fs.existsSync(path.join(REPO_ROOT, "ee"));
 
-const TRANSLATED_LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const TRANSLATED_LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // Which frontend's locales a form found under each path looks its words up in.
 const FRONTEND_OF_PATH: ReadonlyArray<{ prefix: string; frontend: string }> = [

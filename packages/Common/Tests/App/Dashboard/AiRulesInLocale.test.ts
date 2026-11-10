@@ -27,6 +27,7 @@ import { AI_RULE_AI_CONTEXT_FIELD_COPY } from "../../../../App/FeatureSet/Dashbo
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * EVERY WORD THE AI RULES ADD IS EVERY LANGUAGE'S OWN, AND THE WORDS OF THE
@@ -45,24 +46,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Japanese, Korean and Chinese read no "one" form: theirs may stay as is.
 const WITHOUT_ONE_FORM: Array<string> = ["ja", "ko", "zh-CN", "zh-TW"];

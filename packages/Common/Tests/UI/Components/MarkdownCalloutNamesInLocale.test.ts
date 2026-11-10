@@ -10,6 +10,10 @@ import {
   MARKDOWN_CALLOUT_STYLES,
   getMarkdownCalloutName,
 } from "../../../UI/Components/Markdown.tsx/MarkdownQuote";
+import {
+  DASHBOARD_LANGUAGES,
+  DOCS_LANGUAGES,
+} from "../../Helpers/TranslatedLanguages";
 
 /*
  * What a screen reader calls a callout in Markdown - "> [!NOTE]" in a note,
@@ -37,25 +41,20 @@ const FRONTENDS: Array<string> = [
   "AdminDashboard",
 ];
 
-const LANGUAGES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
+
+// The languages the docs are written in: Arabic's docs are English (#6466).
+const LANGUAGES_WITH_DOCS: Array<string> = LANGUAGES.filter(
+  (language: string): boolean => {
+    return language === "en" || DOCS_LANGUAGES.includes(language);
+  },
+);
+
+const LANGUAGES_WITHOUT_DOCS: Array<string> = LANGUAGES.filter(
+  (language: string): boolean => {
+    return !LANGUAGES_WITH_DOCS.includes(language);
+  },
+);
 
 type LocaleFile = Record<string, unknown>;
 
@@ -133,7 +132,7 @@ describe("every frontend names each callout with a key of its own", () => {
 
   test.each(
     FRONTENDS.flatMap((frontend: string): Array<[string, string]> => {
-      return LANGUAGES.map((language: string): [string, string] => {
+      return LANGUAGES_WITH_DOCS.map((language: string): [string, string] => {
         return [frontend, language];
       });
     }),
@@ -145,6 +144,62 @@ describe("every frontend names each callout with a key of its own", () => {
       );
     },
   );
+
+  /*
+   * A language without docs of its own (Arabic) names each callout in its
+   * own words, and every frontend alike.
+   */
+  test("every language has docs of its own but Arabic", () => {
+    expect(LANGUAGES_WITHOUT_DOCS).toEqual(["ar"]);
+  });
+
+  test.each(
+    FRONTENDS.flatMap((frontend: string): Array<[string, string]> => {
+      return LANGUAGES_WITHOUT_DOCS.map(
+        (language: string): [string, string] => {
+          return [frontend, language];
+        },
+      );
+    }),
+  )(
+    "%s in %s names them in its own words, as the Dashboard does",
+    (frontend: string, language: string) => {
+      const names: Record<string, string> = frontendLocale(frontend, language)[
+        "markdownCallouts"
+      ] as Record<string, string>;
+      const english: Record<string, string> = frontendLocale(frontend, "en")[
+        "markdownCallouts"
+      ] as Record<string, string>;
+
+      expect(names).toEqual(
+        frontendLocale("Dashboard", language)["markdownCallouts"],
+      );
+      expect(Object.keys(names).sort()).toEqual(
+        [...MARKDOWN_CALLOUT_KINDS].sort(),
+      );
+
+      for (const kind of MARKDOWN_CALLOUT_KINDS) {
+        expect([kind, names[kind] !== english[kind]]).toEqual([kind, true]);
+      }
+
+      // Each callout has a name of its own.
+      expect(new Set(Object.values(names)).size).toBe(
+        MARKDOWN_CALLOUT_KINDS.length,
+      );
+    },
+  );
+
+  test("Arabic names its callouts as Arabic technical docs do", () => {
+    expect(frontendLocale("Dashboard", "ar")["markdownCallouts"]).toEqual({
+      note: "ملاحظة",
+      tip: "نصيحة",
+      important: "مهم",
+      warning: "تحذير",
+      caution: "تنبيه",
+      danger: "خطر",
+      info: "معلومات",
+    });
+  });
 
   test("the shared words keep their own meaning in the Dashboard", () => {
     const german: LocaleFile = frontendLocale("Dashboard", "de");

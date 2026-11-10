@@ -22,6 +22,7 @@ import {
 import { getMobileAppServerUrl } from "../../../../App/FeatureSet/Dashboard/src/Utils/MobileAppServerUrl";
 import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The push devices card's critical alerts in every language the Dashboard
@@ -41,24 +42,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // The placeholders that draw one of the app's own labels.
 const APP_LABEL_PLACEHOLDER: RegExp =

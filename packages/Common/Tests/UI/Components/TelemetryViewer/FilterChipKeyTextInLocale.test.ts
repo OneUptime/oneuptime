@@ -9,6 +9,7 @@ import {
   Translator,
   createTranslator,
 } from "../../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * An exclusion chip says it excludes in words, in the reader's language:
@@ -40,24 +41,7 @@ function translatorFor(code: string): Translator {
   }, code);
 }
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 describe("an exclusion chip's key", () => {
   test("reads the English sentence in English", () => {

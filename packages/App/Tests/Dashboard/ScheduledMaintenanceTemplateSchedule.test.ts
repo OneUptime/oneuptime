@@ -5,6 +5,10 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  DASHBOARD_LANGUAGES,
+  DOCS_LANGUAGES,
+} from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * When a scheduled maintenance template's next event comes, as the
@@ -32,24 +36,7 @@ const DASHBOARD_SOURCE: string = path.join(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SOURCE, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const NEXT_EVENT: string = "Next event will be scheduled at {{date}}";
 const INTERVAL_DESCRIPTION: string =
@@ -253,9 +240,10 @@ describe("the words, in every language", () => {
 
   /*
    * The docs' table describes the field in the same words, page by page:
-   * the Dashboard says it as each language's docs page does.
+   * the Dashboard says it as each language's docs page does, in every
+   * language the docs are written in (Arabic's are English, #6466).
    */
-  test.each(OTHER_LOCALES)(
+  test.each(DOCS_LANGUAGES)(
     "%s words it as its docs page's Recurring events table does",
     (locale: string) => {
       const page: string = fs.readFileSync(
