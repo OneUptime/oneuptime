@@ -10,6 +10,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 // Which of Metrics' tabs a page is under (its AI pages: the AI tab).
 export const getActiveMetricsTab: (path: string) => MetricsTabKey = (
@@ -38,6 +40,7 @@ const MetricsLayout: FunctionComponent<
   return (
     <Page
       title="Metrics"
+      titleRight={<ProductAboutButton product={ProductKey.Metrics} />}
       breadcrumbLinks={getMetricsBreadcrumbs(path)}
       headerRight={<MetricsNavTabs active={getActiveMetricsTab(path)} />}
     >

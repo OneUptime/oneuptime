@@ -73,6 +73,32 @@ describe("classifyAIRunFailureMessage", () => {
       "This model's maximum context length is 128000 tokens",
       AIRunFailureKind.ContextWindow,
     ],
+    // Each provider's words for a request too long for the model (#6441).
+    [
+      'Anthropic API error: {"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 215000 tokens > 200000 maximum"}}',
+      AIRunFailureKind.ContextWindow,
+    ],
+    [
+      "input length and `max_tokens` exceed context limit: 187254 + 20000 > 200000, decrease input length or `max_tokens` and try again",
+      AIRunFailureKind.ContextWindow,
+    ],
+    [
+      'OpenAI API error: {"error":{"code":"context_length_exceeded"}}',
+      AIRunFailureKind.ContextWindow,
+    ],
+    [
+      "ValidationException: Input is too long for requested model.",
+      AIRunFailureKind.ContextWindow,
+    ],
+    [
+      "The input token count (1234567) exceeds the maximum number of tokens allowed (1048576).",
+      AIRunFailureKind.ContextWindow,
+    ],
+    // A cap on the answer's own tokens is not the context window.
+    [
+      "max_tokens: 100000 > 64000, which is the maximum allowed number of output tokens",
+      AIRunFailureKind.Other,
+    ],
     [
       "No LLM provider configured for this project.",
       AIRunFailureKind.NotConfigured,

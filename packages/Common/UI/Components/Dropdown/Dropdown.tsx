@@ -1067,14 +1067,21 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           control: (
             state: ControlProps<DropdownOption, boolean, GroupBase<any>>,
           ): string => {
+            /*
+             * One fill, never two: a locked dropdown is grey, as a locked
+             * Input is. With !bg-white always on the control and
+             * !bg-gray-100 added for a locked one, the stylesheet's order
+             * decided, and white won - a locked dropdown looked as open
+             * as any other until someone tried it.
+             */
             const classes: Array<string> = [
-              "!min-h-[40px] !rounded-lg !border !bg-white !shadow-sm !transition-all !duration-150",
+              "!min-h-[40px] !rounded-lg !border !shadow-sm !transition-all !duration-150",
               state.isFocused
                 ? "!border-indigo-400 !ring-2 !ring-indigo-100"
                 : "!border-gray-300 hover:!border-indigo-300",
               state.isDisabled
                 ? "!bg-gray-100 !text-gray-400"
-                : "!cursor-pointer",
+                : "!bg-white !cursor-pointer",
             ];
 
             if (props.error) {

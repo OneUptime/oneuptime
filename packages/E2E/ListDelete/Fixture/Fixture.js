@@ -543,6 +543,15 @@ ModelAPI.getCount = async (options) => {
 };
 
 /*
+ * How many records a table holds, as the server counts them: a product
+ * list asks it once, to explain the product under its empty table while
+ * the project has none (Components/ProductOnboarding).
+ */
+ModelAPI.count = async (options) => {
+  return ModelAPI.getCount(options);
+};
+
+/*
  * What the incident state timeline's service does when one row is deleted
  * by its id: the only state is refused; otherwise the state before it runs
  * on over its time (to the next state's start, or on as the current state).

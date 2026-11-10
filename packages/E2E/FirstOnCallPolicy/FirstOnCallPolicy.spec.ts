@@ -70,6 +70,23 @@ const OFFER_COUNTS: Array<string> = [
   "OnCallDutyPolicy",
 ];
 
+/*
+ * The list's own count, apart from the offer's: whether the project has a
+ * policy yet, so the page explains On-Call under the empty list
+ * (Components/ProductOnboarding) with Create On-Call Policy as its first
+ * step.
+ */
+const LIST_FIRST_RUN_COUNT: string = "OnCallDutyPolicy";
+
+// Every count a new project's page asks: the list's own, then the offer's.
+const NEW_PROJECT_COUNTS: Array<string> = [
+  ...OFFER_COUNTS,
+  LIST_FIRST_RUN_COUNT,
+].sort();
+
+// The explanation's first step: the list's Create, in a new project.
+const SHOWCASE_BUTTON: string = "resource-showcase-add-button";
+
 interface RecordedCreate {
   model: string;
   data: Record<string, unknown>;
@@ -149,11 +166,15 @@ function everyNewEventSwitch(page: Page, name: string = SWITCH): Locator {
 }
 
 /*
- * Create On-Call Policy: the empty list's own button in a new project, the
- * card's header button otherwise. The dialog is at rest once its Name box
- * is there and it has grown in.
+ * Create On-Call Policy: in a new project, the first step of the
+ * explanation under the empty list (ProductOnboarding's showcase); the
+ * empty list's own button while the project's count is out (failed, or
+ * not back yet); the card's header button otherwise. All three open the
+ * same dialog. It is at rest once its Name box is there and it has grown
+ * in.
  */
 async function openCreate(page: Page): Promise<void> {
+  const showcaseButton: Locator = page.getByTestId(SHOWCASE_BUTTON);
   const emptyListButton: Locator = page.getByTestId(
     "empty-table-create-button",
   );
@@ -162,9 +183,13 @@ async function openCreate(page: Page): Promise<void> {
     .filter({ hasText: /Create|Erstellen|ساخت/ })
     .first();
 
-  await expect(emptyListButton.or(headerButton).first()).toBeVisible();
+  await expect(
+    showcaseButton.or(emptyListButton).or(headerButton).first(),
+  ).toBeVisible();
 
-  if ((await emptyListButton.count()) > 0) {
+  if ((await showcaseButton.count()) > 0) {
+    await showcaseButton.click();
+  } else if ((await emptyListButton.count()) > 0) {
     await emptyListButton.click();
   } else {
     await headerButton.click();
@@ -212,7 +237,14 @@ test.describe("a new project's first on-call policy", () => {
     page: Page;
   }) => {
     await openPage(page);
-    await expect(page.getByTestId("empty-table-create-button")).toBeVisible();
+    /*
+     * The empty list explains On-Call, its first step the list's Create;
+     * the empty table does not repeat the button.
+     */
+    await expect(page.getByTestId(SHOWCASE_BUTTON)).toHaveText(
+      "Create On-Call Policy",
+    );
+    await expect(page.getByTestId("empty-table-create-button")).toHaveCount(0);
     await openCreate(page);
 
     const toggle: Locator = everyNewEventSwitch(page);
@@ -248,8 +280,11 @@ test.describe("a new project's first on-call policy", () => {
       dialog(page).getByRole("button", { name: "Next", exact: true }),
     ).toHaveCount(0);
 
-    // The project is counted once its empty list is back: once each.
-    expect((await fixture(page)).counts.sort()).toEqual(OFFER_COUNTS);
+    /*
+     * The project is counted once its empty list is back: once each, beside
+     * the list's own count of its policies.
+     */
+    expect((await fixture(page)).counts.sort()).toEqual(NEW_PROJECT_COUNTS);
 
     await screenshot(page, "first-policy-dialog-1280");
   });
@@ -312,7 +347,10 @@ test.describe("a project that is not new is not asked", () => {
 
     await expect(dialog(page).getByRole("switch")).toHaveCount(0);
     await expect(dialog(page)).not.toContainText(SWITCH);
-    expect((await fixture(page)).counts).toEqual([]);
+    // Only the list's own count: the offer counts nothing.
+    expect((await fixture(page)).counts).toEqual([LIST_FIRST_RUN_COUNT]);
+    // A project with a policy is not told what On-Call is.
+    await expect(page.getByTestId(SHOWCASE_BUTTON)).toHaveCount(0);
 
     const created: RecordedCreate = await createNamed(page, "Database on-call");
 
@@ -325,14 +363,15 @@ test.describe("a project that is not new is not asked", () => {
     page: Page;
   }) => {
     await openPage(page, "?rules=incident");
-    await expect(page.getByTestId("empty-table-create-button")).toBeVisible();
+    // No policy yet: the list explains On-Call, as in a new project.
+    await expect(page.getByTestId(SHOWCASE_BUTTON)).toBeVisible();
     await openCreate(page);
 
     await expect
       .poll(async (): Promise<Array<string>> => {
         return (await fixture(page)).counts.sort();
       })
-      .toEqual(OFFER_COUNTS);
+      .toEqual(NEW_PROJECT_COUNTS);
     await expect(dialog(page).getByRole("switch")).toHaveCount(0);
 
     const created: RecordedCreate = await createNamed(page, "Platform on-call");

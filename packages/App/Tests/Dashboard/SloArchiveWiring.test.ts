@@ -121,7 +121,14 @@ describe("the live SLO list leaves archived SLOs out", () => {
     expect(SLOS_CODE).toContain(
       squash("extraFacets: SLO_LIST_FACETS, persistKey: SLOS_TABLE_ID,"),
     );
-    expect(SLOS_CODE).toContain("topContent={filterBar}");
+    /*
+     * The facet bar is held back only while the project has no SLO at all,
+     * when the page explains the product under the empty table
+     * (Components/ProductOnboarding).
+     */
+    expect(SLOS_CODE).toContain(
+      "topContent={firstRun.getTopContent(filterBar)}",
+    );
     expect(SLOS_CODE).toContain("id={SLOS_TABLE_ID}");
     expect(SLOS_CODE).toContain("userPreferencesKey={SLOS_TABLE_ID}");
   });
@@ -191,9 +198,10 @@ describe("the live SLO list leaves archived SLOs out", () => {
   });
 
   test("a new SLO opens on its own page once it is created", () => {
+    // The product's explanation, if it was showing, gives way first.
     expect(SLOS_CODE).toContain(
       squash(
-        "onCreateSuccess={( item: ServiceLevelObjective, modalType?: ModalType, ): Promise<ServiceLevelObjective> => { if (modalType === ModalType.Create && item._id) { Navigation.navigate(getSloViewRoute(item)); } return Promise.resolve(item); }}",
+        "onCreateSuccess={( item: ServiceLevelObjective, modalType?: ModalType, ): Promise<ServiceLevelObjective> => { firstRun.onRecordCreated(); if (modalType === ModalType.Create && item._id) { Navigation.navigate(getSloViewRoute(item)); } return Promise.resolve(item); }}",
       ),
     );
   });

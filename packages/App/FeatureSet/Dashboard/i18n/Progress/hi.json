@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 47209,
+    "keys": 47623,
     "untranslated": 11052
   },
   "sameAsEnglish": [
@@ -85,6 +85,7 @@
     "PVC",
     "Passthrough",
     "Placement Groups",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Project view",

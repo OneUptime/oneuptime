@@ -25,6 +25,8 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import TelemetryFirstRunShowcase from "../../Components/ProductOnboarding/TelemetryFirstRunShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * Service Map and Infrastructure each load their own view-shaped payload
@@ -316,6 +318,8 @@ const TopologyPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
+      {/* Until the project's first telemetry: what Topology draws, and its setup guide. */}
+      <TelemetryFirstRunShowcase product={ProductKey.Topology} />
       <nav
         role="tablist"
         aria-label={translateString("Topology views")}

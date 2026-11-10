@@ -1,6 +1,7 @@
 import { ONEUPTIME_BASE_URL } from "../Config";
 import RunnerAPIRequest from "./RunnerAPIRequest";
 import RepositoryTokenRevocation from "./RepositoryTokenRevocation";
+import LlmCompletionError from "./LlmCompletionError";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -815,30 +816,52 @@ export default class BackendAPI {
    * One server-mediated LLM completion for a claimed code-fix run (B4 Tier
    * 0). `taskId` is the AIRun id from get-pending-task. A call past one of
    * the run's limits, and every guard failure, comes back as 4xx with a
-   * clear message, thrown here as an Error the tool loop turns into an
-   * honest run failure.
+   * clear message, thrown here as an LlmCompletionError carrying the status
+   * - and a call that got no answer at all as one that says the server
+   * could not be reached - which the tool loop tries again when a repeat
+   * can help (AIRunRetryPolicy) and otherwise turns into an honest run
+   * failure. `timeoutInMs` bounds the wait for the answer, and `signal`
+   * gives it up (the task was aborted).
    */
   public async llmCompletion(data: {
     taskId: string;
     messages: Array<LLMMessage>;
     tools?: Array<LLMToolDefinition> | undefined;
     maxTokens?: number | undefined;
+    timeoutInMs?: number | undefined;
+    signal?: AbortSignal | undefined;
   }): Promise<LlmCompletionResult> {
     const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/llm-completion",
     );
 
-    const response: HTTPResponse<JSONObject> = await API.post({
-      url,
-      data: {
-        ...RunnerAPIRequest.getDefaultRequestBody(),
-        taskId: data.taskId,
-        messages: data.messages as unknown as JSONObject[],
-        ...(data.tools ? { tools: data.tools as unknown as JSONObject[] } : {}),
-        ...(data.maxTokens ? { maxTokens: data.maxTokens } : {}),
-      },
-      options: RunnerAPIRequest.getDefaultRequestOptions(),
-    });
+    let response: HTTPResponse<JSONObject>;
+
+    try {
+      response = await API.post({
+        url,
+        data: {
+          ...RunnerAPIRequest.getDefaultRequestBody(),
+          taskId: data.taskId,
+          messages: data.messages as unknown as JSONObject[],
+          ...(data.tools
+            ? { tools: data.tools as unknown as JSONObject[] }
+            : {}),
+          ...(data.maxTokens ? { maxTokens: data.maxTokens } : {}),
+        },
+        options: RunnerAPIRequest.getDefaultRequestOptions({
+          ...(data.timeoutInMs ? { timeout: data.timeoutInMs } : {}),
+          ...(data.signal ? { signal: data.signal } : {}),
+        }),
+      });
+    } catch (error) {
+      throw new LlmCompletionError({
+        message: `The OneUptime server could not be reached for the model call: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        isNetworkFailure: true,
+      });
+    }
 
     const responseData: LlmCompletionResponse =
       response.data as unknown as LlmCompletionResponse;
@@ -847,8 +870,11 @@ export default class BackendAPI {
       const errorMessage: string =
         typeof responseData?.message === "string"
           ? responseData.message
-          : "LLM completion request failed";
-      throw new Error(errorMessage);
+          : `LLM completion request failed (HTTP ${response.statusCode})`;
+      throw new LlmCompletionError({
+        message: errorMessage,
+        statusCode: response.statusCode,
+      });
     }
 
     const message: { content: string; toolCalls?: Array<LLMToolCall> } =

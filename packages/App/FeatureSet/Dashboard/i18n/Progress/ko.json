@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 47209,
+    "keys": 47623,
     "untranslated": 10820
   },
   "sameAsEnglish": [
@@ -90,6 +90,7 @@
     "Passthrough",
     "Pod · data",
     "Pod · production",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Project view",

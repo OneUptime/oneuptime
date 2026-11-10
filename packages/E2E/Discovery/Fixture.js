@@ -271,6 +271,13 @@ const discovered = createDiscoveredDevicesApi(
     ? buildManyDiscoveredDevices()
     : buildDiscoveredDevices(),
 );
+/*
+ * Unseen Devices (issue #6389): the project keeps a device nothing sees for
+ * 30 days, as a new project does. The list answers it, for the line under
+ * the table, and the project's row holds it, for the card folded under More
+ * settings; a save there changes both, as the server's would.
+ */
+discovered.retentionInDays = 30;
 function snmpProfile(index, name) {
   const item = new NetworkSnmpCredentialProfile();
   item._id = `54000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
@@ -568,6 +575,13 @@ ModelAPI.getItem = async ({ modelType, id }) => {
   if (modelType === NetworkDeviceDiscoveryScan) {
     return scans.find((item) => item.id.toString() === id.toString());
   }
+  // Unseen Devices reads how long the project keeps a device nothing sees.
+  if (modelType === Project && id.toString() === project.id.toString()) {
+    const read = new Project();
+    read._id = project.id.toString();
+    read.discoveredDeviceRetentionInDays = discovered.retentionInDays;
+    return read;
+  }
   // A row's Edit classification reads the device it edits, as the server would.
   if (modelType === NetworkEndpoint) {
     const row = discovered.devices.get(id.toString().toLowerCase());
@@ -585,7 +599,10 @@ ModelAPI.getItem = async ({ modelType, id }) => {
 };
 const originalCount = ModelAPI.count.bind(ModelAPI);
 ModelAPI.count = async (args) => (isDevicesRoute() ? 0 : originalCount(args));
-ModelAPI.updateById = async ({ id, data }) => {
+ModelAPI.updateById = async ({ modelType, id, data }) => {
+  if (modelType === Project) {
+    discovered.retentionInDays = data.discoveredDeviceRetentionInDays;
+  }
   const write = {
     id: id.toString(),
     data: JSON.parse(JSON.stringify(data)),

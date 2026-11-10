@@ -17,8 +17,7 @@ import {
 } from "../../Components/Inventory/InventoryOverviewApi";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
@@ -37,6 +36,8 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * The Inventory landing page: how big the estate is, what it is made of, and
@@ -93,26 +94,19 @@ const InventoryOverview: FunctionComponent<
 
   if (isEmptyEstate) {
     return (
-      <EmptyState
-        id="inventory-overview-empty-state"
-        icon={IconProp.Cube}
-        showSolidBackground={true}
-        title="Your inventory is empty"
-        description="Send OpenTelemetry data or connect infrastructure, and what OneUptime finds shows up here. You can also add things by hand."
-        footer={
-          <Button
-            title="Read the setup guide"
-            icon={IconProp.Book}
-            buttonStyle={ButtonStyleType.PRIMARY}
-            onClick={() => {
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route,
-                ),
-              );
-            }}
-          />
-        }
+      <ProductShowcase
+        product={ProductKey.Inventory}
+        startButton={{
+          title: "Read the setup guide",
+          icon: IconProp.Book,
+          onClick: () => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route,
+              ),
+            );
+          },
+        }}
       />
     );
   }

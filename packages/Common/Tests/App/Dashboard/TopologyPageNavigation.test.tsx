@@ -77,12 +77,21 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+/*
+ * How many of the project's services have reported telemetry: some, unless
+ * a test says none has (then Topology explains itself over the map).
+ */
+let mockReportedServices: number = 2;
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
       getCommonHeaders: (): Record<string, string> => {
         return { tenantid: "dde060c6-fe0d-49ce-b44c-4035a13bc1db" };
+      },
+      count: async (): Promise<number> => {
+        return mockReportedServices;
       },
     },
   };
@@ -472,6 +481,7 @@ beforeEach(() => {
   requests = [];
   answer = defaultAnswer;
   translate = identity;
+  mockReportedServices = 2;
   postMock.mockReset();
   installFakeServer();
   window.history.replaceState({}, "", "/dashboard/project/topology/overview");
@@ -1095,5 +1105,36 @@ describe("show inactive and cross-tab links", () => {
     await waitFor(() => {
       expect(tab("Network")).toHaveAttribute("aria-selected", "true");
     });
+  });
+});
+
+describe("a project whose services have never reported", () => {
+  test("Topology says what it draws over the map, which loads as ever", async () => {
+    mockReportedServices = 0;
+    renderPage();
+
+    const explanation: HTMLElement =
+      await screen.findByTestId("product-showcase");
+    expect(explanation).toHaveAttribute("data-product", "topology");
+    // Over the tabs: the first thing on the page.
+    expect(
+      explanation.compareDocumentPosition(tab("Service Map")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // Nothing is hidden on the strength of the count.
+    await screen.findByTestId("topology-services");
+    expect(
+      requests.map((request: RecordedRequest): string => {
+        return request.path;
+      }),
+    ).toEqual([TopologyApiPath.ServiceMap]);
+  });
+
+  test("once one has, the page is the map alone", async () => {
+    renderPage();
+    await screen.findByTestId("topology-services");
+
+    expect(screen.queryByTestId("product-showcase")).toBeNull();
   });
 });

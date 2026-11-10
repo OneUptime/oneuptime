@@ -367,6 +367,25 @@ LIMIT ${limit}`,
   };
 }
 
+/*
+ * How long the project keeps a device nothing sees any more (issue #6389):
+ * what the list says about it. Read with the list, as the list's other
+ * statements are, so anyone who may read the list reads it too.
+ */
+export function buildRetentionStatement(
+  projectId: string,
+): DiscoveredDeviceStatement {
+  const params: StatementParams = new StatementParams();
+  const project: string = params.add(projectId);
+
+  return {
+    sql: `SELECT p."discoveredDeviceRetentionInDays" AS "retentionInDays"
+FROM "Project" p
+WHERE p."_id" = ${project}::uuid`,
+    params: params.values,
+  };
+}
+
 // The rows of these ids, classified: what a bulk action acts on.
 export function buildClassifyStatement(
   scope: DiscoveredDeviceScope,

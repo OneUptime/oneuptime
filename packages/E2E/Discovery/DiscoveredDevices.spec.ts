@@ -705,6 +705,84 @@ test("selecting every device that matches reaches past the page, and Hide from m
   ).toHaveText(/^Hidden from map\s*320$/);
 });
 
+/*
+ * Unseen Devices (issue #6389): the line under the list says how long a
+ * device nothing sees stays, and its Change opens the page's folded More
+ * settings at the card, in view. A pick there saves at once: the project's
+ * row changes, and the line and the folded header say the new length.
+ */
+test("the line under the list says how long devices stay, Change opens Unseen Devices, and a pick saves at once", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openList(page);
+
+  const line: Locator = page.getByTestId("discovered-devices-retention-line");
+  await expect(line).toHaveText(
+    "Devices not seen for 30 days are removed, unless they are monitored or classified. Change",
+  );
+
+  // Folded until it is asked for.
+  const card: Locator = page.getByTestId("discovered-device-retention");
+  await expect(card).toBeHidden();
+
+  await line.getByTestId("discovered-devices-retention-line-change").click();
+  await expect(page).toHaveURL(
+    new RegExp(escapeRegExp(`${route}#unseen-devices`) + "$"),
+  );
+  await expect(card).toBeVisible();
+  await expect(card).toBeInViewport();
+
+  const setting: Locator = page.getByTestId(
+    "discovered-device-retention-setting",
+  );
+  await expect(
+    setting.getByRole("combobox", { name: "Remove after", exact: true }),
+  ).toBeEnabled();
+  await setting.locator(".ou-select__control").click();
+  await page.getByRole("option", { name: "90 days", exact: true }).click();
+
+  await expect(
+    page.getByTestId("discovered-device-retention-setting-status"),
+  ).toHaveText("Saved");
+  await expect(line).toHaveText(
+    "Devices not seen for 90 days are removed, unless they are monitored or classified. Change",
+  );
+
+  const projectWrites: Array<{ id: string; data: Record<string, unknown> }> =
+    await page.evaluate((projectId: string) => {
+      return (
+        window as unknown as {
+          __discoveryFixture: {
+            updates: Array<{ id: string; data: Record<string, unknown> }>;
+          };
+        }
+      ).__discoveryFixture.updates
+        .filter((write: { id: string }): boolean => {
+          return write.id === projectId;
+        })
+        .map((write: { id: string; data: Record<string, unknown> }) => {
+          return { id: write.id, data: write.data };
+        });
+    }, PROJECT);
+  expect(projectWrites).toEqual([
+    { id: PROJECT, data: { discoveredDeviceRetentionInDays: 90 } },
+  ]);
+
+  // Folded again, its header says what it is set to.
+  const moreSettings: Locator = page.getByTestId(
+    "discovered-devices-more-settings",
+  );
+  await moreSettings
+    .getByRole("button", { name: "More settings", exact: true })
+    .click();
+  await expect(card).toBeHidden();
+  await expect(moreSettings.getByTestId("folded-section-item")).toHaveText(
+    "Unseen Devices: 90 days",
+  );
+});
+
 test("on a phone the list is cards, nothing runs off the screen, and a selection can still be added", async ({
   page,
 }: {

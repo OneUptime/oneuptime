@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 47209,
+    "keys": 47623,
     "untranslated": 11075
   },
   "sameAsEnglish": [
@@ -16,6 +16,7 @@
     "A-Z",
     "AM",
     "AND",
+    "Access point",
     "Account",
     "Account: {{accounts}}",
     "Active + Clean",
@@ -222,6 +223,7 @@
     "Pool",
     "Pool {{name}}",
     "Pools",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Principal",
@@ -278,6 +280,7 @@
     "Standard",
     "StatusPage",
     "Stratum",
+    "Switch",
     "TLS",
     "TTL",
     "TX",

@@ -315,6 +315,96 @@ describe("WorkspaceFileAccess.writeFile", () => {
   });
 });
 
+/*
+ * delete_file and move_file act on the entry a path names (issue #6441):
+ * its folder resolved like any path, but the last component never
+ * followed - so a link is deleted or moved as the link, never the file it
+ * points at, wherever that is.
+ */
+describe("WorkspaceFileAccess.resolveEntry", () => {
+  test("a plain file or folder is itself", async () => {
+    const { workspace } = makeLayout();
+
+    expect(
+      await WorkspaceFileAccess.resolveEntry(workspace, "src/lib/a.ts"),
+    ).toEqual({
+      absolutePath: path.join(workspace, "src", "lib", "a.ts"),
+      relativePath: path.join("src", "lib", "a.ts"),
+    });
+    expect(
+      await WorkspaceFileAccess.resolveEntry(workspace, "src/lib"),
+    ).toEqual({
+      absolutePath: path.join(workspace, "src", "lib"),
+      relativePath: path.join("src", "lib"),
+    });
+  });
+
+  test("a link is the link, never what it points at - outside the workspace or not", async () => {
+    const { workspace, outside } = makeLayout();
+    fs.symlinkSync(
+      path.join(outside, "secret.txt"),
+      path.join(workspace, "to-outside.txt"),
+    );
+    fs.symlinkSync("src/lib/a.ts", path.join(workspace, "to-inside.ts"));
+    fs.symlinkSync(
+      path.join(outside, "gone.txt"),
+      path.join(workspace, "dangling.txt"),
+    );
+
+    for (const name of ["to-outside.txt", "to-inside.ts", "dangling.txt"]) {
+      expect(await WorkspaceFileAccess.resolveEntry(workspace, name)).toEqual({
+        absolutePath: path.join(workspace, name),
+        relativePath: name,
+      });
+    }
+  });
+
+  test("its folder is followed while it stays inside, and refused once it leads out", async () => {
+    const { workspace, outside } = makeLayout();
+    fs.symlinkSync("src/lib", path.join(workspace, "lib-link"));
+    fs.symlinkSync(outside, path.join(workspace, "out"));
+
+    expect(
+      await WorkspaceFileAccess.resolveEntry(workspace, "lib-link/a.ts"),
+    ).toEqual({
+      absolutePath: path.join(workspace, "src", "lib", "a.ts"),
+      relativePath: path.join("src", "lib", "a.ts"),
+    });
+    await expect(
+      WorkspaceFileAccess.resolveEntry(workspace, "out/secret.txt"),
+    ).rejects.toThrow("outside the workspace");
+  });
+
+  test("never the workspace root, never a path out of it, never the git metadata", async () => {
+    const { workspace } = makeLayout();
+    fs.symlinkSync(".git", path.join(workspace, "meta"));
+
+    for (const requested of [".", "src/..", workspace]) {
+      await expect(
+        WorkspaceFileAccess.resolveEntry(workspace, requested),
+      ).rejects.toThrow("Cannot delete or move the workspace root itself");
+    }
+
+    await expect(
+      WorkspaceFileAccess.resolveEntry(workspace, ""),
+    ).rejects.toThrow("A file path is required");
+    await expect(
+      WorkspaceFileAccess.resolveEntry(workspace, "../escape.txt"),
+    ).rejects.toThrow("Path escapes the workspace");
+
+    for (const requested of [
+      ".git",
+      ".git/config",
+      ".GIT/HEAD",
+      "meta/config",
+    ]) {
+      await expect(
+        WorkspaceFileAccess.resolveEntry(workspace, requested),
+      ).rejects.toThrow("git metadata");
+    }
+  });
+});
+
 describe("WorkspaceFileAccess.isInGitMetadata", () => {
   test.each([
     [".git", true],

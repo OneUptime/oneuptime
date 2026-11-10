@@ -42,6 +42,10 @@ const recorded: Record<string, Array<Record<string, unknown>>> = {
 };
 
 let mockStoredForm: Record<string, unknown> | null = null;
+// How many forms the project has: one, unless a test says otherwise.
+let mockCountForms: () => Promise<number> = async (): Promise<number> => {
+  return 1;
+};
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -201,6 +205,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         Object.assign(form, mockStoredForm);
         return form;
       },
+      // Whether the project has a form yet (the list's first run).
+      count: (): Promise<number> => {
+        return mockCountForms();
+      },
     },
   };
 });
@@ -213,6 +221,8 @@ import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { getJestSpyOn } from "../../Spy";
 import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import { getDeleteConsequence } from "../../../UI/Components/DeleteConfirmation/DeleteConsequences";
 import Forms from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/Forms";
@@ -295,6 +305,9 @@ beforeEach(() => {
   }
 
   mockStoredForm = null;
+  mockCountForms = async (): Promise<number> => {
+    return 1;
+  };
 });
 
 afterEach(() => {
@@ -342,6 +355,61 @@ describe("the list of forms", () => {
     expect((table["documentationLink"] as Route_).toString()).toBe(
       "/docs/forms/index",
     );
+  });
+
+  test("a project with forms: the list alone, its empty state with its own Create", async () => {
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
+
+    expect(screen.queryByTestId("product-showcase")).toBeNull();
+    expect(lastTable()["emptyState"]).not.toMatchObject({
+      hideCreateButton: true,
+    });
+    expect(lastTable()["showCreateForm"]).toBe(false);
+  });
+
+  test("a new project: Forms explains itself under the empty table, and its Create Form opens the table's own form", async () => {
+    getJestSpyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    mockCountForms = async (): Promise<number> => {
+      return 0;
+    };
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
+
+    const showcase: HTMLElement = await screen.findByTestId("product-showcase");
+    expect(showcase).toHaveAttribute("data-product", "forms");
+    // The table's empty state says what forms are for; this does not again.
+    expect(
+      within(showcase).queryByTestId("resource-showcase-description"),
+    ).toBeNull();
+    // The explanation's button is the list's Create: the table drops its own.
+    expect(lastTable()["emptyState"]).toMatchObject({
+      hideCreateButton: true,
+    });
+    expect(lastTable()["showCreateForm"]).toBe(false);
+
+    const start: HTMLElement = within(showcase).getByTestId(
+      "resource-showcase-add-button",
+    );
+    expect(start).toHaveTextContent("Create Form");
+    await act(async () => {
+      fireEvent.click(start);
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+
+    expect(lastTable()["showCreateForm"]).toBe(true);
+  });
+
+  test("a count that fails leaves the list as it was", async () => {
+    mockCountForms = async (): Promise<number> => {
+      throw new Error("The count failed.");
+    };
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
+
+    expect(screen.queryByTestId("product-showcase")).toBeNull();
+    expect(lastTable()["emptyState"]).not.toMatchObject({
+      hideCreateButton: true,
+    });
   });
 
   test("creating one asks a name, what it creates and a description - nothing more", async () => {

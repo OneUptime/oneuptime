@@ -57,7 +57,9 @@ import { DataSource } from "typeorm";
  *     the reason) only for rows not monitored and not hidden yet, showing
  *     removes it, and "Show them" removes the project's every one and no
  *     other project's;
- *   - a few thousand endpoints of one site are listed quickly.
+ *   - a few thousand endpoints of one site are listed quickly;
+ *   - the list says how long the project keeps a device nothing sees
+ *     (issue #6389), from the Project row the migration gave a default.
  *
  * The statements run through the list's own runner, the endpoint
  * repository's manager, pointed at the test database: TypeORM's Postgres
@@ -66,9 +68,9 @@ import { DataSource } from "typeorm";
  *
  * Opt in with RUN_POSTGRES_DISCOVERED_DEVICES_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
- * database right after its drift check. The three tables' STRUCTURE is
- * cloned into a unique schema (search_path holds only that schema) that is
- * dropped afterwards. Credentials from DATABASE_USERNAME /
+ * database right after its drift check. The STRUCTURE of the three tables
+ * and of Project is cloned into a unique schema (search_path holds only
+ * that schema) that is dropped afterwards. Credentials from DATABASE_USERNAME /
  * DATABASE_PASSWORD, database from DISCOVERED_DEVICES_TEST_DATABASE_NAME or
  * DATABASE_NAME, endpoint from DISCOVERED_DEVICES_TEST_DATABASE_HOST /
  * _PORT (default localhost:5400).
@@ -276,6 +278,8 @@ describePostgres("the Discovered Devices list on Postgres", () => {
       "NetworkEndpoint",
       "NetworkDevice",
       "NetworkTopologySuppression",
+      // The list says how long the project keeps a device nothing sees (#6389).
+      "Project",
     ]) {
       await database.query(
         `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
@@ -323,6 +327,30 @@ describePostgres("the Discovered Devices list on Postgres", () => {
     );
 
     expect(columns).toEqual([{ is_nullable: "YES" }]);
+  });
+
+  test("the list says how long the project keeps a device nothing sees, and nothing for a project it cannot read (#6389)", async () => {
+    await database.query(
+      `INSERT INTO "Project" ("_id", "version", "name", "slug")
+       VALUES ($1, 1, 'Acme Retail', $2)`,
+      [projectId.toString(), `acme-${projectId.toString()}`],
+    );
+    await addEndpoint({ macAddress: "00:00:00:00:61:01" });
+
+    // A project made before the setting starts at its default.
+    expect((await list()).retentionInDays).toBe(30);
+
+    await database.query(
+      `UPDATE "Project" SET "discoveredDeviceRetentionInDays" = 0 WHERE "_id" = $1`,
+      [projectId.toString()],
+    );
+
+    expect((await list()).retentionInDays).toBe(0);
+
+    projectId = otherProjectId;
+    props = propsFor(projectId, PERSON, [Permission.ReadNetworkEndpoint]);
+
+    expect(await list()).not.toHaveProperty("retentionInDays");
   });
 
   describe("which rows are monitored", () => {

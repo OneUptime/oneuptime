@@ -118,6 +118,19 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value) ?? "null";
 }
 
+/*
+ * What a call's result is known by: the tool, its arguments however the
+ * model ordered or spaced them, and what it returned. The detector keeps
+ * one per result a run saw, and forgets a result by it (forgetResults).
+ */
+export function agentLoopResultKey(
+  call: Pick<AgentLoopToolCall, "name" | "arguments" | "output">,
+): string {
+  return `${call.name}\u0000${fingerprintText(
+    canonicalArguments(call.arguments),
+  )}\u0000${fingerprintText(call.output || "")}`;
+}
+
 export default class AgentLoopDetector {
   // What every call of the run returned: name, arguments and output.
   private seenResults: Set<string> = new Set<string>();
@@ -140,12 +153,7 @@ export default class AgentLoopDetector {
     let isProgress: boolean = false;
 
     for (const call of calls) {
-      const callKey: string = `${call.name}\u0000${fingerprintText(
-        canonicalArguments(call.arguments),
-      )}`;
-      const resultKey: string = `${callKey}\u0000${fingerprintText(
-        call.output || "",
-      )}`;
+      const resultKey: string = agentLoopResultKey(call);
 
       if (!this.seenResults.has(resultKey)) {
         this.seenResults.add(resultKey);
@@ -191,6 +199,24 @@ export default class AgentLoopDetector {
 
   public getRoundsWithoutProgress(): number {
     return this.roundsWithoutProgress;
+  }
+
+  /*
+   * Forget the results the run's conversation has left out to stay inside
+   * the model's context window (the code agent's CodeAgentContext), by
+   * their keys (agentLoopResultKey): the model no longer has them, so a
+   * call made again to get one back is progress, not a circle.
+   *
+   * Only those: a result the model still has is still seen, and the rounds
+   * without progress go on counting, so a run that repeats a long command
+   * whose answer never changes is still told to change course, and then
+   * stopped, however often its conversation is cut. The failures counted
+   * stay counted too - a call that keeps failing the same way is stuck.
+   */
+  public forgetResults(resultKeys: Iterable<string>): void {
+    for (const resultKey of resultKeys) {
+      this.seenResults.delete(resultKey);
+    }
   }
 
   // What the model is told when it should change course.

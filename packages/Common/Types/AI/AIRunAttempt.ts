@@ -149,8 +149,15 @@ const TIMEOUT_SECONDS_PATTERN: RegExp =
   /did not respond within (\d{1,6}) second/i;
 const TIMEOUT_PATTERN: RegExp =
   /did not respond in time|did not respond within|timed out|timeout of \d+ ?ms exceeded|gateway timeout|ETIMEDOUT/i;
+/*
+ * A request too long for the model, in each provider's words: OneUptime's
+ * own, OpenAI's ("maximum context length", context_length_exceeded),
+ * Anthropic's ("prompt is too long", "exceed context limit"), Bedrock's
+ * ("input is too long") and Gemini's ("exceeds the maximum number of
+ * tokens").
+ */
 const CONTEXT_WINDOW_PATTERN: RegExp =
-  /larger than the model's context window|context length|context window/i;
+  /larger than the model's context window|context length|context window|context_length_exceeded|prompt is too long|input is too long|exceeds? (?:the )?context limit|exceeds the maximum number of tokens/i;
 const NOT_CONFIGURED_PATTERN: RegExp =
   /no llm provider configured|llm provider type is not configured|no ai provider/i;
 // The project's own daily AI limits (AIService), and the autonomous budget.

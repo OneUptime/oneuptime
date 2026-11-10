@@ -1,7 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import MetricsViewer from "../../Components/Metrics/MetricsViewer";
+import TelemetryFirstRunShowcase from "../../Components/ProductOnboarding/TelemetryFirstRunShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const MetricsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -16,7 +18,17 @@ const MetricsPage: FunctionComponent<PageComponentProps> = (
   }
 
   // The product page: an empty explorer offers the setup guide.
-  return <MetricsViewer offersSetupWhenEmpty={true} />;
+  return (
+    <Fragment>
+      {/*
+       * Until the project's first telemetry, while the explorer is empty:
+       * what the product does, and its setup guide.
+       */}
+      <TelemetryFirstRunShowcase product={ProductKey.Metrics}>
+        <MetricsViewer offersSetupWhenEmpty={true} />
+      </TelemetryFirstRunShowcase>
+    </Fragment>
+  );
 };
 
 export default MetricsPage;
