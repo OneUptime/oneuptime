@@ -48603,7 +48603,6 @@
   "Unknown monitor group": "Onbekende monitorgroep",
   "\"{{monitor}}\" is {{status}}": "\"{{monitor}}\" (status: {{status}})",
   "1 reading": "1 meting",
-  "A JSON array of trait keys, as your app passes them to identify(): [\"plan\", \"role\"]. At most 20. Kept only while end-user identity capture is on. Do not list traits that hold personal data, such as an email address.": "Een JSON-array met kenmerksleutels, zoals uw app ze aan identify() doorgeeft: [\"plan\", \"role\"]. Maximaal 20. Alleen bewaard zolang het vastleggen van de identiteit van eindgebruikers aanstaat. Neem geen kenmerken op die persoonsgegevens bevatten, zoals een e-mailadres.",
   "A funnel has at most {{count}} steps.": "Een trechter heeft maximaal {{count}} stappen.",
   "A funnel has at most {{count}} steps._one": "Een trechter heeft maximaal {{count}} stap.",
   "A segment holds at most {{count}} filters.": "Een segment bevat maximaal {{count}} filters.",
@@ -48868,7 +48867,6 @@
   "Timed Out": "Time-out",
   "Timeout information was unavailable.": "Er was geen informatie over de time-out beschikbaar.",
   "Trend": "Trend",
-  "Turn them on to count every session's start, page views and the events your app sends with track(). Nothing changes on your pages: the recorder you installed for Session Replay sends them.": "Schakel ze in om het begin van elke sessie, paginaweergaven en de gebeurtenissen te tellen die uw app met track() verzendt. Op uw pagina's verandert niets: de recorder die u voor sessieherhaling hebt geïnstalleerd, verzendt ze.",
   "User Properties": "Gebruikerseigenschappen",
   "User Properties for Analytics": "Gebruikerseigenschappen voor analyse",
   "User Retention": "Gebruikersretentie",
@@ -48955,7 +48953,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}; aan het ingestelde filter is niet voldaan.",
   "{{percent}} did every step": "{{percent}} deed elke stap",
   "{{percent}} went on": "{{percent}} ging door",
-  "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "De browserrecorder verzendt het begin van elke sessie, de paginaweergaven en uw track()- en metric()-aanroepen vanuit elke sessie, opgenomen of niet. Toestemming, Do Not Track en de toegestane origins gelden zoals voor opnamen.",
   "{{percent}}% sampled": "{{percent}}% gesampeld",
   "{{position}} of {{duration}}": "{{position}} van {{duration}}",
   "{{reasons}}. The reason words match the recorder's own diagnostics.": "{{reasons}}. De woorden voor de redenen zijn dezelfde als in de eigen diagnostiek van de recorder.",
@@ -49106,7 +49103,6 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "De recorder installeren",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Sessieherhaling staat uit voor deze applicatie, en het is de recorder daarvan die de gebeurtenissen verzendt. Schakel die ook in onder {{replayPolicy}}.",
-  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "Sessiestarts en paginaweergaven komen vanzelf binnen van elke pagina waarop de browserrecorder is geïnstalleerd. Om te tellen wat mensen daar doen, verzendt u gebeurtenissen en getallen vanuit de code van uw app:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} in dit blok van {{window}} (bij benadering, blok nog niet geladen)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} fouten in dit blok van {{window}} (bij benadering, blok nog niet geladen)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} fout in dit blok van {{window}} (bij benadering, blok nog niet geladen)",
@@ -49338,5 +49334,9 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "A JSON array of up to 20 identify() trait keys. Kept only while end-user identity capture is on. Do not list personal data, such as email.": "Een JSON-array met maximaal 20 kenmerksleutels uit identify(). Alleen bewaard zolang het vastleggen van de identiteit van eindgebruikers aanstaat. Neem geen persoonsgegevens op, zoals het e-mailadres.",
+  "Sends session starts, page views and your track() and metric() calls from every session, recorded or not. Consent and Do Not Track still apply.": "Verzendt sessiestarts, paginaweergaven en uw track()- en metric()-aanroepen vanuit elke sessie, opgenomen of niet. Toestemming en Do Not Track blijven gelden.",
+  "The browser recorder sends session starts and page views on its own. To count what people do, send events and numbers from your app's code:": "De browserrecorder verzendt sessiestarts en paginaweergaven vanzelf. Om te tellen wat mensen doen, verzendt u gebeurtenissen en getallen vanuit de code van uw app:",
+  "Turn them on to count session starts, page views and the events your app sends with track(). The Session Replay recorder on your pages sends them.": "Schakel ze in om sessiestarts, paginaweergaven en de gebeurtenissen te tellen die uw app met track() verzendt. De recorder van sessieherhaling op uw pagina's verzendt ze."
 }

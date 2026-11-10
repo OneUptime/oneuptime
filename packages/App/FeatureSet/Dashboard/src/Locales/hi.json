@@ -48603,7 +48603,6 @@
   "Unknown monitor group": "अज्ञात मॉनिटर समूह",
   "\"{{monitor}}\" is {{status}}": "“{{monitor}}” {{status}} है",
   "1 reading": "1 रीडिंग",
-  "A JSON array of trait keys, as your app passes them to identify(): [\"plan\", \"role\"]. At most 20. Kept only while end-user identity capture is on. Do not list traits that hold personal data, such as an email address.": "ट्रेट कुंजियों का एक JSON ऐरे, जैसे आपका ऐप उन्हें identify() को देता है: [\"plan\", \"role\"]। अधिकतम 20। ये केवल तब तक रखी जाती हैं जब तक अंतिम उपयोगकर्ताओं की पहचान कैप्चर करना चालू है। ऐसे ट्रेट न डालें जिनमें व्यक्तिगत डेटा हो, जैसे ईमेल पता।",
   "A funnel has at most {{count}} steps.": "एक फ़नल में अधिकतम {{count}} चरण होते हैं।",
   "A funnel has at most {{count}} steps._one": "एक फ़नल में अधिकतम {{count}} चरण होता है।",
   "A segment holds at most {{count}} filters.": "एक सेगमेंट में अधिकतम {{count}} फ़िल्टर होते हैं।",
@@ -48868,7 +48867,6 @@
   "Timed Out": "टाइमआउट हुआ",
   "Timeout information was unavailable.": "टाइमआउट की जानकारी उपलब्ध नहीं थी।",
   "Trend": "रुझान",
-  "Turn them on to count every session's start, page views and the events your app sends with track(). Nothing changes on your pages: the recorder you installed for Session Replay sends them.": "हर सेशन की शुरुआत, पेज व्यू और आपके ऐप द्वारा track() से भेजे गए इवेंट गिनने के लिए इन्हें चालू करें। आपके पेजों पर कुछ नहीं बदलता: सेशन रीप्ले के लिए आपने जो रिकॉर्डर इंस्टॉल किया है, वही इन्हें भेजता है।",
   "User Properties": "उपयोगकर्ता प्रॉपर्टी",
   "User Properties for Analytics": "एनालिटिक्स के लिए उपयोगकर्ता प्रॉपर्टी",
   "User Retention": "उपयोगकर्ता रिटेंशन",
@@ -48955,7 +48953,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}; कॉन्फ़िगर किया गया फ़िल्टर पूरा नहीं हुआ।",
   "{{percent}} did every step": "{{percent}} ने हर चरण किया",
   "{{percent}} went on": "{{percent}} आगे बढ़े",
-  "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "ब्राउज़र रिकॉर्डर हर सेशन से, चाहे वह रिकॉर्ड हुआ हो या नहीं, सेशन की शुरुआत, उसके पेज व्यू और आपके track() और metric() कॉल भेजता है। सहमति, Do Not Track और अनुमत ऑरिजिन वैसे ही लागू होते हैं जैसे रिकॉर्डिंग पर।",
   "{{percent}}% sampled": "{{percent}}% सैंपलिंग",
   "{{position}} of {{duration}}": "{{duration}} में से {{position}}",
   "{{reasons}}. The reason words match the recorder's own diagnostics.": "{{reasons}}। कारण के ये शब्द रिकॉर्डर के अपने डायग्नोस्टिक्स से मेल खाते हैं।",
@@ -49106,7 +49103,6 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "रिकॉर्डर इंस्टॉल करें",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "इस एप्लिकेशन के लिए सेशन रीप्ले बंद है, और इवेंट उसी का रिकॉर्डर भेजता है। इसे {{replayPolicy}} में भी चालू करें।",
-  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "सेशन की शुरुआत और पेज व्यू हर उस पेज से अपने आप आते हैं जिस पर ब्राउज़र रिकॉर्डर इंस्टॉल है। वहाँ लोग क्या करते हैं, यह गिनने के लिए अपने ऐप के कोड से इवेंट और संख्याएँ भेजें:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{window}} वाले इस चंक में {{counts}} (अनुमानित, चंक अभी लोड नहीं हुआ)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{window}} वाले इस चंक में {{count}} त्रुटियाँ (अनुमानित, चंक अभी लोड नहीं हुआ)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{window}} वाले इस चंक में {{count}} त्रुटि (अनुमानित, चंक अभी लोड नहीं हुआ)",
@@ -49338,5 +49334,9 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "A JSON array of up to 20 identify() trait keys. Kept only while end-user identity capture is on. Do not list personal data, such as email.": "अधिकतम 20 identify() ट्रेट कुंजियों का एक JSON ऐरे। ये केवल तब तक रखी जाती हैं जब तक अंतिम उपयोगकर्ताओं की पहचान कैप्चर करना चालू है। ईमेल जैसा व्यक्तिगत डेटा न डालें।",
+  "Sends session starts, page views and your track() and metric() calls from every session, recorded or not. Consent and Do Not Track still apply.": "यह हर सेशन से, चाहे वह रिकॉर्ड हुआ हो या नहीं, सेशन की शुरुआत, पेज व्यू और आपके track() और metric() कॉल भेजता है। सहमति और Do Not Track अब भी लागू होते हैं।",
+  "The browser recorder sends session starts and page views on its own. To count what people do, send events and numbers from your app's code:": "ब्राउज़र रिकॉर्डर सेशन की शुरुआत और पेज व्यू अपने आप भेजता है। लोग क्या करते हैं, यह गिनने के लिए अपने ऐप के कोड से इवेंट और संख्याएँ भेजें:",
+  "Turn them on to count session starts, page views and the events your app sends with track(). The Session Replay recorder on your pages sends them.": "सेशन की शुरुआत, पेज व्यू और आपके ऐप द्वारा track() से भेजे गए इवेंट गिनने के लिए इन्हें चालू करें। आपके पेजों पर लगा सेशन रीप्ले रिकॉर्डर इन्हें भेजता है।"
 }

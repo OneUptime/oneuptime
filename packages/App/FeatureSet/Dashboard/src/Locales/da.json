@@ -48603,7 +48603,6 @@
   "Unknown monitor group": "Ukendt monitorgruppe",
   "\"{{monitor}}\" is {{status}}": "\"{{monitor}}\" er {{status}}",
   "1 reading": "1 måling",
-  "A JSON array of trait keys, as your app passes them to identify(): [\"plan\", \"role\"]. At most 20. Kept only while end-user identity capture is on. Do not list traits that hold personal data, such as an email address.": "Et JSON-array med egenskabsnøgler, som din app sender dem til identify(): [\"plan\", \"role\"]. Højst 20. Gemmes kun, mens registrering af slutbrugeridentitet er slået til. Angiv ikke egenskaber, der indeholder personoplysninger, såsom en e-mailadresse.",
   "A funnel has at most {{count}} steps.": "En tragt har højst {{count}} trin.",
   "A funnel has at most {{count}} steps._one": "En tragt har højst {{count}} trin.",
   "A segment holds at most {{count}} filters.": "Et segment har højst {{count}} filtre.",
@@ -48868,7 +48867,6 @@
   "Timed Out": "Tidsgrænse overskredet",
   "Timeout information was unavailable.": "Oplysninger om timeout var ikke tilgængelige.",
   "Trend": "Tendens",
-  "Turn them on to count every session's start, page views and the events your app sends with track(). Nothing changes on your pages: the recorder you installed for Session Replay sends them.": "Slå dem til for at tælle starten på hver session, sidevisninger og de begivenheder, din app sender med track(). Intet ændres på dine sider: optageren, du installerede til sessionsafspilning, sender dem.",
   "User Properties": "Brugeregenskaber",
   "User Properties for Analytics": "Brugeregenskaber til analyse",
   "User Retention": "Fastholdelse af brugere",
@@ -48955,7 +48953,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}; det konfigurerede filter blev ikke opfyldt.",
   "{{percent}} did every step": "{{percent}} udførte alle trin",
   "{{percent}} went on": "{{percent}} fortsatte",
-  "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "Browseroptageren sender starten på hver session, dens sidevisninger og dine track()- og metric()-kald fra hver session, optaget eller ej. Samtykke, Do Not Track og de tilladte oprindelser gælder som for optagelser.",
   "{{percent}}% sampled": "{{percent}} % udvalgt",
   "{{position}} of {{duration}}": "{{position}} af {{duration}}",
   "{{reasons}}. The reason words match the recorder's own diagnostics.": "{{reasons}}. Årsagsordene svarer til optagerens egen diagnosticering.",
@@ -49106,7 +49103,6 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "Installer optageren",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Sessionsafspilning er slået fra for denne applikation, og det er dens optager, der sender begivenhederne. Slå den også til under {{replayPolicy}}.",
-  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "Sessionsstarter og sidevisninger kommer af sig selv fra hver side, browseroptageren er installeret på. For at tælle, hvad folk gør der, skal du sende begivenheder og tal fra din apps kode:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} i denne blok på {{window}} (omtrentligt, blokken er ikke indlæst endnu)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} fejl i denne blok på {{window}} (omtrentligt, blokken er ikke indlæst endnu)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} fejl i denne blok på {{window}} (omtrentligt, blokken er ikke indlæst endnu)",
@@ -49338,5 +49334,9 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "A JSON array of up to 20 identify() trait keys. Kept only while end-user identity capture is on. Do not list personal data, such as email.": "Et JSON-array med op til 20 egenskabsnøgler fra identify(). Gemmes kun, mens registrering af slutbrugeridentitet er slået til. Angiv ikke personoplysninger, såsom e-mail.",
+  "Sends session starts, page views and your track() and metric() calls from every session, recorded or not. Consent and Do Not Track still apply.": "Sender sessionsstarter, sidevisninger og dine track()- og metric()-kald fra hver session, optaget eller ej. Samtykke og Do Not Track gælder stadig.",
+  "The browser recorder sends session starts and page views on its own. To count what people do, send events and numbers from your app's code:": "Browseroptageren sender sessionsstarter og sidevisninger af sig selv. For at tælle, hvad folk gør, skal du sende begivenheder og tal fra din apps kode:",
+  "Turn them on to count session starts, page views and the events your app sends with track(). The Session Replay recorder on your pages sends them.": "Slå dem til for at tælle sessionsstarter, sidevisninger og de begivenheder, din app sender med track(). Sessionsafspilningens optager på dine sider sender dem."
 }

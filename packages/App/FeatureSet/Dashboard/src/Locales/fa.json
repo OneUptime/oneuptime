@@ -48603,7 +48603,6 @@
   "Unknown monitor group": "گروه مانیتور ناشناس",
   "\"{{monitor}}\" is {{status}}": "«{{monitor}}» در وضعیت {{status}} است",
   "1 reading": "یک خوانش",
-  "A JSON array of trait keys, as your app passes them to identify(): [\"plan\", \"role\"]. At most 20. Kept only while end-user identity capture is on. Do not list traits that hold personal data, such as an email address.": "آرایه‌ای JSON از کلیدهای ویژگی، همان‌طور که برنامه‌تان آن‌ها را به identify() می‌دهد: [\"plan\", \"role\"]. حداکثر ۲۰ مورد. فقط تا وقتی ثبت هویت کاربران نهایی روشن است نگه داشته می‌شوند. ویژگی‌هایی را که داده‌های شخصی دارند، مانند نشانی ایمیل، فهرست نکنید.",
   "A funnel has at most {{count}} steps.": "هر قیف حداکثر {{count}} مرحله دارد.",
   "A funnel has at most {{count}} steps._one": "هر قیف حداکثر {{count}} مرحله دارد.",
   "A segment holds at most {{count}} filters.": "هر سگمنت حداکثر {{count}} فیلتر دارد.",
@@ -48868,7 +48867,6 @@
   "Timed Out": "پایان مهلت",
   "Timeout information was unavailable.": "اطلاعات مهلت در دسترس نبود.",
   "Trend": "روند",
-  "Turn them on to count every session's start, page views and the events your app sends with track(). Nothing changes on your pages: the recorder you installed for Session Replay sends them.": "آن‌ها را روشن کنید تا آغاز هر نشست، بازدید صفحه‌ها و رویدادهایی که برنامه‌تان با track() می‌فرستد شمرده شوند. در صفحه‌هایتان چیزی تغییر نمی‌کند: ضبط‌کننده‌ای که برای بازپخش نشست نصب کرده‌اید آن‌ها را می‌فرستد.",
   "User Properties": "ویژگی‌های کاربر",
   "User Properties for Analytics": "ویژگی‌های کاربر برای تحلیل",
   "User Retention": "ماندگاری کاربران",
@@ -48955,7 +48953,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}؛ فیلتر پیکربندی‌شده برقرار نشد.",
   "{{percent}} did every step": "{{percent}} همهٔ مرحله‌ها را انجام دادند",
   "{{percent}} went on": "{{percent}} ادامه دادند",
-  "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "ضبط‌کننده مرورگر آغاز هر نشست، بازدید صفحه‌هایش و فراخوانی‌های track() و metric() شما را از هر نشست، ضبط‌شده یا نه، می‌فرستد. رضایت، Do Not Track و مبداهای مجاز همان‌طور اعمال می‌شوند که برای ضبط‌ها.",
   "{{percent}}% sampled": "نمونه‌گیری {{percent}}٪",
   "{{position}} of {{duration}}": "{{position}} از {{duration}}",
   "{{reasons}}. The reason words match the recorder's own diagnostics.": "{{reasons}}. واژه‌های دلیل با عیب‌یابی خودِ ضبط‌کننده یکسان‌اند.",
@@ -49106,7 +49103,6 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "نصب ضبط‌کننده",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "بازپخش نشست برای این برنامه خاموش است و ضبط‌کنندهٔ آن است که رویدادها را می‌فرستد. آن را در «{{replayPolicy}}» هم روشن کنید.",
-  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "آغاز نشست‌ها و بازدید صفحه‌ها خودبه‌خود از هر صفحه‌ای که ضبط‌کنندهٔ مرورگر روی آن نصب است می‌رسند. برای شمردن کارهایی که افراد آنجا انجام می‌دهند، رویدادها و اعداد را از کد برنامه‌تان بفرستید:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} خطا در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} خطا در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
@@ -49338,5 +49334,9 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "A JSON array of up to 20 identify() trait keys. Kept only while end-user identity capture is on. Do not list personal data, such as email.": "آرایه‌ای JSON از حداکثر ۲۰ کلید ویژگی identify(). فقط تا وقتی ثبت هویت کاربران نهایی روشن است نگه داشته می‌شوند. داده‌های شخصی مانند ایمیل را فهرست نکنید.",
+  "Sends session starts, page views and your track() and metric() calls from every session, recorded or not. Consent and Do Not Track still apply.": "آغاز نشست‌ها، بازدید صفحه‌ها و فراخوانی‌های track() و metric() شما را از هر نشست، ضبط‌شده یا نه، می‌فرستد. رضایت و Do Not Track همچنان اعمال می‌شوند.",
+  "The browser recorder sends session starts and page views on its own. To count what people do, send events and numbers from your app's code:": "ضبط‌کنندهٔ مرورگر آغاز نشست‌ها و بازدید صفحه‌ها را خودبه‌خود می‌فرستد. برای شمردن کارهایی که افراد انجام می‌دهند، رویدادها و اعداد را از کد برنامه‌تان بفرستید:",
+  "Turn them on to count session starts, page views and the events your app sends with track(). The Session Replay recorder on your pages sends them.": "آن‌ها را روشن کنید تا آغاز نشست‌ها، بازدید صفحه‌ها و رویدادهایی که برنامه‌تان با track() می‌فرستد شمرده شوند. ضبط‌کنندهٔ بازپخش نشست در صفحه‌هایتان آن‌ها را می‌فرستد."
 }

@@ -197,7 +197,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
               ? translator.translateTemplate("For this database: {{example}}", {
                   example: props.suggestion.connectionExample,
                 })
-              : "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks, Athena and Dataverse. Documentation shows each engine's.",
+              : "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks, Athena and Dataverse. See Documentation.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (

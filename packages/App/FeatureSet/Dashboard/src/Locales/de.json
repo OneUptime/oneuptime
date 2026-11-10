@@ -48603,7 +48603,6 @@
   "Unknown monitor group": "Unbekannte Monitor-Gruppe",
   "\"{{monitor}}\" is {{status}}": "„{{monitor}}“ (Status: {{status}})",
   "1 reading": "1 Messwert",
-  "A JSON array of trait keys, as your app passes them to identify(): [\"plan\", \"role\"]. At most 20. Kept only while end-user identity capture is on. Do not list traits that hold personal data, such as an email address.": "Ein JSON-Array mit Merkmalsschlüsseln, so wie Ihre App sie an identify() übergibt: [\"plan\", \"role\"]. Höchstens 20. Nur gespeichert, solange die Erfassung der Endbenutzeridentität aktiviert ist. Führen Sie keine Merkmale auf, die personenbezogene Daten enthalten, etwa eine E-Mail-Adresse.",
   "A funnel has at most {{count}} steps.": "Ein Trichter hat höchstens {{count}} Schritte.",
   "A funnel has at most {{count}} steps._one": "Ein Trichter hat höchstens {{count}} Schritt.",
   "A segment holds at most {{count}} filters.": "Ein Segment enthält höchstens {{count}} Filter.",
@@ -48868,7 +48867,6 @@
   "Timed Out": "Zeitüberschreitung",
   "Timeout information was unavailable.": "Keine Informationen zur Zeitüberschreitung verfügbar.",
   "Trend": "Trend",
-  "Turn them on to count every session's start, page views and the events your app sends with track(). Nothing changes on your pages: the recorder you installed for Session Replay sends them.": "Aktivieren Sie sie, um den Start jeder Sitzung, Seitenaufrufe und die Ereignisse zu zählen, die Ihre App mit track() sendet. Auf Ihren Seiten ändert sich nichts: Der Recorder, den Sie für die Sitzungswiedergabe installiert haben, sendet sie.",
   "User Properties": "Benutzereigenschaften",
   "User Properties for Analytics": "Benutzereigenschaften für die Analyse",
   "User Retention": "Benutzerbindung",
@@ -48955,7 +48953,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}; der konfigurierte Filter wurde nicht erfüllt.",
   "{{percent}} did every step": "{{percent}} haben jeden Schritt ausgeführt",
   "{{percent}} went on": "{{percent}} machten weiter",
-  "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "Der Browser-Recorder sendet aus jeder Sitzung, ob aufgezeichnet oder nicht, den Start der Sitzung, ihre Seitenaufrufe und Ihre track()- und metric()-Aufrufe. Einwilligung, Do Not Track und die zulässigen Ursprünge gelten wie für Aufzeichnungen.",
   "{{percent}}% sampled": "{{percent}} % in Stichprobe",
   "{{position}} of {{duration}}": "{{position}} von {{duration}}",
   "{{reasons}}. The reason words match the recorder's own diagnostics.": "{{reasons}}. Die Gründe tragen dieselben Bezeichnungen wie in der Diagnose des Recorders.",
@@ -49106,7 +49103,6 @@
   "Is Project Default for SMS": "Ist Projektstandard für SMS",
   "Install the recorder": "Recorder installieren",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Die Sitzungswiedergabe ist für diese Anwendung deaktiviert, und ihr Recorder sendet die Ereignisse. Aktivieren Sie sie auch unter {{replayPolicy}}.",
-  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "Sitzungsstarts und Seitenaufrufe kommen von selbst von jeder Seite, auf der der Browser-Recorder installiert ist. Um zu zählen, was Personen dort tun, senden Sie Ereignisse und Zahlen aus dem Code Ihrer App:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} in diesem {{window}} langen Chunk (ungefähr, Chunk noch nicht geladen)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} Fehler in diesem {{window}} langen Chunk (ungefähr, Chunk noch nicht geladen)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} Fehler in diesem {{window}} langen Chunk (ungefähr, Chunk noch nicht geladen)",
@@ -49338,5 +49334,9 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "A JSON array of up to 20 identify() trait keys. Kept only while end-user identity capture is on. Do not list personal data, such as email.": "Ein JSON-Array mit bis zu 20 Merkmalsschlüsseln aus identify(). Nur gespeichert, solange die Erfassung der Endbenutzeridentität aktiviert ist. Führen Sie keine personenbezogenen Daten auf, etwa die E-Mail-Adresse.",
+  "Sends session starts, page views and your track() and metric() calls from every session, recorded or not. Consent and Do Not Track still apply.": "Sendet Sitzungsstarts, Seitenaufrufe und Ihre track()- und metric()-Aufrufe aus jeder Sitzung, ob aufgezeichnet oder nicht. Einwilligung und Do Not Track gelten weiterhin.",
+  "The browser recorder sends session starts and page views on its own. To count what people do, send events and numbers from your app's code:": "Der Browser-Recorder sendet Sitzungsstarts und Seitenaufrufe von selbst. Um zu zählen, was Personen tun, senden Sie Ereignisse und Zahlen aus dem Code Ihrer App:",
+  "Turn them on to count session starts, page views and the events your app sends with track(). The Session Replay recorder on your pages sends them.": "Aktivieren Sie sie, um Sitzungsstarts, Seitenaufrufe und die Ereignisse zu zählen, die Ihre App mit track() sendet. Der Recorder der Sitzungswiedergabe auf Ihren Seiten sendet sie."
 }

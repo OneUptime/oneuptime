@@ -881,7 +881,7 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
     );
 
     expect(off).toHaveTextContent(
-      "Turn them on to count every session's start, page views and the events your app sends with track().",
+      "Turn them on to count session starts, page views and the events your app sends with track().",
     );
     expect(screen.queryByText("No events yet")).not.toBeInTheDocument();
 
@@ -913,7 +913,7 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
       screen.getByTestId("product-analytics-events-off-switch-status"),
     ).toHaveTextContent("Saved");
     expect(off).toHaveTextContent(
-      "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session",
+      "Sends session starts, page views and your track() and metric() calls from every session",
     );
   });
 

@@ -48603,7 +48603,6 @@
   "Unknown monitor group": "مجموعة مراقبات غير معروفة",
   "\"{{monitor}}\" is {{status}}": "«{{monitor}}» في حالة {{status}}",
   "1 reading": "قراءة واحدة",
-  "A JSON array of trait keys, as your app passes them to identify(): [\"plan\", \"role\"]. At most 20. Kept only while end-user identity capture is on. Do not list traits that hold personal data, such as an email address.": "مصفوفة JSON بمفاتيح السمات كما يمررها تطبيقك إلى identify(): [\"plan\", \"role\"]. بحد أقصى 20. لا تُحفظ إلا ما دام التقاط هوية المستخدمين النهائيين مفعّلًا. لا تُدرج سمات تحمل بيانات شخصية، مثل عنوان البريد الإلكتروني.",
   "A funnel has at most {{count}} steps.": "الحد الأقصى لخطوات مسار التحويل: {{count}}.",
   "A funnel has at most {{count}} steps._one": "يضم مسار التحويل {{count}} خطوة على الأكثر.",
   "A segment holds at most {{count}} filters.": "الحد الأقصى لعوامل التصفية في الشريحة: {{count}}.",
@@ -48868,7 +48867,6 @@
   "Timed Out": "انتهاء المهلة",
   "Timeout information was unavailable.": "لم تتوفر معلومات المهلة.",
   "Trend": "الاتجاه",
-  "Turn them on to count every session's start, page views and the events your app sends with track(). Nothing changes on your pages: the recorder you installed for Session Replay sends them.": "فعّلها لعدّ بداية كل جلسة ومشاهدات الصفحات والأحداث التي يرسلها تطبيقك عبر track(). لا يتغير شيء في صفحاتك: المسجّل الذي ثبّتّه لإعادة تشغيل الجلسات هو الذي يرسلها.",
   "User Properties": "خصائص المستخدم",
   "User Properties for Analytics": "خصائص المستخدم للتحليلات",
   "User Retention": "الاحتفاظ بالمستخدمين",
@@ -48955,7 +48953,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}؛ لم يُستوفَ عامل التصفية المُعدّ.",
   "{{percent}} did every step": "أكمل كل الخطوات: {{percent}}",
   "{{percent}} went on": "انتقل إلى الخطوة التالية: {{percent}}",
-  "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "يرسل مسجّل المتصفح بداية كل جلسة ومشاهدات صفحاتها واستدعاءات track() و metric() من كل جلسة، سواء سُجّلت أم لا. تنطبق الموافقة و Do Not Track والأصول المسموح بها كما تنطبق على التسجيلات.",
   "{{percent}}% sampled": "أخذ العينات {{percent}}%",
   "{{position}} of {{duration}}": "{{position}} من {{duration}}",
   "{{reasons}}. The reason words match the recorder's own diagnostics.": "{{reasons}}. تطابق كلمات الأسباب التشخيصاتِ الخاصة بالمسجّل نفسه.",
@@ -49106,7 +49103,6 @@
   "Is Project Default for SMS": "هل هو الافتراضي للمشروع لرسائل SMS",
   "Install the recorder": "تثبيت المسجّل",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "إعادة تشغيل الجلسات متوقفة لهذا التطبيق، ومسجّلها هو الذي يرسل الأحداث. فعّلها أيضًا في «{{replayPolicy}}».",
-  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "تصل بدايات الجلسات ومشاهدات الصفحات تلقائيًا من كل صفحة ثُبّت عليها مسجّل المتصفح. ولإحصاء ما يفعله الناس هناك، أرسل الأحداث والأرقام من التعليمات البرمجية لتطبيقك:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} من الأخطاء في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} خطأ في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
@@ -49338,5 +49334,9 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "A JSON array of up to 20 identify() trait keys. Kept only while end-user identity capture is on. Do not list personal data, such as email.": "مصفوفة JSON تضم حتى 20 مفتاحًا من سمات identify(). لا تُحفظ إلا ما دام التقاط هوية المستخدمين النهائيين مفعّلًا. لا تُدرج بيانات شخصية، مثل البريد الإلكتروني.",
+  "Sends session starts, page views and your track() and metric() calls from every session, recorded or not. Consent and Do Not Track still apply.": "يرسل بدايات الجلسات ومشاهدات الصفحات واستدعاءات track() و metric() من كل جلسة، سواء سُجّلت أم لا. لا تزال الموافقة و Do Not Track سارية.",
+  "The browser recorder sends session starts and page views on its own. To count what people do, send events and numbers from your app's code:": "يرسل مسجّل المتصفح بدايات الجلسات ومشاهدات الصفحات تلقائيًا. ولإحصاء ما يفعله الناس، أرسل الأحداث والأرقام من التعليمات البرمجية لتطبيقك:",
+  "Turn them on to count session starts, page views and the events your app sends with track(). The Session Replay recorder on your pages sends them.": "فعّلها لعدّ بدايات الجلسات ومشاهدات الصفحات والأحداث التي يرسلها تطبيقك عبر track(). يرسلها مسجّل إعادة تشغيل الجلسات الموجود في صفحاتك."
 }

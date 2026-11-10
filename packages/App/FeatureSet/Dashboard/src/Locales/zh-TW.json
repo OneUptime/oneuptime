@@ -48603,7 +48603,6 @@
   "Unknown monitor group": "不明監測器群組",
   "\"{{monitor}}\" is {{status}}": "「{{monitor}}」的狀態為 {{status}}",
   "1 reading": "1 個讀數",
-  "A JSON array of trait keys, as your app passes them to identify(): [\"plan\", \"role\"]. At most 20. Kept only while end-user identity capture is on. Do not list traits that hold personal data, such as an email address.": "特徵鍵的 JSON 陣列，格式與您的應用程式傳給 identify() 的一致：[\"plan\", \"role\"]。最多 20 個。只在開啟終端使用者身分擷取時保留。請勿列出包含個人資料的特徵，例如電子郵件地址。",
   "A funnel has at most {{count}} steps.": "一個漏斗最多有 {{count}} 個步驟。",
   "A funnel has at most {{count}} steps._one": "一個漏斗最多有 {{count}} 個步驟。",
   "A segment holds at most {{count}} filters.": "一個區隔最多包含 {{count}} 個篩選條件。",
@@ -48868,7 +48867,6 @@
   "Timed Out": "已逾時",
   "Timeout information was unavailable.": "無法取得逾時資訊。",
   "Trend": "趨勢",
-  "Turn them on to count every session's start, page views and the events your app sends with track(). Nothing changes on your pages: the recorder you installed for Session Replay sends them.": "開啟後會統計每個工作階段的開始、頁面瀏覽，以及您的應用程式透過 track() 傳送的事件。您的頁面不需任何變更：為工作階段重播安裝的錄製器會傳送它們。",
   "User Properties": "使用者屬性",
   "User Properties for Analytics": "用於分析的使用者屬性",
   "User Retention": "使用者留存",
@@ -48955,7 +48953,6 @@
   "{{observation}}; configured filter was not met.": "{{observation}}（未符合設定的篩選條件）。",
   "{{percent}} did every step": "{{percent}} 完成了所有步驟",
   "{{percent}} went on": "{{percent}} 進入下一步",
-  "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.": "無論是否錄製，瀏覽器錄製器都會從每個工作階段傳送工作階段的開始、頁面瀏覽以及您的 track() 和 metric() 呼叫。同意設定、Do Not Track 和允許的來源與錄製時一樣適用。",
   "{{percent}}% sampled": "取樣 {{percent}}%",
   "{{position}} of {{duration}}": "{{position}}，共 {{duration}}",
   "{{reasons}}. The reason words match the recorder's own diagnostics.": "{{reasons}}。這些原因字詞與錄製器自身的診斷一致。",
@@ -49106,7 +49103,6 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "安裝錄製器",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "此應用程式的工作階段重播已關閉，而傳送事件的正是它的錄製器。請同時在「{{replayPolicy}}」中開啟它。",
-  "Session starts and page views arrive on their own from every page the browser recorder is installed on. To count what people do there, send events and numbers from your app's code:": "工作階段開始和頁面瀏覽會從每個安裝了瀏覽器錄製器的頁面自動傳來。若要統計使用者在那裡做了什麼，請從應用程式程式碼傳送事件和數值：",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 這個 {{window}} 的資料區塊中有 {{counts}}（約略值，資料區塊尚未載入）",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 這個 {{window}} 的資料區塊中有 {{count}} 個錯誤（約略值，資料區塊尚未載入）",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} error in this {{window}} chunk (approximate, chunk not loaded yet)",
@@ -49338,5 +49334,9 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "A JSON array of up to 20 identify() trait keys. Kept only while end-user identity capture is on. Do not list personal data, such as email.": "最多 20 個 identify() 特徵鍵的 JSON 陣列。只在開啟終端使用者身分擷取時保留。請勿列出個人資料，例如電子郵件。",
+  "Sends session starts, page views and your track() and metric() calls from every session, recorded or not. Consent and Do Not Track still apply.": "無論是否錄製，都會從每個工作階段傳送工作階段開始、頁面瀏覽以及您的 track() 和 metric() 呼叫。同意設定和 Do Not Track 仍然適用。",
+  "The browser recorder sends session starts and page views on its own. To count what people do, send events and numbers from your app's code:": "瀏覽器錄製器會自動傳送工作階段開始和頁面瀏覽。若要統計使用者做了什麼，請從應用程式程式碼傳送事件和數值：",
+  "Turn them on to count session starts, page views and the events your app sends with track(). The Session Replay recorder on your pages sends them.": "開啟後會統計工作階段開始、頁面瀏覽，以及您的應用程式透過 track() 傳送的事件。您頁面上的工作階段重播錄製器會傳送它們。"
 }
