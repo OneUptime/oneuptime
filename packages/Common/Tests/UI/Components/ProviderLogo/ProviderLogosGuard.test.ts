@@ -237,6 +237,10 @@ const SVG_DATA_URLS_KEPT: ReadonlyArray<KeptOnPurpose> = [
     file: "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayFrameCapture.ts",
     why: "a replayed page's own SVG images, drawn as the recorded page drew them",
   },
+  {
+    file: "packages/Common/UI/Components/QR/QRCodeImage.ts",
+    why: "a QR code a camera reads (two-factor setup, Telegram's verification): a picture of data, not an icon, sharp at any size as an SVG (#6638)",
+  },
 ];
 
 // Drawings a frontend keeps in several colours on purpose.

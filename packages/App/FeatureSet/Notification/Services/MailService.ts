@@ -1511,7 +1511,7 @@ export default class MailService {
 
   private static async sendInternal(
     mail: EmailMessage,
-    options?:
+    options:
       | {
           projectId?: ObjectID | undefined;
           emailServer?: EmailServer | undefined;
