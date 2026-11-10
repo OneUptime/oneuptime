@@ -52,7 +52,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Monitorkriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når navnet ikke kan slås opp, tilkoblet når det kan. For å sjekke hva postene sier, legger du til et filter **DNS Record Value**, og klikker så på **Neste**.
+**Monitorkriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når navnet ikke kan slås opp, tilkoblet når det kan. For å sjekke hva postene sier, legger du til et filter **Verdi for DNS-post**, og klikker så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -72,7 +72,7 @@ Behold eller endre **Sonder** og **Overvåkingsintervall** (det starter på **Hv
 
 ### Posttyper
 
-Et kriterium med **DNS Record Value** sammenligner teksten din med hver post slik sonden skriver den, så følg dette formatet:
+Et kriterium med **Verdi for DNS-post** sammenligner teksten din med hver post slik sonden skriver den, så følg dette formatet:
 
 | Posttype | Hva den inneholder | Verdiformat, for kriterier |
 | --- | --- | --- |
@@ -95,15 +95,15 @@ Kriterier avgjør når navnet regnes som tilkoblet, redusert eller frakoblet, og
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
-| **DNS Is Online** | **Sann**, **Usann** | Om spørringen returnerte minst én post av typen. |
-| **DNS Response Time (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Hvor lang tid spørringen tok. |
-| **DNS Record Exists** | **Sann**, **Usann** | Om det kom tilbake noen post av typen. |
-| **DNS Record Value** | **Inneholder**, **Inneholder ikke**, **Starter med**, **Slutter med**, **Lik**, **Ikke lik** | Postenes verdier. Filteret samsvarer når én enkelt post samsvarer. |
-| **DNSSEC Is Valid** | **Sann**, **Usann** | Om en validerende løser setter AD-flagget på svaret. |
+| **DNS er tilkoblet** | **Sann**, **Usann** | Om spørringen returnerte minst én post av typen. |
+| **DNS-svartid (i ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Hvor lang tid spørringen tok. |
+| **DNS-post finnes** | **Sann**, **Usann** | Om det kom tilbake noen post av typen. |
+| **Verdi for DNS-post** | **Inneholder**, **Inneholder ikke**, **Starter med**, **Slutter med**, **Lik**, **Ikke lik** | Postenes verdier. Filteret samsvarer når én enkelt post samsvarer. |
+| **DNSSEC er gyldig** | **Sann**, **Usann** | Om en validerende løser setter AD-flagget på svaret. |
 
-**DNS Record Value** samsvarer når _hvilken som helst_ av postene samsvarer. Med flere `A`-poster samsvarer **Lik** `93.184.216.34` når én av dem er den adressen, og **Ikke lik** samsvarer når én av dem ikke er det.
+**Verdi for DNS-post** samsvarer når _hvilken som helst_ av postene samsvarer. Med flere `A`-poster samsvarer **Lik** `93.184.216.34` når én av dem er den adressen, og **Ikke lik** samsvarer når én av dem ikke er det.
 
-**DNSSEC Is Valid** spør serveren i **DNS-server (valgfritt)**, på dens **Port**, eller Google Public DNS (`8.8.8.8`) når feltet er tomt, så serveren du angir, bør være en som validerer DNSSEC. Filteret har ingen verdi og samsvarer verken den ene eller den andre veien når sonden ikke kan kjøre den sjekken. For en full sjekk av en signert sone bruker du en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
+**DNSSEC er gyldig** spør serveren i **DNS-server (valgfritt)**, på dens **Port**, eller Google Public DNS (`8.8.8.8`) når feltet er tomt, så serveren du angir, bør være en som validerer DNSSEC. Filteret har ingen verdi og samsvarer verken den ene eller den andre veien når sonden ikke kan kjøre den sjekken. For en full sjekk av en signert sone bruker du en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 
 Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvare, eller om **Hvilken som helst** av dem holder. Et kriteriums **Handlinger** avgjør hva det gjør: endrer monitorstatusen, oppretter et varsel, erklærer en hendelse, eller flere av disse.
 
@@ -118,15 +118,15 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 
 ### Evaluering over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **DNS Is Online** og **DNS Response Time (in ms)**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for den siste: velg en aggregering under **Evaluer** og et vindu, fra 2 til 60 minutter, under **For de siste (i minutter)**.
+**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **DNS er tilkoblet** og **DNS-svartid (i ms)**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for den siste: velg en aggregering under **Evaluer** og et vindu, fra 2 til 60 minutter, under **For de siste (i minutter)**.
 
 | Aggregering | Samsvarer når |
 | --- | --- |
-| **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value** | Den verdien over vinduet oppfyller betingelsen. Bare **DNS Response Time (in ms)**. |
-| **All Values** | Hver sjekk i vinduet oppfyller betingelsen. |
-| **Any Value** | Minst én sjekk i vinduet oppfyller betingelsen. |
+| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi** | Den verdien over vinduet oppfyller betingelsen. Bare **DNS-svartid (i ms)**. |
+| **Alle verdier** | Hver sjekk i vinduet oppfyller betingelsen. |
+| **Minst én verdi** | Minst én sjekk i vinduet oppfyller betingelsen. |
 
-**All Values** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Any Value** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
+**Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
 
 **Hvis ingen data** avgjør hva som skjer så lenge vinduet ikke kan underbygge kriteriet:
 
@@ -140,11 +140,11 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Frakoblet når navnet slutter å kunne slås opp | **DNS Is Online** | **Usann** | — |
-| Varsle når et navns eneste `A`-post endres | **DNS Record Value** | **Ikke lik** | `93.184.216.34` |
-| Varsle når en `MX`-post peker utenfor domenet ditt | **DNS Record Value** | **Inneholder ikke** | `example.com` |
-| Merk DNS som redusert når det er tregt | **DNS Response Time (in ms)** | **Større enn** | `500` |
-| Varsle når DNSSEC-valideringen feiler | **DNSSEC Is Valid** | **Usann** | — |
+| Frakoblet når navnet slutter å kunne slås opp | **DNS er tilkoblet** | **Usann** | — |
+| Varsle når et navns eneste `A`-post endres | **Verdi for DNS-post** | **Ikke lik** | `93.184.216.34` |
+| Varsle når en `MX`-post peker utenfor domenet ditt | **Verdi for DNS-post** | **Inneholder ikke** | `example.com` |
+| Merk DNS som redusert når det er tregt | **DNS-svartid (i ms)** | **Større enn** | `500` |
+| Varsle når DNSSEC-valideringen feiler | **DNSSEC er gyldig** | **Usann** | — |
 
 ## Feilsøking
 
@@ -157,11 +157,11 @@ dig @8.8.8.8 example.com A
 :::
 
 :::details Et kriterium med Ikke lik utløses selv om riktig adresse er der
-**DNS Record Value** samsvarer når én enkelt post samsvarer. Med flere poster utløses **Ikke lik** så snart én av dem avviker. For å sjekke at én bestemt verdi er blant postene, støtter du deg på rekkefølgen av kriteriene, siden det første som samsvarer, vinner:
+**Verdi for DNS-post** samsvarer når én enkelt post samsvarer. Med flere poster utløses **Ikke lik** så snart én av dem avviker. For å sjekke at én bestemt verdi er blant postene, støtter du deg på rekkefølgen av kriteriene, siden det første som samsvarer, vinner:
 
-1. Behold standardkriteriet for frakoblet øverst: **DNS Is Online** / **Usann**.
-2. Under det legger du til et kriterium med **DNS Record Value** / **Lik** / verdien du forventer, som merker monitoren som **I drift**.
-3. Under det igjen legger du til et kriterium med **DNS Is Online** / **Sann**, som merker monitoren som **Frakoblet** og erklærer en hendelse. Det samsvarer bare med svar som ikke har verdien.
+1. Behold standardkriteriet for frakoblet øverst: **DNS er tilkoblet** / **Usann**.
+2. Under det legger du til et kriterium med **Verdi for DNS-post** / **Lik** / verdien du forventer, som merker monitoren som **I drift**.
+3. Under det igjen legger du til et kriterium med **DNS er tilkoblet** / **Sann**, som merker monitoren som **Frakoblet** og erklærer en hendelse. Det samsvarer bare med svar som ikke har verdien.
 :::
 
 :::details DNSSEC Is Valid samsvarer aldri

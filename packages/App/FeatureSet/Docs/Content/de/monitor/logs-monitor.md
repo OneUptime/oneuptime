@@ -104,7 +104,7 @@ Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monito
 
 ## Kriterien
 
-Die Kriterien eines Logs-Monitors haben einen **Filtertyp**: **Log Count**, die Anzahl der Logs, die im Fenster gepasst haben. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und, bei einer Schwellenwertbedingung, einen **Wert**.
+Die Kriterien eines Logs-Monitors haben einen **Filtertyp**: **Protokollanzahl**, die Anzahl der Logs, die im Fenster gepasst haben. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und, bei einer Schwellenwertbedingung, einen **Wert**.
 
 | Filterbedingung | Passt, wenn die Anzahl der Logs … |
 | --- | --- |
@@ -113,9 +113,9 @@ Die Kriterien eines Logs-Monitors haben einen **Filtertyp**: **Log Count**, die 
 | **Kleiner als** | unter dem Wert liegt |
 | **Kleiner als oder gleich** | den Wert erreicht oder darunter liegt |
 | **Gleich** | genau dem Wert entspricht |
-| **Anomalously High** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
-| **Anomalously Low** | unter diesem Bereich liegt |
-| **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
+| **Anomal hoch** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
+| **Anomal niedrig** | unter diesem Bereich liegt |
+| **Anomal** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
 
 Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit Fenstern gleicher Länge um dieselbe Zeit in früheren Wochen, so weit das **Baseline-Fenster** zurückreicht; was gerade geschieht, ist nie Teil dieses Vergleichs. Die Baseline umfasst nur die Dienste und Schweregrade des Monitors: Seine Text- und Attributfilter gehören nicht dazu. Minuten ohne Logs zählen mit, sodass ein oft stiller Dienst nicht als ungewöhnlich niedrig gilt, nur weil er still ist. Als ungewöhnlich hoch gilt ein Fenster nur im Vergleich mit den Fenstern, die Logs enthielten, und nur mit mindestens 20, 10 oder 5 Logs bei der Empfindlichkeit Niedrig, Mittel oder Hoch, sodass weder der übliche Schub eines Jobs noch die ersten paar Zeilen eines stillen Dienstes auslösen. Solange die Dienste des Monitors keine zwei Wochen Verlauf haben, lernt das Kriterium noch und löst nicht aus.
 
@@ -131,8 +131,8 @@ Ein über die API oder Terraform ohne Kriterien angelegter Logs-Monitor beginnt 
 
 | Kriterium | Filter | Wirkung |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Gleich** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
-| Check if … is online | **Log Count** **Größer als** `0` | Setzt den Monitor auf online |
+| Check if … is offline | **Protokollanzahl** **Gleich** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
+| Check if … is online | **Protokollanzahl** **Größer als** `0` | Setzt den Monitor auf online |
 
 ## Ein Beispiel: eine Fehlerspitze
 
@@ -234,7 +234,7 @@ Der Wert jedes Group-By-Attributs ist eine [Vorlagenvariable](/docs/monitor/inci
 
 - **Jedes Kriterium wird ausgewertet**, wie bei einem gruppierten Metriken-Monitor, sodass verschiedene Gruppen zugleich verschiedene Kriterien erfüllen können. Eine Gruppe, die zwei Kriterien erfüllt, erhält trotzdem nur eine Warnung, vom ersten; ordnen Sie die Kriterien also mit dem schwerwiegendsten zuerst.
 - **Eine Gruppe existiert nur, wenn sie im Zeitfenster etwas protokolliert hat.** Kriterien mit **Gleich 0** und **Kleiner als** lösen daher nur für Gruppen aus, die mindestens einmal protokolliert haben; um zu warnen, wenn gar keine Logs mehr eintreffen, verwenden Sie einen Monitor ohne Group By.
-- **Anomalieerkennung** (**Anomalously High**, **Anomalously Low**, **Anomalous**) wird nicht pro Gruppe ausgewertet – ihre Baseline umfasst den ganzen Monitor –, daher passen diese Filter bei einem gruppierten Monitor nie.
+- **Anomalieerkennung** (**Anomal hoch**, **Anomal niedrig**, **Anomal**) wird nicht pro Gruppe ausgewertet – ihre Baseline umfasst den ganzen Monitor –, daher passen diese Filter bei einem gruppierten Monitor nie.
 - Der Status des Monitors folgt dem ersten Kriterium, das irgendeine Gruppe erfüllt. Erfüllt keine Gruppe ein Kriterium, kehrt der Monitor zu seinem Standardstatus zurück.
 
 ## Fehlerbehebung
@@ -244,7 +244,7 @@ Die Anzahl war 0, die Filter passen also auf keines der Logs, die der Dienst sen
 :::
 
 :::details Es gab eine Spitze, aber nichts hat gewarnt
-Die Kriterien werden von oben nach unten geprüft, und der erste Treffer entscheidet. Ein breites Kriterium über dem erwarteten, etwa **Log Count** **Größer als** `0`, passt zuerst und stoppt den Rest. Stellen Sie das schwerwiegendste Kriterium nach oben.
+Die Kriterien werden von oben nach unten geprüft, und der erste Treffer entscheidet. Ein breites Kriterium über dem erwarteten, etwa **Protokollanzahl** **Größer als** `0`, passt zuerst und stoppt den Rest. Stellen Sie das schwerwiegendste Kriterium nach oben.
 :::
 
 :::details Ein Anomaliekriterium löst nie aus

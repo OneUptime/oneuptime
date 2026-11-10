@@ -128,7 +128,7 @@ Data som returneras från skriptet serialiseras till JSON innan de lagras: i van
 
 ### Larma på returnerade data
 
-Det som skriptet returnerar som `data` är monitorns **Result Value**, som ett kriterium kan jämföra. När `data` är ett objekt eller en matris fyller du i **Fältsökväg (valfritt)** på Result Value-filtret för att jämföra ett fält — till exempel `status`, `timings.loadTime` eller `errors[0].message`. Filtret kontrolleras mot data från varje webbläsare och skärmstorlek som monitorn körs på, och matchar när någon av dem gör det. Se [Larma på returnerade data](/docs/monitor/custom-code-monitor#larma-på-returnerade-data) för hur sökvägar och villkor fungerar.
+Det som skriptet returnerar som `data` är monitorns **Resultatvärde**, som ett kriterium kan jämföra. När `data` är ett objekt eller en matris fyller du i **Fältsökväg (valfritt)** på Result Value-filtret för att jämföra ett fält — till exempel `status`, `timings.loadTime` eller `errors[0].message`. Filtret kontrolleras mot data från varje webbläsare och skärmstorlek som monitorn körs på, och matchar när någon av dem gör det. Se [Larma på returnerade data](/docs/monitor/custom-code-monitor#larma-på-returnerade-data) för hur sökvägar och villkor fungerar.
 
 ## Skärmbilder
 
@@ -232,10 +232,10 @@ En körning kan samla in högst 100 mätvärden, bara med numeriska värden, och
 | Filtertyp | Vad den kontrollerar |
 | --- | --- |
 | **Fel** | Felet som en körning kastade, om något. |
-| **Result Value** | `data` som en körning returnerade. |
+| **Resultatvärde** | `data` som en körning returnerade. |
 | **Körningstid (i ms)** | Hur lång tid en körning tog. |
 | **Webbläsartyp** | Webbläsaren som en körning använde: **Lika med** eller **Inte lika med**. |
-| **Screen Size** | Skärmstorleken som en körning använde: **Lika med** eller **Inte lika med**. |
+| **Skärmstorlek** | Skärmstorleken som en körning använde: **Lika med** eller **Inte lika med**. |
 
 Varje filter kontrolleras mot varje körning och matchar när någon enda körning matchar det. Filtren kontrolleras var för sig, inte körning för körning: **Fel** Är inte tom tillsammans med **Webbläsartyp** Lika med `Firefox` matchar när någon körning misslyckades och en av körningarna använde Firefox — inte bara när Firefox-körningen misslyckades. Om du vill följa en webbläsare för sig ger du den en egen monitor.
 

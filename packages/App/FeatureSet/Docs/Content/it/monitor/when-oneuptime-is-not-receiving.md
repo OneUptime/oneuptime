@@ -23,8 +23,8 @@ Un riavvio che dura meno di 90 secondi non è un'interruzione: i collector invia
 
 | Dove | Cosa fa OneUptime |
 | --- | --- |
-| Monitor di server / VM | **Is Online** conta solo i minuti in cui OneUptime riceveva: per impostazione predefinita, un server è offline dopo 3 minuti di silenzio che OneUptime avrebbe potuto sentire. |
-| Monitor di richieste in arrivo e di email in arrivo | **Recieved In Minutes** e **Not Recieved In Minutes** contano solo i minuti in cui OneUptime riceveva. Quando un tale criterio è soddisfatto, il suo motivo dice quanti di quei minuti sono stati lasciati fuori. |
+| Monitor di server / VM | **Online** conta solo i minuti in cui OneUptime riceveva: per impostazione predefinita, un server è offline dopo 3 minuti di silenzio che OneUptime avrebbe potuto sentire. |
+| Monitor di richieste in arrivo e di email in arrivo | **Ricevuto in minuti** e **Non ricevuto in minuti** contano solo i minuti in cui OneUptime riceveva. Quando un tale criterio è soddisfatto, il suo motivo dice quanti di quei minuti sono stati lasciati fuori. |
 | Monitor di host, Kubernetes, Docker, metriche, log, trace e gli altri monitor che leggono la telemetria | Un controllo la cui finestra contiene tempo senza ricezione attende che quel tempo sia uscito dalla finestra, e mai più di 15 minuti dopo la sua fine. Fino ad allora non cambia nulla: nessun cambio di stato, e nessun incidente né avviso viene aperto o risolto. Finché la coda è indietro, un controllo legge fino al punto in cui si trova la coda invece che fino ad adesso. |
 | Host, cluster e il resto dell'inventario | Una risorsa diventa **Disconnesso** solo dopo che la sua soglia di silenzio, 15 minuti per la maggior parte, è trascorsa mentre OneUptime riceveva. |
 | Sonde e agenti IA | Diventano **Disconnesso** dopo 3 minuti di silenzio mentre OneUptime riceveva. |

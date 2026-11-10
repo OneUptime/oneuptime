@@ -45,16 +45,18 @@ import path from "path";
  *     pages (drawnActionLabel). "Create Monitor Status Event" and "Create
  *     Monitor Secret" are filled into that language's "Create {{itemName}}".
  *     Menu paths ("A → B → C") are drawn segment by segment.
- *   - The criteria filters (DNS Record Value, Is Valid Certificate, Domain
- *     Expires In Days), the type picker's DNS Monitoring and Basic
- *     Monitoring categories and the RDAP and WHOIS lookup methods have no
- *     Dashboard locale key: every language's Dashboard shows them in
- *     English, so every translation names them in English
- *     (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a test
- *     below fails until the pages name it as drawn. The filters' conditions
- *     (Greater Than, Not Contains, Starts With) gained theirs in adc8421a1b:
- *     they are labels now, drawn like any other (DocsCriteriaConditions
- *     holds every page to them).
+ *   - The No Data options Ignore and Treat As Zero, the type picker's DNS
+ *     Monitoring and Basic Monitoring categories and the RDAP and WHOIS
+ *     lookup methods have no Dashboard locale key: every language's
+ *     Dashboard shows them in English, so every translation names them in
+ *     English (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a
+ *     test below fails until the pages name it as drawn. The filters'
+ *     conditions (Greater Than, Not Contains, Starts With) gained theirs in
+ *     adc8421a1b, and the criteria filters (DNS Record Value, Is Valid
+ *     Certificate, Domain Expires In Days, JavaScript Expression), their
+ *     over-time aggregates (Maximum Value) and Evaluates To True theirs in
+ *     #6575 (2026-11-10): they are labels now, drawn like any other
+ *     (DocsCriteriaConditions holds every page to the conditions).
  *
  * The incident and alert titles a new monitor's default criteria create are
  * English in every project, so every translation quotes them as created.
@@ -112,51 +114,16 @@ const DEFAULT_CRITERIA_TYPES: Record<string, MonitorType> = {
  * in English, so the reader finds it as the screen shows it.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  [DNS_MONITOR]: [
-    // The criteria filters (CheckOn).
-    "DNS Is Online",
-    "DNS Response Time (in ms)",
-    "DNS Record Exists",
-    "DNS Record Value",
-    "DNSSEC Is Valid",
-    // The over-time aggregates and No Data options without a key.
-    "Maximum Value",
-    "Minimum Value",
-    "All Values",
-    "Any Value",
-    "Ignore",
-    "Treat As Zero",
-  ],
-  [DNSSEC_MONITOR]: [
-    "DNSSEC Chain Is Valid",
-    "DNSSEC DNSKEY Record Exists",
-    "DNSSEC DS Record Exists At Parent",
-    "DNSSEC Signature Expires In Days",
-    "DNSSEC Resolver Consensus (AD Flag)",
-    "DNSSEC Nameservers Are Consistent",
-  ],
-  [SSL_MONITOR]: [
-    "Is Valid Certificate",
-    "Is Not A Valid Certificate",
-    "Is Expired Certificate",
-    "Is Self Signed Certificate",
-    "Expires In Days",
-    "Expires In Hours",
-  ],
-  [DOMAIN_MONITOR]: [
-    // The Lookup Method dropdown's options other than Auto.
-    "RDAP",
-    "WHOIS",
-    "Is Online",
-    "Is Request Timeout",
-    "Domain Expires In Days",
-    "Domain Is Expired",
-    "Domain Registrar",
-    "Domain Name Server",
-    "Domain Status Code",
-    "All Values",
-  ],
-  [JAVASCRIPT_EXPRESSION]: ["JavaScript Expression", "Evaluates To True"],
+  /*
+   * The criteria filters of every page here (DNS Is Online, DNSSEC Chain Is
+   * Valid, Is Valid Certificate, Domain Expires In Days, JavaScript
+   * Expression), the over-time aggregates and Evaluates To True left this
+   * list on 2026-11-10: #6575 keyed them in every language.
+   */
+  // The No Data options without a key.
+  [DNS_MONITOR]: ["Ignore", "Treat As Zero"],
+  // The Lookup Method dropdown's options other than Auto.
+  [DOMAIN_MONITOR]: ["RDAP", "WHOIS"],
 };
 
 /*

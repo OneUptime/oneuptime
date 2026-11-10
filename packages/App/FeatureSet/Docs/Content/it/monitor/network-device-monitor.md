@@ -378,7 +378,7 @@ Aggiungi gli OID che vuoi raccogliere a ogni polling, in un modello o come aggiu
 | Nome | Un nome descrittivo per l'OID, come sysDescr. | No |
 | Descrizione | Ciò che l'OID rappresenta. | No |
 
-I valori raccolti sono tracciati nella pagina **Metriche** del dispositivo, e i criteri **SNMP OID Value**, **SNMP OID Exists** e **SNMP OID Rate (per second)** generano avvisi su di essi. Un contatore (Counter32 o Counter64) cresce soltanto, quindi crea l'avviso su quanto in fretta è cresciuto dal polling precedente. Il selettore di OID di questi criteri elenca gli OID che raccoglie il dispositivo scelto, quelli del suo modello e i suoi, quindi non c'è nulla da digitare.
+I valori raccolti sono tracciati nella pagina **Metriche** del dispositivo, e i criteri **Valore dell'OID SNMP**, **OID SNMP presente** e **Tasso dell'OID SNMP (al secondo)** generano avvisi su di essi. Un contatore (Counter32 o Counter64) cresce soltanto, quindi crea l'avviso su quanto in fretta è cresciuto dal polling precedente. Il selettore di OID di questi criteri elenca gli OID che raccoglie il dispositivo scelto, quelli del suo modello e i suoi, quindi non c'è nulla da digitare.
 
 Gli elenchi lunghi di OID vengono suddivisi in più richieste SNMP GET perché ciascuna stia in un solo datagramma UDP. Se tenevi corti i tuoi elenchi di OID perché una versione precedente segnalava come offline un dispositivo che rispondeva `tooBig`, ora non serve più.
 
@@ -391,7 +391,7 @@ Digita un OID numerico in **OID iniziale** o premi uno dei punti di partenza sot
 Ogni riga dice dove il suo OID è noto: un valore che raccoglie un modello di salute di un produttore, una colonna della tabella SNMP di un modello di produttore, un contatore che il walk delle interfacce mostra già nei grafici per ogni porta, o un OID sotto la MIB del suo produttore. Da una riga:
 
 - **Raccogli** aggiunge l'OID ai **Device-Specific Health OIDs** del dispositivo: ogni polling lo raccoglie dal prossimo in poi, e la pagina **Metriche** del dispositivo lo mostra nei grafici. Su un dispositivo collegato a un OID Collection Template, il menu della riga può invece aggiungerlo al modello, per ogni dispositivo che lo usa.
-- **Crea un avviso**, che compare quando l'OID viene raccolto, apre un nuovo monitor del dispositivo di rete per il dispositivo con un criterio sull'OID. Un contatore parte da **SNMP OID Rate (per second)** e un indicatore da **SNMP OID Value**, entrambi sopra una soglia che imposti tu; un uptime avvisa sotto i dieci minuti (il dispositivo si è riavviato), tutto il resto quando cambia rispetto al valore letto.
+- **Crea un avviso**, che compare quando l'OID viene raccolto, apre un nuovo monitor del dispositivo di rete per il dispositivo con un criterio sull'OID. Un contatore parte da **Tasso dell'OID SNMP (al secondo)** e un indicatore da **Valore dell'OID SNMP**, entrambi sopra una soglia che imposti tu; un uptime avvisa sotto i dieci minuti (il dispositivo si è riavviato), tutto il resto quando cambia rispetto al valore letto.
 - **Copia OID**, nel menu della riga, copia l'OID.
 
 **Scarica**, accanto al riepilogo del walk, salva ciò che il walk ha letto in un file: **Testo snmpwalk (.txt)**, un OID per riga come lo stampa `snmpwalk -On`, che ogni strumento SNMP e il supporto di ogni produttore sanno leggere, oppure **Foglio di calcolo CSV (.csv)**, con nome, MIB, tipo e valore di ogni OID. Il file contiene ogni OID letto dal walk, walk continuati compresi, qualunque cosa mostri il filtro, e prende il nome dal dispositivo, dal sottoalbero e dall'ora in cui è stato salvato. Chiunque possa leggere l'ultimo walk del dispositivo può scaricarlo.
@@ -425,7 +425,7 @@ Parte di ciò che un dispositivo sa è un elenco: una riga per tunnel IPsec, rad
 | Nomi delle righe | Colonne facoltative i cui valori danno un nome a ogni riga, come il nome della connessione di un tunnel. Senza di esse le righe prendono il nome dal loro indice. Un nome può venire da una tabella sorella che condivide l'indice (Fabric Engine chiama le adiacenze IS-IS a partire da `rcIsisAdjHostName`), o da una tabella madre il cui indice inizia quello di questa tabella (Aruba Instant chiama ogni radio con il nome del suo access point). Una tabella indicizzata per nome (ArubaOS indicizza i suoi SSID per SSID) prende il nome dal suo indice decodificato. |
 | Limite di righe | Quante righe conservare: 100 per impostazione predefinita, 250 al massimo. |
 
-I numeri vengono letti come numeri, e il testo che inizia con un numero viene letto come quel numero (`"36"`, `"-95 dBm"`, `"80MHz"`), perché molti produttori mettono i numeri dentro stringhe. Imposta il tipo di valore di una colonna su **Text only** per i valori che sembrano soltanto numerici. Le **Value labels** trasformano i codici in parole (`0=inactive, 1=active`): il valore grezzo resta ciò che viene tracciato e confrontato, l'etichetta è ciò che viene mostrato. Gli **Healthy values** (`1`) dicono quali valori significano che va tutto bene: colorano la riga nella pagina **Tabelle SNMP** del dispositivo e alimentano il criterio **SNMP Table Row Is Unhealthy**.
+I numeri vengono letti come numeri, e il testo che inizia con un numero viene letto come quel numero (`"36"`, `"-95 dBm"`, `"80MHz"`), perché molti produttori mettono i numeri dentro stringhe. Imposta il tipo di valore di una colonna su **Text only** per i valori che sembrano soltanto numerici. Le **Value labels** trasformano i codici in parole (`0=inactive, 1=active`): il valore grezzo resta ciò che viene tracciato e confrontato, l'etichetta è ciò che viene mostrato. Gli **Healthy values** (`1`) dicono quali valori significano che va tutto bene: colorano la riga nella pagina **Tabelle SNMP** del dispositivo e alimentano il criterio **Riga della tabella SNMP non integra**.
 
 Alcune colonne dei modelli dei produttori **regolano** anche il numero che leggono, per le MIB che conservano un valore in un'unità tutta loro: ArubaOS riporta la potenza di trasmissione raddoppiata (letta × 0.5), Aruba Instant il rumore di fondo senza segno (× −1), Aerohive il rumore di fondo più 256 (− 256) e il controller di Extreme l'ampiezza del canale in passi di 20 MHz (× 20). Il numero regolato è ciò che viene mostrato, tracciato e confrontato, quindi **Noise Floor Maggiore di -80** significa la stessa cosa per ogni produttore, e l'editor delle tabelle mostra il calcolo sotto la colonna.
 
@@ -494,7 +494,7 @@ La pagina **Interfacce** del dispositivo si apre con una scheda **Transceiver**:
 | Avviso | Una lettura è pari o oltre una soglia di avviso. |
 | Allarme | Una lettura è pari o oltre una soglia di allarme, o il dispositivo segnala una perdita di segnale o un guasto del trasmettitore. |
 | Non rilevato | La porta aveva un'ottica e non ne riporta più, mentre la porta è ancora abilitata. La pagina continua a indicare cosa c'era. |
-| Nessuna soglia | L'ottica riporta letture, ma il dispositivo non riporta limiti con cui giudicarle. Genera avvisi su di esse con **SNMP Transceiver Reading**. |
+| Nessuna soglia | L'ottica riporta letture, ma il dispositivo non riporta limiti con cui giudicarle. Genera avvisi su di esse con **Misura del transceiver SNMP**. |
 | Rilevato | L'ottica non riporta alcuna diagnostica: è normale per gli SFP in rame e i cavi direct-attach. |
 | Porta disabilitata | La porta è spenta, quindi il suo laser è spento per scelta: le sue letture vengono mostrate ma mai giudicate. |
 
@@ -780,7 +780,7 @@ Per crearne uno invece da **Monitor**:
 
 Un monitor del dispositivo di rete non ha un intervallo proprio: viene valutato ogni volta che arrivano i risultati di polling del dispositivo, e ogni volta che arriva un trap dal dispositivo.
 
-Quando i polling si fermano, il monitor viene comunque valutato. Quando un dispositivo resta per tre intervalli di polling, e almeno dieci minuti, senza un polling, i suoi monitor vengono valutati ogni cinque minuti come un polling che non è riuscito a raggiungerlo: scatta un criterio che corrisponde a **SNMP Device Is Online** uguale a False, come **Device unreachable**, e l'incidente dice perché non è arrivato alcun polling, per esempio che la sonda è giù o che il dispositivo non ha una sonda. Un dispositivo con il polling disattivato, o che usa l'[override con monitor associato](#loverride-con-monitor-associato), viene lasciato stare. Il polling successivo valuta il monitor come al solito.
+Quando i polling si fermano, il monitor viene comunque valutato. Quando un dispositivo resta per tre intervalli di polling, e almeno dieci minuti, senza un polling, i suoi monitor vengono valutati ogni cinque minuti come un polling che non è riuscito a raggiungerlo: scatta un criterio che corrisponde a **Dispositivo SNMP online** uguale a False, come **Device unreachable**, e l'incidente dice perché non è arrivato alcun polling, per esempio che la sonda è giù o che il dispositivo non ha una sonda. Un dispositivo con il polling disattivato, o che usa l'[override con monitor associato](#loverride-con-monitor-associato), viene lasciato stare. Il polling successivo valuta il monitor come al solito.
 
 ### Incidenti e avvisi di un dispositivo
 
@@ -850,7 +850,7 @@ Fai clic su **Add Recommended Alerts** nel modulo dei criteri per aggiungere un 
 | Transceiver past its alarm threshold | La lettura di un'ottica è oltre una soglia di allarme riportata dal dispositivo, o il dispositivo segnala una perdita di segnale o un guasto del trasmettitore. | Avviso |
 | Transceiver RX power dropping | Un'ottica riceve almeno 2 dB di luce in meno rispetto al suo giorno migliore degli ultimi 30. | Avviso |
 
-Quando il dispositivo esegue il walk di [tabelle SNMP](#tabelle-snmp) che dichiarano valori sani, il pacchetto aggiunge anche un criterio **SNMP Table Row Is Unhealthy** per ciascuna di queste tabelle, con Row `*`: un incidente per riga per i tunnel, i vicini di routing e gli access point di un controller («IPsec Tunnels: row unhealthy», o «Access Points: row unhealthy» per un access point sparito dal suo controller), e un avviso per riga per le tabelle hardware e le radio.
+Quando il dispositivo esegue il walk di [tabelle SNMP](#tabelle-snmp) che dichiarano valori sani, il pacchetto aggiunge anche un criterio **Riga della tabella SNMP non integra** per ciascuna di queste tabelle, con Row `*`: un incidente per riga per i tunnel, i vicini di routing e gli access point di un controller («IPsec Tunnels: row unhealthy», o «Access Points: row unhealthy» per un access point sparito dal suo controller), e un avviso per riga per le tabelle hardware e le radio.
 
 SNMP walk failing è un avviso e non un incidente di proposito: il dispositivo non è inattivo, quindi svegliare qualcuno alle 2 di notte per questo sarebbe sbagliato, ma il suo inventario ha smesso di aggiornarsi e qualcuno dovrebbe sistemare le credenziali. Non scatta mai su un dispositivo solo ping, perché il criterio non viene valutato quando non c'è stato alcun walk.
 
@@ -905,7 +905,7 @@ I trap vengono abbinati tramite l'inventario dei dispositivi:
 
 1. Un trap arriva al ricevitore di una sonda e viene inoltrato a OneUptime.
 2. OneUptime cerca i dispositivi di rete assegnati a quella sonda il cui hostname, o uno dei cui **Altri indirizzi**, è l'indirizzo IP di origine del trap.
-3. Il trap viene registrato nella cronologia dei trap del dispositivo, e ogni monitor del dispositivo di rete su un dispositivo corrispondente lo valuta rispetto ai suoi criteri, di solito un filtro **SNMP Trap Received (Trap OID)**.
+3. Il trap viene registrato nella cronologia dei trap del dispositivo, e ogni monitor del dispositivo di rete su un dispositivo corrispondente lo valuta rispetto ai suoi criteri, di solito un filtro **Trap SNMP ricevuta (OID della trap)**.
 
 L'abbinamento avviene per indirizzo, non per credenziali, quindi anche un dispositivo solo ping può ricevere trap: un dispositivo per cui non hai credenziali di lettura può comunque inviarli. Registra il dispositivo con l'indirizzo da cui invia i trap, o aggiungi quell'indirizzo ai suoi **Altri indirizzi** nella sua pagina **Impostazioni**. I trap generici SNMPv1 (coldStart, linkDown, linkUp e così via) vengono convertiti nei loro OID di notifica SNMPv2 standard, quindi linkDown corrisponde all'OID di trap `1.3.6.1.6.3.1.1.5.3` qualunque sia la versione SNMP.
 
@@ -921,8 +921,8 @@ Il filtro offre anche Contiene, Inizia con e Finisce con, quindi un solo criteri
 
 Alcuni produttori inviano ogni evento come lo stesso trap e mettono l'evento in un varbind di testo: ogni notifica di un Sophos Firewall è `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) con il messaggio in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Combina i due in un criterio:
 
-- **SNMP Trap Received (Trap OID)**: Uguale a `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: OID del varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contiene `IPSec`
+- **Trap SNMP ricevuta (OID della trap)**: Uguale a `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **Valore del varbind della trap SNMP**: OID del varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contiene `IPSec`
 
 Un filtro negativo (Non contiene, Diverso da, È vuoto) è soddisfatto solo quando nessun varbind nell'ambito corrisponde alla sua forma positiva. Lascia vuoto l'OID del varbind per cercare in tutti i varbind che porta il trap.
 

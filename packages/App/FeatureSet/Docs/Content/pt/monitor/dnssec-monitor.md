@@ -80,7 +80,7 @@ Mantenha ou altere as **Sondas** e o **Intervalo de monitoramento** (começa em 
 | **Zona (Nome de Domínio)** | Nenhum | A zona a validar, como `example.com`. |
 | **Resolvedores** | `1.1.1.1, 8.8.8.8, 9.9.9.9` | Resolvedores validadores a consultar, separados por vírgulas. Cada um precisa retornar a flag AD para que a cadeia conte como válida. |
 | **Verificar consistência do servidor de nomes** | Ativado | Consultar diretamente cada servidor de nomes autoritativo e comparar os números de série SOA deles. Desative se a sua rede bloquear DNS de saída para servidores arbitrários. |
-| **Aviso de expiração da assinatura (dias)** (em **Mais campos**) | `7` | Salvo com o monitor. O filtro **DNSSEC Signature Expires In Days** usa o valor que você der a ele no critério, então defina o seu limite lá. |
+| **Aviso de expiração da assinatura (dias)** (em **Mais campos**) | `7` | Salvo com o monitor. O filtro **Dias até a expiração da assinatura DNSSEC** usa o valor que você der a ele no critério, então defina o seu limite lá. |
 | **Tempo limite (ms)** (em **Mais campos**) | `10000` | Quanto tempo esperar por cada consulta DNS, em milissegundos. Uma tentativa pode levar até três vezes isso no total. |
 | **Tentativas** (em **Mais campos**) | `3` | Novas tentativas depois que a primeira falha. `0` significa uma única tentativa. |
 
@@ -90,12 +90,12 @@ Os critérios decidem quando a zona conta como no ar, degradada ou offline, e se
 
 | Filtro | Condições | O que verifica |
 | --- | --- | --- |
-| **DNSSEC Chain Is Valid** | **Verdadeiro**, **Falso** | As quatro verificações acima valem: chaves publicadas, DS na zona pai, assinaturas presentes com um dia ou mais pela frente, e a flag AD de cada resolvedor. |
-| **DNSSEC DNSKEY Record Exists** | **Verdadeiro**, **Falso** | A zona publica pelo menos um registro DNSKEY. |
-| **DNSSEC DS Record Exists At Parent** | **Verdadeiro**, **Falso** | A zona pai publica um registro DS para a zona. |
-| **DNSSEC Signature Expires In Days** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | Os dias inteiros até vencer a assinatura (RRSIG) mais próxima do vencimento. |
-| **DNSSEC Resolver Consensus (AD Flag)** | **Verdadeiro**, **Falso** | Cada resolvedor de **Resolvedores** retorna a flag AD. |
-| **DNSSEC Nameservers Are Consistent** | **Verdadeiro**, **Falso** | Cada servidor de nomes autoritativo responde com o mesmo número de série SOA. Sempre **Verdadeiro** enquanto **Verificar consistência do servidor de nomes** estiver desativado. |
+| **Cadeia DNSSEC válida** | **Verdadeiro**, **Falso** | As quatro verificações acima valem: chaves publicadas, DS na zona pai, assinaturas presentes com um dia ou mais pela frente, e a flag AD de cada resolvedor. |
+| **Registro DNSKEY do DNSSEC presente** | **Verdadeiro**, **Falso** | A zona publica pelo menos um registro DNSKEY. |
+| **Registro DS do DNSSEC presente na zona pai** | **Verdadeiro**, **Falso** | A zona pai publica um registro DS para a zona. |
+| **Dias até a expiração da assinatura DNSSEC** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | Os dias inteiros até vencer a assinatura (RRSIG) mais próxima do vencimento. |
+| **Consenso dos resolvedores DNSSEC (flag AD)** | **Verdadeiro**, **Falso** | Cada resolvedor de **Resolvedores** retorna a flag AD. |
+| **Servidores de nomes DNSSEC consistentes** | **Verdadeiro**, **Falso** | Cada servidor de nomes autoritativo responde com o mesmo número de série SOA. Sempre **Verdadeiro** enquanto **Verificar consistência do servidor de nomes** estiver desativado. |
 
 Com dois ou mais filtros, **Condição de correspondência** decide se **Todos** precisam corresponder ou se basta **Qualquer** um. As **Ações** de um critério decidem o que ele faz: mudar o status do monitor, criar um alerta, declarar um incidente, ou várias dessas coisas.
 
@@ -103,7 +103,7 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de DNSSEC novo começa com dois critérios:
 
-- **Cadeia quebrada** — **DNSSEC Chain Is Valid** é **Falso**. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ DNSSEC chain is broken" é criado. O incidente se resolve sozinho assim que a cadeia volta a ser válida.
+- **Cadeia quebrada** — **Cadeia DNSSEC válida** é **Falso**. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ DNSSEC chain is broken" é criado. O incidente se resolve sozinho assim que a cadeia volta a ser válida.
 - **Cadeia válida** — o monitor é marcado como **Operacional**.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Quando nenhum corresponde, o monitor mostra o seu status padrão: **Operacional**, a menos que você escolha outro em **Mais campos**, abaixo dos critérios.
@@ -114,16 +114,16 @@ Os critérios padrão não acompanham sozinhos o vencimento das assinaturas nem 
 
 | Objetivo | Filtro | Condição | Valor |
 | --- | --- | --- | --- |
-| Offline quando a cadeia está quebrada (um padrão) | **DNSSEC Chain Is Valid** | **Falso** | — |
-| Avisar antes de as assinaturas vencerem | **DNSSEC Signature Expires In Days** | **Menor que** | `7` |
-| Perceber uma delegação que perdeu o registro DS | **DNSSEC DS Record Exists At Parent** | **Falso** | — |
-| Perceber resolvedores que discordam | **DNSSEC Resolver Consensus (AD Flag)** | **Falso** | — |
-| Perceber servidores de nomes fora de sincronia | **DNSSEC Nameservers Are Consistent** | **Falso** | — |
+| Offline quando a cadeia está quebrada (um padrão) | **Cadeia DNSSEC válida** | **Falso** | — |
+| Avisar antes de as assinaturas vencerem | **Dias até a expiração da assinatura DNSSEC** | **Menor que** | `7` |
+| Perceber uma delegação que perdeu o registro DS | **Registro DS do DNSSEC presente na zona pai** | **Falso** | — |
+| Perceber resolvedores que discordam | **Consenso dos resolvedores DNSSEC (flag AD)** | **Falso** | — |
+| Perceber servidores de nomes fora de sincronia | **Servidores de nomes DNSSEC consistentes** | **Falso** | — |
 
 ## Boas práticas
 
 1. **Escolha resolvedores sempre alcançáveis.** Cada resolvedor precisa retornar a flag AD para que a cadeia conte como válida, então um resolvedor que a sonda não alcança faz a verificação falhar quando as tentativas acabam. Os padrão, `1.1.1.1`, `8.8.8.8` e `9.9.9.9`, são operados por três operadores diferentes, o que também pega uma zona que valida em um resolvedor mas não em outro.
-2. **Seja avisado antes de as assinaturas vencerem.** Os assinantes reassinam uma zona antes de as assinaturas vencerem, então uma assinatura perto do vencimento significa que a reassinatura parou. Adicione um critério com **DNSSEC Signature Expires In Days** / **Menor que** / `7` que crie um alerta, e um segundo em `2` que declare um incidente. Arraste os dois para cima do critério que marca a cadeia como válida, o de `2` dias primeiro, porque o primeiro critério que corresponde vence. Escolha limites menores do que o tempo que o seu assinante costuma deixar numa assinatura antes de reassinar, para que fiquem quietos enquanto a reassinatura funciona.
+2. **Seja avisado antes de as assinaturas vencerem.** Os assinantes reassinam uma zona antes de as assinaturas vencerem, então uma assinatura perto do vencimento significa que a reassinatura parou. Adicione um critério com **Dias até a expiração da assinatura DNSSEC** / **Menor que** / `7` que crie um alerta, e um segundo em `2` que declare um incidente. Arraste os dois para cima do critério que marca a cadeia como válida, o de `2` dias primeiro, porque o primeiro critério que corresponde vence. Escolha limites menores do que o tempo que o seu assinante costuma deixar numa assinatura antes de reassinar, para que fiquem quietos enquanto a reassinatura funciona.
 3. **Monitore cada zona assinada.** Inclua o domínio raiz, os subdomínios assinados e qualquer zona delegada a outro operador.
 4. **Mantenha a verificação de consistência dos servidores de nomes ativada,** e adicione um critério para ela. Ela pega um secundário que parou de receber transferências do primário, algo que a validação DNSSEC sozinha pode deixar passar.
 

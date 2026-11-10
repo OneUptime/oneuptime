@@ -25,7 +25,7 @@ flowchart TB
     A --> L["Oppretter<br/>et varsel"]
 ```
 
-Rekkefølgen er en del av regelen. En ny monitor lister kriteriene sine fra det verste tilfellet: frakoblet, så en advarsel der typen har en (et sertifikat eller et domene som snart utløper), så tilkoblet. Et bredt friskt kriterium, som **Is Online** satt til **Sann**, samsvarer med nesten hver kontroll, så det kommer sist: over de andre ville det samsvare først hver gang, og de andre ville aldri handle.
+Rekkefølgen er en del av regelen. En ny monitor lister kriteriene sine fra det verste tilfellet: frakoblet, så en advarsel der typen har en (et sertifikat eller et domene som snart utløper), så tilkoblet. Et bredt friskt kriterium, som **Er tilkoblet** satt til **Sann**, samsvarer med nesten hver kontroll, så det kommer sist: over de andre ville det samsvare først hver gang, og de andre ville aldri handle.
 
 Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrollen: monitoren beholder statusen sin, og kriteriene under det venter på neste kontroll. **Standard overvåkingsstatus** gjelder bare når ingen kriterier samsvarer. For en ny monitor er den **I drift**; endre den under **Flere felt**, under kriteriene.
 
@@ -49,7 +49,7 @@ Et filter leser én ting fra kontrollen og sammenligner den: en **Filtertype** (
 
 Fra to filtre og oppover vises **Samsvarsbetingelse** under dem: **Alle** betyr at hvert filter må samsvare, **Hvilken som helst** at ett er nok. Et nytt kriterium starter på **Alle**.
 
-Filtre som måler hver kontroll, som **Is Online**, **Statuskode for svar** og **Svartid (i ms)**, tilbyr **Evaluer disse kriteriene over en tidsperiode**. Det vurderer et vindu av nylige kontroller i stedet for bare den siste, og starter på de siste 5 minuttene med **All Values**, som først samsvarer når hver kontroll i vinduet har samsvart. Se [Evaluering over en tidsperiode](/docs/monitor/website-monitor#evaluering-over-en-tidsperiode).
+Filtre som måler hver kontroll, som **Er tilkoblet**, **Statuskode for svar** og **Svartid (i ms)**, tilbyr **Evaluer disse kriteriene over en tidsperiode**. Det vurderer et vindu av nylige kontroller i stedet for bare den siste, og starter på de siste 5 minuttene med **Alle verdier**, som først samsvarer når hver kontroll i vinduet har samsvart. Se [Evaluering over en tidsperiode](/docs/monitor/website-monitor#evaluering-over-en-tidsperiode).
 
 ### Handlinger
 
@@ -97,8 +97,8 @@ For å se hvordan en kontroll ble vurdert, åpner du monitorens **Oversikt**: ko
 
 En hendelse eller et varsel som en monitor åpner, tar vare på kontrollen som åpnet den, så du kan se hvorfor lenge etter at monitorens egne logger er borte. Under rotårsaken nevner **Evalueringsdetaljer** kriteriet som samsvarte, og for hvert filter som samsvarte, hva kontrollen fant. **Vis detaljer** legger til resten av bevisene, filtrene som ikke samsvarte, og selve kontrollen: forespørselen, når den kjørte, fra hvilken sonde og hva som kom tilbake. Det et filter fant, kan være:
 
-- **Feltet.** Hvor et filter **Svartekst** samsvarte i et JSON-innhold, for eksempel `checks[1].status`, eller headeren der et filter **Response Header Value** samsvarte.
-- **Verdiene.** Hva hver verdi en **JavaScript Expression** leser inneholdt da den ble evaluert, for eksempel `responseBody.status = "down"`.
+- **Feltet.** Hvor et filter **Svartekst** samsvarte i et JSON-innhold, for eksempel `checks[1].status`, eller headeren der et filter **Verdi for svarhode** samsvarte.
+- **Verdiene.** Hva hver verdi en **JavaScript-uttrykk** leser inneholdt da den ble evaluert, for eksempel `responseBody.status = "down"`.
 - **Et utdrag.** Et kort stykke av svaret rundt treffet, med treffet markert: aldri hele innholdet.
 
 Hemmeligheter og personopplysninger maskeres før noe tas vare på: headere som `Authorization`, `Cookie` og `Set-Cookie`, felt der navnet sier `password`, `token`, `key`, `session` eller `email`, og tekst som ser ut som et bearer-token, en JWT, et kortnummer eller en e-postadresse. Forespørselens URL er den monitoren ble satt opp med, så `{{monitorSecrets.NAME}}` forblir et navn, og en hemmelig spørringsverdi maskeres. Monitorens **Overvåkingslogger**, og enhver verdi en rotårsak siterer, maskeres på samme måte. En hendelse eller et varsel som er åpnet manuelt, eller før evalueringsdetaljer ble tatt vare på, har ingen.

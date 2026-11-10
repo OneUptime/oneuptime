@@ -99,7 +99,7 @@ La scheda **Custom Metric** offre queste metriche, raggruppate per tipo di risor
 
 ### Cosa viene valutato
 
-Questi monitor valutano sempre il **Metric Value**: il valore della query di metriche o della formula configurata. Il modulo dei criteri non ha un selettore del tipo di filtro; mostra **Metrica**, **Aggregazione**, **Condizione** e **Soglia**.
+Questi monitor valutano sempre il **Valore della metrica**: il valore della query di metriche o della formula configurata. Il modulo dei criteri non ha un selettore del tipo di filtro; mostra **Metrica**, **Aggregazione**, **Condizione** e **Soglia**.
 
 ### Tipi di aggregazione
 
@@ -120,9 +120,9 @@ Il rilevamento delle anomalie rispetto a una baseline non richiede soglie. Scegl
 
 | Condizione | Corrisponde quando il valore |
 | --- | --- |
-| **Anomalously High** | Sale sopra l'intervallo atteso |
-| **Anomalously Low** | Scende sotto l'intervallo atteso |
-| **Anomalous** | Esce dall'intervallo atteso in una delle due direzioni |
+| **Anomalmente alto** | Sale sopra l'intervallo atteso |
+| **Anomalmente basso** | Scende sotto l'intervallo atteso |
+| **Anomalo** | Esce dall'intervallo atteso in una delle due direzioni |
 
 Ogni campione viene confrontato con una baseline della stessa ora della settimana costruita sulla **Finestra di riferimento** (14 giorni per impostazione predefinita; 28, 60 o 90 giorni). **Sensibilità** stabilisce quanto è ampio l'intervallo atteso: **Bassa (4σ — solo deviazioni gravi)**, **Media (3σ — consigliata)**, quella predefinita, oppure **Alta (2σ — più rumorosa, servizi molto stabili)**. Le condizioni di anomalia restano in uno stato «Learning» e non producono avvisi finché quell'ora della settimana non ha due settimane di storico. Questo monitor filtra le sue query per attributi, quindi ogni query, e ogni serie di una query raggruppata, viene confrontata con il proprio storico, fin dove vengono conservate le vostre metriche. Se sono meno di due settimane, una somma, un conteggio o una query su un istogramma resta per sempre in quello stato, e tutto il resto viene confrontato con tutte le serie della metrica. Un percentile di un istogramma resta sempre in quello stato.
 

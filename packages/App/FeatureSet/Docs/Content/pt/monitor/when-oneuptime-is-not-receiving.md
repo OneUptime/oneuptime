@@ -23,8 +23,8 @@ Uma reinicialização que leva menos de 90 segundos não é uma interrupção: o
 
 | Onde | O que o OneUptime faz |
 | --- | --- |
-| Monitores de servidor / VM | **Is Online** conta apenas os minutos em que o OneUptime estava recebendo: por padrão, um servidor fica offline após 3 minutos de silêncio que o OneUptime poderia ter ouvido. |
-| Monitores de requisições recebidas e de e-mails recebidos | **Recieved In Minutes** e **Not Recieved In Minutes** contam apenas os minutos em que o OneUptime estava recebendo. Quando um desses critérios é atendido, o motivo informa quantos desses minutos foram deixados de fora. |
+| Monitores de servidor / VM | **Online** conta apenas os minutos em que o OneUptime estava recebendo: por padrão, um servidor fica offline após 3 minutos de silêncio que o OneUptime poderia ter ouvido. |
+| Monitores de requisições recebidas e de e-mails recebidos | **Recebido em minutos** e **Não recebido em minutos** contam apenas os minutos em que o OneUptime estava recebendo. Quando um desses critérios é atendido, o motivo informa quantos desses minutos foram deixados de fora. |
 | Monitores de host, Kubernetes, Docker, métricas, logs, traces e os demais monitores que leem telemetria | Uma verificação cuja janela contém tempo sem recepção espera até que esse tempo saia da janela, e nunca mais de 15 minutos depois que ele terminou. Até lá nada muda: nenhuma mudança de status, e nenhum incidente ou alerta é aberto ou resolvido. Enquanto a fila está atrasada, uma verificação lê até onde a fila está em vez de até agora. |
 | Hosts, clusters e o restante do inventário | Um recurso passa a **Desconectado** apenas depois que seu limite de silêncio, 15 minutos para a maioria, transcorre enquanto o OneUptime estava recebendo. |
 | Sondas e agentes de IA | Passam a **Desconectado** após 3 minutos de silêncio enquanto o OneUptime estava recebendo. |

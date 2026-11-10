@@ -128,7 +128,7 @@ Los datos que devuelve el script se serializan a JSON antes de guardarse: en obj
 
 ### Alertar sobre los datos devueltos
 
-Lo que el script devuelve como `data` es el **Result Value** del monitor, que un criterio puede comparar. Cuando `data` es un objeto o un array, rellene **Ruta del campo (opcional)** en el filtro Result Value para comparar uno de sus campos; por ejemplo, `status`, `timings.loadTime` o `errors[0].message`. El filtro se comprueba con los datos de cada navegador y tamaño de pantalla en los que se ejecuta el monitor, y coincide cuando coincide cualquiera de ellos. Consulte [Alertar sobre los datos devueltos](/docs/monitor/custom-code-monitor#alertar-sobre-los-datos-devueltos) para ver cómo funcionan las rutas y las condiciones.
+Lo que el script devuelve como `data` es el **Valor del resultado** del monitor, que un criterio puede comparar. Cuando `data` es un objeto o un array, rellene **Ruta del campo (opcional)** en el filtro Result Value para comparar uno de sus campos; por ejemplo, `status`, `timings.loadTime` o `errors[0].message`. El filtro se comprueba con los datos de cada navegador y tamaño de pantalla en los que se ejecuta el monitor, y coincide cuando coincide cualquiera de ellos. Consulte [Alertar sobre los datos devueltos](/docs/monitor/custom-code-monitor#alertar-sobre-los-datos-devueltos) para ver cómo funcionan las rutas y las condiciones.
 
 ## Capturas de pantalla
 
@@ -232,10 +232,10 @@ Una ejecución puede capturar como máximo 100 métricas, solo con valores numé
 | Tipo de filtro | Qué comprueba |
 | --- | --- |
 | **Error** | El error que lanzó una ejecución, si lo hubo. |
-| **Result Value** | Los `data` que devolvió una ejecución. |
+| **Valor del resultado** | Los `data` que devolvió una ejecución. |
 | **Tiempo de ejecución (en ms)** | Cuánto tardó una ejecución. |
 | **Tipo de navegador** | El navegador que usó una ejecución: **Igual a** o **Distinto de**. |
-| **Screen Size** | El tamaño de pantalla que usó una ejecución: **Igual a** o **Distinto de**. |
+| **Tamaño de pantalla** | El tamaño de pantalla que usó una ejecución: **Igual a** o **Distinto de**. |
 
 Cada filtro se comprueba en cada ejecución, y coincide cuando coincide una sola ejecución. Los filtros se comprueban por separado, no ejecución por ejecución: **Error** No está vacío junto con **Tipo de navegador** Igual a `Firefox` coincide cuando falló cualquier ejecución y una de las ejecuciones usó Firefox, no solo cuando falló la ejecución de Firefox. Para vigilar un navegador por separado, dele su propio monitor.
 

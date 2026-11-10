@@ -40,17 +40,18 @@ import path from "path";
  *     language's Dashboard locale, Persian included, as on the other monitor
  *     pages (drawnActionLabel). Menu paths ("A → B → C") are drawn segment by
  *     segment.
- *   - The criteria filters and a few of their conditions (Result Value, SQL
- *     Is Online, Not Recieved In Minutes, Evaluates To True), the type
- *     picker's categories (Synthetic Monitoring, Inbound Monitoring), the
- *     Custom JavaScript Code type and the status page providers have no
- *     Dashboard locale key: every language's Dashboard shows them in
- *     English, so every translation names them in English
- *     (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a test
- *     below fails until the pages name it as drawn. The text and number
- *     conditions (Equal To, Not Contains, Is Empty) gained theirs in
- *     adc8421a1b: they are labels now, drawn like any other
- *     (DocsCriteriaConditions holds every page to them).
+ *   - The type picker's categories (Synthetic Monitoring, Inbound
+ *     Monitoring), the Custom JavaScript Code type, the browser and database
+ *     names and the status page providers have no Dashboard locale key:
+ *     every language's Dashboard shows them in English, so every
+ *     translation names them in English (SHOWN_IN_ENGLISH). When the
+ *     Dashboard gains a key for one, a test below fails until the pages name
+ *     it as drawn. The text and number conditions (Equal To, Not Contains,
+ *     Is Empty) gained theirs in adc8421a1b, and the criteria filters and
+ *     the rest of their conditions (Result Value, SQL Is Online, Not Recieved
+ *     In Minutes, Evaluates To True) theirs in #6575 (2026-11-10): they are
+ *     labels now, drawn like any other (DocsCriteriaConditions holds every
+ *     page to the conditions).
  *   - The Admin Dashboard's own locale draws the one Admin Dashboard setting
  *     the Incoming Email page names (ADMIN_DASHBOARD_LABELS).
  *
@@ -103,22 +104,20 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
   return entry.page;
 });
 
-// The two time conditions of Incoming Request and Email Received, spelled as the form spells them.
-const RECEIVED_CONDITIONS_IN_ENGLISH: Array<string> = [
-  "Recieved In Minutes",
-  "Not Recieved In Minutes",
-];
-
 /*
  * Bold names every language's Dashboard shows in English, because its
  * locale has no key for them, by page. A translation keeps each one bold and
  * in English, so the reader finds it as the screen shows it.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  [CUSTOM_CODE_MONITOR]: [
-    // The criteria filter (CheckOn).
-    "Result Value",
-  ],
+  /*
+   * The criteria filters of every page here (Result Value, SQL Is Online,
+   * Request Header Value, Email Body, External Status Page Is Online), the
+   * time conditions Recieved In Minutes and Not Recieved In Minutes,
+   * Evaluates To True and the Synthetic monitor's Screen Size left this list
+   * on 2026-11-10: #6575 keyed them in every language. The Custom Code
+   * monitor's page has nothing left in English.
+   */
   [SQL_MONITOR]: [
     /*
      * The Database Type dropdown's options. PostgreSQL and MySQL are
@@ -127,37 +126,17 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Microsoft SQL Server",
     // The driver the official probe image ships, by its registered name.
     "ODBC Driver 18",
-    "SQL Is Online",
-    "SQL Query Row Count",
-    "SQL Query Scalar Value",
-    "SQL Query Execution Time (in ms)",
-    "SQL Query Error",
-    "JavaScript Expression",
   ],
   [SYNTHETIC_MONITOR]: [
-    "Result Value",
-    "Screen Size",
     // The Browser Type list's option a new monitor starts on (BrowserType).
     "Chromium",
   ],
   [INCOMING_REQUEST_MONITOR]: [
-    ...RECEIVED_CONDITIONS_IN_ENGLISH,
-    "Request Header",
-    "Request Header Value",
-    "JavaScript Expression",
-    "Evaluates To True",
     // The HTTP methods the heartbeat URL accepts.
     "GET",
     "POST",
   ],
   [INCOMING_EMAIL_MONITOR]: [
-    "Email Received",
-    ...RECEIVED_CONDITIONS_IN_ENGLISH,
-    "Email From Address",
-    "Email Body",
-    "Email To Address",
-    "JavaScript Expression",
-    "Evaluates To True",
     // The inbound email provider, by its product name.
     "SendGrid Inbound Parse",
   ],
@@ -168,11 +147,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "OneUptime Status Page",
     "RSS",
     "Atom",
-    "External Status Page Is Online",
-    "External Status Page Overall Status",
-    "External Status Page Component Status",
-    "External Status Page Active Incidents",
-    "External Status Page Response Time (in ms)",
   ],
 };
 

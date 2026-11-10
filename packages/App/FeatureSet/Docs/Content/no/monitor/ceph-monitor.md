@@ -227,8 +227,8 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | Felt | Hva det gjør |
 | --- | --- |
 | **Metrikk** | Spørringen eller formelen som sjekkes, etter variabelnavnet. |
-| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må stemme, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
+| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må stemme, i hele vinduet) eller **Minst én verdi** (én er nok). |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
 | **Terskel** | Verdien det sammenlignes med. Ved siden av står en enhetsliste når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare for anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare for anomalibetingelser. 14 dager (standard), 28, 60 eller 90 dager historikk. |

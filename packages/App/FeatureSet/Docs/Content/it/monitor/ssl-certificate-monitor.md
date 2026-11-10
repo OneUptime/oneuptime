@@ -73,14 +73,14 @@ I criteri decidono quando il certificato conta come buono, degradato o guasto, e
 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
-| **Is Valid Certificate** | **Vero**, **Falso** | Il certificato supera i controlli di un browser: un emittente affidabile, un nome host che corrisponde e date che includono oggi. **Falso** quando l'endpoint non ha risposto. |
-| **Is Not A Valid Certificate** | **Vero**, **Falso** | Il contrario di **Is Valid Certificate**: **Vero** quando il certificato non supera quei controlli o non è stato possibile controllarlo. |
-| **Is Expired Certificate** | **Vero**, **Falso** | La data di scadenza del certificato è passata. |
-| **Is Self Signed Certificate** | **Vero**, **Falso** | Il certificato, o uno della sua catena, è autofirmato. |
-| **Expires In Days** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | I giorni che mancano alla scadenza del certificato. |
-| **Expires In Hours** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Le ore che mancano alla scadenza del certificato. |
+| **Certificato valido** | **Vero**, **Falso** | Il certificato supera i controlli di un browser: un emittente affidabile, un nome host che corrisponde e date che includono oggi. **Falso** quando l'endpoint non ha risposto. |
+| **Certificato non valido** | **Vero**, **Falso** | Il contrario di **Certificato valido**: **Vero** quando il certificato non supera quei controlli o non è stato possibile controllarlo. |
+| **Certificato scaduto** | **Vero**, **Falso** | La data di scadenza del certificato è passata. |
+| **Certificato autofirmato** | **Vero**, **Falso** | Il certificato, o uno della sua catena, è autofirmato. |
+| **Giorni alla scadenza** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | I giorni che mancano alla scadenza del certificato. |
+| **Ore alla scadenza** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Le ore che mancano alla scadenza del certificato. |
 
-**Expires In Days** conta giorni interi: a un certificato che scade tra 14 giorni e 20 ore restano 14 giorni. **Expires In Hours** conta ore intere allo stesso modo.
+**Giorni alla scadenza** conta giorni interi: a un certificato che scade tra 14 giorni e 20 ore restano 14 giorni. **Ore alla scadenza** conta ore intere allo stesso modo.
 
 Con due o più filtri, **Condizione di corrispondenza** decide se devono corrispondere **Tutti** o se basta **Qualsiasi** filtro. Le **Azioni** di un criterio decidono cosa fa: cambiare lo stato del monitor, creare un avviso, dichiarare un incidente, o più di queste cose.
 
@@ -96,13 +96,13 @@ L'avviso «scade presto» è un avviso, non un incidente: non compare sulle vost
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Per questo «scade presto» sta sopra «è valido»: un certificato in scadenza è ancora valido, quindi corrisponderebbe a entrambi.
 
-Per essere avvisati prima, cambiate il valore del filtro **Expires In Days** nel criterio «scade presto», per esempio in `30`. Per far chiamare qualcuno invece, aprite le **Azioni** di quel criterio: attivate **Quando i filtri corrispondono, dichiara un incidente.**, oppure tenete l'avviso e aggiungetegli una policy di reperibilità in **Policy di reperibilità**.
+Per essere avvisati prima, cambiate il valore del filtro **Giorni alla scadenza** nel criterio «scade presto», per esempio in `30`. Per far chiamare qualcuno invece, aprite le **Azioni** di quel criterio: attivate **Quando i filtri corrispondono, dichiara un incidente.**, oppure tenete l'avviso e aggiungetegli una policy di reperibilità in **Policy di reperibilità**.
 
 :::details Aggiungere l'avviso a un monitor creato prima che esistesse
 I monitor creati prima che OneUptime aggiungesse questo avviso non hanno un criterio «scade presto». Per aggiungerlo:
 
 1. Sul monitor, aprite **Configurazione → Criteri** e fate clic su **Modifica criteri di monitoraggio**.
-2. Fate clic su **Aggiungi criteri**. Impostate il suo filtro su **Is Valid Certificate** / **Vero**, fate clic su **Aggiungi filtro** e impostate il secondo su **Expires In Days** / **Minore o uguale a** / `14`. Lasciate **Condizione di corrispondenza** su **Tutti** (compare sotto i filtri quando ce ne sono due).
+2. Fate clic su **Aggiungi criteri**. Impostate il suo filtro su **Certificato valido** / **Vero**, fate clic su **Aggiungi filtro** e impostate il secondo su **Giorni alla scadenza** / **Minore o uguale a** / `14`. Lasciate **Condizione di corrispondenza** su **Tutti** (compare sotto i filtri quando ce ne sono due).
 3. In **Azioni**, attivate **Quando i filtri corrispondono, crea un avviso.** e lasciate disattivato **Quando i filtri corrispondono, modifica lo stato del monitor.**, così crea un avviso e non cambia lo stato del monitor.
 4. Trascinate il nuovo criterio sopra il criterio che segna il monitor come online, poi salvate.
 :::
@@ -111,10 +111,10 @@ I monitor creati prima che OneUptime aggiungesse questo avviso non hanno un crit
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
-| Avvisare con un mese di anticipo | **Expires In Days** | **Minore o uguale a** | `30` |
-| Chiamare qualcuno l'ultimo giorno | **Expires In Hours** | **Minore di** | `24` |
-| Offline solo quando il certificato è scaduto | **Is Expired Certificate** | **Vero** | — |
-| Segnalare un certificato autofirmato | **Is Self Signed Certificate** | **Vero** | — |
+| Avvisare con un mese di anticipo | **Giorni alla scadenza** | **Minore o uguale a** | `30` |
+| Chiamare qualcuno l'ultimo giorno | **Ore alla scadenza** | **Minore di** | `24` |
+| Offline solo quando il certificato è scaduto | **Certificato scaduto** | **Vero** | — |
+| Segnalare un certificato autofirmato | **Certificato autofirmato** | **Vero** | — |
 
 Un criterio sulla scadenza deve stare sopra il criterio che segna il certificato come valido: un certificato in scadenza è ancora valido, e vince il primo criterio che corrisponde.
 
@@ -132,11 +132,11 @@ La causa principale dell'incidente dice perché. Un caso comune è un server che
 :::
 
 :::details Monitoro un servizio interno con un certificato autofirmato
-Un certificato autofirmato non è mai valido, quindi i criteri predefiniti tengono il monitor offline. **Is Self Signed Certificate**, **Is Expired Certificate** e **Expires In Days** funzionano comunque con esso, quindi costruite i criteri su questi. In **Configurazione → Criteri**:
+Un certificato autofirmato non è mai valido, quindi i criteri predefiniti tengono il monitor offline. **Certificato autofirmato**, **Certificato scaduto** e **Giorni alla scadenza** funzionano comunque con esso, quindi costruite i criteri su questi. In **Configurazione → Criteri**:
 
-1. Nel criterio «non è valido», fate clic su **Aggiungi filtro**, impostate il nuovo filtro su **Is Self Signed Certificate** / **Falso** e impostate **Condizione di corrispondenza** su **Tutti**. Il criterio mette ancora il monitor offline quando l'endpoint non risponde, o il certificato è sbagliato in un altro modo.
-2. Aggiungete un criterio con **Is Expired Certificate** / **Vero** che segni il monitor **Offline** e dichiari un incidente, e trascinatelo in cima.
-3. Nel criterio «scade presto», sostituite **Is Valid Certificate** / **Vero** con **Is Expired Certificate** / **Falso**, così l'avviso copre anche il certificato autofirmato.
+1. Nel criterio «non è valido», fate clic su **Aggiungi filtro**, impostate il nuovo filtro su **Certificato autofirmato** / **Falso** e impostate **Condizione di corrispondenza** su **Tutti**. Il criterio mette ancora il monitor offline quando l'endpoint non risponde, o il certificato è sbagliato in un altro modo.
+2. Aggiungete un criterio con **Certificato scaduto** / **Vero** che segni il monitor **Offline** e dichiari un incidente, e trascinatelo in cima.
+3. Nel criterio «scade presto», sostituite **Certificato valido** / **Vero** con **Certificato scaduto** / **Falso**, così l'avviso copre anche il certificato autofirmato.
 
 Finché il certificato è valido nel tempo, nessun criterio corrisponde e il monitor mostra il suo stato predefinito, **Operativo**.
 :::

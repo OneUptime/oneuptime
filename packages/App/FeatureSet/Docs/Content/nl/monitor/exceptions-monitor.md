@@ -116,7 +116,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: **Exception Count**, het aantal uitzonderingen dat in het venster overeenkwam, en **New Exceptions**, **Regressed Exceptions** en **Exception Increase (in %)**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
+De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: **Exception Count**, het aantal uitzonderingen dat in het venster overeenkwam, en **New Exceptions**, **Opnieuw opgetreden uitzonderingen** en **Toename van uitzonderingen (in %)**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal uitzonderingen… |
 | --- | --- |
@@ -126,9 +126,9 @@ De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: *
 | **Kleiner dan of gelijk aan** | gelijk is aan de waarde of lager |
 | **Gelijk aan** | precies de waarde is |
 | **Niet gelijk aan** | alles behalve de waarde is |
-| **Anomalously High** | boven het verwachte bereik voor dit uur van de week ligt |
-| **Anomalously Low** | onder dat bereik ligt |
-| **Anomalous** | buiten dat bereik ligt, in welke richting ook |
+| **Afwijkend hoog** | boven het verwachte bereik voor dit uur van de week ligt |
+| **Afwijkend laag** | onder dat bereik ligt |
+| **Afwijkend** | buiten dat bereik ligt, in welke richting ook |
 
 De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. Alleen **Exception Count** heeft ze: zie [Pieken ten opzichte van wat normaal is](#pieken-ten-opzichte-van-wat-normaal-is).
 
@@ -156,8 +156,8 @@ Naast hoeveel uitzonderingen er waren, kan een uitzonderingen-monitor waarschuwe
 | Filtertype | Wat het telt in het venster |
 | --- | --- |
 | **New Exceptions** | Overeenkomende uitzonderingen die voor het eerst zijn gezien en niet opgelost of gearchiveerd zijn. |
-| **Regressed Exceptions** | Overeenkomende uitzonderingen die u hebt opgelost, die terugkwamen en nog open zijn. |
-| **Exception Increase (in %)** | Hoeveel het aantal overeenkomende uitzonderingen boven het gewone ligt: de dag voor het venster, per venster van dezelfde lengte, minstens één. Tien uitzonderingen na een rustige dag geven 900%. |
+| **Opnieuw opgetreden uitzonderingen** | Overeenkomende uitzonderingen die u hebt opgelost, die terugkwamen en nog open zijn. |
+| **Toename van uitzonderingen (in %)** | Hoeveel het aantal overeenkomende uitzonderingen boven het gewone ligt: de dag voor het venster, per venster van dezelfde lengte, minstens één. Tien uitzonderingen na een rustige dag geven 900%. |
 
 Nieuwe en teruggekomen uitzonderingen worden gefilterd op service, uitzonderingstype, omgeving en bericht, en ook op infrastructuurentiteit: een uitzondering telt mee wanneer een van haar voorvallen in het venster van een van de gekozen entiteiten kwam.
 

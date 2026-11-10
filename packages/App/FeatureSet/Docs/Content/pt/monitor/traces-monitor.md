@@ -101,7 +101,7 @@ Cada mudança de status, com o motivo, fica registrada na **Linha do tempo de st
 
 ## Critérios
 
-Os critérios de um monitor de traces têm um único **Tipo de filtro**: **Span Count**, o número de spans que corresponderam na janela. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e, para uma condição de limite, um **Valor**.
+Os critérios de um monitor de traces têm um único **Tipo de filtro**: **Quantidade de spans**, o número de spans que corresponderam na janela. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e, para uma condição de limite, um **Valor**.
 
 | Condição do filtro | Corresponde quando a contagem de spans está… |
 | --- | --- |
@@ -110,9 +110,9 @@ Os critérios de um monitor de traces têm um único **Tipo de filtro**: **Span 
 | **Menor que** | abaixo do valor |
 | **Menor ou igual a** | no valor ou abaixo |
 | **Igual a** | exatamente no valor |
-| **Anomalously High** | acima da faixa esperada para esta hora da semana |
-| **Anomalously Low** | abaixo dessa faixa |
-| **Anomalous** | fora dessa faixa, em qualquer direção |
+| **Anomalamente alto** | acima da faixa esperada para esta hora da semana |
+| **Anomalamente baixo** | abaixo dessa faixa |
+| **Anômalo** | fora dessa faixa, em qualquer direção |
 
 As condições de anomalia não têm **Valor**. Escolha uma **Sensibilidade** (Baixo, Médio, a padrão, ou Alto) e, nos critérios personalizados, uma **Janela de linha de base** de 14 (a padrão), 28, 60 ou 90 dias. O OneUptime transforma a contagem em uma taxa por minuto e a compara com janelas do mesmo tamanho em torno da mesma hora de semanas anteriores, até onde alcança a **Janela de linha de base**; o que está acontecendo agora nunca entra nessa comparação. A linha de base cobre apenas os serviços e os status de span do monitor: seus filtros de nome de span e de atributos não fazem parte dela. Os minutos sem spans também contam, então um serviço que costuma ficar em silêncio não é visto como incomumente baixo por estar em silêncio. Uma janela só é vista como incomumente alta em relação às janelas que tiveram spans, e apenas com pelo menos 20, 10 ou 5 spans na sensibilidade Baixo, Médio ou Alto, de modo que nem o pico habitual de um job nem os primeiros spans de um serviço silencioso o disparam. Até que os serviços do monitor tenham duas semanas de histórico, o critério ainda está aprendendo e não dispara.
 
@@ -127,8 +127,8 @@ Um monitor de traces criado pela API ou pelo Terraform sem critérios começa co
 
 | Critério | Filtro | Efeito |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Igual a** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
-| Check if … is online | **Span Count** **Maior que** `0` | Coloca o monitor online |
+| Check if … is offline | **Quantidade de spans** **Igual a** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
+| Check if … is online | **Quantidade de spans** **Maior que** `0` | Coloca o monitor online |
 
 ## Exemplo prático: requisições de checkout com falha
 

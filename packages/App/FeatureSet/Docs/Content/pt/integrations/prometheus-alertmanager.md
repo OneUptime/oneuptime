@@ -45,7 +45,7 @@ Um [monitor Incoming Request](/docs/monitor/incoming-request-monitor) lhe dá um
 :::steps
 ### Criar o monitor
 
-Vá em **Monitores** e clique em **Criar monitor**. Escolha **Incoming Request** em **Tipo de monitor**, dê o nome `Alertmanager` e clique em **Próximo**.
+Vá em **Monitores** e clique em **Criar monitor**. Escolha **Requisição recebida** em **Tipo de monitor**, dê o nome `Alertmanager` e clique em **Próximo**.
 
 ### Declarar um incidente para cada alerta disparado
 
@@ -222,7 +222,7 @@ Nenhum dos dois caminhos percebe quando o Prometheus ou o Alertmanager param de 
 :::steps
 ### Criar o monitor watchdog
 
-Crie um segundo monitor Incoming Request, chamado `Alertmanager watchdog`. Defina o filtro do primeiro critério dele, o que marca o monitor como offline, como **Incoming Request**, **Not Recieved In Minutes**, `10`, e o filtro do segundo critério como **Incoming Request**, **Recieved In Minutes**, `10`. O painel escreve os dois assim. Copie o **Heartbeat URL** do novo monitor.
+Crie um segundo monitor Incoming Request, chamado `Alertmanager watchdog`. Defina o filtro do primeiro critério dele, o que marca o monitor como offline, como **Requisição recebida**, **Não recebido em minutos**, `10`, e o filtro do segundo critério como **Requisição recebida**, **Recebido em minutos**, `10`. O painel escreve os dois assim. Copie o **Heartbeat URL** do novo monitor.
 
 ### Direcionar o alerta watchdog para ele
 

@@ -57,7 +57,7 @@
 | `oneuptime.data.table.schema_changes` | 自上一次收集以來有所變更的欄數 |
 | `oneuptime.data.table.breaking_schema_changes` | 自上一次收集以來被移除、重新命名或變更類型的欄數 |
 
-每筆指標資料都帶有 `oneuptime.data.store.id`、`oneuptime.data.store.name`、`oneuptime.data.table.id`、`oneuptime.data.table.schema`、`oneuptime.data.table.name` 和 `oneuptime.data.table.key`（`schema.table`）。依 `oneuptime.data.table.key` 分組的 [指標監測器](/docs/monitor/metrics-monitor) 會為每個資料表各警示一次，它的 **Anomalously High** 和 **Anomalously Low** 篩選條件會把每個資料表與它自己在每週該時段的通常值進行比較。這些指標是 OneUptime 本身的營運資料，不以遙測計費。
+每筆指標資料都帶有 `oneuptime.data.store.id`、`oneuptime.data.store.name`、`oneuptime.data.table.id`、`oneuptime.data.table.schema`、`oneuptime.data.table.name` 和 `oneuptime.data.table.key`（`schema.table`）。依 `oneuptime.data.table.key` 分組的 [指標監測器](/docs/monitor/metrics-monitor) 會為每個資料表各警示一次，它的 **異常偏高** 和 **異常偏低** 篩選條件會把每個資料表與它自己在每週該時段的通常值進行比較。這些指標是 OneUptime 本身的營運資料，不以遙測計費。
 
 ## 未使用的資料表
 

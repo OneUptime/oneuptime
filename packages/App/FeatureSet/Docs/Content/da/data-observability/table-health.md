@@ -57,7 +57,7 @@ Hver indsamling skriver disse for hver tabel, så du kan vise dem i grafer, sæt
 | `oneuptime.data.table.schema_changes` | Kolonner, der er ændret siden den forrige indsamling |
 | `oneuptime.data.table.breaking_schema_changes` | Kolonner, der er fjernet, omdøbt eller fået ny type siden den forrige indsamling |
 
-Hver række bærer `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` og `oneuptime.data.table.key` (`schema.table`). En [metrik-monitor](/docs/monitor/metrics-monitor), grupperet efter `oneuptime.data.table.key`, advarer én gang pr. tabel, og dens filtre **Anomalously High** og **Anomalously Low** sammenligner hver tabel med dens egen sædvanlige værdi for den time på ugen. Disse metrikker er OneUptimes egne driftsdata og faktureres ikke som telemetri.
+Hver række bærer `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` og `oneuptime.data.table.key` (`schema.table`). En [metrik-monitor](/docs/monitor/metrics-monitor), grupperet efter `oneuptime.data.table.key`, advarer én gang pr. tabel, og dens filtre **Unormalt høj** og **Unormalt lav** sammenligner hver tabel med dens egen sædvanlige værdi for den time på ugen. Disse metrikker er OneUptimes egne driftsdata og faktureres ikke som telemetri.
 
 ## Ubrugte tabeller
 

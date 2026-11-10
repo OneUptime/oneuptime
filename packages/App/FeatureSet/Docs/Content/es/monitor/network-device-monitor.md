@@ -378,7 +378,7 @@ Añade los OID que quieras recopilar en cada sondeo, en una plantilla o como añ
 | Nombre | Un nombre descriptivo para el OID, como sysDescr. | No |
 | Descripción | Lo que representa el OID. | No |
 
-Los valores recopilados se grafican en la página **Métricas** del dispositivo, y los criterios **SNMP OID Value**, **SNMP OID Exists** y **SNMP OID Rate (per second)** alertan sobre ellos. Un contador (Counter32 o Counter64) solo crece, así que alerta sobre lo rápido que ha crecido desde el sondeo anterior. El selector de OID de esos criterios lista los OID que recopila el dispositivo elegido, los de su plantilla y los suyos, así que no hay nada que escribir.
+Los valores recopilados se grafican en la página **Métricas** del dispositivo, y los criterios **Valor del OID SNMP**, **OID SNMP presente** y **Tasa del OID SNMP (por segundo)** alertan sobre ellos. Un contador (Counter32 o Counter64) solo crece, así que alerta sobre lo rápido que ha crecido desde el sondeo anterior. El selector de OID de esos criterios lista los OID que recopila el dispositivo elegido, los de su plantilla y los suyos, así que no hay nada que escribir.
 
 Las listas largas de OID se reparten en varias solicitudes SNMP GET para que cada una quepa en un datagrama UDP. Si mantenías cortas tus listas de OID porque una versión antigua daba por desconectado un dispositivo que respondía `tooBig`, ya no hace falta.
 
@@ -391,7 +391,7 @@ Escribe un OID numérico en **OID inicial** o pulsa uno de los puntos de partida
 Cada fila indica dónde se conoce su OID: un valor que recopila una plantilla de salud de un fabricante, una columna de la tabla SNMP de una plantilla de fabricante, un contador que el recorrido de interfaces ya grafica para cada puerto, o un OID bajo la MIB de su fabricante. Desde una fila:
 
 - **Recopilar** añade el OID a los **OID de salud específicos del dispositivo**: cada sondeo lo recopila desde el siguiente, y la página **Métricas** del dispositivo lo grafica. En un dispositivo vinculado a una plantilla de recopilación de OID, el menú de la fila puede añadirlo a la plantilla en su lugar, para cada dispositivo que la usa.
-- **Crear una alerta**, que aparece cuando el OID ya se recopila, abre un nuevo monitor de dispositivo de red para el dispositivo con un criterio sobre el OID. Un contador empieza con **SNMP OID Rate (per second)** y un indicador con **SNMP OID Value**, ambos por encima de un umbral que fijas tú; un tiempo de actividad alerta por debajo de diez minutos (el dispositivo se reinició) y cualquier otro valor cuando cambia respecto al leído.
+- **Crear una alerta**, que aparece cuando el OID ya se recopila, abre un nuevo monitor de dispositivo de red para el dispositivo con un criterio sobre el OID. Un contador empieza con **Tasa del OID SNMP (por segundo)** y un indicador con **Valor del OID SNMP**, ambos por encima de un umbral que fijas tú; un tiempo de actividad alerta por debajo de diez minutos (el dispositivo se reinició) y cualquier otro valor cuando cambia respecto al leído.
 - **Copiar OID**, en el menú de la fila, copia el OID.
 
 **Descargar**, junto al resumen del recorrido, guarda lo que leyó el recorrido como un archivo: **Texto de snmpwalk (.txt)**, un OID por línea tal como lo imprime `snmpwalk -On`, que lee cualquier herramienta SNMP y el soporte de cualquier fabricante, u **Hoja de cálculo CSV (.csv)**, con el nombre, la MIB, el tipo y el valor de cada OID. El archivo contiene cada OID que leyó el recorrido, incluidos los recorridos continuados, muestre lo que muestre el filtro, y lleva el nombre del dispositivo, del subárbol y de la hora en que se guardó. Quien puede leer el último recorrido del dispositivo puede descargarlo.
@@ -425,7 +425,7 @@ Parte de lo que sabe un dispositivo es una lista: una fila por túnel IPsec, rad
 | Nombres de fila | Columnas opcionales cuyos valores nombran cada fila, como el nombre de conexión de un túnel. Sin ellas, las filas se nombran por su índice. Un nombre puede venir de una tabla hermana que comparte el índice (Fabric Engine nombra las adyacencias IS-IS a partir de `rcIsisAdjHostName`), o de una tabla padre cuyo índice empieza el de esta (Aruba Instant nombra cada radio por su punto de acceso). Una tabla indexada por un nombre (ArubaOS indexa sus SSID por el SSID) se nombra por su índice decodificado. |
 | Límite de filas | Cuántas filas se conservan: 100 por defecto, 250 como máximo. |
 
-Los números se leen como números, y el texto que empieza por un número se lee como ese número (`"36"`, `"-95 dBm"`, `"80MHz"`), porque muchos fabricantes ponen números en cadenas. Pon el tipo de valor de una columna en **Text only** para los valores que solo parecen numéricos. Las **Value labels** convierten códigos en palabras (`0=inactive, 1=active`): el valor bruto sigue siendo lo que se grafica y se compara, la etiqueta lo que se muestra. Los **Healthy values** (`1`) dicen qué valores significan que todo va bien: colorean la fila en la página **Tablas SNMP** del dispositivo y alimentan el criterio **SNMP Table Row Is Unhealthy**.
+Los números se leen como números, y el texto que empieza por un número se lee como ese número (`"36"`, `"-95 dBm"`, `"80MHz"`), porque muchos fabricantes ponen números en cadenas. Pon el tipo de valor de una columna en **Text only** para los valores que solo parecen numéricos. Las **Value labels** convierten códigos en palabras (`0=inactive, 1=active`): el valor bruto sigue siendo lo que se grafica y se compara, la etiqueta lo que se muestra. Los **Healthy values** (`1`) dicen qué valores significan que todo va bien: colorean la fila en la página **Tablas SNMP** del dispositivo y alimentan el criterio **Fila de la tabla SNMP con problemas**.
 
 Algunas columnas de las plantillas de fabricantes también **ajustan** el número que leen, para MIB que guardan un valor en una unidad propia: ArubaOS informa la potencia de transmisión duplicada (se lee × 0.5), Aruba Instant el ruido de fondo sin su signo (× −1), Aerohive el ruido de fondo más 256 (− 256), y el controlador de Extreme el ancho de canal en pasos de 20 MHz (× 20). El número ajustado es lo que se muestra, se grafica y se compara, así que **Noise Floor Mayor que -80** significa lo mismo en todos los fabricantes, y el editor de tablas muestra la cuenta bajo la columna.
 
@@ -494,7 +494,7 @@ La página **Interfaces** del dispositivo se abre con una tarjeta **Transceptore
 | Advertencia | Una lectura alcanza o supera un umbral de advertencia. |
 | Alarma | Una lectura alcanza o supera un umbral de alarma, o el dispositivo señala una pérdida de señal o un fallo del transmisor. |
 | No detectado | El puerto tenía un óptico y ya no informa ninguno, mientras el puerto sigue habilitado. La página sigue nombrando lo que había. |
-| Sin umbrales | El óptico informa lecturas, pero el dispositivo no informa límites con los que juzgarlas. Alerta sobre ellas con **SNMP Transceiver Reading**. |
+| Sin umbrales | El óptico informa lecturas, pero el dispositivo no informa límites con los que juzgarlas. Alerta sobre ellas con **Lectura del transceptor SNMP**. |
 | Detectado | El óptico no informa ningún diagnóstico: lo habitual en los SFP de cobre y los cables de conexión directa. |
 | Puerto deshabilitado | El puerto está apagado, así que su láser está apagado a propósito: sus lecturas se muestran pero nunca se juzgan. |
 
@@ -780,7 +780,7 @@ Para crear uno desde **Monitores**:
 
 Un monitor de dispositivo de red no tiene intervalo propio: se evalúa cada vez que llegan los resultados de sondeo del dispositivo, y cada vez que llega un trap del dispositivo.
 
-Cuando los sondeos se detienen, el monitor se sigue evaluando. Cuando un dispositivo lleva tres intervalos de sondeo, y al menos diez minutos, sin un sondeo, sus monitores se evalúan cada cinco minutos como un sondeo que no pudo alcanzarlo: se dispara un criterio que coincide con **SNMP Device Is Online** en False, como **Device unreachable**, y el incidente dice por qué no llegó ningún sondeo, por ejemplo que la sonda está caída o que el dispositivo no tiene sonda. Un dispositivo con el sondeo desactivado, o con la [anulación con monitor vinculado](#la-anulación-con-monitor-vinculado), se deja tal cual. El siguiente sondeo evalúa el monitor como siempre.
+Cuando los sondeos se detienen, el monitor se sigue evaluando. Cuando un dispositivo lleva tres intervalos de sondeo, y al menos diez minutos, sin un sondeo, sus monitores se evalúan cada cinco minutos como un sondeo que no pudo alcanzarlo: se dispara un criterio que coincide con **Dispositivo SNMP en línea** en False, como **Device unreachable**, y el incidente dice por qué no llegó ningún sondeo, por ejemplo que la sonda está caída o que el dispositivo no tiene sonda. Un dispositivo con el sondeo desactivado, o con la [anulación con monitor vinculado](#la-anulación-con-monitor-vinculado), se deja tal cual. El siguiente sondeo evalúa el monitor como siempre.
 
 ### Los incidentes y alertas de un dispositivo
 
@@ -850,7 +850,7 @@ Haz clic en **Añadir alertas recomendadas** en el formulario de criterios para 
 | Transceiver past its alarm threshold | Una lectura de un óptico supera un umbral de alarma que informa el dispositivo, o el dispositivo señala una pérdida de señal o un fallo del transmisor. | Alerta |
 | Transceiver RX power dropping | Un óptico recibe al menos 2 dB menos de luz que en su mejor día de los últimos 30. | Alerta |
 
-Cuando el dispositivo recorre [tablas SNMP](#tablas-snmp) que declaran valores sanos, el paquete también añade un criterio **SNMP Table Row Is Unhealthy** por cada tabla así, con Row `*`: un incidente por fila para los túneles, los vecinos de enrutamiento y los puntos de acceso de un controlador («IPsec Tunnels: row unhealthy», o «Access Points: row unhealthy» para un punto de acceso que desapareció de su controlador), y una alerta por fila para las tablas de hardware y las radios.
+Cuando el dispositivo recorre [tablas SNMP](#tablas-snmp) que declaran valores sanos, el paquete también añade un criterio **Fila de la tabla SNMP con problemas** por cada tabla así, con Row `*`: un incidente por fila para los túneles, los vecinos de enrutamiento y los puntos de acceso de un controlador («IPsec Tunnels: row unhealthy», o «Access Points: row unhealthy» para un punto de acceso que desapareció de su controlador), y una alerta por fila para las tablas de hardware y las radios.
 
 SNMP walk failing es una alerta y no un incidente a propósito: el dispositivo no está caído, así que despertar a alguien a las 2 de la madrugada por eso sería un error, pero su inventario dejó de actualizarse y alguien debería arreglar las credenciales. Nunca se dispara en un dispositivo solo con ping, porque el criterio no se evalúa cuando no hubo recorrido.
 
@@ -905,7 +905,7 @@ Los traps se asocian a través del inventario de dispositivos:
 
 1. Un trap llega al receptor de una sonda y se reenvía a OneUptime.
 2. OneUptime busca los dispositivos de red asignados a esa sonda cuyo nombre de host, o una de cuyas **Otras direcciones**, es la dirección IP de origen del trap.
-3. El trap se registra en el historial de traps del dispositivo, y cada monitor de dispositivo de red de un dispositivo que coincide lo evalúa frente a sus criterios, normalmente un filtro **SNMP Trap Received (Trap OID)**.
+3. El trap se registra en el historial de traps del dispositivo, y cada monitor de dispositivo de red de un dispositivo que coincide lo evalúa frente a sus criterios, normalmente un filtro **Trap SNMP recibido (OID del trap)**.
 
 La asociación se hace por dirección, no por credenciales, así que un dispositivo solo con ping puede recibir traps igualmente: un dispositivo del que no tienes credenciales de lectura puede enviarlos. Registra el dispositivo con la dirección desde la que envía traps, o añade esa dirección a sus **Otras direcciones** en su página **Ajustes**. Los traps genéricos de SNMPv1 (coldStart, linkDown, linkUp, etc.) se convierten en sus OID de notificación SNMPv2 estándar, así que linkDown coincide con el OID de trap `1.3.6.1.6.3.1.1.5.3` sea cual sea la versión de SNMP.
 
@@ -921,8 +921,8 @@ El filtro también ofrece Contiene, Empieza por y Termina en, así que un solo c
 
 Algunos fabricantes envían cada evento como el mismo trap y ponen el evento en una varbind de texto: cada notificación de un Sophos Firewall es `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) con el mensaje en `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Combina los dos en un criterio:
 
-- **SNMP Trap Received (Trap OID)**: Igual a `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: OID de varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contiene `IPSec`
+- **Trap SNMP recibido (OID del trap)**: Igual a `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **Valor del varbind del trap SNMP**: OID de varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contiene `IPSec`
 
 Un filtro negativo (No contiene, Distinto de, Está vacío) solo se cumple cuando ninguna varbind del alcance coincide con su forma positiva. Deja vacío el OID de varbind para buscar en todas las varbinds que lleva el trap.
 

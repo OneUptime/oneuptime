@@ -108,11 +108,11 @@ Kriterier avgör när porten räknas som online, försämrad eller offline, och 
 
 | Filter | Villkor | Vad det kontrollerar |
 | --- | --- | --- |
-| **Is Online** | **Sant**, **Falskt** | Om porten tog emot en anslutning. |
+| **Är online** | **Sant**, **Falskt** | Om porten tog emot en anslutning. |
 | **Total Connection Time (DNS + TCP) (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Hela anslutningstiden, inklusive DNS-uppslaget för ett värdnamn. |
-| **Port DNS Lookup Time (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | DNS-uppslaget före det första TCP-försöket. Det har inget värde när målet är en IP-adress. |
-| **Port TCP Connect Time (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Från det första TCP-försöket tills anslutningen tas emot, inklusive växling mellan IPv6 och IPv4. |
-| **Is Request Timeout** | **Sant**, **Falskt** | Om DNS-uppslaget eller TCP-anslutningen överskred tidsgränsen vid varje försök. |
+| **DNS-uppslagstid för port (i ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | DNS-uppslaget före det första TCP-försöket. Det har inget värde när målet är en IP-adress. |
+| **TCP-anslutningstid för port (i ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Från det första TCP-försöket tills anslutningen tas emot, inklusive växling mellan IPv6 och IPv4. |
+| **Är begärandetimeout** | **Sant**, **Falskt** | Om DNS-uppslaget eller TCP-anslutningen överskred tidsgränsen vid varje försök. |
 
 Ett kriterium för DNS-uppslagstid har inget att utvärdera när målet är en IP-adress. För kriterier som måste fungera med både värdnamn och IP-adresser använder du totaltiden eller TCP-anslutningstiden.
 
@@ -129,17 +129,17 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Is Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)**, **Port TCP Connect Time (in ms)** och **Is Request Timeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Är online**, **Total Connection Time (DNS + TCP) (in ms)**, **DNS-uppslagstid för port (i ms)**, **TCP-anslutningstid för port (i ms)** och **Är begärandetimeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
 
 | Aggregering | Matchar när |
 | --- | --- |
-| **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value** | Det värdet över fönstret uppfyller villkoret. Bara numeriska filter. |
-| **All Values** | Varje kontroll i fönstret uppfyller villkoret. |
-| **Any Value** | Minst en kontroll i fönstret uppfyller villkoret. |
+| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde** | Det värdet över fönstret uppfyller villkoret. Bara numeriska filter. |
+| **Alla värden** | Varje kontroll i fönstret uppfyller villkoret. |
+| **Minst ett värde** | Minst en kontroll i fönstret uppfyller villkoret. |
 
-**All Values** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Any Value** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
+**Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
 
-**Is Request Timeout** är inte ett tal som OneUptime registrerar. OneUptime registrerar därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **All Values** eller **Any Value**.
+**Är begärandetimeout** är inte ett tal som OneUptime registrerar. OneUptime registrerar därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **Alla värden** eller **Minst ett värde**.
 
 Gör fönstret längre än övervakningsintervallet så att det rymmer flera kontroller: en monitor som kontrolleras var 5:e minut har bara en kontroll i varje fönster på 5 minuter.
 
@@ -155,11 +155,11 @@ Gör fönstret längre än övervakningsintervallet så att det rymmer flera kon
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
-| Offline när porten är stängd | **Is Online** | **Falskt** | — |
+| Offline när porten är stängd | **Är online** | **Falskt** | — |
 | Larma när anslutningen är långsam | **Total Connection Time (DNS + TCP) (in ms)** | **Större än** | `500` |
 | Markera tjänsten som försämrad när den är långsam att ansluta | **Total Connection Time (DNS + TCP) (in ms)** | **Större än** | `200` |
-| Larma när DNS är långsam | **Port DNS Lookup Time (in ms)** | **Större än** | `100` |
-| Larma när TCP-handskakningen är långsam | **Port TCP Connect Time (in ms)** | **Större än** | `250` |
+| Larma när DNS är långsam | **DNS-uppslagstid för port (i ms)** | **Större än** | `100` |
+| Larma när TCP-handskakningen är långsam | **TCP-anslutningstid för port (i ms)** | **Större än** | `250` |
 
 ## Felsökning
 
@@ -168,7 +168,7 @@ Sonden kunde inte öppna en anslutning: en brandvägg släpper den, tjänsten ly
 :::
 
 :::details DNS-uppslagstiden är alltid tom
-Målet är en IP-adress, så det finns inget att slå upp. Använd i stället **Total Connection Time (DNS + TCP) (in ms)** eller **Port TCP Connect Time (in ms)**.
+Målet är en IP-adress, så det finns inget att slå upp. Använd i stället **Total Connection Time (DNS + TCP) (in ms)** eller **TCP-anslutningstid för port (i ms)**.
 :::
 
 :::details Jag behöver kontrollera en UDP-tjänst

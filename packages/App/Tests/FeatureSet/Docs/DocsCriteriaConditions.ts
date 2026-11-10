@@ -14,9 +14,11 @@ import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
  * their FilterType value, and the Dropdown draws every option through the
  * Dashboard's translator (tx(option.label)). So a condition is drawn in the
  * reader's language as soon as the Dashboard's locales have a key for it:
- * Contains, True and False always had one, and adc8421a1b gave the other
- * comparisons theirs ("Greater Than" is "Größer als" in German). No German
- * screen shows "Greater Than" any more, so no German page may name it so.
+ * Contains, True and False always had one, adc8421a1b gave the other
+ * comparisons theirs ("Greater Than" is "Größer als" in German), and #6575
+ * the rest (Evaluates To True, Recieved In Minutes, Anomalously High,
+ * Forecast Above, Is Executing). No German screen shows "Greater Than" any
+ * more, so no German page may name it so.
  *
  * A page names a condition in bold where it points at the screen ("set the
  * condition to **Größer als**"), and in plain text in a table of the
@@ -50,8 +52,10 @@ export const BOLD_ONLY_CONDITIONS: ReadonlyArray<string> = [
 
 /*
  * Longer names a condition's name is a part of, which are not that
- * condition: the other FilterType values ("Evaluates To True"), and the
- * workspace rules' Contains Any and Contains All, labels of their own.
+ * condition: a FilterType value with no key (none since #6575 keyed
+ * "Evaluates To True" and the rest, so each is read as its own condition,
+ * whole), and the workspace rules' Contains Any and Contains All, labels of
+ * their own.
  */
 export const LONGER_NAMES: ReadonlyArray<string> = [
   ...Object.values(FilterType).filter((value: string): boolean => {

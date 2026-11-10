@@ -110,9 +110,9 @@ I criteri di un monitor tracce hanno un solo **Tipo di filtro**: **Span Count**,
 | **Minore di** | sotto il valore |
 | **Minore o uguale a** | pari al valore o inferiore |
 | **Uguale a** | esattamente il valore |
-| **Anomalously High** | sopra l'intervallo atteso per quest'ora della settimana |
-| **Anomalously Low** | sotto quell'intervallo |
-| **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
+| **Anomalmente alto** | sopra l'intervallo atteso per quest'ora della settimana |
+| **Anomalmente basso** | sotto quell'intervallo |
+| **Anomalo** | fuori da quell'intervallo, in un senso o nell'altro |
 
 Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto) e, nei criteri personalizzati, una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. OneUptime trasforma il conteggio in un tasso al minuto e lo confronta con finestre della stessa durata attorno alla stessa ora delle settimane precedenti, fin dove arriva la **Finestra di riferimento**; ciò che accade adesso non fa mai parte di questo confronto. Il riferimento copre solo i servizi e gli stati degli span del monitor: i suoi filtri sul nome dello span e sugli attributi non ne fanno parte. Contano anche i minuti senza span, quindi un servizio spesso silenzioso non risulta insolitamente basso per il solo fatto di tacere. Una finestra risulta insolitamente alta solo rispetto alle finestre che contenevano span, e solo con almeno 20, 10 o 5 span con sensibilità Basso, Medio o Alto, così né la solita raffica di un job né i primi span di un servizio silenzioso lo fanno scattare. Finché i servizi del monitor non hanno due settimane di storico, il criterio sta ancora imparando e non scatta.
 

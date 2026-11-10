@@ -224,16 +224,16 @@ Tilføj kriterier for at afgøre, hvornår monitoren betragtes som online, forri
 
 | Filtertype | Hvad den tjekker |
 |---|---|
-| **SQL Is Online** | Om databasen kunne nås, og om forespørgslen lykkedes. |
-| **SQL Query Row Count** | Antallet af returnerede rækker. Sammenlign med operatorer som større end, mindre end eller lig med. |
-| **SQL Query Scalar Value** | Den første kolonne i den første række. Sammenlignes som et tal, når den værdi, du angiver, er et tal, og ellers som en streng. Det er den kontrol, du skal bruge til forespørgsler i stil med `COUNT(*)`. |
-| **SQL Query Execution Time (in ms)** | Hvor længe forespørgslen tog. Nyttig til at fange en langsom database. |
-| **SQL Query Error** | Forespørgslens fejlmeddelelse. Advar, når den er (eller ikke er) tom eller matcher en bestemt streng. |
-| **JavaScript Expression** | Evaluér et brugerdefineret JavaScript-udtryk over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` og `isOnline`. Se [JavaScript-udtryk](/docs/monitor/javascript-expression#monitorer-for-sql-forespørgsler). |
+| **SQL er online** | Om databasen kunne nås, og om forespørgslen lykkedes. |
+| **Antal rækker fra SQL-forespørgsel** | Antallet af returnerede rækker. Sammenlign med operatorer som større end, mindre end eller lig med. |
+| **Skalarværdi fra SQL-forespørgsel** | Den første kolonne i den første række. Sammenlignes som et tal, når den værdi, du angiver, er et tal, og ellers som en streng. Det er den kontrol, du skal bruge til forespørgsler i stil med `COUNT(*)`. |
+| **Udførelsestid for SQL-forespørgsel (i ms)** | Hvor længe forespørgslen tog. Nyttig til at fange en langsom database. |
+| **SQL-forespørgselsfejl** | Forespørgslens fejlmeddelelse. Advar, når den er (eller ikke er) tom eller matcher en bestemt streng. |
+| **JavaScript-udtryk** | Evaluér et brugerdefineret JavaScript-udtryk over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` og `isOnline`. Se [JavaScript-udtryk](/docs/monitor/javascript-expression#monitorer-for-sql-forespørgsler). |
 
 Numeriske tærskler er hele tal: skriv `10`, ikke `10.5`. SQL Query-filtre kan ikke evalueres over en tidsperiode; hver kontrol står for sig selv.
 
-En ny SQL-forespørgsel-monitor starter med to kriterier: **SQL Is Online** er falsk — monitoren går offline og erklærer en hændelse, der løser sig selv — og **SQL Is Online** er sand, hvilket markerer den som online. **Tilføj kriterier** tilføjer et nederst; træk det op over online-kriteriet, fordi kriterierne tjekkes oppefra, og det første, der matcher, afgør det.
+En ny SQL-forespørgsel-monitor starter med to kriterier: **SQL er online** er falsk — monitoren går offline og erklærer en hændelse, der løser sig selv — og **SQL er online** er sand, hvilket markerer den som online. **Tilføj kriterier** tilføjer et nederst; træk det op over online-kriteriet, fordi kriterierne tjekkes oppefra, og det første, der matcher, afgør det.
 
 ### Eksempel: advar, når annulleringer stiger kraftigt
 

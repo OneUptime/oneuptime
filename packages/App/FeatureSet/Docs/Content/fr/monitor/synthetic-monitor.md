@@ -128,7 +128,7 @@ Les données renvoyées par le script sont sérialisées en JSON avant d'être s
 
 ### Alerter sur les données renvoyées
 
-Ce que le script renvoie comme `data` est la **Result Value** du moniteur, qu'un critère peut comparer. Quand `data` est un objet ou un tableau, renseignez **Chemin du champ (facultatif)** dans le filtre Result Value pour comparer un de ses champs — par exemple `status`, `timings.loadTime` ou `errors[0].message`. Le filtre est vérifié sur les données de chaque navigateur et taille d'écran où le moniteur s'exécute, et correspond dès que l'un d'eux correspond. Voir [Alerter sur les données renvoyées](/docs/monitor/custom-code-monitor#alerter-sur-les-données-renvoyées) pour le fonctionnement des chemins et des conditions.
+Ce que le script renvoie comme `data` est la **Valeur du résultat** du moniteur, qu'un critère peut comparer. Quand `data` est un objet ou un tableau, renseignez **Chemin du champ (facultatif)** dans le filtre Result Value pour comparer un de ses champs — par exemple `status`, `timings.loadTime` ou `errors[0].message`. Le filtre est vérifié sur les données de chaque navigateur et taille d'écran où le moniteur s'exécute, et correspond dès que l'un d'eux correspond. Voir [Alerter sur les données renvoyées](/docs/monitor/custom-code-monitor#alerter-sur-les-données-renvoyées) pour le fonctionnement des chemins et des conditions.
 
 ## Captures d'écran
 
@@ -232,10 +232,10 @@ Une exécution peut capturer au plus 100 métriques, uniquement numériques, et 
 | Type de filtre | Ce qu'il vérifie |
 | --- | --- |
 | **Erreur** | L'erreur levée par une exécution, le cas échéant. |
-| **Result Value** | Les `data` renvoyées par une exécution. |
+| **Valeur du résultat** | Les `data` renvoyées par une exécution. |
 | **Temps d'exécution (en ms)** | La durée d'une exécution. |
 | **Type de navigateur** | Le navigateur utilisé par une exécution : **Égal à** ou **Différent de**. |
-| **Screen Size** | La taille d'écran utilisée par une exécution : **Égal à** ou **Différent de**. |
+| **Taille d'écran** | La taille d'écran utilisée par une exécution : **Égal à** ou **Différent de**. |
 
 Chaque filtre est vérifié sur chaque exécution, et correspond dès qu'une seule exécution y correspond. Les filtres sont vérifiés séparément, et non exécution par exécution : **Erreur** N'est pas vide avec **Type de navigateur** Égal à `Firefox` correspond quand une exécution quelconque a échoué et qu'une des exécutions a utilisé Firefox — pas seulement quand l'exécution Firefox a échoué. Pour surveiller un navigateur à part, donnez-lui son propre moniteur.
 

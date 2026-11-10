@@ -101,7 +101,7 @@ Disse innstillingene er brettet sammen under **Flere felt**. Den sammenbrettede 
 
 | Felt | Standard | Hva det gjør |
 | --- | --- | --- |
-| **Forespørselshoder** | Ingen | Hoder som sendes, som par av navn og verdi. Klikk på **Legg til Request Header** for hvert av dem. |
+| **Forespørselshoder** | Ingen | Hoder som sendes, som par av navn og verdi. Klikk på **Legg til Forespørselshode** for hvert av dem. |
 | **Forespørselstekst (i JSON)** | Ingen | Et JSON-objekt som sendes som brødtekst, som regel med **POST**, **PUT** eller **PATCH**. Det må være gyldig JSON. |
 | **Ikke følg omdirigeringer** | Av | Vurder det første svaret i stedet for å følge omdirigeringer. Se [nedenfor](#ikke-følg-omdirigeringer). |
 | **Tillat selvsignerte sertifikater** | Av | Hopp over valideringen av TLS-sertifikatet for monitorens eget vertsnavn. |
@@ -154,14 +154,14 @@ Kriterier avgjør når API-et regnes som tilkoblet, redusert eller frakoblet, og
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
-| **Is Online** | **Sann**, **Usann** | Om API-et svarte i det hele tatt, uansett statuskode. |
+| **Er tilkoblet** | **Sann**, **Usann** | Om API-et svarte i det hele tatt, uansett statuskode. |
 | **Statuskode for svar** | **Lik**, **Ikke lik**, **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | HTTP-statuskoden. |
 | **Svartid (i ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Hvor lang tid forespørselen tok, omdirigeringer medregnet. |
 | **Svartekst** | **Inneholder**, **Inneholder ikke** | Tekst i svarets brødtekst. Det skilles mellom store og små bokstaver. |
-| **Response Header** | **Inneholder**, **Inneholder ikke** | Om svaret har et hode med dette navnet. Angi navnet med små bokstaver, som `x-request-id`. |
-| **Response Header Value** | **Inneholder**, **Inneholder ikke** | Om et hode har nøyaktig denne verdien, sammenlignet med små bokstaver, som `application/json`. |
-| **JavaScript Expression** | **Evaluates To True** | Et uttrykk over svaret. Se [JavaScript-uttrykk](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Sann**, **Usann** | Om forespørselen fikk tidsavbrudd ved hvert forsøk. |
+| **Svarhode** | **Inneholder**, **Inneholder ikke** | Om svaret har et hode med dette navnet. Angi navnet med små bokstaver, som `x-request-id`. |
+| **Verdi for svarhode** | **Inneholder**, **Inneholder ikke** | Om et hode har nøyaktig denne verdien, sammenlignet med små bokstaver, som `application/json`. |
+| **JavaScript-uttrykk** | **Evalueres til sann** | Et uttrykk over svaret. Se [JavaScript-uttrykk](/docs/monitor/javascript-expression). |
+| **Er tidsavbrudd for forespørsel** | **Sann**, **Usann** | Om forespørselen fikk tidsavbrudd ved hvert forsøk. |
 
 Et JSON-svar sjekkes i sin kompakte form, uten mellomrom mellom nøkler og verdier. For å finne `"status": "ok"` med **Svartekst** angir du `"status":"ok"`.
 
@@ -178,7 +178,7 @@ En ny API-monitor starter med to kriterier, så den fungerer uten at du endrer n
 
 I listen over kriterier har de navn etter monitoren: _Check if (name) is offline_ og _Check if (name) is online_.
 
-Et endepunkt som svarer `201 Created` eller `204 No Content`, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det frakoblede, i stedet for de to statuskodefiltrene hvert av dem har. For også å sjekke hva API-et returnerer, legger du til et filter **Svartekst** eller **JavaScript Expression** i det frakoblede kriteriet.
+Et endepunkt som svarer `201 Created` eller `204 No Content`, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det frakoblede, i stedet for de to statuskodefiltrene hvert av dem har. For også å sjekke hva API-et returnerer, legger du til et filter **Svartekst** eller **JavaScript-uttrykk** i det frakoblede kriteriet.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer.
 
@@ -188,17 +188,17 @@ Monitorer som ble opprettet før OneUptime endret disse standardene, beholder kr
 
 ### Evaluering over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Is Online**, **Statuskode for svar**, **Svartid (i ms)**, **Svartekst**, **Response Header**, **Response Header Value**, **JavaScript Expression** og **Is Request Timeout**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 til 60 minutter under **For de siste (i minutter)**.
+**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Er tilkoblet**, **Statuskode for svar**, **Svartid (i ms)**, **Svartekst**, **Svarhode**, **Verdi for svarhode**, **JavaScript-uttrykk** og **Er tidsavbrudd for forespørsel**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 til 60 minutter under **For de siste (i minutter)**.
 
 | Aggregering | Samsvarer når |
 | --- | --- |
-| **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value** | Den verdien over vinduet oppfyller betingelsen. Bare numeriske filtre. |
-| **All Values** | Hver sjekk i vinduet oppfyller betingelsen. |
-| **Any Value** | Minst én sjekk i vinduet oppfyller betingelsen. |
+| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi** | Den verdien over vinduet oppfyller betingelsen. Bare numeriske filtre. |
+| **Alle verdier** | Hver sjekk i vinduet oppfyller betingelsen. |
+| **Minst én verdi** | Minst én sjekk i vinduet oppfyller betingelsen. |
 
-**All Values** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Any Value** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
+**Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
 
-En body, en header, en headerverdi eller et uttrykk er ikke et tall OneUptime registrerer. For disse filtrene og for **Is Request Timeout** registrerer OneUptime derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **All Values** eller **Any Value**. Slik kommer en monitor seg gjennom en omstart. En app som starter, kan svare `200` med en midlertidig side som `Application starting...`; med **All Values** setter et filter **Svartekst** som ser etter appens tittel, monitoren offline først når den midlertidige siden har vart hele vinduet.
+En body, en header, en headerverdi eller et uttrykk er ikke et tall OneUptime registrerer. For disse filtrene og for **Er tidsavbrudd for forespørsel** registrerer OneUptime derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **Alle verdier** eller **Minst én verdi**. Slik kommer en monitor seg gjennom en omstart. En app som starter, kan svare `200` med en midlertidig side som `Application starting...`; med **Alle verdier** setter et filter **Svartekst** som ser etter appens tittel, monitoren offline først når den midlertidige siden har vart hele vinduet.
 
 Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekker: en monitor som sjekkes hvert 5. minutt, har bare én sjekk i et vindu på 5 minutter.
 
@@ -216,10 +216,10 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 | --- | --- | --- | --- |
 | Merk API-et som redusert når det er tregt | **Svartid (i ms)** | **Større enn** | `1000` |
 | Frakoblet når helsesjekken melder et problem | **Svartekst** | **Inneholder ikke** | `"status":"ok"` |
-| Det samme, lest fra den tolkede JSON-en | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
+| Det samme, lest fra den tolkede JSON-en | **JavaScript-uttrykk** | **Evalueres til sann** | `"{{responseBody.status}}" !== "ok"` |
 | Godta bare `201` fra en `POST` | **Statuskode for svar** | **Lik** | `201` |
 
-For å komme gjennom en omstart slår du på **Evaluer disse kriteriene over en tidsperiode** for filteret på svarteksten og velger **All Values** over 15 minutter.
+For å komme gjennom en omstart slår du på **Evaluer disse kriteriene over en tidsperiode** for filteret på svarteksten og velger **Alle verdier** over 15 minutter.
 
 ## Feilsøking
 

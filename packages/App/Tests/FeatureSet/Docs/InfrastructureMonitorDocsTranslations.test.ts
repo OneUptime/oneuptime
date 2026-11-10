@@ -65,14 +65,16 @@ import { describe, expect, it } from "@jest/globals";
  *     start of that option as drawn, not the unrelated "Low" key.
  *   - The type picker's Docker Container and Podman Container, the tab
  *     Custom Metric under More fields, the Past 1 Minute and Past 365 Days
- *     windows, the criteria's anomaly conditions and window aggregates, the
- *     template names and the Kubernetes metric names have no Dashboard
+ *     windows, the criteria's If No Data options Ignore and Treat As Zero,
+ *     the template names and the Kubernetes metric names have no Dashboard
  *     locale key: every language's Dashboard shows them in English, so
  *     every translation names them in English (SHOWN_IN_ENGLISH). When the
  *     Dashboard gains a key for one, a test below fails until the pages
  *     name it as drawn. The static conditions (Greater Than, Equal To)
- *     gained theirs in adc8421a1b: they are labels now, drawn like any
- *     other (DocsCriteriaConditions holds every page to them).
+ *     gained theirs in adc8421a1b, and the anomaly conditions, window
+ *     aggregates and criteria filters theirs in #6575: they are labels now,
+ *     drawn like any other (DocsCriteriaConditions holds every page to the
+ *     conditions).
  *
  * The criteria names and the incident title a new monitor's default
  * criteria create are English in every project, so every translation quotes
@@ -162,21 +164,14 @@ const TEMPLATE_NAMES: Record<string, () => Array<string>> = {
   },
 };
 
-const ANOMALY_CONDITIONS: Array<string> = [
-  "Anomalously High",
-  "Anomalously Low",
-  "Anomalous",
-];
-
-// The window aggregates with no locale key; Average and Sum have one.
-const UNKEYED_AGGREGATES: Array<string> = [
-  "Maximum Value",
-  "Minimum Value",
-  "All Values",
-  "Any Value",
-];
-
-// The If No Data options with no locale key; Trigger has one.
+/*
+ * The If No Data options with no locale key; Trigger has one. The anomaly
+ * conditions (Anomalous, Anomalously High, Anomalously Low), the window
+ * aggregates (Maximum Value, Minimum Value, All Values, Any Value) and the
+ * criteria filters (Is Online, Metric Value) left this list on 2026-11-10:
+ * #6575 keyed them in every language, so every translation names them as
+ * its Dashboard draws them, like any other label.
+ */
 const UNKEYED_NO_DATA: Array<string> = ["Ignore", "Treat As Zero"];
 
 // The step forms' tab and windows with no locale key.
@@ -186,11 +181,8 @@ const FORM_NAMES: Array<string> = [
   "Past 365 Days",
 ];
 
-const CRITERIA_NAMES: Array<string> = [
-  ...UNKEYED_AGGREGATES,
-  ...ANOMALY_CONDITIONS,
-  ...UNKEYED_NO_DATA,
-];
+// The criteria names every Dashboard still shows in English.
+const CRITERIA_NAMES: Array<string> = [...UNKEYED_NO_DATA];
 
 /*
  * Bold names every language's Dashboard shows in English, because its
@@ -199,10 +191,7 @@ const CRITERIA_NAMES: Array<string> = [
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [SERVER]: [
-    // The criteria filter.
-    "Is Online",
-    "All Values",
-    "Any Value",
+    // The criteria's If No Data options.
     ...UNKEYED_NO_DATA,
   ],
   [KUBERNETES]: [
@@ -229,9 +218,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Container Restarts (Increase)",
     "Job Failed Pods",
     "Job Failed Pods (Increase)",
-    // What every rule checks.
-    "Metric Value",
-    ...ANOMALY_CONDITIONS,
+    // The criteria's If No Data options.
     ...UNKEYED_NO_DATA,
   ],
   [DOCKER]: [

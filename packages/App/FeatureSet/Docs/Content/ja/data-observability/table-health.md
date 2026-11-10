@@ -57,7 +57,7 @@
 | `oneuptime.data.table.schema_changes` | 前回の収集から変更された列の数 |
 | `oneuptime.data.table.breaking_schema_changes` | 前回の収集から削除、名前の変更、型の変更をされた列の数 |
 
-どのメトリクスにも `oneuptime.data.store.id`、`oneuptime.data.store.name`、`oneuptime.data.table.id`、`oneuptime.data.table.schema`、`oneuptime.data.table.name`、`oneuptime.data.table.key` ( `schema.table` ) が付きます。 `oneuptime.data.table.key` でグループ化した [メトリクスモニター](/docs/monitor/metrics-monitor) はテーブルごとに 1 回アラートを出し、その **Anomalously High** と **Anomalously Low** のフィルターは、各テーブルを、週のその時間帯におけるそのテーブル自身のふだんの値と比較します。これらのメトリクスは OneUptime 自身の運用データであり、テレメトリとして課金されません。
+どのメトリクスにも `oneuptime.data.store.id`、`oneuptime.data.store.name`、`oneuptime.data.table.id`、`oneuptime.data.table.schema`、`oneuptime.data.table.name`、`oneuptime.data.table.key` ( `schema.table` ) が付きます。 `oneuptime.data.table.key` でグループ化した [メトリクスモニター](/docs/monitor/metrics-monitor) はテーブルごとに 1 回アラートを出し、その **異常に高い** と **異常に低い** のフィルターは、各テーブルを、週のその時間帯におけるそのテーブル自身のふだんの値と比較します。これらのメトリクスは OneUptime 自身の運用データであり、テレメトリとして課金されません。
 
 ## 未使用のテーブル
 

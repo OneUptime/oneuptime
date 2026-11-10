@@ -378,7 +378,7 @@ Ajoutez tous les OID que vous voulez collecter à chaque interrogation, sur un m
 | Nom | Un nom parlant pour l'OID, comme sysDescr. | Non |
 | Description | Ce que représente l'OID. | Non |
 
-Les valeurs collectées sont tracées sur la page **Métriques** de l'équipement, et les critères **SNMP OID Value**, **SNMP OID Exists** et **SNMP OID Rate (per second)** alertent dessus. Un compteur (Counter32 ou Counter64) ne fait que croître : alertez donc sur la vitesse à laquelle il a crû depuis l'interrogation précédente. Le sélecteur d'OID de ces critères liste les OID que l'équipement choisi collecte, ceux de son modèle et les siens, il n'y a donc rien à saisir.
+Les valeurs collectées sont tracées sur la page **Métriques** de l'équipement, et les critères **Valeur OID SNMP**, **OID SNMP présent** et **Taux OID SNMP (par seconde)** alertent dessus. Un compteur (Counter32 ou Counter64) ne fait que croître : alertez donc sur la vitesse à laquelle il a crû depuis l'interrogation précédente. Le sélecteur d'OID de ces critères liste les OID que l'équipement choisi collecte, ceux de son modèle et les siens, il n'y a donc rien à saisir.
 
 Les longues listes d'OID sont réparties sur plusieurs requêtes SNMP GET pour que chacune tienne dans un datagramme UDP. Si vous avez gardé vos listes d'OID courtes parce qu'une ancienne version signalait hors ligne un équipement répondant `tooBig`, ce n'est plus nécessaire.
 
@@ -391,7 +391,7 @@ Saisissez un OID numérique sous **OID de départ**, ou cliquez sur l'un des poi
 Chaque ligne indique où son OID est connu : une valeur que collecte un modèle de santé de fabricant, une colonne de la table SNMP d'un modèle de fabricant, un compteur que le parcours des interfaces trace déjà pour chaque port, ou un OID sous la MIB de son fabricant. Depuis une ligne :
 
 - **Collecter** ajoute l'OID aux **OID de santé propres à l'équipement** de l'équipement : chaque interrogation le collecte à partir de la prochaine, et la page **Métriques** de l'équipement le trace. Sur un équipement lié à un modèle de collecte d'OID, le menu de la ligne peut plutôt l'ajouter au modèle, pour chaque équipement qui l'utilise.
-- **Créer une alerte**, qui apparaît une fois l'OID collecté, ouvre un nouveau moniteur Équipement réseau pour l'équipement avec un critère sur l'OID. Un compteur démarre sur **SNMP OID Rate (per second)** et une jauge sur **SNMP OID Value**, chacun au-dessus d'un seuil que vous fixez ; une durée de fonctionnement alerte sous dix minutes (l'équipement a redémarré), tout le reste quand il diffère de la valeur lue.
+- **Créer une alerte**, qui apparaît une fois l'OID collecté, ouvre un nouveau moniteur Équipement réseau pour l'équipement avec un critère sur l'OID. Un compteur démarre sur **Taux OID SNMP (par seconde)** et une jauge sur **Valeur OID SNMP**, chacun au-dessus d'un seuil que vous fixez ; une durée de fonctionnement alerte sous dix minutes (l'équipement a redémarré), tout le reste quand il diffère de la valeur lue.
 - **Copier l'OID**, dans le menu de la ligne, copie l'OID.
 
 **Télécharger**, à côté du résumé du parcours, enregistre ce que le parcours a lu dans un fichier : **Texte snmpwalk (.txt)**, un OID par ligne tel que `snmpwalk -On` l'affiche, que lisent tous les outils SNMP et le support de tous les fabricants, ou **Feuille de calcul CSV (.csv)**, avec le nom, la MIB, le type et la valeur de chaque OID. Le fichier contient chaque OID lu par le parcours, parcours poursuivis compris, quel que soit ce que montre le filtre, et porte le nom de l'équipement, du sous-arbre et de l'heure de l'enregistrement. Toute personne qui peut lire le dernier parcours de l'équipement peut le télécharger.
@@ -425,7 +425,7 @@ Une partie de ce que sait un équipement est une liste : une ligne par tunnel IP
 | Noms de ligne | Des colonnes facultatives dont les valeurs nomment chaque ligne, comme le nom de connexion d'un tunnel. Sans elles, les lignes sont nommées par leur index. Un nom peut venir d'une table sœur qui partage l'index (Fabric Engine nomme les adjacences IS-IS à partir de `rcIsisAdjHostName`), ou d'une table parente dont l'index commence celui de cette table (Aruba Instant nomme chaque radio d'après son point d'accès). Une table indexée par un nom (ArubaOS indexe ses SSID par le SSID) est nommée par son index décodé. |
 | Limite de lignes | Le nombre de lignes conservées : 100 par défaut, 250 au plus. |
 
-Les nombres sont lus comme des nombres, et un texte qui commence par un nombre est lu comme ce nombre (`"36"`, `"-95 dBm"`, `"80MHz"`), car beaucoup de constructeurs mettent des nombres dans des chaînes. Réglez le type de valeur d'une colonne sur **Text only** pour les valeurs qui ont seulement l'air numériques. Les **Value labels** transforment des codes en mots (`0=inactive, 1=active`) : la valeur brute reste ce qui est tracé et comparé, le libellé ce qui est affiché. Les **Healthy values** (`1`) indiquent quelles valeurs signifient que tout va bien : elles colorent la ligne sur la page **Tables SNMP** de l'équipement et pilotent le critère **SNMP Table Row Is Unhealthy**.
+Les nombres sont lus comme des nombres, et un texte qui commence par un nombre est lu comme ce nombre (`"36"`, `"-95 dBm"`, `"80MHz"`), car beaucoup de constructeurs mettent des nombres dans des chaînes. Réglez le type de valeur d'une colonne sur **Text only** pour les valeurs qui ont seulement l'air numériques. Les **Value labels** transforment des codes en mots (`0=inactive, 1=active`) : la valeur brute reste ce qui est tracé et comparé, le libellé ce qui est affiché. Les **Healthy values** (`1`) indiquent quelles valeurs signifient que tout va bien : elles colorent la ligne sur la page **Tables SNMP** de l'équipement et pilotent le critère **Ligne de table SNMP défaillante**.
 
 Certaines colonnes des modèles constructeurs **ajustent** aussi le nombre qu'elles lisent, pour les MIB qui gardent une valeur dans une unité à elles : ArubaOS rapporte la puissance d'émission doublée (lue × 0.5), Aruba Instant le bruit de fond sans son signe (× −1), Aerohive le bruit de fond plus 256 (− 256), et le contrôleur d'Extreme la largeur de canal par pas de 20 MHz (× 20). Le nombre ajusté est ce qui est affiché, tracé et comparé, si bien que **Noise Floor Supérieur à -80** signifie la même chose chez chaque constructeur, et l'éditeur de tables montre le calcul sous la colonne.
 
@@ -494,7 +494,7 @@ La page **Interfaces** de l'équipement s'ouvre sur une carte **Émetteurs-réce
 | Avertissement | Une mesure atteint ou dépasse un seuil d'avertissement. |
 | Alarme | Une mesure atteint ou dépasse un seuil d'alarme, ou l'équipement signale une perte de signal ou un défaut d'émetteur. |
 | Non détecté | Le port avait une optique et n'en rapporte plus, alors que le port est toujours activé. La page nomme encore ce qui s'y trouvait. |
-| Sans seuils | L'optique rapporte des mesures, mais l'équipement ne rapporte aucune limite pour les juger. Alertez dessus avec **SNMP Transceiver Reading**. |
+| Sans seuils | L'optique rapporte des mesures, mais l'équipement ne rapporte aucune limite pour les juger. Alertez dessus avec **Mesure de l'émetteur-récepteur SNMP**. |
 | Détecté | L'optique ne rapporte aucun diagnostic : habituel pour les SFP cuivre et les câbles à connexion directe. |
 | Port désactivé | Le port est fermé, son laser est donc éteint à dessein : ses mesures sont affichées mais jamais jugées. |
 
@@ -780,7 +780,7 @@ Pour en créer un depuis **Moniteurs** à la place :
 
 Un moniteur Équipement réseau n'a pas d'intervalle propre : il est évalué chaque fois que les résultats d'interrogation de l'équipement arrivent, et chaque fois qu'un trap de l'équipement arrive.
 
-Quand les interrogations s'arrêtent, le moniteur est toujours évalué. Dès qu'un équipement a passé trois intervalles d'interrogation, et au moins dix minutes, sans interrogation, ses moniteurs sont évalués toutes les cinq minutes comme une interrogation qui n'a pas pu le joindre : un critère qui correspond à **SNMP Device Is Online** à False, comme **Device unreachable**, se déclenche, et l'incident indique pourquoi aucune interrogation n'est arrivée, par exemple que la sonde est hors service ou que l'équipement n'a pas de sonde. Un équipement dont l'interrogation est désactivée, ou qui utilise le [remplacement par un moniteur lié](#le-remplacement-par-un-moniteur-lié), n'est pas concerné. L'interrogation suivante évalue le moniteur comme d'habitude.
+Quand les interrogations s'arrêtent, le moniteur est toujours évalué. Dès qu'un équipement a passé trois intervalles d'interrogation, et au moins dix minutes, sans interrogation, ses moniteurs sont évalués toutes les cinq minutes comme une interrogation qui n'a pas pu le joindre : un critère qui correspond à **Appareil SNMP en ligne** à False, comme **Device unreachable**, se déclenche, et l'incident indique pourquoi aucune interrogation n'est arrivée, par exemple que la sonde est hors service ou que l'équipement n'a pas de sonde. Un équipement dont l'interrogation est désactivée, ou qui utilise le [remplacement par un moniteur lié](#le-remplacement-par-un-moniteur-lié), n'est pas concerné. L'interrogation suivante évalue le moniteur comme d'habitude.
 
 ### Les incidents et les alertes d'un équipement
 
@@ -850,7 +850,7 @@ Cliquez sur **Ajouter les alertes recommandées** dans le formulaire de critère
 | Transceiver past its alarm threshold | Une mesure d'une optique dépasse un seuil d'alarme que l'équipement rapporte, ou l'équipement signale une perte de signal ou un défaut d'émetteur. | Alerte |
 | Transceiver RX power dropping | Une optique reçoit au moins 2 dB de lumière de moins que lors de son meilleur jour des 30 derniers. | Alerte |
 
-Quand l'équipement parcourt des [tables SNMP](#tables-snmp) qui déclarent des valeurs saines, le pack ajoute aussi un critère **SNMP Table Row Is Unhealthy** par table de ce genre, avec Row `*` : un incident par ligne pour les tunnels, les voisins de routage et les points d'accès d'un contrôleur (« IPsec Tunnels: row unhealthy », ou « Access Points: row unhealthy » pour un point d'accès disparu de son contrôleur), et une alerte par ligne pour les tables de matériel et les radios.
+Quand l'équipement parcourt des [tables SNMP](#tables-snmp) qui déclarent des valeurs saines, le pack ajoute aussi un critère **Ligne de table SNMP défaillante** par table de ce genre, avec Row `*` : un incident par ligne pour les tunnels, les voisins de routage et les points d'accès d'un contrôleur (« IPsec Tunnels: row unhealthy », ou « Access Points: row unhealthy » pour un point d'accès disparu de son contrôleur), et une alerte par ligne pour les tables de matériel et les radios.
 
 SNMP walk failing est une alerte plutôt qu'un incident à dessein : l'équipement n'est pas hors service, réveiller quelqu'un à 2 h du matin pour cela serait donc une erreur, mais son inventaire n'est plus actualisé et quelqu'un devrait réparer les identifiants. Il ne se déclenche jamais sur un équipement seulement pingué, car le critère n'est pas évalué quand aucun parcours n'a eu lieu.
 
@@ -905,7 +905,7 @@ Les traps sont associés via l'inventaire des équipements :
 
 1. Un trap arrive au récepteur d'une sonde et est transmis à OneUptime.
 2. OneUptime cherche les équipements réseau assignés à cette sonde dont le nom d'hôte, ou l'une des **Autres adresses**, est l'adresse IP source du trap.
-3. Le trap est journalisé dans l'historique des traps de l'équipement, et chaque moniteur Équipement réseau d'un équipement correspondant l'évalue au regard de ses critères, généralement un filtre **SNMP Trap Received (Trap OID)**.
+3. Le trap est journalisé dans l'historique des traps de l'équipement, et chaque moniteur Équipement réseau d'un équipement correspondant l'évalue au regard de ses critères, généralement un filtre **Trap SNMP reçu (OID du trap)**.
 
 L'association se fait par adresse et non par identifiants, si bien qu'un équipement seulement pingué peut quand même recevoir des traps : un équipement pour lequel vous n'avez pas d'identifiants de lecture peut quand même en envoyer. Enregistrez l'équipement avec l'adresse depuis laquelle il envoie ses traps, ou ajoutez cette adresse à ses **Autres adresses** sur sa page **Paramètres**. Les traps génériques SNMPv1 (coldStart, linkDown, linkUp, etc.) sont convertis en leurs OID de notification SNMPv2 standard, si bien que linkDown correspond à l'OID de trap `1.3.6.1.6.3.1.1.5.3` quelle que soit la version SNMP.
 
@@ -921,8 +921,8 @@ Le filtre propose aussi Contient, Commence par et Se termine par, si bien qu'un 
 
 Certains constructeurs envoient chaque événement sous la forme du même trap et mettent l'événement dans une varbind texte : chaque notification d'un Sophos Firewall est `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) avec le message dans `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Combinez les deux dans un critère :
 
-- **SNMP Trap Received (Trap OID)** : Égal à `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value** : OID de varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contient `IPSec`
+- **Trap SNMP reçu (OID du trap)** : Égal à `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **Valeur de varbind du trap SNMP** : OID de varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contient `IPSec`
 
 Un filtre négatif (Ne contient pas, Différent de, Est vide) n'est rempli que lorsqu'aucune varbind dans la portée ne correspond à sa forme positive. Laissez l'OID de varbind vide pour chercher dans chaque varbind que porte le trap.
 

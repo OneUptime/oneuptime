@@ -45,7 +45,7 @@ Um [monitor Incoming Request](/docs/monitor/incoming-request-monitor) lhe dá um
 :::steps
 ### Criar o monitor
 
-Vá em **Monitores** e clique em **Criar monitor**. Escolha **Incoming Request** em **Tipo de monitor**, dê o nome `Grafana` e clique em **Próximo**.
+Vá em **Monitores** e clique em **Criar monitor**. Escolha **Requisição recebida** em **Tipo de monitor**, dê o nome `Grafana` e clique em **Próximo**.
 
 ### Declarar um incidente para cada alerta disparado
 

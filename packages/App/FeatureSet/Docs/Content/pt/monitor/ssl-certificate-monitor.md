@@ -73,14 +73,14 @@ Os critérios decidem quando o certificado conta como bom, degradado ou quebrado
 
 | Filtro | Condições | O que verifica |
 | --- | --- | --- |
-| **Is Valid Certificate** | **Verdadeiro**, **Falso** | O certificado passa nas verificações de um navegador: um emissor confiável, um nome de host que corresponde e datas que incluem hoje. **Falso** quando o endpoint não respondeu. |
-| **Is Not A Valid Certificate** | **Verdadeiro**, **Falso** | O oposto de **Is Valid Certificate**: **Verdadeiro** quando o certificado não passa nessas verificações ou não pôde ser verificado. |
-| **Is Expired Certificate** | **Verdadeiro**, **Falso** | A data de vencimento do certificado já passou. |
-| **Is Self Signed Certificate** | **Verdadeiro**, **Falso** | O certificado, ou um da cadeia dele, é autoassinado. |
-| **Expires In Days** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | Os dias até o certificado vencer. |
-| **Expires In Hours** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | As horas até o certificado vencer. |
+| **Certificado válido** | **Verdadeiro**, **Falso** | O certificado passa nas verificações de um navegador: um emissor confiável, um nome de host que corresponde e datas que incluem hoje. **Falso** quando o endpoint não respondeu. |
+| **Certificado inválido** | **Verdadeiro**, **Falso** | O oposto de **Certificado válido**: **Verdadeiro** quando o certificado não passa nessas verificações ou não pôde ser verificado. |
+| **Certificado expirado** | **Verdadeiro**, **Falso** | A data de vencimento do certificado já passou. |
+| **Certificado autoassinado** | **Verdadeiro**, **Falso** | O certificado, ou um da cadeia dele, é autoassinado. |
+| **Dias até a expiração** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | Os dias até o certificado vencer. |
+| **Horas até a expiração** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | As horas até o certificado vencer. |
 
-**Expires In Days** conta dias inteiros: um certificado que vence em 14 dias e 20 horas tem 14 dias restantes. **Expires In Hours** conta horas inteiras do mesmo jeito.
+**Dias até a expiração** conta dias inteiros: um certificado que vence em 14 dias e 20 horas tem 14 dias restantes. **Horas até a expiração** conta horas inteiras do mesmo jeito.
 
 Com dois ou mais filtros, **Condição de correspondência** decide se **Todos** precisam corresponder ou se basta **Qualquer** um. As **Ações** de um critério decidem o que ele faz: mudar o status do monitor, criar um alerta, declarar um incidente, ou várias dessas coisas.
 
@@ -96,13 +96,13 @@ O aviso de "vence em breve" é um alerta, não um incidente: ele não aparece na
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Por isso "vence em breve" fica acima de "é válido": um certificado prestes a vencer ainda é válido, então corresponderia aos dois.
 
-Para ser avisado antes, altere o valor do filtro **Expires In Days** no critério "vence em breve", por exemplo para `30`. Para acionar alguém em vez disso, abra as **Ações** desse critério: ative **Quando os filtros corresponderem, declarar um incidente.**, ou mantenha o alerta e adicione a ele uma política de plantão em **Políticas de plantão**.
+Para ser avisado antes, altere o valor do filtro **Dias até a expiração** no critério "vence em breve", por exemplo para `30`. Para acionar alguém em vez disso, abra as **Ações** desse critério: ative **Quando os filtros corresponderem, declarar um incidente.**, ou mantenha o alerta e adicione a ele uma política de plantão em **Políticas de plantão**.
 
 :::details Adicionar o aviso a um monitor criado antes de ele existir
 Monitores criados antes de o OneUptime adicionar este aviso não têm um critério de "vence em breve". Para adicioná-lo:
 
 1. No monitor, abra **Configuração → Critérios** e clique em **Editar critérios de monitoramento**.
-2. Clique em **Adicionar critérios**. Defina o filtro dele como **Is Valid Certificate** / **Verdadeiro**, clique em **Adicionar filtro** e defina o segundo como **Expires In Days** / **Menor ou igual a** / `14`. Deixe **Condição de correspondência** em **Todos** (ela aparece abaixo dos filtros quando há dois).
+2. Clique em **Adicionar critérios**. Defina o filtro dele como **Certificado válido** / **Verdadeiro**, clique em **Adicionar filtro** e defina o segundo como **Dias até a expiração** / **Menor ou igual a** / `14`. Deixe **Condição de correspondência** em **Todos** (ela aparece abaixo dos filtros quando há dois).
 3. Em **Ações**, ative **Quando os filtros corresponderem, criar um alerta.** e deixe **Quando os filtros corresponderem, alterar o status do monitor.** desativado, para que ele crie um alerta e não mude o status do monitor.
 4. Arraste o novo critério para cima do critério que marca o monitor como no ar, e salve.
 :::
@@ -111,10 +111,10 @@ Monitores criados antes de o OneUptime adicionar este aviso não têm um critér
 
 | Objetivo | Filtro | Condição | Valor |
 | --- | --- | --- | --- |
-| Avisar com um mês de antecedência | **Expires In Days** | **Menor ou igual a** | `30` |
-| Acionar alguém no último dia | **Expires In Hours** | **Menor que** | `24` |
-| Offline só quando o certificado já venceu | **Is Expired Certificate** | **Verdadeiro** | — |
-| Sinalizar um certificado autoassinado | **Is Self Signed Certificate** | **Verdadeiro** | — |
+| Avisar com um mês de antecedência | **Dias até a expiração** | **Menor ou igual a** | `30` |
+| Acionar alguém no último dia | **Horas até a expiração** | **Menor que** | `24` |
+| Offline só quando o certificado já venceu | **Certificado expirado** | **Verdadeiro** | — |
+| Sinalizar um certificado autoassinado | **Certificado autoassinado** | **Verdadeiro** | — |
 
 Um critério sobre o vencimento precisa ficar acima do critério que marca o certificado como válido: um certificado prestes a vencer ainda é válido, e o primeiro critério que corresponde vence.
 
@@ -132,11 +132,11 @@ A causa raiz do incidente diz por quê. Um caso comum é um servidor que envia o
 :::
 
 :::details Monitoro um serviço interno com um certificado autoassinado
-Um certificado autoassinado nunca é válido, então os critérios padrão mantêm o monitor offline. **Is Self Signed Certificate**, **Is Expired Certificate** e **Expires In Days** continuam funcionando para ele, então monte os critérios com eles. Em **Configuração → Critérios**:
+Um certificado autoassinado nunca é válido, então os critérios padrão mantêm o monitor offline. **Certificado autoassinado**, **Certificado expirado** e **Dias até a expiração** continuam funcionando para ele, então monte os critérios com eles. Em **Configuração → Critérios**:
 
-1. No critério "não é válido", clique em **Adicionar filtro**, defina o novo filtro como **Is Self Signed Certificate** / **Falso** e defina **Condição de correspondência** como **Todos**. O critério continua deixando o monitor offline quando o endpoint não responde, ou o certificado está errado de outra forma.
-2. Adicione um critério com **Is Expired Certificate** / **Verdadeiro** que marque o monitor como **Offline** e declare um incidente, e arraste-o para o topo.
-3. No critério "vence em breve", substitua **Is Valid Certificate** / **Verdadeiro** por **Is Expired Certificate** / **Falso**, para que o aviso cubra também o certificado autoassinado.
+1. No critério "não é válido", clique em **Adicionar filtro**, defina o novo filtro como **Certificado autoassinado** / **Falso** e defina **Condição de correspondência** como **Todos**. O critério continua deixando o monitor offline quando o endpoint não responde, ou o certificado está errado de outra forma.
+2. Adicione um critério com **Certificado expirado** / **Verdadeiro** que marque o monitor como **Offline** e declare um incidente, e arraste-o para o topo.
+3. No critério "vence em breve", substitua **Certificado válido** / **Verdadeiro** por **Certificado expirado** / **Falso**, para que o aviso cubra também o certificado autoassinado.
 
 Enquanto o certificado estiver em dia, nenhum critério corresponde e o monitor mostra o seu status padrão, **Operacional**.
 :::

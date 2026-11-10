@@ -101,7 +101,7 @@ Diese Einstellungen sind unter **Weitere Felder** eingeklappt. Die eingeklappte 
 
 | Feld | Standard | Was es tut |
 | --- | --- | --- |
-| **Anfrage-Header** | Keine | Header, die gesendet werden, als Paare aus Name und Wert. Klicken Sie für jeden auf **Request Header hinzufügen**. |
+| **Anfrage-Header** | Keine | Header, die gesendet werden, als Paare aus Name und Wert. Klicken Sie für jeden auf **Anfrage-Header hinzufügen**. |
 | **Anfrage-Body (in JSON)** | Keiner | Ein JSON-Objekt, das als Body gesendet wird, meist mit **POST**, **PUT** oder **PATCH**. Es muss gültiges JSON sein. |
 | **Weiterleitungen nicht folgen** | Aus | Die erste Antwort beurteilen, statt Weiterleitungen zu folgen. Siehe [unten](#weiterleitungen-nicht-folgen). |
 | **Selbstsignierte Zertifikate zulassen** | Aus | Die Prüfung des TLS-Zertifikats für den eigenen Hostnamen des Monitors überspringen. |
@@ -154,14 +154,14 @@ Kriterien entscheiden, wann die API als online, beeinträchtigt oder offline gil
 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
-| **Is Online** | **Wahr**, **Falsch** | Ob die API überhaupt geantwortet hat, egal mit welchem Statuscode. |
+| **Ist online** | **Wahr**, **Falsch** | Ob die API überhaupt geantwortet hat, egal mit welchem Statuscode. |
 | **Antwort-Statuscode** | **Gleich**, **Ungleich**, **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Den HTTP-Statuscode. |
 | **Antwortzeit (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Wie lange die Anfrage gedauert hat, Weiterleitungen eingeschlossen. |
 | **Antworttext** | **Enthält**, **Enthält nicht** | Text im Antworttext. Groß- und Kleinschreibung wird unterschieden. |
-| **Response Header** | **Enthält**, **Enthält nicht** | Ob die Antwort einen Header mit diesem Namen hat. Geben Sie den Namen kleingeschrieben ein, etwa `x-request-id`. |
-| **Response Header Value** | **Enthält**, **Enthält nicht** | Ob ein Header genau diesen Wert hat, kleingeschrieben verglichen, etwa `application/json`. |
-| **JavaScript Expression** | **Evaluates To True** | Ein Ausdruck über die Antwort. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Wahr**, **Falsch** | Ob die Anfrage bei jedem Versuch in ein Zeitlimit gelaufen ist. |
+| **Antwort-Header** | **Enthält**, **Enthält nicht** | Ob die Antwort einen Header mit diesem Namen hat. Geben Sie den Namen kleingeschrieben ein, etwa `x-request-id`. |
+| **Antwort-Header-Wert** | **Enthält**, **Enthält nicht** | Ob ein Header genau diesen Wert hat, kleingeschrieben verglichen, etwa `application/json`. |
+| **JavaScript-Ausdruck** | **Ergibt wahr** | Ein Ausdruck über die Antwort. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression). |
+| **Zeitüberschreitung der Anfrage** | **Wahr**, **Falsch** | Ob die Anfrage bei jedem Versuch in ein Zeitlimit gelaufen ist. |
 
 Eine JSON-Antwort wird in ihrer kompakten Form geprüft, ohne Leerzeichen zwischen Schlüsseln und Werten. Um `"status": "ok"` mit **Antworttext** zu finden, geben Sie `"status":"ok"` ein.
 
@@ -178,7 +178,7 @@ Ein neuer API-Monitor beginnt mit zwei Kriterien, sodass er ohne Änderungen fun
 
 In der Liste der Kriterien sind sie nach dem Monitor benannt: _Check if (name) is offline_ und _Check if (name) is online_.
 
-Ein Endpunkt, der `201 Created` oder `204 No Content` antwortet, zählt also als erreichbar. Wenn für Sie nur ein Statuscode gesund bedeutet, ändern Sie beide Kriterien auf der Seite **Konfiguration → Kriterien** des Monitors: zum Beispiel **Antwort-Statuscode** / **Gleich** / `200` im Online-Kriterium und **Ungleich** / `200` im Offline-Kriterium, anstelle der beiden Statuscode-Filter, die jedes hat. Um auch zu prüfen, was die API zurückgibt, fügen Sie dem Offline-Kriterium einen Filter **Antworttext** oder **JavaScript Expression** hinzu.
+Ein Endpunkt, der `201 Created` oder `204 No Content` antwortet, zählt also als erreichbar. Wenn für Sie nur ein Statuscode gesund bedeutet, ändern Sie beide Kriterien auf der Seite **Konfiguration → Kriterien** des Monitors: zum Beispiel **Antwort-Statuscode** / **Gleich** / `200` im Online-Kriterium und **Ungleich** / `200` im Offline-Kriterium, anstelle der beiden Statuscode-Filter, die jedes hat. Um auch zu prüfen, was die API zurückgibt, fügen Sie dem Offline-Kriterium einen Filter **Antworttext** oder **JavaScript-Ausdruck** hinzu.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert.
 
@@ -188,17 +188,17 @@ Monitore, die erstellt wurden, bevor OneUptime diese Standards geändert hat, be
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Is Online**, **Antwort-Statuscode**, **Antwortzeit (in ms)**, **Antworttext**, **Response Header**, **Response Header Value**, **JavaScript Expression** und **Is Request Timeout**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Antwort-Statuscode**, **Antwortzeit (in ms)**, **Antworttext**, **Antwort-Header**, **Antwort-Header-Wert**, **JavaScript-Ausdruck** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
-| **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
-| **All Values** | Jede Prüfung im Fenster die Bedingung erfüllt. |
-| **Any Value** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
+| **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
+| **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 
-**All Values** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Any Value** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
+**Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
-Ein Body, ein Header, ein Header-Wert oder ein Ausdruck ist keine Zahl, die OneUptime aufzeichnet. Für diese Filter und für **Is Request Timeout** zeichnet OneUptime deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **All Values** oder **Any Value**. So übersteht ein Monitor einen Neustart. Eine App, die gerade startet, antwortet womöglich mit `200` und einem Platzhalter wie `Application starting...`; mit **All Values** nimmt ein Filter **Antworttext**, der nach dem Titel der App sucht, den Monitor erst offline, wenn der Platzhalter das ganze Fenster über bestanden hat.
+Ein Body, ein Header, ein Header-Wert oder ein Ausdruck ist keine Zahl, die OneUptime aufzeichnet. Für diese Filter und für **Zeitüberschreitung der Anfrage** zeichnet OneUptime deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**. So übersteht ein Monitor einen Neustart. Eine App, die gerade startet, antwortet womöglich mit `200` und einem Platzhalter wie `Application starting...`; mit **Alle Werte** nimmt ein Filter **Antworttext**, der nach dem Titel der App sucht, den Monitor erst offline, wenn der Platzhalter das ganze Fenster über bestanden hat.
 
 Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 
@@ -216,10 +216,10 @@ Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere
 | --- | --- | --- | --- |
 | Die API als beeinträchtigt markieren, wenn sie langsam ist | **Antwortzeit (in ms)** | **Größer als** | `1000` |
 | Offline, wenn die Integritätsprüfung ein Problem meldet | **Antworttext** | **Enthält nicht** | `"status":"ok"` |
-| Dasselbe, aus dem geparsten JSON gelesen | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
+| Dasselbe, aus dem geparsten JSON gelesen | **JavaScript-Ausdruck** | **Ergibt wahr** | `"{{responseBody.status}}" !== "ok"` |
 | Von einem `POST` nur `201` akzeptieren | **Antwort-Statuscode** | **Gleich** | `201` |
 
-Um einen Neustart zu überstehen, schalten Sie für den Antworttext-Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** ein und wählen Sie **All Values** über 15 Minuten.
+Um einen Neustart zu überstehen, schalten Sie für den Antworttext-Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** ein und wählen Sie **Alle Werte** über 15 Minuten.
 
 ## Fehlerbehebung
 
