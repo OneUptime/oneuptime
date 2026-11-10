@@ -1439,13 +1439,19 @@ describe("this user's other sessions", () => {
   test("the ended card offers this user's next session, opened the same way as the arrows", () => {
     const next: string = slice(
       SOURCE,
-      "const nextUserSession:",
+      "const nextUserSessionFacts:",
       "const openOlderUserSession:",
     );
 
     expect(next).toContain("adjacentUserSessions.newer");
     expect(next).toContain("describeReplayUserSession(newer, Date.now())");
     expect(next).toContain("sessionId: newer.sessionId,");
+    /*
+     * Its facts are set on one line in the reader's language when the card
+     * is drawn, a page it could not name said in their words too.
+     */
+    expect(next).toContain('translator.translateText("Unknown page")');
+    expect(next).toMatch(/formatInline\([\s\S]*?\),\s*translator,\s*\)/);
 
     const overlayProps: string = slice(
       SOURCE,
@@ -1678,7 +1684,11 @@ describe("recorded assets", () => {
     const stage: string = slice(SOURCE, "<ReplayStage\n", "/>");
 
     expect(stage).toContain("onAssetLoadFailures={onAssetLoadFailures}");
-    expect(SOURCE).toMatch(/buildReplayPlaybackAssetNotes\(\{/);
+    expect(SOURCE).toMatch(/buildReplayPlaybackAssetNotes\(\s*\{/);
+    // Written in the reader's language, as the capture notes beside them.
+    expect(SOURCE).toMatch(
+      /buildReplayPlaybackAssetNotes\(\s*\{[\s\S]*?\},\s*inLanguage,\s*\)/,
+    );
     expect(SOURCE).toContain("isTruncated: areAssetFailuresTruncated,");
     expect(SOURCE).toContain("missingAssets={missingAssetUrls}");
     expect(SOURCE).toContain(

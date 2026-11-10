@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48448,
-    "untranslated": 10376
+    "keys": 49075,
+    "untranslated": 9953
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -197,11 +197,13 @@
     "vSphere Client",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
     "{{gigabytes}} GB",
     "{{in}} in",
-    "{{itemName}} ID"
+    "{{itemName}} ID",
+    "{{value}} ms"
   ]
 }

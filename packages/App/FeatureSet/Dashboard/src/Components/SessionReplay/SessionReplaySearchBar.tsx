@@ -160,10 +160,11 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
     };
   }, []);
 
+  // Its warnings are drawn below the box, in the reader's language.
   const parsed: SessionReplaySearchParseResult =
     useMemo((): SessionReplaySearchParseResult => {
-      return parseSessionReplaySearchBox(text, baseRef.current);
-    }, [text, props.filters]);
+      return parseSessionReplaySearchBox(text, baseRef.current, translator);
+    }, [text, props.filters, translator.language]);
 
   const commit: (value: string) => SessionReplaySearchParseResult = useCallback(
     (value: string): SessionReplaySearchParseResult => {

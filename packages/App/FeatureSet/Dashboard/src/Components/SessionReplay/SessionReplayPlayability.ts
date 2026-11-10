@@ -1,5 +1,11 @@
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import { SESSION_REPLAY_FLUSH_INTERVAL_MS } from "Common/Types/Rum/SessionReplay";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 
 /*
  * Can this session be watched, and what does the viewer need to know
@@ -34,7 +40,19 @@ import { SESSION_REPLAY_FLUSH_INTERVAL_MS } from "Common/Types/Rum/SessionReplay
  * Order, first match wins: lost, ended, recording, then the finalized
  * states (metadata-only, partial, playable). A finalized row never reads
  * as ended or recording whatever the flag says - its counts are in.
+ *
+ * Every word these helpers write is in the language of the translator they
+ * are given, each sentence looked up whole, and in English without one -
+ * word for word what they always wrote, which is also what a test or a
+ * caller that looks the words up itself reads.
  */
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed word or sentence in `translator`'s language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) ?? text;
+}
 
 export type SessionReplayPlayabilityKind =
   | "recording"
@@ -52,6 +70,11 @@ export type SessionReplayPlayabilitySeverity =
   | "danger"
   | "neutral";
 
+/*
+ * text, tooltip, detail and detailLines are in the language of the
+ * translator getSessionReplayPlayability was given (English without one):
+ * draw them as they are.
+ */
 export interface SessionReplayPlayability {
   kind: SessionReplayPlayabilityKind;
   /* The badge word. */
@@ -119,15 +142,17 @@ export const SESSION_REPLAY_ESTIMATED_CHUNK_SECONDS: number = Math.round(
 const HOUR_MS: number = 60 * 60 * 1000;
 const DAY_MS: number = 24 * HOUR_MS;
 
-/*
- * "expires in 6d", "expires in 3h", "expires within the hour", "expired" -
- * or null when the server did not say. Never "expires in 0d": a recording
- * that expires today is about to disappear and the copy has to say so.
- */
-export function formatExpiry(
+/* When the footage expires, as the copy below tells it apart. */
+type SessionReplayExpiry =
+  | { kind: "expired" }
+  | { kind: "within-the-hour" }
+  | { kind: "hours"; hours: number }
+  | { kind: "days"; days: number };
+
+function getExpiry(
   expiresAtUnixMs: number | undefined,
   nowUnixMs: number,
-): string | null {
+): SessionReplayExpiry | null {
   if (
     expiresAtUnixMs === undefined ||
     !Number.isFinite(expiresAtUnixMs) ||
@@ -139,33 +164,108 @@ export function formatExpiry(
   const remainingMs: number = expiresAtUnixMs - nowUnixMs;
 
   if (remainingMs <= 0) {
-    return "expired";
+    return { kind: "expired" };
   }
 
   if (remainingMs < HOUR_MS) {
-    return "expires within the hour";
+    return { kind: "within-the-hour" };
   }
 
   if (remainingMs < DAY_MS) {
-    return `expires in ${Math.floor(remainingMs / HOUR_MS)}h`;
+    return { kind: "hours", hours: Math.floor(remainingMs / HOUR_MS) };
   }
 
-  return `expires in ${Math.floor(remainingMs / DAY_MS)}d`;
+  return { kind: "days", days: Math.floor(remainingMs / DAY_MS) };
+}
+
+/*
+ * "expires in 6d", "expires in 3h", "expires within the hour", "expired" -
+ * or null when the server did not say. Never "expires in 0d": a recording
+ * that expires today is about to disappear and the copy has to say so.
+ * A fact standing on a line of its own, in `translator`'s language.
+ */
+export function formatExpiry(
+  expiresAtUnixMs: number | undefined,
+  nowUnixMs: number,
+  translator: Translator = ENGLISH,
+): string | null {
+  const expiry: SessionReplayExpiry | null = getExpiry(
+    expiresAtUnixMs,
+    nowUnixMs,
+  );
+
+  if (!expiry) {
+    return null;
+  }
+
+  switch (expiry.kind) {
+    case "expired":
+      return translateLine("expired", translator);
+    case "within-the-hour":
+      return translateLine("expires within the hour", translator);
+    case "hours":
+      return translator.translateTemplate("expires in {{hours}}h", {
+        hours: expiry.hours,
+      });
+  }
+
+  return translator.translateTemplate("expires in {{days}}d", {
+    days: expiry.days,
+  });
+}
+
+/*
+ * The Playable badge's tooltip: one whole sentence for each way the
+ * footage can expire, never the expiry fact glued into another sentence.
+ */
+function describePlayable(
+  expiry: SessionReplayExpiry | null,
+  translator: Translator,
+): string {
+  if (!expiry) {
+    return translateLine("Footage is stored and can be played back.", translator);
+  }
+
+  switch (expiry.kind) {
+    case "expired":
+      return translateLine(
+        "Footage is stored and can be played back; it expired under this application's retention, and this row expires with it.",
+        translator,
+      );
+    case "within-the-hour":
+      return translateLine(
+        "Footage is stored and can be played back; it expires within the hour under this application's retention, and this row expires with it.",
+        translator,
+      );
+    case "hours":
+      return translator.translateTemplate(
+        "Footage is stored and can be played back; it expires in {{hours}}h under this application's retention, and this row expires with it.",
+        { hours: expiry.hours },
+      );
+  }
+
+  return translator.translateTemplate(
+    "Footage is stored and can be played back; it expires in {{days}}d under this application's retention, and this row expires with it.",
+    { days: expiry.days },
+  );
 }
 
 export function getSessionReplayPlayability(
   row: SessionReplayPlayabilityInput,
   nowUnixMs: number,
+  translator: Translator = ENGLISH,
 ): SessionReplayPlayability {
   const isLost: boolean = row.sealedReason === "recording-lost";
 
   if (isLost) {
     return {
       kind: "lost",
-      text: "Recording lost",
+      text: translateLine("Recording lost", translator),
       severity: "danger",
-      tooltip:
+      tooltip: translateLine(
         "A session header was received but its footage never arrived, so the never-finalized sweep sealed the session. The signals and counts here are still accurate; there is nothing to play.",
+        translator,
+      ),
       detail: null,
       detailLines: [],
       isWatchable: false,
@@ -179,27 +279,35 @@ export function getSessionReplayPlayability(
    * chunk the tabs sent is already stored and plays like any other.
    */
   if (!row.isFinalized && row.hasRecordingEnded === true) {
+    const finalizing: string = translateLine("finalizing", translator);
+
     return {
       kind: "ended",
-      text: "Recording ended",
+      text: translateLine("Recording ended", translator),
       severity: "neutral",
-      tooltip:
+      tooltip: translateLine(
         "Every tab of this session has closed, so nothing more is being recorded. The footage plays now; duration, pages and signals are counted shortly, when the session is finalized.",
-      detail: "finalizing",
-      detailLines: ["finalizing"],
+        translator,
+      ),
+      detail: finalizing,
+      detailLines: [finalizing],
       isWatchable: true,
     };
   }
 
   if (!row.isFinalized) {
+    const live: string = translateLine("live", translator);
+
     return {
       kind: "recording",
-      text: "Recording now",
+      text: translateLine("Recording now", translator),
       severity: "info",
-      tooltip:
+      tooltip: translateLine(
         "This session has not been finalized yet and may still be recording: footage plays as it arrives. It reads Recording ended shortly after its last tab closes, and duration, pages and signals are counted when it is finalized - about 10 minutes after the last chunk when the browser went away without saying so.",
-      detail: "live",
-      detailLines: ["live"],
+        translator,
+      ),
+      detail: live,
+      detailLines: [live],
       isWatchable: true,
     };
   }
@@ -216,32 +324,47 @@ export function getSessionReplayPlayability(
   if (row.chunkCount === 0) {
     return {
       kind: "metadata-only",
-      text: "Metadata only",
+      text: translateLine("Metadata only", translator),
       severity: "warning",
-      tooltip:
+      tooltip: translateLine(
         "No footage was stored for this session: its chunks were never uploaded, or they were refused before they could be saved. A session row expires together with its footage, so this is not an expired recording - the signals, device and page list here are accurate.",
+        translator,
+      ),
       detail: null,
       detailLines: [],
       isWatchable: false,
     };
   }
 
-  const expiry: string | null = formatExpiry(row.expiresAtUnixMs, nowUnixMs);
+  const expiry: string | null = formatExpiry(
+    row.expiresAtUnixMs,
+    nowUnixMs,
+    translator,
+  );
 
   if (row.missingChunkCount > 0) {
     const missingSeconds: number =
       row.missingChunkCount * SESSION_REPLAY_ESTIMATED_CHUNK_SECONDS;
-    const chunkWord: string = row.missingChunkCount === 1 ? "chunk" : "chunks";
     const detailLines: Array<string> = [
-      `about ${missingSeconds}s missing`,
+      translator.translateTemplate("about {{seconds}}s missing", {
+        seconds: missingSeconds,
+      }),
       ...(expiry ? [expiry] : []),
     ];
 
     return {
       kind: "partial",
-      text: "Partial",
+      text: translateLine("Partial", translator),
       severity: "warning",
-      tooltip: `${row.missingChunkCount} ${chunkWord} of footage never arrived (about ${missingSeconds}s). The player skips the gaps and marks them on the timeline.`,
+      tooltip: translator.translatePlural(
+        {
+          one: "{{count}} chunk of footage never arrived (about {{seconds}}s). The player skips the gaps and marks them on the timeline.",
+          other:
+            "{{count}} chunks of footage never arrived (about {{seconds}}s). The player skips the gaps and marks them on the timeline.",
+        },
+        row.missingChunkCount,
+        { seconds: missingSeconds },
+      ),
       detail: detailLines.join(" - "),
       detailLines: detailLines,
       isWatchable: true,
@@ -250,11 +373,12 @@ export function getSessionReplayPlayability(
 
   return {
     kind: "playable",
-    text: "Playable",
+    text: translateLine("Playable", translator),
     severity: "success",
-    tooltip: expiry
-      ? `Footage is stored and can be played back; it ${expiry} under this application's retention, and this row expires with it.`
-      : "Footage is stored and can be played back.",
+    tooltip: describePlayable(
+      getExpiry(row.expiresAtUnixMs, nowUnixMs),
+      translator,
+    ),
     detail: expiry,
     detailLines: expiry ? [expiry] : [],
     isWatchable: true,
@@ -292,46 +416,55 @@ export function formatSessionDuration(durationMs: number): string {
  * The trigger reason as a person would say it. Under the default policy
  * (Always, 100%) the recorder still writes "sampled", and printing that
  * word on every row told people they were only getting a sample - the
- * misunderstanding behind issue #3601.
+ * misunderstanding behind issue #3601. A reason this Dashboard has no
+ * words for is the recorder's own token, shown as it is.
  */
 export function describeTriggerReason(
   reason: string,
   samplePercentageAtCapture?: number | undefined,
+  translator: Translator = ENGLISH,
 ): string {
   switch (reason) {
     case SessionReplayTriggerReason.Error:
-      return "On error";
+      return translateLine("On error", translator);
     case SessionReplayTriggerReason.Frustration:
-      return "On frustration";
+      return translateLine("On frustration", translator);
     case SessionReplayTriggerReason.Performance:
-      return "Slow page";
+      return translateLine("Slow page", translator);
     case SessionReplayTriggerReason.Manual:
-      return "Manual";
+      return translateLine("Manual", translator);
     case SessionReplayTriggerReason.Sampled:
       if (
         samplePercentageAtCapture === undefined ||
         !Number.isFinite(samplePercentageAtCapture) ||
         samplePercentageAtCapture >= 100
       ) {
-        return "Always-on";
+        return translateLine("Always-on", translator);
       }
 
-      return `Sampled (${samplePercentageAtCapture}%)`;
+      return translator.translateTemplate("Sampled ({{percentage}}%)", {
+        percentage: samplePercentageAtCapture,
+      });
     case "":
-      return "Trigger not recorded";
+      return translateLine("Trigger not recorded", translator);
     default:
       return reason;
   }
 }
 
-/* The same words, for the trigger dropdown and the search grammar. */
+/*
+ * The same words, for the trigger dropdown and the search grammar: English
+ * keys, looked up where they are drawn.
+ */
 export const TRIGGER_REASON_LABELS: Record<SessionReplayTriggerReason, string> =
   {
-    [SessionReplayTriggerReason.Error]: "On error",
-    [SessionReplayTriggerReason.Frustration]: "On frustration",
-    [SessionReplayTriggerReason.Performance]: "Slow page",
-    [SessionReplayTriggerReason.Sampled]: "Sampled or always-on",
-    [SessionReplayTriggerReason.Manual]: "Manual",
+    [SessionReplayTriggerReason.Error]: translationKey("On error"),
+    [SessionReplayTriggerReason.Frustration]: translationKey("On frustration"),
+    [SessionReplayTriggerReason.Performance]: translationKey("Slow page"),
+    [SessionReplayTriggerReason.Sampled]: translationKey(
+      "Sampled or always-on",
+    ),
+    [SessionReplayTriggerReason.Manual]: translationKey("Manual"),
   };
 
 /*
@@ -343,6 +476,7 @@ export const TRIGGER_REASON_LABELS: Record<SessionReplayTriggerReason, string> =
 export function formatIdleShare(
   activeMs: number | undefined,
   durationMs: number,
+  translator: Translator = ENGLISH,
 ): string | null {
   if (
     activeMs === undefined ||
@@ -362,5 +496,7 @@ export function formatIdleShare(
     return null;
   }
 
-  return `idle ${Math.min(99, idleShare)}%`;
+  return translator.translateTemplate("idle {{percentage}}%", {
+    percentage: Math.min(99, idleShare),
+  });
 }

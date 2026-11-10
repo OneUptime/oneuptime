@@ -3,6 +3,10 @@ import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import Protocol from "Common/Types/API/Protocol";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * SessionReplayInstallSnippet: the ONE install snippet.
@@ -225,6 +229,7 @@ export interface ComponentProps {
 const SessionReplayInstallSnippet: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const oneuptimeUrl: string = props.oneuptimeUrl ?? getOneUptimeUrl();
   const frameworks: Array<InstallSnippetFramework> = ["html", "nextjs", "gtm"];
 
@@ -234,52 +239,53 @@ const SessionReplayInstallSnippet: FunctionComponent<ComponentProps> = (
         onTabChange={(): void => {
           /* The tab is presentational; nothing else depends on it. */
         }}
-        tabs={frameworks.map(
-          (
-            framework: InstallSnippetFramework,
-          ): { name: string; children: ReactElement } => {
-            return {
-              name: INSTALL_SNIPPET_TAB_NAMES[framework],
-              children: (
-                <div
-                  className="mt-3"
-                  data-testid={`install-snippet-${framework}`}
-                >
-                  <CodeBlock
-                    code={buildInstallSnippet(
-                      framework,
-                      oneuptimeUrl,
-                      props.appIdentifier,
-                    )}
-                    language={framework === "nextjs" ? "javascript" : "xml"}
-                  />
-                </div>
-              ),
-            };
-          },
-        )}
+        tabs={frameworks.map((framework: InstallSnippetFramework): Tab => {
+          return {
+            // A framework's or a product's name, the same in every language.
+            name: INSTALL_SNIPPET_TAB_NAMES[framework],
+            isName: true,
+            children: (
+              <div
+                className="mt-3"
+                data-testid={`install-snippet-${framework}`}
+              >
+                <CodeBlock
+                  code={buildInstallSnippet(
+                    framework,
+                    oneuptimeUrl,
+                    props.appIdentifier,
+                  )}
+                  language={framework === "nextjs" ? "javascript" : "xml"}
+                />
+              </div>
+            ),
+          };
+        })}
       />
 
       <p className="mt-2 text-xs text-gray-500">
-        <code>data-oneuptime-app-identifier</code> must match this
-        application&apos;s identifier (the same value you use for{" "}
-        <code>service.name</code>). The token is an ingestion key: it sits in
-        your page&apos;s JavaScript, grants ingestion only, and cannot read
-        anything back out of your project.
+        <TranslatedSentence
+          template="{{attribute}} must match this application's identifier (the same value you use for {{serviceName}}). The token is an ingestion key: it sits in your page's JavaScript, grants ingestion only, and cannot read anything back out of your project."
+          slots={{
+            attribute: <code>data-oneuptime-app-identifier</code>,
+            serviceName: <code>service.name</code>,
+          }}
+        />
       </p>
 
       {props.showIdentify !== false && (
         <div className="mt-4" data-testid="install-snippet-identify">
           <div className="text-xs font-semibold text-gray-700">
-            Identify your users
+            {translator.translateText("Identify your users")}
           </div>
           <p className="mb-2 mt-1 text-xs text-gray-500">
-            Recordings are pseudonymous until your page says who the visitor is.
-            Without this call, sessions from the same browser are still grouped
-            under an anonymous visitor id the recorder mints itself, but nobody
-            is named. <code>identify()</code> is what groups sessions by person,
-            makes <code>user:</code> search work in the list, and attaches the
-            traits to the session.
+            <TranslatedSentence
+              template="Recordings are pseudonymous until your page says who the visitor is. Without this call, sessions from the same browser are still grouped under an anonymous visitor id the recorder mints itself, but nobody is named. {{identify}} is what groups sessions by person, makes {{userSearch}} search work in the list, and attaches the traits to the session."
+              slots={{
+                identify: <code>identify()</code>,
+                userSearch: <code>user:</code>,
+              }}
+            />
           </p>
           <CodeBlock code={buildIdentifySnippet()} language="javascript" />
         </div>

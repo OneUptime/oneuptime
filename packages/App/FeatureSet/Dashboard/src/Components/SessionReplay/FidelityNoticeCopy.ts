@@ -3,6 +3,11 @@ import {
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
 import Text from "Common/Types/Text";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/Types/Translator";
 
 /*
  * Human copy for the machine-readable fidelity notices.
@@ -16,7 +21,14 @@ import Text from "Common/Types/Text";
  * Unknown codes fall back to the raw string: a newer recorder must be
  * able to report a notice this Dashboard has not heard of yet, and an
  * unknown code is still more honest than dropping it.
+ *
+ * The copy comes in the language of the translator it is asked for with,
+ * and in English without one: English that is the translation key, so a
+ * caller that draws it may still look it up itself. Every title and every
+ * description is one whole key.
  */
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 export interface FidelityNoticeCopy {
   title: string;
@@ -190,14 +202,31 @@ const COPY: Record<string, FidelityNoticeCopy> = {
   },
 };
 
-export function getFidelityNoticeCopy(code: string): FidelityNoticeCopy {
-  return (
-    COPY[code] ?? {
+/*
+ * The copy in `translator`'s language. A code this Dashboard has no copy
+ * for keeps its raw code as the title: that is the recorder's word, not
+ * one of ours.
+ */
+export function getFidelityNoticeCopy(
+  code: string,
+  translator: Translator = ENGLISH,
+): FidelityNoticeCopy {
+  const copy: FidelityNoticeCopy | undefined = COPY[code];
+
+  if (!copy) {
+    return {
       title: code,
       description:
-        "Part of this session could not be captured. This notice code is newer than this Dashboard's copy for it.",
-    }
-  );
+        translator.translateText(
+          "Part of this session could not be captured. This notice code is newer than this Dashboard's copy for it.",
+        ) || "",
+    };
+  }
+
+  return {
+    title: translator.translateText(copy.title) || copy.title,
+    description: translator.translateText(copy.description) || copy.description,
+  };
 }
 
 /*
@@ -259,10 +288,12 @@ const SEALED_REASON_COPY: Record<string, SealedReasonCopy> = {
 /*
  * Null for a blank reason (the session is still open, or predates the
  * column); an unknown reason from a newer finalizer is humanised rather
- * than shown as its machine token.
+ * than shown as its machine token. In `translator`'s language, and in
+ * English without one.
  */
 export function getSealedReasonCopy(
   reason: string | null | undefined,
+  translator: Translator = ENGLISH,
 ): SealedReasonCopy | null {
   const trimmed: string = (reason || "").trim();
 
@@ -270,12 +301,25 @@ export function getSealedReasonCopy(
     return null;
   }
 
-  return (
-    SEALED_REASON_COPY[trimmed] ?? {
-      title: `Recording ended: ${Text.fromDashesToPascalCase(trimmed)}`,
+  const copy: SealedReasonCopy | undefined = SEALED_REASON_COPY[trimmed];
+
+  if (!copy) {
+    return {
+      // The finalizer's own token, humanised: a value, not one of our words.
+      title: translator.translateTemplate("Recording ended: {{reason}}", {
+        reason: Text.fromDashesToPascalCase(trimmed),
+      }),
       description:
-        "The recording was sealed for a reason newer than this Dashboard's copy for it. Everything that was received plays normally.",
+        translator.translateText(
+          "The recording was sealed for a reason newer than this Dashboard's copy for it. Everything that was received plays normally.",
+        ) || "",
       severity: "info",
-    }
-  );
+    };
+  }
+
+  return {
+    title: translator.translateText(copy.title) || copy.title,
+    description: translator.translateText(copy.description) || copy.description,
+    severity: copy.severity,
+  };
 }

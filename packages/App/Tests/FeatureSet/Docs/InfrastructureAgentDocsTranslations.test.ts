@@ -653,8 +653,12 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Pods.",
     "File systems.",
   ],
+  /*
+   * (yes is a Dashboard label since #6369, a recorder decision's value on
+   * Session Replay's diagnostics, and every language bolds its own word for
+   * it in the identity table: checked as a label now, not listed here.)
+   */
   [SERVERLESS]: [
-    "yes",
     "Function App",
     "one Serverless Function per Function App",
     "C# in-process apps",

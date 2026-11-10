@@ -22,6 +22,15 @@ import SessionReplayMaskingMode, {
 } from "Common/Types/Rum/SessionReplayMaskingMode";
 import Route from "Common/Types/API/Route";
 import { DOCS_URL } from "Common/UI/Config";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  PluralTemplate,
+  TranslatableTerm,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -174,9 +183,15 @@ interface DetailRowProps {
   mono?: boolean | undefined;
 }
 
+/*
+ * The rows, sections, tiles and headings below take their names in English,
+ * as keys of the Dashboard's locales, and look them up where they draw them,
+ * as the shared components do.
+ */
 const DetailRow: FunctionComponent<DetailRowProps> = (
   props: DetailRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const hasValue: boolean =
     props.value !== null &&
     props.value !== undefined &&
@@ -187,7 +202,9 @@ const DetailRow: FunctionComponent<DetailRowProps> = (
       className="grid gap-1 border-b border-gray-100 py-3 last:border-b-0 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-4"
       data-testid={props.testId}
     >
-      <dt className="text-xs font-medium text-gray-500">{props.label}</dt>
+      <dt className="text-xs font-medium text-gray-500">
+        {translator.translateText(props.label)}
+      </dt>
       <dd
         className={`min-w-0 break-words text-sm text-gray-900 ${
           props.mono ? "font-mono text-xs" : ""
@@ -201,7 +218,13 @@ const DetailRow: FunctionComponent<DetailRowProps> = (
 
 interface DetailCopyButtonProps {
   value: string;
+  // "Copy Session ID", in the reader's language.
   title: string;
+  /*
+   * What is copied, in English - "Session ID", "Entry URL" - a key the
+   * button's own sentences take as a term ("Session ID copied.").
+   */
+  valueLabel: string;
   className?: string | undefined;
 }
 
@@ -211,6 +234,7 @@ const DETAIL_COPY_FEEDBACK_MS: number = 1000;
 const DetailCopyButton: FunctionComponent<DetailCopyButtonProps> = (
   props: DetailCopyButtonProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [copyStatus, setCopyStatus] = useState<
     "idle" | "pending" | "copied" | "unavailable"
   >("idle");
@@ -269,14 +293,18 @@ const DetailCopyButton: FunctionComponent<DetailCopyButtonProps> = (
   const isCopied: boolean = copyStatus === "copied";
   const isPending: boolean = copyStatus === "pending";
   const isUnavailable: boolean = copyStatus === "unavailable";
-  const accessibleLabel: string = isCopied
-    ? "Copied"
-    : isPending
-      ? "Copying"
-      : isUnavailable
-        ? "Clipboard unavailable. Select the displayed value to copy it."
-        : props.title;
-  const valueLabel: string = props.title.replace(/^Copy\s+/, "");
+  const accessibleLabel: string =
+    (isCopied
+      ? translator.translateText("Copied")
+      : isPending
+        ? translator.translateText("Copying")
+        : isUnavailable
+          ? translator.translateText(
+              "Clipboard unavailable. Select the displayed value to copy it.",
+            )
+          : props.title) || props.title;
+  // What is copied, as a term of the sentences below.
+  const valueLabel: TranslatableTerm = translatableTerm(props.valueLabel);
 
   return (
     <div className={`relative inline-flex shrink-0 ${props.className || ""}`}>
@@ -323,19 +351,28 @@ const DetailCopyButton: FunctionComponent<DetailCopyButtonProps> = (
             />
           )}
         </svg>
-        {isUnavailable && <span>Copy unavailable</span>}
+        {isUnavailable && (
+          <span>{translator.translateText("Copy unavailable")}</span>
+        )}
       </button>
       <span role="status" aria-live="polite" className="sr-only">
         {isCopied
-          ? `${valueLabel} copied.`
+          ? translator.translateTemplate("{{label}} copied.", {
+              label: valueLabel,
+            })
           : isUnavailable
-            ? "Clipboard unavailable. The value is selected for manual copy."
+            ? translator.translateText(
+                "Clipboard unavailable. The value is selected for manual copy.",
+              )
             : ""}
       </span>
       {isUnavailable && (
         <div
           role="group"
-          aria-label={`Manual copy help for ${valueLabel}`}
+          aria-label={translator.translateTemplate(
+            "Manual copy help for {{label}}",
+            { label: valueLabel },
+          )}
           className="absolute right-0 top-10 z-20 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-amber-200 bg-white p-2.5 text-xs text-gray-700 shadow-lg"
           onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>): void => {
             if (event.key === "Escape") {
@@ -346,14 +383,16 @@ const DetailCopyButton: FunctionComponent<DetailCopyButtonProps> = (
           }}
         >
           <div className="mb-1.5 font-medium text-amber-800">
-            Clipboard unavailable. Copy manually:
+            {translator.translateText("Clipboard unavailable. Copy manually:")}
           </div>
           <input
             ref={fallbackInputRef}
             type="text"
             readOnly={true}
             value={props.value}
-            aria-label={`Manual copy ${valueLabel}`}
+            aria-label={translator.translateTemplate("Manual copy {{label}}", {
+              label: valueLabel,
+            })}
             className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 font-mono text-[11px] text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             onFocus={(event: React.FocusEvent<HTMLInputElement>): void => {
               event.currentTarget.select();
@@ -368,7 +407,7 @@ const DetailCopyButton: FunctionComponent<DetailCopyButtonProps> = (
                 triggerRef.current?.focus();
               }}
             >
-              Dismiss
+              {translator.translateText("Dismiss")}
             </button>
           </div>
         </div>
@@ -390,6 +429,7 @@ interface DetailSectionProps {
 const DetailSection: FunctionComponent<DetailSectionProps> = (
   props: DetailSectionProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const headingId: string = `${props.testId}-heading`;
 
   return (
@@ -410,7 +450,7 @@ const DetailSection: FunctionComponent<DetailSectionProps> = (
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 id={headingId} className="text-sm font-semibold text-gray-900">
-              {props.title}
+              {translator.translateText(props.title)}
             </h3>
             {props.badge !== undefined && (
               <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-gray-200 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-gray-600">
@@ -420,7 +460,7 @@ const DetailSection: FunctionComponent<DetailSectionProps> = (
           </div>
           {props.description && (
             <p className="mt-0.5 text-xs leading-5 text-gray-500">
-              {props.description}
+              {translator.translateText(props.description)}
             </p>
           )}
         </div>
@@ -431,6 +471,7 @@ const DetailSection: FunctionComponent<DetailSectionProps> = (
 };
 
 interface StringMapRowsProps {
+  // "Traits ({{count}})": English, filled with how many rows there are.
   heading: string;
   map: Record<string, string>;
   testId: string;
@@ -440,10 +481,14 @@ interface StringMapRowsProps {
 const StringMapRows: FunctionComponent<StringMapRowsProps> = (
   props: StringMapRowsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="border-t border-gray-100 py-3" data-testid={props.testId}>
       <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        {props.heading} ({Object.keys(props.map).length})
+        {translator.translateTemplate(props.heading, {
+          count: translator.formatNumber(Object.keys(props.map).length),
+        })}
       </h4>
       <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {Object.keys(props.map).map((key: string): ReactElement => {
@@ -495,6 +540,7 @@ interface UrlDetailProps {
 const UrlDetail: FunctionComponent<UrlDetailProps> = (
   props: UrlDetailProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const externalUrl: string | null = getReplayDetailsExternalUrl(props.value);
 
   return (
@@ -503,7 +549,7 @@ const UrlDetail: FunctionComponent<UrlDetailProps> = (
       data-testid={props.testId}
     >
       <div className="mb-1.5 text-xs font-medium text-gray-500">
-        {props.label}
+        {translator.translateText(props.label)}
       </div>
       <div className="flex min-w-0 items-start gap-2">
         {externalUrl ? (
@@ -512,7 +558,10 @@ const UrlDetail: FunctionComponent<UrlDetailProps> = (
             target="_blank"
             rel="noreferrer"
             className="group flex min-w-0 flex-1 items-start gap-1.5 rounded-md text-sm text-indigo-700 outline-none hover:text-indigo-900 hover:underline focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            aria-label={`${props.label}: ${props.value} (opens in a new tab)`}
+            aria-label={translator.translateTemplate(
+              "{{label}}: {{url}} (opens in a new tab)",
+              { label: translatableTerm(props.label), url: props.value },
+            )}
             title={props.value}
           >
             <span className="min-w-0 break-all">{props.value}</span>
@@ -529,7 +578,10 @@ const UrlDetail: FunctionComponent<UrlDetailProps> = (
         {props.value && (
           <DetailCopyButton
             value={props.value}
-            title={`Copy ${props.label}`}
+            title={translator.translateTemplate("Copy {{label}}", {
+              label: translatableTerm(props.label),
+            })}
+            valueLabel={props.label}
             className="shrink-0"
           />
         )}
@@ -548,6 +600,8 @@ interface EnvironmentTileProps {
 const EnvironmentTile: FunctionComponent<EnvironmentTileProps> = (
   props: EnvironmentTileProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div
       className="min-w-0 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5"
@@ -556,7 +610,7 @@ const EnvironmentTile: FunctionComponent<EnvironmentTileProps> = (
     >
       <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
         <Icon icon={props.icon} className="h-3.5 w-3.5 text-gray-400" />
-        {props.label}
+        {translator.translateText(props.label)}
       </dt>
       <dd
         className="mt-1 truncate text-sm font-medium text-gray-900"
@@ -592,12 +646,40 @@ function hasEntries(
 }
 
 interface RailPointerRowProps {
-  label: string;
   /* null: not fetched yet. */
   count: number | null;
   railTab: ReplayRailTabId;
   onOpenRailTab: ((tabId: ReplayRailTabId) => void) | undefined;
 }
+
+/*
+ * Each rail row's words, as whole sentences: the count with its noun ("37
+ * logs"), the noun alone while nothing is fetched, and the button's name
+ * ("Open logs in rail"), in the form the count takes.
+ */
+interface RailPointerCopy {
+  count: PluralTemplate;
+  noun: string;
+  open: PluralTemplate;
+}
+
+const RAIL_POINTER_COPY: Partial<Record<ReplayRailTabId, RailPointerCopy>> = {
+  traces: {
+    count: { one: "{{count}} trace", other: "{{count}} traces" },
+    noun: translationKey("traces"),
+    open: { one: "Open trace in rail", other: "Open traces in rail" },
+  },
+  errors: {
+    count: { one: "{{count}} error", other: "{{count}} errors" },
+    noun: translationKey("errors"),
+    open: { one: "Open error in rail", other: "Open errors in rail" },
+  },
+  logs: {
+    count: { one: "{{count}} log", other: "{{count}} logs" },
+    noun: translationKey("logs"),
+    open: { one: "Open log in rail", other: "Open logs in rail" },
+  },
+};
 
 /*
  * "37 logs - Open in rail". The count is a fact only once something fetched
@@ -607,6 +689,17 @@ interface RailPointerRowProps {
 const RailPointerRow: FunctionComponent<RailPointerRowProps> = (
   props: RailPointerRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const copy: RailPointerCopy = RAIL_POINTER_COPY[props.railTab] ||
+    RAIL_POINTER_COPY.logs!;
+  /*
+   * "Open logs in rail": the noun takes the count's form, and the plural
+   * one before anything is fetched.
+   */
+  const openLabel: string = translator.translatePlural(
+    copy.open,
+    props.count ?? 0,
+  );
   const icon: IconProp =
     props.railTab === "traces"
       ? IconProp.FlowDiagram
@@ -623,18 +716,29 @@ const RailPointerRow: FunctionComponent<RailPointerRowProps> = (
         {props.count === null ? (
           <React.Fragment>
             <span className="block text-sm font-semibold capitalize text-gray-900">
-              {props.label}
+              {translator.translateText(copy.noun)}
             </span>
-            <span className="block text-xs text-gray-500">Not fetched yet</span>
+            <span className="block text-xs text-gray-500">
+              {translator.translateText("Not fetched yet")}
+            </span>
           </React.Fragment>
         ) : (
           <React.Fragment>
             <span className="block text-sm text-gray-900">
-              <span className="font-semibold tabular-nums">{props.count}</span>{" "}
-              {props.label}
+              <TranslatedSentence
+                template={copy.count}
+                count={props.count}
+                slots={{
+                  count: (
+                    <span className="font-semibold tabular-nums">
+                      {translator.formatNumber(props.count)}
+                    </span>
+                  ),
+                }}
+              />
             </span>
             <span className="block text-xs text-gray-500">
-              View on timeline
+              {translator.translateText("View on timeline")}
             </span>
           </React.Fragment>
         )}
@@ -663,13 +767,13 @@ const RailPointerRow: FunctionComponent<RailPointerRowProps> = (
           type="button"
           className="absolute inset-0 rounded-lg focus:outline-none"
           data-testid={`details-open-rail-${props.railTab}`}
-          aria-label={`Open ${props.label} in rail`}
-          title="Open in rail"
+          aria-label={openLabel}
+          title={translator.translateText("Open in rail")}
           onClick={(): void => {
             props.onOpenRailTab?.(props.railTab);
           }}
         >
-          <span className="sr-only">Open {props.label} in rail</span>
+          <span className="sr-only">{openLabel}</span>
         </button>
       )}
     </div>
@@ -679,6 +783,11 @@ const RailPointerRow: FunctionComponent<RailPointerRowProps> = (
 const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
   props: ReplayCorrelationPanelProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
+  // A fixed line in the reader's language, where a string is required.
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
   const d: ReplaySessionDetails = props.details;
 
   /*
@@ -773,9 +882,9 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
    */
   const endUserValue: string =
     d.identifiedUserLabel === null
-      ? "Not shown - viewing identity needs the identity permission"
+      ? tx("Not shown - viewing identity needs the identity permission")
       : d.identifiedUserLabel ||
-        "Anonymous - the page did not call OneUptimeReplay.identify()";
+        tx("Anonymous - the page did not call OneUptimeReplay.identify()");
 
   const shortSessionId: string =
     props.sessionId.length > 12
@@ -785,14 +894,20 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
   const clientLabel: "App" | "Browser" | "Client" = getReplayClientLabel(
     d.recorderKind,
   );
+  // A device type's own label in the reader's language; any other as written.
+  const deviceTypeOption: DropdownOption | undefined = DEVICE_TYPE_OPTIONS.find(
+    (option: DropdownOption): boolean => {
+      return option.value === d.deviceType;
+    },
+  );
   const deviceTypeLabel: string =
     d.deviceType.toLowerCase() === "ios"
       ? "iOS"
       : d.deviceType.toLowerCase() === "android"
         ? "Android"
-        : DEVICE_TYPE_OPTIONS.find((option: DropdownOption): boolean => {
-            return option.value === d.deviceType;
-          })?.label || d.deviceType;
+        : (deviceTypeOption?.label &&
+            translator.translateText(deviceTypeOption.label)) ||
+          d.deviceType;
   const deviceIcon: IconProp =
     isMobileReplay || d.deviceType === "mobile" || d.deviceType === "tablet"
       ? IconProp.DevicePhoneMobile
@@ -819,7 +934,8 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                 </span>
                 <DetailCopyButton
                   value={props.sessionId}
-                  title="Copy Session ID"
+                  title={tx("Copy Session ID")}
+                  valueLabel={translationKey("Session ID")}
                   className="shrink-0"
                 />
               </div>
@@ -834,13 +950,17 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         </dl>
         {hasEntries(d.identifiedUserTraits) && (
           <StringMapRows
-            heading="Traits"
+            heading="Traits ({{count}})"
             map={d.identifiedUserTraits}
             testId="details-traits"
           />
         )}
         {hasEntries(d.tags) && (
-          <StringMapRows heading="Tags" map={d.tags} testId="details-tags" />
+          <StringMapRows
+            heading="Tags ({{count}})"
+            map={d.tags}
+            testId="details-tags"
+          />
         )}
       </DetailSection>
 
@@ -925,19 +1045,16 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
       >
         <div className="grid grid-cols-1 gap-2 py-3 sm:grid-cols-3">
           <RailPointerRow
-            label={tracesCount === 1 ? "trace" : "traces"}
             count={tracesCount}
             railTab="traces"
             onOpenRailTab={props.onOpenRailTab}
           />
           <RailPointerRow
-            label={errorsCount === 1 ? "error" : "errors"}
             count={errorsCount}
             railTab="errors"
             onOpenRailTab={props.onOpenRailTab}
           />
           <RailPointerRow
-            label={logsCount === 1 ? "log" : "logs"}
             count={logsCount}
             railTab="logs"
             onOpenRailTab={props.onOpenRailTab}
@@ -946,27 +1063,44 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
 
         <div className="mb-3 flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2.5 text-xs leading-5 text-blue-800 ring-1 ring-inset ring-blue-100">
           <Icon icon={IconProp.Info} className="mt-0.5 h-4 w-4 shrink-0" />
+          {/*
+           * The code stays as written; the settings' names are the Replay
+           * Policy page's, looked up on their own.
+           */}
           {isMobileReplay ? (
             <p>
-              Mobile traces and logs reach this rail when your OpenTelemetry
-              instrumentation attaches this replay&apos;s{" "}
-              <code>session.id</code>. Subscribe with{" "}
-              <code>OneUptimeReplay.onSessionChange()</code> and update the
-              attribute whenever the session rotates. The React Native SDK adds
-              nothing to your app&apos;s own requests, so nothing links on its
-              own.
+              <TranslatedSentence
+                template="Mobile traces and logs reach this rail when your OpenTelemetry instrumentation attaches this replay's {{attribute}}. Subscribe with {{onSessionChange}} and update the attribute whenever the session rotates. The React Native SDK adds nothing to your app's own requests, so nothing links on its own."
+                slots={{
+                  attribute: <code>session.id</code>,
+                  onSessionChange: (
+                    <code>OneUptimeReplay.onSessionChange()</code>
+                  ),
+                }}
+              />
             </p>
           ) : (
             <p data-testid="details-correlation-web">
-              While a session uploads, requests the page makes to its own origin
-              carry the session&apos;s trace context automatically, unless{" "}
-              <em>Same-origin trace propagation</em> is turned off in the Replay
-              Policy, so backend spans are stamped with its id at ingest and
-              backend logs and exceptions join it by trace id - no code needed.
-              An API on another origin links by trace id once it is listed in{" "}
-              <em>Trace propagation origins</em>.{" "}
-              <code>OneUptimeReplay.onSessionChange()</code> is optional, for
-              stamping the page&apos;s own browser telemetry.
+              <TranslatedSentence
+                template="While a session uploads, requests the page makes to its own origin carry the session's trace context automatically, unless {{sameOrigin}} is turned off in the Replay Policy, so backend spans are stamped with its id at ingest and backend logs and exceptions join it by trace id - no code needed. An API on another origin links by trace id once it is listed in {{origins}}. {{onSessionChange}} is optional, for stamping the page's own browser telemetry."
+                slots={{
+                  sameOrigin: (
+                    <em>
+                      {translator.translateText(
+                        "Same-origin trace propagation",
+                      )}
+                    </em>
+                  ),
+                  origins: (
+                    <em>
+                      {translator.translateText("Trace propagation origins")}
+                    </em>
+                  ),
+                  onSessionChange: (
+                    <code>OneUptimeReplay.onSessionChange()</code>
+                  ),
+                }}
+              />
             </p>
           )}
         </div>
@@ -974,7 +1108,9 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         {d.exceptionFingerprints.length > 0 && (
           <div className="border-t border-gray-100 py-3">
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Exception groups ({d.exceptionFingerprints.length})
+              {translator.translateTemplate("Exception groups ({{count}})", {
+                count: translator.formatNumber(d.exceptionFingerprints.length),
+              })}
             </h4>
             <div className="space-y-1.5" data-testid="details-fingerprints">
               {fingerprintLinks.map(
@@ -999,7 +1135,10 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                       title={
                         link.isDirect
                           ? link.fingerprint
-                          : `${link.fingerprint} - opens the exceptions list filtered to this group`
+                          : translator.translateTemplate(
+                              "{{fingerprint}} - opens the exceptions list filtered to this group",
+                              { fingerprint: link.fingerprint },
+                            )
                       }
                     >
                       <AppLink
@@ -1019,7 +1158,9 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         {d.traceIds.length > 0 && (
           <div className="border-t border-gray-100 py-3">
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Trace IDs ({d.traceIds.length})
+              {translator.translateTemplate("Trace IDs ({{count}})", {
+                count: translator.formatNumber(d.traceIds.length),
+              })}
             </h4>
             <div className="space-y-1.5" data-testid="details-trace-ids">
               {d.traceIds.map((traceId: string): ReactElement => {
@@ -1051,11 +1192,32 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
             className="border-t border-gray-100 py-3 text-[11px] leading-4 text-gray-500"
             data-testid="details-correlation-caps"
           >
-            {`${
-              d.isFinalized === false
-                ? `While the session is live its header keeps at most ${REPLAY_HEADER_LIVE_TRACE_ID_CAP} trace IDs (${REPLAY_HEADER_FINAL_TRACE_ID_CAP} once it is finalized, with up to ${REPLAY_HEADER_EXCEPTION_GROUP_CAP} exception groups)`
-                : `The session header keeps at most ${REPLAY_HEADER_FINAL_TRACE_ID_CAP} trace IDs and ${REPLAY_HEADER_EXCEPTION_GROUP_CAP} exception groups`
-            }; the rail queries your telemetry directly, so it is not limited to these.`}
+            {d.isFinalized === false
+              ? translator.translateTemplate(
+                  "While the session is live its header keeps at most {{liveTraceIds}} trace IDs ({{finalTraceIds}} once it is finalized, with up to {{exceptionGroups}} exception groups); the rail queries your telemetry directly, so it is not limited to these.",
+                  {
+                    liveTraceIds: translator.formatNumber(
+                      REPLAY_HEADER_LIVE_TRACE_ID_CAP,
+                    ),
+                    finalTraceIds: translator.formatNumber(
+                      REPLAY_HEADER_FINAL_TRACE_ID_CAP,
+                    ),
+                    exceptionGroups: translator.formatNumber(
+                      REPLAY_HEADER_EXCEPTION_GROUP_CAP,
+                    ),
+                  },
+                )
+              : translator.translateTemplate(
+                  "The session header keeps at most {{traceIds}} trace IDs and {{exceptionGroups}} exception groups; the rail queries your telemetry directly, so it is not limited to these.",
+                  {
+                    traceIds: translator.formatNumber(
+                      REPLAY_HEADER_FINAL_TRACE_ID_CAP,
+                    ),
+                    exceptionGroups: translator.formatNumber(
+                      REPLAY_HEADER_EXCEPTION_GROUP_CAP,
+                    ),
+                  },
+                )}
           </p>
         )}
       </DetailSection>
@@ -1092,15 +1254,20 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
               />
               <div>
                 <div className="text-sm font-semibold">
-                  Readable page content was recorded
+                  {translator.translateText(
+                    "Readable page content was recorded",
+                  )}
                 </div>
+                {/* One whole sentence for each mode that records page text. */}
                 <p className="mt-0.5 text-xs leading-5 text-amber-800">
-                  Any personal data rendered into the page is in this recording,
-                  and{" "}
                   {d.maskingMode ===
                   SessionReplayMaskingMode.MaskSensitiveInputsOnly
-                    ? "so is anything typed into a field the page did not declare as sensitive."
-                    : "only input values were masked."}
+                    ? translator.translateText(
+                        "Any personal data rendered into the page is in this recording, and so is anything typed into a field the page did not declare as sensitive.",
+                      )
+                    : translator.translateText(
+                        "Any personal data rendered into the page is in this recording, and only input values were masked.",
+                      )}
                 </p>
               </div>
             </div>
@@ -1115,11 +1282,12 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
               />
               <div>
                 <div className="text-sm font-semibold">
-                  Page content was masked
+                  {translator.translateText("Page content was masked")}
                 </div>
                 <p className="mt-0.5 text-xs leading-5 text-emerald-800">
-                  Text and input values were replaced before this session left
-                  the device.
+                  {translator.translateText(
+                    "Text and input values were replaced before this session left the device.",
+                  )}
                 </p>
               </div>
             </div>
@@ -1132,7 +1300,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
              */}
             <DetailRow
               label="Masking mode"
-              value={labelEnum(MASKING_MODE_LABELS, d.maskingMode)}
+              value={labelEnum(MASKING_MODE_LABELS, d.maskingMode, translator)}
               testId="replay-details-masking-mode"
             />
             <DetailRow
@@ -1310,7 +1478,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                         : "text-blue-900"
                   }`}
                 >
-                  {sealedReasonCopy.title}
+                  {translator.translateText(sealedReasonCopy.title)}
                 </div>
                 <p
                   className={`mt-0.5 text-xs leading-5 ${
@@ -1321,7 +1489,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                         : "text-blue-800"
                   }`}
                 >
-                  {sealedReasonCopy.description}
+                  {translator.translateText(sealedReasonCopy.description)}
                 </p>
               </div>
             </div>
@@ -1336,10 +1504,16 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
               />
               <p className="text-xs leading-5 text-gray-600">
                 {isStillRecording
-                  ? "Still recording - the session has not been sealed yet, so more chunks may arrive."
+                  ? translator.translateText(
+                      "Still recording - the session has not been sealed yet, so more chunks may arrive.",
+                    )
                   : hasRecordingEnded
-                    ? "Every tab of this session has closed, so nothing more is being recorded."
-                    : "The recorder did not report why this recording ended."}
+                    ? translator.translateText(
+                        "Every tab of this session has closed, so nothing more is being recorded.",
+                      )
+                    : translator.translateText(
+                        "The recorder did not report why this recording ended.",
+                      )}
               </p>
             </div>
           )}
@@ -1350,8 +1524,9 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
             >
               <Icon icon={IconProp.Info} className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
-                Still being finalized: duration, pages and signals are counted
-                shortly, when the session is finalized.
+                {translator.translateText(
+                  "Still being finalized: duration, pages and signals are counted shortly, when the session is finalized.",
+                )}
               </p>
             </div>
           )}
@@ -1372,7 +1547,9 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
               data-testid="replay-details-gaps-empty"
             >
               <Icon icon={IconProp.CheckCircle} className="h-4 w-4" />
-              No chunks are missing from this recording.
+              {translator.translateText(
+                "No chunks are missing from this recording.",
+              )}
             </div>
           )}
           {props.gaps.map(
@@ -1388,8 +1565,14 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                     className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
                   />
                   <span>
-                    {formatReplayMilliseconds(gap.missingMs)} missing between
-                    chunk {gap.fromIndex} and chunk {gap.toIndex}
+                    {translator.translateTemplate(
+                      "{{duration}} missing between chunk {{from}} and chunk {{to}}",
+                      {
+                        duration: formatReplayMilliseconds(gap.missingMs),
+                        from: translator.formatNumber(gap.fromIndex),
+                        to: translator.formatNumber(gap.toIndex),
+                      },
+                    )}
                   </span>
                 </div>
               );
@@ -1412,7 +1595,9 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
               data-testid="replay-details-limitations-empty"
             >
               <Icon icon={IconProp.CheckCircle} className="h-4 w-4" />
-              The recorder reported no capture limitations for this session.
+              {translator.translateText(
+                "The recorder reported no capture limitations for this session.",
+              )}
             </div>
           )}
           {orderedNotices.map((notice: string): ReactElement => {
@@ -1442,14 +1627,14 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                       isPlayback ? "text-amber-900" : "text-gray-800"
                     }`}
                   >
-                    {copy.title}
+                    {translator.translateText(copy.title)}
                   </div>
                   <p
                     className={`mt-0.5 text-xs leading-5 ${
                       isPlayback ? "text-amber-800" : "text-gray-500"
                     }`}
                   >
-                    {copy.description}
+                    {translator.translateText(copy.description)}
                   </p>
                 </div>
               </div>
@@ -1483,8 +1668,14 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                 className="text-xs text-gray-500"
                 data-testid="replay-details-missing-assets-truncated"
               >
-                More failed than this; only the first{" "}
-                {props.missingAssets?.length ?? 0} are listed.
+                {translator.translatePlural(
+                  {
+                    one: "More failed than this; only the first {{count}} is listed.",
+                    other:
+                      "More failed than this; only the first {{count}} are listed.",
+                  },
+                  props.missingAssets?.length ?? 0,
+                )}
               </p>
             )}
             <a
@@ -1496,8 +1687,13 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
             >
               {/* The visible words are the name; the tab warning is for screen readers. */}
               <span>
-                Why they go missing, and how to allow them
-                <span className="sr-only"> (opens in a new tab)</span>
+                {translator.translateText(
+                  "Why they go missing, and how to allow them",
+                )}
+                <span className="sr-only">
+                  {" "}
+                  {translator.translateText("(opens in a new tab)")}
+                </span>
               </span>
               <Icon icon={IconProp.ExternalLink} className="h-3 w-3 shrink-0" />
             </a>
@@ -1507,12 +1703,13 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
     </div>
   );
 
+  // TelemetryDetailPanel draws a tab's label and its own title as given.
   const tabs: Array<TelemetryDetailPanelTab> = [
-    { id: "session", label: "Session", content: sessionContent },
-    { id: "provenance", label: "Privacy", content: provenanceContent },
+    { id: "session", label: tx("Session"), content: sessionContent },
+    { id: "provenance", label: tx("Privacy"), content: provenanceContent },
     {
       id: "fidelity",
-      label: "Fidelity",
+      label: tx("Fidelity"),
       content: fidelityContent,
       badge:
         props.gaps.length +
@@ -1534,16 +1731,22 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
   return (
     <TelemetryDetailPanel
       isOpen={props.isOpen}
-      title="Session details"
+      title={translator.translateText("Session details")}
       subtitle={
         <span title={props.sessionId}>
-          Session <span className="font-mono">{shortSessionId}</span>
+          <TranslatedSentence
+            template="Session {{id}}"
+            slots={{
+              id: <span className="font-mono">{shortSessionId}</span>,
+            }}
+          />
         </span>
       }
       headerActions={
         <DetailCopyButton
           value={props.sessionId}
-          title="Copy full Session ID"
+          title={tx("Copy full Session ID")}
+          valueLabel={translationKey("full Session ID")}
         />
       }
       onClose={props.onClose}

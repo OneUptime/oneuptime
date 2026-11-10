@@ -11,7 +11,18 @@ import React, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
-import { formatReplayDuration } from "./ReplayTimeFormat";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatInline,
+  getInlineSeparator,
+  TemplateValues,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatReplayDurationInLanguage } from "./ReplayTimelineMath";
 import {
   ReplayPill,
   ReplayToolButton,
@@ -25,6 +36,7 @@ import {
   ReplayTabSummary,
   computeReplayTabSpan,
   describeReplayTabCounts,
+  describeReplayTabName,
   describeReplayTabOpened,
   describeReplayTabPage,
   filterReplayTabs,
@@ -92,14 +104,17 @@ const STATUS_DOT_CLASS: Record<ReplayTabStatus, string> = {
 /*
  * The word a tooltip uses for a status. "unknown" and "empty" have none
  * on purpose: the server did not say, and a tooltip that guessed would be
- * the one claim an evidence tool must not make.
+ * the one claim an evidence tool must not make. English keys, looked up
+ * where the tooltip is written.
  */
 const STATUS_TITLE_WORD: Record<ReplayTabStatus, string | null> = {
-  open: "Open",
-  closed: "Closed",
+  open: translationKey("Open"),
+  closed: translationKey("Closed"),
   unknown: null,
   empty: null,
 };
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
  * The page a tab is showing: its LAST url, falling back to its first.
@@ -116,50 +131,84 @@ export function readReplayTabUrl(tab: ReplayTabSummary): string {
   return (tab.firstUrl ?? "").trim();
 }
 
-/* "30s", or "no footage" for a tab that stored nothing to play. */
-export function describeReplayTabDuration(tab: ReplayTabSummary): string {
-  return tab.hasFootage ? formatReplayDuration(tab.durationMs) : "no footage";
+/*
+ * "30s", or "no footage" for a tab that stored nothing to play, in the
+ * translator's language.
+ */
+export function describeReplayTabDuration(
+  tab: ReplayTabSummary,
+  translator: Translator = ENGLISH,
+): string {
+  return tab.hasFootage
+    ? formatReplayDurationInLanguage(tab.durationMs, translator)
+    : translator.translateText("no footage") || "no footage";
 }
 
 /*
  * "Tab 2 · Open · /checkout · opened 2:14 · 30s — switch to this tab; the
  * playhead stays where it is". The pill itself only has room for a couple
  * of those parts at a narrow width, so the tooltip carries all of them.
+ * One sentence in the translator's language, its facts worded in the
+ * sentence's language too.
  */
-export function buildReplayTabPillTitle(tab: ReplayTabSummary): string {
+export function buildReplayTabPillTitle(
+  tab: ReplayTabSummary,
+  translator: Translator = ENGLISH,
+): string {
   if (!tab.hasFootage) {
-    return "No footage stored for this tab";
+    return (
+      translator.translateText("No footage stored for this tab") ||
+      "No footage stored for this tab"
+    );
   }
 
-  const parts: Array<string> = [tab.label];
-  const statusWord: string | null = STATUS_TITLE_WORD[getReplayTabStatus(tab)];
+  const facts: (sentence: Translator) => string = (
+    sentence: Translator,
+  ): string => {
+    const parts: Array<string> = [describeReplayTabName(tab, sentence)];
+    const statusWord: string | null =
+      STATUS_TITLE_WORD[getReplayTabStatus(tab)];
 
-  if (statusWord !== null) {
-    parts.push(statusWord);
-  }
+    if (statusWord !== null) {
+      parts.push(sentence.translateText(statusWord) || statusWord);
+    }
 
-  const page: string = describeReplayTabPage(readReplayTabUrl(tab));
+    const page: string = describeReplayTabPage(readReplayTabUrl(tab));
 
-  if (page !== REPLAY_TAB_UNKNOWN_PAGE) {
-    parts.push(page);
-  }
+    if (page !== REPLAY_TAB_UNKNOWN_PAGE) {
+      parts.push(page);
+    }
 
-  const opened: string | null = describeReplayTabOpened(tab);
+    const opened: string | null = describeReplayTabOpened(tab, sentence);
 
-  if (opened !== null) {
-    parts.push(opened);
-  }
+    if (opened !== null) {
+      parts.push(opened);
+    }
 
-  parts.push(formatReplayDuration(tab.durationMs));
+    parts.push(formatReplayDurationInLanguage(tab.durationMs, sentence));
 
-  return `${parts.join(
-    " · ",
-  )} — switch to this tab; the playhead stays where it is`;
+    return formatInline(parts, sentence);
+  };
+
+  return translator.translateTemplate(
+    "{{facts}} — switch to this tab; the playhead stays where it is",
+    { facts: composedValue(facts) },
+  );
+}
+
+/* A tab's name as a value of a sentence: in the sentence's language. */
+function tabNameValue(tab: ReplayTabSummary): TemplateValues {
+  return {
+    tab: composedValue((sentence: Translator): string => {
+      return describeReplayTabName(tab, sentence);
+    }),
+  };
 }
 
 const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
   props: ReplayTabSwitcherProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { tabs, onSwitchTab } = props;
 
   /*
@@ -201,13 +250,17 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
       return selectVisibleReplayTabs(tabs);
     }, [tabs]);
 
-  const summaryText: string = useMemo((): string => {
-    return describeReplayTabCounts(tabs);
-  }, [tabs]);
+  const summaryText: string = describeReplayTabCounts(tabs, translator);
 
+  /*
+   * Keyed on the language rather than the translator, which useTranslator
+   * builds anew on every render: the filter only reads it to match the
+   * query against the name the reader sees, and every keystroke filters
+   * again.
+   */
   const groups: Array<ReplayTabGroup> = useMemo((): Array<ReplayTabGroup> => {
-    return groupReplayTabs(filterReplayTabs(tabs, query));
-  }, [tabs, query]);
+    return groupReplayTabs(filterReplayTabs(tabs, query, translator));
+  }, [tabs, query, translator.language]);
 
   /*
    * The options in the order they are drawn, so the arrow keys and the
@@ -541,6 +594,8 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
     );
   };
 
+  /* " · " between a pill's facts, " • " where the language reads "·" as a 0. */
+  const separator: string = getInlineSeparator(translator.language);
   const pillNodes: Array<ReactElement> = [];
   let hasDrawnOpenPill: boolean = false;
   let hasDrawnClosedDivider: boolean = false;
@@ -562,7 +617,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           data-testid="replay-tab-strip-divider"
           className="shrink-0 px-1 text-[11px] font-medium uppercase tracking-wide text-gray-400"
         >
-          Closed
+          {translator.translateText("Closed")}
         </span>,
       );
     }
@@ -591,7 +646,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
         data-tab-id={tab.tabId}
         data-tab-status={status}
         disabled={!tab.hasFootage}
-        title={buildReplayTabPillTitle(tab)}
+        title={buildReplayTabPillTitle(tab, translator)}
         className={getReplaySegmentClassName({
           isSelected: tab.isActive,
           isDisabled: !tab.hasFootage,
@@ -610,12 +665,15 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
          * gray dots says nothing.
          */}
         {hasAnyOpenTab && renderStatusDot(status)}
-        <span className="shrink-0">{tab.label}</span>
+        <span className="shrink-0">
+          {describeReplayTabName(tab, translator)}
+        </span>
         {page !== REPLAY_TAB_UNKNOWN_PAGE && (
-          <span className="max-sm:hidden max-w-[12rem] truncate sm:inline">{` · ${page}`}</span>
+          <span className="max-sm:hidden max-w-[12rem] truncate sm:inline">{`${separator}${page}`}</span>
         )}
-        <span className="shrink-0 whitespace-nowrap">{` · ${describeReplayTabDuration(
+        <span className="shrink-0 whitespace-nowrap">{`${separator}${describeReplayTabDuration(
           tab,
+          translator,
         )}`}</span>
       </button>,
     );
@@ -633,7 +691,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
     const status: ReplayTabStatus = getReplayTabStatus(tab);
     const url: string = readReplayTabUrl(tab);
     const page: string = describeReplayTabPage(url);
-    const opened: string | null = describeReplayTabOpened(tab);
+    const opened: string | null = describeReplayTabOpened(tab, translator);
     const errorCount: number = tab.errorCount ?? 0;
     const frustrationCount: number = tab.frustrationCount ?? 0;
     const span: { leftPercent: number; widthPercent: number } | null =
@@ -659,8 +717,11 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
         data-tab-status={status}
         title={
           tab.hasFootage
-            ? `Switch to ${tab.label}; the playhead stays where it is`
-            : "No footage stored for this tab"
+            ? translator.translateTemplate(
+                "Switch to {{tab}}; the playhead stays where it is",
+                tabNameValue(tab),
+              )
+            : translator.translateText("No footage stored for this tab")
         }
         className={`flex w-full flex-col gap-1 rounded-lg px-2.5 py-1.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
           tab.isActive ? "bg-indigo-50" : ""
@@ -675,26 +736,32 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
         <span className="flex min-w-0 items-center gap-2">
           {renderStatusDot(status)}
           <span className="shrink-0 text-xs font-medium text-gray-900">
-            {tab.label}
+            {describeReplayTabName(tab, translator)}
           </span>
           <span
             className="min-w-0 flex-1 truncate text-xs text-gray-600"
             title={url.length > 0 ? url : undefined}
           >
-            {page}
+            {page === REPLAY_TAB_UNKNOWN_PAGE
+              ? translator.translateText(REPLAY_TAB_UNKNOWN_PAGE)
+              : page}
           </span>
           {opened !== null && (
             <span className="shrink-0 text-[11px] text-gray-500">{opened}</span>
           )}
           <span className="shrink-0 font-mono text-[11px] tabular-nums text-gray-600">
-            {describeReplayTabDuration(tab)}
+            {describeReplayTabDuration(tab, translator)}
           </span>
           {errorCount > 0 && (
             <span
               data-testid="replay-tab-option-errors"
-              title={`${errorCount} error${
-                errorCount === 1 ? "" : "s"
-              } in this tab`}
+              title={translator.translatePlural(
+                {
+                  one: "{{count}} error in this tab",
+                  other: "{{count}} errors in this tab",
+                },
+                errorCount,
+              )}
               className="shrink-0 rounded-full bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700"
             >
               {errorCount}
@@ -703,15 +770,23 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           {frustrationCount > 0 && (
             <span
               data-testid="replay-tab-option-frustrations"
-              title={`${frustrationCount} rage, dead or error click${
-                frustrationCount === 1 ? "" : "s"
-              } in this tab`}
+              title={translator.translatePlural(
+                {
+                  one: "{{count}} rage, dead or error click in this tab",
+                  other: "{{count}} rage, dead or error clicks in this tab",
+                },
+                frustrationCount,
+              )}
               className="shrink-0 rounded-full bg-amber-50 px-1.5 text-[11px] font-medium text-amber-800"
             >
               {frustrationCount}
             </span>
           )}
-          {tab.isActive && <ReplayPill tone="accent">Watching</ReplayPill>}
+          {tab.isActive && (
+            <ReplayPill tone="accent">
+              {translator.translateText("Watching")}
+            </ReplayPill>
+          )}
         </span>
         {/*
          * Where this tab sits on the session. With a dozen tabs the list
@@ -760,7 +835,9 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
            */}
           <div
             role="tablist"
-            aria-label="Browser tabs in this recording"
+            aria-label={translator.translateText(
+              "Browser tabs in this recording",
+            )}
             className="flex min-w-0 flex-wrap items-center gap-1"
           >
             {pillNodes}
@@ -771,7 +848,10 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
               <ReplayToolButton
                 ref={pickerButtonRef}
                 dataTestId="replay-tab-picker-button"
-                label={`All ${tabs.length} tabs`}
+                label={translator.translatePlural(
+                  { one: "All {{count}} tab", other: "All {{count}} tabs" },
+                  tabs.length,
+                )}
                 trailingIcon={IconProp.ChevronDown}
                 variant="ghost"
                 tone="accent"
@@ -795,8 +875,10 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
                       type="text"
                       value={query}
                       data-testid="replay-tab-picker-search"
-                      aria-label="Filter tabs"
-                      placeholder="Filter by page or tab"
+                      aria-label={translator.translateText("Filter tabs")}
+                      placeholder={translator.translateText(
+                        "Filter by page or tab",
+                      )}
                       className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-800 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none"
                       onChange={(
                         event: React.ChangeEvent<HTMLInputElement>,
@@ -808,7 +890,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
                   </div>
                   <div
                     role="listbox"
-                    aria-label="Browser tabs"
+                    aria-label={translator.translateText("Browser tabs")}
                     className="max-h-80 overflow-y-auto"
                     onKeyDown={handleListKeyDown}
                   >
@@ -817,7 +899,10 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
                         data-testid="replay-tab-picker-empty"
                         className="px-2.5 py-3 text-xs text-gray-500"
                       >
-                        {`No tab matches “${trimmedQuery}”`}
+                        {translator.translateTemplate(
+                          "No tab matches “{{query}}”",
+                          { query: trimmedQuery },
+                        )}
                       </div>
                     ) : (
                       groups.map((group: ReplayTabGroup): ReactElement => {
@@ -829,7 +914,15 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
                           );
                         }
 
-                        const heading: string = `${group.title} · ${group.tabs.length}`;
+                        /* "Open · 3": the group's title, then its count. */
+                        const heading: string = formatInline(
+                          [
+                            translator.translateText(group.title) ||
+                              group.title,
+                            translator.formatNumber(group.tabs.length),
+                          ],
+                          translator,
+                        );
 
                         return (
                           <div key={group.id} role="group" aria-label={heading}>
@@ -858,7 +951,9 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           type="button"
           data-testid="replay-continue-in-tab"
           className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-          title="This tab has played out; the session continues in another tab"
+          title={translator.translateText(
+            "This tab has played out; the session continues in another tab",
+          )}
           onClick={(): void => {
             const tabId: string = props.continueInTab?.tabId ?? "";
 
@@ -871,7 +966,10 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           }}
         >
           <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
-          Continue in {props.continueInTab.label}
+          {translator.translateTemplate(
+            "Continue in {{tab}}",
+            tabNameValue(props.continueInTab),
+          )}
         </button>
       )}
     </div>

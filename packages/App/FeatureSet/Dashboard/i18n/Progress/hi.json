@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48448,
-    "untranslated": 10606
+    "keys": 49075,
+    "untranslated": 10176
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -196,6 +196,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} B",
     "{{count}} CPU",
     "{{count}} KB",
@@ -205,6 +206,7 @@
     "{{count}} vCPU",
     "{{format}} JSON",
     "{{gigabytes}} GB",
-    "{{in}} in"
+    "{{in}} in",
+    "{{value}} ms"
   ]
 }

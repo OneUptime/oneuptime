@@ -1,3 +1,10 @@
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+
 /*
  * RecorderDiagnosticsExplainer: plain sentences for the JSON a customer
  * pastes from OneUptimeReplay.getDiagnostics().
@@ -20,14 +27,28 @@
  * recorder without
  * adding it here makes it fall through to the unknown-code copy, which
  * App/Tests/Dashboard/RecorderDiagnosticsExplainer.test.ts pins.
+ *
+ * Every sentence is an English key of the Dashboard's locales: the table's
+ * are marked with translationKey() and looked up when a record is
+ * explained, in the language of the Translator the caller hands in (the
+ * paste box passes the reader's). Without one, everything is English, word
+ * for word as it always was. What the recorder wrote - its codes, states,
+ * reasons, versions and session ids - is kept as written.
  */
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed sentence or label in the translator's language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
 
 export type RecorderDebugLevel = "info" | "warn";
 
 export interface RecorderDebugCodeCopy {
-  /* What happened, in the customer's terms. */
+  /* What happened, in the customer's terms: an English key. */
   explanation: string;
-  /* What to do about it. Absent for records that need no action. */
+  /* What to do about it, an English key; absent when nothing needs doing. */
   action?: string;
   /*
    * True for a code that, on its own, explains why nothing recorded or
@@ -39,389 +60,517 @@ export interface RecorderDebugCodeCopy {
 export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   /* ---- Debug.ts ---- */
   "debug-enabled": {
-    explanation: "Diagnostics were switched on for this page.",
+    explanation: translationKey("Diagnostics were switched on for this page."),
   },
 
   /* ---- Loader.ts ---- */
-  "loader-start": { explanation: "The loader script ran on the page." },
+  "loader-start": {
+    explanation: translationKey("The loader script ran on the page."),
+  },
   "init-options-missing": {
-    explanation:
+    explanation: translationKey(
       "The loader found no usable init options: the script tag is missing data-oneuptime-token or data-oneuptime-app-identifier, or the init global is malformed.",
-    action:
+    ),
+    action: translationKey(
       "Compare the script tag on this page with the install snippet; both attributes are required.",
+    ),
     isOutcome: true,
   },
   "artifact-requested": {
-    explanation: "The loader asked for the recorder artifact.",
+    explanation: translationKey("The loader asked for the recorder artifact."),
   },
   "artifact-load-failed": {
-    explanation:
+    explanation: translationKey(
       "The recorder artifact failed to load. On a page with a Content-Security-Policy this is almost always script-src; otherwise an ad blocker or a proxy.",
-    action:
+    ),
+    action: translationKey(
       "Allow the OneUptime origin in script-src, then check the browser's Network tab for the recorder.js request.",
+    ),
     isOutcome: true,
   },
   "artifact-api-missing": {
-    explanation:
+    explanation: translationKey(
       "The artifact loaded but did not publish its API, so the loader could not start it. This is a recorder bug or a tampered script.",
-    action: "Reload with cache disabled; if it persists, report it.",
+    ),
+    action: translationKey(
+      "Reload with cache disabled; if it persists, report it.",
+    ),
     isOutcome: true,
   },
   "artifact-url-invalid": {
-    explanation:
+    explanation: translationKey(
       "The policy named a recorder version this loader will not build a URL from, so no artifact was requested.",
-    action:
+    ),
+    action: translationKey(
       "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.",
+    ),
     isOutcome: true,
   },
   "directive-stop": {
-    explanation:
+    explanation: translationKey(
       "The server told this recorder to stand down: the application or project is switched off, or its budget is spent.",
-    action:
+    ),
+    action: translationKey(
       "Check the recording switches and budgets on the application's Replay Policy page.",
+    ),
     isOutcome: true,
   },
   "loader-threw": {
-    explanation: "The loader threw an exception. This is a recorder bug.",
-    action: "Report it with this diagnostics output.",
+    explanation: translationKey(
+      "The loader threw an exception. This is a recorder bug.",
+    ),
+    action: translationKey("Report it with this diagnostics output."),
     isOutcome: true,
   },
 
   /* ---- Config.ts ---- */
-  "init-options-read": { explanation: "Init options were read successfully." },
+  "init-options-read": {
+    explanation: translationKey("Init options were read successfully."),
+  },
   "init-options-incomplete": {
-    explanation:
+    explanation: translationKey(
       "One init source (script tag or init global) was missing a required field and was skipped.",
-    action:
+    ),
+    action: translationKey(
       "Only one complete source is needed; this matters when it was the only one.",
+    ),
   },
   "config-fetch-start": {
-    explanation: "The recorder requested this application's policy.",
+    explanation: translationKey(
+      "The recorder requested this application's policy.",
+    ),
   },
   "config-fetch-failed": {
-    explanation:
+    explanation: translationKey(
       "The policy request never completed: a connect-src CSP rule, an ad blocker, or no network path to OneUptime.",
-    action:
+    ),
+    action: translationKey(
       "Allow the OneUptime origin in connect-src and check the Network tab for the /config request.",
+    ),
     isOutcome: true,
   },
   "config-fetch-rejected": {
-    explanation:
+    explanation: translationKey(
       "The policy endpoint refused the request: the ingestion token is wrong or revoked, or the origin is not allowed.",
-    action:
+    ),
+    action: translationKey(
       "Confirm the token under Project Settings > Telemetry & APM > Ingestion Keys and the origin allowlists on the key and the application.",
+    ),
     isOutcome: true,
   },
   "config-body-unparseable": {
-    explanation:
+    explanation: translationKey(
       "The policy endpoint answered, but not with JSON. A proxy, captive portal or CDN rule is answering instead of OneUptime.",
-    action: "Open the /config URL in a browser tab and see who answers.",
+    ),
+    action: translationKey(
+      "Open the /config URL in a browser tab and see who answers.",
+    ),
     isOutcome: true,
   },
   "config-unparseable": {
-    explanation:
+    explanation: translationKey(
       "The policy response was JSON but not an object. Something on the path rewrote it.",
+    ),
     isOutcome: true,
   },
   "config-disabled": {
-    explanation:
+    explanation: translationKey(
       "The server says session replay is off for this application or project, so nothing is recorded.",
-    action:
+    ),
+    action: translationKey(
       "Turn recording on for the application (Replay Policy) and the project (Settings > Session Replay).",
+    ),
     isOutcome: true,
   },
   "config-recorder-version-invalid": {
-    explanation:
+    explanation: translationKey(
       "The server did not name exact lowercase latest as the recorder artifact, so no artifact can load.",
+    ),
     isOutcome: true,
   },
-  "config-accepted": { explanation: "The policy was accepted." },
+  "config-accepted": {
+    explanation: translationKey("The policy was accepted."),
+  },
   "config-field-defaulted": {
-    explanation:
+    explanation: translationKey(
       "The server sent no value for one policy field, so the product default was used.",
+    ),
   },
   "config-value-unrecognised": {
-    explanation:
+    explanation: translationKey(
       "This recorder build does not know a value the server sent and used the safest option instead. The recorder is older than the server.",
-    action: "Reload the page so it fetches the latest recorder.",
+    ),
+    action: translationKey(
+      "Reload the page so it fetches the latest recorder.",
+    ),
   },
 
   /* ---- Index.ts ---- */
-  bootstrap: { explanation: "The recorder artifact started bootstrapping." },
+  bootstrap: {
+    explanation: translationKey("The recorder artifact started bootstrapping."),
+  },
   "bootstrap-already-started": {
-    explanation:
+    explanation: translationKey(
       "A second start() on the same page was ignored; the first one is still in charge.",
+    ),
   },
   "bootstrap-already-running": {
-    explanation:
+    explanation: translationKey(
       "bootstrap() was called again while a recorder was running and was ignored.",
+    ),
   },
   "bootstrap-cancelled": {
-    explanation:
+    explanation: translationKey(
       "A queued revokeConsent() or stop() ran before start(), so no recorder was built.",
-    action:
+    ),
+    action: translationKey(
       "Remove the queued stop, or grant consent before the page starts the recorder.",
+    ),
     isOutcome: true,
   },
   "prerender-wait": {
-    explanation:
+    explanation: translationKey(
       "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.",
+    ),
   },
   "privacy-signal": {
-    explanation:
+    explanation: translationKey(
       "This browser sends Do Not Track or Global Privacy Control, and the policy respects it, so nothing is recorded on it.",
-    action:
+    ),
+    action: translationKey(
       "Expected for this visitor. Test from a browser without the signal.",
+    ),
     isOutcome: true,
   },
   "start-stopped": {
-    explanation:
+    explanation: translationKey(
       "start() had no usable policy and will not record anything. An earlier record says why the policy is missing.",
+    ),
     isOutcome: true,
   },
   "command-queue-not-an-array": {
-    explanation:
+    explanation: translationKey(
       "window.OneUptimeReplayQueue is not an array, so commands queued before the recorder loaded were ignored.",
-    action: "Initialise the queue as an array, or remove the override.",
+    ),
+    action: translationKey(
+      "Initialise the queue as an array, or remove the override.",
+    ),
   },
   "command-queue-unknown-command": {
-    explanation:
+    explanation: translationKey(
       "A queued command was not one the recorder knows and was dropped.",
-    action:
+    ),
+    action: translationKey(
       "Supported queue commands: grantConsent, revokeConsent, stop, captureSession, identify, track, setTags, addTag.",
+    ),
   },
   "command-queue-command-failed": {
-    explanation:
+    explanation: translationKey(
       "A command queued before the recorder loaded threw while it was applied, so that one command did nothing; the record's detail names it and the error. The rest of the queue still ran.",
-    action:
+    ),
+    action: translationKey(
       "Check the arguments your page pushes onto OneUptimeReplayQueue. A grantConsent() that failed here is the difference between a session that uploads and one that never does.",
+    ),
   },
-  "api-grant-consent": { explanation: "grantConsent() was called." },
-  "api-revoke-consent": { explanation: "revokeConsent() was called." },
-  "api-stop": { explanation: "stop() was called by the page." },
-  "api-capture-session": { explanation: "captureSession() was called." },
+  "api-grant-consent": {
+    explanation: translationKey("grantConsent() was called."),
+  },
+  "api-revoke-consent": {
+    explanation: translationKey("revokeConsent() was called."),
+  },
+  "api-stop": { explanation: translationKey("stop() was called by the page.") },
+  "api-capture-session": {
+    explanation: translationKey("captureSession() was called."),
+  },
   "api-no-recorder": {
-    explanation:
+    explanation: translationKey(
       "The page called the recorder API while no recorder was running, so the call did nothing.",
-    action:
+    ),
+    action: translationKey(
       "Call the API after the recorder started, or use the command queue.",
+    ),
   },
 
   /* ---- Recorder.ts ---- */
   "not-sampled": {
-    explanation:
+    explanation: translationKey(
       "This session was not selected by the sample percentage, so it records nothing. That is sampling working, not a fault.",
-    action: "Raise the sample percentage, or reload to draw a new session.",
+    ),
+    action: translationKey(
+      "Raise the sample percentage, or reload to draw a new session.",
+    ),
     isOutcome: true,
   },
-  recording: { explanation: "Recording started on this page." },
+  recording: { explanation: translationKey("Recording started on this page.") },
   trigger: {
-    explanation:
+    explanation: translationKey(
       "A capture trigger fired (error, frustration or performance budget); this session may upload now.",
+    ),
   },
   "upload-started": {
-    explanation: "Uploading started; the buffered pre-roll was flushed.",
+    explanation: translationKey(
+      "Uploading started; the buffered pre-roll was flushed.",
+    ),
   },
   "upload-blocked-consent": {
-    explanation:
+    explanation: translationKey(
       "A trigger fired but consent was never granted, so nothing was uploaded.",
-    action: "Call OneUptimeReplay.grantConsent() once the visitor consents.",
+    ),
+    action: translationKey(
+      "Call OneUptimeReplay.grantConsent() once the visitor consents.",
+    ),
     isOutcome: true,
   },
   "upload-blocked-transport": {
-    explanation:
+    explanation: translationKey(
       "A trigger fired but uploading was already disabled for this page by an earlier refusal.",
+    ),
     isOutcome: true,
   },
   "chunk-discarded-consent": {
-    explanation:
+    explanation: translationKey(
       "A chunk was built but consent does not allow uploading, so it was discarded.",
-    action: "Call OneUptimeReplay.grantConsent() once the visitor consents.",
+    ),
+    action: translationKey(
+      "Call OneUptimeReplay.grantConsent() once the visitor consents.",
+    ),
     isOutcome: true,
   },
   "session-rotated": {
-    explanation:
+    explanation: translationKey(
       "A new session started here: the user came back after 30 minutes idle, the session reached its length cap, a different user signed in, or another tab started one first.",
+    ),
   },
   "session-ended-idle": {
-    explanation:
+    explanation: translationKey(
       "Nothing happened on the page for 30 minutes, so the session ended at the last activity. Nothing more is recorded until the user comes back, which starts a new session.",
+    ),
   },
   "recording-paused-idle": {
-    explanation:
+    explanation: translationKey(
       "Nobody touched the page for 5 minutes, so recording paused. Nothing is captured or uploaded until the next key, click, scroll or touch, which resumes the same session.",
+    ),
   },
   "recording-resumed": {
-    explanation:
+    explanation: translationKey(
       "The user came back after recording paused for inactivity, and recording resumed in the same session on a fresh snapshot.",
+    ),
   },
-  "recorder-stopped": { explanation: "Recording stopped on this page." },
+  "recorder-stopped": {
+    explanation: translationKey("Recording stopped on this page."),
+  },
   "recorder-stopped-by-server": {
-    explanation:
+    explanation: translationKey(
       "The server told this recorder to stop, and recording ended. The reason is in the directive record before it.",
+    ),
     isOutcome: true,
   },
   "recorder-stopped-transport": {
-    explanation: "Uploading failed for good, so recording stopped.",
+    explanation: translationKey(
+      "Uploading failed for good, so recording stopped.",
+    ),
     isOutcome: true,
   },
   "recorder-throttled-by-server": {
-    explanation:
+    explanation: translationKey(
       "The server asked this recorder to slow down; uploads pause and resume on their own.",
+    ),
   },
   "rrweb-did-not-start": {
-    explanation:
+    explanation: translationKey(
       "The DOM recorder declined to start, so no screen was captured. This happens on pages that block MutationObserver or run in an unusual document.",
+    ),
     isOutcome: true,
   },
   "rrweb-error": {
-    explanation:
+    explanation: translationKey(
       "The DOM recorder reported an internal error; the recording may skip or freeze around this point.",
+    ),
   },
   "final-flush-truncated": {
-    explanation:
+    explanation: translationKey(
       "When the page closed, more footage was open than one keepalive request may carry, so the OLDEST events of that last stretch were dropped rather than minting a chunk the browser would refuse. The detail says how many events went.",
-    action:
+    ),
+    action: translationKey(
       "Nothing to change: the alternative is losing the whole final chunk. The recording's very end is intact; the moments before it may skip.",
+    ),
   },
   "envelope-trimmed": {
-    explanation:
+    explanation: translationKey(
       "One chunk's envelope was over the server's size limit, so optional fields were dropped to fit it - the record's detail lists which ones. The footage in that chunk was kept and uploaded.",
-    action:
+    ),
+    action: translationKey(
       "Nothing to do unless a field you rely on is listed: tags and identity traits are shed first, then fidelity notices.",
+    ),
   },
 
   /* ---- NetworkRecorder.ts ---- */
   "same-origin-propagation": {
-    explanation:
+    explanation: translationKey(
       "Whether this page's requests to its own origin carry trace context (a traceparent and a tracestate naming this session) so backend telemetry links to the recording. The detail says enabled true or false, and why: on, policy-off (the application's Same-origin trace propagation switch is off), or opaque-origin (a sandboxed frame, about:blank, srcdoc or file: page, whose requests the browser does not treat as same-origin). Even when on, nothing is added until the session is uploading with consent. A second record with reason agent-stand-down, logged once per page load, names the agent (DD_RUM, NREUM or elasticApm) that is set up to put its own traceparent on this page's own requests: Datadog RUM with a tracked session and the request's URL in allowedTracingUrls, New Relic with distributed tracing on, or an active Elastic APM agent with distributed tracing on under the traceparent header name. The recorder then leaves the traceparent to that agent and adds only its tracestate, so a request links only if that agent really adds a W3C traceparent.",
-    action:
+    ),
+    action: translationKey(
       "If backend logs and traces should link to recordings and the reason is policy-off, turn Same-origin trace propagation on in the application's Replay Policy. With agent-stand-down, what to change depends on the named agent. DD_RUM: a request with a tracestate naming the session but no traceparent is usually a session Datadog does not trace-sample (traceSampleRate below 100); set traceSampleRate: 100 in its init (traceContextInjection: \"all\" also sends a traceparent there, but flagged not sampled, so a default ParentBased backend drops those traces anyway), and make sure the allowedTracingUrls entry for your own origin keeps the tracecontext propagator. elasticApm: make sure its fetch and xmlhttprequest instrumentations are not listed in disableInstrumentations. NREUM: nothing to change on New Relic - it already sends a traceparent, but with its own tracestate in place of the session's, so those requests are not stamped with the session and link only by trace id, when the recording saw the traceparent (XHR and Request inputs).",
+    ),
   },
   "same-origin-propagation-tripped": {
-    explanation:
+    explanation: translationKey(
       "A same-origin request the recorder had added trace headers to failed at the network level - typically a redirect to another origin (a presigned download URL, a CDN) that does not allow those headers - so the recorder stopped adding them for the rest of this page load. With retried: true it was a GET or HEAD, sent again without the headers, and the page saw that result; an XMLHttpRequest cannot be retried.",
-    action:
+    ),
+    action: translationKey(
       "Allow traceparent and tracestate in Access-Control-Allow-Headers on the redirect target, or turn Same-origin trace propagation off for this application.",
+    ),
   },
 
   /* ---- Transport.ts ---- */
-  "chunk-accepted": { explanation: "A chunk was accepted by the server." },
+  "chunk-accepted": {
+    explanation: translationKey("A chunk was accepted by the server."),
+  },
   "chunk-not-recorded": {
-    explanation:
+    explanation: translationKey(
       "The server accepted the request but deliberately did not record the chunk (not sampled server-side, or a policy that no longer records).",
+    ),
     isOutcome: true,
   },
   "chunk-refused": {
-    explanation:
+    explanation: translationKey(
       "The server refused one chunk; recording continued without it. The reason code the server answered is in the record's detail.",
+    ),
   },
   "chunk-refused-terminal": {
-    explanation:
+    explanation: translationKey(
       "The server will refuse every chunk from this recorder, so uploading stopped. Usually a revoked token, a refused origin, or a switched-off application.",
-    action:
+    ),
+    action: translationKey(
       "Read the reason in the record's detail; it matches the refusal counters on the health card.",
+    ),
     isOutcome: true,
   },
   "chunk-rejected-terminal": {
-    explanation:
+    explanation: translationKey(
       "Uploading stopped for good: the server rejected this recorder outright.",
+    ),
     isOutcome: true,
   },
   "chunk-too-large": {
-    explanation:
+    explanation: translationKey(
       "One chunk was over the per-request size limit even after compression - almost always a full snapshot of a very large DOM. Its SIZE was declared and its bytes were not uploaded, so the session survives with a gap there instead of spending the visitor's uplink on a request the server cannot accept.",
-    action:
+    ),
+    action: translationKey(
       "The player marks the gap. If it repeats, the pages involved have an unusually large DOM; blocking a heavy region with a block selector shrinks the snapshot.",
+    ),
   },
   "chunk-post-failed": {
-    explanation:
+    explanation: translationKey(
       "A chunk upload never reached the server: a connect-src CSP rule, an ad blocker, or the network.",
-    action:
+    ),
+    action: translationKey(
       "Allow the OneUptime origin in connect-src and check the Network tab for the chunk request.",
+    ),
     isOutcome: true,
   },
   "chunk-post-server-error": {
-    explanation:
+    explanation: translationKey(
       "The server could not accept a chunk (5xx); it will be retried.",
+    ),
   },
   "chunk-throttled": {
-    explanation:
+    explanation: translationKey(
       "Uploads were rate limited; they pause and resume on their own.",
+    ),
   },
   "chunk-retry-scheduled": {
-    explanation: "Uploading will be retried after a pause.",
+    explanation: translationKey("Uploading will be retried after a pause."),
   },
-  "chunk-retry": { explanation: "Queued chunks were retried." },
+  "chunk-retry": { explanation: translationKey("Queued chunks were retried.") },
   "chunk-abandoned": {
-    explanation:
+    explanation: translationKey(
       "One chunk failed too many times and was dropped; uploading continued. The recording has a gap there.",
+    ),
   },
   "final-chunk-carried-queue": {
-    explanation:
+    explanation: translationKey(
       "Queued chunks were sent along with the final chunk on page exit.",
+    ),
   },
   "final-chunk-too-large": {
-    explanation:
+    explanation: translationKey(
       "A chunk sent as the page went away was over the browser's keepalive quota. With sealed: true in the detail it was the final chunk: its events were dropped, so the last seconds before the page closed are missing, and an empty final chunk sealed the session in its place, so the session still ends with the tab instead of waiting for the idle timeout. With sealed: false it was not a final chunk: that chunk was dropped whole, nothing was sealed, and the session stays open with a gap where the chunk was.",
+    ),
   },
   "final-flush-partial": {
-    explanation:
+    explanation: translationKey(
       "On page exit the browser's keepalive quota could not carry every queued chunk. The detail says how many were sent and how many were dropped; that session has a gap at the end.",
-    action:
+    ),
+    action: translationKey(
       "Expected when a tab closes with a backlog (an offline spell, or a very busy page). Worth looking at only if it repeats on ordinary sessions.",
+    ),
   },
   "chunk-held-offline": {
-    explanation:
+    explanation: translationKey(
       "The device has no connection, so this chunk is waiting instead of uploading. Recording continues, the retry costs no strike and nothing is lost; the detail says how many chunks are waiting and when the next attempt is.",
+    ),
   },
   "back-online": {
-    explanation:
+    explanation: translationKey(
       "The first upload after an outage reached the server. The chunks kept while offline are being uploaded, oldest first.",
+    ),
   },
   "browser-offline": {
-    explanation:
+    explanation: translationKey(
       "The browser reported that it went offline. Recording continues, and the recorder opens its offline store so the chunks of a tab closed now are kept.",
+    ),
   },
   "browser-online": {
-    explanation:
+    explanation: translationKey(
       "The browser reported that it is back online, so the queued chunks are being uploaded now instead of waiting for the retry timer.",
+    ),
   },
   "offline-queue-full": {
-    explanation:
+    explanation: translationKey(
       "The outage lasted longer than the upload queue can hold, so the oldest chunks were dropped to keep the newest. The recording has a gap where they were.",
-    action:
+    ),
+    action: translationKey(
       "Expected only after a long time offline. If it happens on short outages, check whether uploads were already failing before the connection dropped.",
+    ),
   },
   "offline-flush-stored": {
-    explanation:
+    explanation: translationKey(
       "The page was hidden or closed while offline, so its last chunks were saved in the browser (IndexedDB) instead of being uploaded. The next page of the application uploads them. With storeOpen: false the store had not finished opening, and a closing tab may still have lost them.",
+    ),
   },
   "final-flush-deferred": {
-    explanation:
+    explanation: translationKey(
       "The request sent as the page went away could not carry every chunk, so the rest were saved in the browser for the next page to upload instead of being dropped.",
+    ),
   },
   "offline-chunks-restored": {
-    explanation:
+    explanation: translationKey(
       "This page found chunks that an earlier page recorded while offline and could not send, and is uploading them ahead of its own.",
+    ),
   },
   "offline-chunk-claimed-elsewhere": {
-    explanation:
+    explanation: translationKey(
       "Another tab of the same application already uploaded a chunk this tab had saved, so this tab skipped it. Nothing is missing.",
+    ),
   },
   "server-directive": {
-    explanation:
+    explanation: translationKey(
       "The server changed what this recorder should do (stop, throttle or continue). The directive and its reason are in the record's detail.",
+    ),
   },
   "transport-disabled": {
-    explanation: "Uploading stopped for good on this page.",
-    action: "Fix the cause named in the records above, then reload.",
+    explanation: translationKey("Uploading stopped for good on this page."),
+    action: translationKey(
+      "Fix the cause named in the records above, then reload.",
+    ),
     isOutcome: true,
   },
 };
 
-export const UNKNOWN_RECORDER_DEBUG_CODE_COPY: string =
-  "This code is newer than this dashboard's explanations. The troubleshooting docs list every code.";
+export const UNKNOWN_RECORDER_DEBUG_CODE_COPY: string = translationKey(
+  "This code is newer than this dashboard's explanations. The troubleshooting docs list every code.",
+);
 
 export interface ExplainedRecorderRecord {
   code: string;
@@ -455,8 +604,14 @@ export type RecorderDiagnosticsResult =
   | { ok: true; explanation: RecorderDiagnosticsExplanation }
   | { ok: false; error: string };
 
-/* Explain one code. Unknown codes fall back, never throw. */
-export function explainRecorderDebugCode(code: string): {
+/*
+ * Explain one code, in the translator's language. Unknown codes fall back,
+ * never throw.
+ */
+export function explainRecorderDebugCode(
+  code: string,
+  translator: Translator = ENGLISH,
+): {
   explanation: string;
   action: string | null;
   isKnown: boolean;
@@ -468,15 +623,16 @@ export function explainRecorderDebugCode(code: string): {
 
   if (!copy) {
     return {
-      explanation: UNKNOWN_RECORDER_DEBUG_CODE_COPY,
+      explanation: translateLine(UNKNOWN_RECORDER_DEBUG_CODE_COPY, translator),
       action: null,
       isKnown: false,
     };
   }
 
   return {
-    explanation: copy.explanation,
-    action: copy.action ?? null,
+    explanation: translateLine(copy.explanation, translator),
+    action:
+      copy.action === undefined ? null : translateLine(copy.action, translator),
     isKnown: true,
   };
 }
@@ -524,7 +680,10 @@ function readDetail(
   return detail;
 }
 
-function explainRecord(value: unknown): ExplainedRecorderRecord | null {
+function explainRecord(
+  value: unknown,
+  translator: Translator,
+): ExplainedRecorderRecord | null {
   const row: Record<string, unknown> | null = asRecord(value);
 
   if (!row) {
@@ -541,7 +700,7 @@ function explainRecord(value: unknown): ExplainedRecorderRecord | null {
     explanation: string;
     action: string | null;
     isKnown: boolean;
-  } = explainRecorderDebugCode(code);
+  } = explainRecorderDebugCode(code, translator);
   const at: unknown = row["atUnixMs"];
 
   return {
@@ -565,6 +724,7 @@ function explainRecord(value: unknown): ExplainedRecorderRecord | null {
 function buildHeadline(
   root: Record<string, unknown>,
   records: Array<ExplainedRecorderRecord>,
+  translator: Translator,
 ): string {
   for (let index: number = records.length - 1; index >= 0; index--) {
     const record: ExplainedRecorderRecord = records[
@@ -579,11 +739,17 @@ function buildHeadline(
   }
 
   if (root["isUploading"] === true) {
-    return "The recorder is recording and uploading on this page.";
+    return translateLine(
+      "The recorder is recording and uploading on this page.",
+      translator,
+    );
   }
 
   if (root["isRecording"] === true) {
-    return "The recorder is recording on this page; nothing has triggered an upload yet.";
+    return translateLine(
+      "The recorder is recording on this page; nothing has triggered an upload yet.",
+      translator,
+    );
   }
 
   const bootstrapDecision: string | null = readString(
@@ -592,26 +758,41 @@ function buildHeadline(
   );
 
   if (bootstrapDecision === "not-started") {
-    return "The recorder artifact never started on this page; the loader's records above say where it stopped.";
+    return translateLine(
+      "The recorder artifact never started on this page; the loader's records above say where it stopped.",
+      translator,
+    );
   }
 
   const stopReason: string | null = readString(root, "stopReason");
 
   if (stopReason) {
-    return `The recorder stopped (${stopReason}).`;
+    // The reason is the recorder's own word, kept as written.
+    return translator.translateTemplate("The recorder stopped ({{reason}}).", {
+      reason: stopReason,
+    });
   }
 
-  return "No outcome record was found; the records below list what the recorder did.";
+  return translateLine(
+    "No outcome record was found; the records below list what the recorder did.",
+    translator,
+  );
 }
 
-function describeDecisions(value: unknown): Array<ExplainedRecorderFact> {
+function describeDecisions(
+  value: unknown,
+  translator: Translator,
+): Array<ExplainedRecorderFact> {
   const decisions: Record<string, unknown> | null = asRecord(value);
 
   if (!decisions) {
     return [
       {
-        label: "Decisions",
-        value: "none yet: no recorder object was built on this page",
+        label: translateLine("Decisions", translator),
+        value: translateLine(
+          "none yet: no recorder object was built on this page",
+          translator,
+        ),
       },
     ];
   }
@@ -620,17 +801,21 @@ function describeDecisions(value: unknown): Array<ExplainedRecorderFact> {
 
   if (typeof decisions["isSampled"] === "boolean") {
     facts.push({
-      label: "Sampled",
-      value: decisions["isSampled"]
-        ? "yes"
-        : "no: this session records nothing",
+      label: translateLine("Sampled", translator),
+      value: translateLine(
+        decisions["isSampled"] ? "yes" : "no: this session records nothing",
+        translator,
+      ),
     });
   }
 
   const trigger: string | null = readString(decisions, "captureTrigger");
 
   if (trigger) {
-    facts.push({ label: "Capture trigger", value: trigger });
+    facts.push({
+      label: translateLine("Capture trigger", translator),
+      value: trigger,
+    });
   }
 
   const consentMode: string | null = readString(decisions, "consentMode");
@@ -638,7 +823,7 @@ function describeDecisions(value: unknown): Array<ExplainedRecorderFact> {
 
   if (consentMode) {
     facts.push({
-      label: "Consent",
+      label: translateLine("Consent", translator),
       value: consentState ? `${consentMode} (${consentState})` : consentMode,
     });
   }
@@ -646,11 +831,20 @@ function describeDecisions(value: unknown): Array<ExplainedRecorderFact> {
   if (typeof decisions["uploadsAllowed"] === "boolean") {
     const blockedBy: string | null = readString(decisions, "uploadBlockedBy");
 
+    let uploads: string = translateLine("allowed", translator);
+
+    if (!decisions["uploadsAllowed"]) {
+      // What blocked them is the recorder's own word, kept as written.
+      uploads = blockedBy
+        ? translator.translateTemplate("blocked by {{reason}}", {
+            reason: blockedBy,
+          })
+        : translateLine("blocked", translator);
+    }
+
     facts.push({
-      label: "Uploads",
-      value: decisions["uploadsAllowed"]
-        ? "allowed"
-        : `blocked${blockedBy ? ` by ${blockedBy}` : ""}`,
+      label: translateLine("Uploads", translator),
+      value: uploads,
     });
   }
 
@@ -660,7 +854,7 @@ function describeDecisions(value: unknown): Array<ExplainedRecorderFact> {
     const reason: string | null = readString(decisions, "lastDirectiveReason");
 
     facts.push({
-      label: "Last server directive",
+      label: translateLine("Last server directive", translator),
       value: reason ? `${lastDirective} (${reason})` : lastDirective,
     });
   }
@@ -668,7 +862,10 @@ function describeDecisions(value: unknown): Array<ExplainedRecorderFact> {
   const startDecision: string | null = readString(decisions, "startDecision");
 
   if (startDecision) {
-    facts.push({ label: "Start decision", value: startDecision });
+    facts.push({
+      label: translateLine("Start decision", translator),
+      value: startDecision,
+    });
   }
 
   return facts;
@@ -677,10 +874,13 @@ function describeDecisions(value: unknown): Array<ExplainedRecorderFact> {
 /*
  * Accepts the whole getDiagnostics() object, or just its `records` array,
  * or a JSON string of either. Never throws: malformed input is reported as
- * an error the paste box can print.
+ * an error the paste box can print. Every sentence and label it writes is
+ * in the translator's language; the recorder's own words are kept as
+ * written.
  */
 export function explainRecorderDiagnostics(
   input: string | unknown,
+  translator: Translator = ENGLISH,
 ): RecorderDiagnosticsResult {
   let parsed: unknown = input;
 
@@ -690,8 +890,10 @@ export function explainRecorderDiagnostics(
     if (trimmed.length === 0) {
       return {
         ok: false,
-        error:
+        error: translateLine(
           "Nothing to explain yet. Paste the output of OneUptimeReplay.getDiagnostics() from the page's console.",
+          translator,
+        ),
       };
     }
 
@@ -700,8 +902,10 @@ export function explainRecorderDiagnostics(
     } catch {
       return {
         ok: false,
-        error:
+        error: translateLine(
           "That is not JSON. In the console run copy(JSON.stringify(OneUptimeReplay.getDiagnostics())) and paste the result here.",
+          translator,
+        ),
       };
     }
   }
@@ -717,8 +921,10 @@ export function explainRecorderDiagnostics(
     if (!object) {
       return {
         ok: false,
-        error:
+        error: translateLine(
           "Expected the getDiagnostics() object or its records array, got something else.",
+          translator,
+        ),
       };
     }
 
@@ -729,8 +935,10 @@ export function explainRecorderDiagnostics(
   if (!Array.isArray(rawRecords)) {
     return {
       ok: false,
-      error:
+      error: translateLine(
         "No records array found. getDiagnostics() always returns one, even when diagnostics were never switched on.",
+        translator,
+      ),
     };
   }
 
@@ -738,7 +946,10 @@ export function explainRecorderDiagnostics(
   const unknownCodes: Array<string> = [];
 
   for (const entry of rawRecords) {
-    const explained: ExplainedRecorderRecord | null = explainRecord(entry);
+    const explained: ExplainedRecorderRecord | null = explainRecord(
+      entry,
+      translator,
+    );
 
     if (!explained) {
       continue;
@@ -755,26 +966,34 @@ export function explainRecorderDiagnostics(
   const version: string | null = readString(root, "version");
 
   if (version) {
-    facts.push({ label: "Recorder version", value: version });
+    facts.push({
+      label: translateLine("Recorder version", translator),
+      value: version,
+    });
   }
 
   const sessionId: string | null = readString(root, "sessionId");
 
   facts.push({
-    label: "Session",
-    value: sessionId ?? "none: no session was started on this page",
+    label: translateLine("Session", translator),
+    value:
+      sessionId ??
+      translateLine("none: no session was started on this page", translator),
   });
 
   const state: string | null = readString(root, "state");
 
   if (state) {
-    facts.push({ label: "State", value: state });
+    facts.push({ label: translateLine("State", translator), value: state });
   }
 
   const stopReason: string | null = readString(root, "stopReason");
 
   if (stopReason) {
-    facts.push({ label: "Stop reason", value: stopReason });
+    facts.push({
+      label: translateLine("Stop reason", translator),
+      value: stopReason,
+    });
   }
 
   const bootstrapDecision: string | null = readString(
@@ -783,17 +1002,23 @@ export function explainRecorderDiagnostics(
   );
 
   if (bootstrapDecision) {
-    facts.push({ label: "Bootstrap", value: bootstrapDecision });
+    facts.push({
+      label: translateLine("Bootstrap", translator),
+      value: bootstrapDecision,
+    });
   }
 
   const triggerReason: string | null = readString(root, "triggerReason");
 
   if (triggerReason) {
-    facts.push({ label: "Upload trigger", value: triggerReason });
+    facts.push({
+      label: translateLine("Upload trigger", translator),
+      value: triggerReason,
+    });
   }
 
   if ("decisions" in root) {
-    facts.push(...describeDecisions(root["decisions"]));
+    facts.push(...describeDecisions(root["decisions"], translator));
   }
 
   const capabilities: Array<string> = Array.isArray(root["capabilities"])
@@ -807,7 +1032,7 @@ export function explainRecorderDiagnostics(
   return {
     ok: true,
     explanation: {
-      headline: buildHeadline(root, records),
+      headline: buildHeadline(root, records, translator),
       facts: facts,
       records: records,
       unknownCodes: unknownCodes,

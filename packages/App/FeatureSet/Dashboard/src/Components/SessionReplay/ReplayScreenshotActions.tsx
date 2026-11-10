@@ -8,6 +8,8 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ReplayFrameCaptureError } from "./ReplayFrameCapture";
 import {
   ReplayImageClipboardSupport,
@@ -58,6 +60,10 @@ export const REPLAY_SCREENSHOT_PREVIEW_MS: number = 5000;
 /* The flash's fade; the class below carries the same number. */
 export const REPLAY_SCREENSHOT_FLASH_MS: number = 500;
 
+/*
+ * English: the title and the description are keys, looked up where the
+ * dock draws them, so a card already up follows a language switch.
+ */
 export interface ReplayScreenshotFailureCopy {
   title: string;
   description: string;
@@ -68,7 +74,8 @@ export interface ReplayScreenshotFailureCopy {
 /*
  * Words for a failed screenshot. A clipboard that refused leaves a
  * perfectly good PNG behind, so the way out is to download it; a frame
- * that could not be drawn is worth one more try.
+ * that could not be drawn is worth one more try. The error's own message
+ * is never shown: it is the browser's, or ours for a log.
  */
 export function describeReplayScreenshotFailure(
   error: unknown,
@@ -208,6 +215,14 @@ interface ScreenshotFailure extends ReplayScreenshotFailureCopy {
   action: ReplayScreenshotAction;
 }
 
+/*
+ * What the status region last said, kept as what happened rather than as
+ * words, so it is said in the reader's language when it is drawn.
+ */
+type ScreenshotAnnouncement =
+  | { action: "copy" }
+  | { action: "download"; fileName: string };
+
 type FlashStage = "idle" | "on" | "fading";
 
 const DOCK_BUTTON_CLASS: string = [
@@ -231,6 +246,11 @@ const CARD_CLASS: string =
 
 const CARD_DISMISS_CLASS: string =
   "-mr-1 -mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70";
+
+// A fixed string in `translator`'s language, where a string is required.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) ?? text;
+}
 
 function createPreviewUrl(blob: Blob): string | null {
   try {
@@ -270,6 +290,7 @@ const ReplayScreenshotActions: FunctionComponent<
   ReplayScreenshotActionsProps
 > = (props: ReplayScreenshotActionsProps): ReactElement => {
   const { onCapture } = props;
+  const translator: Translator = useTranslator();
   const copyToClipboard: (image: Promise<Blob>) => Promise<void> =
     props.copyToClipboard ?? copyReplayScreenshotToClipboard;
   const download: (screenshot: ReplayScreenshot) => void =
@@ -285,7 +306,8 @@ const ReplayScreenshotActions: FunctionComponent<
   );
   const [preview, setPreview] = useState<ScreenshotPreview | null>(null);
   const [failure, setFailure] = useState<ScreenshotFailure | null>(null);
-  const [announcement, setAnnouncement] = useState<string>("");
+  const [announcement, setAnnouncement] =
+    useState<ScreenshotAnnouncement | null>(null);
   const [flash, setFlash] = useState<FlashStage>("idle");
   const [isEntered, setIsEntered] = useState<boolean>(false);
 
@@ -507,8 +529,8 @@ const ReplayScreenshotActions: FunctionComponent<
       setFlash("on");
       setAnnouncement(
         action === "copy"
-          ? "Screenshot copied to the clipboard."
-          : `Screenshot downloaded as ${screenshot.fileName}.`,
+          ? { action: "copy" }
+          : { action: "download", fileName: screenshot.fileName },
       );
 
       const columnHeight: number = columnRef.current?.clientHeight ?? 0;
@@ -560,7 +582,7 @@ const ReplayScreenshotActions: FunctionComponent<
         setDoneAction(null);
         removePreview();
         setFailure({ ...copy, action: action });
-        setAnnouncement("");
+        setAnnouncement(null);
       },
       [keepFocusInDock, removePreview],
     );
@@ -581,7 +603,7 @@ const ReplayScreenshotActions: FunctionComponent<
       lastScreenshotRef.current = null;
       setBusyAction(action);
       setFailure(null);
-      setAnnouncement("");
+      setAnnouncement(null);
 
       return { frameKey: frameKeyRef.current };
     },
@@ -728,10 +750,16 @@ const ReplayScreenshotActions: FunctionComponent<
 
   const copyTitle: string =
     clipboardSupport === "supported"
-      ? "Copy this frame to the clipboard as a PNG"
+      ? translateLine("Copy this frame to the clipboard as a PNG", translator)
       : clipboardSupport === "insecure-context"
-        ? "Copying images needs a secure (https) page - use Download"
-        : "This browser can't copy images - use Download";
+        ? translateLine(
+            "Copying images needs a secure (https) page - use Download",
+            translator,
+          )
+        : translateLine(
+            "This browser can't copy images - use Download",
+            translator,
+          );
 
   const renderButtonIcon: (
     action: ReplayScreenshotAction,
@@ -778,6 +806,7 @@ const ReplayScreenshotActions: FunctionComponent<
   const enterClass: string = isEntered
     ? "translate-y-0 opacity-100"
     : "translate-y-1 opacity-0";
+  // The PNG's size and format, or the file's name: values, as written.
   const previewDetail: string = preview
     ? preview.action === "copy"
       ? `${formatReplayScreenshotSize(
@@ -788,8 +817,24 @@ const ReplayScreenshotActions: FunctionComponent<
     : "";
   const previewTitle: string =
     preview?.action === "copy"
-      ? "Copied to clipboard"
-      : "Screenshot downloaded";
+      ? translateLine("Copied to clipboard", translator)
+      : translateLine("Screenshot downloaded", translator);
+  // The compact pill's tooltip: what happened and its detail, one sentence.
+  const compactPreviewTitle: string =
+    preview?.action === "copy"
+      ? translator.translateTemplate("Copied to clipboard: {{detail}}", {
+          detail: previewDetail,
+        })
+      : translator.translateTemplate("Screenshot downloaded: {{detail}}", {
+          detail: previewDetail,
+        });
+  const announcementText: string = !announcement
+    ? ""
+    : announcement.action === "copy"
+      ? translateLine("Screenshot copied to the clipboard.", translator)
+      : translator.translateTemplate("Screenshot downloaded as {{fileName}}.", {
+          fileName: announcement.fileName,
+        });
   const previewHoldHandlers: {
     onMouseEnter: () => void;
     onMouseLeave: () => void;
@@ -855,9 +900,11 @@ const ReplayScreenshotActions: FunctionComponent<
               className="mt-0.5 h-4 w-4 shrink-0 text-rose-400"
             />
             <div className="min-w-0 flex-1">
-              <div className="font-semibold">{failure.title}</div>
+              <div className="font-semibold">
+                {translator.translateText(failure.title)}
+              </div>
               <p className="mt-0.5 leading-snug text-white/70">
-                {failure.description}
+                {translator.translateText(failure.description)}
               </p>
               <button
                 type="button"
@@ -874,16 +921,16 @@ const ReplayScreenshotActions: FunctionComponent<
                   className="h-3 w-3"
                 />
                 {failure.recovery === "download"
-                  ? "Download instead"
-                  : "Try again"}
+                  ? translator.translateText("Download instead")
+                  : translator.translateText("Try again")}
               </button>
             </div>
             <button
               type="button"
               data-testid="replay-screenshot-error-dismiss"
               className={CARD_DISMISS_CLASS}
-              aria-label="Dismiss"
-              title="Dismiss"
+              aria-label={translator.translateText("Dismiss")}
+              title={translator.translateText("Dismiss")}
               onClick={dismissFailure}
             >
               <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
@@ -903,7 +950,7 @@ const ReplayScreenshotActions: FunctionComponent<
               <div className="min-h-0 shrink overflow-hidden p-1.5 pb-0">
                 <img
                   src={preview.url}
-                  alt="The captured frame"
+                  alt={translator.translateText("The captured frame")}
                   data-testid="replay-screenshot-thumbnail"
                   className="block max-h-36 w-full rounded-lg bg-white object-cover object-top ring-1 ring-white/10"
                   style={{
@@ -930,8 +977,8 @@ const ReplayScreenshotActions: FunctionComponent<
                 type="button"
                 data-testid="replay-screenshot-preview-dismiss"
                 className={CARD_DISMISS_CLASS}
-                aria-label="Dismiss"
-                title="Dismiss"
+                aria-label={translator.translateText("Dismiss")}
+                title={translator.translateText("Dismiss")}
                 onClick={dismissPreview}
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
@@ -947,7 +994,7 @@ const ReplayScreenshotActions: FunctionComponent<
               data-testid="replay-screenshot-preview"
               data-action={preview.action}
               data-compact="true"
-              title={`${previewTitle}: ${previewDetail}`}
+              title={compactPreviewTitle}
               className="pointer-events-auto inline-flex h-10 min-w-0 items-center gap-1.5 rounded-full bg-gray-900/85 pl-3 pr-1 text-xs font-semibold text-white shadow-lg shadow-black/20 ring-1 ring-white/15 backdrop-blur-md"
               {...previewHoldHandlers}
             >
@@ -956,14 +1003,16 @@ const ReplayScreenshotActions: FunctionComponent<
                 className="h-3.5 w-3.5 shrink-0 text-emerald-300"
               />
               <span className="truncate">
-                {preview.action === "copy" ? "Copied" : "Saved"}
+                {preview.action === "copy"
+                  ? translator.translateText("Copied")
+                  : translator.translateText("Saved")}
               </span>
               <button
                 type="button"
                 data-testid="replay-screenshot-preview-dismiss"
                 className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                aria-label="Dismiss"
-                title="Dismiss"
+                aria-label={translator.translateText("Dismiss")}
+                title={translator.translateText("Dismiss")}
                 onClick={dismissPreview}
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
@@ -973,7 +1022,7 @@ const ReplayScreenshotActions: FunctionComponent<
 
           <div
             role="group"
-            aria-label="Screenshot of this frame"
+            aria-label={translator.translateText("Screenshot of this frame")}
             data-testid="replay-screenshot-actions"
             className={`pointer-events-auto inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gray-900/75 p-1 text-white shadow-lg shadow-black/20 ring-1 ring-white/15 backdrop-blur-md transition duration-200 ease-out motion-reduce:transition-none ${enterClass}`}
           >
@@ -984,13 +1033,15 @@ const ReplayScreenshotActions: FunctionComponent<
               data-state={getButtonState("copy")}
               className={buttonClass}
               title={copyTitle}
-              aria-label="Copy image"
+              aria-label={translator.translateText("Copy image")}
               aria-busy={busyAction === "copy" || undefined}
               aria-disabled={isBusy || undefined}
               onClick={copyImage}
             >
               {renderButtonIcon("copy", IconProp.Photo)}
-              <span className="max-sm:sr-only sm:not-sr-only">Copy image</span>
+              <span className="max-sm:sr-only sm:not-sr-only">
+                {translator.translateText("Copy image")}
+              </span>
             </button>
             <span
               aria-hidden="true"
@@ -1002,14 +1053,16 @@ const ReplayScreenshotActions: FunctionComponent<
               data-testid="replay-screenshot-download"
               data-state={getButtonState("download")}
               className={buttonClass}
-              title="Download this frame as a PNG"
-              aria-label="Download"
+              title={translator.translateText("Download this frame as a PNG")}
+              aria-label={translator.translateText("Download")}
               aria-busy={busyAction === "download" || undefined}
               aria-disabled={isBusy || undefined}
               onClick={downloadImage}
             >
               {renderButtonIcon("download", IconProp.Download)}
-              <span className="max-sm:sr-only sm:not-sr-only">Download</span>
+              <span className="max-sm:sr-only sm:not-sr-only">
+                {translator.translateText("Download")}
+              </span>
             </button>
           </div>
         </div>
@@ -1021,7 +1074,7 @@ const ReplayScreenshotActions: FunctionComponent<
           className="sr-only"
           data-testid="replay-screenshot-status"
         >
-          {announcement}
+          {announcementText}
         </span>
       </div>
     </>

@@ -49,10 +49,6 @@ const ALLOWED_IN_PAGES: Record<string, { count: number; why: string }> = {
     count: 2,
     why: '"{m}m {s}s" call duration (units)',
   },
-  "Pages/Rum/View/SessionReplaySettings.tsx": {
-    count: 1,
-    why: '"{n} GB" (unit)',
-  },
   "Pages/Settings/Domains.tsx": { count: 1, why: '"TXT" (DNS record type)' },
   "Pages/Settings/LlmProviders.tsx": {
     count: 1,

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/Types/Translator";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -57,6 +59,15 @@ export const SESSION_REPLAY_HEALTH_POLL_FAST_MS: number = 10 * 1000;
 
 /* A status line: fresh enough for "last chunk 2m ago" to stay honest. */
 export const SESSION_REPLAY_HEALTH_POLL_SLOW_MS: number = 60 * 1000;
+
+/*
+ * The failure the poller records for a body that is not a status at all.
+ * Unlike every other failure's message it is OneUptime's own words, not the
+ * server's, so it is a key, looked up when the hook hands it out.
+ */
+export const HEALTH_RESPONSE_UNREADABLE_MESSAGE: string = translationKey(
+  "The health response was not readable.",
+);
 
 /*
  * The health facts the surfaces render beside the parsed status. null always
@@ -293,7 +304,7 @@ async function fetchNow(poller: Poller): Promise<void> {
           status === null
             ? {
                 kind: "other",
-                message: "The health response was not readable.",
+                message: HEALTH_RESPONSE_UNREADABLE_MESSAGE,
               }
             : null,
         fetchedAtUnixMs: nowUnixMs,
@@ -367,10 +378,46 @@ export function peekSessionReplayHealth(
   return pollers.get(rumApplicationId)?.snapshot ?? null;
 }
 
+/*
+ * A snapshot in the reader's language. The store keeps one snapshot per
+ * application for every subscriber, with an English diagnosis; this
+ * diagnoses the same status against the same clock with the reader's
+ * translator, so every surface that shows the diagnosis - the Health page,
+ * the policy page's card, the setup guide, the installation test, the
+ * list's empty state - shows it in the reader's language, and a language
+ * switch reaches it on the next render. The one failure message that is
+ * OneUptime's own words is looked up too; the server's stay as written.
+ */
+export function healthSnapshotInLanguage(
+  snapshot: SessionReplayHealthSnapshot,
+  translator: Translator,
+): SessionReplayHealthSnapshot {
+  const error: SessionReplayHealthError | null = snapshot.error;
+
+  return {
+    ...snapshot,
+    diagnosis: diagnoseRecordingHealth(
+      snapshot.status,
+      snapshot.nowUnixMs,
+      translator,
+    ),
+    error:
+      error !== null && error.message === HEALTH_RESPONSE_UNREADABLE_MESSAGE
+        ? {
+            ...error,
+            message:
+              translator.translateText(HEALTH_RESPONSE_UNREADABLE_MESSAGE) ||
+              HEALTH_RESPONSE_UNREADABLE_MESSAGE,
+          }
+        : error,
+  };
+}
+
 export default function useSessionReplayHealth(
   rumApplicationId: ObjectID | string,
   options?: UseSessionReplayHealthOptions,
 ): UseSessionReplayHealthResult {
+  const translator: Translator = useTranslator();
   const applicationId: string = rumApplicationId.toString();
   const intervalMs: number =
     options?.pollIntervalMs ?? SESSION_REPLAY_HEALTH_POLL_SLOW_MS;
@@ -435,5 +482,8 @@ export default function useSessionReplayHealth(
     return fetchNow(poller);
   }, [applicationId]);
 
-  return { ...snapshot, refresh: refresh };
+  return {
+    ...healthSnapshotInLanguage(snapshot, translator),
+    refresh: refresh,
+  };
 }

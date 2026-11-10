@@ -2,6 +2,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Navigation from "Common/UI/Utils/Navigation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getRecordingHealthActionLink } from "./RecordingHealthCard";
 import type { SessionReplaySummary } from "./SessionReplayTable";
 import type { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
@@ -114,6 +116,7 @@ export interface SessionReplayIdentityNudgeProps {
 const SessionReplayIdentityNudge: FunctionComponent<
   SessionReplayIdentityNudgeProps
 > = (props: SessionReplayIdentityNudgeProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isDismissed, setIsDismissed] = useState<boolean>((): boolean => {
     return readIdentityNudgeDismissed(props.rumApplicationId);
   });
@@ -122,11 +125,17 @@ const SessionReplayIdentityNudge: FunctionComponent<
     return <></>;
   }
 
-  const body: string = `Call OneUptimeReplay.identify() when your page knows who is signed in, and sessions group by person here and in the player. Until then, sessions from the same browser are grouped by visitor id.${
-    props.hasVisitorIds
-      ? ""
-      : " These recordings carry no visitor id yet; the current recorder adds one automatically."
-  }`;
+  /*
+   * One whole text for each: with the note that the recordings carry no
+   * visitor id, and without it.
+   */
+  const body: string | undefined = props.hasVisitorIds
+    ? translator.translateText(
+        "Call OneUptimeReplay.identify() when your page knows who is signed in, and sessions group by person here and in the player. Until then, sessions from the same browser are grouped by visitor id.",
+      )
+    : translator.translateText(
+        "Call OneUptimeReplay.identify() when your page knows who is signed in, and sessions group by person here and in the player. Until then, sessions from the same browser are grouped by visitor id. These recordings carry no visitor id yet; the current recorder adds one automatically.",
+      );
 
   return (
     <div
@@ -140,7 +149,9 @@ const SessionReplayIdentityNudge: FunctionComponent<
       />
       <div className="min-w-0 flex-1">
         <strong className="font-semibold">
-          No session here is linked to a signed-in user.
+          {translator.translateText(
+            "No session here is linked to a signed-in user.",
+          )}
         </strong>{" "}
         <span className="text-indigo-900/80">{body}</span>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -157,7 +168,7 @@ const SessionReplayIdentityNudge: FunctionComponent<
               );
             }}
           >
-            How to identify users
+            {translator.translateText("How to identify users")}
           </button>
           <button
             type="button"
@@ -165,14 +176,14 @@ const SessionReplayIdentityNudge: FunctionComponent<
             data-testid="session-identity-nudge-users"
             onClick={props.onShowUsers}
           >
-            See users
+            {translator.translateText("See users")}
           </button>
         </div>
       </div>
       <button
         type="button"
         className="-m-1 flex-none rounded p-1 text-indigo-400 hover:bg-indigo-100 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        aria-label="Dismiss"
+        aria-label={translator.translateText("Dismiss")}
         data-testid="session-identity-nudge-dismiss"
         onClick={(): void => {
           writeIdentityNudgeDismissed(props.rumApplicationId);

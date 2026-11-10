@@ -133,6 +133,8 @@ describe("buildTrackBands", () => {
       startMs: 15000,
       endMs: 45000,
       label: "18s missing",
+      /* The length the label states: missingMs, not the visible hole. */
+      lengthMs: 18000,
     });
   });
 
@@ -176,6 +178,7 @@ describe("buildTrackBands", () => {
         startMs: 10000,
         endMs: 52000,
         label: "42s idle",
+        lengthMs: 42000,
         fidelity: "exact",
       },
       {
@@ -183,6 +186,7 @@ describe("buildTrackBands", () => {
         startMs: 55000,
         endMs: 60000,
         label: "tab in background 5s",
+        lengthMs: 5000,
         fidelity: "coarse",
       },
     ]);
@@ -208,6 +212,7 @@ describe("buildTrackBands", () => {
         startMs: 10000,
         endMs: 30000,
         label: "20s idle",
+        lengthMs: 20000,
         fidelity: "exact",
       },
       {
@@ -215,6 +220,7 @@ describe("buildTrackBands", () => {
         startMs: 30000,
         endMs: 90000,
         label: "1m paused",
+        lengthMs: 60000,
         fidelity: "exact",
       },
       {
@@ -222,6 +228,7 @@ describe("buildTrackBands", () => {
         startMs: 590000,
         endMs: DURATION_MS,
         label: "10s paused",
+        lengthMs: DURATION_MS - 590000,
         fidelity: "exact",
       },
     ]);
@@ -259,6 +266,7 @@ describe("buildTrackBands", () => {
         startMs: 30000,
         endMs: 90000,
         label: "1m paused",
+        lengthMs: 60000,
         fidelity: "exact",
       },
     ]);

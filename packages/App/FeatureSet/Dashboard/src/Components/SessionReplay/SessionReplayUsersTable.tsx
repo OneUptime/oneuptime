@@ -12,7 +12,6 @@ import Route from "Common/Types/API/Route";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
 import IconProp from "Common/Types/Icon/IconProp";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -34,11 +33,18 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Navigation from "Common/UI/Utils/Navigation";
+import {
+  composedValue,
+  formatInline,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   describeSessionReplayListError,
   SessionReplayListErrorCopy,
+  SessionReplayListFailure,
 } from "./SessionReplayEmptyReason";
 import {
   SessionReplayAdvancedFilters,
@@ -116,10 +122,13 @@ interface UserRowContext {
   timeRange: RangeStartAndEndDateTime;
   nowUnixMs: number;
   onViewUserSessions: (handoff: SessionReplayUserSessionsHandoff) => void;
+  // The reader's: every word a row draws is looked up with it.
+  translator: Translator;
 }
 
-function plural(count: number, singular: string): string {
-  return count === 1 ? singular : `${singular}s`;
+// A fixed line in the translator's language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
 }
 
 function routeForSession(
@@ -140,13 +149,34 @@ function routeForSession(
   }
 }
 
-function describeRow(row: SessionReplayUserRollup): SessionUserDescription {
-  return describeUserRollup({
-    kind: row.kind,
-    identifiedUserKey: row.identifiedUserKey,
-    visitorId: row.visitorId,
-    identifiedUserLabel: row.identifiedUserLabel,
-    isIdentityVisible: row.isIdentityVisible,
+function describeRow(
+  row: SessionReplayUserRollup,
+  translator?: Translator,
+): SessionUserDescription {
+  return describeUserRollup(
+    {
+      kind: row.kind,
+      identifiedUserKey: row.identifiedUserKey,
+      visitorId: row.visitorId,
+      identifiedUserLabel: row.identifiedUserLabel,
+      isIdentityVisible: row.isIdentityVisible,
+    },
+    translator,
+  );
+}
+
+/*
+ * "List every session from Visitor 7f3a2b": the person in the sentence's
+ * language, as their cell names them.
+ */
+function describeListEverySession(
+  row: SessionReplayUserRollup,
+  translator: Translator,
+): string {
+  return translator.translateTemplate("List every session from {{user}}", {
+    user: composedValue((sentence: Translator): string => {
+      return describeRow(row, sentence).text;
+    }),
   });
 }
 
@@ -240,7 +270,8 @@ function getUserRollupCells(
   row: SessionReplayUserRollup,
   context: UserRowContext,
 ): Array<ReactElement> {
-  const user: SessionUserDescription = describeRow(row);
+  const translator: Translator = context.translator;
+  const user: SessionUserDescription = describeRow(row, translator);
   const isUnlinkedBucket: boolean = row.kind === "anonymous";
   const watchRoute: Route | null = routeForSession(
     context.rumApplicationId,
@@ -265,13 +296,21 @@ function getUserRollupCells(
    * says which one they used last.
    */
   const subline: string = isUnlinkedBucket
-    ? "Recorded by a recorder that sent no visitor id"
-    : [
-        deviceParts.length > 0 ? deviceParts.join(" · ") : "Unknown device",
-        traitCount > 0 ? `${traitCount} ${plural(traitCount, "trait")}` : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
+    ? translateLine("Recorded by a recorder that sent no visitor id", translator)
+    : formatInline(
+        [
+          deviceParts.length > 0
+            ? formatInline(deviceParts, translator)
+            : translateLine("Unknown device", translator),
+          traitCount > 0
+            ? translator.translatePlural(
+                { one: "{{count}} trait", other: "{{count}} traits" },
+                traitCount,
+              )
+            : "",
+        ].filter(Boolean),
+        translator,
+      );
 
   const nameClassName: string = isUnlinkedBucket
     ? "font-medium text-gray-700"
@@ -293,10 +332,16 @@ function getUserRollupCells(
       <span
         key="errors"
         className="inline-flex"
-        title={`in ${row.errorSessionCount} ${plural(row.errorSessionCount, "session")}`}
+        title={translator.translatePlural(
+          { one: "in {{count}} session", other: "in {{count}} sessions" },
+          row.errorSessionCount,
+        )}
       >
         <StatusBadge
-          text={`${row.errorCount} ${plural(row.errorCount, "error")}`}
+          text={translator.translatePlural(
+            { one: "{{count}} error", other: "{{count}} errors" },
+            row.errorCount,
+          )}
           type={StatusBadgeType.Danger}
         />
       </span>,
@@ -307,7 +352,10 @@ function getUserRollupCells(
     signalBadges.push(
       <span key="frustration" className="inline-flex">
         <StatusBadge
-          text={`${row.frustrationCount} frustration`}
+          text={translator.translatePlural(
+            { one: "{{count}} frustration", other: "{{count}} frustration" },
+            row.frustrationCount,
+          )}
           type={StatusBadgeType.Warning}
         />
       </span>,
@@ -335,7 +383,9 @@ function getUserRollupCells(
             data-user-kind={user.kind}
             title={isUnlinkedBucket ? undefined : user.title}
           >
-            {isUnlinkedBucket ? "Unlinked sessions" : user.text}
+            {isUnlinkedBucket
+              ? translateLine("Unlinked sessions", translator)
+              : user.text}
           </div>
           <div className="mt-0.5 truncate text-xs text-gray-500">{subline}</div>
         </div>
@@ -358,11 +408,14 @@ function getUserRollupCells(
         data-testid="session-user-first-seen"
       >
         {row.liveSessionCount > 0
-          ? `${row.liveSessionCount} live`
+          ? translator.translatePlural(
+              { one: "{{count}} live", other: "{{count}} live" },
+              row.liveSessionCount,
+            )
           : firstSeen
-            ? // In English, as this table's other words still are.
-              inEnglishDates((): string => {
-                return `first seen ${OneUptimeDate.fromNow(firstSeen)}`;
+            ? // The time follows the sentence's language.
+              translator.translateTemplate("first seen {{time}}", {
+                time: OneUptimeDate.fromNow(firstSeen),
               })
             : ""}
       </div>
@@ -390,14 +443,19 @@ function getUserRollupCells(
         {formatSessionDuration(row.totalDurationMs)}
       </div>
       <div className="text-xs text-gray-500">
-        {row.pageCount} {plural(row.pageCount, "page")}
+        {translator.translatePlural(
+          { one: "{{count}} page", other: "{{count}} pages" },
+          row.pageCount,
+        )}
       </div>
     </div>,
     <div key="4">
       {signalBadges.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">{signalBadges}</div>
       ) : (
-        <span className="text-sm text-gray-500">Clean</span>
+        <span className="text-sm text-gray-500">
+          {translateLine("Clean", translator)}
+        </span>
       )}
     </div>,
     /*
@@ -411,7 +469,7 @@ function getUserRollupCells(
         <button
           type="button"
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
-          title={`List every session from ${user.text}`}
+          title={describeListEverySession(row, translator)}
           data-testid="session-user-view-sessions"
           onClick={(): void => {
             context.onViewUserSessions(
@@ -423,16 +481,21 @@ function getUserRollupCells(
           }}
         >
           <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
-          Sessions
+          {translateLine("Sessions", translator)}
         </button>
       ) : watchRoute ? (
         <Link
           to={watchRoute}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
-          title={`Watch the newest session (${row.lastSessionId.slice(0, 8)})`}
+          title={translator.translateTemplate(
+            "Watch the newest session ({{id}})",
+            { id: row.lastSessionId.slice(0, 8) },
+          )}
         >
           <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
-          <span data-testid="session-user-watch-latest">Watch latest</span>
+          <span data-testid="session-user-watch-latest">
+            {translateLine("Watch latest", translator)}
+          </span>
         </Link>
       ) : (
         <></>
@@ -445,7 +508,7 @@ function getUserRollupRowProps(
   row: SessionReplayUserRollup,
   context: UserRowContext,
 ): React.HTMLAttributes<HTMLElement> {
-  const user: SessionUserDescription = describeRow(row);
+  const user: SessionUserDescription = describeRow(row, context.translator);
   const filter: Partial<SessionReplayAdvancedFilters> | null = user.filter;
 
   const activate: (event: React.MouseEvent | React.KeyboardEvent) => void = (
@@ -493,7 +556,9 @@ function getUserRollupRowProps(
       ? "group cursor-pointer transition-colors hover:bg-gray-50 focus-within:bg-indigo-50/40 focus-visible:outline-indigo-600"
       : "",
     tabIndex: filter ? 0 : undefined,
-    "aria-label": filter ? `List every session from ${user.text}` : undefined,
+    "aria-label": filter
+      ? describeListEverySession(row, context.translator)
+      : undefined,
     onClick: activate,
     onKeyDown: (event: React.KeyboardEvent<HTMLElement>): void => {
       if (event.key === "Enter" && event.target === event.currentTarget) {
@@ -579,10 +644,15 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
 const SessionReplayUsersTable: FunctionComponent<
   SessionReplayUsersTableProps
 > = (props: SessionReplayUsersTableProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rows, setRows] = useState<Array<SessionReplayUserRollup>>([]);
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<SessionReplayListErrorCopy | null>(null);
+  /*
+   * What failed, as the server said it; worded when it is drawn, so the
+   * words follow the reader's language.
+   */
+  const [error, setError] = useState<SessionReplayListFailure | null>(null);
   const [nowUnixMs, setNowUnixMs] = useState<number>((): number => {
     return Date.now();
   });
@@ -658,12 +728,11 @@ const SessionReplayUsersTable: FunctionComponent<
         setHasMore(result.nextCursor !== null);
       } catch (err) {
         if (generation === loadGenerationRef.current) {
-          setError(
-            describeSessionReplayListError(
-              API.getFriendlyMessage(err),
+          setError({
+            message: API.getFriendlyMessage(err),
+            statusCode:
               err instanceof HTTPErrorResponse ? err.statusCode : undefined,
-            ),
-          );
+          });
         }
       } finally {
         if (generation === loadGenerationRef.current) {
@@ -695,12 +764,14 @@ const SessionReplayUsersTable: FunctionComponent<
       timeRange: props.timeRange,
       nowUnixMs: nowUnixMs,
       onViewUserSessions: props.onViewUserSessions,
+      translator: translator,
     };
   }, [
     props.rumApplicationId,
     props.timeRange,
     nowUnixMs,
     props.onViewUserSessions,
+    translator.language,
   ]);
 
   const tableRows: Array<SessionReplayUsersTableRow> =
@@ -725,15 +796,22 @@ const SessionReplayUsersTable: FunctionComponent<
     }, [rows, context]);
 
   if (error) {
+    const errorCopy: SessionReplayListErrorCopy =
+      describeSessionReplayListError(
+        error.message,
+        error.statusCode,
+        translator,
+      );
+
     return (
       <div
         role="alert"
         data-testid="session-users-error"
-        data-kind={error.kind}
+        data-kind={errorCopy.kind}
         className="rounded-xl border border-red-200 bg-red-50 p-4"
       >
-        <p className="text-sm font-semibold text-red-800">{error.title}</p>
-        <p className="mt-1 text-sm text-red-700">{error.detail}</p>
+        <p className="text-sm font-semibold text-red-800">{errorCopy.title}</p>
+        <p className="mt-1 text-sm text-red-700">{errorCopy.detail}</p>
         {/*
          * Button's own left margin (md:ml-3, a dialog footer's) put Retry
          * 12px right of the words above it.
@@ -795,13 +873,20 @@ const SessionReplayUsersTable: FunctionComponent<
               />
               <h3 className="mt-3 text-sm font-semibold text-gray-900">
                 {pageNumber > 1
-                  ? "No more users"
-                  : "No sessions in this range, so nobody to show yet."}
+                  ? translator.translateText("No more users")
+                  : translator.translateText(
+                      "No sessions in this range, so nobody to show yet.",
+                    )}
               </h3>
               <p className="mt-1 text-sm text-gray-500">
                 {pageNumber > 1
-                  ? `Page ${pageNumber} is past the end of this list.`
-                  : "Widen the time range above to see who was recorded earlier, or check the recording health strip if you expected sessions here."}
+                  ? translator.translateTemplate(
+                      "Page {{page}} is past the end of this list.",
+                      { page: translator.formatNumber(pageNumber) },
+                    )
+                  : translator.translateText(
+                      "Widen the time range above to see who was recorded earlier, or check the recording health strip if you expected sessions here.",
+                    )}
               </p>
               {pageNumber > 1 && (
                 <div className="mt-5">

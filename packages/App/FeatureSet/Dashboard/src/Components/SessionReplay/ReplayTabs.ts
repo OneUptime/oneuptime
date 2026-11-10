@@ -1,9 +1,17 @@
 import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatInline,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import {
   SessionReplayManifestChunk,
   SessionReplayManifestTab,
   tabHasFootage,
 } from "./ReplayManifest";
-import { formatReplayDuration, formatReplayOffset } from "./ReplayTimeFormat";
+import { formatReplayOffset } from "./ReplayTimeFormat";
+import { formatReplayDurationInLanguage } from "./ReplayTimelineMath";
 
 /*
  * The browser tabs of one recording, as a pure model.
@@ -17,7 +25,14 @@ import { formatReplayDuration, formatReplayOffset } from "./ReplayTimeFormat";
  * short strip for a long list, the filter and the span bar - is decided
  * here, so it is testable in a node environment and the component only
  * renders.
+ *
+ * Every describer writes in the reader's language when the caller hands
+ * its Translator in (the switcher passes useTranslator()), and in English,
+ * word for word, without one. A tab's name is worded from its ordinal
+ * where it is drawn (describeReplayTabName).
  */
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
  * open     the tab is still recording (the server says it has not sent
@@ -30,7 +45,12 @@ export type ReplayTabStatus = "open" | "closed" | "unknown" | "empty";
 
 export interface ReplayTabSummary {
   tabId: string;
-  /* "Tab N", in the order the end user opened them. */
+  /*
+   * "Tab N", in the order the end user opened them, in the language
+   * summarizeReplayTabs was handed. The switcher draws a tab's name with
+   * describeReplayTabName, which words it again from `ordinal`, so a
+   * sentence and the name inside it are always in one language.
+   */
   label: string;
   durationMs: number;
   /* Session-clock offset of the tab's first footage; null when unknown. */
@@ -38,6 +58,11 @@ export interface ReplayTabSummary {
   hasFootage: boolean;
   isActive: boolean;
   /* Everything below is optional so existing ReplayHeaderTab literals stay valid. */
+  /*
+   * N of "Tab N": 1 for the first tab the end user opened. Absent on a
+   * summary built by hand, whose label is then drawn as given.
+   */
+  ordinal?: number | undefined;
   /* Absent reads as "unknown" (or "empty" without footage); see getReplayTabStatus. */
   status?: ReplayTabStatus | undefined;
   /* Session-clock offset of the tab's last footage (its last chunk's end). */
@@ -77,7 +102,33 @@ export const REPLAY_TAB_SPAN_MIN_WIDTH_PERCENT: number = 2;
 /* Past this many characters a query string is cut, so one tab cannot claim a row. */
 export const REPLAY_TAB_PAGE_MAX_SEARCH_LENGTH: number = 40;
 
-export const REPLAY_TAB_UNKNOWN_PAGE: string = "Unknown page";
+/*
+ * What describeReplayTabPage answers for a tab with no url. An English key:
+ * compare against it, and look it up where it is drawn.
+ */
+export const REPLAY_TAB_UNKNOWN_PAGE: string = translationKey("Unknown page");
+
+/* "Tab 3": the name of the third tab the end user opened. */
+function nameReplayTab(ordinal: number, translator: Translator): string {
+  return translator.translateTemplate("Tab {{number}}", { number: ordinal });
+}
+
+/*
+ * A tab's name as it is drawn: "Tab 3" in the translator's language, from
+ * the tab's ordinal, whatever language its label was written in; a summary
+ * without one keeps the label it was given. Inside a sentence pass it as a
+ * composedValue, so it is in the sentence's language.
+ */
+export function describeReplayTabName(
+  tab: ReplayTabSummary,
+  translator: Translator = ENGLISH,
+): string {
+  if (typeof tab.ordinal !== "number" || !Number.isFinite(tab.ordinal)) {
+    return tab.label;
+  }
+
+  return nameReplayTab(tab.ordinal, translator);
+}
 
 /*
  * Status of one tab. The session-level facts win over the per-tab flag:
@@ -147,13 +198,17 @@ function readChunkUrl(chunk: SessionReplayManifestChunk): string {
  * Builds summaries in opened order from the parsed manifest. manifest.tabs
  * is already in opened order (parseManifest sorts it), so "Tab N" follows
  * that order - the same labels the stage, the rail and shared links use.
+ * The labels are in the translator's language: the player passes its own.
  */
-export function summarizeReplayTabs(args: {
-  tabs: Array<SessionReplayManifestTab>;
-  activeTabId: string | null;
-  isSessionFinalized: boolean;
-  hasSessionRecordingEnded: boolean;
-}): Array<ReplayTabSummary> {
+export function summarizeReplayTabs(
+  args: {
+    tabs: Array<SessionReplayManifestTab>;
+    activeTabId: string | null;
+    isSessionFinalized: boolean;
+    hasSessionRecordingEnded: boolean;
+  },
+  translator: Translator = ENGLISH,
+): Array<ReplayTabSummary> {
   return args.tabs.map(
     (tab: SessionReplayManifestTab, index: number): ReplayTabSummary => {
       const hasFootage: boolean = tabHasFootage(tab);
@@ -173,7 +228,8 @@ export function summarizeReplayTabs(args: {
 
       return {
         tabId: tab.tabId,
-        label: `Tab ${index + 1}`,
+        label: nameReplayTab(index + 1, translator),
+        ordinal: index + 1,
         durationMs: tab.durationMs,
         openedAtMs: tab.firstChunkStartOffsetMs,
         hasFootage: hasFootage,
@@ -343,36 +399,56 @@ export function countReplayTabs(
   return counts;
 }
 
-function pluralize(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
 /*
  * "3 tabs · 1 open · 2 closed · 1 without footage" (zero parts omitted).
  * The open part counts the unknown tabs too, so it always matches the
  * picker's "Open · N" heading, which groups them together. When no tab is
  * known to be open (a finished session, or an older server that cannot
  * say) the breakdown would only restate the total, so it is just "3 tabs".
+ * Each count in the translator's plural, set off the way its language
+ * sets facts off on one line (formatInline).
  */
-export function describeReplayTabCounts(tabs: Array<ReplayTabSummary>): string {
+export function describeReplayTabCounts(
+  tabs: Array<ReplayTabSummary>,
+  translator: Translator = ENGLISH,
+): string {
   const counts: ReplayTabCounts = countReplayTabs(tabs);
-  const total: string = pluralize(counts.total, "tab", "tabs");
+  const total: string = translator.translatePlural(
+    { one: "{{count}} tab", other: "{{count}} tabs" },
+    counts.total,
+  );
 
   if (counts.open === 0) {
     return total;
   }
 
-  const parts: Array<string> = [total, `${counts.open + counts.unknown} open`];
+  const parts: Array<string> = [
+    total,
+    translator.translatePlural(
+      { one: "{{count}} open", other: "{{count}} open" },
+      counts.open + counts.unknown,
+    ),
+  ];
 
   if (counts.closed > 0) {
-    parts.push(`${counts.closed} closed`);
+    parts.push(
+      translator.translatePlural(
+        { one: "{{count}} closed", other: "{{count}} closed" },
+        counts.closed,
+      ),
+    );
   }
 
   if (counts.empty > 0) {
-    parts.push(`${counts.empty} without footage`);
+    parts.push(
+      translator.translatePlural(
+        { one: "{{count}} without footage", other: "{{count}} without footage" },
+        counts.empty,
+      ),
+    );
   }
 
-  return parts.join(" · ");
+  return formatInline(parts, translator);
 }
 
 function decodeSafely(value: string): string {
@@ -431,14 +507,15 @@ function readTabOrdinal(label: string): number | null {
 
 /*
  * The picker's search. Case-insensitive substring match on the label
- * ("tab 3"), the first and last url; a query of digits (optionally "#3")
- * also matches the tab with that ordinal. A blank query keeps every tab.
- * Input order is kept, so the caller decides whether it filters a display
- * order or the opened order.
+ * ("tab 3"), the name the reader sees in their language, the first and
+ * last url; a query of digits (optionally "#3") also matches the tab with
+ * that ordinal. A blank query keeps every tab. Input order is kept, so the
+ * caller decides whether it filters a display order or the opened order.
  */
 export function filterReplayTabs(
   tabs: Array<ReplayTabSummary>,
   query: string,
+  translator: Translator = ENGLISH,
 ): Array<ReplayTabSummary> {
   const needle: string = (typeof query === "string" ? query : "")
     .trim()
@@ -453,12 +530,16 @@ export function filterReplayTabs(
     ordinalQuery && ordinalQuery[1] ? Number(ordinalQuery[1]) : null;
 
   return tabs.filter((tab: ReplayTabSummary): boolean => {
-    if (ordinal !== null && readTabOrdinal(tab.label) === ordinal) {
+    const tabOrdinal: number | null =
+      typeof tab.ordinal === "number" ? tab.ordinal : readTabOrdinal(tab.label);
+
+    if (ordinal !== null && tabOrdinal === ordinal) {
       return true;
     }
 
     const haystacks: Array<string> = [
       tab.label,
+      describeReplayTabName(tab, translator),
       tab.firstUrl ?? "",
       tab.lastUrl ?? "",
     ];
@@ -648,33 +729,47 @@ export interface ReplayTabLabelOptions {
  * tab duplicated at load), where "(opened 0:00)" said nothing a viewer
  * could use and cost the width of a whole extra pill.
  */
-export function describeReplayTabOpened(tab: ReplayTabSummary): string | null {
+export function describeReplayTabOpened(
+  tab: ReplayTabSummary,
+  translator: Translator = ENGLISH,
+): string | null {
   if (!tab.hasFootage || tab.openedAtMs === null || tab.openedAtMs < 1000) {
     return null;
   }
 
-  return `opened ${formatReplayOffset(tab.openedAtMs)}`;
+  return translator.translateTemplate("opened {{time}}", {
+    time: formatReplayOffset(tab.openedAtMs),
+  });
 }
 
-/* "Tab 2 · 30s · (opened 2:14)", or "Tab 2 · 30s" in a compact strip. */
+/*
+ * "Tab 2 · 30s · (opened 2:14)", or "Tab 2 · 30s" in a compact strip, in
+ * the translator's language.
+ */
 export function formatReplayTabLabel(
   tab: ReplayTabSummary,
   options?: ReplayTabLabelOptions,
+  translator: Translator = ENGLISH,
 ): string {
+  const name: string = describeReplayTabName(tab, translator);
+
   if (!tab.hasFootage) {
-    return `${tab.label} · no footage`;
+    return formatInline(
+      [name, translator.translateText("no footage") || "no footage"],
+      translator,
+    );
   }
 
   const parts: Array<string> = [
-    tab.label,
-    formatReplayDuration(tab.durationMs),
+    name,
+    formatReplayDurationInLanguage(tab.durationMs, translator),
   ];
 
-  const opened: string | null = describeReplayTabOpened(tab);
+  const opened: string | null = describeReplayTabOpened(tab, translator);
 
   if (opened !== null && !options?.isCompact) {
     parts.push(`(${opened})`);
   }
 
-  return parts.join(" · ");
+  return formatInline(parts, translator);
 }

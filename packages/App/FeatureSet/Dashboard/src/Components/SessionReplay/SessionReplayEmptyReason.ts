@@ -11,6 +11,14 @@ import {
 } from "Common/Utils/Rum/SessionReplayHealth";
 import { SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS } from "Common/Types/Rum/SessionReplay";
 import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import {
   hasAnyAdvancedFilter,
   SessionReplayAdvancedFilters,
 } from "./SessionReplayListFilters";
@@ -40,6 +48,13 @@ import {
  * Page > 1 never shows setup: an empty page 3 means the list ran out. A
  * loading list shows skeleton rows (the table's job) and an error shows
  * the error (describeSessionReplayListError), so neither reaches here.
+ *
+ * Every sentence is in the language of the translator handed in (the
+ * empty state passes useTranslator()), and in English, word for word as
+ * it always was, without one. The recording health's own words - a
+ * diagnosis's title, detail and action, which some answers pass on - are
+ * the diagnosis's (Common/Utils/Rum/SessionReplayHealth.ts), as it wrote
+ * them.
  */
 
 export type SessionReplayEmptyVariant =
@@ -109,24 +124,46 @@ const RANGE_WINDOW_MS: Partial<Record<TimeRange, number>> = {
   [TimeRange.PAST_THREE_MONTHS]: 90 * DAY_MS,
 };
 
+/*
+ * The window as the empty state's sentences name it. Each is a key of the
+ * Dashboard's locales, and goes into those sentences as a composed value
+ * (describeTimeRange with the sentence's translator), so it is in the
+ * sentence's language.
+ */
 const RANGE_LABELS: Partial<Record<TimeRange, string>> = {
-  [TimeRange.PAST_FIVE_MINS]: "the past 5 minutes",
-  [TimeRange.PAST_FIFTEEN_MINS]: "the past 15 minutes",
-  [TimeRange.PAST_THIRTY_MINS]: "the past 30 minutes",
-  [TimeRange.PAST_ONE_HOUR]: "the past hour",
-  [TimeRange.PAST_TWO_HOURS]: "the past 2 hours",
-  [TimeRange.PAST_THREE_HOURS]: "the past 3 hours",
-  [TimeRange.PAST_ONE_DAY]: "the past 24 hours",
-  [TimeRange.PAST_TWO_DAYS]: "the past 2 days",
-  [TimeRange.PAST_ONE_WEEK]: "the past 7 days",
-  [TimeRange.PAST_TWO_WEEKS]: "the past 14 days",
-  [TimeRange.PAST_ONE_MONTH]: "the past month",
-  [TimeRange.PAST_THREE_MONTHS]: "the past 3 months",
+  [TimeRange.PAST_FIVE_MINS]: translationKey("the past 5 minutes"),
+  [TimeRange.PAST_FIFTEEN_MINS]: translationKey("the past 15 minutes"),
+  [TimeRange.PAST_THIRTY_MINS]: translationKey("the past 30 minutes"),
+  [TimeRange.PAST_ONE_HOUR]: translationKey("the past hour"),
+  [TimeRange.PAST_TWO_HOURS]: translationKey("the past 2 hours"),
+  [TimeRange.PAST_THREE_HOURS]: translationKey("the past 3 hours"),
+  [TimeRange.PAST_ONE_DAY]: translationKey("the past 24 hours"),
+  [TimeRange.PAST_TWO_DAYS]: translationKey("the past 2 days"),
+  [TimeRange.PAST_ONE_WEEK]: translationKey("the past 7 days"),
+  [TimeRange.PAST_TWO_WEEKS]: translationKey("the past 14 days"),
+  [TimeRange.PAST_ONE_MONTH]: translationKey("the past month"),
+  [TimeRange.PAST_THREE_MONTHS]: translationKey("the past 3 months"),
 };
 
+const CUSTOM_RANGE_LABEL: string = translationKey("this window");
+
+// English, word for word, for a caller that hands in no translator.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed sentence in the translator's language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
 /* "the past 24 hours", "this window" for a custom range. */
-export function describeTimeRange(timeRange: RangeStartAndEndDateTime): string {
-  return RANGE_LABELS[timeRange.range] ?? "this window";
+export function describeTimeRange(
+  timeRange: RangeStartAndEndDateTime,
+  translator: Translator = ENGLISH,
+): string {
+  return translateLine(
+    RANGE_LABELS[timeRange.range] ?? CUSTOM_RANGE_LABEL,
+    translator,
+  );
 }
 
 /* The window's length in ms; null when a custom range has no dates. */
@@ -195,6 +232,7 @@ function healthAction(
 
 export function getEmptyReason(
   context: SessionReplayEmptyContext,
+  translator: Translator = ENGLISH,
 ): SessionReplayEmptyReason | null {
   if (context.isLoading || context.error || context.rowCount > 0) {
     return null;
@@ -203,9 +241,15 @@ export function getEmptyReason(
   if (context.page > 1) {
     return {
       variant: "end-of-list",
-      title: "No more sessions",
-      detail: `Page ${context.page} is past the end of this list.`,
-      action: { kind: "previous-page", label: "Back to the previous page" },
+      title: translateLine("No more sessions", translator),
+      detail: translator.translateTemplate(
+        "Page {{page}} is past the end of this list.",
+        { page: translator.formatNumber(context.page) },
+      ),
+      action: {
+        kind: "previous-page",
+        label: translateLine("Back to the previous page", translator),
+      },
 
       showChips: false,
     };
@@ -213,7 +257,12 @@ export function getEmptyReason(
 
   const hasFilters: boolean =
     context.signal !== "all" || hasAnyAdvancedFilter(context.advanced);
-  const rangeLabel: string = describeTimeRange(context.timeRange);
+  // The window, in the language of the sentence it goes into.
+  const range: ComposedValue = composedValue(
+    (sentence: Translator): string => {
+      return describeTimeRange(context.timeRange, sentence);
+    },
+  );
   const diagnosis: RecordingHealthDiagnosis | null =
     context.health?.status && context.health.diagnosis
       ? context.health.diagnosis
@@ -252,9 +301,11 @@ export function getEmptyReason(
       case "never-loaded":
         return {
           variant: "never-installed",
-          title: "No recordings yet",
-          detail:
+          title: translateLine("No recordings yet", translator),
+          detail: translateLine(
             "Set up the recorder to see how visitors use your application.",
+            translator,
+          ),
           action: healthAction(diagnosis),
 
           showChips: false,
@@ -274,16 +325,32 @@ export function getEmptyReason(
   }
 
   if (hasFilters) {
-    const quietCopy: string =
+    /*
+     * A quiet recorder says so after the advice, in the diagnosis's own
+     * words: one sentence with and one without it.
+     */
+    const detail: string =
       diagnosis && diagnosis.state === "healthy-quiet"
-        ? ` ${diagnosis.title}.`
-        : "";
+        ? translator.translateTemplate(
+            "Remove a filter, widen the range, or clear everything. {{health}}.",
+            { health: diagnosis.title },
+          )
+        : translateLine(
+            "Remove a filter, widen the range, or clear everything.",
+            translator,
+          );
 
     return {
       variant: "filters-match-nothing",
-      title: `No sessions match these filters in ${rangeLabel}`,
-      detail: `Remove a filter, widen the range, or clear everything.${quietCopy}`,
-      action: { kind: "clear-filters", label: "Clear filters" },
+      title: translator.translateTemplate(
+        "No sessions match these filters in {{range}}",
+        { range: range },
+      ),
+      detail: detail,
+      action: {
+        kind: "clear-filters",
+        label: translateLine("Clear filters", translator),
+      },
 
       showChips: true,
     };
@@ -307,9 +374,26 @@ export function getEmptyReason(
      */
     return {
       variant: "no-sessions-in-range",
-      title: `No sessions listed for ${rangeLabel} yet`,
-      detail: `The recorder reported a session ${formatRelativeAge(lastSessionUnixMs as number, context.nowUnixMs)}, inside this window. The list can lag the first chunk by a few seconds; reload in a moment.`,
-      action: { kind: "refresh", label: "Reload the list" },
+      title: translator.translateTemplate(
+        "No sessions listed for {{range}} yet",
+        { range: range },
+      ),
+      detail: translator.translateTemplate(
+        "The recorder reported a session {{age}}, inside this window. The list can lag the first chunk by a few seconds; reload in a moment.",
+        {
+          age: composedValue((sentence: Translator): string => {
+            return formatRelativeAge(
+              lastSessionUnixMs as number,
+              context.nowUnixMs,
+              sentence,
+            );
+          }),
+        },
+      ),
+      action: {
+        kind: "refresh",
+        label: translateLine("Reload the list", translator),
+      },
 
       showChips: false,
     };
@@ -319,31 +403,74 @@ export function getEmptyReason(
     ageMs,
     context.timeRange,
   );
-  const recentCopy: string =
-    lastSessionUnixMs === null
-      ? status
-        ? "The recorder has never reported a session start."
-        : "When the last session started is unknown until the recording health loads."
-      : `The most recent started ${formatRelativeAge(lastSessionUnixMs, context.nowUnixMs)}.`;
 
   return {
     variant: "no-sessions-in-range",
-    title: `No sessions in ${rangeLabel}`,
-    detail: `${recentCopy}${
-      diagnosis && diagnosis.state === "healthy"
-        ? " Recording is healthy; this looks like quiet traffic."
-        : ""
-    }`,
+    title: translator.translateTemplate("No sessions in {{range}}", {
+      range: range,
+    }),
+    detail: describeQuietWindow(
+      lastSessionUnixMs,
+      status !== null,
+      Boolean(diagnosis && diagnosis.state === "healthy"),
+      context.nowUnixMs,
+      translator,
+    ),
     action: wider
       ? {
           kind: "set-range",
-          label: `Show ${describeTimeRange(wider)}`,
+          label: translator.translateTemplate("Show {{range}}", {
+            range: composedValue((sentence: Translator): string => {
+              return describeTimeRange(wider, sentence);
+            }),
+          }),
           range: wider,
         }
       : null,
 
     showChips: false,
   };
+}
+
+/*
+ * When the most recent session started, and - when the recording is
+ * healthy - that this is quiet traffic: one whole sentence for each. A
+ * healthy recording always has a last chunk, and so a last session, so
+ * the two sentences without a time never take the note.
+ */
+function describeQuietWindow(
+  lastSessionUnixMs: number | null,
+  hasStatus: boolean,
+  isHealthy: boolean,
+  nowUnixMs: number,
+  translator: Translator,
+): string {
+  if (lastSessionUnixMs === null) {
+    return hasStatus
+      ? translateLine(
+          "The recorder has never reported a session start.",
+          translator,
+        )
+      : translateLine(
+          "When the last session started is unknown until the recording health loads.",
+          translator,
+        );
+  }
+
+  const age: ComposedValue = composedValue(
+    (sentence: Translator): string => {
+      return formatRelativeAge(lastSessionUnixMs, nowUnixMs, sentence);
+    },
+  );
+
+  return isHealthy
+    ? translator.translateTemplate(
+        "The most recent started {{age}}. Recording is healthy; this looks like quiet traffic.",
+        { age: age },
+      )
+    : translator.translateTemplate("The most recent started {{age}}.", {
+        age: age,
+      });
 }
 
 /* ---- Errors ---- */
@@ -367,6 +494,16 @@ export interface SessionReplayListErrorCopy {
 }
 
 /*
+ * A failed list request as the server answered it. A list keeps this in
+ * its state and words it (describeSessionReplayListError) where it draws
+ * it, so the words follow the reader's language.
+ */
+export interface SessionReplayListFailure {
+  message: string;
+  statusCode?: number | undefined;
+}
+
+/*
  * The list request failed. The two 400s the search can trip are mapped to
  * their fix rather than to "no sessions"; a permission or plan answer
  * says which; everything else keeps the server's own sentence.
@@ -374,50 +511,79 @@ export interface SessionReplayListErrorCopy {
 export function describeSessionReplayListError(
   message: string,
   statusCode?: number | undefined,
+  translator: Translator = ENGLISH,
 ): SessionReplayListErrorCopy {
+  // The server's own sentence, as it wrote it.
   const text: string = message || "";
 
   if (NARROW_RANGE_PATTERN.test(text)) {
     return {
       kind: "narrow-range",
-      title: `Search covers at most ${SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS} days at a time`,
-      detail:
+      title: translator.translatePlural(
+        {
+          one: "Search covers at most {{count}} day at a time",
+          other: "Search covers at most {{count}} days at a time",
+        },
+        SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS,
+      ),
+      detail: translateLine(
         "Narrow the time range to search it, or clear the search text to list sessions without searching.",
+        translator,
+      ),
     };
   }
 
   if (statusCode === 504 || statusCode === 408 || TIMEOUT_PATTERN.test(text)) {
     return {
       kind: "timeout",
-      title: "The search timed out",
-      detail:
+      title: translateLine("The search timed out", translator),
+      detail: translateLine(
         "This query ran past its 30s budget. Narrow the range or add a filter (a URL prefix or a user) and try again.",
+        translator,
+      ),
     };
   }
 
   if (statusCode === 401 || statusCode === 403) {
     return {
       kind: "permission",
-      title: "You cannot list session replays for this application",
+      title: translateLine(
+        "You cannot list session replays for this application",
+        translator,
+      ),
       detail:
         text ||
-        "Your role lacks the session replay read permission. Ask a project admin.",
+        translateLine(
+          "Your role lacks the session replay read permission. Ask a project admin.",
+          translator,
+        ),
     };
   }
 
   if (statusCode === 402) {
     return {
       kind: "plan",
-      title: "Session replay is not in this project's plan",
-      detail: text || "Upgrade the plan to list and watch recordings.",
+      title: translateLine(
+        "Session replay is not in this project's plan",
+        translator,
+      ),
+      detail:
+        text ||
+        translateLine(
+          "Upgrade the plan to list and watch recordings.",
+          translator,
+        ),
     };
   }
 
   return {
     kind: "other",
-    title: "The session list could not be loaded",
+    title: translateLine("The session list could not be loaded", translator),
     detail:
       text ||
-      "The request failed. Retry, and check the network tab if it keeps failing.",
+      translateLine(
+        "The request failed. Retry, and check the network tab if it keeps failing.",
+        translator,
+      ),
   };
 }

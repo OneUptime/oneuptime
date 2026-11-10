@@ -12,6 +12,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   REPLAY_BUFFERING_GRACE_MS,
   REPLAY_BUFFERING_RETRY_HINT_MS,
@@ -155,6 +157,7 @@ export interface ReplayControlsProps {
 
 type BufferingStage = "hidden" | "pill" | "retry";
 
+/* `label` is an English key: the button looks it up where it draws it. */
 interface PlayButtonCopy {
   label: string;
   icon: IconProp;
@@ -197,6 +200,7 @@ function getPlayButtonCopy(phase: ReplayPhase): PlayButtonCopy {
 const ReplayControls: FunctionComponent<ReplayControlsProps> = (
   props: ReplayControlsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const {
     phase,
     currentTimeMs,
@@ -240,6 +244,9 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
   }, [isWaiting]);
 
   const playCopy: PlayButtonCopy = getPlayButtonCopy(phase);
+  const playLabel: string | undefined = translator.translateText(
+    playCopy.label,
+  );
 
   const handlePlayClick: () => void = useCallback((): void => {
     if (phase === "error" && onRetry) {
@@ -358,14 +365,15 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
 
   const canSeek: boolean = phase !== "loading" && phase !== "error";
 
-  let waitingCopy: string = "Loading footage";
+  let waitingCopy: string | undefined =
+    translator.translateText("Loading footage");
 
   if (phase === "seeking") {
-    waitingCopy = `Seeking to ${formatReplayOffset(
-      props.pendingSeekMs ?? currentTimeMs,
-    )}`;
+    waitingCopy = translator.translateTemplate("Seeking to {{time}}", {
+      time: formatReplayOffset(props.pendingSeekMs ?? currentTimeMs),
+    });
   } else if (phase === "loading") {
-    waitingCopy = "Loading the first footage";
+    waitingCopy = translator.translateText("Loading the first footage");
   }
 
   const clock: ReplayClockParts = splitReplayClock(
@@ -379,12 +387,12 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
       data-testid="replay-controls"
       className="flex flex-wrap items-center gap-x-2 gap-y-2"
       role="group"
-      aria-label="Session playback"
+      aria-label={translator.translateText("Session playback")}
     >
       <div
         className="flex flex-wrap items-center gap-x-2 gap-y-2"
         role="group"
-        aria-label="Playback controls"
+        aria-label={translator.translateText("Playback controls")}
       >
         {/*
          * The one filled, round control on the row. Hand-rolled rather than
@@ -407,8 +415,8 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
             },
           )}`}
           onClick={handlePlayClick}
-          aria-label={playCopy.label}
-          title={playCopy.label}
+          aria-label={playLabel}
+          title={playLabel}
         >
           <Icon icon={playCopy.icon} className="h-4 w-4" />
         </button>
@@ -451,7 +459,9 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
             label={formatReplaySpeed(speed)}
             hasPopup={true}
             isExpanded={isSpeedOpen}
-            ariaLabel={`Playback speed ${formatReplaySpeed(speed)}`}
+            ariaLabel={translator.translateTemplate("Playback speed {{speed}}", {
+              speed: formatReplaySpeed(speed),
+            })}
             title="Playback speed (< slower, > faster)"
             className="min-w-[3.25rem] tabular-nums"
             onClick={(): void => {
@@ -462,7 +472,7 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
           {isSpeedOpen && (
             <div
               role="radiogroup"
-              aria-label="Playback speed"
+              aria-label={translator.translateText("Playback speed")}
               data-testid="replay-speed-menu"
               className="absolute bottom-full left-0 z-20 mb-1.5 flex min-w-[5.5rem] flex-col gap-0.5 rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
               onKeyDown={handleSpeedKeyDown}
@@ -511,11 +521,16 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
          * in it to watch), which the tooltip says, so the switch does not
          * look broken the first time one is skipped with it off.
          */}
+        {/*
+         * Looked up here: ReplaySwitch draws its label and title as given.
+         */}
         <ReplaySwitch
           dataTestId="replay-skip-idle"
-          label="Skip idle"
+          label={translator.translateText("Skip idle") || "Skip idle"}
           isChecked={props.isSkipInactiveEnabled}
-          title="Jump past stretches with no user input. Each skip is announced and the idle stretch is drawn on the track. Stretches where the recording paused are always skipped."
+          title={translator.translateText(
+            "Jump past stretches with no user input. Each skip is announced and the idle stretch is drawn on the track. Stretches where the recording paused are always skipped.",
+          )}
           onChange={props.onSkipInactiveChange}
         />
       </div>
@@ -596,7 +611,9 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
             hasPulse={true}
             isHiddenFromScreenReaders={true}
           >
-            {bufferingStage === "retry" ? "Still loading" : waitingCopy}
+            {bufferingStage === "retry"
+              ? translator.translateText("Still loading")
+              : waitingCopy}
           </ReplayPill>
         )}
 

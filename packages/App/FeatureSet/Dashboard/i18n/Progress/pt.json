@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48448,
-    "untranslated": 10617
+    "keys": 49075,
+    "untranslated": 10186
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -261,6 +261,7 @@
     "TX",
     "Tablet",
     "Tags",
+    "Tags ({{count}})",
     "Tebibytes",
     "Tenancy",
     "Terabytes",
@@ -420,6 +421,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} B",
     "{{count}} CPU",
     "{{count}} CPUs",
@@ -478,6 +480,7 @@
     "{{minutes}} min",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
-    "{{up}}/{{count}} OSDs up"
+    "{{up}}/{{count}} OSDs up",
+    "{{value}} ms"
   ]
 }
