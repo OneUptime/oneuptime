@@ -49,8 +49,9 @@ export interface AttentionKindCopy {
 export const DATA_ATTENTION_COPY: Readonly<
   Record<DataAttentionKind, AttentionKindCopy>
 > = {
+  // Named as its database is in the Databases card and on its own page: "Collection failed".
   [DataAttentionKind.CollectionFailed]: {
-    label: "Could Not Read",
+    label: "Collection Failed",
     sentence:
       "OneUptime could not read this database, so none of its tables is watched until it can.",
     icon: IconProp.Database,
@@ -181,8 +182,18 @@ export function getAttentionRoute(item: DataAttentionItem): Route {
   }
 }
 
-// Where an item's owners are named: its table's Owners page, for an item about a table.
+/*
+ * Where an item's owners are named: a data product's Settings, whose Owner
+ * Team it is, or its table's Owners page, for an item about a table.
+ */
 export function getAttentionOwnersRoute(item: DataAttentionItem): Route | null {
+  if (item.dataProductId) {
+    return routeOf(
+      PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS,
+      item.dataProductId,
+    );
+  }
+
   return item.dataAssetId
     ? routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS, item.dataAssetId)
     : null;
@@ -263,7 +274,7 @@ export function getSetupStepRoute(
   }
 }
 
-// Where hiding the first steps is remembered, per project.
+// Where dismissing the first steps is remembered, per project.
 export function getSetupDismissedKey(projectId: string): string {
   return `data-observability-setup-hidden-${projectId}`;
 }

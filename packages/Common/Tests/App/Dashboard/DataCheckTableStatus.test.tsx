@@ -209,7 +209,7 @@ describe("before the alerts are read", () => {
     expect(screen.getByText(/^Last ran /)).toBeInTheDocument();
   });
 
-  test("a check whose query failed could not run, with its error", async () => {
+  test("a check whose query failed could not run, with its error - it was tried, not run", async () => {
     await openTable();
 
     renderStatus(CHECKS[2]!);
@@ -218,6 +218,9 @@ describe("before the alerts are read", () => {
     expect(
       screen.getByText('column "email" does not exist'),
     ).toBeInTheDocument();
+    // As the Overview's Needs Attention says of it: "Last tried 3 hours ago".
+    expect(screen.getByText(/^Last tried /)).toBeInTheDocument();
+    expect(screen.queryByText(/^Last ran /)).toBeNull();
   });
 
   test("a check never run is waiting", async () => {

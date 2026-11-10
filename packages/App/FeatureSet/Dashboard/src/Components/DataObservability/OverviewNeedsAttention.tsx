@@ -11,6 +11,7 @@ import {
   getStoreAlertsRoute,
   isLateKind,
 } from "./OverviewAttention";
+import { isStoreWaitingForFirstRead } from "./StoreStatusPill";
 import useAttentionOwners, {
   AttentionOwners,
   getAttentionOwnerKey,
@@ -174,7 +175,7 @@ const OverviewNeedsAttention: FunctionComponent<ComponentProps> = (
         data-testid={ATTENTION_OWNERS_TEST_ID}
       >
         <span>{translator.translateText("No owner")}</span>
-        {ownersRoute && !item.dataProductId ? (
+        {ownersRoute ? (
           <>
             <span aria-hidden="true">{separator}</span>
             <AppLink
@@ -248,9 +249,17 @@ const OverviewNeedsAttention: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.CheckCircle} className="h-4 w-4" />
             </div>
             <p className="text-sm text-gray-600">
-              {translator.translateText(
-                "Every database was read, no pipeline run failed, no check is failing, and every table is changing as often as it usually does.",
-              )}
+              {/*
+               * "Every database was read" is not so while one just connected
+               * waits for its first read: it says when its tables are watched.
+               */}
+              {props.stores.some(isStoreWaitingForFirstRead)
+                ? translator.translateText(
+                    "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.",
+                  )
+                : translator.translateText(
+                    "Every database was read, no pipeline run failed, no check is failing, and every table is changing as often as it usually does.",
+                  )}
             </p>
           </div>
         ) : (

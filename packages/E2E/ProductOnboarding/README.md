@@ -56,6 +56,8 @@ Picked with query parameters on a list's address:
   late pipeline run, a failing check, a drifted reconciliation, a late data product, late tables and
   a check that could not run, owned or not, alerted or not. Four of its five first steps are done.
 - `data=healthy`: every first step done and nothing wrong.
+- `data=connected`: one database connected a minute ago, its catalog not read yet: no table counted,
+  nothing wrong, one of the five first steps done.
 - `data=fail`: the Overview's read fails every time, as an outage would.
 - `lang=de|fa`: the Dashboard's German or Persian words (Persian reads right to left).
 - `theme=dark`.

@@ -135,7 +135,11 @@ const DataProductOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
-      <EventStatBar columns={4} ariaLabel="Data product freshness">
+      <EventStatBar
+        columns={4}
+        ariaLabel="Data product freshness"
+        isLaidOutByOwnWidth={true}
+      >
         <EventStatTile
           variant="segment"
           label="Status"

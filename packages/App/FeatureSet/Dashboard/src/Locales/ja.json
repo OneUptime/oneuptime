@@ -47670,11 +47670,9 @@
   "An alert is open": "アラートがオープン中",
   "Became late {{time}}": "{{time}}に遅延が発生",
   "Broken, late or drifting now.": "現在、壊れている、遅れている、または乖離しているもの。",
-  "Checks whose alert is open: the data broke what they test.": "アラートがオープン中のチェック。データがテスト内容に違反しています。",
   "Checks, dbt tests and pipelines": "チェック、dbt テスト、パイプライン",
   "Connect a database and every table in it is watched within minutes: its rows, size, columns and when it last changed, against its own usual rhythm. Only the catalog is read, so no value leaves the database. Turn on its recommended alerts, and a table's owners hear when it is late, loses rows or changes its columns.": "データベースを接続すると、その中のすべてのテーブルが数分以内に監視されます。行数、サイズ、列、最終変更日時を、テーブルごとの通常のリズムと比べます。読み取るのはカタログだけなので、値がデータベースの外に出ることはありません。推奨アラートをオンにすると、テーブルが遅れたとき、行が減ったとき、列が変わったときに所有者へ通知されます。",
   "Could Not Compare": "比較できませんでした",
-  "Could Not Read": "読み取れませんでした",
   "Could Not Run": "実行できませんでした",
   "Drifted {{time}}": "{{time}}に乖離",
   "Each connected database, how its last read went, and whether its alerts are on.": "接続済みの各データベース、前回の読み取り結果、アラートがオンかどうか。",
@@ -47729,5 +47727,8 @@
   "{{count}} alerts on_one": "{{count}} 件のアラートがオン",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days.": "過去 {{days}} 日間に追加、削除、名前変更、型変更された列は {{count}} 件です。",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days._one": "過去 {{days}} 日間に追加、削除、名前変更、型変更された列は {{count}} 件です。",
-  "{{done}} of {{count}} done. Your tables are watched; these steps make sure the right people hear when one breaks.": "{{count}} 件中 {{done}} 件完了。テーブルは監視されています。これらの手順で、問題が起きたときに適切な人へ通知が届くようにします。"
+  "Checks whose alert is open.": "アラートがオープン中のチェック。",
+  "Collection Failed": "収集失敗",
+  "These steps make sure the right people hear when a table breaks.": "これらの手順で、テーブルに問題が起きたときに適切な人へ通知が届くようにします。",
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "接続したばかりのデータベースは数分以内に初めて読み取られ、それ以降そのテーブルが監視されます。"
 }

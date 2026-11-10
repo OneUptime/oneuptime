@@ -9,6 +9,7 @@ import { formatSize } from "../../Components/DataObservability/DataObservability
 import OverviewNeedsAttention from "../../Components/DataObservability/OverviewNeedsAttention";
 import OverviewSetupSteps from "../../Components/DataObservability/OverviewSetupSteps";
 import StoreAlertStatus from "../../Components/DataObservability/StoreAlertStatus";
+import { isStoreWaitingForFirstRead } from "../../Components/DataObservability/StoreStatusPill";
 import {
   getStoreAlertsRoute,
   isSetupKnown,
@@ -211,7 +212,15 @@ const DataObservabilityOverviewPage: FunctionComponent<
         <></>
       )}
 
-      <EventStatBar columns={4} ariaLabel="Data health">
+      {/*
+       * Laid out by the bar's own width: beside the side menu, four tiles
+       * share a row only once each has room for its label on one line.
+       */}
+      <EventStatBar
+        columns={4}
+        ariaLabel="Data health"
+        isLaidOutByOwnWidth={true}
+      >
         <EventStatTile
           variant="segment"
           label="Tables Watched"
@@ -248,9 +257,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
           label="Failing Checks"
           value={translator.formatNumber(overview.failingCheckCount)}
           icon={IconProp.CheckCircle}
-          description={translator.translateText(
-            "Checks whose alert is open: the data broke what they test.",
-          )}
+          description={translator.translateText("Checks whose alert is open.")}
         />
       </EventStatBar>
 
@@ -260,9 +267,15 @@ const DataObservabilityOverviewPage: FunctionComponent<
         stores={overview.stores}
       />
 
+      {/*
+       * Half the page each, so headers are stacked, as Data Security's
+       * Overview has them: the button on the title's line, the description
+       * under both, across the card.
+       */}
       <CardGrid columns={2}>
         <Card
           title="Recent Schema Changes"
+          headerLayout="stacked"
           description={translator.translatePlural(
             {
               one: "{{count}} column added, removed, renamed or retyped in the last {{days}} days.",
@@ -328,6 +341,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
 
         <Card
           title="Databases"
+          headerLayout="stacked"
           description="Each connected database, how its last read went, and whether its alerts are on."
           buttons={[
             {
@@ -381,17 +395,25 @@ const DataObservabilityOverviewPage: FunctionComponent<
                           : "text-gray-600"
                       }`}
                     >
+                      {/*
+                       * A database just connected has no table to count
+                       * until its first read: it says so, not "0 tables".
+                       */}
                       {!store.isTableHealthEnabled
                         ? translator.translateText("Not watched")
                         : store.status === "Failed"
                           ? translator.translateText("Collection failed")
-                          : translator.translatePlural(
-                              {
-                                one: "{{count}} table",
-                                other: "{{count}} tables",
-                              },
-                              store.assetCount,
-                            )}
+                          : isStoreWaitingForFirstRead(store)
+                            ? translator.translateText(
+                                "Waiting for first collection",
+                              )
+                            : translator.translatePlural(
+                                {
+                                  one: "{{count}} table",
+                                  other: "{{count}} tables",
+                                },
+                                store.assetCount,
+                              )}
                     </span>
                   </li>
                 );
@@ -433,7 +455,11 @@ const DataObservabilityOverviewPage: FunctionComponent<
       <WatchedTablesCost />
 
       {quality && quality.issueCount > 0 ? (
-        <EventStatBar columns={4} ariaLabel="How well it is working">
+        <EventStatBar
+          columns={4}
+          ariaLabel="How well it is working"
+          isLaidOutByOwnWidth={true}
+        >
           <EventStatTile
             variant="segment"
             label="Useful Issues a Week"

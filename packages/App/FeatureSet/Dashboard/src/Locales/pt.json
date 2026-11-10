@@ -47670,11 +47670,9 @@
   "An alert is open": "Há um alerta aberto",
   "Became late {{time}}": "Atrasou {{time}}",
   "Broken, late or drifting now.": "Quebrado, atrasado ou divergindo agora.",
-  "Checks whose alert is open: the data broke what they test.": "Verificações com alerta aberto: os dados quebraram o que elas testam.",
   "Checks, dbt tests and pipelines": "Verificações, testes do dbt e pipelines",
   "Connect a database and every table in it is watched within minutes: its rows, size, columns and when it last changed, against its own usual rhythm. Only the catalog is read, so no value leaves the database. Turn on its recommended alerts, and a table's owners hear when it is late, loses rows or changes its columns.": "Conecte um banco de dados e cada tabela dele passa a ser monitorada em minutos: linhas, tamanho, colunas e quando mudou pela última vez, comparados ao seu próprio ritmo habitual. Só o catálogo é lido, então nenhum valor sai do banco de dados. Ative os alertas recomendados dele, e os proprietários de uma tabela ficam sabendo quando ela atrasa, perde linhas ou muda as colunas.",
   "Could Not Compare": "Não foi possível comparar",
-  "Could Not Read": "Não foi possível ler",
   "Could Not Run": "Não foi possível executar",
   "Drifted {{time}}": "Divergiu {{time}}",
   "Each connected database, how its last read went, and whether its alerts are on.": "Cada banco de dados conectado, como foi a última leitura dele e se os alertas dele estão ativados.",
@@ -47729,5 +47727,8 @@
   "{{count}} alerts on_one": "{{count}} alerta ativado",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days.": "{{count}} colunas adicionadas, removidas, renomeadas ou com tipo alterado nos últimos {{days}} dias.",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days._one": "{{count}} coluna adicionada, removida, renomeada ou com tipo alterado nos últimos {{days}} dias.",
-  "{{done}} of {{count}} done. Your tables are watched; these steps make sure the right people hear when one breaks.": "{{done}} de {{count}} concluídas. Suas tabelas estão sendo monitoradas; estas etapas garantem que as pessoas certas fiquem sabendo quando uma falhar."
+  "Checks whose alert is open.": "Verificações com alerta aberto.",
+  "Collection Failed": "A coleta falhou",
+  "These steps make sure the right people hear when a table breaks.": "Estas etapas garantem que as pessoas certas fiquem sabendo quando uma tabela falhar.",
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Um banco de dados recém-conectado é lido pela primeira vez em poucos minutos, e suas tabelas são monitoradas a partir daí."
 }

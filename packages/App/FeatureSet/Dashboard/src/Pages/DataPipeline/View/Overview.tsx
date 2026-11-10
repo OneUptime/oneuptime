@@ -86,7 +86,11 @@ const PipelineOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
-      <EventStatBar columns={4} ariaLabel="Pipeline health">
+      <EventStatBar
+        columns={4}
+        ariaLabel="Pipeline health"
+        isLaidOutByOwnWidth={true}
+      >
         <EventStatTile
           variant="segment"
           label="Last Run"

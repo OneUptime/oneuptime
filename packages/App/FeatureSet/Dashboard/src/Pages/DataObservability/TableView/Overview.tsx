@@ -58,7 +58,11 @@ const TableOverviewPage: FunctionComponent<
       <div className="flex justify-end">
         <ReportDataProblem dataAssetId={dataAsset.id!} />
       </div>
-      <EventStatBar columns={4} ariaLabel="Table health">
+      <EventStatBar
+        columns={4}
+        ariaLabel="Table health"
+        isLaidOutByOwnWidth={true}
+      >
         <EventStatTile
           variant="segment"
           label="Rows"

@@ -47670,11 +47670,9 @@
   "An alert is open": "Ett larm är öppet",
   "Became late {{time}}": "Blev sen {{time}}",
   "Broken, late or drifting now.": "Trasigt, sent eller avvikande nu.",
-  "Checks whose alert is open: the data broke what they test.": "Kontroller vars larm är öppet: datan bröt mot det de testar.",
   "Checks, dbt tests and pipelines": "Kontroller, dbt-tester och pipelines",
   "Connect a database and every table in it is watched within minutes: its rows, size, columns and when it last changed, against its own usual rhythm. Only the catalog is read, so no value leaves the database. Turn on its recommended alerts, and a table's owners hear when it is late, loses rows or changes its columns.": "Anslut en databas så bevakas varje tabell i den inom några minuter: rader, storlek, kolumner och när den senast ändrades, mot dess egen vanliga rytm. Bara katalogen läses, så inget värde lämnar databasen. Slå på dess rekommenderade larm, så får en tabells ägare veta när den är sen, tappar rader eller ändrar sina kolumner.",
   "Could Not Compare": "Kunde inte jämföra",
-  "Could Not Read": "Kunde inte läsa",
   "Could Not Run": "Kunde inte köra",
   "Drifted {{time}}": "Avvek {{time}}",
   "Each connected database, how its last read went, and whether its alerts are on.": "Varje ansluten databas, hur dess senaste läsning gick och om dess larm är påslagna.",
@@ -47729,5 +47727,8 @@
   "{{count}} alerts on_one": "{{count}} larm påslaget",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days.": "{{count}} kolumner tillagda, borttagna, omdöpta eller med ändrad typ de senaste {{days}} dagarna.",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days._one": "{{count}} kolumn tillagd, borttagen, omdöpt eller med ändrad typ de senaste {{days}} dagarna.",
-  "{{done}} of {{count}} done. Your tables are watched; these steps make sure the right people hear when one breaks.": "{{done}} av {{count}} klara. Dina tabeller bevakas; de här stegen ser till att rätt personer får veta när en går sönder."
+  "Checks whose alert is open.": "Kontroller vars larm är öppet.",
+  "Collection Failed": "Insamlingen misslyckades",
+  "These steps make sure the right people hear when a table breaks.": "De här stegen ser till att rätt personer får veta när en tabell går sönder.",
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "En nyss ansluten databas läses första gången inom några minuter, och därefter bevakas dess tabeller."
 }

@@ -47670,11 +47670,9 @@
   "An alert is open": "Et varsel er åpent",
   "Became late {{time}}": "Ble sen {{time}}",
   "Broken, late or drifting now.": "Ødelagt, sen eller avvikende nå.",
-  "Checks whose alert is open: the data broke what they test.": "Sjekker med åpent varsel: dataene brøt det de tester.",
   "Checks, dbt tests and pipelines": "Sjekker, dbt-tester og pipelines",
   "Connect a database and every table in it is watched within minutes: its rows, size, columns and when it last changed, against its own usual rhythm. Only the catalog is read, so no value leaves the database. Turn on its recommended alerts, and a table's owners hear when it is late, loses rows or changes its columns.": "Koble til en database, og hver tabell i den overvåkes i løpet av minutter: rader, størrelse, kolonner og når den sist endret seg, målt mot sin egen vanlige rytme. Bare katalogen leses, så ingen verdi forlater databasen. Slå på de anbefalte varslene, og eierne av en tabell får vite når den er sen, mister rader eller endrer kolonnene sine.",
   "Could Not Compare": "Kunne ikke sammenligne",
-  "Could Not Read": "Kunne ikke lese",
   "Could Not Run": "Kunne ikke kjøre",
   "Drifted {{time}}": "Avvek {{time}}",
   "Each connected database, how its last read went, and whether its alerts are on.": "Hver tilkoblede database, hvordan den siste lesingen gikk, og om varslene er slått på.",
@@ -47729,5 +47727,8 @@
   "{{count}} alerts on_one": "{{count}} varsel på",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days.": "{{count}} kolonner lagt til, fjernet, gitt nytt navn eller ny type de siste {{days}} dagene.",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days._one": "{{count}} kolonne lagt til, fjernet, gitt nytt navn eller ny type de siste {{days}} dagene.",
-  "{{done}} of {{count}} done. Your tables are watched; these steps make sure the right people hear when one breaks.": "{{done}} av {{count}} fullført. Tabellene dine overvåkes; disse trinnene sørger for at de rette personene får vite når en går i stykker."
+  "Checks whose alert is open.": "Sjekker med åpent varsel.",
+  "Collection Failed": "Innsamlingen mislyktes",
+  "These steps make sure the right people hear when a table breaks.": "Disse trinnene sørger for at de rette personene får vite når en tabell går i stykker.",
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "En database som nettopp er koblet til, leses første gang innen noen minutter, og fra da av overvåkes tabellene."
 }

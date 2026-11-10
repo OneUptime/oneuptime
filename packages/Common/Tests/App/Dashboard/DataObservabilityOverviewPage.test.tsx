@@ -48,7 +48,10 @@ import {
   NEEDS_ATTENTION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/OverviewNeedsAttention";
 import { getSetupDismissedKey } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/OverviewAttention";
-import { SETUP_STEPS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/OverviewSetupSteps";
+import {
+  SETUP_STEPS_DISMISS_TEST_ID,
+  SETUP_STEPS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/OverviewSetupSteps";
 import { STORE_ALERT_STATUS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/StoreAlertStatus";
 import { PRODUCT_SHOWCASE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductShowcase";
 import DataObservabilityOverviewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Overview";
@@ -122,8 +125,8 @@ jest.mock(
  *     else;
  *   - until it is set up, the steps that make it useful, each with its
  *     page - turn on the alerts of the database that has none, say who owns
- *     the tables, add a check, send the pipelines' runs - hidden for good
- *     once hidden, and gone once done;
+ *     the tables, add a check, send the pipelines' runs - away for good
+ *     once dismissed, and gone once done;
  *   - what needs someone now, worst first, as the server ordered it: each
  *     with what it means, its error, who owns it, whether anyone was told
  *     (its open alert) or that nobody will be (its database's alerts are
@@ -287,6 +290,8 @@ function busyOverview(
 
 let overviewAnswer: DataObservabilityOverview | Error;
 let ownersRead: Error | null;
+// The data product's Owner Team, or none.
+let productOwnerTeam: { _id: string; name: string } | null;
 let overviewSpy: jest.SpiedFunction<typeof DataObservabilityApi.getOverview>;
 let navigateSpy: jest.SpiedFunction<typeof Navigation.navigate>;
 interface OwnerQuery {
@@ -317,6 +322,7 @@ beforeEach(() => {
 
   overviewAnswer = busyOverview();
   ownersRead = null;
+  productOwnerTeam = { _id: "t3", name: "Finance Analytics" };
   ownerQueries = [];
 
   getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(
@@ -392,10 +398,12 @@ beforeEach(() => {
 
       if (request.modelType === DataProduct) {
         return list([
-          owner(DataProduct, {
-            _id: PRODUCT,
-            ownerTeam: { _id: "t3", name: "Finance Analytics" },
-          }),
+          owner(
+            DataProduct,
+            productOwnerTeam
+              ? { _id: PRODUCT, ownerTeam: productOwnerTeam }
+              : { _id: PRODUCT },
+          ),
         ]);
       }
 
@@ -502,14 +510,32 @@ describe("the first steps", () => {
 
     const steps: HTMLElement = await screen.findByTestId(SETUP_STEPS_TEST_ID);
 
+    // A region named by its title, as the product's other first-steps cards are.
     expect(
-      within(steps).getByText("Finish setting up Data Observability"),
+      screen.getByRole("region", {
+        name: "Finish setting up Data Observability",
+      }),
+    ).toBe(steps);
+    expect(
+      within(steps).getByRole("heading", {
+        name: "Finish setting up Data Observability",
+      }),
     ).toBeInTheDocument();
     expect(
       within(steps).getByText(
-        "3 of 5 done. Your tables are watched; these steps make sure the right people hear when one breaks.",
+        "These steps make sure the right people hear when a table breaks.",
       ),
     ).toBeInTheDocument();
+
+    // How many are done, in words and as a bar: three of five.
+    const progress: HTMLElement = within(steps).getByTestId(
+      "data-observability-setup-progress",
+    );
+
+    expect(progress).toHaveTextContent("3 of 5 done");
+    expect(
+      (progress.querySelector("span > span") as HTMLElement).style.width,
+    ).toBe("60%");
 
     expect(
       [
@@ -553,10 +579,16 @@ describe("the first steps", () => {
     ).toBeInTheDocument();
   });
 
-  test("Hide keeps them hidden in this browser, for this project only", async () => {
+  test("Dismiss puts them away in this browser, for this project only", async () => {
     await openPage();
 
-    fireEvent.click(await screen.findByTestId("data-observability-setup-hide"));
+    const dismiss: HTMLElement = await screen.findByTestId(
+      SETUP_STEPS_DISMISS_TEST_ID,
+    );
+
+    // Dismiss, as Home's and Security's first steps word it.
+    expect(dismiss).toHaveTextContent("Dismiss");
+    fireEvent.click(dismiss);
 
     expect(screen.queryByTestId(SETUP_STEPS_TEST_ID)).toBeNull();
     expect(
@@ -589,7 +621,7 @@ describe("the first steps", () => {
 
     await openPage();
 
-    fireEvent.click(await screen.findByTestId("data-observability-setup-hide"));
+    fireEvent.click(await screen.findByTestId(SETUP_STEPS_DISMISS_TEST_ID));
 
     expect(screen.queryByTestId(SETUP_STEPS_TEST_ID)).toBeNull();
   });
@@ -632,7 +664,10 @@ describe("what needs someone now", () => {
 
     const warehouse: HTMLElement = itemNamed("warehouse");
 
-    expect(within(warehouse).getByText("Could Not Read")).toBeInTheDocument();
+    // Named as the Databases card names it: "Collection failed".
+    expect(
+      within(warehouse).getByText("Collection Failed"),
+    ).toBeInTheDocument();
     expect(
       within(warehouse).getByText(
         "OneUptime could not read this database, so none of its tables is watched until it can.",
@@ -717,6 +752,24 @@ describe("what needs someone now", () => {
 
     expect([...assetQuery.values].map(String).sort()).toEqual(
       [TABLE_ORDERS, TABLE_PAYMENTS, TABLE_EVENTS].sort(),
+    );
+  });
+
+  test("a data product nobody owns: Add one opens its Settings, where its Owner Team is set", async () => {
+    productOwnerTeam = null;
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(
+        within(itemNamed("Finance dashboard")).getByText("No owner"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      hrefOf(within(itemNamed("Finance dashboard")).getByText("Add one")),
+    ).toBe(
+      routeTo(PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS, PRODUCT),
     );
   });
 
@@ -809,6 +862,18 @@ describe("what needs someone now", () => {
       expect(tile.children[1]!.className).toContain("break-words");
       expect(tile.children[1]!.className).not.toContain("truncate");
     }
+
+    /*
+     * Laid out by its own width, not the window's: beside the side menu on
+     * a laptop, four tiles go two by two until each label fits on a line.
+     */
+    expect(bar.parentElement!.className).toContain(
+      "[container-type:inline-size]",
+    );
+    expect(bar.className).toContain(
+      "[@container(min-width:56rem)]:grid-cols-4",
+    );
+    expect(bar.className).not.toContain("lg:grid-cols-4");
   });
 
   test("every word on the strip is looked up in the reader's language: its name, each tile's name and the line under it", async () => {
@@ -821,7 +886,7 @@ describe("what needs someone now", () => {
       "Late Tables",
       "Tables that have gone well past their usual interval without a change.",
       "Failing Checks",
-      "Checks whose alert is open: the data broke what they test.",
+      "Checks whose alert is open.",
     ];
     for (const word of words) {
       mockTranslations[word] = `«${word}»`;
@@ -863,6 +928,36 @@ describe("what needs someone now", () => {
     ).toBeInTheDocument();
     expect(ownerQueries).toHaveLength(0);
   });
+
+  test("nothing wrong yet, but a database just connected is not read: it never says every database was read", async () => {
+    overviewAnswer = busyOverview({
+      attention: [],
+      attentionCount: 0,
+      stores: [
+        store(STORE_ALERTED, { name: "orders-db", alertMonitorCount: 4 }),
+        store(STORE_SILENT, {
+          name: "warehouse",
+          kind: "Snowflake",
+          status: null,
+          collectedAt: null,
+          assetCount: 0,
+        }),
+      ],
+    });
+
+    await openPage();
+
+    const card: HTMLElement = await screen.findByTestId(
+      NEEDS_ATTENTION_TEST_ID,
+    );
+
+    expect(
+      within(card).getByText(
+        "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(card).queryByText(/^Every database was read/)).toBeNull();
+  });
 });
 
 describe("the databases", () => {
@@ -882,6 +977,48 @@ describe("the databases", () => {
     ).toEqual([
       ["on", "4 alerts on"],
       ["none", "No alerts on"],
+    ]);
+  });
+
+  test("how each one's last read went: its tables, a failed read, or - just connected - its first read awaited, never 0 tables", async () => {
+    overviewAnswer = busyOverview({
+      stores: [
+        store(STORE_ALERTED, { name: "orders-db", assetCount: 184 }),
+        store(STORE_SILENT, {
+          name: "warehouse",
+          status: "Failed",
+          message: "password authentication failed",
+        }),
+        store("10000000-0000-4000-8000-000000000003", {
+          name: "billing-db",
+          status: null,
+          collectedAt: null,
+          assetCount: 0,
+        }),
+        store("10000000-0000-4000-8000-000000000004", {
+          name: "legacy-reports",
+          isTableHealthEnabled: false,
+          status: null,
+          assetCount: 0,
+        }),
+      ],
+    });
+
+    await openPage();
+
+    await screen.findByTestId(NEEDS_ATTENTION_TEST_ID);
+
+    expect(
+      screen
+        .getAllByTestId("data-observability-store-row")
+        .map((row: HTMLElement): string => {
+          return row.children[1]!.textContent || "";
+        }),
+    ).toEqual([
+      "184 tables",
+      "Collection failed",
+      "Waiting for first collection",
+      "Not watched",
     ]);
   });
 });

@@ -47670,11 +47670,9 @@
   "An alert is open": "يوجد تنبيه مفتوح",
   "Became late {{time}}": "بدأ التأخّر {{time}}",
   "Broken, late or drifting now.": "معطّل أو متأخر أو منحرف الآن.",
-  "Checks whose alert is open: the data broke what they test.": "فحوصات تنبيهها مفتوح: كسرت البيانات ما تختبره.",
   "Checks, dbt tests and pipelines": "الفحوصات واختبارات dbt ومسارات المعالجة",
   "Connect a database and every table in it is watched within minutes: its rows, size, columns and when it last changed, against its own usual rhythm. Only the catalog is read, so no value leaves the database. Turn on its recommended alerts, and a table's owners hear when it is late, loses rows or changes its columns.": "اربط قاعدة بيانات وستُراقَب كل جداولها خلال دقائق: صفوفها وحجمها وأعمدتها وآخر مرة تغيّرت فيها، مقارنةً بإيقاعها المعتاد. لا يُقرأ إلا الفهرس، فلا تغادر أي قيمة قاعدة البيانات. فعّل تنبيهاتها الموصى بها، وسيعلم مالكو الجدول حين يتأخر أو يفقد صفوفًا أو تتغير أعمدته.",
   "Could Not Compare": "تعذّرت المقارنة",
-  "Could Not Read": "تعذّرت القراءة",
   "Could Not Run": "تعذّر التشغيل",
   "Drifted {{time}}": "انحرف {{time}}",
   "Each connected database, how its last read went, and whether its alerts are on.": "كل قاعدة بيانات مربوطة، وكيف جرت آخر قراءة لها، وهل تنبيهاتها مفعّلة.",
@@ -47729,5 +47727,8 @@
   "{{count}} alerts on_one": "{{count}} تنبيه مفعّل",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days.": "الأعمدة المضافة أو المحذوفة أو المعاد تسميتها أو المغيَّر نوعها خلال الأيام الـ{{days}} الماضية: {{count}}.",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days._one": "{{count}} عمود أُضيف أو حُذف أو أُعيدت تسميته أو تغيّر نوعه خلال الأيام الـ{{days}} الماضية.",
-  "{{done}} of {{count}} done. Your tables are watched; these steps make sure the right people hear when one breaks.": "اكتمل {{done}} من {{count}}. جداولك مراقَبة؛ وتضمن هذه الخطوات أن يعلم الأشخاص المناسبون حين يتعطل أحدها."
+  "Checks whose alert is open.": "فحوصات تنبيهها مفتوح.",
+  "Collection Failed": "فشل الجمع",
+  "These steps make sure the right people hear when a table breaks.": "تضمن هذه الخطوات أن يعلم الأشخاص المناسبون حين يتعطل جدول.",
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "تُقرأ قاعدة البيانات المربوطة للتو أول مرة خلال دقائق، وتُراقَب جداولها منذ ذلك الحين."
 }

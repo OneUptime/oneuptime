@@ -76,7 +76,11 @@ const StoreOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
-      <EventStatBar columns={3} ariaLabel="Database health">
+      <EventStatBar
+        columns={3}
+        ariaLabel="Database health"
+        isLaidOutByOwnWidth={true}
+      >
         <EventStatTile
           variant="segment"
           label="Tables Watched"
@@ -112,9 +116,16 @@ const StoreOverviewPage: FunctionComponent<
         />
       </EventStatBar>
 
+      {/*
+       * Stacked, as Data Security's database page has its cards: the
+       * buttons share the title's line, and go under the description when
+       * they would squeeze it - beside the side menu, in German - which
+       * runs across the card, never a word wide.
+       */}
       <Card
         title="Collection"
         description="Who reads this database's catalog, and how the last read went."
+        headerLayout="stacked"
         buttons={[
           {
             title: "Collect Now",
@@ -176,6 +187,7 @@ const StoreOverviewPage: FunctionComponent<
       <Card
         title="Alerts"
         description="Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped."
+        headerLayout="stacked"
         buttons={[
           {
             title: isStoreWithoutAlerts(store)

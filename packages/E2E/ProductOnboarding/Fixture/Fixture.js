@@ -54,6 +54,8 @@
  *                     check that could not run), owned or not, alerted or
  *                     not; four of its five first steps done
  *   - data=healthy    every step done and nothing wrong
+ *   - data=connected  one database just connected, not read yet: no table
+ *                     counted, nothing wrong, one of the five steps done
  *   - data=fail       the Overview's read fails every time, as an outage would
  *   - lang=de|fa      the Dashboard's German or Persian words (Persian reads
  *                     right to left)
@@ -144,7 +146,9 @@ const language = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const countsFail = params.get("counts") === "fail";
-const dataScenario = ["busy", "healthy", "fail"].includes(params.get("data"))
+const dataScenario = ["busy", "healthy", "connected", "fail"].includes(
+  params.get("data"),
+)
   ? params.get("data")
   : "new";
 
@@ -823,6 +827,40 @@ function dataOverview() {
         pipelineCount: 4,
         tableOwnerCount: 5,
         ownerRuleCount: 1,
+      },
+    };
+  }
+
+  // Connected a minute ago: its catalog is not read yet, so it has no table and no status.
+  if (dataScenario === "connected") {
+    return {
+      storeCount: 1,
+      assetCount: 0,
+      lateAssetCount: 0,
+      droppedAssetCount: 0,
+      unusedAssetCount: 0,
+      unusedSizeInBytes: 0,
+      schemaChangeCount: 0,
+      failingStoreCount: 0,
+      lateAssets: [],
+      recentChanges: [],
+      stores: [
+        dataStore(DATA.ordersDb, "orders-db", "PostgreSQL", {
+          status: null,
+          collectedAt: null,
+        }),
+      ],
+      attention: [],
+      attentionCount: 0,
+      failingCheckCount: 0,
+      setup: {
+        storeCount: 1,
+        storesWithAlertsCount: 0,
+        firstStoreWithoutAlertsId: DATA.ordersDb,
+        checkCount: 0,
+        pipelineCount: 0,
+        tableOwnerCount: 0,
+        ownerRuleCount: 0,
       },
     };
   }

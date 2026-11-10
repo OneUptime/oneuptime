@@ -388,7 +388,8 @@ export const DATA_OBSERVABILITY_SHOWCASE: ResourceShowcase = {
       { label: translationKey("Tables"), value: "184" },
       { label: translationKey("Rows"), value: "92M" },
       { label: translationKey("Size"), value: "48 GB" },
-      { label: translationKey("Needs Attention"), value: "2" },
+      // public.payments, late: a column added (public.customers) needs nobody.
+      { label: translationKey("Needs Attention"), value: "1" },
     ],
     chart: {
       label: translationKey("Rows"),

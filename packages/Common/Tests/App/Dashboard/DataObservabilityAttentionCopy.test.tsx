@@ -52,6 +52,9 @@ import StoreAlertStatus, {
   STORE_ALERT_STATUS_TEST_ID,
   isStoreWithoutAlerts,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/StoreAlertStatus";
+import StoreStatusPill, {
+  isStoreWaitingForFirstRead,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/StoreStatusPill";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -243,12 +246,24 @@ describe("the page where each is put right", () => {
     },
   );
 
-  test("a table's owners are named on its Owners page; nothing else has one", () => {
+  test("a table's owners are named on its Owners page, a data product's in its Settings; nothing else has one", () => {
     expect(
       getAttentionOwnersRoute(
         item(DataAttentionKind.TableLate, { dataAssetId: ID }),
       )?.toString(),
     ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS, ID));
+    // A check's owners are its table's.
+    expect(
+      getAttentionOwnersRoute(
+        item(DataAttentionKind.CheckFailing, { dataAssetId: ID }),
+      )?.toString(),
+    ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS, ID));
+    // A data product has one Owner Team, set in its Settings.
+    expect(
+      getAttentionOwnersRoute(
+        item(DataAttentionKind.DataProductLate, { dataProductId: ID }),
+      )?.toString(),
+    ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS, ID));
     expect(
       getAttentionOwnersRoute(
         item(DataAttentionKind.PipelineFailed, { dataPipelineId: ID }),
@@ -308,7 +323,7 @@ describe("the first steps' words and pages", () => {
     ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_STORES));
   });
 
-  test("hiding them is remembered per project", () => {
+  test("dismissing them is remembered per project", () => {
     expect(getSetupDismissedKey("a")).not.toBe(getSetupDismissedKey("b"));
   });
 });
@@ -415,6 +430,27 @@ describe("whether a database's alerts are on", () => {
     expect(isStoreWithoutAlerts(unwatched)).toBe(false);
     expect(isStoreWithoutAlerts(unsaid)).toBe(false);
     expect(hasAlertCount(unsaid)).toBe(false);
+  });
+});
+
+describe("a database not read yet", () => {
+  test("watched, neither collected nor failed: one just connected, waiting for its first read", () => {
+    expect(isStoreWaitingForFirstRead(store({ status: null }))).toBe(true);
+    expect(isStoreWaitingForFirstRead(store({ status: "Collected" }))).toBe(
+      false,
+    );
+    expect(isStoreWaitingForFirstRead(store({ status: "Failed" }))).toBe(false);
+    // Not watched: it is never read, so it waits for nothing.
+    expect(
+      isStoreWaitingForFirstRead(
+        store({ isTableHealthEnabled: false, status: null }),
+      ),
+    ).toBe(false);
+
+    render(<StoreStatusPill store={store({ status: null })} />);
+    expect(
+      screen.getByText("Waiting for first collection"),
+    ).toBeInTheDocument();
   });
 });
 

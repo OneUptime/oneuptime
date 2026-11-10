@@ -12,7 +12,10 @@ import {
   CheckHealthCopy,
   getCheckHealthBeforeAlerts,
 } from "./CheckHealthCopy";
-import { DataCheckHealthAnswer } from "Common/Types/DataObservability/DataObservabilityAttention";
+import {
+  DataCheckHealth,
+  DataCheckHealthAnswer,
+} from "Common/Types/DataObservability/DataObservabilityAttention";
 import { DataAssetColumn } from "Common/Types/DataObservability/DataAssetColumn";
 import {
   DATA_CHECK_FORMATS,
@@ -675,12 +678,21 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
                   data-check-health={answer.health}
                 >
                   <Pill text={copy.label} color={copy.color} />
+                  {/*
+                   * A check whose query failed did not run: it was tried, as
+                   * the Overview's Needs Attention says of it too.
+                   */}
                   <span className="block text-xs text-gray-500">
-                    {translator.translateTemplate("Last ran {{time}}", {
-                      time: OneUptimeDate.fromNow(
-                        OneUptimeDate.fromString(check.lastRunAt),
-                      ),
-                    })}
+                    {translator.translateTemplate(
+                      answer.health === DataCheckHealth.CouldNotRun
+                        ? "Last tried {{time}}"
+                        : "Last ran {{time}}",
+                      {
+                        time: OneUptimeDate.fromNow(
+                          OneUptimeDate.fromString(check.lastRunAt),
+                        ),
+                      },
+                    )}
                   </span>
                   {answer.alert ? (
                     <AppLink

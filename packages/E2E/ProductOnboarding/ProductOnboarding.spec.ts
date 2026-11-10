@@ -39,9 +39,10 @@ import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
  * worst first - each with what it means, who owns it, its open alert or
  * that nobody is told, and the page where it is put right - its menu in
  * sections with the rarely used ones folded, the first steps put away by
- * Hide, a project with nothing wrong, and an Overview that cannot be read;
- * at 1440, 1280, 1024 and 768 pixels beside the menu and on a phone, in
- * German, and in Persian in the dark theme.
+ * Dismiss, a project with nothing wrong, and an Overview that cannot be
+ * read; at 1440, 1280, 1024 and 768 pixels beside the menu - its counts two
+ * by two where four would squeeze their names - and on a phone, in German,
+ * and in Persian in the dark theme.
  *
  * And every other product: the fixture's explanations page draws each
  * product's explanation as its How it works dialog does, so one page shows
@@ -280,6 +281,29 @@ async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
 }
 
 /*
+ * Whether `after` is drawn on `first`'s line, after it in the reading
+ * direction: their boxes share a band of the page's height, and `after`
+ * starts where `first` ends, to its right - or to its left, in Persian.
+ */
+async function isOnOneLine(first: Locator, after: Locator): Promise<boolean> {
+  const [one, two] = await boxesInOneFrame([first, after]);
+  if (!one || !two) {
+    return false;
+  }
+  const isRightToLeft: boolean = await first.evaluate(
+    (element: Element): boolean => {
+      return getComputedStyle(element).direction === "rtl";
+    },
+  );
+  const sharesTheLine: boolean =
+    two.y < one.y + one.height && one.y < two.y + two.height;
+  const comesAfter: boolean = isRightToLeft
+    ? two.x + two.width <= one.x + 1
+    : two.x >= one.x + one.width - 1;
+  return sharesTheLine && comesAfter;
+}
+
+/*
  * A dialog grows in (Modal's 150ms transition): photographed or measured
  * any sooner, it is caught half drawn over the page.
  */
@@ -313,8 +337,8 @@ async function screenshot(
 
 /*
  * Data Observability's Overview in a scenario of the fixture's (data=busy,
- * healthy or fail), once it has read the Overview: its state, why it could
- * not, or - with no database - the product's explanation. On a busy
+ * healthy, connected or fail), once it has read the Overview: its state,
+ * why it could not, or - with no database - the product's explanation. On a busy
  * project, once it has read who owns what too, so the page is measured as
  * it settles.
  */
@@ -367,7 +391,7 @@ async function attentionKinds(page: Page): Promise<Array<string>> {
   );
 }
 
-// What each item's pill says: "Could Not Read", "Late by 26 hours".
+// What each item's pill says: "Collection Failed", "Late by 26 hours".
 async function attentionPills(page: Page): Promise<Array<string | undefined>> {
   return attentionItems(page).evaluateAll(
     (items: Array<Element>): Array<string | undefined> => {
@@ -425,6 +449,36 @@ async function statTiles(bar: Locator): Promise<Array<StatTile>> {
         };
       },
     );
+  });
+}
+
+// The tiles of a bar whose name runs onto a second line: "ÜBERWACHTE / TABELLEN".
+async function wrappedTileLabels(bar: Locator): Promise<Array<string>> {
+  return bar.evaluate((element: Element): Array<string> => {
+    return Array.from(element.querySelectorAll(".uppercase > span"))
+      .filter((label: Element): boolean => {
+        const lineHeight: number = parseFloat(
+          window.getComputedStyle(label).lineHeight,
+        );
+        return label.getBoundingClientRect().height > lineHeight * 1.5;
+      })
+      .map((label: Element): string => {
+        return (label.textContent || "").trim();
+      });
+  });
+}
+
+// How many of a bar's tiles share its first row.
+async function tilesPerRow(bar: Locator): Promise<number> {
+  return bar.evaluate((element: Element): number => {
+    const tops: Array<number> = Array.from(element.children).map(
+      (tile: Element): number => {
+        return Math.round(tile.getBoundingClientRect().top);
+      },
+    );
+    return tops.filter((top: number): boolean => {
+      return top === tops[0];
+    }).length;
   });
 }
 
@@ -868,8 +922,28 @@ test("a busy project's Overview says what is wrong now: the step left to do, the
     "Finish setting up Data Observability",
   );
   await expect(setupSteps(page)).toContainText(
-    "4 of 5 done. Your tables are watched; these steps make sure the right people hear when one breaks.",
+    "These steps make sure the right people hear when a table breaks.",
   );
+  // How many are done, in words and as a bar four fifths full.
+  const progress: Locator = page.getByTestId(
+    "data-observability-setup-progress",
+  );
+  await expect(progress).toHaveText("4 of 5 done");
+  expect(
+    await progress.evaluate((element: Element): number => {
+      const track: DOMRect = element.lastElementChild!.getBoundingClientRect();
+      const fill: DOMRect =
+        element.lastElementChild!.firstElementChild!.getBoundingClientRect();
+      return Math.round((fill.width / track.width) * 100);
+    }),
+  ).toBe(80);
+  // Dismiss stays on the title's line, at its end.
+  expect(
+    await isOnOneLine(
+      setupSteps(page).getByRole("heading", { level: 2 }),
+      page.getByTestId("data-observability-setup-dismiss"),
+    ),
+  ).toBe(true);
   expect(await stepStates(page)).toEqual([
     { step: "connect", isDone: true },
     { step: "alerts", isDone: false },
@@ -912,7 +986,7 @@ test("a busy project's Overview says what is wrong now: the step left to do, the
     {
       label: "Failing Checks",
       value: "3",
-      description: "Checks whose alert is open: the data broke what they test.",
+      description: "Checks whose alert is open.",
     },
   ]);
 
@@ -923,7 +997,8 @@ test("a busy project's Overview says what is wrong now: the step left to do, the
   );
   expect(await attentionKinds(page)).toEqual(BUSY_ATTENTION_KINDS);
   expect(await attentionPills(page)).toEqual([
-    "Could Not Read",
+    // As the Databases card below names it: "Collection failed".
+    "Collection Failed",
     "Run Failed",
     "Failing",
     "Drifted",
@@ -980,7 +1055,7 @@ test("a busy project's Overview says what is wrong now: the step left to do, the
     `${DATA_OBSERVABILITY_BASE}/tables/${DATA.orders}/checks`,
   );
 
-  // The data product: its owning team, and no way to add one on a table.
+  // The data product: its owning team, named - so no owner to add.
   const product: Locator = attentionItem(page, "Data Product Late");
   await expect(product.getByTestId(ATTENTION_OWNERS)).toHaveText(
     /Owners\s*Finance Analytics/,
@@ -1147,7 +1222,7 @@ test("the Data Observability menu reads in the order a data engineer asks: the e
   await screenshot(page, "data-observability-menu-1440");
 });
 
-test("Hide puts the first steps away for this project, and they stay away after a reload", async ({
+test("Dismiss puts the first steps away for this project, and they stay away after a reload", async ({
   page,
 }: {
   page: Page;
@@ -1155,7 +1230,7 @@ test("Hide puts the first steps away for this project, and they stay away after 
   await openDataObservability(page, "data=busy");
   await expect(setupSteps(page)).toBeVisible();
 
-  await page.getByTestId("data-observability-setup-hide").click();
+  await page.getByTestId("data-observability-setup-dismiss").click();
   await expect(setupSteps(page)).toHaveCount(0);
   // The rest of the page stays as it was.
   await expect(attentionItems(page)).toHaveCount(BUSY_ATTENTION_KINDS.length);
@@ -1198,6 +1273,54 @@ test("a project with nothing wrong and everything set up: no steps, and the Over
     message: "a healthy Data Observability Overview",
   });
   await screenshot(page, "data-observability-healthy-1440");
+});
+
+test("a database just connected, not read yet: one step of five done, and the Overview says its first read is awaited - never that every database was read, never 0 tables", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openDataObservability(page, "data=connected");
+
+  await expect(
+    page.getByTestId("data-observability-setup-progress"),
+  ).toHaveText("1 of 5 done");
+  expect(await stepStates(page)).toEqual([
+    { step: "connect", isDone: true },
+    { step: "alerts", isDone: false },
+    { step: "owners", isDone: false },
+    { step: "checks", isDone: false },
+    { step: "pipelines", isDone: false },
+  ]);
+
+  await expect(needsAttention(page)).toContainText(
+    "Nothing is broken or late right now.",
+  );
+  await expect(needsAttention(page)).toContainText(
+    "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.",
+  );
+  await expect(needsAttention(page)).not.toContainText(
+    "Every database was read",
+  );
+
+  const databases: Locator = page
+    .getByTestId("card")
+    .filter({ has: page.getByRole("heading", { name: "Databases" }) });
+  await expect(databaseRow(databases, "orders-db")).toContainText(
+    "Waiting for first collection",
+  );
+  await expect(databaseRow(databases, "orders-db")).not.toContainText(
+    "0 tables",
+  );
+  await expect(databaseRow(databases, "orders-db")).toContainText(
+    "No alerts on",
+  );
+
+  expect(await overflowingOnTheOverview(page)).toEqual([]);
+  await expectNoSidewaysScroll(page, {
+    message: "a Data Observability Overview with a database just connected",
+  });
+  await screenshot(page, "data-observability-connected-1440");
 });
 
 test("an Overview that cannot be read says why, and Refresh reads it again; it never offers to connect a first database", async ({
@@ -1243,6 +1366,21 @@ for (const width of [1280, 1024, 768, 390]) {
 
     expect(await attentionKinds(page)).toEqual(BUSY_ATTENTION_KINDS);
     expect(await overflowingOnTheOverview(page)).toEqual([]);
+    // Dismiss keeps to the end of the title's line, on a phone too.
+    expect(
+      await isOnOneLine(
+        setupSteps(page).getByRole("heading", { level: 2 }),
+        page.getByTestId("data-observability-setup-dismiss"),
+      ),
+    ).toBe(true);
+    /*
+     * Beside the side menu, the four counts go two by two rather than
+     * squeezing each name onto two lines: laid out by the bar's own width.
+     */
+    expect(await wrappedTileLabels(dataHealth(page))).toEqual([]);
+    expect(await tilesPerRow(dataHealth(page))).toBe(
+      width >= 1280 ? 4 : width >= 768 ? 2 : 1,
+    );
     await expectNoSidewaysScroll(page, {
       message: `a busy Data Observability Overview at ${width}px`,
     });
@@ -1261,15 +1399,15 @@ test("in German: the steps, the counts and what needs someone in the Dashboard's
     GERMAN["Finish setting up Data Observability"]!,
   );
   await expect(setupSteps(page)).toContainText(
-    fill(
-      GERMAN[
-        "{{done}} of {{count}} done. Your tables are watched; these steps make sure the right people hear when one breaks."
-      ]!,
-      { done: "4", count: "5" },
-    ),
+    GERMAN["These steps make sure the right people hear when a table breaks."]!,
   );
-  await expect(page.getByTestId("data-observability-setup-hide")).toHaveText(
-    GERMAN["Hide"]!,
+  await expect(
+    page.getByTestId("data-observability-setup-progress"),
+  ).toHaveText(
+    fill(GERMAN["{{done}} of {{total}} done"]!, { done: "4", total: "5" }),
+  );
+  await expect(page.getByTestId("data-observability-setup-dismiss")).toHaveText(
+    GERMAN["Dismiss"]!,
   );
 
   // Every tile's name, number and line in German: 1.824, not 1,824.
@@ -1297,10 +1435,13 @@ test("in German: the steps, the counts and what needs someone in the Dashboard's
     {
       label: GERMAN["Failing Checks"]!,
       value: "3",
-      description:
-        GERMAN["Checks whose alert is open: the data broke what they test."]!,
+      description: GERMAN["Checks whose alert is open."]!,
     },
   ]);
+  // "Überwachte Tabellen", "Fehlerhafte Prüfungen": each name on one line.
+  expect(
+    await wrappedTileLabels(dataHealth(page, GERMAN["Data health"]!)),
+  ).toEqual([]);
 
   await expect(needsAttention(page)).toContainText(GERMAN["Needs Attention"]!);
   await expect(needsAttention(page)).toContainText(
@@ -1312,7 +1453,7 @@ test("in German: the steps, the counts and what needs someone in the Dashboard's
     ),
   );
   expect(await attentionPills(page)).toEqual([
-    GERMAN["Could Not Read"],
+    GERMAN["Collection Failed"],
     GERMAN["Run Failed"],
     GERMAN["Failing"],
     GERMAN["Drifted"],
@@ -1364,11 +1505,21 @@ test("in Persian, dark: right to left, what needs someone in Persian with its fa
   await expect(setupSteps(page).getByRole("heading", { level: 2 })).toHaveText(
     PERSIAN["Finish setting up Data Observability"]!,
   );
+  // Dismiss at the end of the title's line: its left, right to left.
+  await expect(page.getByTestId("data-observability-setup-dismiss")).toHaveText(
+    PERSIAN["Dismiss"]!,
+  );
+  expect(
+    await isOnOneLine(
+      setupSteps(page).getByRole("heading", { level: 2 }),
+      page.getByTestId("data-observability-setup-dismiss"),
+    ),
+  ).toBe(true);
   await expect(needsAttention(page)).toContainText(PERSIAN["Needs Attention"]!);
 
   const pills: Array<string | undefined> = await attentionPills(page);
   expect(pills.slice(0, 5)).toEqual([
-    PERSIAN["Could Not Read"],
+    PERSIAN["Collection Failed"],
     PERSIAN["Run Failed"],
     PERSIAN["Failing"],
     PERSIAN["Drifted"],

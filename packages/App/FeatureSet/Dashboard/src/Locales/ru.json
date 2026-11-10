@@ -47670,11 +47670,9 @@
   "An alert is open": "Есть открытое оповещение",
   "Became late {{time}}": "Начало опоздания: {{time}}",
   "Broken, late or drifting now.": "Сейчас: сбои, опоздания и расхождения.",
-  "Checks whose alert is open: the data broke what they test.": "Проверки с открытым оповещением: данные нарушили то, что они проверяют.",
   "Checks, dbt tests and pipelines": "Проверки, тесты dbt и пайплайны",
   "Connect a database and every table in it is watched within minutes: its rows, size, columns and when it last changed, against its own usual rhythm. Only the catalog is read, so no value leaves the database. Turn on its recommended alerts, and a table's owners hear when it is late, loses rows or changes its columns.": "Подключите базу данных, и каждая её таблица будет отслеживаться уже через несколько минут: строки, размер, столбцы и время последнего изменения — относительно её собственного обычного ритма. Читается только каталог, поэтому ни одно значение не покидает базу данных. Включите её рекомендуемые оповещения, и владельцы таблицы узнают, когда она опаздывает, теряет строки или меняет столбцы.",
   "Could Not Compare": "Не удалось сравнить",
-  "Could Not Read": "Не удалось прочитать",
   "Could Not Run": "Не удалось выполнить",
   "Drifted {{time}}": "Расхождение: {{time}}",
   "Each connected database, how its last read went, and whether its alerts are on.": "Каждая подключённая база данных, результат её последнего чтения и включены ли её оповещения.",
@@ -47729,5 +47727,8 @@
   "{{count}} alerts on_one": "Включено {{count}} оповещение",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days.": "Изменения столбцов за последние {{days}} дн. (добавлены, удалены, переименованы или сменили тип): {{count}}.",
   "{{count}} columns added, removed, renamed or retyped in the last {{days}} days._one": "{{count}} столбец добавлен, удалён, переименован или сменил тип за последние {{days}} дн.",
-  "{{done}} of {{count}} done. Your tables are watched; these steps make sure the right people hear when one breaks.": "Выполнено {{done}} из {{count}}. Ваши таблицы отслеживаются; эти шаги нужны, чтобы нужные люди узнали, когда одна из них сломается."
+  "Checks whose alert is open.": "Проверки с открытым оповещением.",
+  "Collection Failed": "Сбор не удался",
+  "These steps make sure the right people hear when a table breaks.": "Эти шаги нужны, чтобы нужные люди узнали, когда таблица сломается.",
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Только что подключённую базу данных впервые читают в течение нескольких минут, и с этого момента её таблицы отслеживаются."
 }

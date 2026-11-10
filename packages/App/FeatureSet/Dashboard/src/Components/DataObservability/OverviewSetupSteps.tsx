@@ -29,11 +29,14 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * or to do and with the page it is done on: turn on the database's alerts
  * (monitors a person reviews and turns on, never made behind their back),
  * say who owns which tables, add a check, send the pipelines' runs. It goes
- * once every step is done, or when someone hides it - remembered in this
- * browser, per project.
+ * once every step is done, or when someone dismisses it - remembered in
+ * this browser, per project.
  */
 
 export const SETUP_STEPS_TEST_ID: string = "data-observability-setup-steps";
+export const SETUP_STEPS_DISMISS_TEST_ID: string =
+  "data-observability-setup-dismiss";
+const SETUP_STEPS_TITLE_ID: string = "data-observability-setup-steps-title";
 
 export interface ComponentProps {
   projectId: string;
@@ -78,44 +81,79 @@ const OverviewSetupSteps: FunctionComponent<ComponentProps> = (
     setIsHidden(true);
   };
 
+  /*
+   * Drawn as the product's other first-steps cards are (Security's Get
+   * started, Home's checklist): the title with Dismiss at the right edge of
+   * its line at every width, what the steps are for under it, then how many
+   * are done - in words and as a bar - over the steps themselves. The icon
+   * gives its room to the words on a phone.
+   */
   return (
     <section
       className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
       data-testid={SETUP_STEPS_TEST_ID}
+      aria-labelledby={SETUP_STEPS_TITLE_ID}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
-            <Icon icon={IconProp.TableCells} className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-gray-900">
+      <div className="flex items-start gap-4">
+        <div
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700 max-sm:hidden"
+          aria-hidden="true"
+        >
+          <Icon icon={IconProp.TableCells} className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <h2
+              id={SETUP_STEPS_TITLE_ID}
+              className="text-base font-semibold text-gray-900"
+            >
               {translator.translateText("Finish setting up Data Observability")}
             </h2>
-            <p className="mt-1 max-w-3xl text-sm text-gray-600">
-              {translator.translateTemplate(
-                "{{done}} of {{count}} done. Your tables are watched; these steps make sure the right people hear when one breaks.",
-                {
-                  done: translator.formatNumber(doneCount),
-                  count: translator.formatNumber(steps.length),
-                },
-              )}
-            </p>
+            {/*
+             * Dismiss (28px with its padding) hangs 2px over the title's 24px
+             * line above and below, so the line keeps its height and the
+             * description its 4px under the title.
+             */}
+            <div className="-my-0.5 flex-shrink-0">
+              <Button
+                title="Dismiss"
+                buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                buttonSize={ButtonSize.Small}
+                onClick={hide}
+                dataTestId={SETUP_STEPS_DISMISS_TEST_ID}
+              />
+            </div>
           </div>
-        </div>
-        <div className="flex-shrink-0 self-end sm:self-auto">
-          <Button
-            title="Hide"
-            buttonStyle={ButtonStyleType.OUTLINE}
-            buttonSize={ButtonSize.Small}
-            icon={IconProp.Close}
-            onClick={hide}
-            dataTestId="data-observability-setup-hide"
-          />
+          <p className="mt-1 max-w-3xl text-sm text-gray-600">
+            {translator.translateText(
+              "These steps make sure the right people hear when a table breaks.",
+            )}
+          </p>
         </div>
       </div>
 
-      <ol className="mt-5 divide-y divide-gray-100">
+      <div
+        className="mt-6 flex items-center gap-3"
+        data-testid="data-observability-setup-progress"
+      >
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          {translator.translateTemplate("{{done}} of {{total}} done", {
+            done: translator.formatNumber(doneCount),
+            total: translator.formatNumber(steps.length),
+          })}
+        </span>
+        <span
+          className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100"
+          aria-hidden="true"
+        >
+          <span
+            className="block h-full rounded-full bg-emerald-500"
+            style={{ width: `${(doneCount / steps.length) * 100}%` }}
+          />
+        </span>
+      </div>
+
+      <ol className="mt-3 divide-y divide-gray-100">
         {steps.map(
           (
             state: DataObservabilitySetupStepState,
