@@ -41,6 +41,29 @@ render() {
   printf '%s\n' "$text"
 }
 
+# docs_manifests <docs page>... <tag>: every whole object the pages' YAML
+# code blocks write (a block with an apiVersion), one document each, with the
+# package's tag in place of {{CROSSPLANE_PROVIDER_VERSION}}, as the docs
+# serve it. A block that shows part of a spec is left out.
+docs_manifests() {
+  local tag="${*: -1}"
+  awk -v tag="${tag}" '
+    function fill(line,   at, token) {
+      token = "{{CROSSPLANE_PROVIDER_VERSION}}"
+      while ((at = index(line, token)) > 0) {
+        line = substr(line, 1, at - 1) tag substr(line, at + length(token))
+      }
+      return line
+    }
+    /^```yaml/ { inside = 1; block = ""; whole = 0; next }
+    inside && /^```/ { inside = 0; if (whole) printf "---\n%s", block; next }
+    inside {
+      if ($0 ~ /^apiVersion:/) whole = 1
+      block = block fill($0) "\n"
+    }
+  ' "${@:1:$#-1}"
+}
+
 # api <METHOD> <path under /api> [<JSON body>]: calls OneUptime with the
 # project's API key. The answer goes to ${WORK}/api.json; the HTTP status is
 # printed.

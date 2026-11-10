@@ -134,9 +134,9 @@ describe("config/zz_references.go", () => {
     expect(go.indexOf('"oneuptime_monitor"')).toBeLessThan(
       go.indexOf('"oneuptime_status_page"'),
     );
-    expect(go.indexOf('"labels"', go.indexOf('"oneuptime_status_page"'))).toBeLessThan(
-      go.indexOf('"owner_teams"'),
-    );
+    expect(
+      go.indexOf('"labels"', go.indexOf('"oneuptime_status_page"')),
+    ).toBeLessThan(go.indexOf('"owner_teams"'));
     expect(renderReferencesGo(references)).toBe(go);
   });
 

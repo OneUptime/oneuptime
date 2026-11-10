@@ -130,7 +130,9 @@ describe("the sources", () => {
 });
 
 describe("the Go steps", () => {
-  const titles = (steps: Array<GoStep>): Array<string> => {
+  const titles: (steps: Array<GoStep>) => Array<string> = (
+    steps: Array<GoStep>,
+  ): Array<string> => {
     return steps.map((step: GoStep): string => {
       return step.command.split(" ")[0] === "go"
         ? step.command.split(" ").slice(0, 3).join(" ")
@@ -140,7 +142,7 @@ describe("the Go steps", () => {
 
   test("run in the order each needs the one before", () => {
     const order: Array<string> = titles(goSteps(options));
-    const at = (prefix: string): number => {
+    const at: (prefix: string) => number = (prefix: string): number => {
       const index: number = order.findIndex((command: string): boolean => {
         return command.startsWith(prefix);
       });

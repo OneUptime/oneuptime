@@ -21,12 +21,14 @@ on:
   # The provider is made from every resource of the API, so a change anywhere
   # can change it. A pull request or a push runs this when it changes the
   # generators, the test or this workflow; main runs it every night for the
-  # rest, and every release runs it before publishing the package.
+  # rest, and every release runs it before publishing the package. The
+  # English docs pages count too: the test checks their manifests.
   pull_request:
     paths:
       - "Scripts/CrossplaneProvider/**"
       - "Scripts/TerraformProvider/**"
       - "packages/E2E/Crossplane/**"
+      - "packages/App/FeatureSet/Docs/Content/en/crossplane/**"
       - "packages/E2E/Terraform/e2e-tests/scripts/setup-test-account.sh"
       - ".github/actions/setup-crossplane-tools/**"
       - ".github/workflows/crossplane-provider.yml"
@@ -37,6 +39,7 @@ on:
       - "Scripts/CrossplaneProvider/**"
       - "Scripts/TerraformProvider/**"
       - "packages/E2E/Crossplane/**"
+      - "packages/App/FeatureSet/Docs/Content/en/crossplane/**"
       - "packages/E2E/Terraform/e2e-tests/scripts/setup-test-account.sh"
       - ".github/actions/setup-crossplane-tools/**"
       - ".github/workflows/crossplane-provider.yml"

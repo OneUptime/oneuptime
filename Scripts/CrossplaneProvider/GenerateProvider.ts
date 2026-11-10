@@ -21,9 +21,7 @@ async function main(): Promise<void> {
         "terraform-provider-oneuptime",
       ),
       openApiSpecPath: path.join(repoRoot, "Terraform", "openapi.json"),
-      version: fs
-        .readFileSync(path.join(repoRoot, "VERSION"), "utf-8")
-        .trim(),
+      version: fs.readFileSync(path.join(repoRoot, "VERSION"), "utf-8").trim(),
     });
 
   Logger.info("🚀 Generating the Crossplane provider...");

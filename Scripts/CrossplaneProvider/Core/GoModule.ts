@@ -18,7 +18,8 @@ export const GO_VERSION: string = "1.25.0";
 export const REQUIREMENTS: Record<string, string> = {
   "github.com/alecthomas/kingpin/v2": "v2.4.0",
   "github.com/crossplane/crossplane-runtime/v2": "v2.4.3",
-  "github.com/crossplane/crossplane-tools": "v0.0.0-20260719180100-659f1dc036c5",
+  "github.com/crossplane/crossplane-tools":
+    "v0.0.0-20260719180100-659f1dc036c5",
   "github.com/crossplane/crossplane/apis/v2": "v2.4.1",
   "github.com/crossplane/upjet/v2": "v2.5.1",
   "github.com/pkg/errors": "v0.9.1",

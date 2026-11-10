@@ -46,7 +46,7 @@ spec:
         tier: production
 ```
 
-References reach into a monitor's steps too: a criterion's status (`monitorStatusIdRef`), and the severity, owner teams, on-call policies and labels of the incidents and alerts it creates (`incidentSeverityIdRef`, `alertSeverityIdRef`, `ownerTeamIdsRefs`, `onCallPolicyIdsRefs`, `labelIdsRefs`). People are named by their user IDs, as in `ownerUserIds`: there is no resource for a user.
+References reach into a monitor's steps too: a criterion's status (`monitorStatusIdRef`), and the severity, owner teams, on-call policies and labels of the incidents and alerts it creates (`incidentSeverityIdRef`, `alertSeverityIdRef`, `ownerTeamIdsRefs`, `onCallPolicyIdsRefs`, `labelIdsRefs`). There is no kind for a person: a field names someone by their user ID, as `ownerUserIds` does, and many kinds take their email address beside it, as `TeamMember` does in `userEmail` ([People and Teams](/docs/terraform/people-and-teams)).
 
 ## Import what you already have
 

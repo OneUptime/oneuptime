@@ -46,9 +46,11 @@ describe("go.mod", () => {
   });
 
   test("lists the code generators as tools, each from a required module", () => {
-    expect(goMod).toContain(`tool (\n${TOOLS.map((tool: string) => {
-      return `\t${tool}\n`;
-    }).join("")})\n`);
+    expect(goMod).toContain(
+      `tool (\n${TOOLS.map((tool: string) => {
+        return `\t${tool}\n`;
+      }).join("")})\n`,
+    );
     for (const tool of TOOLS) {
       const module: string | undefined = Object.keys(REQUIREMENTS).find(
         (candidate: string): boolean => {

@@ -9,7 +9,8 @@
 #
 # It
 #   1. creates a kind cluster and a registry the cluster pulls from, pushes the
-#      package there, and installs Crossplane and the package;
+#      package there, and installs Crossplane and the package, and has the API
+#      server check every manifest of the docs' Crossplane pages against it;
 #   2. gives the provider the API key through a namespace's ProviderConfig, and
 #      through a ClusterProviderConfig whose Secret is JSON that names the URL;
 #   3. observes statuses and a severity of the project by their IDs, and
@@ -221,6 +222,23 @@ if ((expected == 0)); then
   expected=400
 fi
 check "the package installed its kinds (${count}, expected ${expected} and more)" test "${count}" -ge "${expected}"
+
+log "The docs' manifests"
+# What the docs' Crossplane pages tell a reader to apply is what the
+# installed provider takes: the API server checks each object against the
+# provider's kinds and refuses a field they do not have. Nothing is made;
+# team-a, the pages' namespace, is there for the check only.
+DOCS_PAGES="${ROOT}/packages/App/FeatureSet/Docs/Content/en/crossplane"
+docs_manifests "${DOCS_PAGES}/index.md" "${DOCS_PAGES}/managing-resources.md" "v${VERSION}" \
+  >"${WORK}/docs-manifests.yaml"
+docs_objects="$(grep -c '^apiVersion:' "${WORK}/docs-manifests.yaml" || true)"
+check "the docs' pages write manifests (${docs_objects})" test "${docs_objects}" -ge 10
+dry_run_docs() {
+  k apply --dry-run=server --validate=strict -f "${WORK}/docs-manifests.yaml" >"${WORK}/docs-dry-run.log"
+}
+k create namespace team-a >/dev/null
+check "the provider takes every one of them as written, field for field" dry_run_docs
+k delete namespace team-a --wait=false >/dev/null
 
 log "Credentials"
 render "${MANIFESTS}/credentials.yaml" | k apply -f -

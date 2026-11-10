@@ -1,3 +1,4 @@
+import { spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import {
@@ -6,15 +7,47 @@ import {
 } from "../Core/CrossplaneProviderGenerator";
 import { renderReferencesGo } from "../Core/References";
 
-const read = (file: string): string => {
+const read: (file: string) => string = (file: string): string => {
   return fs.readFileSync(path.join(STATIC_FILES_DIR, file), "utf-8");
 };
+
+// A Go file's package clause.
+const PACKAGE_CLAUSE: RegExp = /^package (\w+)$/m;
+
+const REPO_ROOT: string = path.resolve(__dirname, "../../..");
 
 const goFiles: Array<string> = listFiles(STATIC_FILES_DIR).filter(
   (file: string): boolean => {
     return file.endsWith(".go");
   },
 );
+
+/*
+ * The Go fields a "+kubebuilder:default" marker sits on: the first line
+ * after the marker's comment block, by the field's name.
+ */
+const defaultedFields: (source: string) => Array<string> = (
+  source: string,
+): Array<string> => {
+  const lines: Array<string> = source.split("\n");
+  const fields: Array<string> = [];
+
+  lines.forEach((line: string, index: number): void => {
+    if (!line.includes("+kubebuilder:default")) {
+      return;
+    }
+
+    let next: number = index + 1;
+
+    while ((lines[next] || "").trim().startsWith("//")) {
+      next++;
+    }
+
+    fields.push((lines[next] || "").trim().split(/\s+/)[0] || "");
+  });
+
+  return fields;
+};
 
 describe("the provider's hand-written Go", () => {
   test("has the commands, the configuration, the clients and their tests", () => {
@@ -36,7 +69,7 @@ describe("the provider's hand-written Go", () => {
   });
 
   test.each(goFiles)("%s is in the package of its folder", (file: string) => {
-    const pkg: string | undefined = /^package (\w+)$/m.exec(read(file))?.[1];
+    const pkg: string | undefined = PACKAGE_CLAUSE.exec(read(file))?.[1];
     const folder: string = path.basename(path.dirname(file));
     expect(pkg).toBe(file.startsWith("cmd/") ? "main" : folder);
   });
@@ -52,9 +85,7 @@ describe("the provider's hand-written Go", () => {
 
   test("config reads the references the generator writes", () => {
     expect(renderReferencesGo({})).toContain("var generatedReferences =");
-    expect(read("config/provider.go")).toContain(
-      "range generatedReferences",
-    );
+    expect(read("config/provider.go")).toContain("range generatedReferences");
   });
 });
 
@@ -96,10 +127,27 @@ describe("the ProviderConfig", () => {
    * internal/clients/oneuptime_test.go hold both ends).
    */
   test("neither defaults its url, so JSON credentials can name one", () => {
-    expect(types).not.toContain("+kubebuilder:default");
+    // Both have one, and only a ProviderConfig's source (a Secret) has a default.
+    expect(
+      types.match(/^\s*URL string `json:"url,omitempty"`$/gm),
+    ).toHaveLength(2);
+    expect(defaultedFields(types)).toEqual(["Source"]);
     expect(read("internal/clients/oneuptime.go")).toContain(
       'DefaultURL = "https://oneuptime.com"',
     );
+  });
+
+  test("finds the field a default marker sits on, past the rest of its comment", () => {
+    expect(
+      defaultedFields(
+        [
+          "\t// The address.",
+          "\t// +kubebuilder:default=https://oneuptime.com",
+          "\t// +optional",
+          '\tURL string `json:"url,omitempty"`',
+        ].join("\n"),
+      ),
+    ).toEqual(["URL"]);
   });
 
   test("the clients read the namespaced Secret in the ProviderConfig's namespace", () => {
@@ -129,8 +177,34 @@ describe("the package", () => {
     const dockerfile: string = read("Dockerfile");
     expect(dockerfile).toMatch(/^FROM gcr\.io\/distroless\/static/m);
     expect(dockerfile).toMatch(/^USER 65532/m);
-    expect(dockerfile).toContain(
-      'ENTRYPOINT ["/usr/local/bin/provider"]',
+    expect(dockerfile).toContain('ENTRYPOINT ["/usr/local/bin/provider"]');
+  });
+
+  /*
+   * The repository ignores every Dockerfile (most are gomplate output), so
+   * this one, hand-written, is let through by name: ignored, it never left
+   * the machine it was written on, and the package could not be built
+   * anywhere else.
+   */
+  test("is committed, not ignored as rendered Dockerfiles are", () => {
+    const dockerfile: string = path.relative(
+      REPO_ROOT,
+      path.join(STATIC_FILES_DIR, "Dockerfile"),
+    );
+    // git check-ignore exits 1 for a path no rule ignores.
+    const ignored: number | null = spawnSync(
+      "git",
+      ["check-ignore", "--quiet", "--no-index", dockerfile],
+      { cwd: REPO_ROOT },
+    ).status;
+
+    expect({ dockerfile, ignored }).toEqual({ dockerfile, ignored: 1 });
+  });
+
+  // GHCR links a package to its repository by this label.
+  test("names the repository it is made in, as the package's source", () => {
+    expect(read("Dockerfile")).toMatch(
+      /^LABEL org\.opencontainers\.image\.source="https:\/\/github\.com\/OneUptime\/oneuptime"$/m,
     );
   });
 });
