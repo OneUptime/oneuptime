@@ -48218,5 +48218,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} levererar inte rätt tid",
   "{{monitorName}} is offline": "{{monitorName}} är offline",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: för många dåliga AI-svar",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nEn sond är frånkopplad när inget har hörts från den på tre minuter. Monitorer som bara körs på en frånkopplad sond kontrolleras inte förrän den är tillbaka. Det här löser sig självt när alla sonder som den här monitorn bevakar är anslutna igen."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nEn sond är frånkopplad när inget har hörts från den på tre minuter. Monitorer som bara körs på en frånkopplad sond kontrolleras inte förrän den är tillbaka. Det här löser sig självt när alla sonder som den här monitorn bevakar är anslutna igen.",
+  "This team comes with every project and can't have owners.": "Det här teamet ingår i alla projekt och kan inte ha ägare.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "Personer och team som tar hand om det här teamet. Med teambehörigheter som är begränsade till de team de äger bjuder de in personer, tar bort dem och ändrar vad teamet får göra.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Lägg till en kollega eller ett team som ska ta hand om vilka som är med i det här teamet och vad det får göra.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Lägg till personer som ägare av dina team. Ägare tar hand om vilka som är med i ett team och vad det får göra.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Lägg till team som ägare av dina team. Medlemmarna i ett ägarteam tar hand om vilka som är med i det ägda teamet och vad det får göra.",
+  "Owned Team": "Ägt team",
+  "Owned Team ID": "Ägt team-ID",
+  "Team Team Owner": "Ägarteam för team",
+  "Team Team Owners": "Ägarteam för team",
+  "Team User Owner": "Ägaranvändare för team",
+  "Team User Owners": "Ägaranvändare för team"
 }

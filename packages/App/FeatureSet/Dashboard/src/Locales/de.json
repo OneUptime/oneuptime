@@ -48218,5 +48218,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} liefert keine korrekte Zeit",
   "{{monitorName}} is offline": "{{monitorName}} ist offline",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: zu viele schlechte KI-Antworten",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nEine Sonde gilt als getrennt, wenn sie sich drei Minuten lang nicht gemeldet hat. Monitore, die nur auf einer getrennten Sonde laufen, werden erst wieder geprüft, wenn die Sonde zurück ist. Dies wird automatisch behoben, sobald alle Sonden, die dieser Monitor beobachtet, wieder verbunden sind."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nEine Sonde gilt als getrennt, wenn sie sich drei Minuten lang nicht gemeldet hat. Monitore, die nur auf einer getrennten Sonde laufen, werden erst wieder geprüft, wenn die Sonde zurück ist. Dies wird automatisch behoben, sobald alle Sonden, die dieser Monitor beobachtet, wieder verbunden sind.",
+  "This team comes with every project and can't have owners.": "Dieses Team gehört zu jedem Projekt und kann keine Eigentümer haben.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "Personen und Teams, die sich um dieses Team kümmern. Mit Teamberechtigungen, die auf die Teams beschränkt sind, deren Eigentümer sie sind, laden sie Personen ein, entfernen sie und ändern, was das Team darf.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Fügen Sie ein Teammitglied oder ein Team hinzu, das sich darum kümmert, wer in diesem Team ist und was es darf.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Fügen Sie Personen als Eigentümer Ihrer Teams hinzu. Eigentümer kümmern sich darum, wer in einem Team ist und was es darf.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Fügen Sie Teams als Eigentümer Ihrer Teams hinzu. Die Mitglieder eines Eigentümer-Teams kümmern sich darum, wer im betreuten Team ist und was es darf.",
+  "Owned Team": "Betreutes Team",
+  "Owned Team ID": "ID des betreuten Teams",
+  "Team Team Owner": "Team-Eigentümer des Teams",
+  "Team Team Owners": "Team-Eigentümer des Teams",
+  "Team User Owner": "Benutzer-Eigentümer des Teams",
+  "Team User Owners": "Benutzer-Eigentümer des Teams"
 }

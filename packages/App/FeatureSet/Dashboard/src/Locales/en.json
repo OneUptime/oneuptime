@@ -48218,5 +48218,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} is not serving good time",
   "{{monitorName}} is offline": "{{monitorName}} is offline",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: too many bad AI answers",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.",
+  "This team comes with every project and can't have owners.": "This team comes with every project and can't have owners.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Add a teammate or a team to look after who is in this team and what it may do.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Add people as owners of your teams. Owners look after who is in a team and what it may do.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.",
+  "Owned Team": "Owned Team",
+  "Owned Team ID": "Owned Team ID",
+  "Team Team Owner": "Team Team Owner",
+  "Team Team Owners": "Team Team Owners",
+  "Team User Owner": "Team User Owner",
+  "Team User Owners": "Team User Owners"
 }

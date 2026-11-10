@@ -48218,5 +48218,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} が正しい時刻を提供していません",
   "{{monitorName}} is offline": "{{monitorName}} がオフラインです",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: 不適切な AI の回答が多すぎます",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nプローブは 3 分間応答がないと切断とみなされます。切断されたプローブでのみ実行されるモニターは、そのプローブが復帰するまでチェックされません。このモニターが監視するすべてのプローブが再び接続されると、自動的に解決されます。"
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nプローブは 3 分間応答がないと切断とみなされます。切断されたプローブでのみ実行されるモニターは、そのプローブが復帰するまでチェックされません。このモニターが監視するすべてのプローブが再び接続されると、自動的に解決されます。",
+  "This team comes with every project and can't have owners.": "このチームはすべてのプロジェクトに含まれるため、所有者を設定できません。",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "このチームを管理するユーザーとチーム。所有するチームに限定されたチーム権限で、メンバーの招待や削除、このチームにできることの変更を行います。",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "このチームに誰が所属し、何ができるかを管理するメンバーまたはチームを追加してください。",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "チームの所有者としてユーザーを追加します。所有者は、チームに誰が所属し、何ができるかを管理します。",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "チームの所有者としてチームを追加します。所有者チームのメンバーは、所有されるチームに誰が所属し、何ができるかを管理します。",
+  "Owned Team": "所有されるチーム",
+  "Owned Team ID": "所有されるチーム ID",
+  "Team Team Owner": "チームの所有者チーム",
+  "Team Team Owners": "チームの所有者チーム",
+  "Team User Owner": "チームの所有者ユーザー",
+  "Team User Owners": "チームの所有者ユーザー"
 }

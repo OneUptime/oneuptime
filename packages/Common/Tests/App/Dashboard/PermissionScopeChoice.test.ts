@@ -592,7 +592,7 @@ describe("one permission's Scope", () => {
   const BOTH: Permission = Permission.CreateWorkflow;
   const LABELS_ONLY: Permission = Permission.ReadWorkflowOwnerTeam;
   const OWNERS_ONLY: Permission = Permission.ReadSecurityCaseNote;
-  const NEITHER: Permission = Permission.CreateProjectTeam;
+  const NEITHER: Permission = Permission.CreateProjectLabel;
 
   test("the answers can be some of the three, always in the form's order", () => {
     expect(
@@ -620,6 +620,35 @@ describe("one permission's Scope", () => {
         shown: isScopeShownForPermission(permission),
       }).toEqual({ permission, shown: true });
     }
+  });
+
+  /*
+   * Issue #6561: a team's permissions had no scope, as teams had no owners.
+   * A team's owners now look after it, so each permission that changes a
+   * team, who is in it or what it may do is offered Owned - and reading
+   * teams, which every reader does in full, still nothing.
+   */
+  test("the permissions that change a team are offered Owned: its owners look after it", () => {
+    for (const permission of [
+      Permission.CreateProjectTeam,
+      Permission.EditProjectTeam,
+      Permission.DeleteProjectTeam,
+      Permission.InviteProjectTeamMembers,
+      Permission.RemoveProjectTeamMembers,
+      Permission.EditProjectTeamPermissions,
+    ]) {
+      expect({
+        permission,
+        shown: isScopeShownForPermission(permission),
+        scopes: getPermissionScopes(permission),
+      }).toEqual({
+        permission,
+        shown: true,
+        scopes: [PermissionScope.All, PermissionScope.Owned],
+      });
+    }
+
+    expect(isScopeShownForPermission(Permission.ReadProjectTeam)).toBe(false);
   });
 
   test("takes none where no scope narrows the permission, nothing is picked, or the role reaches the whole project", () => {
