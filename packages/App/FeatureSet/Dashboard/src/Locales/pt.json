@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} ambiente aguardando os primeiros dados",
   "{{count}} flows": "{{count}} fluxos",
   "{{count}} flows_one": "{{count}} fluxo",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "{{count}} sinais de frustração",
+  "{{count}} frustration signals_one": "{{count}} sinal de frustração",
+  "{{count}} pages": "{{count}} páginas",
+  "{{count}} pages_one": "{{count}} página",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "Quem usa este aplicativo: usuários ativos, novos, recorrentes, conectados e inativos, contados a partir das sessões que a reprodução de sessões grava.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "Sua função não pode ver quem são os usuários conectados, então esta pessoa aparece sem nome.",
   "{{percent}} of active users": "{{percent}} dos usuários ativos",
-  "{{percent}} of sessions": "{{percent}} das sessões"
+  "{{percent}} of sessions": "{{percent}} das sessões",
+  "Device and country": "Dispositivo e país",
+  "Previous period not fully counted": "Período anterior não contado por completo",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "Os erros que a página relatou na sessão e os seus sinais de frustração, como cliques de raiva ou cliques mortos.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "As sessões da pessoa neste período e, abaixo, quantas os últimos 13 meses guardam no total."
 }

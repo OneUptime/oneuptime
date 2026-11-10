@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} miljö väntar på de första data",
   "{{count}} flows": "{{count}} flöden",
   "{{count}} flows_one": "{{count}} flöde",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "{{count}} frustrationssignaler",
+  "{{count}} frustration signals_one": "{{count}} frustrationssignal",
+  "{{count}} pages": "{{count}} sidor",
+  "{{count}} pages_one": "{{count}} sida",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "Vem som använder den här applikationen: aktiva, nya, återkommande, inloggade och inaktiva användare, räknat från de sessioner som sessionsuppspelning spelar in.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "Din roll kan inte se vilka inloggade användare är, så den här personen visas utan namn.",
   "{{percent}} of active users": "{{percent}} av de aktiva användarna",
-  "{{percent}} of sessions": "{{percent}} av sessionerna"
+  "{{percent}} of sessions": "{{percent}} av sessionerna",
+  "Device and country": "Enhet och land",
+  "Previous period not fully counted": "Föregående period inte helt räknad",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "Felen som sidan rapporterade under sessionen och dess frustrationssignaler, till exempel ilskna klick eller döda klick.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "Personens sessioner i detta intervall och under det hur många de senaste 13 månaderna rymmer totalt."
 }

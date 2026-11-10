@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} 个环境正在等待首批数据",
   "{{count}} flows": "{{count}} 条流",
   "{{count}} flows_one": "{{count}} 条流",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "{{count}} 个挫败信号",
+  "{{count}} frustration signals_one": "{{count}} 个挫败信号",
+  "{{count}} pages": "{{count}} 个页面",
+  "{{count}} pages_one": "{{count}} 个页面",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "谁在使用此应用：活跃、新、回访、已登录和休眠用户，基于会话回放录制的会话统计。",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "你的角色无法查看已登录用户的身份，因此此人显示时不带姓名。",
   "{{percent}} of active users": "占活跃用户的 {{percent}}",
-  "{{percent}} of sessions": "占会话的 {{percent}}"
+  "{{percent}} of sessions": "占会话的 {{percent}}",
+  "Device and country": "设备和国家",
+  "Previous period not fully counted": "上一周期未完整统计",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "页面在会话中报告的错误，以及会话的挫败信号（如愤怒点击或无效点击）。",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "此人在该范围内的会话数，下方是最近 13 个月内保留的会话总数。"
 }

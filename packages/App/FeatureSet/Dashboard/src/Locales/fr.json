@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} environnement en attente des premières données",
   "{{count}} flows": "{{count}} flux",
   "{{count}} flows_one": "{{count}} flow",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "{{count}} signaux de frustration",
+  "{{count}} frustration signals_one": "{{count}} signal de frustration",
+  "{{count}} pages": "{{count}} pages vues",
+  "{{count}} pages_one": "{{count}} page vue",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "Qui utilise cette application : utilisateurs actifs, nouveaux, récurrents, connectés et inactifs, d'après les sessions qu'enregistre la relecture de session.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "Votre rôle ne permet pas de voir qui sont les utilisateurs connectés : cette personne s'affiche donc sans nom.",
   "{{percent}} of active users": "{{percent}} des utilisateurs actifs",
-  "{{percent}} of sessions": "{{percent}} des sessions"
+  "{{percent}} of sessions": "{{percent}} des sessions",
+  "Device and country": "Appareil et pays",
+  "Previous period not fully counted": "Période précédente pas entièrement comptée",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "Les erreurs signalées par la page pendant la session, et ses signaux de frustration, comme des clics rageurs ou des clics morts.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "Leurs sessions dans cette plage et, en dessous, combien en contiennent les 13 derniers mois au total."
 }

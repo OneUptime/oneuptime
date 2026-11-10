@@ -451,6 +451,67 @@ describe("ProductAnalyticsUsers tiles", () => {
     );
   });
 
+  it("compares with nothing when the range before was only partly counted", async () => {
+    /* Counting began 40 days ago: inside the range before this month. */
+    mockReads({
+      summary: summary({ dataStartedAt: Date.now() - 40 * DAY_MS }),
+    });
+
+    renderPage();
+
+    const tiles: Array<string> = await waitForTiles();
+
+    for (const tile of tiles.slice(0, 3)) {
+      expect(tile).toContain("Previous period not fully counted");
+      expect(tile).not.toContain("on the previous period");
+    }
+  });
+
+  it("a share of no active users is no line at all, never 0%", async () => {
+    mockReads({
+      summary: summary({
+        current: period({ activeUsers: 0, signedInUsers: 0 }),
+      }),
+    });
+
+    renderPage();
+
+    /* The summary drawn: the total from it, then the signed-in tile beside it. */
+    await waitFor(() => {
+      expect(tileTexts()[4]).toContain("5,600");
+    });
+
+    expect(tileTexts()[3]).toContain("Signed-in users");
+    expect(tileTexts()[3]).not.toContain("of active users");
+    expect(tileTexts()[3]).not.toContain("%");
+  });
+
+  it("charts from the day counting started, not days nobody counted as zero", async () => {
+    mockReads({
+      summary: summary({ dataStartedAt: Date.UTC(2026, 8, 2, 15, 0) }),
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("line-chart")).toHaveLength(2);
+    });
+
+    await waitFor(() => {
+      const lastCall: Array<unknown> | undefined =
+        lineChartMock.mock.calls[lineChartMock.mock.calls.length - 1];
+      const lines: Array<{ data: Array<{ x: Date }> }> = (
+        lastCall![0] as { data: Array<{ data: Array<{ x: Date }> }> }
+      ).data;
+
+      expect(
+        lines[0]!.data.map((point: { x: Date }): string => {
+          return point.x.toISOString();
+        }),
+      ).toEqual(["2026-09-02T00:00:00.000Z"]);
+    });
+  });
+
   it("says nothing about counting when it started before the range", async () => {
     mockReads({});
 
@@ -605,12 +666,76 @@ describe("ProductAnalyticsUsers people", () => {
 
     const card: HTMLElement = peopleCard();
 
-    expect(within(card).getByText("11111111…")).toBeInTheDocument();
-    expect(within(card).getByText("7f3a2b1c…")).toBeInTheDocument();
+    /* A nameless person's id: left to right in any page, in a monospace face. */
+    expect(within(card).getByText("11111111…")).toHaveAttribute("dir", "ltr");
+    expect(within(card).getByText("11111111…")).toHaveClass("font-mono");
+    expect(within(card).getByText("7f3a2b1c…")).toHaveAttribute("dir", "ltr");
+    /* What a named person is, in words: no id face, and the name sets the cell's direction. */
+    const named: HTMLElement = links[0]!.closest("[dir]") as HTMLElement;
+
+    expect(named).toHaveAttribute("dir", "auto");
+    expect(within(named).getByText("Signed-in user")).not.toHaveClass(
+      "font-mono",
+    );
+    expect(links[0]).toHaveAttribute("title", "jane@acme.com");
     /* Counts in the reader's digits; the country by its name. */
-    expect(within(card).getAllByText("1,250")).toHaveLength(2);
+    expect(within(card).getAllByText("1,250 in all")).toHaveLength(2);
     expect(within(card).getAllByText("Germany").length).toBeGreaterThan(0);
     expect(within(card).getAllByText("Mobile").length).toBeGreaterThan(0);
+  });
+
+  it("says how long ago a person was last seen, and the day they were first seen", async () => {
+    mockReads({ people: people([identified("jane@acme.com")]) });
+
+    renderPage();
+
+    await waitForPeople(1);
+
+    const card: HTMLElement = peopleCard();
+    const lastSeen: Date = new Date(Date.UTC(2026, 8, 2));
+    const firstSeen: Date = new Date(Date.UTC(2026, 7, 1));
+
+    expect(
+      within(card).getAllByText(OneUptimeDate.fromNow(lastSeen))[0],
+    ).toHaveAttribute(
+      "title",
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(lastSeen),
+    );
+    expect(
+      within(card).getAllByText(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          firstSeen,
+          true,
+        ),
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("offers other page sizes, and asks for the size picked from its first page", async () => {
+    mockReads({
+      people: people([identified("jane@acme.com")], { hasMore: true }),
+    });
+
+    renderPage();
+
+    await waitForPeople(1);
+
+    const select: HTMLSelectElement = within(peopleCard()).getByTestId(
+      "pagination-items-on-page-select",
+    ) as HTMLSelectElement;
+
+    expect(select.value).toBe(String(PRODUCT_ANALYTICS_PEOPLE_PAGE_SIZE));
+    expect(select.querySelectorAll("option").length).toBeGreaterThan(1);
+
+    fireEvent.change(select, { target: { value: "100" } });
+
+    await waitFor(() => {
+      expect(requestsTo("people")).toHaveLength(2);
+    });
+
+    expect(requestsTo("people")[1]!.data).toEqual(
+      expect.objectContaining({ limit: 100, offset: 0 }),
+    );
   });
 
   it("a filter reads its people again, writes itself into the address, and leaves the tiles alone", async () => {
@@ -784,6 +909,43 @@ describe("ProductAnalyticsUsers people", () => {
     expect(
       screen.getByTestId("product-analytics-people-search"),
     ).toBeInTheDocument();
+  });
+
+  it("the search sits in the card's header, and Escape clears it and asks again without it", async () => {
+    mockReads({});
+
+    renderPage();
+
+    await waitForPeople(2);
+
+    const toolbar: HTMLElement = screen.getByTestId(
+      "product-analytics-people-toolbar",
+    );
+    const search: HTMLElement = within(toolbar).getByTestId(
+      "product-analytics-people-search",
+    );
+
+    /* Folded to the pill until it is used; the pill opens it. */
+    fireEvent.click(
+      within(toolbar).getByRole("button", { name: "Open search" }),
+    );
+    fireEvent.change(search, { target: { value: "jane" } });
+
+    await waitFor(() => {
+      expect(requestsTo("people")).toHaveLength(2);
+    });
+
+    expect(requestsTo("people")[1]!.data["search"]).toBe("jane");
+
+    fireEvent.keyDown(search, { key: "Escape" });
+
+    expect(search).toHaveValue("");
+
+    await waitFor(() => {
+      expect(requestsTo("people")).toHaveLength(3);
+    });
+
+    expect(requestsTo("people")[2]!.data["search"]).toBeUndefined();
   });
 
   it("an empty list says so for the filter and range", async () => {

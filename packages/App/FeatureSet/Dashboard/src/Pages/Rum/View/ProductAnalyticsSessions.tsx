@@ -52,8 +52,10 @@ import {
   formatProductAnalyticsCount,
   formatProductAnalyticsDuration,
   formatProductAnalyticsShare,
+  getProductAnalyticsCountedDays,
   getProductAnalyticsTimeZone,
   getProductAnalyticsTrendWindow,
+  isProductAnalyticsPreviousPeriodCounted,
   toProductAnalyticsSeries,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsFormat";
 import {
@@ -101,13 +103,16 @@ export function buildProductAnalyticsSessionTiles(data: {
           current: read(summary.current),
           previous: read(summary.previous),
           translator: translator,
+          isPreviousPeriodCounted:
+            isProductAnalyticsPreviousPeriodCounted(summary),
         })
       : undefined;
   };
+  /* A share of no sessions says nothing: no line under the tile then. */
   const ofSessions: (part: number) => string | undefined = (
     part: number,
   ): string | undefined => {
-    return summary
+    return summary && summary.current.sessions > 0
       ? translator.translateTemplate("{{percent}} of sessions", {
           percent: formatProductAnalyticsShare({
             part: part,
@@ -352,10 +357,24 @@ const RumApplicationProductAnalyticsSessions: FunctionComponent<
     translator: translator,
   });
 
-  const days: Array<ProductAnalyticsTrendDayDto> = trend.data?.days || [];
   const trendZone: string = trend.data?.timeZone || timeZone;
+  const days: Array<ProductAnalyticsTrendDayDto> =
+    getProductAnalyticsCountedDays({
+      days: trend.data?.days || [],
+      dataStartedAt: summary.data?.dataStartedAt ?? null,
+      timeZone: trendZone,
+    });
   const chartWindow: { start: Date; end: Date } | null =
     getProductAnalyticsTrendWindow({ days: days, timeZone: trendZone });
+  /*
+   * A session whose device reported no type is rare: its line is drawn
+   * only in a range that has one, not as a line along zero in every chart.
+   */
+  const hasOtherDevices: boolean = days.some(
+    (day: ProductAnalyticsTrendDayDto): boolean => {
+      return day.otherSessions > 0;
+    },
+  );
 
   const deviceSeries: Array<SeriesPoint> = toProductAnalyticsSeries({
     days: days,
@@ -379,12 +398,16 @@ const RumApplicationProductAnalyticsSessions: FunctionComponent<
           return day.tabletSessions;
         },
       },
-      {
-        seriesName: "Other",
-        read: (day: ProductAnalyticsTrendDayDto): number => {
-          return day.otherSessions;
-        },
-      },
+      ...(hasOtherDevices
+        ? [
+            {
+              seriesName: "Other",
+              read: (day: ProductAnalyticsTrendDayDto): number => {
+                return day.otherSessions;
+              },
+            },
+          ]
+        : []),
     ],
   });
 

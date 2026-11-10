@@ -4,6 +4,11 @@ import Card from "Common/UI/Components/Card/Card";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import SessionReplayUserAvatar from "../SessionReplay/SessionReplayUserAvatar";
+import {
+  initialsOf,
+  stableHue,
+} from "../SessionReplay/SessionReplayUserIdentity";
 import {
   ProductAnalyticsPersonWords,
   describeProductAnalyticsCountry,
@@ -22,22 +27,88 @@ import {
  * their own, in a card of their own below this one.
  */
 
+/*
+ * The person's monogram, as Session Replay draws the same person: the
+ * colour from their key, so a signed-in user or a browser keeps one colour
+ * on every page; their initials when they have a name, "?" when they have
+ * none to show.
+ */
+export const ProductAnalyticsPersonAvatar: FunctionComponent<{
+  person: ProductAnalyticsPersonDto;
+  words: ProductAnalyticsPersonWords;
+  size: "sm" | "md";
+}> = (props: {
+  person: ProductAnalyticsPersonDto;
+  words: ProductAnalyticsPersonWords;
+  size: "sm" | "md";
+}): ReactElement => {
+  const key: string = (
+    props.person.kind === "identified"
+      ? props.person.identifiedUserKey
+      : props.person.visitorId
+  ).trim();
+
+  return (
+    <SessionReplayUserAvatar
+      initials={props.words.isLabel ? initialsOf(props.words.primary) : "?"}
+      hue={key ? stableHue(key) : null}
+      size={props.size}
+    />
+  );
+};
+
+/*
+ * The line under a person's name: what they are, in the reader's words,
+ * or the start of their id - written left to right in any page, so its
+ * "..." stays at its end.
+ */
+export const ProductAnalyticsPersonSecondary: FunctionComponent<{
+  words: ProductAnalyticsPersonWords;
+}> = (props: { words: ProductAnalyticsPersonWords }): ReactElement => {
+  if (props.words.isLabel) {
+    return <span>{props.words.secondary}</span>;
+  }
+
+  return (
+    <span dir="ltr" className="font-mono">
+      {props.words.secondary}
+    </span>
+  );
+};
+
+interface PersonFact {
+  label: string;
+  value: string;
+  // A second, quieter line: how long ago, or what the number covers.
+  detail?: string | undefined;
+  // The whole of it, under the pointer.
+  title?: string | undefined;
+}
+
 export const ProductAnalyticsPersonFacts: FunctionComponent<{
   person: ProductAnalyticsPersonDto;
 }> = (props: { person: ProductAnalyticsPersonDto }): ReactElement => {
   const translator: Translator = useTranslator();
-  const facts: Array<{ label: string; value: string }> = [
+  const firstSeen: Date = new Date(props.person.firstSeenAt);
+  const lastSeen: Date = new Date(props.person.lastSeenAt);
+  const facts: Array<PersonFact> = [
     {
       label: "First seen",
       value: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        new Date(props.person.firstSeenAt),
+        firstSeen,
+        true,
       ),
+      detail: OneUptimeDate.fromNow(firstSeen),
+      title: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(firstSeen),
     },
     {
       label: "Last seen",
-      value: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        new Date(props.person.lastSeenAt),
+      value: OneUptimeDate.fromNow(lastSeen),
+      detail: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        lastSeen,
+        true,
       ),
+      title: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(lastSeen),
     },
     {
       label: "All sessions",
@@ -45,6 +116,7 @@ export const ProductAnalyticsPersonFacts: FunctionComponent<{
         props.person.totalSessions,
         translator,
       ),
+      detail: translator.translateText("In the last 13 months"),
     },
     {
       label: "Device",
@@ -64,24 +136,40 @@ export const ProductAnalyticsPersonFacts: FunctionComponent<{
     },
   ];
 
+  /*
+   * Five across where the card is wide enough for five, else three, else
+   * two: by the card's own width, which a side menu beside it takes from.
+   */
   return (
-    <dl
-      className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5"
-      data-testid="product-analytics-person-facts"
-    >
-      {facts.map((fact: { label: string; value: string }): ReactElement => {
-        return (
-          <div key={fact.label} className="min-w-0">
-            <dt className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              {translator.translateText(fact.label)}
-            </dt>
-            <dd className="mt-1 break-words text-sm text-gray-900">
-              {fact.value}
-            </dd>
-          </div>
-        );
-      })}
-    </dl>
+    <div className="[container-type:inline-size]">
+      <dl
+        className="grid grid-cols-2 gap-x-6 gap-y-4 [@container(min-width:30rem)]:grid-cols-3 [@container(min-width:46rem)]:grid-cols-5"
+        data-testid="product-analytics-person-facts"
+      >
+        {facts.map((fact: PersonFact): ReactElement => {
+          return (
+            <div key={fact.label} className="min-w-0">
+              <dt className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                {translator.translateText(fact.label)}
+              </dt>
+              <dd
+                className="mt-1 break-words text-sm font-medium text-gray-900"
+                title={fact.title}
+              >
+                {fact.value}
+              </dd>
+              {fact.detail ? (
+                <dd className="mt-0.5 break-words text-xs text-gray-500">
+                  {fact.detail}
+                </dd>
+              ) : (
+                <></>
+              )}
+            </div>
+          );
+        })}
+      </dl>
+    </div>
   );
 };
 
@@ -105,12 +193,24 @@ const ProductAnalyticsPersonCard: FunctionComponent<
   return (
     <Card
       title={
-        <span dir={words.isLabel ? "auto" : undefined}>{words.primary}</span>
+        <span className="flex min-w-0 items-center gap-3">
+          <ProductAnalyticsPersonAvatar
+            person={props.person}
+            words={words}
+            size="md"
+          />
+          <span
+            className="min-w-0 break-words"
+            dir={words.isLabel ? "auto" : undefined}
+          >
+            {words.primary}
+          </span>
+        </span>
       }
-      description={<span className="font-mono text-xs">{words.secondary}</span>}
+      description={<ProductAnalyticsPersonSecondary words={words} />}
       buttons={[<Fragment key="back">{props.backLink}</Fragment>]}
     >
-      <div className="space-y-3">
+      <div className="space-y-4">
         <ProductAnalyticsPersonFacts person={props.person} />
         {props.person.kind === "identified" && !props.includesLabels ? (
           <p

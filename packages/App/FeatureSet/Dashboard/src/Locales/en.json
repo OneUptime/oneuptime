@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "Your role cannot see who signed-in users are, so this person is shown without a name.",
   "{{percent}} of active users": "{{percent}} of active users",
-  "{{percent}} of sessions": "{{percent}} of sessions"
+  "{{percent}} of sessions": "{{percent}} of sessions",
+  "Device and country": "Device and country",
+  "Previous period not fully counted": "Previous period not fully counted",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "Their sessions in this range, and under it how many the last 13 months hold in all."
 }

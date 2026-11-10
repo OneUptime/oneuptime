@@ -13,6 +13,7 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import Route from "../../../Types/API/Route";
+import OneUptimeDate from "../../../Types/Date";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -329,21 +330,158 @@ describe("ProductAnalyticsPerson", () => {
     const [kept, gone] = sessionRows() as [HTMLElement, HTMLElement];
 
     expect(kept).toHaveTextContent("2m 15s");
-    expect(kept).toHaveTextContent("Desktop · Chrome · macOS");
-    expect(kept).toHaveTextContent("https://app.acme.com/checkout");
+    /* The kind of device and the country, and under them the browser and the system. */
+    expect(within(kept).getByText("Desktop · Germany")).toBeInTheDocument();
+    expect(within(kept).getByText("Chrome · macOS")).toBeInTheDocument();
+    /* How long ago it started, and the exact time under it. */
+    expect(
+      within(kept).getByText(
+        OneUptimeDate.fromNow(new Date(Date.UTC(2026, 8, 2, 18, 0))),
+      ),
+    ).toHaveAttribute("dateTime", "2026-09-02T18:00:00.000Z");
+    /* The page it entered on, written left to right whole, and how many it saw. */
+    expect(
+      within(kept).getByText("https://app.acme.com/checkout"),
+    ).toHaveAttribute("dir", "ltr");
+    expect(
+      within(kept).getByText("https://app.acme.com/checkout"),
+    ).toHaveAttribute("title", "https://app.acme.com/checkout");
+    expect(kept).toHaveTextContent("4 pages");
+    expect(
+      within(kept).getByTestId("product-analytics-person-signals"),
+    ).toHaveTextContent("2 errors");
     expect(
       within(kept).getByTestId("product-analytics-person-watch"),
     ).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/rum/${APP_ID}/session-replay/${SESSION_KEPT}`,
     );
+    expect(
+      within(kept).getByTestId("product-analytics-person-watch"),
+    ).toHaveTextContent("Watch");
 
     expect(gone).toHaveTextContent("Still recording");
     expect(gone).toHaveTextContent("Recording no longer kept");
-    expect(gone).toHaveTextContent("Not reported");
+    /* No device and no page reported: said so, never a blank cell. */
+    expect(within(gone).getAllByText("Not reported")).toHaveLength(2);
+    expect(
+      within(gone).queryByTestId("product-analytics-person-signals"),
+    ).toBeNull();
+    expect(within(gone).getByText("None")).toBeInTheDocument();
     expect(
       within(gone).queryByTestId("product-analytics-person-watch"),
     ).toBeNull();
+  });
+
+  it("a session's frustration signals are a badge beside its errors, counted in words", async () => {
+    mockDetail(
+      detail({
+        sessions: [
+          session({ errorCount: 1, frustrationCount: 3 }),
+          session({
+            sessionId: SESSION_GONE,
+            errorCount: 0,
+            frustrationCount: 1,
+          }),
+        ],
+      }),
+    );
+
+    renderAt(personPath(`u-${USER_KEY}`));
+
+    await waitFor(() => {
+      expect(sessionRows()).toHaveLength(2);
+    });
+
+    const [both, frustrated] = sessionRows() as [HTMLElement, HTMLElement];
+
+    expect(
+      within(both).getByTestId("product-analytics-person-signals"),
+    ).toHaveTextContent("1 error");
+    expect(
+      within(both).getByTestId("product-analytics-person-signals"),
+    ).toHaveTextContent("3 frustration signals");
+    expect(
+      within(frustrated).getByTestId("product-analytics-person-signals"),
+    ).toHaveTextContent("1 frustration signal");
+    expect(
+      within(frustrated).getByTestId("product-analytics-person-signals"),
+    ).not.toHaveTextContent("error");
+  });
+
+  it("a person's first and last visit say when, and how long ago", async () => {
+    mockDetail(detail());
+
+    renderAt(personPath(`u-${USER_KEY}`));
+
+    const facts: HTMLElement = await screen.findByTestId(
+      "product-analytics-person-facts",
+    );
+    const lastSeen: Date = new Date(Date.UTC(2026, 8, 2, 18, 0));
+
+    expect(
+      within(facts).getByText(OneUptimeDate.fromNow(lastSeen)),
+    ).toHaveAttribute(
+      "title",
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(lastSeen),
+    );
+    expect(
+      within(facts).getByText(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          new Date(Date.UTC(2026, 7, 1, 9, 30)),
+          true,
+        ),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(facts).getByText("In the last 13 months"),
+    ).toBeInTheDocument();
+  });
+
+  it("a nameless person's id is written left to right, in a monospace face; a name is not", async () => {
+    mockDetail(detail({ person: identified(), includesLabels: false }));
+
+    renderAt(personPath(`u-${USER_KEY}`));
+
+    await screen.findByTestId("product-analytics-person-facts");
+
+    expect(screen.getByText("9f86d081…")).toHaveAttribute("dir", "ltr");
+    expect(screen.getByText("9f86d081…")).toHaveClass("font-mono");
+  });
+
+  it("offers other page sizes, and asks for the size picked from its first page", async () => {
+    mockDetail(detail({ hasMore: true }));
+
+    renderAt(personPath(`u-${USER_KEY}`));
+
+    await waitFor(() => {
+      expect(sessionRows()).toHaveLength(2);
+    });
+
+    const select: HTMLSelectElement = screen.getByTestId(
+      "pagination-items-on-page-select",
+    ) as HTMLSelectElement;
+
+    expect(
+      Array.from(select.querySelectorAll("option")).map(
+        (option: HTMLOptionElement): number => {
+          return Number(option.value);
+        },
+      ),
+    ).toEqual([10, 20, 25, 50, 100]);
+    expect(select.value).toBe(
+      String(PRODUCT_ANALYTICS_PERSON_SESSIONS_PAGE_SIZE),
+    );
+
+    fireEvent.change(select, { target: { value: "25" } });
+
+    await waitFor(() => {
+      expect(requests()).toHaveLength(2);
+    });
+
+    expect(requests()[1]).toEqual(
+      expect.objectContaining({ limit: 25, offset: 0 }),
+    );
   });
 
   it("a signed-in user the reader may not see is shown without a name, and says why", async () => {

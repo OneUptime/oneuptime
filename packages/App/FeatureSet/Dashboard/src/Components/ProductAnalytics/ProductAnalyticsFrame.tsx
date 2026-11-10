@@ -6,6 +6,7 @@ import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import { TimeRangePickerSize } from "Common/UI/Components/Date/TimeRangePickerDropdown";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import Icon from "Common/UI/Components/Icon/Icon";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import {
   TableHeaderToolbar,
@@ -31,9 +32,13 @@ import {
 export const PRODUCT_ANALYTICS_TILES_FRAME_CLASS_NAME: string =
   "[container-type:inline-size]";
 
-/* Two tiles a row, three where the card is wide enough for three of 200px or so. */
+/*
+ * Three tiles a row where the card is wide enough for three of 200px or
+ * so, two where it has room for two, and one on a phone, where two would
+ * break a tile's title in the middle of a word ("WIEDERKEHRENDE").
+ */
 export const PRODUCT_ANALYTICS_TILES_GRID_CLASS_NAME: string =
-  "grid grid-cols-2 gap-4 [@container(min-width:40rem)]:grid-cols-3";
+  "grid grid-cols-1 gap-4 [@container(min-width:24rem)]:grid-cols-2 [@container(min-width:40rem)]:grid-cols-3";
 
 export function ProductAnalyticsTiles(props: {
   tiles: Array<ResourceOverviewTile>;
@@ -107,21 +112,28 @@ export const ProductAnalyticsCountingSince: FunctionComponent<{
     return <></>;
   }
 
+  /* A note on the numbers, set apart from the card's description above it. */
   return (
-    <p
-      className="text-sm text-gray-500"
+    <div
+      className="flex items-start gap-2 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600 ring-1 ring-inset ring-gray-200"
       data-testid="product-analytics-counting-since"
     >
-      {translator.translateTemplate(
-        "Counting started on {{date}}. Sessions recorded before then are not in these numbers.",
-        {
-          date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            new Date(props.dataStartedAt),
-            true,
-          ),
-        },
-      )}
-    </p>
+      <Icon
+        icon={IconProp.Info}
+        className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+      />
+      <p>
+        {translator.translateTemplate(
+          "Counting started on {{date}}. Sessions recorded before then are not in these numbers.",
+          {
+            date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              new Date(props.dataStartedAt),
+              true,
+            ),
+          },
+        )}
+      </p>
+    </div>
   );
 };
 

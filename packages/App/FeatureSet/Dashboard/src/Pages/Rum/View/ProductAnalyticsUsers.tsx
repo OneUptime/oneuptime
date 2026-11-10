@@ -36,8 +36,10 @@ import {
   describeProductAnalyticsChange,
   formatProductAnalyticsCount,
   formatProductAnalyticsShare,
+  getProductAnalyticsCountedDays,
   getProductAnalyticsTimeZone,
   getProductAnalyticsTrendWindow,
+  isProductAnalyticsPreviousPeriodCounted,
   toProductAnalyticsSeries,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsFormat";
 import {
@@ -92,6 +94,8 @@ export function buildProductAnalyticsUserTiles(data: {
           current: read(summary.current),
           previous: read(summary.previous),
           translator: translator,
+          isPreviousPeriodCounted:
+            isProductAnalyticsPreviousPeriodCounted(summary),
         })
       : undefined;
   };
@@ -137,15 +141,17 @@ export function buildProductAnalyticsUserTiles(data: {
       icon: IconProp.UserCircle,
       iconColor: "sky",
       loading: loading,
-      sublabel: summary
-        ? translator.translateTemplate("{{percent}} of active users", {
-            percent: formatProductAnalyticsShare({
-              part: summary.current.signedInUsers,
-              whole: summary.current.activeUsers,
-              language: translator.language,
-            }),
-          })
-        : undefined,
+      /* A share of nobody says nothing: no line under the tile then. */
+      sublabel:
+        summary && summary.current.activeUsers > 0
+          ? translator.translateTemplate("{{percent}} of active users", {
+              percent: formatProductAnalyticsShare({
+                part: summary.current.signedInUsers,
+                whole: summary.current.activeUsers,
+                language: translator.language,
+              }),
+            })
+          : undefined,
       description:
         "Active users your app signed in with identify(), each counted once however many devices they used. The rest are anonymous visitors.",
     },
@@ -251,8 +257,13 @@ const RumApplicationProductAnalyticsUsers: FunctionComponent<
     translator: translator,
   });
 
-  const days: Array<ProductAnalyticsTrendDayDto> = trend.data?.days || [];
   const trendZone: string = trend.data?.timeZone || timeZone;
+  const days: Array<ProductAnalyticsTrendDayDto> =
+    getProductAnalyticsCountedDays({
+      days: trend.data?.days || [],
+      dataStartedAt: summary.data?.dataStartedAt ?? null,
+      timeZone: trendZone,
+    });
   const chartWindow: { start: Date; end: Date } | null =
     getProductAnalyticsTrendWindow({ days: days, timeZone: trendZone });
 

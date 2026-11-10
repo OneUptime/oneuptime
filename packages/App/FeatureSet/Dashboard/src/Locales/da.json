@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} miljø venter på de første data",
   "{{count}} flows": "{{count}} flows",
   "{{count}} flows_one": "{{count}} flow",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "{{count}} frustrationssignaler",
+  "{{count}} frustration signals_one": "{{count}} frustrationssignal",
+  "{{count}} pages": "{{count}} sider",
+  "{{count}} pages_one": "{{count}} side",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "Hvem der bruger denne applikation: aktive, nye, tilbagevendende, indloggede og inaktive brugere, talt ud fra de sessioner, sessionsafspilning optager.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "Din rolle kan ikke se, hvem indloggede brugere er, så denne person vises uden navn.",
   "{{percent}} of active users": "{{percent}} af de aktive brugere",
-  "{{percent}} of sessions": "{{percent}} af sessionerne"
+  "{{percent}} of sessions": "{{percent}} af sessionerne",
+  "Device and country": "Enhed og land",
+  "Previous period not fully counted": "Forrige periode ikke fuldt optalt",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "De fejl, siden rapporterede i sessionen, og dens frustrationssignaler, f.eks. raseriklik eller døde klik.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "Vedkommendes sessioner i dette interval og nedenunder, hvor mange de seneste 13 måneder rummer i alt."
 }

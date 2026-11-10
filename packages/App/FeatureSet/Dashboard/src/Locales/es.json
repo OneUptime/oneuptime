@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} entorno esperando los primeros datos",
   "{{count}} flows": "{{count}} flujos",
   "{{count}} flows_one": "{{count}} flujo",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "{{count}} señales de frustración",
+  "{{count}} frustration signals_one": "{{count}} señal de frustración",
+  "{{count}} pages": "{{count}} páginas",
+  "{{count}} pages_one": "{{count}} página",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "Quién usa esta aplicación: usuarios activos, nuevos, recurrentes, con sesión iniciada e inactivos, contados a partir de las sesiones que graba la reproducción de sesiones.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "Tu rol no puede ver quiénes son los usuarios con sesión iniciada, así que esta persona se muestra sin nombre.",
   "{{percent}} of active users": "{{percent}} de los usuarios activos",
-  "{{percent}} of sessions": "{{percent}} de las sesiones"
+  "{{percent}} of sessions": "{{percent}} de las sesiones",
+  "Device and country": "Dispositivo y país",
+  "Previous period not fully counted": "Periodo anterior no contado por completo",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "Los errores que la página notificó en la sesión y sus señales de frustración, como clics de rabia o clics muertos.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "Sus sesiones en este intervalo y, debajo, cuántas guardan en total los últimos 13 meses."
 }

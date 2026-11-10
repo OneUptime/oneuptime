@@ -211,17 +211,45 @@ export const CHANGE_SAME: string = translationKey(
   "Same as the previous period",
 );
 export const CHANGE_NEW: string = translationKey("None in the previous period");
+export const CHANGE_NOT_COUNTED: string = translationKey(
+  "Previous period not fully counted",
+);
+
+/*
+ * Whether the range before was counted from its start. Counting starts
+ * with the first session recorded once product analytics runs, and the
+ * oldest month leaves after 13: a period that began before the first
+ * session kept is only partly counted, and a change against it would read
+ * as growth that never happened.
+ */
+export function isProductAnalyticsPreviousPeriodCounted(summary: {
+  dataStartedAt: number | null;
+  previousStartTime: number;
+}): boolean {
+  return (
+    summary.dataStartedAt === null ||
+    summary.dataStartedAt <= summary.previousStartTime
+  );
+}
 
 export function describeProductAnalyticsChange(data: {
   current: number;
   previous: number;
   translator: Translator;
+  // False when the range before was only partly counted: nothing to compare with.
+  isPreviousPeriodCounted?: boolean | undefined;
 }): string | undefined {
   const current: number = Math.max(0, data.current);
   const previous: number = Math.max(0, data.previous);
 
   if (current === 0 && previous === 0) {
     return undefined;
+  }
+
+  if (data.isPreviousPeriodCounted === false) {
+    return (
+      data.translator.translateText(CHANGE_NOT_COUNTED) || CHANGE_NOT_COUNTED
+    );
   }
 
   if (previous === 0) {
@@ -433,6 +461,33 @@ export function toProductAnalyticsSeries(data: {
     }
 
     return { seriesName: spec.seriesName, data: points };
+  });
+}
+
+/*
+ * The trend from the day counting started, in the zone its days are in. A
+ * day before the first session kept was never counted: drawn as zero, it
+ * would read as a day nobody came.
+ */
+export function getProductAnalyticsCountedDays(data: {
+  days: Array<ProductAnalyticsTrendDayDto>;
+  dataStartedAt: number | null;
+  timeZone: string;
+}): Array<ProductAnalyticsTrendDayDto> {
+  if (data.dataStartedAt === null) {
+    return data.days;
+  }
+
+  let firstDay: string;
+
+  try {
+    firstDay = readZoneDay(data.dataStartedAt, data.timeZone);
+  } catch {
+    return data.days;
+  }
+
+  return data.days.filter((day: ProductAnalyticsTrendDayDto): boolean => {
+    return day.day >= firstDay;
   });
 }
 

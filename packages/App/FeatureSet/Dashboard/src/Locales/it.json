@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} ambiente in attesa dei primi dati",
   "{{count}} flows": "{{count}} flussi",
   "{{count}} flows_one": "{{count}} flusso",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "{{count}} segnali di frustrazione",
+  "{{count}} frustration signals_one": "{{count}} segnale di frustrazione",
+  "{{count}} pages": "{{count}} pagine",
+  "{{count}} pages_one": "{{count}} pagina",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "Chi usa questa applicazione: utenti attivi, nuovi, di ritorno, autenticati e inattivi, contati dalle sessioni registrate dalla riproduzione delle sessioni.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "Il tuo ruolo non può vedere chi sono gli utenti autenticati, quindi questa persona è mostrata senza nome.",
   "{{percent}} of active users": "{{percent}} degli utenti attivi",
-  "{{percent}} of sessions": "{{percent}} delle sessioni"
+  "{{percent}} of sessions": "{{percent}} delle sessioni",
+  "Device and country": "Dispositivo e paese",
+  "Previous period not fully counted": "Periodo precedente non conteggiato del tutto",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "Gli errori segnalati dalla pagina nella sessione e i suoi segnali di frustrazione, come clic rabbiosi o clic a vuoto.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "Le sue sessioni in questo intervallo e, sotto, quante ne contengono in tutto gli ultimi 13 mesi."
 }

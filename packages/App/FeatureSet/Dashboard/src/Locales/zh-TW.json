@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} 個環境正在等待第一筆資料",
   "{{count}} flows": "{{count}} 條流",
   "{{count}} flows_one": "{{count}} 條流",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "{{count}} 個挫折訊號",
+  "{{count}} frustration signals_one": "{{count}} 個挫折訊號",
+  "{{count}} pages": "{{count}} 個頁面",
+  "{{count}} pages_one": "{{count}} 個頁面",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "誰在使用此應用程式：活躍、新、回訪、已登入與休眠使用者，依據工作階段重播錄製的工作階段統計。",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "你的角色無法查看已登入使用者的身分，因此此人顯示時不帶姓名。",
   "{{percent}} of active users": "占活躍使用者的 {{percent}}",
-  "{{percent}} of sessions": "占工作階段的 {{percent}}"
+  "{{percent}} of sessions": "占工作階段的 {{percent}}",
+  "Device and country": "裝置和國家",
+  "Previous period not fully counted": "上一期間未完整統計",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "頁面在工作階段中回報的錯誤，以及工作階段的挫折訊號（如憤怒點擊或無效點擊）。",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "此人在該範圍內的工作階段數，下方是最近 13 個月內保留的工作階段總數。"
 }

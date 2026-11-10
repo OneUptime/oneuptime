@@ -8,12 +8,18 @@ import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import Icon from "Common/UI/Components/Icon/Icon";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 import Table from "Common/UI/Components/Table/Table";
+import { useAreTableColumnsFolded } from "Common/UI/Components/Table/TableCellContext";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   getInlineSeparator,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -37,9 +43,9 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import AppLink from "../../../Components/AppLink/AppLink";
 import { fetchProductAnalyticsPerson } from "../../../Components/ProductAnalytics/ProductAnalyticsApi";
 import {
+  NOT_REPORTED,
   describeProductAnalyticsCountry,
   describeProductAnalyticsDevice,
-  formatProductAnalyticsCount,
   formatProductAnalyticsDuration,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsFormat";
 import {
@@ -130,6 +136,70 @@ interface SessionRow extends ProductAnalyticsPersonSessionDto {
   watchRoute: Route | null;
 }
 
+/*
+ * A session's errors and frustration signals as badges, or "None": the
+ * two things that say a session went wrong, side by side.
+ */
+function SessionSignals(props: {
+  row: SessionRow;
+  translator: Translator;
+}): ReactElement {
+  const isFolded: boolean = useAreTableColumnsFolded();
+  const badges: Array<ReactElement> = [];
+
+  if (props.row.errorCount > 0) {
+    badges.push(
+      <StatusBadge
+        key="errors"
+        type={StatusBadgeType.Danger}
+        text={props.translator.translatePlural(
+          { one: "{{count}} error", other: "{{count}} errors" },
+          props.row.errorCount,
+        )}
+      />,
+    );
+  }
+
+  if (props.row.frustrationCount > 0) {
+    badges.push(
+      <StatusBadge
+        key="frustration"
+        type={StatusBadgeType.Warning}
+        text={props.translator.translatePlural(
+          {
+            one: "{{count}} frustration signal",
+            other: "{{count}} frustration signals",
+          },
+          props.row.frustrationCount,
+        )}
+      />,
+    );
+  }
+
+  if (badges.length === 0) {
+    /*
+     * In a column of its own, a clean session says so; folded under its
+     * length, it says nothing rather than "None" under every clean row.
+     */
+    return isFolded ? (
+      <></>
+    ) : (
+      <span className="text-sm text-gray-500">
+        {props.translator.translateText("None")}
+      </span>
+    );
+  }
+
+  return (
+    <div
+      className="flex flex-wrap gap-1.5"
+      data-testid="product-analytics-person-signals"
+    >
+      {badges}
+    </div>
+  );
+}
+
 function getSessionColumns(translator: Translator): Columns<SessionRow> {
   return [
     {
@@ -138,43 +208,21 @@ function getSessionColumns(translator: Translator): Columns<SessionRow> {
       type: FieldType.Element,
       disableSort: true,
       getElement: (row: SessionRow): ReactElement => {
+        const started: Date = new Date(row.startedAt);
+
+        /* How long ago, as Session Replay's list says it, and the exact time under it. */
         return (
-          <span>
-            {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              new Date(row.startedAt),
-            )}
-          </span>
-        );
-      },
-    },
-    {
-      title: "Length",
-      key: "durationMs",
-      type: FieldType.Element,
-      disableSort: true,
-      getElement: (row: SessionRow): ReactElement => {
-        return (
-          <span className="tabular-nums">
-            {row.isFinished
-              ? formatProductAnalyticsDuration(
-                  row.durationMs,
-                  translator.language,
-                )
-              : translator.translateText("Still recording")}
-          </span>
-        );
-      },
-    },
-    {
-      title: "Pages",
-      key: "pageCount",
-      type: FieldType.Element,
-      disableSort: true,
-      getElement: (row: SessionRow): ReactElement => {
-        return (
-          <span className="tabular-nums">
-            {formatProductAnalyticsCount(row.pageCount, translator)}
-          </span>
+          <div>
+            <time
+              className="text-sm font-medium text-gray-900"
+              dateTime={started.toISOString()}
+            >
+              {OneUptimeDate.fromNow(started)}
+            </time>
+            <div className="mt-0.5 text-xs text-gray-500">
+              {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(started)}
+            </div>
+          </div>
         );
       },
     },
@@ -184,67 +232,114 @@ function getSessionColumns(translator: Translator): Columns<SessionRow> {
       type: FieldType.Element,
       disableSort: true,
       wrapContent: true,
-      wrapMaxWidthClassName: "max-w-xs",
+      wrapMaxWidthClassName: "max-w-56",
       getElement: (row: SessionRow): ReactElement => {
+        /*
+         * One line, ending in "..." where the column does: a page is
+         * written left to right in any page, so its start stays in view.
+         */
         return (
-          <span className="break-all font-mono text-xs" dir="ltr">
-            {row.entryPage || "-"}
+          <div className="grid grid-cols-1">
+            <div
+              className="truncate text-sm text-gray-900"
+              dir="ltr"
+              title={row.entryPage || undefined}
+            >
+              {row.entryPage ||
+                translator.translateText(NOT_REPORTED) ||
+                NOT_REPORTED}
+            </div>
+            <div className="mt-0.5 text-xs text-gray-500">
+              {translator.translatePlural(
+                { one: "{{count}} page", other: "{{count}} pages" },
+                row.pageCount,
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: "Length",
+      key: "durationMs",
+      type: FieldType.Element,
+      disableSort: true,
+      getElement: (row: SessionRow): ReactElement => {
+        return row.isFinished ? (
+          <span className="text-sm tabular-nums text-gray-900">
+            {formatProductAnalyticsDuration(
+              row.durationMs,
+              translator.language,
+            )}
+          </span>
+        ) : (
+          <span className="text-sm text-gray-500">
+            {translator.translateText("Still recording")}
           </span>
         );
       },
     },
     {
-      title: "Device",
+      title: "Device and country",
       key: "deviceType",
       type: FieldType.Element,
       disableSort: true,
+      wrapContent: true,
+      wrapMaxWidthClassName: "max-w-56",
       getElement: (row: SessionRow): ReactElement => {
-        const parts: Array<string> = [
+        const separator: string = getInlineSeparator(translator.language);
+        const place: string = [
           describeProductAnalyticsDevice(row.deviceType, translator),
-          row.browserName,
-          row.osName,
-        ].filter((part: string): boolean => {
-          return part.trim().length > 0;
-        });
+          row.countryCode
+            ? describeProductAnalyticsCountry(
+                row.countryCode,
+                translator.language,
+              )
+            : "",
+        ]
+          .filter((part: string): boolean => {
+            return part.length > 0;
+          })
+          .join(separator);
+        const software: string = [row.browserName, row.osName]
+          .filter((part: string): boolean => {
+            return part.trim().length > 0;
+          })
+          .join(separator);
 
+        /* What it came from and where, then the browser and system under it. */
         return (
-          <span>{parts.join(getInlineSeparator(translator.language))}</span>
+          <div className="grid grid-cols-1">
+            <div className="truncate text-sm text-gray-900" title={place}>
+              {place}
+            </div>
+            {software ? (
+              <div
+                className="mt-0.5 truncate text-xs text-gray-500"
+                title={software}
+              >
+                {software}
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
         );
       },
     },
     {
-      title: "Country",
-      key: "countryCode",
-      type: FieldType.Element,
-      disableSort: true,
-      getElement: (row: SessionRow): ReactElement => {
-        return (
-          <span>
-            {row.countryCode
-              ? describeProductAnalyticsCountry(
-                  row.countryCode,
-                  translator.language,
-                )
-              : "-"}
-          </span>
-        );
-      },
-    },
-    {
-      title: "Errors",
+      title: "Signals",
       key: "errorCount",
       type: FieldType.Element,
       disableSort: true,
+      /* Under the length where the card has no room for a column of its own. */
+      hideBelowLargeScreen: true,
+      foldInto: "durationMs",
+      headerTooltip: translationKey(
+        "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.",
+      ),
       getElement: (row: SessionRow): ReactElement => {
-        return (
-          <span
-            className={`tabular-nums ${
-              row.errorCount > 0 ? "text-red-700" : "text-gray-500"
-            }`}
-          >
-            {formatProductAnalyticsCount(row.errorCount, translator)}
-          </span>
-        );
+        return <SessionSignals row={row} translator={translator} />;
       },
     },
     {
@@ -253,16 +348,21 @@ function getSessionColumns(translator: Translator): Columns<SessionRow> {
       type: FieldType.Element,
       disableSort: true,
       getElement: (row: SessionRow): ReactElement => {
+        /*
+         * A link, as Session Replay's own Watch is, so Cmd-click and
+         * middle-click still open the player in a new tab.
+         */
         return row.watchRoute ? (
           <AppLink
             to={row.watchRoute}
-            className="text-sm font-medium text-indigo-700 hover:underline"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
             dataTestId="product-analytics-person-watch"
           >
+            <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
             <span>{translator.translateText("Watch")}</span>
           </AppLink>
         ) : (
-          <span className="text-xs text-gray-500">
+          <span className="whitespace-normal text-xs text-gray-500">
             {translator.translateText("Recording no longer kept")}
           </span>
         );
@@ -278,17 +378,22 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
   const location: ReturnType<typeof useLocation> = useLocation();
   const path: ProductAnalyticsPersonPath | null =
     parseProductAnalyticsPersonPath(location.pathname);
+  /* Rows a page: the list's own size until the reader picks another. */
+  const [pageSize, setPageSize] = useState<number>(
+    PRODUCT_ANALYTICS_PERSON_SESSIONS_PAGE_SIZE,
+  );
+  const pageKey: string = `${location.pathname}|${pageSize}`;
   const [page, setPage] = useState<{ number: number; key: string }>({
     number: 1,
-    key: location.pathname,
+    key: pageKey,
   });
-  const pageNumber: number = page.key === location.pathname ? page.number : 1;
+  const pageNumber: number = page.key === pageKey ? page.number : 1;
   const rumApplicationId: string = path?.rumApplicationId || "";
   const personKey: string = path?.personKey || "";
 
   const detail: ProductAnalyticsRead<ProductAnalyticsPersonDetailDto | null> =
     useProductAnalyticsRead<ProductAnalyticsPersonDetailDto | null>(
-      `${rumApplicationId}|${personKey}|${pageNumber}`,
+      `${rumApplicationId}|${personKey}|${pageSize}|${pageNumber}`,
       async (): Promise<ProductAnalyticsPersonDetailDto | null> => {
         if (!rumApplicationId || !personKey) {
           return null;
@@ -297,9 +402,8 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
         return await fetchProductAnalyticsPerson({
           rumApplicationId: new ObjectID(rumApplicationId),
           personKey: personKey,
-          limit: PRODUCT_ANALYTICS_PERSON_SESSIONS_PAGE_SIZE,
-          offset:
-            (pageNumber - 1) * PRODUCT_ANALYTICS_PERSON_SESSIONS_PAGE_SIZE,
+          limit: pageSize,
+          offset: (pageNumber - 1) * pageSize,
         });
       },
     );
@@ -412,16 +516,19 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
             singularLabel="Session"
             pluralLabel="Sessions"
             currentPageNumber={pageNumber}
-            totalItemsCount={
-              PRODUCT_ANALYTICS_PERSON_SESSIONS_PAGE_SIZE * (pageNumber - 1) +
-              rows.length
-            }
-            itemsOnPage={PRODUCT_ANALYTICS_PERSON_SESSIONS_PAGE_SIZE}
-            itemsOnPageOptions={[PRODUCT_ANALYTICS_PERSON_SESSIONS_PAGE_SIZE]}
+            totalItemsCount={pageSize * (pageNumber - 1) + rows.length}
+            itemsOnPage={pageSize}
             hasMore={detail.data.hasMore}
             paginationDataTestId="product-analytics-person-pagination"
-            onNavigateToPage={(next: number): void => {
-              setPage({ number: next, key: location.pathname });
+            onNavigateToPage={(next: number, itemsOnPage: number): void => {
+              if (itemsOnPage !== pageSize) {
+                /* A new size starts again on its first page. */
+                setPageSize(itemsOnPage);
+
+                return;
+              }
+
+              setPage({ number: next, key: pageKey });
             }}
             sortBy={null}
             sortOrder={SortOrder.Descending}

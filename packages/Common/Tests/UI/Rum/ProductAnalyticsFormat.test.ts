@@ -28,9 +28,11 @@ import {
   formatProductAnalyticsCount,
   formatProductAnalyticsDuration,
   formatProductAnalyticsShare,
+  getProductAnalyticsCountedDays,
   getProductAnalyticsDayStart,
   getProductAnalyticsTimeZone,
   getProductAnalyticsTrendWindow,
+  isProductAnalyticsPreviousPeriodCounted,
   shortProductAnalyticsId,
   toProductAnalyticsSeries,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsFormat";
@@ -724,5 +726,109 @@ describe("the trend as chart lines", () => {
         timeZone: "UTC",
       }),
     ).toBeNull();
+  });
+});
+
+describe("the trend from the day counting started", () => {
+  const days: Array<ProductAnalyticsTrendDayDto> = [
+    day("2026-03-01"),
+    day("2026-03-02"),
+    day("2026-03-03"),
+  ];
+
+  test("days before the first session kept are left out; its own day stays", () => {
+    expect(
+      getProductAnalyticsCountedDays({
+        days: days,
+        dataStartedAt: Date.UTC(2026, 2, 2, 23, 0),
+        timeZone: "UTC",
+      }).map((counted: ProductAnalyticsTrendDayDto): string => {
+        return counted.day;
+      }),
+    ).toEqual(["2026-03-02", "2026-03-03"]);
+  });
+
+  test("the day is the reader's: 23:00 UTC is already the next day in Berlin", () => {
+    expect(
+      getProductAnalyticsCountedDays({
+        days: days,
+        dataStartedAt: Date.UTC(2026, 2, 1, 23, 30),
+        timeZone: "Europe/Berlin",
+      }).map((counted: ProductAnalyticsTrendDayDto): string => {
+        return counted.day;
+      }),
+    ).toEqual(["2026-03-02", "2026-03-03"]);
+  });
+
+  test("counting from before the range, or no first session, keeps every day", () => {
+    for (const dataStartedAt of [Date.UTC(2025, 0, 1), null]) {
+      expect(
+        getProductAnalyticsCountedDays({
+          days: days,
+          dataStartedAt: dataStartedAt,
+          timeZone: "UTC",
+        }),
+      ).toEqual(days);
+    }
+  });
+});
+
+describe("a range before that was only partly counted", () => {
+  test("counted when counting began at or before its start, or nothing is kept", () => {
+    expect(
+      isProductAnalyticsPreviousPeriodCounted({
+        dataStartedAt: 1000,
+        previousStartTime: 1000,
+      }),
+    ).toBe(true);
+    expect(
+      isProductAnalyticsPreviousPeriodCounted({
+        dataStartedAt: null,
+        previousStartTime: 1000,
+      }),
+    ).toBe(true);
+    expect(
+      isProductAnalyticsPreviousPeriodCounted({
+        dataStartedAt: 1001,
+        previousStartTime: 1000,
+      }),
+    ).toBe(false);
+  });
+
+  test("no rise or fall against it: it says so, in the reader's language", () => {
+    expect(
+      describeProductAnalyticsChange({
+        current: 120,
+        previous: 12,
+        translator: english,
+        isPreviousPeriodCounted: false,
+      }),
+    ).toBe("Previous period not fully counted");
+    expect(
+      describeProductAnalyticsChange({
+        current: 120,
+        previous: 0,
+        translator: english,
+        isPreviousPeriodCounted: false,
+      }),
+    ).toBe("Previous period not fully counted");
+    /* Nothing either side is still nothing to say. */
+    expect(
+      describeProductAnalyticsChange({
+        current: 0,
+        previous: 0,
+        translator: english,
+        isPreviousPeriodCounted: false,
+      }),
+    ).toBeUndefined();
+    /* Counted: the change, as before. */
+    expect(
+      describeProductAnalyticsChange({
+        current: 120,
+        previous: 100,
+        translator: english,
+        isPreviousPeriodCounted: true,
+      }),
+    ).toBe("Up 20% on the previous period");
   });
 });

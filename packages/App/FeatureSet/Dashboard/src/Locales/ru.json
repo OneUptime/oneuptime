@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} среда ждёт первых данных",
   "{{count}} flows": "Потоков: {{count}}",
   "{{count}} flows_one": "{{count}} поток",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "Сигналов фрустрации: {{count}}",
+  "{{count}} frustration signals_one": "{{count}} сигнал фрустрации",
+  "{{count}} pages": "Страниц: {{count}}",
+  "{{count}} pages_one": "{{count}} страница",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "Кто пользуется этим приложением: активные, новые, вернувшиеся, авторизованные и неактивные пользователи — по сеансам, которые записывает воспроизведение сеансов.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "Ваша роль не позволяет видеть, кто такие авторизованные пользователи, поэтому этот человек показан без имени.",
   "{{percent}} of active users": "{{percent}} от активных пользователей",
-  "{{percent}} of sessions": "{{percent}} от всех сеансов"
+  "{{percent}} of sessions": "{{percent}} от всех сеансов",
+  "Device and country": "Устройство и страна",
+  "Previous period not fully counted": "Предыдущий период учтён не полностью",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "Ошибки, о которых страница сообщила в сеансе, и его сигналы фрустрации, например яростные или «мёртвые» клики.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "Их сеансы за этот период, а под ними — сколько всего сеансов хранится за последние 13 месяцев."
 }

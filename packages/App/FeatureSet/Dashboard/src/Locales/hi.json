@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} परिवेश पहले डेटा की प्रतीक्षा में",
   "{{count}} flows": "{{count}} फ़्लो",
   "{{count}} flows_one": "{{count}} फ़्लो",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "झुंझलाहट के {{count}} संकेत",
+  "{{count}} frustration signals_one": "झुंझलाहट का {{count}} संकेत",
+  "{{count}} pages": "{{count}} पेज",
+  "{{count}} pages_one": "{{count}} पेज",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "इस ऐप्लिकेशन का उपयोग कौन करता है: सक्रिय, नए, लौटने वाले, साइन-इन और निष्क्रिय उपयोगकर्ता, सेशन रीप्ले के रिकॉर्ड किए सेशन से गिने गए।",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "आपकी भूमिका यह नहीं देख सकती कि साइन-इन उपयोगकर्ता कौन हैं, इसलिए यह व्यक्ति बिना नाम के दिखाया गया है।",
   "{{percent}} of active users": "सक्रिय उपयोगकर्ताओं का {{percent}}",
-  "{{percent}} of sessions": "सेशन का {{percent}}"
+  "{{percent}} of sessions": "सेशन का {{percent}}",
+  "Device and country": "डिवाइस और देश",
+  "Previous period not fully counted": "पिछली अवधि पूरी तरह नहीं गिनी गई",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "सेशन में पेज ने जो त्रुटियाँ बताईं, और उसके झुंझलाहट के संकेत, जैसे रेज क्लिक या डेड क्लिक।",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "इस सीमा में उनके सेशन, और उसके नीचे पिछले 13 महीनों में कुल कितने सेशन हैं।"
 }

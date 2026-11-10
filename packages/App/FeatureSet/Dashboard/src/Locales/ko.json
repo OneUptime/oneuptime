@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "환경 {{count}}개가 첫 데이터를 기다리는 중",
   "{{count}} flows": "플로우 {{count}}개",
   "{{count}} flows_one": "플로우 {{count}}개",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "불만 신호 {{count}}개",
+  "{{count}} frustration signals_one": "불만 신호 {{count}}개",
+  "{{count}} pages": "{{count}}개 페이지",
+  "{{count}} pages_one": "{{count}}개 페이지",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "이 애플리케이션을 사용하는 사람을 활성, 신규, 재방문, 로그인, 휴면 사용자로 보여 줍니다. 세션 리플레이가 녹화한 세션에서 집계합니다.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "현재 역할로는 로그인한 사용자가 누구인지 볼 수 없으므로 이 사람은 이름 없이 표시됩니다.",
   "{{percent}} of active users": "활성 사용자의 {{percent}}",
-  "{{percent}} of sessions": "세션의 {{percent}}"
+  "{{percent}} of sessions": "세션의 {{percent}}",
+  "Device and country": "디바이스 및 국가",
+  "Previous period not fully counted": "이전 기간은 일부만 집계됨",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "세션 중 페이지가 보고한 오류와 분노 클릭이나 무반응 클릭 같은 불만 신호입니다.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "이 범위의 세션 수이며, 그 아래는 최근 13개월 동안 남아 있는 전체 세션 수입니다."
 }

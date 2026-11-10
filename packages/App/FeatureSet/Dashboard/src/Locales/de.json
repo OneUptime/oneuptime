@@ -39633,10 +39633,10 @@
   "{{count}} environments waiting for first data_one": "{{count}} Umgebung wartet auf die ersten Daten",
   "{{count}} flows": "{{count}} Flows",
   "{{count}} flows_one": "{{count}} Flow",
-  "{{count}} frustration signals": "{{count}} frustration signals",
-  "{{count}} frustration signals_one": "{{count}} frustration signal",
-  "{{count}} pages": "{{count}} pages",
-  "{{count}} pages_one": "{{count}} page",
+  "{{count}} frustration signals": "{{count}} Frustrationssignale",
+  "{{count}} frustration signals_one": "{{count}} Frustrationssignal",
+  "{{count}} pages": "{{count}} Seiten",
+  "{{count}} pages_one": "{{count}} Seite",
   "{{count}} returns to an earlier page": "{{count}} returns to an earlier page",
   "{{count}} returns to an earlier page_one": "{{count}} return to an earlier page",
   "{{count}} sessions": "{{count}} sessions",
@@ -47749,5 +47749,9 @@
   "Who uses this application: active, new, returning, signed-in and dormant users, counted from the sessions Session Replay records.": "Wer diese Anwendung nutzt: aktive, neue, wiederkehrende, angemeldete und inaktive Benutzer, gezählt aus den Sitzungen, die die Sitzungswiedergabe aufzeichnet.",
   "Your role cannot see who signed-in users are, so this person is shown without a name.": "Ihre Rolle darf nicht sehen, wer angemeldete Benutzer sind, daher wird diese Person ohne Namen angezeigt.",
   "{{percent}} of active users": "{{percent}} der aktiven Benutzer",
-  "{{percent}} of sessions": "{{percent}} der Sitzungen"
+  "{{percent}} of sessions": "{{percent}} der Sitzungen",
+  "Device and country": "Gerät und Land",
+  "Previous period not fully counted": "Vorheriger Zeitraum nicht vollständig gezählt",
+  "The errors the page reported in the session, and its frustration signals, such as rage clicks or dead clicks.": "Die Fehler, die die Seite in der Sitzung gemeldet hat, und ihre Frustrationssignale, etwa Rage-Klicks oder Dead-Klicks.",
+  "Their sessions in this range, and under it how many the last 13 months hold in all.": "Ihre Sitzungen in diesem Zeitraum und darunter, wie viele die letzten 13 Monate insgesamt enthalten."
 }

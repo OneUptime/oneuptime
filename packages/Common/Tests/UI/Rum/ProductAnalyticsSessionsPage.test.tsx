@@ -316,15 +316,71 @@ describe("ProductAnalyticsSessions tiles", () => {
 
     renderPage();
 
+    /* No session of another kind of device in the range: no line along zero for it. */
     await waitFor(() => {
-      expect(screen.getByTestId("line-chart")).toHaveTextContent(
-        "Desktop,Mobile,Tablet,Other",
+      expect(screen.getByTestId("line-chart").textContent).toBe(
+        "Desktop,Mobile,Tablet",
       );
     });
 
     expect(requestsTo("trend")[0]!.data["timeZone"]).toEqual(
       expect.any(String),
     );
+  });
+
+  it("draws a line for other devices once the range has a session from one", async () => {
+    const withOther: JSONObject = trend();
+
+    (withOther["days"] as Array<JSONObject>).push({
+      day: "2026-09-02",
+      sessions: 4,
+      desktopSessions: 3,
+      mobileSessions: 0,
+      tabletSessions: 0,
+      otherSessions: 1,
+    });
+
+    mockReads({ trend: withOther });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("line-chart").textContent).toBe(
+        "Desktop,Mobile,Tablet,Other",
+      );
+    });
+  });
+
+  it("no sessions: no share under the tiles, and nothing compared with a range only partly counted", async () => {
+    mockReads({
+      summary: summary({
+        current: period({
+          sessions: 0,
+          signedInSessions: 0,
+          errorSessions: 0,
+          frustratedSessions: 0,
+        }),
+        /* Counting began inside the range before. */
+        dataStartedAt: Date.now() - 40 * DAY_MS,
+      }),
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(tileTexts()[0]).toContain("Sessions");
+      expect(tileTexts()[2]).toContain("1m 1s");
+    });
+
+    const tiles: Array<string> = tileTexts();
+
+    for (const tile of tiles) {
+      expect(tile).not.toContain("of sessions");
+      expect(tile).not.toContain("on the previous period");
+    }
+
+    /* Sessions before, none now, and the range before only partly counted. */
+    expect(tiles[0]).toContain("Previous period not fully counted");
   });
 
   it("the summary is asked once for the window, the trend once, the breakdown once", async () => {
