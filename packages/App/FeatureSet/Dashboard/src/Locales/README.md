@@ -1,9 +1,8 @@
 # Dashboard translations
 
 The Dashboard is translated into 17 languages: `de fr es it pt nl da no sv ru ja ko zh-CN zh-TW hi fa ar`.
-Arabic (`ar`) is new and only partly translated: its glossary and its choices
-for plurals, digits, punctuation and direction are in
-[ARABIC.md](./ARABIC.md).
+Arabic (`ar`) is the newest. Its glossary and its choices for plurals,
+digits, punctuation and direction are in [ARABIC.md](./ARABIC.md).
 This file explains how a string gets from the source code to the screen in the
 reader's language, how to route new strings through translation, how to fill in
 a language, and the rules the guard test enforces.

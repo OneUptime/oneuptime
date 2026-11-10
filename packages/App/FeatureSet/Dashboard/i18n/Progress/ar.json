@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 47463,
-    "untranslated": 3
+    "untranslated": 0
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -15,6 +15,7 @@
     "\"warn\"",
     "%{IPV4:client_ip} %{USER:ident} %{USER:auth} [%{HTTPDATE:timestamp}] \"%{WORD:verb} %{NOTSPACE:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:status:int} %{NUMBER:bytes:int}",
     "%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}",
+    "**Azure portal → Container Apps → your app → Settings → Secrets → + Add**",
     "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
     "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----",
     "-----BEGIN OPENSSH PRIVATE KEY-----",
@@ -51,7 +52,6 @@
     "App Store",
     "Apple Calendar / Outlook",
     "Atmosphere",
-    "Auth, Priv",
     "Auth0",
     "Azure",
     "Azure AKS",
@@ -64,7 +64,6 @@
     "Bash",
     "Basic Auth",
     "Brute force detected",
-    "Buckets",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
@@ -74,6 +73,7 @@
     "ClickHouse",
     "CloudKitty",
     "CloudWatch Metric Streams",
+    "Container App",
     "CrowdStrike",
     "Cumulative Layout Shift",
     "Customize → Connectors",
@@ -84,7 +84,6 @@
     "DNSSEC",
     "Databricks",
     "Datadog",
-    "Datastores",
     "Deployment",
     "DeploymentConfigs",
     "Deployments",
@@ -410,6 +409,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} ms",
+    "{{count}} pod",
     "{{gigabytes}} GB",
     "{{inRate}} / {{outRate}} Mbps",
     "{{in}} in",
