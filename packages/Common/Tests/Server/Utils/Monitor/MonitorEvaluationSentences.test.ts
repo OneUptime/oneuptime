@@ -28,6 +28,7 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import { createTranslator, Translator } from "../../../../Types/Translator";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import MonitorRootCauseWording from "../../../../Utils/Monitor/MonitorRootCauseWording";
 import { describe, expect, test } from "@jest/globals";
 
@@ -454,13 +455,19 @@ describe("A root cause a monitor wrote reads in the reader's language", () => {
 
   test("reads a long root cause line by line, in linear time", () => {
     const long: string = `**${"a".repeat(100000)}`;
-    const started: number = Date.now();
-
-    MonitorRootCauseWording.wordRootCause({
-      rootCause: `${long}\n- ${"b".repeat(100000)}: x`,
-      translator: chinese,
+    const rootCause: string = `${long}\n- ${"b".repeat(100000)}: x`;
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return MonitorRootCauseWording.wordRootCause({
+          rootCause: rootCause,
+          translator: chinese,
+        });
+      },
+      limitInMs: 1000,
     });
 
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
+    // Neither line is one OneUptime wrote: both read as written.
+    expect(timed.result).toBe(rootCause);
   });
 });
