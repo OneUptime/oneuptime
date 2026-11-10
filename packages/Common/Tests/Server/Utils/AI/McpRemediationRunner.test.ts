@@ -2,6 +2,8 @@ import McpRemediationRunner, {
   McpFixTarget,
 } from "../../../../Server/Utils/AI/Remediation/McpRemediationRunner";
 import RemediationExecutionRunner from "../../../../Server/Utils/AI/Remediation/RemediationExecutionRunner";
+import { EXPLAIN_NO_FIX_RULE } from "../../../../Server/Utils/AI/Remediation/RemediationRoundRun";
+import { EXPLAIN_NO_FIX_TOOL_NAME } from "../../../../Types/AutoRemediation/RemediationRound";
 import AIInvestigationEngine, {
   InvestigationRequest,
 } from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
@@ -973,6 +975,53 @@ describe("a fix with nothing to do", () => {
     expect(row["status"]).toBe(AutoRemediationSuggestionStatus.NoneApplicable);
     expect(row["rationaleMarkdown"]).toContain("the API service is down");
   });
+
+  /*
+   * Issue #6436: "No safe fix found" said nothing about why. A fix that
+   * changes nothing says why, and which fixes it ruled out, with
+   * explain_no_fix - whether it asks first or not.
+   */
+  test.each([
+    ["asks first", false, "This fix asks first"],
+    ["does not ask", true, "This fix runs without asking"],
+  ])(
+    "a fix that %s is offered explain_no_fix and told to call it when it changes nothing",
+    async (_label: string, isWithoutAsking: boolean, briefLine: string) => {
+      await startFake();
+      servers = [storedServer(SERVER_ID)];
+
+      if (isWithoutAsking) {
+        suggestionRow({
+          autoRemediationRuleId: RULE_ID,
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+        });
+        ruleRow = {
+          id: RULE_ID,
+          projectId: PROJECT_ID,
+          isEnabled: true,
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+          externalMcpServers: [{ _id: SERVER_ID.toString() }],
+        };
+      }
+
+      const { requests } = playModel(async () => {
+        // Changes nothing.
+      });
+
+      await runFix();
+
+      expect(requests).toHaveLength(1);
+      expect(requests[0]!.contextSummary).toContain(briefLine);
+      expect(
+        (requests[0]!.extraTools || []).map(
+          (tool: ObservabilityAssistantExtraTool): string => {
+            return tool.definition.name;
+          },
+        ),
+      ).toContain(EXPLAIN_NO_FIX_TOOL_NAME);
+      expect(requests[0]!.personaOverride).toContain(EXPLAIN_NO_FIX_RULE);
+    },
+  );
 });
 
 describe("the remediation queue", () => {

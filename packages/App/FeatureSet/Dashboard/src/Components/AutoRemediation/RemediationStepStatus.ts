@@ -28,6 +28,10 @@ import {
   ExternalMcpToolCallPlanUtil,
 } from "Common/Types/AutoRemediation/ExternalMcpToolCallPlan";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  isRemediationRoundUnfinished,
+  RemediationRoundView,
+} from "./RemediationRoundView";
 import { FinishedFixOutcome } from "Common/Utils/Suggestions/CodeFixSuggestion";
 import { InvestigationCodeFixSuggestion } from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
@@ -88,6 +92,8 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   off: string;
   dismissed: string;
   noFixFound: string;
+  // Every fix that did not run stopped before it found one (issue #6436).
+  didNotFinish: string;
   noActionTaken: string;
   notTried: string;
 } = {
@@ -112,6 +118,7 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   off: translationKey("Off"),
   dismissed: translationKey("Dismissed"),
   noFixFound: translationKey("No fix found"),
+  didNotFinish: translationKey("Did not finish"),
   noActionTaken: translationKey("No action taken"),
   notTried: translationKey("Not tried"),
 };
@@ -144,6 +151,12 @@ export interface RemediationFixFacts {
    * reader gave it - their own press would do nothing more.
    */
   isFirstApprovedByReader: boolean;
+  /*
+   * Its round stopped without its answer (RemediationRoundView): its run
+   * failed, stopped answering or expired, and it changed nothing. It is
+   * not in progress, and it did not find that no fix applies.
+   */
+  isUnfinished?: boolean | undefined;
 }
 
 export function getRemediationFixFacts(
@@ -161,6 +174,8 @@ export function getRemediationFixFacts(
   reader?: {
     isTwoApprovalsRuleOn?: boolean | undefined;
     readerUserId?: string | undefined;
+    // How its round went, as the step read it.
+    round?: RemediationRoundView | undefined;
   },
 ): RemediationFixFacts {
   const approvals: RemediationFixApprovals = getRemediationFixApprovals({
@@ -203,8 +218,13 @@ export function getRemediationFixFacts(
           ExternalMcpToolCallPlanUtil.getProposedCalls(mcpPlan).length > 0)),
   );
 
+  const isUnfinished: boolean = isRemediationRoundUnfinished({
+    status,
+    round: reader?.round,
+  });
+
   const isInProgress: boolean =
-    status === AutoRemediationSuggestionStatus.Planning ||
+    (status === AutoRemediationSuggestionStatus.Planning && !isUnfinished) ||
     verification === AutoRemediationVerificationStatus.Pending ||
     isPlanRunning ||
     isMcpRunning;
@@ -227,6 +247,7 @@ export function getRemediationFixFacts(
     hasFailed,
     isVerified: verification === AutoRemediationVerificationStatus.Verified,
     isFirstApprovedByReader: approvals.isFirstApprovedByReader,
+    ...(isUnfinished ? { isUnfinished } : {}),
   };
 }
 
@@ -397,6 +418,29 @@ export function getRemediationStepStatus(
       })
     ) {
       return status("idle", TEXT.dismissed);
+    }
+
+    /*
+     * Nothing was fixed, and a round stopped before it found a fix: that
+     * is what happened - and what Try again on it is for - not that no
+     * fix was found (issue #6436).
+     */
+    const isNoFixOrUnfinished: (fix: RemediationFixFacts) => boolean = (
+      fix: RemediationFixFacts,
+    ): boolean => {
+      return (
+        fix.status === AutoRemediationSuggestionStatus.NoneApplicable ||
+        Boolean(fix.isUnfinished)
+      );
+    };
+
+    if (
+      input.fixes.every(isNoFixOrUnfinished) &&
+      input.fixes.some((fix: RemediationFixFacts): boolean => {
+        return Boolean(fix.isUnfinished);
+      })
+    ) {
+      return status("failed", TEXT.didNotFinish);
     }
 
     if (
