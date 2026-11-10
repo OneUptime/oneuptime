@@ -78,13 +78,24 @@ Den verkliga följden av dåliga data är instrumentpanelen som någon öppnar. 
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, ett tjänsthuvudnamn (service principal) som får använda Power BI:s administratörs-API:er |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, ett tjänsthuvudnamn (service principal) som får använda Power BI:s skrivskyddade administratörs-API:er. Både rapporter och instrumentpaneler läses, med visningar och uppdateringar (nedan) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (eller `eu`) |
 
 Hightouch och Census är verktyg för reverse ETL: en synkronisering som kopierar en tabell till ett CRM är beroende av den tabellen som en instrumentpanel är, så den läses på samma sätt och nämns på tabellens larm.
 
-Bara instrumentpanelernas namn och länkar, och tabellerna de frågar mot, läses: aldrig deras data.
+Bara instrumentpanelernas namn och länkar, tabellerna de frågar mot och, för Power BI, vem som öppnar dem och hur deras uppdateringar gick, läses: aldrig deras data.
+
+### Visningar och uppdateringar i Power BI
+
+För varje Power BI-rapport och instrumentpanel visar **BI-instrumentpaneler** först hur många gånger den öppnades de senaste 28 dagarna, när den senast öppnades och hur den senaste uppdateringen av dess data gick, med felet från en misslyckad uppdatering. Hur många personer som öppnade den, vem som öppnade den mest och dess senaste uppdateringar är kolumner du kan slå på. En tabells flik **Härkomst** säger detsamma om varje instrumentpanel som bygger på den, med ägare och visare under **Mer**.
+
+- **Visningar** kommer från Power BI:s aktivitetslogg, läst via dess administratörs-API för aktivitetshändelser. Power BI sparar 28 dagar av den, svarar på 200 begäranden i timmen och delar upp varje begäran i timmar, så OneUptime läser den en timme i taget: varje läsning varje timme lägger till timmarna sedan den förra och går sedan bakåt genom de 28 dagarna, nyast först, med högst 100 begäranden. Ett nytt Power BI-verktyg visar de senaste dagarna direkt och alla 28 dagar inom ett dygn; tills dess säger visningarna sedan när de räknas. En händelse kan ta upp till en timme att nå loggen, så visningarna ligger upp till två timmar efter. Visare namnges som Power BI namnger dem: med sin e-postadress.
+- **Uppdateringar** av datauppsättningar på en kapacitet (Premium, Premium per användare eller Fabric) kommer från Power BI:s administratörslista över uppdaterbara objekt: varje datauppsättnings senaste uppdatering med sitt fel, och hur många uppdateringar som kördes och misslyckades under de sju dagar Power BI sparar.
+- **Uppdateringar av datauppsättningar på delad kapacitet** finns inte i den listan. Power BI visar en datauppsättnings uppdateringshistorik bara för dem som får ändra den, så lägg till tjänsthuvudnamnet i dess arbetsyta som **Deltagare**, **Medlem** eller **Administratör** och slå på **Service principals can call Fabric public APIs** för det i utvecklarinställningarna i Fabrics administratörsportal. OneUptime läser då varje uppdatering, med sitt fel. Tills dess säger BI-verktyget hur många datauppsättningars uppdateringar det inte kunde läsa.
+- En Power BI-instrumentpanel vars paneler kommer från flera datauppsättningar visar den senaste uppdateringen som misslyckades, eller den äldsta om ingen misslyckades: dess data är bara så färska som den.
+
+Visningar, och uppdateringar på kapaciteter, behöver inget utöver administratörs-API-åtkomsten ovan: tjänsthuvudnamnet i en säkerhetsgrupp som **Service principals can access read-only admin APIs** tillåter, utan Power BI-behörigheter i appen som kräver administratörsmedgivande. När visningar eller uppdateringar inte kan läsas läses och behålls instrumentpanelerna ändå, BI-verktyget säger vad som hoppades över och varför, och nästa läsning försöker igen.
 
 ## Pipelines
 

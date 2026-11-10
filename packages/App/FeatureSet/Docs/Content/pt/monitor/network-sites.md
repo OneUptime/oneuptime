@@ -54,7 +54,7 @@ Cada dispositivo se liga a um site. A subárvore de um site é o próprio site m
 Acesse **Rede → Sites** e clique em **Adicionar: Site**.
 
 ### Dizer o que o site é
-Na etapa **Site Details**, escolha o **Site Type** (que tipo de lugar é: uma região, uma loja, um data center) e digite um **Nome**. A descrição, o endereço e a latitude e a longitude que posicionam o site no mapa ficam recolhidos em **Mais campos**: preencha agora ou depois.
+Na etapa **Site Details**, escolha o **Site Type** (que tipo de lugar é: uma região, uma loja, um data center) e digite um **Nome**. O **Código do site**, a descrição, o endereço e a latitude e a longitude que posicionam o site no mapa ficam recolhidos em **Mais campos**: preencha agora ou depois. Um código de site é um código curto, como o número de uma loja ou de uma unidade (`1216`); as [regras de nomenclatura](/docs/monitor/network-device-monitor#nomear-dispositivos-pela-sua-convenção-de-nomenclatura) o colocam nos nomes dos dispositivos com `{site.code}`.
 
 ### Posicioná-lo na árvore
 Na etapa **Hierarchy**, escolha o **Parent Site** se o site fica abaixo de outro. Deixe vazio para manter o site no nível mais alto.

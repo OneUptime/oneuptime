@@ -1,4 +1,10 @@
 import AppLink from "../AppLink/AppLink";
+import {
+  getRefreshStatusPill,
+  TimeAgo,
+  VIEWERS_IN_28_DAYS,
+  VIEWS,
+} from "./DashboardActivity";
 import DataObservabilityApi from "./DataObservabilityApi";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -8,6 +14,7 @@ import { DataObservabilityTableDashboard } from "Common/Types/DataObservability/
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
+import { PillSize } from "Common/UI/Components/Pill/Pill";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -38,11 +45,22 @@ function readUrl(value: string | null): URL | null {
   }
 }
 
+// Whether the tool said how the dashboard is used or how fresh it is.
+function hasActivity(dashboard: DataObservabilityTableDashboard): boolean {
+  return (
+    typeof dashboard.viewCount === "number" ||
+    Boolean(dashboard.lastViewedAt) ||
+    Boolean(dashboard.lastRefreshStatus)
+  );
+}
+
 /*
  * The dashboards of connected BI tools built on a table, and on the tables
  * built from it (DataTableDashboards): the real impact of bad data is the
  * dashboard someone opens. Each opens in its tool; one built on a table
- * downstream says which.
+ * downstream says which. Where its tool says (Power BI), each says next how
+ * often it was viewed, when last, and how its data's last refresh went;
+ * its owner and viewers fold out under More.
  */
 const TableDashboards: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -50,6 +68,23 @@ const TableDashboards: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [dashboards, setDashboards] =
     useState<Array<DataObservabilityTableDashboard> | null>(null);
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+
+  const toggle: (dataDashboardId: string) => void = (
+    dataDashboardId: string,
+  ): void => {
+    setOpenIds((current: Set<string>): Set<string> => {
+      const next: Set<string> = new Set(current);
+
+      if (next.has(dataDashboardId)) {
+        next.delete(dataDashboardId);
+      } else {
+        next.add(dataDashboardId);
+      }
+
+      return next;
+    });
+  };
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -93,60 +128,165 @@ const TableDashboards: FunctionComponent<ComponentProps> = (
         >
           {dashboards.map((dashboard: DataObservabilityTableDashboard) => {
             const url: URL | null = readUrl(dashboard.url);
+            const isOpen: boolean = openIds.has(dashboard.dataDashboardId);
+            const hasMore: boolean =
+              Boolean(dashboard.owner) ||
+              typeof dashboard.viewerCount === "number";
 
             return (
-              <li
-                key={dashboard.dataDashboardId}
-                className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm"
-              >
-                {url ? (
-                  <Link
-                    to={url}
-                    openInNewTab={true}
-                    className="font-medium text-indigo-700 hover:underline"
-                  >
-                    {dashboard.name}
-                  </Link>
-                ) : (
-                  <span className="font-medium text-gray-900">
-                    {dashboard.name}
+              <li key={dashboard.dataDashboardId} className="py-2 text-sm">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {url ? (
+                    <Link
+                      to={url}
+                      openInNewTab={true}
+                      className="font-medium text-indigo-700 hover:underline"
+                    >
+                      {dashboard.name}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-gray-900">
+                      {dashboard.name}
+                    </span>
+                  )}
+                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-700">
+                    {dashboard.tool}
                   </span>
-                )}
-                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-700">
-                  {dashboard.tool}
-                </span>
-                {dashboard.folder ? (
-                  <span className="text-xs text-gray-500">
-                    {dashboard.folder}
-                  </span>
+                  {dashboard.folder ? (
+                    <span className="text-xs text-gray-500">
+                      {dashboard.folder}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                  {dashboard.via ? (
+                    <span className="text-xs text-gray-500">
+                      <TranslatedSentence
+                        template="Through {{table}}"
+                        slots={{
+                          table: (
+                            <AppLink
+                              to={RouteUtil.populateRouteParams(
+                                RouteMap[
+                                  PageMap.DATA_OBSERVABILITY_TABLE_VIEW
+                                ] as Route,
+                                {
+                                  modelId: new ObjectID(
+                                    dashboard.via.dataAssetId,
+                                  ),
+                                },
+                              )}
+                              className="font-mono hover:underline"
+                            >
+                              <span>{dashboard.via.table}</span>
+                            </AppLink>
+                          ),
+                        }}
+                      />
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+                {hasActivity(dashboard) || hasMore ? (
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                    {typeof dashboard.viewCount === "number" ? (
+                      <span>
+                        {translator.translatePlural(
+                          VIEWS,
+                          dashboard.viewCount,
+                          { count: dashboard.viewCount },
+                        )}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                    {dashboard.lastViewedAt ? (
+                      <span>
+                        <TranslatedSentence
+                          template="Last viewed {{time}}"
+                          slots={{
+                            time: <TimeAgo at={dashboard.lastViewedAt} />,
+                          }}
+                        />
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                    {dashboard.lastRefreshStatus ? (
+                      <span className="flex items-center gap-x-1.5">
+                        {getRefreshStatusPill(
+                          dashboard.lastRefreshStatus,
+                          PillSize.Small,
+                        )}
+                        {dashboard.lastRefreshAt ? (
+                          <TimeAgo at={dashboard.lastRefreshAt} />
+                        ) : (
+                          <></>
+                        )}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                    {dashboard.lastRefreshError ? (
+                      <span
+                        className="max-w-md truncate text-red-600"
+                        title={dashboard.lastRefreshError}
+                      >
+                        {dashboard.lastRefreshError}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                    {hasMore ? (
+                      <button
+                        type="button"
+                        className="text-indigo-700 hover:underline"
+                        aria-expanded={isOpen}
+                        onClick={(): void => {
+                          toggle(dashboard.dataDashboardId);
+                        }}
+                      >
+                        {translator.translateText(isOpen ? "Less" : "More")}
+                      </button>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
                 ) : (
                   <></>
                 )}
-                {dashboard.via ? (
-                  <span className="text-xs text-gray-500">
-                    <TranslatedSentence
-                      template="Through {{table}}"
-                      slots={{
-                        table: (
-                          <AppLink
-                            to={RouteUtil.populateRouteParams(
-                              RouteMap[
-                                PageMap.DATA_OBSERVABILITY_TABLE_VIEW
-                              ] as Route,
-                              {
-                                modelId: new ObjectID(
-                                  dashboard.via.dataAssetId,
-                                ),
-                              },
-                            )}
-                            className="font-mono hover:underline"
-                          >
-                            <span>{dashboard.via.table}</span>
-                          </AppLink>
-                        ),
-                      }}
-                    />
-                  </span>
+                {isOpen ? (
+                  <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                    {dashboard.owner ? (
+                      <>
+                        <dt className="text-gray-500">
+                          {translator.translateText("Owner")}
+                        </dt>
+                        <dd className="text-gray-700 [overflow-wrap:anywhere]">
+                          {dashboard.owner}
+                        </dd>
+                      </>
+                    ) : (
+                      <></>
+                    )}
+                    {typeof dashboard.viewerCount === "number" ? (
+                      <>
+                        <dt className="text-gray-500">
+                          {translator.translateText("Viewers")}
+                        </dt>
+                        <dd className="text-gray-700">
+                          {translator.translatePlural(
+                            VIEWERS_IN_28_DAYS,
+                            dashboard.viewerCount,
+                            { count: dashboard.viewerCount },
+                          )}
+                        </dd>
+                      </>
+                    ) : (
+                      <></>
+                    )}
+                  </dl>
                 ) : (
                   <></>
                 )}

@@ -202,6 +202,11 @@ const LEFT_OUT: Record<string, LeftOut> = {
       tables: 1,
       why: "The variables an AI agent's install takes, in our words, laid out for the install panel.",
     },
+  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/Naming/NamingLookupTableEditor.tsx":
+    {
+      tables: 1,
+      why: "A naming rule's lookup table, edited in the rule form: two inputs and a remove button a row, each input filling its cell.",
+    },
 };
 
 interface FoundTable {

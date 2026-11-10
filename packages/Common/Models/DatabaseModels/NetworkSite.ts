@@ -248,6 +248,56 @@ export default class NetworkSite extends BaseModel {
   @UniqueColumnBy("projectId")
   public name?: string = undefined;
 
+  /*
+   * A short code for the site - a store or unit number, an airport code -
+   * that naming rules put in device names with {site.code} (OneUptime issue
+   * #6619): "UN{site.code}MNUPLR01" is UN1216MNUPLR01 in the site coded
+   * 1216. Optional, and not unique: two sites may share a code on purpose.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Site Code",
+    description:
+      "A short code for this site, such as a store or unit number. Naming rules can put it in device names with {site.code}.",
+    example: "1216",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public code?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
