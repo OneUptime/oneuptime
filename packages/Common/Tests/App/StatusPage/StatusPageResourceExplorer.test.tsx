@@ -2788,7 +2788,10 @@ describe("Status Page > Resources", () => {
       /*
        * A group past the request's row cap holds resources this pane never
        * loaded, so "everything" is everything that arrived. Saying so is the
-       * difference between a cleared group and a group that looks cleared.
+       * difference between a cleared group and a group that looks cleared:
+       * the bar's count says how many of how many ("1 of 4,000 selected"),
+       * as every table's does since #6025, where a note under it said it in
+       * three sentences.
        */
       test("says so when the group holds more than the pane could load", async () => {
         setUpApi({ groups: buildHierarchy() });
@@ -2822,8 +2825,10 @@ describe("Status Page > Resources", () => {
         await selectAllResources();
 
         expect(bulkBar()!.textContent).toContain(
-          `Selected 1 of ${(4000).toLocaleString()} matching resources`,
+          `1 of ${(4000).toLocaleString()} selected`,
         );
+        expect(bulkBar()!.textContent).not.toContain("matching resources");
+        expect(bulkBar()!.textContent).not.toContain("You can only select");
       });
 
       test("the whole bar goes away when the selection is cleared by hand", async () => {

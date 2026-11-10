@@ -9,7 +9,7 @@ import React, {
   useRef,
 } from "react";
 // https://github.com/remarkjs/react-markdown
-import ReactMarkdown, { Components } from "react-markdown";
+import ReactMarkdown, { Components, Options } from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from "remark-gfm";
 import { sanitizeDiagramSvg } from "./DiagramSanitizer";
@@ -95,6 +95,7 @@ import {
   MAX_HIGHLIGHTED_CODE_LENGTH,
   holdBackForViewer,
   rehypePutBackHeldText,
+  remarkPutBackHeldUrls,
 } from "./MarkdownViewerOverLongText";
 import { markdownUrlTransform } from "./MarkdownUrlTransform";
 import {
@@ -865,7 +866,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
       /*
        * Custom reference tags first, so nothing in that map could ever
        * shadow the safe a/img/code renderers below (it only holds the
-       * two oneuptime-* tag names).
+       * oneuptime-* tag names: the two references and their group).
        */
       ...(hasInlineReferences
         ? (MARKDOWN_INLINE_REFERENCE_COMPONENTS as Components)
@@ -1158,6 +1159,17 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
     props.readingDirection ? [] : [rehypeBlocksReadTheirOwnWay];
 
   /*
+   * The address of every image and link with what was held back put back
+   * - a screenshot's data above all - before remark-rehype writes it out
+   * (remarkPutBackHeldUrls). Last, so every address in the tree is whole,
+   * whichever plugin made it.
+   */
+  const heldUrls: NonNullable<Options["remarkPlugins"]> =
+    heldBack.held.length > 0
+      ? [[remarkPutBackHeldUrls, { held: heldBack.held }]]
+      : [];
+
+  /*
    * More Markdown than react-markdown reads in good time is left even after
    * holding back - a log of megabytes whose lines each hold a "|" or a "<",
    * a table of thousands of rows: the text is shown as it was written, its
@@ -1199,8 +1211,9 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                 remarkGfm,
                 [remarkInlineReferences, INLINE_REFERENCE_TRANSFORM_OPTIONS],
                 remarkMarkdownCallouts,
+                ...heldUrls,
               ]
-            : [remarkGfm, remarkMarkdownCallouts]
+            : [remarkGfm, remarkMarkdownCallouts, ...heldUrls]
         }
         rehypePlugins={
           /*

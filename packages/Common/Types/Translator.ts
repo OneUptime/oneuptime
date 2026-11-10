@@ -1,4 +1,4 @@
-import { getEnglishOf } from "./DateLanguage";
+import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import {
   FIRST_STRONG_ISOLATE,
   getReadingDirection,
@@ -382,6 +382,28 @@ export const getTemplatePlaceholders: (template: string) => Array<string> = (
   return names;
 };
 
+/*
+ * Whether a plural's one form says exactly one: its English other form
+ * names the count and its one form does not - "Fired once" beside "Fired
+ * {{count}} times", "Show the host" beside "Show every host ({{count}})".
+ * A language's "one" form is said for every count it calls one (21 and 31
+ * in Russian, 0 in French), so such a one form is said for one only
+ * (translatePlural).
+ *
+ * Not a pair that names the count in neither form: a word drawn beside a
+ * number shown on its own ("day", "metric" under "21") or a number another
+ * value holds ("{{number}} event") - its one form is the language's form
+ * for that number ("21 день", never "21 дней").
+ */
+export const isOneFormOnlyForOne: (template: PluralTemplate) => boolean = (
+  template: PluralTemplate,
+): boolean => {
+  return (
+    getTemplatePlaceholders(template.other).includes("count") &&
+    !getTemplatePlaceholders(template.one).includes("count")
+  );
+};
+
 // Whether a template has words of its own besides its placeholders.
 const LETTER: RegExp = /\p{L}/u;
 
@@ -531,6 +553,78 @@ export interface Translator {
   formatNumber: (value: number) => string;
 }
 
+/*
+ * WHAT STANDS BETWEEN TWO FACTS ON ONE LINE.
+ *
+ * A middle dot with a space either side: "12 incidents · 3 alerts", "Uptime
+ * · 24 hours". Persian writes its zero as a dot ("۰"), about the size of a
+ * middle dot and at its height, so beside Persian digits the separator read
+ * as a digit: "۱۲ حادثه · ۳ هشدار" looked like "۳ ۰", and "زمان کارکرد ·
+ * ۲۴ ساعت" like "۰۲۴". A language whose zero is a dot takes a bullet there,
+ * " • ", larger than any digit and read as the separator it is.
+ */
+export const INLINE_SEPARATOR: string = " \u{00B7} ";
+
+export const DOT_ZERO_INLINE_SEPARATOR: string = " \u{2022} ";
+
+// The zeros written as a dot: Persian's ("۰") and Arabic-Indic's ("٠").
+const DOT_ZEROS: ReadonlyArray<string> = ["\u{06F0}", "\u{0660}"];
+
+const dotZeroCache: Map<string, boolean> = new Map<string, boolean>();
+
+/*
+ * Whether `language` writes its zero as a dot, as Persian does ("۰"). Arabic
+ * writes Latin digits in OneUptime (DateLanguage's LATIN_DIGIT_LANGUAGES), so
+ * its zero is a "0" and its line takes the middle dot.
+ */
+export const writesZeroAsADot: (language: string | undefined) => boolean = (
+  language: string | undefined,
+): boolean => {
+  const code: string = language || DEFAULT_LANGUAGE;
+  const cached: boolean | undefined = dotZeroCache.get(code);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let isDot: boolean = false;
+
+  try {
+    isDot = DOT_ZEROS.includes((0).toLocaleString(getNumberLocale(code)));
+  } catch {
+    isDot = false;
+  }
+
+  dotZeroCache.set(code, isDot);
+
+  return isDot;
+};
+
+// What a line in `language` puts between two facts: " · ", or " • " in Persian.
+export const getInlineSeparator: (language: string | undefined) => string = (
+  language: string | undefined,
+): string => {
+  return writesZeroAsADot(language)
+    ? DOT_ZERO_INLINE_SEPARATOR
+    : INLINE_SEPARATOR;
+};
+
+/*
+ * OneUptime's own words as `language` punctuates a line: each " · " the
+ * words hold is a bullet in a language whose zero is a dot. Never a value's:
+ * a monitor named "API · EU" is named as written.
+ */
+const punctuateInLanguage: (words: string, language: string) => string = (
+  words: string,
+  language: string,
+): string => {
+  if (!writesZeroAsADot(language) || !words.includes(INLINE_SEPARATOR)) {
+    return words;
+  }
+
+  return words.split(INLINE_SEPARATOR).join(DOT_ZERO_INLINE_SEPARATOR);
+};
+
 export const createTranslator: (
   lookup: TextLookup | undefined,
   language?: string | undefined,
@@ -539,6 +633,11 @@ export const createTranslator: (
   language?: string | undefined,
 ): Translator => {
   const activeLanguage: string = language || DEFAULT_LANGUAGE;
+
+  // OneUptime's words, punctuated as the reader's language punctuates a line.
+  const punctuate: (words: string) => string = (words: string): string => {
+    return punctuateInLanguage(words, activeLanguage);
+  };
 
   // The stored wording for `key`, or undefined when nothing has one.
   const find: (key: string) => string | undefined = (
@@ -566,7 +665,10 @@ export const createTranslator: (
       return text;
     }
 
-    return find(text) ?? text;
+    // A text with no wording of its own may be a value: as it is.
+    const stored: string | undefined = find(text);
+
+    return stored === undefined ? text : punctuate(stored);
   };
 
   const hasTranslation: (text: string) => boolean = (text: string): boolean => {
@@ -647,21 +749,26 @@ export const createTranslator: (
     const setsSlotsApart: boolean = Boolean(options?.setsSlotsApart);
 
     if (stored === undefined || stored === english) {
+      /*
+       * An English sentence on a Persian page holds Persian digits too (its
+       * counts are written the reader's way): its separators are punctuated
+       * the reader's way, its values never.
+       */
       if (hasWords(english)) {
         return setsValuesApart
           ? fillTemplate(
-              english,
+              punctuate(english),
               setApartValues(
                 englishTextValues(values),
                 LEFT_TO_RIGHT,
                 setsSlotsApart,
               ),
             )
-          : fillTemplate(english, englishDateValues(values));
+          : fillTemplate(punctuate(english), englishDateValues(values));
       }
 
       return fillTemplate(
-        english,
+        punctuate(english),
         setsValuesApart
           ? setApartValues(
               translatedValues(values),
@@ -673,7 +780,7 @@ export const createTranslator: (
     }
 
     return fillTemplate(
-      stored,
+      punctuate(stored),
       setsValuesApart
         ? setApartValues(
             translatedValues(values),
@@ -698,7 +805,8 @@ export const createTranslator: (
 
   const formatNumber: (value: number) => string = (value: number): string => {
     try {
-      return value.toLocaleString(activeLanguage);
+      // In the digits the language writes: Latin ones in Arabic too.
+      return value.toLocaleString(getNumberLocale(activeLanguage));
     } catch {
       return value.toLocaleString();
     }
@@ -708,14 +816,28 @@ export const createTranslator: (
    * The form for `count` the way i18next resolves it: the language's own
    * category ("few" for 3 in Russian) under the key plus "_few", else the key
    * itself, which holds the language's general (other) form.
+   *
+   * A language's "one" form is said for every count its language calls one
+   * - 21 and 31 in Russian, 0 in French. A one form that says exactly one
+   * (oneFormSaysOnlyOne: "Fired once" beside "Fired {{count}} times") is
+   * said for one only: any other count of that category reads the general
+   * form instead, which names the count ("Срабатываний: 21", not
+   * "Сработало один раз").
    */
-  const findPlural: (key: string, count: number) => string | undefined = (
+  const findPlural: (
     key: string,
     count: number,
+    oneFormSaysOnlyOne?: boolean,
+  ) => string | undefined = (
+    key: string,
+    count: number,
+    oneFormSaysOnlyOne: boolean = false,
   ): string | undefined => {
     const category: string = getPluralCategory(activeLanguage, count);
+    const saysOnlyOne: boolean =
+      category === "one" && oneFormSaysOnlyOne && count !== 1;
 
-    if (category !== "other") {
+    if (category !== "other" && !saysOnlyOne) {
       const form: string | undefined = find(`${key}_${category}`);
 
       if (form !== undefined) {
@@ -739,7 +861,11 @@ export const createTranslator: (
   ): string => {
     // English has two forms: exactly one, and everything else.
     const english: string = count === 1 ? template.one : template.other;
-    const stored: string | undefined = findPlural(template.other, count);
+    const stored: string | undefined = findPlural(
+      template.other,
+      count,
+      isOneFormOnlyForOne(template),
+    );
 
     /*
      * An English form left in a locale is a placeholder, not a translation:
@@ -792,6 +918,7 @@ const getEnglishTranslator: () => Translator = (): Translator => {
 
 // How a language separates a list's items, where it is not a comma.
 const LIST_SEPARATORS: Record<string, string> = {
+  ar: "، ",
   fa: "، ",
   ja: "、",
   zh: "、",
@@ -799,7 +926,7 @@ const LIST_SEPARATORS: Record<string, string> = {
 
 /*
  * What a language puts between two items of a list with no "and" or "or":
- * ", " in most, "، " in Persian, "、" in Japanese and Chinese. For a list
+ * ", " in most, "، " in Persian and Arabic, "、" in Japanese and Chinese. For a list
  * drawn item by item (IsolatedTextList), which formatList cannot join.
  */
 export const getListSeparator: (language: string | undefined) => string = (
@@ -820,6 +947,20 @@ export const formatList: (
   translator: Translator,
 ): string => {
   return names.join(getListSeparator(translator.language));
+};
+
+/*
+ * Facts on one line, each set off from the next as the reader's language
+ * does (getInlineSeparator): "12 incidents · 3 alerts", "۱۲ حادثه • ۳ هشدار".
+ */
+export const formatInline: (
+  parts: ReadonlyArray<string>,
+  translator: Translator,
+) => string = (
+  parts: ReadonlyArray<string>,
+  translator: Translator,
+): string => {
+  return parts.join(getInlineSeparator(translator.language));
 };
 
 /*

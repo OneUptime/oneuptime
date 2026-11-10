@@ -65,9 +65,9 @@ En ändring som började tidigare registreras i stället på monitorns statustid
 
 :::steps
 1. Öppna monitorn och klicka på **Statustidslinje** i dess sidomeny.
-2. Klicka på **Skapa Monitor Status Händelse**.
+2. Klicka på **Skapa Statushändelse för monitor**.
 3. Välj **Monitorstatus**. **Börjar den** är nu; ange en tidigare tidpunkt om ändringen skedde tidigare.
-4. Klicka på **Skapa Monitor Status Händelse**. Den nya statusen visas direkt på monitorn och på varje statussida som listar den.
+4. Klicka på **Skapa Statushändelse för monitor**. Den nya statusen visas direkt på monitorn och på varje statussida som listar den.
 :::
 
 ### Via API:et

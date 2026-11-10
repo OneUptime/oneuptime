@@ -340,6 +340,14 @@ En sådan post ændres kun med tilladelserne fra de teams, der ejer den, og fra 
 
 Et team, der ejer private poster, men ikke har nogen tilladelser, et team, der kun bruges til at samle personer, lader sine medlemmer se dem og ændre ingen af dem. På en privat posts side er en ændring, som personens teams, der ejer den, ikke må foretage, låst og siger hvorfor. For at give lov til den skal du give et team, der ejer den, tilladelsen, gøre et team med tilladelsen til ejer eller gøre personen til ejer.
 
+### Regler, der tilhører teams
+
+En vagtregel for hændelser eller advarsler, en vagtregel for episoder, en ejerregel for hændelser og en notifikationsregel for Slack eller Microsoft Teams kan tilhøre teams. En regel, som intet team ejer, tilhører projektet: alle, hvis tilladelser lader dem ændre regler af den slags, kan ændre den. En regel, som teams ejer, ændres og slettes kun med tilladelserne fra de teams, der ejer den, og af projektets ejere og administratorer. Alle, der må læse regler, kan stadig læse den og se, hvilke teams der ejer den.
+
+Vælg teamene i reglens formular, i **Ansvarlige teams** under **Flere felter**. Det kræver regeltypens tilladelse til ansvarlige teams, fx `CreateIncidentOnCallRuleOwningTeam`, som projektejere og -administratorer har. At tilføje eller fjerne en regels teams ændrer reglen, så når teams ejer en regel, er det kun dem og projektejere og -administratorer, der ændrer, hvem der ejer den. I en liste over regler er en regel, som kun andre teams ejer, skrivebeskyttet for dig: dens handlinger til at redigere og slette er låst og nævner de teams, der ejer den.
+
+Hvert teams tilladelse rækker til de regler, som teamet ejer. En, der er med i to teams, hvor det ene må redigere vagtregler og det andet kun læse dem, redigerer alle regler, som intet team ejer, og det første teams regler, og læser kun de regler, som kun det andet team ejer. En API-nøgle ændrer kun en regel, som teams ejer, med `ProjectOwner` eller `ProjectAdmin`; et workflow-trin handler som projektadministrator. Gennem API'et og Terraform er en regels ansvarlige teams selvstændige poster, fx `oneuptime_incident_on_call_rule_owning_team`.
+
 ## Opskrifter
 
 **Et team, der kun kigger med.** Opret teamet med **Seer** under **Adgang**. For kun nogle områder vælger du **Vælg tilladelser senere** og tilføjer de områdespecifikke `*Viewer`-roller, teamet skal se.

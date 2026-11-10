@@ -108,6 +108,10 @@ Microsoft Entra ID でアプリを登録し、クライアント シークレッ
 
 以下のツールには、OneUptime がユーザーのチャットを読み取れる API がないか、別の方法が必要です。
 
+### Cursor
+
+Cursor の Admin API はユーザーごとの使用量とコストを提供し、会話は提供しないため、Cursor のチームは管理者 API キーで [プロバイダーアカウント](/docs/telemetry/ai-provider-accounts#cursor) として接続します。Enterprise プランでは、OpenTelemetry Export も使用量を発生時に送ります。[Cursor](/docs/telemetry/cursor) を参照してください。
+
 ### ChatGPT Enterprise
 
 OpenAI は Compliance API をリクエストに応じてワークスペースに公開しており、記録の内容を公開していないため、OneUptime はまだ ChatGPT Enterprise のチャットを読み取れません。OpenAI の組織を [プロバイダー アカウント](/docs/telemetry/ai-provider-accounts#openai) として接続すると API の使用量とコストが表示されますが、ChatGPT は含まれません。
@@ -146,7 +150,7 @@ Copilot の場合は、アプリの Graph のアクセス許可に管理者の�
 
 :::cards
 - [AI / LLM オブザーバビリティ](/docs/telemetry/ai-llm-observability): 会話を読んで再生し、回答に問題があれば通知を受けます。
-- [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts): OpenAI、Anthropic、Azure、Bedrock、Vertex AI のアカウントの使用量とコスト。
+- [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts): OpenAI、Anthropic、Azure、Bedrock、Vertex AI、Cursor のアカウントの使用量とコスト。
 - [AI コーディングアシスタント](/docs/telemetry/ai-coding-assistants): コーディングツールのエンジニアごとの支出。
 - [データ保持](/docs/telemetry/data-retention): 会話が保存される期間。
 :::

@@ -19,6 +19,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
+| **Public Note Approval** | Have public notes approved before they are published, and choose who approves them. |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
 | **Postmortem Statuses** | The statuses a postmortem moves through, from Not Started to Completed. |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |
@@ -162,6 +163,25 @@ Custom fields used to be written `{{customFields.<key>}}`; templates that still 
 The same list, button and `{{` come with the other templates that have variables: an SLA rule's note reminders, an incident or alert grouping rule's episode title and description, a monitor rule's incident and alert description and remediation notes, an SLO burn rate rule's templates and a status page's custom subscriber notification templates.
 
 Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** above the **Public Note** field, folded under **Add a public note**. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
+
+## Public note approval
+
+**Public Note Approval** has public notes on incidents and incident episodes approved before they are published, for the updates that need a second pair of eyes before customers read them. It is off in every project until you turn it on.
+
+:::steps
+1. Go to **Incidents → Settings → Public Note Approval** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Under **Who Approves**, click **Add Approval Step** and pick the step's **Approvers**: people, teams or both, any one of whom can approve a note for the step. A **Name**, such as Legal, is optional: notes waiting for the step show it.
+3. Turn on **Require approval before public notes are published**. From then on, a new public note, and an edit of a published one, waits until it is approved.
+:::
+
+Most projects need one step. Add another when a note needs a second approval, for example from your legal team after your support lead. Steps are approved in the order of the list, which you drag to reorder, and a note is published when the last one approves it.
+
+- **Every step names somebody.** A step needs at least one person or team, and approval cannot be turned on until a step names somebody.
+- **The last step stays while approval is on.** To delete it, turn approval off first, or add another step.
+- **Changes count at once.** Who may approve is read when somebody decides, and notes already waiting follow your changes. When you add, delete or reorder steps, or change who a step names, whoever can now approve a waiting note and was not asked about it yet is asked, by their notification settings, and so is somebody who joins a team named on the step a note waits for. Nobody is asked twice about the same step of a note. Somebody taken off the step, or out of its team, can no longer decide on the note, and their Slack, Microsoft Teams or Mattermost message about it says so. A note keeps the approvals it has.
+- **Nobody approves their own note, or two steps of one note.** Whoever sent a note for approval cannot approve or reject it, and whoever approved one of its steps cannot approve another.
+
+Only project owners and admins can change these settings, and everyone who reads the notes can see who approves them. **Scheduled Maintenance → Settings → Public Note Approval** is the same page for scheduled maintenance events, with a switch and steps of its own. What a note does while it waits, and how approvers decide, is under [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
 
 ## Postmortem templates
 
@@ -617,6 +637,8 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 
 **A rule can inherit.** Under **Labels to Add** (or **Owners**), the folded **Inherit Labels** (or **Inherit Owners**) section holds six switches that also hand on the labels (or owners) of the incident's monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. A rule that inherits can leave **Labels to Add** empty, and is then named after what it inherits from (_Inherit labels from monitors, hosts_); a new rule that neither names nor inherits anything cannot be saved — from the form, the API or Terraform. Episode rules, on the **Episode Rules** tab, have no inherit switches. On an incident or alert owner rule, **Inherit Owners** ends with **Creator's Team**: of the teams listed there, each one the person who declares the incident, or creates the alert, is in becomes an owner too.
 
+An incident owner rule can belong to teams too: **Owning Teams**, under **More fields**, says who may edit or delete the rule — only the members of those teams and project admins — not who the rule makes owners. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+
 **Older rules that add nothing** — saved before OneUptime asked what they add — can still be renamed, switched off or deleted, and the list marks each one **Adds nothing**. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the form step by step.
 
 ## Incident grouping rules
@@ -637,9 +659,14 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 - **Grouping** — **Group incidents by**: **Monitor**, **Everything Together**, **Severity**, **Title** or **Custom**. Custom adds a **Group By** step with the five switches underneath the answers (monitor, severity, incident title, incident labels and monitor labels; labels group by their exact set). **Only group incidents that arrive close together** is on by default: an incident joins an episode only if it arrives within the time window of the episode's previous incident. Turned off, matching incidents keep joining the open episode until it is resolved. **Name** follows the answer until you type your own, and **Enabled** is on.
 - **Which Incidents** — **All incidents**, where a new rule starts, groups every new incident. **Only incidents that match conditions** opens the conditions that narrow the rule down.
 
-Everything else a rule can do is folded under **More fields**, at the end of the **Grouping** step, in three groups: **On-Call & Ownership** (the on-call policies to run when the rule opens an episode, **Episode Owners**, and episode role assignments), **Episode Lifecycle** (reopen recently resolved episodes, wait before resolving an episode, and resolve quiet episodes — each a switch with its minutes) and **Details** (the rule's description, the episode title and description templates, showing episodes on status pages, and episode labels). Folded, its header names what it holds, and each setting a rule uses says what it is set to — "On-Call Duty Policies: 2", "Reopen recently resolved episodes: 30 minutes" — so editing a rule never hides what it does. Opening it adds no step: **Create Incident Grouping Rule** is on **Which Incidents**, the last step. The alert form has no status page or episode role settings.
+Everything else a rule can do is folded under **More fields**, at the end of the **Grouping** step, in three groups: **On-Call & Ownership** (the on-call policies to run when the rule opens an episode, **Episode Owners**, and episode role assignments), **Episode Lifecycle** (wait for more incidents before opening an episode — a switch with a count — then reopen recently resolved episodes, wait before resolving an episode, and resolve quiet episodes — each a switch with its minutes) and **Details** (the rule's description, the episode title and description templates, showing episodes on status pages, and episode labels). Folded, its header names what it holds, and each setting a rule uses says what it is set to — "On-Call Duty Policies: 2", "Reopen recently resolved episodes: 30 minutes" — so editing a rule never hides what it does. Opening it adds no step: **Create Incident Grouping Rule** is on **Which Incidents**, the last step. The alert form has no status page or episode role settings.
 
 Reopening recently resolved episodes is the one way an episode moves back up its list of states. When a matching incident arrives within the minutes it sets, OneUptime moves the resolved episode back to your created state and adds the incident to it. Nobody else can: a state change of an episode is held to the order of your incident states exactly as an incident's is, from the dashboard, Slack, Microsoft Teams, the API or Terraform (see [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference)). The reopen does not move the episode's incidents back either: those already resolved stay resolved. Alert grouping rules reopen alert episodes the same way.
+
+**Wait for more incidents** keeps a lone incident out of an episode. It is off until you turn it on, and then asks how many: **Open an episode once 3 matching incidents are ongoing**, from 2 to 100. While it is on, an incident that finds no open episode of its group to join, and no resolved one to reopen, does not open an episode: it waits on its own and pages only its own on-call policies, as an incident no rule matches does. Once that many incidents of the group are ongoing, the arriving one included, the rule opens one episode with every incident that waited and the one that arrived last. The episode takes its title, monitor and severity from the first of them and rises to the most severe, and the incidents after them join it as usual. Only incidents that are still ongoing count, so a monitor that keeps failing and recovering never opens an episode by itself, and while **Only group incidents that arrive close together** is on they must also have arrived within its window of each other. Pair it with **Everything Together** to open an episode only for an outage that trips several monitors at once. It works with every answer to **Group incidents by**: with **Title**, a problem gets an episode once it fires again while the first one is still open. The list's **Grouping** column says "Opens an episode once 3 matching incidents are ongoing". Through the API and Terraform it is `enableMinimumIncidentCount` and `minimumIncidentCount`, and `enableMinimumAlertCount` and `minimumAlertCount` on an alert grouping rule.
+
+> [!WARNING]
+> An incident that waits pages only its own on-call policies. If the rule's **On-Call Duty Policies** are the only ones that page for these incidents, a lone incident pages nobody until enough of them are ongoing.
 
 The list's **Grouping** column says what each rule does — "One episode per monitor", "New incidents join while they arrive within 30 minutes of the last one" — with a note for each lifecycle setting that is on, for the on-call policies it runs and for showing episodes on status pages. **Match Criteria** shows which incidents it applies to, and **Status** whether it is on.
 
@@ -651,7 +678,7 @@ Rules saved before the form asked for owners may still have a default team and u
 
 ## Incident on-call rules
 
-**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, says what they do: page on-call policies automatically for new incidents that match. The page has two tabs: **Incident Rules** and **Episode Rules**.
+**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, says what they do: page on-call policies automatically for incidents that match, as responders or as observers kept informed. The page has two tabs: **Incident Rules** and **Episode Rules**.
 
 The create form has two steps:
 
@@ -661,6 +688,12 @@ The create form has two steps:
 :::
 
 A rule pages as soon as an incident matches it. To make it wait for working hours instead, answer **When should this rule page?** under **More fields** with **Only during working hours**. The **Working Hours** start as Monday to Friday, 09:00 to 17:00, in your own time zone: pick other days, another **Start Time** or **End Time**, or another **Timezone**, and a sentence under the choice says what will happen. In the list, the rule shows its hours under its name. An incident that matches outside those hours gets a run that waits, as **Waiting**, and pages nobody; when the hours begin, the policy pages its first escalation rule and escalates as usual. If the incident is acknowledged or resolved first, nobody is paged. If the incident changes while it waits and now matches a rule that pages right away, for example when its severity is raised, the run starts paging at once, and the incident's feed says why.
+
+A rule pages its policies' people to respond: acknowledging the page acknowledges the incident. To keep a team informed while another one responds, such as an oversight team told about every critical incident, answer **Page the people of these policies as** under **More fields** with **Observers**. Their page says they are observers, and acknowledging it only says they have seen it: the incident is not acknowledged, nobody else's page stops, and nobody becomes its Incident Commander. Their page goes on until one of them answers it or the incident is resolved, and a Slack or Microsoft Teams rule that invites on-call responders to the incident's channel leaves them out. In the list, the rule says under its name that it pages as observers. A policy that one matching rule pages as responders and another as observers pages responders.
+
+Rules run when an incident is declared, and again whenever its severity or labels change while it is open. When it is raised to a severity a rule matches, or given a label one matches, that rule's policies page then, as responders or as observers, and the incident's feed says the rule now matches it, and why. A policy that has already paged about the incident does not page again, unless it paged as observers and is now asked to respond. Nothing is undone when the incident stops matching, and a changed title, description or monitor does not run the rules again.
+
+A rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and project admins can edit or delete it, and everyone else who can see rules sees it read-only. A rule no team owns can be changed by everyone who can edit on-call rules, and episode rules can belong to teams too. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
 
 ### How matching resolves
 

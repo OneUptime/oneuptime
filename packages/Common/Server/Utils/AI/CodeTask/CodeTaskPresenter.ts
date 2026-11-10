@@ -17,7 +17,12 @@ import { getCodeTaskRequest } from "../../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../../../Types/AI/CodeFixTaskType";
+import CodeTaskRetry, {
+  CodeTaskRetryJSON,
+} from "../../../../Types/AI/CodeTaskRetry";
+import TransientAIFailure from "../../../../Types/AI/TransientAIFailure";
 import {
+  MAX_CODE_TASK_SUMMARY_REPLY_LENGTH,
   CodeTaskChangeStats,
   CodeTaskChangeStatsJSON,
   CodeTaskContextItem,
@@ -293,6 +298,9 @@ export default class CodeTaskPresenter {
         status: true,
         needsUserInput: true,
         startedAt: true,
+        autoRetryCount: true,
+        nextAttemptAt: true,
+        retryReason: true,
       },
       props: { isRoot: true },
     });
@@ -339,7 +347,29 @@ export default class CodeTaskPresenter {
       progress.startedAt = new Date(turn.startedAt).toISOString();
     }
 
+    const retry: CodeTaskRetryJSON | undefined =
+      CodeTaskPresenter.getRetry(turn);
+
+    if (retry) {
+      progress.retry = retry;
+    }
+
     return progress;
+  }
+
+  /*
+   * How a turn stands with its attempts, when it was tried again by itself
+   * or waits to be (CodeFixAutoRetry): its attempt, when the next starts,
+   * and why the one before failed.
+   */
+  public static getRetry(turn: AIRun): CodeTaskRetryJSON | undefined {
+    return CodeTaskRetry.describe({
+      retriesDone: turn.autoRetryCount,
+      nextAttemptAt: turn.nextAttemptAt,
+      isQueued: turn.status === AIRunStatus.Queued,
+      reason: turn.retryReason,
+      kind: TransientAIFailure.classify(turn.retryReason),
+    });
   }
 
   public static toSummary(data: {
@@ -430,6 +460,50 @@ export default class CodeTaskPresenter {
       summary.productionReview = ProductionReviewUtil.summarize(review);
     }
 
+    const retry: CodeTaskRetryJSON | undefined =
+      CodeTaskPresenter.getRetry(latest);
+
+    if (retry) {
+      summary.retry = retry;
+    }
+
+    if (
+      latest.errorMessage &&
+      (state === CodeTaskState.Failed || state === CodeTaskState.Stopped)
+    ) {
+      summary.errorMessage = latest.errorMessage;
+    }
+
+    if (latest.startedAt) {
+      summary.startedAt = new Date(latest.startedAt).toISOString();
+    }
+
+    if (latest.completedAt) {
+      summary.completedAt = new Date(latest.completedAt).toISOString();
+    }
+
+    /*
+     * What AI last said: the newest turn's reply that has one - a turn
+     * still working has none yet, and the one before it is what AI said.
+     */
+    const outcomes: Array<CodeTaskOutcome | null | undefined> =
+      data.outcomes ||
+      data.turns.map((turn: AIRun): CodeTaskOutcome | undefined => {
+        return turn.taskOutcome;
+      });
+
+    for (let index: number = outcomes.length - 1; index >= 0; index--) {
+      const reply: string = (outcomes[index]?.summary || "").trim();
+
+      if (reply) {
+        summary.latestReply =
+          reply.length > MAX_CODE_TASK_SUMMARY_REPLY_LENGTH
+            ? `${reply.substring(0, MAX_CODE_TASK_SUMMARY_REPLY_LENGTH - 1)}…`
+            : reply;
+        break;
+      }
+    }
+
     return summary;
   }
 
@@ -510,6 +584,13 @@ export default class CodeTaskPresenter {
 
     if (turn.errorMessage) {
       json.errorMessage = turn.errorMessage;
+    }
+
+    const retry: CodeTaskRetryJSON | undefined =
+      CodeTaskPresenter.getRetry(turn);
+
+    if (retry) {
+      json.retry = retry;
     }
 
     return json;

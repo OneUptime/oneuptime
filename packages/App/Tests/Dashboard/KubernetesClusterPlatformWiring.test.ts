@@ -132,8 +132,8 @@ describe("the words they show", () => {
       return file.endsWith(".json");
     });
 
-  test("are read from all 17 Dashboard locales", () => {
-    expect(locales).toHaveLength(17);
+  test("are read from all 18 Dashboard locales", () => {
+    expect(locales).toHaveLength(18);
   });
 
   test.each(["Platform", "Not reported"])(

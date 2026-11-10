@@ -54,6 +54,10 @@ export const buildQueryConfigsFromSerializedQueries: BuildQueryConfigsFunction =
               attributes: metricQuery.attributes || {},
               aggegationType:
                 metricQuery.aggregationType || MetricsAggregationType.Avg,
+              // For the services the link's query reads for (issue #6266).
+              ...(metricQuery.serviceIds && metricQuery.serviceIds.length > 0
+                ? { telemetryServiceIds: [...metricQuery.serviceIds] }
+                : {}),
             },
             ...(metricQuery.groupByAttributeKeys &&
             metricQuery.groupByAttributeKeys.length > 0

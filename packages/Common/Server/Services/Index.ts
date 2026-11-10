@@ -26,6 +26,7 @@ import GreenlockCertificateService from "./GreenlockCertificateService";
 import GreenlockChallengeService from "./GreenlockChallengeService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
+import IncidentOnCallRuleOwningTeamService from "./IncidentOnCallRuleOwningTeamService";
 import IncidentPrivacyRuleService from "./IncidentPrivacyRuleService";
 import IncidentPostmortemTemplateService from "./IncidentPostmortemTemplateService";
 import IncidentPostmortemStatusService from "./IncidentPostmortemStatusService";
@@ -41,6 +42,7 @@ import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService
 import IncidentInternalNoteService from "./IncidentInternalNoteService";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
+import IncidentOwnerRuleOwningTeamService from "./IncidentOwnerRuleOwningTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
 import IncidentRoleService from "./IncidentRoleService";
 import IncidentMemberService from "./IncidentMemberService";
@@ -250,6 +252,8 @@ import RumApplicationOwnerRuleService from "./RumApplicationOwnerRuleService";
 import RumApplicationOwnerUserService from "./RumApplicationOwnerUserService";
 import RumApplicationOwnerTeamService from "./RumApplicationOwnerTeamService";
 import RumSessionChunkService from "./RumSessionChunkService";
+import RumProductAnalyticsSessionService from "./RumProductAnalyticsSessionService";
+import RumProductAnalyticsUserService from "./RumProductAnalyticsUserService";
 import RumSessionReplayViewService from "./RumSessionReplayViewService";
 import RumSessionErasureRequestService from "./RumSessionErasureRequestService";
 import RumSessionPinService from "./RumSessionPinService";
@@ -366,6 +370,7 @@ import WorkflowLabelRuleService from "./WorkflowLabelRuleService";
 // Workflows.
 import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
+import WorkflowVersionService from "./WorkflowVersionService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import TelemetrySourceMapService from "./TelemetrySourceMapService";
@@ -382,6 +387,7 @@ import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenance
 // Alert Services
 import AlertStateService from "./AlertStateService";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
+import AlertOnCallRuleOwningTeamService from "./AlertOnCallRuleOwningTeamService";
 import AlertIncidentRuleService from "./AlertIncidentRuleService";
 import AlertPrivacyRuleService from "./AlertPrivacyRuleService";
 import AlertLabelRuleService from "./AlertLabelRuleService";
@@ -465,6 +471,7 @@ import AlertNoteTemplateService from "./AlertNoteTemplateService";
 // AlertEpisode Services
 import AlertEpisodeService from "./AlertEpisodeService";
 import AlertEpisodeOnCallRuleService from "./AlertEpisodeOnCallRuleService";
+import AlertEpisodeOnCallRuleOwningTeamService from "./AlertEpisodeOnCallRuleOwningTeamService";
 import AlertEpisodePrivacyRuleService from "./AlertEpisodePrivacyRuleService";
 import AlertEpisodeLabelRuleService from "./AlertEpisodeLabelRuleService";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
@@ -478,6 +485,7 @@ import AlertEpisodeStateTimelineService from "./AlertEpisodeStateTimelineService
 // IncidentEpisode Services
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentEpisodeOnCallRuleService from "./IncidentEpisodeOnCallRuleService";
+import IncidentEpisodeOnCallRuleOwningTeamService from "./IncidentEpisodeOnCallRuleOwningTeamService";
 import IncidentEpisodePrivacyRuleService from "./IncidentEpisodePrivacyRuleService";
 import IncidentEpisodeLabelRuleService from "./IncidentEpisodeLabelRuleService";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
@@ -501,6 +509,7 @@ import ScheduledMaintenanceMeasurementValueService from "./ScheduledMaintenanceM
 import IncidentSlaService from "./IncidentSlaService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "./ServiceLevelObjectiveErrorBudgetPolicyTierService";
 import LlmCostBudgetService from "./LlmCostBudgetService";
 import LlmObservabilityConnectionService from "./LlmObservabilityConnectionService";
 import ExternalMcpServerService from "./ExternalMcpServerService";
@@ -513,6 +522,8 @@ import ServiceLevelObjectiveOwnerRuleService from "./ServiceLevelObjectiveOwnerR
 import ServiceLevelObjectiveLabelRuleService from "./ServiceLevelObjectiveLabelRuleService";
 import SloHistoryService from "./SloHistoryService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
+import PublicNoteApprovalStepService from "./PublicNoteApprovalStepService";
+import PublicNoteApprovalRequestService from "./PublicNoteApprovalRequestService";
 import AlertReminderRuleService from "./AlertReminderRuleService";
 import ScheduledMaintenanceReminderRuleService from "./ScheduledMaintenanceReminderRuleService";
 
@@ -526,11 +537,13 @@ import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleOwningTeamService from "./WorkspaceNotificationRuleOwningTeamService";
 import VideoCallConnectionService from "./VideoCallConnectionService";
 import IncidentVideoCallService from "./IncidentVideoCallService";
 import AlertVideoCallService from "./AlertVideoCallService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
+import WorkspacePublicNoteApprovalMessageService from "./WorkspacePublicNoteApprovalMessageService";
 import WorkspaceHomeChoiceService from "./WorkspaceHomeChoiceService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
@@ -642,6 +655,7 @@ const services: Array<BaseService> = [
 
   IncidentCustomFieldService,
   IncidentOnCallRuleService,
+  IncidentOnCallRuleOwningTeamService,
   IncidentPrivacyRuleService,
   IncidentPostmortemTemplateService,
   IncidentPostmortemStatusService,
@@ -657,6 +671,7 @@ const services: Array<BaseService> = [
   IncidentInternalNoteService,
   IncidentOwnerTeamService,
   IncidentOwnerRuleService,
+  IncidentOwnerRuleOwningTeamService,
   IncidentOwnerUserService,
   IncidentRoleService,
   IncidentMemberService,
@@ -912,6 +927,7 @@ const services: Array<BaseService> = [
   WorkflowLabelRuleService,
   WorkflowService,
   WorkflowVariablesService,
+  WorkflowVersionService,
 
   // Monitor Group Service
   MonitorGroupService,
@@ -961,6 +977,7 @@ const services: Array<BaseService> = [
 
   AlertStateService,
   AlertOnCallRuleService,
+  AlertOnCallRuleOwningTeamService,
   AlertIncidentRuleService,
   AlertPrivacyRuleService,
   AlertLabelRuleService,
@@ -1046,6 +1063,7 @@ const services: Array<BaseService> = [
   // AlertEpisode Services
   AlertEpisodeService,
   AlertEpisodeOnCallRuleService,
+  AlertEpisodeOnCallRuleOwningTeamService,
   AlertEpisodePrivacyRuleService,
   AlertEpisodeLabelRuleService,
   AlertEpisodeFeedService,
@@ -1059,6 +1077,7 @@ const services: Array<BaseService> = [
   // IncidentEpisode Services
   IncidentEpisodeService,
   IncidentEpisodeOnCallRuleService,
+  IncidentEpisodeOnCallRuleOwningTeamService,
   IncidentEpisodePrivacyRuleService,
   IncidentEpisodeLabelRuleService,
   IncidentEpisodeFeedService,
@@ -1082,6 +1101,7 @@ const services: Array<BaseService> = [
   IncidentSlaService,
   ServiceLevelObjectiveService,
   ServiceLevelObjectiveBurnRateRuleService,
+  ServiceLevelObjectiveErrorBudgetPolicyTierService,
   LlmCostBudgetService,
   LlmObservabilityConnectionService,
   ExternalMcpServerService,
@@ -1093,6 +1113,8 @@ const services: Array<BaseService> = [
   ServiceLevelObjectiveOwnerRuleService,
   ServiceLevelObjectiveLabelRuleService,
   IncidentReminderRuleService,
+  PublicNoteApprovalStepService,
+  PublicNoteApprovalRequestService,
   AlertReminderRuleService,
   ScheduledMaintenanceReminderRuleService,
 
@@ -1103,11 +1125,13 @@ const services: Array<BaseService> = [
   WorkspaceUserAuthTokenService,
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,
+  WorkspaceNotificationRuleOwningTeamService,
   VideoCallConnectionService,
   IncidentVideoCallService,
   AlertVideoCallService,
   WorkspaceNotificationLogService,
   WorkspaceLiveMessageService,
+  WorkspacePublicNoteApprovalMessageService,
   WorkspaceHomeChoiceService,
   WorkspaceNotificationSummaryService,
   WorkspaceUserGroupService,
@@ -1217,6 +1241,12 @@ export const AnalyticsServices: Array<
    */
   RumSessionService,
   RumSessionChunkService,
+  /*
+   * Product analytics (issue #6444). After RumSessionService: their views
+   * read RumSessionV1, and every table is created before any view is.
+   */
+  RumProductAnalyticsSessionService,
+  RumProductAnalyticsUserService,
   AuditLogService,
   SecurityEventService,
   ThreatIntelIndicatorService,

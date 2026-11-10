@@ -8,10 +8,12 @@ import { CLOUD_DEFAULT_SLEEP } from "./CloudConnectorTypes";
  * Every cloud limits how fast it is read: Azure Resource Graph answers
  * fifteen queries in five seconds, Google Cloud's APIs a few hundred a
  * minute, and either answers a burst with 429 Too Many Requests - or, now
- * and then, a 502, 503 or 504 that the next try does not get. Such an
- * answer is asked again up to CLOUD_RETRIES times, waiting a second, then
- * two, then four. Each try is a request of the read's budget (the call
- * takes it), so a spent budget stops the tries like any other request.
+ * and then, a 502, 503 or 504 that the next try does not get. Azure
+ * Monitor's metrics answer 529 while their query capacity is throttled.
+ * Such an answer is asked again up to CLOUD_RETRIES times, waiting a
+ * second, then two, then four. Each try is a request of the read's budget
+ * (the call takes it), so a spent budget stops the tries like any other
+ * request.
  *
  * Nothing else is asked again: a refusal, a missing setting or a request
  * that timed out would only fail the same way, slower. (AWS calls retry
@@ -21,7 +23,10 @@ import { CLOUD_DEFAULT_SLEEP } from "./CloudConnectorTypes";
 export const CLOUD_RETRIES: number = 3;
 export const CLOUD_FIRST_RETRY_WAIT_MS: number = 1000;
 
-// The answers worth asking again: a rate limit, or a gateway that did not get through.
+/*
+ * The answers worth asking again: a rate limit, a gateway that did not get
+ * through, or Azure Monitor's metrics throttling their queries (529).
+ */
 export function isRetryableCloudFailure(error: unknown): boolean {
   if (!(error instanceof LlmProviderError)) {
     return false;
@@ -34,7 +39,8 @@ export function isRetryableCloudFailure(error: unknown): boolean {
   return (
     error.statusCode === 502 ||
     error.statusCode === 503 ||
-    error.statusCode === 504
+    error.statusCode === 504 ||
+    error.statusCode === 529
   );
 }
 

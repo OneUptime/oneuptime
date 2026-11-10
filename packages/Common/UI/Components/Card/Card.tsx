@@ -1,3 +1,6 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { CardGridCellContext, useIsCardGridCell } from "./CardGridCell";
@@ -553,6 +556,7 @@ const Card: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const isSection: boolean = useIsCardSection();
   const isGridCell: boolean = useIsCardGridCell();
   /*
@@ -828,7 +832,7 @@ const Card: FunctionComponent<ComponentProps> = (
         data-testid="card-description"
         className={descriptionClassName}
       >
-        {translatedDescription}
+        {readAsWritten(translatedDescription, translator.language)}
       </DescriptionTag>
     );
 

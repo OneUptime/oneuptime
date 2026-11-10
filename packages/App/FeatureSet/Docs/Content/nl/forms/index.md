@@ -97,6 +97,7 @@ Kopieer onder **Delen** de link en stuur hem naar de mensen die het formulier mo
 | **Aangepaste domeinen** | De eigen domeinen van het formulier, zoals `report.acme.com`, met hun DNS-records en certificaten. Zie [Aangepaste domeinen](/docs/forms/sharing-and-security#aangepaste-domeinen). |
 | **Inzendingen** | Elke inzending via het formulier, de nieuwste eerst, met de antwoorden en wat ze heeft aangemaakt. |
 | **Formulier dupliceren** | Onder **Geavanceerd**: een kopie van het formulier, voor u benoemd, met de vragen, sjablonen, instellingen onder Bij verzenden, huisstijl, bedankbericht en IP-toelatingslijst, en een eigen link. De kopie staat eerst uit en opent in haar editor. |
+| **Auditlogboeken** | Onder **Geavanceerd**: elke wijziging aan het formulier, de aangepaste domeinen en de inzendingen, wie die maakte en wanneer. |
 | **Formulier verwijderen** | Het verwijderen van het formulier, onder **Geavanceerd**. De inzendingen worden mee verwijderd; de incidenten en gebeurtenissen die het heeft aangemaakt niet. |
 
 De sectie **Ontwikkelaars** in het menu van het formulier bevat de pagina's voor Terraform, de API en AI-assistenten, zoals bij elke andere resource.
@@ -113,7 +114,7 @@ Een sjabloon en een formulier besparen u allebei het twee keer intypen van hetze
 | Wat men ziet | Uw monitoren, beleid, eigenaren en elk veld | Naam, beschrijving en vragen van het formulier, en alleen de opties die u aanbiedt |
 | Statuspagina's | Wat het sjabloon en het meldformulier zeggen | Verborgen tot iemand die het afhandelt het incident publiceert |
 
-Ze werken samen. Geef een incidentformulier op de pagina **Bij verzenden** een **Incident Sjabloon**, en elk incident dat het meldt, wordt vanuit dat sjabloon gemeld: bouw het sjabloon voor wat uw team bij het incident nodig heeft, en het formulier voor wat u de inzender wilt vragen.
+Ze werken samen. Geef een incidentformulier op de pagina **Bij verzenden** een **Incidentsjabloon**, en elk incident dat het meldt, wordt vanuit dat sjabloon gemeld: bouw het sjabloon voor wat uw team bij het incident nodig heeft, en het formulier voor wat u de inzender wilt vragen.
 
 ## Inzendingen
 

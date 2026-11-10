@@ -6,14 +6,12 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DEFAULT_DISCOVERY_IMPORT_SETTINGS,
-  DiscoveryImportAlerting,
   DiscoveryImportHostResult,
   DiscoveryImportSettings,
   DiscoveryImportView,
   MAX_HOSTS_PER_DISCOVERY_IMPORT,
   isDiscoveryImportActive,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
-import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { DiscoveryScanStatus } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
@@ -28,7 +26,7 @@ import Modal, {
 } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
+import { scrollToTopOfScroller } from "Common/UI/Utils/ScrollToTopOfScroller";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -47,7 +45,6 @@ import {
   isSelectableDiscoveredHost,
 } from "../DiscoveredHostFilter";
 import DiscoveryScanStatusMessage from "../DiscoveryScanStatusMessage";
-import { findOrCreateRecommendedTemplate } from "../RecommendedMonitorTemplate";
 import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import DiscoveredHostTable from "./DiscoveredHostTable";
 import {
@@ -58,9 +55,9 @@ import {
   stopDiscoveryImport,
 } from "./DiscoveryImportApi";
 import DiscoveryImportMonitoringStep from "./DiscoveryImportMonitoringStep";
+import { resolveImportMonitorTemplateId } from "./DiscoveryImportTemplateId";
 import {
   DiscoveryImportTemplateChoice,
-  RECOMMENDED_TEMPLATE_CHOICE_VALUE,
   getDiscoveryImportBlocker,
 } from "./DiscoveryImportOutcome";
 import {
@@ -84,6 +81,7 @@ import {
 import useDiscoveryImportPolling, {
   DiscoveryImportPolling,
 } from "./useDiscoveryImportPolling";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * IMPORTING A DISCOVERY SCAN'S HOSTS (Network > Discovery > Review Results).
@@ -129,25 +127,10 @@ export interface DiscoveryImportDialogProps {
  * The dialog's body scrolls on its own. A new step starts at its top: the
  * host list of step one can be scrolled a long way down, and the monitoring
  * step used to open where it had been - on a phone, half way down its
- * choices, with its first question out of sight.
+ * choices, with its first question out of sight. (Shared since issue #5762:
+ * a whole list's next page starts at its top too.)
  */
-export function scrollToTopOfScroller(element: HTMLElement | null): void {
-  let node: HTMLElement | null = element?.parentElement || null;
-
-  while (node) {
-    const overflowY: string = window.getComputedStyle(node).overflowY;
-
-    if (
-      (overflowY === "auto" || overflowY === "scroll") &&
-      node.scrollHeight > node.clientHeight
-    ) {
-      node.scrollTop = 0;
-      return;
-    }
-
-    node = node.parentElement;
-  }
-}
+export { scrollToTopOfScroller };
 
 const StepIndicator: FunctionComponent<{
   step: DiscoveryImportStep;
@@ -182,7 +165,7 @@ const StepIndicator: FunctionComponent<{
           {translator.translateText(steps[currentIndex]?.title || "")}
         </span>
         <span className="text-gray-500">
-          {" · "}
+          <InlineSeparator />
           {translator.translateTemplate("Step {{step}} of {{count}}", {
             step: currentIndex + 1,
             count: steps.length,
@@ -614,37 +597,12 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     setActionError("");
 
     try {
-      let monitorTemplateId: string | undefined = undefined;
-
-      if (settings.alerting === DiscoveryImportAlerting.MonitorTemplate) {
-        if (!pickedTemplate) {
-          throw new BadDataException(
-            "Pick the monitor template each device is monitored with.",
-          );
-        }
-
-        monitorTemplateId = pickedTemplate.id;
-
-        if (
-          !monitorTemplateId &&
-          settings.monitorTemplateId === RECOMMENDED_TEMPLATE_CHOICE_VALUE
-        ) {
-          const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-          if (!projectId || !facts?.seedIds) {
-            throw new BadDataException(
-              "The recommended template could not be created for this project. Pick another template.",
-            );
-          }
-
-          monitorTemplateId = (
-            await findOrCreateRecommendedTemplate({
-              projectId: projectId,
-              seedIds: facts.seedIds,
-            })
-          ).toString();
-        }
-      }
+      const monitorTemplateId: string | undefined =
+        await resolveImportMonitorTemplateId({
+          settings: settings,
+          pickedTemplate: pickedTemplate,
+          seedIds: facts?.seedIds,
+        });
 
       const started: DiscoveryImportView = await startDiscoveryImport({
         scanId: scanId,

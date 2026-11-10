@@ -260,7 +260,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "It fixes",
     "It learns.",
     "and",
-    "no time limit",
+    "the project's time limit per run",
     "investigation time limit",
     "Cost controls",
     "Ask follow-up questions",
@@ -346,6 +346,9 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   [INFRASTRUCTURE_AI_AGENTS]: [
     "resource AI agents",
+    // An AWS Organization's agents from one command, and a fix that lasts as a pull request.
+    "Every account of an AWS Organization.",
+    "A fix that lasts.",
     "The same tiers and modes.",
     "The same three checks.",
     "The same rule about credentials.",
@@ -369,6 +372,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Proxmox:",
     "OpenStack clouds:",
     "Cloud accounts:",
+    // What running the Cloud AI agent somewhere else needs, cloud by cloud.
+    "AWS:",
+    "Azure:",
+    "Google Cloud:",
     "OneUptime AI's tools.",
     "When OneUptime queues it.",
     "On the agent, before anything runs.",
@@ -376,10 +383,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "The Host AI agent is root on the host.",
   ],
   [CODE_PAGE]: [
-    "40 LLM calls",
-    "100,000 output tokens",
     "2",
-    "12",
     // What a fix reads of production, and the rules it reads it by.
     "Exceptions",
     "Traces",

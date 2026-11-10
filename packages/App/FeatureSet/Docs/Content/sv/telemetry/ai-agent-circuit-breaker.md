@@ -116,7 +116,7 @@ Anropet görs från OneUptime. På OneUptime Cloud måste din slutpunkt gå att 
 
 ## Bygg arbetsflödet
 
-Spara först slutpunktens token där arbetsflödet kan använda den utan att visa den: öppna **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflöde Variabel**, ge den namnet `AGENT_KILL_TOKEN`, lägg token i **Innehåll** och slå på **Hemlighet**. Ett hemligt värde rensas bort ur körningsloggar och stegspår.
+Spara först slutpunktens token där arbetsflödet kan använda den utan att visa den: öppna **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflödesvariabel**, ge den namnet `AGENT_KILL_TOKEN`, lägg token i **Innehåll** och slå på **Hemlighet**. Ett hemligt värde rensas bort ur körningsloggar och stegspår.
 
 :::steps
 ### Skapa arbetsflödet

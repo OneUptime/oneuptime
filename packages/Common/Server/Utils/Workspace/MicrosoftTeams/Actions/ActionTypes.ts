@@ -142,6 +142,19 @@ export enum MicrosoftTeamsRemediationActionType {
   DismissRemediation = "DismissRemediation",
 }
 
+/*
+ * A public note that waits for approval, in the personal chat its step's
+ * approvers get when they chose chat for it (WorkspacePublicNoteApproval):
+ * Approve, Reject - which answers with a card that asks why - and that
+ * card's Reject. Slack's ids, which the card's buttons carry
+ * (MicrosoftTeamsPublicNoteApprovalActions).
+ */
+export enum MicrosoftTeamsPublicNoteApprovalActionType {
+  ApprovePublicNote = "ApprovePublicNote",
+  ViewRejectPublicNote = "ViewRejectPublicNote",
+  SubmitRejectPublicNote = "SubmitRejectPublicNote",
+}
+
 // General Actions
 export enum MicrosoftTeamsGeneralActionType {
   Help = "Help",
@@ -177,6 +190,7 @@ export type MicrosoftTeamsActionType =
   | MicrosoftTeamsPageActionType
   | MicrosoftTeamsProjectChoiceActionType
   | MicrosoftTeamsRemediationActionType
+  | MicrosoftTeamsPublicNoteApprovalActionType
   | MicrosoftTeamsGeneralActionType;
 
 /*

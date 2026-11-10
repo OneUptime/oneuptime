@@ -48,7 +48,7 @@ Hvert tal tæller noget, siger, om det kræver din opmærksomhed, og åbner list
 | --- | --- | --- |
 | **Aktive hændelser** | Hændelser, der ikke er løst | **Alt er i orden** |
 | **Aktive advarsler** | Advarsler, der ikke er løst | **Alt er i orden** |
-| **Ikke-operationelle monitorer** | Monitorer, hvis status ikke er en driftsstatus. Arkiverede monitorer tæller ikke med. | **Alle i drift** |
+| **Ikke-operationelle monitorer** | Monitorer, hvis status ikke er en driftsstatus. Arkiverede monitorer, og monitorer med overvågning slået fra, tæller ikke med. | **Alle i drift** |
 | **Igangværende vedligeholdelse** | Planlagte vedligeholdelser, der er i gang | **Ingen i gang** |
 | **SLO'er i fare** | Aktive SLO'er, der er i fare eller har brugt deres fejlbudget op | **Budgetterne er sunde** |
 
@@ -133,6 +133,9 @@ Over hver sides titel viser et spor som *Projekt › Docker › Indstillinger �
 
 - **Lister holder sig selv opdaterede.** Når en hændelse eller advarsel oprettes, kvitteres eller løses et sted, viser listerne over hændelser, advarsler og episoder det inden for få sekunder, uden at du skal genindlæse. Mens du er midt i noget på en liste, for eksempel med rækker markeret eller en dialog åben, venter den og indhenter det, når du er færdig.
 - **På en telefon foldes filterchipsene væk** bag **Filter**, så listen starter længere oppe. De chips, du har sat, bliver i syne sammen med **Ryd alt**. Tryk på **Filter** for at se alle chips, og igen for at folde dem væk.
+- **Kolonner**, i menuen **⋯** på en liste, vælger, hvilke kolonner listen viser og i hvilken rækkefølge, og husker dem for dig i denne browser. En projektejer eller en projektadministrator kan også sætte flueben ved **Vis disse kolonner for alle i dette projekt** der: alle, der ikke har valgt deres egne kolonner til listen, ser dem, og **Nulstil til projektets standard** sætter dine egne tilbage til dem.
+- **Kompakte rækker**, i samme menu, gør rækkerne i alle lister lavere, så en lang liste viser omkring en femtedel flere af dem. Valget huskes i denne browser.
+- **På en telefon, eller i et kort, der er for smalt til sine rækker, vises en liste som kort, ét pr. række.** Båndet over dem siger, hvilken rækkefølge de står i, for eksempel **Sorteret efter Navn**: tryk på det for at vælge den kolonne, der sorteres efter, og **Stigende** eller **Faldende**.
 - **En hændelses sider starter med dens nummer.** Overskriften, dens trin i sporet og browserfanen viser `INC-42 Checkout is down`, og det gør de dialoger, der nævner den, også, så hændelser med samme titel kan kendes fra hinanden. Advarsler, planlagte vedligeholdelsesbegivenheder og episoder gør det samme.
 
 ## Søg efter en side, en indstilling eller en handling

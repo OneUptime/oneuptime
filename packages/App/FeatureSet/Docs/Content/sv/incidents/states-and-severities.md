@@ -37,7 +37,7 @@ flowchart TB
 
 Modellen `IncidentState` har `name`, `description`, `color` och `order`, plus tre booleans: `isCreatedState`, `isAcknowledgedState` och `isResolvedState`. Allt som produkten gör med tillstånd utgår från de booleans och från `order` — aldrig från tillståndets namn. Därför kan du byta namn på **Löst** till "Closed" utan att något går sönder: flaggan följer med raden.
 
-Modellen `IncidentSeverity` har `name`, `description`, `color` och `order` och inget annat. Det finns inga flaggor. Inget i OneUptime behandlar av sig självt **Critical Incident** annorlunda än **Minor Incident** — allvarlighetsgraden spelar bara roll där du riktar något mot den, som matchningskriteriet **Incident Allvarligheter** i en jourregel.
+Modellen `IncidentSeverity` har `name`, `description`, `color` och `order` och inget annat. Det finns inga flaggor. Inget i OneUptime behandlar av sig självt **Critical Incident** annorlunda än **Minor Incident** — allvarlighetsgraden spelar bara roll där du riktar något mot den, som matchningskriteriet **Allvarlighetsgrader för incidenter** i en jourregel.
 
 Några snabba regler:
 
@@ -83,7 +83,7 @@ Ett tillstånd som du lägger till är ett steg i din insats som de tre förskap
 :::steps
 ### Öppna listan över tillstånd
 
-Gå till **Incidenter → Inställningar → Incidentstatus**. Kortet **Incident Tillstånd** visar dina tillstånd i deras ordning, en rad var: ett grepp att dra det i, dess färg och namn, vad en incident i det **Räknas som**, och dess beskrivning. Meningen under titeln säger det rakt ut: incidenter rör sig bara nedåt i den här listan.
+Gå till **Incidenter → Inställningar → Incidentstatus**. Kortet **Incidentstatusar** visar dina tillstånd i deras ordning, en rad var: ett grepp att dra det i, dess färg och namn, vad en incident i det **Räknas som**, och dess beskrivning. Meningen under titeln säger det rakt ut: incidenter rör sig bara nedåt i den här listan.
 
 ### Skapa tillståndet
 
@@ -115,14 +115,20 @@ Du kan inte sätta de tre flaggorna från det här formuläret — de hör till 
 
 ## Ordningen är en verklig begränsning, inte en visningspreferens
 
-Ordningen upprätthålls när en tillståndsändring skrivs, inte bara när listan ritas:
+Ordningen upprätthålls när en tillståndsändring skrivs, inte bara när listan ritas. En och samma regel gäller för varje tillståndsändring av en incident, ett larm, en incident- eller larmepisod och en schemalagd underhållshändelse, vem som än gör den — instrumentpanelen, Slack, Microsoft Teams, API:t, Terraform, ett arbetsflöde eller OneUptime själv — och oavsett om den skickas som en rad på postens tillståndstidslinje eller som en uppdatering av dess aktuella tillstånd:
 
-- **Övergångar bakåt avvisas.** Att flytta en incident till ett tillstånd som står tidigare i ordningen än dess nuvarande misslyckas med ett fel som nämner båda tillstånden.
+- **Övergångar bakåt avvisas.** Att flytta en incident till ett tillstånd som står tidigare i ordningen än dess nuvarande misslyckas med ett fel som nämner båda tillstånden: "Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states." En episod är bunden av samma regel som incidenterna den grupperar, med ett eget felmeddelande ("Episode cannot transition to …"), så en löst episod flyttas inte tillbaka till ett tidigare tillstånd — och inte heller, genom den, dess incidenter. En uppdatering som skulle flytta en post bakåt avvisas innan något sparas.
 - **Att välja det aktuella tillståndet igen avvisas.** Att sätta en incident i det tillstånd den redan är i misslyckas med "Incident state cannot be same as previous state."
 - **En bakåtdaterad rad kan inte upprepa sin granne.** Att infoga en tidslinjerad vars tillstånd är samma som raden efter den avvisas också.
-- **Rubrikens knappar följer de flaggade tillståndens plats i ordningen.** **Bekräfta** och **Lös** erbjuds utifrån var det aktuella tillståndet står i den sorterade listan. Ett eget tillstånd som är placerat *efter* det lösta tillståndet visar aldrig en knapp **Lös**, eftersom en incident i det redan räknas som löst.
+- **Rubrikens knappar följer de flaggade tillståndens plats i ordningen.** **Bekräfta** och **Lös** erbjuds utifrån var det aktuella tillståndet står i den sorterade listan. Ett eget tillstånd som är placerat *efter* det lösta tillståndet visar aldrig en knapp **Lös**, eftersom en incident i det redan räknas som löst. Rubrikens tillståndsmeny och formuläret för tillståndsändring i Slack och Microsoft Teams erbjuder bara tillstånden efter det aktuella; för en post i listans sista tillstånd säger Slack och Teams "There is no later state to move this incident to." i stället för att öppna ett tomt formulär.
 
 Så när du lägger till ett tillstånd, placera det där en incident verkligen skulle passera det. Att ordna det fel ser inte bara konstigt ut — det gör övergångar omöjliga. Att flytta ett tillstånd längre ner ändrar vad incidenterna som redan är i det räknas som, i samma ögonblick som du släpper det.
+
+En episod flyttar bara sina incidenter dit de kan gå. När en episod byter tillstånd flyttas var och en av dess incidenter med bara om incidentens egen ordning tillåter flytten: En incident som redan är i det tillståndet, eller förbi det — löst på egen hand, eller i ett eget tillstånd efter det lösta tillståndet — stannar där den är.
+
+En flytt går uppåt i listan igen: en grupperingsregels återöppning. En regel som är inställd på att öppna nyligen lösta episoder igen öppnar en löst episod igen när en matchande incident kommer inom dess tidsfönster, och flyttar episoden tillbaka till ditt skapandetillstånd. Det är OneUptimes egen flytt — inget du skickar kan be om den — och den öppnar inte episodens incidenter igen.
+
+För att rätta ett tillstånd som satts av misstag tar du bort dess rad på sidan med postens tillståndstidslinje (se [Tillståndstidslinjen](#tillståndstidslinjen)). Posten går tillbaka till tillståndet i dess senaste återstående rad; en episod där du tar bort raden som löste den är öppen igen, och dess lösningstid rensas.
 
 Via API:t och Terraform är ordningen kolumnen `order`: lägre tal kommer först. Ett tillstånd som skapas utan hamnar precis ovanför det lösta tillståndet; ett som skapas eller uppdateras med ett tal tar den platsen, och tillstånden i vägen flyttar ner ett steg. Tal som ingen annan har behålls som de skrevs, så ett tillstånd som hanteras av Terraform läser tillbaka talet det fick.
 
@@ -149,7 +155,7 @@ Två skillnader mot tillstånd:
 - **Det finns inget skydd mot borttagning.** Vilken allvarlighetsgrad som helst kan tas bort, även de tre förskapade.
 - **Det finns inga flaggor att ärva och inget "Räknas som".** En ny allvarlighetsgrad beter sig exakt som de förskapade — den är en etikett med en färg och en rang.
 
-Där allvarlighetsgraden gör mer än att beskriva: under **Incidenter → Regler → Jourregler** är en regels fält **Incident Allvarligheter** ett matchningskriterium. Att ange **Critical Incident** där är hur "larma databasteamet vid allt kritiskt" uttrycks — jourpolicyn sitter på regeln, inte på allvarlighetsgraden.
+Där allvarlighetsgraden gör mer än att beskriva: under **Incidenter → Regler → Jourregler** är en regels fält **Allvarlighetsgrader för incidenter** ett matchningskriterium. Att ange **Critical Incident** där är hur "larma databasteamet vid allt kritiskt" uttrycks — jourpolicyn sitter på regeln, inte på allvarlighetsgraden.
 
 **Att ändra en incidents allvarlighetsgrad** — under **Redigera** på incidentens kort **Incidentdetaljer**, via API:t eller Terraform (`incidentSeverityId`), med ett arbetsflöde eller med AI-verktygen — gör samma fyra saker oavsett hur det skickas: incidentens flöde får en post **Incident updated** som nämner den nya allvarlighetsgraden, incidentens SLA-tidsgränser räknas om, dess påminnelseregel matchas igen, och incidentmåtten räknar en ändring av allvarlighetsgrad. Att spara den allvarlighetsgrad som incidenten redan har gör ingen av dem, så redigerar du bara titeln på en incident förblir dess SLA-tidsgränser, påminnelser och antal ändringar av allvarlighetsgrad som de var. Ett larms allvarlighetsgrad fungerar på samma sätt för dess flödespost och dess påminnelser.
 

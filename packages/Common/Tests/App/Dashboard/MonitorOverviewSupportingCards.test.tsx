@@ -107,13 +107,6 @@ jest.mock(
 );
 
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MetricMonitor/MetricMonitorPreview",
-  () => {
-    return mockStub("metric-preview");
-  },
-);
-
-jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceTable",
   () => {
     return mockStub("trace-table");
@@ -267,16 +260,16 @@ describe("MonitorTelemetryPreview", () => {
     );
   });
 
-  test("metrics use the metric preview, which is its own card", () => {
-    render(
+  test("metrics are not previewed here: the overview charts them on a card of their own", () => {
+    const { container } = render(
       <MonitorTelemetryPreview
         monitorType={MonitorType.Metrics}
         monitorSteps={stepsOf(METRIC_STEP)}
       />,
     );
 
-    expect(renderedNames()).toEqual(["metric-preview"]);
-    expect(screen.queryByTestId("card")).toBeNull();
+    expect(container.innerHTML).toBe("");
+    expect(renderedNames()).toEqual([]);
   });
 
   test("traces get the trace preview card, with the multi-step note only when there are more steps", () => {

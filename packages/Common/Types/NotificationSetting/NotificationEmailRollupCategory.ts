@@ -228,6 +228,17 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.SecurityHunts,
 
   /*
+   * Public note approval. Filed with status pages - a public note is what a
+   * status page shows - whether the note is an incident's or a scheduled
+   * maintenance event's. A note waiting for approval is never held back
+   * (NEVER_ROLLED_UP_EVENT_TYPES): filed here all the same.
+   */
+  [NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION]:
+    RollupCategory.StatusPages,
+  [NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION]:
+    RollupCategory.StatusPages,
+
+  /*
    * On Call Notifications, including the two shift reminders. Five of these
    * seven are never rolled up at all (see NotificationEmailRollupPolicy); they
    * are classified anyway so the Record stays exhaustive, and so that the one

@@ -135,7 +135,7 @@ beforeEach(() => {
   ephemeral = jest
     .spyOn(SlackUtil, "sendEphemeralMessageToChannel")
     .mockResolvedValue() as AnySpy;
-  jest.spyOn(SlackUtil, "sendDirectMessageToUser").mockResolvedValue();
+  jest.spyOn(SlackUtil, "sendDirectMessageToUser").mockResolvedValue(null);
   showModal = jest
     .spyOn(SlackUtil, "showModalToUser")
     .mockResolvedValue() as AnySpy;
@@ -404,6 +404,92 @@ describe("Dismiss", () => {
       "Could not dismiss this fix: Only suggested or planning remediations can be dismissed — this one is Approved.",
     ]);
     expect(logPress).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Two people approve a riskier fix (#6148's follow-up): the person who
+ * gave its first approval is told, where they pressed, why approving again
+ * does nothing - before a modal opens on a press the server would refuse.
+ * Dismiss is theirs as anyone's.
+ */
+describe("the person who approved a riskier fix first", () => {
+  const ALREADY: string =
+    "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.";
+
+  function approvedFirstByThem(): AutoRemediationSuggestion {
+    const row: AutoRemediationSuggestion = suggestion();
+    row.firstApprovedByUserId = USER_ID;
+    row.firstApprovedAt = new Date("2026-11-06T09:00:00.000Z");
+    return row;
+  }
+
+  beforeEach(() => {
+    readFix.mockResolvedValue(approvedFirstByThem() as never);
+    // The project asks two people to approve it, and it holds a riskier change.
+    jest
+      .spyOn(WorkspaceRemediationActions, "getFixApprovals")
+      .mockResolvedValue({
+        needed: 2,
+        hasFirstApproval: true,
+        firstApproverName: "Maya Chen",
+      } as never);
+  });
+
+  test("pressing Review and approve is told why approving again does nothing, and no modal opens", async () => {
+    await SlackRemediationActions.handleRemediationAction(
+      press(SlackActionType.ViewApproveRemediation),
+    );
+
+    expect(showModal).not.toHaveBeenCalled();
+    expect(approve).not.toHaveBeenCalled();
+    expect(answers()).toEqual([ALREADY]);
+  });
+
+  test("pressing Approve and run on a modal left open says the same, and approves nothing", async () => {
+    await SlackRemediationActions.handleRemediationAction(
+      press(SlackActionType.SubmitApproveRemediation),
+    );
+
+    expect(approve).not.toHaveBeenCalled();
+    expect(logPress).not.toHaveBeenCalled();
+    expect(answers()).toEqual([ALREADY]);
+  });
+
+  test("Dismiss is still theirs: it dismisses, as anyone's would", async () => {
+    await SlackRemediationActions.handleRemediationAction(
+      press(SlackActionType.DismissRemediation),
+    );
+
+    expect(dismiss).toHaveBeenCalledTimes(1);
+    expect(answers()).toEqual(["You dismissed this fix."]);
+  });
+
+  test("someone else's press opens the modal, as the second approval", async () => {
+    const row: AutoRemediationSuggestion = approvedFirstByThem();
+    row.firstApprovedByUserId = new ObjectID(
+      "90000000-0000-4000-8000-000000000009",
+    );
+    readFix.mockResolvedValue(row as never);
+
+    await SlackRemediationActions.handleRemediationAction(
+      press(SlackActionType.ViewApproveRemediation),
+    );
+
+    expect(showModal).toHaveBeenCalledTimes(1);
+    expect(answers()).toEqual([]);
+  });
+
+  test("once the project no longer asks for two, their press opens the modal: one approval runs it", async () => {
+    jest
+      .spyOn(WorkspaceRemediationActions, "getFixApprovals")
+      .mockResolvedValue({ needed: 1, hasFirstApproval: false } as never);
+
+    await SlackRemediationActions.handleRemediationAction(
+      press(SlackActionType.ViewApproveRemediation),
+    );
+
+    expect(showModal).toHaveBeenCalledTimes(1);
   });
 });
 

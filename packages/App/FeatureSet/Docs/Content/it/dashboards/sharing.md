@@ -53,7 +53,7 @@ Una dashboard pubblica:
 
 Tratta la condivisione di una dashboard come la pubblicazione di una pagina web. Ogni widget che contiene diventa leggibile da chiunque abbia il link. Guarda che cosa c'è sul canvas prima di condividerla.
 
-Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione: vedi [SLO](/docs/dashboards/widgets#slo). I widget con una **Data Source** esterna sono l'eccezione: vengono esclusi del tutto da una dashboard pubblica invece di essere resi, perché la loro configurazione è la query stessa. Alcuni altri widget non possono essere mostrati senza una sessione con accesso, e lo indicano al loro posto: [Su una dashboard pubblica](/docs/dashboards/widgets#su-una-dashboard-pubblica) li elenca.
+Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione: vedi [SLO](/docs/dashboards/widgets#slo). I widget con una **Data Source** esterna sono l'eccezione: vengono esclusi del tutto da una dashboard pubblica invece di essere resi, perché la loro configurazione è la query stessa. Alcuni altri widget non possono essere mostrati senza una sessione con accesso, e lo indicano al loro posto: [Su una dashboard pubblica](/docs/dashboards/widgets#su-una-dashboard-pubblica) li elenca. Pubblicano solo il loro titolo, mai le ricerche e i filtri con cui leggono i loro dati. Anche le variabili pubblicano solo ciò che mostrano i loro selettori: la query di una vecchia variabile di tipo query non viene mai pubblicata.
 
 ## Condividere con una password
 
@@ -94,13 +94,13 @@ Una volta verificata, la dashboard è raggiungibile sia sul tuo dominio personal
 
 ### Aggiungere il dominio
 
-Fai clic su **Crea: Dashboard Dominio**. La finestra è una sola pagina:
+Fai clic su **Crea: Dominio della dashboard**. La finestra è una sola pagina:
 
 - **Sottodominio**: solo l'etichetta, con il segnaposto `dashboard (leave blank for root)`. Inserisci solo `dashboard`, non l'intero nome host. Lascialo vuoto o inserisci `@` per usare il dominio radice (apex).
 - **Dominio**: i domini verificati in **Impostazioni del progetto → Avanzato → Domini**, dove dimostri con un record TXT che un dominio è tuo. Un dominio che non hai verificato non è elencato, perché verrebbe rifiutato. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
 - **Altri campi**: chiuso. Finché è chiuso, la sua intestazione dice quale certificato userà il dominio: "Emettiamo un certificato SSL gratuito per questo dominio e lo rinnoviamo automaticamente." Aprilo solo per usare un certificato tuo (vedi sotto).
 
-Fai clic su **Crea: Dashboard Dominio**. La finestra si chiude e si apre la **Configurazione DNS** del nuovo dominio. Il nome completo di un dominio è fissato quando lo aggiungi, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungi quel dominio ed elimina quello vecchio.
+Fai clic su **Crea: Dominio della dashboard**. La finestra si chiude e si apre la **Configurazione DNS** del nuovo dominio. Il nome completo di un dominio è fissato quando lo aggiungi, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungi quel dominio ed elimina quello vecchio.
 
 ### Configurazione DNS e Verifica ora
 

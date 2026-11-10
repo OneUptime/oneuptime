@@ -50,7 +50,7 @@ La scheda elenca ogni campo del nuovo incidente e da dove viene il suo valore:
 | **Monitor** | I monitor scelti dal mittente, insieme a quelli che le impostazioni allegano sempre. Senza né gli uni né gli altri, quelli del modello di incidente. |
 | **Etichette** | Le etichette scelte dal mittente, insieme a quelle che le impostazioni aggiungono sempre. Senza né le une né le altre, quelle del modello di incidente. |
 | **Inizio dell'impatto** | La risposta a **Inizio dell'impatto**, quando il modulo la chiede. |
-| **Incidente Modello** | L'impostazione **Incidente Modello** del modulo. Compila tutto ciò che le risposte e le impostazioni lasciano non impostato. |
+| **Modello di incidente** | L'impostazione **Modello di incidente** del modulo. Compila tutto ciò che le risposte e le impostazioni lasciano non impostato. |
 | **Policy di reperibilità** | Le policy indicate dalle impostazioni, eseguite per ogni incidente che il modulo dichiara. Senza alcuna, quelle del modello di incidente. |
 | **Proprietari** | Le persone e i team indicati dalle impostazioni, insieme ai proprietari del modello. Vengono avvisati di ogni incidente. |
 | **Campi personalizzati** | La risposta di ogni domanda di campo personalizzato — a meno che il campo copi il suo valore da un campo personalizzato del monitor e i monitor dell'incidente ne abbiano uno; il modello compila il resto. |
@@ -62,7 +62,7 @@ La scheda elenca ogni campo del nuovo incidente e da dove viene il suo valore:
 
 ### Il modello di incidente
 
-Scegli un **Incidente Modello** nelle impostazioni e ogni incidente che il modulo dichiara viene dichiarato a partire da esso, nel modo in cui il server applica un modello ovunque — vedi [Come viene applicato un modello](/docs/incidents/settings#come-viene-applicato-un-modello). Le risposte e le impostazioni del modulo vengono prima, e il modello compila tutto il resto: lo stato iniziale, la descrizione, la gravità, le risorse interessate, le policy di reperibilità, i proprietari, le etichette, i valori dei campi personalizzati e un cambio di stato del monitor.
+Scegli un **Modello di incidente** nelle impostazioni e ogni incidente che il modulo dichiara viene dichiarato a partire da esso, nel modo in cui il server applica un modello ovunque — vedi [Come viene applicato un modello](/docs/incidents/settings#come-viene-applicato-un-modello). Le risposte e le impostazioni del modulo vengono prima, e il modello compila tutto il resto: lo stato iniziale, la descrizione, la gravità, le risorse interessate, le policy di reperibilità, i proprietari, le etichette, i valori dei campi personalizzati e un cambio di stato del monitor.
 
 > [!WARNING]
 > **Attenzione ai monitor.** Dichiarare un incidente su un monitor tramite un modulo influisce sul monitor esattamente come dichiararlo a mano: il monitoraggio attivo del monitor si mette in pausa finché l'incidente non viene risolto, e il **Cambia lo stato del monitor in** di un modello cambia subito lo stato del monitor — su ogni pagina di stato che elenca il monitor, anche mentre l'incidente stesso è nascosto. Con un modulo, chiunque abbia il link può farlo. Allega monitor tramite un modulo solo quando ogni invio deve metterli in pausa.
@@ -118,7 +118,7 @@ Un invio è la richiesta di qualcuno, e una richiesta viene esaminata prima di e
 
 | Passaggio | Modulo di incidente | Modulo di manutenzione |
 | --- | --- | --- |
-| **Valori predefiniti** | **Titolo predefinito**, **Gravità**, **Incidente Modello** | **Titolo predefinito** |
+| **Valori predefiniti** | **Titolo predefinito**, **Gravità**, **Modello di incidente** | **Titolo predefinito** |
 | **Associa sempre** | **Monitor**, **Etichette**, **Policy di reperibilità** | **Monitor**, **Pagine di stato**, **Etichette** |
 | **Proprietari** | **Proprietari** | **Proprietari** |
 | **Pubblicazione** | — | **Mostra nelle pagine di stato**, **Notifica agli iscritti** |

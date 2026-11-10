@@ -5,6 +5,7 @@ import AIToolbox from "../../../Server/Utils/AI/Toolbox/Index";
 import { ObservabilityTool } from "../../../Server/Utils/AI/Toolbox/ToolTypes";
 import { READ_TOOL_OUTPUT_TOOL_NAME } from "../../../Server/Utils/AI/Chat/ToolOutputPager";
 import { ROLL_BACK_CHANGE_TOOL_NAME } from "../../../Server/Utils/AI/Remediation/RemediationCommandTools";
+import { EXPLAIN_NO_FIX_TOOL_NAME } from "../../../Types/AutoRemediation/RemediationRound";
 import {
   LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
   RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
@@ -76,6 +77,7 @@ const EXTRA_TOOL_NAME_CONSTANTS: Record<string, string> = {
   CALL_MCP_TOOL_TOOL_NAME,
   ROLL_BACK_CHANGE_TOOL_NAME,
   READ_TOOL_OUTPUT_TOOL_NAME,
+  EXPLAIN_NO_FIX_TOOL_NAME,
 };
 
 // A run's own tool definition: `definition: { name: "x"` or `name: X_TOOL_NAME`.

@@ -14,6 +14,12 @@ export enum UserPreferenceType {
    * (Common/UI/Components/Table/TableDensity).
    */
   TableDensity = "TableDensity",
+  /*
+   * How wide a person made the filters sidebar beside the telemetry lists,
+   * one width for every explorer, per person
+   * (Common/UI/Components/TelemetryViewer/useFacetSidebarWidth).
+   */
+  FacetSidebarWidth = "FacetSidebarWidth",
 }
 
 export default class UserPreferences {

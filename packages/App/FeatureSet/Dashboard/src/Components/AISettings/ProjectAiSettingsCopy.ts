@@ -21,6 +21,15 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitValues,
   ProjectAiDailyUsage,
 } from "Common/Types/AI/ProjectAiDailyLimits";
+import ProjectAiRunLimits, {
+  PROJECT_AI_RUN_LIMIT_BOUNDS,
+  PROJECT_AI_RUN_MAX_MODEL_CALLS_COLUMN,
+  PROJECT_AI_RUN_MAX_TOKENS_COLUMN,
+  PROJECT_AI_RUN_MAX_TOOL_CALLS_COLUMN,
+  PROJECT_AI_RUN_TIME_LIMIT_COLUMN,
+  ProjectAiRunLimitColumn,
+  ProjectAiRunLimitValues,
+} from "Common/Types/AI/ProjectAiRunLimits";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
 import AutoRemediationTriggerEntity, {
   IncidentOrAlertTriggerEntity,
@@ -1194,8 +1203,13 @@ export const ProjectAiDailyLimitsCopy: {
   reachedSummary: string;
   fieldError: string;
 } = {
+  /*
+   * The section holds the Daily limits, the Limits per run (#6440) and,
+   * since #6148's follow-up, Fix approvals (FixApprovalsCopy): what it is
+   * for says all three.
+   */
   sectionDescription: translationKey(
-    "Limits on how much OneUptime AI uses across the whole project each day, above the incident and alert limits.",
+    "Limits on how much OneUptime AI uses each day and in each run, and how many people approve its riskier fixes.",
   ),
   // The same title as the incident and alert pages' daily limits.
   cardTitle: translationKey("Daily limits"),
@@ -1467,6 +1481,234 @@ export const getProjectAiDailyLimitFieldError: (data: {
           ? MAX_PROJECT_AI_DAILY_TOKEN_LIMIT
           : MAX_PROJECT_AI_DAILY_SPEND_LIMIT_IN_USD,
       ),
+    },
+  );
+};
+
+/*
+ * Project Settings → AI → AI Features → More settings → Limits per run
+ * (issue #6440: "Why is there a budget? Can we remove all of the artificial
+ * limits by default, customers can add them if they need it"): the
+ * project's own limits on one OneUptime AI run - an incident or alert
+ * investigation, an Ask AI answer, a Slack or Microsoft Teams answer, a
+ * triage, a fix and its plan, a code task (Common/Types/AI/ProjectAiRunLimits).
+ *
+ * Nothing is set by default, and a cap not set is no cap: a run goes as far
+ * as its work needs, held only to its time limit - 120 minutes unless set
+ * here, or on the incident or alert AI page for an investigation - and to
+ * loop detection. A run a limit stops answers with what it found, and the
+ * answer says which limit stopped it, linked to this card: the card's
+ * place is the anchor the server's links use (AIRunLimitsReader
+ * PROJECT_AI_RUN_LIMITS_CARD_ANCHOR; a test holds the two together).
+ *
+ * The card writes the four limit columns alone, which take a project owner
+ * or Manage Billing, as the daily limits do: they decide what a run may
+ * cost.
+ */
+export const PROJECT_AI_RUN_LIMITS_CARD_KEY: string = "LimitsPerRun";
+
+export const ProjectAiRunLimitsCopy: {
+  cardTitle: string;
+  cardDescription: string;
+  noLimitPlaceholder: string;
+  defaultTimeLimitPlaceholder: string;
+  timeLimitFieldError: string;
+} = {
+  cardTitle: translationKey("Limits per run"),
+  cardDescription: translationKey(
+    "How far one OneUptime AI run may go, such as an investigation. With nothing set, a run makes as many calls as its work needs, for up to 120 minutes. A run that reaches a limit answers with what it found.",
+  ),
+  noLimitPlaceholder: translationKey("No limit"),
+  // Tests hold each 120 here to DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES.
+  defaultTimeLimitPlaceholder: translationKey("120 minutes (the default)"),
+  timeLimitFieldError: translationKey(
+    "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.",
+  ),
+};
+
+/*
+ * The edit dialog's steps. A form of more than three fields walks steps
+ * (LongFormStepsGuard): first what a run may use - its model calls, tool
+ * calls and tokens, none capped until set - then how long it may take, the
+ * one limit every run has. The ids are the fields' stepId below.
+ */
+export interface ProjectAiRunLimitsFormStep {
+  id: string;
+  title: string;
+}
+
+export const PROJECT_AI_RUN_LIMITS_FORM_STEPS: ReadonlyArray<ProjectAiRunLimitsFormStep> =
+  [
+    { id: "calls-and-tokens", title: translationKey("Calls and Tokens") },
+    { id: "time-limit", title: translationKey("Time Limit") },
+  ];
+
+// One limit's field on the card, in the card's order.
+export interface ProjectAiRunLimitField {
+  column: ProjectAiRunLimitColumn;
+  title: string;
+  description: string;
+  placeholder: string;
+  // The edit dialog's step it is on (PROJECT_AI_RUN_LIMITS_FORM_STEPS).
+  stepId: string;
+}
+
+export const PROJECT_AI_RUN_LIMIT_FIELDS: ReadonlyArray<ProjectAiRunLimitField> =
+  [
+    {
+      column: PROJECT_AI_RUN_MAX_MODEL_CALLS_COLUMN,
+      title: translationKey("Model Calls per Run"),
+      description: translationKey(
+        "The most model calls one run may make. Leave empty for no limit.",
+      ),
+      placeholder: ProjectAiRunLimitsCopy.noLimitPlaceholder,
+      stepId: "calls-and-tokens",
+    },
+    {
+      column: PROJECT_AI_RUN_MAX_TOOL_CALLS_COLUMN,
+      title: translationKey("Tool Calls per Run"),
+      description: translationKey(
+        "The most tool calls one run may make: each query, command or lookup is one. Leave empty for no limit.",
+      ),
+      placeholder: ProjectAiRunLimitsCopy.noLimitPlaceholder,
+      stepId: "calls-and-tokens",
+    },
+    {
+      column: PROJECT_AI_RUN_MAX_TOKENS_COLUMN,
+      title: translationKey("Tokens per Run"),
+      description: translationKey(
+        "The most tokens one run may use. Leave empty for no limit.",
+      ),
+      placeholder: ProjectAiRunLimitsCopy.noLimitPlaceholder,
+      stepId: "calls-and-tokens",
+    },
+    {
+      column: PROJECT_AI_RUN_TIME_LIMIT_COLUMN,
+      title: translationKey("Time Limit per Run (Minutes)"),
+      description: translationKey(
+        "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. Incident and alert time limits come first.",
+      ),
+      placeholder: ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder,
+      stepId: "time-limit",
+    },
+  ];
+
+// The limits a read of the project holds.
+export const getProjectAiRunLimitsFromItem: (
+  item: Record<string, unknown>,
+) => ProjectAiRunLimitValues = (
+  item: Record<string, unknown>,
+): ProjectAiRunLimitValues => {
+  return ProjectAiRunLimits.getLimits(item);
+};
+
+/*
+ * The card as the folded More settings header lists it: a chip once any
+ * of its limits is set - nothing until the card has read.
+ */
+export const getProjectAiRunLimitsFoldedItem: (
+  limits: ProjectAiRunLimitValues | null,
+) => FoldedSectionItem = (
+  limits: ProjectAiRunLimitValues | null,
+): FoldedSectionItem => {
+  return foldedSectionItem(ProjectAiRunLimitsCopy.cardTitle, {
+    key: PROJECT_AI_RUN_LIMITS_CARD_KEY,
+    isSet: limits ? ProjectAiRunLimits.countSet(limits) > 0 : false,
+  });
+};
+
+// How the card writes a time limit: "45 minutes", in the reader's language.
+export const PROJECT_AI_RUN_TIME_LIMIT_VALUE: PluralTemplate = {
+  one: "{{count}} minute",
+  other: "{{count}} minutes",
+};
+
+/*
+ * A limit per run as the card shows it: a count written the reader's way
+ * ("2,000,000"; "۲٬۰۰۰٬۰۰۰" on a Persian page), and the time limit with its
+ * unit ("45 minutes") - the number alone sat beside the default's "120
+ * minutes (the default)". "" for one not set (or not a limit the server
+ * would keep), so the card shows the field's placeholder: "No limit", or
+ * the default time limit.
+ */
+export const getProjectAiRunLimitValueText: (data: {
+  column: ProjectAiRunLimitColumn;
+  value: unknown;
+  translator: Translator;
+}) => string = (data: {
+  column: ProjectAiRunLimitColumn;
+  value: unknown;
+  translator: Translator;
+}): string => {
+  const limit: number | null = ProjectAiRunLimits.getLimit(data.value);
+
+  if (limit === null) {
+    return "";
+  }
+
+  if (data.column === PROJECT_AI_RUN_TIME_LIMIT_COLUMN) {
+    return data.translator.translatePlural(
+      PROJECT_AI_RUN_TIME_LIMIT_VALUE,
+      limit,
+    );
+  }
+
+  return data.translator.formatNumber(limit);
+};
+
+/*
+ * Why a value typed into a limit per run cannot be saved, translated, or
+ * null when it can: empty (no limit, or for the time the default), or a
+ * whole number within the limit's bounds. The server holds the same rule
+ * (ProjectService.applyAiRunLimitRules).
+ */
+export const getProjectAiRunLimitFieldError: (data: {
+  column: ProjectAiRunLimitColumn;
+  value: unknown;
+  fieldTitle: string;
+  translator: Translator;
+}) => string | null = (data: {
+  column: ProjectAiRunLimitColumn;
+  value: unknown;
+  fieldTitle: string;
+  translator: Translator;
+}): string | null => {
+  if (
+    data.value === null ||
+    data.value === undefined ||
+    (typeof data.value === "string" && data.value.trim().length === 0)
+  ) {
+    return null;
+  }
+
+  const parsed: number =
+    typeof data.value === "number"
+      ? data.value
+      : typeof data.value === "string" &&
+          WHOLE_NUMBER_TEXT.test(data.value.trim())
+        ? Number(data.value.trim())
+        : Number.NaN;
+
+  if (
+    ProjectAiRunLimits.getWriteError(
+      data.column,
+      Number.isFinite(parsed) ? parsed : data.value,
+    ) === null
+  ) {
+    return null;
+  }
+
+  const bounds: { min: number; max: number } =
+    PROJECT_AI_RUN_LIMIT_BOUNDS[data.column];
+
+  return data.translator.translateTemplate(
+    data.column === PROJECT_AI_RUN_TIME_LIMIT_COLUMN
+      ? ProjectAiRunLimitsCopy.timeLimitFieldError
+      : ProjectAiDailyLimitsCopy.fieldError,
+    {
+      field: translatableTerm(data.fieldTitle),
+      min: data.translator.formatNumber(bounds.min),
+      max: data.translator.formatNumber(bounds.max),
     },
   );
 };

@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -90,6 +91,7 @@ import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVer
 import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
 import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
 import SecurityCaseVerdict from "../../../Types/SecurityCase/SecurityCaseVerdict";
+import { loadPeoplePicker } from "../../../UI/Components/PeoplePicker/LazyPeoplePicker";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
   TEST_PRIORITY_IDS,
@@ -268,6 +270,15 @@ function submitText(): string {
     within(dialog()).getByTestId("modal-footer-submit-button").textContent || ""
   ).trim();
 }
+
+/*
+ * A form draws its people picker from a file of its own, loaded by the first
+ * form that has one (LazyPeoplePicker). Loaded once here, as on a page where
+ * a form with one has been drawn before, so the picker is there with the form.
+ */
+beforeAll(async () => {
+  await loadPeoplePicker();
+});
 
 beforeEach(() => {
   window.history.replaceState(

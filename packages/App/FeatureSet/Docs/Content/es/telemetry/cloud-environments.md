@@ -4,6 +4,8 @@ Un **Entorno en la nube** es el lugar donde se ejecutan sus contenedores en una 
 
 Los entornos aparecen en Plataformas de aplicaciones, un producto propio: **Plataformas de aplicaciones → Vista general** los agrupa por plataforma y muestra primero los que han dejado de informar, **Plataformas de aplicaciones → Todas las aplicaciones** enumera cada aplicación que ejecutan, y **Plataformas de aplicaciones → Todos los entornos** los enumera todos. Los recursos de sus cuentas en la nube, como máquinas virtuales, buckets y bases de datos gestionadas, están en Nube: consulte [Recursos en la nube](/docs/telemetry/cloud-resources).
 
+Para ver los entornos o las aplicaciones de una cuenta en la nube, filtre **Todos los entornos** o **Todas las aplicaciones** con el chip de filtro **Cuenta en la nube**: enumera cada cuenta en la que están los entornos, bajo su nube, y conserva las cuentas que elija, o todas las demás. En **Nube → Vista general**, la tarjeta **Plataformas de aplicaciones** cuenta los entornos y las aplicaciones de sus cuentas en la nube conectadas, y cada recuento abre su lista con el chip ya puesto en esas cuentas. Quite el chip para ver la lista completa.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tareas en Fargate o EC2, con la CPU y la memoria de cada tarea.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Servicios y trabajos, también listados como funciones serverless.
@@ -32,6 +34,7 @@ flowchart TB
 - **El entorno lo agrupa todo.** Cada carga de trabajo con la misma plataforma, la misma cuenta y la misma región llega a un mismo entorno. Los servicios conservan sus propias filas en **Servicios**.
 - **Cada tarea en ejecución es una instancia.** La pestaña **Instancias** del entorno lista sus tareas, instancias o réplicas en ejecución, con CPU y memoria en vivo cuando la plataforma puede proporcionarlas.
 - **Cada servicio es una aplicación.** Un servicio de ECS, un servicio de Cloud Run o una Container App es una aplicación de su entorno, y OneUptime guarda las revisiones que ejecuta: consulte [Aplicaciones y despliegues](#aplicaciones-y-despliegues).
+- **Los registros de CloudWatch transmitidos también cuentan.** Una cuenta de AWS que [transmite sus registros de CloudWatch](/docs/telemetry/cloud-streaming) pone los registros de sus servicios de App Runner, sus entornos de Elastic Beanstalk, y sus tareas y clústeres de ECS en la pestaña **Registros** de su entorno, y el entorno aparece con ellos si ninguna aplicación le ha informado todavía. No crean ninguna aplicación: una aplicación se nombra por su propia telemetría.
 
 ## Antes de empezar
 
@@ -118,7 +121,7 @@ El primer atributo que lleva la telemetría da nombre a la aplicación, así que
 - **Ambos son cambios.** Cada uno es una línea discontinua en los gráficos de la aplicación y del entorno, una línea en el **Feed** del entorno y un [evento de cambio](/docs/telemetry/change-events) que OneUptime AI lee cuando investiga un incidente en el entorno. **Despliegues recientes** en **Plataformas de aplicaciones → Vista general** enumera los más nuevos.
 - **Como máximo se registran 12 revisiones nuevas de una aplicación por hora.** De lo contrario, una `service.version` que cambia con cada compilación sería un despliegue por minuto.
 
-La página de una aplicación tiene una **Vista general** con sus solicitudes, errores, latencia, instancias y las revisiones que se ejecutan ahora, una pestaña **Revisiones** con las cifras de cada revisión, y las pestañas **Instancias**, **Registros** y **Trazas** filtradas a la aplicación. **Configurar alertas** abre los monitores recomendados del servicio de la aplicación, en **Servicios**.
+La página de una aplicación tiene una **Vista general** con sus solicitudes, errores, latencia, instancias y las revisiones que se ejecutan ahora, una pestaña **Revisiones** con las cifras de cada revisión, las pestañas **Instancias**, **Registros** y **Trazas** filtradas a la aplicación, y una pestaña **Recomendaciones** con los monitores que OneUptime recomienda para ella: operaciones fallidas, ráfagas de errores, tráfico que se detiene y solicitudes lentas, leídos de los spans de la propia aplicación y de su `http.server.request.duration`, cada uno vinculado al entorno de la aplicación. **Configurar alertas** la abre; para una aplicación cuyo nombre es demasiado largo para filtrar su telemetría, abre en su lugar los monitores recomendados del servicio de la aplicación, en **Servicios**.
 
 Una aplicación que no envía nada durante 30 días se elimina con sus revisiones, igual que una revisión que ninguna instancia informa durante 30 días, salvo que la aplicación todavía la ejecute. En un OneUptime autoalojado, `CLOUD_APP_RETENTION_DAYS` fija esos 30.
 

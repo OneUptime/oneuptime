@@ -48,7 +48,7 @@ Ogni numero conta qualcosa, dice se richiede la tua attenzione e apre l'elenco c
 | --- | --- | --- |
 | **Incidenti attivi** | Gli incidenti non risolti | **Tutto a posto** |
 | **Avvisi attivi** | Gli avvisi non risolti | **Tutto a posto** |
-| **Monitor non operativi** | I monitor il cui stato non è operativo. I monitor archiviati non contano. | **Tutti operativi** |
+| **Monitor non operativi** | I monitor il cui stato non è operativo. I monitor archiviati, e quelli con il monitoraggio disattivato, non contano. | **Tutti operativi** |
 | **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** |
 | **SLO a rischio** | Gli SLO attivi che sono a rischio o hanno esaurito il loro error budget | **Budget in salute** |
 
@@ -133,6 +133,9 @@ Sopra il titolo di ogni pagina, un percorso come *Progetto › Docker › Impost
 
 - **Gli elenchi si aggiornano da soli.** Quando un incidente o un avviso viene creato, preso in carico o risolto ovunque, gli elenchi di incidenti, avvisi ed episodi lo mostrano in pochi secondi, senza ricaricare. Mentre sei nel mezzo di qualcosa in un elenco, ad esempio con righe selezionate o una finestra di dialogo aperta, l'elenco aspetta e si aggiorna quando hai finito.
 - **Su un telefono i chip dei filtri si richiudono** dietro **Filtro**, così l'elenco comincia più in alto. I chip che hai impostato restano in vista, con **Cancella tutto**. Premi **Filtro** per vedere tutti i chip, e di nuovo per richiuderli.
+- La voce **Colonne** nel menu **⋯** di un elenco sceglie quali colonne mostra l'elenco e in che ordine, e le conserva per te in questo browser. Un proprietario o un amministratore del progetto può anche spuntare lì **Mostra queste colonne a tutti in questo progetto**: chi non ha scelto le proprie colonne per quell'elenco vede queste, e **Reimposta i valori predefiniti del progetto** riporta le tue a queste.
+- La voce **Righe compatte**, nello stesso menu, disegna più basse le righe di ogni elenco, così un elenco lungo ne mostra circa un quinto in più. La scelta resta in questo browser.
+- **Su un telefono, o in un riquadro troppo stretto per le sue righe, un elenco si mostra come riquadri, uno per riga.** La fascia sopra di essi dice in che ordine sono, ad esempio **Ordinato per Nome**: premila per scegliere la colonna di ordinamento, e **Crescente** o **Decrescente**.
 - **Le pagine di un incidente si aprono con il suo numero.** Il titolo, il suo passo nel percorso e la scheda del browser mostrano `INC-42 Checkout is down`, e così le finestre di dialogo che lo nominano, perciò gli incidenti con lo stesso titolo si distinguono. Avvisi, eventi di manutenzione programmata ed episodi fanno lo stesso.
 
 ## Cercare una pagina, un'impostazione o un'azione

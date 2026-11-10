@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import PageComponentProps from "../../PageComponentProps";
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import Route from "Common/Types/API/Route";
@@ -229,7 +230,7 @@ export function getOpenStackSpendTiles(data: {
               translationKey("Only counted from {{date}}"),
               {
                 date: new Date(lastMonthFrom as string).toLocaleDateString(
-                  translator.language || "en",
+                  getNumberLocale(translator.language || "en"),
                 ),
               },
             ),
@@ -438,7 +439,7 @@ const OpenStackCloudSpend: FunctionComponent<
                 translationKey("CloudKitty was last read at {{time}}."),
                 {
                   time: new Date(snapshot.cloudKittyReadAt).toLocaleString(
-                    translator.language || "en",
+                    getNumberLocale(translator.language || "en"),
                   ),
                 },
               )}

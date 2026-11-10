@@ -627,11 +627,15 @@ Les installations auto-hébergées peuvent modifier ces valeurs avec des variabl
 
 ## Alerter sur une ressource
 
+Une ressource d'un [compte connecté](/docs/telemetry/cloud-accounts) se voit proposer, dans son onglet **Recommandations**, les moniteurs que OneUptime recommande pour son type, chacun créé en une étape. Pour alerter sur toute autre métrique qu'elle signale :
+
 :::steps
 1. Ouvrez la ressource et son onglet **Métriques**, qui liste chaque métrique que son fournisseur rapporte à son sujet.
 2. Ouvrez une métrique pour la tracer dans l'explorateur de métriques, déjà filtrée sur la ressource.
 3. Cliquez sur **Créer un moniteur à partir de cette vue** : le moniteur surveille cette métrique pour cette ressource.
 :::
+
+Un espace de noms Service Bus rapporte ses métriques une fois par file d'attente et sujet, et un espace de noms Event Hubs une fois par event hub. Là où elles s'additionnent, une ligne de l'onglet **Métriques** de l'espace de noms affiche leur total et indique **total des séries** en dessous. Un moniteur créé à partir de cette ligne lit aussi le total, tout comme un moniteur créé via l'API ou Terraform sans agrégation. Les autres lignes indiquent **moyenne des séries** et affichent la file ou l'event hub moyen : une latence et, sur une plage de plus de 3 heures, une quantité que détient l'espace de noms, comme les messages en attente.
 
 > [!IMPORTANT]
 > La surveillance cloud publie chaque valeur quelques minutes après l'instant qu'elle mesure : 10 à 20 minutes pour CloudWatch interrogé comme ci-dessus, quelques minutes pour Azure Monitor et Cloud Monitoring. Elle est stockée à l'instant qu'elle mesure. Donnez à un moniteur sur ces métriques une fenêtre plus longue que ce délai (30 minutes pour CloudWatch, 15 pour les autres), sinon il ne voit aucune donnée et ne se déclenche jamais.

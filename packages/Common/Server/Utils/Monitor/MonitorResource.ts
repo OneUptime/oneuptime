@@ -53,9 +53,20 @@ import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
+import MetricTelemetrySnapshot from "../../../Utils/Monitor/MetricTelemetrySnapshot";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
+import MonitorAutoResolveTemplates, {
+  MonitorAutoResolveTemplateIds,
+} from "../../../Utils/Monitor/MonitorAutoResolveTemplates";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import LatestIncomingRequest, {
+  LatestIncomingRequestColumns,
+} from "./LatestIncomingRequest";
+import MonitorEvaluationDetailsCapture, {
+  GetEvaluationDetails,
+} from "./MonitorEvaluationDetailsCapture";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import IncomingRequestIncidentGrouping, {
   IncomingRequestRecoveries,
@@ -273,6 +284,11 @@ export default class MonitorResourceUtil {
         _id: true,
         name: true,
         minimumProbeAgreement: true,
+        /*
+         * Whether the incidents and alerts this check opens keep its
+         * response content (MonitorRecordEvidence).
+         */
+        keepResponseContent: true,
         /*
          * How often this monitor is checked. Over-time criteria filters need
          * it to work out how many samples a fully covered evaluation window
@@ -591,6 +607,11 @@ export default class MonitorResourceUtil {
              * every retry. dataToProcess itself stays as the probe sent it,
              * for the criteria below. The other steps' entries were read back
              * from this column, so they are storable already.
+             *
+             * Kept as the probe sent it, unlike the monitor's logs:
+             * checkProbeAgreement judges it again against the criteria, and
+             * a filter on the body needs the body. People read it redacted
+             * as the logs are (MonitorProbeService.onFindSuccess).
              */
             const updatedLastMonitoringLog: MonitorStepProbeResponse = {
               ...(monitorProbe.lastMonitoringLog || {}),
@@ -675,8 +696,18 @@ export default class MonitorResourceUtil {
               data: {
                 serverMonitorRequestReceivedAt:
                   serverMonitorResponse.requestReceivedAt!,
-                // A storable copy; the live response is still being evaluated.
-                serverMonitorResponse: toStorableJson(serverMonitorResponse),
+                /*
+                 * A storable copy; the live response is still being
+                 * evaluated. Cut as the monitor's logs are - a process's
+                 * command line can carry a password - since nothing judges
+                 * it again: the CheckOnlineStatus cron reads only when it
+                 * arrived and the host's name.
+                 */
+                serverMonitorResponse: MonitorRecordEvidence.toStoredCheck({
+                  dataToProcess: serverMonitorResponse,
+                  keepResponseContent:
+                    MonitorRecordEvidence.keepsResponseContent(monitor),
+                }) as unknown as ServerMonitorResponse,
               },
             });
 
@@ -703,12 +734,28 @@ export default class MonitorResourceUtil {
            * the pre-SELECT of the large incomingMonitorRequest jsonb row. See
            * ServiceService.updateLastSeen.
            */
+          /*
+           * Both copies of the latest request, in this one statement
+           * (LatestIncomingRequest): as it came, for the heartbeat job, which
+           * judges it again - a filter on its body needs the body the sender
+           * sent - and which no one else reads; and the copy people read,
+           * cut as the monitor's logs are, by its switch.
+           */
+          const latestRequest: LatestIncomingRequestColumns =
+            LatestIncomingRequest.toColumns({
+              request: incomingMonitorRequest,
+              keepResponseContent:
+                MonitorRecordEvidence.keepsResponseContent(monitor),
+            });
+
           await MonitorService.updateColumnsByIdWithoutHooks({
             id: monitor.id!,
             data: {
               incomingRequestMonitorHeartbeatCheckedAt:
                 OneUptimeDate.getCurrentDate(),
-              incomingMonitorRequest: toStorableJson(incomingMonitorRequest),
+              incomingMonitorRequest: latestRequest.incomingMonitorRequest,
+              incomingMonitorRequestAsReceived:
+                latestRequest.incomingMonitorRequestAsReceived,
             } as any,
           });
 
@@ -767,6 +814,8 @@ export default class MonitorResourceUtil {
           monitorId: monitor.id!,
           projectId: monitor.projectId!,
           dataToProcess: dataToProcess,
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
         });
         return response;
       }
@@ -788,73 +837,34 @@ export default class MonitorResourceUtil {
           })
           .flat();
 
+      /*
+       * For each criteria, its incident and alert templates that resolve on
+       * their own (MonitorAutoResolveTemplates): what a result that no longer
+       * meets that criteria resolves. Turning monitoring off reads the same
+       * (MonitorTurnedOff), so the two never disagree about which incidents
+       * and alerts are this monitor's to resolve.
+       */
+      const autoResolveTemplateIds: MonitorAutoResolveTemplateIds =
+        MonitorAutoResolveTemplates.fromCriteriaInstances(criteriaInstances);
+
       const autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
         Array<string>
-      > = {};
-
-      const criteriaInstanceMap: Dictionary<MonitorCriteriaInstance> = {};
-
-      for (const criteriaInstance of criteriaInstances) {
-        criteriaInstanceMap[criteriaInstance.data?.id || ""] = criteriaInstance;
-
-        if (
-          criteriaInstance.data?.incidents &&
-          criteriaInstance.data?.incidents.length > 0
-        ) {
-          for (const incidentTemplate of criteriaInstance.data!.incidents) {
-            if (incidentTemplate.autoResolveIncident) {
-              if (
-                !autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                  criteriaInstance.data.id.toString()
-                ]
-              ) {
-                autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                  criteriaInstance.data.id.toString()
-                ] = [];
-              }
-
-              autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                criteriaInstance.data.id.toString()
-              ]?.push(incidentTemplate.id);
-            }
-          }
-        }
-      }
+      > = autoResolveTemplateIds.incidents;
 
       // alerts.
 
       const autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<
         Array<string>
-      > = {};
+      > = autoResolveTemplateIds.alerts;
+
+      const criteriaInstanceMap: Dictionary<MonitorCriteriaInstance> = {};
 
       const criteriaInstanceAlertMap: Dictionary<MonitorCriteriaInstance> = {};
 
       for (const criteriaInstance of criteriaInstances) {
+        criteriaInstanceMap[criteriaInstance.data?.id || ""] = criteriaInstance;
         criteriaInstanceAlertMap[criteriaInstance.data?.id || ""] =
           criteriaInstance;
-
-        if (
-          criteriaInstance.data?.alerts &&
-          criteriaInstance.data?.alerts.length > 0
-        ) {
-          for (const alertTemplate of criteriaInstance.data!.alerts) {
-            if (alertTemplate.autoResolveAlert) {
-              if (
-                !autoResolveCriteriaInstanceIdAlertIdsDictionary[
-                  criteriaInstance.data.id.toString()
-                ]
-              ) {
-                autoResolveCriteriaInstanceIdAlertIdsDictionary[
-                  criteriaInstance.data.id.toString()
-                ] = [];
-              }
-
-              autoResolveCriteriaInstanceIdAlertIdsDictionary[
-                criteriaInstance.data.id.toString()
-              ]?.push(alertTemplate.id);
-            }
-          }
-        }
       }
 
       /*
@@ -906,6 +916,8 @@ export default class MonitorResourceUtil {
           monitorId: monitor.id!,
           projectId: monitor.projectId!,
           dataToProcess: dataToProcess,
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
         });
         return response;
       }
@@ -1007,6 +1019,9 @@ export default class MonitorResourceUtil {
             monitorId: monitor.id!,
             projectId: monitor.projectId!,
             dataToProcess: dataToProcess,
+            keepResponseContent:
+              MonitorRecordEvidence.keepsResponseContent(monitor),
+            monitorStep: monitorStep,
           });
 
           response.evaluationSummary = evaluationSummary;
@@ -1207,21 +1222,16 @@ export default class MonitorResourceUtil {
           (dataToProcess as MetricMonitorResponse).metricViewConfig &&
           (dataToProcess as MetricMonitorResponse).startAndEndDate
         ) {
-          telemetryQuery = {
-            telemetryQuery: null,
-            telemetryType: TelemetryType.Metric,
-            metricViewData: {
-              startAndEndDate:
-                (dataToProcess as MetricMonitorResponse).startAndEndDate ||
-                null,
-              queryConfigs: (dataToProcess as MetricMonitorResponse)
-                .metricViewConfig.queryConfigs,
-              formulaConfigs: (dataToProcess as MetricMonitorResponse)
-                .metricViewConfig.formulaConfigs,
-            },
-          };
+          /*
+           * Each query as the check read it: with the cluster, host or
+           * fleet an infrastructure monitor narrows it to, so the event's
+           * card charts what the monitor evaluated (issue #6265).
+           */
+          telemetryQuery = MetricTelemetrySnapshot.fromResponse(
+            dataToProcess as MetricMonitorResponse,
+          );
           logger.debug(
-            `${dataToProcess.monitorId.toString()} - Span query found.`,
+            `${dataToProcess.monitorId.toString()} - Metric query found.`,
           );
         }
 
@@ -1368,6 +1378,7 @@ export default class MonitorResourceUtil {
                 monitor: monitor,
                 rootCause: response.rootCause,
                 dataToProcess: dataToProcess,
+                monitorStep: monitorStep,
                 criteriaInstance: matchedCriteriaInstance,
                 props: {
                   telemetryQuery: telemetryQuery,
@@ -1469,6 +1480,9 @@ export default class MonitorResourceUtil {
               : undefined,
             disableSeriesAbsenceResolution,
             criteriaInstancesById: criteriaInstanceMap,
+            keepResponseContent:
+              MonitorRecordEvidence.keepsResponseContent(monitor),
+            monitorStep: monitorStep,
           });
 
         const openAlerts: Array<Alert> =
@@ -1486,6 +1500,9 @@ export default class MonitorResourceUtil {
               : undefined,
             disableSeriesAbsenceResolution,
             criteriaInstancesById: criteriaInstanceAlertMap,
+            keepResponseContent:
+              MonitorRecordEvidence.keepsResponseContent(monitor),
+            monitorStep: monitorStep,
           });
 
         /*
@@ -1544,6 +1561,21 @@ export default class MonitorResourceUtil {
                 evaluationSummary: evaluationSummary,
               });
 
+          /*
+           * Why this criteria fired, for the incident and the alert it
+           * opens: built the first time either is really created, once
+           * for both.
+           */
+          const getEvaluationDetails: GetEvaluationDetails =
+            MonitorEvaluationDetailsCapture.forCriteria({
+              monitor: monitor,
+              monitorStep: monitorStep,
+              criteriaInstance: criteriaInstance,
+              evaluationSummary: evaluationSummary,
+              dataToProcess: dataToProcess,
+              probeName: probeName,
+            });
+
           await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus(
             {
               monitor: monitor,
@@ -1553,6 +1585,7 @@ export default class MonitorResourceUtil {
               criteriaInstance: criteriaInstance,
               evaluationSummary: evaluationSummary,
               monitorSummary: monitorSummary,
+              getEvaluationDetails: getEvaluationDetails,
               props: {
                 telemetryQuery: telemetryQuery,
               },
@@ -1578,6 +1611,7 @@ export default class MonitorResourceUtil {
             criteriaInstance: criteriaInstanceAlertMap[matched.criteriaId]!,
             evaluationSummary: evaluationSummary,
             monitorSummary: monitorSummary,
+            getEvaluationDetails: getEvaluationDetails,
             props: {
               telemetryQuery: telemetryQuery,
             },
@@ -1627,6 +1661,9 @@ export default class MonitorResourceUtil {
           criteriaInstance: null, // no criteria met!
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
+          monitorStep: monitorStep,
           /*
            * Event-driven grouping: for incoming-request monitors, never
            * absence-resolve per-key (seriesFingerprint) incidents on the
@@ -1655,6 +1692,9 @@ export default class MonitorResourceUtil {
           criteriaInstance: null, // no criteria met!
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
+          monitorStep: monitorStep,
           disableSeriesAbsenceResolution:
             MonitorResourceUtil.isSeriesResolvedExplicitly({
               monitor: monitor,
@@ -1700,9 +1740,14 @@ export default class MonitorResourceUtil {
             monitorSteps.data.defaultMonitorStatusId!;
           monitorStatusTimeline.projectId = monitor.projectId!;
           monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
-          monitorStatusTimeline.statusChangeLog = toStorableJson(
-            dataToProcess,
-          ) as unknown as JSONObject;
+          // Cut as the monitor's logs are: everyone who reads the monitor reads it.
+          monitorStatusTimeline.statusChangeLog =
+            MonitorRecordEvidence.toStoredCheck({
+              dataToProcess: dataToProcess,
+              keepResponseContent:
+                MonitorRecordEvidence.keepsResponseContent(monitor),
+              monitorStep: monitorStep,
+            });
           monitorStatusTimeline.rootCause =
             "No monitoring criteria met. Change to default status. ";
 
@@ -1811,6 +1856,9 @@ export default class MonitorResourceUtil {
         monitorId: monitor.id!,
         projectId: monitor.projectId!,
         dataToProcess: dataToProcess,
+        keepResponseContent:
+          MonitorRecordEvidence.keepsResponseContent(monitor),
+        monitorStep: monitorStep,
       });
 
       return response;

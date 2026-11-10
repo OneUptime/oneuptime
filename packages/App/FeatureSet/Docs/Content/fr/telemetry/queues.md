@@ -2,6 +2,8 @@
 
 **Files d'attente** donne à chaque file de messages, topic et abonnement qu'utilisent vos applications sa propre page : quels services y publient et lesquels y consomment, combien de messages y passent, combien échouent et combien de temps prend le traitement, ses traces et ses métriques — et, dès que les métriques propres du broker atteignent OneUptime, son arriéré, le retard des consommateurs, les lettres mortes et la limitation. Les files ont des étiquettes, des propriétaires, des règles d'étiquettes et de propriétaires et l'archivage, comme toute autre ressource. Ouvrez-les dans **Produits → Ressources → Files d'attente**.
 
+**Files d'attente → Topologie** montre comment les messages circulent entre vos services : chaque file entre les services qui y publient et ceux qui y consomment. Chaque ligne indique son débit de messages, son taux d'erreurs et son temps p95, comptés comme les comptent les cartes **Producteurs** et **Consommateurs** de la file, et dès que les métriques d'un broker atteignent OneUptime, ses files montrent le retard des consommateurs ou leur arriéré, et leurs lettres mortes. Cherchez dans le schéma, filtrez-le par broker ou ne gardez que ce qui demande de l'attention. L'onglet **Topologie** propre à une file montre d'où viennent ses messages et où ils vont.
+
 :::cards
 - [Instrumenter les applications](#instrumenter-les-applications): Les spans de messagerie que votre instrumentation OpenTelemetry envoie déjà.
 - [Métriques de santé du broker](#métriques-de-santé-du-broker): Arriéré, retard et lettres mortes de votre broker, système par système.
@@ -213,6 +215,10 @@ builder.Services.AddOpenTelemetry()
 Un broker sait ce qu'aucune application ne peut voir : combien de messages attendent, quel retard a chaque groupe de consommateurs, ce qui est parti dans une file de lettres mortes. Chaque section ci-dessous contient la configuration du collecteur pour un système — une configuration complète d'OpenTelemetry Collector qui se termine par l'exportateur OTLP qui envoie à OneUptime. Placez une clé d'ingestion de télémétrie (**Paramètres du projet → Télémétrie & APM → Clés d'ingestion**) dans `x-oneuptime-token`, remplacez `https://oneuptime.com` par votre propre hôte si vous êtes auto-hébergé, et exécutez-la avec `otel/opentelemetry-collector-contrib` 0.161.0 ou ultérieur (chaque configuration ici est validée avec 0.161.0). Les collecteurs récents signalent dans leur journal que `otlphttp` est obsolète au profit de `otlp_http` ; les deux noms désignent le même exportateur. Pour collecter plusieurs systèmes, fusionnez leurs récepteurs dans un seul collecteur.
 
 La section **Santé du broker** de chaque file affiche les métriques listées pour son système — une jauge en tant que valeur, un nombre par période additionné par intervalle, un compteur en tant que débit par seconde — en combinant les séries d'une file comme chaque métrique l'exige (les messages prêts et non acquittés d'une file RabbitMQ s'additionnent ; le groupe de consommateurs le plus en retard donne le retard). Tout ce qu'envoie le collecteur se trouve aussi dans l'explorateur **Métriques**. Tant qu'aucune métrique listée n'est arrivée pour une file, la section indique d'où viennent les métriques de ce système, avec un lien vers sa section ici.
+
+Là où aucune application tracée ne publie dans une file ni ne consomme depuis celle-ci, ses tuiles **Publié**, **Consommé** et **Erreurs** et son graphique **Messages** lisent à la place les propres nombres du broker — messages entrants, messages sortants et ses erreurs additionnées, les requêtes limitées étant comptées à part sous **Erreurs** — et chacun l'indique sous son nombre. Une file qui a des spans les garde, car ils disent quel service a fait quoi. La tuile **p95 processing time** ne s'appuie que sur les traces des consommateurs, car aucun broker ne mesure le temps qu'un consommateur passe sur un message : sans elles, elle affiche **Nécessite des traces de consommateurs**.
+
+La carte **Métriques du broker** en haut de la section liste chaque métrique affichée pour le système de la file : si elle est arrivée pour la file dans la plage sélectionnée, quand elle est arrivée pour la dernière fois, et pourquoi chacune des autres n'est pas arrivée. Un nombre peut n'avoir rien à rapporter (n'avoir aucune requête limitée est une bonne nouvelle) ; un niveau que le broker rapporte en permanence et qui n'arrive jamais est un niveau que le collecteur ne demande pas, et la carte donne les lignes dont sa configuration a besoin ; une métrique peut aussi cesser d'arriver. Pour une file Service Bus ou Event Hubs dont aucune métrique n'arrive, la carte lit aussi ce que son espace de noms envoie à la place (voir [La santé du broker reste vide](#la-santé-du-broker-reste-vide)). Sous son résumé, la carte indique ce qui a lu les métriques de la file récemment : le récepteur du collecteur, vos connexions cloud, liées à **Cloud → Connecter**, ou les deux. Sur une file que seul un [abonnement Azure connecté](/docs/telemetry/cloud-accounts) lit, une métrique que l'abonnement ne lit pas est **Collecteur uniquement**, avec la ligne qui l'ajoute au récepteur, plutôt que manquante.
 
 ### Amazon SNS
 
@@ -589,7 +595,9 @@ OneUptime n'affiche pas les métriques d'Event Grid sur la page d'une file : Azu
 
 ### Azure Event Hubs
 
-Lisez les métriques de l'espace de noms depuis Azure Monitor avec le récepteur `azure_monitor` du collecteur, qui les répartit par event hub selon la dimension EntityName.
+Un abonnement Azure connecté lit les métriques clés de l'espace de noms pour chaque event hub, sans rien à exécuter. Pour les lire toutes, exécutez le récepteur `azure_monitor` du collecteur, qui les répartit par event hub selon la dimension EntityName.
+
+Un [abonnement Azure connecté](/docs/telemetry/cloud-accounts) lit `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` et `azure_throttledrequests_total` pour jusqu'à 1 000 event hubs d'un espace de noms, avec un seul appel à Azure Monitor par espace de noms à chaque lecture, quel que soit le nombre d'event hubs. Seul le récepteur lit les trois autres, que la carte **Métriques du broker** d'un event hub marque **Collecteur uniquement**. Quand les deux lisent une métrique d'un event hub, celle du récepteur est conservée et celle de l'abonnement laissée de côté, si bien que rien n'est compté deux fois.
 
 Le récepteur se connecte via l'extension `azure_auth`. Donnez au principal de service le rôle **Monitoring Reader** sur l'abonnement :
 
@@ -617,6 +625,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -648,10 +657,13 @@ Azure Monitor n'a pas de métrique de retard des consommateurs pour Event Hubs :
 | `azure_usererrors_total` | Erreurs utilisateur | Nombre par période |
 | `azure_quotaexceedederrors_total` | Erreurs de quota dépassé | Nombre par période |
 | `azure_throttledrequests_total` | Requêtes limitées | Nombre par période |
+| `azure_size_average` | Taille | Jauge |
 
 ### Azure Service Bus
 
-Lisez les métriques de l'espace de noms depuis Azure Monitor avec le récepteur `azure_monitor` du collecteur, qui les répartit par file et par topic selon la dimension EntityName.
+Un abonnement Azure connecté lit les métriques clés de l'espace de noms pour chaque file et chaque topic, sans rien à exécuter. Pour les lire toutes, exécutez le récepteur `azure_monitor` du collecteur, qui les répartit par file et par topic selon la dimension EntityName.
+
+Un [abonnement Azure connecté](/docs/telemetry/cloud-accounts) lit `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` et `azure_throttledrequests_total` pour jusqu'à 1 000 files et topics d'un espace de noms, avec un seul appel à Azure Monitor par espace de noms à chaque lecture, quel que soit le nombre de files : avec une lecture toutes les 5 minutes, un espace de noms de 50 files coûte 12 appels par heure, autant qu'un espace de noms d'une seule file. Seul le récepteur lit les six autres, que la carte **Métriques du broker** d'une file marque **Collecteur uniquement**. Quand les deux lisent une métrique d'une file, celle du récepteur est conservée et celle de l'abonnement laissée de côté, si bien que rien n'est compté deux fois.
 
 Le récepteur se connecte via l'extension `azure_auth`. Donnez au principal de service le rôle **Monitoring Reader** sur l'abonnement :
 
@@ -677,6 +689,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -684,6 +698,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -706,13 +721,17 @@ service:
 - Les métriques trouvent leur file ou leur topic par l'espace de noms (`name`) et l'entité (`EntityName`) ; les spans des SDK nomment le même espace de noms sous la forme `<namespace>.servicebus.windows.net`. Un span sur `orders/Subscriptions/billing` ou `orders/$DeadLetterQueue` appartient à `orders`, comme les métriques.
 - `maximum_number_of_records_per_resource` indique combien de séries Azure renvoie par métrique et par espace de noms, 10 sauf si vous l'augmentez : gardez-le au-dessus de votre nombre de files et de topics — les métriques d'erreurs répartissent en plus chaque entité par résultat —, sinon les autres ne sont pas rapportés.
 - Azure Monitor ne répartit pas par abonnement de topic : les nombres d'un topic couvrent tous ses abonnements.
-- La liste `metrics` collecte exactement ce qu'affiche la page de la file, chacune avec la seule agrégation qu'elle affiche ; ajoutez une métrique (`ScheduledMessages`, `Size`, …) pour la collecter aussi.
+- La liste `metrics` collecte exactement ce qu'affiche la page de la file, chacune avec la seule agrégation qu'elle affiche ; ajoutez une métrique (`IncomingRequests`, `Messages`, …) pour la collecter aussi. Un collecteur dont la liste est antérieure à `ScheduledMessages`, `Size` ou `ServerSendLatency` n'en envoie aucune : la carte **Métriques du broker** de la file nomme les lignes à ajouter.
+- Un [abonnement Azure connecté](/docs/telemetry/cloud-accounts) répartit ses six métriques par file et par topic, comme ce récepteur, et la page de l'espace de noms lui-même sous **Cloud → Toutes les ressources** les additionne. Tant que l'abonnement [diffuse ses métriques](/docs/telemetry/cloud-streaming-azure), il continue de lire celles d'un espace de noms : un paramètre de diagnostic n'envoie que les totaux de l'espace de noms, sans `EntityName`, et quatre des six pas du tout. Là où ce récepteur envoie les totaux d'un espace de noms, répartis par aucune file ni aucun topic, la page de l'espace de noms garde ceux-ci, et les séries de l'abonnement n'atteignent que leurs files, si bien qu'aucun message n'est compté deux fois.
+- Aucune de ces métriques ne dépend du niveau tarifaire de l'espace de noms. `ServerSendLatency` est rapportée à chaque envoi, si bien qu'une file à laquelle rien n'a été envoyé dans la plage n'en a aucune.
 - Le récepteur liste vos espaces de noms une fois par jour, si bien qu'un nouvel espace de noms peut mettre jusqu'à 24 heures à apparaître.
 
 | Métrique | Affichée comme | Type |
 | --- | --- | --- |
 | `azure_activemessages_average` | Messages actifs | Jauge |
 | `azure_deadletteredmessages_average` | Messages en lettre morte | Jauge |
+| `azure_scheduledmessages_average` | Messages planifiés | Jauge |
+| `azure_size_average` | Taille | Jauge |
 | `azure_incomingmessages_total` | Messages entrants | Nombre par période |
 | `azure_outgoingmessages_total` | Messages sortants | Nombre par période |
 | `azure_completemessage_total` | Messages terminés | Nombre par période |
@@ -720,6 +739,7 @@ service:
 | `azure_servererrors_total` | Erreurs serveur | Nombre par période |
 | `azure_usererrors_total` | Erreurs utilisateur | Nombre par période |
 | `azure_throttledrequests_total` | Requêtes limitées | Nombre par période |
+| `azure_serversendlatency_average` | Latence d'envoi du serveur | Jauge |
 
 ### BullMQ
 
@@ -1046,6 +1066,10 @@ Quand ses spans la nomment bien, créez-la à la main avec le même système et 
 - Le récepteur ne la rapporte pas. Kafka ne rapporte le retard d'un groupe de consommateurs qu'après que le groupe a validé un offset ; RabbitMQ ne rapporte que les files des hôtes virtuels auxquels son utilisateur a accès, et ne journalise aucune erreur pour les autres (voir [RabbitMQ](#rabbitmq)) ; les compteurs de RabbitMQ apparaissent avec la première activité ; Azure Monitor renvoie 10 files par métrique et par espace de noms sauf si `maximum_number_of_records_per_resource` est augmenté ; Cloud Monitoring ne lit que les types listés dans `metrics_list`.
 - Elle est en retard. `aws_cloudwatch` attend `delay` (10 minutes) que CloudWatch publie, ses points arrivent donc avec 11 à 17 minutes de retard, et les métriques de Pub/Sub arrivent avec quelques minutes de retard.
 - Le système n'a pas de métriques affichées : Azure Event Grid, NATS, les brokers JMS autres qu'ActiveMQ et BullMQ (voir leurs sections). Leurs métriques sont dans l'explorateur **Métriques**.
+- Ouvrez la carte **Métriques du broker** de la file : elle liste les métriques qui arrivent et pourquoi les autres n'arrivent pas. Pour une file Service Bus ou Event Hubs dont aucune métrique n'arrive, elle indique aussi ce que l'espace de noms envoie à la place, l'une de trois choses.
+- **Rien de l'espace de noms** : rien ne le lit, ou chaque lecture échoue. Connectez son abonnement Azure dans **Cloud → Connecter**, ou exécutez le récepteur `azure_monitor`. Donnez à l'application de la connexion ou au principal de service du récepteur le rôle **Monitoring Reader**, et consultez la dernière lecture de la connexion, ou cherchez `AuthorizationFailed` ou `401` dans le journal du collecteur : un secret client expiré arrête chaque lecture.
+- **Totaux seulement** : les métriques de l'espace de noms arrivent pour l'espace de noms dans son ensemble, sans file ni topic. Un paramètre de diagnostic n'envoie que ces totaux : connectez l'abonnement de l'espace de noms, ou lisez-le aussi avec le récepteur `azure_monitor` ; l'un comme l'autre les répartit par `EntityName`. Un [abonnement Azure connecté](/docs/telemetry/cloud-accounts) n'a envoyé que ces totaux avant de lire chaque file, ou quand ses lectures des files échouent : sa dernière lecture dans **Cloud → Connecter** dit pourquoi.
+- **Autres files seulement** : des métriques arrivent pour d'autres files et topics de l'espace de noms, mais pas pour celle-ci. Le paramètre `maximum_number_of_records_per_resource` du récepteur (10 sauf si vous l'augmentez) l'a laissée de côté : augmentez-le au-delà du nombre de files et de topics de l'espace de noms. Un abonnement connecté en lit jusqu'à 1 000 : au-delà, lisez aussi l'espace de noms avec le récepteur.
 
 ### Deux files pour une seule destination
 

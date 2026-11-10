@@ -20,7 +20,7 @@ Konfigurationen af vedligeholdelse findes i **Planlagt vedligeholdelse**, ikke i
 | **Etiketregler**   | Tilføjer etiketter til matchende begivenheder.                         |
 | **Påmindelsesregler** | Minder ejerne om begivenheden med et interval, indtil den er fuldført. |
 
-Sektionen **Indstillinger** rummer **Begivenhedsstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Begivenhedsskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger** og **Nummerering**. **Kalenderindstillinger** er beskrevet på [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
+Sektionen **Indstillinger** rummer **Begivenhedsstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Begivenhedsskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Godkendelse af offentlige noter**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger** og **Nummerering**. **Kalenderindstillinger** er beskrevet på [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
 Sektionen **Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der poster begivenheder i kanaler. Se [Slack](/docs/workspace-connections/slack#notifikationsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notifikationsregler).
 
@@ -92,7 +92,11 @@ Disse påmindelser er til dit team. De påmindelser, dine statussideabonnenter f
 
 ### Noteskabeloner
 
-**Planlagt vedligeholdelse → Indstillinger → Noteskabeloner** rummer færdigskrevet tekst til opdateringer om vedligeholdelse. Kortet **Skabeloner til offentlige eller private noter for planlagte vedligeholdelseshændelser** viser dem; **Opret Planlagt Vedligeholdelse Note Skabelon** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en offentlig eller privat note på en begivenhed, og når de ændrer dens tilstand, og dens tekst kan redigeres, før den postes. I modsætning til noteskabeloner for hændelser udfylder noteskabeloner for vedligeholdelse ingen variabler.
+**Planlagt vedligeholdelse → Indstillinger → Noteskabeloner** rummer færdigskrevet tekst til opdateringer om vedligeholdelse. Kortet **Skabeloner til offentlige eller private noter for planlagte vedligeholdelseshændelser** viser dem; **Opret Noteskabelon for planlagt vedligeholdelse** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en offentlig eller privat note på en begivenhed, og når de ændrer dens tilstand, og dens tekst kan redigeres, før den postes. I modsætning til noteskabeloner for hændelser udfylder noteskabeloner for vedligeholdelse ingen variabler.
+
+### Godkendelse af offentlige noter
+
+**Planlagt vedligeholdelse → Indstillinger → Godkendelse af offentlige noter** får de offentlige noter på planlagte vedligeholdelsesbegivenheder godkendt, før de offentliggøres. Siden fungerer som hændelsernes, med sin egen kontakt og sine egne trin: slå **Kræv godkendelse, før offentlige noter offentliggøres** til, og vælg under **Hvem godkender**, hvem der godkender. Så kan vedligeholdelsesnoter kræve godkendelse, mens hændelsesnoter ikke gør, eller godkendes af andre personer. Kun **Projektejer** og **Projektadministrator** kan ændre den. Se [Godkendelse af offentlige noter](/docs/incidents/settings#godkendelse-af-offentlige-noter) for trinnene, og [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter) for, hvad en note gør, mens den venter.
 
 ### Brugerdefinerede felter
 

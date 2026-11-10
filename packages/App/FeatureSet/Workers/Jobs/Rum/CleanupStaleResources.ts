@@ -20,14 +20,18 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
  * belong to the RUM application lifecycle:
  *
  *   1. Flip RUM applications to "disconnected" when telemetry has stopped
- *      arriving. RumApplicationService.markDisconnectedApplications() was
+ *      arriving - the stored value the Dashboard words "No recent
+ *      traffic", in grey, because a RUM application goes quiet whenever
+ *      nobody uses the app (RumApplicationStatus, issue #6191).
+ *      RumApplicationService.markDisconnectedApplications() was
  *      written but never scheduled — verified: this cron is its only
- *      caller in the repo — so until now every RUM application's status
+ *      caller in the repo — so until then every RUM application's status
  *      pill read "Connected" forever, including applications whose script
- *      tag had been removed months earlier. The 15-minute threshold and
- *      the reason it must stay well above the 5-minute OTel ingest
- *      maintenance fence both live in that service, so this cron carries
- *      no duplicate policy. Every other pillar has the identical sweeper
+ *      tag had been removed months earlier. The 15-minute threshold
+ *      (RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES) and the reason it
+ *      must stay well above the 5-minute OTel ingest maintenance fence
+ *      both live in that service, so this cron carries no duplicate
+ *      policy. Every other pillar has the identical sweeper
  *      (Ceph / Proxmox / DockerSwarm / IoT / Host).
  *
  *   2. Reap abandoned session-replay activity entries. The finalizer

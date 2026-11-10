@@ -701,8 +701,9 @@ describe("the pages draw switches first, and fold the limits", () => {
     /*
      * Switch first. Then the project's AI context (#5198), in sight: what
      * OneUptime AI should know about the team's systems, one quiet line
-     * with none written. The page's other card - the project's Daily
-     * limits - is folded under More settings, after both.
+     * with none written. The page's other cards - the project's Daily
+     * limits and its Limits per run (#6440) - are folded under More
+     * settings, after both.
      */
     expect(page.indexOf("<ProjectAiContextCard />")).toBeGreaterThan(
       page.indexOf(
@@ -716,10 +717,68 @@ describe("the pages draw switches first, and fold the limits", () => {
     expect(page.indexOf("<CardModelDetail")).toBeGreaterThan(
       page.indexOf("<AdvancedPageSection"),
     );
-    expect(page.split("<CardModelDetail").length - 1).toBe(1);
+    expect(page.lastIndexOf("<CardModelDetail")).toBeLessThan(
+      page.indexOf("</AdvancedPageSection>"),
+    );
+    expect(page.split("<CardModelDetail").length - 1).toBe(2);
 
     expect(confirmation).toContain("if (isTurningOn) { return undefined; }");
     expect(confirmation).toContain("submitButtonType: ButtonStyleType.DANGER");
+  });
+
+  /*
+   * Two people approve a riskier fix (#6148's follow-up): a switch of its
+   * own, folded under More settings after the daily limits - a rule on who
+   * approves, not an AI feature, so it is none of the switches a new
+   * project starts with on, and Enable AI stays the page's first switch.
+   */
+  test("More settings on AI Features holds Fix approvals: one switch that saves its own column, after the daily limits", () => {
+    const page: string = readDashboard(AI_FEATURES_PAGE);
+    const copy: string = readDashboard(
+      "Components/AISettings/FixApprovalsCopy.ts",
+    );
+
+    expect(page.split("<ModelSwitchCard<Project>").length - 1).toBe(2);
+    expect(page).toContain("column={TWO_APPROVALS_COLUMN}");
+    expect(page).toContain("dataTestId={FIX_APPROVALS_SWITCH_TEST_ID}");
+    expect(page).toContain("cardId={FIX_APPROVALS_CARD_KEY}");
+    expect(page).toContain("getFixApprovalsFoldedItem(isTwoApprovalsOn)");
+    // Inside the fold, after the daily limits; never before Enable AI.
+    expect(page.indexOf("column={TWO_APPROVALS_COLUMN}")).toBeGreaterThan(
+      page.indexOf("<CardModelDetail"),
+    );
+    expect(page.indexOf("column={TWO_APPROVALS_COLUMN}")).toBeLessThan(
+      page.indexOf("</AdvancedPageSection>"),
+    );
+    expect(page.indexOf("column={ENABLE_AI_COLUMN}")).toBeLessThan(
+      page.indexOf("column={TWO_APPROVALS_COLUMN}"),
+    );
+    // Nothing runs when it is flipped: it asks nothing first.
+    expect(
+      page.slice(page.indexOf("column={TWO_APPROVALS_COLUMN}")),
+    ).not.toContain("getConfirmation");
+
+    expect(copy).toContain(
+      'TWO_APPROVALS_COLUMN: TwoApprovalsColumn = "requireTwoApprovalsForRiskierFixes"',
+    );
+    expect(newProjectAiDefaultColumns()).not.toContain(
+      "requireTwoApprovalsForRiskierFixes",
+    );
+    expect(columnsOf(ALL_SWITCHES)).not.toContain(
+      "requireTwoApprovalsForRiskierFixes",
+    );
+
+    // Off for every project, set by owners and admins only.
+    const metadata: TableColumnMetadata = new Project().getTableColumnMetadata(
+      "requireTwoApprovalsForRiskierFixes",
+    );
+    expect(metadata.type).toBe(TableColumnType.Boolean);
+    expect(metadata.defaultValue).toBe(false);
+    expect(
+      new Project().getColumnAccessControlFor(
+        "requireTwoApprovalsForRiskierFixes",
+      )?.update,
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
   });
 
   test("the notice holds Enable AI's own switch, with the same confirmation, for those who may change it", () => {
@@ -1238,7 +1297,7 @@ describe("translations", () => {
       "Every new incident is investigated unless you narrow it down here.",
       "Every new alert is investigated unless you narrow it down here.",
       "Investigation limits",
-      "Investigations start right away and run until they are done unless you set a limit here.",
+      "Investigations start right away and run until they are done, within the project's time limit per run, unless you set a limit here.",
       "Daily limits",
       "How much incident AI work may run each day (UTC). Ask AI is never limited.",
       "How much alert AI work may run each day (UTC). Ask AI is never limited.",
@@ -1246,6 +1305,13 @@ describe("translations", () => {
       "The most tokens alert AI work may use each day: investigations, remediation and fix tasks. Leave empty for no limit, or set 0 to pause it.",
       "How many fix pull requests OneUptime AI may start for incidents each day. Leave empty for no limit, or 0 to pause them.",
       "How many fix pull requests OneUptime AI may start for alerts each day. Leave empty for no limit, or 0 to pause them.",
+      /*
+       * An empty investigation time limit is the project's time limit per
+       * run (issue #6440), no longer "No time limit".
+       */
+      "The project's time limit",
+      "An incident investigation stops after this many minutes and reports what it found. Leave empty for the project's time limit: 120 minutes by default.",
+      "An alert investigation stops after this many minutes and reports what it found. Leave empty for the project's time limit: 120 minutes by default.",
     ]),
   );
 
@@ -1270,7 +1336,6 @@ describe("translations", () => {
     "Every severity",
     "No cooldown",
     "No limit",
-    "No time limit",
     "Configured",
     "Advanced",
   ];

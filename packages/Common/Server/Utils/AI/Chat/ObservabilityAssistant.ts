@@ -23,15 +23,21 @@ import {
   stripFabricatedCitationMarkers,
 } from "./ChatAgentRunner";
 import {
-  AgentWrapUpReason,
-  buildSkippedToolCallText,
-  buildWrapUpInstruction,
   compactAgentContext,
   CONTINUE_ANSWER_INSTRUCTION,
   joinAnswerContinuation,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
-import AIAgentRunLimitsHelper from "../../../../Types/AI/AIAgentRunLimits";
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
+  AIRunStopDecision,
+  AIRunStopReason,
+} from "../../../../Types/AI/AIAgentRunLimits";
+import AgentLoopDetector, {
+  AgentLoopToolCall,
+  AgentLoopVerdict,
+} from "../../../../Types/AI/AgentLoopDetector";
+import AIRunLimitsReader from "../AIRunLimitsReader";
 import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -47,8 +53,11 @@ import { withAiContext } from "../AiContext/AiContextPrompt";
  * runs the same tool-grounded agent loop under the caller's real permissions,
  * and returns a finished markdown answer with server-minted citations.
  *
- * Budgets are tighter than the dashboard's because chat-ops answers must come
- * back quickly and in a single message.
+ * A run goes as far as its work needs: the project's limits per run (none by
+ * default) and its time limit, which for a Slack or Microsoft Teams answer
+ * is also at most the chat app's answer window (AIRunLimitsReader). A run a
+ * limit stopped says so in stopNoteInMarkdown, for the caller to post under
+ * the answer.
  */
 
 export interface ObservabilityAssistantPriorTurn {
@@ -64,6 +73,12 @@ export interface ObservabilityAssistantPriorTurn {
 export type ObservabilityAssistantStepType =
   | "llm_started"
   | "llm_completed"
+  /*
+   * The model call failed after LLMService's own retries. It closes the
+   * llm_started before it, so a trail never shows a call still thinking
+   * after the call gave up (issue #6437). errorMessage says why.
+   */
+  | "llm_failed"
   | "tool_started"
   | "tool_completed"
   | "tool_failed";
@@ -131,15 +146,13 @@ export interface ObservabilityAssistantRequest {
    */
   aiContext?: AiContextActivity | null | undefined;
   /*
-   * Optional budget overrides. Autonomous investigations get more room than an
-   * interactive chat-ops answer, which must return in a single quick message.
-   * Omitted values fall back to the interactive defaults; a null wall clock
-   * means the run has no time limit at all (autonomous investigations, unless
-   * the project configured one).
+   * How far the run may go (Types/AI/AIAgentRunLimits): the caller's, read
+   * for its run - an investigation reads its lane's. Left out, the project's
+   * own limits per run, with the chat app's answer window for an answer
+   * posted to one (chatApp).
    */
-  maxLlmCalls?: number | undefined;
-  maxToolCalls?: number | undefined;
-  maxWallClockMs?: number | null | undefined;
+  runLimits?: AIAgentRunLimits | undefined;
+  // The most tokens one model response may hold; a cut-off answer goes on.
   maxOutputTokens?: number | undefined;
   /*
    * Optional live-narration hook, fired for each LLM/tool step as the loop runs.
@@ -148,6 +161,14 @@ export interface ObservabilityAssistantRequest {
    * failing handler should not break the run.
    */
   onStep?: ((step: ObservabilityAssistantStep) => Promise<void>) | undefined;
+  /*
+   * Asked before every model call and every tool call: a reason to stop
+   * stops the loop there, by throwing an Error with that reason. A durable
+   * run's attempt asks whether it still owns its run - the stale sweep or a
+   * shutdown may have given the run to another attempt, and this one must
+   * not go on working on it (AIInvestigationEngine). Null: go on.
+   */
+  getStopReason?: (() => string | null) | undefined;
   /*
    * Run-scoped tools offered to the model IN ADDITION to the read-only
    * toolbox. The registered toolbox stays authoritative for its own names —
@@ -159,7 +180,7 @@ export interface ObservabilityAssistantRequest {
    * model somehow names one anyway. The autonomous investigation lane uses
    * this to hide get_ai_investigation from itself: the "latest investigation"
    * for the subject would be the model's own in-flight run, and polling it
-   * burns budget on a status that cannot resolve until this run finishes.
+   * spends calls on a status that cannot resolve until this run finishes.
    */
   excludeToolNames?: Array<string> | undefined;
   /*
@@ -201,11 +222,23 @@ export interface ObservabilityAssistantResult {
   toolCallCount: number;
   providerName?: string | undefined;
   modelName?: string | undefined;
+  /*
+   * Set when a limit stopped the run (or loop detection did): which one,
+   * and the sentence OneUptime writes under the answer to say so, linked to
+   * the setting (AIRunLimitsReader.getStopNote). Never part of
+   * contentInMarkdown: the caller places it, after whatever it does to the
+   * model's text.
+   */
+  stopReason?: AIRunStopReason | undefined;
+  stopNoteInMarkdown?: string | undefined;
+  /*
+   * The same note as plain text, without the link, for a line of the run's
+   * activity, which the Dashboard draws as text
+   * (AIAgentRunLimitsHelper.getStopNoteText).
+   */
+  stopNoteText?: string | undefined;
 }
 
-const MAX_LLM_CALLS: number = 6;
-const MAX_TOOL_CALLS: number = 8;
-const MAX_WALL_CLOCK_MS: number = 90 * 1000;
 const MAX_HISTORY_TURNS: number = 8;
 const MAX_OUTPUT_TOKENS: number = 1500;
 const TEMPERATURE: number = 0.2;
@@ -217,22 +250,30 @@ export default class ObservabilityAssistant {
   ): Promise<ObservabilityAssistantResult> {
     const startedAtMs: number = Date.now();
 
-    const maxLlmCalls: number = request.maxLlmCalls ?? MAX_LLM_CALLS;
-    const maxToolCalls: number = request.maxToolCalls ?? MAX_TOOL_CALLS;
-    // Null is "no time limit"; undefined is "the interactive default".
-    const maxWallClockMs: number | undefined =
-      request.maxWallClockMs === null
-        ? undefined
-        : request.maxWallClockMs ?? MAX_WALL_CLOCK_MS;
+    const runLimits: AIAgentRunLimits =
+      request.runLimits ??
+      (await AIRunLimitsReader.read({
+        projectId: request.projectId,
+        isChatAppAnswer: Boolean(request.chatApp),
+      }));
     const maxOutputTokens: number =
       request.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
 
-    const isTimeUp: () => boolean = (): boolean => {
-      return AIAgentRunLimitsHelper.isTimeUp({
-        maxWallClockMs,
-        startedAtMs,
-        nowMs: Date.now(),
-      });
+    // Tells a run going in circles from one that is working.
+    const loopDetector: AgentLoopDetector = new AgentLoopDetector();
+
+    /*
+     * The owner's reason to stop the loop, thrown as an Error. Not a limit:
+     * a limit (stopReason below) lets the run answer with what it found.
+     */
+    const throwIfAskedToStop: () => void = (): void => {
+      const ownerStopReason: string | null = request.getStopReason
+        ? request.getStopReason()
+        : null;
+
+      if (ownerStopReason) {
+        throw new Error(ownerStopReason);
+      }
     };
 
     // Best-effort live-narration emitter — never throws into the loop.
@@ -323,34 +364,69 @@ export default class ObservabilityAssistant {
     let providerName: string | undefined = undefined;
     let modelName: string | undefined = undefined;
     let finalContent: string = "";
-    // Set once the model has been told to wrap up; it is only told once.
-    let wrapUpReason: AgentWrapUpReason | null = null;
+    // The tokens of the latest call: the least the next one adds.
+    let lastCallTokens: number = 0;
+    /*
+     * Set once a limit (or loop detection) has stopped the run; the model is
+     * told once, and answers without tools.
+     */
+    let stopReason: AIRunStopReason | null = null;
     // Follow-up calls that finish an answer the output limit cut off.
     let continuationCount: number = 0;
 
     while (true) {
       const isContinuingAnswer: boolean = continuationCount > 0;
 
-      if (wrapUpReason === null && !isContinuingAnswer) {
-        if (isTimeUp()) {
-          wrapUpReason = "time_limit";
-        } else if (
-          llmCallCount >= maxLlmCalls - 1 ||
-          toolCallCount >= maxToolCalls
-        ) {
-          wrapUpReason = "step_limit";
-        }
+      if (stopReason === null && !isContinuingAnswer) {
+        const decision: AIRunStopDecision | null =
+          AIAgentRunLimitsHelper.getStopDecision(runLimits, {
+            llmCallCount,
+            toolCallCount,
+            tokenCount: totalTokens,
+            lastCallTokenCount: lastCallTokens,
+            startedAtMs,
+            nowMs: Date.now(),
+          });
 
-        if (wrapUpReason !== null) {
+        if (decision) {
+          stopReason = decision.reason;
+
+          // A token cap already reached: any call would go past it.
+          if (!decision.mayAnswer) {
+            break;
+          }
+
           messages.push({
             role: "user",
-            content: buildWrapUpInstruction(wrapUpReason),
+            content: AIAgentRunLimitsHelper.getWrapUpInstruction(
+              decision.reason,
+              runLimits,
+            ),
           });
         }
       }
 
-      const budgetExhausted: boolean =
-        wrapUpReason !== null || isContinuingAnswer;
+      if (isContinuingAnswer) {
+        /*
+         * Finishing a cut-off answer makes model calls too, and none past a
+         * cap the project set: the answer keeps what it has, and the note
+         * under it names the cap.
+         */
+        const capReason: AIRunStopReason | null =
+          AIAgentRunLimitsHelper.getContinuationStopReason(runLimits, {
+            llmCallCount,
+            toolCallCount,
+            tokenCount: totalTokens,
+            lastCallTokenCount: lastCallTokens,
+          });
+
+        if (capReason) {
+          stopReason = capReason;
+          break;
+        }
+      }
+
+      const mustAnswer: boolean = stopReason !== null || isContinuingAnswer;
 
       /*
        * A long run keeps its newest evidence in full and elides the oldest
@@ -358,6 +434,8 @@ export default class ObservabilityAssistant {
        * instead of failing on an oversized request.
        */
       compactAgentContext(messages);
+
+      throwIfAskedToStop();
 
       await emitStep({ type: "llm_started" });
 
@@ -370,7 +448,7 @@ export default class ObservabilityAssistant {
         llmProviderId: request.llmProviderId,
         feature: request.feature,
         messages: messages,
-        tools: budgetExhausted
+        tools: mustAnswer
           ? undefined
           : [
               ...AIToolbox.getLlmToolDefinitions(
@@ -388,6 +466,19 @@ export default class ObservabilityAssistant {
         temperature: TEMPERATURE,
         // Chat-ops content is per-user — do not persist previews to LlmLog.
         storeContentPreviews: false,
+      }).catch(async (error: unknown): Promise<never> => {
+        /*
+         * The call failed for good (LLMService already retried it): close
+         * the llm_started above, then let the run's owner decide.
+         */
+        await emitStep({
+          type: "llm_failed",
+          errorMessage: (error instanceof Error
+            ? error.message
+            : String(error)
+          ).substring(0, 400),
+        });
+        throw error;
       });
 
       llmCallCount++;
@@ -395,6 +486,7 @@ export default class ObservabilityAssistant {
       // As OneUptime counts them: cached tokens weigh what they cost.
       const callTokens: number = AiTokenCount.count(response.llmLog);
       totalTokens += callTokens;
+      lastCallTokens = callTokens;
 
       await emitStep({
         type: "llm_completed",
@@ -407,7 +499,7 @@ export default class ObservabilityAssistant {
       }
 
       if (
-        !budgetExhausted &&
+        !mustAnswer &&
         response.toolCalls &&
         response.toolCalls.length > 0 &&
         /*
@@ -423,16 +515,28 @@ export default class ObservabilityAssistant {
           toolCalls: response.toolCalls,
         });
 
-        for (const toolCall of response.toolCalls) {
-          const overBudget: boolean =
-            toolCallCount >= maxToolCalls || isTimeUp();
+        // What each call of this round returned, for loop detection.
+        const roundCalls: Array<AgentLoopToolCall> = [];
 
-          if (overBudget) {
+        for (const toolCall of response.toolCalls) {
+          /*
+           * The batch size is the model's to choose: the tool-call cap and
+           * the time limit hold inside a batch too.
+           */
+          const refusal: AIRunStopReason | null =
+            AIAgentRunLimitsHelper.getToolCallRefusal(runLimits, {
+              toolCallCount,
+              startedAtMs,
+              nowMs: Date.now(),
+            });
+
+          if (refusal) {
             messages.push({
               role: "tool",
               toolCallId: toolCall.id,
-              content: buildSkippedToolCallText(
-                isTimeUp() ? "time_limit" : "step_limit",
+              content: AIAgentRunLimitsHelper.getSkippedToolCallText(
+                refusal,
+                runLimits,
               ),
             });
             continue;
@@ -441,13 +545,24 @@ export default class ObservabilityAssistant {
           toolCallCount++;
 
           if (toolCall.argumentsParseError) {
+            const parseErrorText: string = `Error calling ${toolCall.name}: ${toolCall.argumentsParseError} Emit the tool call again with valid JSON arguments.`;
+
+            roundCalls.push({
+              name: toolCall.name,
+              arguments: toolCall.arguments,
+              output: parseErrorText,
+              isError: true,
+            });
+
             messages.push({
               role: "tool",
               toolCallId: toolCall.id,
-              content: `Error calling ${toolCall.name}: ${toolCall.argumentsParseError} Emit the tool call again with valid JSON arguments.`,
+              content: parseErrorText,
             });
             continue;
           }
+
+          throwIfAskedToStop();
 
           const toolStartedAtMs: number = Date.now();
 
@@ -494,6 +609,13 @@ export default class ObservabilityAssistant {
               ctx: toolContext,
             });
           }
+
+          roundCalls.push({
+            name: toolCall.name,
+            arguments: toolCall.arguments,
+            output: outcome.textForLlm,
+            isError: !outcome.success || !outcome.result,
+          });
 
           if (!outcome.success || !outcome.result) {
             await emitStep({
@@ -557,6 +679,33 @@ export default class ObservabilityAssistant {
           });
         }
 
+        /*
+         * A run repeating itself is told to change course, and then asked
+         * to answer: no count stops a run, so this is what stops one stuck.
+         */
+        const verdict: AgentLoopVerdict = loopDetector.recordRound(roundCalls);
+
+        if (verdict === AgentLoopVerdict.Nudge) {
+          messages.push({
+            role: "user",
+            content: loopDetector.getNudgeInstruction(),
+          });
+        } else if (verdict === AgentLoopVerdict.Stop && stopReason === null) {
+          stopReason = AIRunStopReason.Loop;
+
+          logger.info(
+            `ObservabilityAssistant: stopping a run that goes in circles (${loopDetector.describeStop()}).`,
+          );
+
+          messages.push({
+            role: "user",
+            content: AIAgentRunLimitsHelper.getWrapUpInstruction(
+              AIRunStopReason.Loop,
+              runLimits,
+            ),
+          });
+        }
+
         continue;
       }
 
@@ -582,7 +731,9 @@ export default class ObservabilityAssistant {
     finalContent = stripFabricatedCitationMarkers(finalContent, citations);
 
     logger.debug(
-      `ObservabilityAssistant answered in ${Date.now() - startedAtMs}ms (${llmCallCount} LLM calls, ${toolCallCount} tools).`,
+      `ObservabilityAssistant answered in ${Date.now() - startedAtMs}ms (${llmCallCount} LLM calls, ${toolCallCount} tools${
+        stopReason ? `, stopped: ${stopReason}` : ""
+      }).`,
     );
 
     return {
@@ -593,6 +744,20 @@ export default class ObservabilityAssistant {
       toolCallCount: toolCallCount,
       providerName: providerName,
       modelName: modelName,
+      ...(stopReason
+        ? {
+            stopReason,
+            stopNoteInMarkdown: AIRunLimitsReader.getStopNote({
+              projectId: request.projectId,
+              reason: stopReason,
+              limits: runLimits,
+            }),
+            stopNoteText: AIAgentRunLimitsHelper.getStopNoteText({
+              reason: stopReason,
+              limits: runLimits,
+            }),
+          }
+        : {}),
     };
   }
 }

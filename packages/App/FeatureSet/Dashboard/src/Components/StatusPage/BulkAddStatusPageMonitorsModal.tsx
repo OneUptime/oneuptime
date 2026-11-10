@@ -1,12 +1,21 @@
 import addStatusPageMonitorsWithLabelSync, {
   AddStatusPageMonitorsWithLabelSyncResult,
 } from "./AddStatusPageMonitorsWithLabelSync";
+import bulkAddStatusPageMonitorGroups, {
+  BulkAddStatusPageMonitorGroupFailure,
+  BulkAddStatusPageMonitorGroupsResult,
+} from "./BulkAddStatusPageMonitorGroups";
 import bulkAddStatusPageMonitors, {
   BulkAddStatusPageMonitorFailure,
-  BulkAddStatusPageMonitorsResult,
 } from "./BulkAddStatusPageMonitors";
-import { getStatusPageResourceAdvancedFields } from "./StatusPageResourceFormFields";
+import { BulkAddStatusPageResourceOptions } from "./BulkAddStatusPageResources";
+import {
+  getStatusPageResourceAdvancedFields,
+  StatusPageResourceTargetType,
+} from "./StatusPageResourceFormFields";
+import StatusPageResourceTargetSwitch from "./StatusPageResourceTargetSwitch";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -16,6 +25,12 @@ import ObjectID from "Common/Types/ObjectID";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import Field, {
@@ -41,23 +56,43 @@ export interface GridPlacementOptions {
   columnValues: Array<string>;
 }
 
+/*
+ * What a bulk add reports when it is done: monitors (with the rule that keeps
+ * a group in sync with labels, when one was asked for), or monitor groups.
+ */
+export type BulkAddStatusPageResult =
+  | AddStatusPageMonitorsWithLabelSyncResult
+  | BulkAddStatusPageMonitorGroupsResult;
+
 export interface ComponentProps {
   projectId: ObjectID;
   statusPageId: ObjectID;
   statusPageGroupId?: ObjectID | undefined;
   gridPlacement?: GridPlacementOptions | undefined;
+  /*
+   * The picker the dialog opens on: monitors (Add Multiple Monitors, the
+   * default) or monitor groups (Add Multiple Monitor Groups, issue #6544).
+   */
+  targetType?: StatusPageResourceTargetType | undefined;
+  /*
+   * On projects with monitor groups: a link under the picker swaps it for
+   * the other one, as the link under Add Monitor's does.
+   */
+  canSwitchTarget?: boolean | undefined;
   onClose: () => void;
-  onComplete: (result: BulkAddStatusPageMonitorsResult) => void;
+  onComplete: (result: BulkAddStatusPageResult) => void;
 }
 
 /**
- * Mirrors the single resource form, except the monitor picker is multi-select
- * and display name / description are not asked for - they are copied from each
- * monitor. Every other option applies to all of the resources created here,
- * and is folded under Advanced at its default, as on the single form.
+ * Mirrors the single resource form, except the picker is multi-select and
+ * display name / description are not asked for - they are copied from each
+ * monitor (or monitor group). Every other option applies to all of the
+ * resources created here, and is folded under Advanced at its default, as on
+ * the single form.
  */
 export interface BulkAddStatusPageMonitorsFormValues {
   monitors?: Array<ObjectID | string> | undefined;
+  monitorGroups?: Array<ObjectID | string> | undefined;
   keepInSyncWithLabels?: boolean | undefined;
   rowAxisValue?: string | undefined;
   columnAxisValue?: string | undefined;
@@ -70,11 +105,62 @@ export interface BulkAddStatusPageMonitorsFormValues {
 
 /*
  * The display options, folded: they are the resource's own defaults, so the
- * monitors are all this dialog asks for. Built once, for the field list's
- * every render to hand the same section to its fields.
+ * monitors (or monitor groups) are all this dialog asks for. Built once, for
+ * the field list's every render to hand the same section to its fields.
  */
 const ADVANCED_SECTION: FormFieldCollapsibleSection<StatusPageResource> =
   getAdvancedFormSection<StatusPageResource>();
+
+/*
+ * The words of the dialog and of its summary, for monitors and for monitor
+ * groups. Every one is a whole sentence or label, looked up as it is - never
+ * a noun dropped into a shared sentence, which a language that inflects the
+ * noun, or puts it elsewhere, could not word.
+ */
+interface BulkAddCopy {
+  resultTitle: string;
+  resultWithFailuresTitle: string;
+  addedOfSelected: PluralTemplate;
+  skippedSentence: PluralTemplate;
+  skippedExplanation: string;
+  unknownName: string;
+}
+
+const MONITOR_COPY: BulkAddCopy = {
+  resultTitle: translationKey("Monitors Added"),
+  resultWithFailuresTitle: translationKey("Monitor Add Results"),
+  addedOfSelected: {
+    one: "Added {{added}} of {{count}} selected monitor.",
+    other: "Added {{added}} of {{count}} selected monitors.",
+  },
+  skippedSentence: {
+    one: "{{count}} monitor was already on this status page and was skipped.",
+    other:
+      "{{count}} monitors were already on this status page and were skipped.",
+  },
+  skippedExplanation: translationKey(
+    "These monitors are already on this status page, so they were left as they are.",
+  ),
+  unknownName: translationKey("Unknown monitor"),
+};
+
+const MONITOR_GROUP_COPY: BulkAddCopy = {
+  resultTitle: translationKey("Monitor Groups Added"),
+  resultWithFailuresTitle: translationKey("Monitor Group Add Results"),
+  addedOfSelected: {
+    one: "Added {{added}} of {{count}} selected monitor group.",
+    other: "Added {{added}} of {{count}} selected monitor groups.",
+  },
+  skippedSentence: {
+    one: "{{count}} monitor group was already on this status page and was skipped.",
+    other:
+      "{{count}} monitor groups were already on this status page and were skipped.",
+  },
+  skippedExplanation: translationKey(
+    "These monitor groups are already on this status page, so they were left as they are.",
+  ),
+  unknownName: translationKey("Unknown monitor group"),
+};
 
 type CreateMonitorRuleFunction = (rule: StatusPageMonitorRule) => Promise<void>;
 
@@ -122,13 +208,142 @@ const toObjectIds: ToObjectIdsFunction = (value: unknown): Array<ObjectID> => {
   return ids;
 };
 
+type InPickedOrderFunction = <TTarget extends { _id?: string | undefined }>(
+  ids: Array<ObjectID>,
+  targets: Array<TTarget>,
+) => Array<TTarget>;
+
+// Create resources in the order the monitors (or monitor groups) were picked.
+const inPickedOrder: InPickedOrderFunction = <
+  TTarget extends { _id?: string | undefined },
+>(
+  ids: Array<ObjectID>,
+  targets: Array<TTarget>,
+): Array<TTarget> => {
+  const targetsById: Map<string, TTarget> = new Map<string, TTarget>();
+
+  for (const target of targets) {
+    if (target._id) {
+      targetsById.set(target._id.toString(), target);
+    }
+  }
+
+  return ids
+    .map((id: ObjectID) => {
+      return targetsById.get(id.toString());
+    })
+    .filter((target: TTarget | undefined): target is TTarget => {
+      return Boolean(target);
+    });
+};
+
+// One row of the summary: something added, skipped, or that failed.
+interface SummaryEntry {
+  key: string;
+  name: string | undefined;
+  error?: unknown;
+}
+
+interface BulkAddSummary {
+  succeeded: Array<SummaryEntry>;
+  skipped: Array<SummaryEntry>;
+  failed: Array<SummaryEntry>;
+  // Monitors only: the rule that keeps the group in sync with labels.
+  monitorRule: StatusPageMonitorRule | null;
+  monitorRuleError: unknown | null;
+}
+
+type ToEntryFunction = (
+  target: { _id?: string | undefined; name?: string | undefined },
+  index: number,
+  error?: unknown,
+) => SummaryEntry;
+
+const toEntry: ToEntryFunction = (
+  target: { _id?: string | undefined; name?: string | undefined },
+  index: number,
+  error?: unknown,
+): SummaryEntry => {
+  return {
+    key: `${target._id || target.name || "unknown"}-${index}`,
+    name: target.name,
+    error: error,
+  };
+};
+
+type ToSummaryFunction = (result: BulkAddStatusPageResult) => BulkAddSummary;
+
+const toSummary: ToSummaryFunction = (
+  result: BulkAddStatusPageResult,
+): BulkAddSummary => {
+  const isMonitorResult: boolean = "monitorRule" in result;
+
+  return {
+    succeeded: result.succeeded.map(
+      (target: Monitor | MonitorGroup, index: number) => {
+        return toEntry(target, index);
+      },
+    ),
+    skipped: result.skipped.map(
+      (target: Monitor | MonitorGroup, index: number) => {
+        return toEntry(target, index);
+      },
+    ),
+    failed: isMonitorResult
+      ? (result as AddStatusPageMonitorsWithLabelSyncResult).failed.map(
+          (failure: BulkAddStatusPageMonitorFailure, index: number) => {
+            return toEntry(failure.monitor, index, failure.error);
+          },
+        )
+      : (result as BulkAddStatusPageMonitorGroupsResult).failed.map(
+          (failure: BulkAddStatusPageMonitorGroupFailure, index: number) => {
+            return toEntry(failure.monitorGroup, index, failure.error);
+          },
+        ),
+    monitorRule: isMonitorResult
+      ? (result as AddStatusPageMonitorsWithLabelSyncResult).monitorRule
+      : null,
+    monitorRuleError: isMonitorResult
+      ? (result as AddStatusPageMonitorsWithLabelSyncResult).monitorRuleError
+      : null,
+  };
+};
+
+/**
+ * Status Page > Resources: Add Multiple Monitors, and Add Multiple Monitor
+ * Groups (issue #6544) - one dialog, whose picker is the monitor one or the
+ * monitor group one, as Add Monitor's is. Each resource it creates is named
+ * and described as its monitor (or monitor group) is; one already on the page
+ * is skipped. Adding by label keeps a group in sync with those labels for
+ * monitors only: a monitor rule matches monitors, not monitor groups.
+ */
 const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [result, setResult] =
-    useState<AddStatusPageMonitorsWithLabelSyncResult | null>(null);
+  const [result, setResult] = useState<{
+    targetType: StatusPageResourceTargetType;
+    summary: BulkAddSummary;
+  } | null>(null);
+
+  /*
+   * The picker on screen. It starts on the one the dialog was opened for and
+   * the link under it swaps it; the other picker's selection is kept, and
+   * read again only if the link swaps back. The ref is what submit reads (see
+   * syncLabelsRef).
+   */
+  const [targetType, setTargetType] = useState<StatusPageResourceTargetType>(
+    props.targetType || StatusPageResourceTargetType.Monitor,
+  );
+  const targetTypeRef: MutableRefObject<StatusPageResourceTargetType> =
+    useRef<StatusPageResourceTargetType>(targetType);
+
+  const isMonitorGroupPicker: boolean =
+    targetType === StatusPageResourceTargetType.MonitorGroup;
+
   /*
    * Which labels the picker expanded to fill the monitor list. The picker
    * drops the label the moment it hands back the monitors, so this is the only
@@ -147,11 +362,54 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
 
   const formRef: MutableRefObject<any> = useRef<any>(null);
 
-  const getFields: () => Array<
-    Field<BulkAddStatusPageMonitorsFormValues>
-  > = (): Array<Field<BulkAddStatusPageMonitorsFormValues>> => {
-    const fields: Array<Field<BulkAddStatusPageMonitorsFormValues>> = [
-      {
+  const switchTarget: () => void = (): void => {
+    const nextTargetType: StatusPageResourceTargetType =
+      targetTypeRef.current === StatusPageResourceTargetType.MonitorGroup
+        ? StatusPageResourceTargetType.Monitor
+        : StatusPageResourceTargetType.MonitorGroup;
+
+    targetTypeRef.current = nextTargetType;
+    setTargetType(nextTargetType);
+    setError("");
+  };
+
+  const getTargetField: () => Field<BulkAddStatusPageMonitorsFormValues> =
+    (): Field<BulkAddStatusPageMonitorsFormValues> => {
+      const footerElement: ReactElement | undefined = props.canSwitchTarget ? (
+        <StatusPageResourceTargetSwitch
+          targetType={targetType}
+          isEditForm={false}
+          isBulkAdd={true}
+          onSwitch={switchTarget}
+        />
+      ) : undefined;
+
+      /*
+       * A monitor group's own picker. Its Labels tab still picks every
+       * monitor group carrying a label, but only once: nothing keeps a group
+       * in sync with them, so onLabelsBulkAdded is not handed in.
+       */
+      if (isMonitorGroupPicker) {
+        return {
+          field: {
+            monitorGroups: true,
+          },
+          title: "Monitor Groups",
+          description:
+            "The monitor groups to show on the status page, with their names and descriptions. Ones already on the page are skipped.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: MonitorGroup,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: true,
+          placeholder: "Select Monitor Groups",
+          footerElement: footerElement,
+        };
+      }
+
+      return {
         field: {
           monitors: true,
         },
@@ -166,6 +424,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         },
         required: true,
         placeholder: "Select Monitors",
+        footerElement: footerElement,
         onLabelsBulkAdded: (labels: Array<BulkAddedLabel>): void => {
           const merged: Map<string, BulkAddedLabel> = new Map<
             string,
@@ -181,7 +440,14 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           syncLabelsRef.current = Array.from(merged.values());
           setSyncLabels(syncLabelsRef.current);
         },
-      },
+      };
+    };
+
+  const getFields: () => Array<
+    Field<BulkAddStatusPageMonitorsFormValues>
+  > = (): Array<Field<BulkAddStatusPageMonitorsFormValues>> => {
+    const fields: Array<Field<BulkAddStatusPageMonitorsFormValues>> = [
+      getTargetField(),
       /*
        * Declared unconditionally so the form seeds it with its default the one
        * time it builds initial values; showIf keeps it out of sight until the
@@ -190,7 +456,8 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
        * Never offered for a grid group: a rule cannot record the row and
        * column the user is being asked for two fields below, and a resource in
        * a grid group with neither is dropped by the public page. Promising
-       * live sync there would promise monitors nobody can see.
+       * live sync there would promise monitors nobody can see. Nor on the
+       * monitor group picker: a monitor rule adds monitors, not groups.
        */
       {
         field: {
@@ -202,7 +469,11 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         defaultValue: true,
         description: "Also add monitors that get one of these labels later.",
         showIf: (): boolean => {
-          return syncLabels.length > 0 && !props.gridPlacement;
+          return (
+            syncLabels.length > 0 &&
+            !props.gridPlacement &&
+            !isMonitorGroupPicker
+          );
         },
       },
     ];
@@ -286,63 +557,167 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
       requestOptions: {},
     });
 
-    // Create resources in the order the monitors were picked.
-    const monitorsById: Map<string, Monitor> = new Map<string, Monitor>();
-
-    for (const monitor of listResult.data) {
-      if (monitor._id) {
-        monitorsById.set(monitor._id.toString(), monitor);
-      }
-    }
-
-    return monitorIds
-      .map((monitorId: ObjectID) => {
-        return monitorsById.get(monitorId.toString());
-      })
-      .filter((monitor: Monitor | undefined): monitor is Monitor => {
-        return Boolean(monitor);
-      });
+    return inPickedOrder<Monitor>(monitorIds, listResult.data);
   };
 
-  type FetchExistingMonitorIdsFunction = () => Promise<Array<string>>;
+  type FetchMonitorGroupsFunction = (
+    monitorGroupIds: Array<ObjectID>,
+  ) => Promise<Array<MonitorGroup>>;
+
+  // The same for monitor groups: each resource is named as its group is.
+  const fetchMonitorGroups: FetchMonitorGroupsFunction = async (
+    monitorGroupIds: Array<ObjectID>,
+  ): Promise<Array<MonitorGroup>> => {
+    const listResult: ListResult<MonitorGroup> =
+      await ModelAPI.getList<MonitorGroup>({
+        modelType: MonitorGroup,
+        query: {
+          _id: new Includes(monitorGroupIds),
+          projectId: props.projectId,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+          name: true,
+          description: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+        requestOptions: {},
+      });
+
+    return inPickedOrder<MonitorGroup>(monitorGroupIds, listResult.data);
+  };
+
+  type FetchExistingTargetIdsFunction = (
+    targetType: StatusPageResourceTargetType,
+  ) => Promise<Array<string>>;
 
   /*
-   * Which monitors this status page already lists. Selecting by label hands
-   * back every monitor carrying the label - the ones already added included -
-   * so the add has to know what is already there or it writes a second
-   * resource for each of them (issue #3420).
+   * Which monitors (or monitor groups) this status page already lists.
+   * Selecting by label hands back everything carrying the label - what is
+   * already added included - so the add has to know what is already there or
+   * it writes a second resource for each of them (issue #3420).
    *
    * Read across the whole status page rather than the group being added to: a
    * monitor listed in two groups is still a monitor a visitor sees twice, and
    * the server refuses that create for the same reason.
    */
-  const fetchExistingMonitorIds: FetchExistingMonitorIdsFunction =
-    async (): Promise<Array<string>> => {
-      const listResult: ListResult<StatusPageResource> =
-        await ModelAPI.getList<StatusPageResource>({
-          modelType: StatusPageResource,
-          query: {
-            statusPageId: props.statusPageId,
-            projectId: props.projectId,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            monitorId: true,
-          },
-          sort: {},
-          requestOptions: {},
-        });
+  const fetchExistingTargetIds: FetchExistingTargetIdsFunction = async (
+    forTargetType: StatusPageResourceTargetType,
+  ): Promise<Array<string>> => {
+    const isMonitorGroup: boolean =
+      forTargetType === StatusPageResourceTargetType.MonitorGroup;
 
-      return listResult.data
-        .map((resource: StatusPageResource) => {
-          return resource.monitorId?.toString() || "";
-        })
-        .filter((monitorId: string) => {
-          return monitorId !== "";
-        });
+    const listResult: ListResult<StatusPageResource> =
+      await ModelAPI.getList<StatusPageResource>({
+        modelType: StatusPageResource,
+        query: {
+          statusPageId: props.statusPageId,
+          projectId: props.projectId,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: isMonitorGroup
+          ? {
+              _id: true,
+              monitorGroupId: true,
+            }
+          : {
+              _id: true,
+              monitorId: true,
+            },
+        sort: {},
+        requestOptions: {},
+      });
+
+    return listResult.data
+      .map((resource: StatusPageResource) => {
+        const targetId: ObjectID | undefined = isMonitorGroup
+          ? resource.monitorGroupId
+          : resource.monitorId;
+
+        return targetId?.toString() || "";
+      })
+      .filter((targetId: string) => {
+        return targetId !== "";
+      });
+  };
+
+  type GetResourceOptionsFunction = (
+    values: FormValues<BulkAddStatusPageMonitorsFormValues>,
+  ) => BulkAddStatusPageResourceOptions;
+
+  const getResourceOptions: GetResourceOptionsFunction = (
+    values: FormValues<BulkAddStatusPageMonitorsFormValues>,
+  ): BulkAddStatusPageResourceOptions => {
+    return {
+      displayTooltip: (values.displayTooltip as string) || undefined,
+      showCurrentStatus: Boolean(values.showCurrentStatus),
+      showUptimePercent: Boolean(values.showUptimePercent),
+      uptimePercentPrecision: values.showUptimePercent
+        ? (values.uptimePercentPrecision as UptimePrecision)
+        : undefined,
+      showStatusHistoryChart: Boolean(values.showStatusHistoryChart),
     };
+  };
+
+  type AddFunction = (
+    targetIds: Array<ObjectID>,
+    values: FormValues<BulkAddStatusPageMonitorsFormValues>,
+  ) => Promise<BulkAddStatusPageResult>;
+
+  const addMonitors: AddFunction = async (
+    monitorIds: Array<ObjectID>,
+    values: FormValues<BulkAddStatusPageMonitorsFormValues>,
+  ): Promise<BulkAddStatusPageResult> => {
+    const [monitors, existingMonitorIds]: [Array<Monitor>, Array<string>] =
+      await Promise.all([
+        fetchMonitors(monitorIds),
+        fetchExistingTargetIds(StatusPageResourceTargetType.Monitor),
+      ]);
+
+    return addStatusPageMonitorsWithLabelSync({
+      monitors: monitors,
+      projectId: props.projectId,
+      statusPageId: props.statusPageId,
+      statusPageGroupId: props.statusPageGroupId,
+      existingMonitorIds: existingMonitorIds,
+      rowAxisValue: (values.rowAxisValue as string) || undefined,
+      columnAxisValue: (values.columnAxisValue as string) || undefined,
+      resourceOptions: getResourceOptions(values),
+      syncLabels: syncLabelsRef.current,
+      keepInSyncWithLabels: Boolean(values.keepInSyncWithLabels),
+      bulkAdd: bulkAddStatusPageMonitors,
+      createMonitorRule: createMonitorRule,
+    });
+  };
+
+  const addMonitorGroups: AddFunction = async (
+    monitorGroupIds: Array<ObjectID>,
+    values: FormValues<BulkAddStatusPageMonitorsFormValues>,
+  ): Promise<BulkAddStatusPageResult> => {
+    const [monitorGroups, existingMonitorGroupIds]: [
+      Array<MonitorGroup>,
+      Array<string>,
+    ] = await Promise.all([
+      fetchMonitorGroups(monitorGroupIds),
+      fetchExistingTargetIds(StatusPageResourceTargetType.MonitorGroup),
+    ]);
+
+    return bulkAddStatusPageMonitorGroups({
+      monitorGroups: monitorGroups,
+      projectId: props.projectId,
+      statusPageId: props.statusPageId,
+      statusPageGroupId: props.statusPageGroupId,
+      existingMonitorGroupIds: existingMonitorGroupIds,
+      rowAxisValue: (values.rowAxisValue as string) || undefined,
+      columnAxisValue: (values.columnAxisValue as string) || undefined,
+      resourceOptions: getResourceOptions(values),
+    });
+  };
 
   type OnSubmitFunction = (
     values: FormValues<BulkAddStatusPageMonitorsFormValues>,
@@ -351,9 +726,17 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
   const onSubmit: OnSubmitFunction = async (
     values: FormValues<BulkAddStatusPageMonitorsFormValues>,
   ): Promise<void> => {
-    const monitorIds: Array<ObjectID> = toObjectIds(values.monitors);
+    const submittedTargetType: StatusPageResourceTargetType =
+      targetTypeRef.current;
+    const isMonitorGroup: boolean =
+      submittedTargetType === StatusPageResourceTargetType.MonitorGroup;
 
-    if (monitorIds.length === 0) {
+    // Only the picker on screen: the other one's selection stays behind.
+    const targetIds: Array<ObjectID> = toObjectIds(
+      isMonitorGroup ? values.monitorGroups : values.monitors,
+    );
+
+    if (targetIds.length === 0) {
       return;
     }
 
@@ -361,37 +744,14 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
-      const [monitors, existingMonitorIds]: [Array<Monitor>, Array<string>] =
-        await Promise.all([
-          fetchMonitors(monitorIds),
-          fetchExistingMonitorIds(),
-        ]);
+      const bulkResult: BulkAddStatusPageResult = isMonitorGroup
+        ? await addMonitorGroups(targetIds, values)
+        : await addMonitors(targetIds, values);
 
-      const bulkResult: AddStatusPageMonitorsWithLabelSyncResult =
-        await addStatusPageMonitorsWithLabelSync({
-          monitors: monitors,
-          projectId: props.projectId,
-          statusPageId: props.statusPageId,
-          statusPageGroupId: props.statusPageGroupId,
-          existingMonitorIds: existingMonitorIds,
-          rowAxisValue: (values.rowAxisValue as string) || undefined,
-          columnAxisValue: (values.columnAxisValue as string) || undefined,
-          resourceOptions: {
-            displayTooltip: (values.displayTooltip as string) || undefined,
-            showCurrentStatus: Boolean(values.showCurrentStatus),
-            showUptimePercent: Boolean(values.showUptimePercent),
-            uptimePercentPrecision: values.showUptimePercent
-              ? (values.uptimePercentPrecision as UptimePrecision)
-              : undefined,
-            showStatusHistoryChart: Boolean(values.showStatusHistoryChart),
-          },
-          syncLabels: syncLabelsRef.current,
-          keepInSyncWithLabels: Boolean(values.keepInSyncWithLabels),
-          bulkAdd: bulkAddStatusPageMonitors,
-          createMonitorRule: createMonitorRule,
-        });
-
-      setResult(bulkResult);
+      setResult({
+        targetType: submittedTargetType,
+        summary: toSummary(bulkResult),
+      });
       props.onComplete(bulkResult);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -400,111 +760,119 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
     setIsLoading(false);
   };
 
-  const getFailureMessage: (
-    failure: BulkAddStatusPageMonitorFailure,
-  ) => string = (failure: BulkAddStatusPageMonitorFailure): string => {
-    return API.getFriendlyMessage(failure.error);
-  };
-
   if (result) {
+    const summary: BulkAddSummary = result.summary;
+    const copy: BulkAddCopy =
+      result.targetType === StatusPageResourceTargetType.MonitorGroup
+        ? MONITOR_GROUP_COPY
+        : MONITOR_COPY;
+
     const totalCount: number =
-      result.succeeded.length + result.failed.length + result.skipped.length;
+      summary.succeeded.length + summary.failed.length + summary.skipped.length;
 
     /*
-     * Monitors that were already on the page are not a failure, so the summary
-     * says so in its own sentence instead of counting them against the add.
+     * What was already on the page is not a failure, so the summary says so
+     * in its own sentence instead of counting it against the add.
      */
-    let skippedDescription: string = "";
+    const descriptionSentences: Array<string> = [
+      translator.translatePlural(copy.addedOfSelected, totalCount, {
+        added: translator.formatNumber(summary.succeeded.length),
+      }),
+    ];
 
-    if (result.skipped.length === 1) {
-      skippedDescription =
-        " 1 monitor was already on this status page and was skipped.";
-    } else if (result.skipped.length > 1) {
-      skippedDescription = ` ${result.skipped.length} monitors were already on this status page and were skipped.`;
+    if (summary.skipped.length > 0) {
+      descriptionSentences.push(
+        translator.translatePlural(
+          copy.skippedSentence,
+          summary.skipped.length,
+        ),
+      );
     }
 
     return (
       <Modal
         title={
-          result.failed.length > 0 ? "Monitor Add Results" : "Monitors Added"
+          summary.failed.length > 0
+            ? copy.resultWithFailuresTitle
+            : copy.resultTitle
         }
-        description={`Added ${result.succeeded.length} of ${totalCount} selected monitors.${skippedDescription}`}
+        description={descriptionSentences.join(" ")}
         closeButtonText="Done"
         onClose={props.onClose}
       >
         <div className="space-y-4">
-          {result.monitorRule && !result.monitorRuleError ? (
+          {summary.monitorRule && !summary.monitorRuleError ? (
             <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
-              This group now stays in sync with the labels you used. Monitors
-              given one of those labels later are added here automatically.
+              {translator.translateText(
+                "This group now stays in sync with the labels you used. Monitors given one of those labels later are added here automatically.",
+              )}
             </div>
           ) : null}
 
-          {result.monitorRuleError ? (
+          {summary.monitorRuleError ? (
             <div className="rounded-md bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
               <span className="font-medium">
-                The monitors were added, but this group could not be kept in
-                sync with the labels you used:
+                {translator.translateText(
+                  "The monitors were added, but this group could not be kept in sync with the labels you used:",
+                )}
               </span>{" "}
-              {API.getFriendlyMessage(result.monitorRuleError)}
+              {API.getFriendlyMessage(summary.monitorRuleError)}
             </div>
           ) : null}
 
-          {result.succeeded.length > 0 ? (
-            <div>
+          {summary.succeeded.length > 0 ? (
+            <div data-testid="bulk-add-result-added">
               <h4 className="text-sm font-semibold text-green-800">
-                Added ({result.succeeded.length})
+                {translator.translateText("Added")} (
+                {translator.formatNumber(summary.succeeded.length)})
               </h4>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">
-                {result.succeeded.map((monitor: Monitor) => {
-                  return (
-                    <li key={monitor._id || monitor.name}>{monitor.name}</li>
-                  );
+                {summary.succeeded.map((entry: SummaryEntry) => {
+                  return <li key={entry.key}>{entry.name}</li>;
                 })}
               </ul>
             </div>
           ) : null}
 
-          {result.skipped.length > 0 ? (
-            <div>
+          {summary.skipped.length > 0 ? (
+            <div data-testid="bulk-add-result-skipped">
               <h4 className="text-sm font-semibold text-gray-800">
-                Already Added ({result.skipped.length})
+                {translator.translateText("Already Added")} (
+                {translator.formatNumber(summary.skipped.length)})
               </h4>
               <p className="mt-1 text-sm text-gray-500">
-                These monitors are already on this status page, so they were
-                left as they are.
+                {translator.translateText(copy.skippedExplanation)}
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">
-                {result.skipped.map((monitor: Monitor) => {
-                  return (
-                    <li key={monitor._id || monitor.name}>{monitor.name}</li>
-                  );
+                {summary.skipped.map((entry: SummaryEntry) => {
+                  return <li key={entry.key}>{entry.name}</li>;
                 })}
               </ul>
             </div>
           ) : null}
 
-          {result.failed.length > 0 ? (
-            <div>
+          {summary.failed.length > 0 ? (
+            <div data-testid="bulk-add-result-failed">
               <h4 className="text-sm font-semibold text-red-800">
-                Failed ({result.failed.length})
+                {translator.translateText("Failed")} (
+                {translator.formatNumber(summary.failed.length)})
               </h4>
               <ul className="mt-2 space-y-2 text-sm text-gray-700">
-                {result.failed.map(
-                  (failure: BulkAddStatusPageMonitorFailure, index: number) => {
-                    return (
-                      <li
-                        key={`${failure.monitor._id || failure.monitor.name}-${index}`}
-                        className="rounded-md bg-red-50 px-3 py-2"
-                      >
-                        <span className="font-medium">
-                          {failure.monitor.name || "Unknown monitor"}:
-                        </span>{" "}
-                        {getFailureMessage(failure)}
-                      </li>
-                    );
-                  },
-                )}
+                {summary.failed.map((entry: SummaryEntry) => {
+                  return (
+                    <li
+                      key={entry.key}
+                      className="rounded-md bg-red-50 px-3 py-2"
+                    >
+                      <span className="font-medium">
+                        {entry.name ||
+                          translator.translateText(copy.unknownName)}
+                        :
+                      </span>{" "}
+                      {API.getFriendlyMessage(entry.error)}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ) : null}
@@ -515,10 +883,20 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
 
   return (
     <Modal
-      title="Add Multiple Monitors"
-      description="Add monitors to this status page. Each resource gets its display name and description from its monitor."
+      title={
+        isMonitorGroupPicker
+          ? "Add Multiple Monitor Groups"
+          : "Add Multiple Monitors"
+      }
+      description={
+        isMonitorGroupPicker
+          ? "Add monitor groups to this status page. Each resource gets its display name and description from its monitor group."
+          : "Add monitors to this status page. Each resource gets its display name and description from its monitor."
+      }
       modalWidth={ModalWidth.Medium}
-      submitButtonText="Add Monitors"
+      submitButtonText={
+        isMonitorGroupPicker ? "Add Monitor Groups" : "Add Monitors"
+      }
       submitButtonType={ButtonType.Submit}
       onClose={props.onClose}
       onSubmit={() => {

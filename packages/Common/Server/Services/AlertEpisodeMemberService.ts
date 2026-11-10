@@ -1468,6 +1468,88 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The alerts a grouping rule opens an episode with once enough of them are
+   * ongoing (Common/Utils/Episode/EpisodeOpeningThreshold): the ones that
+   * waited, oldest first, then the one that arrived last. Each is the same
+   * member row a rule adds on its own - added by the rule, naming it as the
+   * rule it matched - and the episode was born with all of them, so the
+   * episode's created notification covers them all: none is announced again
+   * as added. The episode's side is written once: its count, one feed entry
+   * naming them, and its severity raised to the most severe of them, as a
+   * rule raises it for each alert that joins. An alert that cannot be added
+   * - in the episode already, or put in another one meanwhile in a project
+   * that allows an alert in only one - is skipped. Written as OneUptime.
+   * Hands back the ids added.
+   */
+  @CaptureSpan()
+  public async addAlertsGroupedByRule(data: {
+    projectId: ObjectID;
+    alertEpisodeId: ObjectID;
+    alertIds: Array<ObjectID>;
+    matchedRuleId: ObjectID;
+  }): Promise<Array<ObjectID>> {
+    const addedAlertIds: Array<ObjectID> = [];
+
+    for (const alertId of data.alertIds) {
+      const member: Model = new Model();
+      member.projectId = data.projectId;
+      member.alertEpisodeId = data.alertEpisodeId;
+      member.alertId = alertId;
+      member.addedBy = AlertEpisodeMemberAddedBy.Rule;
+      member.matchedRuleId = data.matchedRuleId;
+      member.addedAt = OneUptimeDate.getCurrentDate();
+      member.isOwnerNotifiedOfAlertAdded = true;
+
+      try {
+        await this.create({
+          data: member,
+          props: {
+            isRoot: true,
+          },
+          miscDataProps: EpisodeMembersBatch.getMiscDataProps(),
+        });
+
+        addedAlertIds.push(alertId);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === ALERT_ALREADY_IN_EPISODE_MESSAGE
+        ) {
+          continue;
+        }
+
+        if (error instanceof RecordInAnotherEpisodeException) {
+          logger.debug(
+            `Alert ${alertId.toString()} is in another episode, and its project allows an alert in only one episode: not added to episode ${data.alertEpisodeId.toString()}`,
+            { projectId: data.projectId.toString() } as LogAttributes,
+          );
+          continue;
+        }
+
+        logger.error(
+          `AlertEpisodeMemberService could not add alert ${alertId.toString()} to the episode its grouping rule opened: ${error}`,
+          {
+            projectId: data.projectId.toString(),
+            alertEpisodeId: data.alertEpisodeId.toString(),
+            alertId: alertId.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
+
+    await this.updateEpisodeAfterAddingTogether({
+      projectId: data.projectId,
+      alertEpisodeId: data.alertEpisodeId,
+      addedAlertIds: addedAlertIds,
+      addedByUserId: undefined,
+      raiseSeverity: true,
+      writeFeedItem: true,
+    });
+
+    return addedAlertIds;
+  }
+
+  /*
    * The episode's one feed entry - and its one Slack / Microsoft Teams post
    * - for alerts added together: "**3 alerts** added to episode:", then
    * each by its number, and its title unless it is private

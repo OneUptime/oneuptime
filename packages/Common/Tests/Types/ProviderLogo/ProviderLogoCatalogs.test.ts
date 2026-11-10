@@ -231,6 +231,7 @@ describe("AI / LLM connections", () => {
         [LlmConnectionProvider.ClaudeEnterprise]: ProviderLogo.Claude,
         [LlmConnectionProvider.Microsoft365Copilot]:
           ProviderLogo.MicrosoftCopilot,
+        [LlmConnectionProvider.Cursor]: ProviderLogo.Cursor,
       },
     );
   });

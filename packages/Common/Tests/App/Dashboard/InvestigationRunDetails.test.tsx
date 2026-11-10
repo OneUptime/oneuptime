@@ -76,6 +76,7 @@ jest.mock(
 
 import InvestigationRunDetails, {
   ComponentProps as RunDetailsProps,
+  getFinishedActivityRun,
   INVESTIGATION_READ_ONLY_TEXT,
   InvestigationRunUsage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationRunDetails";
@@ -83,6 +84,8 @@ import { EvidenceFocusRequest } from "../../../../App/FeatureSet/Dashboard/src/C
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import { AIRunEventResultSummary } from "../../../Types/AI/AIChatTypes";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
+import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import OneUptimeDate from "../../../Types/Date";
 import { InvestigationEvidenceItem } from "../../../Types/AI/InvestigationEvidence";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -1185,5 +1188,149 @@ describe("InvestigationRunDetails context changes", () => {
       "true",
     );
     expect(postRequestAt(0).data["investigationRunId"]).toBe(NEXT_RUN_ID);
+  });
+});
+
+/*
+ * The report's Activity tab says when the run started and how long it
+ * took, from the times the card read with the run (issue #6437): it was
+ * handed no times, so a report never said how long its investigation took.
+ */
+describe("InvestigationRunDetails run times", () => {
+  const STARTED_AT: Date = new Date("2026-11-09T14:00:00.000Z");
+  const COMPLETED_AT: Date = new Date("2026-11-09T14:06:00.000Z");
+
+  /*
+   * When the report is read: a run of today says its time of day, one of an
+   * earlier day its date too - so the clock is the test's, not the day the
+   * suite happens to run on.
+   */
+  let readAt: Date = COMPLETED_AT;
+
+  beforeEach(() => {
+    readAt = COMPLETED_AT;
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+      return new Date(readAt.getTime());
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function activitySummary(): HTMLElement | null {
+    return within(panelFor(activityTab())).queryByTestId(
+      "activity-run-summary",
+    );
+  }
+
+  function renderCompletedRun(): void {
+    renderDetails({
+      run: {
+        status: AIRunStatus.Completed,
+        startedAt: STARTED_AT,
+        completedAt: COMPLETED_AT,
+      },
+    });
+    openDetails();
+    fireEvent.click(activityTab());
+  }
+
+  test("the activity says when the run started, how long it took and its steps", () => {
+    renderCompletedRun();
+
+    expect(activitySummary()).toHaveTextContent(
+      /^Started \d{1,2}:\d{2}(\s?[AP]M)? · took 6 minutes · 2 steps$/,
+    );
+    expect(activitySummary()!.querySelector("time")).toHaveAttribute(
+      "dateTime",
+      STARTED_AT.toISOString(),
+    );
+  });
+
+  test("a run of an earlier day says its date as well as its time", () => {
+    readAt = OneUptimeDate.addRemoveDays(COMPLETED_AT, 2);
+
+    renderCompletedRun();
+
+    // A date may hold a narrow no-break space: both sides read as one space.
+    const oneLine: (text: string) => string = (text: string): string => {
+      return text.replace(/\s+/g, " ").trim();
+    };
+
+    expect(oneLine(activitySummary()!.textContent || "")).toBe(
+      oneLine(
+        `Started ${OneUptimeDate.getDateAsLocalShortDateTimeString(STARTED_AT)} · took 6 minutes · 2 steps`,
+      ),
+    );
+    expect(activitySummary()!.querySelector("time")).toHaveAttribute(
+      "dateTime",
+      STARTED_AT.toISOString(),
+    );
+  });
+
+  test("without the run's times it says none, and its steps still show", () => {
+    renderDetails();
+    openDetails();
+    fireEvent.click(activityTab());
+
+    expect(activitySummary()).toBeNull();
+    expect(
+      within(panelFor(activityTab())).getByText("Searching logs"),
+    ).toBeVisible();
+  });
+
+  test("whatever the card last read, they are a finished run's: nothing spins", () => {
+    renderDetails({
+      events: events([
+        { eventType: AIRunEventType.RunStarted },
+        { eventType: AIRunEventType.ToolCallStarted, toolName: "search_logs" },
+      ]),
+      run: {
+        status: AIRunStatus.Running,
+        startedAt: STARTED_AT,
+        retryAt: COMPLETED_AT,
+      },
+    });
+    openDetails();
+    fireEvent.click(activityTab());
+
+    expect(
+      panelFor(activityTab()).querySelectorAll("[class*='animate-']"),
+    ).toHaveLength(0);
+  });
+});
+
+describe("getFinishedActivityRun", () => {
+  test("the run's times, as a run that is over: no wait for another attempt", () => {
+    const createdAt: Date = new Date("2026-11-09T13:59:00.000Z");
+    const startedAt: Date = new Date("2026-11-09T14:00:00.000Z");
+    const completedAt: Date = new Date("2026-11-09T14:06:00.000Z");
+
+    expect(
+      getFinishedActivityRun({
+        status: AIRunStatus.Running,
+        createdAt,
+        startedAt,
+        completedAt,
+        retryAt: new Date("2026-11-09T14:10:00.000Z"),
+      }),
+    ).toEqual({
+      status: AIRunStatus.Completed,
+      createdAt,
+      startedAt,
+      completedAt,
+    });
+  });
+
+  test("no run read: over, with no times", () => {
+    for (const run of [null, undefined]) {
+      expect(getFinishedActivityRun(run)).toEqual({
+        status: AIRunStatus.Completed,
+        createdAt: undefined,
+        startedAt: undefined,
+        completedAt: undefined,
+      });
+    }
   });
 });

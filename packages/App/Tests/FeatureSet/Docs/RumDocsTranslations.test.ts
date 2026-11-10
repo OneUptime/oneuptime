@@ -59,6 +59,7 @@ import {
   KEPT_AS_WRITTEN,
   MOBILE_SETUP,
   OTHER_PRODUCTS,
+  PRODUCT_ANALYTICS,
   PROSE,
   RUM_APPLICATIONS,
   RUM_INDEX,
@@ -146,6 +147,8 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [BROWSER_SETUP]: 20,
   [MOBILE_SETUP]: 29,
   [WEB_VITALS]: 28,
+  // German's "Eine aufgezeichnete Sitzung", alone on its row.
+  [PRODUCT_ANALYTICS]: 27,
   [RUM_APPLICATIONS]: 28,
   [SESSION_REPLAY]: 31,
   [SESSION_REPLAY_TROUBLESHOOTING]: 29,
@@ -252,10 +255,11 @@ const DETAILS_WORDS: Record<
         return drawnDashboardLabel(language, "Clients");
       },
     },
+    // The status's own words: an app nobody is using is idle (#6191).
     {
-      english: "Disconnected",
+      english: "No recent traffic",
       drawn: (language: string): string => {
-        return drawnDashboardLabel(language, "Disconnected");
+        return drawnDashboardLabel(language, "No recent traffic");
       },
     },
   ],

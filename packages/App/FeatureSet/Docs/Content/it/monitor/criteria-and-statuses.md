@@ -39,7 +39,7 @@ Aprite un criterio: ha un nome e tre sezioni, ognuna delle quali si chiude in un
 | Parte | Cosa contiene |
 | --- | --- |
 | **Nome dei criteri** | Il nome nell'elenco dei criteri e nella causa principale di ogni incidente e avviso che il criterio apre. **Aggiungi criteri** dà a un nuovo criterio il nome dei suoi filtri, e il nome li segue finché non ne digitate uno vostro. |
-| **Filtri** | Ciò che il controllo deve mostrare, come uno o più filtri. I monitor Kubernetes e di metriche li chiamano **Alert Rules**. |
+| **Filtri** | Ciò che il controllo deve mostrare, come uno o più filtri. I monitor Kubernetes e di metriche li chiamano **Regole degli avvisi**. |
 | **Azioni** | Cosa succede quando i filtri corrispondono: cambiare lo stato, creare un avviso, dichiarare un incidente o qualsiasi combinazione. |
 | **Impostazioni** | **Abilita questi criteri**, una **Descrizione** facoltativa e, sui monitor di richieste in ingresso, **Group incidents and alerts by a payload field**. |
 
@@ -88,10 +88,23 @@ flowchart TB
 - **Uno alla volta.** Finché un incidente dichiarato da un criterio è ancora aperto, lo stesso criterio che corrisponde di nuovo non ne dichiara un altro. Gli avvisi funzionano allo stesso modo. Un monitor che raggruppa per host o per campo del payload ne tiene uno aperto per host o per valore, e un criterio di un monitor di email in ingresso con **Apri un nuovo incidente per ogni email** ne apre uno per ogni email.
 - **La chiusura.** A un controllo successivo in cui corrisponde un altro criterio, o nessuno, viene risolto un incidente il cui criterio ha attivo **Risoluzione automatica dell'incidente**, e così un avviso con **Risoluzione automatica dell'avviso**. Entrambi si trovano sotto **Altri campi** nell'incidente o nell'avviso, e i criteri con cui parte un nuovo monitor li hanno attivi.
 - **Più sonde.** Un monitor controllato da più di una sonda cambia solo quando le sue sonde concordano. Vedere [Come vengono valutati i criteri](/docs/monitor/create-monitor#come-vengono-valutati-i-criteri).
-- **Un monitor padre fuori servizio.** Nella pagina **Configurazione → Dipendenze** di un monitor, **Depends On Monitors** indica i monitor da cui dipende. Finché uno di essi è in uno stato elencato in **Suppress When Parent Status Is** (qualsiasi stato offline, se lasciato vuoto), il monitor non apre incidenti né avvisi. Il suo stato continua a cambiare, e ciò che è aperto continua a risolversi.
+- **Un monitor padre fuori servizio.** Nella pagina **Configurazione → Dipendenze** di un monitor, **Monitor da cui dipende** indica i monitor da cui dipende. Finché uno di essi è in uno stato elencato in **Sospendi quando lo stato del padre è** (qualsiasi stato offline, se lasciato vuoto), il monitor non apre incidenti né avvisi. Il suo stato continua a cambiare, e ciò che è aperto continua a risolversi.
 - **La manutenzione programmata.** Un monitor incluso in un evento di manutenzione in corso non viene controllato, quindi i suoi criteri non vengono eseguiti. Vedere [Panoramica della manutenzione programmata](/docs/scheduled-maintenance/index).
 
 Per vedere come è stato giudicato un controllo, aprite la **Panoramica** del monitor: la scheda **Riepilogo del monitor** mostra quale criterio ha corrisposto e cosa ha fatto ciascuno, compreso un incidente saltato perché ce n'era già uno aperto.
+
+## Che cosa conserva un incidente o un avviso del controllo
+
+Un incidente o un avviso aperto da un monitor conserva il controllo che lo ha aperto, così potete vedere il perché molto dopo che i log del monitor sono stati eliminati. Sotto la sua causa principale, la sezione **Dettagli della valutazione** indica il criterio che ha corrisposto e, per ogni filtro che ha corrisposto, che cosa ha trovato il controllo. **Mostra dettagli** aggiunge il resto delle prove, i filtri che non hanno corrisposto e il controllo stesso: la richiesta, quando è stato eseguito, da quale sonda e che cosa è tornato. Ciò che un filtro ha trovato può essere:
+
+- **Il campo.** Il punto di un corpo JSON in cui un filtro **Corpo della Risposta** ha corrisposto, come `checks[1].status`, o l'intestazione in cui ha corrisposto un filtro **Response Header Value**.
+- **I valori.** Che cosa conteneva ogni valore letto da una **JavaScript Expression** quando è stata valutata, come `responseBody.status = "down"`.
+- **Un estratto.** Un breve tratto della risposta intorno alla corrispondenza, evidenziata: mai l'intero corpo.
+
+Segreti e dati personali vengono mascherati prima di conservare qualsiasi cosa: intestazioni come `Authorization`, `Cookie` e `Set-Cookie`, campi il cui nome dice `password`, `token`, `key`, `session` o `email`, e testo che sembra un token bearer, un JWT, un numero di carta o un indirizzo email. L'URL della richiesta è quello con cui è stato configurato il monitor, quindi `{{monitorSecrets.NAME}}` resta un nome e un valore segreto della query viene mascherato. I **Registri di monitoraggio** del monitor, e ogni valore che una causa principale cita, vengono mascherati allo stesso modo. Un incidente o un avviso aperto a mano, o prima che i dettagli della valutazione venissero conservati, non ne ha.
+
+> [!TIP]
+> Quando le risposte di un monitor di siti web o API sono sensibili di per sé, disattivate **Conserva il contenuto della risposta** nella scheda **Contenuto della risposta** della sua pagina **Avanzato → Impostazioni**. I suoi registri di monitoraggio, incidenti e avvisi conservano allora quali filtri hanno corrisposto, il codice di stato e il tempo di risposta, e nessuna parte della risposta. Un monitor di richieste in ingresso ha lo stesso interruttore per le richieste che riceve: **Conserva il contenuto della richiesta**, nella scheda **Contenuto della richiesta**. L'interruttore vale per i controlli eseguiti, e per gli incidenti e gli avvisi aperti, dopo averlo cambiato. L'ultima richiesta nella panoramica di un monitor di richieste in ingresso segue subito l'interruttore.
 
 ## Modificare i criteri di un monitor
 
@@ -135,7 +148,7 @@ L'elenco è un ordine. Dove i monitor sono mostrati insieme vince lo stato più 
 
 | Dove | Cosa decide lo stato |
 | --- | --- |
-| L'elenco **Monitor** | Lo stato attuale di ogni monitor. **Non operativo** elenca i monitor in qualsiasi stato tranne quello operativo, con un contatore rosso accanto. |
+| L'elenco **Monitor** | Lo stato attuale di ogni monitor. **Non operativo** elenca i monitor in qualsiasi stato tranne quello operativo, con un contatore rosso accanto. I monitor con il monitoraggio disattivato sono esclusi: niente li controlla, e **Disabilitato** li elenca. |
 | Pagine di stato | Il colore di ogni riga e la sua disponibilità: contano contro di essa solo gli stati in **Conta come inattività** della pagina. Una nuova pagina di stato parte con tutti gli stati tranne quello operativo. Vedere [Scegliere cosa mostra la pagina](/docs/status-pages/index#scegliere-che-cosa-compare-sulla-pagina). |
 | Gruppi di monitor | Lo stato del gruppo: il peggiore dei suoi monitor. Vedere [Gruppi di monitor](/docs/monitor/monitor-groups). |
 | SLO | Il tempo di inattività che uno SLO conta, in base al proprio elenco di stati. Vedere [Quali stati contano come inattività](/docs/slo/introduction#quali-stati-contano-come-inattività). |
@@ -148,7 +161,7 @@ Uno stato che aggiungete in seguito non viene aggiunto all'elenco **Conta come i
 :::steps
 ### Aprire Stato del monitor
 
-Andate in **Monitor → Impostazioni → Stato del monitor**. **Impostazioni** è chiuso nel menu laterale: espandetelo prima. La scheda **Monitor Stati** elenca gli stati dal più sano al peggiore.
+Andate in **Monitor → Impostazioni → Stato del monitor**. **Impostazioni** è chiuso nel menu laterale: espandetelo prima. La scheda **Stati dei monitor** elenca gli stati dal più sano al peggiore.
 
 ### Creare lo stato
 
@@ -167,7 +180,7 @@ Gli stati operativo e offline sono contrassegnati come **Integrato**: potete rin
 
 ### La cronologia degli stati
 
-Ogni cambio di stato resta nella **Cronologia di stato** del monitor: quando è iniziato, quanto è durato e **Visualizza causa** per il criterio che lo ha impostato. **Crea: Monitor Stato Evento** aggiunge uno stato a mano. Su un monitor controllato dalle sonde, il controllo successivo che corrisponde a un criterio con uno stato reimposta quello stato.
+Ogni cambio di stato resta nella **Cronologia di stato** del monitor: quando è iniziato, quanto è durato e **Visualizza causa** per il criterio che lo ha impostato. **Crea: Evento di stato del monitor** aggiunge uno stato a mano. Su un monitor controllato dalle sonde, il controllo successivo che corrisponde a un criterio con uno stato reimposta quello stato.
 
 Un cambio di stato avvisa i proprietari del monitor solo se hanno attivato **Stato del monitor modificato** nelle loro impostazioni di notifica: all'inizio è disattivato. Un monitor che torna al suo **Stato predefinito del monitor** perché nessun criterio ha corrisposto non avvisa nessuno. Vedere [Cosa è attivo per un nuovo membro](/docs/notifications/notification-settings#cosa-è-attivo-per-un-nuovo-membro).
 
@@ -187,7 +200,7 @@ Un criterio più in alto nell'elenco ha corrisposto per primo. Aprite **Configur
 :::
 
 :::details Non si è aperto alcun incidente quando il monitor è andato giù
-Controllate il criterio che ha corrisposto: **Quando i filtri corrispondono, dichiara un incidente.** deve essere attivo. Un incidente non viene dichiarato finché l'incidente dello stesso criterio è ancora aperto, finché un monitor padre in **Depends On Monitors** è fuori servizio, o finché il monitor è in manutenzione programmata. La scheda **Riepilogo del monitor** nella **Panoramica** del monitor indica quale.
+Controllate il criterio che ha corrisposto: **Quando i filtri corrispondono, dichiara un incidente.** deve essere attivo. Un incidente non viene dichiarato finché l'incidente dello stesso criterio è ancora aperto, finché un monitor padre in **Monitor da cui dipende** è fuori servizio, o finché il monitor è in manutenzione programmata. La scheda **Riepilogo del monitor** nella **Panoramica** del monitor indica quale.
 :::
 
 :::details L'incidente resta aperto dopo che il monitor si è ripreso

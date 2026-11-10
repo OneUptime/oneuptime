@@ -48,6 +48,7 @@ const LOCALES: Array<string> = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
 
 // Every string the two Runs pages and the menus put on screen for runs.
@@ -162,7 +163,7 @@ const findOffences: FindOffencesFunction = (
 };
 
 describe("the Dashboard's words for workflow runs, in every language", () => {
-  test("the sweep reads all seventeen locale files", () => {
+  test("the sweep reads all eighteen locale files", () => {
     const files: Array<string> = fs
       .readdirSync(LOCALES_DIR)
       .filter((file: string): boolean => {

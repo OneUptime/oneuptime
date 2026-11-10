@@ -83,6 +83,8 @@ In a grid group, the dialog also asks for the row and the column the monitor goe
 
 The multi-select has a **Labels** tab: click a label and every monitor carrying it is selected at once.
 
+Monitor groups are added the same way. With the **Monitor Groups** switch on, **More actions** also has **Add multiple monitor groups**, which opens **Add Multiple Monitor Groups**: a **Monitor Groups** multi-select, then the same folded **More fields**. Each resource takes its display name and description from its monitor group, and **Add Monitor Groups** adds them all; a monitor group already on the page is left as it is and listed under **Already Added**. The link under the multi-select, **Add Monitor Groups instead.** or **Add Monitors instead.**, switches between the two dialogs and keeps the display options you set. In an empty group, **Add Multiple** opens on monitor groups when **Add Monitor** has been switched to them.
+
 ### Adding by label twice is safe
 
 A status page lists a monitor once. Adding is idempotent, so picking the same label again after labelling a few new monitors adds only the new ones — the monitors already on the page are left exactly as they are, with whatever display name and options you gave them.

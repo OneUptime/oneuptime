@@ -646,6 +646,101 @@ describe("AuditLogExportService, through the whole write", () => {
     );
   });
 
+  /*
+   * Issue #6247: which version of the record an export sends. A new one
+   * sends the newest unless it asks for another; one saved before there
+   * was a choice holds the column's default, 1, until someone changes it;
+   * a version this release does not send is refused, never stored for the
+   * exporter to read as 1.
+   */
+  describe("the record version", () => {
+    test("a new export sends the newest version unless it asks for another", async () => {
+      await AuditLogExportService.create({ data: newS3Export(), props: OWNER });
+      expect(inserted()["schemaVersion"]).toBe(2);
+
+      const first: AuditLogExport = newS3Export();
+      first.schemaVersion = 1;
+      await AuditLogExportService.create({ data: first, props: OWNER });
+      expect(inserted()["schemaVersion"]).toBe(1);
+    });
+
+    test("a version as text, as a form's dropdown holds it, is read as its number", async () => {
+      const asText: AuditLogExport = newS3Export();
+      asText.schemaVersion = "1" as unknown as number;
+
+      await AuditLogExportService.create({ data: asText, props: OWNER });
+
+      expect(inserted()["schemaVersion"]).toBe(1);
+    });
+
+    test.each([[0], [3], [1.5], ["two"]])(
+      "a create asking for version %p is refused, and nothing is saved",
+      async (schemaVersion: unknown) => {
+        const asked: AuditLogExport = newS3Export();
+        asked.schemaVersion = schemaVersion as number;
+
+        await expect(
+          AuditLogExportService.create({ data: asked, props: OWNER }),
+        ).rejects.toThrow("Record Version must be 1 or 2.");
+        expect(exports.inserts).toHaveLength(0);
+      },
+    );
+
+    test("switching an export's version changes only that: its cursor and its settings stay", async () => {
+      await AuditLogExportService.updateOneById({
+        id: new ObjectID(EXPORT_ID),
+        data: { schemaVersion: 2 },
+        props: OWNER,
+      });
+
+      expect(lastUpdate()["schemaVersion"]).toBe(2);
+      expect(Object.keys(lastUpdate())).toEqual(
+        expect.not.arrayContaining([
+          "cursorCreatedAt",
+          "cursorEntryId",
+          "startsAt",
+          "config",
+          "secrets",
+        ]),
+      );
+    });
+
+    test.each([[0], [3], [null], ["latest"]])(
+      "an update asking for version %p is refused, and nothing is written",
+      async (schemaVersion: unknown) => {
+        await expect(
+          AuditLogExportService.updateOneById({
+            id: new ObjectID(EXPORT_ID),
+            data: { schemaVersion } as never,
+            props: OWNER,
+          }),
+        ).rejects.toThrow("Record Version must be 1 or 2.");
+        expect(exports.updates).toHaveLength(0);
+      },
+    );
+
+    test("an edit that does not name the version leaves it as it is", async () => {
+      await AuditLogExportService.updateOneById({
+        id: new ObjectID(EXPORT_ID),
+        data: { name: "Renamed archive" },
+        props: OWNER,
+      });
+
+      expect(Object.keys(lastUpdate())).not.toContain("schemaVersion");
+    });
+
+    test("only a project's owners and admins choose it, as every other setting", async () => {
+      await expect(
+        AuditLogExportService.updateOneById({
+          id: new ObjectID(EXPORT_ID),
+          data: { schemaVersion: 2 },
+          props: member([Permission.ProjectMember]),
+        }),
+      ).rejects.toThrow();
+      expect(exports.updates).toHaveLength(0);
+    });
+  });
+
   describe("reading", () => {
     test("the credentials are never read back, even by an owner", async () => {
       await expect(

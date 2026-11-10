@@ -39,7 +39,7 @@ Abra um critério: ele tem um nome e três seções, cada uma das quais se recol
 | Parte | O que contém |
 | --- | --- |
 | **Nome dos Critérios** | O nome na lista de critérios e na causa raiz de cada incidente e alerta que o critério abre. **Adicionar critérios** dá a um novo critério o nome dos seus filtros, e o nome os acompanha até você digitar um próprio. |
-| **Filtros** | O que a verificação precisa mostrar, como um ou mais filtros. Os monitores de Kubernetes e de métricas os chamam de **Alert Rules**. |
+| **Filtros** | O que a verificação precisa mostrar, como um ou mais filtros. Os monitores de Kubernetes e de métricas os chamam de **Regras de alertas**. |
 | **Ações** | O que acontece quando os filtros correspondem: alterar o status, criar um alerta, declarar um incidente ou qualquer combinação. |
 | **Configurações** | **Habilitar este critério**, uma **Descrição** opcional e, nos monitores de requisições recebidas, **Group incidents and alerts by a payload field**. |
 
@@ -88,10 +88,23 @@ flowchart TB
 - **Um de cada vez.** Enquanto um incidente que um critério declarou ainda estiver aberto, o mesmo critério, ao corresponder de novo, não declara outro. Os alertas funcionam da mesma forma. Um monitor que agrupa por host ou por campo do payload mantém um aberto por host ou por valor, e um critério de monitor de e-mail recebido com **Abrir um novo incidente para cada e-mail** abre um por e-mail.
 - **O fechamento.** Em uma verificação posterior em que outro critério corresponde, ou nenhum, é resolvido um incidente cujo critério tem **Resolver incidente automaticamente** ligado, e também um alerta com **Resolver alerta automaticamente**. Ambos ficam em **Mais campos** dentro do incidente ou do alerta, e os critérios com que um novo monitor começa os têm ligados.
 - **Várias sondas.** Um monitor verificado por mais de uma sonda só muda quando suas sondas concordam. Veja [Como os critérios são avaliados](/docs/monitor/create-monitor#como-os-critérios-são-avaliados).
-- **Um monitor pai fora do ar.** Na página **Configuração → Dependências** de um monitor, **Depends On Monitors** indica os monitores dos quais ele depende. Enquanto um deles estiver em um status listado em **Suppress When Parent Status Is** (qualquer status offline, se ficar vazio), o monitor não abre incidentes nem alertas. Seu status continua mudando, e o que está aberto continua sendo resolvido.
+- **Um monitor pai fora do ar.** Na página **Configuração → Dependências** de um monitor, **Depende dos monitores** indica os monitores dos quais ele depende. Enquanto um deles estiver em um status listado em **Suprimir quando o status do pai for** (qualquer status offline, se ficar vazio), o monitor não abre incidentes nem alertas. Seu status continua mudando, e o que está aberto continua sendo resolvido.
 - **A manutenção programada.** Um monitor em um evento de manutenção em andamento não é verificado, então seus critérios não são executados. Veja [Visão geral da manutenção programada](/docs/scheduled-maintenance/index).
 
 Para ver como uma verificação foi julgada, abra a **Visão geral** do monitor: o cartão **Resumo do monitor** mostra qual critério correspondeu e o que cada um fez, incluindo um incidente ignorado porque já havia um aberto.
+
+## O que um incidente ou alerta guarda da verificação
+
+Um incidente ou alerta que um monitor abre guarda a verificação que o abriu, para que você veja o porquê muito depois de os registros do próprio monitor terem sido apagados. Abaixo da causa raiz, a seção **Detalhes da avaliação** nomeia o critério que correspondeu e, para cada filtro que correspondeu, o que a verificação encontrou. **Mostrar detalhes** acrescenta o resto das evidências, os filtros que não corresponderam e a própria verificação: a solicitação, quando foi feita, de qual sonda e o que voltou. O que um filtro encontrou pode ser:
+
+- **O campo.** Onde um filtro **Corpo da Resposta** correspondeu em um corpo JSON, como `checks[1].status`, ou o cabeçalho em que um filtro **Response Header Value** correspondeu.
+- **Os valores.** O que cada valor lido por uma **JavaScript Expression** continha quando ela foi avaliada, como `responseBody.status = "down"`.
+- **Um trecho.** Uma pequena parte da resposta em volta da correspondência, com ela destacada: nunca o corpo inteiro.
+
+Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: cabeçalhos como `Authorization`, `Cookie` e `Set-Cookie`, campos cujos nomes dizem `password`, `token`, `key`, `session` ou `email`, e texto que parece um token bearer, um JWT, um número de cartão ou um endereço de e-mail. A URL da solicitação é a configurada no monitor, então `{{monitorSecrets.NAME}}` continua sendo um nome, e um valor secreto da consulta é mascarado. Os **Registros de monitoramento** do monitor, e qualquer valor que uma causa raiz cite, são mascarados da mesma forma. Um incidente ou alerta aberto manualmente, ou antes de os detalhes da avaliação serem guardados, não tem nenhum.
+
+> [!TIP]
+> Quando as respostas de um monitor de site ou de API forem sensíveis por si só, desative **Manter o conteúdo da resposta** no cartão **Conteúdo da resposta** da página **Avançado → Configurações** dele. Os registros de monitoramento, incidentes e alertas dele passam a guardar quais filtros corresponderam, o código de status e o tempo de resposta, e nenhuma parte da resposta. Um monitor de requisições recebidas tem o mesmo interruptor para as requisições que recebe: **Manter o conteúdo da solicitação**, no cartão **Conteúdo da solicitação**. O interruptor vale para as verificações executadas, e para os incidentes e alertas abertos, depois que você o muda. A última requisição na visão geral de um monitor de requisições recebidas segue o interruptor na hora.
 
 ## Alterar os critérios de um monitor
 
@@ -135,7 +148,7 @@ A lista é uma ordem. Onde monitores aparecem juntos, vence o status mais abaixo
 
 | Onde | O que o status decide |
 | --- | --- |
-| A lista **Monitores** | O status atual de cada monitor. **Não operacional** lista os monitores em qualquer status exceto o operacional, com um contador vermelho ao lado. |
+| A lista **Monitores** | O status atual de cada monitor. **Não operacional** lista os monitores em qualquer status exceto o operacional, com um contador vermelho ao lado. Monitores com o monitoramento desligado ficam de fora: nada os verifica, e **Desabilitado** os lista. |
 | Páginas de status | A cor de cada linha e sua disponibilidade: só contam contra ela os status em **Conta como indisponibilidade** da página. Uma nova página de status começa com todos os status exceto o operacional. Veja [Escolher o que aparece na página](/docs/status-pages/index#escolher-o-que-aparece-na-página). |
 | Grupos de monitores | O status do grupo: o pior dos seus monitores. Veja [Grupos de monitores](/docs/monitor/monitor-groups). |
 | SLOs | A indisponibilidade que um SLO conta, a partir da sua própria lista de status. Veja [Quais status contam como indisponibilidade](/docs/slo/introduction#quais-status-contam-como-indisponibilidade). |
@@ -148,7 +161,7 @@ Um status que você adicionar depois não entra na lista **Conta como indisponib
 :::steps
 ### Abrir Status do monitor
 
-Vá para **Monitores → Configurações → Status do monitor**. **Configurações** começa recolhido no menu lateral: expanda-o primeiro. O cartão **Monitor Status** lista os status do mais saudável ao pior.
+Vá para **Monitores → Configurações → Status do monitor**. **Configurações** começa recolhido no menu lateral: expanda-o primeiro. O cartão **Status dos monitores** lista os status do mais saudável ao pior.
 
 ### Criar o status
 
@@ -167,7 +180,7 @@ Os status operacional e offline são marcados como **Integrado**: você pode ren
 
 ### A linha do tempo de status
 
-Toda mudança de status fica na **Linha do tempo de status** do monitor: quando começou, quanto durou e **Ver causa** para o critério que a definiu. **Criar: Monitor Status Evento** adiciona um status manualmente. Em um monitor verificado por sondas, a próxima verificação que corresponder a um critério com status define esse status de novo.
+Toda mudança de status fica na **Linha do tempo de status** do monitor: quando começou, quanto durou e **Ver causa** para o critério que a definiu. **Criar: Evento de status do monitor** adiciona um status manualmente. Em um monitor verificado por sondas, a próxima verificação que corresponder a um critério com status define esse status de novo.
 
 Uma mudança de status só avisa os proprietários do monitor se eles tiverem ligado **Status do monitor alterado** nas suas configurações de notificação: começa desligado. Um monitor que volta ao seu **Status Padrão do Monitor** porque nenhum critério correspondeu não avisa ninguém. Veja [O que fica ligado para um novo membro](/docs/notifications/notification-settings#o-que-fica-ativado-para-um-novo-membro).
 
@@ -187,7 +200,7 @@ Um critério mais acima na lista correspondeu primeiro. Abra **Configuração �
 :::
 
 :::details Nenhum incidente foi aberto quando o monitor caiu
-Verifique o critério que correspondeu: **Quando os filtros corresponderem, declarar um incidente.** precisa estar ligado. Um incidente não é declarado enquanto o incidente do mesmo critério ainda estiver aberto, enquanto um monitor pai em **Depends On Monitors** estiver fora do ar, ou enquanto o monitor estiver em manutenção programada. O cartão **Resumo do monitor** na **Visão geral** do monitor diz qual foi.
+Verifique o critério que correspondeu: **Quando os filtros corresponderem, declarar um incidente.** precisa estar ligado. Um incidente não é declarado enquanto o incidente do mesmo critério ainda estiver aberto, enquanto um monitor pai em **Depende dos monitores** estiver fora do ar, ou enquanto o monitor estiver em manutenção programada. O cartão **Resumo do monitor** na **Visão geral** do monitor diz qual foi.
 :::
 
 :::details O incidente continua aberto depois que o monitor se recuperou

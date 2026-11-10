@@ -14,8 +14,10 @@ import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import PermissionUtil from "./Permission";
 import { getListSeparator } from "./ListSeparator";
 import PrivateRecordHeld from "../../Types/PrivateRecord/PrivateRecordHeld";
+import TeamOwnedRuleHeld from "../../Types/TeamOwnedRule/TeamOwnedRuleHeld";
 import {
   getGlobalTranslator,
+  SentenceOptions,
   translatableTerm,
   translationKey,
   Translator,
@@ -93,6 +95,22 @@ export const NEEDS_ROLE_TEMPLATE: string = translationKey(
 export const NEEDS_ONE_OF_ROLES_TEMPLATE: string = translationKey(
   "You need one of these roles: {{roles}}.",
 );
+
+/*
+ * A LOCK IS DRAWN, NEVER STORED: ITS NAMES ARE SET APART.
+ *
+ * Every sentence of a lock - its first, the permissions or roles that
+ * would allow it, the team block that refuses it - is a tooltip's, a
+ * locked row's or a no-access state's words, and nothing else. So its
+ * values are set apart from its words as a drawn sentence's are
+ * (SentenceOptions' setsValuesApart): in a Persian sentence a permission's
+ * English title - "Read Runbook Execution", "Manage Billing, Edit
+ * Project" - is a value of its own, read left to right where the sentence
+ * reads right to left, and a title that ends in a bracket or a digit keeps
+ * it at its end. A name the sentence's language writes (a role's Persian
+ * name) reads with the sentence, with no mark.
+ */
+const LOCK_SENTENCE_OPTIONS: SentenceOptions = { setsValuesApart: true };
 
 // What a lock names: the permissions' titles in English, and of what kind.
 export interface PermissionsToName {
@@ -516,6 +534,110 @@ export default class PermissionGate {
   }
 
   /*
+   * WHAT THE READER HOLDS ON ONE RULE TEAMS OWN (TeamOwnedRuleHeld): null
+   * when it is all they hold - a rule no team owns, a Project Owner or
+   * Project Admin over the whole project, or a master admin - and otherwise
+   * what their blocks and the rows of their teams that own it hold. Read
+   * from the stored snapshot, as every gate reads it.
+   */
+  public static getHeldOnTeamOwnedRule(data: {
+    owningTeamIds: ReadonlyArray<string>;
+  }): HeldPermissions | null {
+    if (User.isMasterAdmin()) {
+      return null;
+    }
+
+    return TeamOwnedRuleHeld.getHeldOnRule({
+      rows: PermissionUtil.getProjectPermissions()?.permissions || [],
+      globalPermissions:
+        PermissionUtil.getGlobalPermissions()?.globalPermissions || [],
+      owningTeamIds: data.owningTeamIds,
+    });
+  }
+
+  /*
+   * Whether the reader changes every rule teams own, whichever teams own it:
+   * a master admin, or a Project Owner or Project Admin over the whole
+   * project (TeamOwnedRuleHeld). Who owns a rule locks nothing of theirs, so
+   * a page has nothing to wait for before offering them its changes.
+   */
+  public static actsOnEveryTeamOwnedRule(): boolean {
+    if (User.isMasterAdmin()) {
+      return true;
+    }
+
+    return TeamOwnedRuleHeld.actsOnEveryTeamOwnedRule(
+      HeldPermissionsUtil.fromRows({
+        rows: PermissionUtil.getProjectPermissions()?.permissions || [],
+        globalPermissions:
+          PermissionUtil.getGlobalPermissions()?.globalPermissions || [],
+      }),
+    );
+  }
+
+  /*
+   * A change of one rule teams own (TeamOwnedRuleHeld): allowed when the
+   * reader's own permissions allow it and - on a rule some teams own - the
+   * teams of theirs that own it allow it too, or they change every rule.
+   * Refused by their own permissions, it says what check says. Refused only
+   * by who owns the rule, it says so with `reason` (the teams named) after
+   * the lock's first sentence - also for a reader on none of the teams that
+   * own it, who holds nothing on the rule at all.
+   *
+   * Asked while the page is still reading who owns the rule (owningTeamIds
+   * undefined), it holds the change back with nothing to say yet - as check
+   * does while the permission snapshot loads - so the page offers no change
+   * it may be about to lock. Unless who owns the rule cannot matter: the
+   * reader's own permissions refuse the change, which it says as ever, or
+   * they change every rule.
+   */
+  public static checkTeamOwnedRule(
+    model: PermissionCheckableModel,
+    action: ModelAction.Update | ModelAction.Delete,
+    data: {
+      owningTeamIds: ReadonlyArray<string> | undefined;
+      reason: string;
+      options?: PermissionGateOptions | undefined;
+    },
+  ): PermissionGateResult {
+    const ownResult: PermissionGateResult = this.check(
+      model,
+      action,
+      data.options,
+    );
+
+    if (!ownResult.isAllowed || User.isMasterAdmin()) {
+      return ownResult;
+    }
+
+    if (data.owningTeamIds === undefined) {
+      return this.actsOnEveryTeamOwnedRule() ? ownResult : { isAllowed: false };
+    }
+
+    const held: HeldPermissions | null = this.getHeldOnTeamOwnedRule({
+      owningTeamIds: data.owningTeamIds,
+    });
+
+    if (
+      !held ||
+      (this.isLoaded(held) &&
+        this.snapshotAllows(model, action, { ...data.options, held: held }))
+    ) {
+      return ownResult;
+    }
+
+    return {
+      isAllowed: false,
+      disabledReason: `${this.buildFirstSentence({
+        singularName:
+          data.options?.singularName || model.singularName || "item",
+        verb: (data.options?.verb?.trim() || action).toLowerCase(),
+        sentence: data.options?.sentence,
+      })} ${data.reason}`,
+    };
+  }
+
+  /*
    * The ids of the teams the reader's permissions are granted on
    * (UserPermission.teamId), as the stored snapshot names them: the teams
    * whose permissions they act with.
@@ -913,15 +1035,20 @@ export default class PermissionGate {
     return ownSentence
       ? translator.translateText(ownSentence) || ownSentence
       : template
-        ? translator.translateTemplate(template, {
-            itemName: translatableTerm(singularName),
-          })
+        ? translator.translateTemplate(
+            template,
+            {
+              itemName: translatableTerm(singularName),
+            },
+            LOCK_SENTENCE_OPTIONS,
+          )
         : translator.translateTemplate(
             "You do not have permission to {{action}} this {{itemName}}.",
             {
               action: translatableTerm(verb),
               itemName: translatableTerm(singularName),
             },
+            LOCK_SENTENCE_OPTIONS,
           );
   }
 
@@ -945,6 +1072,26 @@ export default class PermissionGate {
       permissions: [...data.permissions],
       held: this.getHeldPermissions(data.options),
     });
+  }
+
+  /*
+   * What would let the reader see or do what is refused, where the refusal
+   * has a title of its own instead of a first sentence - a no-access
+   * state's lock and "You don't have access to this list": the team block
+   * that refuses it ("A team you are on blocks Read Runbook Execution."),
+   * or else what would allow it ("You need this permission: Read Runbook
+   * Execution.", getNeededPermissionsSentence). Empty when there is nothing
+   * to name.
+   */
+  public static getAllowingSentence(data: {
+    permissions: ReadonlyArray<Permission>;
+    options?: PermissionGateOptions | undefined;
+  }): string {
+    return this.appendPermissionsToSentence({
+      sentence: "",
+      permissions: [...data.permissions],
+      held: this.getHeldPermissions(data.options),
+    }).trim();
   }
 
   /*
@@ -976,6 +1123,7 @@ export default class PermissionGate {
             translator,
           ),
         },
+        LOCK_SENTENCE_OPTIONS,
       )}`;
     }
 
@@ -1033,6 +1181,60 @@ export default class PermissionGate {
   }
 
   /*
+   * What a list of a model's records names to someone who may read none of
+   * it (the table's no-access state): of the model's read list, the
+   * permissions of its own kind - in the groups its create, edit and delete
+   * permissions are in. Probe's read list holds 22 permissions a team can
+   * be given, 21 of them a monitor's, a network device's, a discovery
+   * scan's, a network site's or a vCenter's, which let a picker show the
+   * project's probes; the one to ask for to read the Probes list is Read
+   * Probe. Project User - held by every member - leaves the lists of teams
+   * and labels the same way. The whole read list, as before, where the
+   * model writes nothing of its own or none of its readers is of its kind.
+   */
+  public static getReadPermissionsOfItsKind(
+    model: PermissionCheckableModel,
+  ): Array<Permission> {
+    const props: Dictionary<PermissionProps> = getPermissionProps();
+    const read: Array<Permission> = model.getReadPermissions() || [];
+
+    const isOwn: (permission: Permission) => boolean = (
+      permission: Permission,
+    ): boolean => {
+      const permissionProps: PermissionProps | undefined = props[permission];
+
+      return Boolean(
+        permissionProps &&
+          !permissionProps.isRolePermission &&
+          permissionProps.isAssignableToTenant,
+      );
+    };
+
+    const kinds: Set<PermissionProps["group"]> = new Set(
+      [
+        ...(model.getCreatePermissions() || []),
+        ...(model.getUpdatePermissions() || []),
+        ...(model.getDeletePermissions() || []),
+      ]
+        .filter(isOwn)
+        .map((permission: Permission): PermissionProps["group"] => {
+          return (props[permission] as PermissionProps).group;
+        }),
+    );
+
+    const ofItsKind: Array<Permission> = read.filter(
+      (permission: Permission): boolean => {
+        return (
+          isOwn(permission) &&
+          kinds.has((props[permission] as PermissionProps).group)
+        );
+      },
+    );
+
+    return ofItsKind.length > 0 ? ofItsKind : read;
+  }
+
+  /*
    * The sentence after a refusal's first that says what would allow it, in
    * the reader's language: "You need this permission: Create Incident Team
    * Owner.", "You need one of these permissions: Manage Billing, Edit
@@ -1055,19 +1257,29 @@ export default class PermissionGate {
 
     if (named.areRoles) {
       return named.titles.length === 1
-        ? words.translateTemplate(NEEDS_ROLE_TEMPLATE, { role: titles })
-        : words.translateTemplate(NEEDS_ONE_OF_ROLES_TEMPLATE, {
-            roles: titles,
-          });
+        ? words.translateTemplate(
+            NEEDS_ROLE_TEMPLATE,
+            { role: titles },
+            LOCK_SENTENCE_OPTIONS,
+          )
+        : words.translateTemplate(
+            NEEDS_ONE_OF_ROLES_TEMPLATE,
+            { roles: titles },
+            LOCK_SENTENCE_OPTIONS,
+          );
     }
 
     return named.titles.length === 1
-      ? words.translateTemplate(NEEDS_PERMISSION_TEMPLATE, {
-          permission: titles,
-        })
-      : words.translateTemplate(NEEDS_ONE_OF_PERMISSIONS_TEMPLATE, {
-          permissions: titles,
-        });
+      ? words.translateTemplate(
+          NEEDS_PERMISSION_TEMPLATE,
+          { permission: titles },
+          LOCK_SENTENCE_OPTIONS,
+        )
+      : words.translateTemplate(
+          NEEDS_ONE_OF_PERMISSIONS_TEMPLATE,
+          { permissions: titles },
+          LOCK_SENTENCE_OPTIONS,
+        );
   }
 
   /*

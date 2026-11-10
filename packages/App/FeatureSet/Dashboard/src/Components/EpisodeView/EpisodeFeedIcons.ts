@@ -72,6 +72,8 @@ export const INCIDENT_EPISODE_FEED_KINDS: Record<
     SHARED_FEED_ENTRY_KINDS.OnCallRuleExecuted,
   [IncidentEpisodeFeedEventType.ChannelMemberAdded]:
     SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
+  [IncidentEpisodeFeedEventType.PublicNoteApproval]:
+    SHARED_FEED_ENTRY_KINDS.PublicNoteApproval,
 };
 
 export const ALERT_EPISODE_FEED_KINDS: Record<

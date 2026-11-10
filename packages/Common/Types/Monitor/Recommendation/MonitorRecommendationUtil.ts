@@ -48,7 +48,9 @@ import {
  * Infrastructure configs carry a metric view plus a named resource
  * identifier. RUM uses generic metric, trace and exception configs, where the
  * application id lives in `telemetryServiceIds`. Databases use generic metric
- * configs scoped by an `oneuptime.database.server.id` query filter. A
+ * configs scoped by an `oneuptime.database.server.id` query filter, and cloud
+ * resources by the attributes their metrics are stored with, naming the
+ * resource's row in each query's event scope. A
  * Kubernetes cluster's warning events are a Logs config scoped by the
  * `resource.k8s.cluster.name` attribute. The optional fields below are the
  * stable query inputs that distinguish those shapes.
@@ -63,6 +65,7 @@ interface RecommendationMonitorStepConfig {
   telemetryServiceIds?: Array<ObjectID | string> | undefined;
   metricViewConfig?: MetricsViewConfig | undefined;
   rollingTime?: unknown;
+  aggregatesWholeWindow?: unknown;
   attributes?: Record<string, unknown> | undefined;
   spanStatuses?: Array<unknown> | undefined;
   spanName?: string | undefined;
@@ -426,6 +429,7 @@ export default class MonitorRecommendationUtil {
       config.arrayIdentifier ||
       this.getTelemetryResourceIdentifier(config) ||
       this.getAttributeScopedResourceIdentifier(config) ||
+      this.getEventScopedResourceIdentifier(config) ||
       this.getLogScopedResourceIdentifier(configKind, config) ||
       "";
 
@@ -574,6 +578,39 @@ export default class MonitorRecommendationUtil {
   }
 
   /*
+   * The cloud resource a metric step names in its queries' event scope
+   * (eventScope.cloudResourceId): a cloud resource's recommended monitors
+   * (CloudAlertTemplates) and the ones built from its Metrics page. Their
+   * filter - the namespace, dimensions, account and region the cloud
+   * reports the resource under - is already part of the fingerprint
+   * through `queryAttributes`; this makes the step's resource as explicit
+   * as a database's, by the row it is about. Deduped and sorted, as above.
+   */
+  private static getEventScopedResourceIdentifier(
+    config: RecommendationMonitorStepConfig,
+  ): string {
+    const values: Set<string> = new Set<string>();
+
+    for (const queryConfig of config.metricViewConfig?.queryConfigs || []) {
+      const eventScope: unknown = queryConfig?.eventScope;
+
+      if (!eventScope || typeof eventScope !== "object") {
+        continue;
+      }
+
+      const value: unknown = (eventScope as Record<string, unknown>)[
+        "cloudResourceId"
+      ];
+
+      if (typeof value === "string" && value.trim()) {
+        values.add(value.trim());
+      }
+    }
+
+    return Array.from(values).sort().join(",");
+  }
+
+  /*
    * The cluster a Logs step is scoped to by its attribute filter - a
    * Kubernetes cluster's warning events (KubernetesEventAlertTemplates), a
    * Proxmox cluster's own notifications (ProxmoxNotificationAlertTemplates).
@@ -615,6 +652,16 @@ export default class MonitorRecommendationUtil {
 
     if (config.metricViewConfig) {
       values.push(`rollingTime=${String(config.rollingTime ?? "")}`);
+
+      /*
+       * A window read whole is a different monitor from the same queries
+       * read a minute at a time (MonitorStepMetricMonitor
+       * .aggregatesWholeWindow). Said only when it is, so every other
+       * metric step fingerprints exactly as before.
+       */
+      if (config.aggregatesWholeWindow === true) {
+        values.push("aggregatesWholeWindow=true");
+      }
     }
 
     if (configKind === "traceMonitor") {
@@ -879,12 +926,34 @@ export default class MonitorRecommendationUtil {
     }>;
     args: MonitorRecommendationArgs;
   }): Map<string, ObjectID> {
+    return this.getCoveredRecommendationMonitorIdsByFingerprint({
+      recommendations: data.recommendations,
+      monitorIdByFingerprint: this.getMonitorIdByFingerprint(
+        data.existingMonitors,
+      ),
+      args: data.args,
+    });
+  }
+
+  /*
+   * Every existing monitor's steps, by serialized fingerprint: the first
+   * monitor of each (see getCoveredRecommendationMonitorIds). Built once and
+   * asked once per resource by a page that lists many resources' coverage
+   * (a cloud account's Recommendations), rather than fingerprinting every
+   * monitor again for each of them.
+   */
+  public static getMonitorIdByFingerprint(
+    existingMonitors: Array<{
+      monitorId: ObjectID;
+      monitorSteps: Array<MonitorStep>;
+    }>,
+  ): Map<string, ObjectID> {
     const monitorIdByFingerprint: Map<string, ObjectID> = new Map<
       string,
       ObjectID
     >();
 
-    for (const existingMonitor of data.existingMonitors) {
+    for (const existingMonitor of existingMonitors) {
       for (const monitorStep of existingMonitor.monitorSteps) {
         const fingerprint: MonitorRecommendationFingerprint | undefined =
           this.getFingerprintFromMonitorStep(monitorStep);
@@ -900,6 +969,18 @@ export default class MonitorRecommendationUtil {
         }
       }
     }
+
+    return monitorIdByFingerprint;
+  }
+
+  // One resource's covered recommendations, against a map built once.
+  public static getCoveredRecommendationMonitorIdsByFingerprint(data: {
+    recommendations: Array<MonitorRecommendation>;
+    monitorIdByFingerprint: Map<string, ObjectID>;
+    args: MonitorRecommendationArgs;
+  }): Map<string, ObjectID> {
+    const monitorIdByFingerprint: Map<string, ObjectID> =
+      data.monitorIdByFingerprint;
 
     const covered: Map<string, ObjectID> = new Map<string, ObjectID>();
 

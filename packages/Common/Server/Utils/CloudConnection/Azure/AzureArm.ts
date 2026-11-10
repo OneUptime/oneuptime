@@ -1,3 +1,4 @@
+import { AZURE_MAX_SPLIT_SERIES_PER_METRIC } from "../../../../Types/Cloud/CloudKeyMetrics";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -35,7 +36,11 @@ import { withCloudRetries } from "../CloudRetry";
  *   GET {arm}{resource id}/providers/Microsoft.Insights/metrics
  *       ?api-version=2023-10-01&metricnames=a,b&timespan=start/end
  *       &interval=PT1M&aggregation=Average,Total
- *       -> per metric, its series' points
+ *       [&$filter=EntityName eq '*'&top=1000&ValidateDimensions=false]
+ *       -> per metric, its series' points - with the filter, one series
+ *          per value of the dimension (metadatavalues), up to `top` of
+ *          them; a metric Azure could not read says so in its errorCode
+ *          while the others are answered. There is no next page.
  *
  *   POST {arm}/providers/Microsoft.ResourceGraph/resources?api-version=2022-10-01
  *       { subscriptions, query, options: { $top, $skipToken } }
@@ -120,11 +125,44 @@ export interface AzureMetricSeriesPoint {
   value: number;
 }
 
+export interface AzureMetricDimensionValue {
+  // As Azure Monitor answers it: lowercased ("entityname").
+  name: string;
+  value: string;
+}
+
 export interface AzureMetricSeries {
   metricName: string;
   unit: string;
   points: Array<AzureMetricSeriesPoint>;
+  /*
+   * The value of each dimension the read was split by ("entityname" =
+   * "orders"); none for a read split by nothing.
+   */
+  dimensions: Array<AzureMetricDimensionValue>;
 }
+
+// A metric of a call that Azure Monitor could not read, while it read the others.
+export interface AzureMetricFailure {
+  metricName: string;
+  code: string;
+  message: string;
+}
+
+// What one metrics call answered.
+export interface AzureMetricsAnswer {
+  series: Array<AzureMetricSeries>;
+  failures: Array<AzureMetricFailure>;
+  /*
+   * The metrics of a split read that came back with as many series as it
+   * asked for at most (`top`): the resource has more values of the
+   * dimension than were read.
+   */
+  capped: Array<string>;
+}
+
+// A dimension name a split read may name in its filter: letters and digits.
+const DIMENSION_NAME_PATTERN: RegExp = /^[A-Za-z][A-Za-z0-9]{0,63}$/;
 
 export interface AzureArmOptions {
   tenantId: string;
@@ -157,6 +195,16 @@ export default class AzureArm {
 
   public getManagementBaseUrl(): string {
     return EntraTokenClient.getEndpoints(this.options.cloud).managementBaseUrl;
+  }
+
+  /*
+   * A token for one of the cloud's data planes - an Event Hubs namespace's
+   * own address, https://<namespace>.servicebus.windows.net - signed in as
+   * the app. The role the app holds there decides what it may do: Azure
+   * Event Hubs Data Receiver, read only.
+   */
+  public async getDataPlaneToken(resource: string): Promise<string> {
+    return await this.tokens.getAccessToken(resource);
   }
 
   // The suffix of the cloud's storage hosts: blob.<suffix>, queue.<suffix>.
@@ -647,7 +695,11 @@ export default class AzureArm {
   /*
    * The points of some metrics of one resource over [start, end), each read
    * with its own aggregation: one call whatever their number (Azure takes
-   * up to 20 metrics a call).
+   * up to 20 metrics a call). Split by a dimension (`splitBy`: a Service
+   * Bus namespace's EntityName), the same one call answers a series per
+   * value of it - each queue and topic - up to `top` per metric, in place
+   * of the resource's one total. ValidateDimensions=false: a metric
+   * without the dimension is answered whole rather than failing the call.
    */
   public async getMetrics(data: {
     resourceId: string;
@@ -655,8 +707,21 @@ export default class AzureArm {
     interval: string;
     start: Date;
     end: Date;
-  }): Promise<Array<AzureMetricSeries>> {
+    splitBy?: string | undefined;
+    top?: number | undefined;
+  }): Promise<AzureMetricsAnswer> {
     AzureMonitorClient.assertResourceId(data.resourceId);
+
+    const splitBy: string = (data.splitBy || "").trim();
+
+    if (splitBy && !DIMENSION_NAME_PATTERN.test(splitBy)) {
+      throw new BadDataException(`Cannot split metrics by "${splitBy}".`);
+    }
+
+    const top: number =
+      data.top && Number.isInteger(data.top) && data.top > 0
+        ? data.top
+        : AZURE_MAX_SPLIT_SERIES_PER_METRIC;
 
     const aggregations: Array<string> = Array.from(
       new Set(
@@ -680,6 +745,13 @@ export default class AzureArm {
         ["timespan", `${data.start.toISOString()}/${data.end.toISOString()}`],
         ["interval", data.interval],
         ["aggregation", aggregations.join(",")],
+        ...(splitBy
+          ? ([
+              ["$filter", `${splitBy} eq '*'`],
+              ["top", top],
+              ["ValidateDimensions", "false"],
+            ] as Array<[string, string | number]>)
+          : []),
       ],
     )}`;
 
@@ -690,12 +762,19 @@ export default class AzureArm {
       aggregationOf[metric.name.toLowerCase()] = metric.aggregation;
     }
 
-    return AzureArm.readMetricSeries(response, aggregationOf);
+    return {
+      series: AzureArm.readMetricSeries(response, aggregationOf),
+      failures: AzureArm.readMetricFailures(response),
+      capped: splitBy ? AzureArm.readCappedMetrics(response, top) : [],
+    };
   }
 
   /*
-   * Each metric's points, the value of its own aggregation. A point Azure
-   * has no value for (no data that minute) is left out.
+   * Each series' points, the value of its metric's own aggregation, with
+   * the dimension values that tell it apart: one series per element of a
+   * metric's timeseries (one, unsplit; one per queue or topic, split). A
+   * point Azure has no value for (no data that minute) is left out, and so
+   * is a series left without any.
    */
   public static readMetricSeries(
     response: JSONObject,
@@ -710,10 +789,16 @@ export default class AzureArm {
       // average, total, maximum, minimum, count - lowercased in the answer.
       const field: string =
         aggregation.charAt(0).toLowerCase() + aggregation.slice(1);
-      const points: Array<AzureMetricSeriesPoint> = [];
+
+      if (!name) {
+        continue;
+      }
 
       for (const rawSeries of readArray(metric["timeseries"])) {
-        for (const rawPoint of readArray(readObject(rawSeries)["data"])) {
+        const timeseries: JSONObject = readObject(rawSeries);
+        const points: Array<AzureMetricSeriesPoint> = [];
+
+        for (const rawPoint of readArray(timeseries["data"])) {
           const point: JSONObject = readObject(rawPoint);
           const value: unknown = point[field];
           const time: number = Date.parse(readText(point["timeStamp"]));
@@ -726,17 +811,86 @@ export default class AzureArm {
             points.push({ timeMs: time, value });
           }
         }
-      }
 
-      if (name && points.length > 0) {
+        if (points.length === 0) {
+          continue;
+        }
+
         series.push({
           metricName: name,
           unit: readText(metric["unit"]),
           points,
+          dimensions: AzureArm.readDimensionValues(timeseries),
         });
       }
     }
 
     return series;
+  }
+
+  // A series' dimension values, each name lowercased as Azure answers it.
+  private static readDimensionValues(
+    timeseries: JSONObject,
+  ): Array<AzureMetricDimensionValue> {
+    const dimensions: Array<AzureMetricDimensionValue> = [];
+
+    for (const raw of readArray(timeseries["metadatavalues"])) {
+      const metadata: JSONObject = readObject(raw);
+      const name: string = readText(readObject(metadata["name"])["value"])
+        .trim()
+        .toLowerCase();
+
+      if (name) {
+        dimensions.push({ name, value: readText(metadata["value"]) });
+      }
+    }
+
+    return dimensions;
+  }
+
+  /*
+   * The metrics Azure Monitor answered with an error of their own (an
+   * errorCode other than Success): the call's other metrics are answered.
+   */
+  public static readMetricFailures(
+    response: JSONObject,
+  ): Array<AzureMetricFailure> {
+    const failures: Array<AzureMetricFailure> = [];
+
+    for (const rawMetric of readArray(response["value"])) {
+      const metric: JSONObject = readObject(rawMetric);
+      const code: string = readText(metric["errorCode"]).trim();
+
+      if (!code || code.toLowerCase() === "success") {
+        continue;
+      }
+
+      failures.push({
+        metricName: readText(readObject(metric["name"])["value"]),
+        code,
+        message: readText(metric["errorMessage"]),
+      });
+    }
+
+    return failures;
+  }
+
+  // The metrics answered with `top` series or more: there were more to read.
+  public static readCappedMetrics(
+    response: JSONObject,
+    top: number,
+  ): Array<string> {
+    const capped: Array<string> = [];
+
+    for (const rawMetric of readArray(response["value"])) {
+      const metric: JSONObject = readObject(rawMetric);
+      const name: string = readText(readObject(metric["name"])["value"]);
+
+      if (name && readArray(metric["timeseries"]).length >= top) {
+        capped.push(name);
+      }
+    }
+
+    return capped;
   }
 }

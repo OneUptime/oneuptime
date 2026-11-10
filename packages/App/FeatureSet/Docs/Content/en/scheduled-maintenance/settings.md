@@ -20,7 +20,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The **
 | **Label Rules**    | Adds labels to matching events.                                     |
 | **Reminder Rules** | Reminds owners at an interval until an event is completed.          |
 
-The **Settings** section holds **Event State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Event Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Custom Fields**, **Measurements**, **Calendar Settings** and **Numbering**. **Calendar Settings** is covered on [Maintenance Calendar](/docs/scheduled-maintenance/calendar#external-calendars), the rest below.
+The **Settings** section holds **Event State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Event Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings** and **Numbering**. **Calendar Settings** is covered on [Maintenance Calendar](/docs/scheduled-maintenance/calendar#external-calendars), the rest below.
 
 The **Workspace** section holds the Slack and Microsoft Teams rules that post events to channels. See [Slack](/docs/workspace-connections/slack#notification-rules) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notification-rules).
 
@@ -93,6 +93,10 @@ These reminders are for your team. The reminders your status page subscribers ge
 ### Note templates
 
 **Scheduled Maintenance → Settings → Note Templates** holds ready-made text for maintenance updates. The **Public or Private Note Templates for Scheduled Maintenance Events** card lists them; **Create Scheduled Maintenance Note Template** asks for a **Template Name**, a **Template Description** and the **Note**. A template is offered when someone writes a public or private note on an event, and when they change its state, and its text can be edited before it is posted. Unlike incident note templates, maintenance note templates fill in no variables.
+
+### Public note approval
+
+**Scheduled Maintenance → Settings → Public Note Approval** has the public notes of scheduled maintenance events approved before they are published. It works as the incidents' page does, with a switch and steps of its own: turn on **Require approval before public notes are published**, and choose who approves under **Who Approves**. So maintenance notes can need approval while incident notes do not, or be approved by other people. Only **Project Owner** and **Project Admin** can change it. See [Public note approval](/docs/incidents/settings#public-note-approval) for the steps, and [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval) for what a note does while it waits.
 
 ### Custom fields
 

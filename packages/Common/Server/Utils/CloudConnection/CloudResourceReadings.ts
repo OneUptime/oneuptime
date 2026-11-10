@@ -13,6 +13,9 @@ import {
   buildCloudMonitoredResourceIdentifier,
 } from "../../../Types/Cloud/CloudMonitoredResource";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
+import { AZURE_DIMENSION_ATTRIBUTE_PREFIX } from "../../../Types/Cloud/CloudKeyMetrics";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import { getCloudAlertTemplateReadingKeys } from "../../../Types/Monitor/CloudAlertTemplates";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -89,6 +92,34 @@ export function readDatapointTimeMs(value: unknown): number | null {
   return Number.isFinite(ms) && ms > 0 ? ms : null;
 }
 
+/*
+ * What tells one split series of a resource's metric from the others: the
+ * values of its split dimensions (a Service Bus queue's or topic's
+ * metadata_entityname), "" for a series split by nothing.
+ */
+export function getSplitSeriesSignature(
+  attributes: Array<OtlpAttribute>,
+): string {
+  const parts: Array<string> = [];
+
+  for (const attribute of attributes) {
+    if (
+      !attribute ||
+      typeof attribute.key !== "string" ||
+      !attribute.key.startsWith(AZURE_DIMENSION_ATTRIBUTE_PREFIX)
+    ) {
+      continue;
+    }
+
+    const value: unknown = readObject(attribute.value)["stringValue"];
+    parts.push(
+      `${attribute.key}=${typeof value === "string" ? value.toLowerCase() : ""}`,
+    );
+  }
+
+  return parts.sort().join("\n");
+}
+
 function readDatapointValue(point: JSONObject): number | null {
   const raw: unknown =
     point["asDouble"] !== undefined ? point["asDouble"] : point["asInt"];
@@ -104,13 +135,22 @@ function readDatapointValue(point: JSONObject): number | null {
 /*
  * The readings of every resource the payloads are about, by the resource's
  * identifier (CloudResource.resourceIdentifier, lower case): for each metric
- * its type keeps, the value of its newest datapoint. A datapoint whose
- * resource cannot be told is left out, as the ingest leaves its resource.
+ * its type keeps, the value of its newest datapoint. A metric read split by
+ * a dimension - a Service Bus or Event Hubs namespace's, one series per
+ * queue and topic - reads the sum of its series at that newest time: the
+ * namespace's whole count, the way its unsplit total read before. A
+ * datapoint whose resource cannot be told is left out, as the ingest
+ * leaves its resource.
  */
 export function collectCloudResourceReadings(
   payloads: Array<JSONObject>,
 ): Map<string, CollectedCloudReadings> {
   const collected: Map<string, CollectedCloudReadings> = new Map();
+  /*
+   * Per resource and reading, the split series already summed into its
+   * newest value: a series is counted once, however often it repeats.
+   */
+  const summedSeries: Map<string, Set<string>> = new Map();
   /*
    * One datapoint set shares its attributes: each set's resource is told
    * once per metric, not once per point.
@@ -220,12 +260,24 @@ export function collectCloudResourceReadings(
             const provider: string = target.resource.provider;
             const key: string | null = getCloudReadingKey(provider, metricName);
 
+            /*
+             * What the health rules judge and the page leads with, and every
+             * metric a recommended monitor of the type reads whose stored
+             * name the read decides (an Azure metric's aggregation): the
+             * monitor reads it under the name its reading keeps.
+             */
             if (
               !key ||
-              !getCloudReadingKeysForType(
-                provider,
-                target.resource.resourceType,
-              ).has(key)
+              !(
+                getCloudReadingKeysForType(
+                  provider,
+                  target.resource.resourceType,
+                ).has(key) ||
+                getCloudAlertTemplateReadingKeys({
+                  provider,
+                  resourceType: target.resource.resourceType,
+                }).has(key)
+              )
             ) {
               continue;
             }
@@ -245,12 +297,44 @@ export function collectCloudResourceReadings(
 
             const existing: CloudResourceReading | undefined =
               entry.readings[key];
+            const summedKey: string = `${target.identifier}\n${key}`;
+            const series: string = getSplitSeriesSignature(
+              readAttributes(point["attributes"]),
+            );
 
-            // The newest datapoint wins; of two at one time, the first read.
+            /*
+             * The newest datapoint wins; of two at one time, the first read -
+             * but split series of one time add up: each is a part of the
+             * whole (a queue's messages of the namespace's).
+             */
+            if (existing && Date.parse(existing.time) === timeMs) {
+              const summed: Set<string> | undefined =
+                summedSeries.get(summedKey);
+
+              if (series && summed && !summed.has("") && !summed.has(series)) {
+                summed.add(series);
+                entry.readings[key] = {
+                  ...existing,
+                  value: existing.value + value,
+                };
+              }
+
+              continue;
+            }
+
             if (!existing || Date.parse(existing.time) < timeMs) {
+              summedSeries.set(summedKey, new Set<string>([series]));
               entry.readings[key] = {
                 value,
                 time: new Date(timeMs).toISOString(),
+                /*
+                 * An Azure metric's stored name says the aggregation its key
+                 * leaves out, which a monitor of it must read
+                 * (CloudResourceReading.metric).
+                 */
+                ...(provider === CloudProvider.Azure
+                  ? { metric: metricName }
+                  : {}),
               };
             }
           }

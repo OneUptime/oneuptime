@@ -14,6 +14,7 @@ import {
   getStatusElement,
 } from "./InsightPresentation";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import { CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -38,6 +39,11 @@ export interface ComponentProps {
    * same. Said unless told otherwise.
    */
   isTypeShown?: boolean | undefined;
+  /*
+   * The insight's fix task, when it has one the reader may read: its
+   * status says where the task stands.
+   */
+  fixTask?: CodeTaskSummaryJSON | undefined;
 }
 
 /*
@@ -104,10 +110,12 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
       lastSeenAt: insight.lastSeenAt,
     });
 
+  // Where the link goes, and what it leaves out, in the reader's language.
   const investigationTitle: string = investigationLink
     ? [
-        investigationLink.label,
-        formatDroppedScopeHint(investigationLink.dropped),
+        translator.translateText(investigationLink.label) ||
+          investigationLink.label,
+        formatDroppedScopeHint(investigationLink.dropped, translator),
       ]
         .filter((sentence: string) => {
           return sentence.length > 0;
@@ -166,7 +174,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
 
   if (insight.status) {
     metaItems.push({
-      element: getStatusElement(insight.status),
+      element: getStatusElement(insight.status, props.fixTask),
       isNarrowLayoutOnly: true,
     });
   }
@@ -260,8 +268,8 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
          * its own unit for assistive technology, which the narrow layout gets
          * from the meta line above.
          */}
-        <div className="max-xl:hidden w-32 flex-shrink-0 xl:block">
-          {getStatusElement(insight.status)}
+        <div className="max-xl:hidden w-52 flex-shrink-0 xl:block">
+          {getStatusElement(insight.status, props.fixTask)}
         </div>
         <div className="max-xl:hidden w-24 flex-shrink-0 text-right text-sm tabular-nums text-gray-700 xl:block">
           {occurrenceCount > 0 ? (

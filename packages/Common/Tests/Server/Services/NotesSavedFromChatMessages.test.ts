@@ -50,6 +50,7 @@ import {
   StoredRow,
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubReadableParents } from "../TestingUtils/ReadableParents";
 import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
@@ -374,6 +375,8 @@ function addNoteOf(service: DatabaseService<BaseModel>): AddNote {
 }
 
 beforeEach(() => {
+  // Public note approval off: every note is published as it is posted.
+  stubPublicNoteApproval({});
   mockProjectStates();
   stubProjectDirectory({});
   stubReadableParents();

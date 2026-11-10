@@ -5,6 +5,7 @@ import {
 } from "Common/Types/AI/AIResourceContext";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import { EXPLAIN_NO_FIX_TOOL_NAME } from "Common/Types/AutoRemediation/RemediationRound";
 import { JSONObject } from "Common/Types/JSON";
 import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
@@ -639,6 +640,15 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     {
       description: "Rolled back a change",
       icon: IconProp.ArrowUturnLeft,
+      category: "Remediation",
+    },
+  ],
+  // Why a fix's round ended without a fix (RemediationRound, issue #6436).
+  [
+    EXPLAIN_NO_FIX_TOOL_NAME,
+    {
+      description: "Explained why there is no fix",
+      icon: IconProp.Info,
       category: "Remediation",
     },
   ],

@@ -41,12 +41,12 @@ A tela é dividida em duas:
 
 | Parte | O que contém |
 | ---- | ------------- |
-| **Navegador de grupos** (à esquerda) | Todos os grupos da página, em árvore, com uma caixa **Search groups...** acima e uma contagem abaixo, como `3 groups · 12 resources`. Uma lista longa termina com um botão **Show N more of M**. |
+| **Navegador de grupos** (à esquerda) | Todos os grupos da página, em árvore, com uma caixa **Buscar grupos...** acima e uma contagem abaixo, como `3 groups · 12 resources`. Uma lista longa termina com um botão **Show N more of M**. |
 | **Topo da página** | A primeira linha do navegador: os recursos sem grupo, que os visitantes veem primeiro, acima de todos os grupos. Em uma página sem grupos, o painel da direita se chama **Todos os recursos**. |
-| **Painel de recursos** (à direita) | Os recursos do grupo selecionado. Seu cabeçalho contém **Edit Group**, o botão principal **Adicionar monitor** e um menu **Mais ações**. |
-| Cabeçalho do cartão | **New Group** e um menu de três pontos com **Import groups from CSV** e **Atualizar**. |
+| **Painel de recursos** (à direita) | Os recursos do grupo selecionado. Seu cabeçalho contém **Editar grupo**, o botão principal **Adicionar monitor** e um menu **Mais ações**. |
+| Cabeçalho do cartão | **Novo grupo** e um menu de três pontos com **Importar grupos de CSV** e **Atualizar**. |
 
-**Os estados vazios dizem o que fazer.** Um grupo vazio mostra **No monitors here yet** com **Adicionar monitor**, **Add Multiple** e, só enquanto a página não tem nenhum grupo, **Create a Group**. Uma pesquisa sem resultados mostra **Nenhum recurso corresponde à sua pesquisa**.
+**Os estados vazios dizem o que fazer.** Um grupo vazio mostra **Ainda não há monitores aqui** com **Adicionar monitor**, **Adicionar vários** e, só enquanto a página não tem nenhum grupo, **Criar um grupo**. Uma pesquisa sem resultados mostra **Nenhum recurso corresponde à sua pesquisa**.
 
 ## Adicionar um monitor
 
@@ -75,19 +75,21 @@ Clique em **Adicionar monitor**. A linha aparece no grupo e na página de status
 Em um grupo em grade, a caixa de diálogo também pede a linha e a coluna em que o monitor fica, acima de **Mais campos**; veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade).
 
 > [!TIP]
-> Para mostrar várias verificações como uma única linha, adicione um [grupo de monitores](/docs/monitor/monitor-groups). Com a chave **Grupos de monitores** ativada (**Configurações do projeto** > **Avançado** > **Sinalizadores de recursos**, que salva assim que você a aciona), um link abaixo da lista suspensa diz **Add a Monitor Group instead.** Clique nele e **Monitor** vira **Monitor Grupo** (**Selecionar Grupo de Monitores**); **Add a Monitor instead.** volta atrás.
+> Para mostrar várias verificações como uma única linha, adicione um [grupo de monitores](/docs/monitor/monitor-groups). Com a chave **Grupos de monitores** ativada (**Configurações do projeto** > **Avançado** > **Sinalizadores de recursos**, que salva assim que você a aciona), um link abaixo da lista suspensa diz **Adicione um grupo de monitores em vez disso.** Clique nele e **Monitor** vira **Grupo de monitores** (**Selecionar Grupo de Monitores**); **Adicione um monitor em vez disso.** volta atrás.
 
 ### Adicionar vários de uma vez
 
-**Add Multiple** (também **Add multiple monitors** no menu **Mais ações**) abre **Add Multiple Monitors**. Ela também tem uma só página: uma seleção múltipla **Monitores**, depois o mesmo **Mais campos** recolhido, cujas opções de exibição valem para cada monitor que você escolher. Cada recurso recebe o nome de exibição e a descrição do seu monitor, e **Adicionar monitores** adiciona todos. É a forma mais rápida de preencher uma página nova.
+**Adicionar vários** (também **Adicionar vários monitores** no menu **Mais ações**) abre **Adicionar vários monitores**. Ela também tem uma só página: uma seleção múltipla **Monitores**, depois o mesmo **Mais campos** recolhido, cujas opções de exibição valem para cada monitor que você escolher. Cada recurso recebe o nome de exibição e a descrição do seu monitor, e **Adicionar monitores** adiciona todos. É a forma mais rápida de preencher uma página nova.
 
 A seleção múltipla tem uma aba **Rótulos**: clique em um rótulo e cada monitor que o tem é selecionado de uma vez.
+
+Os grupos de monitores são adicionados do mesmo jeito. Com o interruptor **Grupos de monitores** ligado, **Mais ações** também tem **Adicionar vários grupos de monitores**, que abre **Adicionar vários grupos de monitores**: uma seleção múltipla **Grupos de monitores**, depois o mesmo **Mais campos** recolhido. Cada recurso recebe o nome de exibição e a descrição do seu grupo de monitores, e **Adicionar grupos de monitores** adiciona todos; um grupo de monitores que já está na página fica como está e aparece em **Já adicionados**. O link abaixo da seleção múltipla, **Adicione grupos de monitores em vez disso.** ou **Adicione monitores em vez disso.**, alterna entre as duas caixas de diálogo e mantém as opções de exibição que você definiu. Num grupo vazio, **Adicionar vários** abre com grupos de monitores quando **Adicionar monitor** foi trocado para eles.
 
 ### Adicionar duas vezes pelo rótulo é seguro
 
 Uma página de status lista cada monitor uma só vez. A adição é idempotente, então escolher de novo o mesmo rótulo depois de rotular alguns monitores novos adiciona só os novos: os monitores que já estão na página ficam exatamente como estão, com o nome de exibição e as opções que você deu a eles.
 
-O resumo ao final da adição em lote diz isso: os monitores adicionados aparecem em **Adicionado**, e os que já estavam lá em **Already Added**. Nada é informado como falha, e nada é gravado para eles.
+O resumo ao final da adição em lote diz isso: os monitores adicionados aparecem em **Adicionado**, e os que já estavam lá em **Já adicionados**. Nada é informado como falha, e nada é gravado para eles.
 
 A mesma regra vale em todo lugar onde um recurso é criado. Adicionar pelo formulário de adição individual um monitor que já está na página, ou apontar para ele um recurso existente pelo formulário de edição, é recusado com *"This monitor is already added to this status page"*, inclusive quando o recurso existente está em outro grupo, porque um visitante ainda veria o monitor duas vezes. Para mostrar um monitor em outro grupo, exclua o recurso que ele já tem e adicione-o onde você quiser.
 
@@ -124,7 +126,7 @@ A maioria dos grupos só precisa de um nome.
 :::steps
 ### Clicar em New Group
 
-**Create New Status Page Group** se abre: dois campos e, depois, duas seções recolhidas.
+**Criar novo grupo da página de status** se abre: dois campos e, depois, duas seções recolhidas.
 
 ### Dar um nome ao grupo
 
@@ -132,14 +134,14 @@ Digite o **Nome do Grupo**: o cabeçalho de seção que os visitantes veem.
 
 ### Aninhá-lo, se ele pertence a outro grupo
 
-Escolha um **Parent Group**, ou deixe em **No parent group (top level)**. **Add a sub group** nos menus de um grupo preenche isso para você.
+Escolha um **Grupo pai**, ou deixe em **Sem grupo pai (nível superior)**. **Adicionar um subgrupo** nos menus de um grupo preenche isso para você.
 
 ### Criar o grupo
 
-Clique em **Create Status Page Group**. O grupo aparece no navegador, pronto para receber monitores.
+Clique em **Criar grupo da página de status**. O grupo aparece no navegador, pronto para receber monitores.
 :::
 
-Os dois campos são **Nome do Grupo** (`name`) e **Parent Group** (`parentStatusPageGroupId`). As duas seções recolhidas guardam todo o resto:
+Os dois campos são **Nome do Grupo** (`name`) e **Grupo pai** (`parentStatusPageGroupId`). As duas seções recolhidas guardam todo o resto:
 
 - **Layout**: seu cabeçalho recolhido diz **Lista** ou **Grade**. Ela contém **Modo de visualização** e os eixos de uma grade (veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade)), e se abre sozinha em um grupo em grade.
 - **Mais campos**: as cópias, no nível do grupo, das opções dos recursos:
@@ -148,22 +150,22 @@ Os dois campos são **Nome do Grupo** (`name`) e **Parent Group** (`parentStatus
   - **Mostrar status atual do grupo** (`showCurrentStatus`): ativado por padrão. Mostra um status ao lado do cabeçalho do grupo.
   - **Mostrar % de tempo de atividade** (`showUptimePercent`): desativado por padrão, com **Selecionar Precisão de Disponibilidade** quando está ativado.
 
-Para alterar um grupo, use **Edit Group** no cabeçalho do painel, ou **Edit group** no menu da linha do navegador: **Edit Status Page Group** se abre, com um botão **Salvar alterações**. O cabeçalho do painel mostra etiquetas para as configurações ativadas (**Grade**, **Collapsed by default**, **Uptime %**), para você ver como um grupo está configurado sem abrir o formulário.
+Para alterar um grupo, use **Editar grupo** no cabeçalho do painel, ou **Edit group** no menu da linha do navegador: **Editar grupo da página de status** se abre, com um botão **Salvar alterações**. O cabeçalho do painel mostra etiquetas para as configurações ativadas (**Grade**, **Recolhido por padrão**, **Disponibilidade %**), para você ver como um grupo está configurado sem abrir o formulário.
 
 ### Gerenciar um grupo
 
 | Onde | Ações |
 | ----- | ------- |
 | O menu da linha do navegador | **Edit group**, **Mover para cima**, **Mover para baixo**, **Mostrar ID**, **Delete group** |
-| O menu **Mais ações** do painel | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Atualizar**, **Delete this group** |
+| O menu **Mais ações** do painel | **Editar este grupo**, **Adicionar um subgrupo**, **Mover grupo para cima**, **Mover grupo para baixo**, **Mostrar ID do grupo**, **Atualizar**, **Excluir este grupo** |
 
-Um grupo salvo sem nome aparece como **Untitled group**, um bom sinal de que você queria digitar alguma coisa.
+Um grupo salvo sem nome aparece como **Grupo sem título**, um bom sinal de que você queria digitar alguma coisa.
 
 ## Aninhar grupos
 
-Os grupos se aninham: defina **Parent Group** no grupo filho, ou use **Add a sub group inside this group** no navegador. O texto de ajuda do formulário descreve a forma para a qual ele foi pensado (algo como Unidades corporativas › Região › Mercado), e cada nível mostra o status e o tempo de atividade consolidados de tudo o que está abaixo dele.
+Os grupos se aninham: defina **Grupo pai** no grupo filho, ou use **Add a sub group inside this group** no navegador. O texto de ajuda do formulário descreve a forma para a qual ele foi pensado (algo como Unidades corporativas › Região › Mercado), e cada nível mostra o status e o tempo de atividade consolidados de tudo o que está abaixo dele.
 
-Quando um grupo tem filhos, o painel de recursos mostra uma fileira de etiquetas **Sub groups** que leva direto a cada filho, para você percorrer a hierarquia sem voltar ao navegador.
+Quando um grupo tem filhos, o painel de recursos mostra uma fileira de etiquetas **Subgrupos** que leva direto a cada filho, para você percorrer a hierarquia sem voltar ao navegador.
 
 O aninhamento compensa em páginas grandes: um provedor de hospedagem com regiões dentro dos produtos, ou um varejista com mercados dentro das unidades de negócio. Em uma página com doze monitores, um único nível plano é mais amigável.
 
@@ -188,7 +190,7 @@ Escolha **Grade** e aparecem mais quatro campos:
 Cada monitor de um grupo em grade ocupa uma célula, então **Adicionar monitor** e a caixa de diálogo de adição em lote pedem a linha e a coluna junto com o monitor, usando os seus próprios rótulos de eixo.
 
 > [!IMPORTANT]
-> Configure os eixos antes de adicionar monitores. Um grupo em grade sem linhas nem colunas mostra um aviso de que ainda não há onde colocar um monitor, com um botão **Set up the grid** que abre o formulário do grupo na seção **Layout**, e o botão **Adicionar monitor** dele some até você fazer isso.
+> Configure os eixos antes de adicionar monitores. Um grupo em grade sem linhas nem colunas mostra um aviso de que ainda não há onde colocar um monitor, com um botão **Configurar a grade** que abre o formulário do grupo na seção **Layout**, e o botão **Adicionar monitor** dele some até você fazer isso.
 
 ## Ordenar o que os visitantes veem
 
@@ -196,8 +198,8 @@ A ordem é você quem define, não o alfabeto:
 
 | O quê | Como reordenar |
 | ---- | ----------------- |
-| Recursos dentro de um grupo | Arraste uma linha. O painel avisa: **Drag a row to change the order visitors see**. |
-| Grupos entre si | **Mover para cima** / **Mover para baixo** no menu da linha do navegador, ou **Move group up** / **Move group down** em **Mais ações**. |
+| Recursos dentro de um grupo | Arraste uma linha. O painel avisa: **Arraste uma linha para mudar a ordem que os visitantes veem**. |
+| Grupos entre si | **Mover para cima** / **Mover para baixo** no menu da linha do navegador, ou **Mover grupo para cima** / **Mover grupo para baixo** em **Mais ações**. |
 | Recursos sem grupo | Ficam em **Topo da página** e sempre aparecem acima de todos os grupos, então coloque ali a coisa que todo mundo verifica primeiro. |
 
 **Dois casos em que arrastar fica desativado.** Pesquisar na caixa **Search in {group}...** desativa a reordenação (o painel diz `N of M shown · drag to reorder is off while filtering`), então limpe a pesquisa primeiro. E os grupos em grade nunca se reordenam arrastando, porque o lugar de um monitor vem da sua linha e da sua coluna.
@@ -230,12 +232,12 @@ Depois disso, uma regra é executada de novo para um monitor sempre que um é cr
 
 ## Importar grupos de um CSV
 
-Montar uma hierarquia profunda à mão é cansativo. **Import groups from CSV**, no menu de três pontos do cabeçalho do cartão, abre a caixa de diálogo **Import Groups from CSV**.
+Montar uma hierarquia profunda à mão é cansativo. **Importar grupos de CSV**, no menu de três pontos do cabeçalho do cartão, abre a caixa de diálogo **Importar grupos de CSV**.
 
 :::steps
 ### Baixar o modelo
 
-Clique em **Download CSV Template** para obter `status-page-groups-template.csv`.
+Clique em **Baixar modelo CSV** para obter `status-page-groups-template.csv`.
 
 ### Preenchê-lo
 
@@ -243,11 +245,11 @@ Uma linha por grupo. Só `name` é obrigatório; as colunas estão listadas abai
 
 ### Enviar e pré-visualizar
 
-Clique em **Choose CSV File**, escolha o seu arquivo e depois **Preview Import** para conferir o que será criado antes que qualquer coisa seja gravada.
+Clique em **Escolher arquivo CSV**, escolha o seu arquivo e depois **Pré-visualizar importação** para conferir o que será criado antes que qualquer coisa seja gravada.
 
 ### Importar
 
-Execute a importação. Uma tabela **Import results** lista cada linha como **Criado**, **Falhou** ou **Ignorado**, com o motivo, para que uma linha com problema nunca desapareça em silêncio.
+Execute a importação. Uma tabela **Resultados da importação** lista cada linha como **Criado**, **Falhou** ou **Ignorado**, com o motivo, para que uma linha com problema nunca desapareça em silêncio.
 :::
 
 | Coluna | O que define |
@@ -265,7 +267,7 @@ Execute a importação. Uma tabela **Import results** lista cada linha como **Cr
 | `columnAxisLabel` | O nome da dimensão das colunas, para um grupo em grade. |
 | `columnAxisValues` | Os valores das colunas, para um grupo em grade. |
 
-A importação cria grupos, não recursos: depois, adicione os monitores com **Adicionar monitor**, **Add Multiple** ou uma regra de monitores.
+A importação cria grupos, não recursos: depois, adicione os monitores com **Adicionar monitor**, **Adicionar vários** ou uma regra de monitores.
 
 ## Solução de problemas
 
@@ -278,7 +280,7 @@ Verifique se o monitor está arquivado: a linha de um monitor arquivado fica de 
 :::
 
 :::details Não há botão Adicionar monitor em um grupo em grade
-A grade ainda não tem linhas nem colunas. Clique em **Set up the grid**, adicione os valores dos eixos na seção **Layout**, e **Adicionar monitor** volta.
+A grade ainda não tem linhas nem colunas. Clique em **Configurar a grade**, adicione os valores dos eixos na seção **Layout**, e **Adicionar monitor** volta.
 :::
 
 :::details Não consigo arrastar as linhas

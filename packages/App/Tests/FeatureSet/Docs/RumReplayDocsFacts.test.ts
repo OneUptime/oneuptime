@@ -20,7 +20,11 @@
  */
 
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
-import { readPage, scanMarkdown } from "./DocsContentSupport";
+import {
+  TRANSLATED_LANGUAGES,
+  readPage,
+  scanMarkdown,
+} from "./DocsContentSupport";
 import { stepCount, tables } from "./DocsPageShape";
 import { cardLines, escapeRegExp } from "./DocsTranslationChecks";
 import { sectionInLanguage } from "./NetworkDocsLabels";
@@ -92,6 +96,7 @@ const SOURCES: Record<string, string> = {
   rumSessionModel: "packages/Common/Models/AnalyticsModels/RumSession.ts",
   rumApplicationService:
     "packages/Common/Server/Services/RumApplicationService.ts",
+  rumApplicationStatus: "packages/Common/Types/Rum/RumApplicationStatus.ts",
   otelIngestBase:
     "packages/App/FeatureSet/Telemetry/Services/OtelIngestBaseService.ts",
   otelIngest: "packages/App/FeatureSet/Telemetry/API/OTelIngest.ts",
@@ -490,18 +495,63 @@ describe("Managing Applications: how an application is created", () => {
   });
 });
 
-describe("Managing Applications: connection status", () => {
-  const status: string = section(RUM_APPLICATIONS, "## Connection status");
+/*
+ * Issue #6191: the status says what is true. An application nobody has used
+ * for a while shows No recent traffic, which is normal, never Disconnected.
+ */
+describe("Managing Applications: status", () => {
+  const status: string = section(RUM_APPLICATIONS, "## Status");
+  const statusSource: string = source("rumApplicationStatus");
 
-  it("turns Disconnected after 15 minutes of silence, counted only while OneUptime was receiving", () => {
+  it("turns No recent traffic after 15 minutes of silence, counted only while OneUptime was receiving", () => {
     const service: string = source("rumApplicationService");
 
-    expect(service).toContain("silenceInMinutes: 15,");
+    expect(service).toContain(
+      "silenceInMinutes: RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES,",
+    );
     expect(service).toContain("ReceivingCoverage.getSilenceCutoff({");
-    expect(status).toContain("**Disconnected** after 15 minutes without any");
+    expect(statusSource).toContain(
+      "export const RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES: number = 15;",
+    );
+    expect(status).toContain(
+      "| **No recent traffic** | Telemetry arrived before, but none in the last 15 minutes.",
+    );
     expect(status).toContain(
       "Time when OneUptime itself was down or catching up on its ingest queue does not count",
     );
+  });
+
+  it("names the three statuses as the Dashboard draws them, in its order, each with what it means", () => {
+    const rows: Array<string> = status
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("| **");
+      });
+
+    expect(
+      rows.map((row: string): string => {
+        return (row.match(/^\| \*\*([^*]+)\*\*/) as RegExpMatchArray)[1]!;
+      }),
+    ).toEqual(["Receiving data", "No recent traffic", "Waiting for data"]);
+    for (const label of [
+      "Receiving data",
+      "No recent traffic",
+      "Waiting for data",
+    ]) {
+      expect(statusSource).toContain(`translationKey("${label}")`);
+    }
+    expect(rows[1]).toContain(
+      "An app sends data only while people use it, so this is normal when nobody does, such as overnight.",
+    );
+    expect(rows[2]).toContain("the application was added by hand");
+  });
+
+  it("says No recent traffic is not an error, and where to look when people are using the app", () => {
+    expect(status).toContain("**No recent traffic** is not an error.");
+    expect(status).toContain(
+      "the application's **Overview** lists what to check, and [RUM Troubleshooting](/docs/rum/troubleshooting) goes through each check.",
+    );
+    expect(status).not.toMatch(/disconnected/i);
   });
 
   it("says Last Seen can trail by about five minutes, the OpenTelemetry ingest's maintenance window", () => {
@@ -1176,8 +1226,27 @@ describe("Session Replay: the session list's filters", () => {
     expect(table).toContain('<MoreMenuSection key="sort" title="Sort">');
     expect(table).toContain("{SESSION_REPLAY_SORT_OPTIONS.map(");
     expect(table).toContain("text={option.label}");
-    // A sort option is not something a person named, so it is looked up.
-    expect(table).not.toContain("isUserContent");
+    /*
+     * A sort option is not something a person named, so it is looked up.
+     * (The one text the table draws as typed is the name of one of the
+     * application's own signals, on its row badge - issue #6443 - whether
+     * the badge draws it on one line or not. Its "+2" is not typed.)
+     */
+    const sortSectionStart: number = table.indexOf(
+      '<MoreMenuSection key="sort" title="Sort">',
+    );
+    const sortSection: string = table.slice(
+      sortSectionStart,
+      table.indexOf("</MoreMenuSection>", sortSectionStart),
+    );
+
+    expect(sortSection).toContain("text={option.label}");
+    expect(sortSection).not.toContain("isUserContent");
+    expect(table.match(/isUserContent=/g)).toHaveLength(2);
+    expect(table.match(/isUserContent=\{isUserContent\}/g)).toHaveLength(2);
+    expect(table).toMatch(
+      /const isUserContent: boolean =\s+badge\.isRowTextUserContent\?\.\(row\) \?\? false;/,
+    );
     expect(source("moreMenuItem")).toContain(
       "{translateString(props.text) ?? props.text}",
     );
@@ -1316,6 +1385,91 @@ describe("Session Replay: the session list's filters", () => {
     );
     expect(sentence).toContain("Page size is 20, 50 or 100.");
   });
+});
+
+/*
+ * Issue #6521: a row whose application's own signals fired draws the first
+ * signal's name as one badge and the others as a "+N" badge beside it
+ * (issue #6443), and the Signals column says so in every language: it used
+ * to say they "share one badge".
+ */
+describe("Session Replay: the session list's own-signal badges", () => {
+  const SIGNALS_ROW_IN_ENGLISH: string =
+    "Your own signals show the first one's name on one badge and, when more fired, a `+N` badge for the others; both are amber when one counted as frustration and grey when all were markers.";
+
+  // The Signals row of the session list's columns table, in a language.
+  const signalsRow: (language: string) => string = (
+    language: string,
+  ): string => {
+    const rows: Array<string> = sectionInLanguage(
+      language,
+      SESSION_REPLAY,
+      "### The session list",
+    )
+      .split("\n")
+      .filter((line: string): boolean => {
+        // _Not counted yet_ is the Signals cell's own word, in every language.
+        return line.startsWith("| **") && line.includes("_Not counted yet_");
+      });
+
+    expect({ language, rows: rows.length }).toEqual({ language, rows: 1 });
+
+    return rows[0] as string;
+  };
+
+  it("draws the first name and the +N count as two badges of one colour", () => {
+    const table: string = source("listTable");
+    const parts: string = table.slice(
+      table.indexOf("export function getCustomSignalBadgeParts("),
+      table.indexOf("export function getCustomSignalBadgeText("),
+    );
+
+    expect(parts).toContain("text: names[0]!,");
+    expect(parts).toContain(
+      "suffix: names.length > 1 ? `+${names.length - 1}` : undefined,",
+    );
+
+    // The count is a badge of its own, in the name's colour.
+    const suffixAt: number = table.indexOf("{parts.suffix ? (");
+    const suffix: string = table.slice(
+      suffixAt,
+      table.indexOf(") : (", suffixAt),
+    );
+
+    expect(suffixAt).toBeGreaterThan(0);
+    expect(suffix).toContain('data-testid="session-row-more-own-signals"');
+    expect(suffix).toMatch(
+      /<StatusBadge\s+text=\{parts\.suffix\}\s+type=\{SEVERITY_TO_BADGE\[severity\]\}/,
+    );
+    expect(table).toMatch(
+      /<StatusBadge\s+text=\{parts\.text\}\s+isOneLine=\{true\}\s+type=\{SEVERITY_TO_BADGE\[severity\]\}/,
+    );
+    // Amber when one counted as frustration, grey when all were markers.
+    expect(table).toMatch(
+      /return \(row\.customSignalFrustrationCount \?\? 0\) > 0\s+\? "warning"\s+: "neutral";/,
+    );
+  });
+
+  it("says so in English, and no longer that they share one badge", () => {
+    const row: string = signalsRow("en");
+
+    expect(row.startsWith("| **Signals** |")).toBe(true);
+    expect(row).toContain(SIGNALS_ROW_IN_ENGLISH);
+    expect(row).not.toMatch(/share[sd]? one badge/);
+    expect(row).not.toContain("counts the others");
+  });
+
+  it.each(TRANSLATED_LANGUAGES)(
+    "says so in %s too: the +N badge is on its Signals row",
+    (language: string) => {
+      const row: string = signalsRow(language);
+
+      expect({ language, plusN: row.split("`+N`").length - 1 }).toEqual({
+        language,
+        plusN: 1,
+      });
+    },
+  );
 });
 
 describe("Session Replay: installing it", () => {

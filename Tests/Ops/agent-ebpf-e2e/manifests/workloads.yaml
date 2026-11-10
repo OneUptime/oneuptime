@@ -24,6 +24,17 @@ spec:
       labels:
         app: redis
     spec:
+      # The e2e's own workload, not what it tests, so it runs unconfined. On k3s
+      # under ubuntu-26.04, AppArmor labels a container's processes
+      # cri-containerd.apparmor.d//&unconfined, and containerd's generated
+      # profile denies every signal to that label: one process of the container
+      # signalling another (postgres's pg_ctl stopping its init server), or a Go
+      # program its own threads (gosu dropping root). The chart's own pods keep
+      # the runtime's profile, as on a customer's node (#6184; containerd#12886,
+      # fixed in no k3s release yet).
+      securityContext:
+        appArmorProfile:
+          type: Unconfined
       nodeSelector:
         e2e.oneuptime.com/apps: "true"
       terminationGracePeriodSeconds: 2
@@ -62,6 +73,10 @@ spec:
       labels:
         app: postgres
     spec:
+      # Unconfined, as the first workload in this file says why (#6184).
+      securityContext:
+        appArmorProfile:
+          type: Unconfined
       nodeSelector:
         e2e.oneuptime.com/apps: "true"
       terminationGracePeriodSeconds: 2
@@ -69,6 +84,16 @@ spec:
         - name: postgres
           image: postgres:17-alpine
           imagePullPolicy: IfNotPresent
+          # As the image's own postgres user (70 in the alpine variants): it needs
+          # no root, and its entrypoint then drops nothing through gosu, whose Go
+          # runtime signals every thread to do it. Running as postgres alone did
+          # not get it started under the k3s profile (pg_ctl could not signal its
+          # init server either); the pod's Unconfined above is what does.
+          securityContext:
+            runAsUser: 70
+            runAsGroup: 70
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
           env:
             - name: POSTGRES_PASSWORD
               value: e2e-not-a-secret
@@ -111,6 +136,10 @@ spec:
       labels:
         app: downstream
     spec:
+      # Unconfined, as the first workload in this file says why (#6184).
+      securityContext:
+        appArmorProfile:
+          type: Unconfined
       nodeSelector:
         e2e.oneuptime.com/apps: "true"
       terminationGracePeriodSeconds: 2
@@ -156,6 +185,10 @@ spec:
       labels:
         app: app
     spec:
+      # Unconfined, as the first workload in this file says why (#6184).
+      securityContext:
+        appArmorProfile:
+          type: Unconfined
       nodeSelector:
         e2e.oneuptime.com/apps: "true"
       terminationGracePeriodSeconds: 2
@@ -241,6 +274,10 @@ spec:
       labels:
         app: sleeper
     spec:
+      # Unconfined, as the first workload in this file says why (#6184).
+      securityContext:
+        appArmorProfile:
+          type: Unconfined
       nodeSelector:
         e2e.oneuptime.com/apps: "true"
       terminationGracePeriodSeconds: 1

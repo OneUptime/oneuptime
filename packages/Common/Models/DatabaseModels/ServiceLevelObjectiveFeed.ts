@@ -64,6 +64,20 @@ export enum ServiceLevelObjectiveFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   LabelRuleExecuted = "LabelRuleExecuted",
   OwnerRuleExecuted = "OwnerRuleExecuted",
+  // The SLO entered, moved between or left the tiers of its error budget policy.
+  ErrorBudgetPolicyTierChanged = "ErrorBudgetPolicyTierChanged",
+  // What a tier of the policy raised, and its resolve.
+  ErrorBudgetPolicyAlertRaised = "ErrorBudgetPolicyAlertRaised",
+  ErrorBudgetPolicyAlertResolved = "ErrorBudgetPolicyAlertResolved",
+  ErrorBudgetPolicyIncidentDeclared = "ErrorBudgetPolicyIncidentDeclared",
+  ErrorBudgetPolicyIncidentResolved = "ErrorBudgetPolicyIncidentResolved",
+  /*
+   * Deployments frozen, or allowed again, while the SLO stayed in its tier:
+   * Freeze Deployments switched on or off for the tier it is in. A tier
+   * change that moves the deploy gate says so in its own item.
+   */
+  ErrorBudgetPolicyDeploymentsFrozen = "ErrorBudgetPolicyDeploymentsFrozen",
+  ErrorBudgetPolicyDeploymentsAllowed = "ErrorBudgetPolicyDeploymentsAllowed",
 }
 
 @EnableDocumentation()

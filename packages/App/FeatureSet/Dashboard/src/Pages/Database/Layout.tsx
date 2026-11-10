@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const DatabaseLayout: FunctionComponent<LayoutPageComponentProps> = (
   _props: LayoutPageComponentProps,
@@ -14,6 +16,7 @@ const DatabaseLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={"Databases"}
+      titleRight={<ProductAboutButton product={ProductKey.Databases} />}
       sideMenu={<SideMenu />}
       breadcrumbLinks={getDatabaseBreadcrumbs(path)}
     >

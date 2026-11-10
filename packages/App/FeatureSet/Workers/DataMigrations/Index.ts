@@ -112,6 +112,7 @@ import BackfillNetworkSiteTypeParents from "./BackfillNetworkSiteTypeParents";
 import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDeviceReachability";
 import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMonitoringMethod";
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
+import AddSessionReplayCustomSignalColumns from "./AddSessionReplayCustomSignalColumns";
 import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
 import EncryptProjectCallSMSConfigTwilioAuthToken from "./EncryptProjectCallSMSConfigTwilioAuthToken";
@@ -125,6 +126,10 @@ import DropLegacyHuntressTables from "./DropLegacyHuntressTables";
 import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
+import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
+import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
+import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
+import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -159,6 +164,7 @@ import AddUserIdToExceptionInstance from "./AddUserIdToExceptionInstance";
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
+import AddTagsColumnToCloudCost from "./AddTagsColumnToCloudCost";
 import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
@@ -838,6 +844,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddProcessColumnsToSecurityEvent(),
   /*
+   * Cloud costs keep their tags (CloudCostV1.tags): a Google Cloud billing
+   * export's labels, else the tags of the resource a cost is billed to, so
+   * Cloud > Costs breaks the spend down by a tag. Metadata-only and
+   * idempotent; rows written before it read no tags. No ordering
+   * requirement, so it sits above the runbook moves, which keep their
+   * places before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new AddTagsColumnToCloudCost(),
+  /*
    * Postmortem statuses (Incidents > Postmortems): every project from before
    * them gets the four a new project starts with, then every incident the
    * status its postmortem is in - Completed when published on a status page,
@@ -943,6 +959,61 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new AddNetworkTrafficUsageUplinkHealthColumns(),
+  /*
+   * Whom OneUptime asked to approve each step of a public note is recorded
+   * since #6353 (PublicNoteApprovalRequest): the notes already waiting take
+   * the people their step asks now as asked, without asking anybody, so the
+   * first change of their approvers asks only those who are new. After
+   * AddPublicNoteApprovalRequest1809063230000; Postgres-only and
+   * idempotent, with no order of its own, so it sits above the runbook
+   * moves, which keep the places right before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RecordApproversAskedAboutWaitingPublicNotes(),
+  /*
+   * Metrics monitors on a Service Bus or Event Hubs namespace that read its
+   * metrics with the average a minute at a time read the average queue
+   * since Azure reports them once per queue (#6415): each moves to the Sum
+   * its namespace's Metrics tab reads (CloudResourceMetricAggregation), so
+   * it reads the namespace's number again, and says so in its feed.
+   * Postgres-only and idempotent, with no order of its own, so it sits
+   * above the runbook moves, which keep their places right before the last
+   * slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RestoreNamespaceMetricMonitorTotals(),
+  /*
+   * Frustration signals a RUM application defines itself (issue #6443):
+   * adds customSignalCount, customSignalFrustrationCount and
+   * customSignalNames to the session and chunk tables. Metadata-only and
+   * idempotent; sessions recorded before it read as "no signals of the
+   * application's own". After AddSessionReplayEngagementColumns, with no
+   * other order of its own, so it sits above the runbook moves, which keep
+   * their places right before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new AddSessionReplayCustomSignalColumns(),
+  /*
+   * An Incoming Request monitor's latest request is kept twice since #6402:
+   * as it came, for the heartbeat job alone
+   * (Monitor.incomingMonitorRequestAsReceived), and as people read it, cut
+   * as the monitor's logs are, by its Keep request content switch. Each
+   * request kept once, as it came, is split so. After the schema migration
+   * AddIncomingMonitorRequestAsReceived; Postgres-only and idempotent, with
+   * no other order of its own, so it sits above the runbook moves, which
+   * keep their places right before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new RedactLatestIncomingRequests(),
+  /*
+   * A status page resource shows a monitor or a monitor group, never both
+   * (issue #6540: the Edit resource form wrote a monitor onto a monitor
+   * group's row and left the group). Every row that names both keeps the
+   * monitor it is shown as, and its monitor group is cleared. Postgres-only,
+   * one statement and idempotent, with no order of its own, so it sits above
+   * the runbook moves, which keep their places right before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ClearMonitorGroupOnMonitorStatusPageResources(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

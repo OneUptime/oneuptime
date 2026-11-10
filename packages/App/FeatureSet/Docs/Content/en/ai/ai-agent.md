@@ -15,14 +15,14 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 :::
 
 > [!TIP]
-> You can also start this from GitHub. Mention the OneUptime GitHub App on an issue or a pull request and it implements, revises or reviews right there: see [GitHub App](/docs/ai/github-app). It is the same agent, the same Runner and the same budgets; only the trigger differs.
+> You can also start this from GitHub. Mention the OneUptime GitHub App on an issue or a pull request and it implements, revises or reviews right there: see [GitHub App](/docs/ai/github-app). It is the same agent, the same Runner and the same limits; only the trigger differs.
 
 ## Ask AI in a repository
 
 :::steps
 ### Open Code
 
-Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first. With no repository yet, it offers **Connect GitHub** instead, with GitLab, Forgejo or Gitea and any Git server under it (see [Connect a repository](#connect-a-repository)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those OneUptime no longer reaches under **Not connected**. Each repository's page has the same box for that repository.
+Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first; filter them by how they stand, each filter with its count, or search them by title or number. With no repository yet, it offers **Connect GitHub** instead, with GitLab, Forgejo or Gitea and any Git server under it (see [Connect a repository](#connect-a-repository)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those OneUptime no longer reaches under **Not connected**. Each repository's page has the same box for that repository, and there you can tick the requests that failed or were stopped and try them all again with **Retry selected**.
 
 ### Pick the repository and the branch
 
@@ -57,15 +57,16 @@ A request carries at most 10 pieces of context. Tokens, keys, passwords and emai
 
 ## A task's conversation
 
-A task's page is a conversation: what was asked and the context added, then AI's turn - the steps it takes as it takes them (the files it read and edited, what it searched for, the commands it ran), its reply, the files it changed with their diff, and the pull request. The top of the page says where the task works (its repository and the branch it started from), how many lines it changed, with a button to its pull request, and how the task stands:
+A task's page is a conversation: what was asked and the context added, then AI's turn - the steps it takes as it takes them (the files it read and edited, what it searched for, the commands it ran), its reply, the files it changed with their diff, and the pull request. The top of the page says where the task works (its repository and the branch it started from), how many files and lines it changed, how long AI has worked on it, with a button to its pull request, and how the task stands:
 
 | State | What it means |
 | --- | --- |
 | **Queued** | It waits for a Runner to pick it up. |
+| **Retrying** | A turn AI tries again by itself says which attempt comes next and when; **Retry now** starts it at once. |
 | **Working…** | AI is on it. **Stop** stops it; what it pushed stays on the branch. |
 | **Waiting for you** | AI asked a question. Answer it in the box below. |
 | **Done** | AI finished: its reply, and the pull request when it changed code. |
-| **Failed** | The turn could not finish, and says why. **Try again** asks the same again. |
+| **Failed** | The turn could not finish, and says why, and after how many attempts when AI tried it again by itself. **Try again** asks the same again. |
 | **Stopped** | Someone stopped it. **Try again** asks the same again. |
 
 To follow up, write in the box at the bottom, which stays in view as the conversation scrolls: answer AI, add context, or ask for changes. Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open. A task takes one turn at a time, so the box waits while AI works. Each turn's **Log** is the verbatim record of what it did. On a task with more than one turn, a picker at the top of the **Log** page moves between its turns.
@@ -97,7 +98,7 @@ flowchart TB
 
 The page the task was started from shows its live status. Every task is listed in its repository under **Products → Code**: its page is its conversation, and each turn's **Log** has a line for every file the Runner read or wrote and every command it ran.
 
-Each run is held to budgets the server enforces: at most **40 LLM calls** and **100,000 output tokens**. A run's production telemetry queries count against the same 40 calls. A run that reaches one finishes with a summary of the work so far instead of looping. Fix runs also count toward the project's daily AI limits, when the project sets them.
+A run makes as many LLM calls and production telemetry queries as its work needs, within its time limit: 120 minutes unless the project sets its own. The project can hold every run to less in **Limits per run**, under **More settings** on **Project Settings → AI → AI Features**; a run that reaches a limit finishes with a summary of the work so far. A Runner from before this release still stops a run at 40 LLM calls and 100,000 output tokens: upgrade it to lift them. Fix runs also count toward the project's daily AI limits, when the project sets them.
 
 ## Where fix tasks start
 
@@ -145,7 +146,7 @@ What the agent can read is decided by the OneUptime server, from the task itself
 - **Read only.** The queries run on the OneUptime server, never on the Runner, which holds no credential that reads telemetry. Nothing they do can change your project.
 - **This project, and only the services this repository serves.** You do not map them: they are the services OneUptime finds this repository for, the way it finds the repository of a fix - their exceptions' stack traces run through its files, they are named like it, or it is the project's only repository. Another service's telemetry cannot be read.
 - **No private incidents**, and tokens, keys, passwords and email addresses are redacted before the agent sees a result, as everywhere OneUptime AI reads your data.
-- **Bounded.** At most **12** queries per run, each counted against the run's 40 calls.
+- **Bounded.** By the run's time limit, and by **Tool Calls per Run** when the project sets it: each query is one tool call.
 
 When no service maps to the repository, the task runs without production telemetry, as before.
 
@@ -192,7 +193,7 @@ Nothing from a pull request that comes from a fork is ever read as the repositor
 Code no longer asks for setup, build and test commands, but a repository that has them, set before or through the API or Terraform, keeps them. They show read-only on the **Build and Test Commands** card, under **More settings** on the repository's **Settings** page, and **Remove Commands** removes all three. While any of them is set, every fix run on a Runner of your own also checks its change with them before the pull request opens:
 
 1. When the code agent finishes, the commands run in order at the root of the repository, on the Runner, in the cloned workspace. Each one gets up to 15 minutes and runs with `CI=true`, so nothing waits on a prompt; the first failure stops the pass.
-2. On a failure, the end of the failing command's output goes back to the same code agent as a repair task, with instructions to fix its own change rather than weaken or skip tests, and the commands run again. It makes at most **2** repair attempts. They share the run's LLM budget, and their edits land in the same commit as the fix.
+2. On a failure, the end of the failing command's output goes back to the same code agent as a repair task, with instructions to fix its own change rather than weaken or skip tests, and the commands run again. It makes at most **2** repair attempts. They count toward the run's limits, and their edits land in the same commit as the fix.
 3. The outcome, passed, failed or skipped (no commands set, or a global Runner), is written in a Verification section of the pull request's description and recorded on the task's pull request.
 
 A change that still fails verification is not thrown away: the pull request opens anyway, with a clearly marked "Verification failed" section that names the failing command and ends with its output. The work is kept, and the reviewer decides. A repository with no commands set is reported as skipped, rather than implying a green build.
@@ -221,11 +222,19 @@ Open **Repositories** in Code's side menu and click **Connect repositories**: Co
 | **GitHub** | The OneUptime GitHub App, installed on the repositories it picks. | Everything on this page, with commands from GitHub (see [GitHub App](/docs/ai/github-app)) and a check on each [production review](#production-review-of-pull-requests). |
 | **GitLab**, on GitLab.com or your own | An access token: a personal, group or project token with the `api` and `write_repository` scopes, and at least the Developer role. | Tasks and fixes, each change in a merge request; [production reviews](#production-review-of-pull-requests); the branch picker; the code a stack trace or a profile runs through; a deploy's commits; whether a fix merged, and what production showed once it shipped. |
 | **Forgejo or Gitea**, on Codeberg or your own | An access token with read and write access to repositories and issues, and read access to the user. | The same as on GitLab, each change in a pull request. |
-| **Any Git server**, over HTTPS | The address you clone the repository with, a username, and a password or access token that can read the repository and push to it. | AI clones the repository and pushes each change to a new branch, and its reply says which: you open the pull request. On Bitbucket and Azure DevOps it links to where you open it. |
+| **Any Git server**, over HTTPS | The address you clone the repository with, a username, and a password or access token that can read the repository and push to it. | AI clones the repository and pushes each change to a new branch, and its reply says which: you open the pull request. On Bitbucket and Azure DevOps it links to where you open it. On Azure DevOps (Services, or Server 2019 and later), OneUptime also reads the code, with the same credentials: the code a stack trace or a profile runs through, and the files OneUptime AI reads. |
 
 Commands from comments need the GitHub App, so they work in GitHub repositories only, for now, and the repository's **Settings** say so. A Git server has no pull requests, so it has no production review either.
 
 For GitLab, Forgejo or Gitea, enter the server's address (GitLab.com and Codeberg are filled in) and the token, then pick the repositories to connect: the list offers only those the token can push to, and connecting more later can reuse the token. OneUptime checks every token with its server before it keeps it, keeps it encrypted and never shows it again. The repository's **Settings** show its server, the account and the token's last characters, with **Replace access token**. When the server refuses a token that expired or was revoked, its repositories show **Token refused** and AI stops working in them, until replacing the token connects every repository that uses it again. On a GitLab repository the settings say merge requests, as GitLab does: **Merge Requests**, **AI Fix Merge Requests** and **Max Open Fix Merge Requests**.
+
+### Sign in to a Git server
+
+OneUptime signs in to a repository on any Git server with the username and the password or access token it is connected with. Unless only your own Runners reach the server, OneUptime checks them before it connects the repository, by asking the server for its branches: the request every clone starts with. A Runner sends them the same way, with Git's first request to the server, as HTTP Basic, so a server that offers Windows sign-in first, such as Azure DevOps Server, takes a personal access token too. Git is given them through its environment, for that one server: never on its command line, and never in the clone's `.git/config`, where the code agent works.
+
+### What AI reads in a Git repository
+
+A Git server has no API to read a repository's files through, so OneUptime reads only the branches of a repository on one, for the branch picker. Azure DevOps is the exception: on Azure DevOps Services, and on Azure DevOps Server 2019 and later, OneUptime reads a repository's code too, through Azure DevOps' own API and with the same credentials. [Ask AI](/docs/ai/ask-ai) and [AI investigations](/docs/ai/ai-sre) read the code of GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories; asked about another Git repository's code, they say they cannot open it. A task in Code still works in a Git repository: the Runner clones it, AI reads and changes the code in the clone, and pushes the change to a new branch.
 
 ### A Git server on a private network
 
@@ -320,15 +329,19 @@ Everything else matches the button:
 ## When a fix fails
 
 :::details The run errors
-The fix could not be applied, the repository or the branch a request started from could not be reached, or the LLM call failed. The task's conversation, and the page it was started from, show the reason and offer to try again. The turn's **Log** has the full run log.
+The fix could not be applied, the repository or the branch a request started from could not be reached, or the LLM call failed. A failure that may pass - the AI model provider busy or down, a call that timed out, the network - is tried again by itself, up to 3 attempts in all, the second after 1 minute and the third after 4, unless the run may already have pushed a branch or opened a pull request. A failure that would happen again, such as a key the provider refuses or no credits left, is not tried again. When a turn fails for good, the task's conversation, and the page it was started from, show the reason and offer to try again. The turn's **Log** has the full run log.
 :::
 
 :::details The Runner stops in the middle of a run
-A run whose heartbeat has been silent for more than 12 minutes is failed with an error. It is never queued again on its own, because the Runner may already have pushed part of a fix branch; start it again from where you started it. A command the code agent runs keeps the heartbeat going while it runs, so a long build or test suite is not taken for a stopped Runner.
+A run whose heartbeat has been silent for more than 12 minutes is tried again by itself in the same way when it has pushed nothing, its task has no pull request, and it has attempts left. Otherwise it fails with an error, because the Runner may already have pushed part of a fix branch; start it again from where you started it. A command the code agent runs keeps the heartbeat going while it runs, so a long build or test suite is not taken for a stopped Runner.
 :::
 
 :::details No Runner picks the task up
 A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, the project's default Runner for a repository that picks none, or a global Runner - fails, with a message that says which, so it never shows as in progress forever. A Runner that takes no code fixes counts as not connected: one started with `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, or a global Runner older than 14.0.94. Code says so before you ask for a task. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
+:::
+
+:::details The server refuses the credentials
+The task fails and says which server refused the credentials OneUptime signed in with, and which repository it could not clone or push its branch to. It is not tried again on the repository's default branch: on a server that signs people in with Windows accounts, such as Azure DevOps Server, a second refused sign-in can count toward locking the account. On GitHub, check that the OneUptime GitHub App is still installed with access to the repository. Elsewhere, check that the username and the password or token can still read the repository and push to it, and give it new ones with **Replace access token** on the repository's **Settings** page. Then try the task again.
 :::
 
 ## Privacy

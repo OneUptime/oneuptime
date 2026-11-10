@@ -48,7 +48,7 @@ Cada número cuenta algo, dice si eso te necesita y abre la lista que hay detrá
 | --- | --- | --- |
 | **Incidentes activos** | Incidentes que no están resueltos | **Todo en orden** |
 | **Alertas activas** | Alertas que no están resueltas | **Todo en orden** |
-| **Monitores no operativos** | Monitores cuyo estado no es uno operativo. Los monitores archivados no cuentan. | **Todos operativos** |
+| **Monitores no operativos** | Monitores cuyo estado no es uno operativo. Los monitores archivados, y los que tienen el monitoreo desactivado, no cuentan. | **Todos operativos** |
 | **Mantenimiento en curso** | Eventos de mantenimiento programado en curso | **Ninguno en curso** |
 | **SLO en riesgo** | SLO activados que están en riesgo o han agotado su presupuesto de error | **Presupuestos en buen estado** |
 
@@ -133,6 +133,9 @@ Sobre el título de cada página, una ruta como *Proyecto › Docker › Ajustes
 
 - **Las listas se mantienen al día solas.** Cuando se crea, se reconoce o se resuelve un incidente o una alerta en cualquier lugar, las listas de incidentes, alertas y episodios lo muestran en segundos, sin recargar. Mientras estás a mitad de algo en una lista, como filas marcadas o un diálogo abierto, la lista espera y se pone al día cuando terminas.
 - **En un teléfono, los chips de filtro se pliegan** tras **Filtro**, para que la lista empiece más arriba. Los chips que fijaste siguen a la vista, con **Borrar todo**. Pulsa **Filtro** para ver todos los chips, y otra vez para plegarlos.
+- La opción **Columnas** del menú **⋯** de una lista elige qué columnas muestra la lista y en qué orden, y las guarda para ti en este navegador. Un propietario o un administrador del proyecto también puede marcar ahí **Mostrar estas columnas a todos en este proyecto**: quien no haya elegido sus propias columnas para esa lista las ve, y **Restablecer los valores predeterminados del proyecto** devuelve las tuyas a ellas.
+- La opción **Filas compactas**, en el mismo menú, dibuja más bajas las filas de todas las listas, así que una lista larga muestra alrededor de una quinta parte más. La elección se guarda en este navegador.
+- **En un teléfono, o en una tarjeta demasiado estrecha para sus filas, una lista se muestra como tarjetas, una por fila.** La banda sobre ellas dice en qué orden están, como **Ordenado por Nombre**: púlsala para elegir la columna por la que se ordenan, y **Ascendente** o **Descendente**.
 - **Las páginas de un incidente empiezan por su número.** Su encabezado, su paso en la ruta y la pestaña del navegador dicen `INC-42 Checkout is down`, y también los diálogos que lo nombran, así que los incidentes con el mismo título se distinguen. Las alertas, los eventos de mantenimiento programado y los episodios hacen lo mismo.
 
 ## Buscar una página, un ajuste o una acción

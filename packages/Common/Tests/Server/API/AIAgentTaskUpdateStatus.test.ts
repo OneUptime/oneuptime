@@ -5,6 +5,7 @@ import CodeFixAgentAuth, {
 import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../Server/Services/AIRunEventService";
+import CodeFixAutoRetry from "../../../Server/Utils/AI/CodeFix/CodeFixAutoRetry";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import Semaphore, {
@@ -391,6 +392,62 @@ describe("POST /ai-agent-task/update-task-status", () => {
   });
 
   /*
+   * An attempt that failed for a reason trying again can fix goes back to
+   * the queue (CodeFixAutoRetry): the run is not failed, gets no RunFailed
+   * event, and the Runner is told it will be tried again.
+   */
+  test("an Error the run will be tried again for is not failed", async () => {
+    const tryAgainSpy: jest.SpyInstance = jest
+      .spyOn(CodeFixAutoRetry, "tryAgainLater")
+      .mockResolvedValue(true);
+
+    await report({
+      status: AIAgentTaskStatus.Error,
+      statusMessage: "The AI could not finish: LLM completion request failed",
+    });
+
+    expect(tryAgainSpy).toHaveBeenCalledWith({
+      runId: runId,
+      failure: "The AI could not finish: LLM completion request failed",
+    });
+    expect(transitionSpy).not.toHaveBeenCalled();
+    expect(appendEventSpy).not.toHaveBeenCalled();
+
+    const sendJson: jest.Mock =
+      Response.sendJsonObjectResponse as unknown as jest.Mock;
+    expect(sendJson.mock.calls[0]![2]).toEqual(
+      expect.objectContaining({ willRetry: true }),
+    );
+  });
+
+  test("an Error that will not be tried again fails the run, as it always did", async () => {
+    jest.spyOn(CodeFixAutoRetry, "tryAgainLater").mockResolvedValue(false);
+
+    await report({
+      status: AIAgentTaskStatus.Error,
+      statusMessage: "Invalid API key provided",
+    });
+
+    expect(transition().set.status).toBe(AIRunStatus.Error);
+    expect(transition().set.errorMessage).toBe("Invalid API key provided");
+    expect(appendEventSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: AIRunEventType.RunFailed }),
+    );
+  });
+
+  test("a Completed report is never tried again", async () => {
+    const tryAgainSpy: jest.SpyInstance = jest.spyOn(
+      CodeFixAutoRetry,
+      "tryAgainLater",
+    );
+
+    await report({ status: AIAgentTaskStatus.Completed });
+
+    expect(tryAgainSpy).not.toHaveBeenCalled();
+    expect(transition().set.status).toBe(AIRunStatus.Completed);
+  });
+
+  /*
    * A pull request the Runner opened but could not record on
    * /ai-agent-data/record-pull-request goes with the Completed status, with
    * the record it failed to make. Without a row the open-PR cap never counts
@@ -462,6 +519,12 @@ describe("POST /ai-agent-task/update-task-status", () => {
             const row: AIAgentTaskPullRequest = (
               createBy as { data: AIAgentTaskPullRequest }
             ).data;
+
+            /*
+             * The width check DatabaseService.create runs: a value longer
+             * than its column holds fails here as it fails there.
+             */
+            AIAgentTaskPullRequestService["checkMaxLengthOfFields"](row);
 
             row.id = ObjectID.generate();
             rows.push(row);
@@ -667,6 +730,51 @@ describe("POST /ai-agent-task/update-task-status", () => {
       });
 
       expect(rows[0]!.aiRunId?.toString()).toBe(runId.toString());
+    });
+
+    /*
+     * A base branch a person picked may run to 255 characters, and a
+     * failure here is only logged: a branch its column could not hold left
+     * the pull request unrecorded, uncounted by the open-PR cap and
+     * untracked by the PR state sync, while the run still completed.
+     */
+    test("records a 200-character branch whole", async () => {
+      const baseRefName: string = `release/${"r".repeat(192)}`;
+      const headRefName: string = `oneuptime/${"h".repeat(190)}`;
+
+      expect(baseRefName).toHaveLength(200);
+      expect(headRefName).toHaveLength(200);
+
+      await report({
+        status: AIAgentTaskStatus.Completed,
+        unrecordedPullRequests: [unrecorded({ baseRefName, headRefName })],
+      });
+
+      expect(succeeded()).toBe(true);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.baseRefName).toBe(baseRefName);
+      expect(rows[0]!.headRefName).toBe(headRefName);
+
+      const decision: OpenPullRequestCapDecision =
+        await OpenPullRequestCap.checkForRepository({
+          codeRepositoryId: checkoutRepositoryId,
+          configuredLimit: 1,
+        });
+
+      expect(decision.openCount).toBe(1);
+    });
+
+    // The check above is real: past what its column holds, nothing is stored.
+    test("a branch longer than any host takes is not recorded cut, and the run still completes", async () => {
+      await report({
+        status: AIAgentTaskStatus.Completed,
+        unrecordedPullRequests: [unrecorded({ baseRefName: "x".repeat(501) })],
+      });
+
+      expect(succeeded()).toBe(true);
+      expect(transition().set.status).toBe(AIRunStatus.Completed);
+      expect(createPullRequestSpy).toHaveBeenCalledTimes(1);
+      expect(rows).toHaveLength(0);
     });
 
     test("a pull request that cannot be recorded does not keep the run from completing", async () => {

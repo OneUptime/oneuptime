@@ -2,9 +2,103 @@ import ReplayChunkBuffer, {
   BufferedReplaySegment,
   RollingReplayBuffer,
 } from "../src/ChunkBuffer";
-import { RrwebEventType, SessionReplayFidelityNotice } from "../src/Contract";
+import {
+  RrwebEventType,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
+  SessionReplayFidelityNotice,
+} from "../src/Contract";
 
 describe("mobile chunk buffering", () => {
+  /*
+   * Issue #6443. A signal of the application's own is counted by name on
+   * the envelope, with how many of its hits were frustration, exactly as
+   * the browser's Chunker counts it; the ingest worker reads the counts
+   * without opening the payload.
+   */
+  describe("signals of the application's own", () => {
+    const signalEvent: (timestamp: number) => {
+      type: RrwebEventType;
+      data: unknown;
+      timestamp: number;
+    } = (timestamp: number) => {
+      return { type: RrwebEventType.Custom, data: {}, timestamp };
+    };
+
+    test("counts each signal by name, and its frustration separately", () => {
+      const buffer: ReplayChunkBuffer = new ReplayChunkBuffer();
+
+      buffer.append(signalEvent(1_000), {
+        customSignal: { name: "Payment failed", isFrustration: true },
+      });
+      buffer.append(signalEvent(1_100), {
+        customSignal: { name: "Help opened", isFrustration: false },
+      });
+      buffer.append(signalEvent(1_200), {
+        customSignal: { name: "Payment failed", isFrustration: true },
+      });
+
+      const segment: BufferedReplaySegment | null = buffer.take();
+
+      expect(segment?.signals.customSignals).toEqual([
+        { name: "Payment failed", count: 2, frustrationCount: 2 },
+        { name: "Help opened", count: 1, frustrationCount: 0 },
+      ]);
+      /* The next chunk starts from nothing. */
+      buffer.append(signalEvent(2_000), { route: "app://com.example.app/" });
+      expect(buffer.take()?.signals.customSignals).toBeUndefined();
+    });
+
+    test("leaves the counts off a chunk that saw no signal", () => {
+      const buffer: ReplayChunkBuffer = new ReplayChunkBuffer();
+
+      buffer.append(signalEvent(1_000), { signal: "customEventCount" });
+
+      expect(buffer.take()?.signals).not.toHaveProperty("customSignals");
+    });
+
+    test("hands out a copy, so a later chunk cannot change a taken one", () => {
+      const buffer: ReplayChunkBuffer = new ReplayChunkBuffer();
+
+      buffer.append(signalEvent(1_000), {
+        customSignal: { name: "Payment failed", isFrustration: true },
+      });
+      const first: BufferedReplaySegment | null = buffer.take();
+      buffer.append(signalEvent(2_000), {
+        customSignal: { name: "Payment failed", isFrustration: true },
+      });
+      buffer.take();
+
+      expect(first?.signals.customSignals).toEqual([
+        { name: "Payment failed", count: 1, frustrationCount: 1 },
+      ]);
+    });
+
+    test("holds at most fifty markers and twenty names a chunk", () => {
+      const buffer: ReplayChunkBuffer = new ReplayChunkBuffer();
+      let appended: number = 0;
+
+      for (let index: number = 0; index < 80; index++) {
+        if (!buffer.hasRoomForCustomSignal()) {
+          break;
+        }
+        buffer.append(signalEvent(1_000 + index), {
+          customSignal: { name: `Signal ${index}`, isFrustration: false },
+        });
+        appended += 1;
+      }
+
+      expect(appended).toBe(SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK);
+      expect(buffer.hasRoomForCustomSignal()).toBe(false);
+      const segment: BufferedReplaySegment | null = buffer.take();
+      expect(segment?.signals.customSignals).toHaveLength(
+        SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
+      );
+      /* A new chunk has room again. */
+      expect(buffer.hasRoomForCustomSignal()).toBe(true);
+    });
+  });
+
   test("tracks checkouts, routes, signals, and notices in the envelope sidecar", () => {
     const buffer: ReplayChunkBuffer = new ReplayChunkBuffer();
     buffer.append(

@@ -90,7 +90,7 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Mattermost
 
 ## Varslingsregler
 
-En varslingsregel sier hvilke hendelser som publiseres i Mattermost, og hvor. Hvert produkt har sine egne regler, under **Arbeidsområde** > **Mattermost** i sin meny: **Hendelser** (med **Hendelse Episoder** og en fane **Sammendrag**), **Varsler** (med **Varsel Episoder** og **Sammendrag**), **Planlagt vedlikehold**, **Monitorer**, **Vakttjeneste** og **Sikkerhetshendelser**. De fungerer som Slacks: se [Varslingsregler](/docs/workspace-connections/slack#varslingsregler) for betingelser, mål og hvem som blir med i en kanal.
+En varslingsregel sier hvilke hendelser som publiseres i Mattermost, og hvor. Hvert produkt har sine egne regler, under **Arbeidsområde** > **Mattermost** i sin meny: **Hendelser** (med **Hendelsesepisoder** og en fane **Sammendrag**), **Varsler** (med **Varselsepisoder** og **Sammendrag**), **Planlagt vedlikehold**, **Monitorer**, **Vakttjeneste** og **Sikkerhetshendelser**. De fungerer som Slacks: se [Varslingsregler](/docs/workspace-connections/slack#varslingsregler) for betingelser, mål og hvem som blir med i en kanal.
 
 En kanal som en regel oppretter, får navn etter posten sin: hendelse INC-42 får `inc-42`. Mattermost tar små bokstaver, tall, `-` og `_`, opptil 64 tegn, med en bokstav eller et tall først og sist, og regelskjemaet viser navnet mens du skriver. Finnes det allerede en kanal med det navnet, for eksempel en arkivert, legger OneUptime til `-2`, `-3` og så videre. En privat hendelse, et privat varsel eller en privat episode får en privat kanal.
 
@@ -131,11 +131,15 @@ Meldingene fra OneUptime har knapper, og en meny **More actions** for det færre
 | **Hendelsesepisode, varselepisode** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Planlagt vedlikehold** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** og **Execute On-Call Policy** åpner et skjema i Mattermost. Et notat på en hendelse eller en planlagt vedlikeholdsbegivenhet kan være offentlig, vist på statussiden, eller privat; et notat på en privat hendelse er alltid privat, og på et varsel også alltid privat. Hver melding har også en lenke som åpner posten i OneUptime, for alt annet.
+**Add Note**, **Change State**, **Change Severity** og **Execute On-Call Policy** åpner et skjema i Mattermost. Et notat på en hendelse eller en planlagt vedlikeholdsbegivenhet kan være offentlig, vist på statussiden, eller privat; et notat på en privat hendelse er alltid privat, og på et varsel også alltid privat. Hver melding har også en lenke som åpner posten i OneUptime, for alt annet. Når prosjektets offentlige notater krever godkjenning, venter et offentlig notat fra skjemaet på den, og en melding bare du ser, sier hvem det venter på: se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
 
 Hvis Mattermost-kontoen din ikke er koblet til ennå, sier en knapp fra om det, med en lenke til **Brukerinnstillinger** > **Arbeidsområde** > **Mattermost**. Koble til kontoen din, og trykk deretter på knappen igjen.
 
 Hvert trykk registreres under **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**, med hvem som trykket.
+
+## Godkjenne et offentlig notat
+
+Når prosjektets offentlige notater må godkjennes og du slår på Mattermost for **Godkjenning av offentlige notater** i varselinnstillingene dine, kommer hvert offentlige notat som venter på et trinn du godkjenner, til direktemeldingene dine med OneUptimes bot: hvem som sendte det, hvilket trinn det venter på, notatet, **Approve**, **Reject** og en lenke til notatet i OneUptime. **Approve** godkjenner det for det trinnet; på det siste trinnet heter knappen **Approve and publish**, og notatet publiseres med en gang. **Reject** åpner et skjema som spør om begrunnelsen: en begrunnelse er påkrevd, og forfatteren av notatet ser den. Knappene handler som deg, etter de samme reglene som i OneUptime, og svarer i en melding bare du ser. Et trykk etter at noen andre har avgjort, eller etter at notatet eller trinnene er endret, avgjør ingenting og sier hva som skjedde. Når notatet er avgjort, endres meldingen til hver godkjenner om det, også din, så den sier hva som skjedde: godkjent for trinnet sitt og hvem det venter på nå, publisert, avvist, endret eller sendt til godkjenning igjen, publisert uten godkjenning, eller slettet. Den beholder lenken sin til notatet i OneUptime, og **Approve** og **Reject** er borte. Hvis Mattermost-kontoen din ikke er koblet til, kobler du den til under **Brukerinnstillinger** > **Arbeidsområde** > **Mattermost** og trykker så på knappen igjen. Når godkjenningstrinnene endres mens et notat venter, endres også meldingen din om det hvis notatet ikke lenger venter på trinnet ditt, eller du ikke lenger blir spurt, og de det nå venter på, får en egen melding. Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
 
 ## Nettverk og selvhosting
 

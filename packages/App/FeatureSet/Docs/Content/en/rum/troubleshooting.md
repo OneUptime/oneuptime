@@ -1,6 +1,6 @@
 # RUM Troubleshooting
 
-When a RUM application is missing, empty or **Disconnected**, work down this page in order. Each check rules out one part of the path from your app to OneUptime, in the order these problems usually happen.
+When a RUM application is missing or empty, or shows **No recent traffic** while people use it, work down this page in order. Each check rules out one part of the path from your app to OneUptime, in the order these problems usually happen.
 
 :::cards
 - [Check the key](#check-the-key): The quickest check, and everything after it depends on it.
@@ -40,6 +40,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `401` with `"valid": false` | The key is missing, unknown, revoked, switched off or expired, and the `message` says which. Create a live key under **Project Settings → Telemetry & APM → Ingestion Keys**. |
 
 A web app needs a **Browser** key, and a mobile app a **Server** key: see [Browser Setup](/docs/rum/browser-setup) and [Mobile Setup](/docs/rum/mobile-setup). The export endpoints refuse a bad key with `401` too, as the OTLP specification asks, so a well-behaved SDK logs the refusal instead of retrying. That line is easy to miss in a browser console, and this check answers directly.
+
+OneUptime also counts what it refuses from a key it knows. The key's page under **Project Settings → Telemetry & APM → Ingestion Keys** lists its **Refused Telemetry** of the past 30 days, and the **Setup check** on the application's **Documentation** page says which kind of telemetry is refused, why, and how to fix it. A missing or unknown key names no project, so nothing counts it: this check and the `401` are all there is.
 
 ## Check what leaves the browser
 
@@ -109,6 +111,34 @@ The application exists, but its pages show nothing.
 - **Wait a few minutes.** Ingest is queued, and **Last Seen** is refreshed every few minutes rather than on every batch.
 - **Check the project.** A key writes into its own project, so telemetry sent with another project's key is there, not here.
 
+## Exceptions or logs are empty
+
+Page loads and requests arrive, but **Exceptions** or **Logs** stay empty. The OpenTelemetry browser SDK sends traces of page loads and requests on its own, but no exceptions and no logs, so an application can look connected while these two stay empty for good.
+
+The empty chart on the application's **Overview** says which case it is, and the **Setup check** on its **Documentation** page lists each kind of telemetry with when the latest arrived:
+
+| The chart says | What it means |
+| --- | --- |
+| **Exceptions aren't set up** or **Logs aren't set up** | None has ever arrived from this app. **Set up exceptions** or **Set up logs** shows the code that sends them, with your URL and key filled in. |
+| **No exceptions in this time range** or **No logs in this time range** | Some arrived before, and the chart says when the last one did. Pick the longer range it offers. |
+| **Nothing has arrived from this app yet** | No telemetry of any kind arrives: start with [Check the key](#check-the-key). |
+| **The OpenTelemetry SDK isn't reporting** | Only Session Replay reports from this app: set up the SDK as in [Browser Setup](/docs/rum/browser-setup). |
+| **Exceptions are being refused** or **Logs are being refused** | OneUptime refused them after the last one arrived, and the chart says why and when: the key is switched off or expired, it doesn't allow your site's origin, a limit or a budget is used up, or the project has no payment method. Its button puts it right: **Pick another key**, **Open the key**, **See budgets** or **Add a payment method**. |
+
+Exceptions need an error handler, because the SDK does not capture uncaught errors: [Report uncaught errors](/docs/rum/browser-setup#report-uncaught-errors) has the code. An error that an error boundary or a `try`/`catch` handles never reaches the window, so record it where you handle it, with `span.recordException`.
+
+Logs need a log pipeline and code that writes log records, because a `LoggerProvider` on its own sends nothing: [Add logs and metrics](/docs/rum/browser-setup#add-logs-and-metrics) has both. Build the pipeline with the same `resource` as your traces, or the logs are filed under a backend service.
+
+When page loads arrive, the key, its allowed origins and your Content Security Policy let exceptions and logs through as well, as long as the log exporter uses the same key and host. An error handler that has caught nothing sends nothing, exactly like one that was never added, so throw a test error from the browser's console to tell the two apart:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Within a minute, it is on the application's **Overview**, under **Exceptions**.
+
 ## The Clients page is empty
 
 The **Clients** page lists `browser.platform` on the web and `device.model.identifier` on mobile. Two reasons it stays empty while everything else works:
@@ -120,15 +150,15 @@ The **Clients** page lists `browser.platform` on the web and `device.model.ident
 
 The card fills only from metrics your app sends, so traces alone never fill it. Check that you export metrics at all, that the metric names are ones OneUptime reads, and that they are on the application's **Metrics** page. [The card says "No web vitals reported yet"](/docs/rum/web-vitals#troubleshooting) goes through each check, including values lost when a visitor closes the tab before the next export.
 
-## The status says Disconnected while people use the app
+## The status says No recent traffic while people use the app
 
-An application turns **Disconnected** after 15 minutes with no telemetry. If people are using the app:
+An application shows **No recent traffic** after 15 minutes with no telemetry. If people are using the app:
 
 - **A sampler may drop everything.** Check that you did not set an always-off sampler, or a very low ratio.
 - **The app may send telemetry only on some interactions**, and nobody used them in that time.
 - **The key may have been revoked or switched off** after you deployed: run the [key check](#check-the-key) again.
 
-An internal or low-traffic app with no visitors overnight is genuinely disconnected. That is not a fault.
+An internal or low-traffic app with no visitors overnight shows **No recent traffic** too. That is normal, not a fault.
 
 ## Session Replay problems
 

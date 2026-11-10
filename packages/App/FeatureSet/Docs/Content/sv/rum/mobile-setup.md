@@ -215,8 +215,8 @@ Tjänsten som redan har skapats blir inte en RUM-applikation, så radera den und
 Klientrader kommer bara från `device.model.identifier`. Ett SDK som bara sätter `device.id` eller `device.manufacturer` arkiverar appen som mobil-RUM, men listar inga klienter: Sätt även `device.model.identifier`.
 :::
 
-:::details Statusen säger Frånkopplad medan folk använder appen
-Statusen växlar till **Frånkopplad** efter 15 minuter utan telemetri. Om folk använder appen:
+:::details Statusen säger Ingen trafik nyligen medan folk använder appen
+Statusen växlar till **Ingen trafik nyligen** efter 15 minuter utan telemetri. Om folk använder appen:
 
 - En sampler kanske kastar allt: Leta efter en always-off-sampler eller en mycket låg kvot.
 - Appen kanske bara skickar telemetri för åtgärder som ingen utförde under den tiden.

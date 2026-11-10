@@ -97,6 +97,7 @@ In **Condividi**, copia il link e invialo alle persone che devono usare il modul
 | **Domini personalizzati** | I domini propri del modulo, come `report.acme.com`, con i loro record DNS e certificati. Vedi [Domini personalizzati](/docs/forms/sharing-and-security#domini-personalizzati). |
 | **Invii** | Ogni invio fatto tramite il modulo, il più recente per primo, con le sue risposte e ciò che ha creato. |
 | **Duplica modulo** | In **Avanzato**: una copia del modulo, con un nome scelto per te, con le sue domande, i modelli, le impostazioni All'invio, il branding, il messaggio di ringraziamento e la lista degli IP consentiti, e un link proprio. La copia parte disattivata e si apre nel suo editor. |
+| **Registri di audit** | In **Avanzato**: ogni modifica fatta al modulo, ai suoi domini personalizzati e ai suoi invii, chi l'ha fatta e quando. |
 | **Elimina modulo** | L'eliminazione del modulo, in **Avanzato**. I suoi invii vengono eliminati con lui; gli incidenti e gli eventi che ha creato no. |
 
 La sezione **Sviluppatori** del menu del modulo contiene le sue pagine Terraform, API e assistente AI, come per ogni altra risorsa.
@@ -113,7 +114,7 @@ Un modello e un modulo ti evitano entrambi di digitare due volte lo stesso incid
 | Cosa si vede | I tuoi monitor, le policy, i proprietari e ogni campo | Il nome, la descrizione e le domande del modulo, e solo le opzioni che hai scelto di offrire |
 | Pagine di stato | Ciò che dicono il modello e il modulo di dichiarazione | Nascosto finché qualcuno che interviene non pubblica l'incidente |
 
-Funzionano insieme. Assegna a un modulo di incidenti un **Incidente Modello** nella sua pagina **All'invio**, e ogni incidente che dichiara viene dichiarato da quel modello: costruisci il modello per ciò che serve al tuo team sull'incidente, e il modulo per ciò che vuoi chiedere a chi invia.
+Funzionano insieme. Assegna a un modulo di incidenti un **Modello di incidente** nella sua pagina **All'invio**, e ogni incidente che dichiara viene dichiarato da quel modello: costruisci il modello per ciò che serve al tuo team sull'incidente, e il modulo per ciò che vuoi chiedere a chi invia.
 
 ## Invii
 

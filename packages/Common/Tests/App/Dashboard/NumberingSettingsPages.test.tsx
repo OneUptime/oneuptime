@@ -1031,8 +1031,8 @@ describe("translations", () => {
     }),
   ];
 
-  test("there are 17 locale files", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("there are 18 locale files", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
   });
 
   test.each(SHOWN)("%j has a translation in every locale", (text: string) => {

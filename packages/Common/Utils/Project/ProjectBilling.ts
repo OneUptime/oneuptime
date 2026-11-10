@@ -76,7 +76,7 @@ export const PROJECT_BILLING_CONTACT_UPDATE_PERMISSIONS: ReadonlyArray<Permissio
  * billing pages and through the API - the plan and subscription, the
  * reseller it was bought from, the contact details, both balances and their
  * Auto Recharge, the paid channel switches, the AI spend settings and the
- * usage the plan counts. Every
+ * limits on each AI run, and the usage the plan counts. Every
  * member reads most of these anyway (Project User); the billing roles read
  * them by name, so an API key given only a billing role reads them too.
  */
@@ -114,6 +114,11 @@ export const PROJECT_BILLING_READ_COLUMNS: ReadonlyArray<string> = [
   "enableAi",
   "aiDailyTokenLimit",
   "aiDailySpendLimitInUSD",
+  // The limits on each AI run, which decide what a run may cost (#6440).
+  "aiRunMaxModelCalls",
+  "aiRunMaxToolCalls",
+  "aiRunMaxTokens",
+  "aiRunTimeLimitInMinutes",
   // Usage the plan counts.
   "workflowRunsInLast30Days",
 ];
@@ -161,13 +166,34 @@ export const PROJECT_CUSTOMER_BALANCE_READ_PERMISSIONS: ReadonlyArray<Permission
     ...PROJECT_BILLING_READ_ROLES,
   ];
 
-// Who reads the project's usage history (TelemetryUsageBilling).
+/*
+ * Who reads what the project's telemetry usage cost: the cost of each usage
+ * row (TelemetryUsageBilling.totalCostInUSD) and the marketplace usage sums.
+ */
 export const PROJECT_USAGE_READ_PERMISSIONS: ReadonlyArray<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.ManageProjectBilling,
   ...PROJECT_BILLING_READ_ROLES,
 ];
+
+/*
+ * Who reads how much telemetry the project sent (TelemetryUsageBilling, every
+ * column but the cost): Project Settings > Telemetry & APM > Usage. Usage is
+ * not billing data - a server without billing counts it too - so whoever
+ * reads the project's telemetry reads how much of it there is: the roles that
+ * read every log, trace and metric (Project Member, Viewer and the Telemetry
+ * roles), and everyone who reads its cost.
+ */
+export const PROJECT_TELEMETRY_USAGE_READ_PERMISSIONS: ReadonlyArray<Permission> =
+  [
+    ...PROJECT_USAGE_READ_PERMISSIONS,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.TelemetryViewer,
+  ];
 
 /*
  * Who adds a payment method (POST /billing-payment-methods/setup, and the

@@ -45,6 +45,12 @@ export interface OnCallPassOnPage {
    * Absent, or false, for any other page.
    */
   isPageAgain?: boolean;
+  /*
+   * An observer's page (oncall/observerPage.ts): answered with "I've seen
+   * it", and never escalated from the app. Absent, or false, for a
+   * responder's page - and on an older server, which does not say.
+   */
+  isObserverPage?: boolean;
 }
 
 // What escalating one page came to.
@@ -93,6 +99,8 @@ export function toOnCallPassOnPages(body: unknown): OnCallPassOnPage[] {
       sentence: toPlainText(page["sentence"]).trim(),
       // Only ever sent as true; an older server sends nothing.
       isPageAgain: page["isPageAgain"] === true,
+      // Said only of an observer's page, and only as true.
+      ...(page["isObserverPage"] === true ? { isObserverPage: true } : {}),
     });
   }
 

@@ -124,10 +124,10 @@ OneUptime læser personer fra spans og fra datapunkter for metrikker, aldrig fra
 
 Med konfigurationen ovenfor giver det dette på fanen **Forbrug**:
 
-- Tokens kommer fra spans, pr. person, og `codex.turn.token_usage` lægges ikke oveni: de to lægges aldrig sammen ([hvorfor](/docs/telemetry/ai-llm-observability#spans-kommer-først-metrikker-udfylder-hullerne)).
+- Tokens kommer fra spans, pr. person, og `codex.turn.token_usage` lægges ikke oveni: de to lægges aldrig sammen ([hvorfor](/docs/telemetry/ai-llm-observability#hver-tjeneste-tælles-ud-fra-det-den-sender)).
 - Codex' spans nævner ingen model, så OneUptime kan ikke prissætte dem, og deres omkostning er 0. Omkostningstotalerne tager så Codex' omkostning fra `codex.turn.cost_microusd`, omregnet til USD for dig.
-- Tabellerne **Medarbejder**, **Team** og **Model** viser spans' rækker: tokens pr. person, men ingen omkostninger pr. person.
-- Uden traces udfylder metrikkerne de tabeller i stedet, kun med omkostninger, alt under **Ikke tildelt**, da Codex' metrikker ikke nævner nogen.
+- Tabellerne **Medarbejder** og **Team** viser spansenes tokens pr. person og Codex' omkostninger på én række **Ikke tildelt**, da dets metrikker ikke nævner nogen. Tabellen **Model** er omvendt: omkostningerne pr. model, tokens under **Ikke tildelt**.
+- Uden traces tæller metrikkerne Codex' tokens og omkostninger: under **Ikke tildelt** i tabellerne **Medarbejder** og **Team** og pr. model i tabellen **Model**.
 
 Den mest præcise omkostning pr. tur, med personen på, er logposten `codex.turn_cost`. OneUptime knytter endnu ikke logposter til forbruget, men lad logeksportøren være slået til: historikken er der, når det sker.
 

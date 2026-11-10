@@ -1,3 +1,4 @@
+import { PROJECT_SMTP_CONFIG_SEND_SELECT } from "../Utils/Mail/ProjectSmtpConfigSelect";
 import crypto from "crypto";
 import DatabaseConfig from "../DatabaseConfig";
 import { EncryptionSecret } from "../EnvironmentConfig";
@@ -363,23 +364,7 @@ export class Service extends ProjectReferencesService<Model> {
         ...STATUS_PAGE_EMAIL_LOGO_SELECT,
         projectId: true,
         requireSsoForLogin: true,
-        smtpConfig: {
-          _id: true,
-          transportType: true,
-          hostname: true,
-          port: true,
-          username: true,
-          password: true,
-          fromEmail: true,
-          fromName: true,
-          secure: true,
-          authType: true,
-          clientId: true,
-          clientSecret: true,
-          tokenUrl: true,
-          scope: true,
-          oauthProviderType: true,
-        },
+        smtpConfig: PROJECT_SMTP_CONFIG_SEND_SELECT,
       },
     });
 

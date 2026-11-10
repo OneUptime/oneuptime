@@ -19,6 +19,7 @@ import type {
   ResponderSource,
   UserReadiness,
 } from "Common/Server/Services/OnCallReadinessService";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The browser-side view of the readiness contract.
@@ -800,12 +801,12 @@ const canFallbackDeliver: (
 const getMethodNames: (user: UserReadinessWire) => string = (
   user: UserReadinessWire,
 ): string => {
-  return getVerifiedMethods(user)
-    .map((method: ReadinessMethodWire): string => {
+  return joinList(
+    getVerifiedMethods(user).map((method: ReadinessMethodWire): string => {
       // The channel's name, in the reader's language where it has one.
       return translateTerm(method.methodType);
-    })
-    .join(", ");
+    }),
+  );
 };
 
 /*

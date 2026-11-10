@@ -29,12 +29,12 @@ Merkevaren var tidligere delt på separate skjermer for **Grunnleggende merkevar
 
 ### Logo og forsidebilde
 
-Det første kortet, **Logo og forsidebilde**, har knappen **Edit Images**, som åpner to trinn:
+Det første kortet, **Logo og forsidebilde**, har knappen **Rediger bilder**, som åpner to trinn:
 
 | Trinn | Felt |
 | ---- | ------ |
-| **Logo** | Opplastingen av logoen (plassholder `Upload logo`), **Logo for mørkt tema** (plassholder `Upload logo for the dark theme`), en valgfri logo laget for en mørk bakgrunn, og **Logo Alt Text** (plassholder `Logo of My Company`). La alt-teksten stå tom, så brukes statussidens tittel i stedet. |
-| **Forsidebilde** | **Forside**, en opplasting (plassholder `Upload cover image`) for det brede banneret bak toppteksten, og **Cover Image Alt Text**. La alt-teksten stå tom hvis forsiden bare er pynt. |
+| **Logo** | Opplastingen av logoen (plassholder `Upload logo`), **Logo for mørkt tema** (plassholder `Upload logo for the dark theme`), en valgfri logo laget for en mørk bakgrunn, og **Alternativ tekst for logo** (plassholder `Logo of My Company`). La alt-teksten stå tom, så brukes statussidens tittel i stedet. |
+| **Forsidebilde** | **Forside**, en opplasting (plassholder `Upload cover image`) for det brede banneret bak toppteksten, og **Alternativ tekst for forsidebilde**. La alt-teksten stå tom hvis forsiden bare er pynt. |
 
 Logoen, logoen for mørkt tema, forsidebildet og faviconet er filer som er lastet opp i statussidens eget prosjekt, og det sjekkes hver gang ett av dem lagres, fra dashbordet, API-et, Terraform eller en arbeidsflyt. En fil som er lastet opp i et annet prosjekt, avvises med ordene en fil som ikke lenger finnes, får: «The logo's file could not be found. Upload the logo again.», «The dark theme logo's file could not be found. Upload the dark theme logo again.», «The cover image's file could not be found. Upload the cover image again.» eller «The favicon's file could not be found. Upload the favicon again.» Å laste opp bildet på nytt fra siden løser det.
 
@@ -77,7 +77,7 @@ Tabellen **Topptekstlenker** inneholder lenkene i statussidens topptekst, som ne
 
 ### Bunntekst
 
-- **Opphavsrettsinformasjon**: **Edit Copyright** åpner ett felt, **Opphavsrettsinformasjon**, med plassholderen `Acme, Inc.`.
+- **Opphavsrettsinformasjon**: **Rediger opphavsrett** åpner ett felt, **Opphavsrettsinformasjon**, med plassholderen `Acme, Inc.`.
 - **Bunntekstlenker**: det samme paret **Tittel** og **Lenke** som topptekstlenkene, sortert ved å dra og lagt til med **Legg til Bunntekstlenke**.
 
 Topptekstlenker er for navigering; bunntekstlenker er for det med liten skrift, som juridisk informasjon, personvern og vilkår.
@@ -88,7 +88,7 @@ Sidens siste seksjon ligger sammenslått under **Flere innstillinger**, fordi f�
 
 **Historikkdiagrammets farger.** Utenom **Tema** er dette de eneste innebygde fargeinnstillingene på en statusside. Hver stolpe i oppetidshistorikken er en dag.
 
-- **Standard stolpefarge**: **Edit Default Bar Color** åpner velgeren **Standard stolpefarge**. Det er fargen til en dag som ingen stolpefargeregel samsvarer med. Alle nye statussider starter med grønn.
+- **Standard stolpefarge**: **Rediger standardfarge for stolper** åpner velgeren **Standard stolpefarge**. Det er fargen til en dag som ingen stolpefargeregel samsvarer med. Alle nye statussider starter med grønn.
 - **Regler for stolpefarger**: en ordnet tabell med regler du sorterer ved å dra. Hver regel har **Når oppetid % er større enn eller lik** og **Bruk så denne stolpefargen**; tabellens kolonner heter `When Uptime Percent >=` og `Then, Bar Color is`. Reglene sjekkes ovenfra, og den første som en dags oppetid når, bestemmer fargen, så hold høyere prosenter over lavere: en regel under en med samme eller lavere prosent farger aldri en dag. Fargen på en ny regel er allerede valgt, en som de andre reglene ikke bruker ennå; velg heller den du vil ha.
 - **Forhåndsvisning av stolpefarger**: hver farge en dag kan få, slik de fleste ser den (**Fullt fargesyn**), og slik personer med rød-grønn fargeblindhet ser den (**Deuteranopi (rød-grønn)**, **Protanopi (rød-grønn)**). Den advarer når to farger ser like ut for dem, og når en regel aldri farger en dag.
 
@@ -112,7 +112,7 @@ Hvor mange dager diagrammet dekker, angis ikke her. Det er **Oppetidshistorikk**
 | **Standardspråk** | Språket førstegangsbesøkende ser, valgt fra en liste som nevner hvert språk på språket selv og på engelsk (`Deutsch (German)`). Standard er engelsk, og besøkende kan alltid bytte fra bunnteksten. Abonnenter får også meldingene sine på det, med mindre de leste siden på et annet språk da de abonnerte. |
 | **Aktiverte språk** | En flervalgsliste, plassholder `All languages`. La den stå tom, så tilbys alle støttede språk; velg noen få, så viser bunnteksten bare dem. |
 
-OneUptime leveres med sytten språk: engelsk, tysk, fransk, spansk, italiensk, portugisisk, nederlandsk, dansk, norsk, svensk, russisk, japansk, koreansk, kinesisk (forenklet), kinesisk (tradisjonell), hindi og persisk. Persisk leses fra høyre mot venstre, så en side som vises på persisk, er bygget opp fra høyre, fra første øyeblikk når persisk er standardspråket. Oppetidsstolpene begynner fortsatt til venstre med den eldste dagen.
+OneUptime leveres med atten språk: engelsk, tysk, fransk, spansk, italiensk, portugisisk, nederlandsk, dansk, norsk, svensk, russisk, japansk, koreansk, kinesisk (forenklet), kinesisk (tradisjonell), hindi, persisk og arabisk. Persisk og arabisk leses fra høyre mot venstre, så en side som vises på et av dem, er bygget opp fra høyre, fra første øyeblikk når det språket er standardspråket. Oppetidsstolpene begynner fortsatt til venstre med den eldste dagen.
 
 **Indeksering i søkemotorer.** Én bryter, **Tillat søkemotorer å indeksere denne statussiden**, avgjør om Google, Bing og andre søkemotorer kan vise siden. Den er slått på som standard. Det finnes ingen knapp **Rediger**: bryteren lagres i det øyeblikket du slår den om. Slå den av, så serveres siden med `noindex, nofollow` (en robots-metatag og hodet `X-Robots-Tag`); alle med lenken kan fortsatt åpne den. Søkemotorer kan bruke noen uker på å fjerne en side de allerede har indeksert. Bryteren gjelder bare siden på dens egendefinerte domener. Forhåndsvisnings-URL-en dens serveres alltid med `noindex, nofollow`, så en statusside vises først i søkeresultater når den har et egendefinert domene.
 
@@ -155,7 +155,7 @@ På OneUptime Cloud krever det planen **Growth** å legge til eller endre noen a
 
 Som standard kan en statusside nås på forhåndsvisnings-URL-en på skjermen **Oversikt**. For å legge den på ditt eget vertsnavn går du til **Statussider → siden din → Merkevare → Egendefinerte domener** (`{id}/domains`).
 
-Kortet **Egendefinerte domener** sier hva du skal gjøre: pek hvert domenes CNAME-post til installasjonens CNAME-post for statussider, så utsteder OneUptime domenets SSL-sertifikat og fornyer det for deg. Uten noe satt opp sier tabellen **Ingen egendefinerte domener funnet**, med **Opprett Statusside Domene** under. Tabellen har to kolonner, **Domene** og **Status**, og filtre for **Domene**, **CNAME gyldig** og **SSL klargjort**.
+Kortet **Egendefinerte domener** sier hva du skal gjøre: pek hvert domenes CNAME-post til installasjonens CNAME-post for statussider, så utsteder OneUptime domenets SSL-sertifikat og fornyer det for deg. Uten noe satt opp sier tabellen **Ingen egendefinerte domener funnet**, med **Opprett Statussidedomene** under. Tabellen har to kolonner, **Domene** og **Status**, og filtre for **Domene**, **CNAME gyldig** og **SSL klargjort**.
 
 Å legge siden på domenet ditt tar tre trinn, og bare de to første er dine:
 
@@ -197,7 +197,7 @@ statusPage:
 :::steps
 #### Åpne Opprett Statusside Domene
 
-Klikk på **Opprett Statusside Domene** under **Egendefinerte domener**. Dialogen består av én side.
+Klikk på **Opprett Statussidedomene** under **Egendefinerte domener**. Dialogen består av én side.
 
 #### Skriv inn underdomenet
 
@@ -213,7 +213,7 @@ I **Domene** (plassholder `Select domain`) velger du ett av de verifiserte domen
 
 #### Opprett domenet
 
-Klikk på **Opprett Statusside Domene**. Dialogen lukkes, og **DNS-oppsett** for det nye domenet åpnes, med posten som skal legges til.
+Klikk på **Opprett Statussidedomene**. Dialogen lukkes, og **DNS-oppsett** for det nye domenet åpnes, med posten som skal legges til.
 :::
 
 Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke et annet underdomene legger du til det domenet og sletter det gamle. Et navn som et dashbord eller et skjema allerede bruker, i hvilket som helst prosjekt, avvises: ett domene viser én statusside, ett dashbord eller ett skjema.

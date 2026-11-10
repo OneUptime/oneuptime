@@ -183,6 +183,25 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onSubmitError?: ((error: string) => void) | undefined;
   onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
   onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
+  /*
+   * An Update form's record as it was fetched, before the form opens on it:
+   * a form with a field that is no column of the record - a rule's owning
+   * teams, kept in a table of their own and sent as misc data - fills it in
+   * here, so the form opens on what is saved and a save that leaves the
+   * field alone keeps it. What it returns is what the form opens on.
+   */
+  onItemFetched?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+  /*
+   * Columns an Update form reads into its values, though no field of it
+   * shows or sends them: what a create-time choice the Edit form leaves out
+   * holds - a variable's Secret switch, a BI connection's tool, which
+   * ModelTable's Edit drops with every doNotShowWhenEditing field - so the
+   * fields that are on the form and read it (showIf, required, a step's
+   * showIf) open as the record is, not as if it were unset. Only plain
+   * columns the user may read are read (canReadColumn): a secret never
+   * read back stays out of the fetch, as does a relation.
+   */
+  alsoReadColumns?: Array<string> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
   /*
@@ -471,6 +490,26 @@ const ModelForm: <TBaseModel extends BaseModel>(
       if (isWriteOnlyField(key)) {
         delete select[key];
       }
+    }
+
+    /*
+     * Read, never sent: the save sends the fields' columns alone
+     * (getSelectFields). Asked fail-closed - before the permission snapshot
+     * lands nothing more is read - since one column the user may not read
+     * would refuse the whole fetch.
+     */
+    for (const key of props.alsoReadColumns || []) {
+      if (
+        select[key] !== undefined ||
+        !model.hasColumn(key) ||
+        model.isEntityColumn(key) ||
+        model.isFileColumn(key) ||
+        !PermissionGate.canReadColumn(model, key, { held: heldPermissions })
+      ) {
+        continue;
+      }
+
+      select[key] = true;
     }
 
     return select as Select<TBaseModel>;
@@ -884,6 +923,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
           }
         }
       }
+    }
+
+    if (item && props.onItemFetched) {
+      item = await props.onItemFetched(item as TBaseModel);
     }
 
     setItemToEdit(item as TBaseModel);

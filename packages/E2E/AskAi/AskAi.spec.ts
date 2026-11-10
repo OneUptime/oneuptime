@@ -1181,7 +1181,11 @@ test.describe("an answer, written quietly", () => {
       "Aggregating metrics…",
     );
     const toggle: Locator = page.getByTestId("ai-chat-live-steps-toggle");
-    await expect(toggle).toHaveText("3 steps");
+    /*
+     * Starting and the metrics it aggregates: the model call that chose
+     * them answered, and is no step of its own (issue #6437).
+     */
+    await expect(toggle).toHaveText("2 steps");
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await expect(page.getByTestId("ai-chat-live-steps")).toHaveCount(0);
 
@@ -2429,7 +2433,7 @@ test.describe("in German", () => {
       "Metriken werden aggregiert…",
     );
     await expect(page.getByTestId("ai-chat-live-steps-toggle")).toHaveText(
-      "3 Schritte",
+      "2 Schritte",
     );
     await finishAnswer(page);
     await expect(page.getByTestId("ai-chat-sources-toggle")).toHaveText(
@@ -2710,7 +2714,7 @@ test.describe("in Persian", () => {
     const close: Box = await boxOf(page.getByTestId("ask-ai-close"));
     expect(close.x).toBeLessThan(title.x);
     await expect(page.getByTestId("ai-chat-context")).toHaveText(
-      "این حادثه · #42 Checkout latency above 2s",
+      "این حادثه \u{2022} #42 Checkout latency above 2s",
     );
     await expect(page.getByTestId("ai-chat-suggestion")).toHaveText([
       "خلاصه‌سازی",

@@ -329,14 +329,23 @@ Through the API, send the choice next to the fields you change, in `miscDataProp
 
 as the body of `PUT /api/status-page-announcement/<announcement-id>` (or `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Leave `miscDataProps` out and the edit is silent, as before.
 
+### Public notes that wait for approval
+
+A project can have public notes approved before they are published: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). A note that waits tells no subscriber. Its notification is sent when it is published, as a note posted at that moment is, and only if its **Notify Status Page Subscribers** choice says so; a rejected note is never sent. Until then it has no notification to retry or resend.
+
+An edit of a published note waits too. When **Notify subscribers about this update** was ticked, its update is sent once the edit is approved, and never if the edit is rejected or withdrawn.
+
+A state change sent with a public note that waits for approval is not carried by the note: the state change notifies subscribers itself, as it would with no note, and the note follows once it is published.
+
 ## The language subscribers are written in
 
-Each subscriber is written to in their own language: the email or text message that confirms the subscription, the welcome and the link to manage it, and every notification about an incident, an incident episode, a scheduled maintenance event or an announcement, by email, SMS, Slack and Microsoft Teams.
+Each subscriber is written to in their own language: the email or text message that confirms the subscription, the welcome and the link to manage it, every notification about an incident, an incident episode, a scheduled maintenance event or an announcement, by email, SMS, Slack and Microsoft Teams, and the email report.
 
 - **A visitor who switches the status page to another language** in its footer, then subscribes or updates their subscription, is written to in that language.
-- **Everyone else** is written to in the page's default language, set under [More settings](/docs/status-pages/branding-and-domains#more-settings) on its Branding page: a visitor who read the page in that language, a subscriber your team adds on the dashboard, through the API or by a workflow, and anyone who subscribed before OneUptime kept a subscriber's language. Change the default language and they are written to in the new one from the next message on.
+- **Your team can set a subscriber's language** under **More fields** when adding or editing one, or clear it so they follow the page's default; each subscriber list shows it in its **Language** column.
+- **Everyone else** is written to in the page's default language, set under [More settings](/docs/status-pages/branding-and-domains#more-settings) on its Branding page: a visitor who read the page in that language, a subscriber your team adds without a language, on the dashboard, through the API or by a workflow, and anyone who subscribed before OneUptime kept a subscriber's language. Change the default language and they are written to in the new one from the next message on.
 
-OneUptime's own words are in that language: subjects, headings, labels and buttons, the unsubscribe line, dates, and the names of the incident states, severities and scheduled maintenance states every new project starts with, such as Resolved, Major Incident or Ongoing. What your team writes reads as written: titles, descriptions, notes and postmortems, your own names for states, severities and resources, the status page's name, custom fields, and custom templates, whose values read as they are stored. An email in Persian reads right to left, and an English title or note in it still reads left to right. A webhook's payload is data and stays as it is, and the email report is written in English.
+OneUptime's own words are in that language: subjects, headings, labels and buttons, the unsubscribe line, dates, and the names of the incident states, severities and scheduled maintenance states every new project starts with, such as Resolved, Major Incident or Ongoing. What your team writes reads as written: titles, descriptions, notes and postmortems, your own names for states, severities and resources, the status page's name, custom fields, and custom templates. A custom template reads the same to every subscriber, so the values OneUptime fills it with, such as a state's name or a date, are in the page's default language, and so is a test report. An email in Persian reads right to left, and an English title or note in it still reads left to right. A webhook's payload is data and stays as it is.
 
 Through the API, a subscriber's `language` is a language code such as `de` or `zh-TW`, or empty for the page's default; any other value is refused.
 

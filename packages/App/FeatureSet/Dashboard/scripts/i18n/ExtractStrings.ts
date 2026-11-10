@@ -303,6 +303,32 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A RUM application's status - Receiving data, No recent traffic, Waiting
+   * for data - and what each means: the RUM Applications list and an
+   * application's hero say them in the reader's language. Only the words
+   * the file marks are read: OneUptime AI's tool reads the same English.
+   */
+  {
+    directory: "packages/Common/Types/Rum/RumApplicationStatus.ts",
+    kind: "keys",
+  },
+  /*
+   * A serverless function's status - Receiving data, No recent
+   * invocations, Waiting for data - and a service's - Receiving data, No
+   * recent data, Waiting for data - and what each means: the Serverless
+   * Functions list, a function's hero and a service's hero say them in the
+   * reader's language. Only the words each file marks are read, not the
+   * stored values the statuses are read from.
+   */
+  {
+    directory: "packages/Common/Types/Serverless/ServerlessFunctionStatus.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Service/ServiceTelemetryStatus.ts",
+    kind: "keys",
+  },
+  /*
    * Where a database or a queue was found ("Application traces", "Added
    * manually") and what kind of cloud resource one is ("Databases and
    * caches"): a database's and a queue's Overview, their lists and a cloud
@@ -354,6 +380,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What each cloud calls its commitments - Savings Plans, reservations,
+   * committed use discounts - on Savings' and an account's Commitments
+   * card. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCommitments.ts",
+    kind: "keys",
+  },
+  /*
    * A resource's right-sizing from OneUptime's own readings: its verdict,
    * what to change and why, on its Overview. Only the words the file marks
    * are read: a size is its cloud's own name, drawn as written.
@@ -371,6 +406,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Utils/Telemetry/CloudChangeTitle.ts",
+    kind: "keys",
+  },
+  /*
+   * A cloud health event's description: OneUptime's own sentences in it -
+   * an Azure event's kind and tracking id, what caused a resource's change,
+   * the products an incident affects - in the reader's language. Only the
+   * sentences are keys: the provider's own words are drawn as written.
+   */
+  {
+    directory: "packages/Common/Utils/Telemetry/CloudHealthDescription.ts",
     kind: "keys",
   },
   /*

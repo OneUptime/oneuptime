@@ -13,7 +13,9 @@ import InvestigationEvidenceList, {
   InvestigationEvidenceSubjectType,
   LoadEvidenceRows,
 } from "./InvestigationEvidenceList";
+import { ActivityFeedRun } from "../../AIChat/ActivityFeedRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
+import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import { InvestigationEvidenceItem } from "Common/Types/AI/InvestigationEvidence";
 import IconProp from "Common/Types/Icon/IconProp";
 import { InvestigationEvidenceCheckedEntry } from "Common/Utils/AI/InvestigationReport";
@@ -32,6 +34,23 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { joinList } from "Common/UI/Utils/ListSeparator";
+
+/*
+ * The details are a finished run's: no step of it is still running, and
+ * the activity says when it started and how long it took when the card
+ * knows (run).
+ */
+export function getFinishedActivityRun(
+  run: ActivityFeedRun | null | undefined,
+): ActivityFeedRun {
+  return {
+    status: AIRunStatus.Completed,
+    createdAt: run?.createdAt,
+    startedAt: run?.startedAt,
+    completedAt: run?.completedAt,
+  };
+}
 
 export interface InvestigationRunUsage {
   toolCallCount: number;
@@ -151,7 +170,7 @@ export function describeKubectlUsage(
           other: "{{count}} kubectl commands ({{notes}})",
         },
         executed,
-        { notes: notes.join(", ") },
+        { notes: joinList(notes) },
       )
     : translator.translatePlural(
         {
@@ -273,7 +292,7 @@ export function describeInfrastructureUsage(
           other: "{{count}} infrastructure commands ({{notes}})",
         },
         executed,
-        { notes: notes.join(", ") },
+        { notes: joinList(notes) },
       )
     : translator.translatePlural(
         {
@@ -462,6 +481,11 @@ export interface ComponentProps {
   focusRequest?: EvidenceFocusRequest | null | undefined;
   // Where "Load rows" asks, for a subject with its own route.
   loadEvidenceRows?: LoadEvidenceRows | undefined;
+  /*
+   * The run's times, when the card read them: the activity then says how
+   * long the run took, under when it started.
+   */
+  run?: ActivityFeedRun | null | undefined;
 }
 
 /*
@@ -715,13 +739,17 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
       >
         {/*
           A finished run is short (the engine caps its tool calls), so the
-          whole trail is shown rather than the live panel's recent tail.
+          whole trail is shown rather than the live panel's recent tail -
+          with the time of each step, and nothing still spinning: the run
+          is over (issue #6437).
         */}
         <ChatActivityFeed
           events={props.events}
           hideChrome={true}
           showLiveIndicator={false}
           maxVisibleSteps={Math.max(stepCount, 1)}
+          run={getFinishedActivityRun(props.run)}
+          showStepTimes={true}
         />
       </div>
     );

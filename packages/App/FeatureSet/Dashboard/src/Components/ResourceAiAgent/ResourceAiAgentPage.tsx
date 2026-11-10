@@ -212,6 +212,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * A resource's AI agent page (AI → AI agent): whether OneUptime AI can reach
@@ -1738,7 +1739,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               ].map((part: ReactElement, index: number): ReactElement => {
                 return (
                   <Fragment key={`meta-${index}`}>
-                    {index > 0 ? " · " : ""}
+                    {index > 0 ? <InlineSeparator /> : null}
                     {part}
                   </Fragment>
                 );
@@ -1871,7 +1872,24 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                         <></>
                       )}
                       {row.output ? (
-                        <pre className="mt-2 max-h-72 overflow-auto rounded border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-800">
+                        /*
+                         * A cloud account's agent answers cloud whoami with
+                         * a sentence a line ("Write identity: ..., (the
+                         * agent can NOT sign in as it, so every change
+                         * fails: ...)"), whose verdict comes at its end:
+                         * wrapped, so it is read without scrolling sideways.
+                         * Other agents' test commands print tables (docker
+                         * node ls, pvesh), which keep their columns and
+                         * scroll.
+                         */
+                        <pre
+                          className={`mt-2 max-h-72 overflow-auto rounded border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-800${
+                            descriptor.isCloudAccount
+                              ? " whitespace-pre-wrap break-words"
+                              : ""
+                          }`}
+                          data-testid="ai-agent-test-result-output"
+                        >
                           {row.output}
                         </pre>
                       ) : (

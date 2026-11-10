@@ -2,6 +2,7 @@ import {
   MANAGED_CLOUD_PLATFORMS,
   ManagedCloudPlatformDescriptor,
 } from "Common/Types/Cloud/CloudPlatform";
+import { AWS_LOG_GROUP_PLATFORMS } from "Common/Types/Cloud/CloudLogGroups";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -163,6 +164,47 @@ describe("Apps and deploys, on Cloud Environments", () => {
     ).toContain('UNKNOWN_SERVICE_NAME_PREFIX: string = "unknown_service"');
   });
 
+  it("says a stream's CloudWatch Logs reach their environment and make no app, as discovery has it", () => {
+    const bullet: string | undefined = hub
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- **A stream's CloudWatch Logs count too.**");
+      });
+
+    expect(bullet).toBeDefined();
+    expect(bullet).toContain(
+      "[streams its CloudWatch Logs](/docs/telemetry/cloud-streaming)",
+    );
+    // Every platform a log group rule stamps on a stream's logs, named.
+    const names: Record<string, string> = {
+      aws_app_runner: "App Runner services",
+      aws_elastic_beanstalk: "Elastic Beanstalk environments",
+      aws_ecs: "ECS tasks and clusters",
+    };
+    expect([...AWS_LOG_GROUP_PLATFORMS].sort()).toEqual(
+      Object.keys(names).sort(),
+    );
+    for (const platform of AWS_LOG_GROUP_PLATFORMS) {
+      expect(bullet).toContain(names[platform]);
+    }
+    expect(bullet).toContain("on their environment's **Logs** tab");
+    expect(bullet).toContain(
+      "They make no app: an app is named by its own telemetry.",
+    );
+    // Discovery refuses an app to what a connection delivers.
+    expect(
+      fs.readFileSync(
+        path.join(
+          PACKAGES,
+          "Common/Server/Utils/Telemetry/CloudAppIdentity.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain(
+      "if (!descriptor || isCloudConnectionDeliveredResource(data.getAttribute)) {",
+    );
+  });
+
   it("is linked from the page's opening bullets and from Deploys and Changes", () => {
     expect(hub).toContain("see [Apps and deploys](#apps-and-deploys).");
     expect(fs.readFileSync(CHANGES, "utf8")).toContain(
@@ -173,6 +215,119 @@ describe("Apps and deploys, on Cloud Environments", () => {
   it("names the requests the overview counts: where work enters a service", () => {
     expect(section(hub, "## What you get")).toContain(
       "from the spans where requests enter your services",
+    );
+  });
+});
+
+/*
+ * #6149's follow-up: All Environments and All Apps filter by a Cloud Account
+ * chip, and Cloud's Overview links its App Platforms counts to those lists
+ * with the chip already set. The hub says so, and Cloud's own page names
+ * the card - each against the code that draws it, read as text (the
+ * Dashboard's modules reach React).
+ */
+describe("the lists by cloud account, on Cloud Environments", () => {
+  const DASHBOARD: string = path.join(PACKAGES, "App/FeatureSet/Dashboard/src");
+  const FACET: string = fs.readFileSync(
+    path.join(DASHBOARD, "Components/AppPlatforms/AppPlatformsAccountFacet.ts"),
+    "utf8",
+  );
+  const ROUTES: string = fs.readFileSync(
+    path.join(DASHBOARD, "Components/AppPlatforms/AppPlatformsListRoutes.ts"),
+    "utf8",
+  );
+  const CARD: string = fs.readFileSync(
+    path.join(DASHBOARD, "Components/Cloud/CloudAppPlatformsCard.tsx"),
+    "utf8",
+  );
+  const ACCOUNTS: string = fs.readFileSync(
+    path.join(
+      PACKAGES,
+      "App/FeatureSet/Docs/Content/en/telemetry/cloud-accounts.md",
+    ),
+    "utf8",
+  );
+  const paragraph: string | undefined = hub
+    .split("\n")
+    .find((line: string): boolean => {
+      return line.includes("**Cloud Account** chip");
+    });
+
+  it("sits under the opening paragraph that lists the two lists", () => {
+    const lines: Array<string> = hub.split("\n");
+    const at: number = lines.indexOf(paragraph as string);
+
+    expect(paragraph).toBeDefined();
+    expect(lines[at - 2]).toContain(
+      "**App Platforms → All Environments** lists every one.",
+    );
+  });
+
+  it("names the chip as both lists draw it, with what it keeps", () => {
+    expect(FACET).toContain(
+      'CLOUD_ACCOUNT_FACET_LABEL: string =\n  translationKey("Cloud Account");',
+    );
+    // "is" and "is not": the accounts picked, or every other one.
+    expect(FACET).toContain(
+      'CLOUD_ACCOUNT_FACET_OPERATORS: Array<FilterOperator> = [\n  "is",\n  "is_not",\n];',
+    );
+    // Each account under its cloud: the option's group.
+    expect(FACET).toContain("...(provider ? { group: provider } : {}),");
+    expect(paragraph).toContain(
+      "filter **All Environments** or **All Apps** by the **Cloud Account** chip",
+    );
+    expect(paragraph).toContain(
+      "it lists each account the environments are in, under its cloud, and keeps the accounts you pick, or every other one.",
+    );
+    // Both lists draw it.
+    expect(
+      fs.readFileSync(
+        path.join(DASHBOARD, "Pages/AppPlatforms/Environments.tsx"),
+        "utf8",
+      ),
+    ).toContain("getEnvironmentsCloudAccountFacet(");
+    expect(
+      fs.readFileSync(
+        path.join(DASHBOARD, "Components/AppPlatforms/CloudAppsTable.tsx"),
+        "utf8",
+      ),
+    ).toContain("getAppsCloudAccountFacet(props.environments)");
+  });
+
+  it("says Cloud's Overview counts link to the lists with the chip set, as the card's links are built", () => {
+    expect(CARD).toContain(
+      'APP_PLATFORMS_CARD_TITLE: string = translationKey("App Platforms");',
+    );
+    expect(CARD).toContain(
+      "to={getAppPlatformsEnvironmentsRoute(counts.accountIds)}",
+    );
+    expect(CARD).toContain("to={getAppPlatformsAppsRoute(counts.accountIds)}");
+    // The link sets the chip to "is" those accounts, visibly and clearably.
+    expect(ROUTES).toContain("[CLOUD_ACCOUNT_FACET_KEY]: accountIds,");
+    expect(ROUTES).toContain('[CLOUD_ACCOUNT_FACET_KEY]: "is",');
+    expect(
+      fs.readFileSync(path.join(DASHBOARD, "Pages/Cloud/Overview.tsx"), "utf8"),
+    ).toContain("<CloudAppPlatformsCard accounts={read.accounts} />");
+    expect(paragraph).toContain(
+      "On **Cloud → Overview**, the **App Platforms** card counts the environments and apps in your connected cloud accounts, and each count opens its list with the chip already set to those accounts.",
+    );
+    expect(paragraph).toContain("Clear the chip to see the whole list.");
+  });
+
+  it("is named on Cloud's own page, where its Overview is", () => {
+    const bullet: string | undefined = ACCOUNTS.split("\n").find(
+      (line: string): boolean => {
+        return line.startsWith("- **Cloud opens on its Overview.**");
+      },
+    );
+
+    expect(bullet).toContain(
+      "its **App Platforms** card counts their environments and apps, and each count opens that list in App Platforms, already filtered to those accounts.",
+    );
+    // Drawn only while the accounts run something there.
+    expect(CARD).toContain("if (!counts || counts.environments === 0) {");
+    expect(bullet).toContain(
+      "When your accounts run apps on managed app platforms,",
     );
   });
 });

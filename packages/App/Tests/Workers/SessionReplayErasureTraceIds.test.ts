@@ -13,6 +13,7 @@ import SpanService from "Common/Server/Services/SpanService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
+import RumProductAnalyticsSessionService from "Common/Server/Services/RumProductAnalyticsSessionService";
 import {
   ClickhouseExecuteOptions,
   MigrationExecuteOptions,
@@ -150,7 +151,13 @@ const traceThree: string = "5b8aa5a2d2c872e8321cf37308d69df2";
 const HTTP_MAX_FIELD_VALUE_SIZE: number = 128 * 1024;
 const HTTP_MAX_URI_SIZE: number = 1024 * 1024;
 
-type DeleteLabel = "chunks" | "headers" | "logs" | "spans" | "exceptions";
+type DeleteLabel =
+  | "chunks"
+  | "headers"
+  | "logs"
+  | "spans"
+  | "exceptions"
+  | "analytics";
 type DeleteColumn = "sessionId" | "traceId";
 
 interface HarnessEvent {
@@ -319,6 +326,8 @@ function installHarness(data: {
     { label: "logs", service: LogService },
     { label: "spans", service: SpanService },
     { label: "exceptions", service: ExceptionInstanceService },
+    /* Product analytics' session summaries (issue #6444). */
+    { label: "analytics", service: RumProductAnalyticsSessionService },
   ];
 
   for (const entry of services) {
@@ -772,7 +781,14 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
       bySession.map((event: HarnessEvent): DeleteLabel | undefined => {
         return event.label;
       }),
-    ).toEqual(["chunks", "logs", "spans", "exceptions", "headers"]);
+    ).toEqual([
+      "chunks",
+      "logs",
+      "spans",
+      "exceptions",
+      "analytics",
+      "headers",
+    ]);
 
     for (const event of bySession) {
       expect(event.ids).toEqual([sessionA]);
@@ -793,8 +809,9 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
     /*
      * Reads first; the recording's payload first of the deletes; the trace
      * deletes before the session-id delete on Span (whose rows are where
-     * the list comes from); the header, which is how a lookup retry finds
-     * the session at all, last of the ClickHouse deletes; pins last.
+     * the list comes from); product analytics' summaries of the sessions;
+     * the header, which is how a lookup retry finds the session at all,
+     * last of the ClickHouse deletes; pins last.
      */
     expect(sequenceOf(harness.events)).toEqual([
       "read-chunks",
@@ -806,6 +823,7 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
       "logs:sessionId",
       "spans:sessionId",
       "exceptions:sessionId",
+      "analytics:sessionId",
       "headers:sessionId",
       "pins",
     ]);
@@ -898,6 +916,7 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
       "logs:sessionId",
       "spans:sessionId",
       "exceptions:sessionId",
+      "analytics:sessionId",
       "headers:sessionId",
       "pins",
     ]);
@@ -948,7 +967,8 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
     });
 
     expect(deletes(harness.events, "traceId")).toEqual([]);
-    expect(deletes(harness.events, "sessionId").length).toBe(5);
+    /* Chunks, logs, spans, exceptions, product analytics, header. */
+    expect(deletes(harness.events, "sessionId").length).toBe(6);
   });
 
   test("the lookup and every trace-id delete are scoped to the batch's project", async () => {
@@ -1173,7 +1193,8 @@ describe("eraseSessionBatch erases by trace id only the traces the batch owns al
     });
 
     expect(deletes(harness.events, "traceId")).toEqual([]);
-    expect(deletes(harness.events, "sessionId").length).toBe(5);
+    /* Chunks, logs, spans, exceptions, product analytics, header. */
+    expect(deletes(harness.events, "sessionId").length).toBe(6);
   });
 
   test("only a real true flag counts as owned; anything else is skipped", async () => {

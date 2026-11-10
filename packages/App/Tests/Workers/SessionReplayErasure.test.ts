@@ -252,6 +252,7 @@ import {
 } from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
+import RumProductAnalyticsSessionService from "Common/Server/Services/RumProductAnalyticsSessionService";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 
 const projectId: ObjectID = new ObjectID("6600000000000000000000a1");
@@ -699,6 +700,7 @@ describe("Rum:ProcessSessionErasureRequests activity purge", () => {
       LogService,
       SpanService,
       ExceptionInstanceService,
+      RumProductAnalyticsSessionService,
     ]) {
       jest
         .spyOn(
@@ -1192,6 +1194,51 @@ describe("Rum:ProcessSessionErasureRequests retry-or-fail", () => {
     );
   });
 
+  /*
+   * The failure reason is ClickHouse's or Postgres's own words, often longer
+   * than its varchar(500). Unheld, the requeue's own write was refused
+   * inside the catch: the attempt was never counted, the request stayed
+   * InProgress, and the stale reclaim ran it again as a first attempt - for
+   * ever, never Failed, no owner told.
+   */
+  test("an error longer than the reason's column is cut to it, and the attempt is still counted", async () => {
+    const harness: RetryHarness = installHarness();
+    const longError: string = `Code: 241. DB::Exception: Memory limit (for query) exceeded: ${"would use 9.31 GiB (attempt to allocate chunk of 4194304 bytes), maximum: 9.31 GiB. ".repeat(12)}`;
+    const failing: () => Promise<unknown> = (): Promise<unknown> => {
+      return Promise.reject(new Error(longError));
+    };
+
+    chunkService.executeQuery = failing;
+    sessionService.executeQuery = failing;
+
+    for (const request of [
+      buildRequest(0),
+      buildRequest(MAX_ERASURE_ATTEMPTS - 1),
+    ]) {
+      await processErasureRequest({
+        databaseName: databaseName,
+        request: request,
+      });
+    }
+
+    const requeue: { data: Record<string, unknown> } = harness.updateOneById
+      .mock.calls[0]![0] as never;
+
+    expect(requeue.data["status"]).toBe(RumSessionErasureRequestStatus.Pending);
+    expect(requeue.data["attempts"]).toBe(1);
+    expect((requeue.data["failureReason"] as string).length).toBe(500);
+    expect(longError.startsWith(requeue.data["failureReason"] as string)).toBe(
+      true,
+    );
+
+    expect(harness.markFailed).toHaveBeenCalledTimes(1);
+
+    const failed: { failureReason: string } = harness.markFailed.mock
+      .calls[0]![0] as never;
+
+    expect(failed.failureReason.length).toBe(500);
+  });
+
   test("a mail failure does not throw back into the job", async () => {
     const harness: RetryHarness = installHarness();
 
@@ -1477,6 +1524,7 @@ describe("Rum:ProcessSessionErasureRequests removes pins", () => {
       { name: "logs", service: LogService },
       { name: "spans", service: SpanService },
       { name: "exceptions", service: ExceptionInstanceService },
+      { name: "productAnalytics", service: RumProductAnalyticsSessionService },
     ];
 
     for (const entry of analyticsServices) {
@@ -1506,13 +1554,15 @@ describe("Rum:ProcessSessionErasureRequests removes pins", () => {
       /*
        * The header goes last of the ClickHouse deletes: three of the four
        * request types find a session through it, so a run that dies
-       * earlier must leave it for the retry to find.
+       * earlier must leave it for the retry to find. Product analytics'
+       * summaries of the sessions go just before it.
        */
       expect(order).toEqual([
         "chunks",
         "logs",
         "spans",
         "exceptions",
+        "productAnalytics",
         "headers",
         "pins",
       ]);

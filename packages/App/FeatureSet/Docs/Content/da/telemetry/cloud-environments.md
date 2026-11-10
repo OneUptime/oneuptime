@@ -4,6 +4,8 @@ Et **Cloud-miljø** er stedet, hvor dine containere kører på en administreret 
 
 Miljøer vises i App-platforme, et produkt for sig: **App-platforme → Oversigt** grupperer dem efter platform og viser dem, der er blevet stille, først, **App-platforme → Alle apps** viser hver app, der kører i dem, og **App-platforme → Alle miljøer** viser dem alle. Ressourcerne i dine cloudkonti, såsom virtuelle maskiner, buckets og administrerede databaser, findes i Cloud: se [Cloud-ressourcer](/docs/telemetry/cloud-resources).
 
+Vil du se et cloudkontos miljøer eller apps, så filtrer **Alle miljøer** eller **Alle apps** med filterchippen **Cloud-konto**: Den viser hver konto, miljøerne ligger i, under sin cloud, og beholder de konti, du vælger, eller alle de andre. På **Cloud → Oversigt** tæller kortet **App-platforme** miljøerne og apps i dine forbundne cloudkonti, og hvert tal åbner sin liste med chippen allerede sat til de konti. Fjern chippen for at se hele listen.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Opgaver på Fargate eller EC2, med CPU og hukommelse pr. opgave.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Tjenester og jobs, også vist som serverløse funktioner.
@@ -32,6 +34,7 @@ flowchart TB
 - **Miljøet samler det hele.** Hver workload med samme platform, konto og region havner i ét miljø. Tjenesterne beholder deres egne rækker under **Tjenester**.
 - **Hver kørende opgave er en instans.** Miljøets fane **Instanser** viser de kørende opgaver, instanser eller replikaer, med live CPU og hukommelse, hvor platformen kan levere dem.
 - **Hver tjeneste er en app.** En ECS-service, en Cloud Run-tjeneste eller en Container App er en app i sit miljø, og OneUptime gemmer de revisioner, den kører: se [Apps og udrulninger](#apps-og-udrulninger).
+- **Streamede CloudWatch-logge tæller også.** En AWS-konto, der [streamer sine CloudWatch-logge](/docs/telemetry/cloud-streaming), lægger loggene fra sine App Runner-tjenester, Elastic Beanstalk-miljøer samt ECS-opgaver og -klynger på fanen **Protokoller** i deres miljø, og miljøet dukker op med dem, hvis ingen app har rapporteret til det endnu. De laver ingen app: en app navngives efter sin egen telemetri.
 
 ## Før du begynder
 
@@ -118,7 +121,7 @@ Den første attribut, telemetrien bærer, navngiver appen, så en app på en pla
 - **Begge er ændringer.** Hver er en stiplet linje i appens og miljøets grafer, en linje i miljøets **Feed** og en [ændringshændelse](/docs/telemetry/change-events), som OneUptime AI læser, når den undersøger en hændelse i miljøet. **Seneste udrulninger** under **App-platforme → Oversigt** viser de nyeste.
 - **Der registreres højst 12 nye revisioner af en app i timen.** En `service.version`, der ændrer sig med hvert build, ville ellers være en udrulning i minuttet.
 
-En apps side har en **Oversigt** med dens anmodninger, fejl, latens, instanser og de revisioner, der kører nu, en fane **Revisioner** med hver revisions tal og fanerne **Instanser**, **Protokoller** og **Spor**, filtreret til appen. **Opsæt advarsler** åbner de anbefalede monitorer for appens tjeneste under **Tjenester**.
+En apps side har en **Oversigt** med dens anmodninger, fejl, latens, instanser og de revisioner, der kører nu, en fane **Revisioner** med hver revisions tal, fanerne **Instanser**, **Protokoller** og **Spor**, filtreret til appen, og en fane **Anbefalinger** med de monitorer, OneUptime anbefaler til den: mislykkede handlinger, fejlbølger, trafik, der stopper, og langsomme anmodninger, læst fra appens egne spans og dens `http.server.request.duration`, hver knyttet til appens miljø. **Opsæt advarsler** åbner den; for en app, hvis navn er for langt til at filtrere dens telemetri efter, åbner den i stedet de anbefalede monitorer for appens tjeneste under **Tjenester**.
 
 En app, der ikke sender noget i 30 dage, fjernes med sine revisioner, og det samme gør en revision, som ingen instans rapporterer i 30 dage, medmindre appen stadig kører den. På en selvhostet OneUptime sætter `CLOUD_APP_RETENTION_DAYS` de 30.
 

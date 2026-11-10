@@ -74,6 +74,15 @@ const TABLES: Array<string> = [
   "PodmanHost",
   "Host",
   "KubernetesCluster",
+  /*
+   * Read by every delete of an audited record: it reads the whole of each
+   * row it removes, the rows it links to included (its project, its labels,
+   * who created or deleted it), for the audit log's entry.
+   */
+  "Project",
+  "User",
+  "Label",
+  "DockerHostLabel",
 ];
 
 const WORKERS: number = 12;

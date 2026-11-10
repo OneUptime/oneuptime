@@ -3,7 +3,12 @@ import InlineImageAttachments from "./InlineImageAttachments";
 import InlineImageRefusal, {
   InlineImageRefusalFlag,
 } from "./InlineImageRefusal";
-import SendgridMail, { ClientResponse, MailDataRequired } from "@sendgrid/mail";
+import HttpMailApi from "./HttpMailApi";
+import SendgridMail, {
+  ClientResponse,
+  MailDataRequired,
+  MailService,
+} from "@sendgrid/mail";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
@@ -17,6 +22,13 @@ export interface SendGridSendOptions {
    * attached inline with those Content-IDs (InlineImageAttachments).
    */
   inlineImages?: Array<EmailInlineImage> | undefined;
+}
+
+export interface SendGridOwnClientSendOptions extends SendGridSendOptions {
+  // A total deadline for the send, retries included.
+  timeoutMs?: number | undefined;
+  // The project's SMTP config id, so its sends share a gate of their own.
+  configId?: string | undefined;
 }
 
 /*
@@ -34,13 +46,32 @@ export class SendGridSendException
   // Whether SendGrid refused the email for its inline images (InlineImageRefusal).
   public readonly refusedInlineImages: boolean;
 
+  // How long SendGrid asked to wait (Retry-After), in seconds.
+  public readonly retryAfterSeconds: number | undefined;
+
   public constructor(
     message: string,
-    options: { statusCode: number | undefined; refusedInlineImages: boolean },
+    options: {
+      statusCode: number | undefined;
+      refusedInlineImages: boolean;
+      retryAfterSeconds?: number | undefined;
+    },
   ) {
     super(message);
     this.statusCode = options.statusCode;
     this.refusedInlineImages = options.refusedInlineImages;
+    this.retryAfterSeconds = options.retryAfterSeconds;
+  }
+
+  /*
+   * Whether the same email could go on another try: SendGrid did not
+   * answer, throttled the account, or failed on its own side.
+   */
+  public get isRetryable(): boolean {
+    return (
+      this.statusCode === undefined ||
+      HttpMailApi.isRetryableStatus(this.statusCode)
+    );
   }
 }
 
@@ -65,7 +96,9 @@ const MAX_FIELDS_NAMED_PER_REASON: number = 3;
 interface SendGridClientError {
   code?: unknown;
   message?: unknown;
-  response?: { body?: unknown } | undefined;
+  response?:
+    | { body?: unknown; headers?: Record<string, unknown> | undefined }
+    | undefined;
 }
 
 /**
@@ -74,12 +107,15 @@ interface SendGridClientError {
  * installation whose Email Server Type is SendGrid.
  */
 export default class SendGridMailProvider {
-  public async send(
+  /*
+   * The Mail Send for an email: to, from (its name, or the product's), the
+   * subject, the text and the HTML, and its inline images.
+   */
+  public static buildMessage(
     mail: EmailMessage,
     config: SendGridConfig,
-    options?: SendGridSendOptions | undefined,
-  ): Promise<void> {
-    const inlineImages: Array<EmailInlineImage> = options?.inlineImages || [];
+    inlineImages: Array<EmailInlineImage>,
+  ): MailDataRequired {
     const html: string = mail.body || "";
 
     /*
@@ -89,9 +125,7 @@ export default class SendGridMailProvider {
      */
     const text: string = EmailPlainText.fromHtml(html);
 
-    SendgridMail.setApiKey(config.apiKey);
-
-    const message: MailDataRequired = {
+    return {
       to: mail.toEmail.toString(),
       from: `${
         config.fromName || ProductBrandingText.getProductName()
@@ -103,6 +137,26 @@ export default class SendGridMailProvider {
         ? { attachments: InlineImageAttachments.forSendgrid(inlineImages) }
         : {}),
     };
+  }
+
+  /*
+   * The server's own SendGrid settings (Email Server Type: SendGrid),
+   * through @sendgrid/mail's shared client, as they always were.
+   */
+  public async send(
+    mail: EmailMessage,
+    config: SendGridConfig,
+    options?: SendGridSendOptions | undefined,
+  ): Promise<void> {
+    const inlineImages: Array<EmailInlineImage> = options?.inlineImages || [];
+
+    SendgridMail.setApiKey(config.apiKey);
+
+    const message: MailDataRequired = SendGridMailProvider.buildMessage(
+      mail,
+      config,
+      inlineImages,
+    );
 
     let response: [ClientResponse, Record<string, unknown>];
 
@@ -125,6 +179,63 @@ export default class SendGridMailProvider {
         null,
         2,
       ),
+    );
+  }
+
+  /*
+   * A project's SendGrid config (Transport: SendGrid): a client of its own
+   * for this one email, so no other config's key is ever on it - the
+   * library's shared client holds one key for the whole process - and, as
+   * every HTTP API provider is sent (HttpMailApi), the caller's deadline,
+   * retries for throttling and SendGrid's own failures, and a gate of the
+   * config's own.
+   */
+  public async sendWithOwnClient(
+    mail: EmailMessage,
+    config: SendGridConfig,
+    options?: SendGridOwnClientSendOptions | undefined,
+  ): Promise<void> {
+    const inlineImages: Array<EmailInlineImage> = options?.inlineImages || [];
+    const message: MailDataRequired = SendGridMailProvider.buildMessage(
+      mail,
+      config,
+      inlineImages,
+    );
+
+    await HttpMailApi.withSendSlot(
+      HttpMailApi.getSlotKey({
+        providerName: "SendGrid",
+        configId: options?.configId,
+        credential: config.apiKey,
+      }),
+      async (): Promise<void> => {
+        await HttpMailApi.sendWithRetry({
+          providerName: "SendGrid",
+          timeoutMs: options?.timeoutMs,
+          isRetryable: (error: unknown): boolean => {
+            return error instanceof SendGridSendException && error.isRetryable;
+          },
+          getRetryAfterSeconds: (error: unknown): number | undefined => {
+            return error instanceof SendGridSendException
+              ? error.retryAfterSeconds
+              : undefined;
+          },
+          attempt: async (requestTimeoutMs: number): Promise<void> => {
+            const mailer: MailService = new MailService();
+            mailer.setApiKey(config.apiKey);
+            mailer.setTimeout(requestTimeoutMs);
+
+            try {
+              await mailer.send(message);
+            } catch (error) {
+              throw SendGridMailProvider.explainError(error, {
+                hadInlineImages: inlineImages.length > 0,
+                isProjectConfig: true,
+              });
+            }
+          },
+        });
+      },
     );
   }
 
@@ -229,7 +340,11 @@ export default class SendGridMailProvider {
    */
   public static explainError(
     error: unknown,
-    options: { hadInlineImages: boolean },
+    options: {
+      hadInlineImages: boolean;
+      // A project's SMTP config, not the server's own SendGrid settings.
+      isProjectConfig?: boolean | undefined;
+    },
   ): SendGridSendException {
     const clientError: SendGridClientError =
       error && typeof error === "object" ? (error as SendGridClientError) : {};
@@ -258,7 +373,9 @@ export default class SendGridMailProvider {
     let meaning: string = `SendGrid did not accept the email (${status}).`;
 
     if (statusCode === 401) {
-      meaning = `SendGrid did not accept the API key (${status}). Check the SendGrid API Key in the Admin Dashboard, under Settings > Emails.`;
+      meaning = options.isProjectConfig
+        ? `SendGrid did not accept the API key (${status}). Check the SendGrid API Key in this project's SMTP config, under Project Settings > Notifications > Notification Settings.`
+        : `SendGrid did not accept the API key (${status}). Check the SendGrid API Key in the Admin Dashboard, under Settings > Emails.`;
     } else if (statusCode === 403) {
       meaning = `SendGrid would not send this email (${status}). The API key needs the Mail Send permission, and the From Email must be a sender verified in SendGrid.`;
     } else if (statusCode === 429) {
@@ -267,10 +384,16 @@ export default class SendGridMailProvider {
 
     const reasons: string = SendGridMailProvider.describeApiErrors(apiErrors);
 
+    const retryAfterHeader: unknown =
+      clientError.response.headers?.["retry-after"];
+
     return new SendGridSendException(
       reasons ? `${meaning} SendGrid said: ${reasons}` : meaning,
       {
         statusCode: statusCode,
+        retryAfterSeconds: HttpMailApi.parseRetryAfter(
+          typeof retryAfterHeader === "string" ? retryAfterHeader : undefined,
+        ),
         refusedInlineImages:
           options.hadInlineImages &&
           InlineImageRefusal.isSendgridRefusal(

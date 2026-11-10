@@ -627,11 +627,15 @@ Zelf gehoste installaties kunnen dit wijzigen met omgevingsvariabelen op de app:
 
 ## Alerts op een resource
 
+Een resource van een [gekoppeld account](/docs/telemetry/cloud-accounts) krijgt op zijn tabblad **Aanbevelingen** de monitors aangeboden die OneUptime voor zijn type aanbeveelt, elk in één stap aan te maken. Om te alarmeren op een andere metriek die hij rapporteert:
+
 :::steps
 1. Open de resource en zijn tabblad **Metrieken**, dat elke metriek toont die de provider erover meldt.
 2. Open een metriek om die in de metriekverkenner in een grafiek te zien, al gefilterd op de resource.
 3. Klik op **Monitor maken vanuit deze weergave**: de monitor bewaakt die metriek voor die resource.
 :::
+
+Een Service Bus-namespace meldt zijn metrieken eenmaal per wachtrij en topic, en een Event Hubs-namespace eenmaal per event hub. Waar ze optelbaar zijn, toont een rij op het tabblad **Metrieken** van de namespace hun totaal, met **totaal van reeksen** eronder. Een monitor die vanuit die rij is gemaakt, leest ook het totaal, net als een monitor die via de API of Terraform zonder aggregatie is gemaakt. De andere rijen tonen **gemiddelde van reeksen** en daarmee de gemiddelde wachtrij of event hub: een latentie en, over een bereik van meer dan 3 uur, een hoeveelheid die de namespace aanhoudt, zoals wachtende berichten.
 
 > [!IMPORTANT]
 > Cloudmonitoring publiceert elk getal minuten na het tijdstip dat het meet: 10 tot 20 minuten voor CloudWatch dat zoals hierboven wordt gepold, een paar minuten voor Azure Monitor en Cloud Monitoring. Het wordt opgeslagen onder het tijdstip dat het meet. Geef een monitor op deze metrieken een venster dat langer is dan die vertraging (30 minuten voor CloudWatch, 15 voor de andere), anders ziet hij geen gegevens en gaat hij nooit af.

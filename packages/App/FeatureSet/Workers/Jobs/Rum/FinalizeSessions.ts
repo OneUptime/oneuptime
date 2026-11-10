@@ -28,6 +28,7 @@ import {
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
 import { isSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
+import { SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAMES_PER_SESSION } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import {
   hasSessionRecordingEnded,
   hasTabRecordingEnded,
@@ -390,6 +391,15 @@ export interface TabChunkAggregate {
   customEventCount: number;
 
   /*
+   * The application's own signals (issue #6443): hits and frustration
+   * hits summed like the counters above, and the names hit as a sorted set
+   * like routes. A chunk from before the columns existed stores 0 / [].
+   */
+  customSignalCount: number;
+  customSignalFrustrationCount: number;
+  customSignalNames: Array<string>;
+
+  /*
    * Chunks carrying at least one error, and the session-relative start
    * offset of the earliest such chunk. Both are needed: minIf returns 0
    * when nothing matched, and "first error at 0ms" is a real answer for a
@@ -480,6 +490,10 @@ export interface SessionChunkAggregate {
   clickCount: number;
   customEventCount: number;
 
+  customSignalCount: number;
+  customSignalFrustrationCount: number;
+  customSignalNames: Array<string>;
+
   /*
    * Session-relative offset of the earliest chunk that carries an error;
    * 0 when no chunk does. The list's "first error at 1:42" and the
@@ -548,6 +562,10 @@ export interface ProvisionalSessionHeader {
   deadClickCount: number;
   errorClickCount: number;
   refreshRageCount: number;
+  /* Seeded by the ingest like the built-in counters (issue #6443). */
+  customSignalCount: number;
+  customSignalFrustrationCount: number;
+  customSignalNames: Array<string>;
   pageCount: number;
   entryUrl: string;
   exitUrl: string;
@@ -850,6 +868,18 @@ export function buildTabAggregateStatement(data: {
       sum(routeCount) AS routeCount,
       sum(clickCount) AS clickCount,
       sum(customEventCount) AS customEventCount,
+      sum(customSignalCount) AS customSignalCount,
+      sum(customSignalFrustrationCount) AS customSignalFrustrationCount,
+      /*
+       * Sorted for the same reason as routes below: two runs over the same
+       * chunks must write the same bytes. Cut to the session's budget in
+       * sorted order, so which names are kept never depends on the order
+       * the chunks arrived in.
+       */
+      arraySlice(arraySort(arrayDistinct(arrayFlatten(groupArray(customSignalNames)))), 1, ${{
+        type: TableColumnType.Number,
+        value: SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAMES_PER_SESSION,
+      }}) AS customSignalNames,
       /*
        * The first errored chunk's start offset, guarded by a count because
        * minIf over no rows is 0 and 0 is also a real offset.
@@ -967,6 +997,9 @@ export function buildTabAggregateStatement(data: {
         routeCount,
         clickCount,
         customEventCount,
+        customSignalCount,
+        customSignalFrustrationCount,
+        customSignalNames,
         url,
         routes,
         sessionStartTime,
@@ -1061,6 +1094,9 @@ export function buildProvisionalHeaderStatement(data: {
       deadClickCount AS deadClickCount,
       errorClickCount AS errorClickCount,
       refreshRageCount AS refreshRageCount,
+      customSignalCount AS customSignalCount,
+      customSignalFrustrationCount AS customSignalFrustrationCount,
+      customSignalNames AS customSignalNames,
       pageCount AS pageCount,
       entryUrl AS entryUrl,
       exitUrl AS exitUrl,
@@ -1302,6 +1338,11 @@ export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
     routeCount: toNumberValue(row["routeCount"]),
     clickCount: toNumberValue(row["clickCount"]),
     customEventCount: toNumberValue(row["customEventCount"]),
+    customSignalCount: toNumberValue(row["customSignalCount"]),
+    customSignalFrustrationCount: toNumberValue(
+      row["customSignalFrustrationCount"],
+    ),
+    customSignalNames: toTextArrayValue(row["customSignalNames"]),
     erroredChunkCount: toNumberValue(row["erroredChunkCount"]),
     firstErrorOffsetMs: toNumberValue(row["firstErrorOffsetMs"]),
     activeMs: toNumberValue(row["activeMs"]),
@@ -1350,6 +1391,11 @@ export function parseProvisionalHeaderRow(
     deadClickCount: toNumberValue(row["deadClickCount"]),
     errorClickCount: toNumberValue(row["errorClickCount"]),
     refreshRageCount: toNumberValue(row["refreshRageCount"]),
+    customSignalCount: toNumberValue(row["customSignalCount"]),
+    customSignalFrustrationCount: toNumberValue(
+      row["customSignalFrustrationCount"],
+    ),
+    customSignalNames: toTextArrayValue(row["customSignalNames"]),
     pageCount: toNumberValue(row["pageCount"]),
     entryUrl: toTextValue(row["entryUrl"]),
     exitUrl: toTextValue(row["exitUrl"]),
@@ -1417,6 +1463,9 @@ export function combineTabAggregates(
     pageCount: 0,
     clickCount: 0,
     customEventCount: 0,
+    customSignalCount: 0,
+    customSignalFrustrationCount: 0,
+    customSignalNames: [],
     firstErrorOffsetMs: 0,
     activeMs: 0,
     firstUrl: "",
@@ -1451,6 +1500,9 @@ export function combineTabAggregates(
    * groupArray's element order.
    */
   const routes: Set<string> = new Set<string>();
+
+  /* The names of the application's own signals hit, across tabs; a set too. */
+  const customSignalNames: Set<string> = new Set<string>();
 
   /*
    * The session's first and last URLs are the first URL of the EARLIEST tab
@@ -1512,6 +1564,15 @@ export function combineTabAggregates(
     combined.pageCount += tab.routeCount;
     combined.clickCount += tab.clickCount;
     combined.customEventCount += tab.customEventCount;
+    combined.customSignalCount += tab.customSignalCount;
+    combined.customSignalFrustrationCount += tab.customSignalFrustrationCount;
+
+    for (const name of tab.customSignalNames) {
+      if (name) {
+        customSignalNames.add(name);
+      }
+    }
+
     /*
      * A SUM across tabs, which overlapping tabs can push past the session's
      * own duration. Left as the raw sum here because this function has no
@@ -1622,6 +1683,14 @@ export function combineTabAggregates(
 
   /* Sorted, so re-finalizing identical chunks produces an identical row. */
   combined.routes = Array.from(routes).sort();
+  /*
+   * Sorted, then cut: the first names in sorted order, whatever order the
+   * tabs came in. Each tab's list is already cut to the same budget in
+   * sorted order, which can never drop one of these.
+   */
+  combined.customSignalNames = Array.from(customSignalNames)
+    .sort()
+    .slice(0, SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAMES_PER_SESSION);
 
   /*
    * Only trust the derived entry URL when the session's very first chunk
@@ -1861,6 +1930,13 @@ export function buildFinalizedSessionRow(data: {
 
     clickCount: aggregate.clickCount,
     customEventCount: aggregate.customEventCount,
+    /*
+     * The application's own signals, from the chunk rows alone: a session
+     * recorded before they existed has none, which is what it had.
+     */
+    customSignalCount: aggregate.customSignalCount,
+    customSignalFrustrationCount: aggregate.customSignalFrustrationCount,
+    customSignalNames: aggregate.customSignalNames,
     firstErrorOffsetMs: aggregate.firstErrorOffsetMs,
     /*
      * activeMs is per-session WALL CLOCK, never a per-tab sum.
@@ -3706,6 +3782,13 @@ async function sealLostSession(data: {
     errorClickCount: header.errorClickCount,
     refreshRageCount: header.refreshRageCount,
     pageCount: header.pageCount,
+    /*
+     * The application's own signals are seeded on the provisional header
+     * like the built-in counters above, and carried for the same reason.
+     */
+    customSignalCount: header.customSignalCount,
+    customSignalFrustrationCount: header.customSignalFrustrationCount,
+    customSignalNames: header.customSignalNames,
     /*
      * Never seeded on the provisional header (the finalizer's GROUP BY owns
      * them), so there is nothing to carry: zero is the truth for a session

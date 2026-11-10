@@ -137,6 +137,15 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 @Index(["aiInvestigationWaitUntil"], {
   where: '"aiInvestigationWaitUntil" IS NOT NULL AND "deletedAt" IS NULL',
 })
+/*
+ * The alerts a grouping rule holds back until enough matching alerts are
+ * ongoing to open an episode (issue #5374), newest first by group: what the
+ * grouping engine reads when the next alert of the group arrives. Only
+ * alerts that waited are in it.
+ */
+@Index(["groupingWaitKey", "createdAt"], {
+  where: '"groupingWaitKey" IS NOT NULL AND "deletedAt" IS NULL',
+})
 export default class Alert extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -2142,6 +2151,28 @@ export default class Alert extends BaseModel {
   @Column({ type: ColumnType.Date, nullable: true })
   public aiInvestigationWaitUntil?: Date = undefined;
 
+  /*
+   * While a grouping rule holds this alert back until enough matching alerts
+   * are ongoing to open an episode (issue #5374): the rule and the group it
+   * waits in, as one keyed hash (GroupingRuleEpisodeWait), so no title is
+   * kept in it. Cleared when the rule opens the episode with it. Null for
+   * every other alert. Read through the partial index above.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Grouping Wait Key",
+    description:
+      "Internal: while a grouping rule waits for more matching alerts before it opens an episode, the rule and group this alert waits in.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public groupingWaitKey?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -2358,6 +2389,42 @@ export default class Alert extends BaseModel {
     nullable: true,
   })
   public monitorSummary?: JSONObject = undefined;
+
+  /*
+   * Why the monitor opened this alert: the criteria that matched, each
+   * filter's condition with what the check found, and a short excerpt of
+   * the response around the match - redacted and bounded when it was
+   * captured (Common/Types/Monitor/MonitorEvaluationDetails). Absent for
+   * alerts opened by hand, and for those from before it was kept.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    isDefaultValueColumn: false,
+    computed: true,
+    title: "Evaluation Details",
+    description:
+      "Why the monitor opened this alert: the criteria and filters that matched, what the check found, and a redacted excerpt of the response.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public evaluationDetails?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],

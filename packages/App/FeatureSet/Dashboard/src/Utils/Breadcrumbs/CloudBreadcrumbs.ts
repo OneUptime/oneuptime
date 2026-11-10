@@ -111,6 +111,12 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "View Resource",
       "Documentation",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Cloud",
+      "View Resource",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_DELETE, [
       "Project",
       "Cloud",
@@ -135,6 +141,14 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "View Resource",
       "Changes",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
+      ["Project", "Cloud", "View Resource", "Recommendations"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "Cloud", "View Resource", "Scheduled Maintenance"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNTS, [
       "Project",
       "Cloud",
@@ -197,12 +211,23 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "View Account",
       "Costs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.CLOUD_ACCOUNT_VIEW_RECOMMENDATIONS,
+      ["Project", "Cloud", "Accounts", "View Account", "Recommendations"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS, [
       "Project",
       "Cloud",
       "Accounts",
       "View Account",
       "Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "Audit Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_DELETE, [
       "Project",

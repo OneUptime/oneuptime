@@ -225,6 +225,34 @@ registerInstrumentations({
 });`;
 }
 
+/*
+ * The window error handlers that report a browser app's uncaught errors:
+ * the browser SDK records none on its own. The "Report uncaught errors"
+ * topic below and the "Set up exceptions" dialog (RumSignalSetupGuide)
+ * show this same code.
+ */
+export function getRumErrorHandlersSnippet(): string {
+  return `import { trace, SpanStatusCode } from "@opentelemetry/api";
+
+const tracer = trace.getTracer("app-errors");
+
+window.addEventListener("error", (event: ErrorEvent) => {
+  const span = tracer.startSpan("window.onerror");
+  span.recordException(event.error ?? new Error(event.message));
+  span.setStatus({ code: SpanStatusCode.ERROR });
+  span.end();
+});
+
+window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
+  const span = tracer.startSpan("unhandledrejection");
+  span.recordException(
+    event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
+  );
+  span.setStatus({ code: SpanStatusCode.ERROR });
+  span.end();
+});`;
+}
+
 function getBrowserPrerequisites(): Array<string> {
   return [
     "A web app whose code you can change and redeploy, with its dependencies installed through npm",
@@ -350,28 +378,7 @@ Requests made with \`XMLHttpRequest\` instead of \`fetch\` need \`@opentelemetry
         "The browser SDK does not capture them, so report them from the window's error events.",
       markdown: `Uncaught errors are not captured automatically by the OpenTelemetry browser SDK. Report them explicitly so they roll into the **Exceptions** view alongside your backend errors:
 
-${codeBlock(
-  "ts",
-  `import { trace, SpanStatusCode } from "@opentelemetry/api";
-
-const tracer = trace.getTracer("app-errors");
-
-window.addEventListener("error", (event: ErrorEvent) => {
-  const span = tracer.startSpan("window.onerror");
-  span.recordException(event.error ?? new Error(event.message));
-  span.setStatus({ code: SpanStatusCode.ERROR });
-  span.end();
-});
-
-window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-  const span = tracer.startSpan("unhandledrejection");
-  span.recordException(
-    event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
-  );
-  span.setStatus({ code: SpanStatusCode.ERROR });
-  span.end();
-});`,
-)}`,
+${codeBlock("ts", getRumErrorHandlersSnippet())}`,
     },
     {
       title: "Send logs, metrics and Core Web Vitals",
@@ -419,7 +426,7 @@ To label applications or assign owners by name, use **Real User Monitoring → S
 - **Clients** — the browser platforms the application has been seen on, from \`browser.platform\`. Coarse by platform, never per end user.
 - **Session Replay** — a separate, optional recorder with its own script tag and privacy controls: [Session Replay](${SESSION_REPLAY_DOCS_URL}).
 
-The application shows **Connected** while telemetry keeps arriving, and **Disconnected** after 15 minutes without any.`,
+The application shows **Receiving data** while telemetry keeps arriving, and **No recent traffic** after 15 minutes without any, which is normal while nobody is using the app.`,
     },
   ];
 }
@@ -474,8 +481,8 @@ The Service that was already created does not turn into a RUM application — th
 - **Check the project.** The key decides which project the telemetry lands in.`,
     },
     {
-      title: 'Status shows "Disconnected" while the app is live',
-      markdown: `Status flips to **Disconnected** after 15 minutes without telemetry. If your app has traffic:
+      title: 'Status shows "No recent traffic" while people use the app',
+      markdown: `Status turns to **No recent traffic** after 15 minutes without telemetry. That is expected while nobody uses the app. If your app has traffic:
 
 - A **sampler** may be dropping everything — check you have not set an always-off or very low ratio sampler.
 - The app may only emit on interactions nobody triggered in that window.
@@ -591,7 +598,7 @@ To label applications or assign owners by name, use **Real User Monitoring → S
 - **Logs**, **Traces** and **Metrics** — the telemetry explorers, scoped to this application.
 - **Clients** — the device models the application has been seen on, from \`device.model.identifier\`. Coarse by model, never per end user.
 
-The application shows **Connected** while telemetry keeps arriving, and **Disconnected** after 15 minutes without any.`,
+The application shows **Receiving data** while telemetry keeps arriving, and **No recent traffic** after 15 minutes without any, which is normal while nobody is using the app.`,
     },
   ];
 }
@@ -624,8 +631,8 @@ The Service that was already created does not turn into a RUM application — th
 - **Check the project.** The key decides which project the telemetry lands in.`,
     },
     {
-      title: 'Status shows "Disconnected" while the app is live',
-      markdown: `Status flips to **Disconnected** after 15 minutes without telemetry. If your app is in use:
+      title: 'Status shows "No recent traffic" while people use the app',
+      markdown: `Status turns to **No recent traffic** after 15 minutes without telemetry. That is expected while nobody uses the app. If your app is in use:
 
 - A **sampler** may be dropping everything — check you have not set an always-off or very low ratio sampler.
 - The app may only emit on interactions nobody triggered in that window.

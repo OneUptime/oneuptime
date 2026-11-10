@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 用同一個 `resource` 物件來建立它們。資源中缺少 `browser.*` 的日誌或指標管線，會被歸為一個獨立的後端服務。
 
+日誌管線只傳送你的程式碼寫入的記錄，所以在每個值得了解的事情發生的地方寫一筆：
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## 端點參考
 
 | 訊號 | 端點 | 標頭 |

@@ -28,6 +28,7 @@ import AcknowledgementTimeoutPolicySentence from "./AcknowledgementTimeout/Ackno
 import { getAcknowledgementTimeoutMinutes } from "./AcknowledgementTimeout/AcknowledgementTimeout";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   onCallDutyPolicyId: ObjectID;
@@ -389,7 +390,9 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
             className={`h-3.5 w-3.5 ${params.iconColor}`}
           />
           {translator.translateText(params.label)}
-          <span className="text-gray-300">·</span>
+          <span className="text-gray-300">
+            <InlineSeparator markOnly />
+          </span>
           <span className="tabular-nums text-gray-500">
             {params.names.length}
           </span>

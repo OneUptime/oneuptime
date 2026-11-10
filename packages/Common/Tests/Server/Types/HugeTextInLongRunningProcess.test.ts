@@ -555,12 +555,23 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
           results["incoming webhook card: " + name] = await attempt(() => {
             const card = MicrosoftTeamsUtil["buildMessageCardFromMarkdown"](markdown);
-            const text = (card.sections && card.sections[0] && card.sections[0].text) || "";
+            /*
+             * The card's sections are its text and facts in the order they
+             * were written, and Teams draws a section's text above its
+             * facts (toMessageCardSections): the note is the last thing
+             * drawn when the last section is its text alone. A response
+             * body after a label is a fact, so the note after it is a
+             * section of its own.
+             */
+            const sections = card.sections || [];
+            const last = sections[sections.length - 1] || {};
 
             return {
               "is titled with the first line": card.title === "Before",
               "fits the budget, as Teams counts it": JSON.stringify(card).length * 2 <= 80 * 1024,
-              "ends with the note": text.endsWith("_… (truncated — see OneUptime for the full text)_"),
+              "ends with the note":
+                (last.text || "").endsWith("_… (truncated — see OneUptime for the full text)_") &&
+                !(last.facts && last.facts.length > 0),
             };
           });
 
@@ -591,12 +602,12 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     /*
      * What MarkdownViewer does with a text: react-markdown with remark-gfm
      * and the viewer's callout pass, the held-back text put back by the
-     * viewer's rehype plugin, and the viewer's urlTransform - rendered to
-     * HTML as a browser would get it.
+     * viewer's remark plugin (addresses) and rehype plugin (the rest), and
+     * the viewer's urlTransform - rendered to HTML as a browser would get it.
      */
     const report: ProcessReport = runUnoptimized(
       [
-        'export { holdBackForViewer, rehypePutBackHeldText } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
+        'export { holdBackForViewer, rehypePutBackHeldText, remarkPutBackHeldUrls } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
         'export { markdownUrlTransform } from "./UI/Components/Markdown.tsx/MarkdownUrlTransform";',
         'export { remarkMarkdownCallouts } from "./UI/Components/Markdown.tsx/MarkdownCallouts";',
         'export { default as MonitorTemplateUtil } from "./Server/Utils/Monitor/MonitorTemplateUtil";',
@@ -619,7 +630,14 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
             React.createElement(
               ReactMarkdown,
               {
-                remarkPlugins: [remarkGfm, lib.remarkMarkdownCallouts],
+                remarkPlugins:
+                  heldBack.held.length > 0
+                    ? [
+                        remarkGfm,
+                        lib.remarkMarkdownCallouts,
+                        [lib.remarkPutBackHeldUrls, { held: heldBack.held }],
+                      ]
+                    : [remarkGfm, lib.remarkMarkdownCallouts],
                 rehypePlugins:
                   heldBack.held.length > 0
                     ? [[lib.rehypePutBackHeldText, { held: heldBack.held }]]
@@ -645,6 +663,8 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
               "keeps the text's start": html.includes("HEAD"),
               "keeps the text's end": html.includes("TAIL"),
               "keeps all of the text": html.length > 0.9 * markdown.length,
+              // A token remark-rehype percent-encoded, in a link's address.
+              "leaves no token in an address": !html.includes("%EE%80%85"),
             };
           });
         }
@@ -876,7 +896,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
   test("the dashboard reads 64 KB of every shape that was slow in good time", () => {
     const report: ProcessReport = runUnoptimized(
       [
-        'export { holdBackForViewer, rehypePutBackHeldText } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
+        'export { holdBackForViewer, rehypePutBackHeldText, remarkPutBackHeldUrls } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
         'export { markdownUrlTransform } from "./UI/Components/Markdown.tsx/MarkdownUrlTransform";',
         'export { remarkMarkdownCallouts } from "./UI/Components/Markdown.tsx/MarkdownCallouts";',
       ],
@@ -898,7 +918,14 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
               React.createElement(
                 ReactMarkdown,
                 {
-                  remarkPlugins: [remarkGfm, lib.remarkMarkdownCallouts],
+                  remarkPlugins:
+                    heldBack.held.length > 0
+                      ? [
+                          remarkGfm,
+                          lib.remarkMarkdownCallouts,
+                          [lib.remarkPutBackHeldUrls, { held: heldBack.held }],
+                        ]
+                      : [remarkGfm, lib.remarkMarkdownCallouts],
                   rehypePlugins:
                     heldBack.held.length > 0
                       ? [[lib.rehypePutBackHeldText, { held: heldBack.held, heldLines: heldBack.heldLines }]]

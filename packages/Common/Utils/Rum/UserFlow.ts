@@ -1518,9 +1518,15 @@ export function buildUserFlowInsights(
 
   /*
    * "Most sessions start on" is untrue of a tie, which is what one person's
-   * few sessions, each landing somewhere else, usually are.
+   * few sessions, each landing somewhere else, usually are. One session leads
+   * nothing either: the Top landing page tile already says where it started.
    */
-  if (entry && entry.entries > 0 && byEntries[1]?.entries !== entry.entries) {
+  if (
+    total > 1 &&
+    entry &&
+    entry.entries > 0 &&
+    byEntries[1]?.entries !== entry.entries
+  ) {
     const share: number = ratio(entry.entries, total);
 
     insights.push({

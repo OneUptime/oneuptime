@@ -68,6 +68,7 @@ Dialogen spør med noen sekunders mellomrom hva som har kommet. Firehose leverer
 | --- | --- |
 | **Alle målinger, ikke bare nøkkelmålingene** | Strømmer alle målinger CloudWatch har for kontoen, også dine egne. AWS fakturerer hver måleoppdatering en strøm sender, så det kan koste mange ganger mer |
 | **Regioner** | Hvor det strømmes fra: først regionene der tilkoblingen fant ressurser. Står feltet tomt, strømmer kommandoen fra AWS CloudShells egen region. Høyst 30 |
+| **Alle kontoer i organisasjonen** | For en tilkobling som leser en AWS Organization: kommandoen, kjørt i administrasjonskontoen, lager også de samme stakkene i hver medlemskonto gjennom et StackSet, og i kontoer som blir med senere. Alle logggrupper eller ingen: navngitte logggrupper tilhører én konto |
 | **Sett det opp på en annen måte** | Endepunktene for målinger og logger og nøkkelen, for å sette opp strømmene med Terraform eller konsollen |
 
 **Last ned malen** lagrer malen kommandoen ruller ut, så du kan rulle den ut på din egen måte.
@@ -79,6 +80,7 @@ Dialogen spør med noen sekunders mellomrom hva som har kommet. Firehose leverer
 | Målinger | På skyressursene de måler, med navnene og attributtene tilkoblingens lesinger gir dem |
 | Logger | I loggutforskeren, under tilkoblingens telemetritjeneste, med konto, region og logggruppe som attributter |
 | Logger fra en logggruppe som AWS navngir etter en ressurs | Også på den ressursen: siden dens i Sky får en fane **Logger** |
+| Logger fra en App Runner-tjeneste, et Elastic Beanstalk-miljø eller en ECS-oppgave eller -klynge | Også på miljøet i App-plattformer: fanen **Logger** |
 
 En logggruppe arkiveres under en ressurs når AWS har navngitt den etter en:
 
@@ -97,7 +99,9 @@ En logggruppe arkiveres under en ressurs når AWS har navngitt den etter en:
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Hver logg bærer ressursens ID som `cloud.resource_id`, og loggene til en Lambda-funksjon bærer også `faas.name`, så de vises også på funksjonen under Serverless. En logggruppe med et annet navn strømmes likevel, under sin konto og region. Alvorlighetsgraden til en logg er den meldingen oppgir, slik Lambda skriver den.
+Hver logg bærer ressursens ID som `cloud.resource_id`, og loggene til en Lambda-funksjon bærer også `faas.name`, så de vises også på funksjonen under Serverless. En logggruppe med et annet navn strømmes likevel, under sin konto og region. Alvorlighetsgraden til en logg er den meldingen oppgir, slik Lambda, PostgreSQL eller MySQL skriver den.
+
+Logger fra en App Runner-tjeneste, et Elastic Beanstalk-miljø og en ECS-klynge bærer også `cloud.platform`, og det gjør også loggene til en ECS-oppgave, fra logggruppen ECS-konsollen kaller `/ecs/<task-definition-family>`, med `aws.ecs.task.family`. Med kontoen og regionen havner de dermed på miljøet sitt i App-plattformer, som dukker opp med dem hvis ingen app har rapportert til det ennå. De lager ingen app: en app får navn etter sin egen telemetri, slik [Skymiljøer](/docs/telemetry/cloud-environments) forklarer.
 
 ## Hva stakken oppretter
 
@@ -130,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+For en tilkobling som leser en AWS Organization, kjører du dialogens kommando i administrasjonskontoen: Hvis organisasjonen ble strømmet, sletter den også stakkene i hver medlemskonto og StackSet.
 :::
 
 For å endre hva en stakk strømmer, åpner du **Strøm målinger og logger** igjen, velger **Lag en ny nøkkel** og kjører den nye kommandoen. Nøkkelen den erstatter, virker i 24 timer til, så ingen levering avvises mens stakkene oppdateres. Høyst 3 erstattede nøkler virker samtidig.

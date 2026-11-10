@@ -8,6 +8,7 @@ import {
   test,
 } from "@playwright/test";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import { SUPPORTED_DASHBOARD_LANGUAGE_CODES } from "Common/Types/Dashboard/DashboardLanguage";
 import {
   SecurityEventDestinationCatalog,
   SecurityEventDestinationDefinition,
@@ -1774,7 +1775,14 @@ test.describe("connections: your logs and your SIEM", () => {
         return file.endsWith(".json");
       },
     );
-    expect(files).toHaveLength(17);
+    // One for each language the Dashboard speaks, so none is left unread.
+    expect(
+      files
+        .map((file: string): string => {
+          return file.replace(".json", "");
+        })
+        .sort(),
+    ).toEqual([...SUPPORTED_DASHBOARD_LANGUAGE_CODES].sort());
     for (const file of files) {
       const words: Record<string, unknown> = JSON.parse(
         await fs.readFile(path.join(DASHBOARD_LOCALES, file), "utf8"),

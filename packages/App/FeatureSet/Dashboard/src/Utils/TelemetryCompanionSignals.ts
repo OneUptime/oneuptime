@@ -15,11 +15,14 @@ import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import SessionReplayBudgetMetricTypeUtil from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
+import TelemetryIngestionBudgetMetricTypeUtil from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import {
+  COMPANION_SCOPE_NOTES,
   MetricCrossSignalScopeResult,
   SERVICE_NAME_ATTRIBUTE_KEY,
   buildCrossSignalScopeFromMetricViewData,
   extractScopeFiltersFromQueryConfigs,
+  getAttributeScopeNote,
 } from "./MetricsCrossSignalPivot";
 import {
   getFilterStringValues,
@@ -124,14 +127,14 @@ const LOG_SEVERITY_CANONICAL: Dictionary<string> = {
  * hidden from the hint.
  */
 const PRIMARY_ONLY_QUERY_KEY_LABELS: Dictionary<string> = {
-  body: "log body search",
-  name: "span name search",
-  statusCode: "span status filter",
-  exceptionType: "exception type filter",
-  message: "exception message search",
+  body: COMPANION_SCOPE_NOTES.logBodySearch,
+  name: COMPANION_SCOPE_NOTES.spanNameSearch,
+  statusCode: COMPANION_SCOPE_NOTES.spanStatusFilter,
+  exceptionType: COMPANION_SCOPE_NOTES.exceptionTypeFilter,
+  message: COMPANION_SCOPE_NOTES.exceptionMessageSearch,
 };
 
-const SEVERITY_NOT_CARRIED_LABEL: string = "severity filter";
+const SEVERITY_NOT_CARRIED_LABEL: string = COMPANION_SCOPE_NOTES.severityFilter;
 
 /*
  * Keys that never translate INTO companion scope but are not lost either:
@@ -201,7 +204,7 @@ function extractScopeFromPrimaryQuery(
       scope.serviceIds = getFilterStringValues(value);
 
       if (scope.serviceIds.length === 0 && !isEmptyFilterValue(value)) {
-        pushUniqueLabel(scope.notCarried, "service filter");
+        pushUniqueLabel(scope.notCarried, COMPANION_SCOPE_NOTES.serviceFilter);
       }
       continue;
     }
@@ -210,7 +213,10 @@ function extractScopeFromPrimaryQuery(
       scope.entityKeys = getFilterStringValues(value);
 
       if (scope.entityKeys.length === 0 && !isEmptyFilterValue(value)) {
-        pushUniqueLabel(scope.notCarried, "entity-key filter");
+        pushUniqueLabel(
+          scope.notCarried,
+          COMPANION_SCOPE_NOTES.entityKeyFilter,
+        );
       }
       continue;
     }
@@ -226,7 +232,10 @@ function extractScopeFromPrimaryQuery(
 
     if (key === "attributes") {
       if (!isPlainRecord(value)) {
-        pushUniqueLabel(scope.notCarried, "attribute filters");
+        pushUniqueLabel(
+          scope.notCarried,
+          COMPANION_SCOPE_NOTES.attributeFilters,
+        );
         continue;
       }
 
@@ -241,7 +250,10 @@ function extractScopeFromPrimaryQuery(
           scope.attributes[attributeKey] = attributeValue;
         } else if (attributeValue !== null && attributeValue !== undefined) {
           // Operator-shaped values (Search / Includes / ...) — not scope.
-          pushUniqueLabel(scope.notCarried, `attribute "${attributeKey}"`);
+          pushUniqueLabel(
+            scope.notCarried,
+            getAttributeScopeNote(attributeKey),
+          );
         }
       }
       continue;
@@ -642,8 +654,17 @@ export const excludeReservedCompanionMetricNames: ExcludeReservedCompanionMetric
   (metricNames: Array<string>): Array<string> => {
     return (metricNames || []).filter((metricName: string): boolean => {
       // Trimmed first: the chart plan charts a name by its trimmed spelling.
-      return !SessionReplayBudgetMetricTypeUtil.isReservedMetricName(
-        typeof metricName === "string" ? metricName.trim() : metricName,
+      const name: string =
+        typeof metricName === "string" ? metricName.trim() : metricName;
+
+      /*
+       * The ingestion budget readings are keyed to the project, not to any
+       * service an incident is about, so they never chart as a companion
+       * either.
+       */
+      return (
+        !SessionReplayBudgetMetricTypeUtil.isReservedMetricName(name) &&
+        !TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name)
       );
     });
   };
@@ -722,14 +743,14 @@ export const buildCompanionMetricChartPlan: BuildCompanionMetricChartPlanFunctio
     } else if (input.spec.serviceIds.length > 0) {
       pushUniqueLabel(
         chartScopeNotes,
-        "chart values are not narrowed to the service (service name could not be resolved)",
+        COMPANION_SCOPE_NOTES.chartNotNarrowedToService,
       );
     }
 
     if (input.spec.entityKeys.length > 0) {
       pushUniqueLabel(
         chartScopeNotes,
-        "the entity-key scope narrows the metric list, not the chart values",
+        COMPANION_SCOPE_NOTES.entityKeysNarrowTheListOnly,
       );
     }
 

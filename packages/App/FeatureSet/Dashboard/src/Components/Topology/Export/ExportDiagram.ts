@@ -213,6 +213,9 @@ export function buildDiagramItems(
   }
 
   const labelColor: string = resolvePrintColor(style.labelColor);
+  const labelSecondaryColor: string = resolvePrintColor(
+    style.labelSecondaryColor,
+  );
   const haloColor: string = resolvePrintColor(style.labelHaloColor);
 
   for (const nodeView of viewModel.nodes) {
@@ -282,6 +285,9 @@ export function buildDiagramItems(
     const fontSize: number = labelFontSizeFor(nodeView.kind);
     const lineHeight: number = labelLineHeightFor(nodeView.kind);
     for (let lineIndex: number = 0; lineIndex < lines.length; lineIndex++) {
+      // The line under the name - an address, or a maker - a shade lighter.
+      const isSecondaryLine: boolean =
+        nodeView.hasSecondaryLabelLine && lineIndex === lines.length - 1;
       items.push({
         ...textItem(
           `node-label:${nodeView.id}`,
@@ -291,7 +297,7 @@ export function buildDiagramItems(
             nodeView.y + footprint.labelBaselineOffset + lineIndex * lineHeight,
           ),
           fontSize * s,
-          labelColor,
+          isSecondaryLine ? labelSecondaryColor : labelColor,
           { align: "center" },
         ),
         halo: { color: haloColor, width: style.labelHaloWidth * s },

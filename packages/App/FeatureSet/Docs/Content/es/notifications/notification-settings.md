@@ -50,7 +50,7 @@ Cuando te unes a un proyecto, estos eventos empiezan activados, por correo. Todo
 | **Incidentes** | **Incidente creado**, **Estado del incidente cambiado**, **Recordatorio de incidente**, **SLA de incidente incumplido**, **Episodio de incidente creado**, **Estado del episodio de incidente cambiado**, **Incidente añadido al episodio de incidente** | **Nota de incidente publicada**, **Añadido como propietario del incidente**, **Asignado a un incidente**, **Nota de episodio de incidente publicada**, **Añadido como propietario del episodio de incidente** |
 | **Alertas** | **Alerta creada**, **El estado de la alerta ha cambiado**, **Recordatorio de alerta**, **Episodio de alerta creado**, **El estado del episodio de alerta ha cambiado**, **Alerta añadida al episodio de alerta** | **Nota de alerta publicada**, **Añadido como propietario de la alerta**, **Nota del episodio de alerta publicada**, **Añadido como propietario del episodio de alerta** |
 | **Monitoreo** | **El estado de la sonda cambió para tu monitor**, **El monitor no tiene sondas activas**, **El estado del SLO cambió**, **Añadido como propietario del SLO**, **Excepción asignada a mí**, **Estado de la sonda cambiado**, **Añadido como propietario de la sonda** | **Monitor creado**, **Estado del monitor cambiado**, **Añadido como propietario del monitor**, **El estado del agente de IA ha cambiado**, **Añadido como propietario del agente de IA** |
-| **Páginas de estado** | Ninguno | **Página de estado creada**, **Anuncio de página de estado publicado**, **Añadido como propietario de la página de estado** |
+| **Páginas de estado** | **Mi nota pública aprobada o rechazada**, y también por push: **Nota pública pendiente de mi aprobación** | **Página de estado creada**, **Anuncio de página de estado publicado**, **Añadido como propietario de la página de estado** |
 | **Mantenimiento programado** | **Recordatorio de mantenimiento** | **Evento de mantenimiento creado**, **Estado de mantenimiento cambiado**, **Nota de mantenimiento publicada**, **Añadido como propietario del mantenimiento** |
 | **De guardia** | **Entras en la guardia**, **Eres el siguiente en la guardia**, **Sales de la guardia**, **Añadido a la política de guardia**, **Eliminado de la política de guardia**, **Llamada perdida**, y también por push: **Antes de que empiece mi turno de guardia**, **Mi próximo turno de guardia se reasigna** | Ninguno |
 | **Seguridad** | También por push: **Nuevo caso de seguridad** (casos de prioridad Alta y Crítica), **Caso de seguridad asignado a mí**, **Paso de playbook esperando mi aprobación**, **Objetivo de respuesta de un caso de seguridad**, **Tarea de un caso de seguridad asignada a mí**, **Una cacería encontró eventos de seguridad** | Ninguno |
@@ -76,6 +76,15 @@ La pestaña **Seguridad** trata de los casos de seguridad que puedes ver:
 - **Paso de playbook esperando mi aprobación** te pide que apruebes o rechaces un paso de playbook en un caso en el que puedes aprobar.
 
 Consulta [Casos de seguridad](/docs/telemetry/security-cases#notificaciones).
+
+## Aprobación de notas públicas
+
+La tarjeta **Aprobación de notas públicas**, en la pestaña **Páginas de estado**, trata de las notas públicas que esperan aprobación antes de publicarse, en un proyecto que la pide:
+
+- **Nota pública pendiente de mi aprobación** te dice que una nota pública, o una edición de una, espera a un paso que apruebas, por tu nombre o a través de un equipo. No se te pregunta por una nota que enviaste, ni por un paso posterior a uno que aprobaste. Se te pregunta por cada paso una vez: cuando la nota llega a él, o cuando pasas a ser uno de sus aprobadores mientras la nota espera, porque cambiaron los pasos de aprobación o te uniste a un equipo que nombra un paso. Empieza activada por correo y por push, y **Resumen de correos** nunca la retiene: los clientes para quienes se escribe la nota la están esperando.
+- **Mi nota pública aprobada o rechazada** te dice que una nota que enviaste para aprobación se aprobó y publicó, o se rechazó, con el motivo. Empieza activada por correo.
+
+Consulta [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas).
 
 ## Menos correos
 

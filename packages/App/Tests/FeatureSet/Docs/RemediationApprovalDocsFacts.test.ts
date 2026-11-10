@@ -22,10 +22,18 @@ import {
 } from "Common/Utils/AI/InvestigationReport";
 import { describeCloudChange } from "Common/Utils/AiRemediation/CloudChangeWords";
 import { AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE } from "../../../FeatureSet/Dashboard/src/Components/AI/ActivityInsights/AiActivityInsightsData";
+import { INVESTIGATION_IMPACT_USERS_WORDS } from "../../../FeatureSet/Dashboard/src/Components/AI/InvestigationImpactCopy";
+import { CLOUD_DRY_RUN_COPY } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/CloudDryRunCopy";
 import {
   REMEDIATION_FIX_DISMISS,
+  REMEDIATION_FIX_REVIEW_AND_APPROVE,
   REMEDIATION_FIX_STEP_COPY,
 } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
+import { REMEDIATION_STEP_STATUS_TEXT } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepStatus";
+import {
+  INVESTIGATION_IMPACT_NUMBERS_LANGUAGE,
+  InvestigationImpactCounted,
+} from "Common/Utils/AI/InvestigationImpactNumbers";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -46,7 +54,11 @@ import { describe, expect, it } from "@jest/globals";
  *    the SLOs an investigation reads for it, an alert's recurrence, an App
  *    Platforms environment named as the activity names it, a runbook's
  *    record over Approve & Run, Dismiss fix asking what approving asks, and
- *    where a fix was approved, on its step and on AI Insights.
+ *    where a fix was approved, on its step and on AI Insights;
+ *  - #5715's follow-ups: the impact's short numbers on the folded
+ *    Investigation step, and the card's buttons offered only to someone who
+ *    may act, with "Needs approval" rather than "Needs your approval" to
+ *    everyone else.
  *
  * AiDocsTranslations and WorkspaceAndFormsDocsTranslations hold the 16
  * translations to these English pages.
@@ -176,6 +188,57 @@ describe("what the investigation says it hurts", () => {
     expect(persona).toContain("never guess a number");
   });
 
+  it("folded, the card shows the short numbers the run recorded - users, sessions or requests, services and SLOs - and nothing it did not measure", () => {
+    const posts: string = flat(
+      englishSection(AI_SRE, "## What the investigation posts"),
+    );
+
+    /*
+     * The step's title as the card draws it (InvestigationPanel, read as
+     * text: it is a React module).
+     */
+    expect(
+      readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel.tsx",
+      ),
+    ).toContain(
+      'export const INVESTIGATION_STEP_TITLE: string = translationKey("Investigation");',
+    );
+    expect(posts).toContain(
+      `Before the report is opened, the folded ${bold("Investigation")} step shows the same in short numbers under its summary, as the investigation counted them: how many users, sessions or requests, services and SLOs it affects, leaving out what it did not measure.`,
+    );
+
+    // What a count may have counted: the three the page names.
+    expect(Object.values(InvestigationImpactCounted)).toEqual([
+      "users",
+      "sessions",
+      "requests",
+    ]);
+    expect(Object.keys(INVESTIGATION_IMPACT_USERS_WORDS)).toEqual(
+      Object.values(InvestigationImpactCounted),
+    );
+
+    /*
+     * Counted by the investigation: the persona asks for the numbers'
+     * block, never a guess, and the runners record what it wrote.
+     */
+    const persona: string = readRepoFile(
+      "Common/Server/Utils/AI/SRE/AIInvestigationEngine.ts",
+    );
+    expect(persona).toContain(
+      `one fenced code block whose language is ${INVESTIGATION_IMPACT_NUMBERS_LANGUAGE}`,
+    );
+    expect(persona).toContain(
+      "Leave out each one you did not measure - never guess a number",
+    );
+    for (const runner of [
+      "Common/Server/Utils/AI/SRE/IncidentInvestigationRunner.ts",
+      "Common/Server/Utils/AI/SRE/AlertInvestigationRunner.ts",
+    ]) {
+      expect(readRepoFile(runner)).toContain("recordImpactNumbers: true,");
+    }
+  });
+
   it("reads the SLOs linked to the record and those that count its monitors, as many as the context lists", () => {
     const reads: string = flat(
       englishSection(AI_SRE, "## What an investigation reads"),
@@ -292,6 +355,48 @@ describe("approving or dismissing a fix from a chat", () => {
     expect(approval).toContain("assertCanDismissFixes(");
     expect(FIX_DISMISS_REFUSED_MESSAGE).toContain(
       "Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.",
+    );
+  });
+
+  it("says who the card offers its buttons to, and whose approval a waiting fix asks, as the card's gate decides it", () => {
+    const section: string = flat(englishSection(AI_SRE, APPROVAL_SECTION));
+
+    expect(section).toContain(
+      `Someone without that permission is offered none of ${bold(REMEDIATION_FIX_REVIEW_AND_APPROVE)}, ${bold("Approve & Run")}, ${bold(CLOUD_DRY_RUN_COPY.dryRun)} and ${bold(REMEDIATION_FIX_DISMISS)} on the card: a line in their place says who may act on the fix and which permission would let them, and a fix that waits says ${bold(REMEDIATION_STEP_STATUS_TEXT.needsSomeonesApproval)} to them rather than ${bold(REMEDIATION_STEP_STATUS_TEXT.needsApproval)}.`,
+    );
+
+    /*
+     * That permission: the card asks the list dismissing and approving
+     * ask, and its line says so (RemediationFixActGate, read as text: it
+     * reads the browser's permission snapshot).
+     */
+    const gate: string = flat(
+      readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationFixActGate.ts",
+      ),
+    );
+    expect(gate).toContain(
+      "PermissionGate.checkPermissions(RUNBOOK_RUN_PERMISSIONS, {",
+    );
+    expect(gate).toContain(
+      '"Only someone who may start runbook executions can approve or dismiss this fix."',
+    );
+    /*
+     * The button the page names is the card's own - "Approve & Run", or
+     * "Approve" for the first of the two approvals a riskier fix needs
+     * where the project asks for two (#6148's follow-up).
+     */
+    expect(
+      readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep.tsx",
+      ),
+    ).toContain('title={isFirstOfTwoApprovals ? "Approve" : "Approve & Run"}');
+    // The pill and the fix's approval step say the same.
+    expect(REMEDIATION_FIX_STEP_COPY.waitingForSomeonesApproval).toBe(
+      REMEDIATION_STEP_STATUS_TEXT.needsSomeonesApproval,
+    );
+    expect(REMEDIATION_FIX_STEP_COPY.waitingForApproval).toBe(
+      REMEDIATION_STEP_STATUS_TEXT.needsApproval,
     );
   });
 

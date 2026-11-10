@@ -60,6 +60,9 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const RECENT_SCAN_LIMIT: number = 5;
 
@@ -234,10 +237,14 @@ const NetworkOverview: FunctionComponent<
    */
   if (fleet.total === 0) {
     return (
-      <NetworkGetStarted
-        enabledAlertPolicyCount={enabledAlertPolicyCount}
-        isAddProbeRequested={isAddProbeRequested}
-      />
+      <div className="space-y-5">
+        <NetworkGetStarted
+          enabledAlertPolicyCount={enabledAlertPolicyCount}
+          isAddProbeRequested={isAddProbeRequested}
+        />
+        {/* What Network shows once a device reports (ProductOnboarding). */}
+        <ProductShowcase product={ProductKey.Network} hidesSteps={true} />
+      </div>
     );
   }
 
@@ -323,7 +330,9 @@ const NetworkOverview: FunctionComponent<
                     fleet.up,
                   )}
                 </span>
-                <span className="text-gray-400"> · </span>
+                <span className="text-gray-400">
+                  <InlineSeparator />
+                </span>
                 <span
                   className={
                     fleet.down > 0
@@ -338,7 +347,9 @@ const NetworkOverview: FunctionComponent<
                 </span>
                 {fleet.pending > 0 && (
                   <Fragment>
-                    <span className="text-gray-400"> · </span>
+                    <span className="text-gray-400">
+                      <InlineSeparator />
+                    </span>
                     <span className="text-gray-500">
                       {translator.translatePlural(
                         {
@@ -415,7 +426,7 @@ const NetworkOverview: FunctionComponent<
           }
         />
         <InfoCard
-          title="Endpoints"
+          title="Discovered Devices"
           tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetEndpoints}
           onClick={() => {
             Navigation.navigate(

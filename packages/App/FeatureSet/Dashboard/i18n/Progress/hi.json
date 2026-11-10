@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45527,
-    "untranslated": 11621
+    "keys": 47694,
+    "untranslated": 11052
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -85,13 +85,16 @@
     "PVC",
     "Passthrough",
     "Placement Groups",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Project view",
     "Proxmox ID",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",
     "RegionOne",
+    "Reserved Instances",
     "Runbook: {{name}}",
     "Runner",
     "SHA",

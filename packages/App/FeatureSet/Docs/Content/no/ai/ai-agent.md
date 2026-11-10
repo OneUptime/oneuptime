@@ -15,14 +15,14 @@ Kode er der du ber OneUptime AI om å jobbe i repositoriene dine, slik du ville 
 :::
 
 > [!TIP]
-> Du kan også starte dette fra GitHub. Nevn OneUptime GitHub App i en issue eller en pull request, så implementerer, reviderer eller gjennomgår den der og da: se [GitHub App](/docs/ai/github-app). Det er den samme agenten, den samme Runneren og de samme budsjettene; bare utløseren er en annen.
+> Du kan også starte dette fra GitHub. Nevn OneUptime GitHub App i en issue eller en pull request, så implementerer, reviderer eller gjennomgår den der og da: se [GitHub App](/docs/ai/github-app). Det er den samme agenten, den samme Runneren og de samme grensene; bare utløseren er en annen.
 
 ## Be AI om noe i et repositorium
 
 :::steps
 ### Åpne Kode
 
-Åpne **Produkter → Kode**. Kode åpner på **Hva skal AI gjøre?**: feltet der du spør, med alle oppgavene under, de nyeste først. Finnes det ikke noe repositorium ennå, tilbyr Kode i stedet **Koble til GitHub**, med GitLab, Forgejo eller Gitea og alle Git-servere under (se [Koble til et repositorium](#koble-til-et-repositorium)). **Repositorier** i sidemenyen viser repositoriene AI kan jobbe i, og samler dem OneUptime ikke lenger når, under **Ikke tilkoblet**. Siden til hvert repositorium har det samme feltet for det repositoriet.
+Åpne **Produkter → Kode**. Kode åpner på **Hva skal AI gjøre?**: feltet der du spør, med alle oppgavene under, de nyeste først; filtrer dem etter hvordan det står til med dem, hvert filter med sitt antall, eller søk etter dem på tittel eller nummer. Finnes det ikke noe repositorium ennå, tilbyr Kode i stedet **Koble til GitHub**, med GitLab, Forgejo eller Gitea og alle Git-servere under (se [Koble til et repositorium](#koble-til-et-repositorium)). **Repositorier** i sidemenyen viser repositoriene AI kan jobbe i, og samler dem OneUptime ikke lenger når, under **Ikke tilkoblet**. Siden til hvert repositorium har det samme feltet for det repositoriet, og der kan du krysse av forespørsler som mislyktes eller ble stoppet, og prøve alle på nytt med **Prøv valgte på nytt**.
 
 ### Velg repositoriet og branchen
 
@@ -57,15 +57,16 @@ En forespørsel bærer høyst 10 kontekstelementer. Tokener, nøkler, passord og
 
 ## Samtalen til en oppgave
 
-Siden til en oppgave er en samtale: hva det ble spurt om og konteksten som ble lagt til, deretter turen til AI – stegene den tar mens den tar dem (filene den leste og redigerte, hva den søkte etter, kommandoene den kjørte), svaret, filene den endret med diffen deres, og pull requesten. Øverst på siden står det hvor oppgaven jobber (repositoriet og branchen den startet fra), hvor mange linjer den endret, med en knapp til pull requesten, og hvordan det står til med oppgaven:
+Siden til en oppgave er en samtale: hva det ble spurt om og konteksten som ble lagt til, deretter turen til AI – stegene den tar mens den tar dem (filene den leste og redigerte, hva den søkte etter, kommandoene den kjørte), svaret, filene den endret med diffen deres, og pull requesten. Øverst på siden står det hvor oppgaven jobber (repositoriet og branchen den startet fra), hvor mange filer og linjer den endret, hvor lenge AI har jobbet med den, med en knapp til pull requesten, og hvordan det står til med oppgaven:
 
 | Tilstand | Hva det betyr |
 | --- | --- |
 | **I kø** | Den venter på at en Runner tar den. |
+| **Prøver på nytt** | En tur som AI prøver på nytt av seg selv, sier hvilket forsøk som kommer neste gang, og når; **Prøv igjen nå** starter den med en gang. |
 | **Jobber…** | AI jobber med den. **Stopp** stopper den; det den har pushet, blir liggende på branchen. |
 | **Venter på deg** | AI har stilt et spørsmål. Svar på det i feltet nedenfor. |
 | **Ferdig** | AI er ferdig: svaret, og pull requesten når den endret kode. |
-| **Mislyktes** | Turen kunne ikke fullføres, og sier hvorfor. **Prøv igjen** ber om det samme på nytt. |
+| **Mislyktes** | Turen kunne ikke fullføres, og sier hvorfor, og etter hvor mange forsøk når AI prøvde den på nytt av seg selv. **Prøv igjen** ber om det samme på nytt. |
 | **Stoppet** | Noen stoppet den. **Prøv igjen** ber om det samme på nytt. |
 
 For å følge opp skriver du i feltet nederst, som blir synlig mens samtalen ruller: svar AI, legg til kontekst eller be om endringer. Hvert svar er neste tur i samme oppgave: den jobber på samme branch og pusher til samme pull request så lenge den er åpen. En oppgave tar én tur om gangen, så feltet venter mens AI jobber. **Logg** for hver tur er den ordrette oversikten over hva den gjorde. På en oppgave med mer enn én tur bytter en velger øverst på siden **Logg** mellom turene.
@@ -97,7 +98,7 @@ flowchart TB
 
 Siden oppgaven ble startet fra, viser statusen live. Hver oppgave står i repositoriet sitt under **Produkter → Kode**: siden er samtalen, og **Logg** for hver tur har en linje for hver fil Runneren leste eller skrev og hver kommando den kjørte.
 
-Hver kjøring holdes innenfor budsjetter som serveren håndhever: høyst **40 LLM-kall** og **100 000 utdata-tokens**. Kjøringens spørringer mot produksjonstelemetrien teller mot de samme 40 kallene. En kjøring som når ett av dem, avslutter med et sammendrag av arbeidet så langt i stedet for å gå i ring. Rettingskjøringer teller også mot prosjektets daglige AI-grenser, når prosjektet setter dem.
+En kjøring gjør så mange LLM-kall og spørringer mot produksjonstelemetrien som arbeidet trenger, innenfor tidsgrensen sin: 120 minutter, med mindre prosjektet setter sin egen. Prosjektet kan holde hver kjøring til mindre i **Grenser per kjøring**, under **Flere innstillinger** på **Prosjektinnstillinger → KI → AI-funksjoner**; en kjøring som når en grense, avslutter med et sammendrag av arbeidet så langt. En Runner fra før denne utgivelsen stopper fortsatt en kjøring ved 40 LLM-kall og 100 000 utdata-tokens: oppgrader den for å fjerne disse grensene. Rettingskjøringer teller også mot prosjektets daglige AI-grenser, når prosjektet setter dem.
 
 ## Hvor rettingsoppgaver starter
 
@@ -145,7 +146,7 @@ Hva agenten kan lese, bestemmes av OneUptime-serveren, ut fra selve oppgaven:
 - **Bare lesing.** Spørringene kjører på OneUptime-serveren, aldri på Runneren, som ikke har noen påloggingsdetaljer som kan lese telemetri. Ingenting de gjør, kan endre prosjektet ditt.
 - **Dette prosjektet, og bare tjenestene dette repositoriet hører til.** Du knytter dem ikke til repositoriet selv: det er tjenestene OneUptime finner dette repositoriet for, slik den finner repositoriet til en retting - stack tracene til unntakene deres går gjennom filene i det, de heter det samme som det, eller det er prosjektets eneste repositorium. Telemetrien til en annen tjeneste kan ikke leses.
 - **Ingen private hendelser**, og tokener, nøkler, passord og e-postadresser sladdes før agenten ser et resultat, som overalt der OneUptime AI leser dataene dine.
-- **Avgrenset.** Høyst **12** spørringer per kjøring, og hver av dem teller mot kjøringens 40 kall.
+- **Avgrenset.** Av kjøringens tidsgrense, og av **Verktøykall per kjøring** når prosjektet setter den: hver spørring er ett verktøykall.
 
 Når ingen tjeneste kan knyttes til repositoriet, kjører oppgaven uten produksjonstelemetri, som før.
 
@@ -192,7 +193,7 @@ Ingenting fra en pull request som kommer fra en fork, leses noen gang som reposi
 Kode ber ikke lenger om oppsett-, bygge- og testkommandoer, men et repositorium som har dem, satt tidligere eller gjennom API-et eller Terraform, beholder dem. De vises skrivebeskyttet på kortet **Bygg- og testkommandoer**, under **Flere innstillinger** på repositoriets side **Innstillinger**, og **Fjern kommandoer** fjerner alle tre. Så lenge en av dem er satt, kontrollerer hver rettingskjøring på din egen Runner også endringen sin med dem før pull requesten åpnes:
 
 1. Når kodeagenten er ferdig, kjører kommandoene i rekkefølge i roten av repositoriet, på Runneren, i det klonede arbeidsområdet. Hver får opptil 15 minutter og kjører med `CI=true`, slik at ingenting venter på inndata; den første feilen stopper gjennomkjøringen.
-2. Ved en feil går slutten av utdataene fra den feilende kommandoen tilbake til den samme kodeagenten som en reparasjonsoppgave, med beskjed om å rette sin egen endring i stedet for å svekke eller hoppe over tester, og kommandoene kjører på nytt. Den gjør høyst **2** reparasjonsforsøk. De deler kjøringens LLM-budsjett, og endringene havner i samme commit som rettingen.
+2. Ved en feil går slutten av utdataene fra den feilende kommandoen tilbake til den samme kodeagenten som en reparasjonsoppgave, med beskjed om å rette sin egen endring i stedet for å svekke eller hoppe over tester, og kommandoene kjører på nytt. Den gjør høyst **2** reparasjonsforsøk. De teller med i kjøringens grenser, og endringene havner i samme commit som rettingen.
 3. Utfallet, bestått, feilet eller hoppet over (ingen kommandoer satt, eller en global Runner), skrives i en Verification-seksjon i pull requestens beskrivelse og registreres på oppgavens pull request.
 
 En endring som fortsatt ikke består kontrollen, kastes ikke: pull requesten åpnes likevel, med en tydelig merket seksjon "Verification failed" som nevner den feilende kommandoen og slutter med utdataene dens. Arbeidet beholdes, og den som gjennomgår, bestemmer. Et repositorium uten kommandoer rapporteres som hoppet over, i stedet for å antyde et grønt bygg.
@@ -221,11 +222,19 @@ Til en utrulling leverer den, står det **Merget, venter på et deploy** ved ret
 | **GitHub** | OneUptime GitHub App, installert på repositoriene den velger. | Alt på denne siden, med kommandoer fra GitHub (se [GitHub App](/docs/ai/github-app)) og en check på hver [produksjonsgjennomgang](#produksjonsgjennomgang-av-pull-requests). |
 | **GitLab**, på GitLab.com eller ditt eget | Et tilgangstoken: et personlig token, et gruppe- eller prosjekttoken med omfangene `api` og `write_repository`, og minst rollen Developer. | Oppgaver og rettelser, hver endring i en merge request; [produksjonsgjennomganger](#produksjonsgjennomgang-av-pull-requests); grenvelgeren; koden en stakksporing eller en profil går gjennom; commitene i en utrulling; om en rettelse ble slått sammen, og hva produksjonen viste når den var rullet ut. |
 | **Forgejo eller Gitea**, på Codeberg eller ditt eget | Et tilgangstoken med lese- og skrivetilgang til repositorier og saker, og lesetilgang til brukeren. | Det samme som på GitLab, hver endring i en pull request. |
-| **Hvilken som helst Git-server**, over HTTPS | Adressen du kloner repositoriet med, et brukernavn og et passord eller tilgangstoken som kan lese repositoriet og pushe til det. | AI kloner repositoriet og pusher hver endring til en ny gren, som svaret dens nevner: du åpner pull requesten. På Bitbucket og Azure DevOps lenker den til der du åpner den. |
+| **Hvilken som helst Git-server**, over HTTPS | Adressen du kloner repositoriet med, et brukernavn og et passord eller tilgangstoken som kan lese repositoriet og pushe til det. | AI kloner repositoriet og pusher hver endring til en ny gren, som svaret dens nevner: du åpner pull requesten. På Bitbucket og Azure DevOps lenker den til der du åpner den. På Azure DevOps (Services, eller Server 2019 og nyere) leser OneUptime også koden, med de samme påloggingsopplysningene: koden en stakksporing eller en profil går gjennom, og filene OneUptime AI leser. |
 
 Kommandoer fra kommentarer trenger GitHub App, så foreløpig fungerer de bare i GitHub-repositorier, og repositoriets **Innstillinger** sier det. En Git-server har ingen pull requests, så den har heller ingen produksjonsgjennomgang.
 
 For GitLab, Forgejo eller Gitea skriver du inn serverens adresse (GitLab.com og Codeberg er fylt inn) og tokenet, og velger repositoriene som skal kobles til: listen viser bare dem tokenet kan pushe til, og senere kan flere kobles til med det samme tokenet. OneUptime sjekker hvert token hos serveren før det lagrer det, lagrer det kryptert og viser det aldri igjen. Repositoriets **Innstillinger** viser serveren, kontoen og tokenets siste tegn, med **Erstatt tilgangstoken**. Når serveren avviser et utløpt eller tilbakekalt token, viser repositoriene **Token avvist**, og AI slutter å jobbe i dem, helt til en erstatning av tokenet kobler til hvert repositorium som bruker det, igjen. På et GitLab-repositorium sier innstillingene merge requests, slik GitLab gjør: **Merge requests**, **AI-rettings-merge requests** og **Maks. åpne rettings-merge requests**.
+
+### Logg på en Git-server
+
+OneUptime logger på et repositorium på en hvilken som helst Git-server med brukernavnet og passordet eller tilgangstokenet som repositoriet er koblet til med. Med mindre bare dine egne Runnere når serveren, sjekker OneUptime dem før det kobler til repositoriet, ved å be serveren om grenene til repositoriet: forespørselen hver kloning starter med. En Runner sender dem på samme måte, med Gits første forespørsel til serveren, som HTTP Basic, så en server som først tilbyr Windows-pålogging, som Azure DevOps Server, også tar imot et personlig tilgangstoken. Git får dem gjennom miljøet sitt, bare for den ene serveren: aldri på kommandolinjen sin, og aldri i klonens `.git/config`, der kodeagenten jobber.
+
+### Hva AI leser i et Git-repositorium
+
+En Git-server har ikke noe API som filene i et repositorium kan leses gjennom, så OneUptime leser bare grenene til et repositorium på en slik server, for grenvelgeren. Azure DevOps er unntaket: på Azure DevOps Services, og på Azure DevOps Server 2019 og nyere, leser OneUptime også koden i et repositorium, gjennom Azure DevOps' eget API og med de samme påloggingsopplysningene. [Spør AI](/docs/ai/ask-ai) og [AI-undersøkelser](/docs/ai/ai-sre) leser koden i GitHub-, GitLab-, Forgejo-, Gitea- og Azure DevOps-repositorier; spurt om koden i et annet Git-repositorium sier de at de ikke kan åpne den. En oppgave i Kode virker likevel i et Git-repositorium: Runneren kloner det, AI leser og endrer koden i klonen og pusher endringen til en ny gren.
 
 ### En Git-server på et privat nettverk
 
@@ -313,22 +322,26 @@ Mens rettingen er på, setter en undersøkelse som ender med en sikker, underbyg
 Alt annet er som med knappen:
 
 - Pull requesten åpnes klar for gjennomgang, skrevet ut fra den publiserte analysen, og trenger et tilkoblet repositorium, et av dem de samsvarende reglene nevner når de nevner noen, og en Runner som er tilkoblet for å jobbe i det: den repositoriet velger, eller en global Runner.
-- Den teller mot signalets daglige grense for rettingsoppgaver (**Daily Incident AI Fix Task Limit** eller **Daily Alert AI Fix Task Limit**, under **Flere innstillinger** på AI-innstillingssiden) og mot repositoriets tak på åpne pull requests, når en av dem er satt. Når de ikke er satt, begrenser ingen av dem noe.
+- Den teller mot signalets daglige grense for rettingsoppgaver (**Daglig grense for AI-rettingsoppgaver for hendelser** eller **Daglig grense for AI-rettingsoppgaver for varsler**, under **Flere innstillinger** på AI-innstillingssiden) og mot repositoriets tak på åpne pull requests, når en av dem er satt. Når de ikke er satt, begrenser ingen av dem noe.
 - Hver utløser ser først etter en rettingsoppgave som allerede står i kø eller kjører for den samme hendelsen eller det samme varselet, slik at en automatisk utløser og et klikk normalt blir én oppgave, ikke to pull requests. Kontrollen er en lesing før skrivingen, ikke en lås, så to utløsere i nøyaktig samme øyeblikk kan fortsatt begge slippe gjennom.
 - Kjøringen skrives av systemet, krediteres ingen, og ingenting merges av seg selv.
 
 ## Når en retting mislykkes
 
 :::details Kjøringen feiler
-Rettingen kunne ikke brukes, repositoriet eller branchen en forespørsel startet fra kunne ikke nås, eller LLM-kallet mislyktes. Oppgavens samtale, og siden den ble startet fra, viser årsaken og tilbyr å prøve igjen. **Logg** for turen har hele kjøringsloggen.
+Rettingen kunne ikke brukes, repositoriet eller branchen en forespørsel startet fra kunne ikke nås, eller LLM-kallet mislyktes. En feil som kan gå over (leverandøren av AI-modellen overbelastet eller nede, et kall som fikk tidsavbrudd, nettverket), prøves på nytt av seg selv, opptil 3 forsøk i alt, det andre etter 1 minutt og det tredje etter 4, med mindre kjøringen kanskje allerede har pushet en branch eller åpnet en pull request. En feil som ville skjedd igjen, som en nøkkel leverandøren avviser eller tomme kreditter, prøves ikke på nytt. Når en tur mislykkes for godt, viser oppgavens samtale, og siden den ble startet fra, årsaken og tilbyr å prøve igjen. **Logg** for turen har hele kjøringsloggen.
 :::
 
 :::details Runneren stopper midt i en kjøring
-En kjøring der heartbeat har vært stille i mer enn 12 minutter, avsluttes med en feil. Den settes aldri i kø igjen av seg selv, fordi Runneren allerede kan ha pushet en del av en rettingsbranch; start den på nytt der du startet den. En kommando kodeagenten kjører, holder heartbeat i gang mens den kjører, så et langt bygg eller en lang testpakke ikke blir tatt for en stoppet Runner.
+En kjøring der heartbeat har vært stille i mer enn 12 minutter, prøves på nytt av seg selv på samme måte når den ikke har pushet noe, oppgaven ikke har noen pull request og den har forsøk igjen. Ellers avsluttes den med en feil, fordi Runneren allerede kan ha pushet en del av en rettingsbranch; start den på nytt der du startet den. En kommando kodeagenten kjører, holder heartbeat i gang mens den kjører, så et langt bygg eller en lang testpakke ikke blir tatt for en stoppet Runner.
 :::
 
 :::details Ingen Runner plukker opp oppgaven
 En oppgave som venter i mer enn 30 minutter mens Runneren som skal ta den, ikke er tilkoblet - den repositoriet velger, prosjektets standard-Runner for et repositorium som ikke velger noen, eller en global Runner - feiler med en melding som sier hvilken, slik at den aldri vises som pågående for alltid. En Runner som ikke tar koderettinger, regnes som ikke tilkoblet: en som er startet med `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, eller en global Runner som er eldre enn 14.0.94. Kode sier det før du ber om en oppgave. Når en Runner er tilkoblet, men opptatt, venter oppgaver i kø på tur. En Runner som er eldre enn Kode, får aldri en forespørsel fra Kode: oppdater en Runner du kjører selv, sammen med serveren.
+:::
+
+:::details Serveren avviser påloggingsopplysningene
+Oppgaven feiler og sier hvilken server som avviste påloggingsopplysningene OneUptime logget på med, og hvilket repositorium den ikke kunne klone eller pushe grenen sin til. Den prøves ikke på nytt på repositoriets standardgren: på en server der folk logger på med Windows-kontoer, som Azure DevOps Server, kan enda en avvist pålogging telle mot at kontoen låses. På GitHub sjekker du at OneUptime GitHub App fortsatt er installert med tilgang til repositoriet. Andre steder sjekker du at brukernavnet og passordet eller tokenet fortsatt kan lese repositoriet og pushe til det, og gir det nye med **Erstatt tilgangstoken** på repositoriets side **Innstillinger**. Prøv deretter oppgaven på nytt.
 :::
 
 ## Personvern

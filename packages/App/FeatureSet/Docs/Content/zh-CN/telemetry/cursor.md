@@ -1,13 +1,26 @@
 # Cursor
 
-Cursor 从 Cursor 自己的服务器导出团队的遥测。团队管理员在 Cursor 仪表盘中把 OneUptime 添加为目标一次，整个团队的 token、估算成本和工具调用就会到达：无需在开发者机器上安装或设置任何东西。
+Cursor 从 Cursor 自己的服务器导出团队的遥测。团队管理员在 Cursor 仪表盘中把 OneUptime 添加为目标一次，整个团队的 token、估算成本和工具调用就会到达：无需在开发者机器上安装或设置任何东西。在 Teams 套餐上，OneUptime 也可以用管理员 API 密钥按人员读取团队的用量和 Cursor 收取的费用，可以替代导出，也可以同时使用。
 
 :::cards
+- [两种方式](#两种方式): 在 OneUptime 中使用管理员 API 密钥，或使用 Cursor 的 OpenTelemetry Export。
 - [开始设置](#开始设置): 在 OneUptime 中创建密钥，在 Cursor 中创建目标。
 - [你能得到什么](#你能得到什么得不到什么): 指标和日志；没有跟踪。
 - [谁花了什么](#员工归属): 人员以 Cursor 用户 ID 的形式到达。
 - [故障排除](#故障排除): 什么都没有到达时要检查什么。
 :::
+
+## 两种方式
+
+| | 管理员 API 密钥 | OpenTelemetry Export |
+| --- | --- | --- |
+| Cursor 套餐 | Teams 或 Enterprise | Enterprise |
+| 设置位置 | 在 OneUptime 中，位于 **产品 → AI / LLM → 连接** | 在 Cursor 仪表盘中，位于 **Team Settings → OpenTelemetry Export** |
+| 到达的内容 | token、请求和 Cursor 收取的费用，按小时、人员和模型，以及有多少成员使用 Cursor | token、估算成本和工具调用，以及每个请求一个日志事件 |
+| 从何时开始 | 过去 30 天，之后每小时 | 实时，从你启用它的那天开始 |
+| 在 **用量** 中显示于 | **提供商账户** | **你的 AI 调用** |
+
+两者都带来用量和成本，而不是对话。可以使用其中一种，也可以两种都用：两者分开保存，永远不会相加，一个预算按其 **支出统计来源** 只统计其中之一。要连接密钥，请参见 [AI 提供商账户](/docs/telemetry/ai-provider-accounts#cursor)；本页其余部分设置 OpenTelemetry Export。
 
 ## 工作原理
 
@@ -108,28 +121,28 @@ Cursor 只使用基于 HTTP 的二进制 protobuf 格式的 OTLP（不支持 gRP
 
 ## 员工归属
 
-**Cursor 用 `cursor.user.id` 指明一个人，这是一个只有 Cursor 才能转换为姓名的整数，而且云端代理经常省略它。** OneUptime 把它读作员工，把 `cursor.team.id` 读作团队，因此 **用量** 标签页无需设置即可对人员和团队排名，但人员会显示为整数。
+**Cursor 用 `cursor.user.id` 指明一个人，这是一个只有 Cursor 才能转换为姓名的整数，而且云端代理经常省略它。** Cursor 发送 `cursor.user.email` 时，OneUptime 把它读作员工，不发送时读取 `cursor.user.id`，并把 `cursor.team.id` 读作团队，因此 **用量** 标签页无需设置即可对人员和团队排名；没有邮箱的人员会显示为整数。
 
 - 两者都以资源属性（`resource.cursor.user.id`、`resource.cursor.team.id`）的形式到达，OneUptime 会读取它们。
-- Cursor 也可以发送 `cursor.user.email`，但 OneUptime 还不读取它，因此对 Cursor 而言，员工邮箱列保持为空。
+- `cursor.user.email` 会先于 `cursor.user.id` 读取，因此 Cursor 用邮箱指明的人员会按邮箱显示。
 - `gen_ai.user`、`llm.user` 和 LiteLLM 的最终用户 ID 从不被读作员工：它们指的是你的客户，而不是你的员工。请参阅 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属)。
 
 ### Cursor 在用量标签页上的显示位置
 
-Cursor 发送指标而不发送 GenAI span，而指标只用于补充 span： **如果同一个项目接收带成本的 GenAI span，Cursor 的支出就不会显示。** 请把 Cursor 发送到单独的项目。请参阅 [span 优先，指标补充](/docs/telemetry/ai-llm-observability#span-优先指标补充)。
+Cursor 发送指标而不发送 GenAI span，归在它自己的服务 `cursor` 下，因此它的支出会与你的应用发送到同一个项目的 AI 调用一起计数，而不会取代它们。请参阅 [每个服务按其发送的数据计数](/docs/telemetry/ai-llm-observability#每个服务按其发送的数据计数)。
 
 | 细分 | 对 Cursor 而言 |
 | --- | --- |
-| **员工** | 是，按 `cursor.user.id` |
+| **员工** | 是，按 `cursor.user.email`，否则按 `cursor.user.id` |
 | **团队** | 是，按 `cursor.team.id` |
 | **模型** | 是，按 `cursor.model.name` |
-| **提供商** | 否：Cursor 从不说明是哪个提供商处理了调用 |
-| **应用 / 服务** | 否：Cursor 的指标不属于任何 OneUptime 服务 |
+| **提供商** | 归入 **未归属** ：Cursor 从不说明是哪个提供商处理了调用 |
+| **应用 / 服务** | 是，归入 `cursor` 服务 |
 
-Cursor 的行只携带成本：其调用和 token 单元格显示 `—`，因为 `cursor.cost.usage` 没有逐次调用的细节。`cursor.token.usage` 仍会为表格上方的 token 总数提供数据（它的 `input` 和 `output` 类型；不计缓存 token），你也可以在仪表盘上按 `cursor.token.type` 绘制它。
+Cursor 的行会在其名称下方注明 **来自用量指标** ，其调用单元格显示 `—`，因为计数器没有逐次调用的细节。它的成本来自 `cursor.cost.usage`，token 来自 `cursor.token.usage`（它的 `input` 和 `output` 类型；不计缓存 token），你也可以在仪表盘上按 `cursor.token.type` 绘制它。
 
 :::details 把 Cursor 用户 ID 转换成人员
-姓名和计费金额位于 Cursor 的 Admin API 中，OneUptime 不会调用它：如有需要，请自行调用。它仅限 Enterprise，地址为 `https://api.cursor.com`，使用管理员 API 密钥作为用户名、密码留空：
+姓名和计费金额位于 Cursor 的 Admin API 中，当你把它的密钥作为 [提供商账户](/docs/telemetry/ai-provider-accounts#cursor) 连接时，OneUptime 会读取它：该账户按电子邮件标识人员。要自行匹配 `cursor.user.id`，请调用 `https://api.cursor.com` 上的 API，使用管理员 API 密钥作为用户名、密码留空：
 
 ```bash
 curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
@@ -150,7 +163,7 @@ curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
 
 ## 成本是估算，不是发票
 
-Cursor 将 `cursor.cost.usage` 描述为尽力而为的估算。它不区分包含在套餐内的用量和按需计费的用量；使用你自己的模型密钥时，它只反映 Cursor 的 token 费率，而不是你的提供商的账单；而且之后到达的 `cursor.api.correction` 可能会撤回已经计入的用量。请把它当作趋势来看。如需与发票一致的数字，请把 Cursor Admin API 中的 `chargedCents` 相加。
+Cursor 将 `cursor.cost.usage` 描述为尽力而为的估算。它不区分包含在套餐内的用量和按需计费的用量；使用你自己的模型密钥时，它只反映 Cursor 的 token 费率，而不是你的提供商的账单；而且之后到达的 `cursor.api.correction` 可能会撤回已经计入的用量。请把它当作趋势来看。如需与发票一致的数字，请把 Cursor Admin API 中的 `chargedCents` 相加。作为 [提供商账户](/docs/telemetry/ai-provider-accounts#cursor) 连接的 Cursor 团队会按小时替你完成这件事。
 
 ## 故障排除
 
@@ -163,17 +176,18 @@ Cursor 从自己的服务器发起连接：你的 OTLP 端点必须能通过公�
 :::
 
 :::details 日志到达了，但用量标签页没有显示 Cursor 的支出
-该项目还接收带成本的 GenAI span，因此不会读取 Cursor 的指标。请把 Cursor 发送到单独的项目，并使用它自己的摄取密钥。
+Cursor 的支出来自它的指标，而不是日志：请检查 Cursor 的指标信号已开启，并在 **指标** 中查找 `cursor.cost.usage`。如果你的角色不能读取指标，用量标签页会排除它们并注明这一点。
 :::
 
 :::details 人员显示为数字
-那就是 `cursor.user.id`：这是 OneUptime 目前从 Cursor 读取的唯一人员 ID。请用 Cursor 的 Admin API 把它映射到姓名。
+那就是 `cursor.user.id`，在 Cursor 不发送 `cursor.user.email` 时读取。请用 Cursor 的 Admin API 把它映射到姓名。
 :::
 
 ## 后续步骤
 
 :::cards
 - [AI 编程助手](/docs/telemetry/ai-coding-assistants): 支出如何在所有编程助手之间归属。
+- [AI 提供商账户](/docs/telemetry/ai-provider-accounts#cursor): 使用管理员 API 密钥读取 Cursor 团队的用量和 Cursor 收取的费用。
 - [AI 网关](/docs/telemetry/ai-gateways): 为你自己的应用发起的模型调用提供完整的跟踪和提示词。
 - [指标监控](/docs/monitor/metrics-monitor): 针对 `cursor.cost.usage`、`cursor.token.usage` 或 `cursor.tool.calls` 设置警报。
 :::

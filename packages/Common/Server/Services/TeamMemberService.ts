@@ -1137,6 +1137,9 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         userId: createdItem.userId!,
         projectId: onCreate.createBy.data.projectId!,
       });
+
+      // A public note waiting for a step that names the team asks them too.
+      this.followUpWaitingPublicNotes([onCreate.createBy.data.projectId]);
     }
 
     // Activation event for marketing funnels, attributed to the inviter.
@@ -1215,7 +1218,55 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       }
     }
 
+    // Their teams' public notes waiting for a step that names a team ask them too.
+    if (updateBy.data.hasAcceptedInvitation) {
+      this.followUpWaitingPublicNotes(
+        items.map((item: TeamMember): ObjectID | undefined => {
+          return item.projectId;
+        }),
+      );
+    }
+
     return { updateBy, carryForward: onUpdate.carryForward };
+  }
+
+  /*
+   * A team's members changed - somebody joined one, accepted an invitation
+   * to one, or left one: the public notes of these projects that wait for
+   * approval follow the members of the teams their steps name as they are
+   * now, in the background (PublicNoteApproverChanges) - a new member is
+   * asked, a member who left no longer is. Required here, not imported: it
+   * reads the notes' services, which read this one as they load
+   * (PublicNoteApprovalPolicy). Never fails the write: what cannot even
+   * start is logged.
+   */
+  private followUpWaitingPublicNotes(
+    projectIds: Array<ObjectID | null | undefined>,
+  ): void {
+    const projects: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const projectId of projectIds) {
+      if (projectId) {
+        projects.set(projectId.toString().toLowerCase(), projectId);
+      }
+    }
+
+    if (projects.size === 0) {
+      return;
+    }
+
+    try {
+      const approverChanges: typeof import("../Utils/Notes/PublicNoteApproverChanges").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("../Utils/Notes/PublicNoteApproverChanges").default;
+
+      approverChanges.afterTeamMembersChanged(Array.from(projects.values()));
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not start asking the new approvers of the public notes waiting for a team whose members changed.",
+      );
+      logger.error(error as Error);
+    }
   }
 
   @CaptureSpan()
@@ -1489,6 +1540,20 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     this.endOnCallTimeLogsOfRemovedMembers(
       onDelete.carryForward as Array<TeamMember>,
       itemIdsBeforeDelete,
+    );
+
+    /*
+     * A member who left a team a step names is no longer asked about the
+     * notes waiting for it: their chat messages about them say so.
+     */
+    this.followUpWaitingPublicNotes(
+      ((onDelete.carryForward as Array<TeamMember>) || [])
+        .filter((member: TeamMember): boolean => {
+          return Boolean(member.hasAcceptedInvitation);
+        })
+        .map((member: TeamMember): ObjectID | undefined => {
+          return member.projectId;
+        }),
     );
 
     /*

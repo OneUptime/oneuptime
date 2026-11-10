@@ -7,6 +7,7 @@ OneUptime reaches you in two ways. It pages you when an incident or alert fires 
 - [Where to find them](#where-to-find-them): The pages of User Settings, section by section.
 - [What you start with](#what-you-start-with): The methods, rules and settings a new member gets.
 - [When no rule matches](#when-no-rule-matches): How a page still reaches you, and who is told.
+- [The language of your pages](#the-language-of-your-pages): Pages in the language you picked, and what stays in English.
 :::
 
 ## How it works
@@ -96,6 +97,18 @@ A page can reach you for a kind and severity you have no rule for: a severity ad
 
 You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none. With nothing verified at all, the page cannot be delivered, and the email says that instead. These emails are held back while pages keep coming, so a storm of pages is not a storm of mail. To add the missing rule, see [Personal On-Call Rules](/docs/notifications/on-call-rules#when-a-severity-has-no-rule).
 
+## The language of your pages
+
+Your pages are written in your language: the one you pick in the language menu at the bottom of any page, or under **Language** on **User Profile**. Until you pick one, they are in English.
+
+| Channel | Language |
+| --- | --- |
+| Email, SMS, push notifications and Telegram | Your language |
+| Your own Slack, Microsoft Teams and Mattermost messages | Your language |
+| Phone calls and WhatsApp | English |
+
+OneUptime's own words change: subjects, headings, buttons and sentences, and the names every new project starts with, such as Identified and Critical Incident. What your team wrote reads as written: titles, descriptions, root causes, and the names of projects, teams and states your project named itself. A text message in a language with a script of its own, such as Russian, Japanese or Persian, takes more parts than one in English.
+
 ## Troubleshooting
 
 :::details I was on call, but nothing reached me
@@ -104,6 +117,10 @@ Open **User Settings → On-Call Logs**. No row for the incident means its on-ca
 
 :::details I get emails about records I never asked about
 You are an owner of the record, directly or through a team, or the record has no owners and you are a project owner. Switch the event off under **User Settings → Notification Settings**, or cut the volume under **User Settings → Email Preferences**.
+:::
+
+:::details My pages are in English, though the dashboard is not
+The dashboard follows your browser until you pick a language. Pick it in the language menu at the bottom of any page, or under **Language** on **User Profile**. Phone calls and WhatsApp messages stay in English.
 :::
 
 :::details I added a phone number, but it is not in my rules

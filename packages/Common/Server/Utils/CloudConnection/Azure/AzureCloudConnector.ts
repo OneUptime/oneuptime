@@ -1,6 +1,8 @@
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
+  AZURE_DIMENSION_ATTRIBUTE_PREFIX,
   AZURE_MAX_METRICS_PER_RESOURCE,
+  AZURE_MAX_SPLIT_SERIES_PER_METRIC,
   AzureTypeKeyMetrics,
   getAzureKeyMetrics,
   getAzureStoredMetricName,
@@ -74,13 +76,18 @@ import {
   readAzureAdvisor,
   readAzureCosts,
 } from "./AzureCosts";
+import { readAzureCommitments } from "./AzureCommitments";
 import {
   CloudCostState,
   getCloudCostResourceKey,
 } from "../../../../Types/Cloud/CloudCost";
+import { CloudCommitmentSummary } from "../../../../Types/Cloud/CloudCommitments";
 import AzureArm, {
   AzureMetricDefinition,
+  AzureMetricDimensionValue,
+  AzureMetricFailure,
   AzureMetricSeries,
+  AzureMetricsAnswer,
   AzureResource,
   AzureSubscription,
 } from "./AzureArm";
@@ -110,11 +117,24 @@ import {
  *      per resource, each metric with the aggregation its definition calls
  *      primary, at the finest grain it offers from a minute up. A metric
  *      the resource does not publish is left out, from its type's metric
- *      definitions (read once a day).
+ *      definitions (read once a day). A Service Bus or Event Hubs
+ *      namespace's metrics are split by EntityName in that same one call:
+ *      a series per queue, topic and event hub (up to
+ *      AZURE_MAX_SPLIT_SERIES_PER_METRIC of each metric), never a call per
+ *      queue - 50 queues cost what one does.
  *   3. Builds the export the azure_monitor receiver sends: the subscription
  *      on the resource, each resource's id, name, type, group and location
- *      on its datapoints, metrics named azure_<metric>_<aggregation>.
+ *      on its datapoints, a split series' dimension as metadata_<name>
+ *      (metadata_entityname, which files it on its queue or topic when it
+ *      is ingested), metrics named azure_<metric>_<aggregation>.
  */
+
+// What a read of one resource's metrics brought back.
+interface AzureResourceMetricsRead {
+  series: Array<AzureMetricSeries & { grain: string }>;
+  failures: Array<AzureMetricFailure>;
+  capped: Array<string>;
+}
 
 const PROVIDER_TITLE: string = "Azure";
 const HOUR_MS: number = 60 * 60 * 1000;
@@ -408,7 +428,10 @@ export default class AzureCloudConnector implements CloudConnector {
     return attributes;
   }
 
-  // The azure_monitor receiver's datapoint attributes.
+  /*
+   * The azure_monitor receiver's datapoint attributes, with a split
+   * series' dimension values as it names them (metadata_entityname).
+   */
   private datapointAttributes(data: {
     armId: string;
     name: string;
@@ -416,6 +439,7 @@ export default class AzureCloudConnector implements CloudConnector {
     resourceGroup: string;
     location: string;
     grain: string;
+    dimensions?: Array<AzureMetricDimensionValue> | undefined;
   }): Array<OtlpAttribute> {
     const attributes: Array<OtlpAttribute> = [
       stringAttribute("azuremonitor.resource_id", data.armId),
@@ -430,6 +454,15 @@ export default class AzureCloudConnector implements CloudConnector {
 
     if (data.grain) {
       attributes.push(stringAttribute("timegrain", data.grain));
+    }
+
+    for (const dimension of data.dimensions || []) {
+      attributes.push(
+        stringAttribute(
+          `${AZURE_DIMENSION_ATTRIBUTE_PREFIX}${dimension.name}`,
+          dimension.value,
+        ),
+      );
     }
 
     return attributes;
@@ -1027,7 +1060,12 @@ export default class AzureCloudConnector implements CloudConnector {
     }
   }
 
-  // The ways to spend less in each subscription, from Azure Advisor (AzureCosts).
+  /*
+   * The ways to spend less in each subscription, from Azure Advisor
+   * (AzureCosts), and how much of its spend its reservations and savings
+   * plans cover and how much of them is used, from Cost Management
+   * (AzureCommitments).
+   */
   public async readSavings(
     settings: CloudConnectionSettings,
     options: CloudSavingsOptions,
@@ -1114,6 +1152,41 @@ export default class AzureCloudConnector implements CloudConnector {
           });
           result.warnings.push(described.message);
           result.complete = false;
+        },
+      );
+
+      // Cost Management is quick to throttle: two subscriptions at a time.
+      const now: Date = options.now ? options.now() : new Date();
+      const commitments: Array<Settled<CloudCommitmentSummary>> =
+        await mapWithConcurrency(
+          subscriptionIds,
+          2,
+          async (subscriptionId: string): Promise<CloudCommitmentSummary> => {
+            return await readAzureCommitments({ arm, subscriptionId, now });
+          },
+        );
+
+      result.commitments = [];
+
+      commitments.forEach(
+        (outcome: Settled<CloudCommitmentSummary>, index: number): void => {
+          if (!outcome.ok) {
+            const failure: unknown = explainExpiredAzureSecret(outcome.error);
+
+            if (
+              failure instanceof LlmProviderError &&
+              failure.kind === CloudConnectionFailureKind.Authentication
+            ) {
+              throw failure;
+            }
+
+            return;
+          }
+
+          result.commitments!.push({
+            accountId: subscriptionIds[index]!,
+            summary: outcome.value,
+          });
         },
       );
 
@@ -1456,65 +1529,80 @@ export default class AzureCloudConnector implements CloudConnector {
     const groups: Map<string, CloudMetricGroup> = new Map();
     const grainsRead: Set<string> = new Set<string>();
     let failedResources: number = 0;
+    // "metric|code" -> how many resources Azure Monitor could not read it of.
+    const metricFailures: Map<
+      string,
+      { failure: AzureMetricFailure; resources: number }
+    > = new Map();
+    // Resources with more queues and topics than a read reads.
+    const cappedResources: Array<string> = [];
 
-    const outcomes: Array<
-      Settled<Array<AzureMetricSeries & { grain: string }>>
-    > = await mapWithConcurrency(
-      reading,
-      CONCURRENCY,
-      async (
-        entry: AzureResourceToRead,
-      ): Promise<Array<AzureMetricSeries & { grain: string }>> => {
-        const selected: Array<SelectedMetric> =
-          selectedByType.get(entry.type.toLowerCase()) || [];
-        const byGrain: Map<string, Array<SelectedMetric>> = new Map();
+    const outcomes: Array<Settled<AzureResourceMetricsRead>> =
+      await mapWithConcurrency(
+        reading,
+        CONCURRENCY,
+        async (
+          entry: AzureResourceToRead,
+        ): Promise<AzureResourceMetricsRead> => {
+          const selected: Array<SelectedMetric> =
+            selectedByType.get(entry.type.toLowerCase()) || [];
+          const splitBy: string | undefined = getAzureKeyMetrics(
+            entry.type,
+          )?.splitByDimension;
+          const byGrain: Map<string, Array<SelectedMetric>> = new Map();
 
-        for (const metric of selected) {
-          const list: Array<SelectedMetric> = byGrain.get(metric.grain) || [];
-          list.push(metric);
-          byGrain.set(metric.grain, list);
-        }
-
-        const series: Array<AzureMetricSeries & { grain: string }> = [];
-
-        for (const [grain, metrics] of byGrain) {
-          const window: MetricWindow | null | undefined = windows.get(grain);
-
-          if (!window) {
-            continue;
+          for (const metric of selected) {
+            const list: Array<SelectedMetric> = byGrain.get(metric.grain) || [];
+            list.push(metric);
+            byGrain.set(metric.grain, list);
           }
 
-          const read: Array<AzureMetricSeries> = await arm.getMetrics({
-            resourceId: entry.armId,
-            metrics,
-            interval: grain,
-            start: window.start,
-            end: window.end,
-          });
+          const read: AzureResourceMetricsRead = {
+            series: [],
+            failures: [],
+            capped: [],
+          };
 
-          grainsRead.add(grain);
+          for (const [grain, metrics] of byGrain) {
+            const window: MetricWindow | null | undefined = windows.get(grain);
 
-          for (const item of read) {
-            const unit: string =
-              metrics.find((metric: SelectedMetric): boolean => {
-                return (
-                  metric.name.toLowerCase() === item.metricName.toLowerCase()
-                );
-              })?.unit || item.unit;
+            if (!window) {
+              continue;
+            }
 
-            series.push({ ...item, unit, grain });
+            const answer: AzureMetricsAnswer = await arm.getMetrics({
+              resourceId: entry.armId,
+              metrics,
+              interval: grain,
+              start: window.start,
+              end: window.end,
+              ...(splitBy
+                ? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }
+                : {}),
+            });
+
+            grainsRead.add(grain);
+            read.failures.push(...answer.failures);
+            read.capped.push(...answer.capped);
+
+            for (const item of answer.series) {
+              const unit: string =
+                metrics.find((metric: SelectedMetric): boolean => {
+                  return (
+                    metric.name.toLowerCase() === item.metricName.toLowerCase()
+                  );
+                })?.unit || item.unit;
+
+              read.series.push({ ...item, unit, grain });
+            }
           }
-        }
 
-        return series;
-      },
-    );
+          return read;
+        },
+      );
 
     outcomes.forEach(
-      (
-        outcome: Settled<Array<AzureMetricSeries & { grain: string }>>,
-        index: number,
-      ) => {
+      (outcome: Settled<AzureResourceMetricsRead>, index: number) => {
         const entry: AzureResourceToRead = reading[index]!;
 
         if (!outcome.ok) {
@@ -1532,7 +1620,23 @@ export default class AzureCloudConnector implements CloudConnector {
           return;
         }
 
-        for (const series of outcome.value) {
+        for (const failure of outcome.value.failures) {
+          const key: string = `${failure.metricName.toLowerCase()}|${failure.code}`;
+          const known:
+            | { failure: AzureMetricFailure; resources: number }
+            | undefined = metricFailures.get(key);
+
+          metricFailures.set(key, {
+            failure: known?.failure || failure,
+            resources: (known?.resources || 0) + 1,
+          });
+        }
+
+        if (outcome.value.capped.length > 0) {
+          cappedResources.push(entry.name);
+        }
+
+        for (const series of outcome.value.series) {
           const selected: SelectedMetric | undefined = (
             selectedByType.get(entry.type.toLowerCase()) || []
           ).find((metric: SelectedMetric): boolean => {
@@ -1583,6 +1687,7 @@ export default class AzureCloudConnector implements CloudConnector {
               resourceGroup: entry.resourceGroup,
               location: entry.location,
               grain: series.grain,
+              dimensions: series.dimensions,
             }),
             points: series.points,
           });
@@ -1592,7 +1697,42 @@ export default class AzureCloudConnector implements CloudConnector {
 
     if (failedResources > 0) {
       warnings.push(
-        `Could not read the metrics of ${failedResources} resources this time.`,
+        `Could not read the metrics of ${failedResources} ${
+          failedResources === 1 ? "resource" : "resources"
+        } this time.`,
+      );
+    }
+
+    for (const { failure, resources } of metricFailures.values()) {
+      warnings.push(
+        `Azure Monitor could not read ${failure.metricName} of ${resources} ${
+          resources === 1 ? "resource" : "resources"
+        }: ${failure.message || failure.code}`,
+      );
+    }
+
+    /*
+     * Shown under the connection's status on Cloud > Connect, as the
+     * queue's Broker metrics card tells its reader to look there: which
+     * namespaces, and the way to read the rest.
+     */
+    if (cappedResources.length > 0) {
+      const max: string =
+        AZURE_MAX_SPLIT_SERIES_PER_METRIC.toLocaleString("en-US");
+      // "a", "a and b", "a, b and c", "a, b, c and 2 more".
+      const named: Array<string> = cappedResources.slice(0, 3);
+      const more: number = cappedResources.length - named.length;
+      const names: string =
+        more > 0
+          ? `${named.join(", ")} and ${more} more`
+          : named.length > 1
+            ? `${named.slice(0, -1).join(", ")} and ${named[named.length - 1]}`
+            : named[0]!;
+
+      warnings.push(
+        cappedResources.length === 1
+          ? `${names} has ${max} or more queues, topics or event hubs: a read takes the metrics of ${max} of them. The collector's azure_monitor receiver can read the rest.`
+          : `${names} have ${max} or more queues, topics or event hubs each: a read takes the metrics of ${max} of each. The collector's azure_monitor receiver can read the rest.`,
       );
     }
 

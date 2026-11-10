@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45527,
-    "untranslated": 11339
+    "keys": 47694,
+    "untranslated": 10811
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -82,7 +82,9 @@
     "Pod IP",
     "Pod · data",
     "Pod · production",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Proxmox ID",
     "RabbitMQ",
     "Re-encrypt",

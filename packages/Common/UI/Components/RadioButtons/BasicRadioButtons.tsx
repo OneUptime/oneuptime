@@ -1,4 +1,7 @@
 import FieldError from "../Forms/Fields/FieldError";
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import ObjectID from "../../../Types/ObjectID";
 import React, {
   FunctionComponent,
@@ -26,6 +29,8 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [id] = useState<string>(props.id || ObjectID.generate().toString());
+  // The page's language: the way its lines read.
+  const translator: Translator = useTranslator();
 
   const [value, setValue] = useState<string>("");
 
@@ -106,7 +111,10 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                       </span>
                       {radioButton.description ? (
                         <span className="mt-0.5 block text-sm leading-5 text-gray-500">
-                          {radioButton.description}
+                          {readAsWritten(
+                            radioButton.description,
+                            translator.language,
+                          )}
                         </span>
                       ) : (
                         <></>

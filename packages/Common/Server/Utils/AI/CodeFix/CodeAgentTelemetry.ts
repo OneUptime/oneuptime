@@ -14,14 +14,19 @@ import CodeAgentTelemetryTools, {
   PreparedTelemetryRead,
 } from "./CodeAgentTelemetryTools";
 import { CodeFixAgentIdentity } from "./CodeFixAgentAuth";
-import {
+import CodeFixAgentCompletion, {
   AgentCompletionLoopBudget,
-  LoopBudgetDecision,
-  MAX_COMPLETION_CALLS_PER_RUN,
-  MAX_OUTPUT_TOKENS_PER_RUN,
-  MAX_TELEMETRY_TOOL_CALLS_PER_RUN,
+  CodeAgentServerUsage,
 } from "./CodeFixAgentCompletion";
+import AIRunLimitsReader from "../AIRunLimitsReader";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
+  AIRunStopReason,
+} from "../../../../Types/AI/AIAgentRunLimits";
+import CodeAgentRunLimitsUtil, {
+  CodeAgentRunLimits,
+} from "../../../../Types/AI/CodeAgentRunLimits";
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -40,17 +45,18 @@ import ObjectID from "../../../../Types/ObjectID";
  * (CodeAgentTelemetryScope), and every tool holds its reads to them
  * (CodeAgentTelemetryTools).
  *
- * Calls are budgeted by the server, on the run:
+ * Calls are counted by the server, on the run's toolCallCount, by one
+ * conditional UPDATE (AIRunService.reserveCodeAgentToolCall), so neither a
+ * restarted worker nor two calls at once get past a limit. How many a run
+ * makes is up to its work (issue #6440): it is held only to the run's own
+ * limits (Types/AI/AIAgentRunLimits) -
  *
- *   - at most MAX_TELEMETRY_TOOL_CALLS_PER_RUN, counted on the run's
- *     toolCallCount by one conditional UPDATE (AIRunService
- *     .reserveCodeAgentToolCall), so neither a restarted worker nor two
- *     calls at once get more;
- *   - each one counts against the run's MAX_COMPLETION_CALLS_PER_RUN with
- *     its LLM calls (CodeFixAgentCompletion), and a call that would leave
- *     the run no call for its final answer, or comes after its output
- *     tokens are spent, is refused - so a run that queries production ends
- *     inside the budgets it always had;
+ *   - the project's tool calls per run, when it set that limit (the agent
+ *     counts its file and command tools against it too; the server, the
+ *     calls it runs);
+ *   - the run's time limit, and the project's model calls and tokens per
+ *     run: once the run may make no more model calls, nothing would read
+ *     what a query returns, so it is refused;
  *   - a call whose arguments are refused reads nothing and is not counted.
  *
  * What a call returns is capped at MAX_TELEMETRY_TOOL_OUTPUT_CHARS: it
@@ -74,6 +80,9 @@ export interface CodeAgentTelemetryToolList {
     pathInRepository: string | null;
   }>;
   reason: string | null;
+  // The run's limits and what it has used (Types/AI/CodeAgentRunLimits).
+  limits: CodeAgentRunLimits;
+  // The same for a Runner from before #6440.
   budget: AgentCompletionLoopBudget;
 }
 
@@ -83,57 +92,97 @@ export interface CodeAgentTelemetryCallResult {
   citationLabel: string;
   isTruncated: boolean;
   // After this call.
+  limits: CodeAgentRunLimits;
   budget: AgentCompletionLoopBudget;
 }
 
-function buildBudget(data: {
-  completionCalls: number;
-  outputTokens: number;
+export interface TelemetryToolCallDecision {
+  allowed: boolean;
+  // Set when not allowed: why, naming the setting, for the model.
+  reason: string | null;
+}
+
+// What the server knows of a run, for the limits it tells the worker.
+interface TelemetryRunState {
+  limits: AIAgentRunLimits;
+  usage: {
+    completionCalls: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
+  deadlineAtMs: number | null;
+}
+
+function describeLimits(data: {
+  state: TelemetryRunState;
+  startedAt: Date | undefined;
   toolCalls: number;
-}): AgentCompletionLoopBudget {
+}): { limits: CodeAgentRunLimits; budget: AgentCompletionLoopBudget } {
   return {
-    completionCallsUsed: data.completionCalls + data.toolCalls,
-    maxCompletionCalls: MAX_COMPLETION_CALLS_PER_RUN,
-    outputTokensUsed: data.outputTokens,
-    maxOutputTokens: MAX_OUTPUT_TOKENS_PER_RUN,
-    toolCallsUsed: data.toolCalls,
-    maxToolCalls: MAX_TELEMETRY_TOOL_CALLS_PER_RUN,
+    limits: CodeAgentRunLimitsUtil.build({
+      limits: data.state.limits,
+      startedAt: data.startedAt,
+      modelCallsUsed: data.state.usage.completionCalls,
+      toolCallsUsed: data.toolCalls,
+      tokensUsed: data.state.usage.totalTokens || 0,
+    }),
+    budget: CodeFixAgentCompletion.buildLegacyBudget({
+      limits: data.state.limits,
+      completionCalls: data.state.usage.completionCalls,
+      outputTokens: data.state.usage.outputTokens,
+      toolCalls: data.toolCalls,
+    }),
   };
 }
 
 export default class CodeAgentTelemetry {
   /*
-   * Whether the run may make one more production telemetry tool call - pure,
-   * so it is directly testable, like CodeFixAgentCompletion's loop budget.
+   * Whether the run may make one more production telemetry tool call -
+   * pure, so it is directly testable, like CodeFixAgentCompletion
+   * .evaluateRunLimits. Only a limit the run really has refuses one: the
+   * project's tool calls per run, or - since nothing would read what the
+   * call returns - a run that may make no more model calls (its time is up,
+   * or the project's model calls or tokens per run are reached).
    */
-  public static evaluateToolCallBudget(data: {
-    completionCalls: number;
-    outputTokens: number;
+  public static evaluateToolCall(data: {
+    limits: AIAgentRunLimits;
+    usage: CodeAgentServerUsage;
     toolCalls: number;
-  }): LoopBudgetDecision {
-    if (data.toolCalls >= MAX_TELEMETRY_TOOL_CALLS_PER_RUN) {
+    nowMs: number;
+    deadlineAtMs: number | null;
+  }): TelemetryToolCallDecision {
+    const refuse: (reason: AIRunStopReason) => TelemetryToolCallDecision = (
+      reason: AIRunStopReason,
+    ): TelemetryToolCallDecision => {
       return {
         allowed: false,
-        reason: `This run has made all ${MAX_TELEMETRY_TOOL_CALLS_PER_RUN} of its production telemetry queries. Finish with what they showed.`,
+        reason: `${AIAgentRunLimitsHelper.getRefusal(reason, data.limits)} Finish with what you have.`,
       };
-    }
+    };
 
-    // The call itself, and one left for the run's final answer.
     if (
-      data.completionCalls + data.toolCalls + 2 >
-      MAX_COMPLETION_CALLS_PER_RUN
+      data.limits.maxToolCalls !== undefined &&
+      data.toolCalls >= data.limits.maxToolCalls
     ) {
-      return {
-        allowed: false,
-        reason: `Another production telemetry query would leave this run no call for its final answer (${data.completionCalls} completion calls and ${data.toolCalls} queries, of ${MAX_COMPLETION_CALLS_PER_RUN} calls). Finish with what you have.`,
-      };
+      return refuse(AIRunStopReason.ToolCalls);
     }
 
-    if (data.outputTokens >= MAX_OUTPUT_TOKENS_PER_RUN) {
-      return {
-        allowed: false,
-        reason: `This run has spent its output-token budget (${data.outputTokens.toLocaleString()} of ${MAX_OUTPUT_TOKENS_PER_RUN.toLocaleString()}), so it may not query production any more. Finish with what you have.`,
-      };
+    if (data.deadlineAtMs !== null && data.nowMs >= data.deadlineAtMs) {
+      return refuse(AIRunStopReason.TimeLimit);
+    }
+
+    if (
+      data.limits.maxLlmCalls !== undefined &&
+      data.usage.modelCalls >= data.limits.maxLlmCalls
+    ) {
+      return refuse(AIRunStopReason.ModelCalls);
+    }
+
+    if (
+      data.limits.maxTokens !== undefined &&
+      data.usage.tokens >= data.limits.maxTokens
+    ) {
+      return refuse(AIRunStopReason.Tokens);
     }
 
     return { allowed: true, reason: null };
@@ -141,7 +190,7 @@ export default class CodeAgentTelemetry {
 
   /*
    * The tools a run is offered, the repository and services they read, and
-   * the run's budget - or no tools, and why.
+   * the run's limits - or no tools, and why.
    */
   @CaptureSpan()
   public static async listTools(data: {
@@ -154,12 +203,14 @@ export default class CodeAgentTelemetry {
     const offer: CodeAgentTelemetryOffer =
       await CodeAgentTelemetryScope.getOffer(telemetryRun);
 
-    const usage: { completionCalls: number; outputTokens: number } =
-      await LlmLogService.getRunCompletionUsage({ aiRunId: data.aiRunId });
+    const state: TelemetryRunState = await CodeAgentTelemetry.readRunState(
+      telemetryRun,
+      data.aiRunId,
+    );
 
-    const budget: AgentCompletionLoopBudget = buildBudget({
-      completionCalls: usage.completionCalls,
-      outputTokens: usage.outputTokens,
+    const { limits, budget } = describeLimits({
+      state,
+      startedAt: telemetryRun.run.startedAt,
       toolCalls: telemetryRun.run.toolCallCount || 0,
     });
 
@@ -169,6 +220,7 @@ export default class CodeAgentTelemetry {
         repository: null,
         services: [],
         reason: offer.reason,
+        limits,
         budget,
       };
     }
@@ -196,6 +248,7 @@ export default class CodeAgentTelemetry {
         },
       ),
       reason: null,
+      limits,
       budget,
     };
   }
@@ -203,7 +256,7 @@ export default class CodeAgentTelemetry {
   /*
    * One production telemetry tool call of a run. Every refusal - a run the
    * agent may not read for, a tool that does not exist, arguments outside
-   * the run's scope, a spent budget - throws a BadDataException whose
+   * the run's scope, a limit the run reached - throws a BadDataException whose
    * message the worker hands the model; a read that fails once counted is
    * answered as an error result.
    */
@@ -250,14 +303,21 @@ export default class CodeAgentTelemetry {
     // Arguments first: a call they refuse reads nothing and costs nothing.
     const read: PreparedTelemetryRead = tool.prepare(data.args, offer.scope);
 
-    const usage: { completionCalls: number; outputTokens: number } =
-      await LlmLogService.getRunCompletionUsage({ aiRunId: data.aiRunId });
+    const state: TelemetryRunState = await CodeAgentTelemetry.readRunState(
+      telemetryRun,
+      data.aiRunId,
+    );
     const toolCalls: number = telemetryRun.run.toolCallCount || 0;
 
-    const decision: LoopBudgetDecision = this.evaluateToolCallBudget({
-      completionCalls: usage.completionCalls,
-      outputTokens: usage.outputTokens,
+    const decision: TelemetryToolCallDecision = this.evaluateToolCall({
+      limits: state.limits,
+      usage: {
+        modelCalls: state.usage.completionCalls,
+        tokens: state.usage.totalTokens || 0,
+      },
       toolCalls: toolCalls,
+      nowMs: OneUptimeDate.getCurrentDate().getTime(),
+      deadlineAtMs: state.deadlineAtMs,
     });
 
     if (!decision.allowed) {
@@ -267,12 +327,14 @@ export default class CodeAgentTelemetry {
     const isCounted: boolean = await AIRunService.reserveCodeAgentToolCall({
       aiRunId: data.aiRunId,
       aiAgentId: data.aiAgent.id,
-      maxToolCalls: MAX_TELEMETRY_TOOL_CALLS_PER_RUN,
+      maxToolCalls: state.limits.maxToolCalls ?? null,
     });
 
     if (!isCounted) {
       throw new BadDataException(
-        `This run has made all ${MAX_TELEMETRY_TOOL_CALLS_PER_RUN} of its production telemetry queries, or is no longer running. Finish with what they showed.`,
+        state.limits.maxToolCalls !== undefined
+          ? `This run may make no more production telemetry calls: it has reached this project's limit of ${state.limits.maxToolCalls.toLocaleString("en-US")} tool calls per run, or it is no longer running. Finish with what you have.`
+          : "This run is no longer running, so it may make no more production telemetry calls.",
       );
     }
 
@@ -304,11 +366,44 @@ export default class CodeAgentTelemetry {
       rowCount: output.rowCount,
       citationLabel: output.citationLabel,
       isTruncated: output.isTruncated || isClipped,
-      budget: buildBudget({
-        completionCalls: usage.completionCalls,
-        outputTokens: usage.outputTokens,
+      ...describeLimits({
+        state,
+        startedAt: telemetryRun.run.startedAt,
         toolCalls: toolCalls + 1,
       }),
+    };
+  }
+
+  /*
+   * The run's limits (its project's), what it has used so far - counted
+   * from its own LlmLog rows - and when its time is up: from when this
+   * attempt was claimed, or never for a run whose start is not recorded.
+   */
+  private static async readRunState(
+    telemetryRun: CodeAgentTelemetryRun,
+    aiRunId: ObjectID,
+  ): Promise<TelemetryRunState> {
+    const limits: AIAgentRunLimits = await AIRunLimitsReader.read({
+      projectId: telemetryRun.projectId,
+    });
+
+    const usage: {
+      completionCalls: number;
+      outputTokens: number;
+      totalTokens: number;
+    } = await LlmLogService.getRunCompletionUsage({ aiRunId });
+
+    const startedAtMs: number | null = telemetryRun.run.startedAt
+      ? new Date(telemetryRun.run.startedAt).getTime()
+      : null;
+
+    return {
+      limits,
+      usage,
+      deadlineAtMs:
+        startedAtMs !== null && Number.isFinite(startedAtMs)
+          ? AIAgentRunLimitsHelper.getDeadlineAtMs(limits, startedAtMs)
+          : null,
     };
   }
 

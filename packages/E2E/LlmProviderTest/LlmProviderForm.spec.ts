@@ -442,8 +442,15 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
    * a bold title and a row of pills, as tall as two rows of the form. It is
    * one quiet line now. Measured here in a real browser, where jsdom can
    * only read class names.
+   *
+   * It holds four fields since the Response Timeout joined the description,
+   * the default switch and the parameters (issue #6438). A line names up to
+   * four (FoldedSectionItem), so it names them all, and here they are wider
+   * than the form: the list wraps, each name whole, under the title - a
+   * line or two of text, as the monitor form's More fields is held to
+   * (MonitorOverview/CreateMonitor.spec.ts), never the card it was.
    */
-  test("More fields is one quiet line: no frame, no tile, one row of text, its fields opened in place", async ({
+  test("More fields is one quiet line: no frame, no tile, its names wrapped whole under its title, its fields opened in place", async ({
     page,
   }: {
     page: Page;
@@ -461,9 +468,68 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     // What is inside, after the title, on the same line.
     await expect(more).toContainText(/^More fields\s*·\s*Description/);
 
-    // One row of text: about 28 pixels, where the card was 74.
+    // Every field it holds, by name: four, so none is counted as "1 more".
+    const names: Array<string> = (
+      await more.getByTestId("folded-section-item").allTextContents()
+    ).map((name: string): string => {
+      return name.trim();
+    });
+    expect(names).toEqual([
+      "Description",
+      "Set as Default",
+      "Additional Parameters",
+      "Response Timeout (Seconds)",
+    ]);
+    await expect(more.getByTestId("folded-section-more")).toHaveCount(0);
+
+    /*
+     * Each name wraps whole, its comma with it - one row of text per entry -
+     * and starts under the title, never under the chevron.
+     */
+    const line: {
+      titleX: number;
+      entries: Array<{ x: number; y: number; height: number }>;
+    } = await more.evaluate(
+      (
+        element: Element,
+      ): {
+        titleX: number;
+        entries: Array<{ x: number; y: number; height: number }>;
+      } => {
+        const title: Element = element.querySelector(
+          "[data-testid='folded-section-title']",
+        )!;
+        const contents: Element = element.querySelector(
+          "[data-testid='folded-section-contents']",
+        )!;
+
+        return {
+          titleX: title.getBoundingClientRect().x,
+          entries: Array.from(contents.children).map((child: Element) => {
+            const rect: DOMRect = child.getBoundingClientRect();
+            return { x: rect.x, y: rect.y, height: rect.height };
+          }),
+        };
+      },
+    );
+
+    expect(line.entries.length).toBe(names.length);
+
+    for (const entry of line.entries) {
+      expect(entry.height).toBeLessThanOrEqual(26);
+      expect(entry.x).toBeGreaterThanOrEqual(line.titleX - 1);
+    }
+
+    // Two rows of text at most: about 52 pixels, where one row is 28.
+    const rows: Set<number> = new Set<number>(
+      line.entries.map((entry: { y: number }): number => {
+        return Math.round(entry.y);
+      }),
+    );
+    expect(rows.size).toBeLessThanOrEqual(2);
+
     const folded: { height: number } | null = await fold.boundingBox();
-    expect(folded!.height).toBeLessThanOrEqual(32);
+    expect(folded!.height).toBeLessThanOrEqual(56);
 
     // No frame, no ground of its own, no shadow, no icon tile.
     expect(

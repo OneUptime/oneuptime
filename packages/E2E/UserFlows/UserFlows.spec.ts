@@ -489,6 +489,45 @@ test.describe("User Flows", () => {
     await expect(page.getByTestId("user-flow-map")).toHaveCount(0);
   });
 
+  test("filters that leave nobody say so once, and Clear filters brings everyone back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /* G's 14 are the only frustrated sessions, and these are every page they saw. */
+    await openFlows(
+      page,
+      "?sessions=frustration&hide=%2Fcollections&hide=%2Fproducts%2F%3Aid&hide=%2Fcart",
+    );
+
+    await expect(
+      page.getByText("No session matches these filters"),
+    ).toBeVisible();
+    /* Not taken for a missing install, and no tiles of zeros or empty map. */
+    await expect(page.getByText("How to install Session Replay")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("user-flow-tile-sessions")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-map")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-tables")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-hidden-pages")).toContainText(
+      "/cart",
+    );
+
+    await page.getByTestId("user-flow-filtered-empty-clear").click();
+
+    await waitForMap(page);
+    await expect(page.getByTestId("user-flow-tile-sessions-value")).toHaveText(
+      "200",
+    );
+    await expect(page.getByTestId("user-flow-hidden-pages")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-session-filter")).toHaveValue(
+      "all",
+    );
+    expect(new URL(page.url()).search).toBe("");
+    expect(await flowRequests(page)).toHaveLength(1);
+  });
+
   test("a failed read shows the error and can be retried", async ({
     page,
   }: {
@@ -812,6 +851,84 @@ test.describe("One person or one session", () => {
     expect(new URL(page.url()).search).toBe("");
   });
 
+  /*
+   * Issue #6192: narrowed to one person, the page used to list their journeys
+   * first and draw the map under them. It reads overview first for everyone.
+   */
+  test("the map and its numbers come first for one person too, then their journeys", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const expectTopToBottom: (testIds: Array<string>) => Promise<void> = async (
+      testIds: Array<string>,
+    ): Promise<void> => {
+      const tops: Array<number> = (
+        await boxesInOneFrame(
+          testIds.map((testId: string): Locator => {
+            return page.getByTestId(testId);
+          }),
+        )
+      ).map((box: { y: number }): number => {
+        return box.y;
+      });
+
+      for (let index: number = 1; index < tops.length; index++) {
+        expect({
+          above: testIds[index - 1],
+          below: testIds[index],
+          isBelow: tops[index]! > tops[index - 1]!,
+        }).toEqual({
+          above: testIds[index - 1],
+          below: testIds[index],
+          isBelow: true,
+        });
+      }
+    };
+    const narrowed: Array<string> = [
+      "user-flow-scope",
+      "user-flow-toolbar",
+      "user-flow-tile-sessions",
+      "user-flow-insights",
+      "user-flow-map",
+      "user-flow-journeys",
+      "user-flow-tables",
+    ];
+
+    await openFlows(page, `?userKey=${janeKey}`);
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+    await expectTopToBottom(narrowed);
+
+    /* A page clicked on her map opens its panel under the map, above her journeys. */
+    await node(page, "/", 0).click();
+    await expectTopToBottom([
+      "user-flow-map",
+      "user-flow-detail",
+      "user-flow-journeys",
+    ]);
+
+    /* One session reads the same way. */
+    await openFlows(page, `?sessionId=${janeSession}`);
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
+    await expectTopToBottom(
+      narrowed.filter((testId: string): boolean => {
+        return testId !== "user-flow-insights";
+      }),
+    );
+
+    /* Everyone: the same page, without the journeys. */
+    await page.getByTestId("user-flow-scope-clear").click();
+    await waitForMap(page);
+    await expect(page.getByTestId("user-flow-journeys")).toHaveCount(0);
+    await expectTopToBottom([
+      "user-flow-toolbar",
+      "user-flow-tile-sessions",
+      "user-flow-insights",
+      "user-flow-map",
+      "user-flow-tables",
+    ]);
+  });
+
   test("the time range, device and session filters narrow one person too", async ({
     page,
   }: {
@@ -836,10 +953,32 @@ test.describe("One person or one session", () => {
     await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
     await expect(journey(page, janeSession)).toBeVisible();
 
-    /* Filters that leave nothing say so, and keep the rest of the page. */
+    /*
+     * Filters that leave nothing say so once, where the map would be, and
+     * keep who the page is about and the filters themselves.
+     */
     await page.getByTestId("user-flow-device-filter").selectOption("mobile");
     await expect(page.getByTestId("user-flow-journey")).toHaveCount(0);
-    await expect(page.getByTestId("user-flow-journeys-empty")).toBeVisible();
+    await expect(
+      page.getByText("No session matches these filters"),
+    ).toBeVisible();
+    await expect(page.getByTestId("user-flow-map")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-tile-sessions")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "jane@example.com",
+    );
+    await expect(page.getByTestId("user-flow-device-filter")).toHaveValue(
+      "mobile",
+    );
+
+    /* Clear filters brings every one of her sessions back. */
+    await page.getByTestId("user-flow-filtered-empty-clear").click();
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+    await expect(page.getByTestId("user-flow-device-filter")).toHaveValue("");
+    await expect(page.getByTestId("user-flow-session-filter")).toHaveValue(
+      "all",
+    );
+    await expect(page).not.toHaveURL(/device=|sessions=/);
 
     /* All of that re-folded what it had. */
     expect(await flowRequests(page)).toHaveLength(1);
@@ -851,7 +990,9 @@ test.describe("One person or one session", () => {
     page: Page;
   }) => {
     await openFlows(page, `?userKey=${janeKey}&device=tablet`);
-    await expect(page.getByTestId("user-flow-journeys-empty")).toBeVisible();
+    await expect(
+      page.getByText("No session matches these filters"),
+    ).toBeVisible();
     await expect(page.getByTestId("user-flow-device-filter")).toHaveValue(
       "tablet",
     );

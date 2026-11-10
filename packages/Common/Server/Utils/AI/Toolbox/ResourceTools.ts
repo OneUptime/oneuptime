@@ -58,6 +58,14 @@ import VMwareVCenterService from "../../../Services/VMwareVCenterService";
 import CephClusterService from "../../../Services/CephClusterService";
 import StorageArrayService from "../../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
+import {
+  SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES,
+  SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_LABEL,
+  SERVERLESS_FUNCTION_RECEIVING_DATA_LABEL,
+  SERVERLESS_FUNCTION_WAITING_FOR_DATA_LABEL,
+  getServerlessFunctionStatus,
+  getServerlessFunctionStatusWords,
+} from "../../../../Types/Serverless/ServerlessFunctionStatus";
 import CloudResourceService from "../../../Services/CloudResourceService";
 import { CloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
 import IoTFleetService from "../../../Services/IoTFleetService";
@@ -89,6 +97,10 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
+import {
+  CloudResourceMetricReadAggregation,
+  chooseCloudResourceMetricAggregation,
+} from "./CloudResourceMetricAggregation";
 import {
   METRIC_ATTRIBUTE_SCHEMA_PROPERTIES,
   MetricReadPlan,
@@ -124,6 +136,18 @@ interface ResourceDescriptor {
     projectId: ObjectID;
     id: ObjectID;
   }) => Promise<Array<ResourceEntityScope>>;
+  /*
+   * For a resource that is quiet whenever it is not used (a serverless
+   * function sends data only while it runs): its status in the
+   * Dashboard's words, on each row in place of the stored
+   * otelCollectorStatus, and what the words mean, added to the note. Read
+   * raw, "disconnected" had the model tell people a function nothing had
+   * invoked had lost its connection (issue #6269).
+   */
+  status?: {
+    of: (record: JSONObject) => string;
+    meaning: string;
+  };
 }
 
 /*
@@ -304,6 +328,19 @@ const RESOURCE_DESCRIPTORS: Record<AIResourceType, ResourceDescriptor> = {
     model: ServerlessFunction,
     findBy: (data: FindBy<BaseModel>) => {
       return ServerlessFunctionService.findBy(data as never);
+    },
+    status: {
+      of: (record: JSONObject): string => {
+        return getServerlessFunctionStatusWords(
+          getServerlessFunctionStatus({
+            otelCollectorStatus: record["otelCollectorStatus"] as
+              | string
+              | undefined,
+            lastSeenAt: record["lastSeenAt"] as Date | string | undefined,
+          }),
+        ).label;
+      },
+      meaning: `A function's status is one of: ${SERVERLESS_FUNCTION_RECEIVING_DATA_LABEL} (data arrived in the last ${SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES} minutes); ${SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_LABEL} (nothing for ${SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES} minutes: a function sends data only while it runs, so this is normal when nothing has invoked it, and is not a fault or a broken connection on its own); ${SERVERLESS_FUNCTION_WAITING_FOR_DATA_LABEL} (nothing has ever arrived).`,
     },
     fields: [
       "functionIdentifier",
@@ -566,14 +603,23 @@ export const QueryTelemetryResourcesTool: ObservabilityTool = {
           }),
       props: ctx.props,
     });
+    const status: ResourceDescriptor["status"] =
+      RESOURCE_DESCRIPTORS[type].status;
     const rows: Array<JSONObject> = models.map(
       (model: BaseModel): JSONObject => {
         const row: JSONObject = { resourceType: type };
         const record: JSONObject = model as unknown as JSONObject;
         for (const field of fields) {
+          // Its words say it instead; the stored value is still read for them.
+          if (status && field === "otelCollectorStatus") {
+            continue;
+          }
           // Reading own selected fields preserves real zero/false, unlike getColumnValue.
           row[field === "_id" ? "resourceId" : field] =
             record[field] ?? "unknown";
+        }
+        if (status) {
+          row["status"] = status.of(record);
         }
         return row;
       },
@@ -585,6 +631,7 @@ export const QueryTelemetryResourcesTool: ObservabilityTool = {
       truncated: !id && rows.length >= limit,
       note:
         "Inventory snapshots are as of lastSeenAt; missing values are unknown. Collector connection is not workload health. Results are limited to resources you can read." +
+        (status ? ` ${status.meaning}` : "") +
         (!id && rows.length >= limit
           ? " Result limit reached; paginate before making fleet-wide claims."
           : ""),
@@ -847,7 +894,7 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
           "P99",
         ],
         description:
-          "Metric aggregation (defaultAvg); counter sums are exported values, not derived rates.",
+          "Metric aggregation (default Avg, or Sum for a cloud resource's metric that adds up across its parts: a Service Bus or Event Hubs namespace's queues); counter sums are exported values, not derived rates.",
       },
       mode: {
         type: "string",
@@ -930,11 +977,16 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
     const note: string = `${scope.note} Requested window: ${window}.`;
     if (signal === "metrics") {
       const name: string | undefined = ToolArgs.getString(args, "metricName");
-      const aggregation: string =
-        ToolArgs.getString(args, "aggregationType") || "Avg";
+      const requestedAggregation: string | undefined = ToolArgs.getString(
+        args,
+        "aggregationType",
+      );
       const mode: string = ToolArgs.getString(args, "mode") || "trend";
       if (
-        !Object.values(AggregationType).includes(aggregation as AggregationType)
+        requestedAggregation &&
+        !Object.values(AggregationType).includes(
+          requestedAggregation as AggregationType,
+        )
       ) {
         throw new BadDataException("Invalid aggregationType.");
       }
@@ -963,6 +1015,26 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
         !name || mode === "summary"
           ? AggregationInterval.Total
           : chooseTrendInterval(startTime, endTime);
+      /*
+       * Where the model names none: the average, or the Sum a cloud
+       * resource's own number is where its metric arrives once per part of
+       * it (a Service Bus namespace's, once per queue), as its Metrics tab
+       * reads it - at this read's intervals.
+       */
+      const resourceAggregation: CloudResourceMetricReadAggregation = name
+        ? chooseCloudResourceMetricAggregation({
+            requested: requestedAggregation as AggregationType | undefined,
+            metricName: name,
+            attributes,
+            aggregationInterval: interval,
+          })
+        : {
+            aggregationType:
+              (requestedAggregation as AggregationType | undefined) ||
+              AggregationType.Avg,
+            explanation: "",
+          };
+      const aggregation: string = resourceAggregation.aggregationType;
       const query: JSONObject = {
         projectId: ctx.projectId,
         time: new InBetween(startTime, endTime),
@@ -1016,6 +1088,7 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
           note: [
             note,
             `Metric ${aggregation}; ${mode}.`,
+            resourceAggregation.explanation,
             planNote,
             GroupedMetricSeries.describeRead({
               read,
@@ -1120,7 +1193,7 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
         target,
         widget,
         truncated,
-        note: `${note} ${name ? `Metric ${aggregation}; ${mode}; interval ${interval}. Counter Sum is a sum of exported samples, not a rate or increase.${planNote ? ` ${planNote}` : ""}` : "Names are observed in this resource/window; an empty result does not prove that the resource exports no metrics."}${truncated ? " Result limit reached or query truncated; do not treat this as complete." : ""}`,
+        note: `${note} ${name ? `Metric ${aggregation}; ${mode}; interval ${interval}.${resourceAggregation.explanation ? ` ${resourceAggregation.explanation}` : ""} Counter Sum is a sum of exported samples, not a rate or increase.${planNote ? ` ${planNote}` : ""}` : "Names are observed in this resource/window; an empty result does not prove that the resource exports no metrics."}${truncated ? " Result limit reached or query truncated; do not treat this as complete." : ""}`,
       });
     }
     /*

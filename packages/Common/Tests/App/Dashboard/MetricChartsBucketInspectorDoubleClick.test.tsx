@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -133,6 +134,7 @@ jest.mock(
 );
 
 import MetricCharts from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricCharts";
+import { loadInvestigationDrawer } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/LazyInvestigationDrawer";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
@@ -429,6 +431,15 @@ function pressAndClick(target: HTMLElement, clickCount: number): void {
   fireEvent.mouseUp(target, { button: 0, detail: clickCount });
   fireEvent.click(target, { button: 0, detail: clickCount });
 }
+
+/*
+ * The drawer is a file of its own, loaded the first time a chart opens it
+ * (LazyInvestigationDrawer). Loaded once here, as on a page where a drawer
+ * has been opened before, so it draws on the click that opens it.
+ */
+beforeAll(async () => {
+  await loadInvestigationDrawer();
+});
 
 beforeEach(() => {
   fetchExemplarsMock.mockReset();

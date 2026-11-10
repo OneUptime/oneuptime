@@ -42,10 +42,11 @@ En applikations egen sidemenu grupperer dens sider sådan; **Indstillinger**, **
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Anbefalinger**, **Dokumentation** |
 | **Observabilitet** | **Metrikker**, **Protokoller**, **Spor**, **Klienter** |
-| **Sessionsafspilning** | **Sessionsafspilning**, **Brugerforløb**, **Brugere i afspilninger**, **Sundhed**, **Afspilningspolitik**, **Adgangslog for afspilninger**, **Dokumentation** |
+| **Produktanalyse** | **Brugere**, **Sessioner** |
+| **Sessionsafspilning** | **Sessionsafspilning**, **Brugerforløb**, **Brugere i afspilninger**, **Sundhed**, **Afspilningspolitik**, **Frustrationssignaler**, **Adgangslog for afspilninger**, **Dokumentation** |
 | **Indstillinger** | **Indstillinger** |
 | **Udvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avanceret** | **Slet applikation** |
+| **Avanceret** | **Auditlogs**, **Slet applikation** |
 
 ## Sådan genkender OneUptime RUM
 
@@ -81,12 +82,13 @@ OneUptime finder applikationen ud fra `service.name` uden hensyn til store og sm
 | **Core Web Vitals** | Et kort i oversigten med LCP, INP, CLS, FCP og TTFB, hver vurderet efter Googles grænser, og INP for hver rute i en single-page-app. Se [Core Web Vitals](/docs/rum/web-vitals) og [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrikker**, **Protokoller**, **Spor** | Telemetri-explorerne, begrænset til denne applikation. |
 | **Klienter** | De browserplatforme og enhedsmodeller, applikationen er blevet brugt på: en kort liste pr. platform, aldrig en række pr. bruger. |
+| **Produktanalyse** | Aktive, nye, tilbagevendende og inaktive brugere samt sessioner efter enhed, browser, land og side, talt ud fra de optagne sessioner: se [Produktanalyse](/docs/rum/product-analytics). |
 | **Sessionsafspilning** | Optagelser af rigtige sessioner ved siden af deres fejl, spor og logs: se [Sessionsafspilning](/docs/telemetry/session-replay). |
 | **Anbefalinger** | Færdige monitorer til applikationen: dårlige Core Web Vitals, mislykkede forespørgsler, browserundtagelser og, så snart den optager, budgetter for Session Replay. |
 
 Tallene kommer fra de spans, din instrumentering sender. **Sideindlæsninger** tæller det `documentLoad`-span, som sideindlæsningsinstrumenteringen registrerer ved hver fuld indlæsning, så et ruteskift i en single-page-app er ikke en sideindlæsning.
 
-En applikation viser **Forbundet**, så længe der kommer telemetri, og **Afbrudt** efter 15 minutter uden. Tid, hvor OneUptime selv var nede eller var ved at indhente sin indtagelseskø, tæller ikke med i de 15 minutter.
+En applikation viser **Modtager data**, så længe der kommer telemetri, og **Ingen nylig trafik** efter 15 minutter uden, hvilket er normalt, mens ingen bruger appen. En applikation, der er tilføjet manuelt, viser **Venter på data**, indtil dens første data kommer. Tid, hvor OneUptime selv var nede eller var ved at indhente sin indtagelseskø, tæller ikke med i de 15 minutter.
 
 ## Kom i gang
 

@@ -160,6 +160,10 @@ interface ChunkFixture {
   hasFullSnapshot?: boolean;
   isFinal?: boolean;
   url?: string;
+  // The application's own signals (issue #6443), as the ingest stores them.
+  customSignalCount?: number;
+  customSignalFrustrationCount?: number;
+  customSignalNames?: Array<string>;
 }
 
 /*
@@ -173,6 +177,10 @@ interface ChunkFixture {
  *   eventCount rather than the tab total.
  * - tab-a's chunk 2 is delivered twice; the stale copy (lower version)
  *   would inflate eventCount by 999 and erase an error if the dedupe broke.
+ * - The application's own signals (issue #6443): tab-a's chunks 0 and 2
+ *   both hit "Payment failed", which the session must list once, and the
+ *   stale copy of chunk 2 names "Stale copy" and adds 50 hits, which must
+ *   not survive the dedupe. tab-b's one signal is a marker.
  */
 const chunkFixtures: Array<ChunkFixture> = [
   {
@@ -184,6 +192,9 @@ const chunkFixtures: Array<ChunkFixture> = [
     errorCount: 0,
     hasFullSnapshot: true,
     url: "https://app.example.com/",
+    customSignalCount: 2,
+    customSignalFrustrationCount: 1,
+    customSignalNames: ["Coupon applied", "Payment failed"],
   },
   {
     tabId: "tab-a",
@@ -202,6 +213,9 @@ const chunkFixtures: Array<ChunkFixture> = [
     eventCount: 999,
     errorCount: 0,
     url: "https://app.example.com/checkout",
+    customSignalCount: 50,
+    customSignalFrustrationCount: 50,
+    customSignalNames: ["Stale copy"],
   },
   {
     tabId: "tab-a",
@@ -211,6 +225,9 @@ const chunkFixtures: Array<ChunkFixture> = [
     eventCount: 25,
     errorCount: 2,
     url: "https://app.example.com/checkout",
+    customSignalCount: 1,
+    customSignalFrustrationCount: 1,
+    customSignalNames: ["Payment failed"],
   },
   {
     tabId: "tab-a",
@@ -231,6 +248,9 @@ const chunkFixtures: Array<ChunkFixture> = [
     errorCount: 3,
     hasFullSnapshot: true,
     url: "https://app.example.com/account",
+    customSignalCount: 1,
+    customSignalFrustrationCount: 0,
+    customSignalNames: ["Support chat opened"],
   },
 ];
 
@@ -274,6 +294,9 @@ function chunkRow(fixture: ChunkFixture): JSONObject {
     routeCount: 1,
     clickCount: 0,
     customEventCount: 0,
+    customSignalCount: fixture.customSignalCount || 0,
+    customSignalFrustrationCount: fixture.customSignalFrustrationCount || 0,
+    customSignalNames: fixture.customSignalNames || [],
     url: fixture.url || "",
     routes: fixture.url ? [new URL(fixture.url).pathname] : [],
     retentionDate: retentionDate,
@@ -514,6 +537,16 @@ integration("Rum:FinalizeSessions against ClickHouse", () => {
     expect(tabA.lastUrl).toBe("https://app.example.com/checkout");
     expect(tabA.routes).toEqual(["/", "/checkout"]);
     expect(tabA.retentionDate.startsWith(retentionDate)).toBe(true);
+    /*
+     * The application's own signals: the deduped chunks' hits summed, and
+     * their names one sorted set - the stale copy's are gone.
+     */
+    expect(tabA.customSignalCount).toBe(3);
+    expect(tabA.customSignalFrustrationCount).toBe(2);
+    expect(tabA.customSignalNames).toEqual([
+      "Coupon applied",
+      "Payment failed",
+    ]);
 
     expect(tabB.tabId).toBe("tab-b");
     expect(tabB.chunkCount).toBe(1);
@@ -523,6 +556,9 @@ integration("Rum:FinalizeSessions against ClickHouse", () => {
     expect(tabB.firstErrorOffsetMs).toBe(20000);
     expect(tabB.activeMs).toBe(CHUNK_DURATION_MS);
     expect(tabB.hasFinalChunk).toBe(false);
+    expect(tabB.customSignalCount).toBe(1);
+    expect(tabB.customSignalFrustrationCount).toBe(0);
+    expect(tabB.customSignalNames).toEqual(["Support chat opened"]);
   });
 
   test("the chunk aggregate reads each tab's end facts, and the shared rule agrees", async () => {
@@ -648,7 +684,8 @@ integration("Rum:FinalizeSessions against ClickHouse", () => {
       SQL`
         SELECT isFinalized, eventCount, errorCount, hasError, chunkCount,
           firstErrorOffsetMs, activeMs, durationMs, entryUrl, exitUrl, routes,
-          traceIds, exceptionFingerprints
+          traceIds, exceptionFingerprints, customSignalCount,
+          customSignalFrustrationCount, customSignalNames
         FROM ${database}.${AnalyticsTableName.RumSession}
         WHERE sessionId = ${{ type: TableColumnType.Text, value: sessionId }}
         ORDER BY version DESC
@@ -674,6 +711,14 @@ integration("Rum:FinalizeSessions against ClickHouse", () => {
     expect(header["routes"]).toEqual(["/", "/account", "/checkout"]);
     expect(header["traceIds"]).toEqual([traceId]);
     expect(header["exceptionFingerprints"]).toEqual([fingerprint]);
+    /* Both tabs' own signals, one sorted set of names for the session. */
+    expect(Number(header["customSignalCount"])).toBe(4);
+    expect(Number(header["customSignalFrustrationCount"])).toBe(2);
+    expect(header["customSignalNames"]).toEqual([
+      "Coupon applied",
+      "Payment failed",
+      "Support chat opened",
+    ]);
 
     expect(await sweep()).toEqual([]);
   });

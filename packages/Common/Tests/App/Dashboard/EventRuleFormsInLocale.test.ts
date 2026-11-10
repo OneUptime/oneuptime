@@ -121,7 +121,7 @@ for (const language of LANGUAGES) {
  */
 const PAGE_SENTENCES: Record<string, Array<string>> = {
   "Pages/Incidents/Settings/IncidentOnCallRules.tsx": [
-    "Page on-call policies automatically for new incidents that match.",
+    "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.",
     "Which new incidents page which on-call policies.",
     "Page on-call policies automatically for new incident episodes that match.",
     "Which new episodes page which on-call policies.",

@@ -2,17 +2,24 @@ import { describe, expect, test } from "@jest/globals";
 import {
   DrawnActionSentence,
   getToolActionDescription,
+  getToolActionLeavesOutLists,
   getToolActionNamedArguments,
   getToolActionShownValues,
   getToolActionTitle,
   getToolActionTitleLabel,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ToolActionWords";
 import {
+  AI_ACTION_CODE_CHANGE_LINES,
+  AI_ACTION_CODE_FILE,
   AI_ACTION_LINES,
+  AI_ACTION_PLURAL_LINES,
+  AI_ACTION_PLURAL_SENTENCES,
   AI_ACTION_TERMS,
   AI_ACTION_TITLES,
+  AIActionSentence,
   AIActionWords,
   aiActionList,
+  aiActionPluralSentence,
   aiActionResourceByName,
   aiActionSentence,
   aiActionTerm,
@@ -26,7 +33,7 @@ import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
 } from "../../../Types/ReadingDirection";
-import { Translator } from "../../../Types/Translator";
+import { PluralTemplate, Translator } from "../../../Types/Translator";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
@@ -222,5 +229,110 @@ describe("what the title shows of the arguments", () => {
       ),
     ).toEqual(["incidentId"]);
     expect(getToolActionNamedArguments(legacy())).toEqual([]);
+  });
+});
+
+describe("whether the line under the title names what the action's lists stand for (issue #6331)", () => {
+  // A code change's line: which of its files it would write over unseen.
+  const codeLine: (plural: PluralTemplate) => AIActionSentence = (
+    plural: PluralTemplate,
+  ): AIActionSentence => {
+    return aiActionPluralSentence(plural, 1, {
+      branch: "main",
+      readBranch: "release",
+      files: aiActionList([
+        aiActionSentence(AI_ACTION_CODE_FILE, { file: "src/a.ts" }),
+      ]),
+    });
+  };
+
+  const pullRequest: (
+    description: Array<AIActionSentence>,
+  ) => AIChatToolAction = (
+    description: Array<AIActionSentence>,
+  ): AIChatToolAction => {
+    return action({
+      toolName: "open_code_pull_request",
+      words: {
+        title: aiActionSentence(AI_ACTION_TITLES.openPullRequest, {
+          title: "Fix charge",
+        }),
+        description,
+      },
+    });
+  };
+
+  test("the resources a new alert links: its lists are left out, as they always were", () => {
+    expect(getToolActionLeavesOutLists(action())).toBe(true);
+  });
+
+  test.each(
+    Object.entries(AI_ACTION_PLURAL_LINES).filter(
+      ([name]: [string, PluralTemplate]): boolean => {
+        return name !== "moreFiles";
+      },
+    ),
+  )(
+    "a code change's line %s never stands for its files: Files: N stays",
+    (_name: string, plural: PluralTemplate) => {
+      expect(getToolActionLeavesOutLists(pullRequest([codeLine(plural)]))).toBe(
+        false,
+      );
+    },
+  );
+
+  test("every code change line is one of them, and none of them is any other line", () => {
+    expect(AI_ACTION_CODE_CHANGE_LINES).toHaveLength(6);
+    for (const template of AI_ACTION_CODE_CHANGE_LINES) {
+      expect(
+        AI_ACTION_PLURAL_SENTENCES.some((plural: PluralTemplate): boolean => {
+          return plural.other === template;
+        }),
+      ).toBe(true);
+    }
+    expect(AI_ACTION_CODE_CHANGE_LINES).not.toContain(
+      AI_ACTION_PLURAL_LINES.moreFiles.other,
+    );
+    expect(AI_ACTION_CODE_CHANGE_LINES).not.toContain(AI_ACTION_LINES.linkedTo);
+  });
+
+  test("several code change lines together still say nothing of how many files: Files: N stays", () => {
+    expect(
+      getToolActionLeavesOutLists(
+        pullRequest([
+          codeLine(AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead),
+          codeLine(AI_ACTION_PLURAL_LINES.codeFilesNotChecked),
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  test("a line that names its lists beside a code change line: they are left out", () => {
+    expect(
+      getToolActionLeavesOutLists(
+        pullRequest([
+          codeLine(AI_ACTION_PLURAL_LINES.codeFilesNotRead),
+          aiActionSentence(AI_ACTION_LINES.workflowSteps, {
+            steps: aiActionList([]),
+          }),
+        ]),
+      ),
+    ).toBe(true);
+  });
+
+  test("no line: nothing to leave out for", () => {
+    expect(getToolActionLeavesOutLists(pullRequest([]))).toBe(false);
+    expect(
+      getToolActionLeavesOutLists(action({ words: { title: WORDS.title } })),
+    ).toBe(false);
+  });
+
+  test("an action saved before its words leaves its lists out whenever it has a line, as it always did", () => {
+    expect(getToolActionLeavesOutLists(legacy())).toBe(true);
+
+    const noLine: AIChatToolAction = legacy();
+    delete noLine.description;
+
+    expect(getToolActionLeavesOutLists(noLine)).toBe(false);
   });
 });

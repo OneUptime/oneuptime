@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45527,
-    "untranslated": 6621
+    "keys": 47694,
+    "untranslated": 6380
   },
   "sameAsEnglish": [
     " incidents",
@@ -256,6 +256,7 @@
     "IP",
     "Image",
     "Images",
+    "Impact",
     "Important",
     "In",
     "Incident",
@@ -277,6 +278,7 @@
     "Interface",
     "Interface {{index}}",
     "Interfaces",
+    "Internet",
     "Investigation",
     "Investigations",
     "Invocation · 182 ms",
@@ -423,7 +425,9 @@
     "Ports",
     "Portugal (+351)",
     "Position",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Principal",
     "Production",
     "Prompt",
@@ -480,6 +484,7 @@
     "Stacks",
     "Standard",
     "StatusPage",
+    "Switch",
     "TLS",
     "TTL",
     "TX",
@@ -521,6 +526,7 @@
     "Verdicts",
     "Version",
     "Version {{number}}",
+    "Version {{version}}",
     "Versions",
     "Vertical Pod Autoscalers",
     "Vital",
@@ -669,6 +675,7 @@
     "{{amount}}, ratio {{ratio}}",
     "{{count}} CPU",
     "{{count}} Kubernetes",
+    "{{count}} SLO",
     "{{count}} VM",
     "{{count}} action",
     "{{count}} actions",
@@ -698,6 +705,8 @@
     "{{count}} minutes",
     "{{count}} mon",
     "{{count}} mons",
+    "{{count}} note",
+    "{{count}} notes",
     "{{count}} option",
     "{{count}} options",
     "{{count}} placement group",

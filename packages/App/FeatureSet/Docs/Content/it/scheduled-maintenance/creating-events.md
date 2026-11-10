@@ -70,12 +70,12 @@ Non viene inviato nulla finché non scegliete una pagina di stato: un evento mos
 
 Due cose compilano il modulo per voi strada facendo:
 
-- **Risorse collegate.** Quando scegliete un monitor, gli host, i cluster, i servizi e le altre risorse a cui è collegato vengono aggiunti in **Altre risorse interessate**, e una riga sotto il campo li nomina. Togliete quelli che non volete. Le risorse cloud non vengono aggiunte: un evento di manutenzione non le contiene.
+- **Risorse collegate.** Quando scegliete un monitor, gli host, i cluster, i servizi e le altre risorse a cui è collegato vengono aggiunti in **Altre risorse interessate**, e una riga sotto il campo li nomina. Togliete quelli che non volete. Anche le risorse cloud vengono aggiunte: mentre l'evento è in corso, i loro monitor non aprono incidenti né avvisi.
 - **Pagine di stato suggerite.** In **Mostra evento su queste pagine di stato** vengono suggerite le pagine che mostrano i vostri monitor: fate clic sul nome di una pagina per aggiungerla, oppure su **Aggiungi tutte**. Non viene scelto nulla per voi. Vedere [Eventi di manutenzione programmata](/docs/status-pages/subscribers#eventi-di-manutenzione-programmata).
 
 ## Partire da una risorsa o da un modello
 
-Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, un cloud OpenStack, uno storage array, una flotta IoT, un database, un servizio o un sito di rete, **Crea evento di manutenzione programmata** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
+Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, un cloud OpenStack, uno storage array, una flotta IoT, un database, una risorsa cloud, un servizio o un sito di rete, **Crea evento di manutenzione programmata** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
 
 **Crea da modello**, accanto al pulsante di creazione, vi chiede di **Seleziona modello di manutenzione programmata**, poi apre il modulo compilato dal modello. Vedere [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates).
 
@@ -113,20 +113,20 @@ Tutto ciò che c'è nel modulo si può cambiare sulle pagine dell'evento, tranne
 
 | Per cambiare                                | Andate a                                                                       |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Il titolo, la finestra o le etichette       | **Modifica** sulla scheda **Maintenance Details** della sua **Panoramica**, passo **Evento** |
+| Il titolo, la finestra o le etichette       | **Modifica** sulla scheda **Dettagli della manutenzione** della sua **Panoramica**, passo **Evento** |
 | Le pagine di stato, quando viene pubblicato, o i promemoria | Lo stesso **Modifica**, passo **Pagine di stato**                  |
 | I monitor, il loro stato o le altre risorse | **Modifica** sulla scheda **Risorse interessate**                               |
 | La descrizione                              | **Descrizione** nel suo menu laterale                                          |
 | I proprietari                               | **Proprietari** nel suo menu laterale                                          |
 
-**Cambia lo stato del monitor in** si può cambiare finché l'evento non inizia. Dopo, la scheda lo mostra in sola lettura, perché i monitor sono già in quello stato. Una modifica aggiunge al **Pianificato Manutenzione Feed** una voce che nomina ciò che ha cambiato; salvare senza cambiare nulla non ne aggiunge.
+**Cambia lo stato del monitor in** si può cambiare finché l'evento non inizia. Dopo, la scheda lo mostra in sola lettura, perché i monitor sono già in quello stato. Una modifica aggiunge al **Feed della manutenzione programmata** una voce che nomina ciò che ha cambiato; salvare senza cambiare nulla non ne aggiunge.
 
 ## Pubblicare note mentre il lavoro procede
 
-- Le **Note pubbliche** sono aggiornamenti per i vostri clienti: vengono mostrate sulle pagine di stato dell'evento, e ognuna può avvisare i loro iscritti con **Notify status page subscribers**.
+- Le **Note pubbliche** sono aggiornamenti per i vostri clienti: vengono mostrate sulle pagine di stato dell'evento, e ognuna può avvisare i loro iscritti con **Avvisa gli iscritti della pagina di stato**.
 - Le **Note private** sono solo per il vostro team.
 
-Scrivetene una sulla pagina **Note pubbliche** o **Note private** dell'evento, oppure dal menu **Azioni** del **Pianificato Manutenzione Feed** con **Add Public Note** o **Aggiungi nota privata**. Lo stesso menu esegue un runbook con **Execute Runbook**. Un modello di nota compila un testo che il vostro team scrive spesso: vedere [Regole e impostazioni della manutenzione](/docs/scheduled-maintenance/settings#modelli-di-note).
+Scrivetene una sulla pagina **Note pubbliche** o **Note private** dell'evento, oppure dal menu **Azioni** del **Feed della manutenzione programmata** con **Aggiungi nota pubblica** o **Aggiungi nota privata**. Lo stesso menu esegue un runbook con **Esegui runbook**. Un modello di nota compila un testo che il vostro team scrive spesso: vedere [Regole e impostazioni della manutenzione](/docs/scheduled-maintenance/settings#modelli-di-note).
 
 ## Creare eventi dal codice
 

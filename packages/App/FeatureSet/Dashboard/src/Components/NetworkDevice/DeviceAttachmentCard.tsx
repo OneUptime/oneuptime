@@ -37,6 +37,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -279,7 +280,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
                   )}
                   {neighbour.remotePort ? (
                     <span className="text-gray-500">
-                      {" · "}
+                      <InlineSeparator />
                       {isPortNamedAsPort(neighbour.remotePort)
                         ? neighbour.remotePort
                         : translator.translateTemplate("port {{port}}", {

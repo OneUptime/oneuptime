@@ -46,9 +46,11 @@ import React, {
  * service and region, with their key metrics. Nothing to install.
  *
  * Connected accounts are listed under the tiles with how each is doing and
- * what it holds; an AWS account's row can also stream its CloudWatch
- * metrics and logs through Amazon Data Firehose, within minutes of
- * CloudWatch having them. A link with ?cloud=aws (azure, gcp) opens that cloud's
+ * what it holds; a row can also stream - an AWS account's CloudWatch metrics
+ * and logs through Amazon Data Firehose, an Azure subscription's metrics and
+ * resource logs through event hubs OneUptime reads, a Google Cloud project's
+ * logs through Pub/Sub - within minutes, between reads. A link with
+ * ?cloud=aws (azure, gcp) opens that cloud's
  * form at once, so the empty All Resources page can send people straight
  * to it.
  */
@@ -358,22 +360,41 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
           awsRoleSetup={awsRoleSetup}
           onClose={closeForm}
           onSaved={(saved: { name: string; isNew: boolean }) => {
-            const isAws: boolean = formState.provider === CloudProvider.AWS;
+            const provider: CloudProvider = formState.provider;
 
             closeForm();
-            setNotice(
-              saved.isNew
-                ? isAws
-                  ? translator.translateText(
-                      "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For metrics within minutes, and CloudWatch Logs, choose Stream metrics and logs in its row.",
-                    )
-                  : translator.translateText(
-                      "Connected. The first read starts within a minute; resources appear under All Resources as it finds them.",
-                    )
-                : translator.translateText(
-                    "Saved. The connection is read again within a minute.",
-                  ),
-            );
+            // A new connection hears how its cloud streams, between reads.
+            if (!saved.isNew) {
+              setNotice(
+                translator.translateText(
+                  "Saved. The connection is read again within a minute.",
+                ),
+              );
+            } else if (provider === CloudProvider.AWS) {
+              setNotice(
+                translator.translateText(
+                  "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For metrics within minutes, and CloudWatch Logs, choose Stream metrics and logs in its row.",
+                ),
+              );
+            } else if (provider === CloudProvider.Azure) {
+              setNotice(
+                translator.translateText(
+                  "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For metrics within minutes, and resource logs, choose Stream metrics and logs in its row.",
+                ),
+              );
+            } else if (provider === CloudProvider.GCP) {
+              setNotice(
+                translator.translateText(
+                  "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For its logs as they are written, choose Stream logs in its row.",
+                ),
+              );
+            } else {
+              setNotice(
+                translator.translateText(
+                  "Connected. The first read starts within a minute; resources appear under All Resources as it finds them.",
+                ),
+              );
+            }
             setRefreshCounter((value: number): number => {
               return value + 1;
             });

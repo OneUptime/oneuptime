@@ -23,6 +23,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { decodedQueryParams } from "../../Helpers/StatementEcho";
 
 /*
  * The SQL the Meraki side of a Traffic page sends, as ClickHouse receives
@@ -167,7 +168,9 @@ describe("every page read is held to the project, the kind, the range and the ca
     "%s",
     (_name: string, statement: Statement) => {
       const sql: string = statement.query;
-      const values: Array<unknown> = Object.values(statement.query_params);
+      const values: Array<unknown> = Object.values(
+        decodedQueryParams(statement),
+      );
 
       expect(sql).toMatch(/WHERE projectId = \{p\d+:String\}/);
       expect(values).toContain(PROJECT.toString());
@@ -216,7 +219,9 @@ describe("every page read is held to the project, the kind, the range and the ca
           return candidate === name;
         },
       )![1];
-      const values: Array<unknown> = Object.values(statement.query_params);
+      const values: Array<unknown> = Object.values(
+        decodedQueryParams(statement),
+      );
 
       expect(statement.query).toMatch(/WHERE projectId = \{p\d+:String\}/);
       expect(statement.query).toMatch(/AND connectionId = \{p\d+:String\}/);
@@ -233,7 +238,7 @@ describe("every page read is held to the project, the kind, the range and the ca
         connectionId: CONNECTION,
         since: new Date("2026-10-23T11:00:00.000Z"),
       });
-    const values: Array<unknown> = Object.values(statement.query_params);
+    const values: Array<unknown> = Object.values(decodedQueryParams(statement));
 
     expect(statement.query).toMatch(/windowEndAt > \{p\d+:DateTime64\(9\)\}/);
     expect(values).toContain("2026-10-23 11:00:00.000000000");
@@ -347,7 +352,7 @@ describe("a window counts for the part of it inside the range", () => {
     expect(weight.query).toMatch(
       /greatest\(0, least\(toUnixTimestamp64Milli\(windowEndAt\), \{p\d+:Int64\}\) - greatest\(toUnixTimestamp64Milli\(windowStartAt\), \{p\d+:Int64\}\)\) \/ greatest\(1, toUnixTimestamp64Milli\(windowEndAt\) - toUnixTimestamp64Milli\(windowStartAt\)\)/,
     );
-    expect(Object.values(weight.query_params)).toEqual(
+    expect(Object.values(decodedQueryParams(weight))).toEqual(
       expect.arrayContaining([
         new Date("2026-10-24T12:00:00.000Z").getTime(),
         new Date("2026-10-24T10:00:00.000Z").getTime(),
@@ -401,7 +406,9 @@ describe("a window counts for the part of it inside the range", () => {
       );
 
     expect(uplinks.query).not.toContain(":Identifier}AS");
-    expect(Object.values(uplinks.query_params)).not.toContain("uplinkKey,");
+    expect(Object.values(decodedQueryParams(uplinks))).not.toContain(
+      "uplinkKey,",
+    );
   });
 
   test("a measurement is averaged, never shared out by how much of its window is in range", () => {
@@ -415,7 +422,7 @@ describe("a window counts for the part of it inside the range", () => {
       expect(statement.query).toContain("avg(lossPercent) AS averageLoss");
       expect(statement.query).toContain("avg(latencyMs) AS averageLatency");
       expect(statement.query).not.toContain("sum(");
-      expect(Object.values(statement.query_params)).toContain(
+      expect(Object.values(decodedQueryParams(statement))).toContain(
         NetworkTrafficUsageKind.UplinkHealth,
       );
     }
@@ -456,7 +463,7 @@ describe("an uplink's filter", () => {
     ["the Uplinks list", service.buildTopUplinksStatement(narrowed())],
   ])("holds %s to it", (_name: string, statement: Statement) => {
     expect(statement.query).toMatch(/AND interfaceName = \{p\d+:String\}/);
-    expect(Object.values(statement.query_params)).toContain("wan2");
+    expect(Object.values(decodedQueryParams(statement))).toContain("wan2");
   });
 
   test.each([
@@ -490,7 +497,9 @@ describe("an uplink's filter", () => {
     "never holds the comparison's %s to it: narrowed to wan2, wan1 stays beside it",
     (_name: string, statement: Statement) => {
       expect(statement.query).not.toContain("interfaceName =");
-      expect(Object.values(statement.query_params)).not.toContain("wan2");
+      expect(Object.values(decodedQueryParams(statement))).not.toContain(
+        "wan2",
+      );
     },
   );
 
@@ -531,7 +540,9 @@ describe("an uplink's filter", () => {
     }
 
     expect(
-      Object.values(service.buildTopUplinksStatement(hostile).query_params),
+      Object.values(
+        decodedQueryParams(service.buildTopUplinksStatement(hostile)),
+      ),
     ).toContain(HOSTILE_UPLINK);
   });
 
@@ -551,7 +562,7 @@ describe("filters reach SQL as bound parameters only", () => {
     )) {
       expect(statement.query).not.toContain("OR 1=1");
       expect(statement.query).not.toContain("Q2XX'");
-      expect(Object.values(statement.query_params)).toContain(HOSTILE);
+      expect(Object.values(decodedQueryParams(statement))).toContain(HOSTILE);
     }
   });
 
@@ -612,7 +623,7 @@ describe("what the reads answer", () => {
   });
 
   test("totals, chart and tables, rounded to whole bytes; the project's bucket names no device", async () => {
-    answers.set("AS totalFlows FROM", [
+    answers.set("AS totalFlows, uniqExact(controllerNetworkId)", [
       { totalSent: "1536.4", totalReceived: 4096.6, totalFlows: "12.2" },
     ]);
     answers.set("AS bucketStartMs", [
@@ -841,7 +852,9 @@ describe("what the reads answer", () => {
         /if\(kind IN \(\{p\d+:String\}, \{p\d+:String\}\), '', controllerNetworkId\)/,
       );
 
-      const values: Array<unknown> = Object.values(statement.query_params);
+      const values: Array<unknown> = Object.values(
+        decodedQueryParams(statement),
+      );
 
       expect(values).toContain(NetworkTrafficUsageKind.Uplink);
       expect(values).toContain(NetworkTrafficUsageKind.UplinkHealth);

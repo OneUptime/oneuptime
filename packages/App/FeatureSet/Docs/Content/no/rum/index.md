@@ -42,10 +42,11 @@ Sidemenyen til en applikasjon grupperer sidene slik; **Innstillinger**, **Utvikl
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Anbefalinger**, **Dokumentasjon** |
 | **Observerbarhet** | **Målinger**, **Logger**, **Spor**, **Klienter** |
-| **Øktavspilling** | **Øktavspilling**, **Brukerflyter**, **Brukere i avspillinger**, **Helse**, **Avspillingspolicy**, **Tilgangslogg for avspillinger**, **Dokumentasjon** |
+| **Produktanalyse** | **Brukere**, **Økter** |
+| **Øktavspilling** | **Øktavspilling**, **Brukerflyter**, **Brukere i avspillinger**, **Helse**, **Avspillingspolicy**, **Frustrasjonssignaler**, **Tilgangslogg for avspillinger**, **Dokumentasjon** |
 | **Innstillinger** | **Innstillinger** |
 | **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avansert** | **Slett applikasjon** |
+| **Avansert** | **Revisjonslogger**, **Slett applikasjon** |
 
 ## Slik gjenkjenner OneUptime RUM
 
@@ -81,12 +82,13 @@ OneUptime finner applikasjonen ut fra `service.name`, uten å skille mellom stor
 | **Core Web Vitals** | Et kort i oversikten med LCP, INP, CLS, FCP og TTFB, hver vurdert mot Googles grenser, og INP for hver rute i en enkeltsideapp. Se [Core Web Vitals](/docs/rum/web-vitals) og [Enkeltsideapper](/docs/rum/web-vitals#enkeltsideapper). |
 | **Målinger**, **Logger**, **Spor** | Telemetriutforskerne, begrenset til denne applikasjonen. |
 | **Klienter** | Nettleserplattformene og enhetsmodellene applikasjonen er brukt på: en kort liste per plattform, aldri én rad per bruker. |
+| **Produktanalyse** | Aktive, nye, tilbakevendende og inaktive brukere, og økter etter enhet, nettleser, land og side, talt fra de innspilte øktene: se [Produktanalyse](/docs/rum/product-analytics). |
 | **Øktavspilling** | Opptak av ekte økter, ved siden av feilene, sporene og loggene deres: se [Øktavspilling](/docs/telemetry/session-replay). |
 | **Anbefalinger** | Ferdige monitorer for applikasjonen: dårlige Core Web Vitals, mislykkede forespørsler, nettleserunntak og, så snart den tar opp, budsjetter for Session Replay. |
 
 Tallene kommer fra spennene instrumenteringen din sender. **Sideinnlastinger** teller spennet `documentLoad`, som instrumenteringen for sideinnlasting registrerer ved hver fullstendige innlasting, så et ruteskifte i en enkeltsideapp er ikke en sideinnlasting.
 
-En applikasjon viser **Tilkoblet** så lenge telemetri kommer inn, og **Frakoblet** etter 15 minutter uten. Tid da OneUptime selv var nede eller tok igjen inntakskøen sin, teller ikke med i de 15 minuttene.
+En applikasjon viser **Mottar data** så lenge telemetri kommer inn, og **Ingen nylig trafikk** etter 15 minutter uten, noe som er normalt mens ingen bruker appen. En applikasjon som er lagt til for hånd, viser **Venter på data** til de første dataene kommer. Tid da OneUptime selv var nede eller tok igjen inntakskøen sin, teller ikke med i de 15 minuttene.
 
 ## Kom i gang
 

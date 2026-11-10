@@ -33,6 +33,7 @@ import DeviceMonitorTemplateUtil, {
 import MonitorTemplateSyncUtil from "../../Utils/Monitor/MonitorTemplateSyncUtil";
 import QueryHelper from "../Types/Database/QueryHelper";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
+import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
 import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ModelPermission from "../Types/Database/Permissions/Index";
@@ -170,6 +171,11 @@ export class Service extends ProjectReferencesService<Model> {
         storedMonitorSteps: undefined,
         projectId: createBy.props.tenantId || createBy.data.projectId,
       });
+
+      // A Metrics query written without an aggregation, as on a monitor.
+      MetricQueryCloudAggregation.fillMissingAggregationsOfSteps(
+        createBy.data.monitorSteps as MonitorSteps,
+      );
     }
 
     return { createBy, carryForward: null };
@@ -265,6 +271,11 @@ export class Service extends ProjectReferencesService<Model> {
                 ? updateBy.props.tenantId
                 : undefined,
         });
+
+      // A Metrics query written without an aggregation, as on a monitor.
+      MetricQueryCloudAggregation.fillMissingAggregationsOfSteps(
+        updateBy.data.monitorSteps as MonitorSteps,
+      );
     }
 
     for (const template of templates) {

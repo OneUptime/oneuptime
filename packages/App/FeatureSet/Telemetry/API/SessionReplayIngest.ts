@@ -45,6 +45,7 @@ import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTr
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import { JSONObject } from "Common/Types/JSON";
+import { readSessionReplayFrustrationSignalsConfig } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import {
   SESSION_REPLAY_DEBUG,
   SESSION_REPLAY_ENABLED_BY_DEFAULT,
@@ -1003,6 +1004,11 @@ router.get(
         longTaskBudgetMs: 0,
         slowRequestBudgetMs: 0,
         isTargeted: false,
+        /*
+         * The built-in rules, so the field is always there; a recorder told
+         * to stop records nothing for them to apply to.
+         */
+        frustrationSignals: readSessionReplayFrustrationSignalsConfig(null),
         recordCanvas: false,
         captureUserIdentity: false,
         respectDoNotTrack: true,
@@ -1158,6 +1164,14 @@ router.get(
         longTaskBudgetMs: policy.longTaskBudgetMs,
         slowRequestBudgetMs: policy.slowRequestBudgetMs,
         isTargeted: await resolveIsTargeted(req, projectId, appIdentifier),
+        /*
+         * What counts as frustration in this application (its Frustration
+         * Signals page): the browser and the React Native recorders detect
+         * against these and send counts and markers. A recorder applies
+         * them from its next page load or app start, which is what the page
+         * says: changes apply to sessions recorded from now on.
+         */
+        frustrationSignals: policy.frustrationSignals,
         recordCanvas: policy.recordCanvas,
         captureUserIdentity: policy.captureUserIdentity,
         /*

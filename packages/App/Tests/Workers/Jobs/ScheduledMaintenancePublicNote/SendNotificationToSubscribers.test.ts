@@ -11,6 +11,7 @@ import URL from "Common/Types/API/URL";
 import Color from "Common/Types/Color";
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import OneUptimeDate from "Common/Types/Date";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -944,6 +945,8 @@ describe("ScheduledMaintenancePublicNote:SendUpdateNotificationToSubscribers", (
     expect(args.query).toEqual({
       subscriberNotificationStatusOnNoteUpdated:
         StatusPageSubscriberNotificationStatus.Pending,
+      // Published notes only: an edit waiting for approval tells nobody (#5720).
+      isPublished: true,
     });
     expect(args.select["subscriberNotificationStatusOnNoteCreated"]).toBe(true);
     // {{postedAt}} comes from the note row.
@@ -1219,6 +1222,8 @@ describe("ScheduledMaintenancePublicNote:SendNotificationToSubscribers (created)
       subscriberNotificationStatusOnNoteCreated:
         StatusPageSubscriberNotificationStatus.Pending,
       shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+      // Published notes only: a note waiting for approval tells nobody (#5720).
+      isPublished: true,
     });
     // {{postedAt}} comes from the note row.
     expect(
@@ -2703,5 +2708,67 @@ describe("ScheduledMaintenancePublicNote notifications of a blocked project", ()
 
     expect(MailService.sendMail).toHaveBeenCalled();
     expect(ProjectService.isProjectBlocked).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A CUSTOM TEMPLATE'S VALUES, IN ITS PAGE'S LANGUAGE: OneUptime's default
+ * state names and when the note was posted are in the page's default
+ * language (SubscriberTemplateValues), English for a page with no default
+ * language.
+ */
+describe("ScheduledMaintenancePublicNote custom templates, in the page's language", () => {
+  const VALUES: string =
+    "{{scheduledMaintenanceState}}|{{postedAt}}|{{scheduledMaintenanceTitle}}";
+
+  const usePageIn: (language: string) => void = (language: string): void => {
+    useCustomTemplates({
+      eventType:
+        StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated,
+      body: VALUES,
+    });
+
+    const page: StatusPage = statusPage({ withCustomDelivery: true });
+    page.defaultLanguage = language;
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+  };
+
+  test("the event's default state name, and when the note was posted, are the page's language's", async () => {
+    createdNotes = [publicNote()];
+    usePageIn("de");
+
+    await runJob(CREATED_JOB);
+
+    const germanPostedAt: string = writeInLanguage("de", (): string => {
+      return OneUptimeDate.getDateAsUserFriendlyFormattedString(NOTE_POSTED_AT);
+    });
+
+    expect(germanPostedAt).not.toBe(NOTE_POSTED_AT_STRING);
+
+    const calls: Array<CompileTemplateCall> = compileTemplateCalls();
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call.variables["scheduledMaintenanceState"]).toBe("Laufend");
+      expect(call.variables["postedAt"]).toBe(germanPostedAt);
+    }
+  });
+
+  test("a page without a default language fills them in English", async () => {
+    createdNotes = [publicNote()];
+    useCustomTemplates({
+      eventType:
+        StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated,
+      body: VALUES,
+    });
+
+    await runJob(CREATED_JOB);
+
+    for (const call of compileTemplateCalls()) {
+      expect(call.variables["scheduledMaintenanceState"]).toBe(STATE_NAME);
+      expect(call.variables["postedAt"]).toBe(NOTE_POSTED_AT_STRING);
+    }
   });
 });

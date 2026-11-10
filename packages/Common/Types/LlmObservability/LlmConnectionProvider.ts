@@ -7,8 +7,8 @@
  * Two kinds, decided by the catalog:
  *
  *   - a provider account (OpenAI, Anthropic, Azure OpenAI / Foundry, Amazon
- *     Bedrock, Google Vertex AI): what the account used and what it cost,
- *     read from the provider's own usage, cost or metrics API;
+ *     Bedrock, Google Vertex AI, Cursor): what the account used and what it
+ *     cost, read from the provider's own usage, cost or metrics API;
  *   - a company AI tool (Claude Enterprise, Microsoft 365 Copilot): what the
  *     company's people asked it and what it answered, read from the tool's
  *     compliance or interaction-history API.
@@ -22,6 +22,7 @@ enum LlmConnectionProvider {
   AzureOpenAI = "azure-openai",
   AwsBedrock = "aws-bedrock",
   GoogleVertexAI = "google-vertex-ai",
+  Cursor = "cursor",
   ClaudeEnterprise = "claude-enterprise",
   Microsoft365Copilot = "microsoft-365-copilot",
 }
@@ -35,6 +36,7 @@ export const AllLlmConnectionProviders: Array<LlmConnectionProvider> = [
   LlmConnectionProvider.AzureOpenAI,
   LlmConnectionProvider.AwsBedrock,
   LlmConnectionProvider.GoogleVertexAI,
+  LlmConnectionProvider.Cursor,
   LlmConnectionProvider.ClaudeEnterprise,
   LlmConnectionProvider.Microsoft365Copilot,
 ];

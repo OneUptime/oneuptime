@@ -29,12 +29,12 @@ A marca ficava dividida entre telas separadas de **Marca essencial**, **Cabeçal
 
 ### Logotipo e imagem de capa
 
-O primeiro cartão, **Logotipo e Imagem de Capa**, tem um botão **Edit Images** que abre duas etapas:
+O primeiro cartão, **Logotipo e Imagem de Capa**, tem um botão **Editar imagens** que abre duas etapas:
 
 | Etapa | Campos |
 | ---- | ------ |
-| **Logotipo** | O envio do logotipo (texto de exemplo `Upload logo`), **Logotipo do tema escuro** (texto de exemplo `Upload logo for the dark theme`), um logotipo opcional feito para um fundo escuro, e **Logo Alt Text** (texto de exemplo `Logo of My Company`). Deixe o texto alternativo em branco e o título da página de status é usado no lugar dele. |
-| **Imagem de capa** | **Capa**, um envio (texto de exemplo `Upload cover image`) para a faixa larga atrás do cabeçalho, e **Cover Image Alt Text**. Deixe o texto alternativo em branco se a capa for puramente decorativa. |
+| **Logotipo** | O envio do logotipo (texto de exemplo `Upload logo`), **Logotipo do tema escuro** (texto de exemplo `Upload logo for the dark theme`), um logotipo opcional feito para um fundo escuro, e **Texto alternativo do logotipo** (texto de exemplo `Logo of My Company`). Deixe o texto alternativo em branco e o título da página de status é usado no lugar dele. |
+| **Imagem de capa** | **Capa**, um envio (texto de exemplo `Upload cover image`) para a faixa larga atrás do cabeçalho, e **Texto alternativo da imagem de capa**. Deixe o texto alternativo em branco se a capa for puramente decorativa. |
 
 O logotipo, o logotipo do tema escuro, a imagem de capa e o favicon são arquivos enviados no próprio projeto da página de status, e isso é verificado sempre que um deles é salvo, pelo painel, pela API, pelo Terraform ou por um fluxo de trabalho. Um arquivo enviado em outro projeto é recusado com as mesmas palavras que recebe um arquivo que não existe mais: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." ou "The favicon's file could not be found. Upload the favicon again." Enviar a imagem de novo pela página resolve.
 
@@ -77,7 +77,7 @@ A tabela **Links do Cabeçalho** contém os links do cabeçalho da página de st
 
 ### Rodapé
 
-- **Informações de direitos autorais**: **Edit Copyright** abre um campo, **Informações de direitos autorais**, com o texto de exemplo `Acme, Inc.`.
+- **Informações de direitos autorais**: **Editar direitos autorais** abre um campo, **Informações de direitos autorais**, com o texto de exemplo `Acme, Inc.`.
 - **Links do rodapé**: o mesmo par **Título** e **Link** dos links do cabeçalho, ordenados arrastando e adicionados com **Adicionar: Link do rodapé**.
 
 Os links do cabeçalho servem para navegar; os do rodapé, para as letras miúdas, como avisos legais, privacidade e termos.
@@ -88,7 +88,7 @@ A última seção da página fica recolhida em **Mais configurações**, porque 
 
 **Cores do gráfico de histórico.** Além do **Tema**, estes são os únicos controles de cor embutidos de uma página de status. Cada barra do histórico de tempo de atividade é um dia.
 
-- **Cor Padrão da Barra**: **Edit Default Bar Color** abre o seletor **Cor Padrão da Barra**. É a cor de um dia ao qual nenhuma regra de cor das barras corresponde. Toda página de status nova começa com verde.
+- **Cor Padrão da Barra**: **Editar cor padrão da barra** abre o seletor **Cor Padrão da Barra**. É a cor de um dia ao qual nenhuma regra de cor das barras corresponde. Toda página de status nova começa com verde.
 - **Regras de cor das barras**: uma tabela ordenada de regras que você ordena arrastando. Cada regra tem **Quando a % de tempo de atividade for maior ou igual a** e **Então, use esta cor de barra**; as colunas da tabela dizem `When Uptime Percent >=` e `Then, Bar Color is`. As regras são verificadas de cima para baixo, e a primeira que o tempo de atividade de um dia alcança define a sua cor, então mantenha as porcentagens maiores acima das menores: uma regra abaixo de outra com porcentagem igual ou menor nunca colore um dia. A cor de uma regra nova já vem escolhida, uma que as outras regras ainda não usam; escolha a que você quiser no lugar dela.
 - **Prévia das cores das barras**: cada cor que um dia pode ter, como a maioria das pessoas a vê (**Visão de cores completa**) e como as pessoas com daltonismo vermelho-verde a veem (**Deuteranopia (vermelho-verde)**, **Protanopia (vermelho-verde)**). Avisa quando duas cores parecem iguais para elas e quando uma regra nunca colore um dia.
 
@@ -112,7 +112,7 @@ Quantos dias o gráfico cobre não é definido aqui. Isso é o **Histórico de t
 | **Idioma Padrão** | O idioma que os visitantes veem na primeira visita, escolhido em uma lista que nomeia cada idioma na própria língua e em inglês (`Deutsch (German)`). O padrão é o inglês, e os visitantes sempre podem trocar pelo rodapé. Os assinantes também recebem as mensagens nele, a menos que estivessem lendo a página em outro idioma quando se inscreveram. |
 | **Idiomas habilitados** | Uma seleção múltipla, texto de exemplo `All languages`. Deixe-a vazia e todos os idiomas compatíveis são oferecidos; escolha alguns e o rodapé lista só esses. |
 
-O OneUptime vem com dezessete idiomas: inglês, alemão, francês, espanhol, italiano, português, holandês, dinamarquês, norueguês, sueco, russo, japonês, coreano, chinês (simplificado), chinês (tradicional), hindi e persa. O persa é lido da direita para a esquerda, então uma página exibida em persa é disposta a partir da direita, desde o primeiro momento quando o persa é o seu idioma padrão. As barras de tempo de atividade continuam começando à esquerda pelo dia mais antigo.
+O OneUptime vem com dezoito idiomas: inglês, alemão, francês, espanhol, italiano, português, holandês, dinamarquês, norueguês, sueco, russo, japonês, coreano, chinês (simplificado), chinês (tradicional), hindi, persa e árabe. O persa e o árabe são lidos da direita para a esquerda, então uma página exibida em um deles é disposta a partir da direita, desde o primeiro momento quando esse idioma é o seu idioma padrão. As barras de tempo de atividade continuam começando à esquerda pelo dia mais antigo.
 
 **Indexação em mecanismos de pesquisa.** Uma chave, **Permitir que mecanismos de pesquisa indexem esta página de status**, decide se o Google, o Bing e outros mecanismos de pesquisa podem listar a página. Ela vem ativada por padrão. Não há botão **Editar**: a chave salva no momento em que você a aciona. Desative-a e a página é servida com `noindex, nofollow` (uma meta tag robots e um cabeçalho `X-Robots-Tag`); qualquer pessoa com o link ainda consegue abri-la. Os mecanismos de pesquisa podem levar algumas semanas para tirar uma página que já indexaram. A chave vale apenas para a página nos domínios personalizados dela. A URL de prévia dela é sempre servida com `noindex, nofollow`, então uma página de status só aparece nos resultados de pesquisa depois que tem um domínio personalizado.
 
@@ -155,7 +155,7 @@ No OneUptime Cloud, adicionar ou alterar qualquer um deles exige o plano **Growt
 
 Por padrão, uma página de status pode ser acessada pela URL de prévia mostrada na tela **Visão geral** dela. Para colocá-la no seu próprio nome de host, vá para **Páginas de status → sua página → Marca → Domínios personalizados** (`{id}/domains`).
 
-O cartão **Domínios personalizados** diz o que fazer: aponte o registro CNAME de cada domínio para o registro CNAME de páginas de status da sua instalação, e o OneUptime emite o certificado SSL do domínio e o renova para você. Sem nada configurado, a tabela diz **Nenhum domínio personalizado encontrado**, com **Criar: Página de status Domínio** abaixo. A tabela tem duas colunas, **Domínio** e **Status**, e filtros para **Domínio**, **CNAME válido** e **SSL provisionado**.
+O cartão **Domínios personalizados** diz o que fazer: aponte o registro CNAME de cada domínio para o registro CNAME de páginas de status da sua instalação, e o OneUptime emite o certificado SSL do domínio e o renova para você. Sem nada configurado, a tabela diz **Nenhum domínio personalizado encontrado**, com **Criar: Domínio da página de status** abaixo. A tabela tem duas colunas, **Domínio** e **Status**, e filtros para **Domínio**, **CNAME válido** e **SSL provisionado**.
 
 Colocar a página no seu domínio leva três etapas, e só as duas primeiras são com você:
 
@@ -197,7 +197,7 @@ statusPage:
 :::steps
 #### Abrir Criar: Página de status Domínio
 
-Em **Domínios personalizados**, clique em **Criar: Página de status Domínio**. A caixa de diálogo tem uma só página.
+Em **Domínios personalizados**, clique em **Criar: Domínio da página de status**. A caixa de diálogo tem uma só página.
 
 #### Digitar o subdomínio
 
@@ -213,7 +213,7 @@ Em **Domínio** (texto de exemplo `Select domain`), escolha um dos seus domínio
 
 #### Criar o domínio
 
-Clique em **Criar: Página de status Domínio**. A caixa de diálogo se fecha e a **Configuração de DNS** do novo domínio se abre, com o registro a adicionar.
+Clique em **Criar: Domínio da página de status**. A caixa de diálogo se fecha e a **Configuração de DNS** do novo domínio se abre, com o registro a adicionar.
 :::
 
 O nome completo de um domínio é fixado quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro subdomínio, adicione esse domínio e exclua o antigo. Um nome que um painel ou um formulário já usa, em qualquer projeto, é recusado: um domínio mostra uma única página de status, um único painel ou um único formulário.

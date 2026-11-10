@@ -25,6 +25,7 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -473,6 +474,31 @@ describe("severity and time, whoever sent the Event", () => {
     }
   });
 
+  test("a record whose own time is no time the Log table holds is dated when the Event last happened, not by its observed time (#6395)", async () => {
+    /*
+     * Past 2262 (before #6395 kept as the record's own time, so ClickHouse
+     * refused the row and its whole insert), below zero, and words.
+     */
+    for (const noTime of ["9300000000000000000", "-5", "soon"]) {
+      const rows: Array<JSONObject> = setupIngestMocks();
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+
+      await OtelLogsIngestService.processLogsFromQueue(
+        agentRequest([eventRecord(OOM, { timeUnixNano: noTime })]),
+      );
+
+      expect({ noTime, time: rows[0]!["time"] }).toEqual({
+        noTime,
+        time: timeOf(OOM),
+      });
+      expect(rows[0]!["timeUnixNano"]).toBe(
+        String(OneUptimeDate.toUnixNano(new Date(OOM.lastSeen))),
+      );
+      expect(rows[0]!["observedTimeUnixNano"]).toBe(OBSERVED_TIME_NANO);
+      jest.restoreAllMocks();
+    }
+  });
+
   test("an Event a fast node clock dates in the future is dated now", async () => {
     const rows: Array<JSONObject> = setupIngestMocks();
     const future: KubernetesEventFields = {
@@ -558,6 +584,8 @@ describe("what is not an Event is left alone", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]!["severityNumber"]).toBe(9);
     expect(rows[1]!["severityNumber"]).toBe(5);
+    // A pulled spec says no time: the time the receiver read it (#6395).
+    expect(rows[0]!["timeUnixNano"]).toBe(OBSERVED_TIME_NANO);
     expect(rows[1]!["timeUnixNano"]).toBe(appTime);
     for (const row of rows) {
       for (const key of Object.keys(attributesOf(row))) {
@@ -583,6 +611,8 @@ describe("what is not an Event is left alone", () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]!["severityNumber"]).toBe(9);
+    // No Event to date it by: the time the receiver read it (#6395).
+    expect(rows[0]!["timeUnixNano"]).toBe(OBSERVED_TIME_NANO);
     expect(
       attributesOf(rows[0]!)[KubernetesEventAttribute.Reason],
     ).toBeUndefined();

@@ -627,11 +627,15 @@ Le installazioni ospitate in autonomia possono cambiare questi valori con variab
 
 ## Avvisi su una risorsa
 
+A una risorsa di un [account connesso](/docs/telemetry/cloud-accounts) vengono proposti, nella sua scheda **Raccomandazioni**, i monitor che OneUptime consiglia per il suo tipo, ognuno creato in un passaggio. Per ricevere avvisi su qualsiasi altra metrica che riporta:
+
 :::steps
 1. Apri la risorsa e la sua scheda **Metriche**, che elenca ogni metrica che il suo provider riporta su di essa.
 2. Apri una metrica per rappresentarla nell'esploratore delle metriche, già filtrata sulla risorsa.
 3. Fai clic su **Crea monitor da questa vista**: il monitor osserva quella metrica per quella risorsa.
 :::
+
+Un namespace di Service Bus riporta le sue metriche una volta per coda e topic, e un namespace di Event Hubs una volta per event hub. Dove si sommano, una riga della scheda **Metriche** del namespace ne mostra il totale e sotto riporta **totale delle serie**. Anche un monitor creato da quella riga legge il totale, come uno creato tramite l'API o Terraform senza un'aggregazione. Le altre righe riportano **media delle serie** e mostrano la coda o l'event hub medio: una latenza e, su un intervallo di oltre 3 ore, una quantità che il namespace trattiene, come i messaggi in attesa.
 
 > [!IMPORTANT]
 > Il monitoraggio cloud pubblica ogni valore alcuni minuti dopo il momento che misura: da 10 a 20 minuti per CloudWatch interrogato come sopra, pochi minuti per Azure Monitor e Cloud Monitoring. Viene salvato al momento che misura. Dai a un monitor su queste metriche una finestra più lunga di quel ritardo (30 minuti per CloudWatch, 15 per gli altri), altrimenti non vede dati e non scatta mai.

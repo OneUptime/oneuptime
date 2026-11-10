@@ -20,7 +20,9 @@ import {
   LlmConversationListRequestBody,
   LlmConversationListResponse,
   LlmConversationSort,
+  LlmLogEventsRead,
   readConversationListResponse,
+  readLogEventsRead,
   readString,
 } from "Common/Types/Telemetry/LlmConversationApi";
 import { LlmTranscript } from "Common/Utils/Telemetry/LlmConversationTranscript";
@@ -49,6 +51,8 @@ export interface LlmConversationView {
   conversationId: string;
   transcript: LlmTranscript;
   truncated: boolean;
+  // Whether the prompts and answers sent as GenAI log events were read.
+  logEvents: LlmLogEventsRead;
 }
 
 export function buildLlmConversationListBody(
@@ -138,6 +142,7 @@ export function readLlmConversationView(
         : LlmConversationKeyKind.Conversation,
     conversationId: readString(object["conversationId"]),
     truncated: object["truncated"] === true,
+    logEvents: readLogEventsRead(object["logEvents"]),
     transcript: {
       ...(transcript as unknown as LlmTranscript),
       steps: list("steps") as unknown as LlmTranscript["steps"],

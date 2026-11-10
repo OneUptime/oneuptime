@@ -27,6 +27,7 @@ import {
 } from "./EventNotesUtil";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface NoteComposerValues {
   note: string;
@@ -94,6 +95,11 @@ export interface ComponentProps {
   leadingActions?: ReactElement | undefined;
   isAutoFocused?: boolean | undefined;
   submitLabel?: string | undefined;
+  /*
+   * A line above the footer about what happens once it is sent: the note
+   * waits for approval (PublicNoteApproval).
+   */
+  notice?: ReactElement | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -133,7 +139,7 @@ export const AudienceBadge: FunctionComponent<{
         {translateString(props.copy.audienceLabel) || props.copy.audienceLabel}
       </span>
       <span aria-hidden="true" className="opacity-50">
-        ·
+        <InlineSeparator markOnly />
       </span>
       <span className="truncate">
         {translateString(props.copy.audienceHint) || props.copy.audienceHint}
@@ -475,6 +481,19 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
               <></>
             )}
           </div>
+        </div>
+      )}
+
+      {props.notice && (
+        <div
+          className={`${insetBox} mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900`}
+          data-testid="note-composer-notice"
+        >
+          <Icon
+            icon={IconProp.ShieldCheck}
+            className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+          />
+          <div className="min-w-0">{props.notice}</div>
         </div>
       )}
 

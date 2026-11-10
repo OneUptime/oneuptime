@@ -194,7 +194,10 @@ async function processPublicNoteReminders(): Promise<void> {
         publicNote.projectId = sla.projectId;
         publicNote.note = noteContent;
         publicNote.isOwnerNotified = true; // Mark as already notified since this is automated
-        publicNote.postedAt = OneUptimeDate.getCurrentDate();
+        /*
+         * No time of its own: posted now - or, when the project asks for
+         * public notes to be approved, when an approver approves it.
+         */
 
         await IncidentPublicNoteService.create({
           data: publicNote,

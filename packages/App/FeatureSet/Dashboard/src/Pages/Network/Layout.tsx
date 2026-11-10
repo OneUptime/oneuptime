@@ -13,6 +13,8 @@ import {
   DeveloperDocsChildPage,
   getDeveloperDocsChildPages,
 } from "../../Components/DeveloperDocs/DeveloperDocsPages";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const networkModelPageRoutes: Array<string> = [
   PageMap.NETWORK_DEVICE_VIEW,
@@ -27,6 +29,7 @@ const networkModelPageRoutes: Array<string> = [
   PageMap.NETWORK_DEVICE_VIEW_INCIDENTS,
   PageMap.NETWORK_DEVICE_VIEW_ALERTS,
   PageMap.NETWORK_DEVICE_VIEW_LOGS,
+  PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS,
   PageMap.NETWORK_DEVICE_VIEW_OWNERS,
   PageMap.NETWORK_DEVICE_VIEW_SETTINGS,
   PageMap.NETWORK_DEVICE_VIEW_DELETE,
@@ -83,6 +86,7 @@ const NetworkLayout: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={NETWORK_PAGE_TITLE}
+      titleRight={<ProductAboutButton product={ProductKey.Network} />}
       sideMenu={<NetworkSideMenu />}
       breadcrumbLinks={breadcrumbLinks}
     >

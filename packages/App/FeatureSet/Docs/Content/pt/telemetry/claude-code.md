@@ -64,7 +64,7 @@ As variáveis são lidas quando o Claude Code inicia. As métricas são enviadas
 
 ### Verifique se os dados chegam
 
-Abra **Métricas** e procure `claude_code.token.usage`, depois abra **Produtos → IA / LLM** e vá para **Uso**: seu custo aparece sob seu e-mail, marcado como **das métricas GenAI**.
+Abra **Métricas** e procure `claude_code.token.usage`, depois abra **Produtos → IA / LLM** e vá para **Uso**: seu custo aparece sob seu e-mail, marcado como **Das métricas de uso**.
 :::
 
 Para enviar métricas e eventos para lugares diferentes, defina em vez disso `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` e `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, com o caminho completo (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 Em **Produtos → IA / LLM → Uso**, `claude_code.cost.usage` alimenta as tabelas **Funcionário**, **Equipe** e **Modelo**, e `claude_code.token.usage` os totais de tokens. Duas regras decidem o que você vê:
 
-- **As métricas completam os spans; nunca são somadas a eles.** Se o mesmo projeto recebe spans GenAI com custo das suas próprias aplicações, o gasto do Claude Code não aparece. Envie o Claude Code para um projeto só dele. Veja [Primeiro os spans, as métricas completam](/docs/telemetry/ai-llm-observability#primeiro-os-spans-as-métricas-completam).
-- **Uma linha vinda das métricas carrega só o custo.** As células de chamadas e tokens dela mostram `—`, e as tabelas **Provedor** e **Aplicação / Serviço** ficam vazias: as métricas não citam nenhum provedor e não pertencem a nenhum serviço do OneUptime.
+- **O Claude Code é contado ao lado das suas aplicações.** As métricas dele chegam sob o próprio serviço dele, então o gasto dele é somado às chamadas de IA que as suas aplicações enviam ao mesmo projeto. Se você ativar os traces dele (beta), ative-os para todos: a partir daí o Claude Code é contado só pelos traces, uma vez. Veja [Cada serviço é contado pelo que envia](/docs/telemetry/ai-llm-observability#cada-serviço-é-contado-pelo-que-envia).
+- **Uma linha vinda das métricas não cita nenhuma chamada.** Ela diz **Das métricas de uso** sob o nome dela, a célula de chamadas dela mostra `—`, e a tabela **Provedor** a coloca em **Sem atribuição**: as métricas não citam nenhum provedor.
 
 Todo o resto, como taxa de aceitação, linhas de código, commits e pull requests por desenvolvedor, ou gasto por `query_source`, você mostra em um [dashboard](/docs/dashboards/index) a partir das métricas abaixo, e alerta sobre isso com um [monitor de métricas](/docs/monitor/metrics-monitor).
 
@@ -161,7 +161,7 @@ Cada métrica é um contador, e carrega os atributos padrão além dos próprios
 
 Os atributos padrão são `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` e `terminal.type`, mais o seu `OTEL_RESOURCE_ATTRIBUTES`. Alguns deles podem ser desativados: veja [Mantenha o volume de métricas baixo](#mantenha-o-volume-de-métricas-baixo).
 
-- Os tipos de token de cache estão em camelCase: `cacheRead` e `cacheCreation`. Os totais de tokens do OneUptime contam só `input` e `output`.
+- Os tipos de token de cache estão em camelCase: `cacheRead` e `cacheCreation`. O `input` do Claude Code os deixa de fora, então o OneUptime também os conta como tokens de entrada.
 - Nas métricas de custo e de tokens, os nomes dos seus próprios agentes e servidores MCP, e de plugins e skills de terceiros, aparecem como `custom` ou `third-party`, a menos que `OTEL_LOG_TOOL_DETAILS=1` esteja definido (Claude Code 2.1.273 ou posterior).
 
 ## Eventos
@@ -220,7 +220,7 @@ O Claude Code envia métricas delta por padrão: cada ponto de dados é o aument
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Fixe `cumulative` só se todos os exportadores da sua organização o usarem, e não misture os dois em uma frota.
+Fixe `cumulative` só se todos os exportadores da sua organização o usarem, e não misture os dois em uma frota. A aba Uso e os orçamentos do OneUptime contam os dois: um delta somando seus pontos, um contador cumulativo pelo quanto cresceu no intervalo.
 
 ## Traces (beta)
 

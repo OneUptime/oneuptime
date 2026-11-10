@@ -2,6 +2,8 @@
 
 **큐**는 애플리케이션이 사용하는 모든 메시지 큐, 토픽, 구독에 전용 페이지를 제공합니다. 어떤 서비스가 게시하고 어떤 서비스가 소비하는지, 얼마나 많은 메시지가 오가는지, 얼마나 실패하고 처리에 얼마나 걸리는지, 그 트레이스와 메트릭을 보여 주며, 브로커 자체의 메트릭이 OneUptime에 도달하면 백로그, 컨슈머 지연, 데드 레터, 스로틀링도 보여 줍니다. 큐에는 다른 모든 리소스처럼 레이블, 소유자, 레이블 및 소유자 규칙, 보관 기능이 있습니다. **제품 → 리소스 → 큐**에서 여세요.
 
+**큐 → 토폴로지**는 서비스 사이에서 메시지가 어떻게 흐르는지 보여 줍니다. 각 큐는 그 큐에 게시하는 서비스와 그 큐에서 소비하는 서비스 사이에 그려집니다. 각 선에는 메시지 속도, 오류율, p95 시간이 큐의 **프로듀서** 및 **컨슈머** 카드와 같은 방식으로 집계되어 표시되며, 브로커의 메트릭이 OneUptime에 도달하면 해당 큐에 컨슈머 지연 또는 백로그와 데드 레터도 표시됩니다. 맵을 검색하거나, 브로커로 필터링하거나, 주의가 필요한 항목만 남길 수 있습니다. 각 큐의 **토폴로지** 탭은 그 큐의 메시지가 어디서 와서 어디로 가는지 보여 줍니다.
+
 :::cards
 - [애플리케이션 계측](#애플리케이션-계측): OpenTelemetry 계측이 이미 보내는 메시징 스팬.
 - [브로커 상태 메트릭](#브로커-상태-메트릭): 브로커의 백로그, 지연, 데드 레터를 시스템별로.
@@ -213,6 +215,10 @@ builder.Services.AddOpenTelemetry()
 브로커는 어떤 애플리케이션도 볼 수 없는 것을 압니다: 대기 중인 메시지 수, 각 컨슈머 그룹이 얼마나 뒤처졌는지, 무엇이 데드 레터 큐로 갔는지입니다. 아래의 각 섹션에는 한 시스템용 Collector 구성이 있습니다. OneUptime으로 보내는 OTLP 익스포터로 끝나는 완전한 OpenTelemetry Collector 구성입니다. 텔레메트리 수집 키(**프로젝트 설정 → 텔레메트리 및 APM → 수집 키**)를 `x-oneuptime-token`에 넣고, 셀프 호스팅한다면 `https://oneuptime.com`을 자신의 호스트로 바꾼 다음, `otel/opentelemetry-collector-contrib` 0.161.0 이상으로 실행하세요(여기의 모든 구성은 0.161.0으로 검증했습니다). 최근 Collector는 `otlphttp`가 사용 중단되었으니 `otlp_http`를 쓰라고 로그에 남기지만, 두 이름은 같은 익스포터입니다. 여러 시스템을 수집하려면 그 리시버들을 하나의 Collector에 합치세요.
 
 각 큐의 **브로커 상태** 섹션은 해당 시스템에 나열된 메트릭을 차트로 보여 주며(게이지는 그 값, 기간별 개수는 간격별 합계, 카운터는 초당 속도), 메트릭마다 필요한 방식으로 큐의 시리즈를 결합합니다(RabbitMQ 큐의 준비된 메시지와 확인되지 않은 메시지는 합산되고, 가장 많이 뒤처진 컨슈머 그룹이 지연이 됩니다). Collector가 보내는 모든 것은 **메트릭** 탐색기에도 있습니다. 나열된 메트릭이 아직 큐에 도착하지 않은 동안에는 이 섹션에 해당 시스템의 메트릭을 어디에서 가져오는지가 여기의 해당 섹션 링크와 함께 표시됩니다.
+
+트레이스를 보내는 애플리케이션이 큐에 게시하지도 큐에서 소비하지도 않으면, 그 큐의 **게시됨**, **소비됨**, **오류** 타일과 **메시지** 차트는 대신 브로커 자체의 개수를 읽습니다. 들어온 메시지, 나간 메시지, 합산한 오류이며, 제한된 요청은 **오류** 아래에 따로 셉니다. 각각은 숫자 아래에 그 사실을 표시합니다. 스팬이 있는 큐는 스팬을 그대로 사용합니다. 어느 서비스가 무엇을 했는지 알려 주기 때문입니다. **p95 processing time** 타일은 컨슈머 트레이스에서만 값을 얻습니다. 컨슈머가 메시지를 처리하는 데 걸리는 시간을 측정하는 브로커는 없기 때문입니다. 트레이스가 없으면 **컨슈머 트레이스 필요**가 표시됩니다.
+
+섹션 맨 위의 **브로커 메트릭** 카드는 큐의 시스템에 대해 차트로 표시되는 모든 메트릭을 나열합니다. 선택한 범위에 그 큐에 도착했는지, 마지막으로 도착한 때가 언제인지, 다른 각 메트릭은 왜 도착하지 않았는지입니다. 개수는 보고할 것이 없을 수 있습니다(제한된 요청이 없다는 것은 좋은 소식입니다). 브로커가 항상 보고하는데 한 번도 도착하지 않는 수준 값은 Collector가 요청하지 않는 것이며, 카드는 그 구성에 필요한 줄을 알려 줍니다. 메트릭이 도착을 멈출 수도 있습니다. 어떤 메트릭도 도착하지 않는 Service Bus 또는 Event Hubs 큐의 경우, 카드는 그 네임스페이스가 대신 무엇을 보내는지도 읽습니다([브로커 상태가 비어 있음](#브로커-상태가-비어-있음) 참조). 카드의 요약 아래에는 최근 큐의 메트릭을 읽은 주체가 표시됩니다: Collector의 리시버, **클라우드 → 연결**로 연결되는 클라우드 연결, 또는 둘 다입니다. [연결된 Azure 구독](/docs/telemetry/cloud-accounts)만 읽는 큐에서는 구독이 읽지 않는 메트릭이 누락이 아니라 **컬렉터만**으로 표시되며, 리시버에 추가할 줄도 함께 나옵니다.
 
 ### Amazon SNS
 
@@ -589,7 +595,9 @@ OneUptime은 Event Grid의 메트릭을 큐 페이지에 차트로 표시하지 
 
 ### Azure Event Hubs
 
-Collector의 `azure_monitor` 리시버로 Azure Monitor에서 네임스페이스의 메트릭을 읽으세요. 리시버는 EntityName 차원으로 메트릭을 이벤트 허브별로 나눕니다.
+연결된 Azure 구독은 아무것도 실행하지 않아도 네임스페이스의 주요 메트릭을 이벤트 허브별로 읽습니다. 모두 읽으려면 Collector의 `azure_monitor` 리시버를 실행하세요. 리시버는 EntityName 차원으로 메트릭을 이벤트 허브별로 나눕니다.
+
+[연결된 Azure 구독](/docs/telemetry/cloud-accounts)은 네임스페이스의 이벤트 허브 최대 1,000개에 대해 `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total`, `azure_throttledrequests_total`을 읽으며, 이벤트 허브가 몇 개이든 읽을 때마다 네임스페이스당 Azure Monitor 호출은 한 번입니다. 나머지 세 개는 리시버만 읽으며, 이벤트 허브의 **브로커 메트릭** 카드는 이를 **컬렉터만**으로 표시합니다. 둘 다 이벤트 허브의 같은 메트릭을 읽으면 리시버의 값을 유지하고 구독의 값은 제외하므로, 어떤 것도 두 번 세지 않습니다.
 
 리시버는 `azure_auth` 확장을 통해 로그인합니다. 서비스 주체에 구독의 **Monitoring Reader** 역할을 부여하세요:
 
@@ -617,6 +625,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -648,10 +657,13 @@ Azure Monitor에는 Event Hubs의 컨슈머 지연 메트릭이 없습니다: �
 | `azure_usererrors_total` | 사용자 오류 | 기간별 개수 |
 | `azure_quotaexceedederrors_total` | 할당량 초과 오류 | 기간별 개수 |
 | `azure_throttledrequests_total` | 제한된 요청 | 기간별 개수 |
+| `azure_size_average` | 크기 | 게이지 |
 
 ### Azure Service Bus
 
-Collector의 `azure_monitor` 리시버로 Azure Monitor에서 네임스페이스의 메트릭을 읽으세요. 리시버는 EntityName 차원으로 메트릭을 큐와 토픽별로 나눕니다.
+연결된 Azure 구독은 아무것도 실행하지 않아도 네임스페이스의 주요 메트릭을 큐와 토픽별로 읽습니다. 모두 읽으려면 Collector의 `azure_monitor` 리시버를 실행하세요. 리시버는 EntityName 차원으로 메트릭을 큐와 토픽별로 나눕니다.
+
+[연결된 Azure 구독](/docs/telemetry/cloud-accounts)은 네임스페이스의 큐와 토픽 최대 1,000개에 대해 `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total`, `azure_throttledrequests_total`을 읽으며, 큐가 몇 개이든 읽을 때마다 네임스페이스당 Azure Monitor 호출은 한 번입니다: 5분마다 읽으면 큐가 50개인 네임스페이스도 큐가 하나인 네임스페이스처럼 시간당 12번 호출합니다. 나머지 여섯 개는 리시버만 읽으며, 큐의 **브로커 메트릭** 카드는 이를 **컬렉터만**으로 표시합니다. 둘 다 큐의 같은 메트릭을 읽으면 리시버의 값을 유지하고 구독의 값은 제외하므로, 어떤 것도 두 번 세지 않습니다.
 
 리시버는 `azure_auth` 확장을 통해 로그인합니다. 서비스 주체에 구독의 **Monitoring Reader** 역할을 부여하세요:
 
@@ -677,6 +689,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -684,6 +698,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -706,13 +721,17 @@ service:
 - 메트릭은 네임스페이스(`name`)와 엔터티(`EntityName`)로 큐나 토픽을 찾습니다. SDK의 스팬은 같은 네임스페이스를 `<namespace>.servicebus.windows.net`으로 지정합니다. `orders/Subscriptions/billing` 또는 `orders/$DeadLetterQueue`에 대한 스팬은 메트릭과 마찬가지로 `orders`에 속합니다.
 - `maximum_number_of_records_per_resource`는 Azure가 메트릭과 네임스페이스마다 반환하는 시리즈 수로, 늘리지 않으면 10입니다: 큐와 토픽 수보다 크게 유지하지 않으면(오류 메트릭은 각 엔터티를 결과별로 한 번 더 나눕니다) 나머지는 보고되지 않습니다.
 - Azure Monitor는 토픽 구독별로 나누지 않습니다: 토픽의 개수는 그 모든 구독을 포함합니다.
-- `metrics` 목록은 큐 페이지가 차트로 보여 주는 것을 정확히, 각각 차트에 쓰는 단 하나의 집계로 수집합니다. 메트릭(`ScheduledMessages`, `Size`, …)을 추가하면 그것도 수집합니다.
+- `metrics` 목록은 큐 페이지가 차트로 보여 주는 것을 정확히, 각각 차트에 쓰는 단 하나의 집계로 수집합니다. 메트릭(`IncomingRequests`, `Messages`, …)을 추가하면 그것도 수집합니다. 목록이 `ScheduledMessages`, `Size`, `ServerSendLatency`보다 오래된 Collector는 그중 어느 것도 보내지 않습니다: 큐의 **브로커 메트릭** 카드가 추가할 줄을 알려 줍니다.
+- [연결된 Azure 구독](/docs/telemetry/cloud-accounts)도 이 리시버처럼 여섯 개의 메트릭을 큐와 토픽별로 나누고, **클라우드 → 모든 리소스** 아래의 네임스페이스 자체 페이지가 이를 합산합니다. 구독이 [메트릭을 스트리밍하는](/docs/telemetry/cloud-streaming-azure) 동안에도 네임스페이스의 메트릭은 계속 읽습니다: 진단 설정은 `EntityName` 없이 네임스페이스의 합계만 보내며, 여섯 개 중 네 개는 아예 보내지 않습니다. 이 리시버가 네임스페이스의 합계를 큐나 토픽별로 나누지 않고 보내는 경우, 네임스페이스 페이지는 그 합계를 유지하고 구독의 시계열은 각자의 큐에만 닿으므로, 어떤 메시지도 두 번 집계되지 않습니다.
+- 이 메트릭들은 모두 네임스페이스의 가격 책정 계층과 관계가 없습니다. `ServerSendLatency`는 전송마다 보고되므로, 범위 안에 아무것도 전송되지 않은 큐에는 없습니다.
 - 리시버는 하루에 한 번 네임스페이스 목록을 가져오므로, 새 네임스페이스가 나타나기까지 최대 24시간이 걸릴 수 있습니다.
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
 | `azure_activemessages_average` | 활성 메시지 | 게이지 |
 | `azure_deadletteredmessages_average` | 배달 못 한 메시지 | 게이지 |
+| `azure_scheduledmessages_average` | 예약된 메시지 | 게이지 |
+| `azure_size_average` | 크기 | 게이지 |
 | `azure_incomingmessages_total` | 들어오는 메시지 | 기간별 개수 |
 | `azure_outgoingmessages_total` | 나가는 메시지 | 기간별 개수 |
 | `azure_completemessage_total` | 완료된 메시지 | 기간별 개수 |
@@ -720,6 +739,7 @@ service:
 | `azure_servererrors_total` | 서버 오류 | 기간별 개수 |
 | `azure_usererrors_total` | 사용자 오류 | 기간별 개수 |
 | `azure_throttledrequests_total` | 제한된 요청 | 기간별 개수 |
+| `azure_serversendlatency_average` | 서버 전송 지연 시간 | 게이지 |
 
 ### BullMQ
 
@@ -1046,6 +1066,10 @@ service:
 - 리시버가 그 큐를 보고하지 않습니다. Kafka는 그룹이 오프셋을 커밋한 뒤에야 컨슈머 그룹의 지연을 보고합니다. RabbitMQ는 사용자가 접근할 수 있는 가상 호스트의 큐만 보고하며, 나머지에 대해서는 오류를 로그에 남기지 않습니다([RabbitMQ](#rabbitmq) 참조). RabbitMQ의 카운터는 첫 활동과 함께 나타납니다. Azure Monitor는 `maximum_number_of_records_per_resource`를 늘리지 않으면 메트릭과 네임스페이스마다 큐 10개를 반환합니다. Cloud Monitoring은 `metrics_list`에 있는 유형만 읽습니다.
 - 늦게 도착합니다. `aws_cloudwatch`는 CloudWatch가 게시하기를 `delay`(10분) 동안 기다리므로 그 포인트는 11분에서 17분 늦게 도착하며, Pub/Sub의 메트릭도 몇 분 늦게 도착합니다.
 - 그 시스템에는 차트로 표시되는 메트릭이 없습니다: Azure Event Grid, NATS, ActiveMQ 외의 JMS 브로커, BullMQ입니다(각 섹션 참조). 이들의 메트릭은 **메트릭** 탐색기에 있습니다.
+- 큐의 **브로커 메트릭** 카드를 여세요: 어떤 메트릭이 도착하고 다른 메트릭은 왜 도착하지 않는지 나열합니다. 어떤 메트릭도 도착하지 않는 Service Bus 또는 Event Hubs 큐의 경우, 네임스페이스가 대신 무엇을 보내는지도 알려 주며, 다음 세 가지 중 하나입니다.
+- **네임스페이스에서 아무것도 오지 않음**: 아무것도 그 네임스페이스를 읽지 않거나, 모든 읽기가 실패합니다. **클라우드 → 연결**에서 그 Azure 구독을 연결하거나 `azure_monitor` 리시버를 실행하세요. 연결의 앱 또는 리시버의 서비스 주체에 **Monitoring Reader** 역할을 부여하고, 연결의 마지막 읽기를 확인하거나 Collector의 로그에서 `AuthorizationFailed` 또는 `401`을 찾으세요: 클라이언트 암호가 만료되면 모든 읽기가 멈춥니다.
+- **합계만**: 네임스페이스의 메트릭이 큐나 토픽 없이 네임스페이스 전체에 대해 도착합니다. 진단 설정은 이것만 보냅니다: 네임스페이스의 구독을 연결하거나 `azure_monitor` 리시버로도 네임스페이스를 읽으세요. 둘 다 `EntityName`별로 나눕니다. [연결된 Azure 구독](/docs/telemetry/cloud-accounts)이 이것만 보낸 것은 각 큐를 읽기 전이거나 큐 읽기가 실패할 때입니다: **클라우드 → 연결**의 마지막 읽기에 이유가 나와 있습니다.
+- **다른 큐만**: 네임스페이스의 다른 큐와 토픽의 메트릭은 도착하지만 이 큐의 메트릭은 도착하지 않습니다. 리시버의 `maximum_number_of_records_per_resource`(늘리지 않으면 10)가 이 큐를 제외했습니다: 네임스페이스의 큐와 토픽 수보다 크게 늘리세요. 연결된 구독은 최대 1,000개까지 읽습니다: 그보다 많으면 리시버로도 네임스페이스를 읽으세요.
 
 ### 하나의 대상에 큐가 두 개
 

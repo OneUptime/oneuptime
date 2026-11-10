@@ -344,6 +344,25 @@ export interface ComponentProps {
    * nothing either.
    */
   editDisabledReason?: string | undefined;
+  /*
+   * A graph for the canvas to show in place of its own - a step of Undo or
+   * Redo, a version restored, what Ask AI saved - drawn when its revision
+   * changes, where the canvas is: the view stays as it was. The canvas then
+   * reports it like any graph it draws (onWorkflowUpdated).
+   */
+  graphToShow?: WorkflowGraphToShow | null | undefined;
+  /*
+   * How tall the canvas is, as CSS: the builder's, under its toolbar, unless
+   * given (a version's preview, in a dialog).
+   */
+  canvasHeight?: string | undefined;
+}
+
+export interface WorkflowGraphToShow {
+  // A new number for every graph handed over.
+  revision: number;
+  nodes: Array<Node>;
+  edges: Array<Edge>;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -543,6 +562,36 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       return edge;
     }),
   );
+
+  /*
+   * A graph handed over by the page (graphToShow), drawn once per revision.
+   * The revision the canvas was opened with is drawn already: its initial
+   * nodes are that graph.
+   */
+  const shownRevisionRef: React.MutableRefObject<number | null> = useRef<
+    number | null
+  >(props.graphToShow ? props.graphToShow.revision : null);
+
+  useEffect(() => {
+    const graphToShow: WorkflowGraphToShow | null | undefined =
+      props.graphToShow;
+
+    if (!graphToShow || graphToShow.revision === shownRevisionRef.current) {
+      return;
+    }
+
+    shownRevisionRef.current = graphToShow.revision;
+
+    setNodes(graphToShow.nodes);
+    setEdges(
+      graphToShow.edges.map((edge: Edge): Edge => {
+        return {
+          ...edge,
+          ...getEdgeDefaultProps(false),
+        } as Edge;
+      }),
+    );
+  }, [props.graphToShow?.revision]);
 
   useEffect(() => {
     if (props.onWorkflowUpdated) {
@@ -1093,8 +1142,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     <div
       ref={canvasRef}
       style={{
-        height: "calc(100vh - 220px)",
-        minHeight: "400px",
+        height: props.canvasHeight || "calc(100vh - 220px)",
+        minHeight: props.canvasHeight ? undefined : "400px",
         borderRadius: "8px",
         overflow: "hidden",
         border: "1px solid var(--ou-border-default, #e2e8f0)",

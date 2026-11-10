@@ -1,6 +1,6 @@
 # Risoluzione dei problemi RUM
 
-Quando un'applicazione RUM manca, è vuota o mostra **Disconnesso**, segui questa pagina in ordine. Ogni verifica esclude una parte del percorso tra la tua app e OneUptime, nell'ordine in cui questi problemi si presentano di solito.
+Quando un'applicazione RUM manca o è vuota, oppure mostra **Nessun traffico recente** mentre le persone la usano, segui questa pagina in ordine. Ogni verifica esclude una parte del percorso tra la tua app e OneUptime, nell'ordine in cui questi problemi si presentano di solito.
 
 :::cards
 - [Verificare la chiave](#verificare-la-chiave): La verifica più rapida, e tutto il resto dipende da essa.
@@ -40,6 +40,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `401` con `"valid": false` | La chiave manca, è sconosciuta, revocata, disattivata o scaduta, e il `message` dice quale. Crea una chiave attiva in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
 
 Un'app web ha bisogno di una chiave **Browser**, e un'app mobile di una chiave **Server**: vedi [Configurazione browser](/docs/rum/browser-setup) e [Configurazione mobile](/docs/rum/mobile-setup). Anche gli endpoint di esportazione rifiutano una chiave errata con `401`, come richiede la specifica OTLP, quindi un SDK ben fatto registra il rifiuto invece di riprovare. Quella riga passa facilmente inosservata nella console del browser, e questa verifica risponde direttamente.
+
+OneUptime conta anche ciò che rifiuta da una chiave che conosce. La pagina della chiave, in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**, mostra in **Telemetria rifiutata** ciò che è stato rifiutato negli ultimi 30 giorni, e la **Verifica della configurazione** nella pagina **Documentazione** dell'applicazione dice quale tipo di telemetria viene rifiutato, perché e come rimediare. Una chiave mancante o sconosciuta non indica alcun progetto, quindi nulla la conta: questa verifica e il `401` sono tutto ciò che c'è.
 
 ## Verificare cosa esce dal browser
 
@@ -109,6 +111,34 @@ L'applicazione esiste, ma le sue pagine non mostrano nulla.
 - **Attendi qualche minuto.** L'acquisizione passa da una coda, e **Visto l'ultima volta** si aggiorna ogni pochi minuti anziché a ogni batch.
 - **Controlla il progetto.** Una chiave scrive nel proprio progetto, quindi la telemetria inviata con la chiave di un altro progetto si trova lì, non qui.
 
+## Le eccezioni o i log sono vuoti
+
+I caricamenti di pagina e le richieste arrivano, ma **Eccezioni** o **Registri** restano vuoti. L'SDK OpenTelemetry per browser invia da solo le tracce dei caricamenti di pagina e delle richieste, ma nessuna eccezione e nessun log, quindi un'applicazione può sembrare collegata mentre questi due restano vuoti per sempre.
+
+Il grafico vuoto nella **Panoramica** dell'applicazione dice di quale caso si tratta, e la **Verifica della configurazione** nella sua pagina **Documentazione** elenca ogni tipo di telemetria con il momento in cui è arrivato il più recente:
+
+| Il grafico dice | Che cosa significa |
+| --- | --- |
+| **Le eccezioni non sono configurate** o **I registri non sono configurati** | Da questa app non ne è mai arrivato nessuno. **Configura le eccezioni** o **Configura i registri** mostra il codice che li invia, con il tuo URL e la tua chiave già inseriti. |
+| **Nessuna eccezione in questo intervallo di tempo** o **Nessun registro in questo intervallo di tempo** | Ne sono arrivati prima, e il grafico dice quando è arrivato l'ultimo. Scegli l'intervallo più lungo che propone. |
+| **Da questa app non è ancora arrivato nulla** | Non arriva telemetria di alcun tipo: inizia da [Verificare la chiave](#verificare-la-chiave). |
+| **L'SDK di OpenTelemetry non sta inviando dati** | Da questa app invia dati solo la riproduzione delle sessioni: configura l'SDK come in [Configurazione browser](/docs/rum/browser-setup). |
+| **Le eccezioni vengono rifiutate** o **I registri vengono rifiutati** | OneUptime li ha rifiutati dopo l'arrivo dell'ultimo, e il grafico dice perché e quando: la chiave è disattivata o scaduta, non consente l'origine del tuo sito, un limite o un budget è esaurito, oppure il progetto non ha un metodo di pagamento. Il suo pulsante rimedia: **Scegli un'altra chiave**, **Apri la chiave**, **Vedi i budget** o **Aggiungi un metodo di pagamento**. |
+
+Le eccezioni hanno bisogno di un gestore degli errori, perché l'SDK non cattura gli errori non gestiti: [Segnalare gli errori non gestiti](/docs/rum/browser-setup#segnalare-gli-errori-non-gestiti) contiene il codice. Un errore gestito da un error boundary o da un `try`/`catch` non raggiunge mai la finestra, quindi registralo dove lo gestisci, con `span.recordException`.
+
+I log hanno bisogno di una pipeline di log e di codice che scriva record di log, perché un `LoggerProvider` da solo non invia nulla: [Aggiungere log e metriche](/docs/rum/browser-setup#aggiungere-log-e-metriche) contiene entrambi. Costruisci la pipeline con la stessa `resource` delle tue tracce, altrimenti i log vengono archiviati sotto un servizio backend.
+
+Quando arrivano i caricamenti di pagina, la chiave, le sue origini consentite e la tua Content Security Policy lasciano passare anche le eccezioni e i log, purché l'exporter dei log usi la stessa chiave e lo stesso host. Un gestore degli errori che non ha ancora catturato nulla non invia nulla, esattamente come uno mai aggiunto, quindi lancia un errore di prova dalla console del browser per distinguere i due casi:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Entro un minuto compare nella **Panoramica** dell'applicazione, sotto **Eccezioni**.
+
 ## La pagina Client è vuota
 
 La pagina **Client** elenca `browser.platform` sul web e `device.model.identifier` su mobile. Due motivi per cui resta vuota anche quando tutto il resto funziona:
@@ -120,15 +150,15 @@ La pagina **Client** elenca `browser.platform` sul web e `device.model.identifie
 
 La scheda si riempie solo con le metriche che la tua app invia, quindi le tracce da sole non la riempiono mai. Verifica di esportare metriche, che i loro nomi siano tra quelli che OneUptime legge e che compaiano nella pagina **Metriche** dell'applicazione. [La scheda dice «No web vitals reported yet»](/docs/rum/web-vitals#risoluzione-dei-problemi) ripercorre ogni verifica, compresi i valori persi quando un visitatore chiude la scheda prima dell'esportazione successiva.
 
-## Lo stato dice Disconnesso mentre le persone usano l'app
+## Lo stato dice Nessun traffico recente mentre le persone usano l'app
 
-Un'applicazione passa a **Disconnesso** dopo 15 minuti senza telemetria. Se le persone stanno usando l'app:
+Un'applicazione passa a **Nessun traffico recente** dopo 15 minuti senza telemetria. Se le persone stanno usando l'app:
 
 - **Un campionatore potrebbe scartare tutto.** Verifica di non aver impostato un campionatore sempre spento, né una proporzione molto bassa.
 - **L'app potrebbe inviare telemetria solo per alcune interazioni**, e nessuno le ha usate in quel periodo.
 - **La chiave potrebbe essere stata revocata o disattivata** dopo il deploy: esegui di nuovo la [verifica della chiave](#verificare-la-chiave).
 
-Un'app interna o a basso traffico senza visitatori di notte è davvero disconnessa. Non è un guasto.
+Anche un'app interna o a basso traffico senza visitatori di notte mostra **Nessun traffico recente**. È normale, non è un guasto.
 
 ## Problemi della riproduzione delle sessioni
 

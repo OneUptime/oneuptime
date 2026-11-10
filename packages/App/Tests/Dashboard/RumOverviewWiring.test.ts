@@ -365,7 +365,7 @@ describe("the overview carries one line of recording health", () => {
         return file.endsWith(".json") && file !== "en.json";
       });
 
-    expect(others).toHaveLength(16);
+    expect(others).toHaveLength(17);
     const untranslated: Array<string> = [];
     for (const words of sayable) {
       expect({ words, english: english[words] }).toEqual({

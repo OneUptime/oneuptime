@@ -28,6 +28,7 @@ flowchart TB
 
 - **Monitores arquivados não contam.** Um monitor arquivado não é verificado, então o status dele fica congelado; o grupo o deixa de fora.
 - **Um grupo vazio está operacional.** Um grupo sem monitores, ou só com monitores arquivados, mostra o seu status operacional. Até você adicionar um monitor, o painel mostra **Nenhum monitor ainda** no lugar do status dele.
+- **Monitoramento desligado mostra Desabilitado.** Quando o monitoramento está desligado para todos os monitores de um grupo, nada os verifica, então o painel mostra **Desabilitado** no lugar do status do grupo.
 - **A ordem é sua.** Qual status é o pior segue a ordem de **Monitores → Configurações → Status do monitor**. Veja [Status de monitor](/docs/monitor/criteria-and-statuses#status-de-monitor).
 
 Um grupo de monitores não é um grupo de página de status. Um grupo de página de status é um título em uma página de status que reúne linhas. Um grupo de monitores é uma linha que representa vários monitores, e qualquer página de status pode mostrá-lo.
@@ -61,7 +62,7 @@ Vá para **Monitores → Grupos de monitores**. O cartão **Grupos de monitores*
 
 ### Criar o grupo
 
-Clique em **Criar: Monitor Grupo**, digite um **Nome** e, se quiser, uma **Descrição**, e clique em **Criar: Monitor Grupo** no final do formulário. O grupo começa sem monitores.
+Clique em **Criar: Grupo de monitores**, digite um **Nome** e, se quiser, uma **Descrição**, e clique em **Criar: Grupo de monitores** no final do formulário. O grupo começa sem monitores.
 
 ### Adicionar os monitores
 
@@ -80,7 +81,7 @@ Abra um grupo para ver as páginas dele no menu lateral:
 
 | Página | O que mostra |
 | --- | --- |
-| **Visão geral** | **Detalhes do Grupo de Monitores**, **Status Atual** e **Gráfico de tempo de atividade** com a porcentagem de disponibilidade do grupo nos últimos 90 dias. Um grupo sem monitores oferece **Adicionar monitores** no lugar do gráfico. |
+| **Visão geral** | **Detalhes do Grupo de Monitores**, **Status Atual**, **Monitoramento** e **Gráfico de tempo de atividade** com a porcentagem de disponibilidade do grupo nos últimos 90 dias. Um grupo sem monitores oferece **Adicionar monitores** no lugar do gráfico. |
 | **Monitores** | **Monitores no Grupo**, com **Adicionar monitores** e **Remover**. |
 | **Incidentes** | Os incidentes em qualquer monitor do grupo. |
 | **Alertas** | Os alertas em qualquer monitor do grupo. |
@@ -92,6 +93,17 @@ A disponibilidade em **Visão geral** conta como indisponibilidade todo status e
 
 A lista **Grupos de monitores** pode filtrar grupos por proprietário e rótulo, definir rótulos e proprietários em muitos grupos de uma vez, e exportar ou importar grupos como JSON.
 
+## Desligar o monitoramento de um grupo inteiro
+
+O cartão **Monitoramento** na **Visão geral** de um grupo desliga o monitoramento, ou o liga de novo, para todos os monitores do grupo de uma só vez.
+
+- **Desligar o monitoramento** pergunta antes. Depois disso, nada verifica os monitores do grupo até que o monitoramento seja ligado novamente, então eles não abrem incidentes nem alertas, e o grupo mostra **Desabilitado** no lugar do status dele.
+- **Ligar o monitoramento** salva na hora. A próxima verificação de cada monitor define o status dele de novo.
+
+Desligar o monitoramento também resolve os incidentes e alertas abertos dos monitores que estão configurados para resolução automática, como cada monitor teria feito ao se recuperar. Incidentes e alertas declarados à mão, ou cujos critérios não resolvem automaticamente, continuam abertos. Desligar o monitoramento de um único monitor, na página **Configurações** dele, faz o mesmo.
+
+O cartão muda os monitores, não o grupo: o cartão **Monitoramento** de cada monitor mostra a mudança, e um monitor adicionado ao grupo depois mantém a própria configuração. Monitores arquivados ficam como estão. Enquanto só alguns dos monitores tiverem o monitoramento desligado, o cartão diz quantos e oferece os dois botões.
+
 ## Mostrar um grupo em uma página de status
 
 :::steps
@@ -101,7 +113,7 @@ Vá para **Páginas de status**, abra a página e clique em **Recursos** no menu
 
 ### Trocar o diálogo para um grupo
 
-Clique em **Adicionar monitor**. Abaixo da lista suspensa de monitores, clique em **Add a Monitor Group instead.** A lista suspensa vira **Monitor Grupo**.
+Clique em **Adicionar monitor**. Abaixo da lista suspensa de monitores, clique em **Adicione um grupo de monitores em vez disso.** A lista suspensa vira **Grupo de monitores**.
 
 ### Escolher o grupo e adicioná-lo
 
@@ -134,7 +146,7 @@ A chave **Grupos de monitores** está desligada. Ligue-a em **Configurações do
 :::
 
 :::details Uma página de status não consegue adicionar o grupo
-**Add a Monitor Group instead.** só aparece no diálogo enquanto a chave **Grupos de monitores** estiver ligada para o projeto.
+**Adicione um grupo de monitores em vez disso.** só aparece no diálogo enquanto a chave **Grupos de monitores** estiver ligada para o projeto.
 :::
 
 ## Próximos passos

@@ -36,8 +36,8 @@ OneUptime 只會從您的 IdP 傳送的斷言中讀取少量內容：
 | --- | --- |
 | 簽章 | 使用提供者的 **公開憑證** 進行驗證。回應必須已簽章，且不得加密。 |
 | Issuer | 必須與提供者的 **簽發者** 完全一致。 |
-| Audience | 必須是提供者的 **Identifier (Entity ID)**。您的 IdP 為其他應用程式建立的回應會被拒絕。 |
-| Recipient 和 Destination | 必須是提供者的 **Reply URL**，也就是回應被傳送到的位址。 |
+| Audience | 必須是提供者的 **識別碼（Entity ID）**。您的 IdP 為其他應用程式建立的回應會被拒絕。 |
+| Recipient 和 Destination | 必須是提供者的 **回覆 URL**，也就是回應被傳送到的位址。 |
 | `NotBefore` 和 `NotOnOrAfter` | 只有在它們允許的時間內，且不晚於簽發後 10 分鐘，回應才會被接受；並為不一致的時鐘保留 3 分鐘的寬限。 |
 | Name ID | 此人的電子郵件地址。必須是有效的電子郵件地址。 |
 | 姓名屬性 | 此人的姓名，在 OneUptime 建立其帳戶時使用：顯示名稱（`displayName` 或 `http://schemas.microsoft.com/identity/claims/displayname`），或名字和姓氏（`firstName` 和 `lastName`，或 Microsoft Entra ID 預設傳送的 `givenname` 和 `surname` 宣告）。選填。 |
@@ -73,9 +73,9 @@ OneUptime 只會從您的 IdP 傳送的斷言中讀取少量內容：
    - 其餘內容已在 **更多欄位** 中填好：**簽章方法**（`RSA-SHA256`）、**摘要方法**（`SHA256`）以及描述（「Sign in with」加上名稱）。僅在您的身分提供者需要時才變更它們
 
 3. **取得 OneUptime 的 SSO 中繼資料**
-   - 儲存後會開啟 **SSO Configuration** 對話方塊。也可以透過 **檢視 SSO 設定** 按鈕再次開啟
-   - 複製 **Identifier (Entity ID)**，例如 `https://oneuptime.com/<project-id>/<provider-id>`，IdP 設定中需要它
-   - 複製 **Reply URL (Assertion Consumer Service URL)**，例如 `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>`，IdP 設定中需要它
+   - 儲存後會開啟 **SSO 設定** 對話方塊。也可以透過 **檢視 SSO 設定** 按鈕再次開啟
+   - 複製 **識別碼（Entity ID）**，例如 `https://oneuptime.com/<project-id>/<provider-id>`，IdP 設定中需要它
+   - 複製 **回覆 URL（判斷提示取用者服務 URL）**，例如 `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>`，IdP 設定中需要它
    - 新的提供者預設為關閉狀態。在 IdP 設定好這兩個值後，請編輯該提供者並開啟 **已啟用**
 
 4. **測試提供者**
@@ -85,7 +85,7 @@ OneUptime 只會從您的 IdP 傳送的斷言中讀取少量內容：
 
 ## 身分提供者指南
 
-選擇您的身分提供者。每份指南都會取得 IdP 的值，在 OneUptime 中建立提供者，然後把 OneUptime 的 **Identifier (Entity ID)** 和 **Reply URL** 交給 IdP。
+選擇您的身分提供者。每份指南都會取得 IdP 的值，在 OneUptime 中建立提供者，然後把 OneUptime 的 **識別碼（Entity ID）** 和 **回覆 URL** 交給 IdP。
 
 :::tabs
 @tab Keycloak
@@ -114,15 +114,15 @@ Keycloak 是一款熱門的開放原始碼身分與存取管理解決方案。�
    - **公開憑證**：憑證，放在各自獨立的 `BEGIN CERTIFICATE` 行和 `END CERTIFICATE` 行之間
    - **簽章方法** 和 **摘要方法**：已在 **更多欄位** 中設定好（`RSA-SHA256` 和 `SHA256`）
 
-   儲存，然後從開啟的對話方塊中複製 **Identifier (Entity ID)** 和 **Reply URL (Assertion Consumer Service URL)**。
+   儲存，然後從開啟的對話方塊中複製 **識別碼（Entity ID）** 和 **回覆 URL（判斷提示取用者服務 URL）**。
 
 3. **建立 Keycloak 用戶端**
 
    在 Keycloak 中開啟您 realm 的 **Clients**，建立一個用戶端或編輯現有的用戶端：
    - **Client Protocol**（用戶端類型）：`saml`
-   - **Client ID**：OneUptime 的 **Identifier (Entity ID)**
+   - **Client ID**：OneUptime 的 **識別碼（Entity ID）**
    - **Root URL** 和 **Valid Redirect URIs**：您的 OneUptime URL
-   - **Assertion Consumer Service POST Binding URL**：OneUptime 的 **Reply URL (Assertion Consumer Service URL)**
+   - **Assertion Consumer Service POST Binding URL**：OneUptime 的 **回覆 URL（判斷提示取用者服務 URL）**
 
 4. **調整用戶端設定**
 
@@ -159,13 +159,13 @@ Microsoft Entra ID（舊稱 Azure AD / Active Directory）是 Microsoft 的雲�
    - **公開憑證**：Base64 憑證，包括 `BEGIN CERTIFICATE` 行和 `END CERTIFICATE` 行
    - **簽章方法** 和 **摘要方法**：已在 **更多欄位** 中設定好（`RSA-SHA256` 和 `SHA256`）
 
-   儲存，然後從開啟的對話方塊中複製 **Identifier (Entity ID)** 和 **Reply URL (Assertion Consumer Service URL)**。
+   儲存，然後從開啟的對話方塊中複製 **識別碼（Entity ID）** 和 **回覆 URL（判斷提示取用者服務 URL）**。
 
 4. **把 OneUptime 的 URL 交給 Entra ID**
 
    在 **Basic SAML Configuration** 中按一下 **Edit** 並設定：
-   - **Identifier (Entity ID)**：OneUptime 的 **Identifier (Entity ID)**
-   - **Reply URL (Assertion Consumer Service URL)**：OneUptime 的 **Reply URL**
+   - **Identifier (Entity ID)**：OneUptime 的 **識別碼（Entity ID）**
+   - **Reply URL (Assertion Consumer Service URL)**：OneUptime 的 **回覆 URL**
 
    按一下 **Save**。
 
@@ -211,18 +211,18 @@ Okta 是一款廣泛使用、支援 SAML SSO 的身分平台。您需要一個�
    - **公開憑證**：憑證，包括 `BEGIN CERTIFICATE` 行和 `END CERTIFICATE` 行
    - **簽章方法** 和 **摘要方法**：已在 **更多欄位** 中設定好（`RSA-SHA256` 和 `SHA256`）
 
-   儲存，然後從開啟的對話方塊中複製 **Identifier (Entity ID)** 和 **Reply URL (Assertion Consumer Service URL)**。
+   儲存，然後從開啟的對話方塊中複製 **識別碼（Entity ID）** 和 **回覆 URL（判斷提示取用者服務 URL）**。
 
 4. **把 OneUptime 的 URL 交給 Okta**
 
    對於從 Okta Integration Network 新增的應用程式，在 **General** 分頁上按一下 **App Settings** 中的 **Edit**，然後設定：
-   - **OneUptime Project ID** 和 **OneUptime SSO Provider ID**：OneUptime 的 **Identifier (Entity ID)** `https://oneuptime.com/<project-id>/<provider-id>` 中的兩個 ID
+   - **OneUptime Project ID** 和 **OneUptime SSO Provider ID**：OneUptime 的 **識別碼（Entity ID）** `https://oneuptime.com/<project-id>/<provider-id>` 中的兩個 ID
 
    按一下 **Save**，並在 **Sign On** 分頁上檢查 **Application username format** 是否為 `Email`。
 
    對於您自己建立的應用程式，在 **General** 分頁上按一下 **SAML Settings** 中的 **Edit** 和 **Next**，然後設定：
-   - **Single sign-on URL**：OneUptime 的 **Reply URL (Assertion Consumer Service URL)**
-   - **Audience URI (SP Entity ID)**：OneUptime 的 **Identifier (Entity ID)**
+   - **Single sign-on URL**：OneUptime 的 **回覆 URL（判斷提示取用者服務 URL）**
+   - **Audience URI (SP Entity ID)**：OneUptime 的 **識別碼（Entity ID）**
 
    選擇性：新增 attribute statement `firstName`（值為 `user.firstName`）和 `lastName`（值為 `user.lastName`），讓新帳戶取得此人的姓名。按一下 **Next**，然後按一下 **Finish**。
 
@@ -239,7 +239,7 @@ OneUptime 的 SSO 使用 SAML 2.0，可與任何相容的身分提供者搭配�
 
 :::steps
 1. 取得身分提供者的 **登入 URL**（其 SSO 端點）、**簽發者**（其實體 ID）和 **公開憑證**（其 X.509 簽章憑證）。如果您的 IdP 只有在應用程式存在後才顯示這些值，請先用您的 OneUptime 位址作為暫時 URL 建立應用程式。
-2. 在 OneUptime 中用這些值建立提供者，並從 **SSO Configuration** 對話方塊（或 **檢視 SSO 設定**）中複製 **Identifier (Entity ID)** 和 **Reply URL (Assertion Consumer Service URL)**。
+2. 在 OneUptime 中用這些值建立提供者，並從 **SSO 設定** 對話方塊（或 **檢視 SSO 設定**）中複製 **識別碼（Entity ID）** 和 **回覆 URL（判斷提示取用者服務 URL）**。
 3. 在身分提供者的 SAML 應用程式中，將 **Assertion Consumer Service URL / Reply URL** 和 **Entity ID / Audience URI** 設為 OneUptime 的值，並將 **Name ID Format** 設為電子郵件地址。
 4. **簽章方法**（`RSA-SHA256`）和 **摘要方法**（`SHA256`）已在 **更多欄位** 中設定好；僅在您的身分提供者使用不同的簽章方式時才變更它們
 5. 為提供者開啟 **已啟用**，並使用 **Test Single Sign On (SSO)** 卡片中的連結進行測試。
@@ -255,13 +255,13 @@ OneUptime 的 SSO 使用 SAML 2.0，可與任何相容的身分提供者搭配�
 2. 在 OneUptime 中前往 **專案設定** > **安全性** > **SSO**，在 SAML 提供者下方按一下 **新增 OIDC 提供者**。
 3. 輸入 **名稱**（使用者在登入頁面上看到的名稱）、**簽發者 URL**、**用戶端 ID** 和 **用戶端密鑰**。也可以改為把提供者的探索 URL 貼到 **簽發者 URL** 中。
 4. 在 **登入** 步驟中，**團隊** 預設為專案的成員團隊：首次登入的人會加入這些團隊。其餘內容已在 **更多欄位** 中填好：**探索 URL**（簽發者後接 `/.well-known/openid-configuration`）、**範圍**（`openid email profile`）、`email` 和 `name` 宣告名稱，以及描述（「Sign in with」加上名稱）。僅在您的提供者需要時才變更它們。只接受您自己可以邀請他人加入的團隊：授予的存取權限超出您自身權限的團隊會在 **團隊** 下方註明。
-5. 儲存。**OIDC Configuration** 對話方塊會開啟並顯示 **Redirect URI**：請把它加入應用程式允許的重新導向 URI。新的提供者預設為關閉狀態，因此接著請編輯它並開啟 **已啟用**。
+5. 儲存。**OIDC 設定** 對話方塊會開啟並顯示 **Redirect URI**：請把它加入應用程式允許的重新導向 URI。新的提供者預設為關閉狀態，因此接著請編輯它並開啟 **已啟用**。
 6. 在為專案要求使用 SSO 之前，開啟 **Test Single Sign On (SSO)** 卡片中的連結並選擇該提供者，透過它登入一次。
 :::
 
 ## SSO 使用者的角色和團隊
 
-OneUptime 不會對應身分提供者中的角色或群組。一個人能做什麼取決於其所在的團隊：提供者會把新來的人加入它的 **團隊**，而團隊及其權限在 OneUptime 中管理，如 [使用者、團隊與權限](/docs/permissions/index) 所述。若要讓團隊成員與身分提供者保持同步，請使用 [SCIM](/docs/identity/scim)。
+OneUptime 不會對應身分提供者中的角色或群組。一個人能做什麼取決於其所在的團隊：提供者會把新來的人加入它的 **團隊**，而團隊及其權限在 OneUptime 中管理，如 [使用者、團隊與權限](/docs/permissions/index) 所述。若要讓團隊成員與身分提供者保持同步，請使用 [SCIM](/docs/identity/scim)。某人登入時加入的每個團隊，都會作為登入者本人的變更記錄在該團隊的 **稽核日誌** 頁面上。
 
 提供者的團隊決定了透過它登入的人能做什麼，因此只有當儲存者本人可以邀請他人加入這些團隊時，提供者才能儲存。每次儲存都會重新檢查：如果提供者的團隊授予的存取權限超出您自身的權限，則只有存取權限能涵蓋這些團隊的人（例如專案擁有者）才能變更它。在此檢查推出之前儲存的提供者會繼續把人登入其團隊。任何可以編輯提供者的人仍然可以關閉它，以便立即停止它。
 
@@ -342,11 +342,11 @@ IdP 斷言中的簽發者不是提供者的 **簽發者**。請從 IdP 重新複
 :::
 
 :::details "SAML Audience does not match"
-回應的 audience 不是此提供者的 **Identifier (Entity ID)**：您的 IdP 是為其他應用程式建立這個回應的。請在 IdP 中將應用程式的 entity ID 設為 **檢視 SSO 設定** 中的 **Identifier (Entity ID)**：在 Keycloak 中為 **Client ID**，在 Entra ID 中為 **Identifier (Entity ID)**，在 Okta 中為 **Audience URI (SP Entity ID)**。僅以 OneUptime 的位址（例如 `https://oneuptime.com`）作為 entity ID 設定的 IdP 仍可繼續使用。
+回應的 audience 不是此提供者的 **識別碼（Entity ID）**：您的 IdP 是為其他應用程式建立這個回應的。請在 IdP 中將應用程式的 entity ID 設為 **檢視 SSO 設定** 中的 **識別碼（Entity ID）**：在 Keycloak 中為 **Client ID**，在 Entra ID 中為 **Identifier (Entity ID)**，在 Okta 中為 **Audience URI (SP Entity ID)**。僅以 OneUptime 的位址（例如 `https://oneuptime.com`）作為 entity ID 設定的 IdP 仍可繼續使用。
 :::
 
 :::details "SAML Recipient does not match"
-回應的 recipient 不是此提供者的 **Reply URL**：回應是傳往另一個位址的。請在 IdP 中將應用程式的 reply URL 設為 **檢視 SSO 設定** 中的 **Reply URL (Assertion Consumer Service URL)**：在 Keycloak 中為 **Assertion Consumer Service POST Binding URL**，在 Entra ID 中為 **Reply URL (Assertion Consumer Service URL)**，在 Okta 中為 **Single sign-on URL**。"SAML Destination does not match" 的原因和解決方法相同。
+回應的 recipient 不是此提供者的 **回覆 URL**：回應是傳往另一個位址的。請在 IdP 中將應用程式的 reply URL 設為 **檢視 SSO 設定** 中的 **回覆 URL（判斷提示取用者服務 URL）**：在 Keycloak 中為 **Assertion Consumer Service POST Binding URL**，在 Entra ID 中為 **Reply URL (Assertion Consumer Service URL)**，在 Okta 中為 **Single sign-on URL**。"SAML Destination does not match" 的原因和解決方法相同。
 :::
 
 :::details "SAML response has expired"
@@ -378,7 +378,7 @@ Entra ID 中的 **Identifier (Entity ID)** 與 OneUptime 的不一致。請從 *
 :::
 
 :::details Okta: 404，或 audience 不相符
-Okta 中的 **Single sign-on URL** 必須與 OneUptime 的 **Reply URL** 完全一致，**Audience URI** 必須與 OneUptime 的 **Identifier (Entity ID)** 完全一致。請確認兩者都已替換掉暫時的值。
+Okta 中的 **Single sign-on URL** 必須與 OneUptime 的 **回覆 URL** 完全一致，**Audience URI** 必須與 OneUptime 的 **識別碼（Entity ID）** 完全一致。請確認兩者都已替換掉暫時的值。
 :::
 
 :::details 使用者未指派給應用程式

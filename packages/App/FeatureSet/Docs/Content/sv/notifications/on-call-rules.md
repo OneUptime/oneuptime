@@ -33,9 +33,9 @@ De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsA
 | Flik | Larm för | Kort för |
 | --- | --- | --- |
 | **Incidenter** | Incidenter | Allvarlighetsgrader för incidenter |
-| **Incident Episoder** | Episoder som samlar incidenter | Allvarlighetsgrader för incidenter |
+| **Incidentepisoder** | Episoder som samlar incidenter | Allvarlighetsgrader för incidenter |
 | **Larm** | Larm | Allvarlighetsgrader för larm |
-| **Larm Episoder** | Episoder som samlar larm | Allvarlighetsgrader för larm |
+| **Larmepisoder** | Episoder som samlar larm | Allvarlighetsgrader för larm |
 
 En episod larmar dig genom sina egna jourpolicyer, separat från incidenterna eller larmen i den, så dess regler har en egen flik. Sidans adress anger den öppna fliken, till exempel `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andra värdena är `incident-episodes` och `alert-episodes`, och utan `type` öppnas sidan på **Incidenter**.
 
@@ -64,7 +64,7 @@ Gå till **Användarinställningar → Jourregler**, öppna fliken för typen av
 
 ### Välj metoden
 
-Klicka på **Lägg till Avisering Regel**. Välj under **Aviseringsmetod** en av dina verifierade metoder; en metod som du inte har verifierat erbjuds inte.
+Klicka på **Lägg till Aviseringsregel**. Välj under **Aviseringsmetod** en av dina verifierade metoder; en metod som du inte har verifierat erbjuds inte.
 
 ### Välj hur en push låter
 
@@ -72,7 +72,7 @@ För en telefon väljer du under **Push-avisering** antingen **Kritiskt larm** e
 
 ### Ställ in väntetiden
 
-Välj **Avisera mig efter**: **Omedelbart**, **5 minuter**, **10 minuter**, **15 minuter**, **30 minuter** eller **1 timme**. Klicka sedan på **Lägg till Avisering Regel** i dialogen.
+Välj **Avisera mig efter**: **Omedelbart**, **5 minuter**, **10 minuter**, **15 minuter**, **30 minuter** eller **1 timme**. Klicka sedan på **Lägg till Aviseringsregel** i dialogen.
 :::
 
 Kortet listar sina regler i ordning efter väntetid, med **Aviseringsmetod** och **Avisera efter** för var och en.

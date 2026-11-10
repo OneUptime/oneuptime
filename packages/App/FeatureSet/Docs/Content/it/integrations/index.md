@@ -141,9 +141,9 @@ Quando lo strumento vuole i dati in un'altra forma, aggiungi un blocco [Run Cust
 Non incollare mai una chiave API o un token in un blocco. Salvalo una volta come variabile globale segreta:
 
 :::steps
-1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Flusso di lavoro Variabile**.
+1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Variabile del flusso di lavoro**.
 2. Dagli un nome, come `JIRA_AUTH`, e fai clic su **Avanti**.
-3. Incolla la chiave in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Flusso di lavoro Variabile**.
+3. Incolla la chiave in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**.
 :::
 
 Qualsiasi blocco la legge come `{{global.variables.JIRA_AUTH}}`. Il contenuto di una variabile non si può più rileggere una volta salvato, e quello di una variabile segreta viene sostituito da `[REDACTED]` nei log delle esecuzioni. Per i token che scadono, come quelli di Microsoft Entra ID, una [variabile OAuth 2.0](/docs/workflows/variables#variabili-oauth-20-token-che-si-rinnovano-da-soli) ne ottiene uno nuovo da sola. Vedi [Variabili del workflow](/docs/workflows/variables#variabili-globali).

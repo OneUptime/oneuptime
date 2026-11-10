@@ -53,4 +53,13 @@ export default interface EnableAuditLogOn {
    * other model by its `name` column, looked up inside the row's project.
    */
   resourceNameRelation?: string | undefined;
+  /*
+   * The columns whose values name this row's entries, for rows with no
+   * name, title or displayName of their own - an exception by its type and
+   * message, a runbook run by its runbook's name. The recorder makes the
+   * name from them (Server/Utils/AuditLog/AuditLogResourceNames): cut, with
+   * what looks like a secret redacted, and an exception's message made safe
+   * as everywhere it leaves the platform. Tried before resourceNameRelation.
+   */
+  resourceNameColumns?: Array<string> | undefined;
 }

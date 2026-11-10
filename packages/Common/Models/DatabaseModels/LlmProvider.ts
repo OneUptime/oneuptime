@@ -634,4 +634,42 @@ export default class LlmProvider extends BaseModel {
     default: 0,
   })
   public costPerMillionTokensInUSDCents?: number = undefined;
+
+  /*
+   * How long OneUptime waits for the provider to answer one request
+   * (issue #6438). Empty: 120 seconds, 300 for Ollama. A slow or
+   * self-hosted model that takes longer on an investigation's long
+   * requests needs more, or every request runs out of time.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateProjectLlm,
+    ],
+    read: PROVIDER_READERS,
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditProjectLlm,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Response Timeout (Seconds)",
+    description:
+      "How long to wait for the provider to answer one request, in seconds (10 to 3600). Leave empty for the default: 120 seconds, or 300 for Ollama. Raise it for a slow or self-hosted model.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public requestTimeoutInSeconds?: number = undefined;
 }

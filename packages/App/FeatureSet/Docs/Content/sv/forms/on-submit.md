@@ -50,7 +50,7 @@ Kortet visar varje fält på den nya incidenten och var dess värde kommer ifrå
 | **Monitorer** | De monitorer som inlämnaren valde, tillsammans med de som inställningarna alltid bifogar. Utan någon av dem, incidentmallens. |
 | **Etiketter** | De etiketter som inlämnaren valde, tillsammans med de som inställningarna alltid lägger till. Utan någon av dem, incidentmallens. |
 | **Påverkan började** | Svaret på **Påverkan började**, när formuläret frågar efter det. |
-| **Incident Mall** | Formulärets inställning **Incident Mall**. Den fyller i allt som svaren och inställningarna lämnar oangivet. |
+| **Incidentmall** | Formulärets inställning **Incidentmall**. Den fyller i allt som svaren och inställningarna lämnar oangivet. |
 | **Jourpolicyer** | De policyer som inställningarna anger, körda för varje incident som formuläret deklarerar. Utan några, incidentmallens. |
 | **Ägare** | De personer och team som inställningarna anger, tillsammans med mallens ägare. De får veta om varje incident. |
 | **Anpassade fält** | Svaret på varje fråga om ett anpassat fält — om inte fältet kopierar sitt värde från ett anpassat monitorfält och incidentens monitorer har ett; mallen fyller i resten. |
@@ -62,7 +62,7 @@ Kortet visar varje fält på den nya incidenten och var dess värde kommer ifrå
 
 ### Incidentmallen
 
-Välj en **Incident Mall** i inställningarna så deklareras varje incident som formuläret deklarerar utifrån den, på samma sätt som servern tillämpar en mall överallt — se [Så tillämpas en mall](/docs/incidents/settings#så-tillämpas-en-mall). Svaren och formulärets inställningar kommer först, och mallen fyller i allt annat: det inledande tillståndet, beskrivningen, allvarlighetsgraden, de berörda resurserna, jourpolicyerna, ägarna, etiketterna, värdena i anpassade fält och en ändring av monitorstatus.
+Välj en **Incidentmall** i inställningarna så deklareras varje incident som formuläret deklarerar utifrån den, på samma sätt som servern tillämpar en mall överallt — se [Så tillämpas en mall](/docs/incidents/settings#så-tillämpas-en-mall). Svaren och formulärets inställningar kommer först, och mallen fyller i allt annat: det inledande tillståndet, beskrivningen, allvarlighetsgraden, de berörda resurserna, jourpolicyerna, ägarna, etiketterna, värdena i anpassade fält och en ändring av monitorstatus.
 
 > [!WARNING]
 > **Tänk på monitorerna.** Att deklarera en incident på en monitor via ett formulär påverkar monitoren exakt som att deklarera en incident på den manuellt: den aktiva övervakningen av monitoren pausas tills incidenten är löst, och en malls **Ändra övervakningsstatus till** ändrar monitorns status direkt — på varje statussida som visar monitoren, även medan själva incidenten är dold. Med ett formulär kan alla som har länken göra detta. Bifoga bara monitorer via ett formulär när varje inlämning ska pausa dem.
@@ -118,7 +118,7 @@ En inlämning är någons begäran, och en begäran granskas innan den publicera
 
 | Steg | Incidentformulär | Underhållsformulär |
 | --- | --- | --- |
-| **Standardvärden** | **Standardtitel**, **Allvarlighetsgrad**, **Incident Mall** | **Standardtitel** |
+| **Standardvärden** | **Standardtitel**, **Allvarlighetsgrad**, **Incidentmall** | **Standardtitel** |
 | **Koppla alltid** | **Monitorer**, **Etiketter**, **Jourpolicyer** | **Monitorer**, **Statussidor**, **Etiketter** |
 | **Ägare** | **Ägare** | **Ägare** |
 | **Publicering** | — | **Visa på statussidor**, **Avisera prenumeranter** |

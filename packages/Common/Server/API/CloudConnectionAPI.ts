@@ -50,19 +50,37 @@ import CommonAPI from "./CommonAPI";
  *        external id - what the IAM role command is written from.
  *
  *   POST /cloud-connection/:connectionId/stream-key
- *     -> { streamKey, createdAt, previousKeyWorksUntil }: a new key the
- *        AWS connection's Firehose streams send its metrics and logs with
+ *     -> { streamKey, createdAt, previousKeyWorksUntil, pushServiceAccount }:
+ *        a new key an AWS connection's Firehose streams, or a Google Cloud
+ *        connection's Pub/Sub pushes, send its telemetry with
  *        (CloudStream). Answered this once: only its SHA-256 is kept. The
- *        key it replaces keeps working for a day.
+ *        key it replaces keeps working for a day. For Google Cloud, the push
+ *        service account its pushes must be signed for.
+ *
+ *   POST /cloud-connection/:connectionId/start-streaming
+ *     { hostSubscriptionId }
+ *     -> { startedAt }: an Azure connection's event hubs, in that
+ *        subscription, are read every minute from now on (CloudStreamAzure).
  *
  *   POST /cloud-connection/:connectionId/stop-streaming
- *     -> every stream key of the connection stops working.
+ *     -> every stream key of the connection stops working, and an Azure
+ *        connection's event hubs are read no more.
  *
  * All of them are for whoever may edit connections (project owners and
  * admins): a test signs in to a cloud account with its credential, a read
  * imports, the role setup is the first step of making one, and a stream
  * key writes into the project.
  */
+/*
+ * A connection a streaming route acts on: the caller's project's, of a cloud
+ * the route is for - and who the caller is, whose change it is.
+ */
+interface StreamConnectionTarget {
+  connectionId: ObjectID;
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}
+
 export default class CloudConnectionAPI extends BaseAPI<
   CloudConnection,
   CloudConnectionServiceClass
@@ -211,16 +229,21 @@ export default class CloudConnectionAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const target: { connectionId: ObjectID; projectId: ObjectID } =
-            await this.readStreamConnection(req);
+          const target: StreamConnectionTarget =
+            await this.readStreamConnection(req, [
+              CloudProvider.AWS,
+              CloudProvider.GCP,
+            ]);
 
           const created: {
             streamKey: string;
             createdAt: Date;
             previousKeyWorksUntil: Date | null;
+            pushServiceAccount: string | null;
           } = await CloudConnectionService.createStreamKey({
             connectionId: target.connectionId,
             now: new Date(),
+            props: target.props,
           });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -229,6 +252,42 @@ export default class CloudConnectionAPI extends BaseAPI<
             previousKeyWorksUntil: created.previousKeyWorksUntil
               ? created.previousKeyWorksUntil.toISOString()
               : null,
+            pushServiceAccount: created.pushServiceAccount,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      `${basePath}/:connectionId/start-streaming`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const target: StreamConnectionTarget =
+            await this.readStreamConnection(req, [CloudProvider.Azure]);
+          const hostSubscriptionId: unknown = (
+            req.body as JSONObject | undefined
+          )?.["hostSubscriptionId"];
+
+          if (typeof hostSubscriptionId !== "string") {
+            throw new BadDataException(
+              "Give the subscription the event hubs are in, as its ID.",
+            );
+          }
+
+          const started: { startedAt: Date } =
+            await CloudConnectionService.startStreaming({
+              connectionId: target.connectionId,
+              hostSubscriptionId,
+              now: new Date(),
+              props: target.props,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            startedAt: started.startedAt.toISOString(),
           });
         } catch (error) {
           next(error);
@@ -242,10 +301,17 @@ export default class CloudConnectionAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const target: { connectionId: ObjectID; projectId: ObjectID } =
-            await this.readStreamConnection(req);
+          const target: StreamConnectionTarget =
+            await this.readStreamConnection(req, [
+              CloudProvider.AWS,
+              CloudProvider.Azure,
+              CloudProvider.GCP,
+            ]);
 
-          await CloudConnectionService.stopStreaming(target.connectionId);
+          await CloudConnectionService.stopStreaming(
+            target.connectionId,
+            target.props,
+          );
 
           return Response.sendJsonObjectResponse(req, res, { stopped: true });
         } catch (error) {
@@ -285,12 +351,13 @@ export default class CloudConnectionAPI extends BaseAPI<
   }
 
   /*
-   * The AWS connection a stream route is for: the project's own, never one
-   * the body names.
+   * The connection a stream route is for: the project's own, never one the
+   * body names, and of a cloud the route is for.
    */
   private async readStreamConnection(
     req: ExpressRequest,
-  ): Promise<{ connectionId: ObjectID; projectId: ObjectID }> {
+    providers: Array<CloudProvider>,
+  ): Promise<StreamConnectionTarget> {
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
     const projectId: ObjectID =
@@ -313,13 +380,15 @@ export default class CloudConnectionAPI extends BaseAPI<
       projectId,
     });
 
-    if (connection?.provider !== CloudProvider.AWS) {
+    if (!providers.includes((connection?.provider || "") as CloudProvider)) {
       throw new BadDataException(
-        "Only AWS connections stream metrics and logs through Amazon Data Firehose.",
+        providers.length === 1 && providers[0] === CloudProvider.Azure
+          ? "Only Azure connections are read from their event hubs."
+          : "Only AWS, Azure and Google Cloud connections stream, and only AWS and Google Cloud with a stream key.",
       );
     }
 
-    return { connectionId: new ObjectID(connectionId), projectId };
+    return { connectionId: new ObjectID(connectionId), projectId, props };
   }
 
   private assertCanOperate(props: DatabaseCommonInteractionProps): void {

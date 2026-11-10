@@ -75,6 +75,12 @@ import {
 import LogExceptionExtractor from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
+import {
+  SERVICE_NO_RECENT_DATA_AFTER_MINUTES,
+  SERVICE_NO_RECENT_DATA_LABEL,
+  SERVICE_RECEIVING_DATA_LABEL,
+  SERVICE_WAITING_FOR_DATA_LABEL,
+} from "Common/Types/Service/ServiceTelemetryStatus";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -479,6 +485,36 @@ describe("Service Catalog (telemetry/services)", () => {
     expect(page).toContain(
       "**Last Seen** is updated about once a minute, not on every batch, so it can trail live telemetry by a minute or so.",
     );
+  });
+
+  /*
+   * Issue #6270: a service's Overview says Receiving data, No recent data
+   * or Waiting for data from when its telemetry last arrived - never
+   * "Disconnected" after half an hour of quiet - and the page says so in
+   * the same words and minutes, with what to check when one should be busy.
+   */
+  it("says the Overview's status in the status module's words and minutes, and what a quiet service needs checked", () => {
+    expect(SERVICE_NO_RECENT_DATA_AFTER_MINUTES).toBe(30);
+    expect(page).toContain(
+      `Beside its name, a service's **Overview** says whether its telemetry is arriving: **${SERVICE_RECEIVING_DATA_LABEL}** while something has arrived in the last ${SERVICE_NO_RECENT_DATA_AFTER_MINUTES} minutes, **${SERVICE_NO_RECENT_DATA_LABEL}** once nothing has, and **${SERVICE_WAITING_FOR_DATA_LABEL}** before its first telemetry.`,
+    );
+    expect(page).toContain(
+      `:::details A service shows ${SERVICE_NO_RECENT_DATA_LABEL}\nNothing has arrived for it in the last ${SERVICE_NO_RECENT_DATA_AFTER_MINUTES} minutes.`,
+    );
+    // A new name is a new service, as How a service gets into the catalog says.
+    expect(page).toContain(
+      "and that it still reports the same `service.name`: a new name starts a new service.",
+    );
+    expect(page).not.toMatch(/disconnect/i);
+    expect(page).not.toMatch(/\bConnected\b/);
+
+    // The Overview draws the module's words, not a window of its own.
+    const overview: string = readPackageFile(
+      "App/FeatureSet/Dashboard/src/Pages/Service/View/Index.tsx",
+    );
+    expect(overview).toContain("describeServiceTelemetryStatus({");
+    expect(overview).toContain("statusLabel={status.label}");
+    expect(overview).not.toContain("CONNECTED_WINDOW_MS");
   });
 
   it("runs the label and owner rules on every new service, and gives it a color of its own", () => {
@@ -1975,7 +2011,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
   });
 
-  it("describes the exception's own menu, with Settings under a folded Manage", () => {
+  it("describes the exception's own menu, with Settings and Audit Logs under a folded Manage", () => {
     const menuSource: string = readDashboardSource(
       "Pages/Exceptions/View/SideMenu.tsx",
     );
@@ -1988,10 +2024,14 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(firstColumn(section(page, "## An exception's page"))).toEqual(items);
     expect(sectionByTitle(menuSections(menuSource), "Manage").items).toEqual([
       "Settings",
+      "Audit Logs",
     ]);
     expect(startsCollapsed(menuSource, "Manage")).toBe(true);
     expect(page).toContain(
       "| **Settings** | Resolve or archive the exception. It is under **Manage**, which starts collapsed. |",
+    );
+    expect(page).toContain(
+      "| **Audit Logs** | Who resolved, archived, assigned or merged the exception, and when. It is under **Manage** too. |",
     );
   });
 
@@ -2625,6 +2665,36 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(panel).toContain('title="Unmerge"');
     expect(panel).toContain(
       'template="This exception was merged into {{exception}}. Its occurrences count there."',
+    );
+  });
+
+  /*
+   * Issue #6276: a merge is written with raw SQL, round DatabaseService's
+   * audit hook, so it records its entries itself, on the exceptions it
+   * moved - and nothing on the one they were merged into.
+   */
+  it("says who merged or unmerged an exception is on its Audit Logs, and why the one it was merged into has no entry", () => {
+    const merge: string = readCommonSource(
+      "Server/Utils/Telemetry/TelemetryExceptionMerge.ts",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+
+    expect(section(page, "## Explain it with AI")).toContain(
+      "Who merged an exception, and who unmerged it, is on its **Audit Logs** page; the exception it was merged into gets no entry, as nothing anyone set on it changed.",
+    );
+
+    // The merge and the unmerge each record, once they commit.
+    expect(
+      merge.split("await TelemetryExceptionMerge.recordInAuditLog({").length -
+        1,
+    ).toBe(2);
+    expect(merge).toContain(
+      'includeColumns: ["mergedIntoTelemetryExceptionId"]',
+    );
+    expect(explorer).toContain(
+      'description="Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed."',
     );
   });
 

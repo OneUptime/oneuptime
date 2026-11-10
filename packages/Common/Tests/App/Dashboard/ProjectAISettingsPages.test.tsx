@@ -159,8 +159,9 @@ const RETIRED_SWITCH_WORDING: Array<RegExp> = [
 /*
  * Every Project column the page may read or write: Enable AI, the AI
  * context its team wrote for OneUptime AI (the AI context card, issue
- * #5198), and the project's daily AI limits in the Daily limits card under
- * More settings. Anything else on a request is a field riding along.
+ * #5198), and the project's daily AI limits and limits per run, each in a
+ * card under More settings. Anything else on a request is a field riding
+ * along.
  */
 const AI_FEATURES_COLUMNS: Array<string> = [
   "_id",
@@ -168,6 +169,13 @@ const AI_FEATURES_COLUMNS: Array<string> = [
   "aiContext",
   "aiDailyTokenLimit",
   "aiDailySpendLimitInUSD",
+  // Limits per run, under More settings (#6440).
+  "aiRunMaxModelCalls",
+  "aiRunMaxToolCalls",
+  "aiRunMaxTokens",
+  "aiRunTimeLimitInMinutes",
+  // Fix approvals, under More settings (#6148's follow-up).
+  "requireTwoApprovalsForRiskierFixes",
 ];
 
 let project: Project;
@@ -586,7 +594,7 @@ describe("AI Features page", () => {
     expectNoRetiredSwitch(document.body);
   });
 
-  test("reads the project it is on: Enable AI, the AI context and the daily AI limits, nothing else", async () => {
+  test("reads the project it is on: Enable AI, the AI context, the daily AI limits, the limits per run and fix approvals, nothing else", async () => {
     openAiFeatures();
     await enableAiSwitch();
 
@@ -603,8 +611,20 @@ describe("AI Features page", () => {
       { timeout: WAIT_TIMEOUT },
     );
 
-    // Enable AI's switch reads its own column, and the AI context card its own.
-    for (const column of ["enableAi", "aiContext"]) {
+    /*
+     * Enable AI's switch reads its own column, the AI context card its own,
+     * the Limits per run card its four, and Fix approvals' switch whether
+     * two people approve a riskier fix.
+     */
+    for (const column of [
+      "enableAi",
+      "aiContext",
+      "aiRunMaxModelCalls",
+      "aiRunMaxToolCalls",
+      "aiRunMaxTokens",
+      "aiRunTimeLimitInMinutes",
+      "requireTwoApprovalsForRiskierFixes",
+    ]) {
       await waitFor(
         () => {
           expect(

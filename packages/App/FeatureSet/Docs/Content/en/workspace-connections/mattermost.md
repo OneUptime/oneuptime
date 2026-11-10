@@ -131,11 +131,15 @@ OneUptime's messages carry buttons, and a **More actions** menu for what fewer p
 | **Incident episode, alert episode** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Scheduled maintenance** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** and **Execute On-Call Policy** open a form in Mattermost. A note on an incident or a scheduled maintenance event can be public, shown on the status page, or private; a note on a private incident is always private, and on an alert always private too. Every message also has a link that opens its record in OneUptime, for everything else.
+**Add Note**, **Change State**, **Change Severity** and **Execute On-Call Policy** open a form in Mattermost. A note on an incident or a scheduled maintenance event can be public, shown on the status page, or private; a note on a private incident is always private, and on an alert always private too. Every message also has a link that opens its record in OneUptime, for everything else. When the project's public notes need approval, a public note sent from the form waits for it, and a message only you see says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
 
 If your Mattermost account is not connected yet, a button tells you so, with a link to **User Settings** > **Workspace** > **Mattermost**. Connect your account, then press the button again.
 
 Each press is recorded in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab, with who pressed it.
+
+## Approving a public note
+
+When your project's public notes need approval and you turn on Mattermost for **Public Note Approval** in your notification settings, each public note that waits for a step you approve comes to your direct messages with OneUptime's bot: who sent it, the step it waits for, the note, **Approve**, **Reject** and a link to the note in OneUptime. **Approve** approves it for that step; on the last step it reads **Approve and publish**, and the note is published at once. **Reject** opens a form that asks why: a reason is required, and the note's author sees it. The buttons act as you, by the same rules as in OneUptime, and answer in a message only you see. A press after somebody else decided, or after the note or its steps changed, decides nothing and says what happened. Once the note is decided, every approver's message about it, yours included, changes to say what happened: approved for its step and who it waits for now, published, rejected, changed or sent for approval again, published without approval, or deleted. It keeps its link to the note in OneUptime, and **Approve** and **Reject** are gone. If your Mattermost account is not connected, connect it under **User Settings** > **Workspace** > **Mattermost**, then press the button again. When the approval steps change while a note waits, your message about it changes too if the note no longer waits for your step or you are no longer asked, and whoever it waits for now gets a message of their own. See [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
 
 ## Network and self-hosting
 

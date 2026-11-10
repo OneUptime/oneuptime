@@ -93,6 +93,7 @@ jest.mock("Common/Server/Services/MonitorService", () => {
       getEnabledMonitorQuery: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
       updateOneById: jest.fn(),
+      rewriteLatestIncomingRequestForReaders: jest.fn(),
     },
   };
 });
@@ -152,6 +153,7 @@ interface MonitorServiceMock {
   getEnabledMonitorQuery: jest.Mock;
   updateColumnsByIdWithoutHooks: jest.Mock;
   updateOneById: jest.Mock;
+  rewriteLatestIncomingRequestForReaders: jest.Mock;
 }
 
 const monitorService: MonitorServiceMock =
@@ -211,6 +213,7 @@ function makeMonitor(data: {
   id: ObjectID;
   monitorSteps?: MonitorSteps | undefined;
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
+  incomingMonitorRequestAsReceived?: IncomingMonitorRequest | undefined;
   incomingRequestSecretKey?: ObjectID | undefined;
 }): Monitor {
   const monitor: Monitor = new Monitor(data.id);
@@ -227,6 +230,11 @@ function makeMonitor(data: {
 
   if (data.incomingMonitorRequest) {
     monitor.incomingMonitorRequest = data.incomingMonitorRequest;
+  }
+
+  if (data.incomingMonitorRequestAsReceived) {
+    monitor.incomingMonitorRequestAsReceived =
+      data.incomingMonitorRequestAsReceived;
   }
 
   return monitor;
@@ -282,6 +290,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
     );
     monitorService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
     monitorService.updateOneById.mockResolvedValue(undefined);
+    monitorService.rewriteLatestIncomingRequestForReaders.mockResolvedValue(
+      true,
+    );
     projectService.getActiveProjectStatusQuery.mockReturnValue(
       ACTIVE_PROJECT_QUERY,
     );
@@ -624,6 +635,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
       ENABLED_MONITOR_QUERY,
     );
     monitorService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
+    monitorService.rewriteLatestIncomingRequestForReaders.mockResolvedValue(
+      true,
+    );
     projectService.getActiveProjectStatusQuery.mockReturnValue(
       ACTIVE_PROJECT_QUERY,
     );
@@ -864,6 +878,356 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
     expect(payload.requestHeaders).toEqual({ "user-agent": "curl/8.12.1" });
     expect(payload.incomingRequestReceivedAt.getTime()).toBe(
       LAST_ARRIVAL.getTime(),
+    );
+  });
+});
+
+/*
+ * An Incoming Request monitor's latest request is kept twice (#6402): as it
+ * came, which no role reads, and the copy people read, cut as the
+ * monitor's logs are, by its Keep request content switch
+ * (LatestIncomingRequest). The heartbeat judges the request again, against
+ * criteria that may read its body or its headers: it reads the request as
+ * it came, never the cut copy. A request a server from before the split
+ * kept once, as it came, is judged as before and split here.
+ */
+describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, never the copy people read", () => {
+  const SECRET_KEY: ObjectID = new ObjectID(
+    "6402bbbb-17c4-4b4f-9a3b-3c6ff1a1a2ee",
+  );
+
+  const RECEIVED_AT: Date = new Date("2026-07-27T09:58:00.000Z");
+
+  // The deploy hook as its sender sent it.
+  function asItCame(
+    extra: Partial<IncomingMonitorRequest> = {},
+  ): IncomingMonitorRequest {
+    return {
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_A_ID,
+      requestMethod: "POST",
+      requestHeaders: {
+        "content-type": "application/json",
+        authorization: "Bearer example-live-token-7f3a9c2b",
+      },
+      requestBody: { status: "deployed", apiKey: "ak_live_88c1" },
+      incomingRequestReceivedAt: RECEIVED_AT,
+      checkedAt: RECEIVED_AT,
+      onlyCheckForIncomingRequestReceivedAt: false,
+      ...extra,
+    } as unknown as IncomingMonitorRequest;
+  }
+
+  // The copy people read of a monitor that keeps no request content.
+  function cutCopy(
+    extra: Partial<IncomingMonitorRequest> = {},
+  ): IncomingMonitorRequest {
+    return {
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_A_ID,
+      requestMethod: "POST",
+      incomingRequestReceivedAt: RECEIVED_AT,
+      checkedAt: RECEIVED_AT,
+      onlyCheckForIncomingRequestReceivedAt: false,
+      isResponseContentOmitted: true,
+      ...extra,
+    } as unknown as IncomingMonitorRequest;
+  }
+
+  function heartbeatMonitor(copies: {
+    incomingMonitorRequest?: IncomingMonitorRequest | undefined;
+    incomingMonitorRequestAsReceived?: IncomingMonitorRequest | undefined;
+    checkOn?: CheckOn | undefined;
+  }): Monitor {
+    return makeMonitor({
+      id: MONITOR_A_ID,
+      monitorSteps: stepsWithCheckOn(copies.checkOn || CheckOn.IncomingRequest),
+      incomingRequestSecretKey: SECRET_KEY,
+      incomingMonitorRequest: copies.incomingMonitorRequest,
+      incomingMonitorRequestAsReceived: copies.incomingMonitorRequestAsReceived,
+    });
+  }
+
+  function evaluatedPayload(): IncomingMonitorRequest {
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+    return monitorResourceMock.mock.calls[0]![0] as IncomingMonitorRequest;
+  }
+
+  const BODY_SAYS_DEPLOYED: CriteriaFilter = {
+    checkOn: CheckOn.RequestBody,
+    filterType: FilterType.Contains,
+    value: '"status":"deployed"',
+  };
+
+  const SIGNED_WITH_THE_LIVE_KEY: CriteriaFilter = {
+    checkOn: CheckOn.RequestHeaderValue,
+    filterType: FilterType.Contains,
+    value: "Bearer example-live-token-7f3a9c2b",
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+      return new Date(NOW);
+    });
+
+    monitorService.findBy.mockResolvedValue([]);
+    monitorService.getEnabledMonitorQuery.mockReturnValue(
+      ENABLED_MONITOR_QUERY,
+    );
+    monitorService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
+    monitorService.rewriteLatestIncomingRequestForReaders.mockResolvedValue(
+      true,
+    );
+    projectService.getActiveProjectStatusQuery.mockReturnValue(
+      ACTIVE_PROJECT_QUERY,
+    );
+    monitorResourceMock.mockResolvedValue(undefined);
+
+    trackMock.mockImplementation((input: { receivedAt: Date | string }) => {
+      return Promise.resolve(OneUptimeDate.fromString(input.receivedAt));
+    });
+  });
+
+  test("both sweep phases read the request as it came, and the copy people read", async () => {
+    await runWorkerTick();
+
+    expect(monitorService.findBy).toHaveBeenCalledTimes(2);
+
+    for (const call of monitorService.findBy.mock.calls) {
+      const args: FindByArgs = call[0] as FindByArgs;
+      expect(args.select["incomingMonitorRequestAsReceived"]).toBe(true);
+      expect(args.select["incomingMonitorRequest"]).toBe(true);
+    }
+  });
+
+  test("a split request is judged as it came: its headers and its body whole, never the cut copy", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        heartbeatMonitor({
+          incomingMonitorRequest: cutCopy(),
+          incomingMonitorRequestAsReceived: asItCame(),
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+
+    expect(payload.requestHeaders).toEqual(asItCame().requestHeaders);
+    expect(payload.requestBody).toEqual(asItCame().requestBody);
+    expect(payload.isResponseContentOmitted).toBeUndefined();
+    expect(payload.onlyCheckForIncomingRequestReceivedAt).toBe(true);
+  });
+
+  test("the real criteria agree: a filter on the body or on a header still matches the request the sender sent", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        heartbeatMonitor({
+          incomingMonitorRequest: cutCopy(),
+          incomingMonitorRequestAsReceived: asItCame(),
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: payload,
+        criteriaFilter: BODY_SAYS_DEPLOYED,
+      }),
+    ).resolves.toBeTruthy();
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: payload,
+        criteriaFilter: SIGNED_WITH_THE_LIVE_KEY,
+      }),
+    ).resolves.toBeTruthy();
+
+    // The cut copy would have failed both.
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: {
+          ...cutCopy(),
+          onlyCheckForIncomingRequestReceivedAt: true,
+        },
+        criteriaFilter: BODY_SAYS_DEPLOYED,
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: {
+          ...cutCopy(),
+          onlyCheckForIncomingRequestReceivedAt: true,
+        },
+        criteriaFilter: SIGNED_WITH_THE_LIVE_KEY,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("the arrival floor is the request as it came", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        heartbeatMonitor({
+          incomingMonitorRequest: cutCopy({
+            incomingRequestReceivedAt: new Date("2026-07-27T09:00:00.000Z"),
+          }),
+          incomingMonitorRequestAsReceived: asItCame(),
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    const trackInput: { receivedAt: Date } = trackMock.mock.calls[0]![0] as {
+      receivedAt: Date;
+    };
+    expect(new Date(trackInput.receivedAt).getTime()).toBe(
+      RECEIVED_AT.getTime(),
+    );
+  });
+
+  test("a split monitor is not written again", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        heartbeatMonitor({
+          incomingMonitorRequest: cutCopy(),
+          incomingMonitorRequestAsReceived: asItCame(),
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    expect(
+      monitorService.rewriteLatestIncomingRequestForReaders,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("a request kept once, as it came: judged as before, and split", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        heartbeatMonitor({ incomingMonitorRequest: asItCame() }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    expect(
+      monitorService.rewriteLatestIncomingRequestForReaders,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        monitorService.rewriteLatestIncomingRequestForReaders.mock
+          .calls[0]![0] as ObjectID
+      ).toString(),
+    ).toBe(MONITOR_A_ID.toString());
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+    expect(payload.requestBody).toEqual(asItCame().requestBody);
+    expect(payload.requestHeaders).toEqual(asItCame().requestHeaders);
+
+    // Split after the bookkeeping stamp, before the evaluation.
+    expect(
+      monitorService.updateColumnsByIdWithoutHooks.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      monitorService.rewriteLatestIncomingRequestForReaders.mock
+        .invocationCallOrder[0]!,
+    );
+    expect(
+      monitorService.rewriteLatestIncomingRequestForReaders.mock
+        .invocationCallOrder[0],
+    ).toBeLessThan(monitorResourceMock.mock.invocationCallOrder[0]!);
+  });
+
+  test("a copy a server from before the split wrote after the request beside it: that request is judged, and the monitor split", async () => {
+    const later: IncomingMonitorRequest = asItCame({
+      requestBody: { status: "failed" },
+      incomingRequestReceivedAt: new Date("2026-07-27T09:59:30.000Z"),
+      checkedAt: new Date("2026-07-27T09:59:31.000Z"),
+    });
+
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        heartbeatMonitor({
+          incomingMonitorRequest: later,
+          incomingMonitorRequestAsReceived: asItCame(),
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+    expect(payload.requestBody).toEqual({ status: "failed" });
+
+    const trackInput: { receivedAt: Date } = trackMock.mock.calls[0]![0] as {
+      receivedAt: Date;
+    };
+    expect(new Date(trackInput.receivedAt).getTime()).toBe(
+      new Date("2026-07-27T09:59:30.000Z").getTime(),
+    );
+    expect(
+      monitorService.rewriteLatestIncomingRequestForReaders,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  test("a split that fails is logged, and the check still runs", async () => {
+    monitorService.rewriteLatestIncomingRequestForReaders.mockRejectedValue(
+      new Error("db connection reset"),
+    );
+
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        heartbeatMonitor({ incomingMonitorRequest: asItCame() }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    expect(mockedLogger.error).toHaveBeenCalled();
+    expect(evaluatedPayload().requestBody).toEqual(asItCame().requestBody);
+  });
+
+  test("a monitor with no heartbeat criteria is split too: the copy people read is cut whatever it checks", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        heartbeatMonitor({
+          incomingMonitorRequest: asItCame(),
+          checkOn: CheckOn.RequestBody,
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    expect(
+      monitorService.rewriteLatestIncomingRequestForReaders,
+    ).toHaveBeenCalledTimes(1);
+    expect(monitorResourceMock).not.toHaveBeenCalled();
+  });
+
+  test("a monitor no request reached has nothing to split, and falls back to its creation time", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([heartbeatMonitor({})])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    expect(
+      monitorService.rewriteLatestIncomingRequestForReaders,
+    ).not.toHaveBeenCalled();
+    expect(evaluatedPayload().incomingRequestReceivedAt.getTime()).toBe(
+      CREATED_AT.getTime(),
     );
   });
 });

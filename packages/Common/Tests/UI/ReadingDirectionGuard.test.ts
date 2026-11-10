@@ -228,6 +228,23 @@ describe("time charts read left to right in every language", () => {
       /\.recharts-surface:dir\(rtl\)\s*\{\s*direction:\s*ltr;/,
     );
   });
+
+  /*
+   * ...but a label along the time axis is a phrase of the page's language:
+   * laid out left to right, a Persian "۳۱ اکتبر، ۲۳:۰۰" put its day at the
+   * far end of its hour. Each reads the way its own words do; the value
+   * axis's labels keep their end anchors. The ReadingDirection browser
+   * suite checks where the day and the hour are drawn.
+   */
+  test("a time axis's labels read the way their own words do (Theme.css)", () => {
+    const theme: string = read("packages/Common/UI/Styles/Theme.css");
+
+    expect(theme).toMatch(
+      /\.recharts-surface:dir\(rtl\) \.recharts-xAxis-tick-labels \.recharts-cartesian-axis-tick-value\s*\{\s*unicode-bidi:\s*plaintext;\s*\}/,
+    );
+    // The value axis's labels are anchored at their end: never turned.
+    expect(theme).not.toContain(".recharts-yAxis-tick-labels");
+  });
 });
 
 describe("code reads left to right in every language (Theme.css)", () => {

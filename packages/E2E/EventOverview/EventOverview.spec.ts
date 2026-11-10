@@ -990,6 +990,14 @@ function foldedReportSummary(page: Page): Locator {
 }
 
 /*
+ * Under the folded answer, who and what it hurts in the short numbers its
+ * run recorded (InvestigationFoldedImpact): none when it recorded none.
+ */
+function foldedImpact(page: Page): Locator {
+  return investigationStep(page).getByTestId("investigation-folded-impact");
+}
+
+/*
  * Opens a finished investigation's folded report: its sections, its working
  * and the verdict. A no-op once it is open.
  */
@@ -1474,7 +1482,9 @@ test.describe("AI investigation report", () => {
 
     /*
      * What the run did and the read-only guarantee stay on the card while the
-     * details are collapsed; tokens and the model wait inside them.
+     * details are collapsed; tokens and the model wait inside them. Eleven
+     * steps: starting and its ten queries. Its three model calls answered,
+     * and a call that answered is no step of its own (issue #6437).
      */
     const usage: Locator = namedList(
       investigationDetails(page),
@@ -1483,7 +1493,7 @@ test.describe("AI investigation report", () => {
     await expect(usage).toBeVisible();
     await expect(usage.getByRole("listitem")).toHaveText([
       "10 telemetry queries",
-      "14 steps",
+      "11 steps",
       READ_ONLY,
     ]);
     await expect(namedList(investigation, "Investigation usage")).toHaveCount(
@@ -1664,6 +1674,8 @@ test.describe("AI investigation report", () => {
     // Back on #1042, its report is folded to its summary again.
     await expect(foldedReportSummary(page)).toHaveText(INCIDENT_TLDR);
     await expect(reportToggle(page)).toHaveAttribute("aria-expanded", "false");
+    // Its run recorded no impact numbers: the summary alone, as before.
+    await expect(foldedImpact(page)).toHaveCount(0);
     await expectNoErrorStates(page);
   });
 
@@ -2470,7 +2482,7 @@ test.describe("investigation details", () => {
     ).toHaveCount(2);
     // Each tab names its panel and carries its count.
     await expect(evidenceTab).toHaveAccessibleName("Evidence checked 10");
-    await expect(activityTab).toHaveAccessibleName("Activity 14");
+    await expect(activityTab).toHaveAccessibleName("Activity 11");
     await expect(evidencePanel).toHaveAttribute(
       "id",
       (await evidenceTab.getAttribute("aria-controls")) || "missing",
@@ -2598,7 +2610,7 @@ test.describe("investigation details", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await expect(
       namedList(details, "Investigation usage").getByRole("listitem"),
-    ).toHaveText(["10 telemetry queries", "14 steps", READ_ONLY]);
+    ).toHaveText(["10 telemetry queries", "11 steps", READ_ONLY]);
     await expectAbove(
       investigation.getByText("Preparing the final report"),
       details,
@@ -3329,7 +3341,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
       "Preparing the final report",
       "The investigation is complete. OneUptime AI is organizing the findings and evidence.",
     ],
-    usage: ["10 telemetry queries", "14 steps", READ_ONLY],
+    usage: ["10 telemetry queries", "11 steps", READ_ONLY],
     hasDetails: true,
   },
 ];
@@ -3445,6 +3457,263 @@ test.describe("investigation states", () => {
         "OneUptime AI posted a root cause analysis",
       ),
     ).toHaveCount(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A run that did not finish, and one between attempts (issues #6437, #6438)
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * A customer's AI run failed with its provider's own error and nothing to
+ * press, and its steps went on spinning after it had died. The card now
+ * says why in words to act on, takes whoever may make the fix to the
+ * settings page it is made on, and offers Try again to whoever may start
+ * the run again. A run waiting between attempts says when it tries again,
+ * and nothing on it moves until then.
+ */
+const FAILED_CAUSE: string =
+  "The AI provider could not be reached, or was too busy to answer.";
+const FAILED_FIX: string =
+  "Check that the AI provider is up and that OneUptime can reach it, then try again.";
+// The fixture's refusal of Try again (?fail=investigation-try-again).
+const TRY_AGAIN_REFUSAL: string =
+  "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
+// ?ai=retrying tries again two minutes after the pinned clock.
+const RETRY_TIME: string = "(6:22 PM|18:22)";
+
+function failureNotice(page: Page): Locator {
+  return investigationStep(page).getByTestId("investigation-error");
+}
+
+function tryAgainButton(page: Page): Locator {
+  return failureNotice(page).getByRole("button", { name: "Try again" });
+}
+
+test.describe("a run that did not finish (issues #6437, #6438)", () => {
+  test("?ai=failed says why in words to act on, with Try again and the page the fix is made on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=failed");
+
+    const notice: Locator = failureNotice(page);
+    await expect(notice).toBeVisible({ timeout: 30000 });
+    await expect(
+      notice.getByText("The investigation stopped before it could report.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(notice.getByTestId("investigation-error-cause")).toHaveText(
+      FAILED_CAUSE,
+    );
+    await expect(notice.getByTestId("investigation-error-fix")).toHaveText(
+      FAILED_FIX,
+    );
+
+    // The ways forward, in one row: Try again, the settings, Details.
+    const actions: Locator = notice.getByTestId("investigation-error-actions");
+    await expect(tryAgainButton(page)).toBeEnabled();
+    const settings: Locator = actions.getByRole("link", {
+      name: "Open LLM Providers",
+    });
+    await expect(settings).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/settings/llm-providers`,
+    );
+    const details: Locator = actions.getByRole("button", { name: "Details" });
+    await expect(details).toHaveAttribute("aria-expanded", "false");
+    const [tryAgainBox, settingsBox, detailsBox] = await documentBoxes(page, [
+      tryAgainButton(page),
+      settings,
+      details,
+    ]);
+    // One row, read left to right, their middles on one line.
+    expect(tryAgainBox!.x + tryAgainBox!.width).toBeLessThan(settingsBox!.x);
+    expect(settingsBox!.x + settingsBox!.width).toBeLessThan(detailsBox!.x);
+    for (const box of [settingsBox!, detailsBox!]) {
+      expect(
+        Math.abs(
+          box.y + box.height / 2 - (tryAgainBox!.y + tryAgainBox!.height / 2),
+        ),
+      ).toBeLessThan(4);
+    }
+
+    // The provider's own words wait under Details.
+    await details.click();
+    await expect(notice.getByTestId("investigation-error-details")).toHaveText(
+      "The LLM provider returned 529 Overloaded three times; the investigation stopped after 4 of 12 planned tool calls.",
+    );
+
+    /*
+     * The step it stopped on was never followed by another way: it says it
+     * failed, rather than promising a retry that never came - and nothing
+     * spins on a run that is over.
+     */
+    const steps: Locator =
+      investigationStep(page).getByTestId("activity-step-text");
+    await expect(steps.last()).toHaveText("Checking recent changes · failed");
+    await expect(investigationStep(page)).not.toContainText(
+      "retrying differently",
+    );
+    await expect(
+      investigationStep(page).locator("[class*='animate-']"),
+    ).toHaveCount(0);
+
+    await screenshotElement(
+      investigationStep(page),
+      "investigation-did-not-finish",
+    );
+  });
+
+  test("Try again starts it again, once, for this incident, and the card turns to the new run", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=failed");
+    await expect(tryAgainButton(page)).toBeEnabled({ timeout: 30000 });
+
+    await tryAgainButton(page).click();
+
+    await expect(
+      stepPillWords(investigationCard(page), "investigation"),
+    ).toHaveText("Queued", { timeout: 30000 });
+    await expect(failureNotice(page)).toHaveCount(0);
+
+    const started: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/ai-investigation/try-again",
+    );
+    expect(started).toHaveLength(1);
+    expect(started[0]!.method).toBe("POST");
+    expect(started[0]!.body).toEqual({
+      subjectType: "incident",
+      subjectId: INCIDENT_ID,
+    });
+  });
+
+  test("a refusal says why in the server's words, on a line of its own under the row, and the button stays", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=failed&fail=investigation-try-again");
+    await expect(tryAgainButton(page)).toBeEnabled({ timeout: 30000 });
+
+    await tryAgainButton(page).click();
+
+    const refusal: Locator = failureNotice(page).getByRole("alert");
+    await expect(refusal).toHaveText(TRY_AGAIN_REFUSAL);
+    await expect(refusal).toHaveAttribute(
+      "data-testid",
+      "investigation-error-try-again-error",
+    );
+    await expect(tryAgainButton(page)).toBeEnabled();
+    await expect(
+      stepPillWords(investigationCard(page), "investigation"),
+    ).toHaveText("Did not finish");
+
+    /*
+     * It came between Try again and the rest of the row, pushing them onto
+     * a line of their own: now the row stays whole, and the refusal is the
+     * line under it.
+     */
+    const actions: Locator = failureNotice(page).getByTestId(
+      "investigation-error-actions",
+    );
+    const [tryAgainBox, settingsBox, detailsBox, refusalBox] =
+      await documentBoxes(page, [
+        tryAgainButton(page),
+        actions.getByRole("link", { name: "Open LLM Providers" }),
+        actions.getByRole("button", { name: "Details" }),
+        refusal,
+      ]);
+    for (const box of [settingsBox!, detailsBox!]) {
+      expect(
+        Math.abs(
+          box.y + box.height / 2 - (tryAgainBox!.y + tryAgainBox!.height / 2),
+        ),
+      ).toBeLessThan(4);
+    }
+    for (const box of [tryAgainBox!, settingsBox!, detailsBox!]) {
+      expect(box.y + box.height).toBeLessThanOrEqual(refusalBox!.y + 1);
+    }
+
+    await screenshotElement(
+      investigationStep(page),
+      "investigation-try-again-refused",
+    );
+  });
+
+  test("?ai=failed-viewer: someone who may not start it again reads why, with no Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=failed-viewer");
+
+    await expect(failureNotice(page)).toBeVisible({ timeout: 30000 });
+    await expect(
+      failureNotice(page).getByTestId("investigation-error-cause"),
+    ).toHaveText(FAILED_CAUSE);
+    await expect(tryAgainButton(page)).toHaveCount(0);
+    await expect(
+      failureNotice(page).getByRole("button", { name: "Details" }),
+    ).toBeVisible();
+  });
+
+  test("?ai=retrying says when it tries again; it is no failure, and nothing on it moves", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=retrying");
+
+    const step: Locator = investigationStep(page);
+    await expect(stepPillWords(step, "investigation")).toHaveText(
+      "Trying again soon",
+      { timeout: 30000 },
+    );
+    // A wait, drawn as one: the calm clock, not the pulse of a run at work.
+    await expect(stepPill(step, "investigation")).toHaveAttribute(
+      "data-indicator",
+      "waiting",
+    );
+    // Nothing is investigating between attempts: the heading says what is next.
+    await expect(
+      step.getByRole("heading", {
+        level: 3,
+        name: "OneUptime AI will try again",
+      }),
+    ).toBeVisible();
+    await expect(step).not.toContainText("OneUptime AI is investigating");
+    await expect(step).toContainText(
+      new RegExp(
+        `The last attempt did not finish\\. OneUptime tries again at ${RETRY_TIME}; its steps so far are below\\.`,
+      ),
+    );
+    await expect(step.getByTestId("activity-attempt-end")).toHaveText(
+      new RegExp(
+        `^Did not finish: The AI provider did not answer within 120 seconds\\. Trying again at ${RETRY_TIME}\\.$`,
+      ),
+    );
+    // The model call that ran out of time failed; nothing promises a retry.
+    await expect(
+      step.getByTestId("activity-step-text").filter({ hasText: "Thinking" }),
+    ).toHaveText(["Thinking · failed"]);
+
+    // Nothing to press, and nothing moves until its time.
+    await expect(failureNotice(page)).toHaveCount(0);
+    await expect(step.getByRole("button", { name: "Try again" })).toHaveCount(
+      0,
+    );
+    await expect(step.locator("[class*='animate-']")).toHaveCount(0);
+
+    await screenshotElement(step, "investigation-trying-again-soon");
   });
 });
 
@@ -4336,6 +4605,15 @@ const CARD_STATES: ReadonlyArray<CardState> = [
     name: "a page OneUptime AI holds",
     query: "state=created&hold=1",
     badge: "Completed",
+  },
+  /*
+   * Between attempts (issue #6437): it tries again two minutes from now.
+   * Last, as the states above are named by their place in this list.
+   */
+  {
+    name: "an investigation waiting to try again",
+    query: "ai=retrying",
+    badge: "Trying again soon",
   },
 ];
 
@@ -15584,6 +15862,15 @@ test.describe("screenshots", () => {
       { file: "ai-card-pending", state: CARD_STATES[7]! },
       { file: "ai-card-none", state: CARD_STATES[8]! },
       { file: "ai-card-waiting", state: CARD_STATES[11]! },
+      { file: "ai-card-retrying", state: CARD_STATES[13]! },
+      {
+        file: "ai-card-failed-dark",
+        state: {
+          name: "failed, dark",
+          query: "ai=failed&theme=dark",
+          badge: "Did not finish",
+        },
+      },
       {
         file: "ai-card-waiting-viewer",
         state: {
@@ -22040,6 +22327,271 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
 });
 
 /*
+ * TWO PEOPLE APPROVE A RISKIER FIX (?approvals=, #6148's follow-ups): where
+ * the project asks for it, the kubectl fix - its scale is a riskier change -
+ * says two people must approve it. The first approval's press says Approve
+ * and runs nothing; the fix then names who approved it first and waits for
+ * someone else, offering its first approver no Approve at all; the second
+ * approval, by someone else, runs it.
+ */
+const TWO_APPROVALS_WORDS: {
+  yoursIsTheFirst: string;
+  yoursRunsIt: string;
+  youApprovedFirst: string;
+  firstApprovalNote: string;
+  alreadyApprovedTitle: string;
+  alreadyApprovedMessage: string;
+} = {
+  yoursIsTheFirst:
+    "Two people must approve this riskier fix. Yours is the first.",
+  yoursRunsIt:
+    "Two people must approve this riskier fix. Your approval runs it.",
+  youApprovedFirst:
+    "You approved it first. It runs once someone else approves it too.",
+  // What the press will do, read before it.
+  firstApprovalNote:
+    "Your approval alone runs nothing: the fix runs once someone else approves it too.",
+  // A first approver's press refused: their approval stands, one calm line.
+  alreadyApprovedTitle: "You already approved this fix",
+  alreadyApprovedMessage:
+    "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
+};
+
+// A step's title and the line under it, as the reader reads them.
+async function stepWords(
+  fix: Locator,
+  kind: string,
+): Promise<{ title: string; summary: string }> {
+  const step: Locator = fixStep(fix, kind);
+
+  return {
+    title: await readWords(step.getByTestId("remediation-fix-step-title")),
+    summary:
+      (await step.getByTestId("remediation-fix-step-summary").count()) > 0
+        ? await readWords(step.getByTestId("remediation-fix-step-summary"))
+        : "",
+  };
+}
+
+test.describe("two people approve a riskier fix (?approvals=)", () => {
+  test("on: the riskier fix says two must approve it, its press says Approve, and the first approval runs nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page, "approvals=on");
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const approve: Locator = kubectl.getByTestId("remediation-approve-button");
+
+    expect(await stepTitles(kubectl)).toEqual([
+      KUBECTL_FIX_PLAN,
+      "Needs your approval",
+    ]);
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs your approval",
+      summary: TWO_APPROVALS_WORDS.yoursIsTheFirst,
+    });
+    // The first of two runs nothing: its press says so, and so does its note.
+    await expect(approve).toHaveText("Approve");
+    await expect(kubectl.getByTestId("remediation-approval-note")).toHaveText(
+      TWO_APPROVALS_WORDS.firstApprovalNote,
+    );
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-on-1280");
+
+    await approve.click();
+
+    // Recorded, and nothing ran: the fix waits for someone else's approval.
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for a second approval",
+    );
+    await expect
+      .poll(() => {
+        return stepWords(kubectl, "firstApproval");
+      })
+      .toEqual({ title: "Approved by Maya Chen", summary: "" });
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs a second approval",
+      summary: TWO_APPROVALS_WORDS.youApprovedFirst,
+    });
+    await expect(fixStep(kubectl, "run")).toHaveCount(0);
+    // No Approve for the first approver; Dismiss is still theirs.
+    await expect(approve).toHaveCount(0);
+    await expect(
+      kubectl.getByTestId("remediation-fix-details-toggle"),
+    ).toHaveCount(0);
+    await expect(
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
+    ).toBeVisible();
+    // Nothing else waits for the reader: the step says a second is needed.
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("Needs a second approval");
+
+    const approvals: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/auto-remediation/approve",
+    );
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0]?.body).toEqual({
+      suggestionId: uuid("93000000", 2),
+    });
+    await expect(
+      remediationStep(page).getByTestId("remediation-action-error"),
+    ).toHaveCount(0);
+    await expect(
+      remediationStep(page).getByTestId("remediation-already-approved"),
+    ).toHaveCount(0);
+    /*
+     * The button pressed is gone and nothing ran: a screen reader is told
+     * so, politely, while the steps show it on screen.
+     */
+    const announcement: Locator = kubectl.getByTestId(
+      "remediation-fix-announcement",
+    );
+    await expect(announcement).toHaveAttribute("role", "status");
+    await expect(announcement).toHaveText(TWO_APPROVALS_WORDS.youApprovedFirst);
+    await expectNoErrorStates(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-mine-1280");
+  });
+
+  test("first: Jordan Patel approved it first in Slack, and the reader's Approve & Run runs it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page, "approvals=first");
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const approve: Locator = kubectl.getByTestId("remediation-approve-button");
+
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for a second approval",
+    );
+    expect(await stepWords(kubectl, "firstApproval")).toEqual({
+      title: "Approved by Jordan Patel in Slack",
+      summary: "",
+    });
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs a second approval",
+      summary: TWO_APPROVALS_WORDS.yoursRunsIt,
+    });
+    // The second approval runs the fix: its press and its note say so.
+    await expect(approve).toHaveText("Approve & Run");
+    await expect(kubectl.getByTestId("remediation-approval-note")).toHaveText(
+      APPROVAL_NOTE,
+    );
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("Needs your approval");
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-first-1280");
+
+    await approve.click();
+
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Approved & started",
+    );
+    await expect(
+      kubectl.getByTestId("remediation-command-execution"),
+    ).toHaveText(["Succeeded", "Succeeded"]);
+    // Both approvals stay in its story: Jordan's first, then the reader's.
+    expect(await stepWords(kubectl, "firstApproval")).toEqual({
+      title: "Approved by Jordan Patel in Slack",
+      summary: "",
+    });
+    await expect(
+      remediationStep(page).getByTestId("remediation-approval-note"),
+    ).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  test("mine, at 390px dark: the first approver is offered no Approve, is told why, and nothing scrolls sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await openManyFixes(page, "approvals=mine&theme=dark");
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for a second approval",
+    );
+    expect(await stepWords(kubectl, "firstApproval")).toEqual({
+      title: "Approved by Maya Chen",
+      summary: "",
+    });
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs a second approval",
+      summary: TWO_APPROVALS_WORDS.youApprovedFirst,
+    });
+    await expect(kubectl.getByTestId("remediation-approve-button")).toHaveCount(
+      0,
+    );
+    await expect(
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
+    ).toBeVisible();
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("Needs a second approval");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-mine-390-dark");
+  });
+
+  test("on, approved meanwhile from another tab: the card's press says in one calm line that it was already approved, and the fix then waits for someone else", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page, "approvals=on");
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const approve: Locator = kubectl.getByTestId("remediation-approve-button");
+    await expect(approve).toHaveText("Approve");
+
+    // The reader's first approval, given elsewhere while this tab was open.
+    const elsewhere: FixtureApiResult = await callFixtureApi(
+      page,
+      "POST",
+      "/auto-remediation/approve",
+      { suggestionId: uuid("93000000", 2) },
+    );
+    expect(elsewhere.status).toBe(200);
+    expect(elsewhere.data?.["isWaitingForSecondApproval"]).toBe(true);
+
+    await approve.click();
+
+    /*
+     * The server refused the press (RemediationApproval: the same person
+     * cannot approve twice), but the reader's approval stands: one calm
+     * line, a status rather than an alert, and the steps above say the
+     * rest - never the server's sentence a third time.
+     */
+    const notice: Locator = kubectl.getByTestId("remediation-already-approved");
+    await expect(notice).toHaveText(TWO_APPROVALS_WORDS.alreadyApprovedTitle);
+    await expect(notice).toHaveAttribute("role", "status");
+    await expect(kubectl).not.toContainText(
+      TWO_APPROVALS_WORDS.alreadyApprovedMessage,
+    );
+    await expect(kubectl.getByTestId("remediation-action-error")).toHaveCount(
+      0,
+    );
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for a second approval",
+    );
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs a second approval",
+      summary: TWO_APPROVALS_WORDS.youApprovedFirst,
+    });
+    await expect(approve).toHaveCount(0);
+    await expect(fixStep(kubectl, "run")).toHaveCount(0);
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-refused-1280");
+  });
+});
+
+/*
  * A FIX THAT DID NOT WORK, STEP BY STEP (?fixes=rolled-back, issue #5598):
  * the Remediation step the issue showed - a kubectl fix OneUptime AI ran on
  * its own, after which the incident did not recover, so the change was
@@ -22271,6 +22823,526 @@ test.describe("a fix that did not work, step by step (?fixes=rolled-back)", () =
 });
 
 /*
+ * A ROUND OF AN AI FIX, SAID AS IT WENT (?fixes=unfinished | no-fix, issues
+ * #6436 and #6487). "No safe fix found" told a reader nothing: not why, not
+ * what OneUptime AI checked, not which fix was not safe, not whether anyone
+ * was asked to approve one. The step reads each fix's round
+ * (POST /auto-remediation/round) and says what it did. A round that stopped
+ * says so, why and what to do, with Try again for whoever may change the
+ * incident (POST /auto-remediation/round-try-again). A round that found no
+ * safe fix says why in the AI's words, the fixes it ruled out with the
+ * commands each would run and why not, the commands it checked with and how
+ * each went, and that no fix ran and nobody was asked to approve one.
+ */
+const UNFINISHED_ROUND_FIX_ID: string = "93000000-0000-4000-8000-000000000010";
+const ROUND_TIMEOUT_CAUSE: string =
+  "The AI provider did not answer within 120 seconds.";
+// The fixture's refusal of the round's Try again (?fail=round-try-again).
+const ROUND_LIMIT_REFUSAL: string =
+  "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.";
+const NO_FIX_REASON: string =
+  "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe: that release also changed the database schema.";
+
+async function openRound(page: Page, query: string): Promise<Locator> {
+  await open(page, INCIDENT_PATH, query);
+  const fix: Locator = remediationStep(page).getByTestId("remediation-fix");
+  await expect(fix).toHaveCount(1, { timeout: 30000 });
+  await expectWhatHappenedSettled(page);
+
+  return fix;
+}
+
+function roundPlanTitle(fix: Locator): Locator {
+  return fixStep(fix, "plan").getByTestId("remediation-fix-step-title");
+}
+
+async function openRoundPlan(fix: Locator): Promise<Locator> {
+  await fixStep(fix, "plan").getByTestId("remediation-fix-step-toggle").click();
+  const details: Locator = fixStep(fix, "plan").getByTestId(
+    "remediation-fix-step-details",
+  );
+  await expect(details).toBeVisible();
+
+  return details;
+}
+
+function roundNotice(fix: Locator): Locator {
+  return fixStep(fix, "plan").getByTestId("remediation-round-failure");
+}
+
+function roundTryAgain(fix: Locator): Locator {
+  return roundNotice(fix).getByRole("button", { name: "Try again" });
+}
+
+test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix)", () => {
+  test("a round that stopped says so and why - never that it found no safe fix - and opens to what to do, Try again and what it checked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing",
+    );
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+
+    expect(await stepWords(fix, "plan")).toEqual({
+      title: "Stopped before it found a fix",
+      summary: ROUND_TIMEOUT_CAUSE,
+    });
+    await expect(fix.getByTestId("remediation-fix-status")).toHaveText(
+      "Did not finish",
+    );
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("Did not finish");
+    await expect(remediationStep(page)).not.toContainText("Found no safe fix");
+    // What to do about it is in sight before the step opens.
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-round-try-again"),
+    ).toBeVisible();
+
+    const details: Locator = await openRoundPlan(fix);
+    const notice: Locator = roundNotice(fix);
+    // Open, its notice offers it, with why: one Try again, never two.
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-round-try-again"),
+    ).toHaveCount(0);
+    await expect(fix.getByRole("button", { name: "Try again" })).toHaveCount(1);
+    await expect(
+      notice.getByText("Why it stopped", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      notice.getByTestId("remediation-round-failure-cause"),
+    ).toHaveText(ROUND_TIMEOUT_CAUSE);
+    // The notice starts with the step's summary: the open step says it once.
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+    ).toHaveCount(0);
+    await expect(
+      notice.getByTestId("remediation-round-failure-tries"),
+    ).toHaveText("OneUptime tried 3 times.");
+    await expect(
+      notice.getByTestId("remediation-round-failure-fix"),
+    ).toContainText("Response Timeout");
+    await expect(roundTryAgain(fix)).toBeEnabled();
+    await expect(
+      notice.getByRole("link", { name: "Open LLM Providers" }),
+    ).toHaveAttribute("href", `${DASHBOARD}/settings/llm-providers`);
+
+    // The provider's own words wait under Details.
+    await notice.getByRole("button", { name: "Details" }).click();
+    await expect(
+      notice.getByTestId("remediation-round-failure-details"),
+    ).toHaveText(
+      "OpenAI API request failed: the LLM provider did not respond within 120 seconds.",
+    );
+
+    // What it checked before it stopped, and that nothing ran or was asked.
+    expect(
+      await details
+        .getByTestId("remediation-round-check-command")
+        .allTextContents(),
+    ).toEqual([
+      "kubectl get hpa checkout-api -n checkout",
+      "kubectl top pods -n checkout -l app=checkout-api",
+    ]);
+    // The title says it stopped before it found a fix: the line does not.
+    await expect(details.getByTestId("remediation-round-approval")).toHaveText(
+      "No fix ran, and nobody was asked to approve one.",
+    );
+
+    // The sweep's note says less than the notice: it gives way.
+    await expect(details).not.toContainText("the planning run failed");
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+    ).toEqual([]);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-did-not-finish",
+    );
+  });
+
+  test("Try again starts the round again, once, for this fix, and the step works on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing",
+    );
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+    await openRoundPlan(fix);
+
+    await roundTryAgain(fix).click();
+
+    await expect(roundPlanTitle(fix)).toHaveText("Working out a fix…", {
+      timeout: 30000,
+    });
+    await expect(roundNotice(fix)).toHaveCount(0);
+    await expect(fix.getByTestId("remediation-fix-status")).not.toHaveText(
+      "Did not finish",
+    );
+
+    const started: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/auto-remediation/round-try-again",
+    );
+    expect(started).toHaveLength(1);
+    expect(started[0]!.method).toBe("POST");
+    expect(started[0]!.body).toEqual({
+      suggestionId: UNFINISHED_ROUND_FIX_ID,
+    });
+
+    // Its new round is read, for the new run.
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await apiRequestsTo(page, "/auto-remediation/round")).length;
+      })
+      .toBeGreaterThanOrEqual(2);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-tried-again",
+    );
+  });
+
+  test("Try again under the folded step starts it again from the keyboard, which goes to the step that works on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing",
+    );
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+
+    await fixStep(fix, "plan")
+      .getByTestId("remediation-round-try-again")
+      .focus();
+    await page.keyboard.press("Enter");
+
+    await expect(roundPlanTitle(fix)).toHaveText("Working out a fix…", {
+      timeout: 30000,
+    });
+    expect(
+      await apiRequestsTo(page, "/auto-remediation/round-try-again"),
+    ).toHaveLength(1);
+    // Its button went with the step: the keyboard is on the step's title.
+    await expect
+      .poll(async (): Promise<string> => {
+        return page.evaluate((): string => {
+          return document.activeElement?.textContent || "";
+        });
+      })
+      .toContain("Working out a fix…");
+    // When it started again, not when the fix was first worked out (18:04).
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-fix-step-time"),
+    ).toHaveAttribute("datetime", NOW.toISOString(), { timeout: 30000 });
+  });
+
+  test("a refusal is said under the button, in the server's words, and the round reads as it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing&fail=round-try-again",
+    );
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+    await openRoundPlan(fix);
+
+    await roundTryAgain(fix).click();
+
+    const refusal: Locator = roundNotice(fix).getByRole("alert");
+    await expect(refusal).toHaveText(ROUND_LIMIT_REFUSAL);
+    await expect(refusal).toHaveAttribute(
+      "data-testid",
+      "remediation-round-failure-try-again-error",
+    );
+    await expect(roundTryAgain(fix)).toBeEnabled();
+    /*
+     * The round reads as it was: stopped, for the same cause - which the
+     * open step says once, in its notice.
+     */
+    expect(await stepWords(fix, "plan")).toEqual({
+      title: "Stopped before it found a fix",
+      summary: "",
+    });
+    await expect(
+      roundNotice(fix).getByTestId("remediation-round-failure-cause"),
+    ).toHaveText(ROUND_TIMEOUT_CAUSE);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-try-again-refused",
+    );
+  });
+
+  test("on a resolved incident it still says why it stopped, with no Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(page, "fixes=unfinished");
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+    await openRoundPlan(fix);
+
+    await expect(
+      roundNotice(fix).getByTestId("remediation-round-failure-cause"),
+    ).toHaveText(ROUND_TIMEOUT_CAUSE);
+    await expect(roundTryAgain(fix)).toHaveCount(0);
+    expect(
+      await apiRequestsTo(page, "/auto-remediation/round-try-again"),
+    ).toEqual([]);
+  });
+
+  test("a round that found no safe fix says why, each fix it ruled out with its commands and why not, what it checked and how each went, and that nobody was asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(page, "fixes=no-fix");
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+    ).toHaveText(NO_FIX_REASON, { timeout: 30000 });
+    expect(await stepTitles(fix)).toEqual(["Found no safe fix"]);
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("No fix found");
+
+    const details: Locator = await openRoundPlan(fix);
+
+    // Why, whole, first: the open step leaves its two-line summary out.
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+    ).toHaveCount(0);
+    await expect(details.getByTestId("remediation-round-reason")).toHaveText(
+      NO_FIX_REASON,
+    );
+    // The answer first, then how the round got there.
+    expect(
+      await details.evaluate((element: Element): Array<string | null> => {
+        return Array.from(element.children).map(
+          (child: Element): string | null => {
+            return child.getAttribute("data-testid");
+          },
+        );
+      }),
+    ).toEqual([
+      "remediation-round-lead",
+      "remediation-round-ruled-out",
+      "remediation-round-checks",
+      "remediation-round-approval",
+    ]);
+
+    /*
+     * The AI's whole answer says the same why again, at length: folded
+     * under the reason, one press away.
+     */
+    const fullReasoning: Locator = details.getByTestId(
+      "remediation-round-reasoning-toggle",
+    );
+    await expect(details.getByTestId("remediation-fix-reasoning")).toHaveCount(
+      0,
+    );
+    await expect(fullReasoning).toHaveText("Show full reasoning");
+    await fullReasoning.click();
+    await expect(details.getByTestId("remediation-fix-reasoning")).toHaveText(
+      "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe, so OneUptime AI proposes no change.",
+    );
+    await expect(fullReasoning).toHaveText("Show less");
+    await expect(fullReasoning).toHaveAttribute("aria-expanded", "true");
+    await fullReasoning.click();
+    await expect(details.getByTestId("remediation-fix-reasoning")).toHaveCount(
+      0,
+    );
+
+    // The fixes it ruled out: what each would do, why not, its commands.
+    const ruledOut: Locator = details.getByTestId(
+      "remediation-round-ruled-out-fix",
+    );
+    expect(
+      await ruledOut
+        .getByTestId("remediation-round-ruled-out-what")
+        .allTextContents(),
+    ).toEqual([
+      "Roll checkout-api back to the revision before the 17:52 rollout",
+      "Restart checkout-api's pods",
+      "Scale checkout-api out to 6 replicas",
+    ]);
+    await expect(
+      ruledOut.first().getByTestId("remediation-round-ruled-out-why"),
+    ).toHaveText(
+      "Not safe: the 17:52 release ran a database migration, and the revision before it does not read the new schema.",
+    );
+    expect(
+      await details
+        .getByTestId("remediation-round-ruled-out-command")
+        .allTextContents(),
+    ).toEqual([
+      "kubectl rollout undo deployment/checkout-api -n checkout",
+      "kubectl rollout restart deployment/checkout-api -n checkout",
+      "kubectl scale deployment/checkout-api -n checkout --replicas=6",
+    ]);
+
+    // What it checked, in order, each with how it went.
+    const checks: Locator = details.getByTestId("remediation-round-check");
+    expect(
+      await checks.evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return `${element.getAttribute("data-status")}: ${
+            element
+              .querySelector("[data-testid='remediation-round-check-mark']")
+              ?.getAttribute("aria-label") || ""
+          }`;
+        });
+      }),
+    ).toEqual(["ran: Ran", "ran: Ran", "ran: Ran", "failed: Failed"]);
+    expect(
+      await details
+        .getByTestId("remediation-round-check-command")
+        .allTextContents(),
+    ).toEqual([
+      "kubectl get hpa checkout-api -n checkout",
+      "kubectl top pods -n checkout -l app=checkout-api",
+      "kubectl rollout history deployment/checkout-api -n checkout",
+      "kubectl get events -n checkout --field-selector type=Warning",
+    ]);
+    await expect(
+      checks.last().getByTestId("remediation-round-check-error"),
+    ).toContainText("Error from server (Forbidden)");
+    await expect(
+      details.getByTestId("remediation-round-other-checks"),
+    ).toHaveText("It also queried the project's telemetry 4 times.");
+
+    // Nobody was asked: it proposed nothing. And nothing to try again.
+    await expect(details.getByTestId("remediation-round-approval")).toHaveText(
+      "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
+    );
+    await expect(details.getByTestId("remediation-round-failure")).toHaveCount(
+      0,
+    );
+    await expect(
+      details.getByRole("button", { name: "Try again" }),
+    ).toHaveCount(0);
+
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+    ).toEqual([]);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-no-safe-fix",
+    );
+  });
+
+  for (const [width, theme] of [
+    [390, "light"],
+    [1280, "dark"],
+  ] as const) {
+    test(`a round that found no safe fix, opened, at ${width}px (${theme}): nothing reaches past the step`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      const fix: Locator = await openRound(
+        page,
+        theme === "dark" ? "fixes=no-fix&theme=dark" : "fixes=no-fix",
+      );
+      await expect(
+        fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+      ).toHaveText(NO_FIX_REASON, { timeout: 30000 });
+      const details: Locator = await openRoundPlan(fix);
+      const body: Box = await documentBox(
+        page.getByTestId("ai-card-step-remediation-body"),
+      );
+
+      for (const line of await details
+        .locator(
+          "[data-testid='remediation-round-ruled-out-command'], [data-testid='remediation-round-check-command'], [data-testid='remediation-round-check-error']",
+        )
+        .all()) {
+        const box: Box = await documentBox(line);
+        expect(box.x).toBeGreaterThanOrEqual(body.x - 1);
+        expect(box.x + box.width).toBeLessThanOrEqual(body.x + body.width + 1);
+      }
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        remediationStep(page),
+        `remediation-round-no-safe-fix-${width}-${theme}`,
+      );
+    });
+  }
+
+  test("in Persian at 390px: the words read right to left, the commands left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 1000 });
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing&lang=fa&dir=auto",
+    );
+    // Its round is read: the plan step says it stopped.
+    await expect(fixStep(fix, "plan")).toHaveAttribute("data-tone", "failed", {
+      timeout: 30000,
+    });
+    const details: Locator = await openRoundPlan(fix);
+
+    expect(
+      await details
+        .getByTestId("remediation-round-approval")
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+    ).toBe("rtl");
+    expect(
+      await details
+        .getByTestId("remediation-round-check-command")
+        .first()
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+    ).toBe("ltr");
+    await expect(
+      details.getByTestId("remediation-round-approval"),
+    ).not.toHaveText("No fix ran, and nobody was asked to approve one.");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-did-not-finish-fa-390",
+    );
+  });
+});
+
+/*
  * The verdict at the end of an opened report, on the narrowest phone: its
  * two answers share the row, half each. Side by side at their own width,
  * they reached 2px past a 320px card.
@@ -22324,7 +23396,10 @@ test("the report's verdict fits a 320px phone: its two answers share the row, in
  * approved; Dismiss fix, the step's own words, which asks what approving
  * asks; a dry run's time in the reader's language; and an App Platforms
  * environment named as one in the run's activity. Kept to five page loads:
- * Event Overview's halves are near their groups' time.
+ * Event Overview's halves are near their groups' time. #5715's follow-ups
+ * add three: the impact's short numbers on the folded step at 1280px, and
+ * the marks right after citation chips and record pills on an English and
+ * a German phone (the Persian phone's test reads both on its own load).
  * ---------------------------------------------------------------------------
  */
 
@@ -22363,6 +23438,197 @@ async function readWords(locator: Locator): Promise<string> {
 
 const DRY_RUN_WOULD_RUN: string =
   "Dry run {{time}}: this change would run. Nothing was changed.";
+
+// Each element's data-aspect, in order: what each impact line is about.
+function aspectsOf(elements: Array<Element>): Array<string | null> {
+  return elements.map((element: Element): string | null => {
+    return element.getAttribute("data-aspect");
+  });
+}
+
+// Each impact line's mark as drawn: the outlines of its first svg.
+function markShapesOf(elements: Array<Element>): Array<string> {
+  return elements.map((element: Element): string => {
+    const mark: SVGElement | null = element.querySelector("svg");
+    return Array.from(mark ? mark.querySelectorAll("path") : [])
+      .map((shape: Element): string => {
+        return shape.getAttribute("d") || "";
+      })
+      .join(" ");
+  });
+}
+
+/*
+ * A citation chip or a record's pill - or a run of chips written one right
+ * after another - and the marks right after it, as InlineReferences groups
+ * them (markdown-reference-group): its words - "C7.", "#1017," or
+ * "C2+C3+C6." - and where its parts are drawn against each other.
+ */
+interface ReferenceGroupReading {
+  words: string;
+  // Every chip of a run on one line.
+  isRunOnOneLine: boolean;
+  // The marks' middle within the line the last reference ends on.
+  isOnItsLine: boolean;
+  // The marks after the last reference, in its line's reading direction.
+  isAfterIt: boolean;
+}
+
+function readReferenceGroups(
+  groups: Array<Element>,
+): Array<ReferenceGroupReading> {
+  return groups.map((group: Element): ReferenceGroupReading => {
+    const references: Array<Element> = Array.from(group.children);
+    const last: Element = references[references.length - 1]!;
+    const marks: ChildNode | null =
+      group.lastChild && group.lastChild.nodeType === Node.TEXT_NODE
+        ? group.lastChild
+        : null;
+    const firstTop: number = references[0]!.getClientRects()[0]!.top;
+    const isRunOnOneLine: boolean = references.every(
+      (reference: Element): boolean => {
+        return Math.abs(reference.getClientRects()[0]!.top - firstTop) < 4;
+      },
+    );
+    const words: string = `${references
+      .map((reference: Element): string => {
+        return (reference.textContent || "").trim();
+      })
+      .join("+")}${marks ? marks.textContent || "" : ""}`;
+
+    if (!marks) {
+      return { words, isRunOnOneLine, isOnItsLine: true, isAfterIt: true };
+    }
+
+    const range: Range = document.createRange();
+    range.selectNodeContents(marks);
+    const markBox: DOMRect = range.getBoundingClientRect();
+    const referenceLines: DOMRectList = last.getClientRects();
+    const referenceBox: DOMRect = referenceLines[referenceLines.length - 1]!;
+    const middle: number = markBox.top + markBox.height / 2;
+    const isRightToLeft: boolean =
+      window.getComputedStyle(group).direction === "rtl";
+
+    return {
+      words,
+      isRunOnOneLine,
+      isOnItsLine: middle > referenceBox.top && middle < referenceBox.bottom,
+      isAfterIt: isRightToLeft
+        ? markBox.right <= referenceBox.left + 1
+        : markBox.left >= referenceBox.right - 1,
+    };
+  });
+}
+
+/*
+ * The chips and pills with a mark right after them in Incident #1042's
+ * opened report (?impact=on), in order: its Summary's, its Impact
+ * section's, its root cause's and its next steps'. Chips written one right
+ * after another are one group: "[C2][C3][C6]." and "[C6][C9].".
+ */
+const REPORT_REFERENCE_GROUPS: ReadonlyArray<string> = [
+  "C2+C3+C6.",
+  "#1017,",
+  "C1.",
+  "C7.",
+  "C6+C9.",
+  "C2.",
+  "C3.",
+  "C6,",
+  "C2.",
+  "C7.",
+  "C8.",
+  "#1017,",
+  "C1.",
+  "#1017,",
+];
+
+// Phone widths around 390px, where the report's lines end at other words.
+const PHONE_WIDTHS_AROUND_390: ReadonlyArray<number> = [
+  342, 350, 358, 366, 374, 382, 388, 398, 406, 414, 422, 430,
+];
+
+function referenceGroups(page: Page): Locator {
+  return investigationStep(page).getByTestId("markdown-reference-group");
+}
+
+// The paragraph or list item a reference group sits in.
+function referenceGroupBlock(page: Page, index: number): Locator {
+  return referenceGroups(page)
+    .nth(index)
+    .locator("xpath=ancestor::*[self::p or self::li][1]");
+}
+
+/*
+ * Every citation chip and record pill in the opened report keeps the mark
+ * right after it on its line, after it, and every run of chips stays on one
+ * line - at 390px and at the phone widths around it. And the control: with
+ * the groups' nowrap taken off, a mark or a run's next chip at one of those
+ * widths starts a line of its own, so they are widths where the group
+ * matters. Returns the groups the control found apart at 390px, the page
+ * left at 390px.
+ */
+async function expectMarksBesideTheirReferences(
+  page: Page,
+): Promise<Array<number>> {
+  const groups: Locator = referenceGroups(page);
+  await expect(groups).toHaveCount(REPORT_REFERENCE_GROUPS.length);
+  let apartAt390: Array<number> = [];
+  let apartAnywhere: number = 0;
+
+  for (const width of [390, ...PHONE_WIDTHS_AROUND_390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const built: Array<ReferenceGroupReading> =
+      await groups.evaluateAll(readReferenceGroups);
+    expect(
+      built.map((group: ReferenceGroupReading): string => {
+        return group.words;
+      }),
+    ).toEqual(REPORT_REFERENCE_GROUPS);
+    for (const group of built) {
+      expect(
+        group.isRunOnOneLine,
+        `${group.words} at ${width}px: its chips on one line`,
+      ).toBe(true);
+      expect(
+        group.isOnItsLine,
+        `${group.words} at ${width}px: its mark on its line`,
+      ).toBe(true);
+      expect(
+        group.isAfterIt,
+        `${group.words} at ${width}px: its mark after it`,
+      ).toBe(true);
+    }
+
+    const control: Awaited<ReturnType<Page["addStyleTag"]>> =
+      await page.addStyleTag({
+        content:
+          "[data-testid='markdown-reference-group'] { white-space: normal !important; }",
+      });
+    const unbound: Array<ReferenceGroupReading> =
+      await groups.evaluateAll(readReferenceGroups);
+    await control.evaluate((element: Element): void => {
+      element.remove();
+    });
+    const apart: Array<number> = [];
+    unbound.forEach((group: ReferenceGroupReading, index: number): void => {
+      if (!group.isOnItsLine || !group.isRunOnOneLine) {
+        apart.push(index);
+      }
+    });
+    apartAnywhere += apart.length;
+    if (width === 390) {
+      apartAt390 = apart;
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    apartAnywhere,
+    "without the group, a mark or a run's chip at one of these widths starts a line of its own",
+  ).toBeGreaterThan(0);
+  return apartAt390;
+}
 
 test.describe("what an investigation says it hurts, first (?impact=on)", () => {
   function impactSection(page: Page): Locator {
@@ -22446,17 +23712,226 @@ test.describe("what an investigation says it hurts, first (?impact=on)", () => {
     await screenshotElement(section, "investigation-impact-1280");
   });
 
-  test("on a Persian phone in dark: each English line reads left to right, its mark at its left, inside the card - and a cloud fix's dry run says when in Persian", async ({
+  test("folded, at 1280px: under the summary, the short numbers its run recorded - 1,240 requests, 2 services, 1 of 2 SLOs affected - each with the full report's mark for it; opened, the report's Impact section says it in full instead, and every run of citations stays on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await open(page, INCIDENT_PATH, "impact=on");
+
+    const summary: Locator = foldedReportSummary(page);
+    await expect(summary).toHaveText(INCIDENT_TLDR, { timeout: 30000 });
+    await expect(reportToggle(page)).toHaveAttribute("aria-expanded", "false");
+
+    // A list a screen reader names as the report names the section.
+    const list: Locator = investigationStep(page).getByRole("list", {
+      name: "Impact",
+      exact: true,
+    });
+    await expect(list).toBeVisible();
+    await expect(list).toHaveAttribute(
+      "data-testid",
+      "investigation-folded-impact",
+    );
+    const lines: Locator = list.getByTestId("investigation-folded-impact-line");
+    await expect(lines).toHaveText([
+      "1,240 requests affected",
+      "2 services affected",
+      "1 of 2 SLOs affected",
+    ]);
+    expect(await lines.evaluateAll(aspectsOf)).toEqual([
+      "Users",
+      "Services",
+      "Slos",
+    ]);
+
+    // Under the summary, from its left edge; one line each, inside the step.
+    const [stepBox, summaryBox, listBox, ...lineBoxes]: Array<Box> =
+      await documentBoxes(page, [
+        investigationStep(page),
+        summary,
+        list,
+        lines.nth(0),
+        lines.nth(1),
+        lines.nth(2),
+      ]);
+    expect(listBox!.y).toBeGreaterThanOrEqual(
+      summaryBox!.y + summaryBox!.height,
+    );
+    expect(Math.abs(listBox!.x - summaryBox!.x)).toBeLessThanOrEqual(1);
+    for (const lineBox of lineBoxes) {
+      expect(lineBox.height).toBeLessThanOrEqual(25);
+      expect(lineBox.x).toBeGreaterThanOrEqual(stepBox!.x);
+      expect(lineBox.x + lineBox.width).toBeLessThanOrEqual(
+        stepBox!.x + stepBox!.width + 1,
+      );
+    }
+    // Side by side while they fit: the services beside the requests.
+    expect(
+      Math.abs(centreOf(lineBoxes[1]!) - centreOf(lineBoxes[0]!)),
+    ).toBeLessThanOrEqual(1);
+    expect(lineBoxes[1]!.x).toBeGreaterThanOrEqual(
+      lineBoxes[0]!.x + lineBoxes[0]!.width + 16,
+    );
+
+    // Each mark before its words, level with them.
+    for (let index: number = 0; index < 3; index++) {
+      const [mark, words]: Array<Box> = await documentBoxes(page, [
+        lines.nth(index).locator("svg").first(),
+        lines.nth(index).getByTestId("investigation-folded-impact-words"),
+      ]);
+      expect(mark!.x + mark!.width).toBeLessThanOrEqual(words!.x);
+      expect(Math.abs(centreOf(mark!) - centreOf(words!))).toBeLessThanOrEqual(
+        2,
+      );
+    }
+    const foldedMarks: Array<string> = await lines.evaluateAll(markShapesOf);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotBetween(
+      page,
+      summary,
+      list,
+      "investigation-folded-impact-1280",
+    );
+
+    /*
+     * Opened, the report's Impact section says it in full, a line each with
+     * the same marks, and the short numbers go.
+     */
+    await showFullReport(page);
+    const section: Locator = impactSection(page);
+    await expect(section).toBeVisible({ timeout: 30000 });
+    await expect(foldedImpact(page)).toHaveCount(0);
+    expect(foldedMarks.every(Boolean)).toBe(true);
+    expect(
+      await section
+        .getByTestId("investigation-impact-line")
+        .evaluateAll(markShapesOf),
+    ).toEqual(foldedMarks);
+
+    /*
+     * At 1280px too, every run of chips stays on one line with the mark
+     * after it: the Summary's "[C2][C3][C6]." read "C2" at the end of a line
+     * and "C3 C6." at the start of the next.
+     */
+    await expect(referenceGroups(page)).toHaveCount(
+      REPORT_REFERENCE_GROUPS.length,
+    );
+    const groups: Array<ReferenceGroupReading> =
+      await referenceGroups(page).evaluateAll(readReferenceGroups);
+    expect(
+      groups.map((group: ReferenceGroupReading): string => {
+        return group.words;
+      }),
+    ).toEqual(REPORT_REFERENCE_GROUPS);
+    for (const group of groups) {
+      expect(group.isRunOnOneLine, `${group.words}: one line`).toBe(true);
+      expect(group.isOnItsLine, `${group.words}: its mark beside it`).toBe(
+        true,
+      );
+    }
+  });
+
+  test("at 390px, in English and in German: every citation chip and record pill in the opened report keeps the mark right after it on its line - at the phone widths around it too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const language of ["en", "de"]) {
+      const words: Record<string, string> = await dashboardWords(language);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openImpact(page, `impact=on&lang=${language}`);
+      // The page in the language: the step's own title.
+      await expect(
+        investigationStep(page).getByRole("heading", { level: 3 }).first(),
+      ).toHaveText(words["Investigation"] || "Investigation");
+
+      const apart: Array<number> = await expectMarksBesideTheirReferences(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      // Where a mark would have started a line of its own, as it is drawn.
+      await screenshotElement(
+        apart.length > 0
+          ? referenceGroupBlock(page, apart[0]!)
+          : impactSection(page),
+        `investigation-marks-beside-references-390-${language}`,
+      );
+    }
+  });
+
+  test("on a Persian phone in dark: folded, its numbers in Persian's words and digits, each mark where a Persian line starts; opened, each English line reads left to right, its mark at its left, inside the card, every chip and pill with the mark after it on its line - and a cloud fix's dry run says when in Persian", async ({
     page,
   }: {
     page: Page;
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const persian: Record<string, string> = await dashboardWords("fa");
-    const section: Locator = await openImpact(
+    await open(
       page,
+      INCIDENT_PATH,
       "impact=on&cloudfix=would-run&lang=fa&dir=auto&theme=dark",
     );
+
+    /*
+     * Folded: the numbers the run recorded, in Persian's words and digits,
+     * each mark at its line's right, where Persian starts it - one line
+     * each, inside the card.
+     */
+    const folded: Locator = foldedImpact(page);
+    await expect(folded).toBeVisible({ timeout: 30000 });
+    await expect(folded).toHaveAttribute("aria-label", persian["Impact"]!);
+    const foldedLines: Locator = folded.getByTestId(
+      "investigation-folded-impact-line",
+    );
+    await expect(foldedLines).toHaveCount(3);
+    const foldedWords: Array<string> = [];
+    for (let index: number = 0; index < 3; index++) {
+      foldedWords.push(await readWords(foldedLines.nth(index)));
+    }
+    expect(foldedWords).toEqual([
+      filledIn(persian["{{count}} requests affected"]!, { count: "۱٬۲۴۰" }),
+      filledIn(persian["{{count}} services affected"]!, { count: "۲" }),
+      filledIn(persian["{{affected}} of {{count}} SLOs affected"]!, {
+        affected: "۱",
+        count: "۲",
+      }),
+    ]);
+    for (let index: number = 0; index < 3; index++) {
+      const line: Locator = foldedLines.nth(index);
+      const [stepBox, lineBox, mark, words]: Array<Box> = await documentBoxes(
+        page,
+        [
+          investigationStep(page),
+          line,
+          line.locator("svg").first(),
+          line.getByTestId("investigation-folded-impact-words"),
+        ],
+      );
+      expect(mark!.x).toBeGreaterThanOrEqual(words!.x + words!.width - 1);
+      expect(Math.abs(centreOf(mark!) - centreOf(words!))).toBeLessThanOrEqual(
+        2,
+      );
+      expect(lineBox!.height).toBeLessThanOrEqual(25);
+      expect(lineBox!.x).toBeGreaterThanOrEqual(stepBox!.x);
+      expect(lineBox!.x + lineBox!.width).toBeLessThanOrEqual(
+        stepBox!.x + stepBox!.width + 1,
+      );
+    }
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotBetween(
+      page,
+      foldedReportSummary(page),
+      folded,
+      "investigation-folded-impact-390-fa-dark",
+    );
+
+    // Opened: the report's Impact section, in the AI's own words.
+    await showFullReport(page);
+    const section: Locator = impactSection(page);
+    await expect(section).toBeVisible({ timeout: 30000 });
+    await expect(folded).toHaveCount(0);
 
     const lines: Locator = section.getByTestId("investigation-impact-line");
     await expect(lines).toHaveCount(3);
@@ -22476,6 +23951,15 @@ test.describe("what an investigation says it hurts, first (?impact=on)", () => {
     );
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(section, "investigation-impact-390-fa-dark");
+
+    // Every chip and pill keeps the mark right after it on its line.
+    const apart: Array<number> = await expectMarksBesideTheirReferences(page);
+    if (apart.length > 0) {
+      await screenshotElement(
+        referenceGroupBlock(page, apart[0]!),
+        "investigation-marks-beside-references-390-fa-dark",
+      );
+    }
 
     // Dry-run two minutes ago: Persian's words, in its own digits.
     await openEveryFix(page);
@@ -22597,6 +24081,80 @@ test.describe("a runbook's record, where a fix was approved, and Dismiss fix (?f
     expect(posts[0]!.body).toEqual({ suggestionId: RUNBOOK_PROPOSAL_ID });
     // Decided: how it went before is no longer what anyone weighs.
     await expect(record).toHaveCount(0);
+  });
+
+  /*
+   * The reader who reads fixes and may not act on them: a Project Member
+   * whose team blocks Create Runbook Execution (a Viewer reads no fixes at
+   * all - AutoRemediationSuggestion is read by Project Owners, Admins and
+   * Members).
+   */
+  test("a member whose team blocks runbook runs, on a phone: no Review and approve, Approve & Run, Dry run or Dismiss fix - a quiet line in their place says who may and names the block, and each fix needs approval, never theirs (?role=runbook-blocked)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openRunbookFixes(
+      page,
+      "fixes=runbook&cloudfix=would-run&role=runbook-blocked",
+    );
+
+    // No button the server would refuse them: none of the four, anywhere.
+    const step: Locator = remediationStep(page);
+    for (const testId of [
+      "remediation-fix-details-toggle",
+      "remediation-approve-button",
+      "remediation-dry-run-button",
+      "remediation-dismiss-button",
+    ]) {
+      await expect(step.getByTestId(testId)).toHaveCount(0);
+    }
+
+    /*
+     * In their place, under each fix that waits - the cloud fix and the
+     * runbook - who may act, and what would let them.
+     */
+    const whoMayAct: string =
+      "Only someone who may start runbook executions can approve or dismiss this fix. A team you are on blocks Create Runbook Execution.";
+    const lines: Locator = step.getByTestId("remediation-fix-who-may-act");
+    await expect(lines).toHaveText([whoMayAct, whoMayAct]);
+    // Approved in Slack: nothing to decide, nothing said.
+    await expect(
+      slackApprovedFix(page).getByTestId("remediation-fix-who-may-act"),
+    ).toHaveCount(0);
+
+    // A fix needs approval - never theirs - on the pill and on each fix.
+    await expect(stepPillWords(step, "remediation")).toHaveText(
+      "Needs approval",
+    );
+    await expect(approvalTitle(runbookFix(page))).toHaveText("Needs approval");
+    await expect(step).not.toContainText("Needs your approval");
+
+    // The runbook's record still reads; its plan still opens on its own line.
+    const runbook: Locator = runbookFix(page);
+    await expect(
+      runbook.getByTestId("remediation-runbook-track-record"),
+    ).toBeVisible();
+
+    // The lock beside the line's first line, the words wrapping inside the card.
+    const line: Locator = runbook.getByTestId("remediation-fix-who-may-act");
+    const [stepBox, mark, words]: Array<Box> = await documentBoxes(page, [
+      step,
+      line.locator("svg").first(),
+      line.getByTestId("remediation-fix-who-may-act-words"),
+    ]);
+    expect(mark!.x + mark!.width).toBeLessThanOrEqual(words!.x);
+    // text-xs on leading-5: its first line is 20px high.
+    expect(Math.abs(centreOf(mark!) - (words!.y + 10))).toBeLessThanOrEqual(2);
+    expect(words!.height).toBeGreaterThan(20);
+    expect(words!.x + words!.width).toBeLessThanOrEqual(
+      stepBox!.x + stepBox!.width + 1,
+    );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(runbook, "remediation-fix-who-may-act-390");
   });
 
   test("on a German phone in dark: the record, where the fix was approved and Dismiss fix in German - never its Hide - a refusal of it in German, and a dry run's time", async ({

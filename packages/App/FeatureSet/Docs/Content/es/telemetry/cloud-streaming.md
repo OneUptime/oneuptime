@@ -68,6 +68,7 @@ El cuadro pregunta cada pocos segundos qué ha llegado. Firehose entrega a los p
 | --- | --- |
 | **Todas las métricas, no solo las clave** | Transmite todas las métricas que CloudWatch tiene para la cuenta, incluidas las tuyas. AWS factura cada actualización de métrica que envía un flujo, así que puede costar muchas veces más |
 | **Regiones** | Desde dónde transmitir: al principio, las regiones en las que la conexión encontró recursos. Si se deja vacío, el comando transmite desde la región de AWS CloudShell. Como máximo 30 |
+| **Todas las cuentas de la organización** | Para una conexión que lee una AWS Organization: el comando, ejecutado en su cuenta de administración, también crea las mismas pilas en cada cuenta miembro mediante un StackSet, y en las cuentas que se unan después. Todos los grupos de registros o ninguno: los grupos con nombre son de una sola cuenta |
 | **Configurarlo de otra forma** | Los endpoints de métricas y de registros y la clave, para configurar los flujos con Terraform o la consola |
 
 **Descargar la plantilla** guarda la plantilla que despliega el comando, para desplegarla a tu manera.
@@ -79,6 +80,7 @@ El cuadro pregunta cada pocos segundos qué ha llegado. Firehose entrega a los p
 | Métricas | En los recursos en la nube que miden, con los nombres y atributos que les dan las lecturas de la conexión |
 | Registros | En el explorador de registros, bajo el servicio de telemetría de la conexión, con la cuenta, la región y el grupo de registros como atributos |
 | Registros de un grupo de registros que AWS nombra por un recurso | También en ese recurso: su página en la Nube gana una pestaña **Registros** |
+| Registros de un servicio de App Runner, un entorno de Elastic Beanstalk o una tarea o un clúster de ECS | También en su entorno en Plataformas de aplicaciones: su pestaña **Registros** |
 
 Un grupo de registros se archiva bajo un recurso cuando AWS le dio el nombre de uno:
 
@@ -97,7 +99,9 @@ Un grupo de registros se archiva bajo un recurso cuando AWS le dio el nombre de 
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Cada registro lleva el ID del recurso como `cloud.resource_id`, y los registros de una función Lambda llevan además `faas.name`, así que también aparecen en la función en Serverless. Un grupo de registros con otro nombre se transmite igualmente, bajo su cuenta y su región. La gravedad de un registro es la que indica su mensaje, tal como la escribe Lambda.
+Cada registro lleva el ID del recurso como `cloud.resource_id`, y los registros de una función Lambda llevan además `faas.name`, así que también aparecen en la función en Serverless. Un grupo de registros con otro nombre se transmite igualmente, bajo su cuenta y su región. La gravedad de un registro es la que indica su mensaje, tal como la escribe Lambda, PostgreSQL o MySQL.
+
+Los registros de un servicio de App Runner, un entorno de Elastic Beanstalk y un clúster de ECS llevan además `cloud.platform`, y también los de una tarea de ECS, del grupo de registros que la consola de ECS llama `/ecs/<task-definition-family>`, con `aws.ecs.task.family`. Con la cuenta y la región, eso los lleva a su entorno en Plataformas de aplicaciones, que aparece con ellos si ninguna aplicación le ha informado todavía. No crean ninguna aplicación: una aplicación se nombra por su propia telemetría, como explica [Entornos en la nube](/docs/telemetry/cloud-environments).
 
 ## Qué crea la pila
 
@@ -130,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Para una conexión que lee una AWS Organization, ejecute el comando del cuadro de diálogo en la cuenta de administración: si se transmitía la organización, también elimina las pilas de cada cuenta miembro y el StackSet.
 :::
 
 Para cambiar lo que transmite una pila, vuelve a abrir **Transmitir métricas y registros**, elige **Crear una clave nueva** y ejecuta el nuevo comando. La clave que reemplaza sigue funcionando 24 horas, así que no se rechaza ninguna entrega mientras se actualizan las pilas. Como máximo 3 claves reemplazadas funcionan a la vez.

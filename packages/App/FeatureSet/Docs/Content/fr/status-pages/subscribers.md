@@ -329,14 +329,23 @@ Via l'API, envoyez le choix à côté des champs que vous modifiez, dans `miscDa
 
 comme corps de `PUT /api/status-page-announcement/<announcement-id>` (ou `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Omettez `miscDataProps` et la modification reste silencieuse, comme avant.
 
+### Notes publiques en attente d'approbation
+
+Un projet peut faire approuver ses notes publiques avant leur publication : voir [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques). Une note qui attend ne prévient aucun abonné. Sa notification est envoyée quand elle est publiée, comme pour une note postée à ce moment-là, et seulement si son choix **Notifier les abonnés de la page de statut** le prévoit ; une note rejetée n'est jamais envoyée. D'ici là, elle n'a aucune notification à réessayer ou à renvoyer.
+
+La modification d'une note publiée attend aussi. Si **Notifier les abonnés de cette mise à jour** était coché, sa mise à jour est envoyée une fois la modification approuvée, et jamais si la modification est rejetée ou retirée.
+
+Un changement d'état envoyé avec une note publique qui attend une approbation n'est pas porté par la note : le changement d'état prévient lui-même les abonnés, comme il le ferait sans note, et la note suit une fois publiée.
+
 ## La langue des messages aux abonnés
 
-Chaque abonné reçoit ses messages dans sa propre langue : l'e-mail ou le SMS qui confirme l'abonnement, le message de bienvenue et le lien pour le gérer, et chaque notification sur un incident, un épisode d'incident, un événement de maintenance planifiée ou une annonce, par e-mail, SMS, Slack et Microsoft Teams.
+Chaque abonné reçoit ses messages dans sa propre langue : l'e-mail ou le SMS qui confirme l'abonnement, le message de bienvenue et le lien pour le gérer, chaque notification sur un incident, un épisode d'incident, un événement de maintenance planifiée ou une annonce, par e-mail, SMS, Slack et Microsoft Teams, et le rapport par e-mail.
 
 - **Un visiteur qui passe la page de statut dans une autre langue** depuis son pied de page, puis s'abonne ou met à jour son abonnement, reçoit ses messages dans cette langue.
-- **Tous les autres** les reçoivent dans la langue par défaut de la page, réglée sous [Plus de paramètres](/docs/status-pages/branding-and-domains#plus-de-paramètres) sur sa page Image de marque : un visiteur qui a lu la page dans cette langue, un abonné que votre équipe ajoute depuis le tableau de bord, par l'API ou par un workflow, et quiconque s'est abonné avant que OneUptime ne conserve la langue d'un abonné. Changez la langue par défaut, et ils reçoivent la nouvelle dès le message suivant.
+- **Votre équipe peut choisir la langue d'un abonné** sous **Plus de champs** en l'ajoutant ou en le modifiant, ou l'effacer pour qu'il suive la langue par défaut de la page ; chaque liste d'abonnés l'affiche dans sa colonne **Langue**.
+- **Tous les autres** les reçoivent dans la langue par défaut de la page, réglée sous [Plus de paramètres](/docs/status-pages/branding-and-domains#plus-de-paramètres) sur sa page Image de marque : un visiteur qui a lu la page dans cette langue, un abonné que votre équipe ajoute sans langue, depuis le tableau de bord, par l'API ou par un workflow, et quiconque s'est abonné avant que OneUptime ne conserve la langue d'un abonné. Changez la langue par défaut, et ils reçoivent la nouvelle dès le message suivant.
 
-Les mots de OneUptime lui-même sont dans cette langue : objets, titres, libellés et boutons, la ligne de désabonnement, les dates, et les noms des états d'incident, des niveaux de gravité et des états de maintenance planifiée avec lesquels chaque nouveau projet commence, comme Resolved, Major Incident ou Ongoing. Ce que votre équipe écrit reste tel qu'il a été écrit : titres, descriptions, notes et post-mortems, vos propres noms d'états, de niveaux de gravité et de ressources, le nom de la page de statut, les champs personnalisés et les modèles personnalisés, dont les valeurs apparaissent telles qu'elles sont enregistrées. Un e-mail en persan se lit de droite à gauche, et un titre ou une note en anglais s'y lit toujours de gauche à droite. La charge utile d'un webhook est une donnée et reste telle quelle, et le rapport par e-mail est rédigé en anglais.
+Les mots de OneUptime lui-même sont dans cette langue : objets, titres, libellés et boutons, la ligne de désabonnement, les dates, et les noms des états d'incident, des niveaux de gravité et des états de maintenance planifiée avec lesquels chaque nouveau projet commence, comme Resolved, Major Incident ou Ongoing. Ce que votre équipe écrit reste tel qu'il a été écrit : titres, descriptions, notes et post-mortems, vos propres noms d'états, de niveaux de gravité et de ressources, le nom de la page de statut, les champs personnalisés et les modèles personnalisés. Un modèle personnalisé se lit de la même façon pour chaque abonné : les valeurs dont OneUptime le remplit, comme le nom d'un état ou une date, sont donc dans la langue par défaut de la page, tout comme un rapport de test. Un e-mail en persan se lit de droite à gauche, et un titre ou une note en anglais s'y lit toujours de gauche à droite. La charge utile d'un webhook est une donnée et reste telle quelle.
 
 Par l'API, le champ `language` d'un abonné est un code de langue comme `de` ou `zh-TW`, ou vide pour la langue par défaut de la page ; toute autre valeur est refusée.
 
@@ -348,9 +357,9 @@ Chaque notification aux abonnés a son propre statut, à côté de ce qu'elle co
 | --- | --- | --- |
 | **Sending Soon** | **Notification prochaine des abonnés** | En file d'attente. La tâche qui l'envoie tourne chaque minute. |
 | **Notifications en cours d'envoi** | **Notification des abonnés** | La tâche traite les abonnés. |
-| **Notifications envoyées** | **Subscribers notified** | Elle est partie. Voir plus bas ce que cela signifie. |
+| **Notifications envoyées** | **Abonnés avertis** | Elle est partie. Voir plus bas ce que cela signifie. |
 | **Échec** | **Échec de la notification** | Tous les abonnés ne l'ont pas reçue, ou l'envoi s'est arrêté. Le message dit ce qui a été envoyé et ce que fait **Réessayer**. |
-| **Notifications ignorées.** | **Subscribers not notified** | Rien ne devait être envoyé, par exemple parce que l'incident est masqué des pages de statut. Le message dit pourquoi. |
+| **Notifications ignorées.** | **Abonnés non avertis** | Rien ne devait être envoyé, par exemple parce que l'incident est masqué des pages de statut. Le message dit pourquoi. |
 
 ### Comment un envoi est compté
 

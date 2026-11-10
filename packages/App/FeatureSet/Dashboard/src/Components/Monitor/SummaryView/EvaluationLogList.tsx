@@ -33,6 +33,7 @@ import EvaluationGroupingNote, {
   getGroupingNoteTitle,
   isWordableGroupingNote,
 } from "./EvaluationGroupingNote";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 interface FilterGroup {
   message: string;
@@ -400,11 +401,11 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 const listTerms: (values: Array<string>) => string = (
                   values: Array<string>,
                 ): string => {
-                  return values
-                    .map((value: string): string => {
+                  return joinList(
+                    values.map((value: string): string => {
                       return translator.translateTerm(value);
-                    })
-                    .join(", ");
+                    }),
+                  );
                 };
 
                 if (uniqueCheckOnLabels.length > 0) {

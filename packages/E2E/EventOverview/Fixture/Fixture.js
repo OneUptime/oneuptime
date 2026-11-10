@@ -17,10 +17,18 @@
  *   ?state=  resolved (default) | ongoing | created
  *            Incident #1042, Alert #311 and both episodes. "ongoing" stops
  *            them at Acknowledged, "created" before it.
- *   ?ai=     report (default) | none | queued | running | failed | pending
- *            | legacy | waiting | waiting-viewer
+ *   ?ai=     report (default) | none | queued | running | failed
+ *            | failed-viewer | retrying | pending | legacy | waiting
+ *            | waiting-viewer
  *            What POST /ai-investigation/{incident,alert} returns for
  *            Incident #1042 and Alert #311. Other incidents/alerts have no run.
+ *            "failed" is a run that did not finish, answered for someone who
+ *            may change the record, so the card offers Try again (issue
+ *            #6438, POST /ai-investigation/try-again): the record's next read
+ *            answers the new run, queued. "failed-viewer" is the same run for
+ *            someone who may not. "retrying" is a run between attempts (issue
+ *            #6437): its first ran out of time with the AI provider, and it
+ *            tries again 2 minutes from NOW.
  *            "legacy" is a completed report from an API replica that predates
  *            structured evidence: no `evidence` or `references` keys.
  *            "waiting" is an investigation rule's wait (issue #5074): no run
@@ -70,7 +78,9 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, investigate-now, conversation, conversation-send, resend,
+ *            investigation, investigate-now, investigation-try-again (Try
+ *            again on a run that did not finish is refused: OneUptime AI is
+ *            switched off), conversation, conversation-send, resend,
  *            channel-links, channel-members (the channel card's read),
  *            channel-add (its Join channel and Add people), pass-on-read
  *            (whether the viewer is paged, for Escalate), pass-on
@@ -84,7 +94,9 @@
  *            policies to page now."), dry-run (Dry run on a cloud fix,
  *            ?cloudfix=, is refused: the account's agent is offline),
  *            dismiss (Dismiss fix, ?fixes=, is refused: the viewer may not
- *            start runbook executions). The matching API call throws HTTPErrorResponse. "conversation" is
+ *            start runbook executions), round-try-again (Try again on a
+ *            round of a fix that stopped, ?fixes=unfinished, is refused:
+ *            the project reached its daily AI limit). The matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
@@ -154,11 +166,27 @@
  *            three teams and three people, more than its header names.
  *   ?commander= none: nobody holds Incident Commander on Incident #1042
  *            or Incident Episode #12 (Maya Chen does by default).
- *   ?what=   default | empty | long
+ *   ?what=   default | empty | long | monitor
  *            What Incident #1042 says happened. "empty": no description and
  *            no root cause. "long": a description and a root cause in
  *            markdown, each longer than the What happened card shows before
- *            Show more, whatever the state.
+ *            Show more, whatever the state. "monitor": the root cause the
+ *            monitor wrote when it declared the incident, as the server
+ *            writes it (MonitorCriteriaEvaluator), whatever the state.
+ *   ?evaluation= default | many | long | off | offline | logs | none
+ *            What the monitor's evaluation said when it opened Incident
+ *            #1042 and Alert #311 (Incident.evaluationDetails,
+ *            Alert.evaluationDetails), under the What happened card's root
+ *            cause. By default an API check: two filters that both matched,
+ *            the JSON path and a redacted excerpt. "many": a criteria of
+ *            Any with four filters, one that did not match, a JavaScript
+ *            expression's values and a header's. "long": long values - a URL,
+ *            a JSON path, an excerpt, a sentence. "off": a monitor that keeps
+ *            no response content. "offline": a Website check that could not
+ *            connect - Is Online False, and the probe's account of why.
+ *            "logs": a Logs monitor's criteria, whose filter only the
+ *            evaluation's sentence describes (#1042 only).
+ *            "none": no details, as an incident from before they were kept.
  *   ?lang=   one of the Dashboard's languages (de, fr, ja, ...): the page
  *            reads that language's words, fetched from the Dashboard's own
  *            locale files (server.js serves them).
@@ -225,7 +253,7 @@
  *            (not found): a comma list of maya, sam, jordan, alex. Alex by
  *            default.
  *   ?role=   owner (default) | alert-member | member | owner-people | viewer
- *            | loading
+ *            | loading | runbook-blocked
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
  *            is not a master admin and holds only Alert Member: it may
@@ -241,7 +269,11 @@
  *            (?hold=1) is said to it with Page now locked, saying why.
  *            "loading" is the moment before the permission snapshot arrives
  *            (no permissions yet), when gated actions are hidden rather
- *            than refused.
+ *            than refused. "runbook-blocked" is Maya as a Project Member
+ *            (through Incident Response) whose team Checkout SRE blocks
+ *            Create Runbook Execution: she reads fixes and may not approve
+ *            or dismiss them - the reader the AI card's fix buttons are
+ *            hidden from, with a line saying who may act.
  *   ?ai=     ... also off-switch | off-project | off-rules | off-severity:
  *            OneUptime AI did not investigate Incident #1042 or Alert #311
  *            because something was off for them, as the server records it
@@ -327,6 +359,27 @@
  *            (approvedFrom), verified fixed. Dismiss fix dismisses the
  *            runbook; ?fail=dismiss refuses it, as the server refuses
  *            someone who may not start runbook executions.
+ *            unfinished: OneUptime AI's round on prod-eu-west-1 stopped
+ *            before it found a fix - the AI provider did not answer within
+ *            120 seconds, three times - after two kubectl checks. Its
+ *            round (POST /auto-remediation/round) offers Try again while
+ *            the incident is open (?state=ongoing or created); Try again
+ *            (POST /auto-remediation/round-try-again) starts it again with
+ *            a new run, queued, and ?fail=round-try-again refuses it.
+ *            no-fix: the round found no safe fix and said why - the fixes
+ *            it ruled out, with their commands and why not - beside the
+ *            commands it checked with (one refused by kubectl) and four
+ *            queries of the project's telemetry.
+ *   ?approvals= on | first | mine: with ?fixes=many, the project asks two
+ *            people to approve a riskier fix (requireTwoApprovalsForRiskier
+ *            Fixes, #6148's follow-ups), and the kubectl fix holds one (its
+ *            scale is RiskyWrite). on: nobody has approved it yet, and
+ *            Maya's Approve records the first approval and runs nothing;
+ *            first: Jordan Patel approved it first, from its Slack message,
+ *            and Maya's Approve & Run runs it; mine: Maya approved it
+ *            first, so it waits for someone else's, and a press of hers
+ *            again is refused with the server's words
+ *            (RemediationApproval.approve).
  *   Try again (POST /auto-remediation/try-again) decides again for an open
  *            record, as AutoRemediationRuleEngineService.tryAgain does:
  *            the record's decision is written afresh - OneUptime AI started
@@ -390,6 +443,11 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
+import { ALREADY_APPROVED_FIRST_MESSAGE } from "Common/Types/AutoRemediation/RemediationApprovals";
+import {
+  REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
+  RemediationRoundTryAgainRefusal,
+} from "Common/Types/AutoRemediation/RemediationRound";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
@@ -504,6 +562,11 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MeasurementEvaluator from "Common/Utils/Measurement/MeasurementEvaluator";
+import {
+  describeInvestigationImpactNumbers,
+  InvestigationImpactCounted,
+  investigationImpactNumbersToJSON,
+} from "Common/Utils/AI/InvestigationImpactNumbers";
 import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
 import CallSummaryFeedMarkdown from "Common/Utils/VideoCall/CallSummaryFeedMarkdown";
 import UserUtil from "Common/UI/Utils/User";
@@ -558,6 +621,19 @@ const WAIT_ENDS_IN_MINUTES = { default: 8, tomorrow: 23 * 60, ended: -0.5 }[
 ];
 const WAIT_MINUTES = waitEndMode === "tomorrow" ? 1440 : 10;
 const startedNow = new Set();
+/*
+ * A run that did not finish (issue #6438): "failed" is answered for someone
+ * who may change the record, so the card offers Try again; "failed-viewer"
+ * for someone who may not.
+ */
+const isFailedMode = aiMode === "failed" || aiMode === "failed-viewer";
+/*
+ * Records whose investigation someone started again with Try again, by id,
+ * and the new run's id: their next read answers the new run, queued.
+ */
+const triedAgain = new Map();
+// When the run waiting between attempts (?ai=retrying) tries again.
+const RETRY_IN_MINUTES = 2;
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
 const titleMode = ["long", "sentence"].includes(params.get("title"))
   ? params.get("title")
@@ -649,6 +725,7 @@ const roleMode = [
   "loading",
   "view-only-owner",
   "editor-owner",
+  "runbook-blocked",
 ].includes(params.get("role"))
   ? params.get("role")
   : "owner";
@@ -724,12 +801,23 @@ const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
 /*
  * ?fixes=: more fixes on Incident #1042's Remediation step - of every kind
  * (many), the three rounds of a fix that ran, did not work and was rolled
- * back (rolled-back, issue #5598), or a runbook that waits with its track
- * record beside a fix approved in Slack (runbook, #5519's follow-ups).
+ * back (rolled-back, issue #5598), a runbook that waits with its track
+ * record beside a fix approved in Slack (runbook, #5519's follow-ups), or
+ * one round of an AI fix that stopped before it found one (unfinished) or
+ * found no safe fix and said why (no-fix, issues #6436 and #6487).
  */
-const FIXES_MODES = ["many", "rolled-back", "runbook"];
+const FIXES_MODES = ["many", "rolled-back", "runbook", "unfinished", "no-fix"];
 const fixesMode = FIXES_MODES.includes(params.get("fixes"))
   ? params.get("fixes")
+  : "";
+/*
+ * ?approvals=: the project asks two people to approve a riskier fix, and
+ * how far ?fixes=many's kubectl fix has come: nobody has approved it (on),
+ * someone else approved it first (first), or the reader did (mine).
+ */
+const APPROVALS_MODES = ["on", "first", "mine"];
+const approvalsMode = APPROVALS_MODES.includes(params.get("approvals"))
+  ? params.get("approvals")
   : "";
 // Enable AI is off now only for off-project while the switches stay off.
 const isProjectAiOff = aiMode === "off-project" && switchesMode !== "on";
@@ -859,8 +947,13 @@ const ownersMode = OWNERS_MODES.includes(params.get("owners"))
   : "default";
 // ?commander=none: nobody holds Incident Commander on #1042 or episode #12.
 const commanderMode = params.get("commander") === "none" ? "none" : "default";
+// ?evaluation=: what the monitor's evaluation said (see the header).
+const EVALUATION_MODES = ["many", "long", "off", "offline", "logs", "none"];
+const evaluationMode = EVALUATION_MODES.includes(params.get("evaluation"))
+  ? params.get("evaluation")
+  : "default";
 // ?what=: what incident #1042 says happened, for the What happened card.
-const WHAT_MODES = ["empty", "long"];
+const WHAT_MODES = ["empty", "long", "monitor"];
 const whatMode = WHAT_MODES.includes(params.get("what"))
   ? params.get("what")
   : "default";
@@ -1198,6 +1291,8 @@ table(Project).push({
   _id: PROJECT_ID,
   name: "Acme Commerce",
   ...PROJECT_AI_SWITCHES,
+  // ?approvals=: two people approve a riskier fix (useTwoApprovalsRule).
+  requireTwoApprovalsForRiskierFixes: Boolean(approvalsMode),
 });
 
 const team = insert(Team, {
@@ -1643,6 +1738,9 @@ function defineIncident(spec) {
     isPrivate: isPrivateMode && spec.number === 1042,
     isVisibleOnStatusPage: !(isPrivateMode && spec.number === 1042),
     rootCause: spec.rootCause,
+    ...(spec.evaluationDetails
+      ? { evaluationDetails: spec.evaluationDetails }
+      : {}),
     remediationNotes: spec.remediationNotes,
     incidentEpisode: spec.episode,
     incidentEpisodeId: spec.episode?.id,
@@ -1818,6 +1916,297 @@ defineIncident({
   episode: incidentEpisodeRecord,
 });
 
+/*
+ * ---------------------------------------------------------------------------
+ * Evaluation details (?evaluation=)
+ * ---------------------------------------------------------------------------
+ * What MonitorEvaluationDetailsBuilder stores on an incident or alert a
+ * monitor opened, already redacted, as its jsonb column reads back: the
+ * evaluation time as ISO text.
+ */
+const MASKED = "[REDACTED]";
+
+function incidentEvaluationDetails() {
+  if (evaluationMode === "none") {
+    return undefined;
+  }
+
+  const base = {
+    version: 1,
+    monitorType: "API",
+    evaluatedAt: at("18:01").toISOString(),
+    probeName: "eu-west-1 probe",
+    criteriaId: "criteria-checkout-slow",
+    criteriaName: "Checkout is slow",
+    filterCondition: "All",
+    request: {
+      method: "POST",
+      url: `https://api.acme-commerce.example/api/checkout/health?region=eu&api_key=${MASKED}`,
+    },
+    response: { statusCode: 200, responseTimeInMs: 2412, isOnline: true },
+  };
+
+  const slow = {
+    checkOn: "Response Time (in ms)",
+    filterType: "Greater Than",
+    value: 2000,
+    met: true,
+    message:
+      "All values of Response Time (in ms) over the last 5 minutes ranged from 2,180 ms to 2,412 ms across all 3 readings, above the 2000 threshold.",
+    actual: "2412 ms",
+    actualNumber: 2412,
+    actualUnit: "ms",
+    windowMinutes: 5,
+    windowType: "All Values",
+  };
+
+  const degraded = {
+    checkOn: "Response Body",
+    filterType: "Contains",
+    value: "degraded",
+    met: true,
+    message: "Response body contains degraded.",
+    field: "dependencies[0].status",
+    excerpt: {
+      before: `{"service":"checkout-api","owner":"${MASKED}","dependencies":[{"name":"orders-db","status":"`,
+      match: "degraded",
+      after: `","pool":{"inUse":10,"max":10,"waiting":37}},{"name":"payments","status":"ok"}],"session":${MASKED}}`,
+      isCutAtStart: false,
+      isCutAtEnd: true,
+    },
+  };
+
+  /*
+   * The check could not connect: the most common reason a monitor opens an
+   * incident. Is Online False matched, and the probe said why.
+   */
+  if (evaluationMode === "offline") {
+    return {
+      version: 1,
+      monitorType: "Website",
+      evaluatedAt: at("18:01").toISOString(),
+      probeName: "eu-west-1 probe",
+      criteriaId: "criteria-checkout-offline",
+      criteriaName: "Checkout is offline",
+      filterCondition: "Any",
+      request: { url: "https://shop.acme-commerce.example/checkout" },
+      response: {
+        responseTimeInMs: 10004,
+        isOnline: false,
+        isTimeout: true,
+        failureCause:
+          "Request timed out after 10 seconds: no response from shop.acme-commerce.example:443.",
+      },
+      filters: [
+        {
+          checkOn: "Is Online",
+          filterType: "False",
+          met: true,
+          message: "Monitor reported offline status at 14/09/2026 18:01:04.",
+          actual: "false",
+        },
+        {
+          checkOn: "Response Status Code",
+          filterType: "Greater Than",
+          value: 499,
+          met: false,
+          message:
+            "Response Status Code was not reported, so the condition could not be checked.",
+        },
+      ],
+    };
+  }
+
+  /*
+   * A Logs monitor: no request, no response, and nothing the section reads
+   * from a body - the filter's own sentence says what it found.
+   */
+  if (evaluationMode === "logs") {
+    return {
+      version: 1,
+      monitorType: "Logs",
+      evaluatedAt: at("18:01").toISOString(),
+      criteriaId: "criteria-checkout-errors",
+      criteriaName: "Checkout logs errors",
+      filterCondition: "All",
+      filters: [
+        {
+          checkOn: "Log Count",
+          filterType: "Greater Than",
+          value: 100,
+          met: true,
+          message:
+            "Log Count was 412 in the last 5 minutes, above the 100 threshold.",
+        },
+      ],
+    };
+  }
+
+  if (evaluationMode === "off") {
+    return {
+      ...base,
+      areResponseExcerptsOff: true,
+      filters: [
+        slow,
+        {
+          checkOn: "Response Body",
+          filterType: "Contains",
+          value: "degraded",
+          met: true,
+          message: "Response body contains degraded.",
+          excerptOmission: "response-excerpts-off",
+        },
+      ],
+    };
+  }
+
+  if (evaluationMode === "many") {
+    return {
+      ...base,
+      criteriaName: "Checkout is degraded",
+      filterCondition: "Any",
+      filters: [
+        {
+          checkOn: "Response Status Code",
+          filterType: "Greater Than",
+          value: 499,
+          met: false,
+          message:
+            "Response Status Code was 200 (expected to be greater than 499).",
+        },
+        slow,
+        {
+          checkOn: "JavaScript Expression",
+          filterType: "Evaluates To True",
+          value:
+            "{{responseBody.dependencies[0].pool.inUse}} >= {{responseBody.dependencies[0].pool.max}} && '{{responseHeaders.set-cookie}}' !== ''",
+          met: true,
+          message:
+            "JavaScript Expression - {{responseBody.dependencies[0].pool.inUse}} >= {{responseBody.dependencies[0].pool.max}} && '{{responseHeaders.set-cookie}}' !== '' - evaluated to true. Values: responseBody.dependencies[0].pool.inUse = 10, responseBody.dependencies[0].pool.max = 10, responseHeaders.set-cookie = [REDACTED].",
+          actual: "true",
+          fieldValues: [
+            { path: "responseBody.dependencies[0].pool.inUse", value: "10" },
+            { path: "responseBody.dependencies[0].pool.max", value: "10" },
+            {
+              path: "responseHeaders.set-cookie",
+              value: MASKED,
+              isRedacted: true,
+            },
+            {
+              path: "responseBody.dependencies[0].pool.queue",
+              isMissing: true,
+            },
+          ],
+        },
+        {
+          checkOn: "Response Header Value",
+          filterType: "Contains",
+          value: "miss",
+          met: true,
+          message: "Response header value contains miss.",
+          field: "x-cache",
+          actual: "MISS",
+        },
+      ],
+    };
+  }
+
+  if (evaluationMode === "long") {
+    return {
+      ...base,
+      criteriaName:
+        "Checkout health endpoint reports a degraded dependency for the EU storefront during evening peak",
+      stepNumber: 2,
+      stepCount: 3,
+      request: {
+        method: "POST",
+        url: `https://api.acme-commerce.example/api/v2/storefronts/eu-central/checkout/health/dependencies/orders-database-primary-replica-set?region=eu-central-1&include=pool,replication,locks,slow-queries&api_key=${MASKED}&trace=${"a1b2c3".repeat(8)}`,
+      },
+      response: {
+        statusCode: 200,
+        responseTimeInMs: 2412,
+        isOnline: true,
+        failureCause:
+          "The response arrived after 2,412 ms; the first byte took 2,390 ms while orders-db waited for a free connection in its pool.",
+      },
+      filters: [
+        {
+          ...degraded,
+          field:
+            'storefronts["eu-central"].checkout.dependencies[0].replicaSet.members[2].health.connectionPool.status',
+          excerpt: {
+            before: `"members":[{"host":"orders-db-0.eu-central.internal","role":"primary"},{"host":"orders-db-1.eu-central.internal","role":"replica","health":{"connectionPool":{"inUse":40,"max":40,"status":"`,
+            match: "degraded",
+            after: `","waiting":137,"oldestWaitMs":2390,"token":${MASKED},"note":"pool exhausted since 17:52 after release 2026.09.14-2 started with DB_POOL_MAX=10"}}}]`,
+            isCutAtStart: true,
+            isCutAtEnd: true,
+          },
+          message: "Response body contains degraded.",
+        },
+        slow,
+      ],
+    };
+  }
+
+  return { ...base, filters: [slow, degraded] };
+}
+
+function alertEvaluationDetails() {
+  if (evaluationMode === "none") {
+    return undefined;
+  }
+
+  return {
+    version: 1,
+    monitorType: "API",
+    evaluatedAt: at("18:06").toISOString(),
+    probeName: "eu-west-1 probe",
+    criteriaId: "criteria-webhook-errors",
+    criteriaName: "Webhook returns server errors",
+    filterCondition: "All",
+    request: {
+      method: "POST",
+      url: "https://payments.acme-commerce.example/webhooks/provider/health",
+    },
+    response: { statusCode: 502, responseTimeInMs: 318, isOnline: true },
+    ...(evaluationMode === "off" ? { areResponseExcerptsOff: true } : {}),
+    filters: [
+      {
+        checkOn: "Response Status Code",
+        filterType: "Greater Than",
+        value: 499,
+        met: true,
+        message: "Response Status Code was 502, above the 499 threshold.",
+        actual: "502",
+      },
+      evaluationMode === "off"
+        ? {
+            checkOn: "Response Body",
+            filterType: "Contains",
+            value: "ledger-api",
+            met: true,
+            message: "Response body contains ledger-api.",
+            excerptOmission: "response-excerpts-off",
+          }
+        : {
+            checkOn: "Response Body",
+            filterType: "Contains",
+            value: "ledger-api",
+            met: true,
+            message: "Response body contains ledger-api.",
+            field: "error.upstream",
+            excerpt: {
+              before: '{"error":{"code":502,"upstream":"',
+              match: "ledger-api",
+              after: '","detail":"upstream timed out after 1000 ms"}}',
+              isCutAtStart: false,
+              isCutAtEnd: false,
+            },
+          },
+    ],
+  };
+}
+
 // The incident under test.
 const INCIDENT_NUMBER = 1042;
 /*
@@ -1831,14 +2220,38 @@ const MAIN_INCIDENT_DESCRIPTION =
     : whatMode === "long"
       ? "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe, and the synthetic checkout journey began timing out a minute later.\n\nWhat customers saw:\n\n- Checkout spun for up to 30 seconds before the payment step loaded.\n- About 4% of orders were abandoned at the payment step between 17:58 and 18:12.\n- Order confirmation emails were delayed by up to 6 minutes.\n\nSupport received 41 tickets about slow checkout in the same window, most of them from the EU storefront."
       : "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.";
+/*
+ * The root cause the monitor wrote when it declared #1042, as
+ * MonitorCriteriaEvaluator writes one for an API monitor's criteria: its
+ * name, each filter's sentence, the request and what came back.
+ */
+const MONITOR_WRITTEN_ROOT_CAUSE = [
+  "**Created because the following criteria was met**:",
+  "",
+  "**Criteria Name**: Checkout is slow",
+  "",
+  "**Filter Conditions Met**: All filters met.",
+  "- All values of Response Time (in ms) over the last 5 minutes ranged from 2,180 ms to 2,412 ms across all 3 readings, above the 2000 threshold.",
+  "- Response body contains degraded.",
+  "",
+  "**Request Details**",
+  "- Destination: https://api.acme-commerce.example/api/checkout/health?region=eu&api_key=[REDACTED]",
+  "- Request Method: POST",
+  "",
+  "**Response Snapshot**",
+  "- Response Status Code: 200",
+  "- Response Time: 2412 ms",
+].join("\n");
 const MAIN_INCIDENT_ROOT_CAUSE =
   whatMode === "empty"
     ? undefined
-    : whatMode === "long"
-      ? "Release 2026.09.14-2 of checkout-api started at 17:52 with `DB_POOL_MAX=10` instead of 40: the value came from a staging override that the release pipeline copied into the production manifest.\n\nUnder the evening load, checkout requests queued for a connection to orders-db and p95 latency passed 2s. The same pool exhaustion caused #1017, #1029 and #1036.\n\nContributing factors:\n\n1. The release check compares image tags, not environment values.\n2. The pool size alert fires only at 100% use, after requests already wait.\n3. Rolling back took 12 minutes because the previous image had been pruned."
-      : isResolved
-        ? "checkout-api 2026.09.14-2 started with DB_POOL_MAX=10 (was 40). Rolled back at 18:10."
-        : undefined;
+    : whatMode === "monitor"
+      ? MONITOR_WRITTEN_ROOT_CAUSE
+      : whatMode === "long"
+        ? "Release 2026.09.14-2 of checkout-api started at 17:52 with `DB_POOL_MAX=10` instead of 40: the value came from a staging override that the release pipeline copied into the production manifest.\n\nUnder the evening load, checkout requests queued for a connection to orders-db and p95 latency passed 2s. The same pool exhaustion caused #1017, #1029 and #1036.\n\nContributing factors:\n\n1. The release check compares image tags, not environment values.\n2. The pool size alert fires only at 100% use, after requests already wait.\n3. Rolling back took 12 minutes because the previous image had been pruned."
+        : isResolved
+          ? "checkout-api 2026.09.14-2 started with DB_POOL_MAX=10 (was 40). Rolled back at 18:10."
+          : undefined;
 const mainIncident = defineIncident({
   number: INCIDENT_NUMBER,
   numbering: numberedAs("incident", INCIDENT_NUMBER),
@@ -1859,6 +2272,7 @@ const mainIncident = defineIncident({
   episode: incidentEpisodeRecord,
   notificationFailed: failures.has("resend"),
   rootCause: MAIN_INCIDENT_ROOT_CAUSE,
+  evaluationDetails: incidentEvaluationDetails(),
 });
 insert(IncidentFeed, {
   incidentId: mainIncident.id,
@@ -2027,6 +2441,9 @@ function defineAlert(spec) {
     alertEpisode: spec.episode,
     alertEpisodeId: spec.episode?.id,
     rootCause: spec.rootCause,
+    ...(spec.evaluationDetails
+      ? { evaluationDetails: spec.evaluationDetails }
+      : {}),
     customFields: {},
   };
   table(Alert).push(record);
@@ -2170,6 +2587,7 @@ const mainAlert = defineAlert({
   monitor: monitors.webhookErrors,
   services: [services.payments],
   episode: alertEpisodeRecord,
+  evaluationDetails: alertEvaluationDetails(),
 });
 
 /*
@@ -4506,6 +4924,27 @@ function stallSummary(investigation) {
   };
 }
 
+/*
+ * ?impact=on: the numbers Incident #1042's run recorded with its report's
+ * Impact section, as the engine records the block it takes off the
+ * answer (Utils/AI/InvestigationImpactNumbers): an InvestigationImpact
+ * event, which the folded Investigation step draws under the summary -
+ * requests, not users, the two services and one of the two SLOs that
+ * count checkout.
+ */
+function impactSummary() {
+  const numbers = {
+    users: { count: 1240, counted: InvestigationImpactCounted.Requests },
+    services: { count: 2 },
+    slos: { affected: 1, total: 2 },
+  };
+
+  return {
+    message: describeInvestigationImpactNumbers(numbers),
+    impactNumbers: investigationImpactNumbersToJSON(numbers),
+  };
+}
+
 function defineInvestigation(spec) {
   if (stallMode) {
     spec = {
@@ -4904,6 +5343,14 @@ if (fixesMode === "many") {
       "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
     commandPlan: kubectlFixPlan(false),
     createdAt: at("18:04", 10),
+    // ?approvals=first|mine: who approved it first, where and when.
+    ...(approvalsMode === "first" || approvalsMode === "mine"
+      ? firstApproval(
+          approvalsMode === "first" ? people.jordan : people.maya,
+          approvalsMode === "first" ? "Slack" : "Dashboard",
+          at("18:06", 20),
+        )
+      : {}),
   });
   insert(AutoRemediationSuggestion, {
     _id: MCP_FIX_SUGGESTION_ID,
@@ -5066,6 +5513,68 @@ if (fixesMode === "rolled-back") {
 
 /*
  * ---------------------------------------------------------------------------
+ * A round that stopped, and a round that found no safe fix (?fixes=
+ * unfinished | no-fix, issues #6436 and #6487). The Remediation step reads
+ * the round of each fix with a run (POST /auto-remediation/round) and says
+ * what it did, as RemediationRound.readForViewer answers it.
+ *
+ * unfinished: OneUptime AI's round on prod-eu-west-1 gave up after three
+ * attempts - the AI provider did not answer within 120 seconds, each time
+ * - after it had checked the HPA and the pods with two kubectl commands.
+ * The plan runner's sweep settled it, in the words it has for a command
+ * round. It changed nothing, so whoever may change the incident may try it
+ * again while the incident is open (?state=ongoing or created): Try again
+ * (POST /auto-remediation/round-try-again) starts it again with a new run,
+ * queued, as RemediationRound.tryAgain does, and ?fail=round-try-again
+ * refuses it with the server's words for a project at its daily AI limit.
+ *
+ * no-fix: the round finished without a fix and said why (explain_no_fix):
+ * the fixes it ruled out, with the commands each would run and why not,
+ * beside the commands it checked with - three ran, and one kubectl refused
+ * - and four queries of the project's telemetry.
+ * ---------------------------------------------------------------------------
+ */
+const UNFINISHED_ROUND_SUGGESTION_ID = uuid("93000000", 10);
+const NO_FIX_ROUND_SUGGESTION_ID = uuid("93000000", 11);
+const UNFINISHED_ROUND_RUN_ID = ID.aiRun(11);
+const NO_FIX_ROUND_RUN_ID = ID.aiRun(12);
+// The run Try again starts.
+const TRIED_AGAIN_ROUND_RUN_ID = ID.aiRun(13);
+const ROUND_PROVIDER_TIMEOUT_ERROR =
+  "OpenAI API request failed: the LLM provider did not respond within 120 seconds.";
+
+if (fixesMode === "unfinished") {
+  insert(AutoRemediationSuggestion, {
+    _id: UNFINISHED_ROUND_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    aiRunId: new ObjectID(UNFINISHED_ROUND_RUN_ID),
+    rationaleMarkdown:
+      "The AI fix did not finish — the planning run failed. Nothing was run or proposed.",
+    createdAt: at("18:04", 10),
+  });
+}
+
+if (fixesMode === "no-fix") {
+  insert(AutoRemediationSuggestion, {
+    _id: NO_FIX_ROUND_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    aiRunId: new ObjectID(NO_FIX_ROUND_RUN_ID),
+    rationaleMarkdown:
+      "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe, so OneUptime AI proposes no change.",
+    createdAt: at("18:04", 10),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * A runbook that waits, and a fix approved in Slack (?fixes=runbook,
  * #5519's follow-ups). The rule "Checkout fixes" proposed the runbook
  * "Restart checkout-api pods" at 18:03, with how it went the last times
@@ -5120,6 +5629,275 @@ if (fixesMode === "runbook") {
   });
 }
 
+/*
+ * The first of two approvals, as the server records it
+ * (AutoRemediationSuggestionService.attemptFirstApproval): who, from where
+ * and when.
+ */
+function firstApproval(user, from, when) {
+  return {
+    firstApprovedByUser: user,
+    firstApprovedByUserId: user.id,
+    firstApprovedFrom: from,
+    firstApprovedAt: when,
+  };
+}
+
+/*
+ * A fix's round (POST /auto-remediation/round, ?fixes=unfinished | no-fix),
+ * as RemediationRound.readForViewer answers it: the run, how its attempts
+ * started and ended - never a tool or its arguments - the commands it
+ * checked with, how many other checks it made, why it found no fix, what
+ * it changed, and whether the reader may try it again: only a round that
+ * stopped without its answer and changed nothing, on an open incident.
+ */
+const ROUND_APPLIED_NOTHING = {
+  commandCount: 0,
+  changeCount: 0,
+  isRunbookStarted: false,
+};
+
+function roundRunJson(data) {
+  const run = make(AIRun, {
+    _id: data.runId,
+    status: data.status,
+    createdAt: data.createdAt,
+    ...(data.startedAt ? { startedAt: data.startedAt } : {}),
+    ...(data.completedAt ? { completedAt: data.completedAt } : {}),
+    ...(data.errorMessage ? { errorMessage: data.errorMessage } : {}),
+  });
+  return BaseModel.toJSONArray([run], AIRun)[0];
+}
+
+function roundEventsJson(runId, entries) {
+  return BaseModel.toJSONArray(
+    entries.map((entry, index) => {
+      return make(AIRunEvent, {
+        _id: uuid(
+          runId === UNFINISHED_ROUND_RUN_ID ? "8c000000" : "8d000000",
+          index + 1,
+        ),
+        sequence: index + 1,
+        eventType: entry.eventType,
+        createdAt: entry.at,
+        resultSummary: entry.resultSummary || {},
+      });
+    }),
+    AIRunEvent,
+  );
+}
+
+/*
+ * The unfinished round's three attempts, as AIRunRetryPolicy records them:
+ * each start, and each end - the provider did not answer within 120
+ * seconds - the last one ending the run.
+ */
+function unfinishedRoundEvents() {
+  const attempts = [
+    { startedAt: at("18:04", 12), endedAt: at("18:06", 20) },
+    { startedAt: at("18:06", 50), endedAt: at("18:08", 52) },
+    { startedAt: at("18:09", 22), endedAt: at("18:11", 24) },
+  ];
+  const entries = [];
+  attempts.forEach((attempt, index) => {
+    const isLast = index === attempts.length - 1;
+    entries.push({
+      eventType: AIRunEventType.RunStarted,
+      at: attempt.startedAt,
+    });
+    entries.push({
+      eventType: isLast
+        ? AIRunEventType.RunFailed
+        : AIRunEventType.AttemptEnded,
+      at: attempt.endedAt,
+      resultSummary: {
+        attemptEnd: {
+          outcome: isLast ? "GaveUp" : "WillRetry",
+          failureKind: "ProviderTimeout",
+          attempt: index + 1,
+          maxAttempts: attempts.length,
+          timeoutInSeconds: 120,
+          ...(isLast
+            ? {}
+            : { nextAttemptAt: iso(attempts[index + 1].startedAt) }),
+        },
+        errorMessage: ROUND_PROVIDER_TIMEOUT_ERROR,
+      },
+    });
+  });
+  return roundEventsJson(UNFINISHED_ROUND_RUN_ID, entries);
+}
+
+function roundCheck(command, why, status, when, error) {
+  return { command, why, status, at: iso(when), error: error || "" };
+}
+
+function remediationRound(suggestionId) {
+  const record = table(AutoRemediationSuggestion).find((row) => {
+    return String(row._id) === String(suggestionId);
+  });
+  if (!record || !record.aiRunId) {
+    throw fail(
+      400,
+      "Auto-remediation suggestion not found (or you do not have access to it).",
+    );
+  }
+  const runId = String(record.aiRunId);
+
+  // The round Try again started: queued, with nothing done yet.
+  if (runId === TRIED_AGAIN_ROUND_RUN_ID) {
+    return {
+      run: roundRunJson({ runId, status: AIRunStatus.Queued, createdAt: NOW }),
+      events: [],
+      checks: [],
+      otherCheckCount: 0,
+      explanation: null,
+      appliedSteps: ROUND_APPLIED_NOTHING,
+      mayTryAgain: false,
+    };
+  }
+
+  if (runId === UNFINISHED_ROUND_RUN_ID) {
+    return {
+      run: roundRunJson({
+        runId,
+        status: AIRunStatus.Error,
+        createdAt: at("18:04", 10),
+        startedAt: at("18:04", 12),
+        completedAt: at("18:11", 24),
+        errorMessage: ROUND_PROVIDER_TIMEOUT_ERROR,
+      }),
+      events: unfinishedRoundEvents(),
+      checks: [
+        roundCheck(
+          "kubectl get hpa checkout-api -n checkout",
+          "See whether the HPA is pinned at its ceiling.",
+          "ran",
+          at("18:05", 2),
+        ),
+        roundCheck(
+          "kubectl top pods -n checkout -l app=checkout-api",
+          "Compare each pod's memory with its request.",
+          "ran",
+          at("18:05", 40),
+        ),
+      ],
+      otherCheckCount: 0,
+      explanation: null,
+      appliedSteps: ROUND_APPLIED_NOTHING,
+      // It changed nothing: the incident's state is all that is left.
+      mayTryAgain: !isResolved,
+    };
+  }
+
+  return {
+    run: roundRunJson({
+      runId,
+      status: AIRunStatus.Completed,
+      createdAt: at("18:04", 10),
+      startedAt: at("18:04", 12),
+      completedAt: at("18:06", 30),
+    }),
+    events: roundEventsJson(runId, [
+      { eventType: AIRunEventType.RunStarted, at: at("18:04", 12) },
+      { eventType: AIRunEventType.RunCompleted, at: at("18:06", 30) },
+    ]),
+    checks: [
+      roundCheck(
+        "kubectl get hpa checkout-api -n checkout",
+        "See whether the HPA has room to scale.",
+        "ran",
+        at("18:04", 40),
+      ),
+      roundCheck(
+        "kubectl top pods -n checkout -l app=checkout-api",
+        "Compare each pod's CPU and memory with its limits.",
+        "ran",
+        at("18:05", 1),
+      ),
+      roundCheck(
+        "kubectl rollout history deployment/checkout-api -n checkout",
+        "Find what changed before the latency rose.",
+        "ran",
+        at("18:05", 20),
+      ),
+      roundCheck(
+        "kubectl get events -n checkout --field-selector type=Warning",
+        "Look for evictions and failed probes.",
+        "failed",
+        at("18:05", 41),
+        'Error from server (Forbidden): events is forbidden: User "system:serviceaccount:oneuptime:oneuptime-agent" cannot list resource "events" in API group "" in the namespace "checkout"',
+      ),
+    ],
+    otherCheckCount: 4,
+    explanation: {
+      reason:
+        "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe: that release also changed the database schema.",
+      ruledOutFixes: [
+        {
+          fix: "Roll checkout-api back to the revision before the 17:52 rollout",
+          commands: [
+            "kubectl rollout undo deployment/checkout-api -n checkout",
+          ],
+          whyNot:
+            "Not safe: the 17:52 release ran a database migration, and the revision before it does not read the new schema.",
+        },
+        {
+          fix: "Restart checkout-api's pods",
+          commands: [
+            "kubectl rollout restart deployment/checkout-api -n checkout",
+          ],
+          whyNot:
+            "Would not fix the cause: the pods are healthy, and new pods run the same release.",
+        },
+        {
+          fix: "Scale checkout-api out to 6 replicas",
+          commands: [
+            "kubectl scale deployment/checkout-api -n checkout --replicas=6",
+          ],
+          whyNot:
+            "Would not fix the cause: CPU and memory are well under their limits, so more replicas would not make each request faster.",
+        },
+      ],
+    },
+    appliedSteps: ROUND_APPLIED_NOTHING,
+    mayTryAgain: false,
+  };
+}
+
+/*
+ * Try again on a round that stopped (POST /auto-remediation/round-try-
+ * again), as RemediationRound.tryAgain does: the fix names a new run and is
+ * being worked out again, with nothing the last run left on it. Refused in
+ * the server's words: ?fail=round-try-again as for a project at its daily
+ * AI limit, a resolved incident, and a round that has moved on.
+ */
+function tryRoundAgain(suggestionId) {
+  const record = table(AutoRemediationSuggestion).find((row) => {
+    return String(row._id) === String(suggestionId);
+  });
+  const refuse = (refusal) => {
+    return fail(400, REMEDIATION_ROUND_TRY_AGAIN_REFUSALS[refusal]);
+  };
+  if (failures.has("round-try-again")) {
+    throw refuse(RemediationRoundTryAgainRefusal.LimitReached);
+  }
+  if (
+    !record ||
+    String(record.aiRunId) !== UNFINISHED_ROUND_RUN_ID ||
+    record.status !== "NoneApplicable"
+  ) {
+    throw refuse(RemediationRoundTryAgainRefusal.AlreadyStarted);
+  }
+  if (isResolved) {
+    throw refuse(RemediationRoundTryAgainRefusal.IncidentResolved);
+  }
+  record.status = "Planning";
+  record.aiRunId = new ObjectID(TRIED_AGAIN_ROUND_RUN_ID);
+  delete record.rationaleMarkdown;
+  return { runId: TRIED_AGAIN_ROUND_RUN_ID };
+}
+
 // Approve & Run (POST /auto-remediation/approve) on a fix that waits.
 function approveFix(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
@@ -5134,6 +5912,29 @@ function approveFix(suggestionId) {
   if (!record || record.status !== "Suggested") {
     throw fail(400, "Only suggested remediations can be approved.");
   }
+  /*
+   * ?approvals=: the kubectl fix holds a riskier change and the project
+   * asks two people to approve one, as RemediationApproval.approve
+   * decides: the first approval is recorded and runs nothing, the first
+   * approver's own press again is refused, and someone else's runs it.
+   */
+  if (approvalsMode && String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
+    if (!record.firstApprovedByUserId) {
+      Object.assign(
+        record,
+        firstApproval(people.maya, "Dashboard", new Date()),
+      );
+      return {
+        suggestionId: String(record._id),
+        status: "Suggested",
+        suggestionType: "CommandPlan",
+        isWaitingForSecondApproval: true,
+      };
+    }
+    if (String(record.firstApprovedByUserId) === String(people.maya.id)) {
+      throw fail(400, ALREADY_APPROVED_FIRST_MESSAGE);
+    }
+  }
   record.status = "Approved";
   // Who approved it and when, as the server stamps them.
   record.approvedAt = new Date();
@@ -5142,6 +5943,11 @@ function approveFix(suggestionId) {
   if (String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
     record.commandPlan = kubectlFixPlan(true);
   }
+  return {
+    suggestionId: String(record._id),
+    status: "Approved",
+    suggestionType: record.suggestionType,
+  };
 }
 
 // Dismiss (POST /auto-remediation/dismiss) on a fix that waits.
@@ -5827,6 +6633,14 @@ function buildEvents(investigation, options) {
         0,
       );
     }
+    // After the TL;DR, as the engine records it.
+    if (options.impact) {
+      push(
+        AIRunEventType.InvestigationImpact,
+        { resultSummary: options.impact },
+        0,
+      );
+    }
     if (!options.skipRunCompleted) {
       push(AIRunEventType.RunCompleted, {}, 0);
     }
@@ -5837,6 +6651,42 @@ function buildEvents(investigation, options) {
       {
         resultSummary: {
           errorMessage: "LLM provider returned 529 Overloaded three times.",
+        },
+      },
+      0,
+    );
+  }
+  /*
+   * The attempt ended without the report, and the run waits before its
+   * next one (issue #6437): the model call that ran out of time, and the
+   * attempt's end, as AIRunRetryPolicy records them.
+   */
+  if (options.ending === "retrying") {
+    push(AIRunEventType.LlmCallStarted, {}, 120000);
+    push(
+      AIRunEventType.LlmCallFailed,
+      {
+        resultSummary: {
+          errorMessage:
+            "OpenAI API request failed: the LLM provider did not respond within 120 seconds.",
+        },
+      },
+      0,
+    );
+    push(
+      AIRunEventType.AttemptEnded,
+      {
+        resultSummary: {
+          errorMessage:
+            "OpenAI API request failed: the LLM provider did not respond within 120 seconds.",
+          attemptEnd: {
+            outcome: "WillRetry",
+            failureKind: "ProviderTimeout",
+            attempt: 1,
+            maxAttempts: 3,
+            nextAttemptAt: iso(options.retryAt),
+            timeoutInSeconds: 120,
+          },
         },
       },
       0,
@@ -5998,9 +6848,11 @@ function investigationPayload(investigation) {
     };
   }
 
+  // Try again starts a new run: its own id, queued now.
+  const triedAgainRunId = triedAgain.get(String(investigation.subjectId));
   const run = make(AIRun, {
-    _id: investigation.runId,
-    createdAt: investigation.createdAt,
+    _id: triedAgainRunId || investigation.runId,
+    createdAt: triedAgainRunId ? NOW : investigation.createdAt,
     llmCallCount: 0,
     toolCallCount: 0,
     totalTokens: 0,
@@ -6012,9 +6864,29 @@ function investigationPayload(investigation) {
   let isAnalysisPending = false;
   const toolCount = investigation.citations.length;
 
-  // A waiting record someone started with Investigate now is queued.
-  if (aiMode === "queued" || isWaitingMode) {
+  /*
+   * A waiting record someone started with Investigate now is queued, and so
+   * is the new run of one someone tried again.
+   */
+  if (aiMode === "queued" || isWaitingMode || triedAgainRunId) {
     run.status = AIRunStatus.Queued;
+  } else if (aiMode === "retrying") {
+    /*
+     * Between attempts (issue #6437): its first attempt ran out of time
+     * with the AI provider four minutes ago, and it tries again in two.
+     */
+    const startedAt = new Date(NOW.getTime() - 4 * MINUTE);
+    const retryAt = new Date(NOW.getTime() + RETRY_IN_MINUTES * MINUTE);
+    run.status = AIRunStatus.Queued;
+    run.startedAt = startedAt;
+    run.retryAt = retryAt;
+    run.llmCallCount = 2;
+    run.toolCallCount = 4;
+    run.totalTokens = 10230;
+    events = buildEvents(
+      { ...investigation, startedAt },
+      { toolCount: 4, ending: "retrying", retryAt },
+    );
   } else if (aiMode === "running") {
     run.status = AIRunStatus.Running;
     run.startedAt = investigation.startedAt;
@@ -6022,7 +6894,7 @@ function investigationPayload(investigation) {
     run.toolCallCount = 3;
     run.totalTokens = 9120;
     events = buildEvents(investigation, { toolCount: 3, openTool: true });
-  } else if (aiMode === "failed") {
+  } else if (isFailedMode) {
     run.status = AIRunStatus.Error;
     run.startedAt = investigation.startedAt;
     run.completedAt = new Date(investigation.startedAt.getTime() + 38000);
@@ -6058,6 +6930,11 @@ function investigationPayload(investigation) {
       ending: "completed",
       skipRunCompleted: isPending,
       stall: stallMode ? stallSummary(investigation) : null,
+      // Only the run whose report has the Impact section: #1042's first.
+      impact:
+        impactMode && investigation.analysis === INCIDENT_ANALYSIS
+          ? impactSummary()
+          : null,
     });
     if (isPending) {
       isAnalysisPending = true;
@@ -6073,6 +6950,11 @@ function investigationPayload(investigation) {
 
   const payload = {
     run: runJson,
+    /*
+     * Try again (issue #6438), as AIInvestigationAPI answers it: for a run
+     * that did not finish, to someone who may change the record.
+     */
+    mayTryAgain: aiMode === "failed" && run.status === AIRunStatus.Error,
     events: BaseModel.toJSONArray(events, AIRunEvent),
     analysisMarkdown,
     analysisTldr,
@@ -6182,7 +7064,11 @@ UserUtil.getEmail = () => people.maya.email;
  * ?private=1 incident #1042 is private, and only Checkout SRE's permissions
  * reach it: its page locks what Checkout SRE may not do, saying why.
  */
-const SNAPSHOT_ROLE_MODES = ["view-only-owner", "editor-owner"];
+const SNAPSHOT_ROLE_MODES = [
+  "view-only-owner",
+  "editor-owner",
+  "runbook-blocked",
+];
 const isSnapshotRoleMode = SNAPSHOT_ROLE_MODES.includes(roleMode);
 const INCIDENT_RESPONSE_TEAM_ID = ID.team(5);
 const GLOBAL_PERMISSIONS = [
@@ -6205,7 +7091,14 @@ const snapshotRows = isSnapshotRoleMode
       permissionRow(Permission.UnAuthorizedSsoUser),
       permissionRow(Permission.ProjectUser),
       permissionRow(Permission.ProjectMember, INCIDENT_RESPONSE_TEAM_ID),
-      permissionRow(Permission.Viewer, ID.team(1)),
+      ...(roleMode === "runbook-blocked"
+        ? [
+            {
+              ...permissionRow(Permission.CreateRunbookExecution, ID.team(1)),
+              isBlockPermission: true,
+            },
+          ]
+        : [permissionRow(Permission.Viewer, ID.team(1))]),
       ...(roleMode === "editor-owner"
         ? [permissionRow(Permission.IncidentMember, ID.team(1))]
         : []),
@@ -8298,6 +9191,39 @@ async function handleApi(method, options) {
     return ok({ runId: investigation.runId });
   }
 
+  /*
+   * Try again on an investigation that did not finish (issue #6438): a new
+   * run, queued, as InvestigationTryAgain starts one - the record's next
+   * read answers it - or refused with the server's words: OneUptime AI
+   * switched off, for ?fail=investigation-try-again, and a run that is not
+   * one to try again (queued or running already, or someone else's to start).
+   */
+  if (method === "POST" && url.endsWith("/ai-investigation/try-again")) {
+    if (failures.has("investigation-try-again")) {
+      throw fail(
+        400,
+        "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+      );
+    }
+    const isAlert = body.subjectType === "alert";
+    const investigation = isAlert
+      ? investigations.alert
+      : investigations.incident;
+    if (
+      aiMode !== "failed" ||
+      String(body.subjectId) !== String(investigation.subjectId) ||
+      triedAgain.has(String(investigation.subjectId))
+    ) {
+      throw fail(
+        400,
+        `This ${isAlert ? "alert" : "incident"}'s investigation is queued or running already.`,
+      );
+    }
+    const newRunId = ID.aiRun(100 + triedAgain.size + 1);
+    triedAgain.set(String(investigation.subjectId), newRunId);
+    return ok({ runId: newRunId });
+  }
+
   if (url.includes("/ai-investigation/evidence")) {
     if (failures.has("evidence")) {
       throw fail(
@@ -8452,10 +9378,21 @@ async function handleApi(method, options) {
     return ok(tryAgain(body));
   }
 
+  /*
+   * A fix's round (?fixes=unfinished | no-fix), and Try again on one that
+   * stopped: started again, or refused.
+   */
+  if (method === "POST" && url.endsWith("/auto-remediation/round")) {
+    return ok(remediationRound(body.suggestionId));
+  }
+
+  if (method === "POST" && url.endsWith("/auto-remediation/round-try-again")) {
+    return ok(tryRoundAgain(body.suggestionId));
+  }
+
   // Approve & Run and Dismiss on a fix that waits (?fixes=many).
   if (method === "POST" && url.endsWith("/auto-remediation/approve")) {
-    approveFix(body.suggestionId);
-    return ok({});
+    return ok(approveFix(body.suggestionId));
   }
 
   if (method === "POST" && url.endsWith("/auto-remediation/dismiss")) {
@@ -8484,6 +9421,16 @@ async function handleApi(method, options) {
 
   if (callTranscriptAnswer) {
     return callTranscriptAnswer;
+  }
+
+  /*
+   * Who approves this kind of public note (POST <note path>/approval/policy,
+   * PublicNoteApprovalRoutes), read by the feed's Add Public Note: nobody.
+   * The workspace asks for no approval, as a project does until its owner
+   * turns it on, so a note is published as it is posted.
+   */
+  if (method === "POST" && url.endsWith("/approval/policy")) {
+    return ok({ isRequired: false, steps: [] });
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

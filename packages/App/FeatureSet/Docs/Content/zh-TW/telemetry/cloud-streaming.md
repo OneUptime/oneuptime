@@ -68,6 +68,7 @@ AWS 每個區域只允許一個帳戶層級的日誌訂閱，每個日誌群組�
 | --- | --- |
 | **所有指標，而不只是關鍵指標** | 串流 CloudWatch 中該帳戶的所有指標，包括你的自訂指標。AWS 依串流傳送的每次指標更新計費，因此費用可能高出許多倍 |
 | **區域** | 從哪裡串流：一開始是連線找到資源的區域。留空時，指令會從 AWS CloudShell 本身所在的區域串流。最多 30 個 |
+| **組織的所有帳戶** | 對於讀取 AWS Organization 的連線：在其管理帳戶中執行的指令，也會透過 StackSet 在每個成員帳戶以及之後加入的帳戶中建立相同的堆疊。要嘛所有記錄群組，要嘛不包含記錄群組：指定名稱的記錄群組只屬於一個帳戶 |
 | **以其他方式設定** | 指標和日誌的端點以及金鑰，用於透過 Terraform 或主控台設定串流 |
 
 **下載範本** 會儲存指令所部署的範本，方便你以自己的方式部署。
@@ -79,6 +80,7 @@ AWS 每個區域只允許一個帳戶層級的日誌訂閱，每個日誌群組�
 | 指標 | 落在其量測的雲端資源上，名稱和屬性與連線的讀取所賦予的相同 |
 | 日誌 | 落在日誌瀏覽器中，歸於連線的遙測服務之下，並以帳戶、區域和日誌群組作為屬性 |
 | AWS 以資源命名的日誌群組中的日誌 | 也會落在該資源上：該資源在雲端中的頁面會多出一個 **日誌** 分頁 |
+| App Runner 服務、Elastic Beanstalk 環境或 ECS 任務或叢集的日誌 | 也會落在 應用程式平台 中其所在的環境上：顯示在該環境的 **日誌** 分頁中 |
 
 當 AWS 以某個資源為日誌群組命名時，該日誌群組會歸入這個資源：
 
@@ -97,7 +99,9 @@ AWS 每個區域只允許一個帳戶層級的日誌訂閱，每個日誌群組�
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-每筆日誌都以 `cloud.resource_id` 攜帶資源的 ID，Lambda 函式的日誌還攜帶 `faas.name`，因此它們也會顯示在 Serverless 中的該函式上。其他名稱的日誌群組同樣會被串流，歸於其帳戶和區域之下。日誌的嚴重性就是其訊息中依 Lambda 的寫法註明的嚴重性。
+每筆日誌都以 `cloud.resource_id` 攜帶資源的 ID，Lambda 函式的日誌還攜帶 `faas.name`，因此它們也會顯示在 Serverless 中的該函式上。其他名稱的日誌群組同樣會被串流，歸於其帳戶和區域之下。日誌的嚴重性就是其訊息中依 Lambda、PostgreSQL 或 MySQL 的寫法註明的嚴重性。
+
+App Runner 服務、Elastic Beanstalk 環境和 ECS 叢集的日誌還攜帶 `cloud.platform`，ECS 任務的日誌也是如此：它們來自 ECS 主控台命名為 `/ecs/<task-definition-family>` 的日誌群組，並攜帶 `aws.ecs.task.family`。加上帳戶和區域，這些日誌就會落在 應用程式平台 中它們所在的環境上；如果還沒有應用程式向該環境回報過，環境會隨這些日誌一起出現。它們不會建立應用程式：應用程式由其自身的遙測命名，請參閱 [雲端環境](/docs/telemetry/cloud-environments)。
 
 ## 堆疊建立的內容
 
@@ -130,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+對於讀取 AWS Organization 的連線，請在管理帳戶中執行對話方塊中的指令：如果串流過整個組織，它也會刪除每個成員帳戶的堆疊和 StackSet。
 :::
 
 要變更堆疊串流的內容，請再次開啟 **串流指標和日誌**，選擇 **建立新金鑰** 並執行新的指令。被取代的金鑰在 24 小時內仍然有效，因此堆疊更新期間不會有傳送遭拒。同時最多有 3 個被取代的金鑰有效。

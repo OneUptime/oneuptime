@@ -17,6 +17,10 @@ import TelemetryExceptionMerge, {
   getSurvivorSeenAfterUnmerge,
 } from "../../../../Server/Utils/Telemetry/TelemetryExceptionMerge";
 import TelemetryExceptionService from "../../../../Server/Services/TelemetryExceptionService";
+import AuditLogService from "../../../../Server/Services/AuditLogService";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { JSONObject } from "../../../../Types/JSON";
+import UserType from "../../../../Types/UserType";
 import TelemetryExceptionActivityService, {
   TelemetryExceptionActivityActor,
   TelemetryExceptionActivityEntry,
@@ -1046,5 +1050,419 @@ describe("reading when an exception's own occurrences were seen", () => {
       }),
     ).toBeNull();
     expect(logger.error).toHaveBeenCalled();
+  });
+});
+
+/*
+ * THE AUDIT LOG ENTRIES A MERGE OR AN UNMERGE LEAVES (issue #6276).
+ *
+ * The statements are raw SQL, so DatabaseService's audit hook never sees
+ * them: these entries are the only trace a merge leaves in the audit log.
+ * One Update for each exception whose merged-into exception changed, by
+ * the caller, once the write has committed - never for a refused one, never
+ * for one that changed nothing - naming the one column that says what they
+ * did. What the recorder makes of it is pinned in ee/Tests/Server/AuditLog/
+ * AuditLogWritesRoundTheHooks.test.ts; the seeded sweep at the end holds the
+ * entries to what the statements wrote.
+ */
+describe("the audit log entries a merge or an unmerge leaves", () => {
+  interface RecordedUpdate {
+    model: BaseModel;
+    before: TelemetryException;
+    updatedFields: JSONObject;
+    itemId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    includeColumns?: Array<string> | undefined;
+  }
+
+  const MERGED_INTO: string = "mergedIntoTelemetryExceptionId";
+
+  let recorded: Array<RecordedUpdate>;
+
+  beforeEach(() => {
+    recorded = [];
+
+    jest.spyOn(AuditLogService, "recordUpdate").mockImplementation((async (
+      data: RecordedUpdate,
+    ) => {
+      recorded.push(data);
+    }) as never);
+    jest
+      .spyOn(TelemetryExceptionService, "forgetGroupFingerprints")
+      .mockResolvedValue(undefined);
+  });
+
+  // Each entry as [exception, merged into before, merged into after].
+  function entries(): Array<[string, string | null, string | null]> {
+    return recorded.map(
+      (data: RecordedUpdate): [string, string | null, string | null] => {
+        const after: unknown = data.updatedFields[MERGED_INTO];
+
+        expect(Object.keys(data.updatedFields)).toEqual([MERGED_INTO]);
+
+        return [
+          data.itemId.toString(),
+          data.before.mergedIntoTelemetryExceptionId?.toString() || null,
+          after ? String(after) : null,
+        ];
+      },
+    );
+  }
+
+  async function unmerge(
+    id: string,
+    props: DatabaseCommonInteractionProps = CALLER,
+  ): Promise<ExceptionUnmergeResult> {
+    return TelemetryExceptionMerge.unmerge({
+      telemetryExceptionId: new ObjectID(id),
+      props,
+    });
+  }
+
+  test("a merge: an entry for the merged exception, by the caller, once the merge has committed", async () => {
+    await merge(A, [B]);
+
+    expect(entries()).toEqual([[B, null, A]]);
+
+    const entry: RecordedUpdate = recorded[0]!;
+
+    expect(entry.model).toBeInstanceOf(TelemetryException);
+    expect(entry.before).toBeInstanceOf(TelemetryException);
+    expect(entry.before.id?.toString()).toBe(B);
+    expect(entry.before.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(entry.includeColumns).toEqual([MERGED_INTO]);
+    // The request's props as they came: the person, never root.
+    expect(entry.props).toBe(CALLER);
+
+    const committed: number = Math.max(
+      ...(TelemetryExceptionService.executeTransaction as unknown as jest.Mock)
+        .mock.invocationCallOrder,
+    );
+    expect(
+      (AuditLogService.recordUpdate as unknown as jest.Mock).mock
+        .invocationCallOrder[0]!,
+    ).toBeGreaterThan(committed);
+  });
+
+  test("the ones that came along with a merged one are entered, from it to the survivor", async () => {
+    rows = [row(A), row(B), row(C, { mergedIntoId: B })];
+
+    await merge(A, [B]);
+
+    expect(entries()).toEqual([
+      [B, null, A],
+      [C, B, A],
+    ]);
+  });
+
+  test("several at once: one each, and nothing for the one already there", async () => {
+    rows = [row(A), row(B), row(C), row(D, { mergedIntoId: A })];
+
+    await merge(A, [B, C, D]);
+
+    expect(entries()).toEqual([
+      [B, null, A],
+      [C, null, A],
+    ]);
+  });
+
+  test("twenty at once, each with what came along: every one is entered", async () => {
+    const id: (index: number) => string = (index: number): string => {
+      return `40000000-0000-4000-8000-${index.toString().padStart(12, "0")}`;
+    };
+    const merged: Array<string> = [];
+    const expected: Array<[string, string | null, string | null]> = [];
+
+    rows = [row(A)];
+
+    for (
+      let index: number = 0;
+      index < MAX_EXCEPTIONS_MERGED_AT_ONCE;
+      index++
+    ) {
+      const mergedId: string = id(index * 3);
+      merged.push(mergedId);
+      rows.push(row(mergedId));
+      expected.push([mergedId, null, A]);
+
+      for (const member of [id(index * 3 + 1), id(index * 3 + 2)]) {
+        rows.push(row(member, { mergedIntoId: mergedId }));
+        expected.push([member, mergedId, A]);
+      }
+    }
+
+    editableIds = rows.map((candidate: Row): string => {
+      return candidate.id;
+    });
+
+    await merge(A, merged);
+
+    expect(entries()).toEqual(expected);
+  });
+
+  test("a refused merge, or one that changed nothing, is not entered", async () => {
+    rows = [row(A), row(B, { mergedIntoId: A })];
+    await merge(A, [B]);
+
+    rows = [row(A), row(B, { primaryEntityId: OTHER_SERVICE_ID })];
+    await expect(merge(A, [B])).rejects.toThrow(BadDataException);
+
+    editableIds = [A];
+    await expect(merge(A, [B])).rejects.toThrow(NotAuthorizedException);
+
+    expect(recorded).toHaveLength(0);
+  });
+
+  test("an unmerge: from the exception it was merged into, to none", async () => {
+    rows = [row(A), row(B, { mergedIntoId: A })];
+
+    await unmerge(B);
+
+    expect(entries()).toEqual([[B, A, null]]);
+    expect(recorded[0]!.props).toBe(CALLER);
+    expect(recorded[0]!.includeColumns).toEqual([MERGED_INTO]);
+  });
+
+  test("an unmerge of one merged into another meanwhile: from that one, as its row held it", async () => {
+    rows = [row(A), row(B, { mergedIntoId: A })];
+    (
+      TelemetryExceptionService.executeTransaction as unknown as jest.Mock
+    ).mockImplementation(
+      async (run: (manager: unknown) => Promise<unknown>) => {
+        return run({
+          query: async (sql: string) => {
+            statements.push({ sql, params: [] });
+            return sql.trim().startsWith("SELECT")
+              ? [row(A), row(B, { mergedIntoId: D })]
+              : [];
+          },
+        });
+      },
+    );
+
+    await unmerge(B);
+
+    expect(entries()).toEqual([[B, D, null]]);
+  });
+
+  test("an unmerge that changed nothing, or was refused, is not entered", async () => {
+    await unmerge(B);
+
+    rows = [row(A), row(B, { mergedIntoId: A })];
+    editableIds = [B];
+    await expect(unmerge(B)).rejects.toThrow(NotAuthorizedException);
+
+    expect(recorded).toHaveLength(0);
+  });
+
+  test("through an API key: the key's props, as they came", async () => {
+    const props: DatabaseCommonInteractionProps = {
+      tenantId: PROJECT_ID,
+      userId: USER_ID,
+      userType: UserType.API,
+      apiKeyId: ObjectID.generate(),
+      apiKeyName: "Cleanup script",
+    };
+
+    await merge(A, [B], props);
+
+    expect(recorded[0]!.props).toBe(props);
+  });
+
+  /*
+   * THE GUARD: whatever a sequence of merges and unmerges does, each
+   * exception whose merged-into exception a committed one changed is entered
+   * once, from what it was to what it is - and nothing else is. The fake
+   * Postgres applies the statements that write the column (and keeps
+   * nothing of a transaction that fails), and refuses any it does not know:
+   * a new statement that moves exceptions must be taught here, and its
+   * moves recorded in the audit log.
+   */
+  test("a seeded sweep: every exception a merge or an unmerge moved is entered once, from where to where", async () => {
+    const random: SeededRandom = seededRandom(6276);
+    const ids: Array<string> = [
+      A,
+      B,
+      C,
+      D,
+      ...[1, 2, 3, 4].map((n: number) => {
+        return `50000000-0000-4000-8000-00000000000${n}`;
+      }),
+    ];
+
+    rows = ids.map((id: string): Row => {
+      return row(id);
+    });
+    editableIds = [...ids];
+
+    const copy: (source: Row) => Row = (source: Row): Row => {
+      return { ...source };
+    };
+
+    const apply: (sql: string, params: Array<unknown>) => void = (
+      sql: string,
+      params: Array<unknown>,
+    ): void => {
+      const text: string = sql.trim();
+      const setClause: string = text.slice(
+        text.indexOf(" SET "),
+        text.indexOf(" WHERE "),
+      );
+
+      if (!text.startsWith("UPDATE") || !setClause.includes(MERGED_INTO)) {
+        return;
+      }
+
+      if (
+        text.startsWith(
+          `UPDATE "TelemetryException" SET "${MERGED_INTO}" = $1, "mergedAt" = now()`,
+        ) &&
+        text.endsWith(`WHERE "_id" = $4`)
+      ) {
+        rows.find((candidate: Row): boolean => {
+          return candidate.id === params[3];
+        })!.mergedIntoId = params[0] as string;
+        return;
+      }
+
+      if (
+        text ===
+        `UPDATE "TelemetryException" SET "${MERGED_INTO}" = $1, "updatedAt" = now() WHERE "${MERGED_INTO}" = $2`
+      ) {
+        for (const candidate of rows) {
+          if (candidate.mergedIntoId === params[1]) {
+            candidate.mergedIntoId = params[0] as string;
+          }
+        }
+        return;
+      }
+
+      if (
+        text.startsWith(
+          `UPDATE "TelemetryException" SET "${MERGED_INTO}" = NULL`,
+        ) &&
+        text.endsWith(`WHERE "_id" = $1`)
+      ) {
+        rows.find((candidate: Row): boolean => {
+          return candidate.id === params[0];
+        })!.mergedIntoId = null;
+        return;
+      }
+
+      throw new Error(
+        `A statement writes ${MERGED_INTO} in a way this test does not know. Teach the test what it writes, and record what it moves in the audit log (TelemetryExceptionMerge.recordInAuditLog): ${text}`,
+      );
+    };
+
+    (
+      TelemetryExceptionService.executeTransaction as unknown as jest.Mock
+    ).mockImplementation(
+      async (run: (manager: unknown) => Promise<unknown>) => {
+        const kept: Array<Row> = rows.map(copy);
+
+        try {
+          return await run({
+            query: async (sql: string, params: Array<unknown>) => {
+              if (sql.trim().startsWith("SELECT")) {
+                const locked: Array<string> =
+                  (params[0] as Array<string>) || [];
+                const into: Array<string> = (params[1] as Array<string>) || [];
+
+                return rows
+                  .filter((candidate: Row): boolean => {
+                    return (
+                      locked.includes(candidate.id) ||
+                      (candidate.mergedIntoId !== null &&
+                        into.includes(candidate.mergedIntoId))
+                    );
+                  })
+                  .map(copy);
+              }
+
+              apply(sql, params);
+              return [];
+            },
+          });
+        } catch (err) {
+          rows = kept;
+          throw err;
+        }
+      },
+    );
+
+    let moves: number = 0;
+
+    for (let step: number = 0; step < 400; step++) {
+      const before: Map<string, string | null> = new Map(
+        rows.map((candidate: Row): [string, string | null] => {
+          return [candidate.id, candidate.mergedIntoId];
+        }),
+      );
+
+      recorded = [];
+
+      try {
+        if (random() < 0.6) {
+          const survivor: string = ids[random(ids.length)]!;
+          const merged: Array<string> = [];
+          const count: number = 1 + random(3);
+
+          for (let index: number = 0; index < count; index++) {
+            const candidate: string = ids[random(ids.length)]!;
+
+            if (candidate !== survivor && !merged.includes(candidate)) {
+              merged.push(candidate);
+            }
+          }
+
+          if (merged.length > 0) {
+            await merge(survivor, merged);
+          }
+        } else {
+          await unmerge(ids[random(ids.length)]!);
+        }
+      } catch (err) {
+        // A refused merge: the table is as it was, and nothing is entered.
+        if (
+          !(err instanceof BadDataException) &&
+          !(err instanceof NotAuthorizedException)
+        ) {
+          throw err;
+        }
+      }
+
+      const moved: Array<[string, string | null, string | null]> = rows
+        .filter((candidate: Row): boolean => {
+          return before.get(candidate.id) !== candidate.mergedIntoId;
+        })
+        .map((candidate: Row): [string, string | null, string | null] => {
+          return [
+            candidate.id,
+            before.get(candidate.id)!,
+            candidate.mergedIntoId,
+          ];
+        });
+
+      const sort: (
+        list: Array<[string, string | null, string | null]>,
+      ) => Array<[string, string | null, string | null]> = (
+        list: Array<[string, string | null, string | null]>,
+      ): Array<[string, string | null, string | null]> => {
+        return [...list].sort(
+          (
+            x: [string, string | null, string | null],
+            y: [string, string | null, string | null],
+          ): number => {
+            return x[0].localeCompare(y[0]);
+          },
+        );
+      };
+
+      expect([step, sort(entries())]).toEqual([step, sort(moved)]);
+      moves += moved.length;
+    }
+
+    // The sweep merged and unmerged a great deal, not nothing at all.
+    expect(moves).toBeGreaterThan(100);
   });
 });

@@ -13,6 +13,12 @@ import path from "path";
  * English for everyone. This pins the strings the change added, translated,
  * in all seventeen locales of both apps, and that the old form's words for
  * the TLS switch and the From Email are drawn no more.
+ *
+ * A project's config can also send through a provider's HTTP API (Amazon
+ * SES, SendGrid, Mailgun, Postmark, Resend): the provider is picked from a
+ * card each, and its key asked on a step of its own. The instance's
+ * provider cards in the Admin Dashboard ask the same fields, so those
+ * strings are pinned in both apps, worded alike.
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -91,12 +97,83 @@ const ADMIN_ALSO: Array<string> = [
   "Username and Password",
 ];
 
-// Labels that read the same in some languages ("Server" in German).
-const MAY_READ_AS_ENGLISH: Array<string> = ["Server"];
+/*
+ * The provider strings both apps draw: a project's provider cards and
+ * steps, and the instance's provider cards, from the same builder.
+ */
+const PROVIDER_STRINGS: Array<string> = [
+  // The provider cards' titles and lines.
+  "Provider",
+  "SMTP Server",
+  "Send through Amazon Simple Email Service with an IAM access key.",
+  "Send through Mailgun's API with an API key and a sending domain.",
+  "Send through Postmark's API with a server API token.",
+  "Send through Resend's API with an API key.",
+  // Each provider's fields, and what each is for.
+  "Access Key ID",
+  "Secret Access Key",
+  "Region",
+  "API Key",
+  "Domain",
+  "Server API Token",
+  "The access key ID of an IAM user allowed to send with Amazon SES (ses:SendEmail).",
+  "The secret that goes with the access key ID. It is stored encrypted.",
+  "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.",
+  "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.",
+  "The sending domain, as Mailgun lists it under Sending > Domains.",
+  "The region the domain was created in.",
+  "US",
+  "EU",
+  "Sent through api.mailgun.net.",
+  "Sent through api.eu.mailgun.net.",
+  "The API token of the Postmark server that sends, from the server's API Tokens tab. It is stored encrypted.",
+  "A Resend API key with sending access, from API Keys in Resend. It is stored encrypted.",
+  // A provider's sender.
+  "The address your emails come from. Your mail server or provider must allow sending from it, such as an address or domain verified there.",
+];
+
+/*
+ * The provider strings only a project's form draws: its OAuth step, what
+ * the provider cards are for, and SendGrid, whose instance card is its own.
+ */
+const PROJECT_PROVIDER_STRINGS: Array<string> = [
+  "OAuth",
+  "How OneUptime sends this project's email.",
+  "Send through SendGrid's API with an API key.",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.",
+];
+
+const DASHBOARD_STRINGS: Array<string> = [
+  ...NEW_STRINGS,
+  ...PROVIDER_STRINGS,
+  ...PROJECT_PROVIDER_STRINGS,
+];
+
+const ADMIN_STRINGS: Array<string> = [
+  ...NEW_STRINGS,
+  ...ADMIN_ALSO,
+  ...PROVIDER_STRINGS,
+];
+
+/*
+ * Labels that read the same in some languages: "Server" in German, "Region"
+ * in the Scandinavian languages and German, "Provider" in Dutch and Italian;
+ * OAuth, and Mailgun's two regions, US and EU, everywhere.
+ */
+const MAY_READ_AS_ENGLISH: Array<string> = [
+  "Server",
+  "Region",
+  "Provider",
+  "OAuth",
+  "US",
+  "EU",
+];
 
 /*
  * The old form's words for what changed. Their keys stay in the locale
- * files, as retired keys do, but nothing draws them.
+ * files, as retired keys do, but nothing draws them. ("SMTP Server", the
+ * old form's step, is drawn again: it is the provider card of a mail
+ * server now, and its translations name a mail server.)
  */
 const RETIRED_STRINGS: Array<string> = [
   "Use SSL / TLS",
@@ -111,7 +188,6 @@ const RETIRED_STRINGS: Array<string> = [
   "Email From",
   "Username / Email",
   "OAuth Settings",
-  "SMTP Server",
   // The descriptions that named every answer, before the answers said it.
   "SMTP works with most mail servers. Pick Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off.",
   "Select the authentication method. Use OAuth for providers like Microsoft 365, Google Workspace, etc.",
@@ -206,17 +282,20 @@ const DASHBOARD_FILES: Array<string> = localeFiles(DASHBOARD_LOCALES);
 const ADMIN_FILES: Array<string> = localeFiles(ADMIN_LOCALES);
 
 describe("the mail server forms' strings", () => {
-  test("seventeen locales of each app are checked", () => {
-    expect(DASHBOARD_FILES).toHaveLength(17);
+  test("eighteen locales of each app are checked", () => {
+    expect(DASHBOARD_FILES).toHaveLength(18);
     expect(ADMIN_FILES).toEqual(DASHBOARD_FILES);
   });
 
   test("each new string is the builder's, written whole", () => {
-    const unused: Array<string> = [...NEW_STRINGS, ...ADMIN_ALSO].filter(
-      (text: string): boolean => {
-        return !BUILDER.includes(`"${text}"`);
-      },
-    );
+    const unused: Array<string> = [
+      ...NEW_STRINGS,
+      ...ADMIN_ALSO,
+      ...PROVIDER_STRINGS,
+      ...PROJECT_PROVIDER_STRINGS,
+    ].filter((text: string): boolean => {
+      return !BUILDER.includes(`"${text}"`);
+    });
 
     expect(unused).toEqual([]);
   });
@@ -233,8 +312,8 @@ describe("the mail server forms' strings", () => {
 
   test("English carries every new string as itself, in both apps", () => {
     for (const [directory, strings] of [
-      [DASHBOARD_LOCALES, NEW_STRINGS],
-      [ADMIN_LOCALES, [...NEW_STRINGS, ...ADMIN_ALSO]],
+      [DASHBOARD_LOCALES, DASHBOARD_STRINGS],
+      [ADMIN_LOCALES, ADMIN_STRINGS],
     ] as Array<[string, Array<string>]>) {
       const english: Locale = readLocale(directory, "en.json");
 
@@ -254,7 +333,7 @@ describe("the mail server forms' strings", () => {
     const locale: Locale = readLocale(DASHBOARD_LOCALES, file);
 
     expect(
-      NEW_STRINGS.flatMap((text: string): Array<string> => {
+      DASHBOARD_STRINGS.flatMap((text: string): Array<string> => {
         return findProblems(text, locale[text]);
       }),
     ).toEqual([]);
@@ -271,16 +350,14 @@ describe("the mail server forms' strings", () => {
       const dashboard: Locale = readLocale(DASHBOARD_LOCALES, file);
 
       expect(
-        [...NEW_STRINGS, ...ADMIN_ALSO].flatMap(
-          (text: string): Array<string> => {
-            return findProblems(text, admin[text]);
-          },
-        ),
+        ADMIN_STRINGS.flatMap((text: string): Array<string> => {
+          return findProblems(text, admin[text]);
+        }),
       ).toEqual([]);
 
       // One wording per language, whichever app draws the form.
       expect(
-        [...NEW_STRINGS, ...ADMIN_ALSO].filter((text: string): boolean => {
+        ADMIN_STRINGS.filter((text: string): boolean => {
           return admin[text] !== dashboard[text];
         }),
       ).toEqual([]);

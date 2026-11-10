@@ -14,7 +14,7 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import API from "Common/UI/Utils/API/API";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   IngestionKeyFormOptions,
@@ -31,6 +31,78 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import OneUptimeDate from "Common/Types/Date";
+
+/*
+ * Why a key cannot send right now (issue #6378): turned off, or past its
+ * expiry. Everything sent with it is refused, so the picker says so beside
+ * its name and under its token, and does not pick it on its own.
+ */
+export type IngestionKeyUnusableReason = "turned-off" | "expired";
+
+export function getIngestionKeyUnusableReason(
+  key: TelemetryIngestionKey,
+  now: Date,
+): IngestionKeyUnusableReason | null {
+  if (key.isEnabled === false) {
+    return "turned-off";
+  }
+
+  const expiresAt: Date | null = key.expiresAt
+    ? OneUptimeDate.fromString(key.expiresAt)
+    : null;
+
+  if (
+    expiresAt &&
+    !Number.isNaN(expiresAt.getTime()) &&
+    expiresAt.getTime() <= now.getTime()
+  ) {
+    return "expired";
+  }
+
+  return null;
+}
+
+/*
+ * The keys in the picker's order: those that can send first, then those
+ * everything sent with is refused - still there, and still said why - each
+ * group in the order it came.
+ */
+export function getIngestionKeysUsableFirst(
+  keys: ReadonlyArray<TelemetryIngestionKey>,
+  now: Date,
+): Array<TelemetryIngestionKey> {
+  const isUsable: (key: TelemetryIngestionKey) => boolean = (
+    key: TelemetryIngestionKey,
+  ): boolean => {
+    return getIngestionKeyUnusableReason(key, now) === null;
+  };
+
+  return [
+    ...keys.filter(isUsable),
+    ...keys.filter((key: TelemetryIngestionKey): boolean => {
+      return !isUsable(key);
+    }),
+  ];
+}
+
+const UNUSABLE_KEY_LABELS: Readonly<
+  Record<IngestionKeyUnusableReason, string>
+> = {
+  "turned-off": translationKey("{{name}} (turned off)"),
+  expired: translationKey("{{name}} (expired)"),
+};
+
+const UNUSABLE_KEY_CAUTIONS: Readonly<
+  Record<IngestionKeyUnusableReason, string>
+> = {
+  "turned-off": translationKey(
+    "This key is turned off, so everything sent with it is refused. Pick another key, or turn it back on in Project Settings > Telemetry & APM > Ingestion Keys.",
+  ),
+  expired: translationKey(
+    "This key has expired, so everything sent with it is refused. Pick another key, or change its expiry date in Project Settings > Telemetry & APM > Ingestion Keys.",
+  ),
+};
 
 /*
  * "Which key do I send this with, and where do I send it?" — step one of
@@ -132,11 +204,20 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
              */
             keyType: true,
             allowedOrigins: true,
+            // A key that is off or expired is refused: said, and not picked.
+            isEnabled: true,
+            expiresAt: true,
           },
           sort: {},
         });
 
-      setIngestionKeys(result.data);
+      // Keys that can send come first: a refused one is not the first offered.
+      const keys: Array<TelemetryIngestionKey> = getIngestionKeysUsableFirst(
+        result.data,
+        OneUptimeDate.getCurrentDate(),
+      );
+
+      setIngestionKeys(keys);
 
       /*
        * Keep the selection while the reloaded list still has it; otherwise
@@ -146,7 +227,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
        * nothing selected and the snippets on their placeholder.
        */
       setSelectedKeyId((current: string): string => {
-        const isStillListed: boolean = result.data.some(
+        const isStillListed: boolean = keys.some(
           (key: TelemetryIngestionKey): boolean => {
             return key.id?.toString() === current;
           },
@@ -154,7 +235,12 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
         if (current && isStillListed) {
           return current;
         }
-        return result.data[0]?.id?.toString() || "";
+
+        /*
+         * The first key is one that can send: a key everything sent with is
+         * refused is picked only when it is all there is.
+         */
+        return keys[0]?.id?.toString() || "";
       });
     } catch (err) {
       setKeyError(API.getFriendlyErrorMessage(err as Error));
@@ -234,6 +320,20 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
   const renderSelectedKeyCaution: (
     key: TelemetryIngestionKey,
   ) => ReactElement = (key: TelemetryIngestionKey): ReactElement => {
+    const unusable: IngestionKeyUnusableReason | null =
+      getIngestionKeyUnusableReason(key, OneUptimeDate.getCurrentDate());
+
+    if (unusable) {
+      return (
+        <div
+          className="text-xs text-red-600 mt-2 leading-relaxed"
+          data-testid="ingestion-key-unusable"
+        >
+          {translator.translateText(UNUSABLE_KEY_CAUTIONS[unusable])}
+        </div>
+      );
+    }
+
     if (key.keyType === TelemetryIngestionKeyType.Browser) {
       /*
        * A browser key with no origins is refused on every request, so
@@ -244,21 +344,24 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
       if (!key.allowedOrigins || key.allowedOrigins.length === 0) {
         return (
           <div className="text-xs text-red-600 mt-2 leading-relaxed">
-            This browser key has no allowed origins, so every request made with
-            it is refused. Add your web origins or exact app:// mobile
-            identities in Project Settings &gt; Telemetry &amp; APM &gt;
-            Ingestion Keys before using this snippet.
+            {translator.translateText(
+              "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.",
+            )}
           </div>
         );
       }
 
+      /*
+       * The identities are set apart: in a sentence read right to left, a
+       * list of web addresses would otherwise pull its full stop away.
+       */
       return (
         <div className="text-xs text-gray-500 mt-2 leading-relaxed">
-          Browser key — intended for client distribution. Web origins may send
-          trace, log, metric and session replay ingest; app:// identities
-          authorize React Native replay only. Accepted identities:{" "}
-          {key.allowedOrigins.join(", ")}. Native app identities are
-          self-asserted, not platform attestation.
+          {translator.translateTemplate(
+            "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.",
+            { identities: key.allowedOrigins.join(", ") },
+            { setsValuesApart: true },
+          )}
         </div>
       );
     }
@@ -270,6 +373,23 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
         )}
       </div>
     );
+  };
+
+  // A key's name in the picker, with why it is refused when it is.
+  const getKeyLabel: (key: TelemetryIngestionKey) => string = (
+    key: TelemetryIngestionKey,
+  ): string => {
+    const name: string = key.name || "Unnamed Key";
+    const unusable: IngestionKeyUnusableReason | null =
+      getIngestionKeyUnusableReason(key, OneUptimeDate.getCurrentDate());
+
+    return unusable
+      ? translator.translateTemplate(
+          UNUSABLE_KEY_LABELS[unusable],
+          { name },
+          { setsValuesApart: true },
+        )
+      : name;
   };
 
   const renderContent: () => ReactElement = (): ReactElement => {
@@ -355,7 +475,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                 (key: TelemetryIngestionKey): DropdownOption => {
                   return {
                     value: key.id?.toString() || "",
-                    label: key.name || "Unnamed Key",
+                    label: getKeyLabel(key),
                   };
                 },
               )}
@@ -367,7 +487,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                   .map((key: TelemetryIngestionKey): DropdownOption => {
                     return {
                       value: key.id?.toString() || "",
-                      label: key.name || "Unnamed Key",
+                      label: getKeyLabel(key),
                     };
                   })[0]
               }

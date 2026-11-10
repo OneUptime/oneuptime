@@ -795,7 +795,23 @@ describe("a resource's Recommendations use the picker's category names", () => {
     );
 
     expect(list).toContain("getAlertTemplateCategoryLabel(");
-    expect(list).toContain("translator.translateText(categoryLabel)");
+    /*
+     * The label, or - for a type that names no headings (a host's, a
+     * service's) - the catalog's category, looked up as it is.
+     */
+    expect(list).toContain(
+      "translator.translateText(categoryLabel || group.category)",
+    );
+  });
+
+  test("an App Platforms app's categories have headings: what fails, traffic that stops, how slow", () => {
+    expect(
+      ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE[
+        MonitorRecommendationResourceType.CloudApp
+      ]?.map((category: AlertTemplateCategory): string => {
+        return category.label;
+      }),
+    ).toEqual(["Errors", "Throughput", "Latency"]);
   });
 });
 
@@ -834,8 +850,8 @@ describe("the words, in every language", () => {
     AGGREGATION_DESCRIPTION,
   ];
 
-  test("there are sixteen languages besides English", () => {
-    expect(NON_ENGLISH).toHaveLength(16);
+  test("there are seventeen languages besides English", () => {
+    expect(NON_ENGLISH).toHaveLength(17);
   });
 
   test.each(ADDED)(

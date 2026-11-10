@@ -66,7 +66,7 @@ export const TELEMETRY_ADMIN_PAGES: ReadonlyArray<TelemetryAdminDocsPageEntry> =
       navTitle: "Data Retention",
       navGroup: "Telemetry",
       after: "Drop Filters & Scrub Rules",
-      before: "Continuous Profiling",
+      before: "Telemetry Usage",
     },
   ];
 
@@ -79,14 +79,14 @@ export const TELEMETRY_ADMIN_PAGES: ReadonlyArray<TelemetryAdminDocsPageEntry> =
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    // The Topology page's first tab, and the statuses the service map draws.
-    [TOPOLOGY]: [
-      "Service Map",
-      "Some errors",
-      "High error rate",
-      "Entry point",
-      "No calls observed",
-    ],
+    /*
+     * The Topology page's first tab, and the statuses the service map draws
+     * that no locale has. Its Some errors and High error rate are keys since
+     * the queues' topology map draws them too (MessageQueueTopologyModel),
+     * so the service map's t() reads them from the locale, as every other
+     * Dashboard label is read.
+     */
+    [TOPOLOGY]: ["Service Map", "Entry point", "No calls observed"],
     // The Enterprise Edition's retention-by-type form.
     [DATA_RETENTION]: [
       "Edit Overrides",
@@ -108,6 +108,7 @@ export const ADMIN_DASHBOARD_LABELS: Readonly<
   [DATA_RETENTION]: [
     "Monitor Log Retention (Days)",
     "Monitor Metric Retention (Days)",
+    "Telemetry Usage Retention (Days)",
   ],
 };
 
@@ -122,6 +123,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "A Server key is a password.",
     "A role that manages ingestion keys.",
     "On OneUptime Cloud, a payment method.",
+    // The link to Ingestion Budgets (issue #5917).
+    "A key can have budgets of its own.",
   ],
   [TOPOLOGY]: [
     "Only what was active is drawn.",
@@ -144,6 +147,9 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Each list runs in order.",
     "Logs or spans arriving.",
     "A role that changes telemetry settings.",
+    // What a rule reads inside a list or a nested value (issue #6397).
+    "Lists and nested values are read too.",
+    "A value too large to read item by item is read as text.",
     "Exceptions come from the scrubbed record.",
     "Session replays are scrubbed too.",
     "Rules run in the order of the list.",

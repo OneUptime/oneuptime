@@ -1,6 +1,6 @@
 # AI 공급자 계정
 
-앱을 바꾸지 않고도 AI 공급자 계정이 무엇을 얼마나 사용했고 비용이 얼마였는지 확인하세요. OpenAI, Anthropic, Azure OpenAI 및 Microsoft Foundry, Amazon Bedrock, Google Vertex AI 계정을 읽기만 할 수 있는 자격 증명으로 연결하면, OneUptime이 15분마다 그 사용량을 **사용량**, **예산**, 그리고 알림을 걸 수 있는 메트릭으로 읽어 옵니다.
+앱을 바꾸지 않고도 AI 공급자 계정이 무엇을 얼마나 사용했고 비용이 얼마였는지 확인하세요. OpenAI, Anthropic, Azure OpenAI 및 Microsoft Foundry, Amazon Bedrock, Google Vertex AI 계정을 읽기만 할 수 있는 자격 증명으로 연결하면, OneUptime이 15분마다 그 사용량을 **사용량**, **예산**, 그리고 알림을 걸 수 있는 메트릭으로 읽어 옵니다. Cursor 팀도 같은 방식으로 관리자 API 키로 연결하며, 매시간 읽습니다.
 
 :::cards
 - [계정 연결하기](#계정-연결하기): 공급자를 고르고, 자격 증명을 붙여 넣고, 테스트한 뒤 연결합니다.
@@ -11,7 +11,7 @@
 
 ## 작동 방식
 
-OneUptime은 15분마다 연결된 각 계정에 UTC 일 단위 사용량을 요청하고, 이를 연결 전용 서비스의 메트릭 세 개로 저장합니다. 각 읽기는 지난 읽기 이후의 날짜를 가져오고, 오늘을 포함한 최근 3일을 다시 읽습니다. 공급자가 오늘 사용량을 계속 더하고 방금 지난 날짜를 수정하기 때문입니다.
+OneUptime은 15분마다 연결된 각 계정에 UTC 일 단위 사용량을 요청하고, 이를 연결 전용 서비스의 메트릭 세 개로 저장합니다. 각 읽기는 지난 읽기 이후의 날짜를 가져오고, 오늘을 포함한 최근 3일을 다시 읽습니다. 공급자가 오늘 사용량을 계속 더하고 방금 지난 날짜를 수정하기 때문입니다. Cursor 팀은 대신 매시간 시간 단위로 읽습니다. [Cursor](#cursor)를 참고하세요.
 
 ```mermaid title="공급자 계정에서 사용량과 예산까지"
 flowchart TB
@@ -49,7 +49,7 @@ flowchart TB
 **연결**을 클릭합니다. 첫 읽기는 1분 안에 시작되며 최근 30일을 가져옵니다.
 :::
 
-연결된 계정은 타일 아래에 **상태**, **마지막 읽기**와 함께 나열됩니다. **지금 읽기**는 즉시 읽고, **테스트**는 저장된 설정을 다시 확인하고, **끄기**는 읽기를 멈추고 이미 읽은 데이터를 유지하며, **편집**은 설정을 바꿉니다. 비밀 값을 비워 두면 저장된 값이 유지됩니다. **오류 보기**는 읽기가 실패한 이유를 비밀 값을 뺀 채로 보여 줍니다.
+연결된 계정은 타일 아래에 **상태**, **마지막 읽기**와 함께 나열됩니다. **지금 읽기**는 즉시 읽고, **테스트**는 저장된 설정을 다시 확인하고, **끄기**는 읽기를 멈추고 이미 읽은 데이터를 유지하며, **편집**은 설정을 바꿉니다. 비밀 값을 비워 두면 저장된 값이 유지됩니다. **오류 보기**는 읽기가 실패한 이유를 비밀 값을 뺀 채로 보여 줍니다. 작동하는 계정의 상태에는 사용량이 있었던 마지막 날이나, 읽기에서 찾지 못했다면 처음 읽은 날이 표시됩니다. 리소스를 찾지 못하는 Azure 연결은 그렇다고 알려 줍니다.
 
 ## 공급자별로 얻는 것
 
@@ -60,10 +60,11 @@ flowchart TB
 | Azure OpenAI 및 Microsoft Foundry | 토큰으로 추정 | 리소스와 모델 | Monitoring Reader 역할이 있는 앱 |
 | Amazon Bedrock | 토큰으로 추정 | 리전과 모델 | CloudWatch를 읽는 액세스 키 |
 | Google Vertex AI | 토큰으로 추정 | 리전과 모델 | Monitoring Viewer 역할이 있는 서비스 계정 |
+| Cursor | Cursor가 보고한 값 | 사람, 모델, 서비스 계정, 시간별 | 팀의 관리자 API 키 |
 
 Anthropic을 제외한 모든 공급자는 요청 수도 셉니다. Anthropic의 사용량 보고서에는 요청 수가 없습니다. 추정 비용은 [호출 한 번의 비용](/docs/telemetry/ai-llm-observability#호출-비용)의 가격표와 **가격**에서 정한 자체 가격을 사용하며, 추정치로 표시됩니다. 가격표에 없는 모델은 그곳에서 가격을 정할 때까지 비용이 없습니다.
 
-이 자격 증명들은 어느 것도 모델을 호출할 수 없습니다. 각각 사용량, 비용 또는 메트릭만 읽습니다.
+이 자격 증명들은 어느 것도 모델을 호출할 수 없습니다. 각각 사용량, 비용 또는 메트릭만 읽습니다. Cursor의 관리자 API 키는 예외로, 지출 한도 같은 일부 팀 설정도 바꿀 수 있지만 OneUptime은 이 키로 읽기만 합니다.
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ OneUptime은 Vertex AI가 자체 모델(Gemini와 Claude 같은 파트너 모델
 **프로젝트 ID**를 입력하고, 키 파일 전체를 **서비스 계정 키(JSON)** 필드에 붙여 넣습니다.
 :::
 
+## Cursor
+
+OneUptime은 관리자 API 키로 Cursor 팀을 읽습니다. 구성원의 모든 요청을 모델, 토큰, Cursor가 청구한 금액과 함께 시간, 사람, 모델, 서비스 계정별로 합산하고, 지난 7일 동안 Cursor를 사용한 구성원 수도 읽습니다. 서비스 계정으로 한 요청은 그 계정 이름이 API 키로 표시됩니다. 프롬프트, 코드, 답변은 없습니다. Cursor의 Admin API에는 그런 정보가 없습니다.
+
+:::steps
+### Cursor 관리자 API 키 만들기
+
+Cursor 대시보드에서 Settings, Cursor Admin API Keys를 열고 키를 만듭니다. 팀 관리자만 만들 수 있으며, 키는 Teams와 Enterprise 요금제에서 제공됩니다. 키는 `crsr_`로 시작합니다.
+
+### Cursor 연결하기
+
+키를 **관리자 API 키**에 붙여 넣습니다. 테스트는 팀의 **구성원**과 함께, 그중 Cursor를 사용한 사람 수를 **사람**으로 보여 줍니다.
+:::
+
+Cursor는 사용량을 시간 단위로 합산하고 한 시간에 한 번까지만 읽어 달라고 요청하므로, OneUptime은 Cursor 팀을 매시간 읽고 사용량을 시간 단위로 저장합니다. 각 읽기는 지난 읽기 이후의 시간과 그 앞의 3시간을 다시 읽습니다. Cursor가 요청을 늦게 추가하기 때문입니다. 또 다음 날의 6시간이 지나면 하루 전체를 다시 읽습니다. 첫 읽기는 최신 날짜부터 하루씩 30일 전까지 거슬러 올라갑니다. 사용량이 많은 팀은 일 분 간격으로 몇 번 읽어야 하며, 끝날 때까지 그 행에 **이전 사용량을 아직 읽는 중**이 표시됩니다.
+
+Enterprise 요금제에서는 Cursor가 OpenTelemetry Export로 사용량을 발생하는 대로 보낼 수도 있습니다. [Cursor](/docs/telemetry/cursor)를 참고하세요. 두 가지는 따로 유지됩니다. 이 계정은 **공급자 계정**에, 내보내기는 **내 AI 호출**에 표시되고, 절대 합산되지 않으며, 예산은 둘 중 하나를 셉니다.
+
 ## 사용량 보기
 
 **사용량**을 열고 **공급자 계정**을 선택합니다. 기간 동안 계정이 보고한 비용, 토큰, 요청이 **모델**, **사용자**, **공급자**, **프로젝트 또는 리소스**, **API 키**, **연결** 중 하나를 기준으로 순위가 매겨져 표시됩니다. 공급자는 하루 단위로 보고하므로, 기간은 첫날의 UTC 자정부터 시작합니다.
@@ -157,7 +176,7 @@ OneUptime은 Vertex AI가 자체 모델(Gemini와 Claude 같은 파트너 모델
 | `oneuptime.llm.provider.tokens` | 하루의 토큰 수. `gen_ai.token.type`별: `input`(캐시된 토큰 포함), `output`, `cache_read`, `cache_write` |
 | `oneuptime.llm.provider.requests` | 하루의 요청 수 |
 
-각 포인트에는 해당 UTC 날짜의 시작 시각이 찍힙니다. 포인트에는 `oneuptime.llm.connection.id`와 `oneuptime.llm.connection.name`, 그리고 공급자가 알려 주는 `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project`, `oneuptime.llm.provider.api_key`가 붙습니다. 추정 비용에는 `oneuptime.llm.cost.estimated`가 붙습니다.
+각 포인트에는 해당 UTC 날짜의 시작 시각이 찍힙니다. 포인트에는 `oneuptime.llm.connection.id`와 `oneuptime.llm.connection.name`, 그리고 공급자가 알려 주는 `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project`, `oneuptime.llm.provider.api_key`가 붙습니다. 추정 비용에는 `oneuptime.llm.cost.estimated`가 붙습니다. Cursor 팀의 포인트는 각각 한 시간의 사용량을 담고, 해당 UTC 시간의 시작 시각이 타임스탬프로 찍힙니다.
 
 ## 읽기 일정
 
@@ -168,6 +187,9 @@ OneUptime은 Vertex AI가 자체 모델(Gemini와 Claude 같은 파트너 모델
 | 키나 권한이 거부된 뒤 | 60분 뒤 |
 | 그 밖의 실패 뒤 | 15분 뒤 |
 | 꺼짐 | 다시 켤 때까지 없음 |
+| Cursor 팀의 이후 읽기 | 매시간 |
+| 중간에 멈춘 Cursor 읽기 | 일 분 뒤 |
+| Cursor 팀, 모든 실패 뒤 | 60분 뒤 |
 
 텔레메트리 기능이 없는 요금제는 아무것도 읽지 않습니다. 연결을 제거하면 읽기가 멈추고, 이미 읽은 데이터는 서비스의 보존 기간에 따라 삭제될 때까지 남습니다.
 
@@ -185,8 +207,24 @@ OneUptime은 계정을 읽을 뿐, 앱과 공급자 사이에 끼어들지 않�
 이 페이지에서 공급자별로 안내하는 역할을 부여하세요. Azure 구독에는 Monitoring Reader, AWS에는 CloudWatch 작업 두 개, Google Cloud 프로젝트에는 Monitoring Viewer입니다.
 :::
 
+:::details Cursor가 키를 받아들였지만 팀의 사용량을 읽을 수 없음
+Teams 또는 Enterprise 요금제를 쓰는 팀의 관리자 API 키를 사용하세요. 팀 관리자가 Cursor 대시보드의 Settings, Cursor Admin API Keys에서 만듭니다. 그런 다음 다시 테스트하세요.
+:::
+
+:::details Cursor가 OneUptime에 속도를 늦추라고 요청함
+Cursor의 Admin API는 팀당 분당 20개 요청, 사용량 이벤트는 60개를 받으며, 이 한도는 API를 읽는 모든 도구가 함께 씁니다. OneUptime은 한 번 일 분을 기다린 뒤 계속합니다. 그래도 Cursor가 거부하면, 읽기는 끝까지 읽은 부분을 보관하고 일 분 뒤에 이어서 읽습니다. 아무것도 얻지 못한 읽기는 한 시간 뒤에 다시 시도합니다.
+:::
+
 :::details 테스트는 통과했지만 오늘 사용량이 보이지 않습니다
 공급자는 하루 사용량을 몇 분에서 몇 시간 뒤에 보고하고, 하루이틀 동안 수정합니다. 다음 읽기에서 가져옵니다.
+:::
+
+:::details 계정은 작동하는데 상태에 사용량이 없음
+표시된 날 이후 읽기에서 사용량을 찾지 못했습니다. OpenAI의 보고서는 그 조직의 키로 한 API 호출만 세며, Azure OpenAI나 ChatGPT는 포함하지 않습니다. Azure 연결은 그 앱이 볼 수 있는 리소스만 읽습니다. 리소스가 있는 곳에서 앱에 Monitoring Reader를 부여하세요.
+:::
+
+:::details 계정을 연결했는데 대화와 호출이 비어 있음
+계정은 일별 사용량과 비용을 가져올 뿐 호출이나 대화는 가져오지 않습니다. 이는 앱에서 옵니다. [들어오는 내용 확인하기](/docs/telemetry/ai-llm-observability#들어오는-내용-확인하기)를 참조하세요.
 :::
 
 :::details 비용이 청구서와 다릅니다

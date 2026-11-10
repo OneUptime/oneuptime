@@ -627,11 +627,15 @@ Instalações auto-hospedadas podem mudar esses valores com variáveis de ambien
 
 ## Alertas sobre um recurso
 
+Um recurso de uma [conta conectada](/docs/telemetry/cloud-accounts) recebe, na aba **Recomendações**, os monitores que o OneUptime recomenda para o tipo dele, cada um criado em uma etapa. Para alertar sobre qualquer outra métrica que ele informe:
+
 :::steps
 1. Abra o recurso e a aba **Métricas** dele, que lista todas as métricas que o provedor informa sobre ele.
 2. Abra uma métrica para vê-la em gráfico no explorador de métricas, já filtrada para o recurso.
 3. Clique em **Criar monitor a partir desta visualização**: o monitor observa essa métrica para esse recurso.
 :::
+
+Um namespace do Service Bus informa suas métricas uma vez por fila e tópico, e um namespace do Event Hubs uma vez por event hub. Onde elas se somam, uma linha da aba **Métricas** do namespace mostra o total delas, com **total das séries** embaixo. Um monitor criado a partir dessa linha também lê o total, assim como um monitor criado pela API ou pelo Terraform sem uma agregação. As outras linhas mostram **média das séries**, ou seja, a fila ou o event hub médio: uma latência e, em um intervalo de mais de 3 horas, uma quantidade que o namespace retém, como as mensagens em espera.
 
 > [!IMPORTANT]
 > O monitoramento da nuvem publica cada número minutos depois do momento que ele mede: de 10 a 20 minutos para o CloudWatch consultado como acima, poucos minutos para o Azure Monitor e o Cloud Monitoring. Ele é armazenado no momento que mede. Dê a um monitor sobre essas métricas uma janela maior que esse atraso (30 minutos para o CloudWatch, 15 para os outros), ou ele não vê dados e nunca dispara.

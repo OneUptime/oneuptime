@@ -331,6 +331,13 @@ describe("Network automation rule run endpoints", () => {
       expect((args["projectId"] as ObjectID).toString()).toBe(
         PROJECT_ID.toString(),
       );
+      // Who ran it, so the devices it moves are theirs in the audit log.
+      expect(
+        (args["props"] as unknown as DatabaseCommonInteractionProps).tenantId,
+      ).toEqual(PROJECT_ID);
+      expect(
+        (args["props"] as unknown as DatabaseCommonInteractionProps).userId,
+      ).toBeDefined();
 
       expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
       expect(
@@ -517,6 +524,91 @@ describe("Network automation rule run endpoints", () => {
        */
       expect(body["monitorFailureReasons"]).toEqual(["Plan limit reached."]);
       expect(body["monitorProvisioningHalted"]).toBe(true);
+    });
+
+    /*
+     * Who ran it, so the devices and monitors it creates are theirs in the
+     * audit log (issue #6323). The engine is handed the caller's own props:
+     * it writes with their identity only (RuleRunWriteProps), so nothing of
+     * what they may do reaches a write.
+     */
+    test("hands the engine who ran it", async () => {
+      const props: DatabaseCommonInteractionProps = propsWith({
+        permissions: ADMIN_PERMISSIONS,
+      });
+      mockProps(props);
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+      });
+
+      expect(next).not.toHaveBeenCalled();
+
+      const run: JSONObject = autoImportRuleEngine.applyRuleToCompletedScans
+        .mock.calls[0]![0] as JSONObject;
+      expect(run["props"]).toBe(props);
+      expect(
+        (run["props"] as unknown as DatabaseCommonInteractionProps).userId,
+      ).toEqual(props.userId);
+    });
+
+    test("hands who ran it on for a dry run too, which writes nothing", async () => {
+      const props: DatabaseCommonInteractionProps = propsWith({
+        permissions: ADMIN_PERMISSIONS,
+      });
+      mockProps(props);
+
+      await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+        body: { dryRun: true },
+      });
+
+      const run: JSONObject = autoImportRuleEngine.applyRuleToCompletedScans
+        .mock.calls[0]![0] as JSONObject;
+      expect(run["isDryRun"]).toBe(true);
+      expect(run["props"]).toBe(props);
+    });
+
+    test("hands the engine an API key's props, so the key is credited", async () => {
+      const props: DatabaseCommonInteractionProps = {
+        ...propsWith({ permissions: ADMIN_PERMISSIONS }),
+        userId: undefined,
+        userType: UserType.API,
+        apiKeyName: "Terraform",
+      };
+      mockProps(props);
+
+      await callRoute({ uri: AUTO_IMPORT_RULE_URI });
+
+      const run: JSONObject = autoImportRuleEngine.applyRuleToCompletedScans
+        .mock.calls[0]![0] as JSONObject;
+      expect(run["props"]).toBe(props);
+    });
+
+    test("hands who ran it on for a rule with a template, once the template is read as them", async () => {
+      autoImportRuleService.findOneBy.mockResolvedValue({
+        id: RULE_ID,
+        monitorTemplateId: ObjectID.generate(),
+      } as never);
+      const props: DatabaseCommonInteractionProps = propsWith({
+        permissions: [
+          Permission.EditNetworkDeviceAutoImportRule,
+          Permission.CreateNetworkDevice,
+          Permission.CreateProjectMonitor,
+        ],
+      });
+      mockProps(props);
+
+      await callRoute({ uri: AUTO_IMPORT_RULE_URI });
+
+      // The template is read with the caller's own props, as before.
+      expect(monitorTemplateService.findOneById.mock.calls[0]![0]).toEqual(
+        expect.objectContaining({ props: props }),
+      );
+
+      const run: JSONObject = autoImportRuleEngine.applyRuleToCompletedScans
+        .mock.calls[0]![0] as JSONObject;
+      expect(run["props"]).toBe(props);
     });
 
     test("passes a literal dryRun through after applying the existing create-permission policy", async () => {
@@ -743,6 +835,12 @@ describe("Network automation rule run endpoints", () => {
       expect((args["ruleId"] as ObjectID).toString()).toBe(RULE_ID.toString());
       expect((args["projectId"] as ObjectID).toString()).toBe(
         PROJECT_ID.toString(),
+      );
+      // Who ran it, so the devices it labels are theirs in the audit log.
+      expect(args["props"]).toBe(
+        await (
+          CommonAPI.getDatabaseCommonInteractionProps as unknown as jest.Mock
+        ).mock.results[0]!.value,
       );
 
       expect(

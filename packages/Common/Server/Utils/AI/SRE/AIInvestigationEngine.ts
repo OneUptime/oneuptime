@@ -13,11 +13,9 @@ import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
-import AIAgentRunLimitsHelper, {
-  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
-  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
-  AIAgentRunLimits,
-} from "../../../../Types/AI/AIAgentRunLimits";
+import { AIAgentRunLimits } from "../../../../Types/AI/AIAgentRunLimits";
+import LogSeverity from "../../../../Types/Log/LogSeverity";
+import AIRunLimitsReader from "../AIRunLimitsReader";
 import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
@@ -37,7 +35,9 @@ import AIService, {
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
-import AIInvestigationQueue from "./InvestigationQueue";
+import AIInvestigationQueue, {
+  FailedAttemptResult,
+} from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import InvestigationLogStallCheck from "./InvestigationLogStallCheck";
 import {
@@ -46,6 +46,13 @@ import {
   investigationLogStallToJSON,
 } from "../../../../Utils/AI/InvestigationLogStall";
 import InvestigationTldr from "./InvestigationTldr";
+import {
+  describeInvestigationImpactNumbers,
+  InvestigationImpactNumbers,
+  investigationImpactNumbersToJSON,
+  takeInvestigationImpactNumbers,
+  TakenInvestigationImpactNumbers,
+} from "../../../../Utils/AI/InvestigationImpactNumbers";
 import ObservabilityAssistant, {
   ObservabilityAssistantExtraTool,
   ObservabilityAssistantResult,
@@ -73,7 +80,7 @@ import { getAiContextEventSummary } from "../AiContext/AiContextPrompt";
  * for both incidents and alerts (and, later, anomalies). It:
  *   1. records the run as an AIRun(Investigation) + AIRunEvents (audit trail),
  *   2. runs the existing read-only, tool-grounded, citation-minting agent loop
- *      (ObservabilityAssistant) with the AI persona and a larger budget,
+ *      (ObservabilityAssistant) with the AI persona and the run limits,
  *   3. brands the cited analysis, judges confidence via the structured
  *      ConfidenceSignal (deterministic evidence floor + one constrained
  *      classification call — G6: no control flow from free-form prose), and
@@ -85,14 +92,14 @@ import { getAiContextEventSummary } from "../AiContext/AiContextPrompt";
  */
 
 /*
- * Budgets. An investigation runs until it is done: no wall clock, and step
- * counts that only guard against a runaway loop (see AIAgentRunLimits). A
- * project that wants a hard time limit configures one per lane, and the
- * runners pass it in as maxWallClockMs — and to the command toolkits as a
- * deadline — so the loop and every command wait agree on one number.
+ * How far a run goes. An investigation runs until it is done: no count of
+ * calls or tokens unless the project set one (Limits per run), loop
+ * detection, and a time limit - the lane's, the project's, or the default
+ * (Types/AI/AIAgentRunLimits). The runners read the limits once
+ * (getRunLimitsForProject) and pass them in as runLimits - and the deadline
+ * to the command toolkits - so the loop and every command wait agree on one
+ * number. A run nobody passes limits to reads the project's own.
  */
-const MAX_LLM_CALLS: number = AI_AGENT_RUNAWAY_MAX_LLM_CALLS;
-const MAX_TOOL_CALLS: number = AI_AGENT_RUNAWAY_MAX_TOOL_CALLS;
 /*
  * Room for a full report. An answer that still reaches the limit is
  * finished with continuation calls, never published half-written.
@@ -143,10 +150,39 @@ const STEP_EVENT_TYPE: Record<ObservabilityAssistantStepType, AIRunEventType> =
   {
     llm_started: AIRunEventType.LlmCallStarted,
     llm_completed: AIRunEventType.LlmCallCompleted,
+    llm_failed: AIRunEventType.LlmCallFailed,
     tool_started: AIRunEventType.ToolCallStarted,
     tool_completed: AIRunEventType.ToolCallCompleted,
     tool_failed: AIRunEventType.ToolCallFailed,
   };
+
+/*
+ * Each attempt of a run numbers its events in a block of its own, above
+ * every event before it (issue #6437): attempt events used to continue
+ * from the run's event count, so an attempt the stale sweep had given up
+ * on, still writing, drew its steps in among the next attempt's. A block
+ * holds a million events, more than any attempt writes; the sequence
+ * column holds two thousand blocks, and a run that ever outgrew that goes
+ * on after its last event instead.
+ */
+export const AI_RUN_ATTEMPT_SEQUENCE_STRIDE: number = 1000000;
+const MAX_ATTEMPT_SEQUENCE_BASE: number = 2000000000;
+
+/*
+ * How often a running attempt says it is alive, between its steps too: a
+ * slow provider's single call can take longer than the stale sweep waits
+ * (twelve minutes) once its retries are counted, and the sweep then
+ * requeued a run that was still working.
+ */
+export const AI_RUN_HEARTBEAT_INTERVAL_IN_MS: number = 60 * 1000;
+
+/*
+ * What an attempt that no longer owns its run stops with: the stale sweep,
+ * a shutdown's hand-back or a cancel moved the run on, so another attempt
+ * - or nobody - works on it now.
+ */
+export const AI_RUN_ATTEMPT_SUPERSEDED_MESSAGE: string =
+  "This attempt stopped: the run was handed to another attempt or ended while it was working.";
 
 // The heading of every report but a runner's own (reportHeading).
 export const AI_ROOT_CAUSE_REPORT_HEADING: string =
@@ -198,6 +234,12 @@ Write your final answer as a concise incident-response note with these sections,
 **Evidence** — the key findings that support or rule out the hypothesis, each cited.
 **Ruled out** — the other likely causes you checked and the evidence that rules each one out: one bullet per cause, written "- **The cause:** why it is ruled out", each cited, at most 5, the most plausible first. Leave this section out when you checked no other cause.
 **Suggested next steps** — concrete actions for the on-call engineer.
+
+After the last section, close your answer with the Impact section's numbers, for the incident's or alert's page to show beside the summary: one fenced code block whose language is impact-numbers, holding one JSON object and nothing else, written like this:
+\`\`\`impact-numbers
+{"users": {"count": 1240, "counted": "requests"}, "services": {"count": 2}, "slos": {"affected": 1, "total": 2}}
+\`\`\`
+"counted" says what you counted: "users", "sessions" or "requests". "slos" counts the SLOs it burns ("affected") of the SLOs the context lists under Impact ("total"). Leave out each one you did not measure - never guess a number - and write {} when you measured none. OneUptime takes this block off the note: write nothing after it.
 
 Keep it tight and skimmable. You are read-only: never claim to have changed anything.`;
 
@@ -253,6 +295,16 @@ export interface InvestigationRequest {
    * Engine users with no panel (insight triage, remediation) omit it.
    */
   persistAnalysisTldr?: boolean | undefined;
+  /*
+   * Incident and alert RCA runs opt into recording the impact's numbers
+   * their answer closes with (InvestigationImpactNumbers): who and what the
+   * signal hurts, as short numbers - the users, sessions or requests, the
+   * services, the SLOs - which the AI card's folded Investigation step
+   * draws under the summary. Recorded as an InvestigationImpact event right
+   * before the report is posted. Display-only and best-effort, like the
+   * TL;DR. The block is taken off every engine user's answer either way.
+   */
+  recordImpactNumbers?: boolean | undefined;
   /*
    * Incident and alert RCA runs opt into saying when the logs stood in the
    * way (InvestigationLogStallCheck): an investigation that could not tell
@@ -352,10 +404,11 @@ export interface InvestigationRequest {
    * every connected repository.
    */
   codeRepositoryAllowance?: CodeRepositoryAllowance | undefined;
-  maxLlmCalls?: number | undefined;
-  maxToolCalls?: number | undefined;
-  // Undefined means no time limit.
-  maxWallClockMs?: number | undefined;
+  /*
+   * How far the run may go: an investigation's runner reads its lane's
+   * (getRunLimitsForProject). Left out, the project's limits per run.
+   */
+  runLimits?: AIAgentRunLimits | undefined;
   maxOutputTokens?: number | undefined;
 }
 
@@ -493,36 +546,20 @@ export default class AIInvestigationEngine {
   }
 
   /*
-   * How far an investigation of this lane may run: no time limit unless the
-   * project configured one in its Incident / Alert AI settings. Fails open —
-   * a project that cannot be read runs unbounded rather than being cut
-   * short, since the time limit is an opt-in.
+   * How far an investigation of this lane may run: the project's limits per
+   * run (no cap unless it set one), and the lane's time limit when the
+   * project set one in its Incident / Alert AI settings - else the
+   * project's, else the default. Fails open: a project that cannot be read
+   * runs with the defaults rather than not at all (AIRunLimitsReader).
    */
   public static async getRunLimitsForProject(
     projectId: ObjectID,
     subjectType: AISubjectType,
   ): Promise<AIAgentRunLimits> {
-    try {
-      const project: Project | null = await ProjectService.findOneById({
-        id: projectId,
-        select: {
-          incidentAiInvestigationTimeLimitInMinutes: true,
-          alertAiInvestigationTimeLimitInMinutes: true,
-        },
-        props: { isRoot: true },
-      });
-
-      return AIAgentRunLimitsHelper.fromTimeLimitInMinutes(
-        subjectType === "Alert"
-          ? project?.alertAiInvestigationTimeLimitInMinutes
-          : project?.incidentAiInvestigationTimeLimitInMinutes,
-      );
-    } catch (error) {
-      logger.error(
-        `AI: could not read the investigation time limit for project ${projectId.toString()}; running without one: ${error}`,
-      );
-      return AIAgentRunLimitsHelper.getDefault();
-    }
+    return await AIRunLimitsReader.read({
+      projectId,
+      lane: subjectType === "Alert" ? "Alert" : "Incident",
+    });
   }
 
   /*
@@ -606,20 +643,18 @@ export default class AIInvestigationEngine {
     const { aiRunId, projectId, request } = data;
 
     /*
-     * Retried runs already have events from earlier attempts; continue the
-     * sequence so the glass-box trail stays ordered and shows every attempt.
+     * Retried runs already have events from earlier attempts: this attempt
+     * numbers its own in the next block (AI_RUN_ATTEMPT_SEQUENCE_STRIDE),
+     * so the glass-box trail shows every attempt, each in one piece.
      */
     let sequence: number = 0;
     try {
-      sequence = (
-        await AIRunEventService.countBy({
-          query: { aiRunId },
-          props: { isRoot: true },
-        })
-      ).toNumber();
+      sequence = this.getAttemptSequenceBase(
+        await AIRunEventService.getSequenceAfterLastEvent(aiRunId),
+      );
     } catch (error) {
       logger.error(
-        `AI: failed to read event count for run ${aiRunId.toString()}; starting sequence at 0: ${error}`,
+        `AI: failed to read the last event of run ${aiRunId.toString()}; starting sequence at 0: ${error}`,
       );
     }
 
@@ -741,6 +776,34 @@ export default class AIInvestigationEngine {
     let infrastructureToolCallCount: number = 0;
 
     /*
+     * Whether this attempt still owns its run: the heartbeat moves only a
+     * run that is Running at this attempt, so a heartbeat that moves
+     * nothing means the stale sweep, a shutdown's hand-back or a cancel
+     * moved the run on. The attempt then stops at its next model or tool
+     * call (getStopReason) and writes nothing more, instead of drawing its
+     * steps in among the next attempt's.
+     */
+    let isAttemptSuperseded: boolean = false;
+
+    const keepAlive: () => Promise<void> = async (): Promise<void> => {
+      if (isAttemptSuperseded) {
+        return;
+      }
+
+      const isOwned: boolean | null = await this.touchHeartbeat(
+        aiRunId,
+        data.attemptCount,
+      );
+
+      if (isOwned === false) {
+        isAttemptSuperseded = true;
+        logger.warn(
+          `AI: attempt ${data.attemptCount} of run ${aiRunId.toString()} no longer owns the run; it stops at its next step.`,
+        );
+      }
+    };
+
+    /*
      * Live narration: persist each LLM/tool step as an AIRunEvent so the UI can
      * "watch it think" by polling the run's events. Best-effort, ordered.
      */
@@ -759,6 +822,11 @@ export default class AIInvestigationEngine {
         isInfrastructureToolName(step.toolName)
       ) {
         infrastructureToolCallCount++;
+      }
+
+      // An attempt that lost its run writes nothing more to it.
+      if (isAttemptSuperseded) {
+        return;
       }
 
       /*
@@ -802,7 +870,7 @@ export default class AIInvestigationEngine {
        * EVERY step — a slow self-hosted LLM call can approach the sweeper's
        * timeout, so the heartbeat must be as frequent as we can make it.
        */
-      await this.touchHeartbeat(aiRunId, data.attemptCount);
+      await keepAlive();
     };
 
     /*
@@ -812,6 +880,13 @@ export default class AIInvestigationEngine {
      * so the settlement callback must still fire from the catch block.
      */
     let settledAsCompleted: boolean = false;
+
+    // Alive between steps too: one slow model call can outlast the sweep.
+    const heartbeatTimer: ReturnType<typeof setInterval> = setInterval(() => {
+      keepAlive().catch((error: unknown) => {
+        logger.error(`AI: heartbeat failed: ${error}`);
+      });
+    }, AI_RUN_HEARTBEAT_INTERVAL_IN_MS);
 
     try {
       const result: ObservabilityAssistantResult =
@@ -842,12 +917,15 @@ export default class AIInvestigationEngine {
             request.questionOverride ??
             "A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis."
           }\n\n${seed.text}`,
-          maxLlmCalls: request.maxLlmCalls ?? MAX_LLM_CALLS,
-          maxToolCalls: request.maxToolCalls ?? MAX_TOOL_CALLS,
-          // Null tells the loop "no time limit" (undefined = its chat default).
-          maxWallClockMs: request.maxWallClockMs ?? null,
+          runLimits:
+            request.runLimits ?? (await AIRunLimitsReader.read({ projectId })),
           maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
+          getStopReason: (): string | null => {
+            return isAttemptSuperseded
+              ? AI_RUN_ATTEMPT_SUPERSEDED_MESSAGE
+              : null;
+          },
           extraTools: request.extraTools,
           onToolResult: request.onToolResult,
           ...(request.codeRepositoryAllowance
@@ -857,7 +935,7 @@ export default class AIInvestigationEngine {
            * The chat-facing AI-meta tools are hidden from the investigator:
            * "the latest investigation" for this subject IS this in-flight
            * run, so the model would poll its own unfinished status ("check
-           * again in a minute") and burn budget instead of investigating.
+           * again in a minute") and spend its calls instead of investigating.
            */
           excludeToolNames: ["get_ai_investigation", "start_investigation"],
         });
@@ -900,7 +978,34 @@ export default class AIInvestigationEngine {
 
       settledAsCompleted = true;
 
-      const analysis: string = (result.contentInMarkdown || "").trim();
+      /*
+       * A run a limit stopped says so in its activity - which limit, and
+       * where to change it - whatever it went on to write (the report says
+       * it too, under the analysis: buildBrandedMarkdown). The activity
+       * draws a line as text, so it gets the note as text, as a warning.
+       */
+      if (result.stopNoteText) {
+        await this.emitEvent({
+          projectId,
+          aiRunId,
+          sequence: sequence++,
+          eventType: AIRunEventType.ProgressLog,
+          resultSummary: {
+            message: result.stopNoteText,
+            severity: LogSeverity.Warning,
+          },
+        });
+      }
+
+      /*
+       * The impact's numbers the persona asks the answer to close with are
+       * taken off before anything reads it: the TL;DR, the confidence
+       * classification, the posted report and the chats never see the
+       * block. The numbers are recorded below, for the card.
+       */
+      const taken: TakenInvestigationImpactNumbers =
+        takeInvestigationImpactNumbers((result.contentInMarkdown || "").trim());
+      const analysis: string = taken.markdown.trim();
 
       if (!analysis) {
         logger.debug(
@@ -933,10 +1038,9 @@ export default class AIInvestigationEngine {
        * G6: judge confidence via the structured signal — the deterministic
        * evidence floor over this run's own server-minted citations, then
        * (only when the floor passes) one constrained classification call.
-       * Budget accounting: that call fires AFTER the agent loop finished, so
-       * it is deliberately OUTSIDE the per-run caps above (MAX_LLM_CALLS /
-       * MAX_OUTPUT_TOKENS govern the loop, whose counts were already
-       * persisted at the Completed transition). It is still metered in
+       * Accounting: that call fires AFTER the agent loop finished, so it is
+       * deliberately OUTSIDE the run's limits (they govern the loop, whose
+       * counts were already persisted at the Completed transition). It is still metered in
        * LlmLog under an AUTONOMOUS_AI_FEATURES feature, so the G4 daily
        * autonomous budget covers it; a budget rejection degrades the signal
        * to "classification-failed" — never a run failure. Running it after
@@ -1033,6 +1137,22 @@ export default class AIInvestigationEngine {
        */
       if (analysisTldr) {
         await this.persistAnalysisTldr({ aiRunId, analysisTldr });
+      }
+
+      /*
+       * Who and what it hurts, in numbers, recorded BEFORE the report is
+       * posted, like the TL;DR, so the card reads them beside the report
+       * from its first look. A run whose answer measured nothing, or wrote
+       * no block that reads, records nothing: the card shows the summary
+       * alone, as before.
+       */
+      if (request.recordImpactNumbers === true && taken.numbers) {
+        await this.recordImpactNumbers({
+          projectId,
+          aiRunId,
+          sequence: sequence++,
+          numbers: taken.numbers,
+        });
       }
 
       /*
@@ -1135,13 +1255,33 @@ export default class AIInvestigationEngine {
        * Only configuration/budget gating — which a retry cannot change
        * within the run's usefulness window — counts as permanent.
        */
-      const outcome: "requeued" | "finalized" | "noop" =
-        await AIInvestigationQueue.failOrRequeue({
+      const failed: FailedAttemptResult =
+        await AIInvestigationQueue.failOrRequeueWithDetails({
           aiRunId,
           attemptCount: data.attemptCount,
           errorMessage: message,
           isPermanent: isPermanentInvestigationFailure(message),
+          error,
         });
+      const outcome: "requeued" | "finalized" | "noop" = failed.outcome;
+
+      /*
+       * A requeued attempt ends here, and says so: the steps it had open
+       * end with it, and the run's activity says why and when the next
+       * attempt starts (issue #6437).
+       */
+      if (outcome === "requeued") {
+        await this.emitEvent({
+          projectId,
+          aiRunId,
+          sequence: sequence++,
+          eventType: AIRunEventType.AttemptEnded,
+          resultSummary: {
+            attemptEnd: failed.attemptEnd,
+            errorMessage: message.substring(0, 400),
+          },
+        });
+      }
 
       /*
        * Settle-once discipline: fire the settlement callback when this
@@ -1166,6 +1306,19 @@ export default class AIInvestigationEngine {
           aiRunId,
           sequence: sequence++,
           eventType: AIRunEventType.RunFailed,
+          /*
+           * Why, and how many times it was tried: what the dashboard says
+           * in the reader's language. A run that failed after it completed
+           * (settledAsCompleted) has no attempt end to tell.
+           */
+          ...(outcome === "finalized"
+            ? {
+                resultSummary: {
+                  attemptEnd: failed.attemptEnd,
+                  errorMessage: message.substring(0, 400),
+                },
+              }
+            : {}),
         });
 
         await this.invokeOnSettled(request, aiRunId);
@@ -1174,7 +1327,30 @@ export default class AIInvestigationEngine {
       logger.error(
         `AI: investigation attempt ${data.attemptCount} failed (run ${aiRunId.toString()}): ${message}`,
       );
+    } finally {
+      clearInterval(heartbeatTimer);
     }
+  }
+
+  /*
+   * Where an attempt starts numbering its events: the block after the one
+   * the run's last event is in (AI_RUN_ATTEMPT_SEQUENCE_STRIDE), 0 for a
+   * run with none - or right after the last event, for a run that would
+   * outgrow the sequence column.
+   */
+  public static getAttemptSequenceBase(sequenceAfterLastEvent: number): number {
+    if (sequenceAfterLastEvent <= 0) {
+      return 0;
+    }
+
+    const lastSequence: number = sequenceAfterLastEvent - 1;
+    const nextBlock: number =
+      (Math.floor(lastSequence / AI_RUN_ATTEMPT_SEQUENCE_STRIDE) + 1) *
+      AI_RUN_ATTEMPT_SEQUENCE_STRIDE;
+
+    return nextBlock > MAX_ATTEMPT_SEQUENCE_BASE
+      ? sequenceAfterLastEvent
+      : nextBlock;
   }
 
   /*
@@ -1195,6 +1371,35 @@ export default class AIInvestigationEngine {
     } catch (error) {
       logger.error(
         `AI: post-settlement follow-up failed for run ${aiRunId.toString()}: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * Record the impact's numbers on the run as an InvestigationImpact event,
+   * as the log stall is recorded. Display-only: a failed write is logged,
+   * and the report still posts.
+   */
+  private static async recordImpactNumbers(data: {
+    projectId: ObjectID;
+    aiRunId: ObjectID;
+    sequence: number;
+    numbers: InvestigationImpactNumbers;
+  }): Promise<void> {
+    try {
+      await this.emitEvent({
+        projectId: data.projectId,
+        aiRunId: data.aiRunId,
+        sequence: data.sequence,
+        eventType: AIRunEventType.InvestigationImpact,
+        resultSummary: {
+          message: describeInvestigationImpactNumbers(data.numbers),
+          impactNumbers: investigationImpactNumbersToJSON(data.numbers),
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `AI: failed to record the impact's numbers for run ${data.aiRunId.toString()}: ${error}`,
       );
     }
   }
@@ -1351,6 +1556,15 @@ export default class AIInvestigationEngine {
         mdText`## 🧠 AI — ${heading}\n\n${reportLead}\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
     }
 
+    /*
+     * A run a limit stopped says so under its analysis, in OneUptime's own
+     * words, with the link to the setting (AIRunLimitsReader.getStopNote):
+     * Markdown OneUptime built, placed as it was written.
+     */
+    if (result.stopNoteInMarkdown) {
+      markdown += mdText`\n\n${FeedMarkdown.asMarkdown(result.stopNoteInMarkdown)}`;
+    }
+
     const citations: Array<AIChatCitation> = result.citations || [];
 
     if (citations.length > 0) {
@@ -1483,13 +1697,18 @@ export default class AIInvestigationEngine {
     return null;
   }
 
-  // Refresh lastHeartbeatAt so a long-running investigation isn't swept as stale.
+  /*
+   * Refresh lastHeartbeatAt so a long-running investigation isn't swept as
+   * stale. Whether the attempt still owns the run: true when the heartbeat
+   * moved it (Running at this attempt), false when it moved nothing - the
+   * run moved on - and null when the update failed, which says neither.
+   */
   private static async touchHeartbeat(
     aiRunId: ObjectID,
     attemptCount: number,
-  ): Promise<void> {
+  ): Promise<boolean | null> {
     try {
-      await AIRunService.attemptStatusTransition({
+      const touched: number = await AIRunService.attemptStatusTransition({
         aiRunId,
         fromStatus: AIRunStatus.Running,
         expectedAttemptCount: attemptCount,
@@ -1498,8 +1717,11 @@ export default class AIInvestigationEngine {
           lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
         },
       });
+
+      return typeof touched === "number" ? touched > 0 : null;
     } catch (error) {
       logger.error(`AI: heartbeat update failed: ${error}`);
+      return null;
     }
   }
 

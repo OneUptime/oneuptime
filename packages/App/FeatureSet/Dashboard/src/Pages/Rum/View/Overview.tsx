@@ -9,6 +9,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
+import {
+  RumApplicationStatusDescription,
+  describeRumApplicationStatus,
+} from "Common/Types/Rum/RumApplicationStatus";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -62,6 +66,7 @@ import { RUM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/
 import {
   fetchSessionReplayList,
   SessionReplayListResult,
+  SessionReplaySummary,
 } from "../../../Components/SessionReplay/SessionReplayTable";
 import isReplayOnlyInstrumented from "../../../Components/SessionReplay/RumInstrumentation";
 import useSessionReplayHealth, {
@@ -81,6 +86,36 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  diagnoseRumSignal,
+  RumApplicationArrivalFacts,
+  RumSignalDiagnosis,
+} from "../../../Components/Rum/SetupCheck/RumSignalDiagnosis";
+import {
+  getRumApplicationArrivalFacts,
+  getRumClientKind,
+  getRumRetentionInDays,
+  RUM_SIGNAL_APPLICATION_SELECT,
+  toDateOrNull,
+} from "../../../Components/Rum/SetupCheck/RumSignalFacts";
+import { fetchNewestRumExceptionAt } from "../../../Components/Rum/SetupCheck/RumSignalReads";
+import {
+  getRumSignalEmptyCopy,
+  RumClientKind,
+  RumPanelSignal,
+  RumSignalEmptyCopy,
+} from "../../../Components/Rum/SetupCheck/RumSignalWords";
+import RumSignalEmptyState from "../../../Components/Rum/SetupCheck/RumSignalEmptyState";
+import RumSignalSetupModal from "../../../Components/Rum/SetupCheck/RumSignalSetupModal";
+import RumKeySetupModal from "../../../Components/Rum/SetupCheck/RumKeySetupModal";
+import {
+  IngestRefusalFact,
+  RumKindRefusal,
+  RumRefusalApp,
+  getRumKindRefusal,
+} from "../../../Components/Rum/SetupCheck/RumIngestRefusals";
+import useRecentIngestRefusals from "../../../Components/Rum/SetupCheck/useRecentIngestRefusals";
+import { RumSignalArrivalRead } from "../../../Components/Rum/SetupCheck/useRumSetupCheck";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -160,6 +195,40 @@ const RumApplicationOverview: FunctionComponent<
   const [pageLoadsLoading, setPageLoadsLoading] = useState<boolean>(true);
   const [signals, setSignals] = useState<LogAndExceptionSignals | null>(null);
   const [signalsLoading, setSignalsLoading] = useState<boolean>(true);
+  /*
+   * When the app's newest exception arrived - read only when the range has
+   * none, so the empty Exceptions chart can say "quiet since" or "not set
+   * up" (issue #5770). null while it loads.
+   */
+  const [newestException, setNewestException] =
+    useState<RumSignalArrivalRead | null>(null);
+  /*
+   * Recorded sessions with an error in the range: the evidence that errors
+   * happen while none is reported. null until the sessions are read.
+   */
+  const [sessionsWithErrors, setSessionsWithErrors] = useState<number | null>(
+    null,
+  );
+  // The setup dialog an empty chart opened.
+  const [setUpSignal, setSetUpSignal] = useState<RumPanelSignal | null>(null);
+  // "Pick another key", from an empty chart whose telemetry is refused.
+  const [isPickingKey, setIsPickingKey] = useState<boolean>(false);
+  /*
+   * What the project's keys were refused in the past day (issue #6378),
+   * read again on every refresh: an empty chart says "refused" while
+   * nothing of its kind has arrived since. Like the newest exception, read
+   * only while a chart has nothing to draw.
+   */
+  const [refusalsReloadToken, setRefusalsReloadToken] = useState<number>(0);
+  const isChartEmpty: boolean = [signals?.exceptions, signals?.logs].some(
+    (pillar: { total: number; failed: boolean } | undefined): boolean => {
+      return Boolean(pillar && !pillar.failed && pillar.total === 0);
+    },
+  );
+  const refusals: Array<IngestRefusalFact> | null = useRecentIngestRefusals(
+    refusalsReloadToken,
+    isChartEmpty,
+  );
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
   const [inpByRoute, setInpByRoute] = useState<WebVitalByRoute | null>(null);
@@ -203,6 +272,8 @@ const RumApplicationOverview: FunctionComponent<
            * isReplayOnlyInstrumented.
            */
           sessionReplayLastChunkReceivedAt: true,
+          // What has arrived, kind by kind: why a chart is empty.
+          ...RUM_SIGNAL_APPLICATION_SELECT,
           labels: { name: true, color: true },
         },
       });
@@ -417,6 +488,31 @@ const RumApplicationOverview: FunctionComponent<
           if (!isCurrent()) {
             return;
           }
+
+          /*
+           * None in the range: when did the newest arrive, if ever? One
+           * Postgres row, read only when the chart has nothing to draw.
+           */
+          if (!result.exceptions.failed && result.exceptions.total === 0) {
+            if (showLoading) {
+              setNewestException(null);
+            }
+
+            fetchNewestRumExceptionAt(primaryEntityId)
+              .then((at: Date | null) => {
+                if (!isCurrent()) {
+                  return;
+                }
+                setNewestException({ at, failed: false });
+              })
+              .catch(() => {
+                if (!isCurrent()) {
+                  return;
+                }
+                setNewestException({ at: null, failed: true });
+              });
+          }
+
           setSignals(result);
           setSignalsLoading(false);
         })
@@ -451,6 +547,11 @@ const RumApplicationOverview: FunctionComponent<
           setSessionReplayCount(result.sessions.length);
           setSessionReplayHasMore(result.nextCursor !== null);
           setSessionReplayCountFailed(false);
+          setSessionsWithErrors(
+            result.sessions.filter((session: SessionReplaySummary): boolean => {
+              return session.errorCount > 0 || session.hasError;
+            }).length,
+          );
         })
         .catch(() => {
           if (!isCurrent()) {
@@ -482,6 +583,9 @@ const RumApplicationOverview: FunctionComponent<
 
   const refresh: () => void = useCallback((): void => {
     fetchModel(false).catch(() => {});
+    setRefusalsReloadToken((value: number): number => {
+      return value + 1;
+    });
 
     if (appIdentifier) {
       loadTelemetry(false);
@@ -518,6 +622,11 @@ const RumApplicationOverview: FunctionComponent<
   }
 
   const a: RumApplication = rumApplication;
+  // The hero's pill, read as the connection card under it reads the record.
+  const status: RumApplicationStatusDescription = describeRumApplicationStatus({
+    otelCollectorStatus: a.otelCollectorStatus,
+    lastSeenAt: a.lastSeenAt,
+  });
   /*
    * A failed span lookup is unknown, not zero (correlation-14): the span
    * tiles read "could not load" rather than a confident 0.
@@ -546,8 +655,132 @@ const RumApplicationOverview: FunctionComponent<
     stats: pageLoadStats,
     failed: pageLoadStatsFailed,
   });
+  /*
+   * Why the Exceptions and Logs charts are empty, when they are (issue
+   * #5770): not set up, quiet in this range, or nothing arriving at all.
+   */
+  const diagnosisNow: Date = OneUptimeDate.getCurrentDate();
+  const arrivalFacts: RumApplicationArrivalFacts =
+    getRumApplicationArrivalFacts(a);
+  const client: RumClientKind = getRumClientKind(a);
+  const diagnosisRange:
+    | { timeRange: RangeStartAndEndDateTime; start: Date; end: Date }
+    | undefined = chartWindow
+    ? { timeRange: timeRange, start: chartWindow.start, end: chartWindow.end }
+    : undefined;
+  const retentionInDays: number | null = getRumRetentionInDays(a);
+
+  const inRangeCount: (
+    pillar: { total: number; failed: boolean } | undefined,
+  ) => number | null | undefined = (
+    pillar: { total: number; failed: boolean } | undefined,
+  ): number | null | undefined => {
+    if (!pillar) {
+      return signalsLoading ? undefined : null;
+    }
+
+    return pillar.failed ? null : pillar.total;
+  };
+
+  const exceptionsDiagnosis: RumSignalDiagnosis = diagnoseRumSignal({
+    inRange: { count: inRangeCount(signals?.exceptions) },
+    lastArrival: newestException,
+    // Exceptions are rows of their own, kept for all time.
+    trackedSince: null,
+    app: arrivalFacts,
+    range: diagnosisRange,
+    retentionInDays,
+    now: diagnosisNow,
+  });
+
+  const logsDiagnosis: RumSignalDiagnosis = diagnoseRumSignal({
+    inRange: { count: inRangeCount(signals?.logs) },
+    lastArrival: {
+      at: toDateOrNull(a.logsLastReceivedAt),
+      failed: false,
+    },
+    trackedSince: toDateOrNull(a.signalArrivalsTrackedSince),
+    app: arrivalFacts,
+    range: diagnosisRange,
+    retentionInDays,
+    now: diagnosisNow,
+  });
+
+  const refusalApp: RumRefusalApp = {
+    client,
+    appIdentifier: (a.appIdentifier as string) || null,
+  };
+  const panelRefusals: Record<RumPanelSignal, RumKindRefusal | null> = {
+    // Exceptions are span events: they travel with the traces.
+    exceptions: getRumKindRefusal({
+      refusals,
+      kind: "traces",
+      lastArrivalAt: toDateOrNull(a.tracesLastReceivedAt),
+      app: refusalApp,
+      now: diagnosisNow,
+    }),
+    logs: getRumKindRefusal({
+      refusals,
+      kind: "logs",
+      lastArrivalAt: toDateOrNull(a.logsLastReceivedAt),
+      app: refusalApp,
+      now: diagnosisNow,
+    }),
+  };
+
+  const documentationRoute: Route = populate(
+    PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION,
+  );
+
+  const renderEmptySignal: (
+    signal: RumPanelSignal,
+    diagnosis: RumSignalDiagnosis,
+  ) => ReactElement | undefined = (
+    signal: RumPanelSignal,
+    diagnosis: RumSignalDiagnosis,
+  ): ReactElement | undefined => {
+    const copy: RumSignalEmptyCopy | null = getRumSignalEmptyCopy({
+      signal,
+      diagnosis,
+      client,
+      sessionsWithErrors: signal === "exceptions" ? sessionsWithErrors : null,
+      refusal: panelRefusals[signal],
+      translator,
+      now: diagnosisNow,
+    });
+
+    if (!copy) {
+      return undefined;
+    }
+
+    return (
+      <RumSignalEmptyState
+        signal={signal}
+        state={diagnosis.state}
+        copy={copy}
+        variant="chart"
+        documentationRoute={documentationRoute}
+        onSetUp={(picked: RumPanelSignal): void => {
+          setSetUpSignal(picked);
+        }}
+        onRangeChange={(range: RangeStartAndEndDateTime): void => {
+          setTimeRange(range);
+        }}
+        onRetry={(): void => {
+          loadTelemetry(true);
+        }}
+        onPickKey={(): void => {
+          setIsPickingKey(true);
+        }}
+      />
+    );
+  };
+
   const exceptionsTile: TileText = describeExceptionsTile({
     exceptions: signals ? signals.exceptions : null,
+    isNotSetUp:
+      exceptionsDiagnosis.state === "not-set-up" &&
+      exceptionsDiagnosis.cause === "signal",
   });
 
   const tiles: Array<ResourceOverviewTile> = [
@@ -747,8 +980,12 @@ const RumApplicationOverview: FunctionComponent<
         windowStart={chartWindow?.start ?? null}
         windowEnd={chartWindow?.end ?? null}
         syncId={syncId}
-        loading={signalsLoading && !signals}
+        loading={
+          (signalsLoading && !signals) ||
+          exceptionsDiagnosis.state === "loading"
+        }
         description={RUM_METRIC_DESCRIPTIONS.exceptionsChart}
+        emptyContent={renderEmptySignal("exceptions", exceptionsDiagnosis)}
       />
       <ChartCard
         title="Logs"
@@ -764,8 +1001,11 @@ const RumApplicationOverview: FunctionComponent<
         windowEnd={chartWindow?.end ?? null}
         syncId={syncId}
         showLegend={true}
-        loading={signalsLoading && !signals}
+        loading={
+          (signalsLoading && !signals) || logsDiagnosis.state === "loading"
+        }
         description={RUM_METRIC_DESCRIPTIONS.logsChart}
+        emptyContent={renderEmptySignal("logs", logsDiagnosis)}
       />
     </div>
   );
@@ -849,6 +1089,14 @@ const RumApplicationOverview: FunctionComponent<
         identifier={(a.appIdentifier as string) || ""}
         identifierLabel="service.name"
         status={a.otelCollectorStatus}
+        /*
+         * Receiving data, No recent traffic or Waiting for data - never
+         * "Disconnected": an application nobody is using is idle, not
+         * broken (RumApplicationStatus, issue #6191).
+         */
+        statusLabel={status.label}
+        statusTone={status.tone}
+        statusDescription={status.description}
         lastSeenAt={a.lastSeenAt}
         connectionGuide={
           <ResourceConnectionGuideCard
@@ -910,6 +1158,29 @@ const RumApplicationOverview: FunctionComponent<
           loading={inpByRouteLoading}
           description={RUM_METRIC_DESCRIPTIONS.inpByRoute}
         />
+      )}
+
+      {setUpSignal ? (
+        <RumSignalSetupModal
+          signal={setUpSignal}
+          appName={(a.appIdentifier as string) || (a.name as string) || ""}
+          onClose={(): void => {
+            setSetUpSignal(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isPickingKey ? (
+        <RumKeySetupModal
+          clientType={client}
+          onClose={(): void => {
+            setIsPickingKey(false);
+          }}
+        />
+      ) : (
+        <></>
       )}
     </TimeRangeZoomScope>
   );

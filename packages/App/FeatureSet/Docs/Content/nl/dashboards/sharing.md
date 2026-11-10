@@ -53,7 +53,7 @@ Een openbaar dashboard:
 
 Behandel het delen van een dashboard als het publiceren van een webpagina. Elke widget erop wordt leesbaar voor iedereen met de link. Kijk wat er op het canvas staat voordat je het deelt.
 
-Elke widget publiceert alleen wat hij tekent, en alleen voor de resources waarop hij is ingesteld. Een SLO-widget publiceert bijvoorbeeld de kerncijfers van die SLO, maar nooit de definitie: zie [SLO](/docs/dashboards/widgets#slo). Widgets met een externe **Data Source** zijn de uitzondering: die worden helemaal uit een openbaar dashboard weggelaten in plaats van weergegeven, omdat hun configuratie de query zelf is. Nog een paar widgets kunnen niet worden weergegeven zonder aangemelde sessie, en melden dat op hun plek: [Op een openbaar dashboard](/docs/dashboards/widgets#op-een-openbaar-dashboard) noemt ze.
+Elke widget publiceert alleen wat hij tekent, en alleen voor de resources waarop hij is ingesteld. Een SLO-widget publiceert bijvoorbeeld de kerncijfers van die SLO, maar nooit de definitie: zie [SLO](/docs/dashboards/widgets#slo). Widgets met een externe **Data Source** zijn de uitzondering: die worden helemaal uit een openbaar dashboard weggelaten in plaats van weergegeven, omdat hun configuratie de query zelf is. Nog een paar widgets kunnen niet worden weergegeven zonder aangemelde sessie, en melden dat op hun plek: [Op een openbaar dashboard](/docs/dashboards/widgets#op-een-openbaar-dashboard) noemt ze. Ze publiceren alleen hun titel, nooit de zoekopdrachten en filters waarmee ze hun gegevens lezen. Ook variabelen publiceren alleen wat hun keuzelijsten tonen: de query van een oude queryvariabele wordt nooit gepubliceerd.
 
 ## Delen met een wachtwoord
 
@@ -94,13 +94,13 @@ Na verificatie is het dashboard bereikbaar op zowel je aangepaste domein als de 
 
 ### Het domein toevoegen
 
-Klik op **Dashboard Domein aanmaken**. Het dialoogvenster is één pagina:
+Klik op **Dashboarddomein aanmaken**. Het dialoogvenster is één pagina:
 
 - **Subdomein**: alleen het label, met de plaatsaanduiding `dashboard (leave blank for root)`. Voer alleen `dashboard` in, niet de hele hostnaam. Laat het leeg of voer `@` in om het hoofddomein (apex) te gebruiken.
 - **Domein**: de domeinen die zijn geverifieerd onder **Projectinstellingen → Geavanceerd → Domeinen**, waar je met een TXT-record bewijst dat een domein van jou is. Een domein dat je niet hebt geverifieerd, staat er niet tussen, omdat het zou worden geweigerd. De link **Domein toevoegen** naast het veld opent die pagina in een nieuw tabblad.
 - **Meer velden**: ingeklapt. Zolang het is ingeklapt, zegt de kop welk certificaat het domein zal gebruiken: "We geven een gratis SSL-certificaat uit voor dit domein en verlengen het automatisch." Open het alleen om een eigen certificaat te gebruiken (zie hieronder).
 
-Klik op **Dashboard Domein aanmaken**. Het dialoogvenster sluit en de **DNS-instelling** van het nieuwe domein opent. De volledige naam van een domein ligt vast zodra je het toevoegt, dus **Bewerken** wijzigt alleen het certificaat. Om een ander subdomein te gebruiken, voeg je dat domein toe en verwijder je het oude.
+Klik op **Dashboarddomein aanmaken**. Het dialoogvenster sluit en de **DNS-instelling** van het nieuwe domein opent. De volledige naam van een domein ligt vast zodra je het toevoegt, dus **Bewerken** wijzigt alleen het certificaat. Om een ander subdomein te gebruiken, voeg je dat domein toe en verwijder je het oude.
 
 ### DNS-instelling en Nu controleren
 

@@ -89,6 +89,8 @@ Mientras la ejecución está en pausa, también puedes omitir un paso automatiza
 
 Completar, aprobar, omitir y cancelar requieren los mismos roles que iniciar una ejecución, o el permiso **Edit Runbook Execution**.
 
+La página **Registros de auditoría** del runbook muestra quién inició cada ejecución, quién aprobó, completó u omitió cada uno de sus pasos y quién la canceló. Un paso aparece como lo que se le hizo, por ejemplo `Approved "Restart the API" (step 3)`, nunca con lo que el paso imprimió ni con la nota que se dejó con él.
+
 ## Intercalar pasos manuales y automatizados
 
 El flujo clásico:

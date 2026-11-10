@@ -2,6 +2,8 @@
 
 **Filas** dá a cada fila de mensagens, tópico e assinatura que seus aplicativos usam uma página própria: quais serviços publicam nela e quais consomem dela, quantas mensagens passam, quantas falham e quanto tempo leva o processamento, seus traces e métricas e, assim que as métricas do próprio broker chegam ao OneUptime, seu acúmulo, o atraso dos consumidores, as mensagens mortas e a limitação. As filas têm rótulos, proprietários, regras de rótulos e de proprietários e arquivamento, como qualquer outro recurso. Abra-as em **Produtos → Recursos → Filas**.
 
+**Filas → Topologia** mostra como as mensagens fluem entre seus serviços: cada fila entre os serviços que publicam nela e os que consomem dela. Cada linha mostra sua taxa de mensagens, sua taxa de erros e seu tempo p95, contados como os contam os cartões **Produtores** e **Consumidores** da fila, e assim que as métricas de um broker chegam ao OneUptime, suas filas mostram o atraso dos consumidores ou o acúmulo, e as mensagens mortas. Pesquise no mapa, filtre-o por broker ou mantenha só o que precisa de atenção. A aba **Topologia** de cada fila mostra de onde vêm suas mensagens e para onde vão.
+
 :::cards
 - [Instrumentar aplicativos](#instrumentar-aplicativos): Os spans de mensageria que sua instrumentação OpenTelemetry já envia.
 - [Métricas de saúde do broker](#métricas-de-saúde-do-broker): Acúmulo, atraso e mensagens mortas do seu broker, sistema por sistema.
@@ -213,6 +215,10 @@ builder.Services.AddOpenTelemetry()
 Um broker sabe o que nenhum aplicativo consegue ver: quantas mensagens estão esperando, quão atrasado está cada grupo de consumidores, o que foi para uma fila de mensagens mortas. Cada seção abaixo tem a configuração do coletor para um sistema: uma configuração completa do OpenTelemetry Collector que termina no exportador OTLP que envia ao OneUptime. Coloque uma chave de ingestão de telemetria (**Configurações do projeto → Telemetria e APM → Chaves de ingestão**) em `x-oneuptime-token`, substitua `https://oneuptime.com` pelo seu próprio host se você hospeda por conta própria, e execute-a com `otel/opentelemetry-collector-contrib` 0.161.0 ou posterior (toda configuração aqui é validada com 0.161.0). Coletores recentes registram em log que `otlphttp` está obsoleto em favor de `otlp_http`; os dois nomes são o mesmo exportador. Para coletar vários sistemas, junte os receptores deles em um só coletor.
 
 A seção **Saúde do broker** de cada fila mostra em gráficos as métricas listadas para o seu sistema (um medidor como seu valor, uma contagem por período somada por intervalo, um contador como taxa por segundo), combinando as séries de uma fila do jeito que cada métrica precisa (as mensagens prontas e não confirmadas de uma fila do RabbitMQ se somam; o grupo de consumidores mais atrasado é o atraso). Tudo o que o coletor envia também está no explorador **Métricas**. Enquanto nenhuma métrica listada tiver chegado para uma fila, a seção mostra de onde vêm as métricas daquele sistema, com um link para a seção dele aqui.
+
+Onde nenhum aplicativo rastreado publica em uma fila nem consome dela, os blocos **Publicadas**, **Consumidas** e **Erros** e o gráfico **Mensagens** dela leem no lugar as contagens do próprio broker (mensagens que entram, mensagens que saem e os erros dele somados, com as solicitações limitadas contadas à parte em **Erros**), e cada um diz isso abaixo do seu número. Uma fila com spans fica com eles, porque eles dizem qual serviço fez o quê. O bloco **p95 processing time** vem só dos traces dos consumidores, porque nenhum broker mede quanto tempo um consumidor leva com uma mensagem: sem eles, mostra **Requer traços dos consumidores**.
+
+O cartão **Métricas do broker** no topo da seção lista cada métrica mostrada nos gráficos para o sistema da fila: se ela chegou para a fila no intervalo selecionado, quando chegou pela última vez e por que cada uma das outras não chegou. Uma contagem pode não ter nada a informar (nenhuma solicitação limitada é uma boa notícia); um nível que o broker informa o tempo todo e que nunca chega é um que o coletor não pede, e o cartão dá as linhas de que a configuração dele precisa; uma métrica também pode parar de chegar. Para uma fila do Service Bus ou do Event Hubs da qual nenhuma métrica chega, o cartão também lê o que o namespace dela envia no lugar (veja [A saúde do broker continua vazia](#a-saúde-do-broker-continua-vazia)). Abaixo do resumo, o cartão diz o que leu as métricas da fila ultimamente: o receptor do coletor, suas conexões de nuvem, com link para **Nuvem → Conectar**, ou ambos. Numa fila que só uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) lê, uma métrica que a assinatura não lê aparece como **Somente coletor**, com a linha que a adiciona ao receptor, em vez de faltando.
 
 ### Amazon SNS
 
@@ -589,7 +595,9 @@ O OneUptime não mostra as métricas do Event Grid na página de uma fila: o Azu
 
 ### Azure Event Hubs
 
-Leia as métricas do namespace no Azure Monitor com o receptor `azure_monitor` do coletor, que as divide por event hub segundo a dimensão EntityName.
+Uma assinatura do Azure conectada lê as métricas principais do namespace para cada event hub, sem nada para executar. Para ler todas, execute o receptor `azure_monitor` do coletor, que as divide por event hub segundo a dimensão EntityName.
+
+Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) lê `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` e `azure_throttledrequests_total` de até 1.000 event hubs de um namespace, com uma chamada ao Azure Monitor por namespace a cada leitura, não importa quantos event hubs o namespace tenha. As outras três só o receptor lê, e o cartão **Métricas do broker** de um event hub as marca como **Somente coletor**. Quando os dois leem uma métrica de um event hub, fica a do receptor e a da assinatura é deixada de fora, então nada é contado duas vezes.
 
 O receptor entra pela extensão `azure_auth`. Dê à entidade de serviço a função **Monitoring Reader** na assinatura:
 
@@ -617,6 +625,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -648,10 +657,13 @@ O Azure Monitor não tem métrica de atraso dos consumidores para o Event Hubs: 
 | `azure_usererrors_total` | Erros do usuário | Contagem por período |
 | `azure_quotaexceedederrors_total` | Erros de cota excedida | Contagem por período |
 | `azure_throttledrequests_total` | Solicitações limitadas | Contagem por período |
+| `azure_size_average` | Tamanho | Medidor |
 
 ### Azure Service Bus
 
-Leia as métricas do namespace no Azure Monitor com o receptor `azure_monitor` do coletor, que as divide por fila e tópico segundo a dimensão EntityName.
+Uma assinatura do Azure conectada lê as métricas principais do namespace para cada fila e tópico, sem nada para executar. Para ler todas, execute o receptor `azure_monitor` do coletor, que as divide por fila e tópico segundo a dimensão EntityName.
+
+Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) lê `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` e `azure_throttledrequests_total` de até 1.000 filas e tópicos de um namespace, com uma chamada ao Azure Monitor por namespace a cada leitura, não importa quantas filas o namespace tenha: com uma leitura a cada 5 minutos, um namespace de 50 filas custa 12 chamadas por hora, o mesmo que um namespace de uma só fila. As outras seis só o receptor lê, e o cartão **Métricas do broker** de uma fila as marca como **Somente coletor**. Quando os dois leem uma métrica de uma fila, fica a do receptor e a da assinatura é deixada de fora, então nada é contado duas vezes.
 
 O receptor entra pela extensão `azure_auth`. Dê à entidade de serviço a função **Monitoring Reader** na assinatura:
 
@@ -677,6 +689,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -684,6 +698,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -706,13 +721,17 @@ service:
 - As métricas encontram sua fila ou seu tópico pelo namespace (`name`) e pela entidade (`EntityName`); os spans dos SDKs nomeiam o mesmo namespace como `<namespace>.servicebus.windows.net`. Um span em `orders/Subscriptions/billing` ou `orders/$DeadLetterQueue` pertence a `orders`, como as métricas.
 - `maximum_number_of_records_per_resource` é quantas séries o Azure retorna por métrica e namespace, 10 a menos que você aumente: mantenha-o acima do seu número de filas e tópicos (as métricas de erro dividem ainda cada entidade por resultado), ou os demais não serão informados.
 - O Azure Monitor não divide por assinatura de tópico: as contagens de um tópico cobrem todas as assinaturas dele.
-- A lista `metrics` coleta exatamente o que a página da fila mostra nos gráficos, cada uma com a única agregação que mostra; adicione uma métrica (`ScheduledMessages`, `Size`, …) para coletá-la também.
+- A lista `metrics` coleta exatamente o que a página da fila mostra nos gráficos, cada uma com a única agregação que mostra; adicione uma métrica (`IncomingRequests`, `Messages`, …) para coletá-la também. Um coletor cuja lista é anterior a `ScheduledMessages`, `Size` ou `ServerSendLatency` não envia nenhuma delas: o cartão **Métricas do broker** da fila nomeia as linhas a adicionar.
+- Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) divide suas seis métricas por fila e tópico, como este receptor, e a página do próprio namespace em **Nuvem → Todos os recursos** as soma. Enquanto a assinatura [transmite suas métricas](/docs/telemetry/cloud-streaming-azure), ela continua lendo as de um namespace: uma configuração de diagnóstico envia só os totais do namespace, sem `EntityName`, e quatro das seis nem chega a enviar. Onde este receptor envia os totais de um namespace, sem dividir por fila nem tópico, a página do namespace mantém esses totais, e as séries da assinatura chegam só às suas filas, então nenhuma mensagem é contada duas vezes.
+- Nenhuma dessas métricas depende do nível do namespace. `ServerSendLatency` é informada a cada envio, então uma fila para a qual nada foi enviado no intervalo não tem nenhuma.
 - O receptor lista seus namespaces uma vez por dia, então um namespace novo pode levar até 24 horas para aparecer.
 
 | Métrica | Exibida como | Tipo |
 | --- | --- | --- |
 | `azure_activemessages_average` | Mensagens ativas | Medidor |
 | `azure_deadletteredmessages_average` | Mensagens em dead-letter | Medidor |
+| `azure_scheduledmessages_average` | Mensagens agendadas | Medidor |
+| `azure_size_average` | Tamanho | Medidor |
 | `azure_incomingmessages_total` | Mensagens recebidas | Contagem por período |
 | `azure_outgoingmessages_total` | Mensagens enviadas | Contagem por período |
 | `azure_completemessage_total` | Mensagens concluídas | Contagem por período |
@@ -720,6 +739,7 @@ service:
 | `azure_servererrors_total` | Erros do servidor | Contagem por período |
 | `azure_usererrors_total` | Erros do usuário | Contagem por período |
 | `azure_throttledrequests_total` | Solicitações limitadas | Contagem por período |
+| `azure_serversendlatency_average` | Latência de envio do servidor | Medidor |
 
 ### BullMQ
 
@@ -1046,6 +1066,10 @@ Quando os spans dela a nomeiam de fato, crie-a manualmente com o mesmo sistema e
 - O receptor não a informa. O Kafka informa o atraso de um grupo de consumidores só depois que o grupo confirma um offset; o RabbitMQ informa apenas as filas dos hosts virtuais aos quais o usuário dele tem acesso, e não registra nenhum erro pelo resto (veja [RabbitMQ](#rabbitmq)); os contadores do RabbitMQ aparecem com a primeira atividade; o Azure Monitor retorna 10 filas por métrica e namespace a menos que `maximum_number_of_records_per_resource` seja aumentado; o Cloud Monitoring lê apenas os tipos em `metrics_list`.
 - Está atrasada. O `aws_cloudwatch` espera `delay` (10 minutos) para o CloudWatch publicar, então os pontos dele chegam com 11 a 17 minutos de atraso, e as métricas do Pub/Sub chegam com minutos de atraso.
 - O sistema não tem métricas nos gráficos: Azure Event Grid, NATS, brokers JMS que não sejam o ActiveMQ e BullMQ (veja as seções deles). As métricas deles estão no explorador **Métricas**.
+- Abra o cartão **Métricas do broker** da fila: ele lista quais métricas chegam e por que as outras não. Para uma fila do Service Bus ou do Event Hubs da qual nenhuma métrica chega, ele também diz o que o namespace envia no lugar, uma de três coisas.
+- **Nada do namespace**: nada o lê, ou toda leitura falha. Conecte a assinatura do Azure dele em **Nuvem → Conectar**, ou execute o receptor `azure_monitor`. Dê ao aplicativo da conexão ou à entidade de serviço do receptor a função **Monitoring Reader**, e veja a última leitura da conexão, ou procure `AuthorizationFailed` ou `401` no log do coletor: um segredo do cliente expirado interrompe toda leitura.
+- **Só totais**: as métricas do namespace chegam para o namespace como um todo, sem nenhuma fila ou tópico nelas. Uma configuração de diagnóstico só envia esses totais: conecte a assinatura do namespace, ou leia-o também com o receptor `azure_monitor`; qualquer um dos dois as divide por `EntityName`. Uma [assinatura do Azure conectada](/docs/telemetry/cloud-accounts) só enviou esses totais antes de ler cada fila, ou quando as leituras das filas falham: a última leitura dela em **Nuvem → Conectar** diz por quê.
+- **Só outras filas**: chegam métricas de outras filas e tópicos do namespace, mas não desta. O `maximum_number_of_records_per_resource` do receptor (10 a menos que você aumente) a deixou de fora: aumente-o acima do número de filas e tópicos do namespace. Uma assinatura conectada lê até 1.000 deles: acima disso, leia o namespace também com o receptor.
 
 ### Duas filas para um só destino
 

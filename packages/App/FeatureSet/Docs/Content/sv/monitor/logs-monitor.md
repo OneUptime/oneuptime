@@ -240,7 +240,7 @@ Värdet för varje Group By-attribut är en [mallvariabel](/docs/monitor/inciden
 ## Felsökning
 
 :::details Monitorn är offline, men min tjänst loggar
-Antalet var 0, så filtren matchar inga av de loggar som tjänsten skickar. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Matchande loggar** visar vad filtren väljer ut just nu, och diagrammet i **När det ska larmas** räknar dem i varje fönster. De vanligaste orsakerna är en allvarlighetsgrad som valts efter texten som loggaren skriver ut i stället för efter dess allvarlighetsnummer (se [Loggarnas allvarlighetsgrad](#loggarnas-allvarlighetsgrad)), ett tjänst- eller attributfilter som inte matchar och ett tidsfönster som är kortare än tiden mellan tjänstens loggar.
+Antalet var 0, så filtren matchar inga av de loggar som tjänsten skickar. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Redigera övervakningskriterier**: **Matchande loggar** visar vad filtren väljer ut just nu, och diagrammet i **När det ska larmas** räknar dem i varje fönster. De vanligaste orsakerna är en allvarlighetsgrad som valts efter texten som loggaren skriver ut i stället för efter dess allvarlighetsnummer (se [Loggarnas allvarlighetsgrad](#loggarnas-allvarlighetsgrad)), ett tjänst- eller attributfilter som inte matchar och ett tidsfönster som är kortare än tiden mellan tjänstens loggar.
 :::
 
 :::details Det var en ökning, men ingenting varnade

@@ -1315,7 +1315,7 @@ describe("ServiceLevelObjectiveService - seeded default rules keep today's behav
     severity._id = ALERT_SEVERITY_ID.toString();
     severity.id = ALERT_SEVERITY_ID;
 
-    jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(severity);
+    jest.spyOn(AlertSeverityService, "findBy").mockResolvedValue([severity]);
 
     createSpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
@@ -1361,7 +1361,8 @@ describe("ServiceLevelObjectiveService - seeded default rules keep today's behav
     const seeded: Array<ServiceLevelObjectiveBurnRateRule> =
       await seedDefaultRules();
 
-    expect(seeded).toHaveLength(2);
+    // Fast burn, Slow burn and Slow leak.
+    expect(seeded).toHaveLength(3);
 
     for (const rule of seeded) {
       const fields: Record<string, unknown> = rule as unknown as Record<

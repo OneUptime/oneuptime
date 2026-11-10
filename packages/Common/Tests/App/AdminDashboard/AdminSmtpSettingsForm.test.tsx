@@ -917,6 +917,11 @@ describe("Admin > Settings > Email > Host Settings", () => {
  * are the enum's, as before, and the card names the answer the way the
  * dialog does.
  */
+// One answer of the Email Server Type: a card in the card picker.
+function serverTypeCard(dialog: HTMLElement, value: string): HTMLElement {
+  return within(dialog).getByTestId(`card-select-option-${value}`);
+}
+
 describe("Admin > Settings > Email > Email Server Settings", () => {
   async function serverCard(locale: Locale = ENGLISH): Promise<HTMLElement> {
     const title: string = text(locale, "pages.settings.email.serverCardTitle");
@@ -1081,7 +1086,7 @@ describe("Admin > Settings > Email > Email Server Settings", () => {
     expect(within(card).queryByText("Sendgrid")).toBeNull();
   });
 
-  test("the dialog offers the two answers, each with its line, the stored one picked, and saves the one picked", async () => {
+  test("the dialog offers a card an answer, each with its line, the stored one picked, and saves the one picked", async () => {
     stored = { ...SMTP_INSTANCE, emailServerType: EmailServerType.Sendgrid };
 
     await renderPage();
@@ -1091,37 +1096,44 @@ describe("Admin > Settings > Email > Email Server Settings", () => {
     await waitFor(
       () => {
         expect(
-          within(dialog).getByRole("radio", { name: "SendGrid" }),
-        ).toBeChecked();
+          serverTypeCard(dialog, EmailServerType.Sendgrid),
+        ).toHaveAttribute("aria-checked", "true");
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
 
-    const answers: Array<string> = within(dialog)
+    const answers: Array<string | null> = within(dialog)
       .getAllByRole("radio")
-      .map((radio: HTMLElement): string => {
-        return (
-          dialog.querySelector(`label[for="${radio.id}"]`)?.textContent || ""
-        );
+      .map((card: HTMLElement): string | null => {
+        return card.getAttribute("data-card-select-value");
       });
 
     // Its own mail server first: the default.
-    expect(answers).toEqual(["Custom SMTP", "SendGrid"]);
-    expect(
-      within(dialog).getByText("Send through your own mail server."),
-    ).toBeVisible();
-    expect(
-      within(dialog).getByText("Send through your SendGrid account."),
-    ).toBeVisible();
+    expect(answers).toEqual([
+      EmailServerType.CustomSMTP,
+      EmailServerType.AmazonSES,
+      EmailServerType.Sendgrid,
+      EmailServerType.Mailgun,
+      EmailServerType.Postmark,
+      EmailServerType.Resend,
+    ]);
+    for (const line of [
+      "Send through your own mail server.",
+      "Send through your SendGrid account.",
+      "Send through Amazon Simple Email Service with an IAM access key.",
+      "Send through Mailgun's API with an API key and a sending domain.",
+      "Send through Postmark's API with a server API token.",
+      "Send through Resend's API with an API key.",
+    ]) {
+      expect(within(dialog).getByText(line)).toBeVisible();
+    }
     // No dropdown of the enum's names.
     expect(
       within(dialog).queryByRole("button", { name: "Pick Sendgrid" }),
     ).toBeNull();
 
     await act(async () => {
-      fireEvent.click(
-        within(dialog).getByRole("radio", { name: "Custom SMTP" }),
-      );
+      fireEvent.click(serverTypeCard(dialog, EmailServerType.CustomSMTP));
     });
     await act(async () => {
       fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
@@ -1158,14 +1170,15 @@ describe("Admin > Settings > Email > Email Server Settings", () => {
     await waitFor(
       () => {
         expect(
-          within(dialog).getByRole("radio", { name: "Custom SMTP" }),
-        ).toBeChecked();
+          serverTypeCard(dialog, EmailServerType.CustomSMTP),
+        ).toHaveAttribute("aria-checked", "true");
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
-    expect(
-      within(dialog).getByRole("radio", { name: "SendGrid" }),
-    ).not.toBeChecked();
+    expect(serverTypeCard(dialog, EmailServerType.Sendgrid)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
   });
 
   test("a record that holds no answer (null) reads Custom SMTP on the card too", async () => {
@@ -1197,5 +1210,288 @@ describe("Admin > Settings > Email > Email Server Settings", () => {
       { timeout: WAIT_FOR_TIMEOUT },
     );
     expect(text(GERMAN, "Custom SMTP")).toBe("Benutzerdefiniertes SMTP");
+  });
+});
+
+/*
+ * THE SERVER'S OWN PROVIDERS: an Email Server Type of Amazon SES, Mailgun,
+ * Postmark or Resend shows that provider's card in the Custom SMTP card's
+ * place - its status, what tells the account apart, and its sender - and
+ * the card's dialog asks the provider's own step, then Sender, from the
+ * builder a project's form is made from.
+ */
+describe("Admin > Settings > Email > a provider's own card", () => {
+  async function cardTitled(title: string): Promise<HTMLElement> {
+    let card: HTMLElement | undefined = undefined;
+
+    await waitFor(
+      () => {
+        card = screen
+          .getAllByTestId("card")
+          .find((candidate: HTMLElement): boolean => {
+            return within(candidate).queryByText(title) !== null;
+          });
+
+        expect(card).toBeDefined();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    return card!;
+  }
+
+  const SES_INSTANCE: Record<string, unknown> = {
+    ...SMTP_INSTANCE,
+    emailServerType: EmailServerType.AmazonSES,
+    amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+    amazonSesSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    amazonSesRegion: "eu-west-1",
+    amazonSesFromEmail: "alerts@example.com",
+    amazonSesFromName: "Example Alerts",
+  };
+
+  test("Amazon SES: its card in the Custom SMTP card's place, Enabled, with its Region and access key ID - never its secret", async () => {
+    stored = { ...SES_INSTANCE };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    await waitFor(
+      () => {
+        expect(within(card).getByText("Enabled")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(within(card).getByText("eu-west-1")).toBeVisible();
+    expect(within(card).getByText("AKIAIOSFODNN7EXAMPLE")).toBeVisible();
+    expect(within(card).getByText("alerts@example.com")).toBeVisible();
+    expect(card.textContent).not.toContain(
+      "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    );
+    expect(
+      within(card).getByText(
+        "Your Amazon SES access key and Region, and who the emails come from.",
+      ),
+    ).toBeVisible();
+
+    // The SMTP card and SendGrid's are not drawn.
+    expect(
+      screen.queryByText(text(ENGLISH, "pages.settings.email.smtpCardTitle")),
+    ).toBeNull();
+    expect(screen.queryByText("SendGrid Settings")).toBeNull();
+  });
+
+  test("Amazon SES: says what it still needs, the key first", async () => {
+    stored = {
+      ...SES_INSTANCE,
+      amazonSesSecretAccessKey: null,
+    };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByText("Not Enabled. Please add the access key."),
+        ).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+  });
+
+  test("Amazon SES: its dialog asks Amazon SES's step, then Sender, and saves what it holds", async () => {
+    stored = { ...SES_INSTANCE };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Edit Amazon SES" }),
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("modal")).toBeInTheDocument();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    const dialog: HTMLElement = screen.getByTestId("modal");
+
+    expect(within(dialog).getByTestId("modal-title")).toHaveTextContent(
+      /^Edit Amazon SES$/,
+    );
+
+    await waitForField(dialog, "AKIAIOSFODNN7EXAMPLE");
+    expect(stepTitles(dialog)).toEqual(["Amazon SES", "Sender"]);
+    expect(
+      (within(dialog).getByPlaceholderText("us-east-1") as HTMLInputElement)
+        .value,
+    ).toBe("eu-west-1");
+
+    await act(async () => {
+      fireEvent.change(within(dialog).getByPlaceholderText("us-east-1"), {
+        target: { value: "us-west-2" },
+      });
+    });
+
+    await save(dialog);
+
+    expect({
+      amazonSesAccessKeyId: savedValues()["amazonSesAccessKeyId"],
+      amazonSesRegion: savedValues()["amazonSesRegion"],
+      amazonSesFromName: savedValues()["amazonSesFromName"],
+    }).toEqual({
+      amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+      amazonSesRegion: "us-west-2",
+      amazonSesFromName: "Example Alerts",
+    });
+  });
+
+  test("Mailgun: its domain and region on the card", async () => {
+    stored = {
+      ...SMTP_INSTANCE,
+      emailServerType: EmailServerType.Mailgun,
+      mailgunApiKey: "key-0123",
+      mailgunDomain: "mg.example.com",
+      mailgunRegion: "EU",
+      mailgunFromEmail: "alerts@mg.example.com",
+    };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Mailgun Settings");
+
+    await waitFor(
+      () => {
+        expect(within(card).getByText("Enabled")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(within(card).getByText("mg.example.com")).toBeVisible();
+    expect(within(card).getByText("EU")).toBeVisible();
+  });
+
+  test.each([
+    [
+      EmailServerType.Postmark,
+      "Postmark Settings",
+      "Not Enabled. Please add the server API token.",
+    ],
+    [
+      EmailServerType.Resend,
+      "Resend Settings",
+      "Not Enabled. Please add the API key.",
+    ],
+  ])(
+    "%s: a card that says what it still needs",
+    async (serverType: EmailServerType, title: string, pill: string) => {
+      stored = { ...SMTP_INSTANCE, emailServerType: serverType };
+
+      await renderPage();
+
+      const card: HTMLElement = await cardTitled(title);
+
+      await waitFor(
+        () => {
+          expect(within(card).getByText(pill)).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+    },
+  );
+
+  test("Resend is Resend in every language, never the verb it is in the locales", async () => {
+    stored = {
+      ...SMTP_INSTANCE,
+      emailServerType: EmailServerType.Resend,
+      resendApiKey: "re_key",
+      resendFromEmail: "alerts@example.com",
+    };
+
+    await renderPage("de");
+
+    const serverCardTitle: string = text(
+      GERMAN,
+      "pages.settings.email.serverCardTitle",
+    );
+    const server: HTMLElement = await cardTitled(serverCardTitle);
+
+    await waitFor(
+      () => {
+        expect(within(server).getByText("Resend")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    const resendTitle: string = text(
+      GERMAN,
+      "pages.settings.email.resendCardTitle",
+    );
+
+    expect(resendTitle).toContain("Resend");
+    await cardTitled(resendTitle);
+  });
+
+  test("every card's words are in every language the Admin Dashboard speaks", () => {
+    for (const locale of [
+      "da",
+      "de",
+      "en",
+      "es",
+      "fa",
+      "fr",
+      "hi",
+      "it",
+      "ja",
+      "ko",
+      "nl",
+      "no",
+      "pt",
+      "ru",
+      "sv",
+      "zh-CN",
+      "zh-TW",
+    ]) {
+      const strings: Locale = readLocale(locale);
+
+      for (const [key, product] of [
+        ["amazonSesCardTitle", "Amazon SES"],
+        ["amazonSesEditButton", "Amazon SES"],
+        ["mailgunCardTitle", "Mailgun"],
+        ["mailgunEditButton", "Mailgun"],
+        ["postmarkCardTitle", "Postmark"],
+        ["postmarkEditButton", "Postmark"],
+        ["resendCardTitle", "Resend"],
+        ["resendEditButton", "Resend"],
+      ] as Array<[string, string]>) {
+        expect({
+          locale,
+          key,
+          names: text(strings, `pages.settings.email.${key}`).includes(product),
+        }).toEqual({ locale, key, names: true });
+      }
+
+      for (const key of [
+        "amazonSesCardDescription",
+        "mailgunCardDescription",
+        "postmarkCardDescription",
+        "resendCardDescription",
+        "pillNoAccessKey",
+        "pillNoRegion",
+        "pillNoDomain",
+        "pillNoServerToken",
+      ]) {
+        expect({
+          locale,
+          key,
+          translated: text(strings, `pages.settings.email.${key}`).length > 0,
+        }).toEqual({ locale, key, translated: true });
+      }
+    }
   });
 });

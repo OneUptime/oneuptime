@@ -70,12 +70,12 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 
 To ting udfylder formularen for dig undervejs:
 
-- **Tilknyttede ressourcer.** Når du vælger en monitor, tilføjes de værter, klynger, tjenester og andre ressourcer, den er knyttet til, under **Andre berørte ressourcer**, og en linje under feltet nævner dem. Fjern dem, du ikke vil have. Cloudressourcer tilføjes ikke: En vedligeholdelsesbegivenhed indeholder dem ikke.
+- **Tilknyttede ressourcer.** Når du vælger en monitor, tilføjes de værter, klynger, tjenester og andre ressourcer, den er knyttet til, under **Andre berørte ressourcer**, og en linje under feltet nævner dem. Fjern dem, du ikke vil have. Cloudressourcer tilføjes også: Mens begivenheden er i gang, åbner deres monitorer ingen hændelse eller advarsel.
 - **Foreslåede statussider.** Under **Vis begivenhed på disse statussider** foreslås de sider, der viser dine monitorer: klik på en sides navn for at tilføje den, eller på **Tilføj alle**. Intet vælges for dig. Se [Planlagte vedligeholdelsesbegivenheder](/docs/status-pages/subscribers#planlagte-vedligeholdelsesbegivenheder).
 
 ## Start fra en ressource eller en skabelon
 
-På fanen **Planlagt vedligeholdelse** for en vært, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, en OpenStack-cloud, et storage array, en IoT-flåde, en database, en tjeneste eller en netværkslokation åbner **Opret planlagt vedligeholdelseshændelse** den samme formular med den ressource allerede valgt under **Andre berørte ressourcer**, og fanen viser de begivenheder, der påvirker den. Fanen for et lagerelement vælger den vært, tjeneste eller Kubernetes-klynge, elementet peger på.
+På fanen **Planlagt vedligeholdelse** for en vært, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, en OpenStack-cloud, et storage array, en IoT-flåde, en database, en cloudressource, en tjeneste eller en netværkslokation åbner **Opret planlagt vedligeholdelseshændelse** den samme formular med den ressource allerede valgt under **Andre berørte ressourcer**, og fanen viser de begivenheder, der påvirker den. Fanen for et lagerelement vælger den vært, tjeneste eller Kubernetes-klynge, elementet peger på.
 
 **Opret fra skabelon**, ved siden af knappen til at oprette, beder dig om at **Vælg skabelon for planlagt vedligeholdelse** og åbner derefter formularen udfyldt fra skabelonen. Se [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates).
 
@@ -113,20 +113,20 @@ Alt fra formularen kan ændres på begivenhedens egne sider, undtagen de tre abo
 
 | For at ændre                                | Gå til                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titlen, vinduet eller etiketterne           | **Rediger** på kortet **Maintenance Details** i dens **Oversigt**, trinnet **Begivenhed** |
+| Titlen, vinduet eller etiketterne           | **Rediger** på kortet **Detaljer om vedligeholdelse** i dens **Oversigt**, trinnet **Begivenhed** |
 | Statussiderne, hvornår den offentliggøres, eller påmindelserne | Samme **Rediger**, trinnet **Statussider**                   |
 | Monitorerne, deres status eller andre ressourcer | **Rediger** på kortet **Berørte ressourcer**                              |
 | Beskrivelsen                                | **Beskrivelse** i dens sidemenu                                                |
 | Ejerne                                      | **Ejere** i dens sidemenu                                                      |
 
-**Skift overvågningsstatus til** kan ændres, indtil begivenheden starter. Derefter viser kortet den skrivebeskyttet, fordi monitorerne allerede er i den status. En redigering tilføjer en post i **Planlagt Vedligeholdelse Feed**, der nævner, hvad den ændrede; at gemme uden ændringer tilføjer ingen.
+**Skift overvågningsstatus til** kan ændres, indtil begivenheden starter. Derefter viser kortet den skrivebeskyttet, fordi monitorerne allerede er i den status. En redigering tilføjer en post i **Feed for planlagt vedligeholdelse**, der nævner, hvad den ændrede; at gemme uden ændringer tilføjer ingen.
 
 ## Post noter, mens arbejdet skrider frem
 
-- **Offentlige noter** er opdateringer til dine kunder: de vises på begivenhedens statussider, og hver af dem kan give deres abonnenter besked med **Notify status page subscribers**.
+- **Offentlige noter** er opdateringer til dine kunder: de vises på begivenhedens statussider, og hver af dem kan give deres abonnenter besked med **Giv abonnenter på statussiden besked**.
 - **Private noter** er kun for dit team.
 
-Skriv en på begivenhedens side **Offentlige noter** eller **Private noter**, eller fra menuen **Handlinger** i **Planlagt Vedligeholdelse Feed** med **Add Public Note** eller **Tilføj privat note**. Den samme menu kører en runbook med **Execute Runbook**. En noteskabelon udfylder tekst, dit team ofte skriver: se [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings#noteskabeloner).
+Skriv en på begivenhedens side **Offentlige noter** eller **Private noter**, eller fra menuen **Handlinger** i **Feed for planlagt vedligeholdelse** med **Tilføj offentlig note** eller **Tilføj privat note**. Den samme menu kører en runbook med **Kør runbook**. En noteskabelon udfylder tekst, dit team ofte skriver: se [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings#noteskabeloner).
 
 ## Opret begivenheder fra kode
 

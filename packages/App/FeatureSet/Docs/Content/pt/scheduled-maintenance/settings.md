@@ -20,7 +20,7 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. As seç
 | **Regras de Rótulos** | Adiciona rótulos aos eventos que correspondem.                   |
 | **Regras de lembrete** | Lembra os proprietários em intervalos até um evento ser concluído.  |
 
-A seção **Configurações** reúne **Estado do evento**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de eventos**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Campos personalizados**, **Medições**, **Configurações do calendário** e **Numeração**. **Configurações do calendário** é tratado em [Calendário de manutenção](/docs/scheduled-maintenance/calendar#calendários-externos), e o resto abaixo.
+A seção **Configurações** reúne **Estado do evento**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de eventos**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Aprovação de notas públicas**, **Campos personalizados**, **Medições**, **Configurações do calendário** e **Numeração**. **Configurações do calendário** é tratado em [Calendário de manutenção](/docs/scheduled-maintenance/calendar#calendários-externos), e o resto abaixo.
 
 A seção **Espaço de trabalho** reúne as regras do Slack e do Microsoft Teams que publicam eventos em canais. Veja [Slack](/docs/workspace-connections/slack#regras-de-notificação) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams#regras-de-notificação).
 
@@ -92,7 +92,11 @@ Esses lembretes são para a sua equipe. Os lembretes que os assinantes das suas 
 
 ### Modelos de notas
 
-**Manutenção programada → Configurações → Modelos de notas** guarda textos prontos para atualizações de manutenção. O cartão **Modelos de nota pública ou privada para eventos de manutenção programada** os lista; **Criar: Agendado Manutenção Nota Modelo** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota pública ou privada em um evento e quando muda o estado dele, e o texto pode ser editado antes de ser publicado. Ao contrário dos modelos de nota de incidentes, os modelos de nota de manutenção não preenchem variáveis.
+**Manutenção programada → Configurações → Modelos de notas** guarda textos prontos para atualizações de manutenção. O cartão **Modelos de nota pública ou privada para eventos de manutenção programada** os lista; **Criar: Modelo de nota de manutenção programada** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota pública ou privada em um evento e quando muda o estado dele, e o texto pode ser editado antes de ser publicado. Ao contrário dos modelos de nota de incidentes, os modelos de nota de manutenção não preenchem variáveis.
+
+### Aprovação de notas públicas
+
+**Manutenção programada → Configurações → Aprovação de notas públicas** faz com que as notas públicas de eventos de manutenção programada sejam aprovadas antes de serem publicadas. Ela funciona como a página dos incidentes, com interruptor e etapas próprios: ative **Exigir aprovação antes de publicar notas públicas** e escolha quem aprova em **Quem aprova**. Assim, as notas de manutenção podem precisar de aprovação enquanto as de incidentes não, ou ser aprovadas por outras pessoas. Só **Proprietário do projeto** e **Administrador do projeto** podem mudá-la. Veja [Aprovação de notas públicas](/docs/incidents/settings#aprovação-de-notas-públicas) para as etapas, e [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas) para o que uma nota faz enquanto aguarda.
 
 ### Campos personalizados
 

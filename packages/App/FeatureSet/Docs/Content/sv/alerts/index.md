@@ -97,7 +97,7 @@ I samma ögonblick som ett larm skapas går OneUptime igenom de här stegen, i d
 
 1. **Det får ett nummer och ett tillstånd.** Larmnumret kommer från en räknare per projekt och visas med ditt prefix (`ALT-42`). Larmet börjar i ditt skapandetillstånd, om inte formuläret, API:et, ett arbetsflöde eller Fråga AI valde ett annat.
 2. **Sekretessregler körs först**, så att allt efter dem vet om larmet är privat.
-3. **Flödet och dina chattverktyg får veta.** En post **Larm skapat** skrivs i **Larm Flöde**, och kanalerna som dina Slack- och Microsoft Teams-regler anger meddelas; en regel kan skapa en kanal för larmet.
+3. **Flödet och dina chattverktyg får veta.** En post **Larm skapat** skrivs i **Larmflöde**, och kanalerna som dina Slack- och Microsoft Teams-regler anger meddelas; en regel kan skapa en kanal för larmet.
 4. **Ägare och etiketter läggs till**: de som monitorns kriterier eller begäran anger, sedan de från matchande ägar- och etikettregler.
 5. **Jourregler lägger till sina policyer**, sedan startar runbook-regler de runbooks som matchar.
 6. **Jourpolicyer körs.** Varje policy på larmet larmar sina personer parallellt; att en misslyckas stoppar inte de andra. Sedan deklarerar den första matchande incidentregeln en incident från larmet, direkt eller när dess väntetid är slut.
@@ -126,7 +126,7 @@ Dess regler, ägare, flöde och första tillstånd sker ändå i båda fallen. I
 
 Ett byte till ett annat tillstånd ber dig bekräfta, med en valfri privat anteckning hopfälld under **Lägg till en privat anteckning**. Vad varje tillstånd gör står på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities).
 
-Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckningar**, fyller i sidorna **Rotorsak** och **Åtgärd** och lägger till **Ägare**. Menyn **Åtgärder** i **Larm Flöde** kör också en runbook med **Execute Runbook**, eller larmar fler personer med **Kör jourpolicy**.
+Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckningar**, fyller i sidorna **Rotorsak** och **Åtgärd** och lägger till **Ägare**. Menyn **Åtgärder** i **Larmflöde** kör också en runbook med **Kör runbook**, eller larmar fler personer med **Kör jourpolicy**.
 
 ## Vad varje sida av ett larm visar
 
@@ -142,8 +142,9 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 
 **Översikt**, **Utredning**, **Team** och **Anteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
 
-- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står först i rubriken. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **OneUptime AI** med **Fråga OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
+- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står först i rubriken. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **OneUptime AI** med **Fråga OneUptime AI** längst ner, och **Larmflöde** registrerar allt som hände med larmet. När en monitor har skapat larmet nämner **Utvärderingsdetaljer** under rotorsaken filtren som matchade och vad vart och ett hittade, och **Visa detaljer** lägger till ett utdrag ur svaret och själva kontrollen. Se [Vad en incident eller ett larm behåller av kontrollen](/docs/monitor/criteria-and-statuses#vad-en-incident-eller-ett-larm-behåller-av-kontrollen). När en måttmonitor har skapat larmet visar dess telemetrikort de mätvärden som monitorn bevakade kring larmets start, med värdet som monitorn jämförde dem med ritat som en linje och larmets egna ögonblick markerade: välj ett annat tidsintervall, dra över ett diagram för att zooma in, eller byt och lägg till mätvärden direkt där, och dess andra flikar följer samma intervall. När en monitor av loggar, spår eller undantag har skapat det listar kortet det monitorns fråga hittade i fönstret den utvärderade: välj ett annat intervall kring larmet, eller ett eget, och alla flikar följer; dra över volymdiagrammet för att zooma in, och **Återställ** går tillbaka till det monitorn såg. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
 - **Tillståndstidslinje** — varje tillstånd larmet har varit i, när och hur länge. Se [Tillståndstidslinjen](/docs/alerts/states-and-severities#tillståndstidslinjen).
+- **Beskrivning**, **Rotorsak**, **Åtgärd** — tre Markdown-sidor. Sidan Rotorsak visar också mätvärdena bakom larmet, som översiktens telemetrikort gör, så att du kan läsa dem över vilket intervall som helst kring larmet medan du skriver ner varför det löstes ut. När larmet inte har sparat någon ögonblicksbild av en måttkontroll (ett som skapats för hand på en måttmonitor, till exempel), visar sidan den monitorns mätvärden så som monitorn läser dem nu, och säger det.
 - **Länkade incidenter** — incidenterna som larmet är en del av, med **Länka incident** och **Deklarera incident**.
 - **Inställningar** — **Vem kan se det här larmet** med reglaget **Privat larm**, och **Påminnelser** med **Skicka påminnelser**. Varje reglage sparar i samma ögonblick som du slår om det.
 

@@ -1,6 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import InsightFixTask from "../../../Components/AIInsights/InsightFixTask";
+import useInsightFixTasks, {
+  InsightFixTasks,
+} from "../../../Components/AIInsights/UseInsightFixTasks";
+import { INSIGHT_FIX_TASK_DESCRIPTION } from "../../../Components/Code/CodeTaskStatusCopy";
+import { CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
 import {
   getHumanVerdictElement,
   getInsightTypeElement,
@@ -27,6 +31,9 @@ import { doesInsightOfferTelemetryAiFix } from "../../../Components/TelemetryAi/
 import SpanMetricsStepPanel from "../../../Components/TelemetryAi/SpanMetricsStepPanel";
 import { doesInsightOfferSpanMetricsStep } from "../../../Components/TelemetryAi/SpanMetricsStepCopy";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
+import { toActivityFeedRun } from "../../../Components/AIChat/ActivityFeedRun";
+import AiRunFailureNotice from "../../../Components/AI/AiRunFailureNotice";
+import { formatAiRunTime } from "../../../Components/AI/AiRunFailureWords";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
   AIInsightExplorerLink,
@@ -98,6 +105,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -110,8 +118,11 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 
 const POLL_INTERVAL_MS: number = 5000;
-// The server caps the triage event trail at 500 — show all of it.
-const MAX_VISIBLE_STEPS: number = 500;
+/*
+ * The latest steps of a triage show; the rest fold under "Show earlier
+ * steps" (issue #6437). The server sends the newest 500 events.
+ */
+const MAX_VISIBLE_STEPS: number = 8;
 
 type InsightAction = "confirm" | "dismiss" | "resolve" | "reopen";
 
@@ -168,6 +179,13 @@ const AIInsightViewPage: FunctionComponent<
 
   const [triageRun, setTriageRun] = useState<AIRun | null>(null);
   const [triageEvents, setTriageEvents] = useState<Array<AIRunEvent>>([]);
+  /*
+   * Whether this reader may start a triage that did not finish again: the
+   * server says (issue #6438).
+   */
+  const [mayTryAgainTriage, setMayTryAgainTriage] = useState<boolean>(false);
+  // The triage's Activity heading, which names its list of steps.
+  const triageActivityHeadingId: string = useId();
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const triageSignatureRef: React.MutableRefObject<string> = useRef<string>("");
 
@@ -250,12 +268,13 @@ const AIInsightViewPage: FunctionComponent<
           return;
         }
 
-        // Skip re-render when nothing changed (status + event count).
+        // Skip re-render when nothing changed (run, status + event count).
         const runStatus: string =
           (runJson["status"] as string | undefined) || "none";
-        const signature: string = `${runStatus}:${eventsJson.length}`;
+        const signature: string = `${String(runJson["_id"] || "")}:${runStatus}:${eventsJson.length}:${String(data["mayTryAgain"] === true)}`;
         if (signature !== triageSignatureRef.current) {
           triageSignatureRef.current = signature;
+          setMayTryAgainTriage(data["mayTryAgain"] === true);
           setTriageRun(AIRun.fromJSONObject(runJson, AIRun));
           setTriageEvents(
             AIRunEvent.fromJSONArray(
@@ -302,6 +321,15 @@ const AIInsightViewPage: FunctionComponent<
 
   // The fix task's pull request verdict, read once per fix task.
   const fixAiRunId: string | undefined = insight?.fixAiRunId?.toString();
+
+  /*
+   * The fix task itself: where it stands, read again while it moves - what
+   * the Fix Task card shows and the status says.
+   */
+  const fixTasks: InsightFixTasks = useInsightFixTasks([fixAiRunId]);
+  const fixTask: CodeTaskSummaryJSON | undefined = fixAiRunId
+    ? fixTasks.tasks.get(fixAiRunId.toLowerCase())
+    : undefined;
 
   useEffect(() => {
     setFixProduction(null);
@@ -654,18 +682,53 @@ const AIInsightViewPage: FunctionComponent<
     : createMonitorGate.disabledReason || null;
 
   /*
+   * Try again (issue #6438): triage the insight again after its triage did
+   * not finish. The server starts a new triage run, which this card reads
+   * from then on; a refusal is thrown for the button to show.
+   */
+  const tryAgainTriage: () => Promise<void> = async (): Promise<void> => {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post<JSONObject>({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          "/ai-insight/triage-try-again",
+        ),
+        data: { insightId: modelId.toString() },
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    triageSignatureRef.current = "";
+    await fetchTriage();
+  };
+
+  /*
+   * A triage that waits before its next attempt - its AI provider failed
+   * the last one - says when it tries again.
+   */
+  const triageRetryAt: Date | null =
+    triageRun?.status === AIRunStatus.Queued &&
+    triageRun.retryAt &&
+    OneUptimeDate.isInTheFuture(triageRun.retryAt)
+      ? triageRun.retryAt
+      : null;
+
+  /*
    * The triage strip: a tinted panel rather than a bare colored line, so a
    * run that is still working, one that finished and one that died are
    * distinguishable at a glance and not just by reading the sentence.
    */
   interface TriageStatusMeta {
+    // In the reader's language.
     text: string;
     className: string;
     icon: IconProp;
   }
 
   let triageStatusMeta: TriageStatusMeta = {
-    text: "Triage did not finish",
+    text: translator.translateText("Triage did not finish") as string,
     className: "border-red-100 bg-red-50 text-red-700",
     icon: IconProp.Alert,
   };
@@ -673,26 +736,44 @@ const AIInsightViewPage: FunctionComponent<
 
   if (triageRun?.status === AIRunStatus.Running) {
     triageStatusMeta = {
-      text: "Triaging…",
+      text: translator.translateText("Triaging…") as string,
       className: "border-indigo-100 bg-indigo-50 text-indigo-700",
       icon: IconProp.Sparkles,
     };
     isTriageFailed = false;
+  } else if (triageRetryAt) {
+    triageStatusMeta = {
+      text: translator.translateTemplate("Trying again at {{time}}", {
+        time: formatAiRunTime(triageRetryAt),
+      }),
+      className: "border-amber-100 bg-amber-50 text-amber-800",
+      icon: IconProp.ArrowPath,
+    };
+    isTriageFailed = false;
   } else if (triageRun?.status === AIRunStatus.Queued) {
     triageStatusMeta = {
-      text: "Queued — waiting for a worker…",
+      text: translator.translateText(
+        "Queued — waiting for a worker…",
+      ) as string,
       className: "border-indigo-100 bg-indigo-50 text-indigo-700",
       icon: IconProp.Sparkles,
     };
     isTriageFailed = false;
   } else if (triageRun?.status === AIRunStatus.Completed) {
     triageStatusMeta = {
-      text: "Triage complete",
+      text: translator.translateText("Triage complete") as string,
       className: "border-green-100 bg-green-50 text-green-700",
       icon: IconProp.Check,
     };
     isTriageFailed = false;
   }
+
+  /*
+   * The strip's pulse: a triage at work, or about to be picked up. One that
+   * waits for its next attempt is not working - its strip says when it
+   * tries again, and nothing on it moves until then.
+   */
+  const isTriageWorking: boolean = isTriageActive && !triageRetryAt;
 
   const facts: Array<InsightFact> = [];
 
@@ -852,7 +933,7 @@ const AIInsightViewPage: FunctionComponent<
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {getInsightTypeElement(insight.insightType)}
                   {getSeverityElement(insight.severity)}
-                  {getStatusElement(status || undefined)}
+                  {getStatusElement(status || undefined, fixTask)}
                   {getHumanVerdictElement(humanVerdict)}
                 </div>
               </div>
@@ -882,8 +963,14 @@ const AIInsightViewPage: FunctionComponent<
                   buttonStyle={ButtonStyleType.PRIMARY}
                   buttonSize={ButtonSize.Small}
                   tooltip={[
-                    "Opens the telemetry slice this insight was detected on.",
-                    formatDroppedScopeHint(investigationLink.dropped),
+                    translator.translateText(
+                      "Opens the telemetry slice this insight was detected on.",
+                    ) ||
+                      "Opens the telemetry slice this insight was detected on.",
+                    formatDroppedScopeHint(
+                      investigationLink.dropped,
+                      translator,
+                    ),
                   ]
                     .filter((sentence: string) => {
                       return sentence.length > 0;
@@ -1060,7 +1147,7 @@ const AIInsightViewPage: FunctionComponent<
               icon={IconProp.Sparkles}
               description="OneUptime AI looked into this without changing anything: the likely cause, what it affects and what to do first, with the evidence for each."
             >
-              <div className="space-y-3">
+              <div className="space-y-5">
                 {insight.triageSummaryMarkdown ? (
                   /*
                    * safeMode is mandatory here too: this summary is LLM output
@@ -1075,41 +1162,72 @@ const AIInsightViewPage: FunctionComponent<
                     text={insight.triageSummaryMarkdown}
                     safeMode={true}
                   />
+                ) : isTriageFailed && triageRun ? (
+                  /*
+                   * What stopped it, in words to act on, how many times it
+                   * was tried, and Try again (issues #6437, #6438).
+                   */
+                  <AiRunFailureNotice
+                    title="Triage did not finish"
+                    events={triageEvents}
+                    errorMessage={triageRun.errorMessage}
+                    onTryAgain={mayTryAgainTriage ? tryAgainTriage : undefined}
+                    testId="ai-triage-failure"
+                  />
                 ) : (
-                  <div>
-                    <div
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${triageStatusMeta.className}`}
-                    >
-                      <span className="flex-shrink-0">
-                        <Icon
-                          icon={triageStatusMeta.icon}
-                          className="h-4 w-4"
-                        />
-                      </span>
-                      <span>{triageStatusMeta.text}</span>
-                      {isTriageActive ? (
-                        <span className="ml-auto inline-block h-2 w-2 animate-ping rounded-full bg-indigo-500" />
-                      ) : (
-                        <></>
-                      )}
-                    </div>
-                    {isTriageFailed && triageRun?.errorMessage ? (
-                      <p className="mt-2 text-xs text-red-700">
-                        {triageRun.errorMessage}
-                      </p>
+                  <div
+                    data-testid="ai-triage-status"
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${triageStatusMeta.className}`}
+                  >
+                    <span className="flex-shrink-0">
+                      <Icon icon={triageStatusMeta.icon} className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 break-words">
+                      {triageStatusMeta.text}
+                    </span>
+                    {isTriageWorking ? (
+                      <span
+                        aria-hidden="true"
+                        data-testid="ai-triage-status-pulse"
+                        className="ms-auto inline-block h-2 w-2 flex-shrink-0 rounded-full bg-indigo-500 motion-safe:animate-ping"
+                      />
                     ) : (
                       <></>
                     )}
                   </div>
                 )}
 
+                {/*
+                  The steps under a heading of their own, as the
+                  investigation card shows them: the strip or the notice
+                  above already says where the triage stands, so the list
+                  is not drawn as a second message (a chat bubble that said
+                  "Triaging…" again under the strip that said it).
+                */}
                 {!insight.triageSummaryMarkdown && triageEvents.length > 0 ? (
-                  <ChatActivityFeed
-                    events={triageEvents}
-                    title={isTriageActive ? "Triaging…" : "Activity"}
-                    showLiveIndicator={isTriageActive}
-                    maxVisibleSteps={MAX_VISIBLE_STEPS}
-                  />
+                  <section
+                    aria-labelledby={triageActivityHeadingId}
+                    data-testid="ai-triage-activity"
+                  >
+                    <h3
+                      id={triageActivityHeadingId}
+                      className="text-sm font-medium text-gray-900"
+                    >
+                      {translator.translateText("Activity")}
+                    </h3>
+                    <div className="mt-3">
+                      <ChatActivityFeed
+                        events={triageEvents}
+                        hideChrome={true}
+                        showLiveIndicator={false}
+                        maxVisibleSteps={MAX_VISIBLE_STEPS}
+                        run={
+                          triageRun ? toActivityFeedRun(triageRun) : undefined
+                        }
+                        showStepTimes={true}
+                      />
+                    </div>
+                  </section>
                 ) : (
                   <></>
                 )}
@@ -1191,34 +1309,24 @@ const AIInsightViewPage: FunctionComponent<
             <></>
           )}
 
-          <InsightPanel title="Details" icon={IconProp.List}>
-            <InsightFactsList facts={facts} />
-          </InsightPanel>
-
+          {/*
+           * The fix task first: it moves, and may want the reader (Try
+           * again, Retry now, its pull request) - the facts under it do not.
+           */}
           {insight.fixAiRunId ? (
             <InsightPanel
               title="Fix Task"
               icon={IconProp.Code}
-              description="OneUptime AI queued an agent task for this insight. Fix pull requests open ready for review and are always human-reviewed — nothing merges automatically."
+              description={INSIGHT_FIX_TASK_DESCRIPTION}
             >
-              {/*
-               * A real anchor (not a Button) so cmd/ctrl-click, middle-click
-               * and "open in new tab" work — Link always sets href.
-               */}
-              <Link
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.CODE_TASK_VIEW] as Route,
-                  { modelId: insight.fixAiRunId },
-                )}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                <span>
-                  {translator.translateText(
-                    "View the fix task and pull request",
-                  )}
-                </span>
-                <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
-              </Link>
+              <InsightFixTask
+                taskId={insight.fixAiRunId.toString()}
+                task={fixTask}
+                isLoaded={fixTasks.isLoaded}
+                onChanged={() => {
+                  void fixTasks.reload();
+                }}
+              />
               {fixProduction ? (
                 <FixProductionVerdict
                   production={fixProduction}
@@ -1232,6 +1340,10 @@ const AIInsightViewPage: FunctionComponent<
           ) : (
             <></>
           )}
+
+          <InsightPanel title="Details" icon={IconProp.List}>
+            <InsightFactsList facts={facts} />
+          </InsightPanel>
         </div>
       </div>
     </div>

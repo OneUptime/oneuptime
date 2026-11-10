@@ -20,7 +20,7 @@ Konfigurasjonen av vedlikehold ligger i **Planlagt vedlikehold**, ikke i **Prosj
 | **Etikettregler**  | Legger til etiketter på matchende hendelser.                        |
 | **Påminnelsesregler** | Påminner eierne med et intervall til en hendelse er fullført.       |
 
-Seksjonen **Innstillinger** rommer **Hendelsesstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Hendelsesmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger** og **Nummerering**. **Kalenderinnstillinger** er beskrevet på [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
+Seksjonen **Innstillinger** rommer **Hendelsesstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Hendelsesmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Godkjenning av offentlige notater**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger** og **Nummerering**. **Kalenderinnstillinger** er beskrevet på [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
 Seksjonen **Arbeidsområde** rommer Slack- og Microsoft Teams-reglene som poster hendelser i kanaler. Se [Slack](/docs/workspace-connections/slack#varslingsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#varslingsregler).
 
@@ -92,7 +92,11 @@ Disse påminnelsene er for teamet ditt. Påminnelsene statussideabonnentene dine
 
 ### Notatmaler
 
-**Planlagt vedlikehold → Innstillinger → Notatmaler** rommer ferdigskrevet tekst for oppdateringer om vedlikehold. Kortet **Maler for offentlige eller private notater for planlagte vedlikeholdshendelser** viser dem; **Opprett Planlagt Vedlikehold Notat Mal** ber om et **Malnavn**, en **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et offentlig eller privat notat på en hendelse, og når de endrer tilstanden, og teksten kan redigeres før den publiseres. I motsetning til notatmalene for uplanlagte hendelser fyller notatmaler for vedlikehold ikke ut noen variabler.
+**Planlagt vedlikehold → Innstillinger → Notatmaler** rommer ferdigskrevet tekst for oppdateringer om vedlikehold. Kortet **Maler for offentlige eller private notater for planlagte vedlikeholdshendelser** viser dem; **Opprett Notatmal for planlagt vedlikehold** ber om et **Malnavn**, en **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et offentlig eller privat notat på en hendelse, og når de endrer tilstanden, og teksten kan redigeres før den publiseres. I motsetning til notatmalene for uplanlagte hendelser fyller notatmaler for vedlikehold ikke ut noen variabler.
+
+### Godkjenning av offentlige notater
+
+**Planlagt vedlikehold → Innstillinger → Godkjenning av offentlige notater** får de offentlige notatene på planlagte vedlikeholdshendelser godkjent før de publiseres. Siden fungerer som hendelsenes, med egen bryter og egne trinn: slå på **Krev godkjenning før offentlige notater publiseres**, og velg under **Hvem godkjenner** hvem som godkjenner. Dermed kan vedlikeholdsnotater kreve godkjenning mens hendelsesnotater ikke gjør det, eller godkjennes av andre personer. Bare **Prosjekteier** og **Prosjektadministrator** kan endre den. Se [Godkjenning av offentlige notater](/docs/incidents/settings#godkjenning-av-offentlige-notater) for trinnene, og [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater) for hva et notat gjør mens det venter.
 
 ### Egendefinerte felt
 

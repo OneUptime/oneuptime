@@ -438,11 +438,16 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                 </span>
               );
 
+              /*
+               * A row with no page of its own opens the resource it belongs
+               * to: a queue's owner opens the queue.
+               */
               const link: ResourceLink | null = getResourceLink({
                 meta,
                 action: item.action,
                 resourceId: item.resourceId,
                 rootResourceId: item.rootResourceId,
+                rootMeta: getResourceMeta(item.rootResourceType),
               });
 
               let linkedNameEl: ReactElement = nameEl;

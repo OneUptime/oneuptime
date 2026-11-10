@@ -15,14 +15,14 @@ Código es donde le pides a OneUptime AI que trabaje en tus repositorios, como s
 :::
 
 > [!TIP]
-> También puedes iniciarlo desde GitHub. Menciona la GitHub App de OneUptime en un issue o en un pull request y implementa, revisa o reseña allí mismo: consulta [GitHub App](/docs/ai/github-app). Es el mismo agente, el mismo Runner y los mismos presupuestos; solo cambia el disparador.
+> También puedes iniciarlo desde GitHub. Menciona la GitHub App de OneUptime en un issue o en un pull request y implementa, revisa o reseña allí mismo: consulta [GitHub App](/docs/ai/github-app). Es el mismo agente, el mismo Runner y los mismos límites; solo cambia el disparador.
 
 ## Pedirle a la IA en un repositorio
 
 :::steps
 ### Abre Código
 
-Abre **Productos → Código**. Se abre en **¿Qué debe hacer la IA?**: el cuadro donde pides, con todas las tareas debajo, las más recientes primero. Si todavía no hay ningún repositorio, ofrece en su lugar **Conectar GitHub**, con GitLab, Forgejo o Gitea y cualquier servidor Git debajo (consulta [Conectar un repositorio](#conectar-un-repositorio)). **Repositorios**, en su menú lateral, muestra los repositorios en los que la IA puede trabajar, y agrupa bajo **No conectado** los que OneUptime ya no alcanza. La página de cada repositorio tiene el mismo cuadro para ese repositorio.
+Abre **Productos → Código**. Se abre en **¿Qué debe hacer la IA?**: el cuadro donde pides, con todas las tareas debajo, las más recientes primero; fíltralas según cómo van, cada filtro con su número, o búscalas por título o número. Si todavía no hay ningún repositorio, ofrece en su lugar **Conectar GitHub**, con GitLab, Forgejo o Gitea y cualquier servidor Git debajo (consulta [Conectar un repositorio](#conectar-un-repositorio)). **Repositorios**, en su menú lateral, muestra los repositorios en los que la IA puede trabajar, y agrupa bajo **No conectado** los que OneUptime ya no alcanza. La página de cada repositorio tiene el mismo cuadro para ese repositorio, y allí puedes marcar las peticiones que fallaron o se detuvieron y volver a intentarlas todas con **Reintentar seleccionadas**.
 
 ### Elige el repositorio y la rama
 
@@ -57,15 +57,16 @@ Una petición lleva como máximo 10 elementos de contexto. Los tokens, claves, c
 
 ## La conversación de una tarea
 
-La página de una tarea es una conversación: lo que se pidió y el contexto añadido, y luego el turno de la IA: los pasos que da a medida que los da (los archivos que leyó y editó, lo que buscó, los comandos que ejecutó), su respuesta, los archivos que cambió con su diff, y el pull request. La parte de arriba de la página dice dónde trabaja la tarea (su repositorio y la rama de la que partió), cuántas líneas cambió, con un botón a su pull request, y cómo va la tarea:
+La página de una tarea es una conversación: lo que se pidió y el contexto añadido, y luego el turno de la IA: los pasos que da a medida que los da (los archivos que leyó y editó, lo que buscó, los comandos que ejecutó), su respuesta, los archivos que cambió con su diff, y el pull request. La parte de arriba de la página dice dónde trabaja la tarea (su repositorio y la rama de la que partió), cuántos archivos y líneas cambió, cuánto tiempo ha trabajado la IA en ella, con un botón a su pull request, y cómo va la tarea:
 
 | Estado | Qué significa |
 | --- | --- |
 | **En cola** | Espera a que un Runner la tome. |
+| **Reintentando** | Un turno que la IA vuelve a intentar por sí sola dice qué intento viene ahora y cuándo; **Reintentar ahora** lo inicia al momento. |
 | **Trabajando…** | La IA está en ello. **Detener** la detiene; lo que subió se queda en la rama. |
 | **Esperándote** | La IA hizo una pregunta. Respóndela en el cuadro de abajo. |
 | **Hecho** | La IA terminó: su respuesta, y el pull request si cambió código. |
-| **Fallido** | El turno no pudo terminar, y dice por qué. **Volver a intentar** pide lo mismo otra vez. |
+| **Fallido** | El turno no pudo terminar, y dice por qué, y tras cuántos intentos cuando la IA lo volvió a intentar por sí sola. **Volver a intentar** pide lo mismo otra vez. |
 | **Detenido** | Alguien la detuvo. **Volver a intentar** pide lo mismo otra vez. |
 
 Para seguir, escribe en el cuadro de abajo, que sigue a la vista mientras la conversación se desplaza: responde a la IA, añade contexto o pide cambios. Cada respuesta es el siguiente turno de la misma tarea: trabaja en la misma rama y sube al mismo pull request mientras siga abierto. Una tarea hace un turno cada vez, así que el cuadro espera mientras la IA trabaja. El **Registro** de cada turno es la constancia literal de lo que hizo. En una tarea con más de un turno, un selector en la parte superior de la página **Registro** pasa de un turno a otro.
@@ -97,7 +98,7 @@ flowchart TB
 
 La página desde la que se inició la tarea muestra su estado en directo. Cada tarea aparece en su repositorio, en **Productos → Código**: su página es su conversación, y el **Registro** de cada turno tiene una línea por cada archivo que el Runner leyó o escribió y por cada comando que ejecutó.
 
-Cada ejecución está sujeta a presupuestos que impone el servidor: como máximo **40 llamadas al LLM** y **100.000 tokens de salida**. Las consultas de telemetría de producción de una ejecución se descuentan de esas mismas 40 llamadas. Una ejecución que llega a uno de ellos termina con un resumen del trabajo hecho hasta entonces en lugar de entrar en bucle. Las ejecuciones de corrección también cuentan para los límites diarios de IA del proyecto, cuando el proyecto los fija.
+Una ejecución hace tantas llamadas al LLM y consultas de telemetría de producción como necesite su trabajo, dentro de su límite de tiempo: 120 minutos, salvo que el proyecto fije otro. El proyecto puede limitar más cada ejecución en **Límites por ejecución**, en **Más ajustes** de **Ajustes del proyecto → IA → Funciones de IA**; una ejecución que alcanza un límite termina con un resumen del trabajo hecho hasta entonces. Un Runner anterior a esta versión sigue deteniendo una ejecución a las 40 llamadas al LLM y 100.000 tokens de salida: actualízalo para quitarlos. Las ejecuciones de corrección también cuentan para los límites diarios de IA del proyecto, cuando el proyecto los fija.
 
 ## Dónde empiezan las tareas de corrección
 
@@ -145,7 +146,7 @@ Lo que el agente puede leer lo decide el servidor de OneUptime, a partir de la p
 - **Solo lectura.** Las consultas se ejecutan en el servidor de OneUptime, nunca en el Runner, que no tiene ninguna credencial que lea telemetría. Nada de lo que hacen puede cambiar tu proyecto.
 - **Este proyecto, y solo los servicios de este repositorio.** No los asignas tú: son los servicios para los que OneUptime encuentra este repositorio, del mismo modo que encuentra el repositorio de una corrección - los stack traces de sus excepciones pasan por sus archivos, se llaman como él o es el único repositorio del proyecto. No se puede leer la telemetría de otro servicio.
 - **Sin incidentes privados**, y los tokens, claves, contraseñas y direcciones de correo se ocultan antes de que el agente vea un resultado, como en todos los sitios donde OneUptime AI lee tus datos.
-- **Acotado.** Como máximo **12** consultas por ejecución, y cada una se descuenta de las 40 llamadas de la ejecución.
+- **Acotado.** Por el límite de tiempo de la ejecución, y por **Llamadas a herramientas por ejecución** cuando el proyecto lo fija: cada consulta es una llamada a herramienta.
 
 Cuando ningún servicio corresponde al repositorio, la tarea se ejecuta sin telemetría de producción, como antes.
 
@@ -192,7 +193,7 @@ Nada de un pull request que viene de un fork se lee nunca como instrucciones del
 Código ya no pide comandos de configuración, compilación y prueba, pero un repositorio que los tiene, definidos antes o mediante la API o Terraform, los conserva. Se muestran de solo lectura en la tarjeta **Comandos de compilación y prueba**, en **Más ajustes** de la página **Ajustes** del repositorio, y **Eliminar comandos** elimina los tres. Mientras alguno esté definido, cada ejecución de corrección en un Runner propio también comprueba su cambio con ellos antes de que se abra el pull request:
 
 1. Cuando el agente de código termina, los comandos se ejecutan en orden en la raíz del repositorio, en el Runner, en el espacio de trabajo clonado. Cada uno tiene hasta 15 minutos y se ejecuta con `CI=true`, para que nada espere una respuesta; el primer fallo detiene la pasada.
-2. Ante un fallo, el final de la salida del comando fallido vuelve al mismo agente de código como tarea de reparación, con instrucciones de corregir su propio cambio en lugar de debilitar u omitir pruebas, y los comandos se ejecutan de nuevo. Hace como máximo **2** intentos de reparación. Comparten el presupuesto de LLM de la ejecución, y sus cambios van en el mismo commit que la corrección.
+2. Ante un fallo, el final de la salida del comando fallido vuelve al mismo agente de código como tarea de reparación, con instrucciones de corregir su propio cambio en lugar de debilitar u omitir pruebas, y los comandos se ejecutan de nuevo. Hace como máximo **2** intentos de reparación. Cuentan para los límites de la ejecución, y sus cambios van en el mismo commit que la corrección.
 3. El resultado, superado, fallido u omitido (sin comandos definidos, o un Runner global), se escribe en una sección Verification de la descripción del pull request y se registra en el pull request de la tarea.
 
 Un cambio que sigue sin superar la verificación no se descarta: el pull request se abre de todos modos, con una sección "Verification failed" claramente marcada que nombra el comando fallido y termina con su salida. El trabajo se conserva y quien revisa decide. Un repositorio sin comandos definidos se informa como omitido, en lugar de dar a entender una compilación en verde.
@@ -221,11 +222,19 @@ Abre **Repositorios** en el menú lateral de Código y haz clic en **Conectar re
 | **GitHub** | La GitHub App de OneUptime, instalada en los repositorios que elige. | Todo lo de esta página, con los comandos desde GitHub (consulta [GitHub App](/docs/ai/github-app)) y un check en cada [revisión de producción](#revisión-de-producción-de-pull-requests). |
 | **GitLab**, en GitLab.com o en el tuyo | Un token de acceso: un token personal, de grupo o de proyecto con los alcances `api` y `write_repository`, y al menos el rol Developer. | Tareas y correcciones, cada cambio en un merge request; las [revisiones de producción](#revisión-de-producción-de-pull-requests); el selector de ramas; el código por el que pasa una traza de pila o un perfil; los commits de un despliegue; si una corrección se fusionó y qué mostró producción una vez desplegada. |
 | **Forgejo o Gitea**, en Codeberg o en el tuyo | Un token de acceso con acceso de lectura y escritura a los repositorios y las incidencias, y de lectura al usuario. | Lo mismo que en GitLab, cada cambio en un pull request. |
-| **Cualquier servidor Git**, por HTTPS | La dirección con la que clonas el repositorio, un nombre de usuario y una contraseña o token de acceso que pueda leer el repositorio y subir cambios a él. | La IA clona el repositorio y sube cada cambio a una rama nueva, que su respuesta nombra: tú abres el pull request. En Bitbucket y Azure DevOps enlaza a donde lo abres. |
+| **Cualquier servidor Git**, por HTTPS | La dirección con la que clonas el repositorio, un nombre de usuario y una contraseña o token de acceso que pueda leer el repositorio y subir cambios a él. | La IA clona el repositorio y sube cada cambio a una rama nueva, que su respuesta nombra: tú abres el pull request. En Bitbucket y Azure DevOps enlaza a donde lo abres. En Azure DevOps (Services, o Server 2019 y posteriores), OneUptime también lee el código, con las mismas credenciales: el código por el que pasa una traza de pila o un perfil, y los archivos que lee OneUptime AI. |
 
 Los comandos desde comentarios necesitan la GitHub App, así que por ahora solo funcionan en repositorios de GitHub, y los **Ajustes** del repositorio lo dicen. Un servidor Git no tiene pull requests, así que tampoco tiene revisión de producción.
 
 Para GitLab, Forgejo o Gitea, introduce la dirección del servidor (GitLab.com y Codeberg vienen rellenados) y el token, y elige los repositorios que conectar: la lista ofrece solo aquellos a los que el token puede subir cambios, y conectar más después puede reutilizar el token. OneUptime comprueba cada token con su servidor antes de guardarlo, lo guarda cifrado y no vuelve a mostrarlo. Los **Ajustes** del repositorio muestran su servidor, la cuenta y los últimos caracteres del token, con **Reemplazar el token de acceso**. Cuando el servidor rechaza un token caducado o revocado, sus repositorios muestran **Token rechazado** y la IA deja de trabajar en ellos, hasta que reemplazar el token vuelve a conectar todos los repositorios que lo usan. En un repositorio de GitLab, los ajustes hablan de merge requests, como GitLab: **Merge requests**, **Merge requests de corrección con IA** y **Máximo de merge requests de corrección abiertos**.
+
+### Iniciar sesión en un servidor Git
+
+OneUptime inicia sesión en un repositorio de cualquier servidor Git con el nombre de usuario y la contraseña o el token de acceso con los que está conectado. Salvo que solo tus propios Runners lleguen al servidor, OneUptime los comprueba antes de conectar el repositorio, pidiendo al servidor las ramas del repositorio: la petición con la que empieza todo clonado. Un Runner los envía del mismo modo, con la primera petición de Git al servidor, como HTTP Basic, así que un servidor que ofrece primero el inicio de sesión de Windows, como Azure DevOps Server, también acepta un token de acceso personal. Git los recibe a través de su entorno, solo para ese servidor: nunca en su línea de comandos y nunca en el `.git/config` del clon, donde trabaja el agente de código.
+
+### Qué lee la IA en un repositorio Git
+
+Un servidor Git no tiene una API con la que leer los archivos de un repositorio, así que OneUptime solo lee las ramas de un repositorio alojado en uno, para el selector de ramas. Azure DevOps es la excepción: en Azure DevOps Services, y en Azure DevOps Server 2019 y posteriores, OneUptime también lee el código de un repositorio, a través de la propia API de Azure DevOps y con las mismas credenciales. [Preguntar a la IA](/docs/ai/ask-ai) y las [investigaciones de IA](/docs/ai/ai-sre) leen el código de los repositorios de GitHub, GitLab, Forgejo, Gitea y Azure DevOps; si les preguntas por el código de otro repositorio Git, dicen que no pueden abrirlo. Una tarea en Código sigue funcionando en un repositorio Git: el Runner lo clona, la IA lee y cambia el código en el clon, y sube el cambio a una rama nueva.
 
 ### Un servidor Git en una red privada
 
@@ -320,15 +329,19 @@ Todo lo demás coincide con el botón:
 ## Cuando una corrección falla
 
 :::details La ejecución falla
-No se pudo aplicar la corrección, no se pudo acceder al repositorio o a la rama de la que partía una petición, o falló la llamada al LLM. La conversación de la tarea, y la página desde la que se inició, muestran el motivo y ofrecen volver a intentarlo. El **Registro** del turno tiene el registro completo de la ejecución.
+No se pudo aplicar la corrección, no se pudo acceder al repositorio o a la rama de la que partía una petición, o falló la llamada al LLM. Un fallo que puede pasar (el proveedor del modelo de IA ocupado o caído, una llamada que agotó su tiempo, la red) se vuelve a intentar por sí solo, hasta 3 intentos en total, el segundo al cabo de 1 minuto y el tercero al cabo de 4, salvo que la ejecución pueda haber subido ya una rama o abierto un pull request. Un fallo que volvería a ocurrir, como una clave que el proveedor rechaza o la falta de créditos, no se vuelve a intentar. Cuando un turno falla del todo, la conversación de la tarea, y la página desde la que se inició, muestran el motivo y ofrecen volver a intentarlo. El **Registro** del turno tiene el registro completo de la ejecución.
 :::
 
 :::details El Runner se detiene en mitad de una ejecución
-Una ejecución cuyo heartbeat lleva más de 12 minutos en silencio se marca como fallida con un error. Nunca se vuelve a poner en cola por sí sola, porque el Runner puede haber subido ya parte de una rama de corrección; iníciala de nuevo desde donde la iniciaste. Un comando que ejecuta el agente de código mantiene vivo el heartbeat mientras se ejecuta, así que una compilación o una batería de pruebas larga no se toma por un Runner detenido.
+Una ejecución cuyo heartbeat lleva más de 12 minutos en silencio se vuelve a intentar por sí sola de la misma manera si no ha subido nada, su tarea no tiene pull request y le quedan intentos. Si no, se marca como fallida con un error, porque el Runner puede haber subido ya parte de una rama de corrección; iníciala de nuevo desde donde la iniciaste. Un comando que ejecuta el agente de código mantiene vivo el heartbeat mientras se ejecuta, así que una compilación o una batería de pruebas larga no se toma por un Runner detenido.
 :::
 
 :::details Ningún Runner toma la tarea
 Una tarea que espera más de 30 minutos mientras el Runner que debe tomarla no está conectado - el que elige su repositorio, el Runner predeterminado del proyecto para un repositorio que no elige ninguno, o un Runner global - falla, con un mensaje que dice cuál, así que nunca aparece en curso para siempre. Un Runner que no toma correcciones de código cuenta como no conectado: uno iniciado con `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, o un Runner global anterior a 14.0.94. Código lo dice antes de que pidas una tarea. Cuando un Runner está en línea pero ocupado, las tareas en cola esperan su turno. Un Runner anterior a Código nunca recibe una petición de Código: actualiza un Runner que ejecutes tú mismo junto con el servidor.
+:::
+
+:::details El servidor rechaza las credenciales
+La tarea falla y dice qué servidor rechazó las credenciales con las que OneUptime inició sesión, y qué repositorio no pudo clonar o a cuál no pudo subir su rama. No se vuelve a intentar en la rama predeterminada del repositorio: en un servidor en el que las personas inician sesión con cuentas de Windows, como Azure DevOps Server, un segundo inicio de sesión rechazado puede contar para bloquear la cuenta. En GitHub, comprueba que la GitHub App de OneUptime sigue instalada con acceso al repositorio. En los demás, comprueba que el nombre de usuario y la contraseña o el token aún pueden leer el repositorio y subir cambios a él, y dale otros nuevos con **Reemplazar el token de acceso** en la página **Ajustes** del repositorio. Después vuelve a intentar la tarea.
 :::
 
 ## Privacidad

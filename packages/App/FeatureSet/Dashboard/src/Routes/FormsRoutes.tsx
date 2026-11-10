@@ -17,6 +17,7 @@ import FormCustomDomains from "../Pages/Forms/View/CustomDomains";
 import FormViewSubmissions from "../Pages/Forms/View/Submissions";
 import FormDuplicate from "../Pages/Forms/View/Duplicate";
 import FormDelete from "../Pages/Forms/View/Delete";
+import FormAuditLogs from "../Pages/Forms/View/AuditLogs";
 import FormModel from "Common/Models/DatabaseModels/Form";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
@@ -123,6 +124,16 @@ const FormsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.FORM_VIEW_AUDIT_LOGS)}
+          element={
+            <FormAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.FORM_VIEW_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.FORM_VIEW_DELETE)}
           element={

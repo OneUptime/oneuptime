@@ -18,6 +18,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /**
  * Normalised flame graph node. Both the single-profile loader and the
@@ -760,7 +761,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                   </span>
                   {ProfileUtil.formatPercent(searchPct)}
                   <span className="ml-1.5 text-gray-400">
-                    ·{" "}
+                    <InlineSeparator markOnly />{" "}
                     {translator.translatePlural(
                       {
                         one: "{{count}} frame matches",

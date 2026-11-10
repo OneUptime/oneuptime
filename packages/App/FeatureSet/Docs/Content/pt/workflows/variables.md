@@ -30,7 +30,7 @@ Valores de todo o projeto que você salva uma vez e reutiliza em todos os workfl
 :::steps
 ### Abrir as variáveis globais
 
-Vá em **Fluxos de trabalho → Variáveis globais** e clique em **Criar: Fluxo de trabalho Variável**.
+Vá em **Fluxos de trabalho → Variáveis globais** e clique em **Criar: Variável do fluxo de trabalho**.
 
 ### Dar um nome à variável
 
@@ -48,7 +48,7 @@ Na etapa **Valor**, preencha:
 - **Conteúdo** — o valor em si. É um campo de texto longo, então valores de várias linhas funcionam.
 - **Segredo** — quando ligado, o valor é apagado dos logs de execução e dos rastros dos passos.
 
-Clique em **Criar: Fluxo de trabalho Variável**. Para mudar o nome ou a descrição antes disso, clique em **Variável** na lista de etapas ao lado do formulário (mostrada em telas largas); o que você digitou em qualquer das etapas é mantido.
+Clique em **Criar: Variável do fluxo de trabalho**. Para mudar o nome ou a descrição antes disso, clique em **Variável** na lista de etapas ao lado do formulário (mostrada em telas largas); o que você digitou em qualquer das etapas é mantido.
 :::
 
 Use uma variável global em qualquer workflow com:
@@ -66,15 +66,15 @@ A lista mostra o nome e a descrição de cada variável. Clique em **Ver** em um
 | **Editar: Variável**                           | Altera o nome, a descrição e — para uma variável estática que ainda não é secreta — a marca de segredo. Uma vez secreta, uma variável continua secreta. |
 | **Update Content**                             | Substitui um valor estático. O conteúdo salvo não pode ser lido de volta, então você digita o novo valor inteiro.                                |
 | **Use in Workflows**                           | Mostra a referência exata para colar nos seus blocos, com um botão de copiar.                                                                    |
-| **Excluir: Fluxo de trabalho Variável**        | Exclui a variável, depois de pedir confirmação. A confirmação nomeia a variável, para você conferir que é a certa.                               |
+| **Excluir: Variável do fluxo de trabalho**        | Exclui a variável, depois de pedir confirmação. A confirmação nomeia a variável, para você conferir que é a certa.                               |
 
-Para criar uma variável de **token de acesso OAuth 2.0** em vez disso, abra o menu **Mais** (**⋯**) ao lado de **Criar: Fluxo de trabalho Variável** e escolha **Create OAuth 2.0 Variable**. As variáveis OAuth 2.0 têm [uma seção própria](#variáveis-oauth-20-tokens-que-se-renovam-sozinhos) mais abaixo. O tipo de uma variável não pode ser alterado depois de salvo.
+Para criar uma variável de **token de acesso OAuth 2.0** em vez disso, abra o menu **Mais** (**⋯**) ao lado de **Criar: Variável do fluxo de trabalho** e escolha **Create OAuth 2.0 Variable**. As variáveis OAuth 2.0 têm [uma seção própria](#variáveis-oauth-20-tokens-que-se-renovam-sozinhos) mais abaixo. O tipo de uma variável não pode ser alterado depois de salvo.
 
 Você também pode atualizar uma variável pela API, o que é explicado [no fim desta página](#atualizando-uma-variável-a-partir-de-um-workflow). Variáveis globais e de workflow são um recurso do plano Growth.
 
 ## Variáveis locais de workflow
 
-Variáveis restritas a um workflow, gerenciadas em **Variáveis do fluxo** no menu desse workflow. Elas funcionam como as variáveis globais: **Criar: Fluxo de trabalho Variável** cria uma variável estática, o menu **Mais** (**⋯**) cria uma variável OAuth 2.0 e **Ver** abre a página de uma variável. Faça referência a elas com:
+Variáveis restritas a um workflow, gerenciadas em **Variáveis do fluxo** no menu desse workflow. Elas funcionam como as variáveis globais: **Criar: Variável do fluxo de trabalho** cria uma variável estática, o menu **Mais** (**⋯**) cria uma variável OAuth 2.0 e **Ver** abre a página de uma variável. Faça referência a elas com:
 
 ```text
 {{local.variables.NAME}}

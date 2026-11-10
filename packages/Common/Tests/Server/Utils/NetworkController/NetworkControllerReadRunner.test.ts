@@ -2,11 +2,13 @@ import NetworkControllerReadRunner, {
   INVENTORY_NOT_RECORDED_WARNING,
   TOPOLOGY_NOT_RECORDED_WARNING,
   NETWORK_CONTROLLER_READ_MAX_REQUESTS,
+  NetworkControllerPendingRefile,
   NetworkControllerReadDependencies,
   NetworkControllerReadOutcome,
   STORED_WINDOW_END_LOOKBACK_MS,
   StoredWindowEndFinder,
   StoredWindowFinder,
+  getPendingRefile,
   reconcilePullState,
 } from "../../../../Server/Utils/NetworkController/NetworkControllerReadRunner";
 import {
@@ -22,7 +24,9 @@ import { EndpointControllerClient } from "../../../../Server/Services/NetworkEnd
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetworkControllerConnection from "../../../../Models/DatabaseModels/NetworkControllerConnection";
 import NetworkControllerConnectionService from "../../../../Server/Services/NetworkControllerConnectionService";
-import NetworkTrafficUsageAggregationService from "../../../../Server/Services/NetworkTrafficUsageAggregationService";
+import NetworkTrafficUsageAggregationService, {
+  NetworkTrafficUsageRefile,
+} from "../../../../Server/Services/NetworkTrafficUsageAggregationService";
 import {
   NetworkControllerPullState,
   NetworkTrafficUsageWindowKey,
@@ -99,6 +103,12 @@ let mirrored: Array<string>;
  */
 let identityHolders: Array<ControllerIdentityHolder>;
 let identityLookups: Array<ControllerIdentityLookup>;
+/*
+ * The traffic filed under a device an appliance was matched to since the
+ * last read (issue #5762): ClickHouse's mutation, played by an array.
+ */
+let refiles: Array<NetworkTrafficUsageRefile>;
+let failRefile: boolean;
 
 function rowTime(value: unknown): Date {
   return new Date(Date.parse(`${String(value).replace(" ", "T")}Z`));
@@ -199,6 +209,14 @@ function dependencies(
       identityLookups.push(data.lookup);
       return identityHolders;
     },
+    refileRows: async (refile: NetworkTrafficUsageRefile): Promise<boolean> => {
+      if (failRefile) {
+        throw new Error("ClickHouse refused the mutation");
+      }
+
+      refiles.push(refile);
+      return true;
+    },
     ...overrides,
   };
 }
@@ -248,6 +266,8 @@ beforeEach(() => {
   mirrored = [];
   identityHolders = [];
   identityLookups = [];
+  refiles = [];
+  failRefile = false;
   clock = createTestClock(START);
   setApi();
 
@@ -529,6 +549,191 @@ describe("a read that fails", () => {
     failBookkeeping = true;
 
     await expect(run()).resolves.toMatchObject({ status: "success" });
+  });
+});
+
+describe("traffic stored before an appliance was a device (issue #5762)", () => {
+  const OTHER_DEVICE: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+
+  function filedOf(): NetworkControllerPullState {
+    return readPullState(connection.pullState);
+  }
+
+  test("the first read files what it matched: the appliance by its serial, its network by the network, from the project's bucket, as far back as the table keeps", async () => {
+    await run();
+
+    expect(refiles).toHaveLength(1);
+    expect(refiles[0]).toEqual({
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      fromDeviceId: PROJECT,
+      appliances: [{ serial: "Q2XX-AAAA-0000", deviceId: MX_DEVICE }],
+      networks: [{ controllerNetworkId: "L_1000", deviceId: MX_DEVICE }],
+      since: new Date(START.getTime() - 32 * 24 * 60 * MINUTE),
+    });
+
+    // Recorded beside the read's own cursors, so the next read knows.
+    expect(filedOf().filedAppliances).toEqual({
+      "Q2XX-AAAA-0000": MX_DEVICE.toString(),
+    });
+    expect(filedOf().filedNetworks).toEqual({
+      L_1000: MX_DEVICE.toString(),
+    });
+    expect(filedOf().uplinkCursor).toBeTruthy();
+  });
+
+  test("the reads after file nothing more: once, never a mutation per read", async () => {
+    await run();
+    clock.advance(5 * MINUTE);
+    await run();
+    clock.advance(5 * MINUTE);
+    await run();
+
+    expect(refiles).toHaveLength(1);
+  });
+
+  test("an appliance matched to another device than before is filed again, under that one", async () => {
+    await run();
+    clock.advance(5 * MINUTE);
+    await run({
+      findDevices: async () => {
+        return [
+          {
+            id: OTHER_DEVICE,
+            serialNumber: "Q2XX-AAAA-0000",
+            macAddress: "",
+          },
+        ];
+      },
+    });
+
+    expect(refiles).toHaveLength(2);
+    expect(refiles[1]!.appliances).toEqual([
+      { serial: "Q2XX-AAAA-0000", deviceId: OTHER_DEVICE },
+    ]);
+    expect(refiles[1]!.networks).toEqual([
+      { controllerNetworkId: "L_1000", deviceId: OTHER_DEVICE },
+    ]);
+  });
+
+  test("a refile that fails never fails the read, and the next read tries again", async () => {
+    failRefile = true;
+
+    const outcome: NetworkControllerReadOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    expect(filedOf().filedAppliances).toBeUndefined();
+    // The traffic itself was stored all the same.
+    expect(bytesOf(NetworkTrafficUsageKind.Uplink)).toBeGreaterThan(0);
+
+    failRefile = false;
+    clock.advance(5 * MINUTE);
+    await run();
+
+    expect(refiles).toHaveLength(1);
+    expect(filedOf().filedAppliances).toEqual({
+      "Q2XX-AAAA-0000": MX_DEVICE.toString(),
+    });
+  });
+
+  test("no appliance is a device: nothing is filed, nothing asked", async () => {
+    await run({
+      findDevices: async () => {
+        return [];
+      },
+    });
+
+    expect(refiles).toHaveLength(0);
+    expect(filedOf().filedAppliances).toEqual({});
+  });
+
+  test("an appliance no longer matched is forgotten, and filed again if it ever is", async () => {
+    await run();
+    clock.advance(5 * MINUTE);
+    await run({
+      findDevices: async () => {
+        return [];
+      },
+    });
+    expect(filedOf().filedAppliances).toEqual({});
+
+    clock.advance(5 * MINUTE);
+    await run();
+
+    expect(refiles).toHaveLength(2);
+  });
+
+  test("an appliance the device holds by Meraki's record is filed too", async () => {
+    await run({
+      findDevices: async () => {
+        return [
+          {
+            id: OTHER_DEVICE,
+            serialNumber: "",
+            macAddress: "",
+            controllerSerial: "Q2XX-AAAA-0003",
+          },
+        ];
+      },
+    });
+
+    expect(refiles[0]!.appliances).toEqual([
+      { serial: "Q2XX-AAAA-0003", deviceId: OTHER_DEVICE },
+    ]);
+  });
+});
+
+describe("what a read files", () => {
+  const A: ObjectID = new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  const B: ObjectID = new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+
+  test("only what is matched to a device it was not filed under", () => {
+    const pending: NetworkControllerPendingRefile = getPendingRefile({
+      matches: {
+        bySerial: new Map([
+          ["Q2-1", A],
+          ["Q2-2", B],
+        ]),
+        byNetwork: new Map([["L_1", A]]),
+      },
+      state: {
+        filedAppliances: { "Q2-1": A.toString(), "Q2-2": A.toString() },
+        filedNetworks: { L_1: A.toString() },
+      },
+    });
+
+    expect(pending.appliances).toEqual([{ serial: "Q2-2", deviceId: B }]);
+    expect(pending.networks).toEqual([]);
+    // Once done, the record is this read's matches, and only those.
+    expect(pending.filedAppliances).toEqual({
+      "Q2-1": A.toString(),
+      "Q2-2": B.toString(),
+    });
+    expect(pending.filedNetworks).toEqual({ L_1: A.toString() });
+  });
+
+  test("a first read files every match", () => {
+    const pending: NetworkControllerPendingRefile = getPendingRefile({
+      matches: {
+        bySerial: new Map([["Q2-1", A]]),
+        byNetwork: new Map([["L_1", A]]),
+      },
+      state: {},
+    });
+
+    expect(pending.appliances).toHaveLength(1);
+    expect(pending.networks).toHaveLength(1);
+  });
+
+  test("the record is read back without trusting its shape", () => {
+    expect(
+      readPullState({
+        filedAppliances: { "Q2-1": A.toString(), "Q2-2": 7 },
+        filedNetworks: "garbage",
+      }),
+    ).toEqual({ filedAppliances: { "Q2-1": A.toString() } });
   });
 });
 

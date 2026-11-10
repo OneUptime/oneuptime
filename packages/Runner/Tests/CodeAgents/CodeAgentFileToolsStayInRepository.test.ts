@@ -435,9 +435,16 @@ describe.each(SCOPES)(
       );
 
       expect(shown).toHaveLength(7);
-      expect(shown[0]).toBe(ORIGINAL_SOURCE);
+      // read_file shows numbered lines: the number and a tab, then the line.
+      expect(shown[0]).toBe(
+        [
+          "     1\texport function checkout(): number {",
+          "     2\t  return 1;",
+          "     3\t}",
+        ].join("\n"),
+      );
       // A link that stays inside the working tree reads its target.
-      expect(shown[1]).toBe("# app\n");
+      expect(shown[1]).toBe("     1\t# app");
       expect(shown[2]).toContain("src/");
       expect(shown[2]).toContain(".git/");
 

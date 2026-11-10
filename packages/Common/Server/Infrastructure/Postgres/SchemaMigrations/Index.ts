@@ -293,6 +293,7 @@ import { AddFixApprovalSourceAndRunbookTrackRecord1808992660000 } from "./180899
 import { AddUserMattermost1808992670000 } from "./1808992670000-AddUserMattermost";
 import { AddUserMattermostIndexesAndKeys1808992680000 } from "./1808992680000-AddUserMattermostIndexesAndKeys";
 import { AddUserNotificationSettingAlertByMattermost1808992950000 } from "./1808992950000-AddUserNotificationSettingAlertByMattermost";
+import { AddScheduledMaintenanceCloudResources1808994417000 } from "./1808994417000-AddScheduledMaintenanceCloudResources";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -908,6 +909,43 @@ import { AddOpenStackProjectNotices1808994120000 } from "./1808994120000-AddOpen
 import { AddWorkflowLogRunAgain1808994200000 } from "./1808994200000-AddWorkflowLogRunAgain";
 import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./1808994300000-AddCloudRightSizingEvidenceAndBudgetUnusualDays";
 import { AddCloudAccountAiAgentKeys1808994400000 } from "./1808994400000-AddCloudAccountAiAgentKeys";
+import { AddProjectDefaultTableColumns1808994500000 } from "./1808994500000-AddProjectDefaultTableColumns";
+import { AddEmailProviderSettings1808994600000 } from "./1808994600000-AddEmailProviderSettings";
+import { AddGroupingRuleMinimumCount1808994700000 } from "./1808994700000-AddGroupingRuleMinimumCount";
+import { AddGroupingWaitKeyIndexes1808994710000 } from "./1808994710000-AddGroupingWaitKeyIndexes";
+import { AddCloudConnectionStreamState1808995100000 } from "./1808995100000-AddCloudConnectionStreamState";
+import { WidenGitBranchNameColumns1808995180000 } from "./1808995180000-WidenGitBranchNameColumns";
+import { AddTwoPersonFixApproval1808995185000 } from "./1808995185000-AddTwoPersonFixApproval";
+import { AddFirstApprovedByUserForeignKey1808995190000 } from "./1808995190000-AddFirstApprovedByUserForeignKey";
+import { WidenCodeRepositoryOwnerColumns1808995240000 } from "./1808995240000-WidenCodeRepositoryOwnerColumns";
+import { AddOnCallObserverPages1808995300000 } from "./1808995300000-AddOnCallObserverPages";
+import { AddPublicNoteApproval1808995720000 } from "./1808995720000-AddPublicNoteApproval";
+import { AddWorkflowVersions1808995761880 } from "./1808995761880-AddWorkflowVersions";
+import { AddRuleOwningTeams1808995800000 } from "./1808995800000-AddRuleOwningTeams";
+import { AddWorkflowGraphRevision1808995900000 } from "./1808995900000-AddWorkflowGraphRevision";
+import { AddWorkflowVersionSavedThrough1808996000000 } from "./1808996000000-AddWorkflowVersionSavedThrough";
+import { AddAuditLogExportSchemaVersion1808996130000 } from "./1808996130000-AddAuditLogExportSchemaVersion";
+import { AddAiAgentResetAt1808996200000 } from "./1808996200000-AddAiAgentResetAt";
+import { AddSloErrorBudgetPolicyTiers1808996325825 } from "./1808996325825-AddSloErrorBudgetPolicyTiers";
+import { AddEvaluationDetailsAndKeepResponseContent1808997300000 } from "./1808997300000-AddEvaluationDetailsAndKeepResponseContent";
+import { AddTelemetryUsageRetention1808997405916 } from "./1808997405916-AddTelemetryUsageRetention";
+import { AddTelemetryUsageCreatedAtIndex1808997415916 } from "./1808997415916-AddTelemetryUsageCreatedAtIndex";
+import { AddWorkspacePublicNoteApprovalMessage1809063170000 } from "./1809063170000-AddWorkspacePublicNoteApprovalMessage";
+import { AddSloDeploymentGate1809063206333 } from "./1809063206333-AddSloDeploymentGate";
+import { AddRumSignalArrivals1809063215770 } from "./1809063215770-AddRumSignalArrivals";
+import { AddPublicNoteApprovalRequest1809063230000 } from "./1809063230000-AddPublicNoteApprovalRequest";
+import { AddTelemetryIngestionBudgets1809063245917 } from "./1809063245917-AddTelemetryIngestionBudgets";
+import { AllowDiscoveryImportWithoutScan1809063255775 } from "./1809063255775-AllowDiscoveryImportWithoutScan";
+import { AddUserLanguage1809063412000 } from "./1809063412000-AddUserLanguage";
+import { AddTelemetryIngestionKeyRefusals1809071100000 } from "./1809071100000-AddTelemetryIngestionKeyRefusals";
+import { AddAIRunRetryAtAndProviderTimeout1809080100000 } from "./1809080100000-AddAIRunRetryAtAndProviderTimeout";
+import { AddProjectAiRunLimits1809080210000 } from "./1809080210000-AddProjectAiRunLimits";
+import { AddCodeFixRunAutoRetry1809080300000 } from "./1809080300000-AddCodeFixRunAutoRetry";
+import { AddRumApplicationFrustrationSignals1809080410000 } from "./1809080410000-AddRumApplicationFrustrationSignals";
+import { AddDiscoveredDeviceRetention1809080463890 } from "./1809080463890-AddDiscoveredDeviceRetention";
+import { AddNetworkEndpointLastSeenIndex1809080463891 } from "./1809080463891-AddNetworkEndpointLastSeenIndex";
+import { KeepEditedDiscoveredDevices1809080463892 } from "./1809080463892-KeepEditedDiscoveredDevices";
+import { AddIncomingMonitorRequestAsReceived1809080466402 } from "./1809080466402-AddIncomingMonitorRequestAsReceived";
 
 export default [
   InitialMigration,
@@ -1820,4 +1858,42 @@ export default [
   AddWorkflowLogRunAgain1808994200000,
   AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000,
   AddCloudAccountAiAgentKeys1808994400000,
+  AddScheduledMaintenanceCloudResources1808994417000,
+  AddProjectDefaultTableColumns1808994500000,
+  AddEmailProviderSettings1808994600000,
+  AddGroupingRuleMinimumCount1808994700000,
+  AddGroupingWaitKeyIndexes1808994710000,
+  AddCloudConnectionStreamState1808995100000,
+  WidenGitBranchNameColumns1808995180000,
+  AddTwoPersonFixApproval1808995185000,
+  AddFirstApprovedByUserForeignKey1808995190000,
+  WidenCodeRepositoryOwnerColumns1808995240000,
+  AddOnCallObserverPages1808995300000,
+  AddPublicNoteApproval1808995720000,
+  AddWorkflowVersions1808995761880,
+  AddRuleOwningTeams1808995800000,
+  AddWorkflowGraphRevision1808995900000,
+  AddWorkflowVersionSavedThrough1808996000000,
+  AddAuditLogExportSchemaVersion1808996130000,
+  AddAiAgentResetAt1808996200000,
+  AddSloErrorBudgetPolicyTiers1808996325825,
+  AddEvaluationDetailsAndKeepResponseContent1808997300000,
+  AddTelemetryUsageRetention1808997405916,
+  AddTelemetryUsageCreatedAtIndex1808997415916,
+  AddWorkspacePublicNoteApprovalMessage1809063170000,
+  AddSloDeploymentGate1809063206333,
+  AddRumSignalArrivals1809063215770,
+  AddPublicNoteApprovalRequest1809063230000,
+  AddTelemetryIngestionBudgets1809063245917,
+  AllowDiscoveryImportWithoutScan1809063255775,
+  AddUserLanguage1809063412000,
+  AddTelemetryIngestionKeyRefusals1809071100000,
+  AddAIRunRetryAtAndProviderTimeout1809080100000,
+  AddProjectAiRunLimits1809080210000,
+  AddCodeFixRunAutoRetry1809080300000,
+  AddRumApplicationFrustrationSignals1809080410000,
+  AddDiscoveredDeviceRetention1809080463890,
+  AddNetworkEndpointLastSeenIndex1809080463891,
+  KeepEditedDiscoveredDevices1809080463892,
+  AddIncomingMonitorRequestAsReceived1809080466402,
 ];

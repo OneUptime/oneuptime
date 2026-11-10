@@ -15,25 +15,49 @@ import Metric, {
   AggregationTemporality,
   MetricPointType,
 } from "Common/Models/AnalyticsModels/Metric";
-import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { CLOUD_CONNECTION_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudConnectionTelemetry";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   MessageQueueMetricDescriptor,
   MessageQueueMetricSeriesCombine,
   getMessageQueueMetricsForSystem,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
-import { getMessagingSystemDescriptor } from "Common/Types/MessageQueue/MessagingSystem";
+import {
+  MESSAGE_QUEUE_AWS_RPC_SYSTEMS,
+  MESSAGE_QUEUE_AWS_SEND_RPC_METHODS,
+  MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE,
+  MESSAGE_QUEUE_CLIENT_SPAN_KIND,
+  MESSAGE_QUEUE_CONSUME_SPAN_KIND,
+  MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE,
+  MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
+  MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE,
+  MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS,
+  MESSAGE_QUEUE_PUBLISH_SPAN_KIND,
+  MESSAGE_QUEUE_RECEIVE_OPERATION,
+  MESSAGE_QUEUE_RPC_METHOD_ATTRIBUTE,
+  MESSAGE_QUEUE_SEND_OPERATIONS,
+  MESSAGE_QUEUE_SERVICE_LIMIT,
+  MessageQueueProducerServices,
+  MessageQueueServiceSpanFigures,
+  MessageQueueSpanPopulation,
+  combineMessageQueueConsumerServices,
+  combineMessageQueueProducerServices,
+  emptyMessageQueueServiceSpanFigures,
+  getMessageQueueSpanPopulationFilter,
+  isMessageQueueAwsRpcSystem,
+  isMessageQueuePolledReceiveSystem,
+} from "Common/Types/MessageQueue/MessageQueueSpanPopulation";
 import {
   translateTemplate,
   translationKey,
@@ -60,7 +84,11 @@ import AnalyticsModelAPI, {
  * resolve to an empty result without touching the API. No attribute filter
  * ever scopes the queue: its spans name it under five generations of keys
  * and its broker metrics under a different key per broker, which is exactly
- * why ingest stamps one key on all of them.
+ * why ingest stamps one key on all of them. One read is the exception, by
+ * design: fetchMessageQueueNamespaceSeries asks what a namespace-scoped
+ * queue's NAMESPACE sent — by its scope attribute, without the key — to say
+ * why none of it reached the queue (a namespace total, other entities only).
+ * It counts series and charts nothing.
  *
  * Spans are told apart by kind AND by the operation they record
  * (MessageQueueSpanPopulation): PRODUCER spans are publishes, and so are the
@@ -123,150 +151,39 @@ export interface MessageQueueQueryWindow {
   end: Date;
 }
 
-// A publish, as most messaging instrumentations mark it.
-export const MESSAGE_QUEUE_PUBLISH_SPAN_KIND: SpanKind = SpanKind.Producer;
-
-// A delivery / processing of a message.
-export const MESSAGE_QUEUE_CONSUME_SPAN_KIND: SpanKind = SpanKind.Consumer;
-
-// The kind of a span that calls the broker: a send, a receive, a settlement.
-export const MESSAGE_QUEUE_CLIENT_SPAN_KIND: SpanKind = SpanKind.Client;
-
-// How many services each of the Producers / Consumers cards lists.
-export const MESSAGE_QUEUE_SERVICE_LIMIT: number = 10;
-
-// ---- which spans are which ---------------------------------------------------
-
 /*
- * The span attributes the Overview reads an operation from: the keys the
- * resolver's direction rule reads (MESSAGING_DIRECTION_ATTRIBUTES:
- * `messaging.operation.type` since semconv 1.26, the older
- * `messaging.operation`, and for SQS / SNS the AWS SDK operation in
- * `rpc.method`), and the number of messages a batch operation moved.
- * Values are matched as instrumentations write them: semconv's operation
- * types in lowercase, the AWS operations in the SDK's own spelling.
+ * Which of a queue's spans are publishes and which are consumes, and how a
+ * service's spans make its row on either side of the queue, are defined once
+ * in Common/Types/MessageQueue/MessageQueueSpanPopulation: the Queues
+ * topology compiles the very same groups on the server, so a queue's cards
+ * and its lines on the topology count the same spans. Re-exported here for
+ * the pages and suites that read them from this module.
  */
-export const MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE: string =
-  "messaging.operation.type";
-export const MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE: string =
-  "messaging.operation";
-export const MESSAGE_QUEUE_RPC_METHOD_ATTRIBUTE: string = "rpc.method";
-export const MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE: string =
-  "messaging.batch.message_count";
-
-/*
- * The operations a client span records a publish with: "send" (semconv
- * 1.28 and later) and "publish" (before, and still the Azure SDKs'
- * `messaging.operation`). "" stands for the key being absent — ClickHouse
- * reads a missing map key as "" — so either key may be the one set.
- */
-export const MESSAGE_QUEUE_SEND_OPERATIONS: ReadonlyArray<string> = [
-  "publish",
-  "send",
-];
-
-/*
- * A receive: a consumer asking the broker for messages. What that span
- * measures depends on who records it: SQS's is a ReceiveMessage call.
- */
-export const MESSAGE_QUEUE_RECEIVE_OPERATION: string = "receive";
-
-/*
- * The AWS SDK operations that publish, as `rpc.method` spells them: the
- * Java agent and botocore write the operation, Go's otelaws prefixes it
- * with the service. The resolver reads them (lowercased) only on SQS and
- * SNS spans, and so does the Overview.
- */
-export const MESSAGE_QUEUE_AWS_SEND_RPC_METHODS: ReadonlyArray<string> = [
-  "SendMessage",
-  "SendMessageBatch",
-  "Publish",
-  "PublishBatch",
-  "SQS/SendMessage",
-  "SQS/SendMessageBatch",
-  "SNS/Publish",
-  "SNS/PublishBatch",
-];
-
-// The systems whose spans name a publish only by the AWS SDK operation.
-export const MESSAGE_QUEUE_AWS_RPC_SYSTEMS: ReadonlyArray<string> = [
-  "aws_sqs",
-  "aws.sns",
-];
-
-/*
- * The systems whose consumer RECEIVE spans always wrap a call that asks the
- * broker for messages — and so time the wait, not the work. Amazon SQS's
- * ReceiveMessage long-polls for up to 20 seconds and may return nothing:
- * boto3sqs and Node's instrumentation-aws-sdk before 0.58 record every call
- * as a CONSUMER `receive` span, empty ones included, and a CONSUMER
- * `process` span per message on top; the Java agent records the receive
- * (when it returned messages) and a `process` span per message; Node's
- * 0.58 and later record only the receive, with the number of messages it
- * returned in messaging.batch.message_count. So on an SQS queue the
- * `process` spans are the messages consumed and processed, and a receive
- * counts only when it says it returned messages — once, as one batch.
- * Elsewhere a CONSUMER `receive` span can be a delivery (pika and aio-pika
- * record each pushed message that way) and stays in.
- */
-export const MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS: ReadonlyArray<string> = [
-  "aws_sqs",
-];
-
-function canonicalSystemOf(system: string | null | undefined): string {
-  return getMessagingSystemDescriptor(system)?.system || "";
-}
-
-/** Whether a system's receive spans are polls (see the list above). */
-export function isMessageQueuePolledReceiveSystem(
-  system: string | null | undefined,
-): boolean {
-  return MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS.includes(
-    canonicalSystemOf(system),
-  );
-}
-
-/** Whether a system's spans can name a publish by its AWS SDK operation. */
-export function isMessageQueueAwsRpcSystem(
-  system: string | null | undefined,
-): boolean {
-  return MESSAGE_QUEUE_AWS_RPC_SYSTEMS.includes(canonicalSystemOf(system));
-}
-
-/*
- * The groups of a queue's spans the Overview reads, each ONE conjunction of
- * column and attribute filters on top of the queue's key (the key scopes the
- * queue; these only tell its spans apart):
- *
- *   - "all": every span naming the queue — the error rate's denominator.
- *   - "publish": PRODUCER spans — a send, or the per-message span a client
- *     creates before a batched send.
- *   - "send": CLIENT spans that record a publish in either operation key.
- *     The Azure SDKs (Service Bus, Event Hubs) create a zero-length PRODUCER
- *     span per message BEFORE the send, and time the send — and record its
- *     failure — in this CLIENT span; Go's otelaws records SNS publishes only
- *     this way. Both keys must be one of the send operations or absent, and
- *     at least one must be present (attributeKeys).
- *   - "awsSend" (SQS and SNS only): CLIENT spans that name a publish only by
- *     the AWS SDK operation — the Java agent's SNS publishes, botocore's and
- *     Go's SQS sends.
- *   - "consume": CONSUMER spans that handled messages. A span that says its
- *     batch held no message (messaging.batch.message_count 0: a receive
- *     that returned nothing) is left out everywhere; on a queue whose
- *     receive spans are polls (MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS), so is
- *     every receive span.
- *   - "receivedBatch" (polled systems only): the receive spans that report
- *     returning messages — Node's instrumentation-aws-sdk 0.58+, which
- *     records nothing else. Each is one batch consumed; its time is the
- *     poll's, so never a processing time.
- */
-export type MessageQueueSpanPopulation =
-  | "all"
-  | "publish"
-  | "send"
-  | "awsSend"
-  | "consume"
-  | "receivedBatch";
+export {
+  MESSAGE_QUEUE_AWS_RPC_SYSTEMS,
+  MESSAGE_QUEUE_AWS_SEND_RPC_METHODS,
+  MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE,
+  MESSAGE_QUEUE_CLIENT_SPAN_KIND,
+  MESSAGE_QUEUE_CONSUME_SPAN_KIND,
+  MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE,
+  MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
+  MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE,
+  MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS,
+  MESSAGE_QUEUE_PUBLISH_SPAN_KIND,
+  MESSAGE_QUEUE_RECEIVE_OPERATION,
+  MESSAGE_QUEUE_RPC_METHOD_ATTRIBUTE,
+  MESSAGE_QUEUE_SEND_OPERATIONS,
+  MESSAGE_QUEUE_SERVICE_LIMIT,
+  combineMessageQueueConsumerServices,
+  combineMessageQueueProducerServices,
+  isMessageQueueAwsRpcSystem,
+  isMessageQueuePolledReceiveSystem,
+};
+export type {
+  MessageQueueProducerServices,
+  MessageQueueServiceSpanFigures,
+  MessageQueueSpanPopulation,
+};
 
 export interface MessageQueueSpanQueryOptions {
   // Which of the queue's spans; every span when omitted.
@@ -281,65 +198,7 @@ function populationFilter(
   population: MessageQueueSpanPopulation,
   system: string | null | undefined,
 ): Record<string, unknown> {
-  const sendOrAbsent: Array<string> = [...MESSAGE_QUEUE_SEND_OPERATIONS, ""];
-
-  switch (population) {
-    case "publish":
-      return { kind: MESSAGE_QUEUE_PUBLISH_SPAN_KIND };
-    case "send":
-      return {
-        kind: MESSAGE_QUEUE_CLIENT_SPAN_KIND,
-        attributes: {
-          [MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE]: new Includes([
-            ...sendOrAbsent,
-          ]),
-          [MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE]: new Includes([
-            ...sendOrAbsent,
-          ]),
-        },
-        attributeKeys: new Includes([
-          MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE,
-          MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE,
-        ]),
-      };
-    case "awsSend":
-      return {
-        kind: MESSAGE_QUEUE_CLIENT_SPAN_KIND,
-        attributes: {
-          [MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE]: "",
-          [MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE]: "",
-          [MESSAGE_QUEUE_RPC_METHOD_ATTRIBUTE]: new Includes([
-            ...MESSAGE_QUEUE_AWS_SEND_RPC_METHODS,
-          ]),
-        },
-      };
-    case "consume": {
-      const attributes: Record<string, unknown> = {
-        [MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),
-      };
-      if (isMessageQueuePolledReceiveSystem(system)) {
-        attributes[MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE] = new IncludesNone([
-          MESSAGE_QUEUE_RECEIVE_OPERATION,
-        ]);
-        attributes[MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE] = new IncludesNone(
-          [MESSAGE_QUEUE_RECEIVE_OPERATION],
-        );
-      }
-      return { kind: MESSAGE_QUEUE_CONSUME_SPAN_KIND, attributes: attributes };
-    }
-    case "receivedBatch":
-      return {
-        kind: MESSAGE_QUEUE_CONSUME_SPAN_KIND,
-        attributes: {
-          [MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE]:
-            MESSAGE_QUEUE_RECEIVE_OPERATION,
-          [MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]:
-            new GreaterThan<number>(0),
-        },
-      };
-    default:
-      return {};
-  }
+  return getMessageQueueSpanPopulationFilter(population, system);
 }
 
 /*
@@ -399,8 +258,6 @@ export interface MessageQueueSpanOverview {
   producers: MessageQueueServices;
   consumers: MessageQueueServices;
 }
-
-const NANOSECONDS_PER_MILLISECOND: number = 1_000_000;
 
 function projectIdOf(
   projectId: ObjectID | string | null | undefined,
@@ -599,20 +456,6 @@ function firstFiniteValue(
   return null;
 }
 
-/*
- * One group of the queue's spans read per service over the whole window:
- * service id → spans, failed spans and the p95 duration (milliseconds).
- */
-export interface MessageQueueServiceSpanFigures {
-  counts: Map<string, number>;
-  errors: Map<string, number>;
-  p95Ms: Map<string, number>;
-}
-
-function emptyServiceSpanFigures(): MessageQueueServiceSpanFigures {
-  return { counts: new Map(), errors: new Map(), p95Ms: new Map() };
-}
-
 // service id → the row's value, for rows grouped by primaryEntityId.
 function valuesByService(
   result: AggregatedResult | null | undefined,
@@ -641,183 +484,11 @@ export function toMessageQueueServiceSpanFigures(data: {
   return {
     counts: valuesByService(data.countResult),
     errors: valuesByService(data.errorResult),
-    p95Ms: valuesByService(data.p95Result, 1 / NANOSECONDS_PER_MILLISECOND),
-  };
-}
-
-function sortedServiceRows(
-  rows: Array<MessageQueueServiceRow>,
-  limit: number,
-): MessageQueueServices {
-  const busy: Array<MessageQueueServiceRow> = rows.filter(
-    (row: MessageQueueServiceRow): boolean => {
-      return row.calls > 0;
-    },
-  );
-  busy.sort((a: MessageQueueServiceRow, b: MessageQueueServiceRow): number => {
-    if (b.calls !== a.calls) {
-      return b.calls - a.calls;
-    }
-    return a.serviceId < b.serviceId ? -1 : a.serviceId > b.serviceId ? 1 : 0;
-  });
-  return { services: busy.slice(0, limit), total: busy.length };
-}
-
-function finiteOrNull(value: number | undefined): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-/*
- * The Producers card and the part of Published that producer spans miss:
- *
- *   - a service's messages are its PRODUCER spans (one per message, or per
- *     batch sent in one call); a service that records no producer span but
- *     client send spans ("send" / "awsSend") is counted from those, and is
- *     one of `clientOnlyServiceIds`;
- *   - its failures and p95 publish time are those of its client send spans
- *     when it records any — the Azure SDKs' producer spans are zero-length
- *     markers made before the send, and the send's time and failure are in
- *     the client span — and of its producer spans otherwise. Where a
- *     service has sends of both client groups (it never has in practice),
- *     the busier group's p95 stands for its sends.
- */
-export interface MessageQueueProducerServices extends MessageQueueServices {
-  // Services counted from client send spans alone, busiest first.
-  clientOnlyServiceIds: Array<string>;
-  // Their send spans, all of them: what Published adds for them.
-  clientOnlyPublished: number;
-}
-
-export function combineMessageQueueProducerServices(data: {
-  producer: MessageQueueServiceSpanFigures;
-  sends: ReadonlyArray<MessageQueueServiceSpanFigures>;
-  limit?: number | undefined;
-}): MessageQueueProducerServices {
-  const ids: Set<string> = new Set<string>(data.producer.counts.keys());
-  for (const figures of data.sends) {
-    for (const id of figures.counts.keys()) {
-      ids.add(id);
-    }
-  }
-
-  const rows: Array<MessageQueueServiceRow> = [];
-  const clientOnly: Array<{ id: string; sends: number }> = [];
-
-  for (const id of ids) {
-    const produced: number = data.producer.counts.get(id) || 0;
-    let sendCount: number = 0;
-    let sendErrors: number = 0;
-    let busiestSends: number = 0;
-    let sendP95: number | null = null;
-
-    for (const figures of data.sends) {
-      const count: number = figures.counts.get(id) || 0;
-      if (count <= 0) {
-        continue;
-      }
-      sendCount += count;
-      sendErrors += Math.min(figures.errors.get(id) || 0, count);
-      if (count > busiestSends) {
-        busiestSends = count;
-        sendP95 = finiteOrNull(figures.p95Ms.get(id));
-      }
-    }
-
-    if (produced <= 0 && sendCount <= 0) {
-      continue;
-    }
-
-    if (produced <= 0) {
-      clientOnly.push({ id: id, sends: sendCount });
-    }
-
-    const errors: number =
-      sendCount > 0
-        ? sendErrors
-        : Math.min(data.producer.errors.get(id) || 0, produced);
-    const attempts: number = sendCount > 0 ? sendCount : produced;
-
-    rows.push({
-      serviceId: id,
-      calls: produced > 0 ? produced : sendCount,
-      errors: errors,
-      errorRatePercent: attempts > 0 ? (errors / attempts) * 100 : null,
-      p95DurationMs:
-        sendCount > 0 ? sendP95 : finiteOrNull(data.producer.p95Ms.get(id)),
-    });
-  }
-
-  clientOnly.sort(
-    (
-      a: { id: string; sends: number },
-      b: { id: string; sends: number },
-    ): number => {
-      return b.sends - a.sends || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-    },
-  );
-
-  return {
-    ...sortedServiceRows(
-      rows,
-      typeof data.limit === "number" && data.limit > 0
-        ? Math.floor(data.limit)
-        : MESSAGE_QUEUE_SERVICE_LIMIT,
-    ),
-    clientOnlyServiceIds: clientOnly.map(
-      (entry: { id: string; sends: number }): string => {
-        return entry.id;
-      },
-    ),
-    clientOnlyPublished: clientOnly.reduce(
-      (total: number, entry: { id: string; sends: number }): number => {
-        return total + entry.sends;
-      },
-      0,
+    p95Ms: valuesByService(
+      data.p95Result,
+      MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
     ),
   };
-}
-
-/*
- * The Consumers card: a service's messages are its "consume" spans plus,
- * on SQS, its receives that returned messages (one per batch); its
- * failures and p95 processing time are those of its "consume" spans alone
- * — a receive's time is the poll's, and a receive that failed returned no
- * message, so it is in neither group.
- */
-export function combineMessageQueueConsumerServices(data: {
-  consume: MessageQueueServiceSpanFigures;
-  receivedBatches?: MessageQueueServiceSpanFigures | undefined;
-  limit?: number | undefined;
-}): MessageQueueServices {
-  const batches: MessageQueueServiceSpanFigures =
-    data.receivedBatches || emptyServiceSpanFigures();
-  const ids: Set<string> = new Set<string>([
-    ...data.consume.counts.keys(),
-    ...batches.counts.keys(),
-  ]);
-
-  const rows: Array<MessageQueueServiceRow> = [];
-  for (const id of ids) {
-    const handled: number = data.consume.counts.get(id) || 0;
-    const received: number = batches.counts.get(id) || 0;
-    const consumed: number = handled + received;
-    const errors: number = Math.min(data.consume.errors.get(id) || 0, handled);
-    rows.push({
-      serviceId: id,
-      calls: consumed,
-      errors: errors,
-      errorRatePercent: consumed > 0 ? (errors / consumed) * 100 : null,
-      p95DurationMs:
-        handled > 0 ? finiteOrNull(data.consume.p95Ms.get(id)) : null,
-    });
-  }
-
-  return sortedServiceRows(
-    rows,
-    typeof data.limit === "number" && data.limit > 0
-      ? Math.floor(data.limit)
-      : MESSAGE_QUEUE_SERVICE_LIMIT,
-  );
 }
 
 // What the tiles and charts read, before client-only publishers join them.
@@ -999,11 +670,11 @@ export async function fetchMessageQueueSpanOverview(
               handledCount: sumOf(handledSeries),
               p95ProcessingSeries: aggregatedResultToTimePoints(
                 p95Result,
-                1 / NANOSECONDS_PER_MILLISECOND,
+                MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
               ),
               windowP95Ms: firstFiniteValue(
                 windowP95Result,
-                1 / NANOSECONDS_PER_MILLISECOND,
+                MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
               ),
             };
           },
@@ -1020,7 +691,7 @@ export async function fetchMessageQueueSpanOverview(
         figuresOf("send"),
         awsRpc
           ? figuresOf("awsSend")
-          : Promise.resolve(emptyServiceSpanFigures()),
+          : Promise.resolve(emptyMessageQueueServiceSpanFigures()),
         figuresOf("consume"),
         polled
           ? byService(receivedBatchQuery, AggregationType.Count).then(
@@ -1030,7 +701,7 @@ export async function fetchMessageQueueSpanOverview(
                 return toMessageQueueServiceSpanFigures({ countResult });
               },
             )
-          : Promise.resolve(emptyServiceSpanFigures()),
+          : Promise.resolve(emptyMessageQueueServiceSpanFigures()),
       ])
         .then(
           ([
@@ -1972,6 +1643,471 @@ export function hasMessageQueueBrokerMetricData(
   return results.some((result: MessageQueueBrokerMetricResult): boolean => {
     return result.series.length > 0;
   });
+}
+
+// ---- the Broker metrics card ----------------------------------------------
+
+/*
+ * What the Broker metrics card (MessageQueueBrokerMetricsStatus) reads
+ * besides the range's own results: when each catalog metric last arrived for
+ * the queue, over a lookback longer than any range a reader usually picks,
+ * and — for a namespace-scoped queue none of whose metrics is in the range —
+ * what the namespace sends at all. Neither ever reads a value: a count of
+ * datapoints per interval is all either needs.
+ */
+
+// How far back a metric's last arrival is looked for.
+export const MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS: number = 7;
+
+/*
+ * The recent stretch read minute by minute, so a metric that arrived lately
+ * says when to the minute; an older arrival is known to the hour.
+ */
+export const MESSAGE_QUEUE_BROKER_METRIC_RECENT_HOURS: number = 3;
+
+/*
+ * The stored key of the resource attribute a cloud connection (Cloud >
+ * Connect) puts on what it delivers: what tells its metrics - its reads'
+ * and its streams' - apart from a collector's.
+ */
+export const MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY: string = `resource.${CLOUD_CONNECTION_ID_ATTRIBUTE}`;
+
+/*
+ * What delivered a queue's metrics lately: each cloud connection (an Azure
+ * connection reads a Service Bus or Event Hubs namespace per queue), and a
+ * collector - whatever carries no connection's id.
+ */
+export interface MessageQueueBrokerMetricSources {
+  // The connections' ids, sorted.
+  connectionIds: Array<string>;
+  fromCollector: boolean;
+}
+
+/*
+ * How long before the queue's newest arrival what delivered it still counts
+ * as reading it: a source that stopped longer ago than that, while another
+ * still delivers, was replaced (a collector a cloud connection took over
+ * from, and the other way round).
+ */
+export const MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS: number = 2;
+
+/** When each of a queue's catalog metrics last arrived for it. */
+export interface MessageQueueBrokerMetricArrivals {
+  // The lookback's start: a metric absent below did not arrive since.
+  since: Date;
+  /*
+   * Stored metric name → the start of the newest interval it arrived in: a
+   * minute within the recent stretch, an hour before it.
+   */
+  lastArrivedAt: ReadonlyMap<string, Date>;
+  /*
+   * What delivered them lately (MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS
+   * before the newest arrival); none when nothing arrived in the lookback.
+   */
+  sources: MessageQueueBrokerMetricSources;
+}
+
+function uniqueMetricNamesOf(
+  metrics: ReadonlyArray<MessageQueueMetricDescriptor>,
+): Array<string> {
+  const names: Array<string> = [];
+  for (const descriptor of metrics) {
+    const name: string = (descriptor.metricName || "").trim().toLowerCase();
+    if (name && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+// metric name → its newest interval with a datapoint, from rows by name.
+function newestIntervalByName(
+  result: AggregatedResult | null | undefined,
+): Map<string, number> {
+  const newest: Map<string, number> = new Map<string, number>();
+  for (const row of (result?.data || []) as Array<AggregatedModel>) {
+    const raw: unknown = row["name"];
+    const name: string =
+      typeof raw === "string" ? raw.trim().toLowerCase() : "";
+    const time: number | null = intervalTimeOf(row);
+    const count: number = Number(row["value"]);
+    if (!name || time === null || !(count > 0)) {
+      continue;
+    }
+    const known: number | undefined = newest.get(name);
+    if (known === undefined || time > known) {
+      newest.set(name, time);
+    }
+  }
+  return newest;
+}
+
+/*
+ * What delivered the queue's metrics lately, from the lookback's rows by
+ * name and cloud connection: each source's newest hour, and the ones within
+ * MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS of the newest of all.
+ */
+export function getMessageQueueBrokerMetricSources(
+  result: AggregatedResult | null | undefined,
+): MessageQueueBrokerMetricSources {
+  // Connection id ("" for a collector) → its newest interval.
+  const newestBySource: Map<string, number> = new Map<string, number>();
+  let newest: number | null = null;
+
+  for (const row of (result?.data || []) as Array<AggregatedModel>) {
+    const time: number | null = intervalTimeOf(row);
+    const count: number = Number(row["value"]);
+    if (time === null || !(count > 0)) {
+      continue;
+    }
+    const raw: unknown = row["attributes"];
+    const source: string = stringAttributeOf(
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {},
+      [MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY],
+    );
+    const known: number | undefined = newestBySource.get(source);
+    if (known === undefined || time > known) {
+      newestBySource.set(source, time);
+    }
+    newest = newest === null ? time : Math.max(newest, time);
+  }
+
+  const connectionIds: Array<string> = [];
+  let fromCollector: boolean = false;
+  if (newest !== null) {
+    const from: number =
+      newest - MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS * 60 * 60 * 1000;
+    for (const [source, time] of newestBySource) {
+      if (time < from) {
+        continue;
+      }
+      if (source) {
+        connectionIds.push(source);
+      } else {
+        fromCollector = true;
+      }
+    }
+  }
+
+  return { connectionIds: connectionIds.sort(), fromCollector: fromCollector };
+}
+
+/**
+ * When each catalog metric last arrived for the queue in the last
+ * MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS, and what delivered them: two
+ * counts of its datapoints by name — per minute over the recent stretch,
+ * per hour over the lookback, that one by cloud connection too — under the
+ * queue's key. Null (and no API call) when unscoped; null too when a read
+ * fails or comes back cut off, so the card never claims a metric never
+ * arrived on an answer it did not get whole.
+ */
+export async function fetchMessageQueueBrokerMetricArrivals(data: {
+  projectId: ObjectID | string | null | undefined;
+  keys: ReadonlyArray<string>;
+  metrics: ReadonlyArray<MessageQueueMetricDescriptor>;
+  // When the lookback ends; the present by default.
+  now?: Date | undefined;
+}): Promise<MessageQueueBrokerMetricArrivals | null> {
+  const entityKeys: Includes | null = getMessageQueueEntityKeysQueryValue(
+    data.keys,
+  );
+  const projectId: ObjectID | null = projectIdOf(data.projectId);
+  const names: Array<string> = uniqueMetricNamesOf(data.metrics);
+  if (!entityKeys || !projectId || names.length === 0) {
+    return null;
+  }
+
+  const now: Date = data.now || OneUptimeDate.getCurrentDate();
+  const since: Date = OneUptimeDate.addRemoveDays(
+    now,
+    -MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS,
+  );
+  const recentSince: Date = OneUptimeDate.addRemoveHours(
+    now,
+    -MESSAGE_QUEUE_BROKER_METRIC_RECENT_HOURS,
+  );
+
+  const read: (
+    start: Date,
+    interval: AggregationInterval,
+    bySource: boolean,
+  ) => Promise<AggregatedResult> = (
+    start: Date,
+    interval: AggregationInterval,
+    bySource: boolean,
+  ): Promise<AggregatedResult> => {
+    return AnalyticsModelAPI.aggregate<Metric>({
+      modelType: Metric,
+      aggregateBy: aggregateBy<Metric>({
+        query: {
+          projectId: projectId,
+          time: new InBetween<Date>(start, now),
+          name: new Includes(names),
+          entityKeys: entityKeys,
+        },
+        aggregationType: AggregationType.Count,
+        aggregateColumnName: "value",
+        timestampColumnName: "time",
+        start: start,
+        end: now,
+        groupBy: { name: true },
+        groupByAttributeKeys: bySource
+          ? [MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY]
+          : undefined,
+        aggregationInterval: interval,
+      }),
+    });
+  };
+
+  try {
+    const [recent, lookback]: [AggregatedResult, AggregatedResult] =
+      await Promise.all([
+        read(recentSince, AggregationInterval.Minute, false),
+        read(since, AggregationInterval.Hour, true),
+      ]);
+    if (recent.truncated || lookback.truncated) {
+      return null;
+    }
+    const byMinute: Map<string, number> = newestIntervalByName(recent);
+    const byHour: Map<string, number> = newestIntervalByName(lookback);
+    const lastArrivedAt: Map<string, Date> = new Map<string, Date>();
+    for (const name of names) {
+      const time: number | undefined = byMinute.get(name) ?? byHour.get(name);
+      if (time !== undefined) {
+        lastArrivedAt.set(name, new Date(time));
+      }
+    }
+    return {
+      since: since,
+      lastArrivedAt: lastArrivedAt,
+      sources: getMessageQueueBrokerMetricSources(lookback),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * How long the arrivals are reused across the Overview's refreshes. They
+ * change only when a metric starts or stops arriving, and each read covers
+ * a week: re-read on every auto-refresh they would cost two week-long
+ * aggregates a tick. The range's own results keep an arriving metric's time
+ * current in between (MessageQueueBrokerMetricsStatus takes the newer).
+ */
+export const MESSAGE_QUEUE_BROKER_METRIC_ARRIVALS_TTL_MS: number =
+  5 * 60 * 1000;
+
+/**
+ * The arrivals of a queue's metrics, kept across the Overview's refreshes
+ * per queue scope (project, keys) and metric set for
+ * MESSAGE_QUEUE_BROKER_METRIC_ARRIVALS_TTL_MS. A failed read (null) is never
+ * kept, so the next refresh tries again.
+ */
+export class MessageQueueBrokerMetricArrivalsCache {
+  private readonly ttlMs: number;
+  private readonly entries: Map<
+    string,
+    { storedAt: number; arrivals: MessageQueueBrokerMetricArrivals }
+  > = new Map();
+
+  public constructor(
+    ttlMs: number = MESSAGE_QUEUE_BROKER_METRIC_ARRIVALS_TTL_MS,
+  ) {
+    this.ttlMs = ttlMs;
+  }
+
+  public static keyOf(data: {
+    projectId: ObjectID | string | null | undefined;
+    keys: ReadonlyArray<string>;
+    metrics: ReadonlyArray<MessageQueueMetricDescriptor>;
+  }): string {
+    return JSON.stringify([
+      String(data.projectId || ""),
+      [...data.keys],
+      uniqueMetricNamesOf(data.metrics),
+    ]);
+  }
+
+  public get(
+    key: string,
+    now: number,
+  ): MessageQueueBrokerMetricArrivals | null {
+    const entry:
+      | { storedAt: number; arrivals: MessageQueueBrokerMetricArrivals }
+      | undefined = this.entries.get(key);
+    if (!entry || now - entry.storedAt >= this.ttlMs) {
+      return null;
+    }
+    return entry.arrivals;
+  }
+
+  public set(
+    key: string,
+    arrivals: MessageQueueBrokerMetricArrivals | null,
+    now: number,
+  ): void {
+    if (!arrivals) {
+      this.entries.delete(key);
+      return;
+    }
+    this.entries.set(key, { storedAt: now, arrivals: arrivals });
+  }
+}
+
+/**
+ * The arrivals, from `cache` while fresh, else read and kept
+ * (fetchMessageQueueBrokerMetricArrivals).
+ */
+export async function fetchMessageQueueBrokerMetricArrivalsCached(data: {
+  projectId: ObjectID | string | null | undefined;
+  keys: ReadonlyArray<string>;
+  metrics: ReadonlyArray<MessageQueueMetricDescriptor>;
+  cache: MessageQueueBrokerMetricArrivalsCache;
+  // When the entry is judged fresh and the lookback ends; the present by default.
+  now?: Date | undefined;
+}): Promise<MessageQueueBrokerMetricArrivals | null> {
+  const now: Date = data.now || OneUptimeDate.getCurrentDate();
+  const key: string = MessageQueueBrokerMetricArrivalsCache.keyOf(data);
+  const kept: MessageQueueBrokerMetricArrivals | null = data.cache.get(
+    key,
+    now.getTime(),
+  );
+  if (kept) {
+    return kept;
+  }
+  const arrivals: MessageQueueBrokerMetricArrivals | null =
+    await fetchMessageQueueBrokerMetricArrivals({
+      projectId: data.projectId,
+      keys: data.keys,
+      metrics: data.metrics,
+      now: now,
+    });
+  data.cache.set(key, arrivals, now.getTime());
+  return arrivals;
+}
+
+/** One series a namespace sent in the range, by what it names. */
+export interface MessageQueueNamespaceSeries {
+  // The broker scope it carries, as stored (Azure: the namespace, `name`).
+  namespace: string;
+  // The destination it names, as stored; "" for a namespace's own total.
+  entity: string;
+  // Whether a cloud connection delivered it rather than a collector.
+  fromCloudConnection: boolean;
+}
+
+function stringAttributeOf(
+  attributes: Record<string, unknown>,
+  keys: ReadonlyArray<string>,
+): string {
+  for (const key of keys) {
+    const value: unknown = Object.prototype.hasOwnProperty.call(attributes, key)
+      ? attributes[key]
+      : undefined;
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
+/**
+ * What a namespace-scoped queue's NAMESPACE sent in the range under the
+ * system's catalog metric names, whatever queue (if any) each series reached:
+ * one count per series over the whole window, grouped by the scope key, the
+ * destination keys and the cloud connection key — never scoped by the
+ * queue's entity key, since the point is to find metrics that did not reach
+ * it. The scope is matched loosely on the server (a case-insensitive
+ * contains: an ARM name keeps the casing it was created with, the queue's
+ * scope is lowercased) and exactly here, by the caller
+ * (getMessageQueueNamespaceFinding). Null when the system's catalog has no
+ * scope key or the queue no namespace (no API call), and on failure;
+ * `isComplete` is false when the answer was cut off.
+ */
+export async function fetchMessageQueueNamespaceSeries(data: {
+  projectId: ObjectID | string | null | undefined;
+  start: Date;
+  end: Date;
+  metrics: ReadonlyArray<MessageQueueMetricDescriptor>;
+  namespace: string | null | undefined;
+}): Promise<{
+  series: Array<MessageQueueNamespaceSeries>;
+  isComplete: boolean;
+} | null> {
+  const projectId: ObjectID | null = projectIdOf(data.projectId);
+  const namespace: string = (data.namespace || "").trim();
+  const names: Array<string> = uniqueMetricNamesOf(data.metrics);
+  const scopeKeys: Array<string> = [];
+  const destinationKeys: Array<string> = [];
+  for (const descriptor of data.metrics) {
+    for (const key of descriptor.scopeAttributes || []) {
+      if (!scopeKeys.includes(key)) {
+        scopeKeys.push(key);
+      }
+    }
+    for (const key of descriptor.destinationAttributes) {
+      if (!destinationKeys.includes(key)) {
+        destinationKeys.push(key);
+      }
+    }
+  }
+  if (!projectId || !namespace || names.length === 0 || !scopeKeys[0]) {
+    return null;
+  }
+
+  const groupKeys: Array<string> = [];
+  for (const key of [
+    ...scopeKeys,
+    ...destinationKeys,
+    MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY,
+  ]) {
+    if (!groupKeys.includes(key)) {
+      groupKeys.push(key);
+    }
+  }
+
+  try {
+    const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Metric>({
+      modelType: Metric,
+      aggregateBy: aggregateBy<Metric>({
+        query: {
+          projectId: projectId,
+          time: new InBetween<Date>(data.start, data.end),
+          name: new Includes(names),
+          attributes: { [scopeKeys[0]]: new Search<string>(namespace) },
+        },
+        aggregationType: AggregationType.Count,
+        aggregateColumnName: "value",
+        timestampColumnName: "time",
+        start: data.start,
+        end: data.end,
+        groupByAttributeKeys: groupKeys,
+        aggregationInterval: AggregationInterval.Total,
+      }),
+    });
+
+    const series: Array<MessageQueueNamespaceSeries> = [];
+    for (const row of (result.data || []) as Array<AggregatedModel>) {
+      const raw: unknown = row["attributes"];
+      const attributes: Record<string, unknown> =
+        raw && typeof raw === "object" && !Array.isArray(raw)
+          ? (raw as Record<string, unknown>)
+          : {};
+      series.push({
+        namespace: stringAttributeOf(attributes, scopeKeys),
+        entity: stringAttributeOf(attributes, destinationKeys),
+        fromCloudConnection:
+          stringAttributeOf(attributes, [
+            MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY,
+          ]) !== "",
+      });
+    }
+    return { series: series, isComplete: !result.truncated };
+  } catch {
+    return null;
+  }
 }
 
 // ---- the Metrics tab -------------------------------------------------------

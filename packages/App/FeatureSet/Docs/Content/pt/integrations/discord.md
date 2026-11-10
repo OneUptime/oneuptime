@@ -50,7 +50,7 @@ Comece pelo modelo, que monta o workflow inteiro para você, ou do zero.
 
 O workflow abre no **Construtor** com duas etapas: **On Create Incident** e **Send Message to Discord**, que publica o número, o título, a gravidade e o estado do incidente. A URL é salva como a variável secreta `discordWebhookUrl` do workflow.
 @tab Do zero
-1. Salve a URL como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Fluxo de trabalho Variável**, dê o nome `DISCORD_WEBHOOK_URL` e clique em **Próximo**. Cole a URL em **Conteúdo**, ative **Segredo** e clique em **Criar: Fluxo de trabalho Variável**.
+1. Salve a URL como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Variável do fluxo de trabalho**, dê o nome `DISCORD_WEBHOOK_URL` e clique em **Próximo**. Cole a URL em **Conteúdo**, ative **Segredo** e clique em **Criar: Variável do fluxo de trabalho**.
 2. Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
 3. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident** em **Populares**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha os outros campos que a sua mensagem mostra, por exemplo **Incident Number With Prefix**.
 4. Clique em **Adicionar componente**, pesquise `discord` e clique em **Send Message to Discord**. Conecte a saída **Success** do gatilho a ela.

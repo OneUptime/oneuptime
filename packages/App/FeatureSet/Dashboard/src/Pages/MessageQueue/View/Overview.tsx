@@ -6,6 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
 import Service from "Common/Models/DatabaseModels/Service";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -20,6 +21,7 @@ import React, {
 } from "react";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -57,20 +59,46 @@ import {
 import {
   EMPTY_MESSAGE_QUEUE_SERVICES,
   EMPTY_MESSAGE_QUEUE_SPAN_METRICS,
+  MessageQueueBrokerMetricArrivals,
+  MessageQueueBrokerMetricArrivalsCache,
   MessageQueueBrokerMetricResult,
+  MessageQueueNamespaceSeries,
   MessageQueueObservedSeriesCache,
   MessageQueueServices,
   MessageQueueSpanMetrics,
   MessageQueueSpanOverview,
+  fetchMessageQueueBrokerMetricArrivalsCached,
   fetchMessageQueueBrokerMetrics,
+  fetchMessageQueueNamespaceSeries,
   fetchMessageQueueSpanOverview,
   getMessageQueueServiceIds,
 } from "../../../Components/MessageQueue/MessageQueueTelemetryQueries";
 import {
+  MessageQueueNamespaceFinding,
+  getMessageQueueBrokerMetricsStatus,
+  getMessageQueueNamespaceFinding,
+  shouldReadMessageQueueNamespace,
+} from "../../../Components/MessageQueue/MessageQueueBrokerMetricsStatus";
+import {
+  MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES,
+  MESSAGE_QUEUE_TRACE_CONSUMERS_LINK_LABEL,
+  MessageQueueMessagesChartLine,
+  MessageQueueMessagesChartSources,
+  MessageQueueOverviewFigures,
+  formatMessageQueueFigureValue,
+  getMessageQueueBrokerErrorsSublabel,
+  getMessageQueueBrokerFigureDescription,
+  getMessageQueueBrokerFigureSublabel,
+  getMessageQueueMessagesChart,
+  getMessageQueueOverviewFigures,
+} from "../../../Components/MessageQueue/MessageQueueOverviewFigures";
+import {
+  MESSAGE_QUEUE_INSTRUMENTING_DOCS_ANCHOR,
   MessageQueueLivenessStatus,
   formatMessageQueueCount,
   formatMessageQueueDurationMs,
   formatMessageQueueErrorRate,
+  getMessageQueueDocsRoute,
   getMessageQueueLivenessDescription,
   getMessageQueueLivenessLabel,
   getMessageQueueLivenessStatus,
@@ -100,10 +128,24 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
  *      receive polls), its failed spans of any kind, and the p95 of the
  *      consumer spans that handled messages (processing time), with a chart
  *      per interval — MessageQueueSpanPopulation says which spans are which.
+ *      A figure with no span to count reads the broker's own count instead
+ *      (MessageQueueOverviewFigures: messages in, messages out, failures),
+ *      and says so under its number; processing time has no broker
+ *      stand-in, so without consumer spans it says what would give one.
  *   2. Producers and Consumers — the services on each side of it.
  *   3. Broker health — its messaging system's curated broker metrics, each
- *      gauge with a "Create monitor" link, or a card saying where they come
- *      from while none has arrived.
+ *      gauge with a "Create monitor" link, and the Broker metrics card,
+ *      which says which of them arrived, when, and why the others did not
+ *      — and, while none has, where they come from. Its
+ *      arrivals over the last week are reused across refreshes for a few
+ *      minutes (MessageQueueBrokerMetricArrivalsCache); an Azure queue none
+ *      of whose metrics arrives also gets one read of what its namespace
+ *      sent instead (fetchMessageQueueNamespaceSeries) — the only read the
+ *      page makes without the queue's key, since its point is to find the
+ *      metrics that did not reach the queue. The arrivals also say which
+ *      cloud connections read the queue (an Azure connection reads Service
+ *      Bus and Event Hubs per queue), whose names the card links to Cloud >
+ *      Connect.
  *
  * Every query goes through Components/MessageQueue/MessageQueueTelemetryQueries,
  * scoped by the queue's entity key — built from its queueIdentifier (the
@@ -128,10 +170,30 @@ const MessageQueueOverview: FunctionComponent<
     EMPTY_MESSAGE_QUEUE_SERVICES,
   );
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
+  // The names of the cloud connections that read the queue, by id.
+  const [connectionNames, setConnectionNames] = useState<
+    Record<string, string>
+  >({});
   const [brokerMetrics, setBrokerMetrics] = useState<
     Array<MessageQueueBrokerMetricResult>
   >([]);
+  // When each broker metric last arrived in the last week; null unread.
+  const [brokerArrivals, setBrokerArrivals] =
+    useState<MessageQueueBrokerMetricArrivals | null>(null);
+  // What the queue's namespace sent instead, while nothing of its arrives.
+  const [namespaceFinding, setNamespaceFinding] =
+    useState<MessageQueueNamespaceFinding | null>(null);
   const [telemetryLoading, setTelemetryLoading] = useState<boolean>(true);
+  /*
+   * Whether Broker health has had its first answer: the telemetry's, and
+   * the namespace's when it is asked. Its loader shows until then and never
+   * again — a refresh, a zoom or a new range keeps what it shows until the
+   * new answer lands — so the card of a queue with nothing to chart does
+   * not give way to a loader on every auto-refresh, and does not swap its
+   * setup guidance for the namespace's finding a moment after it drew.
+   */
+  const [brokerHealthAnswered, setBrokerHealthAnswered] =
+    useState<boolean>(false);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
     end: Date;
@@ -154,6 +216,15 @@ const MessageQueueOverview: FunctionComponent<
   const observedSeriesCacheRef: React.MutableRefObject<MessageQueueObservedSeriesCache> =
     useRef<MessageQueueObservedSeriesCache>(
       new MessageQueueObservedSeriesCache(),
+    );
+  /*
+   * The broker metrics' arrivals over the last week (the Broker metrics
+   * card), kept across refreshes for a few minutes: two week-long reads a
+   * tick would cost more than everything else the page reads.
+   */
+  const brokerArrivalsCacheRef: React.MutableRefObject<MessageQueueBrokerMetricArrivalsCache> =
+    useRef<MessageQueueBrokerMetricArrivalsCache>(
+      new MessageQueueBrokerMetricArrivalsCache(),
     );
 
   const fetchModel: (showLoader: boolean) => Promise<void> = async (
@@ -257,7 +328,10 @@ const MessageQueueOverview: FunctionComponent<
       setProducers(EMPTY_MESSAGE_QUEUE_SERVICES);
       setConsumers(EMPTY_MESSAGE_QUEUE_SERVICES);
       setBrokerMetrics([]);
+      setBrokerArrivals(null);
+      setNamespaceFinding(null);
       setTelemetryLoading(false);
+      setBrokerHealthAnswered(true);
       return;
     }
 
@@ -270,6 +344,12 @@ const MessageQueueOverview: FunctionComponent<
 
     const catalog: ReadonlyArray<MessageQueueMetricDescriptor> =
       getMessageQueueMetricsForSystem(item.messagingSystem);
+    // The namespace and destination the key is made of (Azure's namespace).
+    const scopeIdentity: MessageQueueIdentity | null =
+      getMessageQueueScopeIdentity({
+        projectId: null,
+        queueIdentifier: item.queueIdentifier,
+      });
 
     /*
      * A slow wide-range fetch must not overwrite a newer one: a narrower
@@ -303,11 +383,22 @@ const MessageQueueOverview: FunctionComponent<
           rangeKey: JSON.stringify(timeRange),
         },
       }),
+      /*
+       * When each metric last arrived in the last week, for the Broker
+       * metrics card; null when the read fails, and the card claims less.
+       */
+      fetchMessageQueueBrokerMetricArrivalsCached({
+        projectId,
+        keys,
+        metrics: catalog,
+        cache: brokerArrivalsCacheRef.current,
+      }),
     ])
       .then(
-        async ([spans, broker]: [
+        async ([spans, broker, arrivals]: [
           MessageQueueSpanOverview,
           Array<MessageQueueBrokerMetricResult>,
+          MessageQueueBrokerMetricArrivals | null,
         ]): Promise<void> => {
           if (ignore) {
             return;
@@ -317,46 +408,153 @@ const MessageQueueOverview: FunctionComponent<
           setProducers(spans.producers);
           setConsumers(spans.consumers);
           setBrokerMetrics(broker);
+          setBrokerArrivals(arrivals);
           setTelemetryLoading(false);
 
-          const ids: Array<string> = getMessageQueueServiceIds(
-            spans.producers,
-            spans.consumers,
-          );
-          if (ids.length === 0) {
-            return;
-          }
-          try {
-            const result: ListResult<Service> = await ModelAPI.getList<Service>(
-              {
-                modelType: Service,
-                query: {
-                  _id: new Includes(
-                    ids.map((id: string): ObjectID => {
-                      return new ObjectID(id);
-                    }),
-                  ),
-                },
-                select: { _id: true, name: true },
-                sort: {},
-                skip: 0,
-                limit: ids.length,
-              },
-            );
-            if (ignore) {
-              return;
-            }
-            const names: Record<string, string> = {};
-            for (const service of result.data || []) {
-              const id: string = service._id?.toString() || "";
-              if (id && service.name) {
-                names[id] = service.name;
+          // The services' names, for the Producers and Consumers cards.
+          const readServiceNames: () => Promise<void> =
+            async (): Promise<void> => {
+              const ids: Array<string> = getMessageQueueServiceIds(
+                spans.producers,
+                spans.consumers,
+              );
+              if (ids.length === 0) {
+                return;
               }
-            }
-            setServiceNames(names);
-          } catch {
-            // Names are decoration; the rows keep their ids.
-          }
+              try {
+                const result: ListResult<Service> =
+                  await ModelAPI.getList<Service>({
+                    modelType: Service,
+                    query: {
+                      _id: new Includes(
+                        ids.map((id: string): ObjectID => {
+                          return new ObjectID(id);
+                        }),
+                      ),
+                    },
+                    select: { _id: true, name: true },
+                    sort: {},
+                    skip: 0,
+                    limit: ids.length,
+                  });
+                if (ignore) {
+                  return;
+                }
+                const names: Record<string, string> = {};
+                for (const service of result.data || []) {
+                  const id: string = service._id?.toString() || "";
+                  if (id && service.name) {
+                    names[id] = service.name;
+                  }
+                }
+                setServiceNames(names);
+              } catch {
+                // Names are decoration; the rows keep their ids.
+              }
+            };
+
+          /*
+           * The names of the cloud connections that read the queue, for the
+           * Broker metrics card's source line. A name it cannot read (a
+           * connection since deleted, no access) leaves the line naming
+           * Cloud > Connect instead.
+           */
+          const readConnectionNames: () => Promise<void> =
+            async (): Promise<void> => {
+              const ids: Array<string> = arrivals?.sources.connectionIds || [];
+              if (ids.length === 0) {
+                return;
+              }
+              try {
+                const result: ListResult<CloudConnection> =
+                  await ModelAPI.getList<CloudConnection>({
+                    modelType: CloudConnection,
+                    query: {
+                      _id: new Includes(
+                        ids.map((id: string): ObjectID => {
+                          return new ObjectID(id);
+                        }),
+                      ),
+                    },
+                    select: { _id: true, name: true },
+                    sort: {},
+                    skip: 0,
+                    limit: ids.length,
+                  });
+                if (ignore) {
+                  return;
+                }
+                const names: Record<string, string> = {};
+                for (const connection of result.data || []) {
+                  const id: string = connection._id?.toString() || "";
+                  if (id && connection.name) {
+                    names[id] = connection.name;
+                  }
+                }
+                setConnectionNames(names);
+              } catch {
+                // Names are decoration; the line names Cloud > Connect.
+              }
+            };
+
+          /*
+           * Nothing of the queue's arrives, and not because of the range: an
+           * Azure queue asks what its namespace sent instead (other queues
+           * only, its totals only, or nothing), which the Broker metrics
+           * card turns into the fix.
+           */
+          const readNamespace: () => Promise<void> =
+            async (): Promise<void> => {
+              const namespace: string = scopeIdentity?.brokerScope || "";
+              if (
+                !shouldReadMessageQueueNamespace({
+                  status: getMessageQueueBrokerMetricsStatus({
+                    messagingSystem: item.messagingSystem,
+                    catalog: catalog,
+                    results: broker,
+                    arrivals: arrivals,
+                    brokerMetricsLastSeenAt: item.brokerMetricsLastSeenAt,
+                    window: { start, end },
+                  }),
+                  catalog: catalog,
+                  namespace: namespace,
+                })
+              ) {
+                setNamespaceFinding(null);
+                setBrokerHealthAnswered(true);
+                return;
+              }
+              const sent: {
+                series: Array<MessageQueueNamespaceSeries>;
+                isComplete: boolean;
+              } | null = await fetchMessageQueueNamespaceSeries({
+                projectId,
+                start,
+                end,
+                metrics: catalog,
+                namespace: namespace,
+              });
+              if (ignore) {
+                return;
+              }
+              setNamespaceFinding(
+                sent
+                  ? getMessageQueueNamespaceFinding({
+                      namespace: namespace,
+                      destination: scopeIdentity?.destination,
+                      series: sent.series,
+                      isComplete: sent.isComplete,
+                    })
+                  : null,
+              );
+              setBrokerHealthAnswered(true);
+            };
+
+          await Promise.all([
+            readServiceNames(),
+            readConnectionNames(),
+            readNamespace(),
+          ]);
         },
       )
       .catch(() => {
@@ -365,6 +563,7 @@ const MessageQueueOverview: FunctionComponent<
         }
         telemetryInFlightRef.current = false;
         setTelemetryLoading(false);
+        setBrokerHealthAnswered(true);
       });
 
     return () => {
@@ -458,6 +657,20 @@ const MessageQueueOverview: FunctionComponent<
   );
   // Any span at all: a count of 0 then means none of that kind.
   const hasSpans: boolean = m.total > 0;
+  /*
+   * Each figure from the best source it has: the queue's spans, else its
+   * broker's own counts (MessageQueueOverviewFigures).
+   */
+  const figures: MessageQueueOverviewFigures = getMessageQueueOverviewFigures({
+    spans: m,
+    broker: brokerMetrics,
+    window: chartWindow,
+  });
+  /*
+   * No consumer span handled a message: the processing time says what would
+   * give it. Not for a queue with no key, whose banner says why nothing is.
+   */
+  const needsConsumerTraces: boolean = isScoped && !figures.hasProcessingTime;
 
   const populate: (page: PageMap) => Route = (page: PageMap): Route => {
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
@@ -481,76 +694,133 @@ const MessageQueueOverview: FunctionComponent<
     });
   }
 
+  /*
+   * A tile reading the broker's counts says so under its number, opens the
+   * Metrics tab rather than the traces, and draws no error-rate bar: the
+   * broker counts no spans to divide by.
+   */
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Published",
-      value: hasSpans ? formatMessageQueueCount(m.published) : "—",
+      value: formatMessageQueueFigureValue(figures.published),
       icon: IconProp.PaperAirplane,
       iconColor: "sky",
       loading: telemetryLoading,
-      sublabel: "publish spans, selected range",
-      to: populate(PageMap.MESSAGE_QUEUE_VIEW_TRACES),
-      description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.published,
+      sublabel: figures.published.broker
+        ? getMessageQueueBrokerFigureSublabel(figures.published.broker)
+        : "publish spans, selected range",
+      to: populate(
+        figures.published.broker
+          ? PageMap.MESSAGE_QUEUE_VIEW_METRICS
+          : PageMap.MESSAGE_QUEUE_VIEW_TRACES,
+      ),
+      description: figures.published.broker
+        ? getMessageQueueBrokerFigureDescription(
+            figures.published.broker,
+            q.messagingSystem,
+            translator,
+          )
+        : MESSAGE_QUEUE_METRIC_DESCRIPTIONS.published,
     },
     {
       title: "Consumed",
-      value: hasSpans ? formatMessageQueueCount(m.consumed) : "—",
+      value: formatMessageQueueFigureValue(figures.consumed),
       icon: IconProp.InboxArrowDown,
       iconColor: "violet",
       loading: telemetryLoading,
-      sublabel: "consumer spans, selected range",
-      to: populate(PageMap.MESSAGE_QUEUE_VIEW_TRACES),
-      description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.consumed,
+      sublabel: figures.consumed.broker
+        ? getMessageQueueBrokerFigureSublabel(figures.consumed.broker)
+        : "consumer spans, selected range",
+      to: populate(
+        figures.consumed.broker
+          ? PageMap.MESSAGE_QUEUE_VIEW_METRICS
+          : PageMap.MESSAGE_QUEUE_VIEW_TRACES,
+      ),
+      description: figures.consumed.broker
+        ? getMessageQueueBrokerFigureDescription(
+            figures.consumed.broker,
+            q.messagingSystem,
+            translator,
+          )
+        : MESSAGE_QUEUE_METRIC_DESCRIPTIONS.consumed,
     },
     {
       title: "Errors",
-      value: hasSpans ? formatMessageQueueCount(m.errors) : "—",
+      value: formatMessageQueueFigureValue(figures.errors),
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: telemetryLoading,
-      sublabel: hasSpans
-        ? translator.translatePlural(
-            {
-              one: "{{rate}} of {{count}} span",
-              other: "{{rate}} of {{count}} spans",
-            },
-            m.total,
-            {
-              rate: formatMessageQueueErrorRate(m.errorRatePercent),
-              count: formatMessageQueueCount(m.total),
-            },
-          )
-        : undefined,
-      percent: m.errorRatePercent,
+      sublabel: figures.errorsTileBroker
+        ? getMessageQueueBrokerErrorsSublabel(figures, translator)
+        : hasSpans
+          ? translator.translatePlural(
+              {
+                one: "{{rate}} of {{count}} span",
+                other: "{{rate}} of {{count}} spans",
+              },
+              m.total,
+              {
+                rate: formatMessageQueueErrorRate(m.errorRatePercent),
+                count: formatMessageQueueCount(m.total),
+              },
+            )
+          : undefined,
+      percent: figures.errorsTileBroker ? undefined : m.errorRatePercent,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
-      description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.errors,
+      to: figures.errorsTileBroker
+        ? populate(PageMap.MESSAGE_QUEUE_VIEW_METRICS)
+        : undefined,
+      description: figures.errorsTileBroker
+        ? getMessageQueueBrokerFigureDescription(
+            figures.errorsTileBroker,
+            q.messagingSystem,
+            translator,
+          )
+        : MESSAGE_QUEUE_METRIC_DESCRIPTIONS.errors,
     },
     {
       title: "p95 processing time",
       value: formatMessageQueueDurationMs(m.p95ProcessingMs),
+      // No broker measures it: say what gives it rather than a dash.
+      valueNote: needsConsumerTraces
+        ? MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES
+        : undefined,
       icon: IconProp.Clock,
       iconColor: "emerald",
       loading: telemetryLoading,
-      sublabel: "consumer spans, as the consumers measure them",
+      // The note says it all: the line under it would only repeat it.
+      sublabel: needsConsumerTraces
+        ? undefined
+        : "consumer spans, as the consumers measure them",
       description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.p95Processing,
     },
   ];
+
+  /*
+   * The Messages chart's lines: spans' as they always were, or — once a line
+   * is the broker's — the lines with points, the broker's marked only
+   * beside a line of spans (getMessageQueueMessagesChart).
+   */
+  const messagesChart: {
+    lines: Array<MessageQueueMessagesChartLine>;
+    sources: MessageQueueMessagesChartSources;
+  } = getMessageQueueMessagesChart(figures);
 
   const charts: ReactElement = (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <ChartCard
         title="Messages"
-        description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChart}
+        description={
+          messagesChart.sources === "broker"
+            ? MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChartBrokerOnly
+            : messagesChart.sources === "mixed"
+              ? MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChartBroker
+              : MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChart
+        }
         icon={IconProp.QueueList}
         iconColor="sky"
-        series={
-          [
-            { seriesName: "Published", data: m.publishedSeries },
-            { seriesName: "Consumed", data: m.consumedSeries },
-            { seriesName: "Errors", data: m.errorSeries },
-          ] as Array<SeriesPoint>
-        }
+        series={messagesChart.lines as Array<SeriesPoint>}
         windowStart={chartWindow?.start ?? null}
         windowEnd={chartWindow?.end ?? null}
         syncId={`message-queue-${modelId.toString()}`}
@@ -558,8 +828,8 @@ const MessageQueueOverview: FunctionComponent<
         yAllowDecimals={false}
         loading={
           telemetryLoading &&
-          m.publishedSeries.length === 0 &&
-          m.consumedSeries.length === 0
+          figures.published.series.length === 0 &&
+          figures.consumed.series.length === 0
         }
       />
       <ChartCard
@@ -580,6 +850,24 @@ const MessageQueueOverview: FunctionComponent<
           return formatMessageQueueDurationMs(value);
         }}
         loading={telemetryLoading && m.p95ProcessingSeries.length === 0}
+        emptyMessage={
+          needsConsumerTraces ? MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES : undefined
+        }
+        emptyAction={
+          needsConsumerTraces ? (
+            <Link
+              to={getMessageQueueDocsRoute(
+                MESSAGE_QUEUE_INSTRUMENTING_DOCS_ANCHOR,
+              )}
+              openInNewTab={true}
+              className="text-sm font-medium text-indigo-600 hover:underline"
+            >
+              {translator.translateText(
+                MESSAGE_QUEUE_TRACE_CONSUMERS_LINK_LABEL,
+              )}
+            </Link>
+          ) : undefined
+        }
       />
     </div>
   );
@@ -725,9 +1013,12 @@ const MessageQueueOverview: FunctionComponent<
               : null
           }
           results={brokerMetrics}
-          isLoading={telemetryLoading && isScoped}
+          isLoading={isScoped && !brokerHealthAnswered}
           windowStart={chartWindow?.start ?? null}
           windowEnd={chartWindow?.end ?? null}
+          arrivals={brokerArrivals}
+          namespaceFinding={namespaceFinding}
+          connectionNames={connectionNames}
         />
       </div>
     </TimeRangeZoomScope>

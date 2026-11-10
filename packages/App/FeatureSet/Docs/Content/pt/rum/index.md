@@ -42,10 +42,11 @@ O menu lateral de uma aplicação agrupa as páginas dela assim; **Configuraçõ
 | --- | --- |
 | **Básico** | **Visão geral**, **Recomendações**, **Documentação** |
 | **Observabilidade** | **Métricas**, **Registros**, **Traços**, **Clientes** |
-| **Reprodução de sessões** | **Reprodução de sessões**, **Fluxos de usuários**, **Usuários das reproduções**, **Integridade**, **Política de reprodução**, **Registro de acesso aos replays**, **Documentação** |
+| **Análise de produto** | **Usuários**, **Sessões** |
+| **Reprodução de sessões** | **Reprodução de sessões**, **Fluxos de usuários**, **Usuários das reproduções**, **Integridade**, **Política de reprodução**, **Sinais de frustração**, **Registro de acesso aos replays**, **Documentação** |
 | **Configurações** | **Configurações** |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA** |
-| **Avançado** | **Excluir aplicação** |
+| **Avançado** | **Registros de auditoria**, **Excluir aplicação** |
 
 ## Como o OneUptime reconhece o RUM
 
@@ -81,12 +82,13 @@ O OneUptime encontra a aplicação pelo `service.name`, sem diferenciar maiúscu
 | **Core Web Vitals** | Um cartão na visão geral com LCP, INP, CLS, FCP e TTFB, cada um avaliado pelos limites do Google, e o INP de cada rota de um aplicativo de página única. Veja [Core Web Vitals](/docs/rum/web-vitals) e [Aplicativos de página única](/docs/rum/web-vitals#aplicativos-de-página-única). |
 | **Métricas**, **Registros**, **Traços** | Os exploradores de telemetria, limitados a esta aplicação. |
 | **Clientes** | As plataformas de navegador e os modelos de dispositivo em que a aplicação foi usada: uma lista curta por plataforma, nunca uma linha por usuário. |
+| **Análise de produto** | Usuários ativos, novos, recorrentes e inativos, e sessões por dispositivo, navegador, país e página, contados a partir das sessões gravadas: veja [Análise de produto](/docs/rum/product-analytics). |
 | **Reprodução de sessões** | Gravações de sessões reais, ao lado dos erros, traços e registros delas: veja [Reprodução de sessões](/docs/telemetry/session-replay). |
 | **Recomendações** | Monitores prontos para a aplicação: Core Web Vitals ruins, requisições com falha, exceções do navegador e, assim que ela grava, orçamentos do Session Replay. |
 
 As contagens vêm dos spans que a sua instrumentação envia. **Carregamentos de página** conta o span `documentLoad` que a instrumentação de carregamento de página registra em cada carregamento completo, então uma mudança de rota dentro de um aplicativo de página única não é um carregamento de página.
 
-Uma aplicação mostra **Conectado** enquanto a telemetria chega e **Desconectado** depois de 15 minutos sem ela. O tempo em que o próprio OneUptime estava fora do ar ou colocando em dia sua fila de ingestão não conta para esses 15 minutos.
+Uma aplicação mostra **Recebendo dados** enquanto a telemetria chega e **Sem tráfego recente** depois de 15 minutos sem ela, o que é normal enquanto ninguém usa o aplicativo. Uma aplicação adicionada manualmente mostra **Aguardando dados** até chegarem os primeiros dados. O tempo em que o próprio OneUptime estava fora do ar ou colocando em dia sua fila de ingestão não conta para esses 15 minutos.
 
 ## Primeiros passos
 

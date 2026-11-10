@@ -44,8 +44,23 @@ Alle drei liegen unter **Produkte → KI / LLM → Verbinden**. Nutzen Sie einen
 | Weg hinein | Was Sie bekommen | Wie |
 | --- | --- | --- |
 | **Deine Apps** | Jeder KI-Aufruf, während er passiert: die Unterhaltung, die Person, der Prompt und die Antwort, Tokens, Kosten und Fehler | OpenTelemetry aus Ihrem Code oder einem Gateway, in fünf Schritten |
-| **Deine KI-Anbieterkonten** | Was jedes Konto bei OpenAI, Anthropic, Azure, Bedrock oder Vertex AI verbraucht und gekostet hat, pro Tag | Zugangsdaten, die nur lesen, und kein Code: [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts) |
+| **Deine KI-Anbieterkonten** | Was jedes Konto bei OpenAI, Anthropic, Azure, Bedrock, Vertex AI oder Cursor verbraucht und gekostet hat, pro Tag oder pro Stunde | Zugangsdaten, die nur lesen, und kein Code: [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts) |
 | **Die KI-Tools deines Unternehmens** | Was Ihre Leute Claude Enterprise oder Microsoft 365 Copilot fragen, pro Person | Zugangsdaten, die nur lesen, und kein Code: [KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools) |
+
+Anbieterkonten und Coding-Assistenten bringen Nutzung und Kosten, nie einen Aufruf: Diese füllen **Nutzung**, und **Unterhaltungen** und **Aufrufe** bleiben leer, bis Ihre Apps ihre KI-Aufrufe senden oder ein KI-Tool des Unternehmens verbunden ist. [Prüfen, was ankommt](#prüfen-was-ankommt) zeigt, welcher Weg was bringt.
+
+## Prüfen, was ankommt
+
+Die **Einrichtungsprüfung** oben auf **Verbinden** sagt, was jeder Weg hinein gerade bringt, und **Erneut prüfen** liest sie erneut. Eine leere Liste unter **Unterhaltungen** oder **Aufrufe** beginnt mit demselben Befund und einer Schaltfläche für den nächsten Schritt.
+
+| Was sie findet | Was zu tun ist |
+| --- | --- |
+| Keine App hat einen KI-Aufruf gesendet | [Ihre KI-Aufrufe senden](#ihre-ki-aufrufe-senden): Verbundene Anbieterkonten bringen Nutzung und Kosten pro Tag, nie einen Aufruf |
+| Eine App ruft die API eines KI-Anbieters auf, und keine GenAI-Instrumentierung zeichnet das auf | Fügen Sie eine für die Sprache der App hinzu: Die Prüfung fand die HTTP-Client-Spans der App zu `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` oder zur API eines anderen KI-Anbieters |
+| Aufrufe kommen ohne Prompts oder Antworten an | [Festhalten, was gesagt wurde](#festhalten-was-gesagt-wurde), auf den Spans oder als Log-Ereignisse |
+| Prompts und Antworten kommen als Log-Ereignisse an | Nichts: Unterhaltungen lesen sie, und wer die Logs der App lesen darf, kann sie auch auf der Seite **Protokolle** lesen |
+| Die Aufrufe liegen knapp außerhalb des Zeitraums | Die Liste bietet den Zeitraum an, der den neuesten enthält |
+| Ein Anbieterkonto liest keine Nutzung | Seine Zeile nennt den letzten Tag mit Nutzung oder den ersten gelesenen Tag; eine Azure-Verbindung, die keine Ressource findet, braucht Monitoring Reader dort, wo die Ressourcen liegen |
 
 ## Bevor Sie beginnen
 
@@ -94,6 +109,25 @@ traceloop.initialize({
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
+@tab .NET
+```bash
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
+```
+
+```csharp
+// Before any OpenAI or Azure OpenAI client is created:
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("OpenAI.*").AddOtlpExporter())
+    .WithMetrics(metrics => metrics.AddMeter("OpenAI.*").AddOtlpExporter());
+```
+@tab Java
+```bash
+curl -L -O https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+java -javaagent:opentelemetry-javaagent.jar -jar my-ai-agent.jar
+```
 @tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -102,6 +136,8 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
 :::
+
+Jeder davon verfolgt Aufrufe an OpenAI, Azure OpenAI und Microsoft Foundry gleichermaßen. Setzen Sie unter .NET und Java auch die Variablen des Tabs OpenTelemetry SDK: Die Bibliotheken OpenAI und Azure.AI.OpenAI verfolgen ihre Aufrufe, sobald ihr Schalter an ist, und der Java-Agent verfolgt das OpenAI Java SDK.
 
 Betreiben Sie OneUptime selbst? Verwenden Sie `https://YOUR-ONEUPTIME-HOST/otlp` statt `https://oneuptime.com/otlp`. Rufen Sie Ihr Modell einmal auf, und der Aufruf erscheint unter **Aufrufe**.
 
@@ -114,6 +150,8 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
 Neuere OpenTelemetry-Instrumentierungen erwarten `span_only`, `event_only` oder `span_and_event` statt `true`. Ohne aufgezeichneten Inhalt zeigt eine Unterhaltung trotzdem ihre Zeiten, Kosten und Probleme. Prompts können sensible Daten enthalten: [Datenschutz und Schwärzung](#datenschutz-und-schwärzung) zeigt, wie Sie sie vor dem Speichern maskieren.
+
+Unterhaltungen lesen, was auf dem Span des Aufrufs aufgezeichnet ist, und die Log-Ereignisse, die die App mit der Trace- und Span-ID des Aufrufs sendet. Die OpenTelemetry-Instrumentierung für Python zeichnet es mit `span_only` auf dem Span auf; die Instrumentierungen für JavaScript und Java und die für Python mit `true` oder `event_only` senden es als Log-Ereignisse, die mit den Logs der App bei OneUptime ankommen. Das AI Inference SDK von Azure zeichnet es mit `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` auf dem Span auf, Microsoft.Extensions.AI mit `EnableSensitiveData`; die OpenAI-Bibliothek für .NET zeichnet nichts auf.
 
 ### Aufrufe zu Unterhaltungen gruppieren
 
@@ -203,33 +241,36 @@ Eine fertige Warnung löst eine Warnung aus, die sich selbst auflöst, und zeigt
 
 Der Tab **Nutzung** zeigt die Aufrufe, Tokens und Kosten eines Zeitraums (die letzten 7 Tage, wenn Sie keinen anderen wählen) und eine Tabelle der Top 25 nach einer von fünf Aufschlüsselungen: **Mitarbeiter**, **Team**, **Modell**, **Anbieter** und **Anwendung / Dienst**. Aufrufe, die niemanden nennen, werden unter **Nicht zugeordnet** gezählt, nie verworfen.
 
-Das sind **Deine KI-Aufrufe**. Wählen Sie stattdessen **Anbieterkonten**, um zu sehen, was Ihren verbundenen Konten bei OpenAI, Anthropic, Azure, Bedrock und Vertex AI berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#die-nutzung-ansehen). Beides wird nie addiert.
+Das sind **Deine KI-Aufrufe**. Wählen Sie stattdessen **Anbieterkonten**, um zu sehen, was Ihren verbundenen Konten bei OpenAI, Anthropic, Azure, Bedrock, Vertex AI und Cursor berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#die-nutzung-ansehen). Beides wird nie addiert.
 
 Personen und Teams kommen aus Identitätsattributen des Aufrufs: siehe [Zuordnung zu Mitarbeitern und Teams](/docs/telemetry/ai-coding-assistants#zuordnung-zu-mitarbeitern-und-teams).
 
-### Spans zuerst, Metriken springen ein
+### Jeder Dienst wird aus dem gezählt, was er sendet
 
-GenAI-Spans tragen Modell, Tokens und Kosten eines Aufrufs, wo es sie gibt, beantworten sie also alles. Manche Tools veröffentlichen Token- und Kostenmetriken und keine GenAI-Spans, etwa die meisten Coding-Assistenten. OneUptime liest diese Metriken nur für eine Zahl, zu der die Spans nichts gemeldet haben, und addiert beide nie: Viele Instrumentierungen senden beides für denselben Aufruf, und die Summe würde jeden Dollar doppelt zählen.
+KI-Nutzung kommt in zwei Formen an. GenAI-Spans sind KI-Aufrufe: einer pro Aufruf, mit Modell, Tokens und Kosten. GenAI-Metriken sind Nutzungsmetriken: Zähler für Tokens und Kosten, die die meisten Coding-Assistenten statt Spans senden und manche Instrumentierungen neben ihren Spans, für dieselben Aufrufe. Beides zu addieren würde diese Aufrufe doppelt zählen, also zählt OneUptime jeden Dienst aus einem von beiden: seine Tokens aus seinen KI-Aufrufen, wenn sie Tokens melden, und sonst aus seinen Nutzungsmetriken, und seine Kosten genauso, für sich. Ein Coding-Assistent, der nur Metriken sendet, wird so neben den Apps gezählt, die Spans senden, im selben Projekt, und eine App, die beides sendet, einmal.
 
-```mermaid title="Woher eine Zahl im Tab Nutzung kommt"
+```mermaid title="Woher die Tokens oder Kosten eines Dienstes kommen"
 flowchart TB
-    spans{"Melden GenAI-<br/>Spans sie?"}
-    spans -->|"Ja"| fromSpans["Aus Spans<br/>gezeigt"]
-    spans -->|"Nein"| metrics{"Melden GenAI-<br/>Metriken sie?"}
-    metrics -->|"Ja"| fromMetrics["Aus Metriken gezeigt,<br/>markiert mit<br/>aus GenAI-Metriken"]
-    metrics -->|"Nein"| nothing["Nichts<br/>zu zeigen"]
+    spans{"Melden seine<br/>KI-Aufrufe sie?"}
+    spans -->|"Ja"| fromSpans["Aus KI-Aufrufen<br/>gezählt"]
+    spans -->|"Nein"| metrics{"Melden seine<br/>Nutzungsmetriken sie?"}
+    metrics -->|"Ja"| fromMetrics["Aus Nutzungs-<br/>metriken gezählt"]
+    metrics -->|"Nein"| nothing["Nichts<br/>zu zählen"]
 ```
 
-| Wo | Was auf Metriken zurückfällt | Wann |
+| Wo | Aus KI-Aufrufen | Aus Nutzungsmetriken |
 | --- | --- | --- |
-| Eingabe- und Ausgabe-Tokens | Beide Summen | Die Token-Summen der Spans sind beide 0 |
-| Kosten (USD) | Die Kosten, mit den Mikro-USD-Kosten von Codex in USD umgerechnet | Die Kostensumme der Spans ist 0 |
-| LLM-Aufrufe | Nichts: nur Spans | — |
-| Tabellen **Mitarbeiter**, **Team**, **Modell** | Nur Kosten; die Zellen für Aufrufe und Tokens zeigen `—` | Die Tabelle fand keine Span-Zeilen |
-| Tabellen **Anbieter**, **Anwendung / Dienst** | Nichts: nur Spans | — |
-| Unterhaltungen | Nichts: Unterhaltungen entstehen aus Spans | — |
+| Eingabe- und Ausgabe-Tokens | Die Tokens jedes Modellaufrufs, einmal | Die Tokens eines Dienstes, wenn seine KI-Aufrufe keine melden |
+| Kosten (USD) | Die Kosten jedes Modellaufrufs, einmal | Die Kosten eines Dienstes, wenn seine KI-Aufrufe keine melden, mit den Mikro-USD-Kosten von Codex in USD umgerechnet |
+| KI-Aufrufe | Jeder KI-Aufruf, wie **Aufrufe** sie auflistet | Nie: Eine Metrik zählt keine Aufrufe |
+| Tabellen **Mitarbeiter**, **Team**, **Modell**, **Anbieter**, **Anwendung / Dienst** | Aufrufe, Tokens und Kosten jeder Zeile | Tokens und Kosten der aus Metriken gezählten Dienste, unter der Person, dem Team, dem Modell oder dem Anbieter, den ihre Punkte nennen |
+| Unterhaltungen | Aus KI-Aufrufen gebaut | Nie |
 
-Eine aus Metriken genommene Zahl ist mit **aus GenAI-Metriken** markiert, weil sie keine passenden Zeilen in **Aufrufe** hat. Sobald Ihre GenAI-Spans also eine Zahl melden, erscheint der Anteil eines reinen Metrik-Tools daran nicht. Um die Ausgaben eines solchen Tools für sich zu sehen, senden Sie es in ein eigenes Projekt, in dem keine GenAI-Spans ankommen.
+Unter jeder Zahl sagt der Tab Nutzung, woher sie kommt: **Aus KI-Aufrufen**, **Aus Nutzungsmetriken** oder **Aus KI-Aufrufen und Nutzungsmetriken**, wenn manche Dienste Aufrufe und andere Metriken gesendet haben. Eine aus Nutzungsmetriken gezählte Tabellenzeile sagt es unter ihrem Namen, und ihre Zelle für Aufrufe zeigt `—`, wenn sie keinen KI-Aufruf hat, weil eine Metrik keine Details pro Aufruf hat; der Kopf der Tabelle nennt die aus Nutzungsmetriken gezählten Dienste, außer bei **Anwendung / Dienst**, deren Zeilen die Dienste selbst sind. Eine Nutzungsmetrik, die keinen Dienst nennt, wird unter **Unbekannter Dienst** gezählt, einem Dienst wie jedem anderen. Wenn Ihre Rolle Traces lesen darf, aber keine Metriken, bleiben die Nutzungsmetriken weg, und die Tabelle sagt es.
+
+Jeder Modellaufruf wird einmal gezählt. Ein Agentenlauf oder der Span eines Frameworks um den eigenen Span des SDKs wiederholt oft die Tokens und Kosten der Aufrufe darin: Die Tokens eines Spans oder seine Kosten bleiben weg, wo immer ein Aufruf darin sie meldet, und ein Agentenlauf behält seine eigenen Zahlen, wenn kein Aufruf darin welche meldet. Budgets und die Liste **Unterhaltungen** zählen genauso, während **Aufrufe** jeden Span mit seinen eigenen Zahlen auflistet.
+
+Eine Token- oder Kostenmetrik ist ein Zähler. Die Punkte eines Delta-Zählers werden addiert; ein kumulativer Zähler, der Standard der OpenTelemetry-SDKs, zählt, um wie viel er im Zeitraum gewachsen ist, jede Serie für sich, sodass eine jede Minute exportierte laufende Summe einmal gezählt wird, und ein Rückgang gilt als Neustart bei 0, so wie `increase()` von Prometheus ihn liest. Budgets zählen GenAI-Metriken genauso.
 
 ## Was ein Aufruf kostet
 
@@ -243,7 +284,7 @@ Um ein Modell selbst zu bepreisen (ein ausgehandelter Tarif, ein Fine-Tune oder 
 
 ## Tägliche Kostenbudgets
 
-Ein Budget verfolgt die Ausgaben eines Tages in USD, über den UTC-Tag. Alle 15 Minuten addiert OneUptime die KI-Ausgaben des Tages (aus Spans oder, wenn kein Span welche gemeldet hat, aus GenAI-Kostenmetriken), zeigt sie am Budget und veröffentlicht zwei Metriken. Ein Budget, dessen **Ausgaben zählen aus** auf **Anbieterkonten** steht, zählt stattdessen, was Ihren verbundenen Konten berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#budgets-und-alarme).
+Ein Budget verfolgt die Ausgaben eines Tages in USD, über den UTC-Tag. Alle 15 Minuten addiert OneUptime die KI-Ausgaben des Tages (jeden Dienst aus seinen KI-Aufrufen oder, wenn seine Aufrufe keine Kosten melden, aus seinen Kostenmetriken), zeigt sie am Budget und veröffentlicht zwei Metriken. Ein Budget, dessen **Ausgaben zählen aus** auf **Anbieterkonten** steht, zählt stattdessen, was Ihren verbundenen Konten berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#budgets-und-alarme).
 
 | Metrik | Was sie ist |
 | --- | --- |
@@ -276,6 +317,10 @@ GenAI-Metriken wie `gen_ai.client.token.usage` und `gen_ai.client.operation.dura
 
 KI-Aufrufe werden als Trace-Spans gespeichert, daher gelten die **Scrub-Regeln** und **Drop-Filter** der Traces für sie: Maskieren Sie ein Attribut oder verwerfen Sie einen Span, bevor er gespeichert wird. Beides finden Sie unter **Traces → Einstellungen**. Die Spalte mit der E-Mail des Mitarbeiters wird mit dem Attribut bereinigt, aus dem sie gelesen wurde, sodass eine Regel, die E-Mails maskiert, sie ebenfalls erfasst.
 
+Als Log-Ereignisse gesendete Prompts und Antworten werden als Logs gespeichert, daher gelten für sie die **Scrub-Regeln** und **Drop-Filter** der Logs, unter **Protokolle → Einstellungen**: Eine Regel, die E-Mails in den Traces maskiert, maskiert sie nicht in Log-Ereignissen. Eine Unterhaltung zeigt sie nur denen, die auch die Logs dieser App lesen dürfen, und diese finden sie auch auf der Seite **Protokolle**.
+
+In beiden Fällen liest eine Regel jeden Text in einer Liste oder einem strukturierten Wert, etwa Nachrichten, die eine Instrumentierung als Liste statt als JSON-Text sendet, und behält die Form des Werts bei: Eine E-Mail-Adresse in einem Prompt wird maskiert, wo immer sie steht. Siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen).
+
 Unterhaltungen werden mit derselben Berechtigung gelesen wie Traces: Wer die Traces des Projekts lesen darf, darf seine Unterhaltungen lesen, und niemand sonst. Die Unterhaltungen eines KI-Tools des Unternehmens sind die Ausnahme: Nur Projektinhaber und Admins können sie lesen, es sei denn, seine Verbindung sagt etwas anderes ([KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools#datenschutz)).
 
 ## Attribute, die OneUptime liest
@@ -302,6 +347,8 @@ OneUptime liest die OpenTelemetry-GenAI-Konventionen und die Schreibweisen von O
 
 Ein Span zählt als KI-Aufruf, wenn er einen dieser Werte trägt oder irgendein Attribut, das mit `gen_ai.`, `llm.` oder `traceloop.` beginnt. Gesamt-Tokens sind Eingabe plus Ausgabe, wenn keine Summe gemeldet wird. Die Schlüssel `gen_ai.usage.total_tokens` und `gen_ai.usage.cost` gehören nicht zu den Konventionen, die keinen von beiden definieren; OneUptime liest sie, weil gängige Instrumentierungen sie senden.
 
+Der Anbieter wird unter dem Namen der Konventionen gespeichert, in welcher Schreibweise er auch ankommt: `az.ai.openai` und `azure_openai` als `azure.ai.openai`, `az.ai.inference` als `azure.ai.inference`, `OpenAI` als `openai`. Ein Aufruf, den ein OpenAI-SDK `openai` nennt, aber an einen Endpunkt von Azure OpenAI oder Microsoft Foundry sendet, erkannt an seiner `server.address` oder an `gen_ai.openai.api_base` von OpenLLMetry, wird als `azure.ai.openai` gespeichert. **Aufrufe** zeigt den Anbieter mit Namen, und der Aufruf eines Azure-Deployments zeigt das angefragte Deployment und darunter das Modell, das ihn bedient hat und bepreist.
+
 Eingabe-Tokens zählen auch die gecachten mit, wie die Konventionen sie zählen: Sind die Cache-Zahlen eines Spans größer als seine Eingabezahl, hat die Eingabezahl sie ausgelassen, und OneUptime rechnet sie hinzu. Die Traces-Beta von Claude Code sendet keine `gen_ai.usage.*`-Schlüssel: Auf einem Span, der sein Modell nennt, liest OneUptime seine `input_tokens`, `output_tokens`, `cache_read_tokens` und `cache_creation_tokens` und rechnet die beiden Cache-Zahlen zu `input_tokens` hinzu, das sie auslässt.
 
 Die Identitätsschlüssel (wer den Aufruf gemacht hat und sein Team) stehen unter [Zuordnung zu Mitarbeitern und Teams](/docs/telemetry/ai-coding-assistants#zuordnung-zu-mitarbeitern-und-teams).
@@ -312,14 +359,20 @@ Die Unterhaltungsansicht liest die Nachrichten eines Aufrufs aus, in dieser Reih
 
 - dem Ereignis `gen_ai.client.inference.operation.details`;
 - den Attributen `gen_ai.input.messages`, `gen_ai.output.messages` und `gen_ai.system_instructions`;
-- den älteren Ereignissen pro Rolle: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` und `gen_ai.choice`;
+- den älteren Ereignissen pro Rolle: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` und `gen_ai.choice`, mit der Nachricht in `gen_ai.event.content`, wenn das AI Inference SDK von Azure oder Semantic Kernel sie gesendet hat;
 - den indizierten Attributen: `gen_ai.prompt.N.content` und `gen_ai.completion.N.content` von OpenLLMetry, `llm.input_messages.N.message.content` und `llm.output_messages.N.message.content` von OpenInference;
 - den Nachrichten-Arrays in `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` und `output.value`.
 
+Hält der Span eines Aufrufs keinen Prompt oder keine Antwort, wird das aus den Log-Einträgen gelesen, die die Trace- und Span-ID des Aufrufs tragen: dieselben Ereignisse, über das Log-Signal gesendet, benannt im Attribut `event.name` des Eintrags oder in seinem Feld für den Ereignisnamen. Ein Eintrag mit der ID des Traces, aber ohne Span-ID gehört zum einzigen Modellaufruf des Traces oder zu dem Aufruf, während dessen er gesendet wurde, und bleibt außen vor, wenn das nicht genau ein Aufruf ist. Was der Span aufzeichnet, hat Vorrang, sodass ein auf beide Arten aufgezeichneter Aufruf jede Nachricht einmal zeigt.
+
 ## Fehlerbehebung
 
+:::details Anbieterkonten sind verbunden, aber Unterhaltungen und Aufrufe sind leer
+Ein Anbieterkonto bringt, was es pro Tag verbraucht und gekostet hat, nie einen Aufruf oder eine Unterhaltung: Die kommen aus Ihren Apps. Die **Einrichtungsprüfung** auf **Verbinden** sagt, ob eine App KI-Aufrufe sendet; senden Sie sie, wie [Ihre KI-Aufrufe senden](#ihre-ki-aufrufe-senden) zeigt.
+:::
+
 :::details Aufrufe kommen an, aber keine Unterhaltung zeigt Text
-Ihre Instrumentierung zeichnet keinen Inhalt auf. Schalten Sie es ein, wie [Festhalten, was gesagt wurde](#festhalten-was-gesagt-wurde) zeigt; Aufrufe von davor bleiben ohne Text.
+Ihre Instrumentierung zeichnet keinen Inhalt auf, oder sie sendet ihn als Log-Ereignisse und die Logs der App kommen nicht bei OneUptime an. Schalten Sie es ein, wie [Festhalten, was gesagt wurde](#festhalten-was-gesagt-wurde) zeigt, und senden Sie die Logs mit den Traces; Aufrufe von davor bleiben ohne Text.
 :::
 
 :::details Jeder Aufruf eines Chats erscheint als eigene Unterhaltung
@@ -327,11 +380,15 @@ Die Aufrufe tragen keine Unterhaltungs-ID. Setzen Sie `gen_ai.conversation.id` o
 :::
 
 :::details Aufrufe zeigen Tokens, kosten aber $0
-Das Modell steht nicht in der integrierten Preisliste, oder der Span nennt kein Modell. Fügen Sie die Preise des Modells im Tab **Preise** hinzu; Aufrufe, die danach ankommen, werden bepreist.
+Das Modell steht nicht in der integrierten Preisliste, oder der Span nennt kein Modell. Fügen Sie die Preise des Modells im Tab **Preise** hinzu; Aufrufe, die danach ankommen, werden bepreist. Ein Aufruf an Azure OpenAI wird nach dem Modell bepreist, das ihn bedient hat, `gen_ai.response.model`: Nennt sein Span keines, bepreisen Sie den Namen des Deployments.
 :::
 
-:::details Der Tab Nutzung sagt aus GenAI-Metriken und zeigt `—` bei Aufrufen und Tokens
-Die Zahlen stammen von einem Tool, das Metriken und keine GenAI-Spans sendet, etwa einem Coding-Assistenten. Eine Metrik trägt Kosten, aber keine Details pro Aufruf, daher bleiben diese Zellen leer. Siehe [Spans zuerst, Metriken springen ein](#spans-zuerst-metriken-springen-ein).
+:::details Der Tab Nutzung zeigt Aus Nutzungsmetriken und `—` für Aufrufe
+Die Zahlen kommen von einem Dienst, der Metriken und keine GenAI-Spans sendet, etwa einem Coding-Assistenten. Eine Metrik trägt Kosten und Tokens, aber keine Details pro Aufruf, also bleiben die Zellen für Aufrufe leer. Siehe [Jeder Dienst wird aus dem gezählt, was er sendet](#jeder-dienst-wird-aus-dem-gezählt-was-er-sendet).
+:::
+
+:::details Die Kosten im Tab Nutzung sind kleiner als die Summe der Kosten unter Aufrufe
+Manche Spans wiederholen die Tokens und Kosten der Aufrufe darin, etwa ein Agentenlauf oder der Span eines Frameworks um den eigenen Span des SDKs. **Aufrufe** listet jeden Span mit seinen eigenen Zahlen auf, während der Tab Nutzung, Budgets und die Liste **Unterhaltungen** jeden Modellaufruf einmal zählen.
 :::
 
 :::details Ein Budget-Monitor springt zwischen zwei Zuständen hin und her
@@ -341,7 +398,7 @@ Das rollierende Fenster des Monitors ist kürzer als 15 Minuten, daher findet er
 ## Nächste Schritte
 
 :::cards
-- [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts): Nutzung und Kosten Ihrer Konten bei OpenAI, Anthropic, Azure, Bedrock und Vertex AI, ohne Code.
+- [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts): Nutzung und Kosten Ihrer Konten bei OpenAI, Anthropic, Azure, Bedrock, Vertex AI und Cursor, ohne Code.
 - [KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools): Was Ihre Leute Claude Enterprise und Microsoft 365 Copilot fragen.
 - [KI-Coding-Assistenten](/docs/telemetry/ai-coding-assistants): Ausgaben pro Entwickler für Claude Code, Cursor, Codex, Gemini CLI und Copilot.
 - [KI-Gateways](/docs/telemetry/ai-gateways): Die Modellaufrufe jeder App über ein LiteLLM- oder Portkey-Gateway tracen.

@@ -77,6 +77,7 @@ const DATABASE_PAGE_KEYS: ReadonlyArray<string> = [
   "DATABASE_SERVER_VIEW_AI_LOGS",
   "DATABASE_SERVER_VIEW_AI_AGENT",
   "DATABASE_SERVER_VIEW_SETTINGS",
+  "DATABASE_SERVER_VIEW_AUDIT_LOGS",
   "DATABASE_SERVER_VIEW_DOCUMENTATION",
   "DATABASE_SERVER_VIEW_DELETE",
 ];
@@ -103,6 +104,7 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Recommendations.tsx", "DATABASE_SERVER_VIEW_RECOMMENDATIONS"],
   ["Settings.tsx", "DATABASE_SERVER_VIEW_SETTINGS"],
   ["Documentation.tsx", "DATABASE_SERVER_VIEW_DOCUMENTATION"],
+  ["AuditLogs.tsx", "DATABASE_SERVER_VIEW_AUDIT_LOGS"],
   ["Delete.tsx", "DATABASE_SERVER_VIEW_DELETE"],
 ];
 
@@ -195,6 +197,7 @@ describe("RouteMap gives every page a URL under /databases", () => {
     ["DATABASE_SERVER_VIEW_RECOMMENDATIONS", "recommendations"],
     ["DATABASE_SERVER_VIEW_SETTINGS", "settings"],
     ["DATABASE_SERVER_VIEW_DOCUMENTATION", "documentation"],
+    ["DATABASE_SERVER_VIEW_AUDIT_LOGS", "audit-logs"],
     ["DATABASE_SERVER_VIEW_DELETE", "delete"],
   ])("%s is the view's /%s tab", (key: string, segment: string) => {
     expect(dense(routeMapRaw)).toContain(
@@ -335,6 +338,10 @@ describe("every navigable page has breadcrumbs", () => {
     [
       "DATABASE_SERVER_VIEW_ENDPOINTS",
       ["Project", "Databases", "View Database", "Endpoints"],
+    ],
+    [
+      "DATABASE_SERVER_VIEW_AUDIT_LOGS",
+      ["Project", "Databases", "View Database", "Audit Logs"],
     ],
     [
       "DATABASE_SERVER_VIEW_DELETE",
@@ -522,8 +529,8 @@ describe("the navbar entry is translated everywhere", () => {
       return file.endsWith(".json");
     });
 
-  test("all 17 locale files are present", () => {
-    expect(localeFiles.length).toBe(17);
+  test("all 18 locale files are present", () => {
+    expect(localeFiles.length).toBe(18);
   });
 
   test.each(localeFiles)(

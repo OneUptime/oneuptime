@@ -104,6 +104,10 @@ interface Recorded {
   navigations: Array<string>;
   branchReads: Array<{ repositoryId: string; search: string }>;
   lists: Array<string>;
+  // Each task list read's filter and search.
+  listQueries: Array<{ filter: string; search: string }>;
+  // Each Retry selected: the tasks it asked again.
+  retryManys: Array<Array<string>>;
   // Each production reviews list read, by its repository.
   reviewLists: Array<string>;
   // Each Review again, by its task.
@@ -927,6 +931,72 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
     ).toBeVisible();
     await expect(page.getByTestId("code-ask")).toHaveCount(0);
     expect((await recorded(page)).reads.repositories).toBe(0);
+  });
+
+  /*
+   * The box sizes itself to its text as it mounts, and on a page whose
+   * styles are still being written (the Tailwind runtime) that read came
+   * before its padding and line height, so its first line - the
+   * placeholder - could sit half hidden until something was typed, as the
+   * AI card's composer did. A floor of its drawn lines keeps it whole: four
+   * on Code's first page, two in a task's reply box.
+   */
+  test("the box opens as tall as it is drawn, its first line whole, and still grows and shrinks with the text", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const expectWholeFromTheStart: (floor: number) => Promise<number> = async (
+      floor: number,
+    ): Promise<number> => {
+      const box: Locator = composerInput(page);
+      await expect(box).toHaveValue("");
+
+      // Nothing of its first line is scrolled out of the box.
+      await expect
+        .poll(async (): Promise<number> => {
+          return box.evaluate((element: Element): number => {
+            const area: HTMLTextAreaElement = element as HTMLTextAreaElement;
+            return area.scrollHeight - area.clientHeight;
+          });
+        })
+        .toBeLessThanOrEqual(0);
+
+      const height: number = await box.evaluate((element: Element): number => {
+        return element.getBoundingClientRect().height;
+      });
+      expect(height).toBeGreaterThanOrEqual(floor - 0.5);
+
+      // It grows with the text, then shrinks back to its floor when cleared.
+      await box.fill("One\nTwo\nThree\nFour\nFive\nSix");
+      await expect
+        .poll(async (): Promise<number> => {
+          return box.evaluate((element: Element): number => {
+            return element.getBoundingClientRect().height;
+          });
+        })
+        .toBeGreaterThan(height);
+      await box.fill("");
+      await expect
+        .poll(async (): Promise<number> => {
+          return box.evaluate((element: Element): number => {
+            return Math.round(element.getBoundingClientRect().height);
+          });
+        })
+        .toBe(Math.round(height));
+
+      return height;
+    };
+
+    // Code's first page: four lines of 28px, 16px over and 8px under them.
+    await openCode(page);
+    await expect(composerInput(page)).toBeEditable();
+    await expectWholeFromTheStart(136);
+
+    // A task's reply box: two lines of 24px, 14px over and 8px under them.
+    await openTask(page, TASK.retries);
+    await expect(composerInput(page)).toBeEditable();
+    await expectWholeFromTheStart(70);
   });
 });
 
@@ -2819,19 +2889,165 @@ test.describe("a repository's page: ask AI", () => {
     await expect(
       rows.nth(1).getByTestId("code-task-row-repository"),
     ).toHaveCount(0);
-    // The facts read apart, a dot between each.
+    /*
+     * The facts read apart, a dot between each: who asked, when, how long
+     * AI worked on it and its pull request.
+     */
     await expect(
       rows
         .nth(1)
         .getByTestId("code-task-row-meta")
         .getByTestId("code-meta-dot"),
-    ).toHaveCount(2);
+    ).toHaveCount(3);
+    await expect(rows.nth(1).getByTestId("code-task-row-duration")).toHaveText(
+      /^worked \d+ minutes?$/,
+    );
 
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-repository");
 
     await rows.nth(1).getByRole("link").click();
     await expect(page).toHaveURL(taskPath(TASK.retries));
+  });
+
+  /*
+   * The task list's filters, with how many tasks each shows, and its search:
+   * a search that matches nothing says so under the filters and keeps the
+   * list - the page once took it for a repository with no task and hid the
+   * list, the search with it.
+   */
+  test("its tasks filter and search; a search that matches nothing keeps the list", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepository(page, REPOSITORY.checkout);
+
+    const list: Locator = page.getByTestId("code-tasks");
+    const rows: Locator = list.getByTestId("code-task-row");
+    await expect(rows).toHaveCount(6);
+    await expect(page.getByTestId("code-tasks-count")).toHaveText("6");
+    const pills: Locator = page
+      .getByRole("group", { name: "Filter tasks" })
+      .getByRole("button");
+    await expect(pills).toHaveText([
+      "All6",
+      "In progress1",
+      "Waiting for you1",
+      "Pull request open1",
+      "Failed1",
+      "Done2",
+    ]);
+
+    await page.getByTestId("code-task-filter-failed").click();
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toContainText("Upgrade express to version 5");
+    await expect(page.getByTestId("code-task-filter-failed")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    // Why it failed is on its row, under its facts.
+    await expect(rows.first().getByTestId("code-task-row-error")).toHaveText(
+      "npm run build still failed after 2 repair attempts: 14 type errors in src/routes.",
+    );
+
+    await page.getByTestId("code-task-filter-all").click();
+    await expect(rows).toHaveCount(6);
+    // A task's number finds it, "#8" as well as "8".
+    await page.getByTestId("code-task-list-search").fill("#8");
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toContainText(
+      "Rename the Order model to Purchase everywhere",
+    );
+
+    await page.getByTestId("code-task-list-search").fill("nothing like this");
+    await expect(page.getByTestId("code-task-list-no-match")).toContainText(
+      "No tasks match.",
+    );
+    // Still the list of a repository with tasks: its search, its count.
+    await expect(list).toBeVisible();
+    await expect(page.getByTestId("code-task-list-search")).toHaveValue(
+      "nothing like this",
+    );
+    await expect(page.getByTestId("code-tasks-count")).toHaveText("6");
+    await expect(page.getByTestId("code-examples")).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-search-none");
+
+    await page.getByTestId("code-task-list-search-clear").click();
+    await expect(rows).toHaveCount(6);
+    const queries: Recorded["listQueries"] = (await recorded(page)).listQueries;
+    expect(queries[queries.length - 1]).toEqual({ filter: "all", search: "" });
+  });
+
+  /*
+   * A failed or stopped request says so on its row, with Try again; the
+   * rows picked are tried again together, and the list says how it went.
+   * A row with no box keeps the box's place, so every row's mark and title
+   * start in one column.
+   */
+  test("failed and stopped tasks are picked and tried again together", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepository(page, REPOSITORY.checkout);
+
+    const rows: Locator = page.getByTestId("code-task-row");
+    await expect(rows).toHaveCount(6);
+    const failed: Locator = rows.filter({
+      hasText: "Upgrade express to version 5",
+    });
+    const stopped: Locator = rows.filter({
+      hasText: "Rename the Order model to Purchase everywhere",
+    });
+    await expect(failed.getByTestId("code-task-row-state")).toHaveText(
+      "Failed",
+    );
+    // A stopped task with Try again says why the button is there.
+    await expect(stopped.getByTestId("code-task-row-state")).toHaveText(
+      "Stopped",
+    );
+    await expect(page.getByTestId("code-task-row-retry-button")).toHaveCount(2);
+
+    // Every row's title starts where the others' do.
+    const starts: Array<number> = [];
+    for (let index: number = 0; index < 6; index++) {
+      const box: { x: number } | null = await rows
+        .nth(index)
+        .getByTestId("code-task-row-title")
+        .boundingBox();
+      starts.push(Math.round(box ? box.x : -1));
+    }
+    expect(new Set(starts).size).toBe(1);
+
+    if (isPhone(testInfo)) {
+      // On a phone, Try again sits under the row's words, where its title starts.
+      const [title, button] = await boxesInOneFrame([
+        failed.getByTestId("code-task-row-title"),
+        failed.getByTestId("code-task-row-retry-button"),
+      ]);
+      expect(title && button).toBeTruthy();
+      expect(Math.abs(button!.x - title!.x)).toBeLessThanOrEqual(1);
+      expect(button!.y).toBeGreaterThan(title!.y + title!.height);
+    }
+
+    await failed.getByTestId("code-task-row-select").check();
+    await stopped.getByTestId("code-task-row-select").check();
+    const bulk: Locator = page.getByTestId("code-task-list-bulk");
+    await expect(bulk.getByRole("status")).toHaveText("2 selected");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-retry-selected");
+
+    await bulk.getByTestId("code-task-list-retry-selected").click();
+    await expect(page.getByTestId("code-task-list-retry-result")).toHaveText(
+      "Trying 2 tasks again.",
+    );
+    expect((await recorded(page)).retryManys).toEqual([
+      [TASK.failed, TASK.stopped],
+    ]);
+    // Each is at work again: nothing left to try again.
+    await expect(page.getByTestId("code-task-row-retry-button")).toHaveCount(0);
   });
 
   /*

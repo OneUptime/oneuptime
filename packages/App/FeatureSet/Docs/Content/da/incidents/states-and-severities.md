@@ -37,7 +37,7 @@ flowchart TB
 
 Modellen `IncidentState` har `name`, `description`, `color` og `order`, plus tre booleans: `isCreatedState`, `isAcknowledgedState` og `isResolvedState`. Alt, hvad produktet gør med tilstande, tager udgangspunkt i de booleans og i `order` — aldrig i tilstandens navn. Derfor kan du omdøbe **Løst** til "Closed", uden at noget går i stykker: flaget følger med rækken.
 
-Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og intet andet. Der er ingen flag. Intet i OneUptime behandler af sig selv **Critical Incident** anderledes end **Minor Incident** — alvorsgraden betyder kun noget, hvor du peger noget på den, som matchkriteriet **Hændelse Alvorligheder** i en vagtregel.
+Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og intet andet. Der er ingen flag. Intet i OneUptime behandler af sig selv **Critical Incident** anderledes end **Minor Incident** — alvorsgraden betyder kun noget, hvor du peger noget på den, som matchkriteriet **Alvorlighedsgrader for hændelser** i en vagtregel.
 
 Et par hurtige regler:
 
@@ -83,7 +83,7 @@ En tilstand, du tilføjer, er et trin i din indsats, som de tre forudoprettede i
 :::steps
 ### Åbn listen over tilstande
 
-Gå til **Hændelser → Indstillinger → Hændelsesstatus**. Kortet **Hændelse Tilstande** viser dine tilstande i deres rækkefølge, én række hver: et greb at trække den i, dens farve og navn, hvad en hændelse i den **Tæller som**, og dens beskrivelse. Sætningen under titlen siger det ligeud: hændelser bevæger sig kun nedad i denne liste.
+Gå til **Hændelser → Indstillinger → Hændelsesstatus**. Kortet **Hændelsesstatusser** viser dine tilstande i deres rækkefølge, én række hver: et greb at trække den i, dens farve og navn, hvad en hændelse i den **Tæller som**, og dens beskrivelse. Sætningen under titlen siger det ligeud: hændelser bevæger sig kun nedad i denne liste.
 
 ### Opret tilstanden
 
@@ -115,14 +115,20 @@ Du kan ikke sætte de tre flag fra denne formular — de hører til de forudopre
 
 ## Rækkefølgen er en reel begrænsning, ikke en visningspræference
 
-Rækkefølgen håndhæves, når en tilstandsændring skrives, ikke kun når listen tegnes:
+Rækkefølgen håndhæves, når en tilstandsændring skrives, ikke kun når listen tegnes. Én regel gælder for hver tilstandsændring af en hændelse, en advarsel, en hændelses- eller advarselsepisode og en planlagt vedligeholdelseshændelse, uanset hvem der foretager den — dashboardet, Slack, Microsoft Teams, API'et, Terraform, et workflow eller OneUptime selv — og uanset om den sendes som en række på postens tilstandstidslinje eller som en opdatering af dens aktuelle tilstand:
 
-- **Overgange baglæns afvises.** At flytte en hændelse til en tilstand, der står tidligere i rækkefølgen end dens nuværende, fejler med en fejl, der nævner begge tilstande.
+- **Overgange baglæns afvises.** At flytte en hændelse til en tilstand, der står tidligere i rækkefølgen end dens nuværende, fejler med en fejl, der nævner begge tilstande: "Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states." En episode er underlagt den samme regel som de hændelser, den samler, med sin egen fejlmeddelelse ("Episode cannot transition to …"), så en løst episode flyttes ikke tilbage til en tidligere tilstand — og dens hændelser flyttes heller ikke tilbage gennem den. En opdatering, der ville flytte en post tilbage, afvises, før noget gemmes.
 - **At vælge den aktuelle tilstand igen afvises.** At sætte en hændelse i den tilstand, den allerede er i, fejler med "Incident state cannot be same as previous state."
 - **En tilbagedateret række kan ikke gentage sin nabo.** At indsætte en tidslinjerække, hvis tilstand er den samme som rækken efter den, afvises også.
-- **Hovedets knapper følger de flagede tilstandes placering i rækkefølgen.** **Bekræft** og **Løs** tilbydes ud fra, hvor den aktuelle tilstand står i den sorterede liste. En egen tilstand, der er placeret *efter* den løste tilstand, viser aldrig en knap **Løs**, fordi en hændelse i den allerede tæller som løst.
+- **Hovedets knapper følger de flagede tilstandes placering i rækkefølgen.** **Bekræft** og **Løs** tilbydes ud fra, hvor den aktuelle tilstand står i den sorterede liste. En egen tilstand, der er placeret *efter* den løste tilstand, viser aldrig en knap **Løs**, fordi en hændelse i den allerede tæller som løst. Hovedets tilstandsmenu og formularen til tilstandsskift i Slack og Microsoft Teams tilbyder kun tilstandene efter den aktuelle; for en post i listens sidste tilstand siger Slack og Teams "There is no later state to move this incident to." i stedet for at åbne en tom formular.
 
 Så når du tilføjer en tilstand, så placér den, hvor en hændelse faktisk ville passere den. At ordne den forkert ser ikke bare mærkeligt ud — det gør overgange umulige. At flytte en tilstand længere ned ændrer, hvad hændelserne i den allerede tæller som, i det øjeblik du slipper den.
+
+En episode flytter kun sine hændelser derhen, hvor de kan komme. Når en episode skifter tilstand, flyttes hver af dens hændelser kun med, hvis hændelsens egen rækkefølge tillader skiftet: En hændelse, der allerede er i den tilstand eller forbi den — løst for sig selv eller i en af dine egne tilstande efter den løste tilstand — bliver, hvor den er.
+
+Ét skift går op ad listen igen: en grupperingsregels genåbning. En regel, der er sat til at genåbne nyligt løste episoder, genåbner en løst episode, når en matchende hændelse kommer inden for dens tidsvindue, og flytter episoden tilbage til din oprettelsestilstand. Det er OneUptimes eget skift — intet, du sender, kan bede om det — og det genåbner ikke episodens hændelser.
+
+For at rette en tilstand, der er sat ved en fejl, sletter du dens række på siden med postens tilstandstidslinje (se [Tilstandstidslinjen](#tilstandstidslinjen)). Posten går tilbage til tilstanden i dens seneste tilbageværende række; en episode, hvor du sletter den række, der løste den, er åben igen, og dens løsningstidspunkt ryddes.
 
 Via API'et og Terraform er rækkefølgen kolonnen `order`: lavere tal kommer først. En tilstand, der oprettes uden, kommer lige over den løste tilstand; en, der oprettes eller opdateres med et tal, tager den plads, og tilstandene i vejen rykker én plads ned. Tal, som ingen anden har, beholdes, som de er skrevet, så en tilstand, der styres af Terraform, læser det tal tilbage, den fik.
 
@@ -149,7 +155,7 @@ To forskelle fra tilstande:
 - **Der er ingen sletningsbeskyttelse.** Enhver alvorsgrad kan slettes, også de tre forudoprettede.
 - **Der er ingen flag at arve og intet "Tæller som".** En ny alvorsgrad opfører sig præcis som de forudoprettede — den er en etiket med en farve og en rang.
 
-Hvor alvorsgraden gør mere end at beskrive: under **Hændelser → Regler → Vagtregler** er en regels felt **Hændelse Alvorligheder** et matchkriterium. At angive **Critical Incident** dér er, hvordan "tilkald databaseteamet ved alt kritisk" udtrykkes — vagtpolitikken sidder på reglen, ikke på alvorsgraden.
+Hvor alvorsgraden gør mere end at beskrive: under **Hændelser → Regler → Vagtregler** er en regels felt **Alvorlighedsgrader for hændelser** et matchkriterium. At angive **Critical Incident** dér er, hvordan "tilkald databaseteamet ved alt kritisk" udtrykkes — vagtpolitikken sidder på reglen, ikke på alvorsgraden.
 
 **At ændre en hændelses alvorsgrad** — under **Rediger** på hændelsens kort **Hændelsesdetaljer**, via API'et eller Terraform (`incidentSeverityId`), med et workflow eller med AI-værktøjerne — gør de samme fire ting, uanset hvordan det sendes: hændelsens feed får en post **Incident updated**, der nævner den nye alvorsgrad, hændelsens SLA-frister beregnes igen, dens påmindelsesregel matches igen, og hændelsesmetrikkerne tæller én ændring af alvorsgrad. At gemme den alvorsgrad, hændelsen allerede har, gør ingen af dem, så redigerer du kun titlen på en hændelse, forbliver dens SLA-frister, påmindelser og antal ændringer af alvorsgrad, som de var. En advarsels alvorsgrad virker på samme måde for dens feedpost og dens påmindelser.
 

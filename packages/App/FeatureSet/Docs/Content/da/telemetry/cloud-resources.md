@@ -627,11 +627,15 @@ Selvhostede installationer kan ændre dette med miljøvariabler på appen:
 
 ## Alarmer på en ressource
 
+En ressource i en [forbundet konto](/docs/telemetry/cloud-accounts) får på sin fane **Anbefalinger** tilbudt de monitorer, OneUptime anbefaler til dens type, hver oprettet i ét trin. Sådan advarer du om en anden metrik, den rapporterer:
+
 :::steps
 1. Åbn ressourcen og dens fane **Metrikker**, som viser hver metrik, udbyderen rapporterer om den.
 2. Åbn en metrik for at vise den som graf i metrikudforskeren, allerede filtreret til ressourcen.
 3. Klik på **Opret monitor fra denne visning**: monitoren overvåger den metrik for den ressource.
 :::
+
+Et Service Bus-navneområde rapporterer sine metrikker én gang pr. kø og emne, og et Event Hubs-navneområde én gang pr. event hub. Hvor de kan lægges sammen, viser en række på navneområdets fane **Metrikker** deres samlede tal og angiver **sum af serier** under det. En monitor oprettet fra den række læser også det samlede tal, og det samme gør en monitor oprettet via API'et eller Terraform uden en aggregering. De andre rækker angiver **gennemsnit af serier** og viser den gennemsnitlige kø eller event hub: en latenstid og, over et interval på mere end 3 timer, en mængde, som navneområdet holder, såsom ventende beskeder.
 
 > [!IMPORTANT]
 > Cloudovervågning udgiver hvert tal minutter efter det tidspunkt, det måler: 10 til 20 minutter for CloudWatch, der polles som ovenfor, få minutter for Azure Monitor og Cloud Monitoring. Det gemmes under det tidspunkt, det måler. Giv en monitor over disse metrikker et vindue, der er længere end det (30 minutter for CloudWatch, 15 for de andre), ellers ser den ingen data og udløses aldrig.

@@ -612,12 +612,13 @@ export type KubernetesAgentRunnerBindingState =
 /*
  * Caps shared by the investigation tool and the remediation toolkit.
  *
- * The command count is a runaway guard, not a ration: an investigation runs
- * as many kubectl commands as it needs. The output cap is what a caller that
- * does not page gets; the investigation and conversation toolkits read the
- * whole output and page it (ToolOutputPager), so nothing is cut there.
+ * No count of commands: an investigation runs as many kubectl commands as it
+ * needs, held only to the run's own limits (the project's tool calls per
+ * run, loop detection and the time limit: Types/AI/AIAgentRunLimits). The
+ * output cap is what a caller that does not page gets; the investigation and
+ * conversation toolkits read the whole output and page it (ToolOutputPager),
+ * so nothing is cut there.
  */
-export const MAX_KUBECTL_COMMANDS_PER_INVESTIGATION: number = 200;
 export const DEFAULT_KUBECTL_TIMEOUT_MS: number = 30 * 1000;
 export const MAX_KUBECTL_TIMEOUT_MS: number = 2 * 60 * 1000;
 export const MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM: number = 40_000;

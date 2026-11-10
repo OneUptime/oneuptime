@@ -28,6 +28,7 @@ flowchart TB
 
 - **Arkiverade monitorer räknas inte.** En arkiverad monitor kontrolleras inte, så dess status är fryst; gruppen utelämnar den.
 - **En tom grupp fungerar.** En grupp utan monitorer, eller bara med arkiverade, visar din fungerande status. Tills du lägger till en monitor visar instrumentpanelen **Inga monitorer ännu** i stället för gruppens status.
+- **Avstängd övervakning visar Inaktiverad.** När övervakningen är avstängd för alla monitorer i en grupp kontrollerar ingenting dem, så instrumentpanelen visar **Inaktiverad** i stället för gruppens status.
 - **Ordningen är din.** Vilken status som är värst följer ordningen under **Övervakare → Inställningar → Monitorstatus**. Se [Monitorstatusar](/docs/monitor/criteria-and-statuses#monitorstatusar).
 
 En monitorgrupp är inte en statussidegrupp. En statussidegrupp är en rubrik på en statussida som rymmer rader. En monitorgrupp är en rad som står för flera monitorer, och vilken statussida som helst kan visa den.
@@ -61,7 +62,7 @@ Gå till **Övervakare → Monitorgrupper**. Kortet **Monitorgrupper** listar va
 
 ### Skapa gruppen
 
-Klicka på **Skapa Monitor Grupp**, ange ett **Namn** och, om du vill, en **Beskrivning**, och klicka på **Skapa Monitor Grupp** längst ned i formuläret. Gruppen börjar utan monitorer.
+Klicka på **Skapa Monitorgrupp**, ange ett **Namn** och, om du vill, en **Beskrivning**, och klicka på **Skapa Monitorgrupp** längst ned i formuläret. Gruppen börjar utan monitorer.
 
 ### Lägg till dess monitorer
 
@@ -80,7 +81,7 @@ För att ta bort en monitor från gruppen klickar du på **Ta bort** på dess ra
 
 | Sida | Vad den visar |
 | --- | --- |
-| **Översikt** | **Detaljer för övervakningsgrupp**, **Aktuell status** och **Drifttidsgraf** med gruppens tillgänglighet i procent under de senaste 90 dagarna. En grupp utan monitorer erbjuder **Lägg till monitorer** i stället för grafen. |
+| **Översikt** | **Detaljer för övervakningsgrupp**, **Aktuell status**, **Övervakning** och **Drifttidsgraf** med gruppens tillgänglighet i procent under de senaste 90 dagarna. En grupp utan monitorer erbjuder **Lägg till monitorer** i stället för grafen. |
 | **Monitorer** | **Övervakare i grupp**, med **Lägg till monitorer** och **Ta bort**. |
 | **Incidenter** | Incidenterna på någon monitor i gruppen. |
 | **Larm** | Larmen på någon monitor i gruppen. |
@@ -92,6 +93,17 @@ Tillgängligheten på **Översikt** räknar varje status utom den fungerande som
 
 Listan **Monitorgrupper** kan filtrera grupper efter ägare och etikett, sätta etiketter och ägare på många grupper på en gång och exportera eller importera grupper som JSON.
 
+## Stäng av övervakningen för en hel grupp
+
+Kortet **Övervakning** på en grupps **Översikt** stänger av övervakningen, eller slår på den igen, för alla monitorer i gruppen på en gång.
+
+- **Stäng av övervakning** frågar först. Sedan kontrollerar ingenting gruppens monitorer förrän övervakningen slås på igen, så de öppnar inga incidenter eller larm, och gruppen visar **Inaktiverad** i stället för sin status.
+- **Slå på övervakning** sparar direkt. Varje monitors nästa kontroll sätter dess status igen.
+
+Att stänga av övervakningen löser också monitorernas öppna incidenter och larm som är inställda på automatisk lösning, så som varje monitor skulle ha gjort vid återhämtning. Incidenter och larm som skapats för hand, eller vars kriterier inte löser automatiskt, förblir öppna. Att stänga av övervakningen för en enskild monitor, på dess sida **Inställningar**, gör detsamma.
+
+Kortet ändrar monitorerna, inte gruppen: varje monitors eget kort **Övervakning** visar ändringen, och en monitor som läggs till i gruppen senare behåller sin egen inställning. Arkiverade monitorer lämnas som de är. Så länge övervakningen bara är avstängd för några av monitorerna säger kortet hur många och erbjuder båda knapparna.
+
 ## Visa en grupp på en statussida
 
 :::steps
@@ -101,7 +113,7 @@ Gå till **Statussidor**, öppna sidan och klicka på **Resurser** i dess sidome
 
 ### Byt dialogen till en grupp
 
-Klicka på **Lägg till monitor**. Under listrutan med monitorer klickar du på **Add a Monitor Group instead.** Listrutan blir **Monitor Grupp**.
+Klicka på **Lägg till monitor**. Under listrutan med monitorer klickar du på **Lägg till en monitorgrupp i stället.** Listrutan blir **Monitorgrupp**.
 
 ### Välj gruppen och lägg till den
 
@@ -134,7 +146,7 @@ Det är regeln: gruppen visar sin värsta monitor. Öppna **Monitorer** i gruppe
 :::
 
 :::details En statussida kan inte lägga till gruppen
-**Add a Monitor Group instead.** visas i dialogen bara så länge brytaren **Monitorgrupper** är påslagen för projektet.
+**Lägg till en monitorgrupp i stället.** visas i dialogen bara så länge brytaren **Monitorgrupper** är påslagen för projektet.
 :::
 
 ## Nästa steg

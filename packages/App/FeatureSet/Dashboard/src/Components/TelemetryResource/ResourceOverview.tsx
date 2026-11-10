@@ -8,6 +8,10 @@ import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import DetailRecordLine from "Common/UI/Components/Detail/DetailRecordLine";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  getTextReadingDirectionByMostLetters,
+  RIGHT_TO_LEFT,
+} from "Common/Types/ReadingDirection";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
 import {
@@ -76,6 +80,13 @@ export interface ResourceOverviewTile {
    */
   title: string;
   value: string;
+  /*
+   * Words drawn in place of the value when there is no number to show and
+   * the page can say what would give one ("Needs consumer traces"): an
+   * English literal the tile draws in the reader's language, smaller and
+   * muted, so it never reads as a figure.
+   */
+  valueNote?: string | undefined;
   icon: IconProp;
   iconColor: ResourceOverviewTileColor;
   loading?: boolean | undefined;
@@ -273,6 +284,28 @@ export function getResourceOverviewIdentifierWords(
   };
 }
 
+// The identifier line's words around the identifier: kept whole, with the spaces the language writes.
+export const RESOURCE_OVERVIEW_IDENTIFIER_WORDS_CLASS_NAME: string =
+  "flex-none whitespace-pre";
+
+/*
+ * How the identifier line draws its words around the identifier. In
+ * monospace, as the whole line always was - a type, an account or an
+ * attribute's name ("service.name") reads like the code it names - unless
+ * the words read right to left: a monospace font draws no Persian letter
+ * of its own, and the one it borrowed set the label's joined letters in
+ * fixed-width cells beside the page's Persian (#6149's review). Those words
+ * take the page's font; the identifier stays in monospace. An attribute's
+ * name on a Persian page is still code, in monospace.
+ */
+export function getResourceOverviewIdentifierWordsClassName(
+  words: string,
+): string {
+  return getTextReadingDirectionByMostLetters(words) === RIGHT_TO_LEFT
+    ? RESOURCE_OVERVIEW_IDENTIFIER_WORDS_CLASS_NAME
+    : `${RESOURCE_OVERVIEW_IDENTIFIER_WORDS_CLASS_NAME} font-mono`;
+}
+
 const tileColorClasses: Record<
   ResourceOverviewTileColor,
   { bg: string; ring: string; text: string }
@@ -303,6 +336,20 @@ const tileColorClasses: Record<
  */
 export const RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME: string =
   "mt-1 min-w-0 text-sm text-gray-900 [overflow-wrap:anywhere] sm:col-span-2 sm:mt-0";
+
+/*
+ * The golden metric tiles: four to a row only where the overview itself is
+ * wide enough for four, by a container query rather than the screen's
+ * width. Beside a record page's side menu a 1024px window leaves the
+ * overview some 680px, four tiles of 158px: a German "Verbraucht" broke
+ * mid-word and every line under a value was cut. Two to a row until the
+ * overview is 52rem wide (four tiles of some 200px), as a 1280px window's
+ * is beside the menu.
+ */
+export const RESOURCE_OVERVIEW_TILES_FRAME_CLASS_NAME: string =
+  "mb-6 [container-type:inline-size]";
+export const RESOURCE_OVERVIEW_TILES_GRID_CLASS_NAME: string =
+  "grid grid-cols-2 gap-4 [@container(min-width:52rem)]:grid-cols-4";
 
 const STATUS_TONE_CLASSES: Record<
   ResourceOverviewStatusTone,
@@ -376,6 +423,14 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
   const sublabelLanguage: string | undefined = getDrawnLanguage({
     english: props.sublabel,
     drawn: sublabel,
+    language: translator.language,
+  });
+  const valueNote: string | undefined = props.valueNote
+    ? translator.translateText(props.valueNote) || props.valueNote
+    : undefined;
+  const valueNoteLanguage: string | undefined = getDrawnLanguage({
+    english: props.valueNote,
+    drawn: valueNote,
     language: translator.language,
   });
 
@@ -489,12 +544,31 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
         </div>
       ) : (
         <Fragment>
-          <div className="text-2xl font-semibold text-gray-900 leading-none">
-            {props.value}
-          </div>
-          {sublabel ? (
+          {valueNote ? (
+            /*
+             * As tall as a value's line, so a tile with a note lines up with
+             * its neighbours' sublabels.
+             */
             <div
-              className="mt-1 text-xs text-gray-500 truncate"
+              className="flex min-h-6 items-end text-sm font-medium leading-tight text-gray-500"
+              lang={valueNoteLanguage}
+              data-testid="resource-overview-tile-value-note"
+            >
+              {valueNote}
+            </div>
+          ) : (
+            <div className="text-2xl font-semibold text-gray-900 leading-none">
+              {props.value}
+            </div>
+          )}
+          {sublabel ? (
+            /*
+             * Up to two lines, never cut on one: a phone's two columns cut
+             * "broker metrics; 18 throttled" before its number, and a tap
+             * has no hover to read the rest.
+             */
+            <div
+              className="mt-1 line-clamp-2 break-words text-xs text-gray-500"
               lang={sublabelLanguage}
             >
               {sublabel}
@@ -664,7 +738,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                    * Each piece is set in monospace itself, as the whole
                    * line always was: the page gives every element Inter
                    * (index.ejs's universal rule), so a child would not
-                   * keep the line's font.
+                   * keep the line's font. Words that read right to left
+                   * - a Persian label - keep the page's font instead
+                   * (getResourceOverviewIdentifierWordsClassName).
                    *
                    * The label and its colon are the reader's sentence
                    * ("{{label}}: {{identifier}}"), so each language writes
@@ -680,7 +756,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     {identifierWords.before ? (
                       <span
                         data-testid="resource-overview-identifier-label"
-                        className="flex-none whitespace-pre font-mono"
+                        className={getResourceOverviewIdentifierWordsClassName(
+                          identifierWords.before,
+                        )}
                       >
                         {identifierWords.before}
                       </span>
@@ -695,7 +773,11 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                       {props.identifier}
                     </bdi>
                     {identifierWords.after ? (
-                      <span className="flex-none whitespace-pre font-mono">
+                      <span
+                        className={getResourceOverviewIdentifierWordsClassName(
+                          identifierWords.after,
+                        )}
+                      >
                         {identifierWords.after}
                       </span>
                     ) : (
@@ -749,37 +831,41 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
 
       {/* Golden metric tiles */}
       {props.tilesLoading && props.tiles.length === 0 ? (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {Array.from({ length: 4 }, (_: unknown, idx: number) => {
-            return (
-              <div
-                key={`tile-skeleton-${idx}`}
-                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-              >
-                <div className="h-3 w-16 rounded bg-gray-100 animate-pulse" />
-                <div className="mt-3 h-8 w-20 rounded bg-gray-100 animate-pulse" />
-                <div className="mt-2 h-3 w-24 rounded bg-gray-100 animate-pulse" />
-              </div>
-            );
-          })}
+        <div className={RESOURCE_OVERVIEW_TILES_FRAME_CLASS_NAME}>
+          <div className={RESOURCE_OVERVIEW_TILES_GRID_CLASS_NAME}>
+            {Array.from({ length: 4 }, (_: unknown, idx: number) => {
+              return (
+                <div
+                  key={`tile-skeleton-${idx}`}
+                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="h-3 w-16 rounded bg-gray-100 animate-pulse" />
+                  <div className="mt-3 h-8 w-20 rounded bg-gray-100 animate-pulse" />
+                  <div className="mt-2 h-3 w-24 rounded bg-gray-100 animate-pulse" />
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         props.tiles.length > 0 && (
-          <div
-            data-testid="resource-overview-tiles"
-            className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4"
-          >
-            {props.tiles.map(
-              (tile: ResourceOverviewTile, idx: number): ReactElement => {
-                return (
-                  <GoldenMetricTile
-                    key={`tile-${idx}`}
-                    {...tile}
-                    loading={props.tilesLoading || tile.loading}
-                  />
-                );
-              },
-            )}
+          <div className={RESOURCE_OVERVIEW_TILES_FRAME_CLASS_NAME}>
+            <div
+              data-testid="resource-overview-tiles"
+              className={RESOURCE_OVERVIEW_TILES_GRID_CLASS_NAME}
+            >
+              {props.tiles.map(
+                (tile: ResourceOverviewTile, idx: number): ReactElement => {
+                  return (
+                    <GoldenMetricTile
+                      key={`tile-${idx}`}
+                      {...tile}
+                      loading={props.tilesLoading || tile.loading}
+                    />
+                  );
+                },
+              )}
+            </div>
           </div>
         )
       )}

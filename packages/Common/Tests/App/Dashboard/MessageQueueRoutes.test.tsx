@@ -104,6 +104,30 @@ jest.mock(
   },
 );
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Topology",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: unknown) => {
+        routedPagesMock("ProductTopology", props);
+        return <div data-testid="page">ProductTopology</div>;
+      },
+    };
+  },
+);
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Topology",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: unknown) => {
+        routedPagesMock("Topology", props);
+        return <div data-testid="page">Topology</div>;
+      },
+    };
+  },
+);
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Settings/LabelRules",
   () => {
     return {
@@ -275,6 +299,12 @@ describe("the Queues route group", () => {
       PageMap.MESSAGE_QUEUES_DOCUMENTATION,
     ],
     [
+      `${BASE}/topology`,
+      "ProductTopology",
+      "product-layout",
+      PageMap.MESSAGE_QUEUES_TOPOLOGY,
+    ],
+    [
       `${BASE}/settings/label-rules`,
       "LabelRules",
       "product-layout",
@@ -299,6 +329,12 @@ describe("the Queues route group", () => {
       PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES_VIEW,
     ],
     [`${BASE}/${ID}`, "Overview", "view-layout", PageMap.MESSAGE_QUEUE_VIEW],
+    [
+      `${BASE}/${ID}/topology`,
+      "Topology",
+      "view-layout",
+      PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY,
+    ],
     [
       `${BASE}/${ID}/traces`,
       "Traces",
@@ -348,7 +384,7 @@ describe("the Queues route group", () => {
   );
 
   test("the product pages are never read as a queue id", () => {
-    for (const segment of ["archived", "documentation"]) {
+    for (const segment of ["archived", "documentation", "topology"]) {
       cleanup();
       visit(`${BASE}/${segment}`);
       expect(screen.queryByTestId("view-layout")).not.toBeInTheDocument();

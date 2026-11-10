@@ -31,6 +31,7 @@ import SlackAuthAction, {
 } from "../Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
 import SlackRemediationActions from "../Utils/Workspace/Slack/Actions/Remediation";
+import SlackPublicNoteApprovalActions from "../Utils/Workspace/Slack/Actions/PublicNoteApproval";
 import SlackActionType from "../Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../Utils/Workspace/Slack/Actions/AlertEpisode";
@@ -1211,6 +1212,25 @@ export default class SlackAPI {
               req: req,
               res: res,
             });
+          }
+
+          /*
+           * A public note waiting for approval, in its approvers' direct
+           * messages: Approve, Reject and Reject's form.
+           */
+          if (
+            SlackPublicNoteApprovalActions.isPublicNoteApprovalAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackPublicNoteApprovalActions.handlePublicNoteApprovalAction(
+              {
+                slackRequest: authResult,
+                action: action,
+                req: req,
+                res: res,
+              },
+            );
           }
 
           /*
@@ -2833,6 +2853,7 @@ export default class SlackAPI {
       toolCallCount: number;
       providerName?: string | undefined;
       modelName?: string | undefined;
+      stopNoteInMarkdown?: string | undefined;
     } = await ObservabilityAssistant.answerQuestion({
       projectId: data.projectId,
       userId: data.userId,
@@ -2862,6 +2883,17 @@ export default class SlackAPI {
     let answerMarkdown: MarkdownText = FeedMarkdown.aiWritten(
       result.contentInMarkdown || "",
     );
+
+    /*
+     * An answer a limit stopped says so under it, in OneUptime's own words
+     * with the link to the setting - placed after the model's text is made
+     * safe, so the link stays a link (ObservabilityAssistantResult).
+     */
+    if (result.stopNoteInMarkdown) {
+      answerMarkdown = answerMarkdown.isEmpty()
+        ? FeedMarkdown.asMarkdown(result.stopNoteInMarkdown)
+        : mdText`${answerMarkdown}\n\n${FeedMarkdown.asMarkdown(result.stopNoteInMarkdown)}`;
+    }
 
     // Append a compact "Sources" footer from the server-minted citations.
     if (result.citations && result.citations.length > 0) {

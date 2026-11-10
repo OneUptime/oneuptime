@@ -20,8 +20,10 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
   AuditLogExportRecord,
+  AuditLogExportSchemaVersion,
   toAuditLogExportRecord,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
@@ -130,12 +132,16 @@ function asStoredRow(entry: AuditLog): JSONObject {
   };
 }
 
-// The NDJSON a file destination would write for these entries.
-function exportedFile(entries: Array<AuditLog>): string {
+// The NDJSON a file destination would write for these entries, in a record version.
+function exportedFile(
+  entries: Array<AuditLog>,
+  schemaVersion?: AuditLogExportSchemaVersion,
+): string {
   return toNdjson(
     AuditLogExporter.toBatch({
       rows: entries.map(asStoredRow),
       maxBytes: 16 * 1024 * 1024,
+      schemaVersion,
     }),
   );
 }
@@ -353,6 +359,181 @@ describe("an exported entry carries no secret", () => {
     });
 
     expect(inserted).toHaveLength(1);
+  });
+
+  /*
+   * Version 2 (issue #6247) sends each change's summary lines too. They name
+   * settings and paths - the keys of JSON that changed - never a value, and
+   * the recorder writes none for a secret; so a version 2 file carries no
+   * secret either, here end to end and over a seeded sweep of JSON with
+   * secrets under every kind of key.
+   */
+  test("in version 2, a JSON change goes out with the path that changed, never the secret under it", async () => {
+    const before: Monitor = new Monitor();
+    before.id = ObjectID.generate();
+    before.projectId = PROJECT_ID;
+    before.name = "Checkout API";
+    (before as unknown as JSONObject)["monitorSteps"] = {
+      steps: [{ requestHeaders: { Authorization: "Bearer OLD-TOKEN-7f3a" } }],
+    };
+
+    await recorder.recordUpdate({
+      model: new Monitor(),
+      before,
+      updatedFields: {
+        monitorSteps: {
+          steps: [
+            { requestHeaders: { Authorization: "Bearer NEW-TOKEN-9c1b" } },
+          ],
+        },
+      },
+      itemId: before.id,
+      props: PROPS,
+    });
+
+    const second: string = exportedFile(inserted, 2);
+    const first: string = exportedFile(inserted, 1);
+
+    expect(second).toContain(
+      '"summary":["Changed steps › 1 › requestHeaders › Authorization"]',
+    );
+    expect(first).not.toContain("summary");
+
+    for (const file of [first, second]) {
+      expect(file).not.toContain("TOKEN");
+    }
+  });
+
+  test("a seeded sweep: no version 2 file carries a value that was under a secret-looking key", async () => {
+    const random: SeededRandom = seededRandom(62470);
+    const SECRET_KEYS: Array<string> = [
+      "Authorization",
+      "apiKey",
+      "api_key",
+      "password",
+      "clientSecret",
+      "token",
+      "X-Api-Token",
+      "private_key",
+      "accessKey",
+      "Cookie",
+      "connectionString",
+      "webhookSecret",
+    ];
+    const PLAIN_KEYS: Array<string> = [
+      "Accept",
+      "region",
+      "timeout",
+      "name",
+      "steps",
+      "url",
+    ];
+    const secrets: Array<string> = [];
+
+    const secretValue: () => string = (): string => {
+      const value: string = `s3cr3t-${random(1000000000).toString(36)}-${secrets.length}`;
+      secrets.push(value);
+      return value;
+    };
+
+    const json: (depth: number) => JSONObject = (depth: number): JSONObject => {
+      const node: JSONObject = {};
+      const keys: number = 1 + random(4);
+
+      for (let index: number = 0; index < keys; index++) {
+        const draw: number = random();
+
+        if (draw < 0.4) {
+          node[SECRET_KEYS[random(SECRET_KEYS.length)]!] = secretValue();
+        } else if (depth < 3 && draw < 0.64) {
+          node[PLAIN_KEYS[random(PLAIN_KEYS.length)]!] = json(depth + 1);
+        } else {
+          node[PLAIN_KEYS[random(PLAIN_KEYS.length)]!] =
+            `plain-${random(1000)}`;
+        }
+      }
+
+      return node;
+    };
+
+    for (let index: number = 0; index < 250; index++) {
+      const before: Monitor = new Monitor();
+      before.id = ObjectID.generate();
+      before.projectId = PROJECT_ID;
+      before.name = `Monitor ${index}`;
+      (before as unknown as JSONObject)["monitorSteps"] = json(0);
+
+      await recorder.recordUpdate({
+        model: new Monitor(),
+        before,
+        updatedFields: { monitorSteps: json(0) },
+        itemId: before.id,
+        props: PROPS,
+      });
+    }
+
+    const file: string = exportedFile(inserted, 2);
+
+    // The sweep exported changes and their lines, not nothing.
+    expect(inserted.length).toBeGreaterThan(200);
+    expect(file).toContain('"summary":["');
+
+    const leaked: Array<string> = secrets.filter((value: string): boolean => {
+      return file.includes(value);
+    });
+
+    expect(leaked).toEqual([]);
+  });
+
+  test("in version 2, an old entry's secret is redacted on its way out, its lines kept as they are", () => {
+    const old: JSONObject = {
+      _id: ObjectID.generate().toString(),
+      createdAt: "2026-09-01 08:00:00",
+      projectId: PROJECT_ID.toString(),
+      action: "Update",
+      resourceType: "API Key",
+      resourceName: "Old key",
+      changes: JSON.stringify([
+        {
+          field: "apiKey",
+          oldValue: OLD_SECRET_KEY,
+          newValue: API_KEY_VALUE,
+          summary: ["Changed apiKey"],
+        },
+        { field: "name", oldValue: "Old", newValue: "Old key" },
+      ]),
+    };
+
+    const second: Array<AuditLogExportRecord> = AuditLogExporter.toBatch({
+      rows: [old],
+      maxBytes: 1024 * 1024,
+      schemaVersion: 2,
+    });
+    const first: Array<AuditLogExportRecord> = AuditLogExporter.toBatch({
+      rows: [old],
+      maxBytes: 1024 * 1024,
+      schemaVersion: 1,
+    });
+
+    expect(second[0]!.changes).toEqual([
+      {
+        field: "apiKey",
+        oldValue: "[REDACTED]",
+        newValue: "[REDACTED]",
+        summary: ["Changed apiKey"],
+      },
+      { field: "name", oldValue: "Old", newValue: "Old key", summary: null },
+    ]);
+    // Version 1 is redacted as it always was: no summary, not even null.
+    expect(first[0]!.changes).toEqual([
+      { field: "apiKey", oldValue: "[REDACTED]", newValue: "[REDACTED]" },
+      { field: "name", oldValue: "Old", newValue: "Old key" },
+    ]);
+
+    for (const batch of [first, second]) {
+      expect(toNdjson(batch)).not.toContain(API_KEY_VALUE);
+      expect(toNdjson(batch)).not.toContain(OLD_SECRET_KEY);
+    }
   });
 
   test("an entry recorded before its secret was listed is redacted on its way out", () => {

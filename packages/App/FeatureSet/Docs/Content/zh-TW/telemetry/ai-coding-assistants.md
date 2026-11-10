@@ -83,7 +83,7 @@ Copilot 只從其代理程式功能匯出 OpenTelemetry：VS Code 的聊天和�
 
 | 欄位 | 鍵（優先者在前） |
 | --- | --- |
-| 員工 | `user.email`、`user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id` |
+| 員工 | `user.email`、`cursor.user.email`、`user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id` |
 | 團隊 / 成本中心 | `team.id`、`team`、`cost_center`、`department`、`cursor.team.id` |
 | 模型 | `gen_ai.request.model`、`model`、`cursor.model.name` |
 
@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 請在你已經佈建開發人員機器的地方設定：MDM 設定檔、受管設定檔或 dotfiles 中的 shell 設定檔。值中不能包含空格：請使用底線，或 `%20` 這類百分比編碼。Codex 沒有資源屬性，因此請改為在它的 `[otel.span_attributes]` 中設定相同的鍵。
 
-若要依應用程式區分支出，請使用服務名稱（`OTEL_SERVICE_NAME`，或工具自己的設定）。 **應用程式 / 服務** 細分只涵蓋傳送 GenAI span 的工具。
+若要依應用程式區分支出，請使用服務名稱（`OTEL_SERVICE_NAME`，或工具自己的設定）。 **應用程式 / 服務** 細分會為每個服務排名，無論它傳送 GenAI span 還是只傳送指標。
 
 ### 刻意不視為員工的內容
 
@@ -138,27 +138,27 @@ OneUptime 也會從 `gen_ai.client.token.usage`、`gen_ai.client.token.count`、
 閱讀數字之前需要了解兩點：
 
 - **刻意不讀取 `gemini_cli.token.usage`。** Gemini CLI 會把 token 傳送兩次，一次作為自己的指標，一次作為 `gen_ai.client.token.usage`，同時讀取會使其加倍。它的 token 只透過 `gen_ai.client.token.usage` 計算一次。Gemini CLI 不會傳送成本指標：請開啟它的追蹤，讓每次呼叫都能計價。
-- **只計算輸入和輸出 token。** token 類型會從 `gen_ai.token.type`、`llm.token.type`、`type`、`cursor.token.type` 或 `token_type` 讀取，只計算 `input` 和 `output`（或舊的 `prompt` 和 `completion`）。快取讀寫、Codex 的 `total`（重複了其他值）和 `reasoning_output`（`output` 的一部分）都不計入，因此來自指標的總數會小於工具傳送的所有值之和。
+- **只計算輸入和輸出 token。** token 類型會從 `gen_ai.token.type`、`llm.token.type`、`type`、`cursor.token.type` 或 `token_type` 讀取，只計算 `input` 和 `output`（或舊的 `prompt` 和 `completion`），而 Claude Code 的 `cacheRead` 和 `cacheCreation` 會計為輸入，因為它的 `input` 不包含它們。其他快取讀寫、Codex 的 `total`（重複了其他值）和 `reasoning_output`（`output` 的一部分）都不計入，因此來自指標的總數會小於工具傳送的所有值之和。
 
 ## 使用量分頁
 
 開啟 **產品 → AI / LLM** ，進入 **使用量** 。它會依支出為 **員工** 、 **團隊** 、 **模型** 、 **提供者** 和 **應用程式 / 服務** 排名，除非你另外選擇時間範圍，否則為最近 7 天。沒有指明任何人的呼叫會計入 **未歸屬** ：如果 **未歸屬** 這一列很大，代表有工具仍需設定身分。
 
-### 程式設計助理指標是備援，而不是附加
+### 程式設計助理指標與你的應用程式的呼叫一起計數
 
-GenAI span 優先：只有對 span 沒有回報的數字才會讀取指標，兩者絕不相加（ [原因](/docs/telemetry/ai-llm-observability#span-優先指標補充) ）。對程式設計助理來說，這有一個直接的後果： **如果同一個專案接收帶有成本的 GenAI span，程式設計助理的支出就不會顯示。** 請為程式設計助理另外準備一個專案，並使用它自己的擷取金鑰。
+每個服務依其傳送的資料計數（ [如何計數](/docs/telemetry/ai-llm-observability#每個服務依其傳送的資料計數) ）。程式設計助理的指標歸在它自己的服務下，因此它的支出會加到你的應用程式傳送到同一個專案的 AI 呼叫上，而不會取代它們；為同樣的呼叫同時傳送 GenAI span 和指標的應用程式只計一次，依其 span 計數。
 
-備援生效時，對於只傳送指標的工具，每種細分能顯示的內容如下：
+對於只傳送指標的工具，每種細分顯示的內容如下：
 
 | 細分 | 來自指標 |
 | --- | --- |
 | **員工** | 是，來自上方的每個身分鍵，包括不帶前置詞和帶 `resource.` 前置詞的形式 |
 | **團隊** | 是，來自團隊鍵 |
 | **模型** | 是：Claude Code 和 Codex 傳送不帶前置詞的 `model`，Cursor 傳送 `cursor.model.name` |
-| **提供者** | 否：程式設計助理的指標不指明提供者 |
-| **應用程式 / 服務** | 否：它們的指標不屬於任何 OneUptime 服務 |
+| **提供者** | 歸入 **未歸屬** ：程式設計助理的指標不指明提供者 |
+| **應用程式 / 服務** | 是：每個工具歸入其指標指明的服務，例如 `cursor` |
 
-從指標讀取的資料列只攜帶成本：其呼叫和 token 儲存格顯示 `—`，因為支出計數器沒有逐次呼叫的細節，而在那裡顯示 0 就等於聲稱此人沒有發起任何呼叫。該表格會標示 **來自 GenAI 指標** 。
+從指標讀取的資料列會在其名稱下方註明 **來自使用量指標** 。其呼叫儲存格顯示 `—`，因為計數器沒有逐次呼叫的細節，而在那裡顯示 0 就等於聲稱此人沒有發起任何呼叫；其 token 儲存格顯示其指標計數的 token。
 
 ## 沒有 OpenTelemetry？在前面放一個閘道
 
@@ -188,7 +188,7 @@ Codex 預設也會把它的指標傳送給 OpenAI：請參閱 [OpenAI Codex](/do
 
 ## OneUptime 尚未做到的事
 
-- **沒有程式設計工具的管理 API 連接器。** OneUptime 會讀取這些工具背後的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 帳戶（ [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts) ），但不會讀取 Cursor 的 Admin API、GitHub 的 Copilot 計費，以及 Windsurf 或 JetBrains 的 API。
+- **除了 Cursor 的，沒有程式設計工具的管理 API 連接器。** OneUptime 會讀取這些工具背後的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 帳戶，以及 Cursor 團隊的 Admin API（ [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts) ），但不會讀取 GitHub 的 Copilot 計費，以及 Windsurf 或 JetBrains 的 API。
 - **除非工具回報，否則成本是估算值。** 回報的成本會原樣使用；否則 OneUptime 會依牌價為 token 計價。Cursor 的 `cursor.cost.usage` 本身就是估算值。
 - **不會讀取日誌記錄上的身分。** Codex 只在日誌上傳送的 `user.email` 不會與支出關聯。
 - **尚未讀取 Cursor 的 `cursor.user.email`** ，因此 Cursor 使用者會顯示為其整數 `cursor.user.id`。
@@ -197,11 +197,11 @@ Codex 預設也會把它的指標傳送給 OpenAI：請參閱 [OpenAI Codex](/do
 
 ## 從哪裡開始
 
-依下列順序導入；每一步本身都有用。請使用尚未從你自己的應用程式接收 GenAI span 的專案，否則 [備援規則](#程式設計助理指標是備援而不是附加) 會讓程式設計助理的支出無法顯示在頁面上。
+依下列順序導入；每一步本身都有用。程式設計助理可以與你自己的應用程式共用一個專案： [每個助理都會與它們一起計數](#程式設計助理指標與你的應用程式的呼叫一起計數)。
 
 1. **Gemini CLI** ，如果有人在用的話。它不需要設定就會傳送 `user.email`，因此能展示端對端的歸屬效果。也請開啟它的追蹤：它不會傳送成本指標。
 2. **Claude Code** ：為所有機器準備一個受管設定檔，免費取得 `user.email`、真正的成本指標，以及依開發人員劃分的接受率、提交、提取要求和程式碼行數。
-3. **Cursor** ，使用 Enterprise 方案：在 Cursor 儀表板中設定一個畫面，不必動到任何開發人員機器，不過人員會以整數形式抵達。
+3. **Cursor** ，使用 Enterprise 方案：在 Cursor 儀表板中設定一個畫面，不必動到任何開發人員機器，不過人員會以整數形式抵達。在 Teams 方案上，或者需要 Cursor 按人員收取的費用時，把它的管理員 API 金鑰作為 [提供者帳戶](/docs/telemetry/ai-provider-accounts#cursor) 連線，可以搭配匯出，也可以不用。
 4. **Copilot 和 Codex** ，兩者都需要在每台機器上設定身分。請在佈建機器時完成：沒有身分就抵達的呼叫，事後無法歸屬。
 5. **LiteLLM 閘道** ，用於其他所有工具，每位員工一把虛擬金鑰。
 

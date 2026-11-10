@@ -30,7 +30,10 @@ import {
  * charged per metric and statistic) and the period. A metric is read for
  * every resource of the namespace that reported it in the last three
  * hours (ListMetrics, RecentlyActive), on exactly the dimensions
- * CloudWatch lists it with - the resource's own aggregate.
+ * CloudWatch lists it with - the resource's own aggregate. A namespace
+ * whose metrics are published a few times a day is listed whatever its
+ * last point's age instead (isListedWhenQuiet): three hours after one,
+ * the listing would not know it most of the day.
  */
 
 export type AwsStatistic = "Average" | "Sum" | "Maximum" | "Minimum";
@@ -41,8 +44,11 @@ export interface AwsKeyMetric {
   // CloudWatch's unit, as written on the stored metric.
   unit: string;
   /*
-   * Seconds per datapoint. 300 for most (CloudWatch's basic monitoring),
-   * 86400 for the storage metrics CloudWatch publishes once a day.
+   * Seconds per datapoint, and how often the read asks for it
+   * (CloudMetricWindows: each period has a cursor of its own). 300 for most
+   * (CloudWatch's basic monitoring); 3600 for a metric published a few
+   * times a day, read once an hour (ACM's DaysToExpiry, twice a day); 86400
+   * for the storage metrics CloudWatch publishes once a day.
    */
   periodSeconds: number;
 }
@@ -55,9 +61,21 @@ export interface AwsNamespaceKeyMetrics {
    * to us-east-1 whatever the resource's own Region).
    */
   onlyRegion?: string | undefined;
+  /*
+   * Listed without RecentlyActive: every series that reported in the last
+   * two weeks, as ListMetrics lists by default, not only the last three
+   * hours'. For a namespace whose metrics a service publishes a few times a
+   * day (ACM's DaysToExpiry, twice), which the last three hours' listing
+   * would hold for a few hours after each point and lose for the rest of
+   * the day - and with them the resource's readings, on the read's own
+   * hourly cadence. A series that stops (a certificate that expired) stays
+   * listed for those two weeks, and reads as no data.
+   */
+  isListedWhenQuiet?: boolean | undefined;
 }
 
 export const AWS_DEFAULT_PERIOD_SECONDS: number = 300;
+export const HOURLY_PERIOD_SECONDS: number = 3600;
 export const DAILY_PERIOD_SECONDS: number = 86400;
 
 function aws(
@@ -290,6 +308,19 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     namespace: "AWS/Kafka",
     metrics: [aws("ActiveControllerCount", "Maximum", "Count")],
   },
+  {
+    /*
+     * The days a certificate has left. ACM publishes it twice a day for
+     * every certificate until it expires, then stops: read once an hour,
+     * and listed whatever its last point's age (isListedWhenQuiet). Its
+     * Minimum is the period's one point. The key metrics' stream leaves it
+     * to this read (CloudStreamTemplate): an hour sooner is nothing to a
+     * count of days.
+     */
+    namespace: "AWS/CertificateManager",
+    isListedWhenQuiet: true,
+    metrics: [aws("DaysToExpiry", "Minimum", "None", HOURLY_PERIOD_SECONDS)],
+  },
 ];
 
 const AWS_KEY_METRICS_BY_NAMESPACE: ReadonlyMap<
@@ -331,10 +362,47 @@ export interface AzureTypeKeyMetrics {
   // The ARM type, as CloudResourceCatalog spells it.
   type: string;
   metrics: Array<string>;
+  /*
+   * The dimension every metric of the type is split by, one series per
+   * value, in the same one call: a Service Bus or Event Hubs namespace's
+   * EntityName, its queues, topics and event hubs - the series a queue's
+   * page charts, exactly as the azure_monitor receiver writes them.
+   */
+  splitByDimension?: string | undefined;
+  /*
+   * The metrics of `metrics` a diagnostic setting cannot export: those
+   * Microsoft's supported metrics of the type mark "DS Export: No" (Azure
+   * Monitor documentation, "Supported metrics with Azure Monitor"). A
+   * stream never delivers them, so the read keeps writing them while a
+   * stream delivers the type's others (isAzureStreamedKeyMetric).
+   */
+  notExportedByDiagnosticSettings?: Array<string> | undefined;
 }
 
 // At most this many metrics are read per resource (one Azure Monitor call).
 export const AZURE_MAX_METRICS_PER_RESOURCE: number = 8;
+
+/*
+ * The Azure Monitor dimension that names a Service Bus or Event Hubs
+ * namespace's queue, topic or event hub.
+ */
+export const AZURE_ENTITY_NAME_DIMENSION: string = "EntityName";
+
+/*
+ * A split series' datapoint attribute per dimension, as the azure_monitor
+ * receiver names it: "metadata_" + the dimension's name as Azure Monitor
+ * answers it, lowercased - a queue's or topic's is metadata_entityname.
+ */
+export const AZURE_DIMENSION_ATTRIBUTE_PREFIX: string = "metadata_";
+export const AZURE_ENTITY_NAME_ATTRIBUTE: string = `${AZURE_DIMENSION_ATTRIBUTE_PREFIX}${AZURE_ENTITY_NAME_DIMENSION.toLowerCase()}`;
+
+/*
+ * Series of one metric a split read asks Azure Monitor for at most (its
+ * `top`, 10 unless asked): the queues, topics and event hubs of one
+ * namespace a read reads, as many as the Queues guide asks the
+ * azure_monitor receiver to read (maximum_number_of_records_per_resource).
+ */
+export const AZURE_MAX_SPLIT_SERIES_PER_METRIC: number = 1000;
 
 export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
@@ -348,6 +416,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "Disk Write Bytes",
       "VmAvailabilityMetric",
     ],
+    notExportedByDiagnosticSettings: ["Network In Total", "Network Out Total"],
   },
   {
     type: "Microsoft.Compute/virtualMachineScaleSets",
@@ -357,10 +426,17 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "Network In Total",
       "Network Out Total",
     ],
+    notExportedByDiagnosticSettings: ["Network In Total", "Network Out Total"],
   },
   {
     type: "Microsoft.Compute/disks",
     metrics: [
+      "Composite Disk Read Bytes/sec",
+      "Composite Disk Write Bytes/sec",
+      "Composite Disk Read Operations/sec",
+      "Composite Disk Write Operations/sec",
+    ],
+    notExportedByDiagnosticSettings: [
       "Composite Disk Read Bytes/sec",
       "Composite Disk Write Bytes/sec",
       "Composite Disk Read Operations/sec",
@@ -430,6 +506,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "NormalizedRUConsumption",
       "ServerSideLatency",
     ],
+    notExportedByDiagnosticSettings: [
+      "TotalRequests",
+      "TotalRequestUnits",
+      "NormalizedRUConsumption",
+      "ServerSideLatency",
+    ],
   },
   {
     type: "Microsoft.Cache/redis",
@@ -449,6 +531,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "SuccessE2ELatency",
       "UsedCapacity",
     ],
+    notExportedByDiagnosticSettings: ["UsedCapacity"],
   },
   {
     type: "Microsoft.KeyVault/vaults",
@@ -464,6 +547,13 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ServerErrors",
       "ThrottledRequests",
     ],
+    splitByDimension: AZURE_ENTITY_NAME_DIMENSION,
+    notExportedByDiagnosticSettings: [
+      "ActiveMessages",
+      "DeadletteredMessages",
+      "ServerErrors",
+      "ThrottledRequests",
+    ],
   },
   {
     type: "Microsoft.EventHub/namespaces",
@@ -473,6 +563,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ThrottledRequests",
       "ServerErrors",
     ],
+    splitByDimension: AZURE_ENTITY_NAME_DIMENSION,
+    notExportedByDiagnosticSettings: ["ThrottledRequests", "ServerErrors"],
   },
   {
     type: "Microsoft.ContainerService/managedClusters",
@@ -481,6 +573,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "node_memory_working_set_percentage",
       "kube_pod_status_ready",
     ],
+    notExportedByDiagnosticSettings: ["kube_pod_status_ready"],
   },
   {
     type: "Microsoft.App/containerApps",
@@ -499,6 +592,10 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ApplicationGatewayTotalTime",
       "Throughput",
     ],
+    notExportedByDiagnosticSettings: [
+      "ApplicationGatewayTotalTime",
+      "Throughput",
+    ],
   },
   {
     type: "Microsoft.Network/publicIPAddresses",
@@ -507,10 +604,16 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
     type: "Microsoft.Network/azureFirewalls",
     metrics: ["FirewallHealth", "Throughput", "SNATPortUtilization"],
+    notExportedByDiagnosticSettings: ["Throughput"],
   },
   {
     type: "Microsoft.Network/natGateways",
     metrics: ["ByteCount", "SNATConnectionCount", "DatapathAvailability"],
+    notExportedByDiagnosticSettings: [
+      "ByteCount",
+      "SNATConnectionCount",
+      "DatapathAvailability",
+    ],
   },
   {
     type: "Microsoft.Cdn/profiles",
@@ -572,6 +675,155 @@ export function getAzureStoredMetricName(
   aggregation: string,
 ): string {
   return `azure_${metricName.split(" ").join("_")}_${aggregation}`.toLowerCase();
+}
+
+// The aggregations an Azure Monitor metric is read with, as stored.
+const AZURE_STORED_AGGREGATIONS: ReadonlyArray<string> = [
+  "average",
+  "total",
+  "maximum",
+  "minimum",
+  "count",
+];
+
+/*
+ * Each type's key metrics by every stored name one can be read under
+ * (lowercased type -> stored name -> Azure Monitor's name), built once. A
+ * read checks every datapoint it writes against it while its subscription
+ * streams (CloudStreamedMetrics) - a split namespace's thousand queues
+ * included - so a lookup is two map reads, not a stored name built for
+ * each metric and aggregation of the type.
+ */
+const AZURE_KEY_METRICS_BY_STORED_NAME: ReadonlyMap<
+  string,
+  ReadonlyMap<string, string>
+> = new Map(
+  AZURE_KEY_METRICS.map(
+    (entry: AzureTypeKeyMetrics): [string, ReadonlyMap<string, string>] => {
+      const byStoredName: Map<string, string> = new Map<string, string>();
+
+      for (const metric of entry.metrics) {
+        for (const aggregation of AZURE_STORED_AGGREGATIONS) {
+          const stored: string = getAzureStoredMetricName(metric, aggregation);
+
+          // The type's first metric stored under a name keeps it.
+          if (!byStoredName.has(stored)) {
+            byStoredName.set(stored, metric);
+          }
+        }
+      }
+
+      return [entry.type.toLowerCase(), byStoredName];
+    },
+  ),
+);
+
+/*
+ * Whether a cloud connection's read reads this stored metric of the type:
+ * one of its key metrics, whatever aggregation its definition calls
+ * primary (the read learns that from Azure, so the name is matched with
+ * any of them). False for a type with no key metrics.
+ */
+export function isAzureKeyMetricStoredName(
+  type: string,
+  storedMetricName: string,
+): boolean {
+  return getAzureKeyMetricOfStoredName(type, storedMetricName) !== null;
+}
+
+/*
+ * The key metric of the type a stored metric name is, by Azure Monitor's
+ * own name (Network In Total), whatever aggregation it was read with; null
+ * for any other name, and for a type with no key metrics.
+ */
+export function getAzureKeyMetricOfStoredName(
+  type: string,
+  storedMetricName: string,
+): string | null {
+  const stored: string = (storedMetricName || "").trim().toLowerCase();
+
+  if (!stored) {
+    return null;
+  }
+
+  return (
+    AZURE_KEY_METRICS_BY_STORED_NAME.get(
+      (type || "").trim().toLowerCase(),
+    )?.get(stored) || null
+  );
+}
+
+/*
+ * Whether a diagnostic setting exports this key metric of the type (the
+ * type's notExportedByDiagnosticSettings does not name it). False for a
+ * metric that is no key metric of the type.
+ */
+export function isAzureKeyMetricExportedByDiagnosticSettings(
+  type: string,
+  metricName: string,
+): boolean {
+  const keyMetrics: AzureTypeKeyMetrics | undefined = getAzureKeyMetrics(
+    type || "",
+  );
+  const name: string = (metricName || "").trim().toLowerCase();
+  const isNamed: (metrics: Array<string> | undefined) => boolean = (
+    metrics: Array<string> | undefined,
+  ): boolean => {
+    return (metrics || []).some((metric: string): boolean => {
+      return metric.toLowerCase() === name;
+    });
+  };
+
+  return (
+    Boolean(keyMetrics && name) &&
+    isNamed(keyMetrics!.metrics) &&
+    !isNamed(keyMetrics!.notExportedByDiagnosticSettings)
+  );
+}
+
+/*
+ * WHETHER A STREAM WRITES THIS KEY METRIC OF THE TYPE IN PLACE OF THE READ.
+ *
+ * An Azure stream (diagnostic settings sending to event hubs,
+ * CloudStreamAzure) delivers the key metrics a diagnostic setting exports,
+ * and while it does, the connection's read leaves them to it
+ * (CloudStreamedMetrics) and the stream writes them
+ * (AzureDiagnosticRecords). One a diagnostic setting cannot export, the
+ * read keeps writing.
+ *
+ * Never a metric of a type the read splits by a dimension - a Service Bus
+ * or Event Hubs namespace: the read writes its queues', topics' and event
+ * hubs' own series, which its totals add up (CloudResourceMetricAggregation),
+ * while a diagnostic setting exports a metric "flattened ... aggregated
+ * across dimension values" (Azure Monitor documentation) - one total for
+ * the namespace, which would count each queue's messages a second time
+ * beside its own series. So the read writes every metric of such a type,
+ * streamed or not, and a stream none.
+ *
+ * Whether the metric is read a minute at a time - the only grain a stream
+ * delivers - is the caller's to check.
+ */
+export function isAzureStreamedKeyMetric(
+  type: string,
+  metricName: string,
+): boolean {
+  return (
+    !getAzureKeyMetrics(type || "")?.splitByDimension &&
+    isAzureKeyMetricExportedByDiagnosticSettings(type, metricName)
+  );
+}
+
+// isAzureStreamedKeyMetric of a stored name, as a read's datapoints carry it.
+export function isAzureStreamedKeyMetricStoredName(
+  type: string,
+  storedMetricName: string,
+): boolean {
+  const metric: string | null = getAzureKeyMetricOfStoredName(
+    type,
+    storedMetricName,
+  );
+
+  return metric !== null && isAzureStreamedKeyMetric(type, metric);
 }
 
 /*

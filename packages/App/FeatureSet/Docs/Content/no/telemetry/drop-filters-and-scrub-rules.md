@@ -122,8 +122,10 @@ Mask:   Payment failed for j***@***.com
 Hash:   Payment failed for [HASHED:8c87b489]
 ```
 
-**Felt som skal renses** er **Begge (brødtekst og attributter)** for en loggregel, med mindre du velger **Kun brødtekst** eller **Kun attributter**, og **Alle (navn, attributter og hendelser)** for en span-regel, med mindre du velger **Bare spennavn**, **Kun attributter** eller **Kun hendelsesattributter**. En **Sensitive Attribute Keys**-regel renser alltid attributtverdier, siden den leser attributtnøkler.
+**Felt som skal renses** er **Begge (brødtekst og attributter)** for en loggregel, med mindre du velger **Kun brødtekst** eller **Kun attributter**, og **Alle (navn, attributter og hendelser)** for en span-regel, med mindre du velger **Bare spennavn**, **Kun attributter** eller **Kun hendelsesattributter**. Attributtene til et spans lenker renses sammen med spanets egne attributter. En **Sensitive Attribute Keys**-regel renser alltid attributtverdier, siden den leser attributtnøkler.
 
+- **Lister og nestede verdier leses også.** En regel leser hver tekst i en liste, en liste av lister eller en nøkkel-verdi-liste, som verdiene til en HTTP-header, og beholder verdiens form: tall og sann eller usann forblir som de er. En **Sensitive Attribute Keys**-regel leser også nøklene inne i en verdi, så `password` inne i en nøkkel-verdi-liste skjules også. Brødteksten i en loggpost som sendes som et map eller en liste, lagres som JSON-teksten sin, som en mønsterregel renser som all annen tekst.
+- **En verdi som er for stor til å leses element for element, leses som tekst.** En verdi som er nestet mer enn 32 nivåer dypt, eller som ville tatt en post over 10 000 verdier inne i listene og mapene sine, leses og lagres som JSON-teksten sin. En mønsterregel renser det den finner i den teksten, og en **Sensitive Attribute Keys**-regel skjuler hele verdien når et ord som `password` eller `token` står i den.
 - **Unntak kommer fra den rensede posten.** Et unntak som finnes i en loggpost, lages etter rensingen, og reglene som renser span-hendelser, renser også unntakene som er registrert på dem.
 - **Session Replays renses også.** Scrub-regler for logger kjører også over Session Replay-opptak, i tillegg til maskeringen opptakeren gjør i nettleseren.
 - **Regler kjører i listens rekkefølge.** Hver regel ser det reglene før den etterlot.

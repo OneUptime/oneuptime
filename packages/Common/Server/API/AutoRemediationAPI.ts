@@ -24,6 +24,17 @@ import Incident from "../../Models/DatabaseModels/Incident";
 import RemediationApproval, {
   getScopeRefusalNextStep,
 } from "../Utils/AutoRemediation/RemediationApproval";
+import DeclaredCodeChanges from "../Utils/AutoRemediation/DeclaredCodeChanges";
+import RemediationRound from "../Utils/AutoRemediation/RemediationRound";
+import {
+  REMEDIATION_ROUND_PATH,
+  REMEDIATION_ROUND_TRY_AGAIN_PATH,
+} from "../../Types/AutoRemediation/RemediationRound";
+import {
+  DECLARED_CODE_CHANGE_PATH,
+  DECLARED_CODE_CHANGES_PATH,
+  DECLARED_CODE_OWNER_PATH,
+} from "../../Utils/AiRemediation/DeclaredCodeChange";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -290,6 +301,204 @@ router.post(
       }
 
       Response.sendJsonObjectResponse(req, res, { result });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * A ROUND OF AN AI FIX (RemediationRound, issues #6436 and #6487): what
+ * the Remediation step shows of how OneUptime AI worked a fix out - its
+ * run, how its attempts ended, the commands it checked with and why it
+ * found no fix - and Try again for a round that did not finish.
+ *
+ *   POST /auto-remediation/round            { suggestionId }
+ *     For whoever may read the fix: the round, and mayTryAgain - whether
+ *     they may start it again.
+ *   POST /auto-remediation/round-try-again  { suggestionId }
+ *     For whoever may change the incident or alert the fix is for: the
+ *     round starts again with a new run. Response { runId }, or 400 with
+ *     why not.
+ *
+ * Both read the fix under the person's own permissions, in the tenant they
+ * asked in: the multi-tenant header never widens the read.
+ */
+async function getTenantViewer(req: ExpressRequest): Promise<{
+  tenantId: ObjectID;
+  viewerProps: DatabaseCommonInteractionProps;
+}> {
+  const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+  const tenantId: ObjectID = CommonAPI.assertAuthenticatedProjectMember(props);
+
+  return { tenantId, viewerProps: { ...props, isMultiTenantRequest: false } };
+}
+
+router.post(
+  REMEDIATION_ROUND_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const viewer: {
+        tenantId: ObjectID;
+        viewerProps: DatabaseCommonInteractionProps;
+      } = await getTenantViewer(req);
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        await RemediationRound.readForViewer({
+          suggestionId: readSuggestionId(req),
+          ...viewer,
+        }),
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+router.post(
+  REMEDIATION_ROUND_TRY_AGAIN_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const viewer: {
+        tenantId: ObjectID;
+        viewerProps: DatabaseCommonInteractionProps;
+      } = await getTenantViewer(req);
+
+      const runId: ObjectID = await RemediationRound.tryAgain({
+        suggestionId: readSuggestionId(req),
+        ...viewer,
+        userId: viewer.viewerProps.userId!,
+      });
+
+      Response.sendJsonObjectResponse(req, res, { runId: runId.toString() });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * A FIX THAT LASTS (DeclaredCodeChanges): a step of a fix that changes a
+ * cloud resource declared as code can also be made in that code, as a pull
+ * request - beside the live change, or instead of it.
+ *
+ *   POST /auto-remediation/declared-code-owner   { suggestionId, sequence }
+ *     The repositories connected to Code that may hold the code, ranked,
+ *     each the reader may read, with whether they may ask AI to work in it:
+ *     what the dialog that asks before opening the pull request shows.
+ *   POST /auto-remediation/declared-code-change  { suggestionId, sequence, codeRepositoryId }
+ *     The pull request asked for: a Code task in that repository, for whoever
+ *     may ask AI to work in it, with every check Code makes. A step whose
+ *     task is on its way gets that one back.
+ *   POST /auto-remediation/declared-code-changes { suggestionId }
+ *     Each step's task as it stands: being written, opened, ended or failed.
+ *
+ * Each reads the fix under the person's own permissions, in the tenant they
+ * asked in.
+ */
+router.post(
+  DECLARED_CODE_OWNER_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+      const body: JSONObject = (req.body || {}) as JSONObject;
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        (await DeclaredCodeChanges.getOwner({
+          props,
+          tenantId,
+          suggestionId: body["suggestionId"],
+          sequence: body["sequence"],
+        })) as unknown as JSONObject,
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+router.post(
+  DECLARED_CODE_CHANGE_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+      const body: JSONObject = (req.body || {}) as JSONObject;
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        (await DeclaredCodeChanges.start({
+          props,
+          tenantId,
+          suggestionId: body["suggestionId"],
+          sequence: body["sequence"],
+          codeRepositoryId: body["codeRepositoryId"],
+        })) as unknown as JSONObject,
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+router.post(
+  DECLARED_CODE_CHANGES_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+      const body: JSONObject = (req.body || {}) as JSONObject;
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        (await DeclaredCodeChanges.list({
+          props,
+          tenantId,
+          suggestionId: body["suggestionId"],
+        })) as unknown as JSONObject,
+      );
       return;
     } catch (err) {
       next(err);

@@ -20,8 +20,12 @@ import { AUDIT_LOG_REDACTED_VALUE } from "Common/Types/AuditLog/AuditLogRedactio
 import {
   AUDIT_LOG_EXPORT_DEFAULT_FOLDER,
   AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT,
+  AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE,
   AUDIT_LOG_EXPORT_DEFAULT_WEBHOOK_HEADER,
   AUDIT_LOG_EXPORT_DOCS_PATH,
+  AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE,
+  AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE,
+  AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT,
   AuditLogExportDestinationCatalog,
   AuditLogExportDestinationDefinition,
   AuditLogExportDestinationField,
@@ -29,15 +33,24 @@ import {
   AuditLogExportSyslogFraming,
   AuditLogExportSyslogProtocol,
   AuditLogExportWebhookBodyFormat,
+  getAuditLogExportFieldDefault,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
+  AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION,
   AUDIT_LOG_EXPORT_RECORD_KEYS,
   AUDIT_LOG_EXPORT_SCHEMA_VERSION,
+  AUDIT_LOG_EXPORT_SCHEMA_VERSIONS,
+  AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION,
   AUDIT_LOG_EXPORT_TEST_ACTION,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import Permission from "Common/Types/Permission";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { readAuditLogValue } from "Common/Utils/AuditLog/AuditLogTypedValues";
+import {
+  describeLargeJson,
+  limitText,
+} from "Common/Utils/AuditLog/AuditLogValues";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -399,10 +412,68 @@ describe("the Audit Log Export page's destinations", () => {
       AuditLogExportSyslogFraming.OctetCounting,
     );
     expect(syslog).toContain(
-      `over TLS on port \`${AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT}\` unless **Protocol** says TCP`,
+      `over TLS on port \`${AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT}\` unless **Protocol** says TCP or UDP`,
     );
     expect(syslog).toContain(
-      "Messages are framed by octet counting (RFC 5425) unless **Framing** says one message per line.",
+      "Over TLS and TCP, messages are framed by octet counting (RFC 5425) unless **Framing** says one message per line.",
+    );
+  });
+
+  it("says where syslog over UDP starts, what it frames and how long a message may be, as the catalog sets them", () => {
+    const syslog: string = destinationSection(
+      AuditLogExportDestinationType.Syslog,
+    );
+    const field: (key: string) => AuditLogExportDestinationField = (
+      key: string,
+    ): AuditLogExportDestinationField => {
+      return catalogEntry(
+        AuditLogExportDestinationType.Syslog,
+      ).configFields.find((candidate: AuditLogExportDestinationField) => {
+        return candidate.key === key;
+      }) as AuditLogExportDestinationField;
+    };
+    const port: (protocol: AuditLogExportSyslogProtocol) => unknown = (
+      protocol: AuditLogExportSyslogProtocol,
+    ): unknown => {
+      return getAuditLogExportFieldDefault({ protocol }, field("port"));
+    };
+
+    // The port follows the protocol: UDP's own, and TLS's for TCP, which has none.
+    expect(port(AuditLogExportSyslogProtocol.Udp)).toBe(
+      AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT,
+    );
+    expect(port(AuditLogExportSyslogProtocol.Tls)).toBe(
+      AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT,
+    );
+    expect(port(AuditLogExportSyslogProtocol.Tcp)).toBe(
+      AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT,
+    );
+    expect(syslog).toContain(
+      `Over UDP, **Port** starts on \`${AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT}\`, and each message is a datagram of its own (RFC 5426), so none is framed.`,
+    );
+
+    // Framing is TLS's and TCP's alone, and the size UDP's.
+    expect(field("framing").showWhen?.values).toEqual([
+      AuditLogExportSyslogProtocol.Tls,
+      AuditLogExportSyslogProtocol.Tcp,
+    ]);
+    expect(field("maxMessageSize").showWhen?.values).toEqual([
+      AuditLogExportSyslogProtocol.Udp,
+    ]);
+
+    // An export that names no size sends the default; the form takes the range.
+    expect(field("maxMessageSize").defaultValue).toBeUndefined();
+    expect(field("maxMessageSize").placeholder).toBe(
+      String(AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE),
+    );
+    expect(field("maxMessageSize").minValue).toBe(
+      AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE,
+    );
+    expect(field("maxMessageSize").maxValue).toBe(
+      AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE,
+    );
+    expect(syslog).toContain(
+      `Each message over UDP is at most **Maximum message size** bytes: \`${AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE}\` unless you change it under **More fields**, from \`${AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE}\` to \`${AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE}\`.`,
     );
   });
 
@@ -463,11 +534,89 @@ describe("the Audit Log Export page's entries", () => {
         return codeSpans(row[0] as string);
       }),
     ).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
-    expect(rows[0]?.[1]).toContain(`\`${AUDIT_LOG_EXPORT_SCHEMA_VERSION}\`.`);
+    expect(rows[0]?.[1]).toContain(
+      `\`${AUDIT_LOG_EXPORT_SCHEMA_VERSION}\` for a new export, \`${AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION}\` for one saved before version ${AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION}.`,
+    );
+    expect(rows[rows.length - 1]?.[1]).toContain(
+      `and in version ${AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION} \`summary\`.`,
+    );
     expect(rows[4]?.[0]).toBe("`action`");
     expect(codeSpans(rows[4]?.[1] as string)).toEqual(
       Object.values(AuditLogAction),
     );
+  });
+
+  /*
+   * Issue #6247: each export sends a version of the entry. The page lists
+   * every version the record has, newest first, says what version 2 adds,
+   * and says what the product does: a new export sends the newest (the
+   * service's default), one saved before keeps 1 (the migration's
+   * default), and the choice is the form's Record version, under More
+   * fields - the form is ee/'s, so the Enterprise half below holds it to
+   * that.
+   */
+  it("says which record version each export sends, and what version 2 adds, as the record and the service do", () => {
+    const versions: string = section(english(), "## Record versions");
+    const rows: Array<Array<string>> = bodyRows(versions);
+    const service: string = readCommonSource(
+      "Server/Services/AuditLogExportService.ts",
+    );
+    const migration: string = readCommonSource(
+      "Server/Infrastructure/Postgres/SchemaMigrations/1808996130000-AddAuditLogExportSchemaVersion.ts",
+    );
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return codeSpans(row[0] as string)[0] as string;
+      }),
+    ).toEqual([...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS].reverse().map(String));
+    expect(rows[0]?.[1]).toContain("Each change also carries `summary`");
+    expect(rows[0]?.[1]).toContain("never values.");
+    expect(rows[1]?.[1]).toContain("without `summary`");
+
+    expect(versions).toContain(
+      `A new export sends version ${AUDIT_LOG_EXPORT_SCHEMA_VERSION}.`,
+    );
+    expect(service).toContain("? AUDIT_LOG_EXPORT_SCHEMA_VERSION");
+    expect(versions).toContain(
+      `An export saved before version ${AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION} keeps sending version ${AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION}, so whatever reads it needs no change`,
+    );
+    expect(migration).toContain(
+      `ALTER TABLE "AuditLogExport" ADD "schemaVersion" integer NOT NULL DEFAULT '${AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION}'`,
+    );
+
+    expect(versions).toContain(
+      `choose version ${AUDIT_LOG_EXPORT_SCHEMA_VERSION} in **Record version**, under **${MORE_FIELDS_SECTION_TITLE}**.`,
+    );
+  });
+
+  /*
+   * Issue #6325: a phone number, an email address or a URL goes out as its
+   * text, a port as its number - as the audit log records them now, and as
+   * the export reads an entry recorded before, which held the value as
+   * { "_type": "Phone", "value": ... }. No key changed, so no version did.
+   */
+  it("says a typed value goes out as its text and a port as its number, as the audit log reads them", () => {
+    const sent: string = section(english(), WHAT_IS_SENT_HEADING);
+
+    expect(sent).toContain(
+      "Each `oldValue` and `newValue` is the field's value: text, a number, `true` or `false`, or JSON for a setting with several parts.",
+    );
+    expect(sent).toContain(
+      "A phone number, an email address or a URL is its text, such as `+14155550100`, and a port is its number.",
+    );
+    expect(readAuditLogValue({ _type: "Phone", value: "+14155550100" })).toBe(
+      "+14155550100",
+    );
+    expect(readAuditLogValue({ _type: "Email", value: "a@example.com" })).toBe(
+      "a@example.com",
+    );
+    expect(
+      readAuditLogValue({ _type: "URL", value: "https://a.example" }),
+    ).toBe("https://a.example");
+    expect(readAuditLogValue({ _type: "Port", value: 587 })).toBe(587);
+    // No version was added for it: a version only ever adds keys.
+    expect(AUDIT_LOG_EXPORT_SCHEMA_VERSION).toBe(2);
   });
 
   it("names the test entry's action and the mark a secret is recorded as", () => {
@@ -549,6 +698,25 @@ describe("who may export, and where", () => {
 describeWhenEnterprisePresent(
   "the Enterprise half, where ee/ is checked out",
   () => {
+    it("sends every entry's typed values as the page says, after its secrets are redacted, in every version", () => {
+      const exporter: string = readEe(
+        "Server/AuditLogExport/AuditLogExporter.ts",
+      );
+      const toBatch: string = exporter.slice(
+        exporter.indexOf("public static toBatch("),
+      );
+
+      expect(toBatch).toContain(
+        "readAuditLogExportTypedValues(\n        redactAuditLogExportRecord(read),\n      )",
+      );
+      // Read whatever version the export sends: not inside toAuditLogExportRecord's versions.
+      expect(
+        toBatch.slice(0, toBatch.indexOf("readAuditLogExportTypedValues")),
+      ).toContain(
+        "toAuditLogExportRecord(\n        row,\n        data.schemaVersion,\n      )",
+      );
+    });
+
     it("names the screens' buttons and states as the export screens draw them", () => {
       const copy: string = readEe(
         "Dashboard/AuditLogExport/AuditLogExportCopy.ts",
@@ -605,6 +773,26 @@ describeWhenEnterprisePresent(
       expect(page).toContain(
         "To pause an export, choose **Turn off** in its row's menu: it keeps its place, and **Turn on** sends what was recorded meanwhile.",
       );
+    });
+
+    it("chooses the record version where the page says: the form's Record version, under More fields", () => {
+      const modal: string = readEe(
+        "Dashboard/AuditLogExport/AuditLogExportFormModal.tsx",
+      );
+      const copy: string = readEe(
+        "Dashboard/AuditLogExport/AuditLogExportCopy.ts",
+      );
+
+      expect(section(english(), "## Record versions")).toContain(
+        `choose version ${AUDIT_LOG_EXPORT_SCHEMA_VERSION} in **Record version**, under **${MORE_FIELDS_SECTION_TITLE}**.`,
+      );
+      expect(copy).toContain(
+        'schemaVersionField: translationKey("Record version")',
+      );
+      expect(modal).toContain("title: AuditLogExportCopy.schemaVersionField");
+      expect(
+        modal.slice(modal.indexOf("field: { schemaVersion: true }")),
+      ).toContain("collapsibleSection: advancedSection");
     });
 
     it("names the Admin Dashboard's Settings entry for the instance's page", () => {
@@ -796,6 +984,58 @@ describeWhenEnterprisePresent(
           `{"schemaVersion":${AUDIT_LOG_EXPORT_SCHEMA_VERSION},"id":`,
         ),
       ).toBe(true);
+    });
+
+    it("names the marks a shortened UDP message carries, and what a test over UDP tells, as the syslog destination writes them", () => {
+      const syslog: string = readEe(
+        "Server/AuditLogExport/Destinations/SyslogDestination.ts",
+      );
+      const api: string = readEe(
+        "Server/AuditLogExport/API/AuditLogExportAPI.ts",
+      );
+      const page: string = destinationSection(
+        AuditLogExportDestinationType.Syslog,
+      );
+      const marks: Array<string> = codeSpans(page).filter(
+        (span: string): boolean => {
+          return span.startsWith("[");
+        },
+      );
+
+      expect(marks).toHaveLength(3);
+
+      // A value is cut as the audit log cuts one: text keeps its start, JSON says its size.
+      expect(syslog).toContain("return limitText(value, limit);");
+      expect(syslog).toContain(
+        "return length > limit ? describeLargeJson(length) : value;",
+      );
+      expect(limitText("a".repeat(1000 + 1234), 1000)).toBe(
+        `${"a".repeat(1000)} ${marks[0]}`,
+      );
+      expect(describeLargeJson(12595)).toBe(marks[1]);
+
+      // The changes left out are counted in one change of their own.
+      expect(syslog).toContain(
+        'const noun: string = data.count === 1 ? "change" : "changes";',
+      );
+      expect(syslog).toContain(
+        'field: `[… ${formatCount(data.count)} ${data.isAfterKept ? "more " : ""}${noun}]`,',
+      );
+      expect(marks[2]).toBe("[… 12 more changes]");
+
+      // A closed port fails the batch, which is tried again; a test that passes asks for a look.
+      expect(syslog).toContain(
+        "its host answered that the port is closed (ECONNREFUSED). Check the host, the port and the protocol. It is retried automatically.`,\n        { retryable: true },",
+      );
+      expect(page).toContain(
+        "when the receiver's host answers that its port is closed, the batch fails and is tried again, but a message lost on the way is not sent again.",
+      );
+      expect(api).toContain(
+        "UDP does not confirm delivery, so check that it arrived.",
+      );
+      expect(page).toContain(
+        "After a test over UDP, check that the test entry arrived.",
+      );
     });
 
     it("names the files as a file destination writes them", () => {

@@ -26,6 +26,7 @@ flowchart TB
 
 - **Nøglen bestemmer projektet.** Du sender aldrig et projekt-ID: data, der sendes med en nøgle, havner i det projekt, nøglen tilhører.
 - **Ændringer når ud til alle servere inden for et minut.** At slå en nøgle fra, nulstille dens hemmelighed eller ændre dens origins, udløb eller grænse træder i kraft inden for cirka et minut.
+- **En nøgle kan have sine egne budgetter.** Et dagligt budget og en hastighed pr. sekund for hvert signal, inden for dens projekts: se [Indtagelsesbudgetter](/docs/telemetry/ingestion-budgets).
 - **En servernøgle er en adgangskode.** Alle, der har den, kan sende telemetri til dit projekt. Opbevar den i dine serveres hemmeligheder, aldrig i versionsstyring eller på en webside.
 
 ## Server eller Browser
@@ -121,6 +122,8 @@ For at skifte en hemmelighed uden at miste data skal du oprette en ny nøgle, fl
 
 En afvist anmodning får en status og en sætning, der siger hvorfor.
 
+Nøglens side tæller også med: **Afvist telemetri** viser, hvad der er afvist fra nøglen de seneste 30 dage, hvorfor, på hvilket endpoint, hvor mange anmodninger og hvornår. En manglende eller forkert indtastet nøgle hører ikke til noget projekt, så intet tæller den.
+
 | Svar | Hvad det betyder |
 | --- | --- |
 | `401` med `Missing ingestion token` | Anmodningen har ingen nøgle. Send den i `x-oneuptime-token`. |
@@ -155,4 +158,5 @@ Intet har sendt data med denne nøgle, siden OneUptime begyndte at registrere br
 - [Tjenestekatalog](/docs/telemetry/services): Se de tjenester, din telemetri lægges under.
 - [Dataopbevaring](/docs/telemetry/data-retention): Bestem, hvor længe dataene opbevares.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Kassér eller maskér data, før de gemmes.
+- [Indtagelsesbudgetter](/docs/telemetry/ingestion-budgets): Begræns, hvor meget hver nøgle må sende på en dag.
 :::

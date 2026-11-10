@@ -1,14 +1,16 @@
 import {
   TABLE_HEADER_WRAP_ATTRIBUTE,
   TABLE_NAME_FILL_FLOOR_IN_PX,
+  TABLE_ROWS_DRAWN_CLASS_NAME,
+  TABLE_ROWS_DRAWN_PROPERTY,
   TABLE_SHRINKABLE_ATTRIBUTE,
   TABLE_VALUE_ATTRIBUTE,
   TABLE_VALUE_GIVE_ATTRIBUTE,
   TABLE_VALUE_GIVE_FLOOR_IN_PX,
   TABLE_VALUE_WHOLE_ATTRIBUTE,
   TABLE_VALUE_WHOLE_WIDTH_PROPERTY,
-  TABLE_NEARLY_FITS_WITHIN_IN_PX,
 } from "./TableLayout";
+import { getTableNearlyFitsWithin } from "./TableFit";
 import React, { useLayoutEffect, useRef, useState } from "react";
 
 /*
@@ -69,6 +71,13 @@ import React, { useLayoutEffect, useRef, useState } from "react";
 export const TABLE_FILL_ATTRIBUTE: string = "data-fill";
 
 /*
+ * The attribute a table's rows carry while they settle - drawn too wide for
+ * their box before the page could be read at its word - and are not shown
+ * (TableScrollState's isSettling).
+ */
+export const TABLE_SETTLING_ATTRIBUTE: string = "data-settling";
+
+/*
  * The attribute on the value of a row's name that may use the room of a
  * table that fits (TableRow, by CellClassName's isFillingNameColumn).
  */
@@ -79,6 +88,18 @@ export interface TableScrollState {
   isOverflowing: boolean;
   // The header row can stick to the page while it scrolls.
   canStickHeader: boolean;
+  /*
+   * The rows are too wide for their box as the page has drawn them so far,
+   * and the page cannot be taken at its word yet: they were just drawn, and
+   * the rules their new classes need are not on the page yet, or its fonts
+   * are still on their way (isWidthToTrust, below). They are measured again
+   * once it can be - the next frame, or the fonts' arrival - and fold, turn
+   * into cards or scroll then. Meanwhile they are not shown (Table): on a
+   * first visit at 790px the long status pages list was painted for three
+   * frames as rows 1,283px wide in its 724px card, and at 900px the
+   * incidents list for four, 1,439px wide in 834px, before each fitted.
+   */
+  isSettling: boolean;
 }
 
 /*
@@ -317,6 +338,33 @@ export const getWholeValueWidths: (
 };
 
 /*
+ * How narrow each value may be squeezed while a table's values give way,
+ * by how it would be cut short (getValueGiveKind): one that gives way - a
+ * line, or a box - is cut short by its give, never below the floor its
+ * classes hold it to (null: nothing more to hold it by); any other is held
+ * at its own width or the floor (8rem), whichever is less. Let go, a value
+ * that does not give way was squeezed by the table far below both - a
+ * state's pill, whose word ends in "..." of its own, read "E." - and a
+ * block of words wider than the floor, which no measure gives way, kept no
+ * floor at all. Exported for its tests.
+ */
+export const getValueFloorWidths: (data: {
+  kinds: ReadonlyArray<TableValueGiveKind>;
+  wholeWidths: ReadonlyArray<number>;
+}) => Array<number | null> = (data: {
+  kinds: ReadonlyArray<TableValueGiveKind>;
+  wholeWidths: ReadonlyArray<number>;
+}): Array<number | null> => {
+  return data.wholeWidths.map((whole: number, index: number): number | null => {
+    if (data.kinds[index]) {
+      return null;
+    }
+
+    return Math.min(whole || 0, TABLE_VALUE_GIVE_FLOOR_IN_PX);
+  });
+};
+
+/*
  * Every value back to how it is drawn, before a measurement starts: none
  * held whole.
  */
@@ -356,12 +404,19 @@ export const keepWholeWhatFits: (data: {
   values: Array<HTMLElement>;
   // Each value's width whole (getWholeValueWidths).
   wholeWidths: Array<number>;
+  /*
+   * The width each value is held at while it is not whole - its floor
+   * (getValueFloorWidths), null for one held by its give alone - which a
+   * value tried whole and given back is held at again. Absent: none.
+   */
+  floorWidths?: ReadonlyArray<number | null> | undefined;
   // The rows' names set free, which are never cut shorter for a value.
   names: Array<HTMLElement>;
   fitsNow: () => boolean;
 }) => void = (data: {
   values: Array<HTMLElement>;
   wholeWidths: Array<number>;
+  floorWidths?: ReadonlyArray<number | null> | undefined;
   names: Array<HTMLElement>;
   fitsNow: () => boolean;
 }): void => {
@@ -476,9 +531,19 @@ export const keepWholeWhatFits: (data: {
     for (const index of column.indexes) {
       const value: HTMLElement = data.values[index] as HTMLElement;
       const givenKind: string | null = givenKinds[index] || null;
+      const floorWidth: number | null = data.floorWidths?.[index] ?? null;
 
-      value.removeAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE);
-      value.style.removeProperty(TABLE_VALUE_WHOLE_WIDTH_PROPERTY);
+      if (floorWidth !== null) {
+        // Held at its floor again, as the reading held it.
+        value.setAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE, "true");
+        value.style.setProperty(
+          TABLE_VALUE_WHOLE_WIDTH_PROPERTY,
+          `${floorWidth}px`,
+        );
+      } else {
+        value.removeAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE);
+        value.style.removeProperty(TABLE_VALUE_WHOLE_WIDTH_PROPERTY);
+      }
 
       if (givenKind) {
         value.setAttribute(TABLE_VALUE_GIVE_ATTRIBUTE, givenKind);
@@ -546,6 +611,44 @@ export const areGivenWayRulesDrawn: (table: HTMLElement) => boolean = (
 };
 
 /*
+ * Whether the page has the rules the table's rows are drawn by, read off
+ * what the rows say of themselves (TableLayout's TABLE_ROWS_DRAWN_CLASS_NAME,
+ * a custom property only that class sets): the loading placeholders never
+ * carry it, so on a page's first list the commit that draws the first rows
+ * draws it first, and the Dashboard's Tailwind runtime writes its rule -
+ * and every other class new in that commit - only after it. Rows measured
+ * then are measured as the page has not styled them yet, too wide or too
+ * narrow: the runbooks list at 820px beside its side menu fitted its 530px
+ * card that way, was painted as rows, and was 628px wide a frame later.
+ * True where no rows say anything (nothing drawn, or rows a page draws
+ * itself). Exported for its tests.
+ */
+export const areRowRulesDrawn: (table: HTMLElement) => boolean = (
+  table: HTMLElement,
+): boolean => {
+  if (typeof window === "undefined" || !window.getComputedStyle) {
+    return true;
+  }
+
+  const rows: HTMLElement | undefined = Array.from(
+    table.querySelectorAll<HTMLElement>("tbody"),
+  ).find((body: HTMLElement): boolean => {
+    return body.classList.contains(TABLE_ROWS_DRAWN_CLASS_NAME);
+  });
+
+  if (!rows) {
+    return true;
+  }
+
+  return (
+    window
+      .getComputedStyle(rows)
+      .getPropertyValue(TABLE_ROWS_DRAWN_PROPERTY)
+      .trim() === "1"
+  );
+};
+
+/*
  * Whether the page's fonts are in. The Dashboard draws its words in Inter,
  * held invisible while it loads (font-display: block) and laid out meanwhile
  * in a fallback of other widths: a table that does not fit in the fallback
@@ -591,6 +694,7 @@ const useTableScrollState: (data: {
   const [state, setState] = useState<TableScrollState>({
     isOverflowing: false,
     canStickHeader: true,
+    isSettling: false,
   });
 
   useLayoutEffect(() => {
@@ -620,17 +724,19 @@ const useTableScrollState: (data: {
 
       isWaitingForFonts = true;
 
-      document.fonts.ready
-        .then(() => {
-          isWaitingForFonts = false;
+      /*
+       * Measured again whether the fonts came in or failed to: rows held
+       * back while they settle (isSettling) are always shown in the end.
+       */
+      const measureAfterFonts: () => void = (): void => {
+        isWaitingForFonts = false;
 
-          if (!isGone && !data.hold?.isHeldRef.current) {
-            measure();
-          }
-        })
-        .catch(() => {
-          isWaitingForFonts = false;
-        });
+        if (!isGone && !data.hold?.isHeldRef.current) {
+          measure();
+        }
+      };
+
+      document.fonts.ready.then(measureAfterFonts).catch(measureAfterFonts);
     };
 
     /*
@@ -654,8 +760,12 @@ const useTableScrollState: (data: {
        */
       if (!table) {
         setState((current: TableScrollState): TableScrollState => {
-          return current.isOverflowing
-            ? { isOverflowing: false, canStickHeader: current.canStickHeader }
+          return current.isOverflowing || current.isSettling
+            ? {
+                isOverflowing: false,
+                canStickHeader: current.canStickHeader,
+                isSettling: false,
+              }
             : current;
         });
 
@@ -768,13 +878,44 @@ const useTableScrollState: (data: {
       const wholeWidths: Array<number> =
         values.length > 0 ? getWholeValueWidths(values) : [];
 
-      const holdValuesWhole: SetFillFunction = (isHolding: boolean): void => {
+      /*
+       * How narrow each value may be squeezed while the values give way:
+       * one that gives way, to the floor its give says (null: no hold); any
+       * other, to its own width or the floor, whichever is less
+       * (getValueFloorWidths). Read once the kinds are.
+       */
+      let floorWidths: Array<number | null> = [];
+
+      /*
+       * Every value held whole - or, while the values give way, every value
+       * that does not give way held at its floor: a value is cut short only
+       * to the floor, never below it. One that does not give way - no wider
+       * than the floor, or parts that would only be clipped - was let go
+       * with the rest, and a value whose parts end in "..." of their own
+       * was squeezed far below the floor: in German at 960px the alerts
+       * list's state pills read "E." and "H." to make room for a header of
+       * one long word.
+       */
+      const holdValuesWholeUnlessGiving: SetFillFunction = (
+        isGiving: boolean,
+      ): void => {
+        if (isGiving) {
+          floorWidths = getValueFloorWidths({
+            kinds: kinds || [],
+            wholeWidths: wholeWidths,
+          });
+        }
+
         values.forEach((value: HTMLElement, index: number) => {
-          if (isHolding) {
+          const heldWidth: number | null = isGiving
+            ? floorWidths[index] ?? null
+            : wholeWidths[index] || 0;
+
+          if (heldWidth !== null) {
             value.setAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE, "true");
             value.style.setProperty(
               TABLE_VALUE_WHOLE_WIDTH_PROPERTY,
-              `${wholeWidths[index] || 0}px`,
+              `${heldWidth}px`,
             );
           } else {
             value.removeAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE);
@@ -795,14 +936,15 @@ const useTableScrollState: (data: {
         setValuesGive(reading.give);
         /*
          * Whole while the names and the header's names give way; then each
-         * value may be cut short (its give, or its own "...") - and whole
-         * again in the last reading, which only a table that scrolls
-         * reaches: it has the scroll's room to show every value in. Let go
-         * there, a value that cuts itself short made a table "fit" by
-         * cutting a state's pill to "Identifi..." below the 8rem a value
-         * gives way to.
+         * value that gives way may be cut short, to no less than the floor
+         * (its give, or the "..." of its own parts), and every other one
+         * stays whole - and all of them are whole again in the last
+         * reading, which only a table that scrolls reaches: it has the
+         * scroll's room to show every value in. Let go there, a value that
+         * cuts itself short made a table "fit" by cutting a state's pill to
+         * "Identifi..." below the 8rem a value gives way to.
          */
-        holdValuesWhole(!reading.give);
+        holdValuesWholeUnlessGiving(reading.give);
 
         if (fitsNow()) {
           isOverflowing = false;
@@ -815,6 +957,7 @@ const useTableScrollState: (data: {
             keepWholeWhatFits({
               values: values,
               wholeWidths: wholeWidths,
+              floorWidths: floorWidths,
               names: names.filter((name: HTMLElement): boolean => {
                 return name.getAttribute(TABLE_FILL_ATTRIBUTE) === "true";
               }),
@@ -834,13 +977,16 @@ const useTableScrollState: (data: {
       /*
        * Too wide even given way, but only just: drawn given way, the rows
        * scrolling the last few pixels, rather than whole and that much
-       * wider (TABLE_NEARLY_FITS_WITHIN_IN_PX).
+       * wider - up to 2rem in a narrow box, past which it is drawn as cards,
+       * and 8rem in a box of 48rem or more, which has no cards to turn to
+       * (TableFit's getTableNearlyFitsWithin).
        */
+      const boxWidth: number = box.getBoundingClientRect().width;
+
       if (
         isOverflowing &&
         tightWidth > 0 &&
-        tightWidth <=
-          box.getBoundingClientRect().width + TABLE_NEARLY_FITS_WITHIN_IN_PX
+        tightWidth <= boxWidth + getTableNearlyFitsWithin(boxWidth)
       ) {
         const tightest: TableGiveWayReading = TABLE_GIVE_WAY_READINGS.find(
           (reading: TableGiveWayReading): boolean => {
@@ -851,7 +997,7 @@ const useTableScrollState: (data: {
         setFill(tightest.fill);
         setHeadersWrap(tightest.wrap);
         setValuesGive(tightest.give);
-        holdValuesWhole(false);
+        holdValuesWholeUnlessGiving(tightest.give);
       }
 
       /*
@@ -864,17 +1010,6 @@ const useTableScrollState: (data: {
       const canStickHeader: boolean =
         !isOverflowing && !isInsideScrollingBox(box.parentElement);
 
-      setState((current: TableScrollState): TableScrollState => {
-        if (
-          current.isOverflowing === isOverflowing &&
-          current.canStickHeader === canStickHeader
-        ) {
-          return current;
-        }
-
-        return { isOverflowing, canStickHeader };
-      });
-
       /*
        * Too wide even with everything given way: the table may fold or turn
        * to cards - for good, while its box is that narrow (TableFit), so
@@ -885,12 +1020,46 @@ const useTableScrollState: (data: {
        * Where nothing would measure the table again, the width is the one
        * there is.
        */
-      if (isOverflowing && tightWidth > 0) {
-        const areFontsIn: boolean = areTableFontsLoaded();
-        const isWidthToTrust: boolean =
-          !isMeasuredAgain ||
-          (areFontsIn && (isTightWidthDrawn || !isInDrawingCommit));
+      const isTooWide: boolean = isOverflowing && tightWidth > 0;
+      const areFontsIn: boolean = areTableFontsLoaded();
 
+      /*
+       * Rows drawn before the page had the rules they are drawn by (a
+       * page's first list, areRowRulesDrawn): whatever they measured - too
+       * wide, or fitting - is only how they look unstyled. They are read
+       * again on the next frame, which has the rules.
+       */
+      const isProvisional: boolean =
+        isMeasuredAgain && isInDrawingCommit && !areRowRulesDrawn(table);
+
+      const isWidthToTrust: boolean =
+        !isMeasuredAgain ||
+        (areFontsIn &&
+          !isProvisional &&
+          (isTightWidthDrawn || !isInDrawingCommit));
+
+      /*
+       * ...and until they are read so, the rows are not shown: drawn as
+       * they came, they ran past their card for a frame or more before they
+       * fitted it, or fitted it unstyled and turned into cards a frame
+       * later (TableScrollState's isSettling).
+       */
+      const isSettling: boolean =
+        isProvisional || (isTooWide && !isWidthToTrust);
+
+      setState((current: TableScrollState): TableScrollState => {
+        if (
+          current.isOverflowing === isOverflowing &&
+          current.canStickHeader === canStickHeader &&
+          current.isSettling === isSettling
+        ) {
+          return current;
+        }
+
+        return { isOverflowing, canStickHeader, isSettling };
+      });
+
+      if (isTooWide) {
         if (isWidthToTrust) {
           onCannotFitRef.current?.({
             tightWidth: Math.ceil(tightWidth),

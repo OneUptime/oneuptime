@@ -32,9 +32,9 @@ De sonde die de controle uitvoert, ontvangt de waarde, dus een monitor die een g
 ### Een geheim toevoegen
 
 :::steps
-1. Ga naar **Monitoren → Instellingen → Geheimen** en klik op **Monitor Geheim aanmaken**.
+1. Ga naar **Monitoren → Instellingen → Geheimen** en klik op **Monitorgeheim aanmaken**.
 2. Voer een **Naam** en de **Geheime waarde** in. De naam is waarnaar u verwijst, bijvoorbeeld `ApiKey`. Hij mag alleen letters, cijfers, koppeltekens (`-`) en underscores (`_`) bevatten, en geen twee geheimen in een project mogen dezelfde hebben.
-3. Kies bij de stap **Toegang** welke monitoren het mogen gebruiken (zie de volgende sectie) en klik op **Monitor Geheim aanmaken**.
+3. Kies bij de stap **Toegang** welke monitoren het mogen gebruiken (zie de volgende sectie) en klik op **Monitorgeheim aanmaken**.
 :::
 
 > [!IMPORTANT]

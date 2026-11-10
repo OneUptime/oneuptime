@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 Bauen Sie sie mit demselben `resource`-Objekt. Eine Log- oder Metrik-Pipeline, deren Ressource kein `browser.*` hat, wird als eigener Backend-Dienst eingeordnet.
 
+Eine Log-Pipeline sendet nur die Einträge, die Ihr Code schreibt. Schreiben Sie also einen, wo immer etwas Wissenswertes passiert:
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## Endpunkt-Referenz
 
 | Signal | Endpunkt | Header |

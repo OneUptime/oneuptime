@@ -20,11 +20,16 @@ import RumApplicationSessionReplayView from "../Pages/Rum/View/SessionReplayView
 import RumApplicationSessionReplayAudit from "../Pages/Rum/View/SessionReplayAudit";
 import RumApplicationSessionReplayUsers from "../Pages/Rum/View/SessionReplayUsers";
 import RumApplicationUserFlows from "../Pages/Rum/View/UserFlows";
+import RumApplicationProductAnalyticsUsers from "../Pages/Rum/View/ProductAnalyticsUsers";
+import RumApplicationProductAnalyticsPerson from "../Pages/Rum/View/ProductAnalyticsPerson";
+import RumApplicationProductAnalyticsSessions from "../Pages/Rum/View/ProductAnalyticsSessions";
 import RumApplicationSessionReplaySettings from "../Pages/Rum/View/SessionReplaySettings";
 import RumApplicationSessionReplayHealth from "../Pages/Rum/View/SessionReplayHealth";
+import RumApplicationSessionReplayFrustrationSignals from "../Pages/Rum/View/SessionReplayFrustrationSignals";
 import RumApplicationSessionReplayDocumentation from "../Pages/Rum/View/SessionReplayDocumentation";
 import RumApplicationDocumentation from "../Pages/Rum/View/Documentation";
 import RumApplicationDelete from "../Pages/Rum/View/Delete";
+import RumApplicationAuditLogs from "../Pages/Rum/View/AuditLogs";
 import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
 import RumOwnerRules from "../Pages/Rum/Settings/OwnerRules";
 import RumSessionReplaySettings from "../Pages/Rum/Settings/SessionReplay";
@@ -265,6 +270,60 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS,
+          )}
+          element={
+            <RumApplicationProductAnalyticsUsers
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        {/*
+         * Count 2, as the player's: the person's route is
+         * ":id/product-analytics-users/:subModelId", and the default count
+         * would register a bare ":subModelId" that shadows every tab.
+         */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON,
+            2,
+          )}
+          element={
+            <RumApplicationProductAnalyticsPerson
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS,
+          )}
+          element={
+            <RumApplicationProductAnalyticsSessions
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
           )}
           element={
@@ -329,6 +388,23 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS,
+          )}
+          element={
+            <RumApplicationSessionReplayFrustrationSignals
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
           )}
           element={
@@ -352,6 +428,20 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <RumApplicationAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

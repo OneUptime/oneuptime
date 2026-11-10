@@ -64,7 +64,7 @@ Le variabili vengono lette all'avvio di Claude Code. Le metriche vengono inviate
 
 ### Controlla che i dati arrivino
 
-Apri **Metriche** e cerca `claude_code.token.usage`, poi apri **Prodotti → IA / LLM** e vai su **Utilizzo**: il tuo costo compare sotto la tua email, con la dicitura **dalle metriche GenAI**.
+Apri **Metriche** e cerca `claude_code.token.usage`, poi apri **Prodotti → IA / LLM** e vai su **Utilizzo**: il tuo costo compare sotto la tua email, con la dicitura **Dalle metriche di utilizzo**.
 :::
 
 Per inviare metriche ed eventi in posti diversi, imposta invece `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` e `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, con il percorso completo (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 In **Prodotti → IA / LLM → Utilizzo**, `claude_code.cost.usage` alimenta le tabelle **Dipendente**, **Team** e **Modello**, e `claude_code.token.usage` i totali dei token. Due regole decidono cosa vedi:
 
-- **Le metriche colmano i vuoti degli span; non vengono mai sommate a essi.** Se lo stesso progetto riceve span GenAI con un costo dalle tue app, la spesa di Claude Code non compare. Invia Claude Code a un progetto tutto suo. Vedi [Prima gli span, le metriche colmano i vuoti](/docs/telemetry/ai-llm-observability#prima-gli-span-le-metriche-colmano-i-vuoti).
-- **Una riga dalle metriche porta solo il costo.** Le sue celle di chiamate e token mostrano `—`, e le tabelle **Provider** e **Applicazione / Servizio** restano vuote: le metriche non nominano alcun provider e non appartengono ad alcun servizio OneUptime.
+- **Claude Code viene conteggiato accanto alle tue app.** Le sue metriche arrivano sotto il suo servizio, quindi la sua spesa si somma alle chiamate IA che le tue app inviano allo stesso progetto. Se attivi le sue tracce (beta), attivale per tutti: da quel momento Claude Code viene conteggiato solo dalle sue tracce, una volta. Vedi [Ogni servizio è conteggiato da ciò che invia](/docs/telemetry/ai-llm-observability#ogni-servizio-è-conteggiato-da-ciò-che-invia).
+- **Una riga dalle metriche non nomina alcuna chiamata.** Dice **Dalle metriche di utilizzo** sotto il suo nome, la sua cella delle chiamate mostra `—`, e la tabella **Provider** la mette in **Non attribuito**: le metriche non nominano alcun provider.
 
 Tutto il resto, come il tasso di accettazione, le righe di codice, i commit e le pull request per sviluppatore, o la spesa per `query_source`, lo rappresenti in una [dashboard](/docs/dashboards/index) a partire dalle metriche qui sotto, e ci imposti avvisi con un [monitor metriche](/docs/monitor/metrics-monitor).
 
@@ -161,7 +161,7 @@ Ogni metrica è un contatore, e porta gli attributi standard oltre ai propri.
 
 Gli attributi standard sono `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` e `terminal.type`, più i tuoi `OTEL_RESOURCE_ATTRIBUTES`. Alcuni si possono disattivare: vedi [Tieni basso il volume delle metriche](#tieni-basso-il-volume-delle-metriche).
 
-- I tipi di token della cache sono in camelCase: `cacheRead` e `cacheCreation`. I totali dei token di OneUptime contano solo `input` e `output`.
+- I tipi di token della cache sono in camelCase: `cacheRead` e `cacheCreation`. L'`input` di Claude Code li esclude, quindi OneUptime li conta anche come token di input.
 - Sulle metriche di costo e di token, i nomi dei tuoi agenti e server MCP, e dei plugin e delle skill di terze parti, compaiono come `custom` o `third-party` a meno che non sia impostato `OTEL_LOG_TOOL_DETAILS=1` (Claude Code 2.1.273 o successivo).
 
 ## Eventi
@@ -220,7 +220,7 @@ Claude Code invia metriche delta per impostazione predefinita: ogni punto dati �
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Fissa `cumulative` solo se ogni esportatore della tua organizzazione lo usa, e non mescolare i due in una flotta.
+Fissa `cumulative` solo se ogni esportatore della tua organizzazione lo usa, e non mescolare i due in una flotta. La scheda Utilizzo e i budget di OneUptime contano entrambi: un delta sommandone i punti, un contatore cumulativo in base a quanto è cresciuto nell'intervallo.
 
 ## Tracce (beta)
 

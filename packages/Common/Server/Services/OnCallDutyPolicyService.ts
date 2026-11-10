@@ -1091,6 +1091,12 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       waitingStatusMessage?: string | undefined;
       // Held while OneUptime AI works (OnCallPolicyAiHold).
       isAiHold?: boolean | undefined;
+      /*
+       * Pages its people as observers (OnCallObserverPage): kept informed,
+       * and answering only says they have seen it. Left out, they are paged
+       * as responders, as every run always was.
+       */
+      isObserverPage?: boolean | undefined;
     },
   ): Promise<void> {
     // execute this policy
@@ -1199,6 +1205,10 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
 
     if (options.triggeredByIncidentEpisodeId) {
       log.triggeredByIncidentEpisodeId = options.triggeredByIncidentEpisodeId;
+    }
+
+    if (options.isObserverPage) {
+      log.isObserverPage = true;
     }
 
     await OnCallDutyPolicyExecutionLogService.create({

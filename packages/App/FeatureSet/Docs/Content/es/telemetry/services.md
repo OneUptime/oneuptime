@@ -67,6 +67,8 @@ El menú lateral de un servicio tiene cinco secciones:
 | **Desarrolladores** | **Terraform**, **API**, **CLI** y **Asistentes de IA**: el servicio gestionado desde código. Empieza contraída. |
 | **Avanzado** | **Ajustes**, **Registros de auditoría** y **Eliminar servicio**. **Avanzado** empieza contraído: despliéguelo primero. |
 
+Junto a su nombre, la **Vista general** de un servicio indica si llega su telemetría: **Recibiendo datos** mientras ha llegado algo en los últimos 30 minutos, **Sin datos recientes** en cuanto deja de llegar y **Esperando datos** antes de su primera telemetría. Un servicio que solo envía spans mientras atiende solicitudes muestra **Sin datos recientes** siempre que nadie lo llama, así que eso por sí solo no es un fallo.
+
 Los propietarios importan más allá de la página: un rol cuyo ámbito es Owned lee la telemetría de los servicios que le pertenecen a usted o a sus equipos. Consulte [Telemetría](/docs/permissions/index#telemetría).
 
 ## Cambiar un servicio
@@ -110,6 +112,10 @@ Compruebe que su telemetría lleve un `service.name`. La telemetría de un naveg
 
 :::details Visto por última vez va con retraso
 **Visto por última vez** se actualiza aproximadamente una vez por minuto, no con cada lote, así que puede ir un minuto o así por detrás de la telemetría en directo.
+:::
+
+:::details Un servicio muestra "Sin datos recientes"
+No ha llegado nada de él en los últimos 30 minutos. Es lo esperado en un servicio que solo envía telemetría mientras atiende solicitudes, cuando nadie lo llama. Si debería estar atendiendo solicitudes, comprueba que está en ejecución, que su exportador de OpenTelemetry llega a OneUptime y que sigue informando el mismo `service.name`: un nombre nuevo crea un servicio nuevo.
 :::
 
 ## Próximos pasos

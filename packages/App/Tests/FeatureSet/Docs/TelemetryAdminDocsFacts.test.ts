@@ -49,6 +49,7 @@ import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "../../../FeatureSet/Telemetry/Services/LogDropFilterService";
 import LogScrubRuleService from "../../../FeatureSet/Telemetry/Services/LogScrubRuleService";
+import TraceScrubRuleService from "../../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import TelemetryIngest, {
   getEffectiveRequestsPerMinuteLimit,
 } from "Common/Server/Middleware/TelemetryIngest";
@@ -77,7 +78,7 @@ import {
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Exception from "Common/Types/Exception/Exception";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubField from "Common/Types/Log/LogScrubField";
@@ -103,6 +104,7 @@ import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
 } from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryUsage";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
   IDENTITY_REGISTRATION_SURFACES,
@@ -115,7 +117,13 @@ import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import TimeRange from "Common/Types/Time/TimeRange";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
+import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
 import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
+import {
+  SCRUB_MAX_NESTED_VALUES_PER_RECORD,
+  SCRUB_MAX_VALUE_DEPTH,
+} from "Common/Utils/Telemetry/ScrubNestedValues";
+import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
  * type below must resolve to the same @types/jest global namespace as the
@@ -549,7 +557,11 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "Telemetry & APM",
     );
 
-    expect(telemetry.items).toEqual(["Ingestion Keys", "Data Retention"]);
+    expect(telemetry.items).toEqual([
+      "Ingestion Keys",
+      "Data Retention",
+      "Usage",
+    ]);
     expect(startsCollapsed(SETTINGS_MENU, "Telemetry & APM")).toBe(true);
     expect(page).toContain(
       "Go to **Project Settings → Telemetry & APM → Ingestion Keys**. **Telemetry & APM** starts collapsed in the side menu: click it to open it.",
@@ -1443,6 +1455,9 @@ describe("Data Retention (telemetry/data-retention)", () => {
 
     expect(admin).toContain("Leave empty for 1 day.");
     expect(admin).toContain("Leave empty for 30 days.");
+    expect(admin).toContain(
+      `Leave empty for ${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days.`,
+    );
 
     for (const label of ADMIN_DASHBOARD_LABELS[DATA_RETENTION] || []) {
       expect(admin).toContain(`title: "${label}",`);
@@ -1459,6 +1474,7 @@ describe("Data Retention (telemetry/data-retention)", () => {
       `${DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS} days unless changed`,
       "1 day unless changed",
       "30 days unless changed",
+      `${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days unless changed`,
     ]);
   });
 
@@ -1483,11 +1499,12 @@ describe("Data Retention (telemetry/data-retention)", () => {
 
     expect(usage).toContain('title: "Telemetry Usage History",');
     expect(usage).toContain('title: "Data Retention (in Days)",');
+    // The Usage page is a telemetry setting, on every install (issue #5916).
     expect(
-      sectionByTitle(menuSections(SETTINGS_MENU), "Billing and Invoices").items,
-    ).toContain("Usage History");
+      sectionByTitle(menuSections(SETTINGS_MENU), "Telemetry & APM").items,
+    ).toContain("Usage");
     expect(page).toContain(
-      "telemetry is billed per GB ingested, and the per-GB price includes 15 days of retention. Longer retention costs proportionally more: 30 days costs twice as much per GB as 15. Shorter retention costs proportionally less, but retention under 7 days is billed as 7 days. **Project Settings → Billing and Invoices → Usage History**",
+      "telemetry is billed per GB ingested, and the per-GB price includes 15 days of retention. Longer retention costs proportionally more: 30 days costs twice as much per GB as 15. Shorter retention costs proportionally less, but retention under 7 days is billed as 7 days. **Project Settings → Telemetry & APM → Usage**",
     );
   });
 
@@ -1501,7 +1518,7 @@ describe("Data Retention (telemetry/data-retention)", () => {
     expect(meteredPlan).toContain(
       "return Math.max(retentionInDays, this.minimumBillableRetentionInDays);",
     );
-    // The row keeps the days the telemetry is kept: Usage History shows them.
+    // The row keeps the days the telemetry is kept: the Usage page shows them.
     expect(
       readCommonSource("Server/Services/TelemetryUsageBillingService.ts"),
     ).toContain("retainTelemetryDataForDays: data.retentionInDays,");
@@ -1616,6 +1633,44 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       { body, attributes: {} },
       rules as never,
     )["body"] as string;
+  }
+
+  // A log's attributes after one rule of the pattern type, which redacts.
+  function scrubbedAttributes(
+    attributes: JSONObject,
+    patternType: string,
+  ): JSONObject {
+    return LogScrubRuleService.scrubLog({ body: "", attributes }, [
+      scrubRule(patternType, LogScrubAction.Redact),
+    ] as never)["attributes"] as JSONObject;
+  }
+
+  const getTraceRegex: GetRegex = (
+    TraceScrubRuleService as unknown as { getRegexForPattern: GetRegex }
+  ).getRegexForPattern.bind(TraceScrubRuleService);
+
+  // A compiled trace scrub rule that redacts, as ingest loads one.
+  function traceScrubRule(
+    patternType: string,
+    fields: string,
+  ): { rule: TraceScrubRule; regex: ScrubRegExp } {
+    const rule: TraceScrubRule = new TraceScrubRule();
+    rule.patternType = patternType;
+    rule.scrubAction = LogScrubAction.Redact;
+    rule.fieldsToScrub = fields;
+
+    return { rule, regex: getTraceRegex(patternType) as ScrubRegExp };
+  }
+
+  // A value inside `lists` lists, as OTLP arrayValues that deep are read.
+  function nested(value: unknown, lists: number): unknown {
+    let wrapped: unknown = value;
+
+    for (let level: number = 0; level < lists; level++) {
+      wrapped = [wrapped];
+    }
+
+    return wrapped;
   }
 
   it("lives under Logs → Settings and Traces → Settings, with Pipelines and Recording Rules", () => {
@@ -2150,6 +2205,220 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
   });
 
+  it("scrubs a span's link attributes with the span's own attributes, never with its name or events alone", () => {
+    const span: () => JSONObject = (): JSONObject => {
+      return {
+        name: "GET /cart",
+        attributes: {},
+        events: [],
+        links: [
+          {
+            traceId: "0af7651916cd43dd8448eb211c80319c",
+            spanId: "b7ad6b7169203331",
+            attributes: { "peer.user": "jane@example.com" },
+          },
+        ],
+      };
+    };
+    const linkAfter: (fields: string) => unknown = (
+      fields: string,
+    ): unknown => {
+      const scrubbed: JSONObject = TraceScrubRuleService.scrubSpan(span(), [
+        traceScrubRule(TraceScrubPatternType.Email, fields),
+      ] as never);
+
+      return ((scrubbed["links"] as JSONArray)[0]!["attributes"] as JSONObject)[
+        "peer.user"
+      ];
+    };
+
+    expect({
+      all: linkAfter(TraceScrubField.All),
+      attributes: linkAfter(TraceScrubField.Attributes),
+      name: linkAfter(TraceScrubField.Name),
+      events: linkAfter(TraceScrubField.Events),
+    }).toEqual({
+      all: "[REDACTED]",
+      attributes: "[REDACTED]",
+      name: "jane@example.com",
+      events: "jane@example.com",
+    });
+    expect(page).toContain(
+      "or **Event Attributes Only**. The attributes of a span's links are scrubbed with the span's own attributes.",
+    );
+  });
+
+  it("reads every text inside a list, a list of lists and a key-value list, keeping the value's shape", () => {
+    // Attributes as ingest reads them from OTLP, a fresh copy for each rule.
+    const attributes: () => JSONObject = (): JSONObject => {
+      return TelemetryUtil.getAttributes({
+        prefixKeysWithString: "",
+        items: [
+          {
+            key: "http.request.header.x-user",
+            value: {
+              arrayValue: {
+                values: [
+                  { stringValue: "jane@example.com" },
+                  { stringValue: "web" },
+                ],
+              },
+            },
+          },
+          {
+            key: "matrix",
+            value: {
+              arrayValue: {
+                values: [
+                  {
+                    arrayValue: {
+                      values: [{ stringValue: "jane@example.com" }],
+                    },
+                  },
+                  {
+                    arrayValue: {
+                      values: [{ doubleValue: 1.5 }, { boolValue: true }],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          {
+            key: "contacts",
+            value: {
+              arrayValue: {
+                values: [
+                  {
+                    kvlistValue: {
+                      values: [
+                        {
+                          key: "email",
+                          value: { stringValue: "jane@example.com" },
+                        },
+                        { key: "password", value: { stringValue: "hunter2" } },
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ] as JSONArray,
+      }) as JSONObject;
+    };
+
+    expect(scrubbedAttributes(attributes(), LogScrubPatternType.Email)).toEqual(
+      {
+        "http.request.header.x-user": ["[REDACTED]", "web"],
+        matrix: [["[REDACTED]"], [1.5, true]],
+        contacts: [
+          { "contacts.email": "[REDACTED]", "contacts.password": "hunter2" },
+        ],
+      },
+    );
+    // A Sensitive Attribute Keys rule reads the keys inside the value too.
+    expect(
+      scrubbedAttributes(attributes(), LogScrubPatternType.SensitiveKeys)[
+        "contacts"
+      ],
+    ).toEqual([
+      {
+        "contacts.email": "jane@example.com",
+        "contacts.password": "[REDACTED]",
+      },
+    ]);
+    // The span engine reads them the same way.
+    expect(
+      TraceScrubRuleService.scrubSpan(
+        { name: "", attributes: attributes(), events: [], links: [] },
+        [
+          traceScrubRule(
+            TraceScrubPatternType.Email,
+            TraceScrubField.Attributes,
+          ),
+        ] as never,
+      )["attributes"],
+    ).toEqual(scrubbedAttributes(attributes(), LogScrubPatternType.Email));
+    expect(page).toContain(
+      "- **Lists and nested values are read too.** A rule reads every text inside a list, a list of lists or a key-value list, such as the values of an HTTP header, and keeps the value's shape: numbers and true or false stay as they are. A **Sensitive Attribute Keys** rule also reads the keys inside a value, so the `password` inside a key-value list is hidden too.",
+    );
+  });
+
+  it("stores a log body sent as a map or a list as its JSON text, which a pattern rule scrubs", () => {
+    const body: string = JSON.stringify({
+      kvlistValue: {
+        values: [{ key: "user", value: { stringValue: "jane@example.com" } }],
+      },
+    });
+
+    expect(logsIngest).toContain('body = JSON.stringify(log["body"] || "");');
+    expect(
+      scrubbedBody(body, [
+        scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
+      ]),
+    ).toBe(body.replace("jane@example.com", "[REDACTED]"));
+    expect(page).toContain(
+      "A log body sent as a map or a list is stored as its JSON text, which a pattern rule scrubs like any other text.",
+    );
+  });
+
+  it("reads a value too deep or too large as its JSON text, at the bounds the page names", () => {
+    const deepest: unknown = nested("jane@example.com", SCRUB_MAX_VALUE_DEPTH);
+    const tooDeep: unknown = nested(
+      "jane@example.com",
+      SCRUB_MAX_VALUE_DEPTH + 1,
+    );
+    const tooLarge: Array<string> = new Array<string>(
+      SCRUB_MAX_NESTED_VALUES_PER_RECORD + 1,
+    ).fill("jane@example.com");
+    const redact: (value: unknown) => unknown = (value: unknown): unknown => {
+      return JSON.parse(
+        JSON.stringify(value).split("jane@example.com").join("[REDACTED]"),
+      );
+    };
+
+    // Each value alone in its record.
+    expect(
+      scrubbedAttributes(
+        { value: deepest } as JSONObject,
+        LogScrubPatternType.Email,
+      )["value"],
+    ).toEqual(redact(deepest));
+    expect(
+      scrubbedAttributes(
+        { value: tooDeep } as JSONObject,
+        LogScrubPatternType.Email,
+      )["value"],
+    ).toBe(JSON.stringify(redact(tooDeep)));
+    expect(
+      scrubbedAttributes(
+        { value: tooLarge } as JSONObject,
+        LogScrubPatternType.Email,
+      )["value"],
+    ).toBe(JSON.stringify(redact(tooLarge)));
+
+    // Held as text, a value is hidden whole when it names a secret.
+    expect(
+      scrubbedAttributes(
+        {
+          notes: nested("the token is abc", SCRUB_MAX_VALUE_DEPTH + 1),
+          plain: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+        } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      ),
+    ).toEqual({
+      notes: "[REDACTED]",
+      plain: JSON.stringify(
+        nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+      ),
+    });
+
+    expect(page).toContain(
+      `A value nested more than ${SCRUB_MAX_VALUE_DEPTH} levels deep, or one that would take a record past ${SCRUB_MAX_NESTED_VALUES_PER_RECORD.toLocaleString("en-US")} values inside its lists and maps, is read and stored as its JSON text. A pattern rule scrubs what it finds in that text, and a **Sensitive Attribute Keys** rule hides the whole value when a word such as \`password\` or \`token\` appears in it.`,
+    );
+  });
+
   it("scrubs exceptions with their records, and session replays with the log rules", () => {
     expect(logsIngest).toContain("so scrubbed secrets never reach the");
     expect(
@@ -2631,8 +2900,6 @@ describe("the four pages together", () => {
   it("keep in English only the labels no Dashboard locale has, where the Dashboard draws them so", () => {
     const drawnIn: Record<string, string> = {
       "Service Map": "Pages/Topology/TopologyPage.tsx",
-      "Some errors": "Components/Topology/ServiceMapViewModel.ts",
-      "High error rate": "Components/Topology/ServiceMapViewModel.ts",
       "Entry point": "Components/Topology/ServiceMapViewModel.ts",
       "No calls observed": "Components/Topology/ServiceMapViewModel.ts",
     };
@@ -2660,6 +2927,25 @@ describe("the four pages together", () => {
         ),
       }).toEqual({ word, drawn: true });
     }
+
+    /*
+     * The service map's legend looks its statuses up in the locale, so the
+     * two that are keys - the queues' topology map draws them too - read
+     * as each language's Dashboard draws them, as other labels do.
+     */
+    expect(
+      readDashboardSource("Components/Topology/ServiceMapGraph.tsx"),
+    ).toContain("{t(SERVICE_STATUS_LABELS[status])}");
+
+    for (const word of [
+      SERVICE_STATUS_LABELS.degraded,
+      SERVICE_STATUS_LABELS.critical,
+    ]) {
+      expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
+        word,
+        isKey: true,
+      });
+    }
   });
 
   it("name the menus they open from in bold, as one path", () => {
@@ -2667,7 +2953,7 @@ describe("the four pages together", () => {
       [INGESTION_KEYS]: ["Project Settings → Telemetry & APM → Ingestion Keys"],
       [DATA_RETENTION]: [
         "Project Settings → Telemetry & APM → Data Retention",
-        "Project Settings → Billing and Invoices → Usage History",
+        "Project Settings → Telemetry & APM → Usage",
       ],
       [DROP_FILTERS_AND_SCRUB_RULES]: [
         "Logs → Settings → Drop Filters",

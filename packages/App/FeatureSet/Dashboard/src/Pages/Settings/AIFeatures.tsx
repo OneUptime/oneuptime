@@ -12,25 +12,48 @@ import {
   EnableAiCopy,
   getProjectAiDailyLimitColumns,
   getProjectAiDailyLimitFieldError,
+  getProjectAiRunLimitFieldError,
+  getProjectAiRunLimitsFoldedItem,
+  getProjectAiRunLimitsFromItem,
+  getProjectAiRunLimitValueText,
   PROJECT_AI_ADVANCED_SECTION_TEST_ID,
   PROJECT_AI_DAILY_LIMITS_CARD_KEY,
+  PROJECT_AI_RUN_LIMIT_FIELDS,
+  PROJECT_AI_RUN_LIMITS_CARD_KEY,
+  PROJECT_AI_RUN_LIMITS_FORM_STEPS,
   ProjectAiDailyLimitsCopy,
   ProjectAiNoticeContext,
+  ProjectAiRunLimitField,
+  ProjectAiRunLimitsCopy,
+  ProjectAiRunLimitsFormStep,
 } from "../../Components/AISettings/ProjectAiSettingsCopy";
 import useProjectAiDailyLimits, {
   ProjectAiDailyLimitsSection,
 } from "../../Components/AISettings/useProjectAiDailyLimits";
+import {
+  FIX_APPROVALS_CARD_KEY,
+  FIX_APPROVALS_SWITCH_TEST_ID,
+  FixApprovalsCopy,
+  getFixApprovalsFoldedItem,
+  TWO_APPROVALS_COLUMN,
+} from "../../Components/AISettings/FixApprovalsCopy";
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
 import {
   PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
   PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
 } from "Common/Types/AI/ProjectAiDailyLimits";
+import {
+  PROJECT_AI_RUN_LIMIT_COLUMNS,
+  ProjectAiRunLimitValues,
+} from "Common/Types/AI/ProjectAiRunLimits";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import Field from "Common/UI/Components/ModelDetail/Field";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -38,7 +61,7 @@ import { BILLING_ENABLED } from "Common/UI/Config";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * The project's AI switch, Enable AI, on a page every install shows. It used
@@ -71,15 +94,104 @@ import React, { FunctionComponent, ReactElement } from "react";
  * ProjectAiDailyLimits). Folded, it says what applies and what AI used
  * today. The card writes the limit columns alone, and like Enable AI they
  * take Project Owner or Manage Billing, so its Edit is gated on them.
+ *
+ * Beside them, Limits per run (issue #6440): how far one OneUptime AI run
+ * may go - its model calls, tool calls, tokens and time - for every kind of
+ * run, from an investigation to a code task. None is set by default: a run
+ * goes as far as its work needs, and only its time limit (120 minutes
+ * unless set) and loop detection stop it. A run a limit stops says which
+ * one, linked here (ProjectAiRunLimitsCopy). The card writes its four
+ * columns alone, which take Project Owner or Manage Billing.
+ *
+ * Then, under the same More settings, Fix approvals (#6148's follow-up): one
+ * switch, off by default, that asks two people to approve a fix OneUptime
+ * AI proposes when it holds a riskier change (FixApprovalsCopy). Folded,
+ * the header says "Fix approvals: Two people" while it is on.
  */
 const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const translator: Translator = useTranslator();
   const dailyLimits: ProjectAiDailyLimitsSection = useProjectAiDailyLimits();
+  /*
+   * Whether two people approve a riskier fix, as the switch last said: the
+   * folded header names the card, and says "Two people" while it is on.
+   */
+  const [isTwoApprovalsOn, setIsTwoApprovalsOn] = useState<boolean | null>(
+    null,
+  );
+  /*
+   * The limits per run as the card last read them: the folded header shows
+   * a chip on the card's name once one is set.
+   */
+  const [runLimits, setRunLimits] = useState<ProjectAiRunLimitValues | null>(
+    null,
+  );
 
   if (!projectId) {
     return <></>;
   }
+
+  const runLimitsGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
+    fields: [...PROJECT_AI_RUN_LIMIT_COLUMNS],
+    buttonTitle: "Edit",
+  });
+
+  // Two steps: what a run may use, then how long it may take.
+  const runLimitFormSteps: Array<FormStep<Project>> =
+    PROJECT_AI_RUN_LIMITS_FORM_STEPS.map(
+      (step: ProjectAiRunLimitsFormStep): FormStep<Project> => {
+        return { id: step.id, title: step.title };
+      },
+    );
+
+  const runLimitFormFields: Fields<Project> = PROJECT_AI_RUN_LIMIT_FIELDS.map(
+    (limit: ProjectAiRunLimitField) => {
+      return {
+        field: { [limit.column]: true },
+        title: limit.title,
+        description: limit.description,
+        stepId: limit.stepId,
+        required: false,
+        fieldType: FormFieldSchemaType.Number,
+        placeholder: limit.placeholder,
+        customValidation: (values: FormValues<Project>): string | null => {
+          return getProjectAiRunLimitFieldError({
+            column: limit.column,
+            value: (values as Record<string, unknown>)[limit.column],
+            fieldTitle: limit.title,
+            translator,
+          });
+        },
+      };
+    },
+  ) as Fields<Project>;
+
+  /*
+   * Each limit written the reader's way - "2,000,000", "45 minutes" - or,
+   * unset, its placeholder: "No limit", or the default time limit.
+   */
+  const runLimitDetailFields: Array<Field<Project>> =
+    PROJECT_AI_RUN_LIMIT_FIELDS.map((limit: ProjectAiRunLimitField) => {
+      return {
+        field: { [limit.column]: true },
+        title: limit.title,
+        placeholder: limit.placeholder,
+        fieldType: FieldType.Element,
+        getElement: (item: Project): ReactElement => {
+          const text: string = getProjectAiRunLimitValueText({
+            column: limit.column,
+            value: (item as unknown as Record<string, unknown>)[limit.column],
+            translator,
+          });
+
+          return text ? (
+            <span className="tabular-nums">{text}</span>
+          ) : (
+            <EmptyValue placeholder={limit.placeholder} />
+          );
+        },
+      };
+    }) as Array<Field<Project>>;
 
   /*
    * Spend is offered only where AI is billed: elsewhere nothing is spent,
@@ -193,7 +305,11 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <AdvancedPageSection
         description={ProjectAiDailyLimitsCopy.sectionDescription}
-        items={dailyLimits.items}
+        items={[
+          ...dailyLimits.items,
+          getProjectAiRunLimitsFoldedItem(runLimits),
+          getFixApprovalsFoldedItem(isTwoApprovalsOn),
+        ]}
         summary={dailyLimits.summary}
         dataTestId={PROJECT_AI_ADVANCED_SECTION_TEST_ID}
       >
@@ -221,6 +337,67 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fields: detailFields,
             modelId: projectId,
           }}
+        />
+
+        {/*
+         * How far one run may go (issue #6440): nothing set by default, so
+         * a run is held only to its time limit and loop detection. Its
+         * place is where a run a limit stopped links to.
+         */}
+        <CardModelDetail<Project>
+          name="Project AI Limits per Run"
+          cardProps={{
+            title: ProjectAiRunLimitsCopy.cardTitle,
+            description: ProjectAiRunLimitsCopy.cardDescription,
+            buttons: runLimitsGate.lockedButtons,
+            id: PROJECT_AI_RUN_LIMITS_CARD_KEY,
+          }}
+          isEditable={runLimitsGate.isEditable}
+          editButtonText="Edit"
+          editModalTitle={ProjectAiRunLimitsCopy.cardTitle}
+          formSteps={runLimitFormSteps}
+          formFields={runLimitFormFields}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-ai-run-limits",
+            /*
+             * Two limits a row: four short values down one column left
+             * the card mostly empty, and the calls sit beside each other.
+             */
+            showDetailsInNumberOfColumns: 2,
+            onItemLoaded: (item: Project): void => {
+              setRunLimits(
+                getProjectAiRunLimitsFromItem(
+                  item as unknown as Record<string, unknown>,
+                ),
+              );
+            },
+            fields: runLimitDetailFields,
+            modelId: projectId,
+          }}
+        />
+
+        {/*
+         * Two people approve a riskier fix: one switch that saves the
+         * moment it is flipped. It takes Project Owner or Project Admin
+         * (the column's update list); anyone else sees it locked, with the
+         * permission it needs.
+         */}
+        <ModelSwitchCard<Project>
+          modelType={Project}
+          modelId={projectId}
+          column={TWO_APPROVALS_COLUMN}
+          cardTitle={FixApprovalsCopy.cardTitle}
+          cardDescription={FixApprovalsCopy.cardDescription}
+          title={FixApprovalsCopy.switchTitle}
+          getDescription={(): string => {
+            return FixApprovalsCopy.switchDescription;
+          }}
+          onChange={(isOn: boolean): void => {
+            setIsTwoApprovalsOn(isOn);
+          }}
+          dataTestId={FIX_APPROVALS_SWITCH_TEST_ID}
+          cardId={FIX_APPROVALS_CARD_KEY}
         />
       </AdvancedPageSection>
     </>

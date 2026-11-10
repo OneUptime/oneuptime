@@ -345,6 +345,11 @@ const TABLES = {
   ],
   Monitor: [record(Monitor, "80", { name: "Checkout API" })],
   IncidentOwnerRule: INCIDENT_OWNER_RULES,
+  /*
+   * The teams that own each incident owner rule (its Owning Teams): neither
+   * rule belongs to a team, so whoever may edit rules may edit both.
+   */
+  IncidentOwnerRuleOwningTeam: [],
   // Read by the pages, empty in this project.
   IncidentEpisodeOwnerRule: [],
   AlertOwnerRule: [],

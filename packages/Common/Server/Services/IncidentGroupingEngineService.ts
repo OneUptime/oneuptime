@@ -47,13 +47,33 @@ import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { RecordInAnotherEpisodeException } from "../Utils/Episode/EpisodeSingleMembershipCheck";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import IncidentStateService from "./IncidentStateService";
+import {
+  MAX_RECORDS_TO_OPEN_EPISODE,
+  getRecordsToOpenEpisode,
+} from "../../Utils/Episode/EpisodeOpeningThreshold";
+import {
+  getGroupingWaitKey,
+  getRecordsArrivedTogether,
+} from "../Utils/Rules/GroupingRuleEpisodeWait";
 
 export interface GroupingResult {
   grouped: boolean;
   episodeId?: ObjectID;
   isNewEpisode?: boolean;
   wasReopened?: boolean;
+  /*
+   * Not grouped yet: the rule waits for more matching incidents before it
+   * opens an episode, and this one waits with them (GroupingRuleEpisodeWait).
+   */
+  isWaitingForMore?: boolean;
 }
+
+/*
+ * The minutes the engine groups with when a rule's time window is switched
+ * on with none saved.
+ */
+const FALLBACK_TIME_WINDOW_MINUTES: number = 60;
 
 /*
  * What an episode's {{incidentTitle}} and {{incidentDescription}} read when
@@ -145,6 +165,9 @@ class IncidentGroupingEngineServiceClass {
             // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
+            // How many matching incidents it waits for
+            enableMinimumIncidentCount: true,
+            minimumIncidentCount: true,
             episodeTitleTemplate: true,
             episodeDescriptionTemplate: true,
             enableResolveDelay: true,
@@ -608,11 +631,13 @@ class IncidentGroupingEngineServiceClass {
       }
 
       // Calculate time window cutoff (only if time window is enabled)
-      let timeWindowCutoff: Date | null = null;
-      if (rule.enableTimeWindow) {
-        const timeWindowMinutes: number = rule.timeWindowMinutes || 60;
-        timeWindowCutoff = OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
-      }
+      const timeWindowMinutes: number | null = rule.enableTimeWindow
+        ? rule.timeWindowMinutes || FALLBACK_TIME_WINDOW_MINUTES
+        : null;
+      const timeWindowCutoff: Date | null =
+        timeWindowMinutes === null
+          ? null
+          : OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
 
       // Find existing active episode that matches
       const existingEpisode: IncidentEpisode | null =
@@ -649,11 +674,34 @@ class IncidentGroupingEngineServiceClass {
       }
 
       /*
+       * How many matching incidents of the group must be ongoing before the
+       * rule opens an episode for them (EpisodeOpeningThreshold): 1 - this
+       * one - unless the rule waits for more. The group they wait in is the
+       * rule and the key as built, whether the incident is private or not.
+       */
+      const incidentsToOpenEpisode: number = getRecordsToOpenEpisode({
+        enabled: rule.enableMinimumIncidentCount,
+        count: rule.minimumIncidentCount,
+      });
+
+      const groupingWaitKey: string = getGroupingWaitKey({
+        ruleId: rule.id!,
+        groupingKey: groupingKey,
+      });
+
+      /*
        * No open episode to join, and the incident may not open or reopen one
        * (GroupingOptions): a new episode would page its own on-call policies
-       * for an incident that pages nobody. It stays on its own.
+       * for an incident that pages nobody. It stays on its own. A rule that
+       * waits for more incidents counts it all the same: it waits with the
+       * others, and joins the episode a live incident of the group opens.
        */
       if (options.mayOpenEpisode === false) {
+        if (incidentsToOpenEpisode > 1) {
+          await this.waitForEpisode(incident, groupingWaitKey);
+          return { grouped: false, isWaitingForMore: true };
+        }
+
         return { grouped: false };
       }
 
@@ -704,23 +752,72 @@ class IncidentGroupingEngineServiceClass {
         }
       }
 
+      /*
+       * A rule that waits for more incidents opens the episode only once
+       * enough of the group's are ongoing, this one among them
+       * (GroupingRuleEpisodeWait). Until then this one waits too, on its
+       * own, paging only its own on-call policies.
+       */
+      let incidentsWaiting: Array<Incident> = [];
+
+      if (incidentsToOpenEpisode > 1) {
+        incidentsWaiting = await this.findIncidentsWaitingForEpisode({
+          incident: incident,
+          groupingWaitKey: groupingWaitKey,
+          timeWindowMinutes: timeWindowMinutes,
+        });
+
+        if (incidentsWaiting.length + 1 < incidentsToOpenEpisode) {
+          await this.waitForEpisode(incident, groupingWaitKey);
+          return { grouped: false, isWaitingForMore: true };
+        }
+      }
+
+      /*
+       * An episode opens with its group's first incident: the oldest one
+       * that waited - its title, monitor and severity are the episode's -
+       * or this one, when none did.
+       */
+      const openingIncident: Incident =
+        incidentsWaiting[incidentsWaiting.length - 1] || incident;
+
       // Create new episode
       const newEpisode: IncidentEpisode | null = await this.createNewEpisode(
-        incident,
+        openingIncident,
         rule,
         groupingKey,
       );
 
       if (newEpisode && newEpisode.id) {
-        // Add incident to new episode
-        await this.addIncidentToEpisode(
-          incident,
-          newEpisode.id,
-          IncidentEpisodeMemberAddedBy.Rule,
-          rule.id!,
-        );
+        if (incidentsWaiting.length > 0) {
+          // Every incident that waited, then this one.
+          await this.addWaitingIncidentsToNewEpisode({
+            incident: incident,
+            incidentsWaiting: incidentsWaiting,
+            episodeId: newEpisode.id,
+            rule: rule,
+          });
+        } else {
+          // Add incident to new episode
+          await this.addIncidentToEpisode(
+            incident,
+            newEpisode.id,
+            IncidentEpisodeMemberAddedBy.Rule,
+            rule.id!,
+          );
+        }
 
         return { grouped: true, episodeId: newEpisode.id, isNewEpisode: true };
+      }
+
+      /*
+       * The episode could not be opened. For a rule that waits, this
+       * incident waits with the others, so the next one of the group counts
+       * it and opens the episode with it.
+       */
+      if (incidentsToOpenEpisode > 1) {
+        await this.waitForEpisode(incident, groupingWaitKey);
+        return { grouped: false, isWaitingForMore: true };
       }
 
       return { grouped: false };
@@ -957,6 +1054,144 @@ class IncidentGroupingEngineServiceClass {
       });
 
     return episode;
+  }
+
+  /*
+   * The incidents waiting in the incident's group for the rule to open its
+   * episode (GroupingRuleEpisodeWait), newest first: marked with the group,
+   * in no episode, still ongoing - in a state that does not count as
+   * resolved (Common/Utils/ResolvedState) - and, with the rule's time window
+   * on, the run of them that arrived close together. At most as many as an
+   * episode can open with, besides the incident itself. Read as root, with
+   * what the episode is opened with when the oldest of them opens it.
+   */
+  @CaptureSpan()
+  private async findIncidentsWaitingForEpisode(data: {
+    incident: Incident;
+    groupingWaitKey: string;
+    timeWindowMinutes: number | null;
+  }): Promise<Array<Incident>> {
+    const projectId: ObjectID = data.incident.projectId!;
+
+    const unresolvedStateIds: Array<ObjectID> =
+      await IncidentStateService.getUnresolvedIncidentStateIds(projectId);
+
+    if (unresolvedStateIds.length === 0) {
+      return [];
+    }
+
+    const incidentsWaiting: Array<Incident> = await IncidentService.findBy({
+      query: {
+        projectId: projectId,
+        groupingWaitKey: data.groupingWaitKey,
+        incidentEpisodeId: QueryHelper.isNull(),
+        currentIncidentStateId: QueryHelper.any(unresolvedStateIds),
+        _id: QueryHelper.notEquals(data.incident.id!),
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        createdAt: true,
+        title: true,
+        description: true,
+        isPrivate: true,
+        incidentSeverityId: true,
+        incidentSeverity: {
+          name: true,
+        },
+        monitors: {
+          _id: true,
+          name: true,
+        },
+      },
+      limit: MAX_RECORDS_TO_OPEN_EPISODE - 1,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return getRecordsArrivedTogether({
+      waiting: incidentsWaiting,
+      timeWindowMinutes: data.timeWindowMinutes,
+      now: OneUptimeDate.getCurrentDate(),
+    });
+  }
+
+  /*
+   * The incident waits in its group for more (GroupingRuleEpisodeWait), or
+   * stops waiting (null): the mark the next incident of the group finds it
+   * by. Bookkeeping, not an edit of the incident: no hooks, no updatedAt.
+   */
+  @CaptureSpan()
+  private async waitForEpisode(
+    incident: Incident,
+    groupingWaitKey: string | null,
+  ): Promise<void> {
+    await IncidentService.updateColumnsByIdWithoutHooks({
+      id: incident.id!,
+      data: {
+        groupingWaitKey: groupingWaitKey,
+      },
+      skipUpdateDateColumn: true,
+    });
+  }
+
+  /*
+   * The episode a rule opened once enough incidents of the group were
+   * ongoing: every one that waited, oldest first, then the incident that
+   * arrived last - added together, so the episode is counted, raised to its
+   * most severe incident and told what joined it once
+   * (IncidentEpisodeMemberService.addIncidentsGroupedByRule). The ones added
+   * wait no more.
+   */
+  @CaptureSpan()
+  private async addWaitingIncidentsToNewEpisode(data: {
+    incident: Incident;
+    incidentsWaiting: Array<Incident>;
+    episodeId: ObjectID;
+    rule: IncidentGroupingRule;
+  }): Promise<void> {
+    const incidentsWaitingOldestFirst: Array<Incident> = [
+      ...data.incidentsWaiting,
+    ].reverse();
+
+    const addedIncidentIds: Array<ObjectID> =
+      await IncidentEpisodeMemberService.addIncidentsGroupedByRule({
+        projectId: data.incident.projectId!,
+        incidentEpisodeId: data.episodeId,
+        incidentIds: [
+          ...incidentsWaitingOldestFirst.map((waiting: Incident): ObjectID => {
+            return waiting.id!;
+          }),
+          data.incident.id!,
+        ],
+        matchedRuleId: data.rule.id!,
+      });
+
+    const added: Set<string> = new Set<string>(
+      addedIncidentIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    for (const waiting of incidentsWaitingOldestFirst) {
+      if (!waiting.id || !added.has(waiting.id.toString())) {
+        continue;
+      }
+
+      try {
+        await this.waitForEpisode(waiting, null);
+      } catch (error) {
+        logger.error(
+          `Error clearing the grouping wait of incident ${waiting.id.toString()}, now in episode ${data.episodeId.toString()}: ${error}`,
+          { projectId: data.incident.projectId?.toString() } as LogAttributes,
+        );
+      }
+    }
   }
 
   @CaptureSpan()
@@ -1196,6 +1431,15 @@ class IncidentGroupingEngineServiceClass {
 
         if (rule.enableTimeWindow && rule.timeWindowMinutes) {
           moreInfo += mdText`\n\n**Time Window:** ${rule.timeWindowMinutes} minutes`;
+        }
+
+        const incidentsToOpenEpisode: number = getRecordsToOpenEpisode({
+          enabled: rule.enableMinimumIncidentCount,
+          count: rule.minimumIncidentCount,
+        });
+
+        if (incidentsToOpenEpisode > 1) {
+          moreInfo += mdText`\n\n**Opened once:** ${incidentsToOpenEpisode} matching incidents were ongoing`;
         }
 
         try {

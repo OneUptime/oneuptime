@@ -235,6 +235,7 @@ Wenn Sie einen Workflow anlegen, halten die Vorlagen unter **Bereitschaft** dies
 | **Page About** | Worum es bei der Alarmierung geht: **A new alert**, **An incident** oder **An alert**. Die Alarmierung zu bestätigen, bestätigt auch die Warnung oder den Vorfall. |
 | **Title** und **Message** | Für eine neue Warnung. OneUptime legt daraus eine Warnung an, und sie bleibt wie jede andere bei Ihren Warnungen. |
 | **Incident ID** oder **Alert ID** | Für einen Vorfall oder eine Warnung, die es schon gibt, meist die, mit der der Workflow begonnen hat: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | Für einen Vorfall oder eine Warnung, die es schon gibt, unter **Weitere Felder**. **Responders** übernehmen ihn. **Observers** werden auf dem Laufenden gehalten, während andere reagieren: Bestätigen sie ihre Alarmierung, heißt das nur, dass sie sie gesehen haben, und der Vorfall oder die Warnung wird dadurch nicht bestätigt. |
 | **Severity** | Für eine neue Warnung, unter **Weitere Felder**. Sie entscheidet, welche Bereitschaftsregeln jeder Person sie alarmieren. Bleibt sie leer, ist es der höchste Schweregrad des Projekts. |
 
 Ein Baustein, der zu einem Workflow hinzugefügt wird, der mit einem Vorfall oder einer Warnung beginnt, ist schon darauf eingestellt, zu diesem Datensatz zu alarmieren, sodass er nur noch fragt, wer alarmiert wird.

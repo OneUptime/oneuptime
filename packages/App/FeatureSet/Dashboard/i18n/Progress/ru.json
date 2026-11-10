@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45527,
-    "untranslated": 11608
+    "keys": 47694,
+    "untranslated": 11041
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -83,7 +83,9 @@
     "Passthrough",
     "Ping",
     "Placement Groups",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Push",
     "RabbitMQ",
     "Re-encrypt",

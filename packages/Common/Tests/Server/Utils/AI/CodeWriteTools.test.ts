@@ -32,6 +32,7 @@ import GitHubUtil from "../../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryModel from "../../../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import ColumnLength from "../../../../Types/Database/ColumnLength";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import ObjectID from "../../../../Types/ObjectID";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -360,6 +361,149 @@ describe("open_code_pull_request", () => {
     expect(() => {
       return validate(record);
     }).not.toThrow();
+  });
+
+  /*
+   * The pull request is open on GitHub before its row is written, so a row
+   * the database refuses is an uncapped pull request. Its base is the
+   * repository's default branch, which may be longer than the 100
+   * characters the column once held: the branch is recorded whole (a cut
+   * name is another branch) and passes the real length check.
+   */
+  test("records a 200-character default branch whole, within the model's real length check", async () => {
+    const defaultBranch: string = `release/${"r".repeat(192)}`;
+
+    expect(defaultBranch).toHaveLength(200);
+
+    mockHappyPath();
+    jest
+      .spyOn(GitHubUtil, "getDefaultBranchName")
+      .mockResolvedValue(defaultBranch);
+
+    await OpenCodePullRequestTool.execute(
+      { title: "Fix charge", description: "why", changes: CHANGES },
+      ctx,
+    );
+
+    const record: AIAgentTaskPullRequest = (
+      AIAgentTaskPullRequestService.create as unknown as jest.Mock
+    ).mock.calls[0][0].data;
+
+    expect(record.baseRefName).toBe(defaultBranch);
+
+    expect(() => {
+      return AIAgentTaskPullRequestService["checkMaxLengthOfFields"](record);
+    }).not.toThrow();
+  });
+
+  /*
+   * The row keeps a copy of the title and description, cut to fit their
+   * columns: ShortText, 100 characters, and LongText, 500. The pull request
+   * keeps both whole. The model writes them, and a description that explains
+   * the change and cites its evidence runs past 500: copied whole, it got
+   * the row refused after the pull request was open (the uncapped pull
+   * request above).
+   */
+  describe("the recorded title and description", () => {
+    function openWith(data: {
+      title: string;
+      description: string;
+    }): Promise<ToolExecutionResult> {
+      mockHappyPath();
+
+      return OpenCodePullRequestTool.execute(
+        { title: data.title, description: data.description, changes: CHANGES },
+        ctx,
+      );
+    }
+
+    function recorded(): AIAgentTaskPullRequest {
+      return (AIAgentTaskPullRequestService.create as unknown as jest.Mock).mock
+        .calls[0][0].data;
+    }
+
+    function checkLength(pullRequest: AIAgentTaskPullRequest): void {
+      AIAgentTaskPullRequestService["checkMaxLengthOfFields"](pullRequest);
+    }
+
+    test("a long title and description are cut to fit, and the pull request has both whole", async () => {
+      const title: string = `Fix the double-counted charge${" on a retried payment".repeat(5)}`;
+      // Trimmed, as the tool reads its arguments.
+      const description: string =
+        "The charge path counts a retried payment twice. ".repeat(25).trim();
+
+      expect(title.length).toBeGreaterThan(ColumnLength.ShortText);
+      expect(description.length).toBeGreaterThan(ColumnLength.LongText);
+
+      // Each copied whole is what the real length check refused.
+      const uncutTitle: AIAgentTaskPullRequest = new AIAgentTaskPullRequest();
+      uncutTitle.title = title;
+      expect(() => {
+        return checkLength(uncutTitle);
+      }).toThrow(
+        `title length cannot be more than ${ColumnLength.ShortText} characters`,
+      );
+
+      const uncutDescription: AIAgentTaskPullRequest =
+        new AIAgentTaskPullRequest();
+      uncutDescription.description = description;
+      expect(() => {
+        return checkLength(uncutDescription);
+      }).toThrow(
+        `description length cannot be more than ${ColumnLength.LongText} characters`,
+      );
+
+      const result: ToolExecutionResult = await openWith({
+        title,
+        description,
+      });
+
+      const opened: { title: string; body: string } = (
+        GitHubUtil.createPullRequestWithToken as unknown as jest.Mock
+      ).mock.calls[0][0];
+
+      expect(opened.title).toBe(title);
+      expect(opened.body.startsWith(`${description}\n\n---\n`)).toBe(true);
+      expect(result.citationLabel).toBe(`PR #7: ${title}`);
+
+      const record: AIAgentTaskPullRequest = recorded();
+
+      expect(record.title).toBe(title.substring(0, ColumnLength.ShortText));
+      expect(record.description).toBe(
+        description.substring(0, ColumnLength.LongText),
+      );
+      expect(() => {
+        return checkLength(record);
+      }).not.toThrow();
+    });
+
+    test("a title and description that fit exactly are recorded whole", async () => {
+      const title: string = "t".repeat(ColumnLength.ShortText);
+      const description: string = "d".repeat(ColumnLength.LongText);
+
+      await openWith({ title, description });
+
+      const record: AIAgentTaskPullRequest = recorded();
+
+      expect(record.title).toBe(title);
+      expect(record.description).toBe(description);
+      expect(() => {
+        return checkLength(record);
+      }).not.toThrow();
+    });
+
+    test("a cut that lands inside an emoji leaves no half of it", async () => {
+      // Each cut falls between the two halves of the rocket.
+      const title: string = `${"t".repeat(ColumnLength.ShortText - 1)}🚀 and more`;
+      const description: string = `${"d".repeat(ColumnLength.LongText - 1)}🚀 and more`;
+
+      await openWith({ title, description });
+
+      const record: AIAgentTaskPullRequest = recorded();
+
+      expect(record.title).toBe("t".repeat(ColumnLength.ShortText - 1));
+      expect(record.description).toBe("d".repeat(ColumnLength.LongText - 1));
+    });
   });
 
   test("refuses when the repository is at the open-PR cap it set", async () => {

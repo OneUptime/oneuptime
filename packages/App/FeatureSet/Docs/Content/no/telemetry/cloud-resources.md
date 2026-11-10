@@ -627,11 +627,15 @@ Selvhostede installasjoner kan endre dette med miljøvariabler på appen:
 
 ## Varsler på en ressurs
 
+En ressurs i en [tilkoblet konto](/docs/telemetry/cloud-accounts) får på fanen **Anbefalinger** tilbud om monitorene OneUptime anbefaler for typen, hver opprettet i ett trinn. Slik varsler du om en annen måling den rapporterer:
+
 :::steps
 1. Åpne ressursen og fanen **Målinger**, som viser hver metrikk leverandøren rapporterer om den.
 2. Åpne en metrikk for å vise den som diagram i metrikkutforskeren, allerede filtrert til ressursen.
 3. Klikk **Opprett monitor fra denne visningen**: monitoren overvåker den metrikken for den ressursen.
 :::
+
+Et Service Bus-navneområde rapporterer målingene sine én gang per kø og emne, og et Event Hubs-navneområde én gang per event hub. Der de kan legges sammen, viser en rad i fanen **Målinger** for navneområdet summen av dem, med **sum av serier** under. En monitor opprettet fra den raden leser også summen, og det samme gjør en monitor opprettet via API-et eller Terraform uten en aggregering. De andre radene viser **gjennomsnitt av serier**, altså den gjennomsnittlige køen eller event huben: en forsinkelse og, over et tidsrom på mer enn 3 timer, en mengde navneområdet holder, som ventende meldinger.
 
 > [!IMPORTANT]
 > Skyovervåking publiserer hvert tall minutter etter tidspunktet det måler: 10 til 20 minutter for CloudWatch som polles som ovenfor, noen få minutter for Azure Monitor og Cloud Monitoring. Det lagres under tidspunktet det måler. Gi en monitor over disse metrikkene et vindu som er lengre enn det (30 minutter for CloudWatch, 15 for de andre), ellers ser den ingen data og utløses aldri.

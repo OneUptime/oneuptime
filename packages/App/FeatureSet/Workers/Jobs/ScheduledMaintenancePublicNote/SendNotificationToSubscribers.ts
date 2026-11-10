@@ -60,6 +60,7 @@ import FeedMarkdown, {
 } from "Common/Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
 import SubscriberMessageText, {
   SubscriberChatText,
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
@@ -371,10 +372,8 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
      * edit, so an update notification reads it fresh from the row. Only a
      * legacy row with no postedAt falls back to the time of sending.
      */
-    const notePostedAt: string =
-      OneUptimeDate.getDateAsUserFriendlyFormattedString(
-        publicNote.postedAt || OneUptimeDate.getCurrentDate(),
-      );
+    const notePostedAtDate: Date =
+      publicNote.postedAt || OneUptimeDate.getCurrentDate();
 
     const scheduledAtString: string =
       OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!);
@@ -518,15 +517,18 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
        * every channel adds the subscriber's unsubscribeUrl, so no channel can
        * miss a variable the others have.
        */
-      const templateVariables: Record<string, string> = {
-        statusPageName: statusPageName,
-        statusPageUrl: statusPageURL,
-        detailsUrl: scheduledEventDetailsUrl,
-        scheduledMaintenanceTitle: event.title || "",
-        scheduledMaintenanceState:
-          stateChangeName || event.currentScheduledMaintenanceState?.name || "",
-        postedAt: notePostedAt,
-      };
+      const templateVariables: Record<string, string> =
+        SubscriberTemplateValues.inPageLanguage(statuspage, {
+          statusPageName: statusPageName,
+          statusPageUrl: statusPageURL,
+          detailsUrl: scheduledEventDetailsUrl,
+          scheduledMaintenanceTitle: event.title || "",
+          // A default state name, and the date, in the page's language.
+          scheduledMaintenanceState: SubscriberTemplateValues.stateName(
+            stateChangeName || event.currentScheduledMaintenanceState?.name,
+          ),
+          postedAt: SubscriberTemplateValues.date(notePostedAtDate),
+        });
 
       /*
        * Custom templates get each value in the format their channel renders:
@@ -1029,6 +1031,8 @@ RunCron(
           subscriberNotificationStatusOnNoteCreated:
             StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+          // Published notes only: one waiting for approval is told to nobody yet.
+          isPublished: true,
         },
         props: {
           isRoot: true,
@@ -1077,6 +1081,8 @@ RunCron(
         query: {
           subscriberNotificationStatusOnNoteUpdated:
             StatusPageSubscriberNotificationStatus.Pending,
+          // Published notes only: one waiting for approval is told to nobody yet.
+          isPublished: true,
         },
         props: {
           isRoot: true,

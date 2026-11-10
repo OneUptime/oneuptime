@@ -6,6 +6,24 @@ import {
   seededRandom,
 } from "../../../../Common/Tests/Helpers/SeededRandom";
 import {
+  matchesSessionReplayErrorText,
+  matchesSessionReplayEventName,
+  matchesSessionReplayPagePattern,
+  readSessionReplayFrustrationSignalsConfig,
+  SESSION_REPLAY_CUSTOM_SIGNAL_COOLDOWN_MS as COMMON_CUSTOM_SIGNAL_COOLDOWN_MS,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENT_NAME_LENGTH as COMMON_MAX_EVENT_NAME_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK as COMMON_MAX_SIGNAL_EVENTS_PER_CHUNK,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_MATCH_LENGTH as COMMON_MAX_MATCH_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH as COMMON_MAX_NAME_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNALS as COMMON_MAX_CUSTOM_SIGNALS,
+  SessionReplayCustomSignalConfig as CommonCustomSignalConfig,
+  SessionReplayCustomSignalCount as CommonCustomSignalCount,
+  SessionReplayCustomSignalTrigger as CommonCustomSignalTrigger,
+  SessionReplayFrustrationSignalsConfig as CommonFrustrationSignalsConfig,
+} from "../../../../Common/Types/Rum/SessionReplayFrustrationSignals";
+import {
+  SessionReplayConfigResponse as CommonConfigResponse,
+  SessionReplaySignalCounts as CommonSignalCounts,
   SESSION_REPLAY_APP_IDENTIFIER_HEADER as COMMON_APP_HEADER,
   SESSION_REPLAY_CONTENT_TYPE as COMMON_CONTENT_TYPE,
   SESSION_REPLAY_IDLE_PAUSE_MS as COMMON_IDLE_PAUSE_MS,
@@ -21,14 +39,17 @@ import {
   SessionReplayFidelityNotice as CommonFidelityNotice,
 } from "../../../../Common/Types/Rum/SessionReplay";
 import {
+  isSessionReplayCustomSignalPayload,
   isSessionReplayIdlePausedPayload,
   isSessionReplayIdleResumedPayload,
   SessionReplayCustomEventTag,
+  SessionReplayCustomSignalPayload as CommonCustomSignalPayload,
   SessionReplayIdlePausedPayload as CommonIdlePausedPayload,
   SessionReplayIdleResumedPayload as CommonIdleResumedPayload,
 } from "../../../../Common/Types/Rum/SessionReplayCustomEvents";
 import {
   CUSTOM_EVENT_TAG,
+  CUSTOM_SIGNAL_CUSTOM_EVENT_TAG,
   encodeSessionReplayEnvelopeLine,
   ERROR_CUSTOM_EVENT_TAG,
   escapeSessionReplayJson,
@@ -50,12 +71,31 @@ import {
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
   SESSION_ROTATED_CUSTOM_EVENT_TAG,
+  SESSION_REPLAY_CUSTOM_SIGNAL_COOLDOWN_MS,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENT_NAME_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_MATCH_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
+  SessionReplayConfigResponse,
+  SessionReplayCustomSignalConfig,
+  SessionReplayCustomSignalCount,
+  SessionReplayCustomSignalPayload,
+  SessionReplayCustomSignalTrigger,
   SessionReplayFidelityNotice,
+  SessionReplayFrustrationSignalsConfig,
   SessionReplayIdlePausedPayload,
   SessionReplayIdleResumedPayload,
+  SessionReplaySignalCounts,
   TAGS_CUSTOM_EVENT_TAG,
   VISIBILITY_CUSTOM_EVENT_TAG,
 } from "../src/Contract";
+import {
+  matchesErrorText,
+  matchesEventName,
+  matchesPagePattern,
+  readCustomSignals,
+} from "../src/CustomSignals";
 
 /*
  * True only when the two types are identical - same members, same
@@ -159,6 +199,205 @@ describe("published SDK wire contract", () => {
     expect(SessionReplayFidelityNotice.MobileAnimationSampled).toBe(
       CommonFidelityNotice.MobileAnimationSampled,
     );
+  });
+
+  /*
+   * Frustration signals (issue #6443). The settings arrive on the config
+   * response and the counts leave on the envelope in Common's shapes; the
+   * signals are read and matched by copies of Common's functions, compared
+   * here on the same inputs, so a signal the server accepted fires on a
+   * phone exactly when it would in a browser.
+   */
+  describe("frustration signals", () => {
+    test("carries Common's settings, counts and marker, type for type", () => {
+      const configIsIdentical: IdenticalTypes<
+        SessionReplayFrustrationSignalsConfig,
+        CommonFrustrationSignalsConfig
+      > = true;
+      const signalIsIdentical: IdenticalTypes<
+        SessionReplayCustomSignalConfig,
+        CommonCustomSignalConfig
+      > = true;
+      const triggerIsIdentical: IdenticalTypes<
+        SessionReplayCustomSignalTrigger,
+        CommonCustomSignalTrigger
+      > = true;
+      const countIsIdentical: IdenticalTypes<
+        SessionReplayCustomSignalCount,
+        CommonCustomSignalCount
+      > = true;
+      const payloadIsIdentical: IdenticalTypes<
+        SessionReplayCustomSignalPayload,
+        CommonCustomSignalPayload
+      > = true;
+      const responseFieldIsIdentical: IdenticalTypes<
+        SessionReplayConfigResponse["frustrationSignals"],
+        CommonConfigResponse["frustrationSignals"]
+      > = true;
+      const countsFieldIsIdentical: IdenticalTypes<
+        SessionReplaySignalCounts["customSignals"],
+        CommonSignalCounts["customSignals"]
+      > = true;
+      expect(
+        configIsIdentical &&
+          signalIsIdentical &&
+          triggerIsIdentical &&
+          countIsIdentical &&
+          payloadIsIdentical &&
+          responseFieldIsIdentical &&
+          countsFieldIsIdentical,
+      ).toBe(true);
+
+      expect(CUSTOM_SIGNAL_CUSTOM_EVENT_TAG).toBe(
+        SessionReplayCustomEventTag.CustomSignal,
+      );
+      expect(SESSION_REPLAY_MAX_CUSTOM_SIGNALS).toBe(COMMON_MAX_CUSTOM_SIGNALS);
+      expect(SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH).toBe(
+        COMMON_MAX_NAME_LENGTH,
+      );
+      expect(SESSION_REPLAY_MAX_CUSTOM_SIGNAL_MATCH_LENGTH).toBe(
+        COMMON_MAX_MATCH_LENGTH,
+      );
+      expect(SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENT_NAME_LENGTH).toBe(
+        COMMON_MAX_EVENT_NAME_LENGTH,
+      );
+      expect(SESSION_REPLAY_CUSTOM_SIGNAL_COOLDOWN_MS).toBe(
+        COMMON_CUSTOM_SIGNAL_COOLDOWN_MS,
+      );
+      expect(SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK).toBe(
+        COMMON_MAX_SIGNAL_EVENTS_PER_CHUNK,
+      );
+
+      const marker: SessionReplayCustomSignalPayload = {
+        name: "Order failed",
+        trigger: "page",
+        isFrustration: true,
+        atUnixMs: 1_000,
+      };
+      expect(isSessionReplayCustomSignalPayload(marker)).toBe(true);
+    });
+
+    test("reads a config's signals as Common does, less the clicks", () => {
+      const random: SeededRandom = seededRandom(6443);
+      const names: Array<unknown> = [
+        "Checkout error",
+        "checkout ERROR",
+        "  Padded  ",
+        "",
+        "x".repeat(40),
+        "x".repeat(41),
+        7,
+        undefined,
+      ];
+      const triggers: Array<unknown> = [
+        "click",
+        "page",
+        "event",
+        "error",
+        "shake",
+        null,
+      ];
+      const matches: Array<unknown> = [
+        "/checkout/error",
+        "*/failed",
+        "checkout",
+        " help_opened ",
+        "card declined",
+        "button.pay",
+        "",
+        "e".repeat(64),
+        "e".repeat(65),
+        "t".repeat(200),
+        "t".repeat(201),
+        false,
+      ];
+      const flags: Array<unknown> = [true, false, undefined, "no", 0];
+      const pick: (list: Array<unknown>) => unknown = (
+        list: Array<unknown>,
+      ): unknown => {
+        return list[random(list.length)];
+      };
+
+      for (let iteration: number = 0; iteration < 500; iteration++) {
+        const customSignals: Array<unknown> = [];
+        const length: number = random(26);
+        for (let index: number = 0; index < length; index++) {
+          customSignals.push(
+            random(12) === 0
+              ? "not a signal"
+              : {
+                  name: pick(names),
+                  trigger: pick(triggers),
+                  match: pick(matches),
+                  isFrustration: pick(flags),
+                  isEnabled: pick(flags),
+                },
+          );
+        }
+        const config: Record<string, unknown> = { customSignals };
+
+        const expected: Array<CommonCustomSignalConfig> =
+          readSessionReplayFrustrationSignalsConfig(
+            config,
+          ).customSignals.filter(
+            (signal: CommonCustomSignalConfig): boolean => {
+              return signal.trigger !== "click";
+            },
+          );
+        expect(readCustomSignals(config)).toEqual(expected);
+      }
+
+      expect(readCustomSignals(null)).toEqual([]);
+      expect(readCustomSignals({ customSignals: {} })).toEqual([]);
+    });
+
+    test("matches pages, events and errors exactly as Common does", () => {
+      const random: SeededRandom = seededRandom(5);
+      const patternAlphabet: string = "/**abAB-.";
+      const pathAlphabet: string = "/abAB-.";
+
+      const text: (alphabet: string, maxLength: number) => string = (
+        alphabet: string,
+        maxLength: number,
+      ): string => {
+        let value: string = "";
+        const length: number = random(maxLength + 1);
+        for (let index: number = 0; index < length; index++) {
+          value += alphabet.charAt(random(alphabet.length));
+        }
+        return value;
+      };
+
+      for (let iteration: number = 0; iteration < 3000; iteration++) {
+        const pattern: string = text(patternAlphabet, 8);
+        const path: string = text(pathAlphabet, 10);
+
+        expect(matchesPagePattern(pattern, path)).toBe(
+          matchesSessionReplayPagePattern(pattern, path),
+        );
+        expect(matchesErrorText(pattern, path)).toBe(
+          matchesSessionReplayErrorText(pattern, path),
+        );
+        expect(matchesEventName(pattern, path)).toBe(
+          matchesSessionReplayEventName(pattern, path),
+        );
+      }
+
+      for (const [pattern, path] of [
+        ["/checkout/error", "/Checkout/Error/"],
+        ["/orders/*/failed", "/orders/123/failed"],
+        ["/orders/*/failed", "/orders/123/failed/again"],
+        ["*/failed", "/a/b/failed"],
+        ["/checkout*", "/checkout"],
+        ["/a*a", "/a"],
+        ["/", "/"],
+        ["*", "/anything"],
+      ] as Array<[string, string]>) {
+        expect(matchesPagePattern(pattern, path)).toBe(
+          matchesSessionReplayPagePattern(pattern, path),
+        );
+      }
+    });
   });
 
   test("marks a rotated session with the tag the browser recorder uses", () => {

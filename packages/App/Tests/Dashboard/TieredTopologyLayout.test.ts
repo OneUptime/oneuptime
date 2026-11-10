@@ -4,6 +4,7 @@ import {
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
+  TIERED_ENDPOINT_LABEL_GAP,
   TIERED_ENDPOINT_NODE_SPACING,
   TIERED_GROUP_BOX_BOTTOM_PAD,
   TIERED_GROUP_BOX_TOP_PAD,
@@ -16,9 +17,11 @@ import {
   TopologyGroupBox,
   computeTieredTopologyLayout,
   computeTieredTopologyModel,
+  getTieredEndpointSpacing,
   tierForNode,
   wrapNodeLabel,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyLayout";
+import { footprintForNode } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyFootprint";
 
 const WIDTH: number = 1000;
 
@@ -766,6 +769,78 @@ describe("computeTieredTopologyLayout — wrapping inside a group", () => {
         expect(sorted[i]! - sorted[i - 1]!).toBe(TIERED_ENDPOINT_NODE_SPACING);
       }
     }
+  });
+
+  /*
+   * Issue #5775 put each endpoint's address under its name: fifteen
+   * characters for 192.168.100.254, wider than the 76 endpoints were packed
+   * at, so neighbouring labels ran into each other ("Seiko Epson
+   * Co..IEEE Registrat..."). The spacing follows the widest label instead.
+   */
+  test("endpoints whose addresses are long are spaced so no two labels touch", () => {
+    const busy: SwitchWithEndpoints = makeSwitchWithEndpoints("sw-addr", 6);
+    const addressed: Array<NetworkTopologyNode> = busy.endpoints.map(
+      (endpoint: NetworkTopologyNode, index: number): NetworkTopologyNode => {
+        const address: string = "192.168.100." + String(250 + index);
+        return {
+          ...endpoint,
+          name: address,
+          ipAddress: address,
+          vendor: "Seiko Epson Corporation",
+        };
+      },
+    );
+    const nodes: Array<NetworkTopologyNode> = [busy.device, ...addressed];
+    const spacing: number = getTieredEndpointSpacing(addressed);
+
+    expect(spacing).toBeGreaterThan(TIERED_ENDPOINT_NODE_SPACING);
+
+    const layout: LayoutMap = computeTieredTopologyLayout(
+      nodes,
+      busy.edges,
+      WIDTH,
+    );
+    const byRow: Map<number, Array<NetworkTopologyNode>> = new Map();
+    for (const endpoint of addressed) {
+      const point: { x: number; y: number } = layout.get(endpoint.id)!;
+      byRow.set(point.y, [...(byRow.get(point.y) || []), endpoint]);
+    }
+    let pairs: number = 0;
+    for (const [, row] of byRow.entries()) {
+      const sorted: Array<NetworkTopologyNode> = row.sort(
+        (a: NetworkTopologyNode, b: NetworkTopologyNode): number => {
+          return layout.get(a.id)!.x - layout.get(b.id)!.x;
+        },
+      );
+      for (let i: number = 1; i < sorted.length; i++) {
+        const left: NetworkTopologyNode = sorted[i - 1]!;
+        const right: NetworkTopologyNode = sorted[i]!;
+        const gap: number =
+          layout.get(right.id)!.x -
+          layout.get(left.id)!.x -
+          footprintForNode(left).labelHalfWidth -
+          footprintForNode(right).labelHalfWidth;
+        expect(gap).toBeGreaterThanOrEqual(TIERED_ENDPOINT_LABEL_GAP);
+        pairs += 1;
+      }
+    }
+    expect(pairs).toBeGreaterThan(0);
+  });
+
+  test("a map whose endpoint labels are short keeps the tighter spacing", () => {
+    const busy: SwitchWithEndpoints = makeSwitchWithEndpoints("sw-short", 4);
+    const named: Array<NetworkTopologyNode> = busy.endpoints.map(
+      (endpoint: NetworkTopologyNode, index: number): NetworkTopologyNode => {
+        return {
+          ...endpoint,
+          name: "pos-" + String(index),
+          ipAddress: "10.0.0." + String(index + 1),
+        };
+      },
+    );
+
+    expect(getTieredEndpointSpacing(named)).toBe(TIERED_ENDPOINT_NODE_SPACING);
+    expect(getTieredEndpointSpacing([])).toBe(TIERED_ENDPOINT_NODE_SPACING);
   });
 
   test("more switches than fit across wrap into bands, blocks intact", () => {

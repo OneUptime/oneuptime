@@ -661,8 +661,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
           value={props.timeRange}
           onChange={viewerZoom.onTimeRangeChange || props.onTimeRangeChange}
           /*
-           * A followed zoom's way back is shown by whoever offers it (the
-           * snapshot's, beside its badge): one Reset zoom per zoom.
+           * A followed zoom's way back is shown by whoever offers it (an
+           * event's telemetry card, beside its time picker): one Reset zoom
+           * per zoom.
            */
           showResetZoom={!viewerZoom.followsEnclosingZoom}
         />

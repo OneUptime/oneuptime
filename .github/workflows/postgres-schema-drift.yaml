@@ -200,6 +200,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AICreditsRunOutPostgres.test.ts --forceExit
 
+      # The SLO deploy gate (#6333): the migration run on tables that already
+      # hold an SLO and a tier leaves the SLO allowing deployments and the
+      # tier freezing nothing; a key that may only read SLOs reads
+      # deploymentsAllowed through the real get-item route, by POST and by
+      # GET; a key that may edit SLOs may not write it; a key that may edit
+      # tiers switches Freeze Deployments on - on structure-only copies of
+      # the migrated tables in schemas of their own.
+      - name: Test the SLO deploy gate through the API on Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SLO_DEPLOYMENT_GATE_TESTS: "true"
+          SLO_DEPLOYMENT_GATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SLO_DEPLOYMENT_GATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SLO_DEPLOYMENT_GATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/ServiceLevelObjectiveDeploymentGatePostgres.test.ts
+          --forceExit
+
       # The balance SMS, calls, WhatsApp and Telegram are paid from: costs
       # and recharge credits are one statement each, so messages sent
       # together all pay and a cost taken while a charge was out is kept;
@@ -309,6 +329,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeGroupingKeyPostgres.test.ts --forceExit
 
+      # A grouping rule that waits for more incidents (or alerts) marks each
+      # one it holds back, and reads the group's still-ongoing waiting
+      # records - in no episode, newest first, close together while the time
+      # window is on - through the partial index on the mark.
+      - name: Test records waiting for an episode on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_GROUPING_WAIT_TESTS: "true"
+          GROUPING_WAIT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GROUPING_WAIT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GROUPING_WAIT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/GroupingWaitPostgres.test.ts --forceExit
+
       # A record's live update reaches the people its own read lets read it:
       # labels, owners, blocks with labels (and the labelled records a
       # label-less row names), private incidents, a person's own AI
@@ -327,10 +363,12 @@ jobs:
 
       # Clones the migrated Databases tables (DatabaseServer, its endpoints,
       # labels, owners, incident / alert / maintenance links and the
-      # Kubernetes / Docker / Podman parents) into an isolated schema and runs
-      # the product's hand-written SQL against them. The second suite holds
-      # the container command projection Postgres computes to its JavaScript
-      # twin (reduceContainerCommand), which the discovery job classifies by.
+      # Kubernetes / Docker / Podman parents, with the Project and User rows
+      # a delete reads for its audit log entry) into an isolated schema and
+      # runs the product's hand-written SQL against them. The second suite
+      # holds the container command projection Postgres computes to its
+      # JavaScript twin (reduceContainerCommand), which the discovery job
+      # classifies by.
       # The third runs the metrics snapshot's container upsert on session TEMP
       # tables: agent labels merged into a row's labels, the start time only
       # moving forward.
@@ -506,12 +544,13 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Workflow/RunRecordSearchPostgres.test.ts --forceExit
 
-      # Clones the migrated Workflow, Incident and legacy Huntress connection
-      # tables into an isolated schema: a workflow's signing secret is written
-      # encrypted and a new one clears the last refusal, the Huntress webhook
-      # finds a workflow by its key and keeps what each request did, and every
-      # Huntress connection made before becomes the workflow that does what it
-      # did - answering at its old address, with its old secret.
+      # Clones the migrated Workflow, WorkflowVersion, Incident and legacy
+      # Huntress connection tables into an isolated schema: a workflow's
+      # signing secret is written encrypted and a new one clears the last
+      # refusal, the Huntress webhook finds a workflow by its key and keeps
+      # what each request did, and every Huntress connection made before
+      # becomes the workflow that does what it did - answering at its old
+      # address, with its old secret.
       - name: Test Huntress workflows and the move of Huntress connections on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -523,6 +562,31 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/HuntressPostgres.test.ts --forceExit
+
+      # Clones the migrated Workflow and WorkflowVersion tables into an
+      # isolated schema and saves graphs through WorkflowService: what each
+      # save leaves in the version history (#6188) - one person's burst is
+      # one version, a restore names the version it restores, the newest 100
+      # are kept, Ask AI's change is a version of its own - and a save made
+      # to an older graph is refused: of two saves made to one revision at
+      # the same moment exactly one lands, and approving Ask AI's change
+      # after a teammate saved keeps the teammate's save (#6257).
+      - name: Test a workflow's version history and saves made to an older graph on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKFLOW_VERSION_TESTS: "true"
+          WORKFLOW_VERSION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_VERSION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_VERSION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+          RUN_POSTGRES_WORKFLOW_GRAPH_REVISION_TESTS: "true"
+          WORKFLOW_GRAPH_REVISION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_GRAPH_REVISION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_GRAPH_REVISION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WorkflowVersionPostgres.test.ts
+          Tests/Server/Services/WorkflowGraphRevisionPostgres.test.ts --forceExit
 
       # Clones the migrated IoTDevice and sibling inventory tables into an
       # isolated schema and executes each service's hand-built
@@ -612,6 +676,31 @@ jobs:
           Tests/Server/Services/NetworkEndpointControllerClientsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated NetworkEndpoint, NetworkDevice,
+      # NetworkTopologySuppression and Project tables into isolated schemas
+      # and runs the Discovered Devices list against them (issue #5775):
+      # which rows a device monitors (by MAC anywhere, by address only while
+      # current and in the same site), search, counts, paging and the bulk
+      # Hide / Show writes - raw SQL across these tables only a database can
+      # check, run through TypeORM's driver, whose answer to a bare DELETE is
+      # not rows. Then the job that removes the devices nothing has seen for
+      # the project's days (issue #6389): what it keeps (monitored,
+      # classified, edited, a quiet switch's), each project's own cut-off,
+      # the batches, and the backfill of the devices people changed.
+      - name: Test the Discovered Devices list and its age-out against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DISCOVERED_DEVICES_TESTS: "true"
+          DISCOVERED_DEVICES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DISCOVERED_DEVICES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DISCOVERED_DEVICES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/NetworkDevice/DiscoveredDeviceListPostgres.test.ts
+          Tests/Server/Utils/NetworkDevice/DiscoveredDeviceAgeOutPostgres.test.ts
+          --forceExit
+
       # Clones the migrated CloudResource table into an isolated schema and
       # runs the discovered resources' sweeps against it: Not reporting,
       # auto-archive, restore when a resource reports again, and the budget's
@@ -644,6 +733,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/CloudStreamKeyRotationPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated TelemetryIngestionKey and
+      # TelemetryIngestionKeyRefusal tables into an isolated schema and adds
+      # refused telemetry to them through the real upsert (issue #6378): a row
+      # per key, reason and surface, counts added and capped, a gone or
+      # another project's key skipped, a big write as several statements,
+      # writers at once adding up, and a flood written as one statement.
+      - name: Test refused telemetry counts against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TELEMETRY_INGEST_REFUSAL_TESTS: "true"
+          TELEMETRY_INGEST_REFUSAL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TELEMETRY_INGEST_REFUSAL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TELEMETRY_INGEST_REFUSAL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/TelemetryIngestionKeyRefusalPostgres.test.ts
           --forceExit
 
       # Clones the migrated tables a Traffic page's names are read from
@@ -776,10 +884,11 @@ jobs:
 
       # Clones the migrated Incident / Alert / Scheduled Maintenance reminder
       # rule tables (with their junctions, the trigger that encodes a
-      # criteria-backed rule's enabled state, and the tables the reminder
-      # refresh reads and writes) into an isolated schema, so it must run
-      # after the registered migrations. The criteria-backed isEnabled filter
-      # is raw SQL only Postgres can judge (#4030).
+      # criteria-backed rule's enabled state, the tables the reminder refresh
+      # reads and writes, and the Project and User rows a delete reads for its
+      # audit log entry) into an isolated schema, so it must run after the
+      # registered migrations. The criteria-backed isEnabled filter is raw SQL
+      # only Postgres can judge (#4030).
       - name: Test reminder rule lookup on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -868,7 +977,47 @@ jobs:
           Tests/Server/API/StatusPageIncidentScopePostgres.test.ts
           Tests/Server/Services/StatusPageVisibilityWritePostgres.test.ts --forceExit
 
-      # Clones the migrated Project, StatusPage and
+      # A public note is on status pages only once it is published (#5720):
+      # every public page read - the overview, the incident, episode and
+      # maintenance lists and each one opened - runs on clones of the tables
+      # it reads, with notes in every approval state, and shows the
+      # published ones (an edited one as it was approved) and nothing of
+      # the rest. And an edit of a note is written only at the version it
+      # was worked out from: an approval written between the edit's read
+      # and its save - its UPDATE, or the save() of an edit that sends the
+      # note's files - stands, and the edit writes nothing.
+      - name: Test public note approval on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PUBLIC_NOTE_APPROVAL_TESTS: "true"
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/StatusPagePublicNoteApprovalPostgres.test.ts
+          Tests/Server/Services/PublicNoteEditHeldToVersionPostgres.test.ts --forceExit
+
+      # Clones the migrated PublicNoteApprovalRequest table into an isolated
+      # schema: each request to approve a public note is written once
+      # (#6353). A claim writes a person's requests for a step in one INSERT
+      # ... ON CONFLICT DO NOTHING over the unique index and hands back what
+      # it wrote, so of many claims at once - several processes, a save and a
+      # decision - each request goes to exactly one.
+      - name: Test that each request to approve a public note is written once on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PUBLIC_NOTE_APPROVAL_TESTS: "true"
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/PublicNoteApprovalRequestPostgres.test.ts --forceExit
+
+      # Clones the migrated User, Project, StatusPage and
       # StatusPageHistoryChartBarColorRule tables (with the rules' foreign
       # keys) into an isolated schema, and makes a new status page's
       # recommended bar color rules through the real services: they read
@@ -2159,6 +2308,27 @@ jobs:
           Tests/Server/API/PrivateRecordOwnerTeamsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated incident on-call rule and owning team tables,
+      # with the user, project, team, label and permission ones, into an
+      # isolated schema and sends reads, changes, deletes and creates of
+      # rules through the CRUD routes and the real user middleware (Owning
+      # Teams): a rule no team owns is changed by every permission that
+      # changes rules; a rule some teams own only with the permissions of
+      # the member's teams that own it, and by a Project Admin; adding or
+      # removing an owning team is changing the rule; and every member who
+      # may read rules reads every one of them.
+      - name: Test that a rule teams own is changed only through those teams on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RECORD_SCOPE_TESTS: "true"
+          RECORD_SCOPE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RECORD_SCOPE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RECORD_SCOPE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/TeamOwnedRulesPostgres.test.ts --forceExit
+
       # Clones the migrated team, custom role, API key, label, Kubernetes
       # cluster (labels and owners) and Docker host tables into an isolated
       # schema and presses a cluster's Test connection and Reset agent, and a
@@ -2578,6 +2748,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/AI/CodeFix/CodeRepositoryDefaultRunnerPostgres.test.ts --forceExit
 
+      # A task list's filters, search and counts (CodeTaskListQuery): the
+      # statements the Code API builds, run in an isolated schema seeded
+      # with a task in each state - each task in exactly one filter, read
+      # from its latest turn and its pull requests; a search matches titles
+      # (LIKE's own characters as text) and task numbers.
+      - name: Test a code task list's filters, search and counts on Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CODE_TASK_LIST_TESTS: "true"
+          CODE_TASK_LIST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CODE_TASK_LIST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CODE_TASK_LIST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/AI/CodeTask/CodeTaskListQueryPostgres.test.ts --forceExit
+
       # An auto remediation rule picks the Runner OneUptime AI runs its
       # commands on, and a Runner has no "Runs AI Remediation Commands"
       # switch. Clones the migrated Runner, AutoRemediationRule and
@@ -2731,6 +2918,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
+
+      # An Incoming Request monitor's latest request, kept twice (#6402): the
+      # column 1809080466402 adds is a nullable jsonb; a request is written
+      # as it came and cut in one statement; changing Keep request content
+      # writes the copy people read again by a compare-and-set Postgres must
+      # find equal to the jsonb it was read with, and never over a request
+      # that came in meanwhile; RedactLatestIncomingRequests splits each
+      # request kept once and changes nothing the second time; a Viewer's
+      # select gets the cut copy only. Clones the migrated Monitor table into
+      # an isolated schema.
+      - name: Test an incoming request monitor's latest request on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_LATEST_INCOMING_REQUEST_TESTS: "true"
+          LATEST_INCOMING_REQUEST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LATEST_INCOMING_REQUEST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LATEST_INCOMING_REQUEST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RedactLatestIncomingRequestsPostgres.test.ts
+          --forceExit
 
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
       # all of regression detection - an occurrence after the resolve

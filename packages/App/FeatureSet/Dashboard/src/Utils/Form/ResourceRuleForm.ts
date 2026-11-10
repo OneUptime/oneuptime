@@ -1,3 +1,5 @@
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { getRuleOwningTeamsFormField } from "../../Components/TeamOwnedRule/RuleOwningTeams";
 import Label from "Common/Models/DatabaseModels/Label";
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import type { DropdownChange } from "Common/UI/Components/Dropdown/DropdownChange";
@@ -1623,5 +1625,29 @@ export const getCreatorTeamOwnerRuleActionFields: <TEntity>(
     ...getOwnerRuleNameAndMoreFields<TEntity>(
       OWNER_RULE_INHERITING_NAME_DESCRIPTION,
     ),
+  ];
+};
+
+/*
+ * An owner rule of a kind teams can own (TEAM_OWNED_RULE_KINDS) - an
+ * incident owner rule - ends with the teams that alone may change it, not
+ * the owners it adds: spread right after the shared action fields, it folds
+ * last under their More fields (BasicForm joins the next-door sections of one
+ * id), as the form scanner reads it too (one section, written the same).
+ */
+export const getOwnerRuleOwningTeamsFields: <TEntity>(owningTeamModelType: {
+  new (): BaseModel;
+}) => Array<Field<TEntity>> = <TEntity>(owningTeamModelType: {
+  new (): BaseModel;
+}): Array<Field<TEntity>> => {
+  const moreFields: FormFieldCollapsibleSection<TEntity> =
+    getAdvancedFormSection<TEntity>();
+
+  return [
+    getRuleOwningTeamsFormField<TEntity>({
+      owningTeamModelType: owningTeamModelType,
+      stepId: "owners",
+      collapsibleSection: moreFields,
+    }),
   ];
 };

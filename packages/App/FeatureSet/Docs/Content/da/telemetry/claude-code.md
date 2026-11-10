@@ -64,7 +64,7 @@ Variablerne læses, når Claude Code starter. Metrikker sendes hvert 60. sekund 
 
 ### Tjek, at data ankommer
 
-Åbn **Målinger**, og søg efter `claude_code.token.usage`, åbn derefter **Produkter → AI / LLM**, og gå til **Forbrug**: dine omkostninger vises under din e-mail, markeret med **fra GenAI-metrikker**.
+Åbn **Målinger**, og søg efter `claude_code.token.usage`, åbn derefter **Produkter → AI / LLM**, og gå til **Forbrug**: dine omkostninger vises under din e-mail, markeret med **Fra forbrugsmetrikker**.
 :::
 
 For at sende metrikker og hændelser til forskellige steder sætter du i stedet `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` og `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` med den fulde sti (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 På **Produkter → AI / LLM → Forbrug** fodrer `claude_code.cost.usage` tabellerne **Medarbejder**, **Team** og **Model**, og `claude_code.token.usage` tokentotalerne. To regler afgør, hvad du ser:
 
-- **Metrikkerne udfylder hullerne i spans; de lægges aldrig oven i dem.** Hvis det samme projekt modtager GenAI-spans med omkostninger fra dine egne apps, vises Claude Codes forbrug ikke. Send Claude Code til et projekt for sig selv. Se [Spans kommer først, metrikker udfylder hullerne](/docs/telemetry/ai-llm-observability#spans-kommer-først-metrikker-udfylder-hullerne).
-- **En række fra metrikker bærer kun omkostninger.** Dens celler for kald og tokens viser `—`, og tabellerne **Udbyder** og **Applikation / Tjeneste** forbliver tomme: metrikkerne nævner ingen udbyder og tilhører ingen OneUptime-tjeneste.
+- **Claude Code tælles ved siden af dine apps.** Dets metrikker ankommer under dets egen tjeneste, så dets forbrug lægges til de AI-kald, dine apps sender til samme projekt. Hvis du slår dets traces (beta) til, så slå dem til for alle: derefter tælles Claude Code kun fra dets traces, én gang. Se [Hver tjeneste tælles ud fra det, den sender](/docs/telemetry/ai-llm-observability#hver-tjeneste-tælles-ud-fra-det-den-sender).
+- **En række fra metrikker nævner intet kald.** Den siger **Fra forbrugsmetrikker** under sit navn, dens celle for kald viser `—`, og tabellen **Udbyder** placerer den under **Ikke tildelt**: metrikkerne nævner ingen udbyder.
 
 Alt andet, som acceptrate, kodelinjer, commits og pull requests pr. udvikler eller forbrug pr. `query_source`, viser du i et [dashboard](/docs/dashboards/index) ud fra metrikkerne nedenfor og advarer på med en [metrik-monitor](/docs/monitor/metrics-monitor).
 
@@ -161,7 +161,7 @@ Hver metrik er en tæller og bærer standardattributterne ud over sine egne.
 
 Standardattributterne er `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` og `terminal.type` plus dine `OTEL_RESOURCE_ATTRIBUTES`. Nogle af dem kan slås fra: se [Hold metrikmængden nede](#hold-metrikmængden-nede).
 
-- Cachetokentyperne er i camelCase: `cacheRead` og `cacheCreation`. OneUptimes tokentotaler tæller kun `input` og `output`.
+- Cachetokentyperne er i camelCase: `cacheRead` og `cacheCreation`. Claude Codes `input` udelader dem, så OneUptime tæller dem også som inputtokens.
 - På omkostnings- og tokenmetrikkerne står navnene på dine egne agenter og MCP-servere, og på tredjeparts plugins og skills, som `custom` eller `third-party`, medmindre `OTEL_LOG_TOOL_DETAILS=1` er sat (Claude Code 2.1.273 eller nyere).
 
 ## Hændelser
@@ -220,7 +220,7 @@ Claude Code sender deltametrikker som standard: hvert datapunkt er stigningen si
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Lås kun `cumulative` fast, hvis hver eksportør i din organisation bruger det, og bland ikke de to i en flåde.
+Lås kun `cumulative` fast, hvis hver eksportør i din organisation bruger det, og bland ikke de to i en flåde. OneUptimes fane Forbrug og budgetter tæller begge: en delta ved at lægge dens punkter sammen, en kumulativ tæller efter, hvor meget den voksede i tidsrummet.
 
 ## Traces (beta)
 

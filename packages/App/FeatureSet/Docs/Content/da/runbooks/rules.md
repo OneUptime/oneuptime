@@ -77,7 +77,7 @@ Hver betingelse sammenligner én ting ved hændelsen, advarslen eller den planla
 | Kriterium | Hvad det kontrollerer |
 | --- | --- |
 | **Monitorer** | De monitorer, hændelsen eller den planlagte vedligeholdelsesbegivenhed berører, eller den monitor, der udløste advarslen. |
-| **Hændelse Alvorligheder** / **Advarsel Alvorligheder** | Hændelsens eller advarslens alvorlighed. Planlagte vedligeholdelsesbegivenheder har ingen alvorlighed, så deres regler tilbyder det ikke. |
+| **Alvorlighedsgrader for hændelser** / **Alvorlighedsgrader for advarsler** | Hændelsens eller advarslens alvorlighed. Planlagte vedligeholdelsesbegivenheder har ingen alvorlighed, så deres regler tilbyder det ikke. |
 | **Hændelsesetiketter** / **Advarselsmærkater** / **Begivenhedsetiketter** | Etiketterne på selve hændelsen, advarslen eller begivenheden, inklusive dem, etiketregler tilføjede ved oprettelsen. |
 | **Overvågningsetiketter** | Etiketterne på dens monitorer. Giv dine monitorer etiketten `production` eller `staging` for kun at køre et runbook i ét miljø. |
 | **Hændelsestitel** / **Advarselstitel** / **Begivenhedstitel** | Dens titel. |
@@ -98,7 +98,7 @@ Med to eller flere betingelser vælger du **Alle skal matche** (hver betingelse 
 - Monitorbetingelser kontrolleres én monitor ad gangen. Med **Alle skal matche** kræver "**Overvågningsnavn** indeholder `api`" og "**Overvågningsetiketter** har en af _Production_" én monitor, der opfylder begge, ikke én monitor for hver.
 - Runbook-regler kører efter etiketregler, så en etiket, som en etiketregel sætter på en ny hændelse, advarsel eller begivenhed, kan starte et runbook.
 - En hændelse eller advarsel, der oprettes allerede løst, starter intet runbook: den var forbi, før den blev registreret. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
-- En betingelse på et andet produkts alvorlighed — f.eks. **Advarsel Alvorligheder** i en hændelsesregel — kan aldrig blive sand, så API'et nægter at gemme den.
+- En betingelse på et andet produkts alvorlighed — f.eks. **Alvorlighedsgrader for advarsler** i en hændelsesregel — kan aldrig blive sand, så API'et nægter at gemme den.
 - Regler evalueres én gang, når begivenheden oprettes. At redigere en hændelses titel, alvorlighed eller etiketter senere udløser ikke reglerne igen.
 
 ## Eksempler
@@ -165,7 +165,7 @@ Regler ser begivenheden, som den blev oprettet, med de etiketter, etiketregler t
 :::
 
 :::details API'et afviser en regel med "can only be used by"
-Et alvorlighedskriterium hører til ét produkt. **Advarsel Alvorligheder** i en hændelsesregel, eller **Hændelse Alvorligheder** i en advarselsregel, kunne aldrig matche, så reglen afvises med en meddelelse som "Alert Severities can only be used by alert runbook rules." Fjern den betingelse. Dashboardet tilbyder kun hvert produkts egne kriterier.
+Et alvorlighedskriterium hører til ét produkt. **Alvorlighedsgrader for advarsler** i en hændelsesregel, eller **Alvorlighedsgrader for hændelser** i en advarselsregel, kunne aldrig matche, så reglen afvises med en meddelelse som "Alert Severities can only be used by alert runbook rules." Fjern den betingelse. Dashboardet tilbyder kun hvert produkts egne kriterier.
 :::
 
 ## Næste skridt

@@ -215,8 +215,8 @@ Der bereits angelegte Dienst wird nicht zu einer RUM-Anwendung. Löschen Sie ihn
 Client-Zeilen stammen nur aus `device.model.identifier`. Ein SDK, das nur `device.id` oder `device.manufacturer` setzt, ordnet die App als mobiles RUM ein, listet aber keine Clients: Setzen Sie zusätzlich `device.model.identifier`.
 :::
 
-:::details Der Status zeigt Getrennt, obwohl die App genutzt wird
-Der Status wechselt nach 15 Minuten ohne Telemetrie zu **Getrennt**. Wenn die App genutzt wird:
+:::details Der Status zeigt „Kein aktueller Datenverkehr“, obwohl die App genutzt wird
+Der Status wechselt nach 15 Minuten ohne Telemetrie zu **Kein aktueller Datenverkehr**. Wenn die App genutzt wird:
 
 - Ein Sampler verwirft möglicherweise alles: Suchen Sie nach einem Always-off-Sampler oder einer sehr niedrigen Rate.
 - Die App sendet Telemetrie vielleicht nur für Aktionen, die in dieser Zeit niemand ausgeführt hat.

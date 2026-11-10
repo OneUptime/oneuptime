@@ -25,6 +25,18 @@ import {
   LegacyDefaultAssigneeAction,
   MAX_SETTING_MINUTES,
   MINUTES_VALIDATION_MESSAGE,
+  COUNT_VALIDATION_MESSAGE,
+  DEFAULT_MINIMUM_COUNT,
+  MAX_MINIMUM_COUNT,
+  MIN_MINIMUM_COUNT,
+  MINIMUM_COUNT_FIELD_NAMES,
+  MinimumCountFieldNames,
+  getEffectiveMinimumCount,
+  getMinimumCountDisplay,
+  getMinimumCountFoldedValue,
+  getMinimumCountValidationError,
+  getMinimumCountValues,
+  parseMinimumCount,
   formatGroupingDuration,
   getDefaultTimeWindowMinutes,
   getEffectiveTimeWindowMinutes,
@@ -1278,6 +1290,8 @@ describe("getGroupingRuleSummarySelect", () => {
         "resolveDelayMinutes",
         "enableInactivityTimeout",
         "inactivityTimeoutMinutes",
+        MINIMUM_COUNT_FIELD_NAMES[kind].enabled,
+        MINIMUM_COUNT_FIELD_NAMES[kind].count,
       ]) {
         expect(select[column]).toBe(true);
       }
@@ -1524,6 +1538,14 @@ describe("getGroupingRuleUiStrings", () => {
         GROUPING_SUMMARY_COPY.perCombination,
         GROUPING_SUMMARY_COPY.resolvesWhenQuiet[GroupingRuleKind.Incident],
         MINUTES_VALIDATION_MESSAGE,
+        GROUPING_RULE_COPY.minimumCountTitle[GroupingRuleKind.Incident],
+        GROUPING_RULE_COPY.minimumCountTitle[GroupingRuleKind.Alert],
+        GROUPING_RULE_COPY.minimumCountDescription[GroupingRuleKind.Incident],
+        GROUPING_RULE_COPY.minimumCountSentence[GroupingRuleKind.Alert],
+        GROUPING_RULE_COPY.minimumCountLabel[GroupingRuleKind.Incident],
+        GROUPING_SUMMARY_COPY.opensOnceOngoing[GroupingRuleKind.Alert],
+        GROUPING_SUMMARY_COPY.minimumCount[GroupingRuleKind.Incident],
+        COUNT_VALIDATION_MESSAGE,
       ]),
     );
   });
@@ -1756,5 +1778,510 @@ describe("episode owners and the old default assignee", () => {
     ]) {
       expect(strings).toContain(text);
     }
+  });
+});
+
+/*
+ * WAIT FOR MORE INCIDENTS BEFORE OPENING AN EPISODE (issue #5374).
+ *
+ * A switch and a count, like the lifecycle switches and their minutes, read
+ * with the engines' own rule (Common/Utils/Episode/EpisodeOpeningThreshold):
+ * off on every rule until someone turns it on, a count of 2 to 100 while it
+ * is on, and what the form shows - the switch, the chip on the folded More
+ * fields header, the list's Grouping column - always what the engines do.
+ */
+describe("the minimum count columns each model has", () => {
+  test("are named after what the rule counts", () => {
+    expect(MINIMUM_COUNT_FIELD_NAMES[GroupingRuleKind.Incident]).toEqual({
+      enabled: "enableMinimumIncidentCount",
+      count: "minimumIncidentCount",
+    });
+    expect(MINIMUM_COUNT_FIELD_NAMES[GroupingRuleKind.Alert]).toEqual({
+      enabled: "enableMinimumAlertCount",
+      count: "minimumAlertCount",
+    });
+  });
+
+  test("start the box at 3, and take 2 to 100", () => {
+    expect(DEFAULT_MINIMUM_COUNT).toBe(3);
+    expect(MIN_MINIMUM_COUNT).toBe(2);
+    expect(MAX_MINIMUM_COUNT).toBe(100);
+  });
+});
+
+describe("parseMinimumCount", () => {
+  test.each([
+    [2, 2],
+    [3, 3],
+    [100, 100],
+    ["5", 5],
+    [" 12 ", 12],
+    ["100", 100],
+  ] as Array<[unknown, number]>)(
+    "reads %j as %d",
+    (value: unknown, count: number) => {
+      expect(parseMinimumCount(value)).toBe(count);
+    },
+  );
+
+  test.each([
+    ["1, which waits for nothing", 1],
+    ["0", 0],
+    ["101", 101],
+    ["a fraction", 2.5],
+    ["fraction text", "2.5"],
+    ["a negative number", -3],
+    ["empty text", ""],
+    ["words", "three"],
+    ["a sign", "+4"],
+    ["null", null],
+    ["undefined", undefined],
+    ["NaN", NaN],
+  ] as Array<[string, unknown]>)(
+    "refuses %s",
+    (_name: string, value: unknown) => {
+      expect(parseMinimumCount(value)).toBeNull();
+    },
+  );
+});
+
+describe("getMinimumCountValidationError", () => {
+  test("says nothing while the switch is off, whatever the box holds", () => {
+    for (const count of ["", "abc", 0, 1, 500, undefined]) {
+      expect(
+        getMinimumCountValidationError({
+          enabled: false,
+          count: count,
+          translate: english,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("on, takes any count the box takes", () => {
+    for (
+      let count: number = MIN_MINIMUM_COUNT;
+      count <= MAX_MINIMUM_COUNT;
+      count++
+    ) {
+      expect(
+        getMinimumCountValidationError({
+          enabled: true,
+          count: count,
+          translate: english,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("on, takes what the rule was saved with: the API only takes counts the engines act on", () => {
+    for (const count of [1, 3, 100, undefined, null]) {
+      expect(
+        getMinimumCountValidationError({
+          enabled: true,
+          count: count,
+          translate: english,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test.each(["", "1", "0", "101", "2.5", "x", "-2"])(
+    "on, refuses %j typed into the box, in the reader's language",
+    (typed: string) => {
+      expect(
+        getMinimumCountValidationError({
+          enabled: true,
+          count: typed,
+          translate: english,
+        }),
+      ).toBe("Enter a whole number between 2 and 100.");
+      expect(
+        getMinimumCountValidationError({
+          enabled: true,
+          count: typed,
+          translate: marked,
+        }),
+      ).toBe("«Enter a whole number between 2 and 100.»");
+    },
+  );
+});
+
+describe("getMinimumCountDisplay", () => {
+  test("off shows off", () => {
+    expect(getMinimumCountDisplay({ enabled: false, count: 5 })).toEqual({
+      enabled: false,
+      count: 5,
+    });
+    expect(getMinimumCountDisplay({ enabled: undefined, count: 3 })).toEqual({
+      enabled: false,
+      count: 3,
+    });
+  });
+
+  test("on with a count shows it", () => {
+    expect(getMinimumCountDisplay({ enabled: true, count: 4 })).toEqual({
+      enabled: true,
+      count: 4,
+    });
+  });
+
+  test("on with a count that waits for nothing shows off, as the engines read it", () => {
+    for (const count of [1, 0, undefined, null]) {
+      expect(getMinimumCountDisplay({ enabled: true, count: count })).toEqual({
+        enabled: false,
+        count: count,
+      });
+    }
+  });
+
+  test("on with more than the most shows the most the engines wait for", () => {
+    expect(getMinimumCountDisplay({ enabled: true, count: 250 })).toEqual({
+      enabled: true,
+      count: MAX_MINIMUM_COUNT,
+    });
+  });
+
+  test("shows text typed into the box as typed, so its check can say what is wrong", () => {
+    expect(getMinimumCountDisplay({ enabled: true, count: "1" })).toEqual({
+      enabled: true,
+      count: "1",
+    });
+    expect(getMinimumCountDisplay({ enabled: true, count: "" })).toEqual({
+      enabled: true,
+      count: "",
+    });
+  });
+});
+
+describe("getMinimumCountValues", () => {
+  test("turned on with nothing in the box starts at 3", () => {
+    expect(getMinimumCountValues({ enabled: true, count: undefined })).toEqual({
+      enabled: true,
+      count: DEFAULT_MINIMUM_COUNT,
+    });
+    // A stored 1 waits for nothing, so turning the switch on starts afresh.
+    expect(getMinimumCountValues({ enabled: true, count: 1 })).toEqual({
+      enabled: true,
+      count: DEFAULT_MINIMUM_COUNT,
+    });
+  });
+
+  test("keeps a count the box takes, on or off", () => {
+    expect(getMinimumCountValues({ enabled: true, count: 7 })).toEqual({
+      enabled: true,
+      count: 7,
+    });
+    expect(getMinimumCountValues({ enabled: false, count: "12" })).toEqual({
+      enabled: false,
+      count: 12,
+    });
+  });
+
+  test("keeps text the box does not take while on, and never saves it while off", () => {
+    expect(getMinimumCountValues({ enabled: true, count: "1" })).toEqual({
+      enabled: true,
+      count: "1",
+    });
+    expect(getMinimumCountValues({ enabled: false, count: "abc" })).toEqual({
+      enabled: false,
+      count: DEFAULT_MINIMUM_COUNT,
+    });
+    expect(getMinimumCountValues({ enabled: false, count: "" })).toEqual({
+      enabled: false,
+      count: DEFAULT_MINIMUM_COUNT,
+    });
+  });
+
+  test("saves only counts the API takes, or text the form refuses to save", () => {
+    const inputs: Array<unknown> = [
+      undefined,
+      null,
+      "",
+      "x",
+      "0",
+      "1",
+      "2",
+      "99",
+      "100",
+      "101",
+      0,
+      1,
+      2,
+      50,
+      100,
+      101,
+      2.5,
+    ];
+
+    for (const enabled of [true, false]) {
+      for (const count of inputs) {
+        const values: { enabled: boolean; count: number | string } =
+          getMinimumCountValues({ enabled: enabled, count: count });
+
+        expect(values.enabled).toBe(enabled);
+
+        if (typeof values.count === "number") {
+          expect(values.count).toBeGreaterThanOrEqual(MIN_MINIMUM_COUNT);
+          expect(values.count).toBeLessThanOrEqual(MAX_MINIMUM_COUNT);
+        } else {
+          // Text is only kept while on, where validation stops the save.
+          expect(enabled).toBe(true);
+          expect(
+            getMinimumCountValidationError({
+              enabled: true,
+              count: values.count,
+              translate: english,
+            }),
+          ).not.toBeNull();
+        }
+      }
+    }
+  });
+});
+
+describe("getMinimumCountFoldedValue", () => {
+  test.each(KINDS)(
+    "%s: says the count while on, in the reader's language",
+    (kind: GroupingRuleKind) => {
+      const noun: string =
+        kind === GroupingRuleKind.Incident ? "incidents" : "alerts";
+
+      expect(
+        getMinimumCountFoldedValue({
+          enabled: true,
+          count: 3,
+          kind,
+          translate: english,
+        }),
+      ).toBe(`3 ${noun}`);
+      expect(
+        getMinimumCountFoldedValue({
+          enabled: true,
+          count: 12,
+          kind,
+          translate: marked,
+        }),
+      ).toBe(`«12 ${noun}»`);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: says nothing while off, or while on with a count that waits for nothing",
+    (kind: GroupingRuleKind) => {
+      for (const setting of [
+        { enabled: false, count: 5 },
+        { enabled: undefined, count: 5 },
+        { enabled: true, count: 1 },
+        { enabled: true, count: undefined },
+      ]) {
+        expect(
+          getMinimumCountFoldedValue({ ...setting, kind, translate: english }),
+        ).toBeNull();
+      }
+    },
+  );
+
+  test("leaves the chip its name alone while the box holds text it does not take", () => {
+    expect(
+      getMinimumCountFoldedValue({
+        enabled: true,
+        count: "1",
+        kind: GroupingRuleKind.Incident,
+        translate: english,
+      }),
+    ).toBe("");
+    expect(
+      getMinimumCountFoldedValue({
+        enabled: true,
+        count: "8",
+        kind: GroupingRuleKind.Incident,
+        translate: english,
+      }),
+    ).toBe("8 incidents");
+  });
+
+  test("never disagrees with the switch the form draws", () => {
+    const counts: Array<unknown> = [
+      undefined,
+      null,
+      0,
+      1,
+      2,
+      3,
+      100,
+      101,
+      "",
+      "1",
+      "4",
+      "x",
+    ];
+
+    for (const kind of KINDS) {
+      for (const enabled of [true, false, undefined]) {
+        for (const count of counts) {
+          const folded: string | null = getMinimumCountFoldedValue({
+            enabled,
+            count,
+            kind,
+            translate: english,
+          });
+
+          expect(folded !== null).toBe(
+            getMinimumCountDisplay({ enabled, count }).enabled,
+          );
+        }
+      }
+    }
+  });
+});
+
+describe("getEffectiveMinimumCount", () => {
+  test.each(KINDS)(
+    "%s: reads the rule's own columns as the engines do",
+    (kind: GroupingRuleKind) => {
+      const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
+
+      expect(getEffectiveMinimumCount({}, kind)).toBe(1);
+      expect(
+        getEffectiveMinimumCount(
+          { [names.enabled]: false, [names.count]: 5 },
+          kind,
+        ),
+      ).toBe(1);
+      expect(
+        getEffectiveMinimumCount(
+          { [names.enabled]: true, [names.count]: 5 },
+          kind,
+        ),
+      ).toBe(5);
+      expect(
+        getEffectiveMinimumCount(
+          { [names.enabled]: true, [names.count]: 1 },
+          kind,
+        ),
+      ).toBe(1);
+      expect(
+        getEffectiveMinimumCount(
+          { [names.enabled]: true, [names.count]: 400 },
+          kind,
+        ),
+      ).toBe(100);
+    },
+  );
+
+  test("reads only its own kind's columns", () => {
+    expect(
+      getEffectiveMinimumCount(
+        { enableMinimumAlertCount: true, minimumAlertCount: 5 },
+        GroupingRuleKind.Incident,
+      ),
+    ).toBe(1);
+    expect(
+      getEffectiveMinimumCount(
+        { enableMinimumIncidentCount: true, minimumIncidentCount: 5 },
+        GroupingRuleKind.Alert,
+      ),
+    ).toBe(1);
+  });
+
+  test.each(KINDS)(
+    "%s: a new rule and every ready-made one wait for nothing",
+    (kind: GroupingRuleKind) => {
+      expect(
+        getEffectiveMinimumCount(
+          getNewGroupingRuleValues({ kind, translate: english }),
+          kind,
+        ),
+      ).toBe(1);
+
+      for (const template of GROUPING_RULE_TEMPLATES) {
+        expect(
+          getEffectiveMinimumCount(
+            getTemplateRuleValues({ template, kind, translate: english }),
+            kind,
+          ),
+        ).toBe(1);
+      }
+    },
+  );
+});
+
+describe("the Grouping column of a rule that waits", () => {
+  test.each(KINDS)(
+    "%s: says first how many must be ongoing",
+    (kind: GroupingRuleKind) => {
+      const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
+      const noun: string =
+        kind === GroupingRuleKind.Incident ? "incidents" : "alerts";
+      const rule: GroupingRuleValues = {
+        ...getGroupByValuesForMode(GroupingMode.Everything, kind),
+        enableTimeWindow: true,
+        timeWindowMinutes: 10,
+        enableReopenWindow: true,
+        reopenWindowMinutes: 30,
+        [names.enabled]: true,
+        [names.count]: 3,
+      };
+
+      const summary: GroupingRuleSummary = getGroupingRuleSummary({
+        rule,
+        kind,
+        translate: english,
+      });
+
+      expect(summary.grouping).toBe(
+        english(GROUPING_SUMMARY_COPY.everything[kind]),
+      );
+      expect(summary.details[0]).toBe(
+        `Opens an episode once 3 matching ${noun} are ongoing`,
+      );
+      expect(summary.details[1]).toBe(
+        "Reopens episodes resolved in the last 30 minutes",
+      );
+      expect(
+        getGroupingRuleSummaryText({ rule, kind, translate: english }),
+      ).toContain(
+        `New ${noun} join while they arrive within 10 minutes of the last one. Opens an episode once 3 matching ${noun} are ongoing.`,
+      );
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: says nothing of waiting for a rule that does not wait",
+    (kind: GroupingRuleKind) => {
+      const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
+
+      for (const setting of [
+        {},
+        { [names.enabled]: false, [names.count]: 5 },
+        { [names.enabled]: true, [names.count]: 1 },
+      ]) {
+        const summary: GroupingRuleSummary = getGroupingRuleSummary({
+          rule: {
+            ...getGroupByValuesForMode(GroupingMode.Monitor, kind),
+            ...setting,
+          },
+          kind,
+          translate: english,
+        });
+
+        for (const detail of summary.details) {
+          expect(detail).not.toMatch(/Opens an episode once/);
+        }
+      }
+    },
+  );
+
+  test("says it in the reader's language", () => {
+    const summary: GroupingRuleSummary = getGroupingRuleSummary({
+      rule: { enableMinimumIncidentCount: true, minimumIncidentCount: 4 },
+      kind: GroupingRuleKind.Incident,
+      translate: marked,
+    });
+
+    expect(summary.details).toContain(
+      "«Opens an episode once 4 matching incidents are ongoing»",
+    );
   });
 });

@@ -42,6 +42,7 @@ import {
   AIRunEventResultSummary,
 } from "../../../../Types/AI/AIChatTypes";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import { InvestigationEvidenceItem } from "../../../../Types/AI/InvestigationEvidence";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -1290,8 +1291,23 @@ describe("the evidence trail the builder reads is persisted by the agent loop", 
           return data.data;
         },
       );
-    // A lost Completed CAS ends the run right after the loop — nothing posts.
-    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(0);
+    /*
+     * A lost Completed CAS ends the run right after the loop — nothing
+     * posts. The heartbeat still finds the run Running at this attempt: one
+     * that moves nothing means the run moved on, and the attempt then
+     * writes no more steps (issue #6437).
+     */
+    jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockImplementation(async (data: unknown): Promise<number> => {
+        const set: Record<string, unknown> = (
+          data as { set: Record<string, unknown> }
+        ).set;
+
+        return set["status"] === AIRunStatus.Running && set["lastHeartbeatAt"]
+          ? 1
+          : 0;
+      });
 
     jest
       .spyOn(ObservabilityAssistant, "answerQuestion")

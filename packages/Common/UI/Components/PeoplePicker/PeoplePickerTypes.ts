@@ -1,5 +1,6 @@
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import { translationKey } from "../../../Types/Translator";
 import type { DropdownOption } from "../Dropdown/Dropdown";
 import type { DropdownChange } from "../Dropdown/DropdownChange";
 
@@ -142,6 +143,21 @@ export interface PeoplePickerNobodyPicked {
   // Drawn before the words. Default: none.
   icon?: IconProp | undefined;
 }
+
+/*
+ * Words the picker says, here rather than beside it so its place while its
+ * file loads (LazyPeoplePicker) says them too, without loading it.
+ */
+
+// The button that opens the search list, when the field names it nothing else.
+export const PEOPLE_PICKER_ADD_BUTTON_TEXT: string = translationKey("Add");
+
+// The button of a single-pick picker once something is picked.
+export const PEOPLE_PICKER_CHANGE_BUTTON_TEXT: string =
+  translationKey("Change");
+
+// A read-only picker with nothing picked (readOnly), as PeopleList says it.
+export const PEOPLE_PICKER_NONE_TEXT: string = translationKey("None");
 
 /*
  * What a picker field writes to one kind's form value: the kind's ids, or,

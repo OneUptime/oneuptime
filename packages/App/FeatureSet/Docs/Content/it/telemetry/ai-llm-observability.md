@@ -44,8 +44,23 @@ Tutte e tre sono in **Prodotti → IA / LLM → Collega**. Usane una, due o tutt
 | Via d'ingresso | Cosa ottieni | Come |
 | --- | --- | --- |
 | **Le tue app** | Ogni chiamata di IA mentre avviene: la conversazione, la persona, il prompt e la risposta, token, costo ed errori | OpenTelemetry dal tuo codice o da un gateway, in cinque passaggi |
-| **I tuoi account dei provider di IA** | Cosa ha consumato e quanto è costato ogni account OpenAI, Anthropic, Azure, Bedrock o Vertex AI, per giorno | Una credenziale di sola lettura e nessun codice: [Account dei provider di IA](/docs/telemetry/ai-provider-accounts) |
+| **I tuoi account dei provider di IA** | Cosa ha consumato e quanto è costato ogni account OpenAI, Anthropic, Azure, Bedrock, Vertex AI o Cursor, per giorno o per ora | Una credenziale di sola lettura e nessun codice: [Account dei provider di IA](/docs/telemetry/ai-provider-accounts) |
 | **Gli strumenti di IA della tua azienda** | Cosa chiedono le tue persone a Claude Enterprise o Microsoft 365 Copilot, per persona | Una credenziale di sola lettura e nessun codice: [Strumenti di IA aziendali](/docs/telemetry/ai-company-tools) |
+
+Gli account dei provider e gli assistenti di programmazione portano utilizzo e costo, mai una chiamata: riempiono **Utilizzo**, e **Conversazioni** e **Chiamate** restano vuote finché le tue app non inviano le loro chiamate di IA o non si collega uno strumento di IA dell'azienda. [Verifica cosa arriva](#verifica-cosa-arriva) mostra quale via porta cosa.
+
+## Verifica cosa arriva
+
+La **Verifica della configurazione** in cima a **Collega** dice cosa porta ogni via in questo momento, e **Verifica di nuovo** la rilegge. Un elenco vuoto di **Conversazioni** o **Chiamate** si apre con lo stesso risultato, e un pulsante per il passo successivo.
+
+| Cosa trova | Cosa fare |
+| --- | --- |
+| Nessuna app ha inviato una chiamata di IA | [Invia le chiamate di IA](#invia-le-chiamate-di-ia): gli account dei provider collegati portano utilizzo e costo giorno per giorno, mai una chiamata |
+| Un'app chiama l'API di un provider di IA e nessuna strumentazione GenAI la registra | Aggiungine una per il linguaggio dell'app: la verifica ha trovato gli span client HTTP dell'app verso `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` o l'API di un altro provider di IA |
+| Le chiamate arrivano senza prompt né risposte | [Registra cosa è stato detto](#registra-cosa-è-stato-detto), sugli span o come eventi di log |
+| Prompt e risposte arrivano come eventi di log | Niente: le conversazioni li leggono, e chi può leggere i log dell'app può leggerli anche nella pagina **Log** |
+| Le chiamate sono appena fuori dall'intervallo | L'elenco propone l'intervallo che contiene la più recente |
+| Un account del provider non legge alcun utilizzo | La sua riga indica l'ultimo giorno con utilizzo, o il primo giorno letto; una connessione Azure che non trova risorse ha bisogno di Monitoring Reader dove si trovano le risorse |
 
 ## Prima di iniziare
 
@@ -94,6 +109,25 @@ traceloop.initialize({
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
+@tab .NET
+```bash
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
+```
+
+```csharp
+// Before any OpenAI or Azure OpenAI client is created:
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("OpenAI.*").AddOtlpExporter())
+    .WithMetrics(metrics => metrics.AddMeter("OpenAI.*").AddOtlpExporter());
+```
+@tab Java
+```bash
+curl -L -O https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+java -javaagent:opentelemetry-javaagent.jar -jar my-ai-agent.jar
+```
 @tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -102,6 +136,8 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
 :::
+
+Ognuno traccia allo stesso modo le chiamate a OpenAI, Azure OpenAI e Microsoft Foundry. Su .NET e Java, imposta anche le variabili della scheda OpenTelemetry SDK: le librerie OpenAI e Azure.AI.OpenAI tracciano le loro chiamate una volta attivato il loro interruttore, e l'agente Java traccia l'SDK Java di OpenAI.
 
 Ospiti OneUptime in proprio? Usa `https://YOUR-ONEUPTIME-HOST/otlp` al posto di `https://oneuptime.com/otlp`. Chiama il tuo modello una volta, e la chiamata compare in **Chiamate**.
 
@@ -114,6 +150,8 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
 Le strumentazioni OpenTelemetry più recenti accettano `span_only`, `event_only` o `span_and_event` al posto di `true`. Senza contenuto registrato, una conversazione mostra comunque i suoi tempi, il suo costo e i suoi problemi. I prompt possono contenere dati sensibili: [Privacy e oscuramento](#privacy-e-oscuramento) mostra come mascherarli prima che vengano salvati.
+
+Le conversazioni leggono ciò che è registrato sullo span della chiamata, e gli eventi di log che l'app invia con gli id di traccia e di span della chiamata. La strumentazione OpenTelemetry per Python lo registra sullo span con `span_only`; le strumentazioni per JavaScript e Java, e quella per Python con `true` o `event_only`, lo inviano come eventi di log, che arrivano a OneUptime con i log dell'app. L'SDK AI Inference di Azure lo registra sullo span con `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI con `EnableSensitiveData`; la libreria OpenAI per .NET non registra nulla.
 
 ### Raggruppa le chiamate in conversazioni
 
@@ -203,33 +241,36 @@ Un avviso pronto genera un avviso che si risolve da solo, e mostra il monitor co
 
 La scheda **Utilizzo** mostra le chiamate, i token e il costo di un intervallo di tempo (gli ultimi 7 giorni, se non ne scegli un altro), e una tabella dei primi 25 secondo una di cinque suddivisioni: **Dipendente**, **Team**, **Modello**, **Provider** e **Applicazione / Servizio**. Le chiamate che non nominano nessuno vengono contate in **Non attribuito**, mai scartate.
 
-Queste sono **Le tue chiamate IA**. Scegli invece **Account provider** per vedere cosa è stato addebitato ai tuoi account OpenAI, Anthropic, Azure, Bedrock e Vertex AI collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#vedere-lutilizzo). Le due cose non vengono mai sommate.
+Queste sono **Le tue chiamate IA**. Scegli invece **Account provider** per vedere cosa è stato addebitato ai tuoi account OpenAI, Anthropic, Azure, Bedrock, Vertex AI e Cursor collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#vedere-lutilizzo). Le due cose non vengono mai sommate.
 
 Persone e team vengono dagli attributi di identità della chiamata: vedi [Attribuzione a dipendenti e team](/docs/telemetry/ai-coding-assistants#attribuzione-a-dipendenti-e-team).
 
-### Prima gli span, le metriche colmano i vuoti
+### Ogni servizio è conteggiato da ciò che invia
 
-Gli span GenAI portano il modello, i token e il costo di una chiamata, quindi dove esistono rispondono a tutto. Alcuni strumenti pubblicano metriche di token e di costo senza span GenAI, come la maggior parte degli assistenti di programmazione. OneUptime legge quelle metriche solo per un valore per cui gli span non hanno riportato nulla, e non somma mai le due cose: molte strumentazioni inviano entrambe per la stessa chiamata, e sommarle conterebbe ogni dollaro due volte.
+L'utilizzo dell'IA arriva in due forme. Gli span GenAI sono chiamate IA: uno per chiamata, con il suo modello, i suoi token e il suo costo. Le metriche GenAI sono metriche di utilizzo: contatori di token e di costo che la maggior parte degli assistenti di programmazione invia al posto degli span, e alcune strumentazioni accanto ai loro span, per le stesse chiamate. Sommarle conterebbe quelle chiamate due volte, quindi OneUptime conteggia ogni servizio da una sola delle due: i suoi token dalle sue chiamate IA quando riportano token, altrimenti dalle sue metriche di utilizzo, e il suo costo allo stesso modo, a parte. Un assistente di programmazione che invia solo metriche viene così conteggiato accanto alle app che inviano span, nello stesso progetto, e un'app che invia entrambi viene conteggiata una volta.
 
-```mermaid title="Da dove viene un valore della scheda Utilizzo"
+```mermaid title="Da dove vengono i token o il costo di un servizio"
 flowchart TB
-    spans{"Gli span GenAI<br/>lo riportano?"}
-    spans -->|"Sì"| fromSpans["Mostrato<br/>dagli span"]
-    spans -->|"No"| metrics{"Le metriche GenAI<br/>lo riportano?"}
-    metrics -->|"Sì"| fromMetrics["Mostrato dalle metriche,<br/>con la dicitura<br/>dalle metriche GenAI"]
-    metrics -->|"No"| nothing["Niente<br/>da mostrare"]
+    spans{"Le sue chiamate IA<br/>lo riportano?"}
+    spans -->|"Sì"| fromSpans["Conteggiato dalle<br/>chiamate IA"]
+    spans -->|"No"| metrics{"Le sue metriche<br/>di utilizzo<br/>lo riportano?"}
+    metrics -->|"Sì"| fromMetrics["Conteggiato dalle<br/>metriche di utilizzo"]
+    metrics -->|"No"| nothing["Niente<br/>da conteggiare"]
 ```
 
-| Dove | Cosa ripiega sulle metriche | Quando |
+| Dove | Dalle chiamate IA | Dalle metriche di utilizzo |
 | --- | --- | --- |
-| Token di input e di output | Entrambi i totali | I totali di token degli span sono entrambi 0 |
-| Costo (USD) | Il costo, con il costo in micro-USD di Codex convertito in USD | Il totale di costo degli span è 0 |
-| Chiamate LLM | Niente: solo span | — |
-| Tabelle **Dipendente**, **Team**, **Modello** | Solo il costo; le celle di chiamate e token mostrano `—` | Quella tabella non ha trovato righe di span |
-| Tabelle **Provider**, **Applicazione / Servizio** | Niente: solo span | — |
-| Conversazioni | Niente: le conversazioni sono costruite dagli span | — |
+| Token di input e di output | I token di ogni chiamata al modello, una volta | I token di un servizio, quando le sue chiamate IA non ne riportano |
+| Costo (USD) | Il costo di ogni chiamata al modello, una volta | Il costo di un servizio, quando le sue chiamate IA non ne riportano, con il costo in micro-USD di Codex convertito in USD |
+| Chiamate IA | Ogni chiamata IA, come le elenca **Chiamate** | Mai: una metrica non conta chiamate |
+| Tabelle **Dipendente**, **Team**, **Modello**, **Provider**, **Applicazione / Servizio** | Le chiamate, i token e il costo di ogni riga | I token e il costo dei servizi conteggiati dalle metriche, sotto la persona, il team, il modello o il provider che i loro punti nominano |
+| Conversazioni | Costruite dalle chiamate IA | Mai |
 
-Un valore preso dalle metriche porta la dicitura **dalle metriche GenAI**, perché non ha righe corrispondenti in **Chiamate**. Quindi, quando i tuoi span GenAI riportano un valore, la quota di uno strumento che invia solo metriche non compare. Per vedere da sola la spesa di uno strumento del genere, invialo a un progetto tutto suo, dove non arrivano span GenAI.
+Sotto ogni valore, la scheda Utilizzo dice da dove viene: **Dalle chiamate IA**, **Dalle metriche di utilizzo**, oppure **Dalle chiamate IA e dalle metriche di utilizzo** quando alcuni servizi hanno inviato chiamate e altri metriche. Una riga della tabella conteggiata dalle metriche di utilizzo lo dice sotto il suo nome, e la sua cella delle chiamate mostra `—` quando non ha alcuna chiamata IA, perché una metrica non ha dettagli per chiamata; l'intestazione della tabella nomina i servizi conteggiati dalle metriche di utilizzo, tranne in **Applicazione / Servizio**, le cui righe sono i servizi stessi. Una metrica di utilizzo che non nomina alcun servizio viene conteggiata in **Servizio sconosciuto**, un servizio come un altro. Se il tuo ruolo può leggere le tracce ma non le metriche, le metriche di utilizzo vengono escluse, e la tabella lo dice.
+
+Ogni chiamata al modello viene conteggiata una volta. Un'esecuzione di agente, o lo span di un framework attorno allo span dell'SDK, ripete spesso i token e il costo delle chiamate che contiene: i token di uno span, o il suo costo, restano fuori ovunque una chiamata al suo interno li riporti, e un'esecuzione di agente conserva i propri valori quando nessuna chiamata al suo interno li riporta. I budget e l'elenco **Conversazioni** contano allo stesso modo, mentre **Chiamate** elenca ogni span con i propri valori.
+
+Una metrica di token o di costo è un contatore. I punti di un contatore delta vengono sommati; un contatore cumulativo, il predefinito degli SDK OpenTelemetry, conta di quanto è cresciuto nell'intervallo, ogni serie a sé, così un totale progressivo esportato ogni minuto viene contato una volta, e un calo viene letto come una ripartenza da 0, come lo legge `increase()` di Prometheus. I budget contano le metriche GenAI allo stesso modo.
 
 ## Quanto costa una chiamata
 
@@ -243,7 +284,7 @@ Per dare tu un prezzo a un modello (una tariffa negoziata, un modello con fine-t
 
 ## Budget di costo giornalieri
 
-Un budget segue la spesa di un giorno, in USD, sul giorno UTC. Ogni 15 minuti OneUptime somma la spesa di IA della giornata (dagli span, o dalle metriche di costo GenAI quando nessuno span ne ha riportata), la mostra sul budget e pubblica due metriche. Un budget il cui **Conta la spesa da** è **Account provider** conta invece ciò che è stato addebitato ai tuoi account collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#budget-e-avvisi).
+Un budget segue la spesa di un giorno, in USD, sul giorno UTC. Ogni 15 minuti OneUptime somma la spesa di IA della giornata (ogni servizio dalle sue chiamate IA, o dalle sue metriche di costo quando le sue chiamate non riportano alcun costo), la mostra sul budget e pubblica due metriche. Un budget il cui **Conta la spesa da** è **Account provider** conta invece ciò che è stato addebitato ai tuoi account collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#budget-e-avvisi).
 
 | Metrica | Cos'è |
 | --- | --- |
@@ -276,6 +317,10 @@ Le metriche GenAI come `gen_ai.client.token.usage` e `gen_ai.client.operation.du
 
 Le chiamate di IA vengono salvate come span di traccia, quindi le **Regole di mascheramento** e i **Filtri di scarto** delle tracce si applicano anche a loro: maschera un attributo, o scarta uno span, prima che venga salvato. Li trovi entrambi in **Tracce → Impostazioni**. La colonna dell'email del dipendente viene mascherata insieme all'attributo da cui è stata letta, quindi una regola che maschera le email copre anche questa.
 
+Prompt e risposte inviati come eventi di log vengono salvati come log, quindi si applicano a loro le **Regole di mascheramento** e i **Filtri di scarto** dei log, in **Log → Impostazioni**: una regola che maschera le email nelle tracce non le maschera negli eventi di log. Una conversazione li mostra solo a chi può leggere anche i log di quell'app, e chi può leggerli li trova anche nella pagina **Log**.
+
+In entrambi i casi, una regola legge ogni testo dentro una lista o un valore strutturato, come i messaggi che una strumentazione invia come lista invece che come testo JSON, e mantiene la forma del valore: un indirizzo email in un prompt viene mascherato ovunque si trovi. Vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili).
+
 Le conversazioni si leggono con lo stesso permesso delle tracce: chi può leggere le tracce del progetto può leggerne le conversazioni, e nessun altro. Le conversazioni di uno strumento di IA aziendale sono l'eccezione: solo i proprietari e gli amministratori del progetto possono leggerle, a meno che la sua connessione non dica altrimenti ([Strumenti di IA aziendali](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributi che OneUptime legge
@@ -302,6 +347,8 @@ OneUptime legge le convenzioni GenAI di OpenTelemetry, e le varianti usate da Op
 
 Uno span conta come chiamata di IA quando porta uno di questi valori, o un attributo che inizia con `gen_ai.`, `llm.` o `traceloop.`. I token totali sono input più output quando non viene riportato un totale. Le chiavi `gen_ai.usage.total_tokens` e `gen_ai.usage.cost` non fanno parte delle convenzioni, che non definiscono né l'una né l'altra; OneUptime le legge perché le strumentazioni più comuni le inviano.
 
+Il provider viene salvato con il nome delle convenzioni, qualunque grafia arrivi: `az.ai.openai` e `azure_openai` come `azure.ai.openai`, `az.ai.inference` come `azure.ai.inference`, `OpenAI` come `openai`. Una chiamata che un SDK OpenAI chiama `openai` ma invia a un endpoint di Azure OpenAI o Microsoft Foundry, in base al suo `server.address` o al `gen_ai.openai.api_base` di OpenLLMetry, viene salvata come `azure.ai.openai`. **Chiamate** mostra il provider per nome, e la chiamata di un deployment Azure mostra il deployment richiesto con, sotto, il modello che l'ha servita e che ne fa il prezzo.
+
 I token di input contano anche quelli in cache, come li contano le convenzioni: quando i conteggi di cache di uno span superano il suo conteggio di input, questo li ha lasciati fuori, e OneUptime li aggiunge. La beta delle tracce di Claude Code non invia chiavi `gen_ai.usage.*`: su uno span che nomina il suo modello, OneUptime legge i suoi `input_tokens`, `output_tokens`, `cache_read_tokens` e `cache_creation_tokens`, e aggiunge i due conteggi di cache a `input_tokens`, che li lascia fuori.
 
 Le chiavi di identità (chi ha fatto la chiamata, e il suo team) sono elencate in [Attribuzione a dipendenti e team](/docs/telemetry/ai-coding-assistants#attribuzione-a-dipendenti-e-team).
@@ -312,14 +359,20 @@ La vista della conversazione legge i messaggi di una chiamata da, in quest'ordin
 
 - l'evento `gen_ai.client.inference.operation.details`;
 - gli attributi `gen_ai.input.messages`, `gen_ai.output.messages` e `gen_ai.system_instructions`;
-- i vecchi eventi per ruolo: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` e `gen_ai.choice`;
+- i vecchi eventi per ruolo: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` e `gen_ai.choice`, con il messaggio in `gen_ai.event.content` quando li ha inviati l'SDK AI Inference di Azure o Semantic Kernel;
 - gli attributi indicizzati: `gen_ai.prompt.N.content` e `gen_ai.completion.N.content` di OpenLLMetry, `llm.input_messages.N.message.content` e `llm.output_messages.N.message.content` di OpenInference;
 - gli array di messaggi in `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` e `output.value`.
 
+Quando lo span di una chiamata non contiene il prompt o la risposta, vengono letti dai record di log che portano gli id di traccia e di span della chiamata: gli stessi eventi, inviati sul segnale dei log, con il nome nell'attributo `event.name` del record o nel suo campo del nome dell'evento. Un record con l'id della traccia e senza id di span va all'unica chiamata al modello della traccia, o alla chiamata durante la quale è stato inviato, e resta fuori quando non è una sola chiamata. Ciò che registra lo span ha la precedenza, quindi una chiamata registrata in entrambi i modi mostra ogni messaggio una volta.
+
 ## Risoluzione dei problemi
 
+:::details Gli account dei provider sono collegati, ma Conversazioni e Chiamate sono vuote
+Un account del provider porta ciò che ha usato e costato, giorno per giorno, mai una chiamata o una conversazione: quelle arrivano dalle tue app. La **Verifica della configurazione** su **Collega** dice se qualche app invia chiamate di IA; inviale come mostra [Invia le chiamate di IA](#invia-le-chiamate-di-ia).
+:::
+
 :::details Le chiamate arrivano, ma nessuna conversazione mostra testo
-La tua strumentazione non registra il contenuto. Attivalo come mostra [Registra cosa è stato detto](#registra-cosa-è-stato-detto); le chiamate fatte prima restano senza testo.
+La tua strumentazione non registra il contenuto, oppure lo invia come eventi di log e i log dell'app non arrivano a OneUptime. Attivalo come mostra [Registra cosa è stato detto](#registra-cosa-è-stato-detto), e invia i log insieme alle tracce; le chiamate fatte prima restano senza testo.
 :::
 
 :::details Ogni chiamata di una chat compare come una conversazione a sé
@@ -327,11 +380,15 @@ Le chiamate non portano un id di conversazione. Imposta `gen_ai.conversation.id`
 :::
 
 :::details Le chiamate mostrano token ma costano 0 $
-Il modello non è nel listino integrato, oppure lo span non nomina nessun modello. Aggiungi i prezzi del modello nella scheda **Prezzi**; le chiamate che arrivano dopo hanno un prezzo.
+Il modello non è nel listino integrato, oppure lo span non nomina nessun modello. Aggiungi i prezzi del modello nella scheda **Prezzi**; le chiamate che arrivano dopo hanno un prezzo. Una chiamata ad Azure OpenAI ha il prezzo del modello che l'ha servita, `gen_ai.response.model`: se il suo span non ne nomina nessuno, dai un prezzo al nome del deployment.
 :::
 
-:::details La scheda Utilizzo dice dalle metriche GenAI e mostra `—` per chiamate e token
-I valori vengono da uno strumento che invia metriche e nessuno span GenAI, come un assistente di programmazione. Una metrica porta il costo ma nessun dettaglio per chiamata, quindi quelle celle restano vuote. Vedi [Prima gli span, le metriche colmano i vuoti](#prima-gli-span-le-metriche-colmano-i-vuoti).
+:::details La scheda Utilizzo dice Dalle metriche di utilizzo e mostra `—` per le chiamate
+I valori vengono da un servizio che invia metriche e nessuno span GenAI, come un assistente di programmazione. Una metrica porta costo e token ma nessun dettaglio per chiamata, quindi le celle delle chiamate restano vuote. Vedi [Ogni servizio è conteggiato da ciò che invia](#ogni-servizio-è-conteggiato-da-ciò-che-invia).
+:::
+
+:::details Il costo della scheda Utilizzo è inferiore alla somma dei costi in Chiamate
+Alcuni span ripetono i token e il costo delle chiamate che contengono, come un'esecuzione di agente o lo span di un framework attorno allo span dell'SDK. **Chiamate** elenca ogni span con i propri valori, mentre la scheda Utilizzo, i budget e l'elenco **Conversazioni** contano ogni chiamata al modello una volta.
 :::
 
 :::details Un monitor di budget oscilla tra due stati
@@ -341,7 +398,7 @@ La finestra mobile del monitor è più corta di 15 minuti, quindi a volte non tr
 ## Passaggi successivi
 
 :::cards
-- [Account dei provider di IA](/docs/telemetry/ai-provider-accounts): Utilizzo e costo dei tuoi account OpenAI, Anthropic, Azure, Bedrock e Vertex AI, senza codice.
+- [Account dei provider di IA](/docs/telemetry/ai-provider-accounts): Utilizzo e costo dei tuoi account OpenAI, Anthropic, Azure, Bedrock, Vertex AI e Cursor, senza codice.
 - [Strumenti di IA aziendali](/docs/telemetry/ai-company-tools): Cosa chiedono le tue persone a Claude Enterprise e Microsoft 365 Copilot.
 - [Assistenti di programmazione IA](/docs/telemetry/ai-coding-assistants): La spesa per ingegnere di Claude Code, Cursor, Codex, Gemini CLI e Copilot.
 - [Gateway IA](/docs/telemetry/ai-gateways): Traccia le chiamate ai modelli di ogni app da un unico gateway LiteLLM o Portkey.

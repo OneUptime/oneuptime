@@ -293,15 +293,24 @@ export default class AIAgentDataAPI {
      * Tier 0, Docs/Internal/Roadmap/CodeFixSandboxDesign.md). One call = one
      * completion of the worker's tool loop, executed through
      * AIService.executeWithLogging: metered, LlmLog-linked to the run,
-     * inside the G4 daily budget, and under per-run loop budgets (max
-     * completion calls / output tokens) enforced server-side. The worker
+     * inside the project's daily limits, and held server-side to the run's
+     * own limits - the project's model calls and tokens per run, when it set
+     * them, and the run's time limit (CodeFixAgentCompletion). The worker
      * never receives a provider secret on this path.
      *
      * Request:  { aiAgentId, aiAgentKey, taskId, messages, tools?, maxTokens? }
      * Response: { message: { role: "assistant", content, toolCalls },
      *             stopReason: "stop" | "tool_use",
+     *             limits: { maxModelCalls, maxToolCalls, maxTokens,
+     *                       timeLimitInMinutes, timeLimitSource, deadlineAt,
+     *                       modelCallsUsed, toolCallsUsed, tokensUsed },
      *             budget: { completionCallsUsed, maxCompletionCalls,
-     *                       outputTokensUsed, maxOutputTokens } }
+     *                       outputTokensUsed, maxOutputTokens,
+     *                       toolCallsUsed, maxToolCalls } }
+     *
+     * `budget` is what a Runner from before #6440 winds down on
+     * (CodeFixAgentCompletion.buildLegacyBudget); a current one reads
+     * `limits`.
      */
     this.router.post(
       "/ai-agent-data/llm-completion",
@@ -399,6 +408,7 @@ export default class AIAgentDataAPI {
               toolCalls: result.toolCalls,
             },
             stopReason: result.stopReason,
+            limits: result.limits,
             budget: result.budget,
           } as unknown as JSONObject);
         } catch (err) {

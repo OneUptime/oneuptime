@@ -42,10 +42,11 @@ An application's own side menu groups its pages like this; **Settings**, **Devel
 | --- | --- |
 | **Basic** | **Overview**, **Recommendations**, **Documentation** |
 | **Observability** | **Metrics**, **Logs**, **Traces**, **Clients** |
-| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Replay Access Log**, **Documentation** |
+| **Product Analytics** | **Users**, **Sessions** |
+| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Frustration Signals**, **Replay Access Log**, **Documentation** |
 | **Settings** | **Settings** |
 | **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** |
-| **Advanced** | **Delete Application** |
+| **Advanced** | **Audit Logs**, **Delete Application** |
 
 ## How OneUptime recognises RUM
 
@@ -81,12 +82,13 @@ OneUptime finds the application by `service.name`, ignoring case, and creates it
 | **Core Web Vitals** | A card on the overview with LCP, INP, CLS, FCP and TTFB, each rated against Google's limits, and INP for each route of a single-page app. See [Core Web Vitals](/docs/rum/web-vitals) and [Single-page apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrics**, **Logs**, **Traces** | The telemetry explorers, showing only this application. |
 | **Clients** | The browser platforms and device models the application has been used on: a short list by platform, never one row per user. |
+| **Product Analytics** | Active, new, returning and dormant users, and sessions by device, browser, country and page, counted from the recorded sessions: see [Product Analytics](/docs/rum/product-analytics). |
 | **Session Replay** | Recordings of real sessions, next to their errors, traces and logs: see [Session Replay](/docs/telemetry/session-replay). |
 | **Recommendations** | Ready-made monitors for the application: poor Core Web Vitals, failed requests, browser exceptions and, once it records, Session Replay budgets. |
 
 The counts come from the spans your instrumentation sends. **Page loads** counts the `documentLoad` span that the page-load instrumentation records for each full load, so a route change inside a single-page app is not a page load.
 
-An application shows **Connected** while telemetry arrives and **Disconnected** after 15 minutes without any. Time when OneUptime itself was down or catching up on its ingest queue does not count towards those 15 minutes.
+An application shows **Receiving data** while telemetry arrives and **No recent traffic** after 15 minutes without any, which is normal while nobody uses the app. One added by hand shows **Waiting for data** until its first data arrives. Time when OneUptime itself was down or catching up on its ingest queue does not count towards those 15 minutes.
 
 ## Get started
 

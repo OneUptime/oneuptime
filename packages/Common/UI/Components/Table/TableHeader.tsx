@@ -33,6 +33,7 @@ import {
   TABLE_HEADER_CELL_CLASS_NAME,
   TABLE_HEADER_CONTENT_CLASS_NAME,
   TABLE_HEADER_CONTENT_WRAP_CLASS_NAME,
+  TABLE_HEADER_LONG_WORDS,
   TABLE_HEADER_SELECT_CELL_CLASS_NAME,
   TABLE_SORT_ARROW_CLASS_NAME,
   TABLE_SORT_BUTTON_CLASS_NAME,
@@ -56,6 +57,9 @@ import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import InfoTooltip from "../Tooltip/InfoTooltip";
+import HyphenatedWords from "../HyphenatedWords/HyphenatedWords";
+import { getDrawnWords } from "../HyphenatedWords/LongWords";
+import { getDrawnLanguage } from "../SideMenu/SideMenuEntryState";
 import React, { ReactElement, useLayoutEffect, useRef } from "react";
 import useIsBelowWidth, {
   PHONE_BELOW_WIDTH_IN_PX,
@@ -133,7 +137,7 @@ type TableHeaderFunction = <T extends GenericObject>(
 const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   /*
    * A phone's window, read as the header is first drawn: a table's header
    * is drawn on no phone (its rows are cards there), so its hideOnMobile
@@ -361,12 +365,36 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
 
           /*
            * The Actions column's buttons say what they do: its name is for
-           * a screen reader, not a word over every row's View.
+           * a screen reader, not a word over every row's View. Any other
+           * name is drawn in the language it reads in, so that, once the
+           * header row wraps, its long words break where that language
+           * hyphenates them (TableLayout's TABLE_HEADER_LONG_WORDS).
            */
+          const titleLanguage: string | undefined = getDrawnLanguage({
+            english: column.title,
+            drawn: title,
+            language: language,
+          });
+
           const titleElement: ReactElement = isActions ? (
             <span className="sr-only">{title}</span>
           ) : (
-            <span>{title}</span>
+            <span
+              lang={titleLanguage}
+              className={
+                getDrawnWords({
+                  text: title,
+                  lang: titleLanguage,
+                  rule: TABLE_HEADER_LONG_WORDS,
+                }).className
+              }
+            >
+              <HyphenatedWords
+                text={title}
+                lang={titleLanguage}
+                rule={TABLE_HEADER_LONG_WORDS}
+              />
+            </span>
           );
 
           /*

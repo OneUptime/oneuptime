@@ -2139,6 +2139,60 @@ export default class Monitor extends BaseModel {
   })
   public disableActiveMonitoring?: boolean = undefined;
 
+  /*
+   * Whether the incidents and alerts this monitor opens keep the content of
+   * the check that opened them: the excerpt of the response around what a
+   * filter matched, the values a JavaScript expression read, and the
+   * response or request body in their monitor summary. Credentials and
+   * personal data are masked either way (MonitorEvidenceRedaction); this
+   * is for a monitor whose responses are sensitive in themselves. Website,
+   * API and Incoming Request monitors offer it (MonitorRecordEvidence).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Keep Response Content",
+    description:
+      "Keep the response part that matched, and the response body and headers, in this monitor's logs and on its incidents and alerts. Secrets are masked either way.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public keepResponseContent?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2468,17 +2522,57 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * The latest request as people read it: cut as the monitor's logs are,
+   * and without its headers and body when the monitor keeps no request
+   * content (LatestIncomingRequest). The request as it came is the column
+   * below, which only the server reads.
+   */
   @TableColumn({
     type: TableColumnType.JSON,
     required: false,
     title: "Incoming Monitor Request",
-    description: "Incoming Monitor Request for Incoming Request Monitor",
+    description:
+      "The latest request this monitor received, as its logs keep it: secrets masked, and no headers or body when it keeps no request content.",
   })
   @Column({
     type: ColumnType.JSON,
     nullable: true,
   })
   public incomingMonitorRequest?: IncomingMonitorRequest = undefined;
+
+  /*
+   * The latest request as it came - only the monitor's own key masked, at
+   * ingest - for the heartbeat job, which judges it again (CheckHeartbeat):
+   * a filter on its body or on a header needs what the sender sent. No role
+   * reads it, so the API, exports, MCP, Terraform and the audit log leave it
+   * out; people read the copy above (LatestIncomingRequest).
+   *
+   * Not marked computed: the column check skips a computed column on a
+   * create (ColumnPermission.checkDataColumnPermissions), which would let a
+   * member's create set the request the heartbeat judges. Unmarked, a
+   * create that carries it is refused, as an update is. Only the server's
+   * own hook-free writes set it (MonitorResource, LatestIncomingRequest).
+   * https://github.com/OneUptime/oneuptime/issues/6402
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    canReadOnRelationQuery: false,
+    title: "Incoming Monitor Request As Received",
+    description:
+      "The latest request as it came, for the heartbeat check to judge again. Only the server reads it.",
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public incomingMonitorRequestAsReceived?: IncomingMonitorRequest = undefined;
 
   // Incoming Email Monitor fields
 

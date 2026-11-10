@@ -64,7 +64,7 @@ De variabelen worden gelezen wanneer Claude Code start. Metrieken worden elke 60
 
 ### Controleer of de gegevens binnenkomen
 
-Open **Metrieken** en zoek naar `claude_code.token.usage`, open daarna **Producten → AI / LLM** en ga naar **Gebruik**: je kosten staan onder je e-mailadres, gemarkeerd met **uit GenAI-metrieken**.
+Open **Metrieken** en zoek naar `claude_code.token.usage`, open daarna **Producten → AI / LLM** en ga naar **Gebruik**: je kosten staan onder je e-mailadres, gemarkeerd met **Uit gebruiksmetrieken**.
 :::
 
 Om metrieken en events naar verschillende plekken te sturen, stel je in plaats daarvan `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` en `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` in, met het volledige pad (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 Op **Producten → AI / LLM → Gebruik** voedt `claude_code.cost.usage` de tabellen **Medewerker**, **Team** en **Model**, en `claude_code.token.usage` de tokentotalen. Twee regels bepalen wat je ziet:
 
-- **De metrieken vullen spans aan; ze worden er nooit bij opgeteld.** Als hetzelfde project GenAI-spans met kosten van je eigen apps ontvangt, verschijnen de uitgaven van Claude Code niet. Stuur Claude Code naar een eigen project. Zie [Spans eerst, metrieken vullen aan](/docs/telemetry/ai-llm-observability#spans-eerst-metrieken-vullen-aan).
-- **Een rij uit metrieken draagt alleen kosten.** De cellen voor aanroepen en tokens tonen `—`, en de tabellen **Provider** en **Applicatie / Service** blijven leeg: de metrieken noemen geen provider en horen bij geen enkele OneUptime-service.
+- **Claude Code wordt naast je apps geteld.** Zijn metrieken komen binnen onder zijn eigen service, dus worden zijn uitgaven opgeteld bij de AI-aanroepen die je apps naar hetzelfde project sturen. Zet je zijn traces (bèta) aan, zet ze dan voor iedereen aan: vanaf dan wordt Claude Code alleen uit zijn traces geteld, één keer. Zie [Elke service wordt geteld uit wat hij stuurt](/docs/telemetry/ai-llm-observability#elke-service-wordt-geteld-uit-wat-hij-stuurt).
+- **Een rij uit metrieken noemt geen aanroep.** Ze zegt **Uit gebruiksmetrieken** onder haar naam, haar cel voor aanroepen toont `—`, en de tabel **Provider** zet haar onder **Niet toegewezen**: de metrieken noemen geen provider.
 
 Al het andere, zoals acceptatiegraad, regels code, commits en pull requests per ontwikkelaar, of uitgaven per `query_source`, zet je in een [dashboard](/docs/dashboards/index) op basis van de metrieken hieronder, en daarop waarschuw je met een [metrics-monitor](/docs/monitor/metrics-monitor).
 
@@ -161,7 +161,7 @@ Elke metriek is een teller, en draagt de standaardattributen naast zijn eigen at
 
 De standaardattributen zijn `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` en `terminal.type`, plus je `OTEL_RESOURCE_ATTRIBUTES`. Sommige kun je uitzetten: zie [Houd het metriekvolume laag](#houd-het-metriekvolume-laag).
 
-- De cachetokentypes zijn in camelCase: `cacheRead` en `cacheCreation`. De tokentotalen van OneUptime tellen alleen `input` en `output`.
+- De cachetokentypes zijn in camelCase: `cacheRead` en `cacheCreation`. De `input` van Claude Code laat ze weg, dus OneUptime telt ze ook als invoertokens.
 - Op de kosten- en tokenmetrieken staan de namen van je eigen agents en MCP-servers, en van plugins en skills van derden, als `custom` of `third-party`, tenzij `OTEL_LOG_TOOL_DETAILS=1` is ingesteld (Claude Code 2.1.273 of later).
 
 ## Events
@@ -220,7 +220,7 @@ Claude Code stuurt standaard deltametrieken: elk datapunt is de toename sinds de
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Zet `cumulative` alleen vast als elke exporter in je organisatie het gebruikt, en meng de twee niet binnen een vloot.
+Zet `cumulative` alleen vast als elke exporter in je organisatie het gebruikt, en meng de twee niet binnen een vloot. Het tabblad Gebruik en de budgetten van OneUptime tellen beide: een delta door zijn punten op te tellen, een cumulatieve teller naar hoeveel hij in de periode groeide.
 
 ## Traces (bèta)
 

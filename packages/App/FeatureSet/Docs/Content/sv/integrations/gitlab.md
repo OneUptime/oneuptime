@@ -31,9 +31,9 @@ Arbetsflödet körs en gång för varje ny incident. Dess block **API Post (JSON
 ## Spara token
 
 :::steps
-1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**.
+1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Ge den namnet `GITLAB_TOKEN` och klicka på **Nästa**.
-3. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+3. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 :::
 
 En hemlig variabel ersätts med `[REDACTED]` i körningsloggar, så token syns aldrig i en körning.

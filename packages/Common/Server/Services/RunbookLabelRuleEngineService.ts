@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import Runbook from "../../Models/DatabaseModels/Runbook";
@@ -94,6 +96,7 @@ class RunbookLabelRuleEngineServiceClass
       return await this.applyRules({
         runbook: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running runbook label rules: ${error}`, {
@@ -109,6 +112,8 @@ class RunbookLabelRuleEngineServiceClass
   private async applyRules(data: {
     runbook: Runbook;
     rules: Array<RunbookLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { runbook, rules } = data;
 
@@ -190,11 +195,12 @@ class RunbookLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await RunbookService.getRepository()
-      .createQueryBuilder()
-      .relation(Runbook, "labels")
-      .of(runbook.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: RunbookService,
+      resourceId: runbook.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory runbook.labels so a downstream owner-rule engine in

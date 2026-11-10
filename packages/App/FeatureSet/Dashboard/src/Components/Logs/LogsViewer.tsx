@@ -2,6 +2,8 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import LogsViewer, {
   LogsSortField,
   LiveLogsOptions,
@@ -115,6 +117,7 @@ import PageMap from "../../Utils/PageMap";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import OpenStackLogRequestLink from "../OpenStack/OpenStackLogRequestLink";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { useReportTelemetryDataShown } from "../Telemetry/TelemetryFirstRunHost";
 import { TelemetryFirstStepsSignal } from "../Telemetry/TelemetryFirstSteps";
 import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
 import useResultTotal, {
@@ -665,6 +668,8 @@ async function postApi(
 const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // The pivot buttons' tooltips are written in the reader's language.
+  const translator: Translator = useTranslator();
   const effectiveDefaultPageSize: number = props.limit || DEFAULT_PAGE_SIZE;
 
   /*
@@ -717,6 +722,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   });
 
   const [logs, setLogs] = useState<Array<Log>>([]);
+  // Under the Logs page's explanation: data drawn means it gives way.
+  useReportTelemetryDataShown(logs.length > 0);
   const [error, setError] = useState<string>("");
   /*
    * Why the list did not load (issue #4707). Shown where the rows go, so the
@@ -2648,13 +2655,24 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     );
   }, [filterOptions, navigateToExplorer]);
 
+  /*
+   * Made again when the language changes, not when the translator does: a
+   * new translator is made on every render.
+   */
   const signalPivotActions: Array<LogsSignalPivotAction> = useMemo(() => {
+    /*
+     * What the button does and what it leaves out, each a sentence in the
+     * reader's language. With nothing left out the toolbar looks the action
+     * up itself.
+     */
     const buildTooltip: (baseText: string, dropped: Array<string>) => string = (
       baseText: string,
       dropped: Array<string>,
     ): string => {
-      const hint: string = formatDroppedScopeHint(dropped);
-      return hint ? `${baseText} — ${hint}` : baseText;
+      const hint: string = formatDroppedScopeHint(dropped, translator);
+      return hint
+        ? `${translator.translateText(baseText)} — ${hint}`
+        : baseText;
     };
 
     return [
@@ -2663,7 +2681,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         label: "Traces",
         icon: IconProp.Layers,
         tooltip: buildTooltip(
-          "Open the traces explorer with this scope",
+          translationKey("Open the traces explorer with this scope"),
           buildTracesPivot().dropped,
         ),
         onClick: () => {
@@ -2676,7 +2694,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         label: "Metrics",
         icon: IconProp.ChartBar,
         tooltip: buildTooltip(
-          "Open the metrics explorer with this time window",
+          translationKey("Open the metrics explorer with this time window"),
           buildMetricsPivot().dropped,
         ),
         onClick: () => {
@@ -2692,7 +2710,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         },
       },
     ];
-  }, [buildTracesPivot, buildMetricsPivot, navigateToExplorer]);
+  }, [
+    buildTracesPivot,
+    buildMetricsPivot,
+    navigateToExplorer,
+    translator.language,
+  ]);
 
   // Build value suggestions for the search bar autocomplete
   const valueSuggestions: Record<string, Array<string>> = useMemo(() => {

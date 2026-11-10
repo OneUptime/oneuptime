@@ -3,6 +3,7 @@ import MonitorStepHostMonitor, {
 } from "Common/Types/Monitor/MonitorStepHostMonitor";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import ObjectID from "Common/Types/ObjectID";
 import React, {
   FunctionComponent,
@@ -477,6 +478,15 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
               formulaConfigs:
                 monitorStepHostMonitor.metricViewConfig.formulaConfigs,
             }}
+            /*
+             * Charted as the monitor reads them: narrowed to the resource
+             * picked above and its filters, which the worker adds before
+             * each check and the step never saves (issue #6264).
+             */
+            chartQueryConfigs={MonitorStepMetricQueries.getReadQueryConfigs({
+              monitorType: MonitorType.Host,
+              settings: monitorStepHostMonitor,
+            })}
             hideCardInQueryElements={true}
             hideCardInCharts={true}
             chartCssClass="rounded-lg border border-gray-200 shadow-sm"

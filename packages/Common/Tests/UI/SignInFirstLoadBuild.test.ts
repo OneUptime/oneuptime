@@ -16,9 +16,10 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * step, the QR code library, a database model through the edition label, the
  * browser OpenTelemetry SDK with zone.js through the entry's Telemetry, and
  * through FormField the code editor with its syntax checks and grammars, the
- * Markdown editor with DOMPurify, and the file picker with react-dropzone.
- * Each is now loaded where it is used - posthog-js once analytics starts, the
- * SDK where browser telemetry is configured, the rest by the first list, form
+ * Markdown editor with DOMPurify, the file picker with react-dropzone, and the
+ * people picker with the kinds of record it searches and their models. Each
+ * is now loaded where it is used - posthog-js once analytics starts, the SDK
+ * where browser telemetry is configured, the rest by the first list, form
  * field, summary or code that needs it. zone.js is gone altogether
  * (BrowserTelemetrySdk.ts says why).
  *
@@ -142,6 +143,16 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "file-selector, which react-dropzone reads files with",
     path: "node_modules/file-selector/",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the people picker, for a form that picks people",
+    path: "UI/Components/PeoplePicker/PeoplePicker.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the kinds of record the people picker searches, with their models",
+    path: "UI/Components/PeoplePicker/PeoplePickerKinds.ts",
     isLoadedWhenNeeded: true,
   },
   {

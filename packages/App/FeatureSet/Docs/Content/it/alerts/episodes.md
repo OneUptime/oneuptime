@@ -20,12 +20,15 @@ flowchart TB
     open -->|Sì| join["Vi entra"]
     open -->|No| reopen(["Uno risolto entro la<br/>finestra di riapertura?"])
     reopen -->|Sì| reopened["Lo riapre"]
-    reopen -->|No| created["Apre un<br/>nuovo episodio"]
+    reopen -->|No| enough(["Abbastanza avvisi<br/>corrispondenti in corso?"])
+    enough -->|Sì| created["Apre un nuovo episodio<br/>con tutti gli avvisi"]
+    enough -->|Non ancora| waits["Attende da solo"]
 ```
 
 - **Le condizioni della regola** decidono a quali avvisi si applica. Una regola senza condizioni si applica a ogni nuovo avviso.
 - **La chiave di raggruppamento** decide quali avvisi condividono un episodio: quelli con lo stesso monitor, la stessa gravità, lo stesso titolo, o qualunque combinazione la regola usi per raggruppare. Una regola che non raggruppa per nulla mette in un solo episodio ogni avviso a cui corrisponde.
 - **La finestra temporale** decide per quanto tempo un episodio continua ad accettare avvisi. Se è attiva, un avviso entra solo se arriva entro la finestra dall'ultimo avviso dell'episodio. Se è disattivata, gli avvisi corrispondenti continuano a entrare finché l'episodio non è risolto.
+- **Attendi altri avvisi** decide quando si apre un nuovo episodio. Se è disattivato, come quando parte una nuova regola, il primo avviso corrispondente ne apre uno. Se è attivo, un avviso attende da solo finché non sono in corso tanti avvisi corrispondenti del suo gruppo quanti ne avete impostati, e poi si apre un solo episodio con tutti questi avvisi. Vedere [Aprire un episodio solo per più avvisi](#aprire-un-episodio-solo-per-più-avvisi).
 
 Il raggruppamento avviene quando un avviso viene creato. Una regola aggiunta oggi raggruppa gli avvisi creati dopo di essa; non raggruppa di nuovo quelli già presenti.
 
@@ -72,10 +75,21 @@ Tutto il resto che una regola può fare è compresso sotto **Altri campi**, alla
 | Gruppo                             | Impostazioni                                                                                               |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Reperibilità e proprietà**       | **Policy di reperibilità** da eseguire quando la regola apre un episodio, e **Proprietari dell'episodio**. |
-| **Ciclo di vita dell'episodio**    | **Riapri gli episodi risolti di recente**, **Attendi prima di risolvere un episodio** e **Risolvi gli episodi inattivi**, ciascuno un interruttore con i suoi minuti. |
+| **Ciclo di vita dell'episodio**    | **Attendi altri avvisi**, un interruttore con un numero, poi **Riapri gli episodi risolti di recente**, **Attendi prima di risolvere un episodio** e **Risolvi gli episodi inattivi**, ciascuno un interruttore con i suoi minuti. |
 | **Dettagli**                       | La **Descrizione** della regola, il **Template di titolo episodio**, il **Template di descrizione episodio** e le **Etichette episodio**. |
 
 Le regole vengono controllate dall'alto verso il basso dell'elenco, e vince la prima corrispondenza: trascinate una regola per cambiarne la posizione. Mettete le regole specifiche sopra quelle generiche. La colonna **Raggruppamento** dell'elenco dice in una frase che cosa fa ogni regola, ad esempio «Un episodio per monitor».
+
+### Aprire un episodio solo per più avvisi
+
+**Attendi altri avvisi**, sotto **Ciclo di vita dell'episodio**, tiene un avviso isolato fuori dagli episodi. Attivatelo e indicate quanti: **Apri un episodio quando 3 avvisi corrispondenti sono in corso**, da 2 a 100.
+
+- **Fino ad allora, ogni avviso attende da solo.** Un avviso che non trova un episodio aperto del suo gruppo in cui entrare, né uno risolto da riaprire, non apre nulla ed esegue solo le proprie policy di reperibilità, come un avviso a cui non corrisponde nessuna regola.
+- **Poi si apre un solo episodio con tutti questi avvisi.** L'avviso che raggiunge il numero apre l'episodio con ogni avviso che attendeva. L'episodio prende titolo, monitor e gravità dal primo di essi e sale al più grave, e gli avvisi successivi vi entrano come di consueto.
+- **Contano solo gli avvisi in corso.** Uno risolto nel frattempo è concluso, quindi un monitor che continua a guastarsi e a riprendersi non apre mai un episodio da solo. Mentre **Raggruppa solo gli avvisi che arrivano ravvicinati** è attivo, gli avvisi devono anche essere arrivati entro la sua finestra l'uno dall'altro.
+- **Il conteggio è per gruppo.** Con **Tutto insieme** contano tutti gli avvisi corrispondenti, quindi un episodio si apre solo per un guasto che fa scattare più monitor contemporaneamente. Con **Monitor**, l'episodio di un monitor si apre quando quel monitor ha più avvisi in corso.
+
+La colonna **Raggruppamento** dell'elenco dice «Apre un episodio quando 3 avvisi corrispondenti sono in corso». Tramite l'API e Terraform sono `enableMinimumAlertCount` e `minimumAlertCount`.
 
 ## Titoli degli episodi
 
@@ -115,8 +129,9 @@ flowchart TB
     grouped -->|"Entra in un episodio"| none["Non parte altro"]
 ```
 
-- **Un nuovo episodio** esegue le **Policy di reperibilità** della regola, più quelle di qualsiasi regola corrispondente nella scheda **Episode Rules** di **Avvisi → Regole → Regole di reperibilità**.
+- **Un nuovo episodio** esegue le **Policy di reperibilità** della regola, più quelle di qualsiasi regola corrispondente nella scheda **Regole degli episodi** di **Avvisi → Regole → Regole di reperibilità**.
 - **Un avviso che entra in un episodio aperto** esegue solo le proprie policy. Quelle dell'episodio non vengono eseguite di nuovo.
+- **Un avviso che attende altri avvisi** esegue anch'esso solo le proprie policy. Quando **Attendi altri avvisi** è attivo e le policy della regola sono le uniche che chiamano, un avviso isolato non chiama nessuno finché non ce ne sono abbastanza in corso.
 - **Rispondere alla chiamata di un episodio** riconosce l'episodio, e con esso ogni avviso al suo interno.
 
 > [!TIP]
@@ -160,7 +175,9 @@ Un episodio creato da voi non ha una regola di raggruppamento, quindi l'elenco m
 | **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA** |
 | **Avanzato** | **Registri di audit**, **Elimina episodio** |
 
-**Sviluppatori** e **Avanzato** partono compresse. Nella **Panoramica**, l'intestazione indica i **Proprietari** dell'episodio, prima i team, e il primo riquadro, **Creato**, dice quando è stato creato l'episodio — **Automaticamente**, quando l'ha aperto una regola di raggruppamento. La scheda **Cosa è successo** apre la pagina — la descrizione dell'episodio e la sua **Causa principale** — poi **Alerts in this episode** e il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Sposta l'episodio in** nel menu **⋯**.
+**Sviluppatori** e **Avanzato** partono compresse. Nella **Panoramica**, l'intestazione indica i **Proprietari** dell'episodio, prima i team, e il primo riquadro, **Creato**, dice quando è stato creato l'episodio — **Automaticamente**, quando l'ha aperto una regola di raggruppamento. La scheda **Cosa è successo** apre la pagina — la descrizione dell'episodio e la sua **Causa principale** — poi **Avvisi in questo episodio** e il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Sposta l'episodio in** nel menu **⋯**.
+
+La pagina **Causa principale** traccia le metriche dietro l'episodio accanto alla sua causa principale: quelle del suo primo avviso, il primo creato, come le traccia la scheda della telemetria della sua **Panoramica**, attorno all'inizio dell'episodio e con i suoi momenti segnati, così potete leggerle su qualsiasi intervallo attorno all'episodio mentre scrivete perché è successo. Quando quell'avviso non ha conservato un'istantanea di un controllo delle metriche (uno creato a mano su un monitor di metriche, per esempio), la pagina traccia le metriche di quel monitor come il monitor le legge ora, e lo dice.
 
 **Avvisi → Episodi attivi** elenca gli episodi non ancora risolti, e il badge accanto li conta.
 

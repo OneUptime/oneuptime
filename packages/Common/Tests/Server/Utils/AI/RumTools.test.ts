@@ -20,7 +20,10 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
-import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitationTargetType,
+  AIChatWidgetColumn,
+} from "../../../../Types/AI/AIChatTypes";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
@@ -204,8 +207,80 @@ describe("query_rum_applications", () => {
     });
     expect(widgetRows(result)[0]).toMatchObject({
       id: applicationId.toString(),
-      connectionStatus: "Connected",
+      status: "Receiving data",
     });
+  });
+
+  /*
+   * Issue #6191: the stored "disconnected" means nobody has used the app for
+   * fifteen minutes. Handed to the model raw, it told people their app had
+   * lost its connection; the model now reads the Dashboard's words, and the
+   * tool's description says what each one means.
+   */
+  test.each([
+    ["connected", end, "Receiving data"],
+    ["disconnected", end, "No recent traffic"],
+    [undefined, undefined, "Waiting for data"],
+    ["disconnected", undefined, "Waiting for data"],
+  ])(
+    "says a stored %p with last data %p as %p, never the stored value",
+    async (
+      otelCollectorStatus: string | undefined,
+      lastSeenAt: Date | undefined,
+      expected: string,
+    ) => {
+      const app: RumApplication = application();
+      // An undefined in the table is a field the application has not got.
+      delete app.otelCollectorStatus;
+      delete app.lastSeenAt;
+      if (otelCollectorStatus !== undefined) {
+        app.otelCollectorStatus = otelCollectorStatus;
+      }
+      if (lastSeenAt !== undefined) {
+        app.lastSeenAt = lastSeenAt;
+      }
+      jest.spyOn(RumApplicationService, "findBy").mockResolvedValue([app]);
+
+      const result: ToolExecutionResult =
+        await QueryRumApplicationsTool.execute({}, context());
+
+      expect(widgetRows(result)[0]!["status"]).toBe(expected);
+      expect(widgetRows(result)[0]).not.toHaveProperty("connectionStatus");
+      expect(result.dataForLlm).toContain(expected);
+      expect(result.dataForLlm).not.toMatch(/disconnected/i);
+    },
+  );
+
+  test("its table's column is Status, and the model is told what each status means", async () => {
+    jest
+      .spyOn(RumApplicationService, "findBy")
+      .mockResolvedValue([application()]);
+    const result: ToolExecutionResult = await QueryRumApplicationsTool.execute(
+      {},
+      context(),
+    );
+    const columns: Array<AIChatWidgetColumn> =
+      result.widget?.data.columns || [];
+
+    expect(
+      columns.map((column: AIChatWidgetColumn): unknown => {
+        return [column.key, column.title];
+      }),
+    ).toEqual([
+      ["name", "Application"],
+      ["clientType", "Client"],
+      ["status", "Status"],
+    ]);
+
+    const description: string = QueryRumApplicationsTool.description;
+    expect(description).toContain(
+      "Receiving data (data arrived in the last 15 minutes)",
+    );
+    expect(description).toContain("No recent traffic (nothing for 15 minutes");
+    expect(description).toContain("is not a fault or a broken connection");
+    expect(description).toContain(
+      "Waiting for data (nothing has ever arrived: not set up yet)",
+    );
   });
 
   test("detail queries pin both application and project and link to the selected app", async () => {

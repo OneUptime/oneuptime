@@ -24,6 +24,10 @@ import {
 } from "Common/Types/AutoRemediation/ExternalMcpToolCallPlan";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
+  getRiskierRemediationCommands,
+  isSameApprover,
+} from "Common/Types/AutoRemediation/RemediationApprovals";
+import {
   AI_RESOURCE_TYPE_INFO,
   isAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -34,7 +38,23 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { REMEDIATION_FIX_STEP_COPY } from "./RemediationStepCopy";
+import {
+  REMEDIATION_FIX_STEP_COPY,
+  REMEDIATION_ROUND_COPY,
+  REMEDIATION_TWO_APPROVALS_COPY,
+} from "./RemediationStepCopy";
+import {
+  getRemediationRoundRetryWait,
+  hasRemediationRoundDetails,
+  isRemediationRoundUnfinished,
+  RemediationRoundView,
+} from "./RemediationRoundView";
+import {
+  describeAiRunFailureCause,
+  describeAttemptEnd,
+  readAiRunFailure,
+} from "../AI/AiRunFailureWords";
+import { AIRunAttemptEnd } from "Common/Types/AI/AIRunAttempt";
 
 /*
  * A FIX ON THE AI CARD'S REMEDIATION STEP, STEP BY STEP (issue #5598).
@@ -59,7 +79,10 @@ import { REMEDIATION_FIX_STEP_COPY } from "./RemediationStepCopy";
  *              picked - or that it found none. Opens to its reasoning and
  *              what each command does and why.
  *   approval - it waits for the reader, a person approved or dismissed it,
- *              or it was allowed to run without asking.
+ *              or it was allowed to run without asking. A riskier fix two
+ *              people must approve (RemediationApprovals) reads its first
+ *              approval as a step of its own (firstApproval), before the
+ *              one that waits for, or gave, the second.
  *   run      - its commands ran, its changes were made, its runbook was
  *              started. Opens to each command as it ran: exit code, error,
  *              output.
@@ -77,6 +100,7 @@ import { REMEDIATION_FIX_STEP_COPY } from "./RemediationStepCopy";
 
 export type RemediationFixStepKind =
   | "plan"
+  | "firstApproval"
   | "approval"
   | "run"
   | "verify"
@@ -105,6 +129,12 @@ export interface RemediationFixStep {
    */
   summary: string | null;
   isSummaryWritten: boolean;
+  /*
+   * The summary is said again, whole, where the step opens - as a written
+   * summary always is - so the open step leaves it out: a round that
+   * stopped says why in its notice (issue #6436).
+   */
+  isSummaryInDetails?: boolean | undefined;
   // When it happened, when that is known.
   at: Date | null;
   // It opens to more: the reasoning, the commands, their output.
@@ -445,11 +475,153 @@ export type RemediationFixStepSuggestion = Pick<
   | "verificationCompletedAt"
   | "approvedAt"
   | "approvedByUser"
+  | "approvedByUserId"
   | "approvedFrom"
+  | "firstApprovedAt"
+  | "firstApprovedByUser"
+  | "firstApprovedByUserId"
+  | "firstApprovedFrom"
   | "dismissedAt"
   | "dismissedByUser"
   | "createdAt"
 >;
+
+/*
+ * Where a fix that waits for approval stands with the approvals it needs,
+ * for the reader (Common/Types/AutoRemediation/RemediationApprovals): a
+ * riskier fix in a project that asks two people to approve one waits, after
+ * its first approval, for a second from someone else.
+ */
+export interface RemediationFixApprovals {
+  // A first approval is in, and a second, from someone else, runs the fix.
+  isWaitingForSecondApproval: boolean;
+  /*
+   * Two people must approve it: a first approval is in, or the project
+   * asks for two (as the card read it) and it holds a riskier change.
+   */
+  needsTwoApprovals: boolean;
+  // The reader gave the first approval: their press would do nothing.
+  isFirstApprovedByReader: boolean;
+}
+
+const NO_SECOND_APPROVAL: RemediationFixApprovals = {
+  isWaitingForSecondApproval: false,
+  needsTwoApprovals: false,
+  isFirstApprovedByReader: false,
+};
+
+/*
+ * The approvals of a fix that waits, as the server will count them: once a
+ * first approval is recorded, the fix waits for a second - unless the card
+ * read the project's rule as off since, when one approval runs it. Before
+ * any, two are needed when the rule reads on and the fix is a command plan
+ * holding a riskier change. A rule not read (yet) says nothing of two
+ * before a first approval is in: the server decides, and says so.
+ */
+export function getRemediationFixApprovals(data: {
+  suggestion: Pick<
+    AutoRemediationSuggestion,
+    "status" | "suggestionType" | "commandPlan" | "firstApprovedByUserId"
+  >;
+  // Project.requireTwoApprovalsForRiskierFixes as read, or undefined.
+  isTwoApprovalsRuleOn?: boolean | undefined;
+  readerUserId?: string | undefined;
+}): RemediationFixApprovals {
+  const suggestion: Pick<
+    AutoRemediationSuggestion,
+    "status" | "suggestionType" | "commandPlan" | "firstApprovedByUserId"
+  > = data.suggestion;
+
+  if (
+    suggestion.status !== AutoRemediationSuggestionStatus.Suggested ||
+    suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
+  ) {
+    return NO_SECOND_APPROVAL;
+  }
+
+  const plan: AiRemediationCommandPlan | null =
+    AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null);
+
+  // A plan that can no longer be approved waits for nobody.
+  if (plan?.commands.some(isRemovedSshCommand)) {
+    return NO_SECOND_APPROVAL;
+  }
+
+  const isWaitingForSecondApproval: boolean =
+    Boolean(suggestion.firstApprovedByUserId) &&
+    data.isTwoApprovalsRuleOn !== false;
+
+  return {
+    isWaitingForSecondApproval,
+    needsTwoApprovals:
+      isWaitingForSecondApproval ||
+      (data.isTwoApprovalsRuleOn === true &&
+        getRiskierRemediationCommands(plan).length > 0),
+    isFirstApprovedByReader:
+      isWaitingForSecondApproval &&
+      isSameApprover(suggestion.firstApprovedByUserId, data.readerUserId),
+  };
+}
+
+/*
+ * The line under the approval step of a fix two people must approve: what
+ * the reader's own approval does - it is the first, it runs the fix, or it
+ * was given already - or, to a reader who may not approve, that two people
+ * must. Null when one approval runs the fix.
+ */
+function getTwoApprovalsSummary(data: {
+  approvals: RemediationFixApprovals;
+  mayApprove?: boolean | undefined;
+}): string | null {
+  const approvals: RemediationFixApprovals = data.approvals;
+
+  if (!approvals.needsTwoApprovals) {
+    return null;
+  }
+
+  if (approvals.isFirstApprovedByReader) {
+    return REMEDIATION_TWO_APPROVALS_COPY.youApprovedFirst;
+  }
+
+  if (data.mayApprove === false) {
+    return REMEDIATION_TWO_APPROVALS_COPY.twoPeopleMustApprove;
+  }
+
+  return approvals.isWaitingForSecondApproval
+    ? REMEDIATION_TWO_APPROVALS_COPY.yoursRunsIt
+    : REMEDIATION_TWO_APPROVALS_COPY.yoursIsTheFirst;
+}
+
+/*
+ * The first of two approvals, as a step of its own: who gave it, where,
+ * and when - "Approved by Maya Chen in Slack" - with the words a lone
+ * approval reads in.
+ */
+function getFirstApprovalStep(data: {
+  suggestion: RemediationFixStepSuggestion;
+  translator: Translator;
+}): RemediationFixStep {
+  const name: string = getPersonName(data.suggestion.firstApprovedByUser);
+  const words: ApprovalWords = getApprovalWords(
+    readRemediationApprovalSource(data.suggestion.firstApprovedFrom),
+  );
+
+  return {
+    kind: "firstApproval",
+    tone: "done",
+    title: name
+      ? data.translator.translateTemplate(
+          words.byName,
+          { name },
+          { setsValuesApart: true },
+        )
+      : data.translator.translateText(words.alone) || words.alone,
+    summary: null,
+    isSummaryWritten: false,
+    at: readRemediationMoment(data.suggestion.firstApprovedAt),
+    hasDetails: false,
+  };
+}
 
 /*
  * The steps one fix went through, in the order they happened, as the
@@ -458,6 +630,29 @@ export type RemediationFixStepSuggestion = Pick<
 export function getRemediationFixSteps(data: {
   suggestion: RemediationFixStepSuggestion;
   translator?: Translator | undefined;
+  /*
+   * Whether the reader may approve the fix (RemediationFixActGate): false
+   * when their permissions certainly do not let them, and a fix that
+   * waits then needs approval - not theirs. Left out, theirs.
+   */
+  mayApprove?: boolean | undefined;
+  /*
+   * Whether the project asks two people to approve a riskier fix
+   * (Project.requireTwoApprovalsForRiskierFixes), as the card read it, and
+   * who is reading: a fix that needs two says so, and says "you" to the
+   * one who approved it first. Left out, nothing is said of two before a
+   * first approval is in.
+   */
+  isTwoApprovalsRuleOn?: boolean | undefined;
+  readerUserId?: string | undefined;
+  /*
+   * How the fix's round went, as the step read it (RemediationRoundView,
+   * issue #6436): a round that stopped says so - not that it found no fix
+   * - and why; one that found none says why in the AI's words; one that
+   * waits to try again says when. Left out (not read yet, or not an AI
+   * round), the fix reads as its row says.
+   */
+  round?: RemediationRoundView | undefined;
 }): Array<RemediationFixStep> {
   const translator: Translator = data.translator || getGlobalTranslator();
   const suggestion: RemediationFixStepSuggestion = data.suggestion;
@@ -497,10 +692,55 @@ export function getRemediationFixSteps(data: {
   );
 
   const steps: Array<RemediationFixStep> = [];
+  const round: RemediationRoundView | undefined = data.round;
+  const hasRoundDetails: boolean = hasRemediationRoundDetails(round);
+  /*
+   * When its round started: its run's start, once the round is read. A
+   * round tried again (issue #6487) started well after its fix was first
+   * worked out, and "Working out a fix…" said the first time.
+   */
+  const roundStartedAt: Date | null =
+    readRemediationMoment(round?.run?.createdAt) || createdAt;
 
   // --- plan: what OneUptime AI worked out, or that it found nothing ---
 
+  /*
+   * Its round stopped without its answer - its run failed, stopped
+   * answering or expired in the queue - and changed nothing: that is what
+   * happened, never "Found no safe fix" (issue #6436). Why, in the
+   * reader's language, under it; what to do and Try again where it opens.
+   */
+  if (isRemediationRoundUnfinished({ status, round })) {
+    steps.push({
+      kind: "plan",
+      tone: "failed",
+      title: text(
+        isRunbook
+          ? REMEDIATION_ROUND_COPY.unfinishedRunbook
+          : REMEDIATION_ROUND_COPY.unfinishedFix,
+      ),
+      summary: describeAiRunFailureCause(
+        readAiRunFailure({
+          events: round!.events,
+          errorMessage: round!.run?.errorMessage || undefined,
+        }),
+        translator,
+      ),
+      isSummaryWritten: false,
+      // Its notice, where the step opens, starts with the same words.
+      isSummaryInDetails: true,
+      at: readRemediationMoment(round!.run?.completedAt) || createdAt,
+      hasDetails: true,
+    });
+
+    return steps;
+  }
+
   if (status === AutoRemediationSuggestionStatus.Planning) {
+    // Its last attempt did not finish, and it tries again on its own.
+    const retryWait: AIRunAttemptEnd | null =
+      getRemediationRoundRetryWait(round);
+
     steps.push({
       kind: "plan",
       tone: "live",
@@ -509,16 +749,24 @@ export function getRemediationFixSteps(data: {
           ? REMEDIATION_FIX_STEP_COPY.pickingRunbook
           : REMEDIATION_FIX_STEP_COPY.composing,
       ),
-      summary: null,
+      summary: retryWait ? describeAttemptEnd(retryWait, translator) : null,
       isSummaryWritten: false,
-      at: createdAt,
-      hasDetails: false,
+      at: roundStartedAt,
+      // The commands it has checked with so far.
+      hasDetails: hasRoundDetails,
     });
 
     return steps;
   }
 
   if (status === AutoRemediationSuggestionStatus.NoneApplicable) {
+    /*
+     * Why it found none, as the AI said it when it ended (explain_no_fix):
+     * one or two sentences. Older rounds, and an AI that did not say,
+     * read their reasoning as before.
+     */
+    const reason: string | null = round?.explanation?.reason || reasoning;
+
     steps.push({
       kind: "plan",
       tone: "idle",
@@ -527,10 +775,14 @@ export function getRemediationFixSteps(data: {
           ? REMEDIATION_FIX_STEP_COPY.noRunbook
           : REMEDIATION_FIX_STEP_COPY.noSafeFix,
       ),
-      summary: reasoning,
-      isSummaryWritten: Boolean(reasoning),
-      at: createdAt,
-      hasDetails: hasReasoning,
+      summary: reason,
+      isSummaryWritten: Boolean(reason),
+      at: roundStartedAt,
+      /*
+       * What it ruled out and what it checked, once its round is read -
+       * and always that no fix ran and nobody was asked to approve one.
+       */
+      hasDetails: true,
     });
 
     return steps;
@@ -559,9 +811,10 @@ export function getRemediationFixSteps(data: {
       ? text(isMcpFix ? CHANGES_NOT_SHOWN : COMMANDS_NOT_SHOWN)
       : reasoning,
     isSummaryWritten: !isUnreadable && Boolean(reasoning),
-    at: createdAt,
+    at: roundStartedAt,
     hasDetails:
       hasReasoning ||
+      hasRoundDetails ||
       commands.length > 0 ||
       // Changes not sent yet are read where they were planned.
       (calls.length > 0 && sentCalls.length === 0),
@@ -575,6 +828,20 @@ export function getRemediationFixSteps(data: {
         return isRemovedSshCommand(command);
       },
     );
+    const approvals: RemediationFixApprovals = getRemediationFixApprovals({
+      suggestion,
+      isTwoApprovalsRuleOn: data.isTwoApprovalsRuleOn,
+      readerUserId: data.readerUserId,
+    });
+    const twoApprovalsSummary: string | null = getTwoApprovalsSummary({
+      approvals,
+      mayApprove: data.mayApprove,
+    });
+
+    // Who approved it first, in the order it happened.
+    if (approvals.isWaitingForSecondApproval) {
+      steps.push(getFirstApprovalStep({ suggestion, translator }));
+    }
 
     steps.push({
       kind: "approval",
@@ -582,15 +849,36 @@ export function getRemediationFixSteps(data: {
       title: text(
         isUnapprovable
           ? REMEDIATION_FIX_STEP_COPY.cannotBeApproved
-          : REMEDIATION_FIX_STEP_COPY.waitingForApproval,
+          : approvals.isWaitingForSecondApproval
+            ? REMEDIATION_TWO_APPROVALS_COPY.needsSecondApproval
+            : data.mayApprove === false
+              ? REMEDIATION_FIX_STEP_COPY.waitingForSomeonesApproval
+              : REMEDIATION_FIX_STEP_COPY.waitingForApproval,
       ),
-      summary: null,
+      summary: twoApprovalsSummary ? text(twoApprovalsSummary) : null,
       isSummaryWritten: false,
       at: null,
       hasDetails: false,
     });
 
     return steps;
+  }
+
+  /*
+   * A first approval stays in a fix's story once it is decided: approved
+   * a second time by someone else, or dismissed. One approval by the same
+   * person (the project stopped asking for two meanwhile) is one step.
+   */
+  if (
+    suggestion.firstApprovedByUserId &&
+    (status === AutoRemediationSuggestionStatus.Dismissed ||
+      (status === AutoRemediationSuggestionStatus.Approved &&
+        !isSameApprover(
+          suggestion.firstApprovedByUserId,
+          suggestion.approvedByUserId || suggestion.approvedByUser?.id,
+        )))
+  ) {
+    steps.push(getFirstApprovalStep({ suggestion, translator }));
   }
 
   if (status === AutoRemediationSuggestionStatus.Dismissed) {

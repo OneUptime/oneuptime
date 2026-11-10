@@ -1,6 +1,6 @@
 # Solución de problemas de RUM
 
-Cuando una aplicación RUM falta, está vacía o muestra **Desconectado**, recorre esta página en orden. Cada comprobación descarta una parte del camino entre tu aplicación y OneUptime, en el orden en que suelen ocurrir estos problemas.
+Cuando una aplicación RUM falta o está vacía, o muestra **Sin tráfico reciente** mientras la gente la usa, recorre esta página en orden. Cada comprobación descarta una parte del camino entre tu aplicación y OneUptime, en el orden en que suelen ocurrir estos problemas.
 
 :::cards
 - [Comprobar la clave](#comprobar-la-clave): La comprobación más rápida, y todo lo que sigue depende de ella.
@@ -40,6 +40,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `401` con `"valid": false` | La clave falta, es desconocida, está revocada, desactivada o caducada, y el `message` dice cuál. Crea una clave activa en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. |
 
 Una aplicación web necesita una clave **Navegador**, y una aplicación móvil una clave **Servidor**: consulta [Configuración para navegadores](/docs/rum/browser-setup) y [Configuración para móviles](/docs/rum/mobile-setup). Los endpoints de exportación también rechazan una clave incorrecta con `401`, como pide la especificación OTLP, así que un SDK bien hecho registra el rechazo en lugar de reintentar. Esa línea pasa fácilmente desapercibida en la consola del navegador, y esta comprobación responde directamente.
+
+OneUptime también cuenta lo que rechaza de una clave que conoce. La página de la clave, en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**, muestra en **Telemetría rechazada** lo rechazado en los últimos 30 días, y la **Comprobación de la configuración** de la página **Documentación** de la aplicación dice qué tipo de telemetría se rechaza, por qué y cómo arreglarlo. Una clave que falta o es desconocida no señala ningún proyecto, así que nada la cuenta: esta comprobación y el `401` es todo lo que hay.
 
 ## Comprobar lo que sale del navegador
 
@@ -109,6 +111,34 @@ La aplicación existe, pero sus páginas no muestran nada.
 - **Espera unos minutos.** La ingesta pasa por una cola, y **Visto por última vez** se actualiza cada pocos minutos en lugar de con cada lote.
 - **Revisa el proyecto.** Una clave escribe en su propio proyecto, así que la telemetría enviada con la clave de otro proyecto está allí, no aquí.
 
+## Las excepciones o los registros están vacíos
+
+Las cargas de página y las solicitudes llegan, pero **Excepciones** o **Registros** siguen vacíos. El SDK de OpenTelemetry para navegador envía por sí solo trazas de las cargas de página y las solicitudes, pero ninguna excepción y ningún registro, así que una aplicación puede parecer conectada mientras estos dos siguen vacíos para siempre.
+
+El gráfico vacío de la **Vista general** de la aplicación dice qué caso es, y la **Comprobación de la configuración** de su página **Documentación** enumera cada tipo de telemetría con el momento en que llegó lo más reciente:
+
+| El gráfico dice | Qué significa |
+| --- | --- |
+| **Las excepciones no están configuradas** o **Los registros no están configurados** | Nunca ha llegado ninguno de esta aplicación. **Configurar las excepciones** o **Configurar los registros** muestra el código que los envía, con tu URL y tu clave ya puestas. |
+| **No hay excepciones en este intervalo de tiempo** o **No hay registros en este intervalo de tiempo** | Llegaron algunos antes, y el gráfico dice cuándo llegó el último. Elige el intervalo más largo que ofrece. |
+| **Aún no ha llegado nada de esta aplicación** | No llega telemetría de ningún tipo: empieza por [Comprobar la clave](#comprobar-la-clave). |
+| **El SDK de OpenTelemetry no está informando** | Solo la reproducción de sesiones informa desde esta aplicación: configura el SDK como en [Configuración para navegadores](/docs/rum/browser-setup). |
+| **Se están rechazando las excepciones** o **Se están rechazando los registros** | OneUptime los rechazó después de que llegara el último, y el gráfico dice por qué y cuándo: la clave está desactivada o caducada, no permite el origen de tu sitio, se agotó un límite o un presupuesto, o el proyecto no tiene método de pago. Su botón lo arregla: **Elegir otra clave**, **Abrir la clave**, **Ver presupuestos** o **Añadir un método de pago**. |
+
+Las excepciones necesitan un manejador de errores, porque el SDK no captura los errores no capturados: [Informar de errores no capturados](/docs/rum/browser-setup#informar-de-errores-no-capturados) tiene el código. Un error que maneja un error boundary o un `try`/`catch` nunca llega a la ventana, así que regístralo donde lo manejas, con `span.recordException`.
+
+Los registros necesitan un pipeline de registros y código que escriba entradas de registro, porque un `LoggerProvider` por sí solo no envía nada: [Añadir registros y métricas](/docs/rum/browser-setup#añadir-registros-y-métricas) tiene ambos. Construye el pipeline con el mismo `resource` que tus trazas, o los registros se archivan bajo un servicio backend.
+
+Cuando llegan las cargas de página, la clave, sus orígenes permitidos y tu Content Security Policy también dejan pasar las excepciones y los registros, siempre que el exportador de registros use la misma clave y el mismo host. Un manejador de errores que aún no ha capturado nada no envía nada, exactamente igual que uno que nunca se añadió, así que lanza un error de prueba desde la consola del navegador para distinguirlos:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+En menos de un minuto, aparece en la **Vista general** de la aplicación, en **Excepciones**.
+
 ## La página Clientes está vacía
 
 La página **Clientes** lista `browser.platform` en la web y `device.model.identifier` en móvil. Dos motivos por los que se queda vacía aunque todo lo demás funcione:
@@ -120,15 +150,15 @@ La página **Clientes** lista `browser.platform` en la web y `device.model.ident
 
 La tarjeta solo se llena con las métricas que envía tu aplicación, así que las trazas por sí solas nunca la llenan. Comprueba que exportas métricas, que sus nombres son de los que OneUptime lee y que aparecen en la página **Métricas** de la aplicación. [La tarjeta dice «No web vitals reported yet»](/docs/rum/web-vitals#solución-de-problemas) repasa cada comprobación, incluidos los valores que se pierden cuando un visitante cierra la pestaña antes de la siguiente exportación.
 
-## El estado dice Desconectado mientras la gente usa la aplicación
+## El estado dice Sin tráfico reciente mientras la gente usa la aplicación
 
-Una aplicación pasa a **Desconectado** tras 15 minutos sin telemetría. Si hay gente usando la aplicación:
+Una aplicación pasa a **Sin tráfico reciente** tras 15 minutos sin telemetría. Si hay gente usando la aplicación:
 
 - **Puede que un muestreador lo descarte todo.** Comprueba que no definiste un muestreador siempre apagado, ni una proporción muy baja.
 - **Puede que la aplicación solo envíe telemetría en algunas interacciones**, y nadie las usó en ese tiempo.
 - **Puede que la clave se revocara o desactivara** después del despliegue: vuelve a ejecutar la [comprobación de la clave](#comprobar-la-clave).
 
-Una aplicación interna o de poco tráfico sin visitantes por la noche está realmente desconectada. No es un fallo.
+Una aplicación interna o de poco tráfico sin visitantes por la noche también muestra **Sin tráfico reciente**. Es normal, no un fallo.
 
 ## Problemas de reproducción de sesiones
 

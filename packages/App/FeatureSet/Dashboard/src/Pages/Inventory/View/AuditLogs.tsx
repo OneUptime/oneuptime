@@ -18,8 +18,7 @@ const InventoryItemAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Item Audit Logs"
       description="Changes people have made to this item. Automatic updates from telemetry are not recorded."
-      resourceType="Inventory Item"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

@@ -10,7 +10,13 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import { boldLabels, detailsBlocks, tables } from "./DocsPageShape";
-import { AWS_LOG_GROUP_RULES } from "Common/Types/Cloud/CloudLogGroups";
+import {
+  AWS_LOG_GROUP_ENVIRONMENT_RULES,
+  AWS_LOG_GROUP_PLATFORMS,
+  AWS_LOG_GROUP_RULES,
+  CLOUD_PLATFORM_ATTRIBUTE,
+  ECS_TASK_FAMILY_ATTRIBUTE,
+} from "Common/Types/Cloud/CloudLogGroups";
 import {
   CLOUD_STREAM_ACTIVE_WINDOW_MS,
   CLOUD_STREAM_BUFFER_INTERVAL_SECONDS,
@@ -64,6 +70,9 @@ const SOURCES: Record<string, string> = {
   resourceMenu: `${DASHBOARD}/Pages/Cloud/View/SideMenu.tsx`,
   ingest:
     "packages/App/FeatureSet/Telemetry/Services/AwsFirehoseIngestService.ts",
+  ingestLogs:
+    "packages/App/FeatureSet/Telemetry/Utils/AwsFirehose/CloudWatchLogs.ts",
+  severity: "packages/Common/Types/Cloud/CloudWatchLogSeverity.ts",
   authentication:
     "packages/Common/Server/Utils/CloudConnection/CloudStreamAuthentication.ts",
   folded: "packages/Common/UI/Components/FoldedSection/FoldedSectionTitles.ts",
@@ -243,6 +252,91 @@ describe("Stream CloudWatch Metrics and Logs", () => {
     });
   });
 
+  it("says which logs reach an App Platforms environment, as the log group rules stamp its platform", () => {
+    const text: string = prose();
+    // Each platform a rule gives a stream's logs, as the page names its resource.
+    const resources: Record<string, string> = {
+      aws_app_runner: "An App Runner service's",
+      aws_elastic_beanstalk: "an Elastic Beanstalk environment's",
+      aws_ecs: "an ECS cluster's",
+    };
+
+    expect([...AWS_LOG_GROUP_PLATFORMS].sort()).toEqual(
+      Object.keys(resources).sort(),
+    );
+    for (const platform of AWS_LOG_GROUP_PLATFORMS) {
+      expect({ platform, named: text.includes(resources[platform]!) }).toEqual({
+        platform,
+        named: true,
+      });
+    }
+
+    // Each platform's resource rule is one of the table's, and stamps it.
+    for (const [type, platform] of [
+      ["AWS::AppRunner::Service", "aws_app_runner"],
+      ["AWS::ElasticBeanstalk::Environment", "aws_elastic_beanstalk"],
+      ["AWS::ECS::Cluster", "aws_ecs"],
+    ]) {
+      expect(
+        AWS_LOG_GROUP_RULES.find(
+          (rule: (typeof AWS_LOG_GROUP_RULES)[number]): boolean => {
+            return rule.type === type;
+          },
+        )?.platform,
+      ).toBe(platform);
+    }
+
+    // An ECS task's group, which no resource rule reads, and its attribute.
+    expect(
+      AWS_LOG_GROUP_ENVIRONMENT_RULES.map(
+        (rule: (typeof AWS_LOG_GROUP_ENVIRONMENT_RULES)[number]): string => {
+          return rule.prefix;
+        },
+      ),
+    ).toEqual(["/ecs/"]);
+    expect(text).toContain(
+      "from the log group the ECS console names `/ecs/<task-definition-family>`",
+    );
+    expect(text).toContain(`with \`${ECS_TASK_FAMILY_ATTRIBUTE}\``);
+    expect(text).toContain(`also carry \`${CLOUD_PLATFORM_ATTRIBUTE}\``);
+    expect(text).toContain(
+      "They make no app: an app is named by its own telemetry, as [Cloud Environments](/docs/telemetry/cloud-environments) says.",
+    );
+
+    const arrives: Array<Array<string>> = tableWithHeader("What").slice(1);
+    const row: Array<string> | undefined = arrives.find(
+      (cells: Array<string>): boolean => {
+        return (
+          cells[0] ===
+          "Logs of an App Runner service, an Elastic Beanstalk environment or an ECS task or cluster"
+        );
+      },
+    );
+
+    expect(row?.[1]).toBe(
+      "On its environment in App Platforms too: its **Logs** tab",
+    );
+    // After the row of the resource's own Logs tab, which these logs keep.
+    expect(arrives.indexOf(row!)).toBe(
+      arrives.findIndex((cells: Array<string>): boolean => {
+        return cells[0] === "Logs of a log group AWS names after a resource";
+      }) + 1,
+    );
+  });
+
+  it("says a log's severity is read the way Lambda, PostgreSQL and MySQL write it, as the rule reads it", () => {
+    expect(prose()).toContain(
+      "A log's severity is the one its message states, the way Lambda, PostgreSQL or MySQL writes it.",
+    );
+
+    // The rule the stream's ingest reads each line with.
+    expect(source("severity")).toContain("function readPostgresLevel(");
+    expect(source("severity")).toContain("function readMySqlLevel(");
+    expect(source("ingestLogs")).toContain(
+      'from "Common/Types/Cloud/CloudWatchLogSeverity"',
+    );
+  });
+
   it("names the answers the endpoint gives Firehose, and only those", () => {
     const answers: Array<string> = tableWithHeader("Answer")
       .slice(1)
@@ -292,6 +386,8 @@ describe("Stream CloudWatch Metrics and Logs", () => {
       "Set it up another way": "dialog",
       "Every metric, not only the key ones": "dialog",
       Regions: "dialog",
+      // A connection that reads an AWS Organization: every account of it.
+      "Every account of the organization": "dialog",
       "Log groups": "dialog",
       Region: "dialog",
       "Every log group of the account, new ones too": "dialog",

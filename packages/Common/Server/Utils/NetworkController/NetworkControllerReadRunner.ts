@@ -12,7 +12,10 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import NetworkControllerConnectionService from "../../Services/NetworkControllerConnectionService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
-import NetworkTrafficUsageAggregationService from "../../Services/NetworkTrafficUsageAggregationService";
+import NetworkTrafficUsageAggregationService, {
+  NetworkTrafficUsageRefile,
+} from "../../Services/NetworkTrafficUsageAggregationService";
+import { MAX_NETWORK_TRAFFIC_RANGE_DAYS } from "../../../Types/NetFlow/NetworkTraffic";
 import NetworkTrafficUsageService from "../../Services/NetworkTrafficUsageService";
 import DataSourceHttpFetch from "../DataSource/HttpFetch";
 import LlmConnectionPullRunner from "../LlmObservability/LlmConnectionPullRunner";
@@ -75,7 +78,12 @@ import { BACKFILL_MS } from "./Meraki/MerakiTrafficReader";
  *      (NetworkControllerDeviceMatcher);
  *   4. writes only the windows that are not stored yet - a window a read
  *      wrote before it failed to record its cursor is never written twice -
- *      in batches that never split a window;
+ *      in batches that never split a window; and files the traffic stored
+ *      before an appliance was a device under that device, once, when it
+ *      was matched since the last read (getPendingRefile, issue #5762) - so
+ *      a device linked, added or found by Inventory today shows the days
+ *      before too, as the network's page does. A failure there is logged
+ *      and tried again by the next read;
  *   5. records what the organization's device list says about the project's
  *      devices that are Meraki devices - their model, serial number,
  *      firmware and the rest - so Inventory fills in what they do not
@@ -211,8 +219,68 @@ export function reconcilePullState(
   return result;
 }
 
+// One day, for how far back stored traffic is filed.
+const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+export interface NetworkControllerPendingRefile {
+  appliances: Array<{ serial: string; deviceId: ObjectID }>;
+  networks: Array<{ controllerNetworkId: string; deviceId: ObjectID }>;
+  // What is filed once these are: this read's matches, by serial and network.
+  filedAppliances: Record<string, string>;
+  filedNetworks: Record<string, string>;
+}
+
+/*
+ * What a read files (issue #5762): each appliance, and each network's
+ * applications and clients, matched to a device now and not filed under
+ * that device by an earlier read - matched for the first time, or to
+ * another device than before. Once filed, the record is this read's
+ * matches: an appliance no longer matched is forgotten, and filed again if
+ * it ever is. Pure.
+ */
+export function getPendingRefile(data: {
+  matches: NetworkControllerDeviceMatches;
+  state: NetworkControllerPullState;
+}): NetworkControllerPendingRefile {
+  const filedAppliances: Record<string, string> = {};
+  const filedNetworks: Record<string, string> = {};
+  const appliances: Array<{ serial: string; deviceId: ObjectID }> = [];
+  const networks: Array<{ controllerNetworkId: string; deviceId: ObjectID }> =
+    [];
+
+  for (const [serial, deviceId] of data.matches.bySerial) {
+    const id: string = deviceId.toString();
+
+    filedAppliances[serial] = id;
+
+    if (data.state.filedAppliances?.[serial] !== id) {
+      appliances.push({ serial, deviceId });
+    }
+  }
+
+  for (const [controllerNetworkId, deviceId] of data.matches.byNetwork) {
+    const id: string = deviceId.toString();
+
+    filedNetworks[controllerNetworkId] = id;
+
+    if (data.state.filedNetworks?.[controllerNetworkId] !== id) {
+      networks.push({ controllerNetworkId, deviceId });
+    }
+  }
+
+  return { appliances, networks, filedAppliances, filedNetworks };
+}
+
 export interface NetworkControllerReadDependencies {
   insertRows?: NetworkTrafficUsageInserter | undefined;
+  /*
+   * Test seam for filing stored traffic under the device an appliance was
+   * matched to since the last read (NetworkTrafficUsageAggregationService
+   * .refile): answers whether a refile was queued.
+   */
+  refileRows?:
+    | ((refile: NetworkTrafficUsageRefile) => Promise<boolean>)
+    | undefined;
   findStoredWindows?: StoredWindowFinder | undefined;
   findStoredWindowEnds?: StoredWindowEndFinder | undefined;
   findDevices?: FindDevicesFunction | undefined;
@@ -429,6 +497,63 @@ export default class NetworkControllerReadRunner {
       }
 
       /*
+       * Traffic stored before an appliance was a device - before it was
+       * linked, added or found by Inventory - filed under that device, once.
+       * Never at the cost of the read: what cannot be filed now stays to be
+       * filed, and the next read tries again.
+       */
+      const state: NetworkControllerPullState = readPullState(
+        connection.pullState,
+      );
+      const pending: NetworkControllerPendingRefile = getPendingRefile({
+        matches,
+        state,
+      });
+      let filed: Pick<
+        NetworkControllerPullState,
+        "filedAppliances" | "filedNetworks"
+      > = {
+        ...(state.filedAppliances
+          ? { filedAppliances: state.filedAppliances }
+          : {}),
+        ...(state.filedNetworks ? { filedNetworks: state.filedNetworks } : {}),
+      };
+
+      try {
+        if (pending.appliances.length > 0 || pending.networks.length > 0) {
+          await (
+            dependencies.refileRows ||
+            ((refile: NetworkTrafficUsageRefile): Promise<boolean> => {
+              return NetworkTrafficUsageAggregationService.refile(
+                refile,
+                NetworkTrafficUsageAggregationService.getStorageTable(),
+              );
+            })
+          )({
+            projectId: connection.projectId,
+            connectionId: connection.id!,
+            fromDeviceId: connection.projectId,
+            appliances: pending.appliances,
+            networks: pending.networks,
+            since: new Date(
+              now.getTime() - (MAX_NETWORK_TRAFFIC_RANGE_DAYS + 1) * DAY_MS,
+            ),
+          });
+        }
+
+        filed = {
+          filedAppliances: pending.filedAppliances,
+          filedNetworks: pending.filedNetworks,
+        };
+      } catch (error) {
+        logger.error(
+          `Network controller connection ${connection.id!.toString()}: the traffic stored before its appliances were devices could not be filed under them; the next read tries again: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+
+      /*
        * The device list fills in the details of the project's devices that
        * are Meraki devices (NetworkControllerInventory). Never at the cost of
        * the traffic: a failure here is a warning, tried again next read.
@@ -631,7 +756,7 @@ export default class NetworkControllerReadRunner {
         lastSuccessfulPullAt: now,
         lastError: null,
         lastPullResult: summary as unknown as JSONObject,
-        pullState: read.nextState as unknown as JSONObject,
+        pullState: { ...read.nextState, ...filed } as unknown as JSONObject,
         config,
         nextPullAt: NetworkControllerReadRunner.nextPullAt({
           now,

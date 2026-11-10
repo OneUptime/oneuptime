@@ -1,3 +1,4 @@
+import { holdBackBase64Data } from "../../../Utils/Markdown/Base64Data";
 import {
   OVER_LONG_LINE_LENGTH,
   holdBackOverLongText,
@@ -23,10 +24,26 @@ import {
  * every parser - the middle of an over-long line, the plain lines of an
  * over-long run of lines - before react-markdown reads the text, puts a
  * short token in its place, and rehypePutBackHeldText writes it back into
- * the rendered tree as text: React escapes it, and an address it is part of
- * is put back together before the viewer's urlTransform judges it. A text
- * of at most 64 KB holds back nothing, and renders exactly as it always
- * has.
+ * the rendered tree as text: React escapes it. A text of at most 64 KB with
+ * no screenshot holds back nothing, and renders exactly as it always has.
+ *
+ * A synthetic monitor's screenshot is an image whose address carries the
+ * image itself, tens of thousands to millions of characters of base64 (see
+ * Utils/Markdown/InlineImageDataUri). Its data is held back first, as the
+ * emails hold it back (Utils/Markdown/Base64Data): remark has no use for
+ * it, and read as Markdown it is one long word of punctuation, which
+ * SlowMarkdown below would hold back - the screenshot's paragraph, its
+ * other Markdown with it, was shown as text (issue #6010).
+ *
+ * An address - an image's, a link's, a link reference definition's - is
+ * put back together in Markdown's own tree (remarkPutBackHeldUrls), before
+ * remark-rehype reads it: remark-rehype writes an address out with every
+ * character an address may not hold percent-encoded, a token's among them,
+ * and a token left in one was never found again - a screenshot whose line
+ * was over-long showed as an empty image. So the viewer's urlTransform
+ * judges the address as it was written. remark-rehype copies a link
+ * reference definition's address and title into every reference to it, so
+ * what definitions carry that way is limited (MAX_HELD_TEXT_IN_REFERENCES).
  *
  * Text of some shapes takes remark long before it is that long: its time
  * grows with the square of a run of emphasis or brackets it cannot close
@@ -188,7 +205,7 @@ export const holdBackForViewer: (text: string) => HeldBackViewerText = (
 
   const heldTokenCharacters: number = held.length;
   const markdown: string = holdBackSlowMarkdown(
-    holdBackOverLongText(withoutTokens, hold),
+    holdBackOverLongText(holdBackBase64Data(withoutTokens, hold), hold),
     { holdLines: holdLines, holdCode: hold },
     VIEWER_SLOW_MARKDOWN_LIMITS,
   );
@@ -207,6 +224,146 @@ export const holdBackForViewer: (text: string) => HeldBackViewerText = (
     held: held,
     heldLines: heldLines,
     showAsText: markdown.length > MAX_PARSED_MARKDOWN_LENGTH,
+  };
+};
+
+/*
+ * A node of the Markdown tree remark builds (mdast): what
+ * remarkPutBackHeldUrls reads of one.
+ */
+export interface HeldUrlTreeNode {
+  type: string;
+  url?: unknown;
+  title?: unknown;
+  identifier?: unknown;
+  children?: Array<HeldUrlTreeNode> | undefined;
+}
+
+/*
+ * The most held-back text link reference definitions carry to their
+ * references, in all. remark-rehype writes a definition's address and title
+ * into every reference to it, so what a definition holds counts once for
+ * each reference. A screenshot of 3 MB defined once and referenced 200
+ * times was 600 MB of addresses, and rendering it failed ("Invalid string
+ * length"); a long title copied that way did the same. Within this, a
+ * screenshot defined once can be shown a few times. A definition past it
+ * carries neither its address nor its title, where they hold held-back
+ * text: its references show an image or a link without them, as a blocked
+ * address does.
+ */
+export const MAX_HELD_TEXT_IN_REFERENCES: number = 16 * 1024 * 1024;
+
+// A definition's or reference's identifier, as remark-rehype matches them.
+const identifierOf: (node: HeldUrlTreeNode) => string = (
+  node: HeldUrlTreeNode,
+): string => {
+  return String(node.identifier).toUpperCase();
+};
+
+/*
+ * A remark plugin: the address of every image, link and link reference
+ * definition in the tree with what was held back put back, before
+ * remark-rehype reads the tree (see the top of this file) - and a
+ * definition's title with it, within MAX_HELD_TEXT_IN_REFERENCES. Everything
+ * else - text, alt text, an image's or link's own title - is put back by
+ * rehypePutBackHeldText. Walked with a stack, not recursion: the tree of a
+ * long text is deep and wide.
+ */
+export const remarkPutBackHeldUrls: (options: {
+  held: ReadonlyArray<string>;
+}) => (tree: HeldUrlTreeNode) => void = (options: {
+  held: ReadonlyArray<string>;
+}): ((tree: HeldUrlTreeNode) => void) => {
+  const held: ReadonlyArray<string> = options.held;
+
+  return (tree: HeldUrlTreeNode): void => {
+    if (held.length === 0) {
+      return;
+    }
+
+    // In the order of the text: the first definitions are given first.
+    const definitions: Array<HeldUrlTreeNode> = [];
+    const referenceCounts: Map<string, number> = new Map();
+    const stack: Array<HeldUrlTreeNode> = [tree];
+
+    while (stack.length > 0) {
+      const node: HeldUrlTreeNode = stack.pop()!;
+
+      if (node.type === "definition") {
+        definitions.push(node);
+      } else {
+        if (node.type === "imageReference" || node.type === "linkReference") {
+          const identifier: string = identifierOf(node);
+
+          referenceCounts.set(
+            identifier,
+            (referenceCounts.get(identifier) ?? 0) + 1,
+          );
+        }
+
+        // An image's or a link's own: its text holds it once.
+        if (typeof node.url === "string") {
+          node.url = putBackHeldText(node.url, held);
+        }
+      }
+
+      if (node.children) {
+        for (
+          let index: number = node.children.length - 1;
+          index >= 0;
+          index--
+        ) {
+          stack.push(node.children[index]!);
+        }
+      }
+    }
+
+    // remark-rehype reads the first definition of an identifier only.
+    const used: Set<string> = new Set();
+    let carried: number = 0;
+
+    for (const definition of definitions) {
+      const identifier: string = identifierOf(definition);
+      const references: number = used.has(identifier)
+        ? 0
+        : referenceCounts.get(identifier) ?? 0;
+
+      used.add(identifier);
+
+      const url: unknown =
+        typeof definition.url === "string"
+          ? putBackHeldText(definition.url, held)
+          : definition.url;
+      const title: unknown =
+        typeof definition.title === "string"
+          ? putBackHeldText(definition.title, held)
+          : definition.title;
+      const urlHeld: boolean = url !== definition.url;
+      const titleHeld: boolean = title !== definition.title;
+
+      if (!urlHeld && !titleHeld) {
+        continue;
+      }
+
+      const length: number =
+        (urlHeld ? (url as string).length : 0) +
+        (titleHeld ? (title as string).length : 0);
+
+      if (carried + references * length <= MAX_HELD_TEXT_IN_REFERENCES) {
+        carried += references * length;
+        definition.url = url;
+        definition.title = title;
+        continue;
+      }
+
+      if (urlHeld) {
+        definition.url = "";
+      }
+
+      if (titleHeld) {
+        definition.title = null;
+      }
+    }
   };
 };
 

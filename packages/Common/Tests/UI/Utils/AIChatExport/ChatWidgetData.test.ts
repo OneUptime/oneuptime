@@ -113,6 +113,18 @@ describe("ChatWidgetData", () => {
       expect(formatToolArguments({ tags: ["a", "b"] })).toBe('tags: ["a","b"]');
     });
 
+    test("leaves out what OneUptime keeps in an action for itself (issue #6274)", () => {
+      expect(
+        formatToolArguments({
+          name: "Tickets",
+          proposedOn: {
+            graphRevision: 7,
+            steps: [{ id: "log-1", fingerprint: "0123456789abcdef" }],
+          },
+        }),
+      ).toBe("name: Tickets");
+    });
+
     test("truncates a long value with an ellipsis, never the key", () => {
       const long: string = "x".repeat(200);
       const result: string = formatToolArguments({ key: long });

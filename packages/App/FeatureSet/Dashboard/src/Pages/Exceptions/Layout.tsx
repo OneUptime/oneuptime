@@ -8,6 +8,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const ExceptionsLayout: FunctionComponent<
   PageComponentProps
@@ -25,6 +27,7 @@ const ExceptionsLayout: FunctionComponent<
   return (
     <Page
       title="Exceptions"
+      titleRight={<ProductAboutButton product={ProductKey.Exceptions} />}
       breadcrumbLinks={getExceptionsBreadcrumbs(path)}
       headerRight={<ExceptionsNavTabs active={getActiveExceptionsTab(path)} />}
     >

@@ -117,6 +117,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import { createConnectionsFixture } from "../../SecurityOperations/Fixture/ConnectionsFixture.js";
 import { createTelemetryMentionsFixture } from "../../SecurityOperations/Fixture/TelemetryMentionsFixture.js";
+import {
+  ingestionBudgetStatus,
+  isIngestionBudgetRead,
+} from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -822,6 +826,11 @@ async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url, body: serialize(options.data) });
   const parsed = new window.URL(url);
+
+  // The layout's ingestion budget banner: the project sets no budget.
+  if (isIngestionBudgetRead(method, parsed.pathname)) {
+    return new HTTPResponse(200, ingestionBudgetStatus(NOW), {});
+  }
 
   // The search bar's attribute-key completion: nothing has been seen yet.
   if (

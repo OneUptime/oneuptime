@@ -216,6 +216,72 @@ describe("the shared hook module hands each bulk-action hook what it needs", () 
   });
 });
 
+/*
+ * Add recommended rules: the burn rate rules OneUptime recommends, added to
+ * every selected SLO missing one (useSloRecommendedRulesBulkAction). Like
+ * Archive, it is handed back on its own - an archived SLO's rules never
+ * fire, and the monitor's SLOs tab is about the monitor - so only the live
+ * SLO list offers it.
+ */
+describe("Add recommended rules goes to the live SLO list alone", () => {
+  test("the shared hook builds it with its own hook and hands it back on its own, never folded into bulkActions", () => {
+    expect(HOOK_CODE).toContain(
+      'import useSloRecommendedRulesBulkAction from "./useSloRecommendedRulesBulkAction";',
+    );
+    expect(HOOK_CODE).toContain(
+      squash(
+        "recommendedRulesBulkActions: Array< BulkActionButtonSchema<ServiceLevelObjective> >;",
+      ),
+    );
+    expect(HOOK_CODE).toContain(
+      squash(
+        "const recommendedRulesBulkActions: Array< BulkActionButtonSchema<ServiceLevelObjective> > = useSloRecommendedRulesBulkAction();",
+      ),
+    );
+    expect(HOOK_CODE).toContain(
+      "recommendedRulesBulkActions: recommendedRulesBulkActions,",
+    );
+
+    const folded: string =
+      HOOK_CODE.split("bulkActions: [")[1]!.split("],")[0]!;
+
+    expect(folded).not.toContain("recommendedRulesBulkActions");
+  });
+
+  test("the SLO list offers it, between the owners and Archive", () => {
+    expect(readCode(...SLOS_PAGE)).toContain(
+      squash(
+        "buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...archiveBulkActions, ],",
+      ),
+    );
+  });
+
+  test("the Archived page and the monitor's SLOs tab do not", () => {
+    expect(readCode(...ARCHIVED_SLOS_PAGE)).not.toContain(
+      "recommendedRulesBulkActions",
+    );
+    expect(readCode(...MONITOR_SLOS_PAGE)).not.toContain(
+      "recommendedRulesBulkActions",
+    );
+  });
+
+  test("it asks before it adds, with what it would add read when its dialog opens", () => {
+    const action: string = readCode(
+      "Components",
+      "Slo",
+      "useSloRecommendedRulesBulkAction.tsx",
+    );
+
+    expect(action).toContain("confirmDetails: (");
+    expect(action).toContain("<SloBulkRecommendedRulesDetails");
+    expect(action).toContain("await runSloRecommendedRulesBulkAdd({");
+    // Through the shared runner, so the progress and the result read as every bulk run's.
+    expect(action).toContain(
+      "return await runBulkAction<ServiceLevelObjective>({",
+    );
+  });
+});
+
 describe("the copy the SLO archive actions confirm with", () => {
   test("archiving says the SLOs stop being evaluated and their open outputs are resolved", () => {
     expect(SLO_BULK_ARCHIVE_CONFIRM_MESSAGE).toContain("not evaluated");
@@ -344,8 +410,8 @@ const CONSUMER_CASES: Array<ConsumerCase> = [
     "Pages/Slo/Slos.tsx",
     SLOS_PAGE,
     "../../Components/Slo/useSloBulkActions",
-    "const { bulkActions, archiveBulkActions, rowActions, archiveRowActions, modals, }: SloBulkActionsResult = useSloBulkActions();",
-    "bulkActions={{ buttons: [...bulkActions, ...archiveBulkActions], }}",
+    "const { bulkActions, archiveBulkActions, recommendedRulesBulkActions, rowActions, archiveRowActions, modals, }: SloBulkActionsResult = useSloBulkActions();",
+    "bulkActions={{ buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...archiveBulkActions, ], }}",
     "actionButtons={[...rowActions, ...archiveRowActions]}",
   ],
   [

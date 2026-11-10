@@ -64,7 +64,7 @@ Variablerna läses när Claude Code startar. Mätvärden skickas var 60:e sekund
 
 ### Kontrollera att data kommer in
 
-Öppna **Mått** och sök efter `claude_code.token.usage`, öppna sedan **Produkter → AI / LLM** och gå till **Användning**: din kostnad visas under din e-postadress, märkt med **från GenAI-mätvärden**.
+Öppna **Mått** och sök efter `claude_code.token.usage`, öppna sedan **Produkter → AI / LLM** och gå till **Användning**: din kostnad visas under din e-postadress, märkt med **Från användningsmätvärden**.
 :::
 
 För att skicka mätvärden och händelser till olika ställen sätter du i stället `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` och `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, med den fullständiga sökvägen (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 På **Produkter → AI / LLM → Användning** matar `claude_code.cost.usage` tabellerna **Anställd**, **Team** och **Modell**, och `claude_code.token.usage` tokentotalerna. Två regler avgör vad du ser:
 
-- **Mätvärdena fyller i för spans; de läggs aldrig ovanpå dem.** Om samma projekt tar emot GenAI-spans med kostnad från dina egna appar visas inte Claude Codes kostnader. Skicka Claude Code till ett eget projekt. Se [Spans först, mätvärden fyller i](/docs/telemetry/ai-llm-observability#spans-först-mätvärden-fyller-i).
-- **En rad från mätvärden bär bara kostnad.** Dess celler för anrop och tokens visar `—`, och tabellerna **Leverantör** och **Applikation / Tjänst** förblir tomma: mätvärdena nämner ingen leverantör och hör inte till någon OneUptime-tjänst.
+- **Claude Code räknas bredvid dina appar.** Dess mätvärden kommer in under dess egen tjänst, så dess kostnader läggs till AI-anropen som dina appar skickar till samma projekt. Om du slår på dess traces (beta), slå på dem för alla: från och med då räknas Claude Code bara från sina traces, en gång. Se [Varje tjänst räknas utifrån det den skickar](/docs/telemetry/ai-llm-observability#varje-tjänst-räknas-utifrån-det-den-skickar).
+- **En rad från mätvärden nämner inget anrop.** Den säger **Från användningsmätvärden** under sitt namn, dess cell för anrop visar `—`, och tabellen **Leverantör** lägger den under **Ej tilldelat**: mätvärdena nämner ingen leverantör.
 
 Allt annat, som godkännandegrad, kodrader, commits och pull requests per utvecklare, eller kostnad per `query_source`, visar du i en [dashboard](/docs/dashboards/index) utifrån mätvärdena nedan och varnar på med en [metrikövervakning](/docs/monitor/metrics-monitor).
 
@@ -161,7 +161,7 @@ Varje mätvärde är en räknare och bär standardattributen utöver sina egna.
 
 Standardattributen är `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` och `terminal.type`, plus dina `OTEL_RESOURCE_ATTRIBUTES`. Några av dem kan stängas av: se [Håll nere volymen av mätvärden](#håll-nere-volymen-av-mätvärden).
 
-- Cachetokentyperna är i camelCase: `cacheRead` och `cacheCreation`. OneUptimes tokentotaler räknar bara `input` och `output`.
+- Cachetokentyperna är i camelCase: `cacheRead` och `cacheCreation`. Claude Codes `input` utelämnar dem, så OneUptime räknar dem också som indatatokens.
 - På kostnads- och tokenmätvärdena står namnen på dina egna agenter och MCP-servrar, och på plugins och skills från tredje part, som `custom` eller `third-party`, om inte `OTEL_LOG_TOOL_DETAILS=1` är satt (Claude Code 2.1.273 eller senare).
 
 ## Händelser
@@ -220,7 +220,7 @@ Claude Code skickar deltamätvärden som standard: varje datapunkt är ökningen
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Lås `cumulative` bara om varje exportör i din organisation använder det, och blanda inte de två i en flotta.
+Lås `cumulative` bara om varje exportör i din organisation använder det, och blanda inte de två i en flotta. OneUptimes flik Användning och budgetar räknar båda: en delta genom att lägga ihop dess punkter, en kumulativ räknare efter hur mycket den växte under perioden.
 
 ## Traces (beta)
 

@@ -450,7 +450,7 @@ describe("the line under a tile's value", () => {
   // The line each rendered tile draws under its value, in the tiles' order.
   function sublabels(): Array<HTMLElement> {
     return Array.from(
-      document.querySelectorAll<HTMLElement>("[aria-busy] div.truncate"),
+      document.querySelectorAll<HTMLElement>("[aria-busy] div.line-clamp-2"),
     );
   }
 

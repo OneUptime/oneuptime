@@ -46,6 +46,7 @@ import {
   REMEDIATION_CHAT_WORDS,
 } from "Common/Server/Utils/AutoRemediation/RemediationChatWords";
 import SlackIncidentActions from "Common/Server/Utils/Workspace/Slack/Actions/Incident";
+import { PUBLIC_NOTE_APPROVAL_CHAT_WORDS } from "Common/Server/Utils/Workspace/WorkspacePublicNoteApproval";
 import { WORKSPACE_AFFECTED_RESOURCES_TEXT } from "Common/Server/Utils/Workspace/WorkspaceAffectedResources";
 import WorkspaceActionAuthorization from "Common/Server/Utils/Workspace/WorkspaceActionAuthorization";
 import {
@@ -177,6 +178,18 @@ const FIX_MESSAGE_BUTTONS: Array<string> = [
 ];
 
 /*
+ * A public note's approval message - Slack's, and Microsoft Teams' card of
+ * it - and the question the form its Reject opens asks, as the server
+ * writes them, in English (PUBLIC_NOTE_APPROVAL_CHAT_WORDS).
+ */
+const PUBLIC_NOTE_APPROVAL_CHAT: Array<string> = [
+  PUBLIC_NOTE_APPROVAL_CHAT_WORDS.approve,
+  PUBLIC_NOTE_APPROVAL_CHAT_WORDS.approveAndPublish,
+  PUBLIC_NOTE_APPROVAL_CHAT_WORDS.reject,
+  PUBLIC_NOTE_APPROVAL_CHAT_WORDS.rejectReasonLabel,
+];
+
+/*
  * An incident's message - Slack's, and Microsoft Teams' card of it - and its
  * menu, as the apps draw them, in English (WORKSPACE_INCIDENT_BUTTONS,
  * without the emoji).
@@ -213,9 +226,15 @@ const TEAMS_CONNECT_BUTTON: Array<string> = ["Connect Microsoft Teams account"];
 
 /*
  * The form a page from the chat opens - Slack's modal, Microsoft Teams'
- * card - as the server titles it, in English (SlackPageActions.FORM_TITLE).
+ * card - as the server titles it, in English (SlackPageActions.FORM_TITLE),
+ * and its Page them as choice, as the server words it
+ * (WORKSPACE_PAGE_FORM_TEXT).
  */
-const PAGE_FORM: Array<string> = ["Page someone"];
+const PAGE_FORM: Array<string> = [
+  "Page someone",
+  "Page them as",
+  "Observers: keep them informed",
+];
 
 // Slack's own controls and the app's shortcuts, by the names Slack shows.
 const SLACK_CONTROLS: Array<string> = [
@@ -352,6 +371,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Growth",
     ...CHAT_BUTTONS,
     ...FIX_MESSAGE_BUTTONS,
+    ...PUBLIC_NOTE_APPROVAL_CHAT,
     ...INCIDENT_MESSAGE_BUTTONS,
     ...INCIDENT_FORM_FIELDS,
     ...SEEDED_INCIDENT_ROLES,
@@ -366,6 +386,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Growth",
     ...CHAT_BUTTONS,
     ...FIX_MESSAGE_BUTTONS,
+    ...PUBLIC_NOTE_APPROVAL_CHAT,
     ...INCIDENT_MESSAGE_BUTTONS,
     ...INCIDENT_FORM_FIELDS,
     ...SEEDED_INCIDENT_ROLES,
@@ -1266,6 +1287,7 @@ describe("the lists this test keeps", () => {
       ...PLANS,
       ...CHAT_BUTTONS,
       ...FIX_MESSAGE_BUTTONS,
+      ...PUBLIC_NOTE_APPROVAL_CHAT,
       ...INCIDENT_MESSAGE_BUTTONS,
       ...INCIDENT_FORM_FIELDS,
       ...SEEDED_INCIDENT_ROLES,

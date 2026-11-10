@@ -2,7 +2,8 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
+import DataAsset from "../../../Models/DatabaseModels/DataAsset";
+import DataDashboard from "../../../Models/DatabaseModels/DataDashboard";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import Label from "../../../Models/DatabaseModels/Label";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
@@ -296,22 +297,33 @@ describe("a many-to-many change fires the workflow, realtime event and audit ent
     );
   });
 
+  /*
+   * Every project-scoped model is audited unless it is exempt
+   * (Types/AuditLog/AuditLogCoverage): a BI tool's dashboard is reported by
+   * the tool, not changed by people, so it is one of the few that is not.
+   */
   test("a model without audit logging sees the swap too, so its workflow fires", async () => {
-    const episode: AlertEpisode = new AlertEpisode();
-    episode._id = EPISODE_ID.toString();
-    episode.projectId = PROJECT_ID;
-    episode.labels = [label(LABEL_A), label(LABEL_B)];
+    const dataAsset: (id: string) => DataAsset = (id: string): DataAsset => {
+      const asset: DataAsset = new DataAsset();
+      asset._id = id;
+      return asset;
+    };
 
-    expect(episode.enableAuditLogOn).toBeFalsy();
-    expect(episode.enableWorkflowOn?.update).toBe(true);
+    const dashboard: DataDashboard = new DataDashboard();
+    dashboard._id = EPISODE_ID.toString();
+    dashboard.projectId = PROJECT_ID;
+    dashboard.dataAssets = [dataAsset(LABEL_A), dataAsset(LABEL_B)];
 
-    const service: DatabaseService<AlertEpisode> =
-      new DatabaseService<AlertEpisode>(AlertEpisode);
-    const harness: UpdateHarness = setUpUpdate(service, episode);
+    expect(dashboard.enableAuditLogOn).toBeFalsy();
+    expect(dashboard.enableWorkflowOn?.update).toBe(true);
+
+    const service: DatabaseService<DataDashboard> =
+      new DatabaseService<DataDashboard>(DataDashboard);
+    const harness: UpdateHarness = setUpUpdate(service, dashboard);
 
     await service.updateOneById({
       id: EPISODE_ID,
-      data: { labels: [LABEL_C, LABEL_D] } as never,
+      data: { dataAssets: [LABEL_C, LABEL_D] } as never,
       props: { isRoot: true },
     });
 
@@ -320,7 +332,7 @@ describe("a many-to-many change fires the workflow, realtime event and audit ent
     expect(harness.recordUpdate).not.toHaveBeenCalled();
 
     // No audit logging, so the before-read keeps its id-only relation select.
-    expect(selectOfBeforeRead(harness)["labels"]).toBe(true);
+    expect(selectOfBeforeRead(harness)["dataAssets"]).toBe(true);
     expect(selectOfBeforeRead(harness)["name"]).toBeUndefined();
   });
 });

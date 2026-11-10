@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import IncomingCallPolicy from "../../Models/DatabaseModels/IncomingCallPolicy";
@@ -97,6 +99,7 @@ class IncomingCallPolicyLabelRuleEngineServiceClass
       return await this.applyRules({
         policy: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running incoming call policy label rules: ${error}`, {
@@ -112,6 +115,8 @@ class IncomingCallPolicyLabelRuleEngineServiceClass
   private async applyRules(data: {
     policy: IncomingCallPolicy;
     rules: Array<IncomingCallPolicyLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { policy, rules } = data;
 
@@ -192,11 +197,12 @@ class IncomingCallPolicyLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await IncomingCallPolicyService.getRepository()
-      .createQueryBuilder()
-      .relation(IncomingCallPolicy, "labels")
-      .of(policy.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: IncomingCallPolicyService,
+      resourceId: policy.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     const mergedLabelIds: Set<string> = new Set([
       ...existingLabelIds,

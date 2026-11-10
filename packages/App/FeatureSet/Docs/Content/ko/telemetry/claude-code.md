@@ -64,7 +64,7 @@ export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
 
 ### 데이터가 도착하는지 확인하기
 
-**메트릭** 을 열고 `claude_code.token.usage`를 찾은 다음, **제품 → AI / LLM** 을 열고 **사용량** 으로 이동합니다. 내 이메일 아래에 비용이 **GenAI 메트릭 기준** 으로 표시됩니다.
+**메트릭** 을 열고 `claude_code.token.usage`를 찾은 다음, **제품 → AI / LLM** 을 열고 **사용량** 으로 이동합니다. 내 이메일 아래에 비용이 **사용량 메트릭 기준** 으로 표시됩니다.
 :::
 
 메트릭과 이벤트를 서로 다른 곳으로 보내려면, 대신 `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`와 `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`를 전체 경로(`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`)로 설정하세요.
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 **제품 → AI / LLM → 사용량** 에서 `claude_code.cost.usage`는 **직원** , **팀** , **모델** 표를, `claude_code.token.usage`는 토큰 합계를 채웁니다. 무엇이 보이는지는 두 가지 규칙으로 정해집니다.
 
-- **메트릭은 스팬을 보충할 뿐, 스팬에 더해지지 않습니다.** 같은 프로젝트가 자체 앱에서 비용이 있는 GenAI 스팬을 받으면 Claude Code의 지출은 표시되지 않습니다. Claude Code는 전용 프로젝트로 보내세요. [스팬이 먼저, 메트릭은 보충](/docs/telemetry/ai-llm-observability#스팬이-먼저-메트릭은-보충)을 참조하세요.
-- **메트릭에서 온 행은 비용만 가집니다.** 호출과 토큰 셀은 `—`를 표시하고, **공급자** 와 **애플리케이션 / 서비스** 표는 비어 있습니다. 메트릭은 공급자를 지목하지 않고, 어떤 OneUptime 서비스에도 속하지 않기 때문입니다.
+- **Claude Code는 앱과 나란히 계산됩니다.** 메트릭은 Claude Code 자체의 서비스 아래로 들어오므로, 그 지출은 앱이 같은 프로젝트로 보내는 AI 호출에 더해집니다. 트레이스(베타)를 켜려면 모두에게 켜세요. 그때부터 Claude Code는 트레이스만으로 한 번 계산됩니다. [각 서비스는 보내는 데이터를 기준으로 셉니다](/docs/telemetry/ai-llm-observability#각-서비스는-보내는-데이터를-기준으로-셉니다)를 참조하세요.
+- **메트릭에서 온 행은 호출을 지목하지 않습니다.** 이름 아래에 **사용량 메트릭 기준** 이라고 표시되고, 호출 셀은 `—`를 표시하며, **공급자** 표는 그 행을 **미지정** 아래에 둡니다. 메트릭은 공급자를 지목하지 않기 때문입니다.
 
 개발자별 수락률, 코드 줄 수, 커밋, 풀 리퀘스트, `query_source`별 지출 같은 그 밖의 모든 것은 아래 메트릭으로 [대시보드](/docs/dashboards/index)에 차트를 그리고, [메트릭 모니터](/docs/monitor/metrics-monitor)로 알림을 설정합니다.
 
@@ -161,7 +161,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 표준 속성은 `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email`, `terminal.type`과 `OTEL_RESOURCE_ATTRIBUTES`입니다. 일부는 끌 수 있습니다. [메트릭 양 줄이기](#메트릭-양-줄이기)를 참조하세요.
 
-- 캐시 토큰 종류는 카멜 표기법으로 `cacheRead`와 `cacheCreation`입니다. OneUptime의 토큰 합계는 `input`과 `output`만 셉니다.
+- 캐시 토큰 종류는 카멜 표기법으로 `cacheRead`와 `cacheCreation`입니다. Claude Code의 `input`에는 이들이 빠져 있으므로 OneUptime은 이들도 입력 토큰으로 셉니다.
 - 비용과 토큰 메트릭에서 자체 에이전트와 MCP 서버, 서드파티 플러그인과 스킬의 이름은 `OTEL_LOG_TOOL_DETAILS=1`을 설정하지 않으면(Claude Code 2.1.273 이상) `custom` 또는 `third-party`로 표시됩니다.
 
 ## 이벤트
@@ -220,7 +220,7 @@ Claude Code는 기본적으로 델타 메트릭을 보냅니다. 각 데이터 �
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-`cumulative`는 조직의 모든 익스포터가 사용할 때만 고정하고, 한 조직 안에서 두 가지를 섞지 마세요.
+`cumulative`는 조직의 모든 익스포터가 사용할 때만 고정하고, 한 조직 안에서 두 가지를 섞지 마세요. OneUptime의 사용량 탭과 예산은 둘 다 셉니다. 델타는 포인트를 더하고, 누적 카운터는 기간 동안 늘어난 양을 셉니다.
 
 ## 트레이스(베타)
 

@@ -32,9 +32,9 @@ Entrambi i workflow chiamano la [Events API v2](https://developer.pagerduty.com/
 ## Salvare la routing key
 
 :::steps
-1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Flusso di lavoro Variabile**.
+1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Variabile del flusso di lavoro**.
 2. Chiamala `PAGERDUTY_ROUTING_KEY` e fai clic su **Avanti**.
-3. Incolla la chiave di integrazione in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Flusso di lavoro Variabile**.
+3. Incolla la chiave di integrazione in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**.
 :::
 
 Una variabile segreta viene sostituita da `[REDACTED]` nei log delle esecuzioni, quindi la chiave non compare mai in un'esecuzione.

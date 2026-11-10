@@ -170,7 +170,11 @@ describe("the menu the paths are held to, read from its source", () => {
   test.each([
     ["Basic", ["Project", "Labels"]],
     ["Workspace", ["Slack", "Microsoft Teams", "Mattermost", "Video Calls"]],
-    ["Telemetry & APM", ["Ingestion Keys", "Data Retention"]],
+    /*
+     * Usage is on every install, billing on or off: it was Billing and
+     * Invoices > Usage History, shown only with billing (issue #5916).
+     */
+    ["Telemetry & APM", ["Ingestion Keys", "Data Retention", "Usage"]],
     [
       "Notifications",
       ["Notification Settings", "Notification Logs", "Mobile Apps"],
@@ -201,7 +205,7 @@ describe("the menu the paths are held to, read from its source", () => {
     ],
     // SSO holds the project's SAML and OpenID Connect providers.
     ["Security", ["SSO", "SCIM"]],
-    ["Billing and Invoices", ["Billing", "Usage History", "Invoices"]],
+    ["Billing and Invoices", ["Billing", "Invoices"]],
   ])(
     "%s holds the pages the texts name",
     (title: string, items: Array<string>) => {

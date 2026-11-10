@@ -7,6 +7,7 @@ import {
   UserTenantAccessPermission,
 } from "../Permission";
 import UserType from "../UserType";
+import WriteSource from "./WriteSource";
 
 export default interface DatabaseCommonInteractionProps {
   userId?: ObjectID | undefined;
@@ -49,6 +50,15 @@ export default interface DatabaseCommonInteractionProps {
    */
   workflowId?: ObjectID | undefined;
   workflowName?: string | undefined;
+  /*
+   * Where the change came from when it was not made by the person's own
+   * hand: Ask AI, acting for them (Server/Utils/AI/Toolbox/
+   * WorkflowBuilderTools). For attribution only, like the credential above:
+   * no permission check reads it, and the change is still the person's. A
+   * workflow's version history keeps such a change as a version of its own
+   * (WorkflowVersionPolicy, issue #6258).
+   */
+  writeSource?: WriteSource | undefined;
   /*
    * The caller's credential was issued for reading only: an MCP client its
    * user authorized as read-only. Every create, update and delete made with

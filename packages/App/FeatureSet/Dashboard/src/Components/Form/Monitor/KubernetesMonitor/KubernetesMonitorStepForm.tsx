@@ -46,6 +46,7 @@ import {
 } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
 import InfrastructureResourceField from "../InfrastructureMonitorSetup/InfrastructureResourceField";
 import useInfrastructureResources, {
@@ -912,6 +913,15 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
               formulaConfigs:
                 monitorStepKubernetesMonitor.metricViewConfig.formulaConfigs,
             }}
+            /*
+             * Charted as the monitor reads them: narrowed to the resource
+             * picked above and its filters, which the worker adds before
+             * each check and the step never saves (issue #6264).
+             */
+            chartQueryConfigs={MonitorStepMetricQueries.getReadQueryConfigs({
+              monitorType: MonitorType.Kubernetes,
+              settings: monitorStepKubernetesMonitor,
+            })}
             hideCardInQueryElements={true}
             hideCardInCharts={true}
             chartCssClass="rounded-lg border border-gray-200 shadow-sm"

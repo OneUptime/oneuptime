@@ -36,13 +36,19 @@ import { JSONObject } from "../../../../Types/JSON";
 import MimeType from "../../../../Types/File/MimeType";
 import ObjectID from "../../../../Types/ObjectID";
 import { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
+import IconProp from "../../../../Types/Icon/IconProp";
+import {
+  PeoplePickerFieldConfig,
+  PeoplePickerKind,
+} from "../../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 
 /*
  * Every page with a form reaches FormField, and few forms have a code,
- * Markdown or file field: the sign-in page's have none. So their controls -
- * with js-yaml, DOMPurify, react-dropzone and the rest of what they run on -
- * are files of their own, loaded by the first form that has such a field
- * (issue #5619).
+ * Markdown, file or people picker field: the sign-in page's and a status
+ * page's have none. So their controls - with js-yaml, DOMPurify,
+ * react-dropzone, the kinds of record the people picker searches and the rest
+ * of what they run on - are files of their own, loaded by the first form that
+ * has such a field (issue #5619).
  *
  * These hold every one of those files back until the test lets it arrive, so
  * each field type is seen before and after its control is there:
@@ -153,6 +159,15 @@ interface RenderOptions {
   setFieldValue?: SetFieldValueMock | undefined;
 }
 
+// An owners field, as forms declare one: people and teams in one picker.
+const OWNERS_PICKER: PeoplePickerFieldConfig = {
+  kinds: [
+    { kind: PeoplePickerKind.User, valueKey: "ownerUsers" },
+    { kind: PeoplePickerKind.Team, valueKey: "ownerTeams" },
+  ],
+  addButtonText: "Add owner",
+};
+
 const fieldOf: (
   fieldType: FormFieldSchemaType,
   options?: RenderOptions,
@@ -168,6 +183,10 @@ const fieldOf: (
     fieldType: fieldType,
     required: false,
     dataTestId: "the-control",
+    // A people picker field draws only with the kinds it picks.
+    ...(fieldType === FormFieldSchemaType.PeoplePicker
+      ? { peoplePicker: OWNERS_PICKER }
+      : {}),
     ...(options?.overrides || {}),
   } as Field<TestEntity>;
 
@@ -213,6 +232,8 @@ const placeholderOf: (fieldType: FormFieldSchemaType) => string = (
     case FormFieldSchemaType.ImageFile:
     case FormFieldSchemaType.MultipleFiles:
       return "file-picker-placeholder";
+    case FormFieldSchemaType.PeoplePicker:
+      return "people-picker-placeholder";
     default:
       return "code-editor-placeholder";
   }
@@ -229,6 +250,8 @@ const controlOf: (fieldType: FormFieldSchemaType) => HTMLElement | null = (
     case FormFieldSchemaType.ImageFile:
     case FormFieldSchemaType.MultipleFiles:
       return document.querySelector<HTMLElement>("input[type='file']");
+    case FormFieldSchemaType.PeoplePicker:
+      return screen.queryByTestId("people-picker-add-button");
     default:
       return screen.queryByTestId("code-editor-input");
   }
@@ -244,6 +267,7 @@ const FIELD_TYPES: Array<FormFieldSchemaType> = [
   FormFieldSchemaType.File,
   FormFieldSchemaType.ImageFile,
   FormFieldSchemaType.MultipleFiles,
+  FormFieldSchemaType.PeoplePicker,
 ];
 
 const CODE_FIELD_TYPES: Array<FormFieldSchemaType> = [
@@ -1078,6 +1102,137 @@ describe("a file field, before and after its picker arrives", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
 
     expect(setFieldValue).toHaveBeenCalledWith("config", null);
+  });
+});
+
+describe("a people picker field, before and after its picker arrives", () => {
+  const ADA: string = "0000000e-0000-4000-8000-000000000001";
+  const GRACE: string = "0000000e-0000-4000-8000-000000000002";
+  const PLATFORM: string = "0000000b-0000-4000-8000-000000000001";
+
+  const renderPicker: (
+    values: JSONObject,
+    peoplePicker?: Partial<PeoplePickerFieldConfig>,
+  ) => void = (
+    values: JSONObject,
+    peoplePicker?: Partial<PeoplePickerFieldConfig>,
+  ): void => {
+    render(
+      <FormField<TestEntity>
+        field={
+          {
+            title: "Owners",
+            field: { config: true },
+            fieldType: FormFieldSchemaType.PeoplePicker,
+            peoplePicker: { ...OWNERS_PICKER, ...(peoplePicker || {}) },
+            dataTestId: "the-control",
+          } as Field<TestEntity>
+        }
+        fieldName="config"
+        index={0}
+        isDisabled={false}
+        error=""
+        touched={false}
+        currentValues={values as FormValues<TestEntity>}
+        setFieldTouched={(): void => {}}
+        setFieldValue={(): void => {}}
+        disableAutofocus={true}
+      />,
+    );
+  };
+
+  // What the place holds, in order: its button, and a chip for each pick.
+  const partsOf: () => Array<string> = (): Array<string> => {
+    return Array.from(
+      screen
+        .getByTestId("people-picker-placeholder")
+        .querySelectorAll("[data-testid^='people-picker-placeholder-']"),
+    ).map((part: Element): string => {
+      return `${part.getAttribute("data-testid")}: ${part.textContent}`;
+    });
+  };
+
+  test("its button comes first, with the field's words, and a chip for each pick says Loading..., as the picker's chips do until their names arrive", () => {
+    renderPicker({ ownerUsers: [ADA, GRACE], ownerTeams: [PLATFORM] });
+
+    expect(partsOf()).toEqual([
+      "people-picker-placeholder-button: Add owner",
+      "people-picker-placeholder-chip: Loading...",
+      "people-picker-placeholder-chip: Loading...",
+      "people-picker-placeholder-chip: Loading...",
+    ]);
+
+    // Nothing of the picker yet.
+    expect(screen.queryByTestId("people-picker-add-button")).toBeNull();
+    expect(screen.queryByTestId("people-chip")).toBeNull();
+  });
+
+  test("a picker of one with its pick has the chip first, and then Change", () => {
+    renderPicker({ ownerUsers: ADA, ownerTeams: null }, { isSinglePick: true });
+
+    expect(partsOf()).toEqual([
+      "people-picker-placeholder-chip: Loading...",
+      "people-picker-placeholder-button: Change",
+    ]);
+  });
+
+  test("a picker of one with nothing picked has its button, as the picker does", () => {
+    renderPicker(
+      { ownerUsers: null, ownerTeams: null },
+      { isSinglePick: true },
+    );
+
+    expect(partsOf()).toEqual(["people-picker-placeholder-button: Add owner"]);
+  });
+
+  test("its button takes the room the picker's does, with the same words", async () => {
+    renderPicker({});
+
+    const button: HTMLElement = screen.getByTestId(
+      "people-picker-placeholder-button",
+    );
+    const room: Array<string> = roomOf(button);
+    const words: string | null = button.textContent;
+
+    expect(room).toContain("px-3");
+    expect(room).toContain("py-1");
+
+    await arrive();
+
+    const pickerButton: HTMLElement = screen.getByTestId(
+      "people-picker-add-button",
+    );
+
+    expect(roomOf(pickerButton)).toEqual(room);
+    expect(pickerButton.textContent).toBe(words);
+    expect(screen.queryByTestId("people-picker-placeholder")).toBeNull();
+  });
+
+  test("with nothing picked it says what that means, as the picker does", async () => {
+    renderPicker(
+      {},
+      {
+        whenNobodyPicked: {
+          text: "Next person in the rotation",
+          icon: IconProp.Refresh,
+        },
+      },
+    );
+
+    const nobodyPicked: HTMLElement = screen.getByTestId(
+      "people-picker-placeholder-nobody-picked",
+    );
+
+    expect(nobodyPicked).toHaveTextContent("Next person in the rotation");
+
+    const room: Array<string> = roomOf(nobodyPicked);
+
+    await arrive();
+
+    const said: HTMLElement = screen.getByTestId("people-picker-nobody-picked");
+
+    expect(said).toHaveTextContent("Next person in the rotation");
+    expect(roomOf(said)).toEqual(room);
   });
 });
 

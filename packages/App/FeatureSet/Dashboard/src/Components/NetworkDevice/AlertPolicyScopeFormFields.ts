@@ -5,6 +5,7 @@ import {
   translatePlural,
   translateTemplate,
 } from "Common/UI/Utils/TranslateTemplate";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The form-side half of a Network Alert Policy's scope.
@@ -140,5 +141,5 @@ export function summarizeScope(scope: unknown): string {
     return translateTemplate("All devices");
   }
 
-  return parts.join(", ");
+  return joinList(parts);
 }

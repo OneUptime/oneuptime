@@ -68,6 +68,7 @@ The dialog asks every few seconds what arrived. Firehose delivers within a few m
 | --- | --- |
 | **Every metric, not only the key ones** | Streams every metric CloudWatch has for the account, your own included. AWS bills each metric update a stream sends, so it can cost many times more |
 | **Regions** | Where to stream from: at first, the Regions the connection found resources in. Left empty, the command streams from AWS CloudShell's own Region. At most 30 |
+| **Every account of the organization** | For a connection that reads an AWS Organization: the command, run in its management account, also makes the same stacks in every member account through a StackSet, and in accounts that join later. Every log group or none: named log groups are one account's |
 | **Set it up another way** | The metrics and logs endpoints and the key, to set the streams up with Terraform or the console |
 
 **Download the template** saves the template the command deploys, to deploy it your own way.
@@ -79,6 +80,7 @@ The dialog asks every few seconds what arrived. Firehose delivers within a few m
 | Metrics | On the cloud resources they measure, with the names and attributes the connection's reads give them |
 | Logs | In the Logs explorer, under the connection's telemetry service, with the account, Region and log group as attributes |
 | Logs of a log group AWS names after a resource | On that resource too: its page in Cloud gains a **Logs** tab |
+| Logs of an App Runner service, an Elastic Beanstalk environment or an ECS task or cluster | On its environment in App Platforms too: its **Logs** tab |
 
 A log group is filed under a resource when AWS named it after one:
 
@@ -97,7 +99,9 @@ A log group is filed under a resource when AWS named it after one:
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Each log carries the resource's ID as `cloud.resource_id`, and a Lambda function's logs carry `faas.name` too, so they also appear on the function in Serverless. A log group of any other name streams all the same, under its account and Region. A log's severity is the one its message states, the way Lambda writes it.
+Each log carries the resource's ID as `cloud.resource_id`, and a Lambda function's logs carry `faas.name` too, so they also appear on the function in Serverless. A log group of any other name streams all the same, under its account and Region. A log's severity is the one its message states, the way Lambda, PostgreSQL or MySQL writes it.
+
+An App Runner service's, an Elastic Beanstalk environment's and an ECS cluster's logs also carry `cloud.platform`, and so do an ECS task's, from the log group the ECS console names `/ecs/<task-definition-family>`, with `aws.ecs.task.family`. With the account and Region, that puts them on their environment in App Platforms, which appears with them if no app has reported to it yet. They make no app: an app is named by its own telemetry, as [Cloud Environments](/docs/telemetry/cloud-environments) says.
 
 ## What the stack creates
 
@@ -130,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+For a connection that reads an AWS Organization, run the dialog's command in the management account: when the organization was streamed, it also deletes every member account's stacks and the StackSet.
 :::
 
 To change what a stack streams, open **Stream metrics and logs** again, choose **Make a new key** and run the new command. The key it replaces keeps working for 24 hours, so no delivery is refused while the stacks update. At most 3 replaced keys work at once.

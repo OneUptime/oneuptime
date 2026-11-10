@@ -800,13 +800,20 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
    * the usual casings - getObservableSearchValues), so the bloom index on
    * the observables narrows the scan; the log record by the attribute "Your
    * logs" events carry, which only they have, so its keys' index skips the
-   * rest.
+   * rest. A network device's own logs are told by the attribute ingest
+   * writes on every line it matched to it (`networkDevice.id`, carried onto
+   * each event read from one), the same way.
    */
   public async countEventsNaming(data: {
     projectId: ObjectID;
     values: Array<string>;
     // The record's id, matched against the log resource of "Your logs" events.
     logResourceId?: ObjectID | undefined;
+    /*
+     * The attribute the events read from the record's own logs carry, and
+     * its value: a network device's `networkDevice.id`.
+     */
+    attribute?: { key: string; value: string } | undefined;
     startTime: Date;
     endTime: Date;
     // The sources the reader may read; none: every one (findObservableActivity).
@@ -824,7 +831,12 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       ),
     ).slice(0, OBSERVABLE_ACTIVITY_MAX_VALUES);
 
-    if (values.length === 0 && !data.logResourceId) {
+    const attribute: { key: string; value: string } | null =
+      data.attribute && data.attribute.key && data.attribute.value
+        ? data.attribute
+        : null;
+
+    if (values.length === 0 && !data.logResourceId && !attribute) {
       return {
         eventCount: 0,
         findingCount: 0,
@@ -879,6 +891,25 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
         }}] = ${{
           type: TableColumnType.Text,
           value: data.logResourceId.toString(),
+        }})`,
+      );
+    }
+
+    if (attribute) {
+      if (values.length > 0 || data.logResourceId) {
+        statement.append(" OR ");
+      }
+
+      statement.append(
+        SQL`(has(attributeKeys, ${{
+          type: TableColumnType.Text,
+          value: attribute.key,
+        }}) AND attributes[${{
+          type: TableColumnType.Text,
+          value: attribute.key,
+        }}] = ${{
+          type: TableColumnType.Text,
+          value: attribute.value,
         }})`,
       );
     }

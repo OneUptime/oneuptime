@@ -853,6 +853,42 @@ export interface WorkflowDraftChanges {
   changed: Array<string>;
 }
 
+type GetDraftValueKeyFunction = (value: unknown) => string;
+
+/*
+ * Settings as text that is the same for two that say the same thing,
+ * whichever order they are written in, and whether the JSON of an editor is
+ * kept as its text or as the value: what the approval card calls a change
+ * (describeDraftChanges), and what tells whether a step changed after a
+ * change to it was proposed (WorkflowDraftRebase).
+ */
+export const getDraftValueKey: GetDraftValueKeyFunction = (
+  value: unknown,
+): string => {
+  if (typeof value === "string") {
+    try {
+      return getDraftValueKey(JSON.parse(value));
+    } catch {
+      return JSON.stringify(value);
+    }
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(getDraftValueKey).join(",")}]`;
+  }
+
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value as JSONObject)
+      .sort()
+      .map((key: string): string => {
+        return `${JSON.stringify(key)}:${getDraftValueKey((value as JSONObject)[key])}`;
+      })
+      .join(",")}}`;
+  }
+
+  return JSON.stringify(value);
+};
+
 type DescribeDraftChangesFunction = (data: {
   before: WorkflowDraft;
   after: WorkflowDraft;
@@ -865,33 +901,8 @@ export const describeDraftChanges: DescribeDraftChangesFunction = (data: {
   after: WorkflowDraft;
   titleOf: (step: WorkflowDraftStep) => string;
 }): WorkflowDraftChanges => {
-  type CanonicalFunction = (value: unknown) => string;
-
   // Settings compared by what they say, whichever order they are written in.
-  const canonical: CanonicalFunction = (value: unknown): string => {
-    if (typeof value === "string") {
-      try {
-        return canonical(JSON.parse(value));
-      } catch {
-        return JSON.stringify(value);
-      }
-    }
-
-    if (Array.isArray(value)) {
-      return `[${value.map(canonical).join(",")}]`;
-    }
-
-    if (value && typeof value === "object") {
-      return `{${Object.keys(value as JSONObject)
-        .sort()
-        .map((key: string): string => {
-          return `${JSON.stringify(key)}:${canonical((value as JSONObject)[key])}`;
-        })
-        .join(",")}}`;
-    }
-
-    return JSON.stringify(value);
-  };
+  const canonical: GetDraftValueKeyFunction = getDraftValueKey;
 
   const beforeById: Map<string, WorkflowDraftStep> = new Map<
     string,

@@ -132,7 +132,7 @@ describe("Code's side menu", () => {
 });
 
 describe("a repository's side menu", () => {
-  test("puts its tasks first, then its pull requests' production reviews, its settings, its Developer pages and, apart, deleting it", async () => {
+  test("puts its tasks first, then its pull requests' production reviews, its settings, its Developer pages and, apart, its audit logs and deleting it", async () => {
     goTo(`/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`);
     await renderMenu(
       <CodeRepositorySideMenu modelId={new ObjectID(REPOSITORY_ID)} />,
@@ -156,6 +156,10 @@ describe("a repository's side menu", () => {
     ]);
     expect(linksIn("Advanced")).toEqual([
       {
+        title: "Audit Logs",
+        href: repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS),
+      },
+      {
         title: "Delete Repository",
         href: repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_DELETE),
       },
@@ -173,6 +177,9 @@ describe("a repository's side menu", () => {
       repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS),
     ).toBe(
       `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/production-reviews`,
+    );
+    expect(repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS)).toBe(
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/audit-logs`,
     );
     expect(repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_DELETE)).toBe(
       `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/delete`,

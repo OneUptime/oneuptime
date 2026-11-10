@@ -655,7 +655,7 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
   });
 
   describe("the project read", () => {
-    test("is one read, as root, of the suggestion's project, for exactly { _id, enableAi }", async () => {
+    test("is one read, as root, of the suggestion's project, for exactly { _id, enableAi, requireTwoApprovalsForRiskierFixes }", async () => {
       expectApproved(await callRoute(APPROVE_ROUTE));
 
       expect(projectFindSpy).toHaveBeenCalledTimes(1);
@@ -669,7 +669,12 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
         props: { isRoot?: boolean };
       };
       expect(args.id.toString()).toBe(PROJECT_ID.toString());
-      expect(args.select).toEqual({ _id: true, enableAi: true });
+      // Enable AI, and whether two people approve a riskier fix.
+      expect(args.select).toEqual({
+        _id: true,
+        enableAi: true,
+        requireTwoApprovalsForRiskierFixes: true,
+      });
       expect(args.props.isRoot).toBe(true);
     });
 

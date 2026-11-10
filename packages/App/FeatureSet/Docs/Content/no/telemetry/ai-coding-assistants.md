@@ -83,7 +83,7 @@ På et datapunkt for en måling er listen kortere og begynner med e-posten, ford
 
 | Kolonne | Nøkler, den foretrukne først |
 | --- | --- |
-| Ansatt | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Ansatt | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Team / kostnadssted | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Modell | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 Sett den der du allerede klargjør utviklermaskiner: en MDM-profil, en fil med administrerte innstillinger eller en shellprofil fra dotfilene dine. Verdier kan ikke inneholde mellomrom: bruk understreker, eller prosentkoding som `%20`. Codex har ingen ressursattributter, så sett de samme nøklene i `[otel.span_attributes]` i stedet.
 
-For å dele opp forbruket etter applikasjon bruker du tjenestenavnet (`OTEL_SERVICE_NAME`, eller verktøyets egen innstilling). Inndelingen **Applikasjon / Tjeneste** dekker bare verktøy som sender GenAI-spans.
+For å dele opp forbruket etter applikasjon bruker du tjenestenavnet (`OTEL_SERVICE_NAME`, eller verktøyets egen innstilling). Inndelingen **Applikasjon / Tjeneste** rangerer hver tjeneste, enten den sender GenAI-spans eller bare målinger.
 
 ### Hva som bevisst ikke behandles som den ansatte
 
@@ -138,27 +138,27 @@ OneUptime leser også tokens fra `gen_ai.client.token.usage`, `gen_ai.client.tok
 To ting å vite før du leser tallene:
 
 - **`gemini_cli.token.usage` er utelatt med vilje.** Gemini CLI sender tokens to ganger, som sin egen måling og som `gen_ai.client.token.usage`, og å lese begge ville doble dem. Tokens telles én gang, gjennom `gen_ai.client.token.usage`. Gemini CLI sender ingen kostnadsmåling: slå på traces for at hvert kall skal bli priset.
-- **Bare input- og outputtokens telles.** Tokentypen leses fra `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` eller `token_type`, og bare `input` og `output` (eller de eldre `prompt` og `completion`) teller. Cachelesing og -skriving, Codex' `total` (som gjentar de andre) og `reasoning_output` (en del av `output`) utelates, så en total fra målinger er mindre enn summen av alt et verktøy sender.
+- **Bare input- og outputtokens telles.** Tokentypen leses fra `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` eller `token_type`, og bare `input` og `output` (eller de eldre `prompt` og `completion`) teller, med Claude Codes `cacheRead` og `cacheCreation` som input, siden dets `input` utelater dem. Annen cachelesing og -skriving, Codex' `total` (som gjentar de andre) og `reasoning_output` (en del av `output`) utelates, så en total fra målinger er mindre enn summen av alt et verktøy sender.
 
 ## Fanen Forbruk
 
 Åpne **Produkter → AI / LLM**, og gå til **Forbruk**. Den rangerer **Ansatt**, **Team**, **Modell**, **Leverandør** og **Applikasjon / Tjeneste** etter forbruk, over de siste 7 dagene, med mindre du velger et annet tidsrom. Kall som ikke nevner noen, telles under **Ikke tilordnet**: en stor rad **Ikke tilordnet** forteller deg hvilket verktøy som fortsatt mangler identiteten sin.
 
-### Kodeassistentmålinger er en reserve, ikke et tillegg
+### Kodeassistentmålinger telles ved siden av kallene fra appene dine
 
-GenAI-spans kommer først: målingene leses bare for et tall spans ikke rapporterte noe for, og de to legges aldri sammen ([hvorfor](/docs/telemetry/ai-llm-observability#spans-kommer-først-målinger-fyller-hullene)). For kodeassistenter har det én tydelig konsekvens: **hvis det samme prosjektet mottar GenAI-spans med kostnad, vises ikke kodeassistentenes forbruk.** Gi kodeassistentene et eget prosjekt, med sin egen inntaksnøkkel.
+Hver tjeneste telles ut fra det den sender ([hvordan](/docs/telemetry/ai-llm-observability#hver-tjeneste-telles-ut-fra-det-den-sender)). Målingene til en kodeassistent kommer inn under dens egen tjeneste, så forbruket legges til AI-kallene appene dine sender til samme prosjekt, aldri i stedet for dem, og en app som sender GenAI-spans og målinger for de samme kallene, telles én gang, fra spansene sine.
 
-Når reserven gjelder, er dette hva hver inndeling kan vise for et verktøy som bare sender målinger:
+Dette viser hver inndeling for et verktøy som bare sender målinger:
 
 | Inndeling | Fra målinger |
 | --- | --- |
 | **Ansatt** | Ja, fra hver identitetsnøkkel ovenfor, med og uten prefikset `resource.` |
 | **Team** | Ja, fra teamnøklene |
 | **Modell** | Ja: Claude Code og Codex sender en `model` uten prefiks, Cursor `cursor.model.name` |
-| **Leverandør** | Nei: kodeassistentenes målinger nevner ingen leverandør |
-| **Applikasjon / Tjeneste** | Nei: målingene deres hører ikke til noen OneUptime-tjeneste |
+| **Leverandør** | Under **Ikke tilordnet**: kodeassistentenes målinger nevner ingen leverandør |
+| **Applikasjon / Tjeneste** | Ja: hvert verktøy under tjenesten målingene dets nevner, for eksempel `cursor` |
 
-En rad lest fra målinger bærer bare kostnad: cellene for kall og tokens viser `—`, fordi en forbruksteller ikke har detaljer per kall, og en 0 der ville påstå at personen ikke gjorde noen kall. Tabellen er merket med **fra GenAI-målinger**.
+En rad lest fra målinger sier **Fra bruksmålinger** under navnet sitt. Cellen for kall viser `—`, fordi en teller ikke har detaljer per kall, og en 0 der ville påstå at personen ikke gjorde noen kall; cellene for tokens viser tokenene målingene telte.
 
 ## Ingen OpenTelemetry? Sett en gateway foran
 
@@ -188,7 +188,7 @@ Codex sender også målingene sine til OpenAI som standard: se [OpenAI Codex](/d
 
 ## Hva OneUptime ikke gjør ennå
 
-- **Ingen administrasjonskoblinger mot kodeverktøy.** OneUptime leser kontoene hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI bak verktøyene ([Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts)), men ikke Cursors Admin API, GitHubs Copilot-fakturering eller API-ene til Windsurf eller JetBrains.
+- **Ingen administrasjonskoblinger mot kodeverktøy, bortsett fra Cursors.** OneUptime leser kontoene hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI bak verktøyene, og et Cursor-teams Admin API ([Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts)), men ikke GitHubs Copilot-fakturering eller API-ene til Windsurf eller JetBrains.
 - **Kostnad er et anslag med mindre et verktøy rapporterer den.** En rapportert kostnad brukes som den er; ellers priser OneUptime tokens etter listepriser. Cursors `cursor.cost.usage` er selv et anslag.
 - **Identitet på loggposter leses ikke.** Codex' `user.email`, som den bare sender på logger, knyttes ikke til forbruket.
 - **Cursors `cursor.user.email` leses ikke ennå**, så Cursor-brukere vises som heltallet `cursor.user.id`.
@@ -197,11 +197,11 @@ Codex sender også målingene sine til OpenAI som standard: se [OpenAI Codex](/d
 
 ## Hvor du begynner
 
-Rull ut i denne rekkefølgen; hvert steg er nyttig i seg selv. Bruk et prosjekt som ikke allerede mottar GenAI-spans fra dine egne apper, ellers holder [reserveregelen](#kodeassistentmålinger-er-en-reserve-ikke-et-tillegg) kodeassistentenes forbruk borte fra siden.
+Rull ut i denne rekkefølgen; hvert steg er nyttig i seg selv. Kodeassistentene kan dele prosjekt med dine egne apper: [hver telles ved siden av dem](#kodeassistentmålinger-telles-ved-siden-av-kallene-fra-appene-dine).
 
 1. **Gemini CLI**, hvis noen bruker det. Det sender `user.email` uten oppsett, så det viser tilordningen fungere hele veien. Slå på traces også: det sender ingen kostnadsmåling.
 2. **Claude Code**: én fil med administrerte innstillinger for flåten, `user.email` gratis, en ekte kostnadsmåling og godkjenningsrate, commits, pull requests og kodelinjer per utvikler.
-3. **Cursor**, med Enterprise-abonnementet: én skjerm i Cursors dashbord, ingen utviklermaskin berørt, selv om personer kommer inn som heltall.
+3. **Cursor**, med Enterprise-abonnementet: én skjerm i Cursors dashbord, ingen utviklermaskin berørt, selv om personer kommer inn som heltall. Med Teams-abonnementet, eller for det Cursor tok betalt per person, kobler du til administrator-API-nøkkelen som en [leverandørkonto](/docs/telemetry/ai-provider-accounts#cursor), med eller uten eksporten.
 4. **Copilot og Codex**, som begge trenger en identitet satt på hver maskin. Gjør det når du klargjør maskiner: kall som kom inn uten, kan ikke tilordnes i ettertid.
 5. **En LiteLLM-gateway** for alt annet, med én virtuell nøkkel per ansatt.
 

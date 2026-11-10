@@ -60,6 +60,10 @@ import {
   ResourceAiLogs,
 } from "../../../Types/AI/ResourceAiAccessApi";
 import {
+  RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
+  RESOURCE_AI_ACCESS_ORGANIZATION_PATH,
+} from "../../../Types/CloudConnection/CloudOrganizationAgents";
+import {
   getCloudAiAgentKeyEditRefusal,
   getCloudAiAgentKeyRefusal,
   getResourceAiAgentResetEditRefusal,
@@ -764,34 +768,39 @@ describe("ResourceAiAccessAPI", () => {
     jest.restoreAllMocks();
   });
 
-  test("registers the six routes, each behind the user middleware", () => {
-    for (const path of [
+  test("registers the eight routes, each behind the user middleware", () => {
+    const paths: Array<string> = [
       RESOURCE_AI_ACCESS_STATUS_PATH,
       RESOURCE_AI_ACCESS_TEST_PATH,
       RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
       RESOURCE_AI_ACCESS_LOGS_PATH,
       RESOURCE_AI_ACCESS_INSIGHTS_PATH,
       RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
-    ]) {
+      // An AWS Organization's agents (ResourceAiAccessOrganizationAPI.test).
+      RESOURCE_AI_ACCESS_ORGANIZATION_PATH,
+      RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
+    ];
+
+    for (const path of paths) {
       const route: MockRoute = matchRoute(path);
       expect(route.middleware).toBeDefined();
     }
 
-    expect([
-      RESOURCE_AI_ACCESS_STATUS_PATH,
-      RESOURCE_AI_ACCESS_TEST_PATH,
-      RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
-      RESOURCE_AI_ACCESS_LOGS_PATH,
-      RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-      RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
-    ]).toEqual([
+    expect(paths).toEqual([
       "/resource-ai-access/status",
       "/resource-ai-access/test",
       "/resource-ai-access/reset-agent",
       "/resource-ai-access/logs",
       "/resource-ai-access/insights",
       "/resource-ai-access/agent-key",
+      "/resource-ai-access/organization",
+      "/resource-ai-access/organization-agent-keys",
     ]);
+    expect(
+      mockRoutes.filter((route: MockRoute): boolean => {
+        return route.uri.startsWith("/resource-ai-access/");
+      }),
+    ).toHaveLength(paths.length);
     expect(
       mockRoutes.filter((route: MockRoute): boolean => {
         return route.uri === RESOURCE_AI_ACCESS_INSIGHTS_PATH;
@@ -1877,6 +1886,13 @@ describe("ResourceAiAccessAPI", () => {
         expect(String(call["cloudAccountId"])).toBe(RESOURCE_ID.toString());
         expect(String(call["userId"])).toBe(USER_ID.toString());
         expect(call["now"]).toBeInstanceOf(Date);
+        // Who made it, for the account's audit log (issue #6302).
+        expect(
+          String((call["props"] as DatabaseCommonInteractionProps).userId),
+        ).toBe(USER_ID.toString());
+        expect(
+          String((call["props"] as DatabaseCommonInteractionProps).tenantId),
+        ).toBe(PROJECT_ID.toString());
         // Decided for this very account, under the caller's own props.
         expect(changeSpy).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -2088,7 +2104,17 @@ describe("ResourceAiAccessAPI", () => {
         expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
         expect(call["resourceType"]).toBe(kind.resourceType);
         expect(String(call["resourceId"])).toBe(RESOURCE_ID.toString());
-        expect(String(call["userId"])).toBe(USER_ID.toString());
+        /*
+         * The route's own props, so the reset is recorded on the resource
+         * as theirs (issue #6302).
+         */
+        const props: DatabaseCommonInteractionProps = call[
+          "props"
+        ] as DatabaseCommonInteractionProps;
+        expect(String(props.userId)).toBe(USER_ID.toString());
+        expect(String(props.tenantId)).toBe(PROJECT_ID.toString());
+        expect(props.userType).toBe(UserType.User);
+        expect(call["userId"]).toBeUndefined();
 
         const response: JSONObject = lastResponse();
         expect(response["ok"]).toBe(true);

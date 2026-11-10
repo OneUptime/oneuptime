@@ -27,6 +27,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ObjectID from "Common/Types/ObjectID";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -68,6 +69,9 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
+import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import MetricQueryCloudAggregation from "Common/Utils/Metrics/MetricQueryCloudAggregation";
 import OneUptimeDate from "Common/Types/Date";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
@@ -198,7 +202,8 @@ const ROLLING_TIME_CANDIDATES: Array<{
   { minutes: 525600, rollingTime: RollingTime.Past365Days },
 ];
 
-function getNearestRollingTimeForWindow(): RollingTime {
+// The window of the view a "create monitor" link was made from, when it has one.
+function getLinkedViewWindow(): InBetween<Date> | null {
   const startTimeParam: string | null = Navigation.getQueryStringByName(
     MetricExplorerUrlParam.StartTime,
   );
@@ -206,24 +211,68 @@ function getNearestRollingTimeForWindow(): RollingTime {
     MetricExplorerUrlParam.EndTime,
   );
 
-  // No window on the link — fall back to the explorer's default hour.
   if (
     !startTimeParam ||
     !endTimeParam ||
     !OneUptimeDate.isValidDateString(startTimeParam) ||
     !OneUptimeDate.isValidDateString(endTimeParam)
   ) {
+    return null;
+  }
+
+  const startDate: Date = OneUptimeDate.fromString(startTimeParam);
+  const endDate: Date = OneUptimeDate.fromString(endTimeParam);
+
+  if (
+    !Number.isFinite(endDate.getTime() - startDate.getTime()) ||
+    endDate.getTime() <= startDate.getTime()
+  ) {
+    return null;
+  }
+
+  return new InBetween<Date>(startDate, endDate);
+}
+
+/*
+ * The queries of a monitor made from a metric view, read in the monitor's
+ * intervals instead of the view's: each that had the view's default
+ * aggregation takes the monitor's (MetricQueryCloudAggregation). A Service
+ * Bus namespace's messages waiting, read as the average of its queues in a
+ * view of 4 hours, add up by the minute in a monitor of 3; a picked
+ * aggregation stays. A link without a window was made from the explorer's
+ * default hour.
+ */
+export function getMetricViewMonitorQueryConfigs(data: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  viewWindow: InBetween<Date> | null;
+  rollingTime: RollingTime;
+}): Array<MetricQueryConfigData> {
+  const viewWindow: InBetween<Date> =
+    data.viewWindow ||
+    RollingTimeUtil.convertToStartAndEndDate(RollingTime.Past1Hour);
+
+  return MetricQueryCloudAggregation.withQueriesFollowingInterval({
+    queryConfigs: data.queryConfigs,
+    from: MetricQueryCloudAggregation.getRangeReadInterval({
+      startDate: viewWindow.startValue,
+      endDate: viewWindow.endValue,
+    }),
+    to: MetricQueryCloudAggregation.getMetricMonitorReadInterval({
+      rollingTime: data.rollingTime,
+    }),
+  });
+}
+
+function getNearestRollingTimeForWindow(): RollingTime {
+  const window: InBetween<Date> | null = getLinkedViewWindow();
+
+  // No window on the link — fall back to the explorer's default hour.
+  if (!window) {
     return RollingTime.Past1Hour;
   }
 
   const windowMinutes: number =
-    (OneUptimeDate.fromString(endTimeParam).getTime() -
-      OneUptimeDate.fromString(startTimeParam).getTime()) /
-    60000;
-
-  if (!Number.isFinite(windowMinutes) || windowMinutes <= 0) {
-    return RollingTime.Past1Hour;
-  }
+    (window.endValue.getTime() - window.startValue.getTime()) / 60000;
 
   let nearest: { minutes: number; rollingTime: RollingTime } =
     ROLLING_TIME_CANDIDATES[0]!;
@@ -479,8 +528,18 @@ const MonitorCreate: FunctionComponent<
       ? MetricExplorerUrl.parseMetricFormulasParam(rawMetricFormulas)
       : [];
 
-    const queryConfigs: Array<MetricQueryConfigData> =
-      buildQueryConfigsFromSerializedQueries(serializedQueries);
+    /*
+     * A view read for some services (issue #6266) makes a monitor limited to
+     * them: a Metrics monitor keeps its services on its step and reads every
+     * query for them, never a query's own.
+     */
+    const fromView: {
+      queryConfigs: Array<MetricQueryConfigData>;
+      serviceIds: Array<string>;
+    } = MetricQueryServices.takeServiceIds(
+      buildQueryConfigsFromSerializedQueries(serializedQueries),
+    );
+    const queryConfigs: Array<MetricQueryConfigData> = fromView.queryConfigs;
     const formulaConfigs: Array<MetricFormulaConfigData> =
       buildFormulaConfigsFromSerializedFormulas(
         serializedFormulas,
@@ -495,12 +554,27 @@ const MonitorCreate: FunctionComponent<
       return;
     }
 
+    const rollingTime: RollingTime = getNearestRollingTimeForWindow();
+
     monitorStep.data.metricMonitor = {
       metricViewConfig: {
-        queryConfigs: queryConfigs,
+        queryConfigs: getMetricViewMonitorQueryConfigs({
+          queryConfigs,
+          viewWindow: getLinkedViewWindow(),
+          rollingTime,
+        }),
         formulaConfigs: formulaConfigs,
       },
-      rollingTime: getNearestRollingTimeForWindow(),
+      rollingTime: rollingTime,
+      ...(fromView.serviceIds.length > 0
+        ? {
+            telemetryServiceIds: fromView.serviceIds.map(
+              (serviceId: string): ObjectID => {
+                return new ObjectID(serviceId);
+              },
+            ),
+          }
+        : {}),
     };
 
     /*

@@ -36,11 +36,12 @@ Feed items and Slack / Microsoft Teams messages are Markdown with people's text 
 
 ### Megabyte-long values
 
-A synthetic monitor's screenshot reaches descriptions and emails as base64 of several megabytes on one line. Do not run a regular expression with a quantifier over a value that long. V8 backtracks on a stack that can grow with every character a quantifier takes, and a process that has been running a while compiles regular expressions without optimization, so they run out of stack ("Maximum call stack size exceeded") on about three megabytes - in production, and in a CI test worker that has already run many test files. Scan such a value with a loop or `indexOf` (`isBase64` in `packages/Common/Utils/Markdown/InlineImageDataUri.ts`), and keep it out of marked (`Markdown.holdBackFromMarked`). `ScreenshotEmailInLongRunningProcess.test.ts` (packages/Common/Tests/Server/Utils/Mail) runs the screenshot-in-email path under `node --no-regexp-optimization`, the state such a process reaches; test new code that handles these values the same way.
+A synthetic monitor's screenshot reaches descriptions and emails as base64 of several megabytes on one line. Do not run a regular expression with a quantifier over a value that long. V8 backtracks on a stack that can grow with every character a quantifier takes, and a process that has been running a while compiles regular expressions without optimization, so they run out of stack ("Maximum call stack size exceeded") on about three megabytes - in production, and in a CI test worker that has already run many test files. Scan such a value with a loop or `indexOf` (`isBase64` in `packages/Common/Utils/Markdown/InlineImageDataUri.ts`), and keep it out of the Markdown parser: `holdBackBase64Data` (`packages/Common/Utils/Markdown/Base64Data.ts`) holds a screenshot's data back from marked (`Markdown.holdBackFromMarked`) and from remark (`MarkdownViewerOverLongText.ts`) alike. Read as Markdown, base64 is one long word of punctuation that the slow-Markdown measure below holds back as text - the Dashboard showed a description with a screenshot as text (#6010). `ScreenshotEmailInLongRunningProcess.test.ts` (packages/Common/Tests/Server/Utils/Mail) runs the screenshot-in-email path under `node --no-regexp-optimization`, the state such a process reaches; test new code that handles these values the same way.
 
 Any text a notification carries can be that long: a response body or a log a description template places, a log pasted into a note - megabytes on one line, or a paragraph of a hundred thousand lines. Markdown parsers (marked for emails, remark for the Dashboard and for slackify) read lines and paragraphs with regular expressions or in time that grows with their square, so:
 
 - Before a parser reads such Markdown, hold back what is too long with `packages/Common/Utils/Markdown/OverLongText.ts` (`holdBackOverLongText`: the middle of every line over 64 KB, the plain lines of every run of lines over 64 KB) and write it back, escaped, where the parser put the token - as the email renderer (`Markdown.holdBackFromMarked`) and `MarkdownViewer` (`MarkdownViewerOverLongText.ts`) do. Markdown of at most 64 KB holds back nothing and renders exactly as before.
+- A token in an image's or link's address does not survive remark-rehype, which percent-encodes it: the viewer puts addresses back in the Markdown tree first (`remarkPutBackHeldUrls`). remark-rehype also copies a link reference definition's address and title into every reference to it, so what is put back there is limited in all (`MAX_HELD_TEXT_IN_REFERENCES`): a 3 MB screenshot defined once and referenced 200 times is 600 MB of HTML.
 - When too much is still left - long tables, logs whose lines hold a `|`, a `<` or a backtick - show the text as written: an email field with more than `MAX_MARKED_EMAIL_MARKDOWN_LENGTH` (1 MiB) left, or a RangeError from marked, is sent as escaped text; the viewer shows more than `MAX_PARSED_MARKDOWN_LENGTH` (128 KB) as text.
 - A regular expression that can cross lines gets a bounded quantifier (`{0,65536}`, as in `Markdown.convertToPlainText`), and a step that only needs a loop uses one.
 - Chat messages are cut before any converter reads them, ending with a note: Slack at `SlackUtil.MARKDOWN_MAX_LENGTH` (`cutMarkdown`), Teams to an 80 KB message (`MicrosoftTeamsMessageSize.fitMarkdownText`).
@@ -85,6 +86,15 @@ rather than as a failed deploy. Prefer a render assertion over a careful reading
 cluster-backed suites that install the chart on a throwaway KinD cluster. That is the
 `helm-test` job in the "Common Jobs" workflow. Suites live in `HelmChart/Tests/suites`;
 see `HelmChart/README.md` for how to add one.
+
+### Releasing OneUptime
+
+Releases go through a release branch: `release-<version>` is cut from `main` and bumped, its pull request into
+`release` is the release's CI gate, every red check is fixed in that branch and the branch is merged into `main`
+after every push (`Scripts/Release/MergeReleaseBranchIntoMain.sh`), the branch is merged into `release` once green
+and into `main` once more, and the release run is followed until OneUptime has shipped. The next release is cut
+when `main` has pull requests the last one did not ship. While a release is in flight, `Scripts/Release/PrioritizeReleaseRuns.sh` cancels
+every other workflow run so the release has the runners. [RELEASING.md](RELEASING.md) has every step and command.
 
 ### Release notes
 

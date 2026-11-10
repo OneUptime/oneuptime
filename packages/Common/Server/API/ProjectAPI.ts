@@ -583,6 +583,13 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
              * instead of offering one the server would refuse.
              */
             enableAi: true,
+            /*
+             * The columns the project's lists show everyone who has not
+             * chosen their own (Project.defaultTableColumns): read with the
+             * project, so a list draws them from its first paint, with no
+             * read of its own (ModelTable/ProjectDefaultColumns).
+             */
+            defaultTableColumns: true,
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
             /*

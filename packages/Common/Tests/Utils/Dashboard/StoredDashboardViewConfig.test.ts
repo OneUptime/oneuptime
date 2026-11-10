@@ -20,6 +20,7 @@ import {
   DashboardTemplateType,
   getTemplateConfig,
 } from "../../../Types/Dashboard/DashboardTemplates";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import Email from "../../../Types/Email";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
@@ -28,6 +29,8 @@ import TimeRange from "../../../Types/Time/TimeRange";
 import DashboardVariableUrlState from "../../../Utils/Dashboard/VariableUrlState";
 import GridLayoutUtil from "../../../Utils/Dashboard/GridLayout";
 import DashboardViewConfigUtil from "../../../Utils/Dashboard/DashboardViewConfig";
+import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * Issue #4571: a dashboard did not open - "Cannot read properties of
@@ -862,6 +865,217 @@ describe("widgets", () => {
       expect(String(widgetArguments["owner"])).toBe("ops <ops@acme.example>");
       expect(widgetArguments["monitorId"]).toBeInstanceOf(ObjectID);
     });
+
+    /*
+     * Issue #6297: arguments written as JSON text are the same arguments as
+     * that object, and read exactly alike - ObjectIDs, query operators and
+     * dates revived - so a chart whose arguments are text reads the services
+     * it is saved with, as the chart stored as an object does. Read after
+     * the rest of the widget, they stayed JSON: an ObjectID's JSON is no id
+     * to MetricQueryServices, and the chart charted every service.
+     */
+    describe("arguments stored as JSON text (issue #6297)", () => {
+      const API_SERVICE: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
+      const CHECKOUT_SERVICE: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+
+      // A chart's arguments, as an API user stores a serialized one.
+      const chartArguments: () => JSONObject = (): JSONObject => {
+        return {
+          chartTitle: "Latency",
+          monitorId: { _type: "ObjectID", value: SECOND_WIDGET_ID },
+          since: { _type: "DateTime", value: "2026-01-01T00:00:00.000Z" },
+          metricQueryConfig: {
+            metricQueryData: {
+              filterData: {
+                metricName: "http.server.duration",
+                attributes: {
+                  "host.name": { _type: "Includes", value: ["web-1", "web-2"] },
+                },
+                telemetryServiceIds: [
+                  API_SERVICE,
+                  { _type: "ObjectID", value: CHECKOUT_SERVICE },
+                ],
+              },
+              groupByAttributeKeys: ["host.name"],
+            },
+          },
+        };
+      };
+
+      const chartWith: (widgetArguments: unknown) => JSONObject = (
+        widgetArguments: unknown,
+      ): JSONObject => {
+        return {
+          ...apiTextWidget(),
+          componentType: DashboardComponentType.Chart,
+          arguments: widgetArguments as JSONObject,
+        };
+      };
+
+      const filterDataOf: (config: DashboardViewConfig) => JSONObject = (
+        config: DashboardViewConfig,
+      ): JSONObject => {
+        return (
+          (
+            (config.components[0]!.arguments as JSONObject)[
+              "metricQueryConfig"
+            ] as JSONObject
+          )["metricQueryData"] as JSONObject
+        )["filterData"] as JSONObject;
+      };
+
+      test("are read exactly as the same arguments stored as an object", () => {
+        const asObject: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(chartArguments())],
+        });
+        const asText: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(JSON.stringify(chartArguments()))],
+        });
+
+        expect(asText).toEqual(asObject);
+
+        const widgetArguments: JSONObject = asText.components[0]!
+          .arguments as JSONObject;
+
+        expect(widgetArguments["monitorId"]).toBeInstanceOf(ObjectID);
+        expect(String(widgetArguments["monitorId"])).toBe(SECOND_WIDGET_ID);
+        expect(widgetArguments["since"]).toBeInstanceOf(Date);
+
+        const filterData: JSONObject = filterDataOf(asText);
+
+        expect(
+          (filterData["attributes"] as JSONObject)["host.name"],
+        ).toBeInstanceOf(Includes);
+
+        // The services the chart is saved with, as the chart reads them.
+        expect(
+          MetricQueryServices.normalize(filterData["telemetryServiceIds"]),
+        ).toEqual([API_SERVICE, CHECKOUT_SERVICE]);
+      });
+
+      test("are read alike in every shape the widget itself is stored in", () => {
+        const expected: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(chartArguments())],
+        });
+        const widget: JSONObject = chartWith(JSON.stringify(chartArguments()));
+
+        for (const [label, components] of [
+          ["the widget as JSON text", [JSON.stringify(widget)]],
+          [
+            "the DashboardComponent envelope",
+            [{ _type: "DashboardComponent", value: widget }],
+          ],
+          [
+            "the envelope, its value as JSON text",
+            [{ _type: "DashboardComponent", value: JSON.stringify(widget) }],
+          ],
+          ["the widget list as JSON text", JSON.stringify([widget])],
+        ] as Array<[string, unknown]>) {
+          expect([
+            label,
+            StoredDashboardViewConfig.read({ components: components }),
+          ]).toEqual([label, expected]);
+        }
+      });
+
+      test("that cannot be revived are kept as their JSON, as when stored as an object", () => {
+        const unrevivable: () => JSONObject = (): JSONObject => {
+          return {
+            ...chartArguments(),
+            // An address that is not text was never one: it cannot be read.
+            owner: { _type: "Email", value: 42 },
+          };
+        };
+
+        const asObject: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(unrevivable())],
+        });
+        const asText: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(JSON.stringify(unrevivable()))],
+        });
+
+        expect(asText).toEqual(asObject);
+        expect(asText.components[0]!.arguments).toEqual(unrevivable());
+
+        // Then the chart reads, as the page reads it, only the text id.
+        expect(
+          MetricQueryServices.normalize(
+            filterDataOf(asText)["telemetryServiceIds"],
+          ),
+        ).toEqual([API_SERVICE]);
+      });
+
+      test.each([
+        ["text of text", JSON.stringify(JSON.stringify({ text: "Twice" }))],
+        ["a list", JSON.stringify([{ text: "In a list" }])],
+        ["a number", "5"],
+        ["true", "true"],
+        ["null", "null"],
+        ["JSON cut short", '{"text": "Cut'],
+        ["blank", "   "],
+      ])(
+        "text that says no object - %s - is none",
+        (_name: string, text: string) => {
+          const config: DashboardViewConfig = StoredDashboardViewConfig.read({
+            components: [{ ...apiTextWidget(), arguments: text }],
+          });
+
+          expect(config.components[0]!.arguments).toEqual({});
+        },
+      );
+
+      test("the stored widget is left as it was", () => {
+        const entry: JSONObject = chartWith(JSON.stringify(chartArguments()));
+        const before: string = JSON.stringify(entry);
+
+        StoredDashboardViewConfig.read({ components: [entry] });
+
+        expect(JSON.stringify(entry)).toBe(before);
+        expect(typeof entry["arguments"]).toBe("string");
+      });
+
+      describe("withArgumentsRead: the same settings, as JSON", () => {
+        test("text that says an object is read as it: a copy, the stored entry kept", () => {
+          const entry: JSONObject = chartWith(JSON.stringify(chartArguments()));
+          const before: string = JSON.stringify(entry);
+
+          const read: JSONObject =
+            StoredDashboardViewConfig.withArgumentsRead(entry);
+
+          expect(read).not.toBe(entry);
+          expect(read).toEqual(chartWith(chartArguments()));
+          // Not deserialized: the JSON a widget stored as an object holds.
+          expect((read["arguments"] as JSONObject)["monitorId"]).toEqual({
+            _type: "ObjectID",
+            value: SECOND_WIDGET_ID,
+          });
+          expect(JSON.stringify(entry)).toBe(before);
+        });
+
+        test.each([
+          ["an object", { text: "Stored as one" }],
+          ["missing", undefined],
+          ["null", null],
+          ["text of text", JSON.stringify(JSON.stringify({ text: "Twice" }))],
+          ["a list as text", "[1, 2]"],
+          ["a number as text", "5"],
+          ["JSON cut short", '{"text": "Cut'],
+          ["text that is not JSON", "isBold"],
+        ])(
+          "any other entry comes back as the same object: arguments %s",
+          (_name: string, value: unknown) => {
+            const entry: JSONObject = {
+              ...apiTextWidget(),
+              arguments: value as JSONObject,
+            };
+
+            expect(StoredDashboardViewConfig.withArgumentsRead(entry)).toBe(
+              entry,
+            );
+          },
+        );
+      });
+    });
   });
 });
 
@@ -1367,5 +1581,316 @@ describe("isDashboardComponentType", () => {
     ["an object", { componentType: "Chart" }],
   ])("%s is not", (_name: string, value: unknown) => {
     expect(isDashboardComponentType(value)).toBe(false);
+  });
+});
+
+/*
+ * Issue #6327: the readers every board and the public dashboard's sanitizer
+ * share. `read` takes each widget's type and place, and the board's own
+ * settings, from these; the sanitizer judges and serves every widget by
+ * them - so a widget is served as the type, and in the place, every board
+ * then draws it.
+ */
+describe("the readers every board and the public sanitizer share (issue #6327)", () => {
+  describe("getComponentType", () => {
+    test.each([
+      ["a type this version draws", "Chart", "Chart"],
+      ["a removed type", "HostMetricChart", "HostMetricChart"],
+      ["a padded type, kept as stored", " Chart ", " Chart "],
+      ["the wrong case, kept as stored", "chart", "chart"],
+      ["empty", "", ""],
+      ["nothing", undefined, ""],
+      ["null", null, ""],
+      ["a number", 7, ""],
+      ["a list", ["Chart"], ""],
+      ["an object", { name: "Chart" }, ""],
+      ["a typed value", { _type: "Name", value: "Chart" }, ""],
+    ])("%s", (_name: string, componentType: unknown, expected: string) => {
+      expect(
+        StoredDashboardViewConfig.getComponentType({
+          componentType: componentType as JSONObject,
+        }),
+      ).toBe(expected);
+    });
+  });
+
+  describe("getComponentLayout", () => {
+    test("reads numbers, and numbers written as text", () => {
+      expect(
+        StoredDashboardViewConfig.getComponentLayout({
+          topInDashboardUnits: 3,
+          leftInDashboardUnits: "4",
+          widthInDashboardUnits: " 5 ",
+          heightInDashboardUnits: 2.5,
+          minWidthInDashboardUnits: "2",
+          minHeightInDashboardUnits: 0,
+        }),
+      ).toEqual({
+        topInDashboardUnits: 3,
+        leftInDashboardUnits: 4,
+        widthInDashboardUnits: 5,
+        heightInDashboardUnits: 2.5,
+        minWidthInDashboardUnits: 2,
+        minHeightInDashboardUnits: 0,
+      });
+    });
+
+    test.each([
+      ["nothing", undefined],
+      ["null", null],
+      ["text that is no number", "wide"],
+      ["empty text", " "],
+      ["a number out of range", Infinity],
+      ["a list", [3]],
+      ["an object", { value: 3 }],
+      ["a typed value", { _type: "DateTime", value: "2026-01-01T00:00:00Z" }],
+      ["a boolean", true],
+    ])(
+      "reads %s as the fallback place and size",
+      (_name: string, value: unknown) => {
+        const stored: JSONObject = {
+          topInDashboardUnits: value as JSONObject,
+          leftInDashboardUnits: value as JSONObject,
+          widthInDashboardUnits: value as JSONObject,
+          heightInDashboardUnits: value as JSONObject,
+          minWidthInDashboardUnits: value as JSONObject,
+          minHeightInDashboardUnits: value as JSONObject,
+        };
+
+        expect(StoredDashboardViewConfig.getComponentLayout(stored)).toEqual({
+          topInDashboardUnits: 0,
+          leftInDashboardUnits: 0,
+          widthInDashboardUnits: FALLBACK_WIDGET_WIDTH_IN_DASHBOARD_UNITS,
+          heightInDashboardUnits: FALLBACK_WIDGET_HEIGHT_IN_DASHBOARD_UNITS,
+          minWidthInDashboardUnits: 1,
+          minHeightInDashboardUnits: 1,
+        });
+      },
+    );
+  });
+
+  describe("readBoardSettings", () => {
+    test("reads the height, the defaults and the variables the board reads", () => {
+      expect(
+        StoredDashboardViewConfig.readBoardSettings({
+          heightInDashboardUnits: "30",
+          timeRange: TimeRange.PAST_ONE_WEEK,
+          refreshInterval: AutoRefreshInterval.FIVE_MINUTES,
+          variables: JSON.stringify([
+            { name: "cluster", type: DashboardVariableType.CustomList },
+          ]),
+          components: [apiTextWidget()],
+          layout: "grid",
+        }),
+      ).toEqual({
+        heightInDashboardUnits: 30,
+        timeRange: TimeRange.PAST_ONE_WEEK,
+        refreshInterval: AutoRefreshInterval.FIVE_MINUTES,
+        variables: [
+          {
+            id: "00000000-0000-4000-9000-000000000001",
+            name: "cluster",
+            type: DashboardVariableType.CustomList,
+          },
+        ],
+      });
+    });
+
+    test("leaves out what the board cannot read, and falls back to the default height", () => {
+      expect(
+        StoredDashboardViewConfig.readBoardSettings({
+          heightInDashboardUnits: -4,
+          timeRange: "Custom",
+          refreshInterval: "2s",
+          variables: { id: "not a list" },
+        }),
+      ).toEqual({
+        heightInDashboardUnits: DefaultDashboardSize.heightInDashboardUnits,
+      });
+    });
+
+    test("is what read gives the board, and reading it again changes nothing", () => {
+      const stored: JSONObject = {
+        heightInDashboardUnits: "18",
+        timeRange: TimeRange.PAST_ONE_DAY,
+        variables: [
+          { id: " env ", name: 4, isMultiSelect: "true" },
+          { id: " env ", name: "repeated" },
+          "junk",
+          { name: "no id", customListValues: ["a", 2, true] },
+        ],
+      };
+
+      const board: JSONObject = StoredDashboardViewConfig.readBoardSettings(
+        stored,
+      ) as unknown as JSONObject;
+      const read: DashboardViewConfig = StoredDashboardViewConfig.read(stored);
+
+      expect(board).toEqual({
+        heightInDashboardUnits: read.heightInDashboardUnits,
+        timeRange: read.timeRange,
+        variables: read.variables,
+      });
+
+      // What the public dashboard serves is read again by its page: the same.
+      expect(
+        StoredDashboardViewConfig.readBoardSettings(
+          JSON.parse(JSON.stringify(board)) as JSONObject,
+        ),
+      ).toEqual(board);
+    });
+  });
+
+  test("read takes each widget's type and place from them, whatever deserializing makes of the widget", () => {
+    const random: SeededRandom = seededRandom(6327);
+
+    const VALUES: Array<unknown> = [
+      3,
+      "4",
+      " 5 ",
+      "wide",
+      null,
+      undefined,
+      true,
+      [2],
+      { value: 2 },
+      { _type: "DateTime", value: "2026-01-01T00:00:00.000Z" },
+      { _type: "ObjectID", value: "0f8fad5b-d9cb-469f-a165-70867728950e" },
+      { _type: "Name", value: "Chart" },
+      { _type: "Email", value: "not an email" },
+      "Chart",
+      " Chart ",
+      "HostMetricChart",
+    ];
+
+    const FIELDS: Array<string> = [
+      "componentType",
+      "topInDashboardUnits",
+      "leftInDashboardUnits",
+      "widthInDashboardUnits",
+      "heightInDashboardUnits",
+      "minWidthInDashboardUnits",
+      "minHeightInDashboardUnits",
+    ];
+
+    for (let run: number = 0; run < 400; run++) {
+      const entry: JSONObject = {
+        componentId: ObjectID.generate().toString(),
+        arguments: { text: "Hello" },
+      };
+
+      for (const field of FIELDS) {
+        const value: unknown = VALUES[random(VALUES.length)];
+
+        if (value !== undefined) {
+          entry[field] = value as JSONObject;
+        }
+      }
+
+      // Now and then the widget itself is a typed value, or holds one that cannot be read.
+      const typedRoll: number = random(5);
+
+      if (typedRoll === 0) {
+        entry["_type"] = "ObjectID";
+        entry["value"] = ObjectID.generate().toString();
+      } else if (typedRoll === 1) {
+        entry["contact"] = { _type: "Email", value: "not an email" };
+      }
+
+      const [component] = StoredDashboardViewConfig.read({
+        components: [entry],
+      }).components;
+
+      expect([run, entry, component!.componentType]).toEqual([
+        run,
+        entry,
+        StoredDashboardViewConfig.getComponentType(entry),
+      ]);
+      expect([
+        run,
+        entry,
+        {
+          topInDashboardUnits: component!.topInDashboardUnits,
+          leftInDashboardUnits: component!.leftInDashboardUnits,
+          widthInDashboardUnits: component!.widthInDashboardUnits,
+          heightInDashboardUnits: component!.heightInDashboardUnits,
+          minWidthInDashboardUnits: component!.minWidthInDashboardUnits,
+          minHeightInDashboardUnits: component!.minHeightInDashboardUnits,
+        },
+      ]).toEqual([
+        run,
+        entry,
+        StoredDashboardViewConfig.getComponentLayout(entry),
+      ]);
+    }
+  });
+
+  /*
+   * Past the bound: every reader reads a widget stored in more layers than
+   * it reads through as one of no type - signed in, the board draws "This
+   * widget could not be shown" where it can be removed, and a save keeps
+   * what it holds - and the public dashboard serves its place alone, so
+   * the public page draws the same note in the same place.
+   */
+  describe("a widget stored deeper than every board reads", () => {
+    const envelopes: (widget: unknown, layers: number) => unknown = (
+      widget: unknown,
+      layers: number,
+    ): unknown => {
+      let entry: unknown = widget;
+
+      for (let layer: number = 0; layer < layers; layer++) {
+        entry = { _type: "DashboardComponent", value: entry };
+      }
+
+      return entry;
+    };
+
+    test("is read through five layers of envelope or JSON text", () => {
+      for (const entry of [
+        envelopes(apiTextWidget(), 5),
+        JSON.stringify(envelopes(apiTextWidget(), 4)),
+        {
+          _type: "DashboardComponent",
+          value: JSON.stringify(envelopes(apiTextWidget(), 4)),
+        },
+      ]) {
+        expect(
+          typesOf(StoredDashboardViewConfig.read({ components: [entry] })),
+        ).toEqual([DashboardComponentType.Text]);
+      }
+    });
+
+    test("past them, is a widget of no type, which keeps what it holds for a save", () => {
+      for (const layers of [6, 7, 10, 11, 30]) {
+        const config: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [envelopes(apiTextWidget(), layers)],
+        });
+
+        expectDrawable(config);
+        expect([layers, typesOf(config)]).toEqual([layers, [""]]);
+
+        // Saved as drawn, the layers it was not read through are still there.
+        expect(JSON.stringify(savedForm(config))).toContain(
+          "Hello from the envelope",
+        );
+      }
+    });
+
+    test("a config is read through four layers, and past them has no widgets", () => {
+      let config: unknown = { components: [apiTextWidget()] };
+
+      for (let layer: number = 1; layer <= 8; layer++) {
+        config =
+          layer % 2 === 0
+            ? JSON.stringify(config)
+            : { _type: "DashboardViewConfig", value: config };
+
+        expect([
+          layer,
+          typesOf(StoredDashboardViewConfig.read(config)),
+        ]).toEqual([layer, layer <= 4 ? [DashboardComponentType.Text] : []]);
+      }
+    });
   });
 });

@@ -393,6 +393,34 @@ describe("modal-only fields survive a keystroke", () => {
       ).route,
     ).toBe("https://app.acme.com/exact");
   });
+
+  test("a signal of the application's own is not part of the grammar either, and is carried from the base (issue #6443)", () => {
+    const base: SessionReplayAdvancedFilters = {
+      ...EMPTY_ADVANCED_FILTERS,
+      customSignalName: "Payment failed",
+    };
+
+    const result: SessionReplaySearchParseResult = parseSessionReplaySearch(
+      "browser:Chrome",
+      base,
+    );
+
+    expect(result.advanced.customSignalName).toBe("Payment failed");
+    expect(result.advanced.browserName).toBe("Chrome");
+    // Never written into the box: it is a chip.
+    expect(stringifySessionReplaySearch(base)).toBe("");
+    expect(
+      mergeSearchIntoFilters(
+        { ...EMPTY_ADVANCED_FILTERS, osName: "macOS" },
+        base,
+      ).customSignalName,
+    ).toBe("Payment failed");
+    // Typing the words does not set it: they are free-text search.
+    expect(
+      parseSessionReplaySearch("Payment failed", EMPTY_ADVANCED_FILTERS)
+        .advanced.customSignalName,
+    ).toBe("");
+  });
 });
 
 describe("duration tokens", () => {

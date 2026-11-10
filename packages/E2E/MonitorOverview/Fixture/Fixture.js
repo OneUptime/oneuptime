@@ -90,6 +90,14 @@
  *              card draws nothing. Only a monitor that checks a host (API,
  *              Website, SSL Certificate) asks, and only a role that may read
  *              security events.
+ *   ?settings=1  the subject monitor's Settings page
+ *              (/monitors/<id>/settings) is the production one rather than
+ *              the stub every other page has: its Monitoring card, and the
+ *              Response content card of a Website or API monitor (Request
+ *              content for an Incoming Request monitor), whose switch saves
+ *              Monitor.keepResponseContent. ?content=off: the monitor keeps
+ *              no response content - an Incoming Request monitor's overview
+ *              then gets its latest request with no headers or body.
  *   ?criteria= logs | several: a Logs monitor, "Checkout logs", whose
  *              Criteria page (/monitors/<TELEMETRY_MONITOR_ID>/criteria) is
  *              the production one rather than the stub every other monitor
@@ -144,6 +152,7 @@ import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Vie
 import MonitorCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
 import MonitorTemplates from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplates";
 import MonitorCriteriaPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria";
+import MonitorSettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Settings";
 import {
   applyRecipe,
   getRecipe,
@@ -301,6 +310,10 @@ const languageMode = ["de", "fa"].includes(params.get("lang"))
 const criteriaMode = ["logs", "several"].includes(params.get("criteria"))
   ? params.get("criteria")
   : null;
+// ?settings=1: the subject monitor's Settings page is the production one.
+const settingsMode = params.get("settings") === "1";
+// ?content=off: the subject monitor keeps no response content.
+const keepsResponseContent = params.get("content") !== "off";
 /*
  * What a telemetry rule's preview answers: counts in every window (the
  * default), nothing at all (?preview=empty: a service that has not sent
@@ -1783,19 +1796,34 @@ function defineMonitor(typeKey) {
     incomingEmailSecretKey:
       typeKey === "incoming-email" ? secretKey : undefined,
     serverMonitorSecretKey: typeKey === "server" ? secretKey : undefined,
+    keepResponseContent: typeKey === subjectType ? keepsResponseContent : true,
     customFields: {},
   };
 
   if (typeKey === "incoming-request" && !isAwaiting) {
+    /*
+     * The latest request as the server hands it to people (#6402): cut as
+     * the monitor's logs are - its token masked - and with no headers or
+     * body at all when the monitor keeps no request content
+     * (?content=off).
+     */
+    const keepsRequestContent =
+      typeKey === subjectType ? keepsResponseContent : true;
+
     record.incomingMonitorRequest = {
       projectId: PROJECT_ID,
       monitorId,
       requestMethod: HTTPMethod.POST,
-      requestHeaders: {
-        "content-type": "application/json",
-        "user-agent": "billing-export/2.3",
-      },
-      requestBody: { job: "nightly-billing-export", rows: 18234 },
+      ...(keepsRequestContent
+        ? {
+            requestHeaders: {
+              "content-type": "application/json",
+              "user-agent": "billing-export/2.3",
+              authorization: "[REDACTED]",
+            },
+            requestBody: { job: "nightly-billing-export", rows: 18234 },
+          }
+        : { isResponseContentOmitted: true }),
       incomingRequestReceivedAt: ago(7 * MINUTE).toISOString(),
       checkedAt: ago(40 * SECOND).toISOString(),
     };
@@ -3456,7 +3484,8 @@ const STUB_PAGES = [
       return (
         String(pageKey).startsWith("MONITOR_VIEW_") &&
         pageKey !== PageMap.MONITOR_VIEW_LOGS &&
-        !(criteriaMode && pageKey === PageMap.MONITOR_VIEW_CRITERIA)
+        !(criteriaMode && pageKey === PageMap.MONITOR_VIEW_CRITERIA) &&
+        !(settingsMode && pageKey === PageMap.MONITOR_VIEW_SETTINGS)
       );
     })
     .map((pageKey) => {
@@ -3585,6 +3614,16 @@ function FixtureApp() {
                 element={
                   <MonitorCriteriaPage
                     {...pageProps(PageMap.MONITOR_VIEW_CRITERIA)}
+                  />
+                }
+              />
+            ) : null}
+            {settingsMode ? (
+              <Route
+                path="settings"
+                element={
+                  <MonitorSettingsPage
+                    {...pageProps(PageMap.MONITOR_VIEW_SETTINGS)}
                   />
                 }
               />

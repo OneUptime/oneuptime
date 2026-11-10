@@ -110,21 +110,32 @@ describe("Project Settings > Custom SMTP", () => {
     "CustomSMTPTable.tsx",
   );
 
+  /*
+   * A config sends through an SMTP server or through a provider's own API
+   * (Amazon SES, SendGrid, Mailgun, Postmark, Resend) or Microsoft Graph,
+   * picked first in the form.
+   */
   test("says what the configs are for, and where a status page picks one", () => {
     expect(table).toContain(
-      '"Send this project\'s email through your own mail server. A status page picks one under Subscriber Settings."',
+      '"Send this project\'s email through your own mail server, or through Amazon SES, SendGrid, Mailgun, Postmark, Resend or Microsoft Graph. A status page picks one under Subscriber Settings."',
     );
     expect(table).not.toContain(
       "If you need OneUptime to send emails through your SMTP Server",
     );
   });
 
-  test("tells configs apart by name, server and sender: the rest is in the Edit dialog", () => {
+  test("tells configs apart by name, what they send through and sender: the rest is in the Edit dialog", () => {
     const columns: string = table.slice(table.indexOf("columns={["));
 
     expect(columns).toContain('title: "Name"');
-    expect(columns).toContain('title: "Server Host"');
+    /*
+     * An SMTP server's host, or the provider and where it sends from
+     * (EmailProviderSummary).
+     */
+    expect(columns).toContain('title: "Sends Through"');
+    expect(columns).toContain("<EmailProviderSummary config={item} />");
     expect(columns).toContain('title: "From Email"');
+    expect(columns).not.toContain('title: "Server Host"');
     expect(columns).not.toContain('title: "Auth Type"');
     expect(columns).not.toContain('title: "Transport"');
     expect(columns).not.toContain('title: "Description"');
@@ -271,8 +282,9 @@ describe("the Admin Dashboard's locales word what its pages now draw", () => {
     "The teams of that project they join.",
   ];
 
-  test("all seventeen languages", () => {
-    expect(files).toHaveLength(17);
+  test("all eighteen languages", () => {
+    expect(files).toHaveLength(18);
+    expect(files).toContain("ar.json");
   });
 
   test.each(files)("%s", (file: string) => {

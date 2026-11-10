@@ -246,6 +246,8 @@ describe("the builder loads the webhook secret key only for those who may see it
        */
       expect(getItemCall().select).toEqual({
         graph: true,
+        // Which graph the first save is made to (issue #6257): read by anyone who reads the graph.
+        graphRevision: true,
         name: true,
         isEnabled: true,
         isArchived: true,
@@ -276,6 +278,7 @@ describe("the builder loads the webhook secret key only for those who may see it
       // Not even `webhookSecretKey: false`: the column is never named.
       expect(Object.keys(getItemCall().select)).toEqual([
         "graph",
+        "graphRevision",
         "name",
         "isEnabled",
         "isArchived",
@@ -295,6 +298,7 @@ describe("the builder loads the webhook secret key only for those who may see it
 
     expect(Object.keys(getItemCall().select)).toEqual([
       "graph",
+      "graphRevision",
       "name",
       "isEnabled",
       "isArchived",

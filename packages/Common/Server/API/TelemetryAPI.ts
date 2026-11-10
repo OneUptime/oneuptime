@@ -150,6 +150,23 @@ import {
   readConversationSort,
   readFilterText,
 } from "../../Types/Telemetry/LlmConversationApi";
+import {
+  LLM_METRIC_USAGE_ROUTE,
+  LlmMetricUsageResponse,
+  readLlmMetricUsageDimension,
+} from "../../Types/Telemetry/LlmMetricUsageApi";
+import {
+  LLM_SETUP_CHECK_ROUTE,
+  LlmSetupCheckResponse,
+} from "../../Types/Telemetry/LlmSetupCheckApi";
+import {
+  LLM_USAGE_ROUTE,
+  LlmUsageResponse,
+  readLlmUsageDimension,
+} from "../../Types/Telemetry/LlmUsageApi";
+import LlmMetricUsageReader from "../Utils/Telemetry/LlmMetricUsageReader";
+import LlmUsageReader from "../Utils/Telemetry/LlmUsageReader";
+import LlmSetupCheckReader from "../Utils/Telemetry/LlmSetupCheckReader";
 import PromiseCache from "../Utils/PromiseCache";
 import TelemetryReadScopeUtil, {
   TelemetryReadScope,
@@ -249,6 +266,30 @@ import {
   parseSessionReplayListCursor,
 } from "../../Types/Rum/SessionReplayApi";
 import { SessionReplayRefusalCount } from "../../Types/Rum/SessionReplayHealth";
+import RumProductAnalyticsReadService from "../Utils/RumProductAnalytics/RumProductAnalyticsReadService";
+import {
+  DEFAULT_PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS,
+  DEFAULT_PRODUCT_ANALYTICS_PEOPLE_LIMIT,
+  DEFAULT_PRODUCT_ANALYTICS_PERSON_SESSIONS_LIMIT,
+  DEFAULT_PRODUCT_ANALYTICS_TIME_ZONE,
+  MAX_PRODUCT_ANALYTICS_OFFSET,
+  MAX_PRODUCT_ANALYTICS_PEOPLE_LIMIT,
+  MAX_PRODUCT_ANALYTICS_PERSON_SESSIONS_LIMIT,
+  PRODUCT_ANALYTICS_DIMENSIONS,
+  PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS_OPTIONS,
+  PRODUCT_ANALYTICS_MAX_RANGE_DAYS,
+  PRODUCT_ANALYTICS_PEOPLE_FILTERS,
+  PRODUCT_ANALYTICS_SEARCH_MAX_LENGTH,
+  ProductAnalyticsBreakdownDto,
+  ProductAnalyticsDimension,
+  ProductAnalyticsPeopleDto,
+  ProductAnalyticsPeopleFilter,
+  ProductAnalyticsPersonDetailDto,
+  ProductAnalyticsSummaryDto,
+  ProductAnalyticsTrendDto,
+  isProductAnalyticsPersonKey,
+  toProductAnalyticsTimeZone,
+} from "../../Types/Rum/ProductAnalytics";
 import zlib from "zlib";
 import { promisify } from "util";
 import OldestKeyMap from "../../Utils/OldestKeyMap";
@@ -2156,10 +2197,40 @@ function clampInteger(
 }
 
 /*
+ * What the caller may read of logs, for the prompts and answers an app sends
+ * as GenAI log events (LlmConversationService reads them for the answers
+ * whose spans lack them): the same rows the Logs page shows them. null when
+ * they may read none - refused logs outright (a block with no labels), or
+ * granted no app's logs.
+ */
+async function getConversationLogScope(
+  databaseProps: DatabaseCommonInteractionProps,
+): Promise<TelemetryReadScope | null> {
+  let logScope: TelemetryReadScope;
+
+  try {
+    logScope = await TelemetryReadAccess.getScope(Log, databaseProps);
+  } catch (err: unknown) {
+    if (err instanceof NotAuthorizedException) {
+      return null;
+    }
+
+    throw err;
+  }
+
+  const readableIds: Array<string> | null =
+    TelemetryReadScopeUtil.getReadableIds(logScope);
+
+  return readableIds !== null && readableIds.length === 0 ? null : logScope;
+}
+
+/*
  * The AI conversations of a time range: calls grouped by conversation id
  * (or by trace when none was sent), one row each, with the summary and the
  * per-issue counts the page shows above them. Same read access as the
- * traces the calls are; the caller's service scope narrows the read.
+ * traces the calls are; the caller's service scope narrows the read. A row
+ * whose spans recorded no question takes its title from its first call's
+ * GenAI log events, when the caller may read that app's logs.
  */
 router.post(
   LLM_CONVERSATIONS_ROUTE,
@@ -2200,12 +2271,14 @@ router.post(
         );
       }
 
-      const serviceFilter: TelemetryServiceFilter =
-        await TelemetryReadAccess.getServiceFilter({
+      const [serviceFilter, logScope] = await Promise.all([
+        TelemetryReadAccess.getServiceFilter({
           modelType: Span,
           props: databaseProps,
           requested: readBodyServiceIds(body["serviceIds"]),
-        });
+        }),
+        getConversationLogScope(databaseProps),
+      ]);
 
       const result: LlmConversationListResponse =
         await LlmConversationService.listConversations({
@@ -2214,6 +2287,7 @@ router.post(
           endTime: endTime,
           serviceIds: serviceFilter.serviceIds,
           excludedServiceIds: serviceFilter.excludedServiceIds,
+          logScope: logScope,
           model: readFilterText(body["model"]),
           person: readFilterText(body["person"]),
           search: readFilterText(body["search"]),
@@ -2243,7 +2317,9 @@ router.post(
 /*
  * One conversation as a transcript. The time hint (the list row's first and
  * last call) keeps the read on the partitions that hold it; without one the
- * last 30 days are read.
+ * last 30 days are read. Prompts and answers an app sent as GenAI log
+ * events are read from the logs the caller may read; the answer says
+ * whether they were (logEvents).
  */
 router.post(
   LLM_CONVERSATION_ROUTE,
@@ -2308,11 +2384,13 @@ router.post(
         );
       }
 
-      const serviceFilter: TelemetryServiceFilter =
-        await TelemetryReadAccess.getServiceFilter({
+      const [serviceFilter, logScope] = await Promise.all([
+        TelemetryReadAccess.getServiceFilter({
           modelType: Span,
           props: databaseProps,
-        });
+        }),
+        getConversationLogScope(databaseProps),
+      ]);
 
       const detail: LlmConversationDetail =
         await LlmConversationService.getConversation({
@@ -2322,6 +2400,7 @@ router.post(
           endTime: endTime,
           serviceIds: serviceFilter.serviceIds,
           excludedServiceIds: serviceFilter.excludedServiceIds,
+          logScope: logScope,
         });
 
       return Response.sendJsonObjectResponse(
@@ -2403,6 +2482,274 @@ router.post(
         req,
         res,
         response as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * What the GenAI metrics of a range add up to - tokens and cost, in total
+ * or by person, team, model, provider or service - counted the way a
+ * counter counts, resets included (LlmMetricUsageReader). The Usage tab
+ * reads LLM_USAGE_ROUTE below, which counts these beside the AI calls;
+ * this route stays for the callers that read the metrics alone. Same read
+ * access as the metrics model; the caller's service scope narrows the read.
+ */
+router.post(
+  LLM_METRIC_USAGE_ROUTE,
+  ...requireMetricReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const endTime: Date = readBodyDate(
+        body["endTime"],
+        OneUptimeDate.getCurrentDate(),
+      );
+      const startTime: Date = readBodyDate(
+        body["startTime"],
+        OneUptimeDate.addRemoveDays(endTime, -7),
+      );
+
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must be before endTime"),
+        );
+      }
+
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Metric,
+          props: databaseProps,
+        });
+
+      const usage: LlmMetricUsageResponse = await LlmMetricUsageReader.read({
+        projectId: databaseProps.tenantId,
+        startTime: startTime,
+        endTime: endTime,
+        dimension: readLlmMetricUsageDimension(body["dimension"]),
+        serviceIds: serviceFilter.serviceIds,
+        excludedServiceIds: serviceFilter.excludedServiceIds,
+      });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        usage as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * What a range's AI usage adds up to - calls, tokens and cost, in total and
+ * by person, team, model, provider or service - for the Usage tab
+ * (LlmUsageReader): the AI calls (spans), each model call counted once, and
+ * the usage metrics, each service counted from the signal it sends. Same
+ * read access as the AI calls; the usage metrics are read only when the
+ * caller may read metrics (else the answer says they were left out), each
+ * signal narrowed to the caller's services.
+ */
+router.post(
+  LLM_USAGE_ROUTE,
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const endTime: Date = readBodyDate(
+        body["endTime"],
+        OneUptimeDate.getCurrentDate(),
+      );
+      const startTime: Date = readBodyDate(
+        body["startTime"],
+        OneUptimeDate.addRemoveDays(endTime, -7),
+      );
+
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must be before endTime"),
+        );
+      }
+
+      const spanFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Span,
+          props: databaseProps,
+        });
+
+      /*
+       * Metrics the caller may not read are left out, and the answer says
+       * so. Any other failure fails the read: a lookup that broke is never
+       * told to the reader as their role.
+       */
+      let metricFilter: TelemetryServiceFilter | null = null;
+
+      try {
+        metricFilter = await TelemetryReadAccess.getServiceFilter({
+          modelType: Metric,
+          props: databaseProps,
+        });
+      } catch (err: unknown) {
+        if (!(err instanceof NotAuthorizedException)) {
+          throw err;
+        }
+
+        metricFilter = null;
+      }
+
+      const usage: LlmUsageResponse = await LlmUsageReader.read({
+        projectId: databaseProps.tenantId,
+        startTime: startTime,
+        endTime: endTime,
+        dimension: readLlmUsageDimension(body["dimension"]),
+        serviceIds: spanFilter.serviceIds,
+        excludedServiceIds: spanFilter.excludedServiceIds,
+        metricFilter: metricFilter,
+      });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        usage as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * The AI / LLM setup check: what the project's AI is sending, way by way -
+ * the apps' AI calls (and whether their prompts were recorded), coding
+ * tools' metrics, provider accounts and company AI tools - for the empty
+ * Conversations and Calls views and the Connect page (LlmSetupCheckApi).
+ * Same read access as the AI calls (spans); the metrics and logs parts are
+ * read only when the caller may read those, each narrowed to the caller's
+ * services, and the connections with the caller's own permissions.
+ */
+router.post(
+  LLM_SETUP_CHECK_ROUTE,
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const now: Date = OneUptimeDate.getCurrentDate();
+      const windowEnd: Date | null =
+        typeof body["endTime"] === "string"
+          ? readBodyDate(body["endTime"], now)
+          : null;
+      const windowStart: Date | null =
+        typeof body["startTime"] === "string" && windowEnd
+          ? readBodyDate(body["startTime"], windowEnd)
+          : null;
+
+      if (
+        windowStart &&
+        windowEnd &&
+        windowStart.getTime() > windowEnd.getTime()
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must be before endTime"),
+        );
+      }
+
+      const spanFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Span,
+          props: databaseProps,
+        });
+
+      // A signal the caller may not read is left out of the check.
+      const filterOrNull: (
+        modelType: typeof Metric | typeof Log,
+      ) => Promise<TelemetryServiceFilter | null> = async (
+        modelType: typeof Metric | typeof Log,
+      ): Promise<TelemetryServiceFilter | null> => {
+        try {
+          return await TelemetryReadAccess.getServiceFilter({
+            modelType: modelType,
+            props: databaseProps,
+          });
+        } catch {
+          return null;
+        }
+      };
+
+      const [metricFilter, logFilter] = await Promise.all([
+        filterOrNull(Metric),
+        filterOrNull(Log),
+      ]);
+
+      const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read({
+        projectId: databaseProps.tenantId,
+        now: now,
+        windowStart: windowStart && windowEnd ? windowStart : undefined,
+        windowEnd: windowStart && windowEnd ? windowEnd : undefined,
+        serviceIds: spanFilter.serviceIds,
+        excludedServiceIds: spanFilter.excludedServiceIds,
+        metricFilter: metricFilter,
+        logFilter: logFilter,
+        props: databaseProps,
+      });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        check as unknown as JSONObject,
       );
     } catch (err: unknown) {
       next(err);
@@ -6566,6 +6913,13 @@ router.post(
         ...(readBoundedStringFromBody(rawFilters, "route") && {
           route: readBoundedStringFromBody(rawFilters, "route"),
         }),
+        /* One of the application's own signals, by name (issue #6443). */
+        ...(readBoundedStringFromBody(rawFilters, "customSignalName") && {
+          customSignalName: readBoundedStringFromBody(
+            rawFilters,
+            "customSignalName",
+          ),
+        }),
         ...(typeof rawFilters["minDurationMs"] === "number" &&
           Number.isFinite(rawFilters["minDurationMs"]) && {
             minDurationMs: rawFilters["minDurationMs"],
@@ -7027,6 +7381,438 @@ router.post(
         users: result.users as unknown as JSONObject,
         nextCursor: nextCursor,
       });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * ---- Product analytics (issue #6444) ----
+ *
+ * Five reads behind a RUM application's Users and Sessions pages: who uses
+ * the app (active, new, returning, signed-in, anonymous, dormant and total
+ * users) and how their sessions go, from the session summaries
+ * RumProductAnalyticsReadService reads.
+ *
+ * Reading them is listing sessions - who came, on what, for how long - so
+ * every route carries /list's guard, plan gate and label-scoped application
+ * check, and names a signed-in user's reference only where /list would:
+ * canReadIdentifiedUserLabel for the application the caller was just
+ * authorized against. Every value the body carries is checked here, so a
+ * bad one is a 400 and never a driver error.
+ */
+interface ProductAnalyticsRequest {
+  projectId: ObjectID;
+  rumApplicationId: ObjectID;
+  application: RumApplication;
+  databaseProps: DatabaseCommonInteractionProps;
+  body: JSONObject;
+}
+
+type ReadProductAnalyticsRequestFunction = (
+  req: ExpressRequest,
+) => Promise<ProductAnalyticsRequest>;
+
+const readProductAnalyticsRequest: ReadProductAnalyticsRequestFunction = async (
+  req: ExpressRequest,
+): Promise<ProductAnalyticsRequest> => {
+  const databaseProps: DatabaseCommonInteractionProps =
+    await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+  if (!databaseProps?.tenantId) {
+    throw new BadDataException("Invalid Project ID");
+  }
+
+  assertSessionReplayPlan(databaseProps);
+
+  const projectId: ObjectID = databaseProps.tenantId;
+  const body: JSONObject = (req.body || {}) as JSONObject;
+  const rumApplicationId: ObjectID = readObjectIdFromBody(
+    body,
+    "rumApplicationId",
+  );
+
+  const application: RumApplication =
+    await assertSessionReplayApplicationAccess({
+      projectId: projectId,
+      rumApplicationId: rumApplicationId,
+      databaseProps: databaseProps,
+      permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+    });
+
+  return {
+    projectId: projectId,
+    rumApplicationId: rumApplicationId,
+    application: application,
+    databaseProps: databaseProps,
+    body: body,
+  };
+};
+
+/*
+ * The range: the last 7 days by default, never inverted, and no longer than
+ * PRODUCT_ANALYTICS_MAX_RANGE_DAYS - what the tables keep, and a bound on
+ * what one read scans.
+ */
+type ReadProductAnalyticsRangeFunction = (body: JSONObject) => {
+  startTime: Date;
+  endTime: Date;
+};
+
+const readProductAnalyticsRange: ReadProductAnalyticsRangeFunction = (
+  body: JSONObject,
+): { startTime: Date; endTime: Date } => {
+  const endTime: Date =
+    readOptionalDateFromBody(body, "endTime") || OneUptimeDate.getCurrentDate();
+  const startTime: Date =
+    readOptionalDateFromBody(body, "startTime") ||
+    OneUptimeDate.addRemoveDays(endTime, -7);
+
+  if (startTime.getTime() > endTime.getTime()) {
+    throw new BadDataException("startTime must not be after endTime");
+  }
+
+  if (
+    endTime.getTime() - startTime.getTime() >
+    PRODUCT_ANALYTICS_MAX_RANGE_DAYS * 24 * 60 * 60 * 1000
+  ) {
+    throw new BadDataException(
+      `A range can cover at most ${PRODUCT_ANALYTICS_MAX_RANGE_DAYS} days.`,
+    );
+  }
+
+  return { startTime: startTime, endTime: endTime };
+};
+
+/* One of the windows the page offers; anything else is refused. */
+type ReadDormantAfterDaysFunction = (body: JSONObject) => number;
+
+const readDormantAfterDays: ReadDormantAfterDaysFunction = (
+  body: JSONObject,
+): number => {
+  const value: unknown = body["dormantAfterDays"];
+
+  if (value === undefined || value === null) {
+    return DEFAULT_PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS;
+  }
+
+  if (
+    typeof value !== "number" ||
+    !PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS_OPTIONS.includes(value)
+  ) {
+    throw new BadDataException(
+      `dormantAfterDays must be one of ${PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS_OPTIONS.join(", ")}.`,
+    );
+  }
+
+  return value;
+};
+
+/* Rows to skip: a whole number, and not so deep that each page sorts the world. */
+type ReadOffsetFromBodyFunction = (body: JSONObject) => number;
+
+const readOffsetFromBody: ReadOffsetFromBodyFunction = (
+  body: JSONObject,
+): number => {
+  const value: unknown = body["offset"];
+
+  if (value === undefined || value === null) {
+    return 0;
+  }
+
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < 0 ||
+    value > MAX_PRODUCT_ANALYTICS_OFFSET
+  ) {
+    throw new BadDataException(
+      `offset must be a whole number between 0 and ${MAX_PRODUCT_ANALYTICS_OFFSET}`,
+    );
+  }
+
+  return value;
+};
+
+/* The headline numbers: this range and the one before, and the history's totals. */
+router.post(
+  "/telemetry/rum/product-analytics/summary",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+
+      const summary: ProductAnalyticsSummaryDto =
+        await RumProductAnalyticsReadService.getSummary({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          dormantAfterDays: readDormantAfterDays(request.body),
+          now: OneUptimeDate.getCurrentDate(),
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        summary as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/* Day by day, in the reader's time zone. */
+router.post(
+  "/telemetry/rum/product-analytics/trend",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+
+      const rawTimeZone: unknown = request.body["timeZone"];
+      const timeZone: string | null =
+        rawTimeZone === undefined || rawTimeZone === null
+          ? DEFAULT_PRODUCT_ANALYTICS_TIME_ZONE
+          : toProductAnalyticsTimeZone(rawTimeZone);
+
+      if (!timeZone) {
+        throw new BadDataException(
+          "timeZone must be an IANA time zone, such as Europe/Berlin.",
+        );
+      }
+
+      const trend: ProductAnalyticsTrendDto =
+        await RumProductAnalyticsReadService.getTrend({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          timeZone: timeZone,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        trend as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/* Users and sessions by device, browser, operating system, country, version or page. */
+router.post(
+  "/telemetry/rum/product-analytics/breakdown",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const dimension: unknown = request.body["dimension"];
+
+      if (
+        !PRODUCT_ANALYTICS_DIMENSIONS.includes(
+          dimension as ProductAnalyticsDimension,
+        )
+      ) {
+        throw new BadDataException(
+          `dimension must be one of ${PRODUCT_ANALYTICS_DIMENSIONS.join(", ")}.`,
+        );
+      }
+
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+
+      const breakdown: ProductAnalyticsBreakdownDto =
+        await RumProductAnalyticsReadService.getBreakdown({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          dimension: dimension as ProductAnalyticsDimension,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        breakdown as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * People, one row each. A search reads who signed-in users are, so it is
+ * refused - not quietly ignored - for a caller who may not see that: an
+ * unfiltered list under a name they typed would be a wrong answer.
+ */
+router.post(
+  "/telemetry/rum/product-analytics/people",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const rawFilter: unknown = request.body["filter"];
+      const filter: ProductAnalyticsPeopleFilter =
+        rawFilter === undefined || rawFilter === null
+          ? ProductAnalyticsPeopleFilter.Active
+          : (rawFilter as ProductAnalyticsPeopleFilter);
+
+      if (!PRODUCT_ANALYTICS_PEOPLE_FILTERS.includes(filter)) {
+        throw new BadDataException(
+          `filter must be one of ${PRODUCT_ANALYTICS_PEOPLE_FILTERS.join(", ")}.`,
+        );
+      }
+
+      const rawSearch: unknown = request.body["search"];
+
+      if (
+        rawSearch !== undefined &&
+        rawSearch !== null &&
+        (typeof rawSearch !== "string" ||
+          rawSearch.length > PRODUCT_ANALYTICS_SEARCH_MAX_LENGTH)
+      ) {
+        throw new BadDataException(
+          `search must be text of at most ${PRODUCT_ANALYTICS_SEARCH_MAX_LENGTH} characters.`,
+        );
+      }
+
+      const search: string =
+        typeof rawSearch === "string" ? rawSearch.trim() : "";
+
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+      const dormantAfterDays: number = readDormantAfterDays(request.body);
+      const limit: number = readLimitFromBody(
+        request.body,
+        DEFAULT_PRODUCT_ANALYTICS_PEOPLE_LIMIT,
+        MAX_PRODUCT_ANALYTICS_PEOPLE_LIMIT,
+      );
+      const offset: number = readOffsetFromBody(request.body);
+
+      /*
+       * Decided against the application the access check loaded, as on
+       * /list, and enforced by not naming the label in the statements.
+       */
+      const includeLabel: boolean = await canReadIdentifiedUserLabel({
+        databaseProps: request.databaseProps,
+        application: request.application,
+      });
+
+      if (search && !includeLabel) {
+        throw new BadDataException(
+          "Your role cannot see who signed-in users are, so it cannot search them by name. Ask a project admin for the session replay identity permission.",
+        );
+      }
+
+      const people: ProductAnalyticsPeopleDto =
+        await RumProductAnalyticsReadService.listPeople({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          filter: filter,
+          dormantAfterDays: dormantAfterDays,
+          now: OneUptimeDate.getCurrentDate(),
+          limit: limit,
+          offset: offset,
+          includeLabel: includeLabel,
+          search: search || undefined,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        people as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/* One person: what the history knows of them and their sessions, newest first. */
+router.post(
+  "/telemetry/rum/product-analytics/person",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const personKey: unknown = request.body["personKey"];
+
+      if (!isProductAnalyticsPersonKey(personKey)) {
+        throw new BadDataException(
+          "personKey must be u: and a 64-character user key, or v: and a 32-character visitor id.",
+        );
+      }
+
+      const limit: number = readLimitFromBody(
+        request.body,
+        DEFAULT_PRODUCT_ANALYTICS_PERSON_SESSIONS_LIMIT,
+        MAX_PRODUCT_ANALYTICS_PERSON_SESSIONS_LIMIT,
+      );
+      const offset: number = readOffsetFromBody(request.body);
+
+      const includeLabel: boolean = await canReadIdentifiedUserLabel({
+        databaseProps: request.databaseProps,
+        application: request.application,
+      });
+
+      const person: ProductAnalyticsPersonDetailDto =
+        await RumProductAnalyticsReadService.getPerson({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          personKey: personKey,
+          now: OneUptimeDate.getCurrentDate(),
+          limit: limit,
+          offset: offset,
+          includeLabel: includeLabel,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        person as unknown as JSONObject,
+      );
     } catch (err: unknown) {
       next(err);
     }

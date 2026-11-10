@@ -1,6 +1,6 @@
 # RUM-Fehlerbehebung
 
-Wenn eine RUM-Anwendung fehlt, leer ist oder **Getrennt** anzeigt, arbeiten Sie diese Seite der Reihe nach ab. Jede Prüfung schließt einen Teil des Wegs von Ihrer App zu OneUptime aus, in der Reihenfolge, in der diese Probleme meist auftreten.
+Wenn eine RUM-Anwendung fehlt oder leer ist oder **Kein aktueller Datenverkehr** anzeigt, obwohl Menschen sie nutzen, arbeiten Sie diese Seite der Reihe nach ab. Jede Prüfung schließt einen Teil des Wegs von Ihrer App zu OneUptime aus, in der Reihenfolge, in der diese Probleme meist auftreten.
 
 :::cards
 - [Den Schlüssel prüfen](#den-schlüssel-prüfen): Die schnellste Prüfung, und alles Weitere hängt von ihr ab.
@@ -40,6 +40,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `401` mit `"valid": false` | Der Schlüssel fehlt, ist unbekannt, widerrufen, ausgeschaltet oder abgelaufen, und die `message` sagt, was davon. Legen Sie unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** einen gültigen Schlüssel an. |
 
 Eine Web-App braucht einen **Browser**-Schlüssel, eine Mobile-App einen **Server**-Schlüssel: siehe [Einrichtung für Browser](/docs/rum/browser-setup) und [Einrichtung für Mobilgeräte](/docs/rum/mobile-setup). Auch die Export-Endpunkte lehnen einen ungültigen Schlüssel mit `401` ab, wie es die OTLP-Spezifikation verlangt, daher protokolliert ein ordentliches SDK die Ablehnung, statt es erneut zu versuchen. Diese Zeile übersieht man in der Browser-Konsole leicht, und diese Prüfung antwortet direkt.
+
+OneUptime zählt außerdem, was es von einem bekannten Schlüssel ablehnt. Die Seite des Schlüssels unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** zeigt unter **Abgelehnte Telemetrie**, was in den letzten 30 Tagen abgelehnt wurde, und die **Einrichtungsprüfung** auf der Seite **Dokumentation** der Anwendung sagt, welche Art von Telemetrie abgelehnt wird, warum und wie Sie das beheben. Ein fehlender oder unbekannter Schlüssel nennt kein Projekt, daher zählt ihn nichts: Diese Prüfung und die `401` sind alles, was es dazu gibt.
 
 ## Prüfen, was den Browser verlässt
 
@@ -109,6 +111,34 @@ Die Anwendung existiert, aber ihre Seiten zeigen nichts.
 - **Warten Sie ein paar Minuten.** Ingest läuft über eine Warteschlange, und **Zuletzt gesehen** wird alle paar Minuten aktualisiert statt bei jedem Batch.
 - **Prüfen Sie das Projekt.** Ein Schlüssel schreibt in sein eigenes Projekt, mit dem Schlüssel eines anderen Projekts gesendete Telemetrie liegt also dort, nicht hier.
 
+## Ausnahmen oder Logs sind leer
+
+Seitenaufrufe und Anfragen kommen an, aber **Ausnahmen** oder **Protokolle** bleiben leer. Das OpenTelemetry-Browser-SDK sendet von sich aus Traces von Seitenaufrufen und Anfragen, aber keine Ausnahmen und keine Logs. Eine Anwendung kann also verbunden aussehen, während diese beiden dauerhaft leer bleiben.
+
+Das leere Diagramm in der **Übersicht** der Anwendung sagt, welcher Fall vorliegt, und die **Einrichtungsprüfung** auf ihrer Seite **Dokumentation** listet jede Art von Telemetrie mit dem Zeitpunkt, zu dem die neueste ankam:
+
+| Das Diagramm zeigt | Was es bedeutet |
+| --- | --- |
+| **Ausnahmen sind nicht eingerichtet** oder **Protokolle sind nicht eingerichtet** | Von dieser App sind noch nie welche angekommen. **Ausnahmen einrichten** oder **Protokolle einrichten** zeigt den Code, der sie sendet, mit Ihrer URL und Ihrem Schlüssel schon eingesetzt. |
+| **Keine Ausnahmen in diesem Zeitraum** oder **Keine Protokolle in diesem Zeitraum** | Früher kamen welche an, und das Diagramm nennt den Zeitpunkt der letzten Ankunft. Wählen Sie den längeren Zeitraum, den es anbietet. |
+| **Von dieser App ist noch nichts angekommen** | Es kommt keinerlei Telemetrie an: Beginnen Sie mit [Den Schlüssel prüfen](#den-schlüssel-prüfen). |
+| **Das OpenTelemetry SDK meldet nichts** | Von dieser App meldet nur die Sitzungswiedergabe: Richten Sie das SDK wie in [Einrichtung für Browser](/docs/rum/browser-setup) ein. |
+| **Ausnahmen werden abgelehnt** oder **Protokolle werden abgelehnt** | OneUptime hat sie nach der letzten Ankunft abgelehnt, und das Diagramm sagt, warum und wann: Der Schlüssel ist ausgeschaltet oder abgelaufen, er lässt den Ursprung Ihrer Website nicht zu, ein Limit oder Budget ist aufgebraucht, oder das Projekt hat keine Zahlungsmethode. Seine Schaltfläche behebt es: **Anderen Schlüssel wählen**, **Schlüssel öffnen**, **Budgets ansehen** oder **Zahlungsmethode hinzufügen**. |
+
+Ausnahmen brauchen einen Fehler-Handler, weil das SDK unbehandelte Fehler nicht erfasst: [Unbehandelte Fehler melden](/docs/rum/browser-setup#unbehandelte-fehler-melden) enthält den Code. Ein Fehler, den eine Error Boundary oder ein `try`/`catch` abfängt, erreicht das Fenster nie. Erfassen Sie ihn also dort, wo Sie ihn behandeln, mit `span.recordException`.
+
+Logs brauchen eine Log-Pipeline und Code, der Log-Einträge schreibt, weil ein `LoggerProvider` allein nichts sendet: [Logs und Metriken hinzufügen](/docs/rum/browser-setup#logs-und-metriken-hinzufügen) enthält beides. Bauen Sie die Pipeline mit derselben `resource` wie Ihre Traces, sonst werden die Logs unter einem Backend-Dienst eingeordnet.
+
+Wenn Seitenaufrufe ankommen, lassen der Schlüssel, seine erlaubten Origins und Ihre Content Security Policy auch Ausnahmen und Logs durch, solange der Log-Exporter denselben Schlüssel und Host verwendet. Ein Fehler-Handler, der noch nichts abgefangen hat, sendet nichts, genau wie einer, der nie hinzugefügt wurde. Werfen Sie also in der Konsole des Browsers einen Testfehler, um die beiden zu unterscheiden:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Innerhalb einer Minute erscheint er in der **Übersicht** der Anwendung unter **Ausnahmen**.
+
 ## Die Seite Clients ist leer
 
 Die Seite **Clients** listet `browser.platform` im Web und `device.model.identifier` auf Mobilgeräten. Zwei Gründe, warum sie leer bleibt, während alles andere funktioniert:
@@ -120,15 +150,15 @@ Die Seite **Clients** listet `browser.platform` im Web und `device.model.identif
 
 Die Karte füllt sich nur aus Metriken, die Ihre App sendet, Traces allein füllen sie also nie. Prüfen Sie, dass Sie überhaupt Metriken exportieren, dass die Metriknamen solche sind, die OneUptime liest, und dass sie auf der Seite **Metriken** der Anwendung erscheinen. [Die Karte zeigt „Noch keine Web Vitals gemeldet“](/docs/rum/web-vitals#fehlerbehebung) geht jede Prüfung durch, auch Werte, die verloren gehen, wenn ein Besucher den Tab vor dem nächsten Export schließt.
 
-## Der Status zeigt Getrennt, während Menschen die App benutzen
+## Der Status zeigt „Kein aktueller Datenverkehr“, während Menschen die App benutzen
 
-Eine Anwendung wird nach 15 Minuten ohne Telemetrie **Getrennt**. Wenn Menschen die App benutzen:
+Eine Anwendung zeigt nach 15 Minuten ohne Telemetrie **Kein aktueller Datenverkehr**. Wenn Menschen die App benutzen:
 
 - **Ein Sampler verwirft womöglich alles.** Prüfen Sie, dass Sie keinen Always-off-Sampler und keine sehr niedrige Rate eingestellt haben.
 - **Die App sendet Telemetrie womöglich nur bei bestimmten Interaktionen**, und niemand hat sie in dieser Zeit ausgeführt.
 - **Der Schlüssel wurde womöglich widerrufen oder ausgeschaltet**, nachdem Sie ausgeliefert haben: Führen Sie die [Schlüsselprüfung](#den-schlüssel-prüfen) erneut aus.
 
-Eine interne App oder eine mit wenig Verkehr ohne Besucher über Nacht ist tatsächlich getrennt. Das ist kein Fehler.
+Eine interne App oder eine mit wenig Verkehr ohne Besucher über Nacht zeigt ebenfalls **Kein aktueller Datenverkehr**. Das ist normal und kein Fehler.
 
 ## Probleme mit der Sitzungswiedergabe
 

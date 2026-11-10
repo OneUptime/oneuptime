@@ -240,7 +240,7 @@ Værdien af hver Group By-attribut er en [skabelonvariabel](/docs/monitor/incide
 ## Fejlfinding
 
 :::details Monitoren er offline, men min tjeneste logger
-Antallet var 0, så filtrene matcher ingen af de logs, tjenesten sender. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Edit Monitoring Criteria**: **Matchende logs** viser, hvad filtrene udvælger lige nu, og diagrammet i **Hvornår der advares** tæller dem i hvert vindue. De almindeligste årsager er en alvorlighed valgt efter den tekst, loggeren skriver, i stedet for dens alvorlighedsnummer (se [Logalvorlighed](#logalvorlighed)), et tjeneste- eller attributfilter, der ikke matcher, og et tidsvindue, der er kortere end pausen mellem tjenestens logs.
+Antallet var 0, så filtrene matcher ingen af de logs, tjenesten sender. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger overvågningskriterier**: **Matchende logs** viser, hvad filtrene udvælger lige nu, og diagrammet i **Hvornår der advares** tæller dem i hvert vindue. De almindeligste årsager er en alvorlighed valgt efter den tekst, loggeren skriver, i stedet for dens alvorlighedsnummer (se [Logalvorlighed](#logalvorlighed)), et tjeneste- eller attributfilter, der ikke matcher, og et tidsvindue, der er kortere end pausen mellem tjenestens logs.
 :::
 
 :::details Der var en stigning, men ingen advarsel

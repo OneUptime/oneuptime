@@ -4,6 +4,8 @@ Um **Ambiente de nuvem** é o lugar onde seus contêineres rodam em uma platafor
 
 Os ambientes são listados em Plataformas de aplicativos, um produto próprio: **Plataformas de aplicativos → Visão geral** os agrupa por plataforma e mostra primeiro os que pararam de enviar dados, **Plataformas de aplicativos → Todos os apps** lista cada app que eles executam, e **Plataformas de aplicativos → Todos os ambientes** lista todos eles. Os recursos das suas contas de nuvem, como máquinas virtuais, buckets e bancos de dados gerenciados, ficam em Nuvem: veja [Recursos de nuvem](/docs/telemetry/cloud-resources).
 
+Para ver os ambientes ou os apps de uma conta de nuvem, filtre **Todos os ambientes** ou **Todos os apps** com o chip de filtro **Conta de nuvem**: ele lista cada conta em que os ambientes estão, sob a sua nuvem, e mantém as contas que você escolher, ou todas as outras. Em **Nuvem → Visão geral**, o cartão **Plataformas de aplicativos** conta os ambientes e os apps das suas contas de nuvem conectadas, e cada contagem abre a sua lista com o chip já definido para essas contas. Remova o chip para ver a lista inteira.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tarefas no Fargate ou no EC2, com a CPU e a memória de cada tarefa.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Serviços e jobs, também listados como funções serverless.
@@ -32,6 +34,7 @@ flowchart TB
 - **O ambiente agrupa tudo.** Toda carga de trabalho com a mesma plataforma, a mesma conta e a mesma região cai em um único ambiente. Os serviços mantêm suas próprias linhas em **Serviços**.
 - **Cada tarefa em execução é uma instância.** A aba **Instâncias** do ambiente lista suas tarefas, instâncias ou réplicas em execução, com CPU e memória ao vivo quando a plataforma consegue fornecê-las.
 - **Cada serviço é um app.** Um serviço do ECS, um serviço do Cloud Run ou um Container App é um app do seu ambiente, e o OneUptime guarda as revisões que ele executa: veja [Apps e implantações](#apps-e-implantações).
+- **Os logs do CloudWatch transmitidos também contam.** Uma conta AWS que [transmite os logs do CloudWatch](/docs/telemetry/cloud-streaming) coloca os logs dos seus serviços do App Runner, ambientes do Elastic Beanstalk, e tarefas e clusters do ECS na aba **Registros** do ambiente deles, e o ambiente aparece com eles se nenhum app tiver enviado dados para ele ainda. Eles não criam nenhum app: um app recebe o nome da própria telemetria.
 
 ## Antes de começar
 
@@ -118,7 +121,7 @@ O primeiro atributo que a telemetria traz dá nome ao app, então um app numa pl
 - **Ambos são mudanças.** Cada um é uma linha tracejada nos gráficos do app e do ambiente, uma linha no **Feed** do ambiente e um [evento de mudança](/docs/telemetry/change-events) que a OneUptime AI lê quando investiga um incidente no ambiente. **Implantações recentes** em **Plataformas de aplicativos → Visão geral** lista as mais novas.
 - **No máximo 12 revisões novas de um app são registradas em uma hora.** Caso contrário, uma `service.version` que muda a cada build seria uma implantação por minuto.
 
-A página de um app tem uma **Visão geral** com as suas requisições, erros, latência, instâncias e as revisões em execução agora, uma aba **Revisões** com os números de cada revisão, e as abas **Instâncias**, **Registros** e **Traços** filtradas para o app. **Configurar alertas** abre os monitores recomendados do serviço do app, em **Serviços**.
+A página de um app tem uma **Visão geral** com as suas requisições, erros, latência, instâncias e as revisões em execução agora, uma aba **Revisões** com os números de cada revisão, as abas **Instâncias**, **Registros** e **Traços** filtradas para o app, e uma aba **Recomendações** com os monitores que o OneUptime recomenda para ele: operações com falha, picos de erros, tráfego que para e requisições lentas, lidos dos spans do próprio app e da sua `http.server.request.duration`, cada um vinculado ao ambiente do app. **Configurar alertas** abre essa aba; para um app cujo nome é longo demais para filtrar a telemetria dele, abre em vez disso os monitores recomendados do serviço do app, em **Serviços**.
 
 Um app que não envia nada por 30 dias é removido com as suas revisões, assim como uma revisão que nenhuma instância reporta por 30 dias, a menos que o app ainda a execute. Num OneUptime auto-hospedado, `CLOUD_APP_RETENTION_DAYS` define esses 30.
 

@@ -259,9 +259,9 @@ afterEach(() => {
 });
 
 describe("the strings Customize Columns and its menu item draw", () => {
-  test("every Dashboard language is read: English and the 16 others", () => {
-    expect(LANGUAGES).toHaveLength(17);
-    expect(OTHER_LANGUAGES).toHaveLength(16);
+  test("every Dashboard language is read: English and the 17 others", () => {
+    expect(LANGUAGES).toHaveLength(18);
+    expect(OTHER_LANGUAGES).toHaveLength(17);
   });
 
   test("each is a key of en.json, the English sentence the source writes", () => {

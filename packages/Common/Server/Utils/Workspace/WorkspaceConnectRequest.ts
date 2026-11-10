@@ -54,6 +54,11 @@ export enum WorkspacePendingActionKind {
   // A message pinned, or given a note emoji: saved as a note on the record.
   SavePrivateNote = "SavePrivateNote",
   SavePublicNote = "SavePublicNote",
+  /*
+   * Approve on a public note's approval message (WorkspacePublicNoteApproval):
+   * decided once connected, only while the note is what the message showed.
+   */
+  ApprovePublicNote = "ApprovePublicNote",
 }
 
 // The message a pin or a note emoji is on, to save it once connected.
@@ -72,10 +77,18 @@ export interface WorkspacePendingAction {
   eventId: ObjectID;
   // For a note: the message to save.
   message?: WorkspacePendingMessage | undefined;
+  /*
+   * For Approve on a public note: what its button carried, signed
+   * (WorkspacePublicNoteApproval), read again when it is finished.
+   */
+  publicNoteApproval?: string | undefined;
 }
 
 // The longest id a pending message keeps: generous next to any chat's.
 const MAX_PENDING_MESSAGE_ID_LENGTH: number = 512;
+
+// The longest value of a public note's Approve a pending press keeps.
+const MAX_PENDING_APPROVAL_VALUE_LENGTH: number = 1024;
 
 // Whether a pending press saves a message as a note.
 export const isSaveNoteKind: (kind: WorkspacePendingActionKind) => boolean = (
@@ -240,6 +253,11 @@ export default class WorkspaceConnectRequest {
             messageId: data.pendingAction.message.messageId,
             teamId: data.pendingAction.message.teamId,
           });
+      }
+
+      if (data.pendingAction.publicNoteApproval) {
+        (record["pendingAction"] as JSONObject)["publicNoteApproval"] =
+          data.pendingAction.publicNoteApproval;
       }
     }
 
@@ -580,6 +598,21 @@ export default class WorkspaceConnectRequest {
     const messageId: string | undefined = WorkspaceConnectRequest.asId(
       message?.["messageId"],
     );
+
+    // A public note's Approve is only kept with what its button carried.
+    if (kind === WorkspacePendingActionKind.ApprovePublicNote) {
+      const approval: string | undefined = WorkspaceConnectRequest.asString(
+        action["publicNoteApproval"],
+      );
+
+      if (!approval || approval.length > MAX_PENDING_APPROVAL_VALUE_LENGTH) {
+        return undefined;
+      }
+
+      pendingAction.publicNoteApproval = approval;
+
+      return pendingAction;
+    }
 
     // A note's press is only kept with the message it is on.
     const isNote: boolean = isSaveNoteKind(kind);

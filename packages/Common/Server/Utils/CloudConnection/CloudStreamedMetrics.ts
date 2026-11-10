@@ -4,6 +4,7 @@ import {
   AwsNamespaceKeyMetrics,
   DAILY_PERIOD_SECONDS,
   getAwsStoredMetricName,
+  isAzureStreamedKeyMetricStoredName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { getStreamedMetricKey } from "../../../Types/CloudConnection/CloudStream";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
@@ -24,7 +25,33 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
  * metric CloudWatch publishes once a day (S3's storage) never comes through
  * a stream, so the read keeps writing it. When a stream goes quiet the
  * read writes everything again.
+ *
+ * An Azure connection's read is the same, by subscription, region and
+ * resource type (an Azure stream's "namespaces"): for each type its event
+ * hubs delivered lately, the read leaves out the key metrics the stream
+ * writes in its place (AzureDiagnosticRecords) - those it reads a minute at
+ * a time (timegrain PT1M) that a diagnostic setting exports
+ * (isAzureStreamedKeyMetricStoredName). It keeps writing the rest, which no
+ * stream delivers:
+ *
+ *   - a metric read at a coarser grain: an hourly storage capacity;
+ *   - one a diagnostic setting cannot export, "DS Export: No" in
+ *     Microsoft's tables (notExportedByDiagnosticSettings): a virtual
+ *     machine's network totals, a Cosmos DB account's requests;
+ *   - every metric of a Service Bus or Event Hubs namespace, which the read
+ *     splits by queue, topic and event hub (EntityName): those series are
+ *     the namespace's, its totals add them up, and a diagnostic setting
+ *     sends only the namespace's total of a metric - so the stream writes
+ *     none of them, and no queue's messages are counted twice.
+ *
+ * What the read keeps it writes unchanged, on its resource: a streamed
+ * type's metric a stream cannot deliver still reaches the resource's
+ * charts and monitors, and a queue's series still adds to its namespace.
  */
+
+// Azure: the subscription on the read's resources, and the grain a stream writes.
+const AZURE_SUBSCRIPTION_ATTRIBUTE: string = "azuremonitor.subscription_id";
+export const AZURE_STREAMED_TIME_GRAIN: string = "PT1M";
 
 const DAILY_KEY_METRICS: ReadonlySet<string> = new Set<string>(
   (AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>).flatMap(
@@ -95,12 +122,39 @@ export function withoutStreamedMetrics(data: {
       resourceAttributes,
       "cloud.region",
     );
+    const subscriptionId: string = readStringAttribute(
+      resourceAttributes,
+      AZURE_SUBSCRIPTION_ATTRIBUTE,
+    );
 
-    const isStreamed: (point: unknown) => boolean = (
+    const isStreamed: (metricName: string, point: unknown) => boolean = (
+      metricName: string,
       point: unknown,
     ): boolean => {
+      const pointAttributes: JSONArray = readArray(
+        readObject(point)["attributes"],
+      );
+
+      if (subscriptionId) {
+        const type: string = readStringAttribute(pointAttributes, "type");
+        const grain: string = readStringAttribute(pointAttributes, "timegrain");
+
+        return (
+          Boolean(type) &&
+          grain.toUpperCase() === AZURE_STREAMED_TIME_GRAIN &&
+          isAzureStreamedKeyMetricStoredName(type, metricName) &&
+          data.streamedKeys.has(
+            getStreamedMetricKey({
+              accountId: subscriptionId,
+              region: readStringAttribute(pointAttributes, "location"),
+              namespace: type,
+            }),
+          )
+        );
+      }
+
       const namespace: string = readStringAttribute(
-        readArray(readObject(point)["attributes"]),
+        pointAttributes,
         "Namespace",
       );
 
@@ -137,7 +191,7 @@ export function withoutStreamedMetrics(data: {
         const points: JSONArray = readArray(series["dataPoints"]);
         const keptPoints: JSONArray = points.filter(
           (point: unknown): boolean => {
-            return !isStreamed(point);
+            return !isStreamed(name, point);
           },
         );
 

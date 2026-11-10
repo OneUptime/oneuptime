@@ -598,6 +598,140 @@ describe("a table opened again", () => {
   });
 });
 
+/*
+ * "A first visit at a tablet width paints skeleton rows, then cards once
+ * measured" (#5485's follow-ups). A list never measured yet has nothing
+ * but its box to go by: in a box narrower than 36rem - a card beside a
+ * side menu at a 768-900px window, where 347 of 357 lists did not fit as
+ * rows - its first page's placeholders are cards from the start. The rows
+ * that land are measured, and are drawn as rows if they do fit.
+ */
+describe("a first visit, the first page loading", () => {
+  const LoadingTable: (props: {
+    data?: Array<Incident> | undefined;
+    isLoading?: boolean | undefined;
+  }) => ReactElement = (props: {
+    data?: Array<Incident> | undefined;
+    isLoading?: boolean | undefined;
+  }): ReactElement => {
+    const data: Array<Incident> = props.data || [];
+
+    return (
+      <Table<Incident>
+        id="incidents"
+        data={data}
+        columns={COLUMNS}
+        singularLabel="Incident"
+        pluralLabel="Incidents"
+        currentPageNumber={1}
+        totalItemsCount={data.length}
+        itemsOnPage={10}
+        error=""
+        isLoading={props.isLoading ?? true}
+        onNavigateToPage={(): void => {}}
+        sortOrder={SortOrder.Descending}
+        sortBy={null}
+        onSortChanged={(): void => {}}
+      />
+    );
+  };
+
+  test("in a box narrower than 36rem its placeholders are cards, under the band: no rows that turn into cards", () => {
+    boxWidth = 470;
+
+    render(<LoadingTable />);
+
+    const skeleton: HTMLElement = screen.getByTestId("table-skeleton-loader");
+
+    expect(skeleton.tagName).toBe("DIV");
+    expect(document.querySelector("table")).toBeNull();
+    expect(screen.getByTestId(TABLE_CARDS_HEADER_TEST_ID)).toBeInTheDocument();
+  });
+
+  test("...and when its rows land and do not fit, they are cards as the placeholders were", () => {
+    boxWidth = 470;
+    columnWidth = 200;
+
+    const view: ReturnType<typeof render> = render(<LoadingTable />);
+
+    view.rerender(<LoadingTable data={INCIDENTS} isLoading={false} />);
+
+    expect(document.querySelector("table")).toBeNull();
+    expect(screen.getByText("Checkout API returns 502")).toBeInTheDocument();
+  });
+
+  test("...and rows that do fit are drawn as rows once they land", () => {
+    boxWidth = 470;
+    // Folded, three columns of 120px: 360px in a 470px box.
+    columnWidth = 120;
+
+    const view: ReturnType<typeof render> = render(<LoadingTable />);
+
+    expect(screen.getByTestId("table-skeleton-loader").tagName).toBe("DIV");
+
+    view.rerender(<LoadingTable data={INCIDENTS} isLoading={false} />);
+
+    expect(document.querySelector("table")).not.toBeNull();
+    expect(headerTitles()).toEqual(["Title", "State", "Owner"]);
+  });
+
+  test("in a box of 36rem or more - a tablet card that rows may fit - its placeholders are rows, folded as its rows would be", () => {
+    boxWidth = 700;
+
+    render(<LoadingTable />);
+
+    expect(screen.getByTestId("table-skeleton-loader").tagName).toBe("TBODY");
+    expect(headerTitles()).toEqual(["Title", "State", "Owner"]);
+  });
+
+  test("a wide box's placeholders are rows with every column", () => {
+    boxWidth = 938;
+
+    render(<LoadingTable />);
+
+    expect(screen.getByTestId("table-skeleton-loader").tagName).toBe("TBODY");
+    expect(headerTitles()).toEqual(["Title", "State", "Severity", "Owner"]);
+  });
+
+  test("only a measurement that rows do not fit is kept: a list whose rows fit the narrow box loads a first page again with cards' placeholders, then its rows", () => {
+    boxWidth = 470;
+    // Fits folded.
+    columnWidth = 120;
+
+    const view: ReturnType<typeof render> = render(
+      <LoadingTable data={INCIDENTS} isLoading={false} />,
+    );
+
+    expect(document.querySelector("table")).not.toBeNull();
+
+    // Its first page loading again, from nothing.
+    view.rerender(<LoadingTable data={[]} isLoading={true} />);
+
+    expect(screen.getByTestId("table-skeleton-loader").tagName).toBe("DIV");
+
+    view.rerender(<LoadingTable data={INCIDENTS} isLoading={false} />);
+
+    expect(document.querySelector("table")).not.toBeNull();
+  });
+
+  test("a list measured not to fit loads as cards wherever its box is still narrower than it needed, a wide one included", () => {
+    boxWidth = 610;
+    columnWidth = 300;
+
+    draw();
+    // Folded, 900px in a 610px box: cards.
+    expect(document.querySelector("table")).toBeNull();
+
+    cleanup();
+
+    // The same list, at 700px: still narrower than it needed, still cards.
+    boxWidth = 700;
+    render(<LoadingTable />);
+
+    expect(screen.getByTestId("table-skeleton-loader").tagName).toBe("DIV");
+  });
+});
+
 describe("what a cell may ask of its table", () => {
   test("a column drawn as a column of its own", () => {
     draw();

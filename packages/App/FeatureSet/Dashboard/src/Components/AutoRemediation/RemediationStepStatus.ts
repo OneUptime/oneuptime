@@ -4,6 +4,10 @@ import {
   RemediationDecisionLine,
   RemediationSwitchesNow,
 } from "./RemediationDecisionLines";
+import {
+  getRemediationFixApprovals,
+  RemediationFixApprovals,
+} from "./RemediationFixSteps";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import {
   AiRemediationCommandPlan,
@@ -24,6 +28,10 @@ import {
   ExternalMcpToolCallPlanUtil,
 } from "Common/Types/AutoRemediation/ExternalMcpToolCallPlan";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  isRemediationRoundUnfinished,
+  RemediationRoundView,
+} from "./RemediationRoundView";
 import { FinishedFixOutcome } from "Common/Utils/Suggestions/CodeFixSuggestion";
 import { InvestigationCodeFixSuggestion } from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
@@ -71,6 +79,8 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   checking: string;
   waiting: string;
   needsApproval: string;
+  needsSomeonesApproval: string;
+  needsSecondApproval: string;
   fixing: string;
   fixed: string;
   fixApplied: string;
@@ -82,12 +92,21 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   off: string;
   dismissed: string;
   noFixFound: string;
+  // Every fix that did not run stopped before it found one (issue #6436).
+  didNotFinish: string;
   noActionTaken: string;
   notTried: string;
 } = {
   checking: translationKey("Checking…"),
   waiting: translationKey("Waiting"),
   needsApproval: translationKey("Needs your approval"),
+  // The same, to a reader who may not approve it (RemediationFixActGate).
+  needsSomeonesApproval: translationKey("Needs approval"),
+  /*
+   * To the reader who gave a riskier fix its first approval, where two
+   * people must approve it: theirs is in, and someone else's runs it.
+   */
+  needsSecondApproval: translationKey("Needs a second approval"),
   fixing: translationKey("Fixing…"),
   fixed: translationKey("Fixed"),
   fixApplied: translationKey("Fix applied"),
@@ -99,6 +118,7 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   off: translationKey("Off"),
   dismissed: translationKey("Dismissed"),
   noFixFound: translationKey("No fix found"),
+  didNotFinish: translationKey("Did not finish"),
   noActionTaken: translationKey("No action taken"),
   notTried: translationKey("Not tried"),
 };
@@ -125,6 +145,18 @@ export interface RemediationFixFacts {
   hasFailed: boolean;
   // The record recovered once it ran.
   isVerified: boolean;
+  /*
+   * A riskier fix two people must approve (RemediationFixSteps
+   * .getRemediationFixApprovals): its first approval is in, and the
+   * reader gave it - their own press would do nothing more.
+   */
+  isFirstApprovedByReader: boolean;
+  /*
+   * Its round stopped without its answer (RemediationRoundView): its run
+   * failed, stopped answering or expired, and it changed nothing. It is
+   * not in progress, and it did not find that no fix applies.
+   */
+  isUnfinished?: boolean | undefined;
 }
 
 export function getRemediationFixFacts(
@@ -136,8 +168,21 @@ export function getRemediationFixFacts(
     | "mcpToolCallPlan"
     | "verificationStatus"
     | "runbookExecutionId"
+    | "firstApprovedByUserId"
   >,
+  // The project's two-approvals rule as read, and who is reading.
+  reader?: {
+    isTwoApprovalsRuleOn?: boolean | undefined;
+    readerUserId?: string | undefined;
+    // How its round went, as the step read it.
+    round?: RemediationRoundView | undefined;
+  },
 ): RemediationFixFacts {
+  const approvals: RemediationFixApprovals = getRemediationFixApprovals({
+    suggestion,
+    isTwoApprovalsRuleOn: reader?.isTwoApprovalsRuleOn,
+    readerUserId: reader?.readerUserId,
+  });
   const status: AutoRemediationSuggestionStatus =
     (suggestion.status as AutoRemediationSuggestionStatus) ||
     AutoRemediationSuggestionStatus.Planning;
@@ -173,8 +218,13 @@ export function getRemediationFixFacts(
           ExternalMcpToolCallPlanUtil.getProposedCalls(mcpPlan).length > 0)),
   );
 
+  const isUnfinished: boolean = isRemediationRoundUnfinished({
+    status,
+    round: reader?.round,
+  });
+
   const isInProgress: boolean =
-    status === AutoRemediationSuggestionStatus.Planning ||
+    (status === AutoRemediationSuggestionStatus.Planning && !isUnfinished) ||
     verification === AutoRemediationVerificationStatus.Pending ||
     isPlanRunning ||
     isMcpRunning;
@@ -196,6 +246,8 @@ export function getRemediationFixFacts(
     hasRun: isStarted && !isInProgress,
     hasFailed,
     isVerified: verification === AutoRemediationVerificationStatus.Verified,
+    isFirstApprovedByReader: approvals.isFirstApprovedByReader,
+    ...(isUnfinished ? { isUnfinished } : {}),
   };
 }
 
@@ -213,6 +265,12 @@ export interface RemediationStepStatusInput {
    * the switch, AI rules that do not fix it): AiOffSummaryData's fold state.
    */
   isOffByChoice: boolean;
+  /*
+   * Whether the reader may approve a fix that waits (RemediationFixActGate):
+   * false when their permissions certainly do not let them, and the pill
+   * then says a fix needs approval - not theirs. Left out, theirs.
+   */
+  mayApprove?: boolean | undefined;
 }
 
 /*
@@ -254,16 +312,34 @@ export function getRemediationStepStatus(
     return status("checking", TEXT.checking);
   }
 
-  // What needs the reader comes first: a fix waits for their approval.
-  if (
-    input.fixes.some((fix: RemediationFixFacts): boolean => {
+  /*
+   * What needs the reader comes first: a fix waits for their approval -
+   * or, to someone who may not give it, for someone's. A riskier fix the
+   * reader approved first waits for someone else's: when every fix that
+   * waits is one of those, nothing waits for them.
+   */
+  const waitingFixes: Array<RemediationFixFacts> = input.fixes.filter(
+    (fix: RemediationFixFacts): boolean => {
       return (
         fix.status === AutoRemediationSuggestionStatus.Suggested &&
         !fix.isUnapprovable
       );
-    })
-  ) {
-    return status("attention", TEXT.needsApproval);
+    },
+  );
+
+  if (waitingFixes.length > 0) {
+    if (input.mayApprove === false) {
+      return status("attention", TEXT.needsSomeonesApproval);
+    }
+
+    return status(
+      "attention",
+      waitingFixes.every((fix: RemediationFixFacts): boolean => {
+        return fix.isFirstApprovedByReader;
+      })
+        ? TEXT.needsSecondApproval
+        : TEXT.needsApproval,
+    );
   }
 
   if (
@@ -342,6 +418,29 @@ export function getRemediationStepStatus(
       })
     ) {
       return status("idle", TEXT.dismissed);
+    }
+
+    /*
+     * Nothing was fixed, and a round stopped before it found a fix: that
+     * is what happened - and what Try again on it is for - not that no
+     * fix was found (issue #6436).
+     */
+    const isNoFixOrUnfinished: (fix: RemediationFixFacts) => boolean = (
+      fix: RemediationFixFacts,
+    ): boolean => {
+      return (
+        fix.status === AutoRemediationSuggestionStatus.NoneApplicable ||
+        Boolean(fix.isUnfinished)
+      );
+    };
+
+    if (
+      input.fixes.every(isNoFixOrUnfinished) &&
+      input.fixes.some((fix: RemediationFixFacts): boolean => {
+        return Boolean(fix.isUnfinished);
+      })
+    ) {
+      return status("failed", TEXT.didNotFinish);
     }
 
     if (

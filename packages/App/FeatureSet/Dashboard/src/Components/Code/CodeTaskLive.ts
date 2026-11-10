@@ -165,10 +165,16 @@ export const mergeTurnProgress: <
   const isStartedAtNew: boolean =
     Boolean(progress.startedAt) && progress.startedAt !== turn.startedAt;
 
+  // A turn tried again by itself: its attempt, and when the next starts.
+  const isRetrySame: boolean =
+    (turn.retry?.attempt || 0) === (progress.retry?.attempt || 0) &&
+    (turn.retry?.nextAttemptAt || "") === (progress.retry?.nextAttemptAt || "");
+
   const isStatusSame: boolean =
     turn.status === progress.status &&
     data.task.isQueued === progress.isQueued &&
-    !isStartedAtNew;
+    !isStartedAtNew &&
+    isRetrySame;
 
   if (newSteps.length === 0 && isStatusSame) {
     return data;
@@ -184,6 +190,7 @@ export const mergeTurnProgress: <
         ? steps.slice(steps.length - MAX_LIVE_STEPS_PER_TURN)
         : steps,
     ...(progress.startedAt ? { startedAt: progress.startedAt } : {}),
+    retry: progress.retry,
   };
 
   return {

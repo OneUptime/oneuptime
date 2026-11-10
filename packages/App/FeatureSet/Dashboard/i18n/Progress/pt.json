@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45527,
-    "untranslated": 11631
+    "keys": 47694,
+    "untranslated": 11063
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -90,6 +90,7 @@
     "Fahrenheit",
     "Failover",
     "Fatal",
+    "Favicon",
     "Feed",
     "Flags",
     "Flavor",
@@ -125,6 +126,7 @@
     "Interface",
     "Interface {{index}}",
     "Interfaces",
+    "Internet",
     "IoT",
     "Israel (+972)",
     "Item",
@@ -206,7 +208,9 @@
     "Pool {{name}}",
     "Pools",
     "Portugal (+351)",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Profiler",
     "Prompt",
     "Pull Requests",
@@ -251,6 +255,7 @@
     "Stacks",
     "Status",
     "StatusPage",
+    "Switch",
     "TLS",
     "TTL",
     "TX",
@@ -421,6 +426,8 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} SLO",
+    "{{count}} SLOs",
     "{{count}} VM",
     "{{count}} VMs",
     "{{count}} app",
@@ -441,6 +448,7 @@
     "{{count}} manager",
     "{{count}} managers",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} namespace",
     "{{count}} namespaces",

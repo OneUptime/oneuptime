@@ -48,7 +48,7 @@ Elk getal telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst erac
 | --- | --- | --- |
 | **Actieve incidenten** | Incidenten die niet zijn opgelost | **Alles in orde** |
 | **Actieve waarschuwingen** | Waarschuwingen die niet zijn opgelost | **Alles in orde** |
-| **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren tellen niet mee. | **Alle operationeel** |
+| **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren, en monitoren waarvan de bewaking uit staat, tellen niet mee. | **Alle operationeel** |
 | **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** |
 | **SLO's in gevaar** | Ingeschakelde SLO's die in gevaar zijn of hun foutbudget hebben opgebruikt | **Budgetten gezond** |
 
@@ -133,6 +133,9 @@ Boven de titel van elke pagina toont een pad zoals *Project › Docker › Inste
 
 - **Lijsten houden zichzelf bij.** Wanneer ergens een incident of waarschuwing wordt aangemaakt, bevestigd of opgelost, tonen de lijsten met incidenten, waarschuwingen en episodes dat binnen enkele seconden, zonder te vernieuwen. Terwijl u op een lijst midden in iets zit, zoals aangevinkte rijen of een open dialoogvenster, wacht de lijst en haalt ze alles in zodra u klaar bent.
 - **Op een telefoon klappen de filterchips weg** achter **Filter**, zodat de lijst hoger begint. De chips die u hebt ingesteld blijven in beeld, met **Alles wissen**. Druk op **Filter** om alle chips te zien, en nogmaals om ze weer in te klappen.
+- Het item **Kolommen** in het menu **⋯** van een lijst kiest welke kolommen de lijst toont en in welke volgorde, en bewaart ze voor u in deze browser. Een projecteigenaar of projectbeheerder kan daar ook **Deze kolommen aan iedereen in dit project tonen** aanvinken: wie voor die lijst geen eigen kolommen heeft gekozen, ziet dan deze, en **Terugzetten naar projectstandaard** zet uw eigen kolommen weer op deze terug.
+- Het item **Compacte rijen** in hetzelfde menu tekent de rijen van elke lijst lager, zodat een lange lijst er ongeveer een vijfde meer toont. De keuze blijft bewaard in deze browser.
+- **Op een telefoon, of in een kaart die te smal is voor haar rijen, wordt een lijst als kaarten getoond, één per rij.** De band erboven zegt in welke volgorde ze staan, zoals **Gesorteerd op Naam**: druk erop om de kolom te kiezen waarop gesorteerd wordt, en **Oplopend** of **Aflopend**.
 - **De pagina's van een incident beginnen met zijn nummer.** De kop, zijn stap in het pad en het browsertabblad tonen `INC-42 Checkout is down`, net als de dialoogvensters die het noemen, zodat incidenten met dezelfde titel uit elkaar te houden zijn. Waarschuwingen, geplande onderhoudsgebeurtenissen en episodes doen hetzelfde.
 
 ## Zoeken naar een pagina, een instelling of een actie

@@ -162,6 +162,22 @@ function parseManifestChunk(row: JSONObject): SessionReplayManifestChunk {
     chunk.url = url;
   }
 
+  /* The application's own signals (issue #6443): absent from an older server. */
+  const customSignalCount: number | undefined = readDtoOptionalNumber(
+    record,
+    "customSignalCount",
+  );
+  const customSignalFrustrationCount: number | undefined =
+    readDtoOptionalNumber(record, "customSignalFrustrationCount");
+
+  if (customSignalCount !== undefined) {
+    chunk.customSignalCount = customSignalCount;
+  }
+
+  if (customSignalFrustrationCount !== undefined) {
+    chunk.customSignalFrustrationCount = customSignalFrustrationCount;
+  }
+
   return chunk;
 }
 

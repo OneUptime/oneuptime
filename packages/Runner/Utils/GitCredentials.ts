@@ -1,6 +1,7 @@
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
+import SecretRedactor from "./SecretRedactor";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -37,10 +38,49 @@ import path from "path";
  * The helper script itself contains no secret: it echoes an environment
  * variable. It still lives outside the cloned repository, in a 0700
  * directory, so the agent's workspace-scoped tools cannot reach it at all.
+ *
+ * HOW GIT SIGNS IN: UP FRONT, AS HTTP BASIC.
+ *
+ * Left to itself, git sends no credentials on its first request, reads the
+ * schemes the server's 401 offers, and lets libcurl pick the "strongest" of
+ * them: Negotiate or NTLM before Basic. A server behind Windows
+ * authentication - Azure DevOps Server (TFS) on IIS, which takes a personal
+ * access token over Basic but offers Negotiate and NTLM first - is then sent
+ * the username and the token as a Windows sign-in, refuses it, and the clone
+ * fails with "Authentication failed" although the token is good (issue
+ * #6144). OneUptime's server checks a repository's credentials with Basic
+ * (GitSmartHttp, CodeHostRunnerToken) and so said they worked.
+ *
+ * So the credentials go with the first request, as Basic - what the server
+ * checked, what Microsoft documents for a token with git, and what GitHub,
+ * GitLab, Forgejo and Gitea take: an `http.<origin>/.extraHeader`, scoped to
+ * the remote's own server, handed to git through its environment
+ * (GIT_CONFIG_COUNT / GIT_CONFIG_KEY_n / GIT_CONFIG_VALUE_n, git 2.31+) - not
+ * argv, not .git/config, and not this process's environment. The askpass
+ * helper stays for a git too old to read configuration from its
+ * environment, which then signs in as it always did.
  */
 
 // Environment variable the askpass script reads the token from.
 const TOKEN_ENV_NAME: string = "ONEUPTIME_GIT_ACCESS_TOKEN";
+
+/*
+ * The username a GitHub App installation token signs in with. Every other
+ * host's comes with its token (CodeHostRunnerInfo.username).
+ */
+export const GITHUB_TOKEN_USERNAME: string = "x-access-token";
+
+// The configuration git reads from its environment (git 2.31+).
+const GIT_CONFIG_COUNT_ENV_NAME: string = "GIT_CONFIG_COUNT";
+
+/*
+ * Who git signs in as, and where: the header carrying the credentials is
+ * sent to this remote's server and no other.
+ */
+export interface GitSignIn {
+  username: string;
+  remoteUrl: string;
+}
 
 /*
  * The askpass program. Git calls it with a prompt argument ("Password for
@@ -84,10 +124,17 @@ export default class GitCredentials {
   /*
    * Build an authenticated git environment for one repository.
    *
+   * With `signIn`, git sends the username and token with its first request
+   * to the remote's server, as HTTP Basic (getBasicAuthEnv); without it,
+   * only when asked, through the askpass helper.
+   *
    * The caller owns the handle and must dispose() it — RepositoryManager
    * does so in a finally block so a thrown git command still cleans up.
    */
-  public static async create(token: string): Promise<GitCredentialHandle> {
+  public static async create(
+    token: string,
+    signIn?: GitSignIn | undefined,
+  ): Promise<GitCredentialHandle> {
     await LocalFile.makeDirectory(this.BASE_DIR);
 
     /*
@@ -106,8 +153,32 @@ export default class GitCredentials {
 
     await fs.writeFile(scriptPath, ASKPASS_SCRIPT, { mode: 0o700 });
 
+    const basicAuthEnv: Record<string, string> = signIn
+      ? GitCredentials.getBasicAuthEnv({
+          remoteUrl: signIn.remoteUrl,
+          username: signIn.username,
+          token,
+          inheritedEnv: process.env,
+        })
+      : {};
+
+    /*
+     * The header's encoded credentials are a secret of their own: the
+     * redactor knows the token, not its base64, so it is told this too -
+     * and forgets it with the token when the run ends.
+     */
+    if (signIn) {
+      SecretRedactor.register(
+        GitCredentials.getBasicAuthorization(signIn.username, token).substring(
+          "Basic ".length,
+        ),
+        "repository-token",
+      );
+    }
+
     return {
       env: {
+        ...basicAuthEnv,
         GIT_ASKPASS: scriptPath,
         [TOKEN_ENV_NAME]: token,
         /*
@@ -134,6 +205,82 @@ export default class GitCredentials {
   }
 
   /*
+   * The value of the Authorization header that signs in as `username` with
+   * `token`: HTTP Basic, the pair base64-encoded as UTF-8 - exactly what
+   * OneUptime's server sends when it checks the same credentials
+   * (GitSmartHttp).
+   */
+  public static getBasicAuthorization(username: string, token: string): string {
+    return `Basic ${Buffer.from(`${username}:${token}`, "utf8").toString("base64")}`;
+  }
+
+  /*
+   * The environment that makes git send the credentials with its first
+   * request to the remote's server, as HTTP Basic: one more entry of the
+   * configuration git reads from its environment, after any the Runner was
+   * started with (an operator's proxy or CA settings stay as they are), so
+   * nothing secret is in argv or .git/config. Scoped to the remote's origin
+   * - scheme, host and port - so no other server is ever sent it. Nothing
+   * for a remote that is not http(s), which has no HTTP to sign in to.
+   */
+  public static getBasicAuthEnv(data: {
+    remoteUrl: string;
+    username: string;
+    token: string;
+    inheritedEnv: NodeJS.ProcessEnv;
+  }): Record<string, string> {
+    let url: URL;
+
+    try {
+      url = new URL(data.remoteUrl);
+    } catch {
+      return {};
+    }
+
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return {};
+    }
+
+    const index: number = GitCredentials.readInheritedConfigCount(
+      data.inheritedEnv,
+    );
+
+    return {
+      [GIT_CONFIG_COUNT_ENV_NAME]: String(index + 1),
+      [`GIT_CONFIG_KEY_${index}`]: `http.${url.protocol}//${url.host}/.extraHeader`,
+      [`GIT_CONFIG_VALUE_${index}`]: `Authorization: ${GitCredentials.getBasicAuthorization(
+        data.username,
+        data.token,
+      )}`,
+    };
+  }
+
+  /*
+   * How many configuration entries the Runner's own environment already
+   * gives git: ours goes after them. A count git could not read either is
+   * read as none, and ours replaces it.
+   */
+  private static readInheritedConfigCount(env: NodeJS.ProcessEnv): number {
+    const raw: string = (env[GIT_CONFIG_COUNT_ENV_NAME] || "").trim();
+
+    if (!raw) {
+      return 0;
+    }
+
+    for (let index: number = 0; index < raw.length; index++) {
+      const code: number = raw.charCodeAt(index);
+
+      if (code < 48 || code > 57) {
+        return 0;
+      }
+    }
+
+    const count: number = Number(raw);
+
+    return Number.isSafeInteger(count) ? count : 0;
+  }
+
+  /*
    * The remote URL to use with the askpass helper: the username only, never
    * the token. This is what ends up in .git/config, where the agent can
    * read it — and it must be harmless there.
@@ -151,13 +298,13 @@ export default class GitCredentials {
   }): string {
     if (data.repositoryUrl) {
       const url: URL = new URL(data.repositoryUrl);
-      url.username = encodeURIComponent(data.username || "x-access-token");
+      url.username = encodeURIComponent(data.username || GITHUB_TOKEN_USERNAME);
       // Explicitly clear any password the caller's URL already carried.
       url.password = "";
       return url.toString();
     }
 
-    return `https://x-access-token@github.com/${data.organizationName}/${data.repositoryName}.git`;
+    return `https://${GITHUB_TOKEN_USERNAME}@github.com/${data.organizationName}/${data.repositoryName}.git`;
   }
 
   /*

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45527,
-    "untranslated": 11589
+    "keys": 47694,
+    "untranslated": 11031
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -99,7 +99,9 @@
     "Placement Flavor Fits",
     "Placement Groups",
     "Pool",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Project view",
     "Provision State",
     "Provisioning Status",
@@ -108,6 +110,7 @@
     "Red Hat OpenShift",
     "Red Hat OpenStack on OpenShift",
     "RegionOne",
+    "Reserved Instances",
     "Resource Class",
     "Resource class",
     "Runner",

@@ -328,6 +328,8 @@ describe("what the page is about: the same settings on all four steps", () => {
         ["message", "Message", ComponentInputType.LongText, false, false],
         ["incident-id", "Incident ID", ComponentInputType.Text, true, false],
         ["alert-id", "Alert ID", ComponentInputType.Text, true, false],
+        // Responders or observers, about a record that is there (OnCallPageAs).
+        ["page-as", "Page As", ComponentInputType.Choice, false, true],
         [
           "alert-severity",
           "Severity",
@@ -419,12 +421,26 @@ describe("which settings are part of the step, by what the page is about", () =>
     }
   });
 
-  test("an incident: its ID, and nothing of a new alert", () => {
-    expect(shown("incident")).toEqual(["Users", "Page About", "Incident ID"]);
+  test("an incident: its ID, what they are paged as, and nothing of a new alert", () => {
+    expect(shown("incident")).toEqual([
+      "Users",
+      "Page About",
+      "Incident ID",
+      "Page As",
+    ]);
   });
 
-  test("an alert: its ID, and nothing of a new alert", () => {
-    expect(shown("alert")).toEqual(["Users", "Page About", "Alert ID"]);
+  test("an alert: its ID, what they are paged as, and nothing of a new alert", () => {
+    expect(shown("alert")).toEqual([
+      "Users",
+      "Page About",
+      "Alert ID",
+      "Page As",
+    ]);
+  });
+
+  test("a new alert asks nothing of observers: somebody has to respond to it", () => {
+    expect(shown("new-alert")).not.toContain("Page As");
   });
 
   test("a Page About that is none of the choices shows none of them", () => {
@@ -528,6 +544,7 @@ describe("a setting shown only while another says so", () => {
       "Message",
       "Incident ID",
       "Alert ID",
+      "Page As",
       "Severity",
     ]);
 
@@ -628,7 +645,7 @@ describe("the choice a Choice setting holds", () => {
           .map((setting: Argument): string => {
             return setting.name;
           }),
-      ).toEqual(["Users", "Page About", "Incident ID"]);
+      ).toEqual(["Users", "Page About", "Incident ID", "Page As"]);
       expect(isArgumentRequired(argument(users, "incident-id"), values)).toBe(
         true,
       );

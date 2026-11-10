@@ -527,6 +527,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               },
             ],
           },
+          /*
+           * On every install, billing on or off. It was Billing and Invoices
+           * > Usage History: still found by that name.
+           */
+          {
+            page: PageMap.SETTINGS_USAGE_HISTORY,
+            title: "Usage",
+            icon: IconProp.ChartBar,
+            keywords: [
+              "usage history",
+              "telemetry usage",
+              "data ingested",
+              "how much data",
+              "gb per day",
+            ],
+            settings: ["Telemetry Usage History"],
+          },
         ],
       },
       {
@@ -617,7 +634,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SETTINGS_AI_FEATURES,
             title: "AI Features",
             icon: IconProp.Sparkles,
-            keywords: ["enable ai", "turn on ai", "artificial intelligence"],
+            keywords: [
+              "enable ai",
+              "turn on ai",
+              "artificial intelligence",
+              "two-person approval",
+              "second approval",
+            ],
             settings: [
               "Enable AI",
               "AI context",
@@ -628,6 +651,24 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               { name: "Daily limits", anchor: "DailyLimits" },
               { name: "Daily AI Token Limit", anchor: "DailyLimits" },
               { name: "Daily AI Spend Limit (USD)", anchor: "DailyLimits" },
+              /*
+               * How far one AI run may go (issue #6440), under the same
+               * More settings (PROJECT_AI_RUN_LIMITS_CARD_KEY).
+               */
+              { name: "Limits per run", anchor: "LimitsPerRun" },
+              { name: "Model Calls per Run", anchor: "LimitsPerRun" },
+              { name: "Tool Calls per Run", anchor: "LimitsPerRun" },
+              { name: "Tokens per Run", anchor: "LimitsPerRun" },
+              { name: "Time Limit per Run (Minutes)", anchor: "LimitsPerRun" },
+              /*
+               * Two people approve a riskier fix: the card under the same
+               * More settings (FIX_APPROVALS_CARD_KEY), and its switch.
+               */
+              { name: "Fix approvals", anchor: "FixApprovals" },
+              {
+                name: "Two people approve riskier fixes",
+                anchor: "FixApprovals",
+              },
             ],
           },
           {
@@ -760,13 +801,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "Customer Balance",
               "Cancel Plan",
             ],
-          },
-          {
-            page: PageMap.SETTINGS_USAGE_HISTORY,
-            title: "Usage History",
-            icon: IconProp.ChartBar,
-            keywords: ["usage", "data ingested"],
-            settings: ["Telemetry Usage History"],
           },
           {
             page: PageMap.SETTINGS_BILLING_INVOICES,
@@ -1111,6 +1145,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS,
             title: "Linked Alerts",
             icon: IconProp.Link,
+          },
+          {
+            page: PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL,
+            title: "Public Note Approval",
+            icon: IconProp.ShieldCheck,
+            keywords: [
+              "approve public notes",
+              "review status page updates",
+              "approval steps",
+              "approvers",
+            ],
           },
           {
             page: PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
@@ -1551,6 +1596,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
             title: "Measurements",
             icon: IconProp.Clock,
+          },
+          {
+            page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL,
+            title: "Public Note Approval",
+            icon: IconProp.ShieldCheck,
+            keywords: [
+              "approve public notes",
+              "review status page updates",
+              "approval steps",
+              "approvers",
+            ],
           },
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR,
@@ -2536,7 +2592,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     productPage: PageMap.DATA_OBSERVABILITY_OVERVIEW,
     icon: IconProp.TableCells,
     iconColor: "cyan",
-    // The menu's sections and their pages. A table's pages need the record, so they are not here.
+    /*
+     * The menu's sections and their pages, as DataObservabilityNavigation.ts
+     * lists them. A table's pages need the record, so they are not here.
+     */
     sections: [
       {
         title: "Data Observability",
@@ -2545,13 +2604,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.DATA_OBSERVABILITY_OVERVIEW,
             title: "Overview",
             icon: IconProp.Home,
-            keywords: ["data health", "late tables", "stale data"],
-          },
-          {
-            page: PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS,
-            title: "Data Products",
-            icon: IconProp.Layers,
-            keywords: ["freshness sla", "data consumers", "data as of badge"],
+            keywords: [
+              "data health",
+              "needs attention",
+              "late tables",
+              "failing checks",
+              "stale data",
+            ],
           },
           {
             page: PageMap.DATA_OBSERVABILITY_TABLES,
@@ -2565,6 +2624,39 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.DATA_OBSERVABILITY_PIPELINES,
+            title: "Pipelines",
+            icon: IconProp.Workflow,
+            keywords: ["openlineage", "airflow", "etl jobs"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,
+            title: "Schema Changes",
+            icon: IconProp.List,
+            keywords: ["columns added", "columns removed", "schema drift"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORES,
+            title: "Databases",
+            icon: IconProp.Database,
+            keywords: [
+              "connect a database",
+              "collect now",
+              "recommended alerts",
+            ],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORAGE_PATHS,
+            title: "Storage Paths",
+            icon: IconProp.Folder,
+            keywords: ["s3", "gcs", "azure blob", "bucket", "partition"],
+          },
+        ],
+      },
+      {
+        title: "Quality",
+        pages: [
+          {
             page: PageMap.DATA_OBSERVABILITY_CHECKS,
             title: "Checks",
             icon: IconProp.CheckCircle,
@@ -2576,11 +2668,16 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Scale,
             keywords: ["compare two tables", "data parity", "source and copy"],
           },
+        ],
+      },
+      {
+        title: "Usage",
+        pages: [
           {
-            page: PageMap.DATA_OBSERVABILITY_PIPELINES,
-            title: "Pipelines",
-            icon: IconProp.Workflow,
-            keywords: ["openlineage", "airflow", "etl jobs"],
+            page: PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS,
+            title: "Data Products",
+            icon: IconProp.Layers,
+            keywords: ["freshness sla", "data consumers", "data as of badge"],
           },
           {
             page: PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS,
@@ -2599,23 +2696,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
-            page: PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,
-            title: "Schema Changes",
-            icon: IconProp.List,
-            keywords: ["columns added", "columns removed", "schema drift"],
+            page: PageMap.DATA_OBSERVABILITY_TABLES_UNUSED,
+            title: "Unused Tables",
+            icon: IconProp.Moon,
+            keywords: ["unread tables", "never read", "wasted storage"],
           },
-          {
-            page: PageMap.DATA_OBSERVABILITY_STORES,
-            title: "Databases",
-            icon: IconProp.Database,
-            keywords: ["connect a database", "collect now"],
-          },
-          {
-            page: PageMap.DATA_OBSERVABILITY_STORAGE_PATHS,
-            title: "Storage Paths",
-            icon: IconProp.Folder,
-            keywords: ["s3", "gcs", "azure blob", "bucket", "partition"],
-          },
+        ],
+      },
+      {
+        title: "Rules",
+        pages: [
+          ownerRules(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES),
         ],
       },
       {
@@ -2633,18 +2725,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Advanced",
         pages: [
           {
-            page: PageMap.DATA_OBSERVABILITY_TABLES_UNUSED,
-            title: "Unused Tables",
-            icon: IconProp.Moon,
-            keywords: ["unread tables", "never read", "wasted storage"],
-          },
-          {
-            page: PageMap.DATA_OBSERVABILITY_TABLES_DROPPED,
-            title: "Dropped Tables",
-            icon: IconProp.Archive,
-            keywords: ["deleted tables", "gone tables"],
-          },
-          {
             page: PageMap.DATA_OBSERVABILITY_SETTINGS,
             title: "Settings",
             icon: IconProp.Settings,
@@ -2654,8 +2734,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "wait when a database is busy",
             ],
           },
-          ownerRules(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES),
-          labelRules(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES),
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES_DROPPED,
+            title: "Dropped Tables",
+            icon: IconProp.Archive,
+            keywords: ["deleted tables", "gone tables"],
+          },
         ],
       },
     ],
@@ -2848,6 +2932,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Queues",
         pages: [
           allListPage(PageMap.MESSAGE_QUEUES, "All Queues"),
+          {
+            page: PageMap.MESSAGE_QUEUES_TOPOLOGY,
+            title: "Topology",
+            icon: IconProp.FlowDiagram,
+            keywords: [
+              "message flow",
+              "producers",
+              "consumers",
+              "publishers",
+              "subscribers",
+              "queue map",
+              "data flow",
+            ],
+          },
           documentation(PageMap.MESSAGE_QUEUES_DOCUMENTATION),
         ],
       },
@@ -3423,9 +3521,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.NETWORK_DEVICE_ENDPOINTS,
-            title: "Endpoints",
+            title: "Discovered Devices",
             icon: IconProp.Squares,
-            keywords: ["arp", "mac addresses", "connected devices"],
+            keywords: [
+              "endpoints",
+              "arp",
+              "mac addresses",
+              "ip addresses",
+              "hostnames",
+              "connected devices",
+              "add to monitoring",
+              "hide from map",
+              "stale devices",
+              "remove old devices",
+            ],
+            /*
+             * How long a device nothing sees stays (issue #6389), folded
+             * under the page's More settings: the result opens the fold at
+             * its card (DiscoveredDeviceRetentionCopy's place for it).
+             */
+            settings: [{ name: "Unseen Devices", anchor: "unseen-devices" }],
           },
           {
             page: PageMap.NETWORK_DEVICE_LATENCY_MATRIX,

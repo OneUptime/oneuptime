@@ -74,8 +74,8 @@ const STRINGS: Array<string> = Array.from(
 );
 
 describe("the Developer pages' words are in every Dashboard locale", () => {
-  test("there are seventeen locales", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("there are eighteen locales", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
   });
 
   test.each(STRINGS)("%s", (text: string) => {

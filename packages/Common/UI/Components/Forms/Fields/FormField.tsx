@@ -1,3 +1,4 @@
+import readAsWritten from "../../IsolatedText/ReadAsWritten";
 import FieldError from "./FieldError";
 import Dictionary from "../../../../Types/Dictionary";
 import { GetReactElementFunction } from "../../../Types/FunctionTypes";
@@ -50,7 +51,7 @@ import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
 import MarkdownEditor from "../../Markdown.tsx/LazyMarkdownEditor";
 import YamlEditor from "../../CodeEditor/LazyYamlEditor";
-import PeoplePicker from "../../PeoplePicker/PeoplePicker";
+import PeoplePicker from "../../PeoplePicker/LazyPeoplePicker";
 import {
   getPeoplePickerKinds,
   PeoplePickerChange,
@@ -481,9 +482,9 @@ const FormField: <T extends GenericObject>(
        */
       fieldDescription = (
         <>
-          {translatedDescription}
+          {readAsWritten(translatedDescription, translator.language)}
           {translatedDescription ? " " : null}
-          {timezoneSentence}
+          {readAsWritten(timezoneSentence, translator.language)}
         </>
       );
     }
@@ -1412,6 +1413,15 @@ const FormField: <T extends GenericObject>(
                     : undefined)
                 }
                 isOwnCredential={props.field.isOwnCredential}
+                /*
+                 * A phone number: a phone offers its dial pad, and the field
+                 * reads left to right on every page (Input).
+                 */
+                inputMode={
+                  props.field.fieldType === FormFieldSchemaType.Phone
+                    ? "tel"
+                    : undefined
+                }
                 onChange={(value: string) => {
                   onChange(value);
                   props.setFieldValue(props.fieldName, value);

@@ -181,6 +181,10 @@ import {
 } from "./CaseSetupFixture";
 import { createWatchlistsFixture } from "./WatchlistsFixture";
 import { HUNT_SCENARIOS, createHuntsFixture } from "./HuntsFixture";
+import {
+  ingestionBudgetStatus,
+  isIngestionBudgetRead,
+} from "./IngestionBudgetFixture";
 import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
 import SecurityHuntsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Hunts";
 import SecurityHuntViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntView";
@@ -192,6 +196,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
+import WorkspaceNotificationRuleOwningTeam from "Common/Models/DatabaseModels/WorkspaceNotificationRuleOwningTeam";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import {
@@ -2862,8 +2867,11 @@ insert(WorkspaceProjectAuthToken, { workspaceType: WorkspaceType.Slack });
  * Security Case Rules, posting new cases to #soc, and one under Hunt Rules,
  * posting what the PowerShell hunts find to #threat-hunting. The rule form's
  * value pickers read the other products' states and schedules: none here.
+ * Neither rule belongs to a team (its Owning Teams), so whoever may edit
+ * rules may edit both.
  */
 table(WorkspaceNotificationRule);
+table(WorkspaceNotificationRuleOwningTeam);
 for (const modelType of [
   AlertState,
   IncidentState,
@@ -4579,6 +4587,10 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/ai-chat/providers")) {
     return new HTTPResponse(200, AI_PROVIDERS, {});
+  }
+  // The layout's ingestion budget banner: the project sets no budget.
+  if (isIngestionBudgetRead(method, path)) {
+    return new HTTPResponse(200, ingestionBudgetStatus(NOW), {});
   }
   const usage = path.match(
     /\/(security-case-priority|security-case-status)\/([^/]+)\/usage$/,

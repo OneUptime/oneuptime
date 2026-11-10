@@ -97,6 +97,7 @@ Under **Del** kopierer du linket og sender det til dem, der skal bruge formulare
 | **Brugerdefinerede domæner** | Formularens egne domæner, som `report.acme.com`, med deres DNS-poster og certifikater. Se [Brugerdefinerede domæner](/docs/forms/sharing-and-security#brugerdefinerede-domæner). |
 | **Indsendelser** | Hver indsendelse via formularen, nyeste først, med dens svar og det, den oprettede. |
 | **Duplikér formular** | Under **Avanceret**: en kopi af formularen, navngivet for dig, med dens spørgsmål, skabeloner, indstillinger under Ved indsendelse, branding, takkebesked og IP-tilladelsesliste og sit eget link. Kopien starter slået fra og åbner i sin editor. |
+| **Auditlogs** | Under **Avanceret**: hver ændring af formularen, dens brugerdefinerede domæner og dens indsendelser, hvem der lavede den, og hvornår. |
 | **Slet formular** | Sletning af formularen, under **Avanceret**. Dens indsendelser slettes med den; de hændelser og begivenheder, den oprettede, gør ikke. |
 
 Sektionen **Udvikler** i formularens menu indeholder dens sider for Terraform, API og AI-assistenter, ligesom for alle andre ressourcer.
@@ -113,7 +114,7 @@ En skabelon og en formular sparer dig begge for at skrive den samme hændelse to
 | Hvad man ser | Dine monitorer, politikker, ejere og hvert felt | Formularens navn, beskrivelse og spørgsmål, og kun de valgmuligheder, du tilbyder |
 | Statussider | Det, skabelonen og oprettelsesformularen siger | Skjult, indtil en, der håndterer den, offentliggør hændelsen |
 
-De arbejder sammen. Giv en hændelsesformular en **Hændelse Skabelon** på dens side **Ved indsendelse**, og hver hændelse, den opretter, oprettes ud fra den skabelon: byg skabelonen til det, dit team har brug for på hændelsen, og formularen til det, du vil spørge indsenderen om.
+De arbejder sammen. Giv en hændelsesformular en **Hændelsesskabelon** på dens side **Ved indsendelse**, og hver hændelse, den opretter, oprettes ud fra den skabelon: byg skabelonen til det, dit team har brug for på hændelsen, og formularen til det, du vil spørge indsenderen om.
 
 ## Indsendelser
 

@@ -225,6 +225,7 @@ import {
 } from "../Fixtures/UnsubscribeLinkFixtures";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
+import { stubPublicNoteApproval } from "Common/Tests/Server/TestingUtils/PublicNoteApproval";
 import {
   afterEach,
   beforeEach,
@@ -543,6 +544,9 @@ beforeEach(() => {
   timelines = [];
   notes = [];
   changesSavedWhenNotesWerePosted = [];
+
+  // Public notes need no approval here: each is published as it is posted.
+  stubPublicNoteApproval({});
 
   // The hooks, without a database.
   jest

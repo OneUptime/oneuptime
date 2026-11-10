@@ -170,6 +170,22 @@ function flat(text: string): string {
 }
 
 /*
+ * One `if` block of flattened source: from its opening to the end of the
+ * first statement that closes it ("); }").
+ */
+function branchOf(text: string, opening: string): string {
+  const start: number = text.indexOf(opening);
+
+  expect(start).toBeGreaterThanOrEqual(0);
+
+  const end: number = text.indexOf("); }", start);
+
+  expect(end).toBeGreaterThan(start);
+
+  return text.slice(start, end);
+}
+
+/*
  * A section of a page: from its heading to the next heading of the same
  * level or higher, without the heading line itself.
  */
@@ -383,11 +399,17 @@ describe("the Gemini CLI & GitHub Copilot page", () => {
     expect(middleware).toContain(
       "Missing ingestion token. Send your OneUptime telemetry ingestion key in the x-oneuptime-token header.",
     );
-    expect(middleware).toContain(
-      "if (policy.isEnabled === false) { return Response.sendErrorResponse( req, res, new NotAuthorizedException(",
+    // Each branch may count the refusal first (issue #6378); its answer is what the page says.
+    expect(branchOf(middleware, "if (policy.isEnabled === false) {")).toContain(
+      "return Response.sendErrorResponse( req, res, new NotAuthorizedException(",
     );
-    expect(middleware).toContain(
-      "if (policy.expiresAt && policy.expiresAt.getTime() <= Date.now()) { return Response.sendErrorResponse( req, res, new NotAuthenticatedException(",
+    expect(
+      branchOf(
+        middleware,
+        "if (policy.expiresAt && policy.expiresAt.getTime() <= Date.now()) {",
+      ),
+    ).toContain(
+      "return Response.sendErrorResponse( req, res, new NotAuthenticatedException(",
     );
     expect(middleware).toContain(
       "`A browser ingestion key cannot be used for ${readableSurfaceName}. Use a server ingestion key.`",

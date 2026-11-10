@@ -11,6 +11,7 @@ import MailService from "../../../Server/Services/MailService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
@@ -190,7 +191,13 @@ beforeEach(() => {
   query = getJestMockFunction();
   // An UPDATE ... RETURNING through the postgres driver: [rows, rowCount].
   query.mockResolvedValue([
-    [{ _id: SUBSCRIBER_ID.toString(), projectId: PROJECT_ID.toString() }],
+    [
+      {
+        _id: SUBSCRIBER_ID.toString(),
+        projectId: PROJECT_ID.toString(),
+        statusPageId: STATUS_PAGE_ID.toString(),
+      },
+    ],
     1,
   ] as never);
 
@@ -1362,7 +1369,7 @@ describe("StatusPageSubscriberService.unsubscribe - the one write that cancels",
     const writes: Array<{ sql: string; params: Array<unknown> }> = sqlCalls();
     expect(writes).toHaveLength(1);
     expect(writes[0]!.sql).toBe(
-      'UPDATE "StatusPageSubscriber" SET "isUnsubscribed" = true, "unsubscribedAt" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE "_id" = $2 AND "isUnsubscribed" = false AND "deletedAt" IS NULL RETURNING "_id", "projectId"',
+      'UPDATE "StatusPageSubscriber" SET "isUnsubscribed" = true, "unsubscribedAt" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE "_id" = $2 AND "isUnsubscribed" = false AND "deletedAt" IS NULL RETURNING "_id", "projectId", "statusPageId"',
     );
     expect(writes[0]!.params[0]).toBeInstanceOf(Date);
     expect(writes[0]!.params[1]).toBe(SUBSCRIBER_ID.toString());
@@ -1395,6 +1402,58 @@ describe("StatusPageSubscriberService.unsubscribe - the one write that cancels",
     expect(StatusPageSubscriberService.onTriggerRealtime).toHaveBeenCalledTimes(
       1,
     );
+  });
+
+  /*
+   * And the audit log entry it bypassed (issue #6276): Is Unsubscribed, off
+   * to on, on the subscriber's status page. The subscriber is nobody of the
+   * project, so it is a system event, as their changes on the manage page
+   * are: recorded when the project stores system events.
+   */
+  test("records the audit log entry it bypassed, as the subscriber's own change", async () => {
+    const recordUpdate: jest.SpyInstance = jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockResolvedValue(undefined as never);
+
+    await StatusPageSubscriberService.unsubscribe({
+      subscriberId: SUBSCRIBER_ID,
+      source: StatusPageSubscriberUnsubscribeSource.ManageSubscriptionPage,
+    });
+
+    expect(recordUpdate).toHaveBeenCalledTimes(1);
+
+    const recorded: {
+      before: StatusPageSubscriber;
+      updatedFields: JSONObject;
+      itemId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+      includeColumns?: Array<string>;
+    } = recordUpdate.mock.calls[0]![0];
+
+    expect(recorded.updatedFields).toEqual({ isUnsubscribed: true });
+    expect(recorded.before.isUnsubscribed).toBe(false);
+    expect(recorded.before.projectId?.toString()).toBe(PROJECT_ID.toString());
+    // Its root: the entry is on the status page's Audit Logs too.
+    expect(recorded.before.statusPageId?.toString()).toBe(
+      STATUS_PAGE_ID.toString(),
+    );
+    expect(recorded.itemId.toString()).toBe(SUBSCRIBER_ID.toString());
+    expect(recorded.props).toEqual({ isRoot: true, tenantId: PROJECT_ID });
+    expect(recorded.includeColumns).toBeUndefined();
+  });
+
+  test("a cancel that changed nothing records nothing in the audit log", async () => {
+    const recordUpdate: jest.SpyInstance = jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockResolvedValue(undefined as never);
+    query.mockResolvedValue([[], 0] as never);
+
+    await StatusPageSubscriberService.unsubscribe({
+      subscriberId: SUBSCRIBER_ID,
+      source: StatusPageSubscriberUnsubscribeSource.UnsubscribeLink,
+    });
+
+    expect(recordUpdate).not.toHaveBeenCalled();
   });
 
   test("a subscription that was already cancelled (or is gone) is left alone, and nobody is told", async () => {

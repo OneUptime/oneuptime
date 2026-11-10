@@ -10,7 +10,10 @@ import {
   formatDurationCompact,
   formatErrorBudgetRemainingOfTotal,
 } from "Common/Utils/Slo/SloDuration";
-import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
+import {
+  SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES,
+  SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
+} from "Common/Utils/Slo/SloEvaluation";
 import { getSloBudgetTier, SloBudgetTier } from "Common/Utils/Slo/SloHealth";
 import {
   getSloBudgetRemainingText,
@@ -37,9 +40,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   slo: ServiceLevelObjective;
   /*
-   * The lowest threshold among the SLO's ENABLED burn rate rules, or null.
-   * The page already loads the rules for its sidebar, so it is passed in
-   * rather than fetched a second time.
+   * The lowest threshold among the SLO's ENABLED burn rate rules that the
+   * last hour can speak for - those that look back no longer than
+   * SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES - or null. The page
+   * already loads the rules for its sidebar, so it is passed in rather than
+   * fetched a second time.
    */
   lowestEnabledBurnRateThreshold: number | null;
   now: Date;
@@ -164,6 +169,11 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     SLO_CURRENT_BURN_RATE_WINDOW_MINUTES * 60,
   );
 
+  // A rule that looks back further is not compared with the last hour.
+  const comparableLongWindowText: string = formatDurationCompact(
+    SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES * 60,
+  );
+
   const burnRateDescription: string =
     burnRateText === null
       ? SLO_NOT_EVALUATED_TEXT
@@ -246,7 +256,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
                     data-testid="slo-kpi-burn-rate-badge"
                     title={`The last ${burnRateWindowText}'s burn is at or above ${formatSloBurnRate(
                       props.lowestEnabledBurnRateThreshold,
-                    )}, the lowest threshold among this SLO's enabled burn rate rules.`}
+                    )}, the lowest threshold among this SLO's enabled burn rate rules that look back ${comparableLongWindowText} or less.`}
                   >
                     <StatusBadge
                       text="Rule threshold reached"

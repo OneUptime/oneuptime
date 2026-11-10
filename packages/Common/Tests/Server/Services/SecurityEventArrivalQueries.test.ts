@@ -14,6 +14,7 @@ import {
 } from "../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 import { getJestSpyOn } from "../../Spy";
+import { readStatementValues } from "../../Helpers/StatementEcho";
 
 type Spy = ReturnType<typeof getJestSpyOn>;
 
@@ -43,8 +44,9 @@ function stubExecuteQuery(
   );
 }
 
+// What each parameter asks for, hex encoded text decoded (Statement).
 function boundValues(statement: Statement): Array<unknown> {
-  return Object.values(statement.query_params);
+  return readStatementValues(statement);
 }
 
 afterEach(() => {

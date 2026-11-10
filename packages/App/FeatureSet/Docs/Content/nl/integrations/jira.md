@@ -296,7 +296,7 @@ De sjablonen dekken de gebruikelijke gevallen. Om een richting zelf te bouwen, o
 
 Jira Cloud accepteert Basic-authenticatie die is opgebouwd uit het e-mailadres van het account en een API-token, samen gecodeerd, zoals in [Wat de sjablonen vragen](#wat-de-sjablonen-vragen).
 
-1. Ga naar **Workflows → Globale variabelen** en klik op **Workflow Variabele aanmaken**. Noem hem `JIRA_AUTH`, plak de gecodeerde waarde in **Inhoud**, zet **Geheim** aan en maak hem aan.
+1. Ga naar **Workflows → Globale variabelen** en klik op **Workflowvariabele aanmaken**. Noem hem `JIRA_AUTH`, plak de gecodeerde waarde in **Inhoud**, zet **Geheim** aan en maak hem aan.
 2. Maak een tweede variabele, `JIRA_URL`, met `https://your-domain.atlassian.net` zonder slash aan het eind, en laat **Geheim** uit.
 
 Elk blok kan dan `Basic {{global.variables.JIRA_AUTH}}` als `Authorization`-header sturen, en het token verschijnt nooit in de workflow of in de uitvoeringen ervan. Met een token met scopes is `JIRA_URL` in plaats daarvan `https://api.atlassian.com/ex/jira/<cloudId>`, en elk pad hieronder hangt er ongewijzigd aan.

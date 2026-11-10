@@ -68,6 +68,7 @@ A caixa pergunta a cada poucos segundos o que chegou. O Firehose entrega poucos 
 | --- | --- |
 | **Todas as métricas, não só as principais** | Transmite todas as métricas que o CloudWatch tem para a conta, inclusive as suas. A AWS cobra cada atualização de métrica que um fluxo envia, então pode custar muitas vezes mais |
 | **Regiões** | De onde transmitir: de início, as regiões em que a conexão encontrou recursos. Se ficar vazio, o comando transmite da própria região do AWS CloudShell. No máximo 30 |
+| **Todas as contas da organização** | Para uma conexão que lê uma AWS Organization: o comando, executado na conta de gerenciamento, também cria as mesmas pilhas em cada conta-membro por meio de um StackSet, e nas contas que entrarem depois. Todos os grupos de logs ou nenhum: grupos nomeados são de uma única conta |
 | **Configurar de outra forma** | Os endpoints de métricas e de logs e a chave, para configurar os fluxos com o Terraform ou o console |
 
 **Baixar o modelo** salva o modelo que o comando implanta, para implantá-lo do seu jeito.
@@ -79,6 +80,7 @@ A caixa pergunta a cada poucos segundos o que chegou. O Firehose entrega poucos 
 | Métricas | Nos recursos de nuvem que medem, com os nomes e atributos que as leituras da conexão dão a elas |
 | Logs | No explorador de registros, sob o serviço de telemetria da conexão, com a conta, a região e o grupo de logs como atributos |
 | Logs de um grupo de logs que a AWS nomeia com o nome de um recurso | Também nesse recurso: a página dele na Nuvem ganha uma aba **Registros** |
+| Logs de um serviço do App Runner, de um ambiente do Elastic Beanstalk ou de uma tarefa ou um cluster do ECS | Também no ambiente dele em Plataformas de aplicativos: a aba **Registros** |
 
 Um grupo de logs é arquivado sob um recurso quando a AWS lhe deu o nome de um:
 
@@ -97,7 +99,9 @@ Um grupo de logs é arquivado sob um recurso quando a AWS lhe deu o nome de um:
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Cada log leva o ID do recurso como `cloud.resource_id`, e os logs de uma função Lambda levam também `faas.name`, por isso aparecem também na função em Serverless. Um grupo de logs com outro nome é transmitido mesmo assim, sob a conta e a região dele. A gravidade de um log é a que a mensagem dele informa, do jeito que o Lambda a escreve.
+Cada log leva o ID do recurso como `cloud.resource_id`, e os logs de uma função Lambda levam também `faas.name`, por isso aparecem também na função em Serverless. Um grupo de logs com outro nome é transmitido mesmo assim, sob a conta e a região dele. A gravidade de um log é a que a mensagem dele informa, do jeito que o Lambda, o PostgreSQL ou o MySQL a escreve.
+
+Os logs de um serviço do App Runner, de um ambiente do Elastic Beanstalk e de um cluster do ECS também levam `cloud.platform`, assim como os de uma tarefa do ECS, do grupo de logs que o console do ECS chama de `/ecs/<task-definition-family>`, com `aws.ecs.task.family`. Com a conta e a região, isso os coloca no ambiente deles em Plataformas de aplicativos, que aparece com eles se nenhum app tiver enviado dados para ele ainda. Eles não criam nenhum app: um app recebe o nome da própria telemetria, como explica [Ambientes de nuvem](/docs/telemetry/cloud-environments).
 
 ## O que a pilha cria
 
@@ -130,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Para uma conexão que lê uma AWS Organization, execute o comando da caixa de diálogo na conta de gerenciamento: quando a organização era transmitida, ele também exclui as pilhas de cada conta-membro e o StackSet.
 :::
 
 Para mudar o que uma pilha transmite, abra de novo **Transmitir métricas e logs**, escolha **Criar uma nova chave** e execute o novo comando. A chave que ela substitui continua funcionando por 24 horas, então nenhuma entrega é recusada enquanto as pilhas são atualizadas. No máximo 3 chaves substituídas funcionam ao mesmo tempo.

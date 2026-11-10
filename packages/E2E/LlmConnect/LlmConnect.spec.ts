@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -33,7 +34,14 @@ const PROVIDER_ACCOUNTS: Array<string> = [
   "azure-openai",
   "aws-bedrock",
   "google-vertex-ai",
+  "cursor",
 ];
+
+// A Cursor Admin API key's shape: crsr_ and 64 hex characters.
+const CURSOR_KEY: string = `crsr_${"e2e0".repeat(16)}`;
+
+// The Cursor team of ?state=cursor (LlmConnect/Fixture.js).
+const CURSOR_CONNECTION: string = "20000000-0000-4000-8000-000000000006";
 
 const COMPANY_TOOLS: Array<string> = [
   "claude-enterprise",
@@ -47,6 +55,8 @@ interface FixtureState {
   tests: Array<{ body: Record<string, unknown> }>;
   readNows: Array<string>;
   spanLists: Array<Record<string, unknown>>;
+  setupChecks: Array<Record<string, unknown>>;
+  metricUsages: Array<Record<string, unknown>>;
 }
 
 async function open(page: Page, query: string = ""): Promise<void> {
@@ -142,7 +152,7 @@ test.describe("the Connect page", () => {
     await shoot(page, "connect-empty");
   });
 
-  test("the provider accounts: five tiles, with the way to connect each", async ({
+  test("the provider accounts: six tiles, with the way to connect each", async ({
     page,
   }: {
     page: Page;
@@ -159,9 +169,12 @@ test.describe("the Connect page", () => {
 
     for (const provider of PROVIDER_ACCOUNTS) {
       await expect(
-        page.getByTestId(`llm-connection-tile-${provider}`),
+        panel(page, "providers").getByTestId(`llm-connection-tile-${provider}`),
       ).toBeVisible();
     }
+    await expect(
+      panel(page, "providers").locator('[data-testid^="llm-connection-tile-"]'),
+    ).toHaveCount(PROVIDER_ACCOUNTS.length);
 
     // The way picked is in the address, so a link opens it.
     expect(new URL(page.url()).searchParams.get("way")).toBe("providers");
@@ -195,12 +208,15 @@ test.describe("the Connect page", () => {
     await page.getByTestId("llm-other-ai-tools-summary").click();
 
     for (const tool of [
+      "cursor",
       "chatgpt-enterprise",
       "gemini",
       "coding-assistants",
       "self-hosted-chat",
     ]) {
-      await expect(page.getByTestId(`llm-other-ai-tool-${tool}`)).toBeVisible();
+      await expect(
+        panel(page, "tools").getByTestId(`llm-other-ai-tool-${tool}`),
+      ).toBeVisible();
     }
 
     await expectNoSidewaysScroll(page, { tolerance: 1 });
@@ -467,6 +483,272 @@ test.describe("connecting a provider account", () => {
   });
 });
 
+/*
+ * #5547: Cursor's usage and cost by person, read with a team Admin API key -
+ * beside its OpenTelemetry Export, which the form names so nobody picks one
+ * not knowing of the other. Cursor is looked for with the company AI tools
+ * as well, and connects from there.
+ */
+test.describe("connecting Cursor", () => {
+  test("the Admin API key, the other way in, a test that counts the team, and what is saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "way=providers&verdict=cursor");
+
+    await panel(page, "providers")
+      .getByTestId("llm-connection-tile-cursor")
+      .click();
+    await expect(dialog(page)).toBeVisible();
+    await expect(dialog(page)).toContainText("Connect Cursor");
+    // Usage and cost, not conversations: said under the title.
+    await expect(dialog(page).getByTestId("modal-description")).toHaveText(
+      "Tokens, requests and cost by hour, person and model, and how many of your members use Cursor. Not what they asked it.",
+    );
+
+    const hint: Locator = dialog(page).getByTestId(
+      "llm-connection-credentials-hint",
+    );
+    await expect(hint).toContainText("Settings, Cursor Admin API Keys");
+    await expect(hint).toContainText("Teams and Enterprise plans");
+    await expect(
+      dialog(page).getByTestId("llm-connection-guide-link"),
+    ).toHaveAttribute(
+      "href",
+      /\/docs\/telemetry\/ai-provider-accounts#cursor$/,
+    );
+
+    /*
+     * The other way in, beside the key: Cursor's own OpenTelemetry Export,
+     * as a footnote with its guide - an addition, not a step before the key.
+     */
+    const otherWay: Locator = dialog(page).getByTestId(
+      "llm-connection-other-way",
+    );
+    await expect(otherWay).toHaveText(
+      "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export. Read how",
+    );
+    await expect(
+      otherWay.getByTestId("llm-connection-other-way-link"),
+    ).toHaveAttribute("href", /\/docs\/telemetry\/cursor$/);
+    await expect(
+      dialog(page)
+        .getByTestId("llm-connection-footnotes")
+        .getByTestId("llm-connection-reads-only"),
+    ).toHaveText("OneUptime only reads usage and cost.");
+
+    const key: Locator = dialog(page).getByPlaceholder("crsr_...");
+    await expect(key).toBeVisible();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "connect-cursor-credentials");
+
+    await key.fill(CURSOR_KEY);
+    await next(page).click();
+    await dialog(page).getByTestId("llm-connection-test-button").click();
+
+    const passed: Locator = dialog(page).getByTestId(
+      "llm-connection-test-pass",
+    );
+    await expect(passed).toContainText(
+      "It works. Here is what the account used in the last 7 days.",
+    );
+    await expect(passed).toContainText("$96.25");
+    // The team's members, beside the people who used it.
+    const figures: Locator = passed.getByTestId("llm-connection-test-figures");
+    await expect(figures).toContainText("Members");
+    await expect(figures).toContainText("40");
+    await expect(figures).toContainText("People");
+    await shoot(page, "connect-cursor-tested");
+
+    const state: FixtureState = await fixture(page);
+    expect(state.tests[0]!.body).toEqual({
+      provider: "cursor",
+      config: {},
+      secrets: { apiKey: CURSOR_KEY },
+    });
+
+    await submit(page).click();
+    await expect(dialog(page)).toBeHidden();
+
+    const saved: FixtureState = await fixture(page);
+    expect(saved.creates).toHaveLength(1);
+    expect(saved.creates[0]).toMatchObject({
+      name: "Cursor",
+      provider: "cursor",
+      config: {},
+      isEnabled: true,
+    });
+    expect(JSON.parse(saved.creates[0]!["secrets"] as string)).toEqual({
+      apiKey: CURSOR_KEY,
+    });
+  });
+
+  test("a key that may not read the team says what Cursor needs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "way=providers&verdict=cursor-permission");
+
+    await panel(page, "providers")
+      .getByTestId("llm-connection-tile-cursor")
+      .click();
+    await dialog(page).getByPlaceholder("crsr_...").fill(CURSOR_KEY);
+    await next(page).click();
+    await dialog(page).getByTestId("llm-connection-test-button").click();
+
+    const failed: Locator = dialog(page).getByTestId(
+      "llm-connection-test-fail",
+    );
+    // Cursor's words, not a role or scope Cursor does not have.
+    await expect(failed).toContainText(
+      "Cursor accepted the key, but it may not read the team's usage.",
+    );
+    await expect(failed).toContainText(
+      "Use an Admin API key of a Teams or Enterprise team",
+    );
+    await expect(failed).not.toContainText("the role or scope");
+    await expect(
+      dialog(page).getByTestId("llm-connection-test-details"),
+    ).toContainText("HTTP 403");
+    await shoot(page, "connect-cursor-refused");
+  });
+
+  test("looked for with the company AI tools, it connects from there", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "way=tools&verdict=cursor");
+
+    await panel(page, "tools")
+      .getByTestId("llm-other-ai-tools-summary")
+      .click();
+
+    const entry: Locator = panel(page, "tools").getByTestId(
+      "llm-other-ai-tool-cursor",
+    );
+    await expect(entry).toContainText("not conversations");
+    await entry.getByTestId("llm-other-ai-tool-connect-cursor").click();
+
+    // The provider account's form, not a company tool's.
+    await expect(dialog(page)).toContainText("Connect Cursor");
+    await expect(dialog(page).getByPlaceholder("crsr_...")).toBeVisible();
+    await expect(
+      dialog(page).getByTestId("llm-connection-readers"),
+    ).toHaveCount(0);
+    await shoot(page, "connect-cursor-from-tools");
+  });
+
+  test("a Cursor team's row: what it cost, its members, and a read still catching up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=cursor&way=providers");
+
+    const providers: Locator = panel(page, "providers");
+
+    await expect(
+      providers.getByText("$96.25 over the last 7 days"),
+    ).toBeVisible();
+    // A big team: both numbers written alike, never "1031 of 1,248".
+    await expect(
+      providers.getByTestId("llm-connection-people-summary"),
+    ).toHaveText("1,031 of 1,248 members active in the last 7 days");
+    await expect(
+      providers.getByTestId("llm-connection-reading-note"),
+    ).toHaveText("Still reading earlier usage");
+    // Read by the hour, which the list says over its rows.
+    await expect(providers).toContainText("Cursor every hour");
+    await expect(
+      page.getByTestId("llm-connection-tile-connected-cursor"),
+    ).toBeVisible();
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "connect-cursor-row");
+
+    // In German, the German way: "1.031 von 1.248", never "1031 von 1.248".
+    await open(page, "state=cursor&way=providers&lang=de");
+
+    const german: Locator = panel(page, "providers").getByTestId(
+      "llm-connection-people-summary",
+    );
+
+    await expect(german).toHaveText(
+      "1.031 von 1.248 Mitgliedern in den letzten 7 Tagen aktiv",
+    );
+    // Whole - wrapped if need be - never cut off at the column's edge.
+    expect(
+      await german.evaluate((element: Element): number => {
+        return element.scrollWidth - element.clientWidth;
+      }),
+    ).toBeLessThanOrEqual(1);
+    await shoot(page, "connect-cursor-row-german");
+  });
+
+  test("a busy team's test counts its requests, and says when cost and tokens arrive", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "way=providers&verdict=cursor-busy");
+
+    await panel(page, "providers")
+      .getByTestId("llm-connection-tile-cursor")
+      .click();
+    await dialog(page).getByPlaceholder("crsr_...").fill(CURSOR_KEY);
+    await next(page).click();
+    await dialog(page).getByTestId("llm-connection-test-button").click();
+
+    const passed: Locator = dialog(page).getByTestId(
+      "llm-connection-test-pass",
+    );
+    const figures: Locator = passed.getByTestId("llm-connection-test-figures");
+
+    await expect(figures).toContainText("48.2K");
+    await expect(figures).toContainText("1,248");
+    await expect(figures).not.toContainText("Cost");
+    // No cost shown, and why: not a team that spent nothing.
+    await expect(passed).toContainText(
+      "A busy team's test counts its requests only. Cost, tokens and people arrive with the first read.",
+    );
+    await shoot(page, "connect-cursor-busy");
+  });
+
+  test("the setup check says when Cursor's OpenTelemetry Export arrives too, and that the two are never added together", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=cursor&otel=cursor");
+
+    const cursor: Locator = page
+      .getByTestId("llm-setup-check-accounts")
+      .getByTestId(`llm-setup-check-connection-${CURSOR_CONNECTION}`);
+
+    await expect(cursor).toContainText("Cursor");
+    await expect(cursor).toContainText("Last used");
+    await expect(cursor).toContainText(
+      "Cursor's OpenTelemetry Export arrives too.",
+    );
+    await expect(cursor).toContainText("never added together");
+    await shoot(page, "connect-setup-check-cursor");
+
+    // With the Admin API key alone, nothing to keep apart.
+    await open(page, "state=cursor");
+    await expect(
+      page
+        .getByTestId("llm-setup-check-accounts")
+        .getByTestId(`llm-setup-check-connection-${CURSOR_CONNECTION}`),
+    ).toContainText("Last used");
+    await expect(
+      page.getByTestId("llm-setup-check-accounts"),
+    ).not.toContainText("OpenTelemetry Export");
+  });
+});
+
 test.describe("connecting a company AI tool", () => {
   test("Claude Enterprise: who can read, whether text is kept, and telling people", async ({
     page,
@@ -533,7 +815,10 @@ test.describe("the list of connections", () => {
   }) => {
     await open(page, "state=connected&way=providers");
 
-    await expect(page.getByText("OpenAI production")).toBeVisible();
+    // The list's own row: the setup check above names the account too.
+    await expect(
+      panel(page, "providers").getByText("OpenAI production"),
+    ).toBeVisible();
     await expect(page.getByText("Working").first()).toBeVisible();
     await expect(
       panel(page, "providers").getByText("Not working").first(),
@@ -633,7 +918,9 @@ test.describe("a connection that is off", () => {
   }) => {
     await open(page, "state=off&way=providers");
 
-    await expect(page.getByText("Bedrock us-east-1")).toBeVisible();
+    await expect(
+      panel(page, "providers").getByText("Bedrock us-east-1"),
+    ).toBeVisible();
     await expect(
       panel(page, "providers").getByText("Off", { exact: true }),
     ).toBeVisible();
@@ -660,6 +947,185 @@ test.describe("a connection that is off", () => {
   });
 });
 
+/*
+ * #5776: provider accounts connected and working, and empty conversations,
+ * with nothing on the page to say why. The Setup check at the top of
+ * Connect says what each way is bringing in right now.
+ */
+test.describe("the setup check", () => {
+  /*
+   * A new project: one line, not three groups of "none connected" over the
+   * three ways that say the same right under it - which stay in view.
+   */
+  test("nothing set up: one line, and the three ways right under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+
+    const check: Locator = page.getByTestId("llm-setup-check");
+
+    await expect(check.getByText("Setup check", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("llm-setup-check-quiet")).toHaveText(
+      "Nothing is coming in yet. Pick a way below to bring AI in.",
+    );
+
+    for (const group of ["apps", "accounts", "tools"]) {
+      await expect(page.getByTestId(`llm-setup-check-${group}`)).toHaveCount(0);
+    }
+
+    for (const key of ["apps", "providers", "tools"]) {
+      await expect(way(page, key)).toBeInViewport();
+    }
+
+    // The check reads the project, not a view's window.
+    const state: FixtureState = await fixture(page);
+    expect(state.setupChecks).toEqual([{}]);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "connect-setup-check-empty");
+  });
+
+  test("provider accounts connected and no app sending: each account's line, and the way to send calls", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    const accounts: Locator = page.getByTestId("llm-setup-check-accounts");
+
+    await expect(
+      page.getByTestId("llm-setup-check-line-apps-none"),
+    ).toBeVisible();
+    await expect(page.getByTestId("llm-setup-check-apps-action")).toHaveText(
+      "Send your app's AI calls",
+    );
+
+    const openai: Locator = accounts.getByTestId(
+      "llm-setup-check-connection-20000000-0000-4000-8000-000000000001",
+    );
+    await expect(openai).toContainText("OpenAI production");
+    await expect(openai).toContainText("Last used");
+    // An account that works and has usage is one line.
+    await expect(openai).not.toContainText(
+      "Azure OpenAI and ChatGPT use are not in it.",
+    );
+
+    const foundry: Locator = accounts.getByTestId(
+      "llm-setup-check-connection-20000000-0000-4000-8000-000000000002",
+    );
+    // What failed in the product's words, and what to do - not Azure's JSON.
+    await expect(foundry).toContainText(
+      "The credential works, but it may not read what this connection needs.",
+    );
+    await expect(foundry).toContainText(
+      "Give it the role or scope the setup guide names, then test again.",
+    );
+    await expect(foundry).not.toContainText("AuthorizationFailed");
+    await expect(
+      foundry.getByTestId(
+        "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000002",
+      ),
+    ).toHaveAttribute("data-tone", "error");
+
+    await expect(
+      page.getByTestId(
+        "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000003",
+      ),
+    ).toHaveAttribute("data-tone", "waiting");
+    await expect(page.getByTestId("llm-setup-check-tools")).toContainText(
+      "Waiting for the first read",
+    );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "connect-setup-check-connected");
+  });
+
+  /*
+   * A connection is a row: its name and how it stands side by side where
+   * the card is wide, so a busy project's accounts read as a list; the
+   * status under the name on a phone. The next step sits under what it
+   * answers, in line with the text.
+   */
+  test("a connection's name and status share a row on a desktop, and stack on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    const row: Locator = page.getByTestId(
+      "llm-setup-check-connection-20000000-0000-4000-8000-000000000001",
+    );
+    const boxes: Array<FrameBox> = await boxesInOneFrame([
+      row.getByTestId("llm-setup-check-connection-name"),
+      row.getByTestId(
+        "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000001",
+      ),
+    ]);
+    const name: FrameBox = boxes[0]!;
+    const status: FrameBox = boxes[1]!;
+
+    if (test.info().project.name === "phone") {
+      expect(status.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+    } else {
+      expect(Math.abs(status.y - name.y)).toBeLessThanOrEqual(4);
+      expect(status.x).toBeGreaterThan(name.x + name.width);
+    }
+
+    const apps: Locator = page.getByTestId("llm-setup-check-apps");
+    const [finding, action] = await boxesInOneFrame([
+      apps.getByTestId("llm-setup-check-line-apps-none"),
+      apps.getByTestId("llm-setup-check-apps-action"),
+    ]);
+
+    // Under the finding, at every width.
+    expect(action!.y).toBeGreaterThanOrEqual(finding!.y + finding!.height - 1);
+  });
+
+  test("apps sending AI calls: how many, through which provider, and nothing to open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=done");
+
+    const apps: Locator = page.getByTestId("llm-setup-check-apps");
+
+    await expect(apps).toContainText("AI calls in the past 7 days, from");
+    await expect(apps).toContainText("Through OpenAI.");
+    await expect(apps).toContainText(
+      "Prompts and answers recorded on 100% of answers.",
+    );
+    await expect(page.getByTestId("llm-setup-check-apps-action")).toHaveCount(
+      0,
+    );
+
+    await shoot(page, "connect-setup-check-done");
+  });
+
+  test("Check again reads it again", async ({ page }: { page: Page }) => {
+    await open(page, "state=connected");
+
+    await expect(
+      page.getByTestId("llm-setup-check-line-apps-none"),
+    ).toBeVisible();
+
+    await page
+      .getByTestId("llm-setup-check")
+      .getByRole("button", { name: "Check again" })
+      .click();
+
+    await expect
+      .poll(async () => {
+        return (await fixture(page)).setupChecks.length;
+      })
+      .toBe(2);
+  });
+});
+
 test.describe("who may connect", () => {
   test("a member sees the ways in, but cannot connect, test or read now, and is told why", async ({
     page,
@@ -674,6 +1140,15 @@ test.describe("who may connect", () => {
     ).toContainText("Project Owner");
     await expect(
       page.getByRole("button", { name: "Read now" }).first(),
+    ).toBeDisabled();
+
+    // Nor Cursor from the company AI tools.
+    await way(page, "tools").click();
+    await panel(page, "tools")
+      .getByTestId("llm-other-ai-tools-summary")
+      .click();
+    await expect(
+      panel(page, "tools").getByTestId("llm-other-ai-tool-connect-cursor"),
     ).toBeDisabled();
   });
 });
@@ -708,5 +1183,31 @@ test.describe("the Connect page in the dark theme and in Japanese", () => {
     }
 
     await shoot(page, "connect-japanese");
+
+    /*
+     * Cursor is a product's name, never the text cursor's word (カーソル):
+     * on its tile, its form's title and its entry with the company tools.
+     */
+    await way(page, "providers").click();
+
+    const tile: Locator = panel(page, "providers").getByTestId(
+      "llm-connection-tile-cursor",
+    );
+
+    await expect(tile).toContainText("Cursor");
+    await expect(tile).not.toContainText("カーソル");
+    await tile.click();
+    await expect(dialog(page)).toContainText("Cursor を接続");
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toBeHidden();
+
+    await way(page, "tools").click();
+    await panel(page, "tools")
+      .getByTestId("llm-other-ai-tools-summary")
+      .click();
+    await expect(
+      panel(page, "tools").getByTestId("llm-other-ai-tool-connect-cursor"),
+    ).toHaveText("Cursor を接続");
+    await expect(panel(page, "tools")).not.toContainText("カーソル");
   });
 });

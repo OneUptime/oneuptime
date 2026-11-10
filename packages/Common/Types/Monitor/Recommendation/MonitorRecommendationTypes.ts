@@ -1,4 +1,8 @@
 import ObjectID from "../../ObjectID";
+import Dictionary from "../../Dictionary";
+// A type only: the catalog stays free of the health rules' code.
+import type { CloudResourceReadings } from "../../Cloud/CloudResourceHealth";
+import type { RdsConnectionLimitReading } from "../../Cloud/RdsConnectionLimits";
 import RecommendationType from "../../Recommendation/RecommendationType";
 import { ServiceLanguage } from "../../Service/ServiceLanguage";
 import MonitorStep from "../MonitorStep";
@@ -70,6 +74,24 @@ export enum MonitorRecommendationResourceType {
    * oneuptime.data.pipeline.* metrics; the set is a constant.
    */
   DataPipeline = "DataPipeline",
+  /*
+   * One resource of a connected cloud account (a CloudResource row of kind
+   * resource): an EC2 instance, an RDS database, a load balancer, a Lambda
+   * function, an Azure VM, a Cloud SQL instance. Its recommendations are
+   * Metrics monitors over the key metrics its connection reads
+   * (CloudAlertTemplates), and depend on its cloud, its type and the
+   * attributes its metrics are stored with - see
+   * MonitorRecommendationContext.
+   */
+  CloudResource = "CloudResource",
+  /*
+   * One App Platforms app (a CloudApp row): an ECS service, a Cloud Run
+   * service, a Container App. Its recommendations watch its own requests -
+   * failing, slowing, stopping - read from its spans and its HTTP duration
+   * histogram, scoped by its environment's and its own attributes as its
+   * Traces tab is (CloudAppAlertTemplates); see MonitorRecommendationContext.
+   */
+  CloudApp = "CloudApp",
 }
 
 /*
@@ -181,6 +203,59 @@ export interface MonitorRecommendationContext {
    */
   openStackIsApiCheckOn?: boolean | null | undefined;
   openStackIsLifecycleCheckOn?: boolean | null | undefined;
+  /*
+   * A cloud resource's cloud and type (CloudResource.cloudProvider and
+   * cloudResourceType: "aws", "AWS::RDS::DBInstance"). They pick its
+   * templates (getCloudAlertTemplatesFor); without them nothing applies -
+   * like a database without an engine, a cloud resource has no
+   * type-agnostic subset.
+   */
+  cloudProvider?: string | null | undefined;
+  cloudResourceType?: string | null | undefined;
+  /*
+   * The stored attributes that select its metrics
+   * (CloudResource.telemetryAttributes), which every query is filtered on.
+   * Recorded with its first metric: until then nothing is offered, since a
+   * monitor filtered on nothing would read every resource's metric.
+   */
+  cloudTelemetryAttributes?: Dictionary<string> | null | undefined;
+  /*
+   * Its readings (CloudResource.cloudReadings): the names its Azure metrics
+   * are stored under, which end with an aggregation only the read knows.
+   */
+  cloudReadings?: CloudResourceReadings | null | undefined;
+  /*
+   * Whether a cloud connection reads it (CloudResource.cloudConnectionId):
+   * its Azure templates then wait for readings that name their metrics
+   * (getCloudAlertTemplatesFor).
+   */
+  cloudReadByConnection?: boolean | null | undefined;
+  /*
+   * An RDS instance's allocated storage in GiB, from its inventory
+   * (cloudProperties.AllocatedStorage): its free-storage template is a
+   * share of it, and waits for it.
+   */
+  cloudAllocatedStorageGiB?: number | null | undefined;
+  /*
+   * An RDS instance's connection limit, from its inventory's class, engine
+   * and parameter group (readRdsConnectionLimit) - or why it is not known.
+   * Its connections template is a share of it, and waits for it; the
+   * resource's page says why it waits, and that a parameter group of the
+   * team's own may set another. Absent for every other resource.
+   */
+  cloudConnectionLimit?: RdsConnectionLimitReading | null | undefined;
+  /*
+   * An App Platforms app's telemetry filter: its environment's
+   * resource.cloud.* attributes and its own resource.* attributes, as its
+   * Traces tab reads its spans. Without its own attributes nothing is
+   * offered: a monitor of the environment alone would read every app in it.
+   */
+  cloudAppTelemetryFilters?: Dictionary<string> | null | undefined;
+  /*
+   * The CloudResource row of the app's environment: what each monitor made
+   * for the app is linked to, so its incidents and alerts list there.
+   */
+  cloudAppEnvironmentId?: string | null | undefined;
 }
 
 /*
@@ -204,6 +279,8 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  *   rumApplicationId  -> RUM application
  *   serviceId         -> APM service
  *   databaseServerId  -> Database server
+ *   cloudResourceId   -> Cloud resource
+ *   cloudAppId        -> App Platforms app
  *
  * The registry normalizes that single difference into `resourceIdentifier`
  * and each catalog adapter renames it back on the way into the module's own
@@ -252,6 +329,13 @@ export interface MonitorRecommendation {
   category: string;
   severity: MonitorRecommendationSeverity;
   getMonitorStep: (args: MonitorRecommendationArgs) => MonitorStep;
+  /*
+   * How often the created monitor is evaluated, as a 5-field cron
+   * (Monitor.monitoringInterval), when the template says: a cloud resource's
+   * every five minutes, as often as its points can change
+   * (CloudAlertTemplates). Absent: the monitor's default, every minute.
+   */
+  monitoringInterval?: string | undefined;
 }
 
 /*

@@ -1237,6 +1237,8 @@ RunCron(
             subscriberNotificationStatusOnNoteCreated:
               StatusPageSubscriberNotificationStatus.Pending,
             shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+            // Published notes only: one waiting for approval is told to nobody yet.
+            isPublished: true,
           },
           props: {
             isRoot: true,
@@ -1321,6 +1323,8 @@ RunCron(
           query: {
             subscriberNotificationStatusOnNoteUpdated:
               StatusPageSubscriberNotificationStatus.Pending,
+            // Published notes only: one waiting for approval is told to nobody yet.
+            isPublished: true,
           },
           props: {
             isRoot: true,

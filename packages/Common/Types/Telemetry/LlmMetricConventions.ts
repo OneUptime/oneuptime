@@ -15,9 +15,10 @@ import { withResourcePrefixedKeys } from "./LlmConventions";
  *   - AI gateways and vendor exporters that publish spend/usage counters only.
  *
  * For those, token and cost totals have to come off the metric stream instead.
- * Both the budget evaluator (Common/Server/Utils/Telemetry/LlmMetricSpend.ts)
- * and anything else that needs metric-sourced LLM figures import these lists,
- * so a newly recognized metric name is added HERE, once.
+ * The usage reads (Common/Server/Utils/Telemetry/LlmMetricUsageReader.ts,
+ * which the Usage tab and the cost budgets share through LlmUsageReader) and
+ * anything else that needs metric-sourced LLM figures import these lists, so
+ * a newly recognized metric name is added HERE, once.
  *
  * Order matters: within each list the preferred convention comes first.
  */
@@ -177,15 +178,22 @@ export const LlmInputTokenTypeValues: Array<string> = ["input", "prompt"];
  *                output | reasoning_output
  *
  * The plain input/output values are covered by the two lists here and need
- * nothing added. The rest are excluded on purpose:
+ * nothing added. The cache kinds depend on the emitter, and the rest are
+ * excluded on purpose:
  *
- *   - cache_read / cacheRead / cached_input, and
- *     cache_creation / cacheCreation / cache_write_input
- *       Real token counts, but neither input nor output in the sense the span
- *       columns (llmInputTokens / llmOutputTokens) use. Folding them in would
- *       silently inflate the metric-sourced totals against the span-sourced
- *       ones they stand in for. Cache-aware accounting deserves its own
- *       columns; until it has them, these are dropped rather than guessed at.
+ *   - cacheRead / cacheCreation (Claude Code)
+ *       PART of the input, by the GenAI conventions' count: the span columns
+ *       (llmInputTokens) hold every token the model read, the cached ones
+ *       included (LlmTokenUsage), and Claude Code's metric `input` leaves
+ *       them out - its monitoring docs say so. So for claude_code.token.usage
+ *       they count as input (LlmMetricInputCacheTokenTypes below), or a
+ *       Claude Code fleet's input reads a fraction of what its spans would.
+ *   - cache_read / cache_creation (Cursor)
+ *       Cursor does not say whether its `input` holds them, so they are left
+ *       out rather than guessed at.
+ *   - cached_input / cache_write_input (Codex)
+ *       A SUBSET of Codex's `input`, which already counts every input token
+ *       the way OpenAI's usage does. Counting them would add them twice.
  *   - total
  *       A SUPERSET of its siblings. Codex emits it ALONGSIDE the per-kind
  *       datapoints, so counting it would add every token a second time.
@@ -200,6 +208,17 @@ export const LlmInputTokenTypeValues: Array<string> = ["input", "prompt"];
 export const LlmOutputTokenTypeValues: Array<string> = ["output", "completion"];
 
 /*
+ * Token types an emitter reports apart from its `input` that ARE input by
+ * the GenAI conventions, by metric name, lower case. Claude Code's `input`
+ * excludes the tokens read from and written to the prompt cache, which it
+ * counts as `cacheRead` and `cacheCreation`; its GenAI input count is the
+ * three added up, exactly as LlmTokenUsage adds them on its spans.
+ */
+export const LlmMetricInputCacheTokenTypes: Record<string, Array<string>> = {
+  "claude_code.token.usage": ["cacheread", "cachecreation"],
+};
+
+/*
  * Attribute keys naming WHO the metric datapoint belongs to, for grouping
  * metric-sourced spend by employee — the metric-side counterpart of
  * LlmUserIdAttributeKeys in Common/Types/Telemetry/LlmConventions.ts.
@@ -207,8 +226,14 @@ export const LlmOutputTokenTypeValues: Array<string> = ["output", "completion"];
  * Email leads here rather than id (the span list is the other way round)
  * because the coding-agent CLIs that dominate the metric-only population emit
  * user.email natively, and it is the one value a manager reads without a
- * lookup table. cursor.user.id sorts last for the same reason it does on the
- * span side: it is an opaque team-scoped integer.
+ * lookup table. cursor.user.email - the member's email, which Cursor's
+ * export sends on the resource unless the team is on its legacy Privacy
+ * Mode - comes next for the same reason. cursor.user.id sorts last for the
+ * reason it does on the span side: it is an opaque team-scoped integer.
+ *
+ * The list is read by LlmMetricUsageReader, which picks the first non-empty
+ * key in ClickHouse, so it is not bound by the ten-key limit of a grouped
+ * metric aggregate (MetricService's MAX_GROUP_BY_ATTRIBUTE_KEYS).
  *
  * Both lists below are resource-widened for the same reason the span lists
  * are: OtelMetricsIngestService flattens resource attributes with the
@@ -221,6 +246,8 @@ export const LlmOutputTokenTypeValues: Array<string> = ["output", "completion"];
  */
 export const LlmMetricUserBaseAttributeKeys: Array<string> = [
   "user.email",
+  // Cursor's OpenTelemetry export, on the resource.
+  "cursor.user.email",
   "user.id",
   "user.account_uuid",
   "user.account_id",
@@ -280,6 +307,25 @@ export const LlmMetricModelBaseAttributeKeys: Array<string> = [
 export const LlmMetricModelAttributeKeys: Array<string> =
   withResourcePrefixedKeys(LlmMetricModelBaseAttributeKeys);
 
+/*
+ * Attribute keys naming WHICH PROVIDER served the calls a datapoint counts:
+ * the conventions' gen_ai.provider.name (and gen_ai.system, which it
+ * replaced), and the spellings the span list knows (LlmSystemAttributeKeys).
+ * An SDK's gen_ai.client.token.usage carries one; the coding assistants'
+ * counters carry none - Cursor and Claude Code reach several providers
+ * behind one subscription - so their usage falls under Unattributed in the
+ * Provider breakdown, still counted. The value is read as sent and named
+ * the way ingest names a span's provider (normalizeLlmProvider) before it
+ * is grouped. Not resource-widened, like the span list: a provider names
+ * one call, never a whole process.
+ */
+export const LlmMetricProviderAttributeKeys: Array<string> = [
+  "gen_ai.provider.name",
+  "gen_ai.system",
+  "llm.system",
+  "llm.provider",
+];
+
 /**
  * Which side of the exchange a `gen_ai.token.type` value denotes, or null
  * when the value is one we deliberately do not count (the cache kinds,
@@ -326,4 +372,42 @@ export function getLlmTokenTypeValues(
   return direction === "input"
     ? LlmInputTokenTypeValues
     : LlmOutputTokenTypeValues;
+}
+
+/**
+ * Which side of the exchange a token datapoint of `metricName` counts, by
+ * the GenAI conventions' count: getLlmTokenDirection, plus the cache kinds
+ * an emitter reports apart from an input that leaves them out
+ * (LlmMetricInputCacheTokenTypes - Claude Code's cacheRead and
+ * cacheCreation are input). Null for a value that is not counted.
+ */
+export function getLlmMetricTokenDirection(
+  metricName: string | undefined | null,
+  attributeValue: string | undefined | null,
+): LlmTokenDirection | null {
+  const direction: LlmTokenDirection | null =
+    getLlmTokenDirection(attributeValue);
+
+  if (direction) {
+    return direction;
+  }
+
+  if (typeof attributeValue !== "string" || typeof metricName !== "string") {
+    return null;
+  }
+
+  const name: string = metricName.trim().toLowerCase();
+
+  // A metric name is outside text: never read Object.prototype through it.
+  if (
+    !Object.prototype.hasOwnProperty.call(LlmMetricInputCacheTokenTypes, name)
+  ) {
+    return null;
+  }
+
+  const cacheTypes: Array<string> = LlmMetricInputCacheTokenTypes[name] || [];
+
+  return cacheTypes.includes(attributeValue.trim().toLowerCase())
+    ? "input"
+    : null;
 }

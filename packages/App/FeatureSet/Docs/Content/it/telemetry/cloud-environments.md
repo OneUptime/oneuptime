@@ -4,6 +4,8 @@ Un **Ambiente cloud** è il luogo in cui i tuoi container girano su una piattafo
 
 Gli ambienti sono elencati in Piattaforme applicative, un prodotto a sé: **Piattaforme applicative → Panoramica** li raggruppa per piattaforma e mostra per primi quelli che hanno smesso di inviare dati, **Piattaforme applicative → Tutte le app** elenca ogni app che eseguono, e **Piattaforme applicative → Tutti gli ambienti** li elenca tutti. Le risorse dei tuoi account cloud, come macchine virtuali, bucket e database gestiti, sono in Cloud: vedi [Risorse cloud](/docs/telemetry/cloud-resources).
 
+Per vedere gli ambienti o le app di un account cloud, filtra **Tutti gli ambienti** o **Tutte le app** con il chip di filtro **Account cloud**: elenca ogni account in cui si trovano gli ambienti, sotto il suo cloud, e mantiene gli account che scegli, oppure tutti gli altri. In **Cloud → Panoramica**, la scheda **Piattaforme applicative** conta gli ambienti e le app dei tuoi account cloud collegati, e ogni conteggio apre il suo elenco con il chip già impostato su quegli account. Rimuovi il chip per vedere l'elenco completo.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Task su Fargate o EC2, con CPU e memoria di ogni task.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Servizi e job, elencati anche come funzioni serverless.
@@ -32,6 +34,7 @@ flowchart TB
 - **L'ambiente raggruppa tutto.** Ogni carico di lavoro con la stessa piattaforma, lo stesso account e la stessa regione finisce in un unico ambiente. I servizi mantengono le proprie righe in **Servizi**.
 - **Ogni task in esecuzione è un'istanza.** La scheda **Istanze** dell'ambiente elenca i suoi task, le istanze o le repliche in esecuzione, con CPU e memoria in tempo reale quando la piattaforma può fornirle.
 - **Ogni servizio è un'app.** Un servizio ECS, un servizio Cloud Run o una Container App è un'app del suo ambiente, e OneUptime conserva le revisioni che esegue: vedi [App e distribuzioni](#app-e-distribuzioni).
+- **Contano anche i log di CloudWatch trasmessi.** Un account AWS che [trasmette i suoi log di CloudWatch](/docs/telemetry/cloud-streaming) mette i log dei suoi servizi App Runner, dei suoi ambienti Elastic Beanstalk, e dei suoi task e cluster ECS nella scheda **Registri** del loro ambiente, e l'ambiente compare con loro se nessuna app vi ha ancora inviato dati. Non creano nessuna app: un'app prende il nome dalla sua telemetria.
 
 ## Prima di iniziare
 
@@ -118,7 +121,7 @@ Il primo attributo che la telemetria porta dà il nome all'app, quindi anche un'
 - **Entrambi sono modifiche.** Ognuno è una linea tratteggiata nei grafici dell'app e dell'ambiente, una riga nel **Feed** dell'ambiente e un [evento di modifica](/docs/telemetry/change-events) che OneUptime AI legge quando indaga su un incidente nell'ambiente. **Distribuzioni recenti** in **Piattaforme applicative → Panoramica** elenca le più recenti.
 - **Per ogni app si registrano al massimo 12 nuove revisioni in un'ora.** Altrimenti una `service.version` che cambia a ogni build sarebbe una distribuzione al minuto.
 
-La pagina di un'app ha una **Panoramica** con le sue richieste, gli errori, la latenza, le istanze e le revisioni in esecuzione ora, una scheda **Revisioni** con i numeri di ogni revisione, e le schede **Istanze**, **Registri** e **Tracce** filtrate sull'app. **Configura gli avvisi** apre i monitor consigliati del servizio dell'app, in **Servizi**.
+La pagina di un'app ha una **Panoramica** con le sue richieste, gli errori, la latenza, le istanze e le revisioni in esecuzione ora, una scheda **Revisioni** con i numeri di ogni revisione, le schede **Istanze**, **Registri** e **Tracce** filtrate sull'app, e una scheda **Raccomandazioni** con i monitor che OneUptime consiglia per l'app: operazioni non riuscite, raffiche di errori, traffico che si ferma e richieste lente, letti dagli span dell'app e dalla sua `http.server.request.duration`, ciascuno collegato all'ambiente dell'app. **Configura gli avvisi** la apre; per un'app il cui nome è troppo lungo per filtrarne la telemetria, apre invece i monitor consigliati del servizio dell'app, in **Servizi**.
 
 Un'app che non invia nulla per 30 giorni viene rimossa con le sue revisioni, così come una revisione che nessuna istanza segnala per 30 giorni, a meno che l'app la esegua ancora. Su un OneUptime self-hosted, `CLOUD_APP_RETENTION_DAYS` imposta i 30.
 

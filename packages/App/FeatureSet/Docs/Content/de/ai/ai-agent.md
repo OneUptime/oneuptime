@@ -15,14 +15,14 @@ Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeit
 :::
 
 > [!TIP]
-> Sie können das auch aus GitHub heraus starten. Erwähnen Sie die OneUptime GitHub App in einem Issue oder einem Pull Request, und sie implementiert, überarbeitet oder prüft direkt dort: siehe [GitHub App](/docs/ai/github-app). Es ist derselbe Agent, derselbe Runner und dasselbe Budget; nur der Auslöser unterscheidet sich.
+> Sie können das auch aus GitHub heraus starten. Erwähnen Sie die OneUptime GitHub App in einem Issue oder einem Pull Request, und sie implementiert, überarbeitet oder prüft direkt dort: siehe [GitHub App](/docs/ai/github-app). Es ist derselbe Agent, derselbe Runner und dieselben Limits; nur der Auslöser unterscheidet sich.
 
 ## KI in einem Repository bitten
 
 :::steps
 ### Code öffnen
 
-Öffnen Sie **Produkte → Code**. Code öffnet sich mit **Was soll die KI tun?**: dem Feld, in dem Sie fragen, mit allen Aufgaben darunter, die neueste zuerst. Gibt es noch kein Repository, bietet Code stattdessen **GitHub verbinden** an, darunter GitLab, Forgejo oder Gitea und jeden Git-Server (siehe [Ein Repository verbinden](#ein-repository-verbinden)). **Repositorys** im Seitenmenü listet die Repositorys auf, in denen die KI arbeiten kann, und fasst die, die OneUptime nicht mehr erreicht, unter **Nicht verbunden** zusammen. Die Seite jedes Repositorys hat dasselbe Feld für dieses Repository.
+Öffnen Sie **Produkte → Code**. Code öffnet sich mit **Was soll die KI tun?**: dem Feld, in dem Sie fragen, mit allen Aufgaben darunter, die neueste zuerst; filtern Sie sie danach, wie sie stehen, jeder Filter mit seiner Anzahl, oder suchen Sie sie nach Titel oder Nummer. Gibt es noch kein Repository, bietet Code stattdessen **GitHub verbinden** an, darunter GitLab, Forgejo oder Gitea und jeden Git-Server (siehe [Ein Repository verbinden](#ein-repository-verbinden)). **Repositorys** im Seitenmenü listet die Repositorys auf, in denen die KI arbeiten kann, und fasst die, die OneUptime nicht mehr erreicht, unter **Nicht verbunden** zusammen. Die Seite jedes Repositorys hat dasselbe Feld für dieses Repository, und dort können Sie Anfragen, die fehlgeschlagen sind oder gestoppt wurden, ankreuzen und mit **Ausgewählte erneut versuchen** alle noch einmal versuchen.
 
 ### Repository und Branch auswählen
 
@@ -57,15 +57,16 @@ Eine Anfrage trägt höchstens 10 Kontextelemente. Token, Schlüssel, Passwörte
 
 ## Die Unterhaltung einer Aufgabe
 
-Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kontext hinzugefügt wurde, dann der Zug der KI – die Schritte, während sie sie ausführt (die Dateien, die sie gelesen und bearbeitet hat, wonach sie gesucht hat, die Befehle, die sie ausgeführt hat), ihre Antwort, die geänderten Dateien mit ihrem Diff und der Pull Request. Oben auf der Seite steht, wo die Aufgabe arbeitet (ihr Repository und der Branch, von dem sie ausging), wie viele Zeilen sie geändert hat, mit einer Schaltfläche zu ihrem Pull Request, und wie es um die Aufgabe steht:
+Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kontext hinzugefügt wurde, dann der Zug der KI – die Schritte, während sie sie ausführt (die Dateien, die sie gelesen und bearbeitet hat, wonach sie gesucht hat, die Befehle, die sie ausgeführt hat), ihre Antwort, die geänderten Dateien mit ihrem Diff und der Pull Request. Oben auf der Seite steht, wo die Aufgabe arbeitet (ihr Repository und der Branch, von dem sie ausging), wie viele Dateien und Zeilen sie geändert hat, wie lange die KI daran gearbeitet hat, mit einer Schaltfläche zu ihrem Pull Request, und wie es um die Aufgabe steht:
 
 | Status | Was er bedeutet |
 | --- | --- |
 | **In der Warteschlange** | Sie wartet darauf, dass ein Runner sie übernimmt. |
+| **Wird wiederholt** | Ein Durchgang, den die KI von selbst erneut versucht, sagt, welcher Versuch als Nächstes kommt und wann; **Jetzt erneut versuchen** startet ihn sofort. |
 | **Wird bearbeitet…** | Die KI arbeitet daran. **Stoppen** stoppt sie; was sie gepusht hat, bleibt im Branch. |
 | **Wartet auf Sie** | Die KI hat eine Frage gestellt. Beantworten Sie sie im Feld unten. |
 | **Fertig** | Die KI ist fertig: ihre Antwort und der Pull Request, wenn sie Code geändert hat. |
-| **Fehlgeschlagen** | Der Durchgang konnte nicht abgeschlossen werden und sagt, warum. **Erneut versuchen** fragt dasselbe noch einmal. |
+| **Fehlgeschlagen** | Der Durchgang konnte nicht abgeschlossen werden und sagt, warum, und nach wie vielen Versuchen, wenn die KI ihn von selbst erneut versucht hat. **Erneut versuchen** fragt dasselbe noch einmal. |
 | **Gestoppt** | Jemand hat sie gestoppt. **Erneut versuchen** fragt dasselbe noch einmal. |
 
 Um nachzufassen, schreiben Sie in das Feld unten, das sichtbar bleibt, während die Unterhaltung scrollt: Antworten Sie der KI, fügen Sie Kontext hinzu oder bitten Sie um Änderungen. Jede Antwort ist der nächste Durchgang derselben Aufgabe: Sie arbeitet im selben Branch und pusht in denselben Pull Request, solange er offen ist. Eine Aufgabe hat immer nur einen Durchgang zur Zeit, deshalb wartet das Feld, während die KI arbeitet. Das **Protokoll** jedes Durchgangs ist die wörtliche Aufzeichnung dessen, was er getan hat. Bei einer Aufgabe mit mehr als einem Durchgang wechselt eine Auswahl oben auf der Seite **Protokoll** zwischen ihren Durchgängen.
@@ -97,7 +98,7 @@ flowchart TB
 
 Die Seite, auf der die Aufgabe gestartet wurde, zeigt ihren Live-Status. Jede Aufgabe steht in ihrem Repository unter **Produkte → Code**: Ihre Seite ist ihre Unterhaltung, und das **Protokoll** jedes Durchgangs hat eine Zeile für jede Datei, die der Runner gelesen oder geschrieben hat, und jeden Befehl, den er ausgeführt hat.
 
-Jeder Lauf unterliegt Budgets, die der Server durchsetzt: höchstens **40 LLM-Aufrufe** und **100.000 Ausgabe-Tokens**. Die Abfragen der Produktionstelemetrie eines Laufs zählen zu denselben 40 Aufrufen. Ein Lauf, der eines davon erreicht, endet mit einer Zusammenfassung der bisherigen Arbeit, statt in einer Schleife zu laufen. Korrekturläufe zählen auch zu den täglichen KI-Limits des Projekts, wenn das Projekt sie festlegt.
+Eine Ausführung macht so viele LLM-Aufrufe und Abfragen der Produktionstelemetrie, wie ihre Arbeit braucht, innerhalb ihres Zeitlimits: 120 Minuten, sofern das Projekt kein eigenes festlegt. Das Projekt kann jede Ausführung unter **Limits pro Ausführung** enger begrenzen, unter **Weitere Einstellungen** auf **Projekteinstellungen → KI → KI-Funktionen**; eine Ausführung, die ein Limit erreicht, endet mit einer Zusammenfassung der bisherigen Arbeit. Ein Runner von vor diesem Release stoppt eine Ausführung weiterhin bei 40 LLM-Aufrufen und 100.000 Ausgabe-Token: Aktualisieren Sie ihn, um diese Grenzen aufzuheben. Korrekturläufe zählen außerdem zu den täglichen KI-Limits des Projekts, wenn das Projekt sie festlegt.
 
 ## Wo Korrekturaufgaben starten
 
@@ -145,7 +146,7 @@ Was der Agent lesen darf, entscheidet der OneUptime-Server anhand der Aufgabe se
 - **Nur lesend.** Die Abfragen laufen auf dem OneUptime-Server, nie auf dem Runner, der keine Zugangsdaten besitzt, mit denen sich Telemetrie lesen lässt. Nichts, was sie tun, kann Ihr Projekt ändern.
 - **Dieses Projekt, und nur die Dienste, die zu diesem Repository gehören.** Sie müssen sie nicht zuordnen: Es sind die Dienste, für die OneUptime dieses Repository findet, so wie es das Repository einer Korrektur findet - die Stack-Traces ihrer Ausnahmen laufen durch seine Dateien, sie heißen wie das Repository, oder es ist das einzige Repository des Projekts. Die Telemetrie eines anderen Dienstes lässt sich nicht lesen.
 - **Keine privaten Vorfälle**, und Token, Schlüssel, Passwörter und E-Mail-Adressen werden geschwärzt, bevor der Agent ein Ergebnis sieht, wie überall, wo OneUptime AI Ihre Daten liest.
-- **Begrenzt.** Höchstens **12** Abfragen pro Lauf, von denen jede zu den 40 Aufrufen des Laufs zählt.
+- **Begrenzt.** Durch das Zeitlimit der Ausführung und durch **Tool-Aufrufe pro Ausführung**, wenn das Projekt es festlegt: Jede Abfrage ist ein Tool-Aufruf.
 
 Wenn kein Dienst zum Repository gehört, läuft die Aufgabe wie bisher ohne Produktionstelemetrie.
 
@@ -192,7 +193,7 @@ Nichts aus einem Pull Request, der aus einem Fork kommt, wird je als Anleitung d
 Code fragt nicht mehr nach Einrichtungs-, Build- und Testbefehlen, aber ein Repository, das sie hat, früher oder über die API oder Terraform gesetzt, behält sie. Sie stehen schreibgeschützt auf der Karte **Build- und Testbefehle** unter **Weitere Einstellungen** auf der Seite **Einstellungen** des Repositorys, und **Befehle entfernen** entfernt alle drei. Solange einer davon gesetzt ist, prüft jeder Korrekturlauf auf einem eigenen Runner seine Änderung auch damit, bevor der Pull Request geöffnet wird:
 
 1. Wenn der Code-Agent fertig ist, laufen die Befehle der Reihe nach im Stammverzeichnis des Repositorys, auf dem Runner, im geklonten Arbeitsbereich. Jeder bekommt bis zu 15 Minuten und läuft mit `CI=true`, sodass nichts auf eine Eingabe wartet; der erste Fehler beendet den Durchlauf.
-2. Bei einem Fehler geht das Ende der Ausgabe des fehlgeschlagenen Befehls als Reparaturaufgabe an denselben Code-Agenten zurück, mit der Anweisung, seine eigene Änderung zu korrigieren, statt Tests abzuschwächen oder zu überspringen, und die Befehle laufen erneut. Er unternimmt höchstens **2** Reparaturversuche. Sie teilen sich das LLM-Budget des Laufs, und ihre Änderungen landen im selben Commit wie die Korrektur.
+2. Bei einem Fehler geht das Ende der Ausgabe des fehlgeschlagenen Befehls als Reparaturaufgabe an denselben Code-Agenten zurück, mit der Anweisung, seine eigene Änderung zu korrigieren, statt Tests abzuschwächen oder zu überspringen, und die Befehle laufen erneut. Er unternimmt höchstens **2** Reparaturversuche. Sie zählen zu den Limits der Ausführung, und ihre Änderungen landen im selben Commit wie die Korrektur.
 3. Das Ergebnis, bestanden, fehlgeschlagen oder übersprungen (keine Befehle gesetzt oder ein globaler Runner), steht in einem Abschnitt Verification der Beschreibung des Pull Requests und wird am Pull Request der Aufgabe gespeichert.
 
 Eine Änderung, die die Prüfung weiterhin nicht besteht, wird nicht verworfen: Der Pull Request öffnet sich trotzdem, mit einem deutlich markierten Abschnitt "Verification failed", der den fehlgeschlagenen Befehl nennt und mit seiner Ausgabe endet. Die Arbeit bleibt erhalten, und der Prüfer entscheidet. Ein Repository ohne gesetzte Befehle wird als übersprungen gemeldet, statt einen grünen Build vorzutäuschen.
@@ -221,11 +222,19 @@ Bis ein Deploy sie ausliefert, steht bei der Korrektur **Gemergt, wartet auf ein
 | **GitHub** | Die OneUptime GitHub App, installiert auf den Repositorys, die sie auswählt. | Alles auf dieser Seite, dazu Befehle aus GitHub (siehe [GitHub App](/docs/ai/github-app)) und ein Check zu jeder [Produktionsprüfung](#produktionsprüfung-von-pull-requests). |
 | **GitLab**, auf GitLab.com oder Ihrem eigenen | Ein Zugriffstoken: ein persönliches, Gruppen- oder Projekt-Token mit den Scopes `api` und `write_repository` und mindestens der Rolle Developer. | Aufgaben und Korrekturen, jede Änderung in einem Merge Request; [Produktionsprüfungen](#produktionsprüfung-von-pull-requests); die Branch-Auswahl; der Code, durch den ein Stacktrace oder ein Profil läuft; die Commits eines Deploys; ob eine Korrektur gemergt wurde und was die Produktion zeigte, nachdem sie ausgeliefert war. |
 | **Forgejo oder Gitea**, auf Codeberg oder Ihrem eigenen | Ein Zugriffstoken mit Lese- und Schreibzugriff auf Repositorys und Issues und Lesezugriff auf den Benutzer. | Dasselbe wie bei GitLab, jede Änderung in einem Pull Request. |
-| **Beliebiger Git-Server**, über HTTPS | Die Adresse, mit der Sie das Repository klonen, ein Benutzername und ein Passwort oder Zugriffstoken, das das Repository lesen und dorthin pushen kann. | Die KI klont das Repository und pusht jede Änderung in einen neuen Branch, und ihre Antwort nennt ihn: Den Pull Request öffnen Sie. Bei Bitbucket und Azure DevOps verlinkt sie, wo Sie ihn öffnen. |
+| **Beliebiger Git-Server**, über HTTPS | Die Adresse, mit der Sie das Repository klonen, ein Benutzername und ein Passwort oder Zugriffstoken, das das Repository lesen und dorthin pushen kann. | Die KI klont das Repository und pusht jede Änderung in einen neuen Branch, und ihre Antwort nennt ihn: Den Pull Request öffnen Sie. Bei Bitbucket und Azure DevOps verlinkt sie, wo Sie ihn öffnen. Auf Azure DevOps (Services oder Server 2019 und neuer) liest OneUptime mit denselben Anmeldedaten auch den Code: den Code, durch den ein Stacktrace oder ein Profil läuft, und die Dateien, die OneUptime AI liest. |
 
 Befehle aus Kommentaren brauchen die GitHub App, daher funktionieren sie vorerst nur in GitHub-Repositorys, und die **Einstellungen** des Repositorys sagen das. Ein Git-Server hat keine Pull Requests, daher auch keine Produktionsprüfung.
 
 Für GitLab, Forgejo oder Gitea geben Sie die Adresse des Servers (GitLab.com und Codeberg sind vorausgefüllt) und das Token ein und wählen dann die Repositorys aus, die verbunden werden sollen: Die Liste bietet nur die an, in die das Token pushen kann, und weitere lassen sich später mit demselben Token verbinden. OneUptime prüft jedes Token bei seinem Server, bevor es es speichert, speichert es verschlüsselt und zeigt es nie wieder an. Die **Einstellungen** des Repositorys zeigen seinen Server, das Konto und die letzten Zeichen des Tokens, mit **Zugriffstoken ersetzen**. Lehnt der Server ein abgelaufenes oder widerrufenes Token ab, zeigen seine Repositorys **Token abgelehnt**, und die KI arbeitet nicht mehr darin, bis das Ersetzen des Tokens jedes Repository, das es nutzt, wieder verbindet. Bei einem GitLab-Repository sprechen die Einstellungen wie GitLab von Merge Requests: **Merge Requests**, **KI-Korrektur-Merge-Requests** und **Max. offene Korrektur-Merge-Requests**.
+
+### Anmeldung an einem Git-Server
+
+OneUptime meldet sich an einem Repository auf einem beliebigen Git-Server mit dem Benutzernamen und dem Passwort oder Zugriffstoken an, mit denen es verbunden ist. Sofern nicht nur Ihre eigenen Runner den Server erreichen, prüft OneUptime sie, bevor es das Repository verbindet, indem es den Server nach den Branches des Repositorys fragt: die Anfrage, mit der jeder Klon beginnt. Ein Runner sendet sie auf dieselbe Weise, mit der ersten Anfrage von Git an den Server, als HTTP Basic, sodass ein Server, der zuerst die Windows-Anmeldung anbietet, etwa Azure DevOps Server, auch ein persönliches Zugriffstoken annimmt. Git erhält sie über seine Umgebung, nur für diesen einen Server: nie auf seiner Befehlszeile und nie in der `.git/config` des Klons, in dem der Code-Agent arbeitet.
+
+### Was die KI in einem Git-Repository liest
+
+Ein Git-Server hat keine API, über die sich die Dateien eines Repositorys lesen lassen, daher liest OneUptime von einem Repository auf einem solchen Server nur die Branches, für die Branch-Auswahl. Azure DevOps ist die Ausnahme: Auf Azure DevOps Services und auf Azure DevOps Server 2019 und neuer liest OneUptime auch den Code eines Repositorys, über die eigene API von Azure DevOps und mit denselben Anmeldedaten. [KI fragen](/docs/ai/ask-ai) und [KI-Untersuchungen](/docs/ai/ai-sre) lesen den Code von GitHub-, GitLab-, Forgejo-, Gitea- und Azure-DevOps-Repositorys; nach dem Code eines anderen Git-Repositorys gefragt, sagen sie, dass sie ihn nicht öffnen können. Eine Aufgabe in Code funktioniert in einem Git-Repository trotzdem: Der Runner klont es, die KI liest und ändert den Code im Klon und pusht die Änderung in einen neuen Branch.
 
 ### Ein Git-Server in einem privaten Netzwerk
 
@@ -320,15 +329,19 @@ Alles andere entspricht der Schaltfläche:
 ## Wenn eine Korrektur fehlschlägt
 
 :::details Der Lauf schlägt fehl
-Die Korrektur ließ sich nicht anwenden, das Repository oder der Branch, von dem eine Anfrage ausging, war nicht erreichbar, oder der LLM-Aufruf schlug fehl. Die Unterhaltung der Aufgabe und die Seite, auf der sie gestartet wurde, zeigen den Grund und bieten einen neuen Versuch an. Das **Protokoll** des Durchgangs enthält das vollständige Laufprotokoll.
+Die Korrektur ließ sich nicht anwenden, das Repository oder der Branch, von dem eine Anfrage ausging, war nicht erreichbar, oder der LLM-Aufruf schlug fehl. Ein Fehler, der vorübergehen kann – der KI-Modellanbieter ausgelastet oder nicht erreichbar, ein Aufruf mit Zeitüberschreitung, das Netzwerk –, wird von selbst erneut versucht, bis zu 3 Versuche insgesamt, der zweite nach 1 Minute und der dritte nach 4, es sei denn, der Lauf hat womöglich schon einen Branch gepusht oder einen Pull Request geöffnet. Ein Fehler, der wieder auftreten würde, etwa ein Schlüssel, den der Anbieter ablehnt, oder kein Guthaben mehr, wird nicht erneut versucht. Schlägt ein Durchgang endgültig fehl, zeigen die Unterhaltung der Aufgabe und die Seite, auf der sie gestartet wurde, den Grund und bieten einen neuen Versuch an. Das **Protokoll** des Durchgangs enthält das vollständige Laufprotokoll.
 :::
 
 :::details Der Runner bleibt mitten im Lauf stehen
-Ein Lauf, dessen Heartbeat länger als 12 Minuten ausbleibt, wird mit einem Fehler beendet. Er wird nie von selbst erneut eingereiht, weil der Runner bereits einen Teil eines Korrektur-Branches gepusht haben kann; starten Sie ihn dort neu, wo Sie ihn gestartet haben. Ein Befehl, den der Code-Agent ausführt, hält den Heartbeat am Laufen, solange er läuft, sodass ein langer Build oder eine lange Testsuite nicht für einen angehaltenen Runner gehalten wird.
+Ein Lauf, dessen Heartbeat länger als 12 Minuten ausbleibt, wird auf dieselbe Weise von selbst erneut versucht, wenn er nichts gepusht hat, seine Aufgabe keinen Pull Request hat und ihm Versuche bleiben. Sonst wird er mit einem Fehler beendet, weil der Runner bereits einen Teil eines Korrektur-Branches gepusht haben kann; starten Sie ihn dort neu, wo Sie ihn gestartet haben. Ein Befehl, den der Code-Agent ausführt, hält den Heartbeat am Laufen, solange er läuft, sodass ein langer Build oder eine lange Testsuite nicht für einen angehaltenen Runner gehalten wird.
 :::
 
 :::details Kein Runner übernimmt die Aufgabe
 Eine Aufgabe, die länger als 30 Minuten wartet, während der Runner, der sie übernehmen soll, nicht verbunden ist - der, den ihr Repository auswählt, der Standard-Runner des Projekts für ein Repository, das keinen auswählt, oder ein globaler Runner -, schlägt mit einem Hinweis fehl, der sagt, welcher, sodass sie nie für immer als laufend angezeigt wird. Ein Runner, der keine Codekorrekturen übernimmt, gilt als nicht verbunden: einer, der mit `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` gestartet wurde, oder ein globaler Runner, der älter als 14.0.94 ist. Code sagt das, bevor Sie eine Aufgabe anfragen. Ist ein Runner online, aber beschäftigt, warten eingereihte Aufgaben, bis sie an der Reihe sind. Ein Runner, der älter als Code ist, bekommt nie eine Anfrage aus Code: Aktualisieren Sie einen selbst betriebenen Runner zusammen mit dem Server.
+:::
+
+:::details Der Server lehnt die Anmeldedaten ab
+Die Aufgabe schlägt fehl und nennt den Server, der die Anmeldedaten abgelehnt hat, mit denen sich OneUptime angemeldet hat, und das Repository, das sie nicht klonen oder in das sie ihren Branch nicht pushen konnte. Sie wird nicht auf dem Standard-Branch des Repositorys wiederholt: Auf einem Server, an dem sich Personen mit Windows-Konten anmelden, etwa Azure DevOps Server, kann eine zweite abgelehnte Anmeldung zur Sperrung des Kontos beitragen. Prüfen Sie bei GitHub, ob die OneUptime GitHub App noch mit Zugriff auf das Repository installiert ist. Prüfen Sie sonst, ob der Benutzername und das Passwort oder Token das Repository noch lesen und dorthin pushen können, und geben Sie mit **Zugriffstoken ersetzen** auf der Seite **Einstellungen** des Repositorys neue an. Versuchen Sie die Aufgabe dann erneut.
 :::
 
 ## Datenschutz

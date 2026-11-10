@@ -3,6 +3,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import { InboundEmailDomain, IsBillingEnabled } from "../EnvironmentConfig";
 import { UpdateResult } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import { ActiveMonitoringMeteredPlan } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
 import CreateLimit from "../Types/Database/CreateLimit";
@@ -117,10 +118,15 @@ import HostAddressUtil from "../../Utils/HostAddressUtil";
 import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
+import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
 import InfrastructureResourceBinding from "../Utils/Monitor/InfrastructureResourceBinding";
 import OpenStackMonitorDependencies from "../Utils/OpenStack/OpenStackMonitorDependencies";
 import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
+import MonitorTurnedOff from "../Utils/Monitor/MonitorTurnedOff";
+import LatestIncomingRequest, {
+  ReadersCopyRewrite,
+} from "../Utils/Monitor/LatestIncomingRequest";
 import ProbeMonitorsNotification, {
   ProbeAffectedMonitor,
   ProbeMonitorsNotificationContent,
@@ -180,10 +186,12 @@ export interface MonitorProbeFlagChanges {
  * What onBeforeUpdate hands to onUpdateSuccess: the name, the description
  * and the labels each monitor the update matches held before the write,
  * of those the update writes, keyed by monitor id
- * (recordStoredValuesBeforeUpdate).
+ * (recordStoredValuesBeforeUpdate), and the monitors whose monitoring the
+ * update turns off - those that had it on (findMonitorIdsTurnedOff).
  */
 type MonitorUpdateCarryForward = {
-  valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate>;
+  valuesBeforeUpdate?: Dictionary<EventValuesBeforeUpdate> | undefined;
+  monitorIdsTurnedOff?: Array<string> | undefined;
 };
 
 export class Service extends ProjectReferencesService<Model> {
@@ -915,6 +923,11 @@ export class Service extends ProjectReferencesService<Model> {
           });
         }
 
+        // As on create: a Metrics query sent without an aggregation.
+        MetricQueryCloudAggregation.fillMissingAggregationsOfSteps(
+          writtenMonitorSteps,
+        );
+
         (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
           writtenMonitorSteps;
       }
@@ -1122,14 +1135,62 @@ export class Service extends ProjectReferencesService<Model> {
     const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> | null =
       await this.recordStoredValuesBeforeUpdate(updateBy);
 
-    return {
+    // Whose open incidents and alerts onUpdateSuccess resolves.
+    const monitorIdsTurnedOff: Array<string> =
+      await this.findMonitorIdsTurnedOff(updateBy);
+
+    if (!valuesBeforeUpdate && monitorIdsTurnedOff.length === 0) {
+      return { updateBy, carryForward: null };
+    }
+
+    const carryForward: MonitorUpdateCarryForward = {};
+
+    if (valuesBeforeUpdate) {
+      carryForward.valuesBeforeUpdate = valuesBeforeUpdate;
+    }
+
+    if (monitorIdsTurnedOff.length > 0) {
+      carryForward.monitorIdsTurnedOff = monitorIdsTurnedOff;
+    }
+
+    return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * The monitors whose monitoring this update turns off: those it writes
+   * disableActiveMonitoring: true to that do not hold it already. Writing
+   * the switch back as it is - a form that sends every field, a bulk
+   * Disable over a selection that has some off already - turns nothing off,
+   * so nothing is resolved twice or long after the fact.
+   *
+   * Read from the monitors the update writes (findRowsAndHoldUpdateToThem):
+   * for a teammate, the ones they may write, with the update held to them.
+   * Nothing is read for an update that does not turn monitoring off.
+   */
+  private async findMonitorIdsTurnedOff(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<string>> {
+    if (updateBy.data.disableActiveMonitoring !== true) {
+      return [];
+    }
+
+    const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
       updateBy,
-      carryForward: valuesBeforeUpdate
-        ? ({
-            valuesBeforeUpdate: valuesBeforeUpdate,
-          } as MonitorUpdateCarryForward)
-        : null,
-    };
+      {
+        _id: true,
+        disableActiveMonitoring: true,
+      },
+    );
+
+    const monitorIdsTurnedOff: Array<string> = [];
+
+    for (const monitor of monitors) {
+      if (monitor.id && monitor.disableActiveMonitoring !== true) {
+        monitorIdsTurnedOff.push(monitor.id.toString());
+      }
+    }
+
+    return monitorIdsTurnedOff;
   }
 
   /*
@@ -1831,6 +1892,62 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * Monitoring turned off: nothing checks these monitors any more, so the
+     * open incidents and alerts each would have resolved itself on recovery
+     * are resolved now (MonitorTurnedOff, issue #6400). Awaited, so a page
+     * that reloads after the switch shows them resolved; each monitor in a
+     * try/catch of its own, as a side effect never fails the save.
+     */
+    const monitorIdsTurnedOff: Set<string> = new Set<string>(
+      (onUpdate.carryForward as MonitorUpdateCarryForward | null | undefined)
+        ?.monitorIdsTurnedOff || [],
+    );
+
+    for (const monitorId of updatedItemIds) {
+      if (!monitorIdsTurnedOff.has(monitorId.toString())) {
+        continue;
+      }
+
+      try {
+        await MonitorTurnedOff.resolveWhatItWouldHaveResolved({
+          monitorId: monitorId,
+          turnedOffByUserId: onUpdate.updateBy.props.userId,
+        });
+      } catch (error) {
+        logger.error(
+          "Resolving what a monitor would have resolved after its monitoring was turned off failed in MonitorService.onUpdateSuccess",
+          {
+            monitorId: monitorId?.toString(),
+          } as LogAttributes,
+        );
+        logger.error(error as Error);
+      }
+    }
+
+    /*
+     * Keep request content changed: an Incoming Request monitor's latest
+     * request, as people read it, is written again from the request as it
+     * came, so the switch covers it now and not from the next request on.
+     * Each monitor in a try/catch of its own, as a side effect never fails
+     * the save.
+     */
+    if (onUpdate.updateBy.data.keepResponseContent !== undefined) {
+      for (const monitorId of updatedItemIds) {
+        try {
+          await this.rewriteLatestIncomingRequestForReaders(monitorId);
+        } catch (error) {
+          logger.error(
+            "Writing the latest incoming request again after Keep request content changed failed in MonitorService.onUpdateSuccess",
+            {
+              monitorId: monitorId?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+        }
+      }
+    }
+
+    /*
      * SLO monitor rules match on labels, type, name and description, so an edit to
      * any of those fields can pull this monitor into an SLO's error budget or
      * push it out of one. Keyed on `!== undefined` rather than on a non-empty
@@ -1896,6 +2013,54 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return onUpdate;
+  }
+
+  /*
+   * An Incoming Request monitor's latest request, as people read it
+   * (Monitor.incomingMonitorRequest), written again from the request as it
+   * came by the monitor's switch as it stands now (LatestIncomingRequest):
+   * after the switch changed, and once for each monitor whose request was
+   * kept once only, before the two copies were split. One statement, and
+   * only while the monitor still holds what was read - a request that came
+   * in meanwhile wrote both copies itself. True when it wrote.
+   */
+  public async rewriteLatestIncomingRequestForReaders(
+    monitorId: ObjectID,
+  ): Promise<boolean> {
+    const monitor: Model | null = await this.findOneById({
+      id: monitorId,
+      select: {
+        keepResponseContent: true,
+        incomingMonitorRequest: true,
+        incomingMonitorRequestAsReceived: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!monitor) {
+      return false;
+    }
+
+    const rewrite: ReadersCopyRewrite | null =
+      LatestIncomingRequest.getReadersCopyRewrite(monitor);
+
+    if (!rewrite) {
+      return false;
+    }
+
+    return await this.compareAndSetColumnsByIdWithoutHooks({
+      id: monitorId,
+      // JSON columns: their deep partial type is too deep to check here.
+      data: rewrite.data as unknown as PartialEntity<Model>,
+      expectedData: rewrite.expectedData as unknown as PartialEntity<Model>,
+      /*
+       * A copy the server keeps, not an edit: the save that changed the
+       * switch moved updatedAt already.
+       */
+      skipUpdateDateColumn: true,
+    });
   }
 
   /*
@@ -2174,6 +2339,15 @@ export class Service extends ProjectReferencesService<Model> {
           monitorSteps: createBy.data.monitorSteps as MonitorSteps,
         });
       }
+
+      /*
+       * A Metrics query sent without an aggregation (the API, Terraform)
+       * reads with the catalog's where its cloud resource adds the metric
+       * up: a namespace's messages, the total of its queues.
+       */
+      MetricQueryCloudAggregation.fillMissingAggregationsOfSteps(
+        createBy.data.monitorSteps as MonitorSteps,
+      );
     }
 
     return { createBy, carryForward: null };

@@ -4,25 +4,17 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
-import Metric from "Common/Models/AnalyticsModels/Metric";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
-import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
-import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import { LlmTokenTypeAttributeKeys } from "Common/Types/Telemetry/LlmMetricConventions";
-import LlmMetricQuery, {
-  LlmMetricScope,
-  LlmMetricTokenTotals,
-} from "Common/Utils/Telemetry/LlmMetricQuery";
+import {
+  LlmUsageDimension,
+  LlmUsageFigures,
+  LlmUsageResponse,
+  LlmUsageSource,
+} from "Common/Types/Telemetry/LlmUsageApi";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { LlmTile } from "../LlmConversations/LlmSummaryTiles";
 import {
@@ -31,17 +23,26 @@ import {
   formatLlmShare,
   formatLlmTokens,
 } from "../LlmConversations/LlmConversationFormat";
+import { fetchLlmUsage } from "./LlmObservabilityReads";
+import {
+  LLM_USAGE_SOURCE_WORDS,
+  isFromUsageMetrics,
+} from "./LlmUsageSourceCopy";
 
 /*
  * THE TOTALS ABOVE WHO-SPENDS-WHAT.
  *
- * The calls, input and output tokens and cost for the Usage tab's range.
- * They read the GenAI spans, which are authoritative; where the span stream
- * reported nothing - a fleet of coding assistants (Claude Code, Cursor,
- * Codex, Gemini CLI) publishes token and cost METRICS and no spans - the
- * token and cost tiles fall back to the metric stream and say so. The two
- * are never added together: an emitter producing both would otherwise have
- * every token and dollar counted twice.
+ * The calls, input and output tokens and cost for the Usage tab's range, in
+ * one read of /telemetry/llm/usage: the AI calls the apps send (GenAI
+ * spans), each model call once, and the usage metrics the coding tools send
+ * (GenAI metrics), each service counted from the signal it sends - never
+ * both for one service, and never one signal for the whole project, so a
+ * coding tool's metrics count beside the apps' calls (LlmUsageReader).
+ *
+ * Each figure says where it came from: from AI calls, from usage metrics,
+ * or from both (some services' calls and other services' metrics). A read
+ * that fails shows "—" and says it could not be loaded, never a 0 nobody
+ * measured.
  *
  * These were the Overview page's tiles. The Overview folded into
  * Conversations, which a coding-assistant fleet never fills; the Usage tab
@@ -52,46 +53,16 @@ export interface ComponentProps {
   range: InBetween<Date>;
 }
 
-/*
- * Which signal a figure came from. "metrics" means the project emits GenAI
- * metrics but no GenAI spans for it, so the tile stands in for a number the
- * span stream cannot supply - and says so, because a metric-sourced total
- * has no matching rows in the Calls list.
- */
-export type LlmUsageTotalsSource = "spans" | "metrics" | "none";
-
 export interface LlmUsageTotals {
   // null while loading, or when the read failed.
-  calls: number | null;
-  erroredCalls: number | null;
-  inputTokens: number | null;
-  outputTokens: number | null;
-  cost: number | null;
-  tokenSource: LlmUsageTotalsSource;
-  costSource: LlmUsageTotalsSource;
+  figures: LlmUsageFigures | null;
+  failed: boolean;
 }
 
 export const EMPTY_LLM_USAGE_TOTALS: LlmUsageTotals = {
-  calls: null,
-  erroredCalls: null,
-  inputTokens: null,
-  outputTokens: null,
-  cost: null,
-  tokenSource: "spans",
-  costSource: "spans",
+  figures: null,
+  failed: false,
 };
-
-export const LLM_METRIC_SOURCE_HINT: string =
-  translationKey("from GenAI metrics");
-
-function sumBuckets(result: AggregatedResult): number {
-  return (result.data || []).reduce(
-    (total: number, row: AggregatedModel): number => {
-      return total + Number(row.value || 0);
-    },
-    0,
-  );
-}
 
 export async function fetchLlmUsageTotals(
   range: InBetween<Date>,
@@ -102,164 +73,17 @@ export async function fetchLlmUsageTotals(
     return EMPTY_LLM_USAGE_TOTALS;
   }
 
-  const startDate: Date = range.startValue;
-  const endDate: Date = range.endValue;
+  try {
+    const usage: LlmUsageResponse = await fetchLlmUsage({
+      range: range,
+      dimension: LlmUsageDimension.None,
+    });
 
-  const spanQuery: Query<Span> = {
-    projectId: projectId,
-    isLlmSpan: true,
-    startTime: new InBetween(startDate, endDate),
-  };
-
-  const safeCount: (query: Query<Span>) => Promise<number | null> = async (
-    query: Query<Span>,
-  ): Promise<number | null> => {
-    try {
-      return await AnalyticsModelAPI.count(Span, query);
-    } catch {
-      return null;
-    }
-  };
-
-  const safeSpanSum: (column: keyof Span) => Promise<number | null> = async (
-    column: keyof Span,
-  ): Promise<number | null> => {
-    try {
-      const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Span>({
-        modelType: Span,
-        aggregateBy: {
-          // The window bounds the rows; the timestamps only pick buckets.
-          query: spanQuery,
-          aggregationType: AggregationType.Sum,
-          aggregateColumnName: column,
-          aggregationTimestampColumnName: "startTime",
-          startTimestamp: startDate,
-          endTimestamp: endDate,
-          limit: 10000,
-          skip: 0,
-        } as AggregateBy<Span>,
-      });
-
-      return sumBuckets(result);
-    } catch {
-      return null;
-    }
-  };
-
-  const metricScope: LlmMetricScope = {
-    projectId: projectId,
-    startTime: startDate,
-    endTime: endDate,
-  };
-
-  const safeMetricSum: (
-    query: Query<Metric>,
-    groupByAttributeKeys?: Array<string> | undefined,
-  ) => Promise<AggregatedResult | null> = async (
-    query: Query<Metric>,
-    groupByAttributeKeys?: Array<string> | undefined,
-  ): Promise<AggregatedResult | null> => {
-    try {
-      return await AnalyticsModelAPI.aggregate<Metric>({
-        modelType: Metric,
-        aggregateBy: {
-          query: query,
-          aggregationType: AggregationType.Sum,
-          aggregateColumnName: "value",
-          aggregationTimestampColumnName: "time",
-          startTimestamp: startDate,
-          endTimestamp: endDate,
-          aggregationInterval: AggregationInterval.Total,
-          ...(groupByAttributeKeys
-            ? { groupByAttributeKeys: groupByAttributeKeys }
-            : {}),
-          limit: 10000,
-          skip: 0,
-        } as AggregateBy<Metric>,
-      });
-    } catch {
-      return null;
-    }
-  };
-
-  const [calls, erroredCalls, spanInput, spanOutput, spanCost] =
-    await Promise.all([
-      safeCount(spanQuery),
-      safeCount({ ...spanQuery, statusCode: SpanStatus.Error }),
-      safeSpanSum("llmInputTokens"),
-      safeSpanSum("llmOutputTokens"),
-      safeSpanSum("llmCost"),
-    ]);
-
-  let inputTokens: number | null = spanInput;
-  let outputTokens: number | null = spanOutput;
-  let tokenSource: LlmUsageTotalsSource = "spans";
-
-  /*
-   * Only a successful-but-empty span read falls back. A null is a FAILED
-   * read, and quietly substituting metrics there would dress an error up as
-   * data.
-   */
-  if (spanInput === 0 && spanOutput === 0) {
-    const rows: AggregatedResult | null = await safeMetricSum(
-      LlmMetricQuery.buildTokenQuery(metricScope),
-      [...LlmTokenTypeAttributeKeys],
-    );
-    const totals: LlmMetricTokenTotals | null = rows
-      ? LlmMetricQuery.reduceTokenRows(rows.data)
-      : null;
-
-    if (totals && (totals.inputTokens > 0 || totals.outputTokens > 0)) {
-      inputTokens = totals.inputTokens;
-      outputTokens = totals.outputTokens;
-      tokenSource = "metrics";
-    } else {
-      tokenSource = "none";
-    }
+    return { figures: usage.totals, failed: false };
+  } catch {
+    // Not known: "—", never a 0 nobody measured.
+    return { figures: null, failed: true };
   }
-
-  let cost: number | null = spanCost;
-  let costSource: LlmUsageTotalsSource = "spans";
-
-  if (spanCost === 0) {
-    /*
-     * TWO cost streams, two units: Codex reports spend in MILLIONTHS of a
-     * dollar, so its counter cannot share a Sum with the USD counters - a $3
-     * turn would read as $3,000,000. combineCostTotals scales each list
-     * before adding them, in the one place a test pins it.
-     */
-    const [usdRows, microUsdRows] = await Promise.all([
-      safeMetricSum(LlmMetricQuery.buildCostQuery(metricScope)),
-      safeMetricSum(LlmMetricQuery.buildMicroUsdCostQuery(metricScope)),
-    ]);
-
-    const metricCost: number | null =
-      usdRows === null && microUsdRows === null
-        ? null
-        : LlmMetricQuery.combineCostTotals({
-            usd: usdRows ? LlmMetricQuery.sumAggregatedRows(usdRows.data) : 0,
-            microUsd: microUsdRows
-              ? LlmMetricQuery.sumAggregatedRows(microUsdRows.data)
-              : 0,
-          });
-
-    if (metricCost !== null && metricCost > 0) {
-      cost = metricCost;
-      costSource = "metrics";
-    } else {
-      costSource = "none";
-    }
-  }
-
-  return {
-    calls: calls,
-    erroredCalls: erroredCalls,
-    inputTokens: inputTokens,
-    outputTokens: outputTokens,
-    cost: cost,
-    tokenSource: tokenSource,
-    costSource: costSource,
-  };
 }
 
 const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
@@ -283,7 +107,7 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       })
       .catch(() => {
         if (!cancelled) {
-          setTotals(EMPTY_LLM_USAGE_TOTALS);
+          setTotals({ figures: null, failed: true });
           setIsLoading(false);
         }
       });
@@ -293,18 +117,66 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
     };
   }, [props.range.startValue.getTime(), props.range.endValue.getTime()]);
 
+  const figures: LlmUsageFigures | null = totals.figures;
+
   const number: (
-    value: number | null,
+    value: number | undefined,
     write: (n: number) => string,
   ) => string = (
-    value: number | null,
+    value: number | undefined,
     write: (n: number) => string,
   ): string => {
-    return value === null ? "—" : write(value);
+    return value === undefined ? "—" : write(value);
   };
 
-  const metricHint: string =
-    translator.translateText(LLM_METRIC_SOURCE_HINT) || LLM_METRIC_SOURCE_HINT;
+  // Where a figure came from, in the reader's words; nothing when none.
+  const sourceHint: (
+    source: LlmUsageSource | undefined,
+  ) => string | undefined = (
+    source: LlmUsageSource | undefined,
+  ): string | undefined => {
+    const words: string = source ? LLM_USAGE_SOURCE_WORDS[source] : "";
+
+    return words ? translator.translateText(words) || words : undefined;
+  };
+
+  // A failed read: each "—" says why.
+  const failedHint: string | undefined = totals.failed
+    ? translator.translateText("Could not be loaded") || undefined
+    : undefined;
+
+  /*
+   * No call, beside tokens and cost the usage metrics brought: the 0 is the
+   * apps' (a coding assistant's metrics count no call), and says so rather
+   * than reading as a contradiction of the figures beside it.
+   */
+  const callsFromAppsOnly: boolean = Boolean(
+    figures &&
+      figures.calls === 0 &&
+      (isFromUsageMetrics(figures.tokenSource) ||
+        isFromUsageMetrics(figures.costSource)),
+  );
+
+  /*
+   * A figure nothing reported, beside usage that is there: calls whose
+   * model has no price report no cost, a tool's metrics may count cost and
+   * no tokens. It is "—" and says so, never a 0 that claims the usage was
+   * free. With no usage at all, the 0s are simply true, and say nothing.
+   */
+  const tokensNotReported: boolean = Boolean(
+    figures &&
+      figures.tokenSource === LlmUsageSource.None &&
+      (figures.calls > 0 || figures.costSource !== LlmUsageSource.None),
+  );
+  const costNotReported: boolean = Boolean(
+    figures &&
+      figures.costSource === LlmUsageSource.None &&
+      (figures.calls > 0 || figures.tokenSource !== LlmUsageSource.None),
+  );
+
+  const tokenHint: string | undefined = tokensNotReported
+    ? translator.translateText("No tokens reported") || undefined
+    : sourceHint(figures?.tokenSource) || failedHint;
 
   return (
     <div
@@ -312,15 +184,20 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       data-testid="llm-usage-totals"
     >
       <LlmTile
-        label="LLM calls"
-        value={number(totals.calls, formatLlmCount)}
+        label="AI calls"
+        value={number(figures?.calls, formatLlmCount)}
         hint={
-          totals.calls && totals.erroredCalls !== null
+          figures && figures.calls > 0
             ? translator.translateTemplate("{{rate}} error rate", {
-                rate: formatLlmShare(totals.erroredCalls, totals.calls),
+                rate: formatLlmShare(figures.erroredCalls, figures.calls),
               })
-            : undefined
+            : callsFromAppsOnly
+              ? translator.translateText("AI calls come from your apps") ||
+                undefined
+              : failedHint
         }
+        // "...from your apps" is what the hint says: never cut short.
+        wrapHint={true}
         icon={IconProp.Sparkles}
         iconClassName="text-violet-600"
         iconTileClassName="bg-violet-50"
@@ -329,8 +206,13 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       />
       <LlmTile
         label="Input tokens"
-        value={number(totals.inputTokens, formatLlmTokens)}
-        hint={totals.tokenSource === "metrics" ? metricHint : undefined}
+        value={
+          tokensNotReported
+            ? "—"
+            : number(figures?.inputTokens, formatLlmTokens)
+        }
+        hint={tokenHint}
+        wrapHint={true}
         icon={IconProp.ArrowDown}
         iconClassName="text-indigo-600"
         iconTileClassName="bg-indigo-50"
@@ -339,8 +221,13 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       />
       <LlmTile
         label="Output tokens"
-        value={number(totals.outputTokens, formatLlmTokens)}
-        hint={totals.tokenSource === "metrics" ? metricHint : undefined}
+        value={
+          tokensNotReported
+            ? "—"
+            : number(figures?.outputTokens, formatLlmTokens)
+        }
+        hint={tokenHint}
+        wrapHint={true}
         icon={IconProp.ArrowUp}
         iconClassName="text-sky-600"
         iconTileClassName="bg-sky-50"
@@ -349,12 +236,13 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       />
       <LlmTile
         label="Cost (USD)"
-        value={number(totals.cost, formatLlmCost)}
+        value={costNotReported ? "—" : number(figures?.costUsd, formatLlmCost)}
         hint={
-          totals.costSource === "metrics"
-            ? metricHint
-            : translator.translateText("when reported by SDK") || undefined
+          costNotReported
+            ? translator.translateText("No cost reported") || undefined
+            : sourceHint(figures?.costSource) || failedHint
         }
+        wrapHint={true}
         icon={IconProp.CurrencyDollar}
         iconClassName="text-emerald-600"
         iconTileClassName="bg-emerald-50"

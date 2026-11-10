@@ -174,6 +174,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Add Probe and Remove Probe: the probes a monitor runs on are its own.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/DiscoveredDevicesTable.tsx":
+    [
+      {
+        expression: "Math.max(1, actionProps.items.length)",
+        why: "Hide from map and Show on map: one request writes the map's suppressions for the whole selection, so every device waits on that one request.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkApplyVendorTemplate.tsx":
     [
       {
@@ -230,6 +237,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Change Postmortem Status: an incident's postmortem status and its feed entry are its own.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/Recommendations/CloudAccountMonitorRecommendations.tsx":
+    [
+      {
+        expression: "1",
+        why: "Add a recommended monitor to a cloud account's resources: one monitor at a time, as a resource's own Recommendations tab creates them, each running the project's label, owner and workspace rules before the next.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Components/SecurityCase/useSecurityCaseListActions.tsx":
     [
       {
@@ -242,6 +256,13 @@ const LEDGER: Record<string, Array<Choice>> = {
       {
         expression: "Math.max(1, props.items.length)",
         why: "Add to Case: one request keeps every ticked event on the case, so every event waits on that one request.",
+      },
+    ],
+  "packages/App/FeatureSet/Dashboard/src/Components/Slo/useSloRecommendedRulesBulkAction.tsx":
+    [
+      {
+        expression: "batchSize",
+        why: "Add recommended rules: one request adds the missing rules to a batch of SLOs (SLO_BULK_RECOMMENDED_RULES_BATCH_SIZE), so a batch's SLOs run together, each waiting on its batch's answer.",
       },
     ],
   "packages/App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageResourcePanel.tsx":
