@@ -67,7 +67,7 @@ The Network menu keeps what you open every day in view: **Overview**, **Devices*
 | Section | Pages |
 | --- | --- |
 | **Topology** | **Device Topology**, **Discovered Devices**, **Latency Matrix**, **Site Links**, **Device Links** |
-| **Rules** | **Auto Import Rules**, **Site Assignment Rules**, **Owner Rules**, **Label Rules**, **Link Rules** |
+| **Rules** | **Auto Import Rules**, **Site Assignment Rules**, **Naming Rules**, **Owner Rules**, **Label Rules**, **Link Rules** |
 | **Settings** | **Alert Policies**, **SNMP Credentials**, **Device Roles**, **Site Types**, **Address Names**, **OID Collection Templates** |
 | **Advanced** | **SNMP Walk**, **Archived Devices** |
 
@@ -691,8 +691,33 @@ A scan does not always find a host's best name the first time. The partial resul
 
 So a device that discovery named remembers where its name came from. When a completed scan of its address finds a better name — its SNMP system name or NetBIOS name instead of its reverse-DNS name, any name instead of its IP address — the device is renamed to the name an import would give it now, and its DNS Name is filled in if it has none. If another device already has that name, the device is named with its address in brackets (`FILESRV01 (10.0.0.5)`), and if that is taken too, it keeps its name.
 
-A name is only ever improved: a device keeps its name when its DNS record changes, or when a later scan gets no NetBIOS reply. A device with a DNS name is renamed only by a scan that finds that same DNS name at its address, so when the address now belongs to another machine (a DHCP lease that moved, say) the device does not take that machine's name. A device you renamed — on its Settings page, through the API, or with **Shorten Names to Hostname** — is never renamed by a scan. Devices imported before discovery recorded where names came from keep their names, except that one a still-running scan imported by its IP address is renamed when that scan completes.
+A name is only ever improved: a device keeps its name when its DNS record changes, or when a later scan gets no NetBIOS reply. A device with a DNS name is renamed only by a scan that finds that same DNS name at its address, so when the address now belongs to another machine (a DHCP lease that moved, say) the device does not take that machine's name. A device you renamed — on its Settings page, through the API, or with **Shorten Names to Hostname** — is never renamed by a scan, and nor is a device a [naming rule](#naming-devices-by-your-naming-convention) named. Devices imported before discovery recorded where names came from keep their names, except that one a still-running scan imported by its IP address is renamed when that scan completes.
 :::
+
+### Naming devices by your naming convention
+
+When your devices follow a naming convention of your own — `UN1216MNUPLR01` is the menu player of unit 1216 — write it down as **naming rules** under **Network → Rules → Naming Rules**, and discovery names devices by it instead of by what it finds. A rule says which devices (an IP range, the discovered name, the MAC address, the vendor and the site, with the same conditions as every network rule) and what they are called: a **name pattern**, text with the parts that differ from device to device in curly braces.
+
+| Placeholder | Is replaced by | Example |
+| --- | --- | --- |
+| `{site.code}` | The device's site's **Site Code** (set it on the site's settings) | `1216` |
+| `{site}` | The device's site's name | `Unit 1216` |
+| `{discoveredName}` | The name discovery found, as described above | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | The IP address, or one of its four parts | `51` |
+| `{mac}` | The MAC address, 12 digits and letters | `00050BB07FFC` |
+| `{vendor}` | Who made the device | `SICOM Systems` |
+| `{lookup}` | The value the rule's lookup table gives the device | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | The lowest number that makes the name unique: `1`, `01`, `001` | `01` |
+
+A placeholder can be followed by filters, one after the other: `upper`, `lower`, `first:N`, `last:N`, `digits` and `nospaces`. `{vendor|first:3|upper}` is `SIC`, and `{site|digits}` is `1216` for a site called "Unit 1216". The rule form offers each placeholder as a button and names an example device as you type.
+
+Some conventions are a table rather than a formula: in every unit's subnet the device at `.51` is the menu player `MNUPLR01`, the one at `.151` the left screen `MNUSCR01`. Open **Lookup table** in the rule's **Name** step, choose what it is keyed by — the last part of the IP address, the IP address, the MAC address or the discovered name — and type the rows, paste two columns from a spreadsheet, or import a CSV file (**Export CSV** saves it back). Then `UN{site.code}{lookup}` names every unit's menu boards with one rule.
+
+Rules are tried from the top of the list, and you drag them to reorder. The first enabled rule that matches a device, and has every value its pattern needs, names it. A device a rule cannot name — its site has no code, its address has no row in the lookup table — is left to the next rule. Device names are unique in a project, so a pattern with a number takes the lowest number still free — `UN{site.code}DRTPLR{nn}` counts from `01` in each unit — and one without a number whose name another device already has leaves the device under its discovered name.
+
+Rules name a device when it is imported: from **Review Results**, from **Discovered Devices** with **Add to monitoring**, and by auto import rules. **Review Results** shows, under each host, the name it will be created under — **Will be named** `UN1216DRTPLR02` — or why a rule cannot name it, and **Add to monitoring** lists the names the same way. A device a rule names keeps the name discovery found as its **Discovered Name**, and is created in the site the site assignment rules give it, so its name and its site always agree. A later scan never renames it, even when it finds a better name.
+
+To bring the devices you already have into line, press **Apply to existing devices** on the Naming Rules page, or select devices on the **Devices** list and use **Apply Naming Rules**. Nothing is renamed until you confirm: the preview lists every device whose name does not follow the rules with the name it would get, the devices a rule cannot name yet with the reason, and counts the devices that already follow them. Devices named by discovery or by a rule are ticked; devices whose names someone typed are listed unticked, so a name a person chose is changed only when you tick it. A device that already carries a number of its pattern keeps that number. Applying the rules takes permission to edit the naming rules and to edit every network device in the project.
 
 ### Importing Automatically with Auto Import Rules
 

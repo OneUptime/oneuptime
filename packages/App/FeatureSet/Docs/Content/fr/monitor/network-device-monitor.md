@@ -67,7 +67,7 @@ Le menu Réseau garde en vue ce que vous ouvrez tous les jours : **Vue d'ensembl
 | Section | Pages |
 | --- | --- |
 | **Topologie** | **Topologie de l'équipement**, **Équipements découverts**, **Matrice de latence**, **Liens du site**, **Liens d'équipements** |
-| **Règles** | **Règles d'import automatique**, **Règles d'attribution des sites**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de liens** |
+| **Règles** | **Règles d'import automatique**, **Règles d'attribution des sites**, **Règles de nommage**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de liens** |
 | **Paramètres** | **Politiques d'alerte**, **Identifiants SNMP**, **Rôles d'équipement**, **Types de site**, **Noms d'adresse**, **Modèles de collecte d'OID** |
 | **Avancé** | **Parcours SNMP**, **Appareils archivés** |
 
@@ -691,8 +691,33 @@ Une analyse ne trouve pas toujours le meilleur nom d'un hôte du premier coup. L
 
 Un équipement que la découverte a nommé se souvient donc d'où vient son nom. Quand une analyse terminée de son adresse trouve un meilleur nom — son nom système SNMP ou son nom NetBIOS au lieu de son nom DNS inverse, n'importe quel nom au lieu de son adresse IP —, l'équipement est renommé avec le nom qu'un import lui donnerait maintenant, et son nom DNS est rempli s'il n'en a pas. Si un autre équipement a déjà ce nom, l'équipement est nommé avec son adresse entre parenthèses (`FILESRV01 (10.0.0.5)`), et si celui-là est pris aussi, il garde son nom.
 
-Un nom ne fait jamais que s'améliorer : un équipement garde son nom quand son enregistrement DNS change, ou quand une analyse ultérieure n'obtient pas de réponse NetBIOS. Un équipement doté d'un nom DNS n'est renommé que par une analyse qui trouve ce même nom DNS à son adresse ; quand l'adresse appartient désormais à une autre machine (un bail DHCP qui a changé, par exemple), l'équipement ne prend donc pas le nom de cette machine. Un équipement que vous avez renommé — sur sa page Paramètres, par l'API ou avec **Shorten Names to Hostname** — n'est jamais renommé par une analyse. Les équipements importés avant que la découverte n'enregistre l'origine des noms gardent leur nom, sauf qu'un équipement qu'une analyse encore en cours a importé par son adresse IP est renommé quand cette analyse se termine.
+Un nom ne fait jamais que s'améliorer : un équipement garde son nom quand son enregistrement DNS change, ou quand une analyse ultérieure n'obtient pas de réponse NetBIOS. Un équipement doté d'un nom DNS n'est renommé que par une analyse qui trouve ce même nom DNS à son adresse ; quand l'adresse appartient désormais à une autre machine (un bail DHCP qui a changé, par exemple), l'équipement ne prend donc pas le nom de cette machine. Un équipement que vous avez renommé — sur sa page Paramètres, par l'API ou avec **Shorten Names to Hostname** — n'est jamais renommé par une analyse, pas plus qu'un équipement qu'une [règle de nommage](#nommer-les-équipements-selon-votre-convention-de-nommage) a nommé. Les équipements importés avant que la découverte n'enregistre l'origine des noms gardent leur nom, sauf qu'un équipement qu'une analyse encore en cours a importé par son adresse IP est renommé quand cette analyse se termine.
 :::
+
+### Nommer les équipements selon votre convention de nommage
+
+Quand vos équipements suivent une convention de nommage qui vous est propre — `UN1216MNUPLR01` est le lecteur de menu de l'établissement 1216 —, traduisez-la en **règles de nommage** sous **Réseau → Règles → Règles de nommage**, et la découverte nomme les équipements selon elle plutôt que d'après ce qu'elle trouve. Une règle dit quels équipements elle concerne (une plage d'IP, le nom découvert, l'adresse MAC, le constructeur et le site, avec les mêmes conditions que toute règle réseau) et comment ils s'appellent : un **motif de nom**, un texte où les parties qui changent d'un équipement à l'autre figurent entre accolades.
+
+| Espace réservé | Remplacé par | Exemple |
+| --- | --- | --- |
+| `{site.code}` | Le **Code du site** du site auquel appartient l'équipement (définissez-le dans les paramètres du site) | `1216` |
+| `{site}` | Le nom du site de l'équipement | `Unit 1216` |
+| `{discoveredName}` | Le nom que la découverte a trouvé, comme décrit plus haut | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | L'adresse IP, ou l'une de ses quatre parties | `51` |
+| `{mac}` | L'adresse MAC, 12 chiffres et lettres | `00050BB07FFC` |
+| `{vendor}` | Le constructeur de l'équipement | `SICOM Systems` |
+| `{lookup}` | La valeur que la table de correspondance de la règle donne à l'équipement | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | Le plus petit nombre qui rend le nom unique : `1`, `01`, `001` | `01` |
+
+Un espace réservé peut être suivi de filtres, l'un après l'autre : `upper`, `lower`, `first:N`, `last:N`, `digits` et `nospaces`. `{vendor|first:3|upper}` donne `SIC`, et `{site|digits}` donne `1216` pour un site appelé « Unit 1216 ». Le formulaire de la règle propose chaque espace réservé sous forme de bouton et affiche, à mesure que vous tapez, le nom que recevrait un équipement d'exemple.
+
+Certaines conventions sont un tableau plutôt qu'une formule : dans le sous-réseau de chaque établissement, l'équipement en `.51` est le lecteur de menu `MNUPLR01`, celui en `.151` l'écran de gauche `MNUSCR01`. Ouvrez la section **Table de correspondance** à l'étape **Nom** de la règle, choisissez sa clé — la dernière partie de l'adresse IP, l'adresse IP, l'adresse MAC ou le nom découvert — et saisissez les lignes, collez deux colonnes depuis un tableur, ou importez un fichier CSV (**Exporter en CSV** l'enregistre de nouveau dans un fichier). Ensuite, `UN{site.code}{lookup}` nomme les panneaux de menu de tous les établissements avec une seule règle.
+
+Les règles sont essayées à partir du haut de la liste, et vous les faites glisser pour changer leur ordre. La première règle activée qui correspond à un équipement, et qui dispose de chaque valeur dont son motif a besoin, le nomme. Un équipement qu'une règle ne peut pas nommer — son site n'a pas de code, son adresse n'a pas de ligne dans la table de correspondance — est laissé à la règle suivante. Les noms d'équipements sont uniques dans un projet : un motif avec un numéro prend donc le plus petit numéro encore libre — `UN{site.code}DRTPLR{nn}` compte à partir de `01` dans chaque établissement — et si un motif sans numéro donne un nom qu'un autre équipement porte déjà, l'équipement garde son nom découvert.
+
+Les règles nomment un équipement quand il est importé : depuis **Examiner les résultats**, depuis **Équipements découverts** avec **Ajouter à la surveillance**, et par les règles d'import automatique. **Examiner les résultats** affiche, sous chaque hôte, le nom sous lequel son équipement sera créé — **Sera nommé** `UN1216DRTPLR02` — ou pourquoi une règle ne peut pas le nommer, et **Ajouter à la surveillance** liste les noms de la même façon. Un équipement nommé par une règle garde le nom que la découverte a trouvé comme **Nom découvert**, et il est créé dans le site que lui donnent les règles d'affectation de site, si bien que son nom et son site concordent toujours. Une analyse ultérieure ne le renomme jamais, même quand elle trouve un meilleur nom.
+
+Pour mettre en conformité les équipements que vous avez déjà, cliquez sur **Appliquer aux appareils existants** sur la page Règles de nommage, ou sélectionnez des équipements dans la liste **Appareils** et utilisez **Appliquer les règles de nommage**. Rien n'est renommé tant que vous n'avez pas confirmé : l'aperçu liste chaque équipement dont le nom ne suit pas les règles avec le nom qu'il recevrait, les équipements qu'une règle ne peut pas encore nommer avec la raison, et compte les équipements qui les suivent déjà. Les équipements nommés par la découverte ou par une règle sont cochés ; ceux dont quelqu'un a saisi le nom sont listés non cochés, si bien qu'un nom choisi par une personne n'est changé que si vous cochez l'équipement. Un équipement qui porte déjà un numéro de son motif garde ce numéro. Appliquer les règles demande la permission de modifier les règles de nommage et de modifier tous les équipements réseau du projet.
 
 ### Importer automatiquement avec les règles d'import automatique
 

@@ -141,6 +141,7 @@ export const RULE_CRITERIA_SUBJECT_BY_MODEL: Readonly<
   MonitorOwnerRule: RuleCriteriaSubject.Monitors,
   NetworkDeviceAutoImportRule: null,
   NetworkDeviceLabelRule: RuleCriteriaSubject.NetworkDevices,
+  NetworkDeviceNamingRule: RuleCriteriaSubject.NetworkDevices,
   NetworkDeviceOwnerRule: RuleCriteriaSubject.NetworkDevices,
   NetworkSiteAssignmentRule: null,
   OnCallDutyPolicyLabelRule: RuleCriteriaSubject.OnCallPolicies,

@@ -953,7 +953,8 @@ import { AddCallOutcomeTrackingToCallLogIndexAndKey1809090010000 } from "./18090
 import { AddNotificationChannelsToOnCallDutyPolicyExecutionLogTimeline1809090065850 } from "./1809090065850-AddNotificationChannelsToOnCallDutyPolicyExecutionLogTimeline";
 import { AddTwilioConfigDefaultPerKind1809090657400 } from "./1809090657400-AddTwilioConfigDefaultPerKind";
 import { AddRumApplicationProductAnalyticsEvents1809096444000 } from "./1809096444000-AddRumApplicationProductAnalyticsEvents";
-import { AddDataDashboardUsageAndRefreshes1809097612000 } from "./1809097612000-AddDataDashboardUsageAndRefreshes";
+import { AddNetworkDeviceNamingRules1809100066190 } from "./1809100066190-AddNetworkDeviceNamingRules";
+import { AddDataDashboardUsageAndRefreshes1809100612000 } from "./1809100612000-AddDataDashboardUsageAndRefreshes";
 
 export default [
   InitialMigration,
@@ -1911,5 +1912,6 @@ export default [
   AddNotificationChannelsToOnCallDutyPolicyExecutionLogTimeline1809090065850,
   AddTwilioConfigDefaultPerKind1809090657400,
   AddRumApplicationProductAnalyticsEvents1809096444000,
-  AddDataDashboardUsageAndRefreshes1809097612000,
+  AddNetworkDeviceNamingRules1809100066190,
+  AddDataDashboardUsageAndRefreshes1809100612000,
 ];

@@ -453,13 +453,15 @@ describe("Add Site", () => {
     expect(SITE_TYPE_FIELD_DESCRIPTION).toContain("a region, a store");
   });
 
-  test("folds the description and the location under More fields, on the first step", async () => {
+  test("folds the site code, the description and the location under More fields, on the first step", async () => {
     await openAddSite();
 
     const header: HTMLElement = moreFields();
 
     expect(header).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(header)).toEqual([
+      // What naming rules put in device names as {site.code} (#6619).
+      "Site Code",
       "Description",
       "Address",
       "Latitude",
@@ -518,7 +520,7 @@ describe("Add Child Site", () => {
     ).toHaveTextContent("Add Child Site");
   });
 
-  test("asks the type and the name, and folds the location", async () => {
+  test("asks the type and the name, and folds the site code and the location", async () => {
     await openAddChildSite();
 
     expect(comboboxOf("Site Type")).toBeVisible();
@@ -526,6 +528,7 @@ describe("Add Child Site", () => {
       within(dialog()).getByPlaceholderText(CHILD_NAME_PLACEHOLDER),
     ).toBeVisible();
     expect(listedNames(moreFields())).toEqual([
+      "Site Code",
       "Address",
       "Latitude",
       "Longitude",

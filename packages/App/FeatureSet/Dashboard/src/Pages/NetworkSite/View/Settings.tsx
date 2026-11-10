@@ -104,6 +104,19 @@ const NetworkSiteSettings: FunctionComponent<
           },
           {
             field: {
+              code: true,
+            },
+            title: "Site Code",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
+            description:
+              "A short code, such as a store or unit number. Naming rules can put it in device names with {site.code}.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "1216",
+          },
+          {
+            field: {
               description: true,
             },
             title: "Description",
@@ -224,6 +237,16 @@ const NetworkSiteSettings: FunctionComponent<
               fieldType: FieldType.Text,
               showIf: (item: NetworkSite): boolean => {
                 return Boolean(item.description);
+              },
+            },
+            {
+              field: {
+                code: true,
+              },
+              title: "Site Code",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkSite): boolean => {
+                return Boolean(item.code);
               },
             },
             {

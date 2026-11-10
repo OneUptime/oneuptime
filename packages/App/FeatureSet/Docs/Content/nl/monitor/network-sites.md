@@ -54,7 +54,7 @@ Elk apparaat hangt aan één locatie. De subboom van een locatie is de locatie z
 Ga naar **Netwerk → Locaties** en klik op **Locatie toevoegen**.
 
 ### Zeggen wat de locatie is
-Kies in de stap **Site Details** het **Site Type** (wat voor plaats het is: een regio, een winkel, een datacenter) en typ een **Naam**. De beschrijving, het adres, en de breedte- en lengtegraad die de locatie op de kaart vastzetten, zijn ingeklapt onder **Meer velden**: vul ze nu of later in.
+Kies in de stap **Site Details** het **Site Type** (wat voor plaats het is: een regio, een winkel, een datacenter) en typ een **Naam**. De **Locatiecode**, de beschrijving, het adres, en de breedte- en lengtegraad die de locatie op de kaart vastzetten, zijn ingeklapt onder **Meer velden**: vul ze nu of later in. Een locatiecode is een korte code, zoals een winkel- of vestigingsnummer (`1216`); [naamgevingsregels](/docs/monitor/network-device-monitor#apparaten-een-naam-geven-volgens-je-naamgevingsconventie) zetten hem met `{site.code}` in apparaatnamen.
 
 ### Haar in de boom plaatsen
 Kies in de stap **Hierarchy** de **Parent Site** als de locatie onder een andere valt. Laat het leeg om de locatie op het hoogste niveau te houden.

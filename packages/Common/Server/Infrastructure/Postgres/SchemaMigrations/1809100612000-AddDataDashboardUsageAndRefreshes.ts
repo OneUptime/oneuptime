@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Every column is new and nullable: Postgres adds them without touching a
  * row, and the next hourly read fills them in.
  */
-export class AddDataDashboardUsageAndRefreshes1809097612000
+export class AddDataDashboardUsageAndRefreshes1809100612000
   implements MigrationInterface
 {
-  public name: string = "AddDataDashboardUsageAndRefreshes1809097612000";
+  public name: string = "AddDataDashboardUsageAndRefreshes1809100612000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

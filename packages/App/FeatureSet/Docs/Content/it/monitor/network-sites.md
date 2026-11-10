@@ -54,7 +54,7 @@ Ogni dispositivo è collegato a un sito. Il sottoalbero di un sito è il sito st
 Vai su **Rete → Siti** e fai clic su **Aggiungi: Sito**.
 
 ### Dire cos'è il sito
-Nel passaggio **Site Details**, scegli il **Site Type** (che tipo di luogo è: una regione, un negozio, un data center) e digita un **Nome**. La descrizione, l'indirizzo e la latitudine e la longitudine che collocano il sito sulla mappa sono chiusi sotto **Altri campi**: compilali ora o più tardi.
+Nel passaggio **Site Details**, scegli il **Site Type** (che tipo di luogo è: una regione, un negozio, un data center) e digita un **Nome**. Il **Codice del sito**, la descrizione, l'indirizzo e la latitudine e la longitudine che collocano il sito sulla mappa sono chiusi sotto **Altri campi**: compilali ora o più tardi. Il codice di un sito è un codice breve, come il numero di un negozio o di un punto vendita (`1216`); le [regole di denominazione](/docs/monitor/network-device-monitor#dare-un-nome-ai-dispositivi-secondo-la-tua-convenzione-di-denominazione) lo inseriscono nei nomi dei dispositivi con `{site.code}`.
 
 ### Collocarlo nell'albero
 Nel passaggio **Hierarchy**, scegli il **Parent Site** se il sito si trova sotto un altro. Lascialo vuoto per tenere il sito al livello più alto.
