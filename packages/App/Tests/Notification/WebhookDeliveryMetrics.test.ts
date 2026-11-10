@@ -76,7 +76,7 @@ const TIMELINE_ID: ObjectID = new ObjectID(
   "66008888-0000-4000-8000-000000000002",
 );
 
-let post: jest.SpiedFunction<typeof API.post>;
+let post: ReturnType<typeof jest.spyOn>;
 
 function send(
   url: string = "https://hooks.example.com/oneuptime",

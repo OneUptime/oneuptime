@@ -182,7 +182,7 @@ function callRequest(): CallRequest {
 
 let createMessage: jest.Mock;
 let createCall: jest.Mock;
-let post: jest.SpiedFunction<typeof API.post>;
+let post: ReturnType<typeof jest.spyOn>;
 let project: Project | null;
 
 function onlySend(): Record<string, string> {
