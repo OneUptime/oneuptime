@@ -20,6 +20,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -154,7 +155,7 @@ const SloErrorBudgetPolicyTierCard: FunctionComponent<ComponentProps> = (
                 )}
                 {threshold && current.enteredAt ? (
                   <span aria-hidden="true" className="text-gray-300">
-                    ·
+                    <InlineSeparator markOnly />
                   </span>
                 ) : (
                   <></>

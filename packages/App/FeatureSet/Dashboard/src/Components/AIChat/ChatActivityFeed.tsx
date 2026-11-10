@@ -1820,7 +1820,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
             <>
               {" "}
               <span className="inline-block max-w-full text-gray-400">
-                · {detail}
+                <InlineSeparator markOnly /> {detail}
               </span>
             </>
           )}
@@ -2033,10 +2033,10 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
             */}
             <span className="text-gray-400">
               <span className="inline-block max-w-full">
-                · {describeAttemptOutcome(attempt)}
+                <InlineSeparator markOnly /> {describeAttemptOutcome(attempt)}
               </span>{" "}
               <span className="inline-block max-w-full">
-                ·{" "}
+                <InlineSeparator markOnly />{" "}
                 {translator.translatePlural(
                   { one: "{{count}} step", other: "{{count}} steps" },
                   countWorkSteps(attempt.steps),
@@ -2150,7 +2150,9 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
           return (
             <React.Fragment key={index}>
               {" "}
-              <span className="inline-block max-w-full">· {part}</span>
+              <span className="inline-block max-w-full">
+                <InlineSeparator markOnly /> {part}
+              </span>
             </React.Fragment>
           );
         })}
