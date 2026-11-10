@@ -47730,5 +47730,7 @@
   "Checks whose alert is open.": "Kontroller, hvis advarsel er åben.",
   "Collection Failed": "Indsamling mislykkedes",
   "These steps make sure the right people hear when a table breaks.": "Disse trin sikrer, at de rette personer får besked, når en tabel går i stykker.",
-  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "En netop forbundet database læses første gang inden for få minutter, og derefter overvåges dens tabeller."
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "En netop forbundet database læses første gang inden for få minutter, og derefter overvåges dens tabeller.",
+  "Incoming Monitor Request As Received": "Indgående overvågningsanmodning som modtaget",
+  "The monitor keeps no request content: its headers and body are not shown.": "Overvågningen beholder intet anmodningsindhold: dens headere og brødtekst vises ikke."
 }

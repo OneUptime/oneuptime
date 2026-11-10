@@ -47730,5 +47730,7 @@
   "Checks whose alert is open.": "Проверки с открытым оповещением.",
   "Collection Failed": "Сбор не удался",
   "These steps make sure the right people hear when a table breaks.": "Эти шаги нужны, чтобы нужные люди узнали, когда таблица сломается.",
-  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Только что подключённую базу данных впервые читают в течение нескольких минут, и с этого момента её таблицы отслеживаются."
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Только что подключённую базу данных впервые читают в течение нескольких минут, и с этого момента её таблицы отслеживаются.",
+  "Incoming Monitor Request As Received": "Входящий запрос монитора в исходном виде",
+  "The monitor keeps no request content: its headers and body are not shown.": "Монитор не сохраняет содержимое запросов: заголовки и тело запроса не показываются."
 }

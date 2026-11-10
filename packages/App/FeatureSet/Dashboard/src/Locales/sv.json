@@ -47730,5 +47730,7 @@
   "Checks whose alert is open.": "Kontroller vars larm är öppet.",
   "Collection Failed": "Insamlingen misslyckades",
   "These steps make sure the right people hear when a table breaks.": "De här stegen ser till att rätt personer får veta när en tabell går sönder.",
-  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "En nyss ansluten databas läses första gången inom några minuter, och därefter bevakas dess tabeller."
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "En nyss ansluten databas läses första gången inom några minuter, och därefter bevakas dess tabeller.",
+  "Incoming Monitor Request As Received": "Inkommande övervakningsförfrågan som den togs emot",
+  "The monitor keeps no request content: its headers and body are not shown.": "Övervakaren behåller inget av förfrågans innehåll: dess huvuden och brödtext visas inte."
 }

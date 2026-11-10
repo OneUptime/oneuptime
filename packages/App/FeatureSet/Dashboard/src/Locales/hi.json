@@ -47730,5 +47730,7 @@
   "Checks whose alert is open.": "जिन जाँचों का अलर्ट खुला है।",
   "Collection Failed": "संग्रह विफल रहा",
   "These steps make sure the right people hear when a table breaks.": "ये चरण पक्का करते हैं कि किसी टेबल के टूटने पर सही लोगों को पता चले।",
-  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "अभी जोड़ा गया डेटाबेस कुछ ही मिनटों में पहली बार पढ़ा जाता है, और तब से उसकी टेबल देखी जाती हैं।"
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "अभी जोड़ा गया डेटाबेस कुछ ही मिनटों में पहली बार पढ़ा जाता है, और तब से उसकी टेबल देखी जाती हैं।",
+  "Incoming Monitor Request As Received": "जैसा प्राप्त हुआ वैसा आने वाला मॉनिटर अनुरोध",
+  "The monitor keeps no request content: its headers and body are not shown.": "यह मॉनिटर अनुरोध सामग्री नहीं रखता: इसके हेडर और बॉडी नहीं दिखाए जाते।"
 }

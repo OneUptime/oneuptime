@@ -47730,5 +47730,7 @@
   "Checks whose alert is open.": "Vérifications dont l'alerte est ouverte.",
   "Collection Failed": "Échec de la collecte",
   "These steps make sure the right people hear when a table breaks.": "Ces étapes garantissent que les bonnes personnes sont prévenues quand une table casse.",
-  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Une base de données tout juste connectée est lue pour la première fois en quelques minutes, et ses tables sont surveillées dès lors."
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Une base de données tout juste connectée est lue pour la première fois en quelques minutes, et ses tables sont surveillées dès lors.",
+  "Incoming Monitor Request As Received": "Requête du moniteur entrant telle que reçue",
+  "The monitor keeps no request content: its headers and body are not shown.": "Le moniteur ne conserve aucun contenu de requête : ses en-têtes et son corps ne sont pas affichés."
 }

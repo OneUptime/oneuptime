@@ -47730,5 +47730,7 @@
   "Checks whose alert is open.": "알림이 열려 있는 검사입니다.",
   "Collection Failed": "수집 실패",
   "These steps make sure the right people hear when a table breaks.": "이 단계를 마치면 테이블에 문제가 생겼을 때 알맞은 사람이 알게 됩니다.",
-  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "방금 연결한 데이터베이스는 몇 분 안에 처음 읽히며, 그때부터 테이블이 감시됩니다."
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "방금 연결한 데이터베이스는 몇 분 안에 처음 읽히며, 그때부터 테이블이 감시됩니다.",
+  "Incoming Monitor Request As Received": "받은 그대로의 수신 모니터 요청",
+  "The monitor keeps no request content: its headers and body are not shown.": "이 모니터는 요청 내용을 보관하지 않으므로 헤더와 본문이 표시되지 않습니다."
 }

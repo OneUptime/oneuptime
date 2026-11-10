@@ -12,6 +12,9 @@
  *   - the check an incident or an alert keeps (createdStateLog);
  *   - a probe's latest check, as a reader gets it
  *     (MonitorProbe.lastMonitoringLog, MonitorProbeService.onFindSuccess);
+ *   - an Incoming Request monitor's latest request, as people read it
+ *     (Monitor.incomingMonitorRequest, LatestIncomingRequest), which holds
+ *     an incoming request only (#6402);
  *   - a Test Monitor run's result (MonitorTest.monitorStepProbeResponse),
  *     which the probe ran with the monitor secrets filled in.
  *
@@ -80,6 +83,7 @@ import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorStatusTimelineService from "../../../../Server/Services/MonitorStatusTimelineService";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
+import LatestIncomingRequest from "../../../../Server/Utils/Monitor/LatestIncomingRequest";
 import MonitorLogUtil from "../../../../Server/Utils/Monitor/MonitorLogUtil";
 import MonitorRecordEvidence from "../../../../Server/Utils/Monitor/MonitorRecordEvidence";
 import MonitorStatusTimelineUtil from "../../../../Server/Utils/Monitor/MonitorStatusTimeline";
@@ -90,6 +94,7 @@ import MonitorProbe, {
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
 import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
+import IncomingMonitorRequest from "../../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
@@ -256,6 +261,8 @@ interface CheckCopy {
   name: string;
   // Is it a probe's check only - no incoming request, email or server report?
   holdsProbeChecksOnly: boolean;
+  // Is it an incoming request only - no probe's check, email or server report?
+  holdsIncomingRequestsOnly?: boolean | undefined;
   // Is the check still being evaluated while the copy is made?
   copiesALiveCheck: boolean;
   // Does the monitor's Keep response content switch decide what it keeps?
@@ -391,6 +398,22 @@ const CHECK_COPIES: Array<CheckCopy> = [
     },
   },
   {
+    name: "an Incoming Request monitor's latest request, as people read it (Monitor.incomingMonitorRequest)",
+    holdsProbeChecksOnly: false,
+    holdsIncomingRequestsOnly: true,
+    copiesALiveCheck: true,
+    followsTheSwitch: true,
+    copy: async (input: CopyInput): Promise<JSONObject> => {
+      // As MonitorResource writes it, beside the request as it came.
+      return LatestIncomingRequest.toColumns({
+        request: input.check as unknown as IncomingMonitorRequest,
+        keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+          input.monitor,
+        ),
+      }).incomingMonitorRequest as unknown as JSONObject;
+    },
+  },
+  {
     name: "a Test Monitor run's result (MonitorTest.monitorStepProbeResponse)",
     holdsProbeChecksOnly: true,
     copiesALiveCheck: false,
@@ -405,9 +428,16 @@ const CHECK_COPIES: Array<CheckCopy> = [
   },
 ];
 
-const ALL_COPIES: Array<[string, CheckCopy]> = CHECK_COPIES.map(
+const EVERY_COPY: Array<[string, CheckCopy]> = CHECK_COPIES.map(
   (copy: CheckCopy): [string, CheckCopy] => {
     return [copy.name, copy];
+  },
+);
+
+// Every copy that holds a probe's check: all but the latest incoming request.
+const ALL_COPIES: Array<[string, CheckCopy]> = EVERY_COPY.filter(
+  ([, copy]: [string, CheckCopy]): boolean => {
+    return !copy.holdsIncomingRequestsOnly;
   },
 );
 
@@ -427,6 +457,43 @@ const COPIES_OF_LIVE_CHECKS: Array<[string, CheckCopy]> = ALL_COPIES.filter(
     return copy.copiesALiveCheck;
   },
 );
+
+// Every copy that holds an incoming request.
+const COPIES_OF_INCOMING_REQUESTS: Array<[string, CheckCopy]> =
+  EVERY_COPY.filter(([, copy]: [string, CheckCopy]): boolean => {
+    return !copy.holdsProbeChecksOnly;
+  });
+
+const COPIES_OF_LIVE_INCOMING_REQUESTS: Array<[string, CheckCopy]> =
+  COPIES_OF_INCOMING_REQUESTS.filter(
+    ([, copy]: [string, CheckCopy]): boolean => {
+      return copy.copiesALiveCheck;
+    },
+  );
+
+// A GitHub webhook, as an Incoming Request monitor receives it.
+function webhook(step: MonitorStep): JSONObject {
+  return {
+    projectId: PROJECT_ID,
+    monitorId: MONITOR_ID,
+    requestHeaders: {
+      "content-type": "application/json",
+      "user-agent": "GitHub-Hookshot/7a1b2c3",
+      "x-hub-signature-256": "sha256=0f1e2d3c",
+      authorization: "Bearer ghs_abcdefghijklmnopqrstuvwxyz0123456789",
+    },
+    requestBody: {
+      action: "opened",
+      sender: { login: "jane", email: "jane@acme.example" },
+      installation: { id: 42, token: "ghs_live" },
+    },
+    requestMethod: "POST",
+    incomingRequestReceivedAt: new Date("2026-11-08T10:00:00.000Z"),
+    checkedAt: new Date("2026-11-08T10:00:00.000Z"),
+    onlyCheckForIncomingRequestReceivedAt: false,
+    monitorStepId: step.id,
+  } as unknown as JSONObject;
+}
 
 beforeEach(() => {
   createdTimelines = [];
@@ -868,76 +935,141 @@ describe("a Test Monitor run's result", () => {
   });
 });
 
-describe.each(COPIES_OF_ANY_CHECK)("%s", (_name: string, path: CheckCopy) => {
-  // A GitHub webhook, as an Incoming Request monitor receives it.
-  function webhook(step: MonitorStep): JSONObject {
-    return {
-      projectId: PROJECT_ID,
-      monitorId: MONITOR_ID,
-      requestHeaders: {
+describe.each(COPIES_OF_INCOMING_REQUESTS)(
+  "%s",
+  (_name: string, path: CheckCopy) => {
+    test("an incoming request's headers and body are cut as a response's are", async () => {
+      const step: MonitorStep = new MonitorStep();
+
+      const stored: JSONObject = await path.copy({
+        check: webhook(step),
+        monitor: monitorOf({ step, monitorType: MonitorType.IncomingRequest }),
+        step,
+      });
+
+      expect(stored["requestHeaders"]).toEqual({
         "content-type": "application/json",
         "user-agent": "GitHub-Hookshot/7a1b2c3",
-        "x-hub-signature-256": "sha256=0f1e2d3c",
-        authorization: "Bearer ghs_abcdefghijklmnopqrstuvwxyz0123456789",
-      },
-      requestBody: {
+        "x-hub-signature-256": REDACTED,
+        authorization: REDACTED,
+      });
+      expect(stored["requestBody"]).toEqual({
         action: "opened",
-        sender: { login: "jane", email: "jane@acme.example" },
-        installation: { id: 42, token: "ghs_live" },
-      },
-      requestMethod: "POST",
-      incomingRequestReceivedAt: new Date("2026-11-08T10:00:00.000Z"),
-      checkedAt: new Date("2026-11-08T10:00:00.000Z"),
-      onlyCheckForIncomingRequestReceivedAt: false,
-      monitorStepId: step.id,
-    } as unknown as JSONObject;
-  }
-
-  test("an incoming request's headers and body are cut as a response's are", async () => {
-    const step: MonitorStep = new MonitorStep();
-
-    const stored: JSONObject = await path.copy({
-      check: webhook(step),
-      monitor: monitorOf({ step, monitorType: MonitorType.IncomingRequest }),
-      step,
+        sender: { login: "jane", email: REDACTED },
+        installation: { id: 42, token: REDACTED },
+      });
+      expect(stored["requestMethod"]).toBe("POST");
     });
 
-    expect(stored["requestHeaders"]).toEqual({
-      "content-type": "application/json",
-      "user-agent": "GitHub-Hookshot/7a1b2c3",
-      "x-hub-signature-256": REDACTED,
-      authorization: REDACTED,
-    });
-    expect(stored["requestBody"]).toEqual({
-      action: "opened",
-      sender: { login: "jane", email: REDACTED },
-      installation: { id: 42, token: REDACTED },
-    });
-    expect(stored["requestMethod"]).toBe("POST");
-  });
+    test("a monitor that keeps no request content keeps no body and no headers of the request", async () => {
+      const step: MonitorStep = new MonitorStep();
 
-  test("a monitor that keeps no request content keeps no body and no headers of the request", async () => {
-    const step: MonitorStep = new MonitorStep();
-
-    const stored: JSONObject = await path.copy({
-      check: webhook(step),
-      monitor: monitorOf({
+      const stored: JSONObject = await path.copy({
+        check: webhook(step),
+        monitor: monitorOf({
+          step,
+          monitorType: MonitorType.IncomingRequest,
+          keepResponseContent: false,
+        }),
         step,
-        monitorType: MonitorType.IncomingRequest,
-        keepResponseContent: false,
-      }),
-      step,
+      });
+
+      expect(stored["requestHeaders"]).toBeUndefined();
+      expect(stored["requestBody"]).toBeUndefined();
+      expect(stored["isResponseContentOmitted"]).toBe(true);
+      expect(stored["requestMethod"]).toBe("POST");
+      expect(stored["incomingRequestReceivedAt"]).toBe(
+        "2026-11-08T10:00:00.000Z",
+      );
     });
 
-    expect(stored["requestHeaders"]).toBeUndefined();
-    expect(stored["requestBody"]).toBeUndefined();
-    expect(stored["isResponseContentOmitted"]).toBe(true);
-    expect(stored["requestMethod"]).toBe("POST");
-    expect(stored["incomingRequestReceivedAt"]).toBe(
-      "2026-11-08T10:00:00.000Z",
-    );
-  });
+    test("with the switch on, the request's copy does not say content was left out", async () => {
+      const step: MonitorStep = new MonitorStep();
 
+      const stored: JSONObject = await path.copy({
+        check: webhook(step),
+        monitor: monitorOf({
+          step,
+          monitorType: MonitorType.IncomingRequest,
+          keepResponseContent: true,
+        }),
+        step,
+      });
+
+      expect(stored["requestBody"]).toBeDefined();
+      expect(stored["requestHeaders"]).toBeDefined();
+      expect(stored["isResponseContentOmitted"]).toBeUndefined();
+    });
+
+    test("a text body is read by the text rules: a token, a password and an address are masked", async () => {
+      const step: MonitorStep = new MonitorStep();
+      const check: JSONObject = webhook(step);
+      check["requestBody"] =
+        `deploy finished by jane@acme.example\nAuthorization: Bearer ${JWT}\npassword=hunter2`;
+
+      const stored: JSONObject = await path.copy({
+        check,
+        monitor: monitorOf({ step, monitorType: MonitorType.IncomingRequest }),
+        step,
+      });
+
+      expect(stored["requestBody"]).toBe(
+        `deploy finished by ${REDACTED}\nAuthorization: ${REDACTED}\npassword=${REDACTED}`,
+      );
+    });
+
+    test("what OneUptime wrote of the request is kept as it is: ids, times, the method", async () => {
+      const step: MonitorStep = new MonitorStep();
+
+      const stored: JSONObject = await path.copy({
+        check: webhook(step),
+        monitor: monitorOf({ step, monitorType: MonitorType.IncomingRequest }),
+        step,
+      });
+
+      expect(stored["monitorId"]).toEqual({
+        _type: "ObjectID",
+        value: MONITOR_ID.toString(),
+      });
+      expect(stored["projectId"]).toEqual({
+        _type: "ObjectID",
+        value: PROJECT_ID.toString(),
+      });
+      expect(stored["checkedAt"]).toBe("2026-11-08T10:00:00.000Z");
+      expect(stored["incomingRequestReceivedAt"]).toBe(
+        "2026-11-08T10:00:00.000Z",
+      );
+      expect(stored["requestMethod"]).toBe("POST");
+      expect(stored["onlyCheckForIncomingRequestReceivedAt"]).toBe(false);
+    });
+  },
+);
+
+describe.each(COPIES_OF_LIVE_INCOMING_REQUESTS)(
+  "%s",
+  (_name: string, path: CheckCopy) => {
+    test("never changes the request it was handed: the evaluator is still reading it", async () => {
+      const step: MonitorStep = new MonitorStep();
+      const check: JSONObject = webhook(step);
+      const before: string = JSON.stringify(check);
+
+      await path.copy({
+        check,
+        monitor: monitorOf({
+          step,
+          monitorType: MonitorType.IncomingRequest,
+          keepResponseContent: false,
+        }),
+        step,
+      });
+
+      expect(JSON.stringify(check)).toBe(before);
+      expect(check["isResponseContentOmitted"]).toBeUndefined();
+    });
+  },
+);
+
+describe.each(COPIES_OF_ANY_CHECK)("%s", (_name: string, path: CheckCopy) => {
   test("a server's report: a process's command line is read for credentials, the metrics kept", async () => {
     const step: MonitorStep = new MonitorStep();
 

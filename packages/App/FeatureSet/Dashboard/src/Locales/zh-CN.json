@@ -47730,5 +47730,7 @@
   "Checks whose alert is open.": "警报未解决的检查。",
   "Collection Failed": "收集失败",
   "These steps make sure the right people hear when a table breaks.": "这些步骤确保在表出问题时，合适的人能收到通知。",
-  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "刚连接的数据库会在几分钟内首次读取，此后其表都会受到监控。"
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "刚连接的数据库会在几分钟内首次读取，此后其表都会受到监控。",
+  "Incoming Monitor Request As Received": "按原样接收的传入监视器请求",
+  "The monitor keeps no request content: its headers and body are not shown.": "该监视器不保留请求内容：不显示其请求头和请求正文。"
 }

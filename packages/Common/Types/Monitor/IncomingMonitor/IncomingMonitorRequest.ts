@@ -15,4 +15,10 @@ export default interface IncomingMonitorRequest {
   checkedAt: Date;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   receivedViaProbeId?: ObjectID | undefined;
+  /*
+   * Set on the copy people read (Monitor.incomingMonitorRequest) when the
+   * monitor keeps no request content: its headers and body were left out,
+   * not empty (MonitorRecordEvidence.toStoredLatestRequest).
+   */
+  isResponseContentOmitted?: boolean | undefined;
 }

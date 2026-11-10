@@ -47730,5 +47730,7 @@
   "Checks whose alert is open.": "بررسی‌هایی که هشدارشان باز است.",
   "Collection Failed": "جمع‌آوری ناموفق بود",
   "These steps make sure the right people hear when a table breaks.": "این گام‌ها مطمئن می‌شوند وقتی جدولی خراب شود، افراد درست خبردار شوند.",
-  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "پایگاه داده‌ای که تازه وصل شده، ظرف چند دقیقه برای نخستین بار خوانده می‌شود و از آن پس جدول‌هایش پایش می‌شوند."
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "پایگاه داده‌ای که تازه وصل شده، ظرف چند دقیقه برای نخستین بار خوانده می‌شود و از آن پس جدول‌هایش پایش می‌شوند.",
+  "Incoming Monitor Request As Received": "درخواست ورودی مانیتور به همان شکل دریافت‌شده",
+  "The monitor keeps no request content: its headers and body are not shown.": "این مانیتور محتوای درخواست را نگه نمی‌دارد: سرآیندها و بدنهٔ آن نشان داده نمی‌شوند."
 }

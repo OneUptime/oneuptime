@@ -47730,5 +47730,7 @@
   "Checks whose alert is open.": "Controles waarvan de waarschuwing open staat.",
   "Collection Failed": "Verzamelen mislukt",
   "These steps make sure the right people hear when a table breaks.": "Deze stappen zorgen dat de juiste mensen het horen wanneer een tabel stukgaat.",
-  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Een zojuist verbonden database wordt binnen een paar minuten voor het eerst gelezen, en vanaf dan worden de tabellen bewaakt."
+  "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Een zojuist verbonden database wordt binnen een paar minuten voor het eerst gelezen, en vanaf dan worden de tabellen bewaakt.",
+  "Incoming Monitor Request As Received": "Binnenkomend monitorverzoek zoals ontvangen",
+  "The monitor keeps no request content: its headers and body are not shown.": "De monitor bewaart geen verzoekinhoud: de headers en de body worden niet getoond."
 }
