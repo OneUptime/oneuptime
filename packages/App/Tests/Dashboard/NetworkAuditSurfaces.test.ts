@@ -68,7 +68,10 @@ describe("an empty Discovered Devices page says where they come from", () => {
    * no such setting.
    */
   test("the network's list names the device setting and where it is", () => {
-    expect(ENDPOINTS).toContain("<DiscoveredDevicesTable />");
+    // The project's list: no site, and how long devices stay (issue #6389).
+    expect(ENDPOINTS).toContain(
+      "<DiscoveredDevicesTable retentionInDays={retentionInDays} />",
+    );
     expect(DISCOVERED_DEVICES).toContain(
       'noneYet: translationKey("No discovered devices yet."),',
     );
@@ -113,12 +116,21 @@ describe("an empty Discovered Devices page says where they come from", () => {
     );
   });
 
-  test("the list says what a discovered device is, and that nothing ages out on its own", () => {
+  /*
+   * Devices nothing sees any more are removed now (issue #6389): the line
+   * under the table says when (DiscoveredDeviceRetentionCopy), so the
+   * description no longer promises that nothing is.
+   */
+  test("the list says what a discovered device is, and no longer that nothing ages out", () => {
     expect(DISCOVERED_DEVICES).toContain(
-      "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
+      "Every device your switches, routers and network controllers have seen, and when each was last there.",
     );
     expect(DISCOVERED_DEVICES).toContain(
-      "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
+      "Every device this site's switches, routers and network controllers have seen, and when each was last there.",
+    );
+    expect(DISCOVERED_DEVICES).not.toContain("Nothing is removed on its own");
+    expect(DISCOVERED_DEVICES).toContain(
+      "getDiscoveredDeviceRetentionLine(retentionInDays, translator)",
     );
   });
 

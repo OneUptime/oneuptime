@@ -250,6 +250,43 @@ describe("reading an answer", () => {
     });
   });
 
+  test("how long a device nothing sees stays is read when it is a choice or Never (issue #6389)", () => {
+    const empty: Record<string, unknown> = {
+      rows: [],
+      count: 0,
+      counts: { all: 0, notMonitored: 0, monitored: 0, hidden: 0 },
+    };
+
+    expect(
+      readDiscoveredDeviceListResponse({ ...empty, retentionInDays: 30 })
+        .retentionInDays,
+    ).toBe(30);
+    expect(
+      readDiscoveredDeviceListResponse({ ...empty, retentionInDays: 0 })
+        .retentionInDays,
+    ).toBe(0);
+    expect(
+      readDiscoveredDeviceListResponse({ ...empty, retentionInDays: "365" })
+        .retentionInDays,
+    ).toBe(365);
+  });
+
+  test("a retention that is missing or not a choice is left out, rather than guessed", () => {
+    for (const retentionInDays of [undefined, null, 45, -1, "never", {}]) {
+      const response: Record<string, unknown> =
+        readDiscoveredDeviceListResponse({
+          rows: [],
+          count: 0,
+          counts: {},
+          retentionInDays: retentionInDays,
+        }) as unknown as Record<string, unknown>;
+
+      expect(
+        Object.prototype.hasOwnProperty.call(response, "retentionInDays"),
+      ).toBe(false);
+    }
+  });
+
   test("what a map change did is read by id, keeping only ids", () => {
     expect(
       readDiscoveredDeviceMapChange({

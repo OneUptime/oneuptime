@@ -1,6 +1,7 @@
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
 import NetworkTopologySuppression from "Common/Models/DatabaseModels/NetworkTopologySuppression";
+import Project from "Common/Models/DatabaseModels/Project";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -62,6 +63,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -112,6 +114,11 @@ import {
   toDiscoveredDeviceItem,
   toSelectedDiscoveredDeviceItem,
 } from "./DiscoveredDeviceItems";
+import DiscoveredDeviceRetentionCopy, {
+  DISCOVERED_DEVICE_RETENTION_PLACE,
+  DISCOVERED_DEVICES_RETENTION_LINE_TEST_ID,
+  getDiscoveredDeviceRetentionLine,
+} from "./DiscoveredDeviceRetentionCopy";
 
 /*
  * THE DISCOVERED DEVICES LIST (Network > Topology > Discovered Devices, and
@@ -137,6 +144,12 @@ import {
 export interface DiscoveredDevicesTableProps {
   // One site's devices only: the site's own page.
   siteId?: string | undefined;
+  /*
+   * How long the project keeps a device nothing sees (Unseen Devices), when
+   * the page knows it better than the list's last read: the project's page
+   * holds the card that changes it, and hands each save on at once.
+   */
+  retentionInDays?: number | undefined;
 }
 
 // English keys, looked up where they are drawn.
@@ -177,14 +190,15 @@ export const DISCOVERED_DEVICES_COPY: {
   title: translationKey("Discovered Devices"),
   siteTitle: translationKey("Discovered Devices at this Site"),
   /*
-   * What the list is, and that nothing ages out of it. What each row's
+   * What the list is. How long a device nothing sees stays on it, the line
+   * under the table says (DiscoveredDeviceRetentionCopy); what each row's
    * State says and what its buttons do, the rows show.
    */
   description: translationKey(
-    "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
+    "Every device your switches, routers and network controllers have seen, and when each was last there.",
   ),
   siteDescription: translationKey(
-    "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
+    "Every device this site's switches, routers and network controllers have seen, and when each was last there.",
   ),
   searchPlaceholder: translationKey("Search by name, IP, MAC or vendor"),
   noneYet: translationKey("No discovered devices yet."),
@@ -320,6 +334,10 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
   const [rows, setRows] = useState<Array<DiscoveredDeviceItem>>([]);
   const [count, setCount] = useState<number>(0);
   const [counts, setCounts] = useState<DiscoveredDeviceCounts | null>(null);
+  // Unseen Devices, as the list last read it: undefined until it says.
+  const [listedRetentionInDays, setListedRetentionInDays] = useState<
+    number | undefined
+  >(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [reloadToken, setReloadToken] = useState<number>(0);
@@ -403,6 +421,11 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
         setRows(response.rows.map(toDiscoveredDeviceItem));
         setCount(response.count);
         setCounts(response.counts);
+
+        // A list that does not say keeps what it said before.
+        if (response.retentionInDays !== undefined) {
+          setListedRetentionInDays(response.retentionInDays);
+        }
       })
       .catch((err: unknown) => {
         if (request === requestRef.current) {
@@ -1253,6 +1276,23 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
   const runningImports: Array<DiscoveryImportView> =
     activeImports.fromDiscoveredDevices;
 
+  /*
+   * The line under the table (issue #6389): how long a device nothing sees
+   * stays, once the list or the page has said, and only while there is a
+   * device to say it of. Change, for whoever may change it, opens the
+   * project's Discovered Devices page at the setting - from a site's list
+   * too, as it is the project's. A footnote, as the product writes one
+   * under a table (text-xs, the size of the pager's "Showing 1-20 of 20
+   * devices" beside it): at text-sm it outweighed the list's own footer.
+   */
+  const retentionInDays: number | undefined =
+    props.retentionInDays ?? listedRetentionInDays;
+
+  const canChangeRetention: boolean = PermissionGate.checkColumnUpdate(
+    new Project(),
+    "discoveredDeviceRetentionInDays",
+  ).isAllowed;
+
   return (
     <>
       <Card
@@ -1409,6 +1449,38 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
              */
             disableBulkCsvExport={true}
           />
+
+          {retentionInDays !== undefined && counts && counts.all > 0 ? (
+            <p
+              className="mt-3 text-xs text-gray-500"
+              data-testid={DISCOVERED_DEVICES_RETENTION_LINE_TEST_ID}
+            >
+              {getDiscoveredDeviceRetentionLine(retentionInDays, translator)}
+              {canChangeRetention ? (
+                <>
+                  {" "}
+                  <Link
+                    to={getRouteToPageAnchor(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route,
+                      ),
+                      DISCOVERED_DEVICE_RETENTION_PLACE,
+                    )}
+                    className={LINK_CLASS_NAME}
+                    dataTestId={`${DISCOVERED_DEVICES_RETENTION_LINE_TEST_ID}-change`}
+                  >
+                    {translator.translateText(
+                      DiscoveredDeviceRetentionCopy.change,
+                    )}
+                  </Link>
+                </>
+              ) : (
+                <></>
+              )}
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
       </Card>
 

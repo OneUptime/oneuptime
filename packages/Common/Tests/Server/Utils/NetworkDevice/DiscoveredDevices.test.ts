@@ -393,6 +393,76 @@ describe("reading the list", () => {
   });
 });
 
+describe("the list says how long a device nothing sees stays (issue #6389)", () => {
+  function answerRetention(rows: Array<Record<string, unknown>>): void {
+    answers.unshift((sql: string) => {
+      return sql.includes(`FROM "Project" p`) ? rows : null;
+    });
+  }
+
+  function retentionStatements(): Array<Ran> {
+    return ran.filter((statement: Ran): boolean => {
+      return statement.sql.includes(`FROM "Project" p`);
+    });
+  }
+
+  test("answers the project's days with the page, read for this project only", async () => {
+    answerWith({ counts: { all: 4, notMonitored: 4 } });
+    answerRetention([{ retentionInDays: 90 }]);
+
+    const list: DiscoveredDeviceListResponse = await DiscoveredDevices.list({
+      projectId: PROJECT_ID,
+      props: READER,
+      request: DEFAULT_DISCOVERED_DEVICE_LIST_REQUEST,
+    });
+
+    expect(list.retentionInDays).toBe(90);
+    expect(retentionStatements()).toHaveLength(1);
+    expect(retentionStatements()[0]!.params).toEqual([PROJECT_ID.toString()]);
+  });
+
+  test("says Never as 0", async () => {
+    answerRetention([{ retentionInDays: 0 }]);
+
+    const list: DiscoveredDeviceListResponse = await DiscoveredDevices.list({
+      projectId: PROJECT_ID,
+      props: READER,
+      request: DEFAULT_DISCOVERED_DEVICE_LIST_REQUEST,
+    });
+
+    expect(list.retentionInDays).toBe(0);
+  });
+
+  test.each([[[]], [[{ retentionInDays: null }]], [[{ retentionInDays: 45 }]]])(
+    "says nothing of it when the project answers %p",
+    async (rows: Array<Record<string, unknown>>) => {
+      answerRetention(rows);
+
+      const list: DiscoveredDeviceListResponse = await DiscoveredDevices.list({
+        projectId: PROJECT_ID,
+        props: READER,
+        request: DEFAULT_DISCOVERED_DEVICE_LIST_REQUEST,
+      });
+
+      expect(
+        Object.prototype.hasOwnProperty.call(list, "retentionInDays"),
+      ).toBe(false);
+    },
+  );
+
+  test("select-all does not read it: only the list's page says it", async () => {
+    answerRetention([{ retentionInDays: 30 }]);
+
+    await DiscoveredDevices.listIds({
+      projectId: PROJECT_ID,
+      props: READER,
+      request: DEFAULT_DISCOVERED_DEVICE_LIST_REQUEST,
+    });
+
+    expect(retentionStatements()).toHaveLength(0);
+  });
+});
+
 describe("hiding devices from the map", () => {
   test("needs the right to hide nodes, and writes nothing without it", async () => {
     await expect(

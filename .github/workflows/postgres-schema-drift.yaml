@@ -648,14 +648,18 @@ jobs:
           Tests/Server/Services/NetworkEndpointControllerClientsPostgres.test.ts
           --forceExit
 
-      # Clones the migrated NetworkEndpoint, NetworkDevice and
-      # NetworkTopologySuppression tables into an isolated schema and runs
-      # the Discovered Devices list against them (issue #5775): which rows a
-      # device monitors (by MAC anywhere, by address only while current and
-      # in the same site), search, counts, paging and the bulk Hide / Show
-      # writes - raw SQL across three tables only a database can check, run
-      # through TypeORM's driver, whose answer to a bare DELETE is not rows.
-      - name: Test the Discovered Devices list against Postgres
+      # Clones the migrated NetworkEndpoint, NetworkDevice,
+      # NetworkTopologySuppression and Project tables into isolated schemas
+      # and runs the Discovered Devices list against them (issue #5775):
+      # which rows a device monitors (by MAC anywhere, by address only while
+      # current and in the same site), search, counts, paging and the bulk
+      # Hide / Show writes - raw SQL across these tables only a database can
+      # check, run through TypeORM's driver, whose answer to a bare DELETE is
+      # not rows. Then the job that removes the devices nothing has seen for
+      # the project's days (issue #6389): what it keeps (monitored,
+      # classified, edited, a quiet switch's), each project's own cut-off,
+      # the batches, and the backfill of the devices people changed.
+      - name: Test the Discovered Devices list and its age-out against Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
         env:
@@ -666,6 +670,7 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/NetworkDevice/DiscoveredDeviceListPostgres.test.ts
+          Tests/Server/Utils/NetworkDevice/DiscoveredDeviceAgeOutPostgres.test.ts
           --forceExit
 
       # Clones the migrated CloudResource table into an isolated schema and
