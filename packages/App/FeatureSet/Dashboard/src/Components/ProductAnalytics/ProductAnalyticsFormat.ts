@@ -569,22 +569,24 @@ export function toProductAnalyticsSeries<
   timeZone: string;
   series: Array<ProductAnalyticsSeriesSpec<TDay>>;
 }): Array<SeriesPoint> {
-  return data.series.map((spec: ProductAnalyticsSeriesSpec<TDay>): SeriesPoint => {
-    const points: SeriesPoint["data"] = [];
+  return data.series.map(
+    (spec: ProductAnalyticsSeriesSpec<TDay>): SeriesPoint => {
+      const points: SeriesPoint["data"] = [];
 
-    for (const day of data.days) {
-      const start: Date | null = getProductAnalyticsDayStart(
-        day.day,
-        data.timeZone,
-      );
+      for (const day of data.days) {
+        const start: Date | null = getProductAnalyticsDayStart(
+          day.day,
+          data.timeZone,
+        );
 
-      if (start) {
-        points.push({ x: start, y: spec.read(day) });
+        if (start) {
+          points.push({ x: start, y: spec.read(day) });
+        }
       }
-    }
 
-    return { seriesName: spec.seriesName, data: points };
-  });
+      return { seriesName: spec.seriesName, data: points };
+    },
+  );
 }
 
 /*
@@ -624,8 +626,7 @@ export function getProductAnalyticsTrendWindow<
   timeZone: string;
 }): { start: Date; end: Date } | null {
   const first: TDay | undefined = data.days[0];
-  const last: TDay | undefined =
-    data.days[data.days.length - 1];
+  const last: TDay | undefined = data.days[data.days.length - 1];
 
   if (!first || !last) {
     return null;

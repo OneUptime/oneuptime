@@ -99,11 +99,16 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION,
-      ["Project", "Real User Monitoring", "View Application", "Retention"],
+      ["Project", "Real User Monitoring", "View Application", "User Retention"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS,
-      ["Project", "Real User Monitoring", "View Application", "Analytics Settings"],
+      [
+        "Project",
+        "Real User Monitoring",
+        "View Application",
+        "Analytics Settings",
+      ],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,

@@ -196,7 +196,9 @@ export function describeProductAnalyticsField(
 }
 
 /* A field as one dropdown value: "deviceType", "property:plan", "userProperty:role". */
-export function encodeProductAnalyticsField(ref: ProductAnalyticsFieldRef): string {
+export function encodeProductAnalyticsField(
+  ref: ProductAnalyticsFieldRef,
+): string {
   return isProductAnalyticsKeyedField(ref.field)
     ? `${ref.field}:${ref.key}`
     : ref.field;
@@ -360,9 +362,7 @@ export function countProductAnalyticsRetentionPeriods(data: {
   const [lastYear, lastMonth, lastDay] = days[1] as Array<number>;
 
   if (data.period === ProductAnalyticsRetentionPeriod.Month) {
-    return (
-      lastYear! * 12 + lastMonth! - (firstYear! * 12 + firstMonth!) + 1
-    );
+    return lastYear! * 12 + lastMonth! - (firstYear! * 12 + firstMonth!) + 1;
   }
 
   const dayNumber: (year: number, month: number, day: number) => number = (

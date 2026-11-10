@@ -344,9 +344,11 @@ describe("a funnel's rows", () => {
       describeProductAnalyticsFunnelCompletion({
         funnel: {
           ...dto,
-          steps: dto.steps.map((step: ProductAnalyticsFunnelDto["steps"][0]) => {
-            return { ...step, people: 0 };
-          }),
+          steps: dto.steps.map(
+            (step: ProductAnalyticsFunnelDto["steps"][0]) => {
+              return { ...step, people: 0 };
+            },
+          ),
         },
         translator: english,
       }),
@@ -424,9 +426,11 @@ describe("ProductAnalyticsFunnels", () => {
         { kind: "custom", name: "Purchased" },
       ]);
     });
-    expect(new URLSearchParams(window.location.search).getAll("step")).toEqual(
-      ["session:", "page:/pricing", "custom:Purchased"],
-    );
+    expect(new URLSearchParams(window.location.search).getAll("step")).toEqual([
+      "session:",
+      "page:/pricing",
+      "custom:Purchased",
+    ]);
 
     /* Two steps have no way out: a funnel needs two. */
     fireEvent.click(screen.getByRole("button", { name: "Remove Step 2" }));
@@ -449,7 +453,9 @@ describe("ProductAnalyticsFunnels", () => {
       `?step=${encodeURIComponent("page:/pricing")}&step=${encodeURIComponent(
         "custom:Signed up",
       )}&step=${encodeURIComponent("custom:Purchased")}&within=${7 * DAY_MS}&segment=${encodeURIComponent(
-        JSON.stringify([{ field: "userProperty", key: "role", value: "admin" }]),
+        JSON.stringify([
+          { field: "userProperty", key: "role", value: "admin" },
+        ]),
       )}`,
     );
 

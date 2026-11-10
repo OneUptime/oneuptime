@@ -50,9 +50,11 @@ export const RUM_REPLAY_PAGES: ReadonlyArray<RumDocsPageEntry> = [
 ];
 
 /*
- * Issue #6444: the application's Product Analytics pages, Users and
- * Sessions, between the setup pages and the replay pages in the nav.
- * RumProductAnalyticsDocsFacts holds the English page to the product.
+ * Issue #6444: the application's Product Analytics pages - Users and
+ * Sessions, and in part two Events, Funnels and User Retention with the
+ * events and metrics a page sends - between the setup pages and the replay
+ * pages in the nav. RumProductAnalyticsDocsFacts holds the English page to
+ * the product.
  */
 export const PRODUCT_ANALYTICS: string = "rum/product-analytics";
 
@@ -135,12 +137,22 @@ export const APPLICATION_SIDE_MENU: ReadonlyArray<{
     items: ["Overview", "Recommendations", "Documentation"],
   },
   { section: "Observability", items: ["Metrics", "Logs", "Traces", "Clients"] },
-  { section: "Product Analytics", items: ["Users", "Sessions"] },
+  {
+    section: "Product Analytics",
+    items: [
+      "Users",
+      "Sessions",
+      "Events",
+      "Funnels",
+      "User Retention",
+      "User Flows",
+      "Analytics Settings",
+    ],
+  },
   {
     section: "Session Replay",
     items: [
       "Session Replay",
-      "User Flows",
       "Replay Users",
       "Health",
       "Replay Policy",
@@ -292,6 +304,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "13 months.",
     "No names stored.",
     "Erased on request.",
+    // Part two (issue #6444): how the recorder sends events.
+    "Every session, recorded or not.",
+    "Masked as the recording is.",
+    "In small batches",
   ],
   [WEB_VITALS]: [
     "mean",

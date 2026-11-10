@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import {
@@ -235,8 +241,7 @@ describe("Analytics Settings", () => {
     );
 
     expect(
-      (properties["cardProps"] as { title: string; description: string })
-        .title,
+      (properties["cardProps"] as { title: string; description: string }).title,
     ).toBe("User Properties for Analytics");
     expect(
       (properties["cardProps"] as { title: string; description: string })

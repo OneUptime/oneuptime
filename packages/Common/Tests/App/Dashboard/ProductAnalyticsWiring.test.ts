@@ -206,7 +206,7 @@ describe("the side menu", () => {
     for (const [title, key] of [
       ["Events", "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS"],
       ["Funnels", "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS"],
-      ["Retention", "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION"],
+      ["User Retention", "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION"],
       ["User Flows", "RUM_APPLICATION_VIEW_USER_FLOWS"],
       ["Analytics Settings", "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS"],
     ] as Array<[string, string]>) {
@@ -270,7 +270,7 @@ describe("the trails", () => {
     [
       PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION,
       "retention",
-      "Retention",
+      "User Retention",
     ],
     [
       PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS,

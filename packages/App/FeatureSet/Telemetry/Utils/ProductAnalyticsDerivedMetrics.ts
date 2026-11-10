@@ -98,8 +98,9 @@ export default class ProductAnalyticsDerivedMetrics {
     event: ProductAnalyticsParsedEvent;
   }): Omit<ProductAnalyticsDerivedBucket, "count"> | null {
     const minuteStartMs: number =
-      Math.floor(data.event.time / PRODUCT_ANALYTICS_DERIVED_METRIC_INTERVAL_MS) *
-      PRODUCT_ANALYTICS_DERIVED_METRIC_INTERVAL_MS;
+      Math.floor(
+        data.event.time / PRODUCT_ANALYTICS_DERIVED_METRIC_INTERVAL_MS,
+      ) * PRODUCT_ANALYTICS_DERIVED_METRIC_INTERVAL_MS;
     const deviceType: string =
       data.job.context.deviceType || UNKNOWN_DEVICE_TYPE;
 

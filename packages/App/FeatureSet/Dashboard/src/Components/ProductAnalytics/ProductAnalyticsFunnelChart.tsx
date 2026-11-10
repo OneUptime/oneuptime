@@ -100,8 +100,7 @@ export function describeProductAnalyticsFunnelCompletion(data: {
   funnel: ProductAnalyticsFunnelDto;
   translator: Translator;
 }): string | null {
-  const first: ProductAnalyticsFunnelStepDto | undefined =
-    data.funnel.steps[0];
+  const first: ProductAnalyticsFunnelStepDto | undefined = data.funnel.steps[0];
   const last: ProductAnalyticsFunnelStepDto | undefined =
     data.funnel.steps[data.funnel.steps.length - 1];
 

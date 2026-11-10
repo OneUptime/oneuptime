@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 6380
+    "keys": 47889,
+    "untranslated": 6373
   },
   "sameAsEnglish": [
     " incidents",
@@ -155,6 +155,7 @@
     "Conversation",
     "Conversation {{id}}",
     "Conversations",
+    "Conversion",
     "Costa Rica",
     "CrowdStrike",
     "Cuba",
@@ -463,6 +464,7 @@
     "Script",
     "Secret",
     "Secrets",
+    "Segment",
     "Serverless",
     "Service",
     "Services",

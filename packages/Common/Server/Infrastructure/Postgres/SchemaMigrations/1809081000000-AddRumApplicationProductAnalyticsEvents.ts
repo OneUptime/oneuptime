@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 /*
  * Product analytics events (#6444, part two): two RumApplication columns.
  *
- *  - isProductAnalyticsEnabled: whether the RUM recorders send the
+ *  - isProductAnalyticsEnabled: whether the browser recorder sends the
  *    application's events (session starts, page views, track() and
  *    metric()) from every session. False for every application that
  *    exists today - turning it on starts a new stream of data, so an

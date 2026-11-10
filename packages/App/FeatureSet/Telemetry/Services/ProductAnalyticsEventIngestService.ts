@@ -494,9 +494,7 @@ export default class ProductAnalyticsEventIngestService {
         metricNameServiceNameMap: map,
       });
 
-      if (
-        this.registeredMetricNames.size >= this.MAX_REMEMBERED_METRIC_NAMES
-      ) {
+      if (this.registeredMetricNames.size >= this.MAX_REMEMBERED_METRIC_NAMES) {
         this.registeredMetricNames.clear();
       }
 

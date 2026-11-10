@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11101
+    "keys": 47889,
+    "untranslated": 11092
   },
   "sameAsEnglish": [
     " is",
@@ -87,6 +87,7 @@
     "Clusters",
     "Code",
     "Code {{code}}",
+    "Cohort",
     "Collector",
     "Commit",
     "Commits",
@@ -384,6 +385,7 @@
     "ScheduledMaintenance",
     "Schema",
     "Script",
+    "Segment",
     "Server",
     "Serverless",
     "Servers",
@@ -473,6 +475,7 @@
     "Webhooks",
     "Website",
     "Week",
+    "Week {{number}}",
     "Workers",
     "Workflow",
     "Workflows",

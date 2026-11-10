@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 3476
+    "keys": 47889,
+    "untranslated": 3471
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -527,6 +527,7 @@
     "Scans",
     "Schema",
     "Screenshots:",
+    "Segment",
     "Senegal",
     "Server",
     "Service Level Objective",

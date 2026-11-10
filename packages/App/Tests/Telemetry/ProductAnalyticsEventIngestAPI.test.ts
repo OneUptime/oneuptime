@@ -295,8 +295,7 @@ async function post(data?: {
   let nextError: unknown = undefined;
 
   const req: Record<string, unknown> = {
-    body:
-      data && "body" in data ? data.body : toBody(buildBatch()),
+    body: data && "body" in data ? data.body : toBody(buildBatch()),
     projectId: PROJECT_ID,
     headers: {
       [SESSION_REPLAY_APP_IDENTIFIER_HEADER]: APP_IDENTIFIER,
@@ -512,7 +511,12 @@ describe("the gate", () => {
 
   test.each([
     ["rate-limited", ProductAnalyticsGateOutcome.RateLimited, 429, 12],
-    ["rate-counter-unavailable", ProductAnalyticsGateOutcome.Unavailable, 503, 30],
+    [
+      "rate-counter-unavailable",
+      ProductAnalyticsGateOutcome.Unavailable,
+      503,
+      30,
+    ],
   ])(
     "%s answers %s with %d and when to try again",
     async (
@@ -532,9 +536,7 @@ describe("the gate", () => {
       const answer: Answer = await post();
 
       expect(answer.status).toBe(status);
-      expect(answer.res.headers["Retry-After"]).toBe(
-        String(retryAfterSeconds),
-      );
+      expect(answer.res.headers["Retry-After"]).toBe(String(retryAfterSeconds));
       expect(answer.body).toEqual({
         reason: reason,
         retryAfterSeconds: retryAfterSeconds,
@@ -659,8 +661,7 @@ describe("the country", () => {
     accept({ captureGeo: data.captureGeo ?? true });
 
     await post({
-      headers:
-        data.header !== undefined ? { "cf-ipcountry": data.header } : {},
+      headers: data.header !== undefined ? { "cf-ipcountry": data.header } : {},
     });
 
     return (buildJobMock.mock.calls[0]![0] as { countryCode: string })

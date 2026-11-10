@@ -61,7 +61,9 @@ export function describeProductAnalyticsCohort(data: {
       timeZone: "UTC",
       year: "numeric",
       month:
-        data.period === ProductAnalyticsRetentionPeriod.Month ? "long" : "short",
+        data.period === ProductAnalyticsRetentionPeriod.Month
+          ? "long"
+          : "short",
       ...(data.period === ProductAnalyticsRetentionPeriod.Month
         ? {}
         : { day: "numeric" }),
@@ -78,7 +80,9 @@ export function buildProductAnalyticsRetentionRows(data: {
   const translator: Translator = data.translator;
 
   return data.retention.cohorts.map(
-    (cohort: ProductAnalyticsRetentionCohortDto): ProductAnalyticsRetentionRow => {
+    (
+      cohort: ProductAnalyticsRetentionCohortDto,
+    ): ProductAnalyticsRetentionRow => {
       const label: string = describeProductAnalyticsCohort({
         start: cohort.start,
         period: data.retention.period,

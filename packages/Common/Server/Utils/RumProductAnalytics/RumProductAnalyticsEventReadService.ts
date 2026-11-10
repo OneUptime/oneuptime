@@ -470,7 +470,9 @@ export default class RumProductAnalyticsEventReadService {
      */
     const perSessionEvent: Statement = SQL`SELECT sessionId AS paSessionId, toString(kind) AS paRowKind, name AS paRowName, countIf(`;
     perSessionEvent.append(inRange());
-    perSessionEvent.append(") AS paRowCount, toUnixTimestamp64Milli(maxIf(time, ");
+    perSessionEvent.append(
+      ") AS paRowCount, toUnixTimestamp64Milli(maxIf(time, ",
+    );
     perSessionEvent.append(inRange());
     perSessionEvent.append(
       ")) AS paRowLast, max(identifiedUserKey) AS paRowUserKey, max(visitorId) AS paRowVisitorId",
@@ -766,7 +768,10 @@ export default class RumProductAnalyticsEventReadService {
     const laterEnd: Date = new Date(
       Math.max(
         request.endTime.getTime(),
-        Math.min(request.endTime.getTime() + request.windowMs, request.now.getTime()),
+        Math.min(
+          request.endTime.getTime() + request.windowMs,
+          request.now.getTime(),
+        ),
       ),
     );
 
@@ -804,7 +809,9 @@ export default class RumProductAnalyticsEventReadService {
     );
 
     for (let index: number = 1; index < stepCount; index++) {
-      perPerson.append(`, arraySort(groupArrayArray(paS${index})) AS paAll${index}`);
+      perPerson.append(
+        `, arraySort(groupArrayArray(paS${index})) AS paAll${index}`,
+      );
     }
 
     perPerson.append(" FROM (");

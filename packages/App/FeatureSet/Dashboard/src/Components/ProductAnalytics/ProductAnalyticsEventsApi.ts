@@ -102,7 +102,9 @@ function filtersBody(
 }
 
 /* An event's kind off the wire, or null for one this page cannot name. */
-function readKind(row: Record<string, unknown>): ProductAnalyticsEventKind | null {
+function readKind(
+  row: Record<string, unknown>,
+): ProductAnalyticsEventKind | null {
   const kind: unknown = row["kind"];
 
   return isProductAnalyticsEventKind(kind) ? kind : null;
@@ -184,7 +186,9 @@ export function parseProductAnalyticsEventBreakdown(
     field: field.field,
     key: field.key,
     rows: asRows(row["rows"]).map(
-      (entry: Record<string, unknown>): ProductAnalyticsEventBreakdownRowDto => {
+      (
+        entry: Record<string, unknown>,
+      ): ProductAnalyticsEventBreakdownRowDto => {
         return {
           value: readDtoString(entry, "value"),
           events: readDtoNumber(entry, "events"),
@@ -248,8 +252,7 @@ export function parseProductAnalyticsFunnel(
       conversionFromStart: readShare(entry, "conversionFromStart"),
       conversionFromPrevious: readShare(entry, "conversionFromPrevious"),
       droppedOff: readDtoNumber(entry, "droppedOff"),
-      medianMsFromPrevious:
-        median === undefined || median < 0 ? null : median,
+      medianMsFromPrevious: median === undefined || median < 0 ? null : median,
     });
   }
 

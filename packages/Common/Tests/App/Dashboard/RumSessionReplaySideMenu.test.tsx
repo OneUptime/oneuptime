@@ -183,7 +183,7 @@ const PRODUCT_ANALYTICS_LINKS: Array<MenuLink> = [
   { title: "Events", href: `${APPLICATION_PATH}/product-analytics-events` },
   { title: "Funnels", href: `${APPLICATION_PATH}/product-analytics-funnels` },
   {
-    title: "Retention",
+    title: "User Retention",
     href: `${APPLICATION_PATH}/product-analytics-retention`,
   },
   { title: "User Flows", href: `${APPLICATION_PATH}/user-flows` },
@@ -225,7 +225,7 @@ describe("RUM application Product Analytics navigation", () => {
   test.each([
     ["product-analytics-events", "Events"],
     ["product-analytics-funnels", "Funnels"],
-    ["product-analytics-retention", "Retention"],
+    ["product-analytics-retention", "User Retention"],
     ["user-flows", "User Flows"],
     ["product-analytics-settings", "Analytics Settings"],
   ])("%s lights %s only", async (path: string, label: string) => {
@@ -264,7 +264,7 @@ describe("RUM application Product Analytics navigation", () => {
     ["product-analytics-sessions", "Sessions"],
     ["product-analytics-events", "Events"],
     ["product-analytics-funnels", "Funnels"],
-    ["product-analytics-retention", "Retention"],
+    ["product-analytics-retention", "User Retention"],
     ["user-flows", "User Flows"],
     ["product-analytics-settings", "Analytics Settings"],
   ])(

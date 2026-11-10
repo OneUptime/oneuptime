@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11081
+    "keys": 47889,
+    "untranslated": 11072
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -205,6 +205,7 @@
     "SSH",
     "Samples",
     "ScheduledMaintenance",
+    "Segment",
     "Send",
     "Send (Enter)",
     "Send test",

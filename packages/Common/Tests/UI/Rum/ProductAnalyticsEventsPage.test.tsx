@@ -151,7 +151,13 @@ function names(overrides?: JSONObject): JSONObject {
   return {
     events: [
       { kind: "session", name: "", events: 900, users: 300, lastSeenAt: 1 },
-      { kind: "page", name: "/pricing", events: 400, users: 200, lastSeenAt: 1 },
+      {
+        kind: "page",
+        name: "/pricing",
+        events: 400,
+        users: 200,
+        lastSeenAt: 1,
+      },
       {
         kind: "custom",
         name: "Signed up",
@@ -626,9 +632,7 @@ describe("ProductAnalyticsEvents: breakdown and segment", () => {
     renderPage();
 
     await waitForTiles("120");
-    fireEvent.click(
-      screen.getByTestId("product-analytics-event-segment-open"),
-    );
+    fireEvent.click(screen.getByTestId("product-analytics-event-segment-open"));
     await chooseOption("Field", "Country");
     fireEvent.change(screen.getByRole("textbox", { name: "Value" }), {
       target: { value: "Germany" },
@@ -670,14 +674,12 @@ describe("ProductAnalyticsEvents: all events", () => {
 
     renderPage();
 
-    expect(await waitForRows("product-analytics-event-list-bars", 4)).toEqual(
-      [
-        "Session started | 900 | 300",
-        "Viewed /pricing | 400 | 200",
-        "Signed up | 120 | 100",
-        "Search | 80 | 20",
-      ],
-    );
+    expect(await waitForRows("product-analytics-event-list-bars", 4)).toEqual([
+      "Session started | 900 | 300",
+      "Viewed /pricing | 400 | 200",
+      "Signed up | 120 | 100",
+      "Search | 80 | 20",
+    ]);
     expect(
       screen
         .getAllByTestId("product-analytics-event-list-bars-select")
@@ -710,7 +712,9 @@ describe("ProductAnalyticsEvents: all events", () => {
     );
 
     expect(note).toHaveTextContent(ProductAnalyticsDerivedMetric.Events);
-    expect(within(note).getByRole("link", { name: "Open Metrics" })).toHaveAttribute(
+    expect(
+      within(note).getByRole("link", { name: "Open Metrics" }),
+    ).toHaveAttribute(
       "href",
       RouteUtil.populateRouteParams(
         RouteMap[PageMap.RUM_APPLICATION_VIEW_METRICS] as Route,
@@ -809,9 +813,9 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
     expect(
       within(page).getByTestId("product-analytics-events-off"),
     ).toBeInTheDocument();
-    expect(
-      page.firstElementChild?.getAttribute("data-testid"),
-    ).toBe("product-analytics-events-off");
+    expect(page.firstElementChild?.getAttribute("data-testid")).toBe(
+      "product-analytics-events-off",
+    );
   });
 
   it("a refused read says why, with a way to try again, and no list", async () => {
@@ -846,7 +850,9 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
     renderPage();
 
     expect(
-      await screen.findByText("The read took too long. Choose a shorter range."),
+      await screen.findByText(
+        "The read took too long. Choose a shorter range.",
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByTestId("product-analytics-event-tiles"),

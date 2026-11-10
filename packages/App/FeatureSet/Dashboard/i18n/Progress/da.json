@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11077
+    "keys": 47889,
+    "untranslated": 11068
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -283,6 +283,7 @@
     "Samples",
     "ScheduledMaintenance",
     "Script",
+    "Segment",
     "Send",
     "Send (Enter)",
     "Send test",

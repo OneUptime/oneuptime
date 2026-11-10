@@ -184,12 +184,11 @@ interface BatchFixture {
   events: Array<ProductAnalyticsParsedEvent>;
 }
 
-const desktop: Pick<BatchFixture, "deviceType" | "browserName" | "osName"> =
-  {
-    deviceType: "desktop",
-    browserName: "Chrome",
-    osName: "Windows",
-  };
+const desktop: Pick<BatchFixture, "deviceType" | "browserName" | "osName"> = {
+  deviceType: "desktop",
+  browserName: "Chrome",
+  osName: "Windows",
+};
 
 /*
  * The history, batch by batch, as the recorders send it:
@@ -271,7 +270,10 @@ const batches: Array<BatchFixture> = [
     browserName: "Safari",
     osName: "iOS",
     countryCode: "DE",
-    events: [sessionStart(at(8, 10, 0)), custom("Viewed pricing", at(8, 10, 1))],
+    events: [
+      sessionStart(at(8, 10, 0)),
+      custom("Viewed pricing", at(8, 10, 1)),
+    ],
   },
   {
     sessionId: hex("05", 32),
@@ -418,422 +420,433 @@ function mondayOf(time: number): string {
 
 /* Both query analyzers: 1 is the new one (the default), 0 the old one. */
 for (const analyzer of [1, 0]) {
-  integration(`Product analytics events against ClickHouse (analyzer ${analyzer})`, () => {
-    const database: string = `rum_pa_events_test_${analyzer}_${process.pid}_${Date.now()}`;
-    let clickhouse: ClickhouseDatabase;
-    let client: ClickhouseClient;
-    let original: ServiceConnection | null = null;
+  integration(
+    `Product analytics events against ClickHouse (analyzer ${analyzer})`,
+    () => {
+      const database: string = `rum_pa_events_test_${analyzer}_${process.pid}_${Date.now()}`;
+      let clickhouse: ClickhouseDatabase;
+      let client: ClickhouseClient;
+      let original: ServiceConnection | null = null;
 
-    async function count(query: string): Promise<number> {
-      const result: { json: () => Promise<{ data: Array<JSONObject> }> } =
-        (await client.query({
-          query: query,
-          format: "JSON",
-        })) as unknown as { json: () => Promise<{ data: Array<JSONObject> }> };
+      async function count(query: string): Promise<number> {
+        const result: { json: () => Promise<{ data: Array<JSONObject> }> } =
+          (await client.query({
+            query: query,
+            format: "JSON",
+          })) as unknown as {
+            json: () => Promise<{ data: Array<JSONObject> }>;
+          };
 
-      return Number((await result.json()).data[0]?.["rows"] || 0);
-    }
+        return Number((await result.json()).data[0]?.["rows"] || 0);
+      }
 
-    beforeAll(async (): Promise<void> => {
-      const url: URL = new URL(endpoint!);
+      beforeAll(async (): Promise<void> => {
+        const url: URL = new URL(endpoint!);
 
-      if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
-        throw new Error(
-          "TEST_CLICKHOUSE_URL must point at a local, disposable ClickHouse server.",
+        if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
+          throw new Error(
+            "TEST_CLICKHOUSE_URL must point at a local, disposable ClickHouse server.",
+          );
+        }
+
+        const options: ClickHouseClientConfigOptions = {
+          url: `${url.protocol}//${url.host}`,
+          username: decodeURIComponent(url.username) || "default",
+          password: decodeURIComponent(url.password),
+          database: database,
+          request_timeout: 60000,
+          clickhouse_settings: {
+            enable_analyzer: analyzer === 1 ? 1 : 0,
+          } as unknown as ClickHouseClientConfigOptions["clickhouse_settings"],
+        };
+
+        clickhouse = new ClickhouseDatabase(options);
+        client = await clickhouse.connect(options);
+
+        await createTable(client, clickhouse, database);
+
+        const service: ServiceConnection =
+          RumProductAnalyticsEventService as unknown as ServiceConnection;
+
+        original = {
+          database: service.database,
+          databaseClient: service.databaseClient,
+          ingestDatabase: service.ingestDatabase,
+          ingestDatabaseClient: service.ingestDatabaseClient,
+        };
+
+        service.database = clickhouse;
+        service.databaseClient = client;
+        service.ingestDatabase = clickhouse;
+        service.ingestDatabaseClient = client;
+
+        /* One insert per batch, in the order they were sent. */
+        for (let index: number = 0; index < batches.length; index++) {
+          await RumProductAnalyticsEventService.insertJsonRows(
+            rowsOfBatch(batches[index]!, index),
+            { clickhouseSettings: { wait_for_async_insert: 1 } },
+          );
+        }
+      });
+
+      afterAll(async (): Promise<void> => {
+        if (original) {
+          Object.assign(RumProductAnalyticsEventService, original);
+        }
+
+        if (client) {
+          await client.command({
+            query: `DROP DATABASE IF EXISTS ${database}`,
+          });
+        }
+
+        if (clickhouse) {
+          await clickhouse.disconnect();
+        }
+      });
+
+      test("the analyzer setting took", async () => {
+        const result: { json: () => Promise<{ data: Array<JSONObject> }> } =
+          (await client.query({
+            query: "SELECT getSetting('enable_analyzer') AS value",
+            format: "JSON",
+          })) as unknown as {
+            json: () => Promise<{ data: Array<JSONObject> }>;
+          };
+
+        expect(Number((await result.json()).data[0]?.["value"])).toBe(analyzer);
+      });
+
+      test("the worker's rows land as written", async () => {
+        expect(
+          await count(
+            `SELECT toUInt64(count()) AS rows FROM ${database}.RumProductAnalyticsEventV1`,
+          ),
+        ).toBe(
+          batches.reduce((total: number, batch: BatchFixture): number => {
+            return total + batch.events.length;
+          }, 0),
         );
-      }
+      });
 
-      const options: ClickHouseClientConfigOptions = {
-        url: `${url.protocol}//${url.host}`,
-        username: decodeURIComponent(url.username) || "default",
-        password: decodeURIComponent(url.password),
-        database: database,
-        request_timeout: 60000,
-        clickhouse_settings: {
-          enable_analyzer: analyzer === 1 ? 1 : 0,
-        } as unknown as ClickHouseClientConfigOptions["clickhouse_settings"],
-      };
+      test("event names: the most frequent first, a person counted once across sign-in", async () => {
+        const all: ProductAnalyticsEventNamesDto =
+          await RumProductAnalyticsEventReadService.listEventNames(range);
 
-      clickhouse = new ClickhouseDatabase(options);
-      client = await clickhouse.connect(options);
+        expect(namesOf(all)).toEqual([
+          "session:",
+          "custom:Purchased",
+          "custom:Signed up",
+          "custom:Viewed pricing",
+          "custom:Clicked",
+          "page:/pricing",
+        ]);
 
-      await createTable(client, clickhouse, database);
-
-      const service: ServiceConnection =
-        RumProductAnalyticsEventService as unknown as ServiceConnection;
-
-      original = {
-        database: service.database,
-        databaseClient: service.databaseClient,
-        ingestDatabase: service.ingestDatabase,
-        ingestDatabaseClient: service.ingestDatabaseClient,
-      };
-
-      service.database = clickhouse;
-      service.databaseClient = client;
-      service.ingestDatabase = clickhouse;
-      service.ingestDatabaseClient = client;
-
-      /* One insert per batch, in the order they were sent. */
-      for (let index: number = 0; index < batches.length; index++) {
-        await RumProductAnalyticsEventService.insertJsonRows(
-          rowsOfBatch(batches[index]!, index),
-          { clickhouseSettings: { wait_for_async_insert: 1 } },
+        const byName: Map<string, ProductAnalyticsEventNameDto> = new Map<
+          string,
+          ProductAnalyticsEventNameDto
+        >(
+          all.events.map(
+            (
+              event: ProductAnalyticsEventNameDto,
+            ): [string, ProductAnalyticsEventNameDto] => {
+              return [`${event.kind}:${event.name}`, event];
+            },
+          ),
         );
-      }
-    });
 
-    afterAll(async (): Promise<void> => {
-      if (original) {
-        Object.assign(RumProductAnalyticsEventService, original);
-      }
+        /* Six sessions started in the range, by four people. */
+        expect(byName.get("session:")?.events).toBe(6);
+        expect(byName.get("session:")?.users).toBe(4);
+        /* Alice bought twice. */
+        expect(byName.get("custom:Purchased")?.events).toBe(3);
+        expect(byName.get("custom:Purchased")?.users).toBe(2);
+        /* Dave's sign-up is after the range. */
+        expect(byName.get("custom:Signed up")?.users).toBe(3);
+        /*
+         * Alice clicked once anonymously and once signed in: one person,
+         * because her first session named her later on.
+         */
+        expect(byName.get("custom:Clicked")?.events).toBe(2);
+        expect(byName.get("custom:Clicked")?.users).toBe(1);
+        expect(byName.get("custom:Viewed pricing")?.lastSeenAt).toBe(
+          at(6, 23, 30),
+        );
+        expect(all.hasMore).toBe(false);
+        expect(all.dataStartedAt).toBe(at(0, 9, 58));
 
-      if (client) {
-        await client.command({ query: `DROP DATABASE IF EXISTS ${database}` });
-      }
+        const customOnly: ProductAnalyticsEventNamesDto =
+          await RumProductAnalyticsEventReadService.listEventNames({
+            ...range,
+            kind: ProductAnalyticsEventKind.Custom,
+          });
 
-      if (clickhouse) {
-        await clickhouse.disconnect();
-      }
-    });
+        expect(namesOf(customOnly)).toEqual([
+          "custom:Purchased",
+          "custom:Signed up",
+          "custom:Viewed pricing",
+          "custom:Clicked",
+        ]);
+        expect(customOnly.events[3]?.users).toBe(1);
+      });
 
-    test("the analyzer setting took", async () => {
-      const result: { json: () => Promise<{ data: Array<JSONObject> }> } =
-        (await client.query({
-          query: "SELECT getSetting('enable_analyzer') AS value",
-          format: "JSON",
-        })) as unknown as { json: () => Promise<{ data: Array<JSONObject> }> };
+      test("trend: every day of the range, totals over the range", async () => {
+        const trend: ProductAnalyticsEventTrendDto =
+          await RumProductAnalyticsEventReadService.getEventTrend({
+            ...range,
+            event: signedUp,
+            filters: [],
+            timeZone: "UTC",
+          });
 
-      expect(Number((await result.json()).data[0]?.["value"])).toBe(analyzer);
-    });
+        expect(trend.days).toEqual([
+          { day: dayText(0), events: 1, users: 1 },
+          { day: dayText(1), events: 1, users: 1 },
+          { day: dayText(2), events: 0, users: 0 },
+          { day: dayText(3), events: 1, users: 1 },
+          { day: dayText(4), events: 0, users: 0 },
+          { day: dayText(5), events: 0, users: 0 },
+          { day: dayText(6), events: 0, users: 0 },
+        ]);
+        expect(trend.totalEvents).toBe(3);
+        expect(trend.totalUsers).toBe(3);
+        expect(trend.totalSessions).toBe(3);
 
-    test("the worker's rows land as written", async () => {
-      expect(
-        await count(
-          `SELECT toUInt64(count()) AS rows FROM ${database}.RumProductAnalyticsEventV1`,
-        ),
-      ).toBe(
-        batches.reduce((total: number, batch: BatchFixture): number => {
-          return total + batch.events.length;
-        }, 0),
-      );
-    });
+        const clicks: ProductAnalyticsEventTrendDto =
+          await RumProductAnalyticsEventReadService.getEventTrend({
+            ...range,
+            event: clicked,
+            filters: [],
+            timeZone: "UTC",
+          });
 
-    test("event names: the most frequent first, a person counted once across sign-in", async () => {
-      const all: ProductAnalyticsEventNamesDto =
-        await RumProductAnalyticsEventReadService.listEventNames(range);
+        expect(clicks.totalEvents).toBe(2);
+        expect(clicks.totalUsers).toBe(1);
+        expect(clicks.totalSessions).toBe(2);
+      });
 
-      expect(namesOf(all)).toEqual([
-        "session:",
-        "custom:Purchased",
-        "custom:Signed up",
-        "custom:Viewed pricing",
-        "custom:Clicked",
-        "page:/pricing",
-      ]);
+      test("trend: days in the reader's zone", async () => {
+        /* Tokyo is UTC+9: the range is 09:00 on day 0 to 08:59 on day 7 there. */
+        const trend: ProductAnalyticsEventTrendDto =
+          await RumProductAnalyticsEventReadService.getEventTrend({
+            ...range,
+            event: viewedPricing,
+            filters: [],
+            timeZone: "Asia/Tokyo",
+          });
 
-      const byName: Map<string, ProductAnalyticsEventNameDto> = new Map<
-        string,
-        ProductAnalyticsEventNameDto
-      >(
-        all.events.map(
-          (
-            event: ProductAnalyticsEventNameDto,
-          ): [string, ProductAnalyticsEventNameDto] => {
-            return [`${event.kind}:${event.name}`, event];
+        expect(trend.days.length).toBe(8);
+        expect(
+          trend.days.filter((day: { events: number }): boolean => {
+            return day.events > 0;
+          }),
+        ).toEqual([
+          { day: dayText(0), events: 1, users: 1 },
+          { day: dayText(1), events: 1, users: 1 },
+          { day: dayText(7), events: 1, users: 1 },
+        ]);
+      });
+
+      test("segments: every filter must hold", async () => {
+        const mobile: Array<ProductAnalyticsSegmentFilter> = [
+          {
+            field: ProductAnalyticsEventField.DeviceType,
+            key: "",
+            value: "mobile",
           },
-        ),
-      );
+        ];
 
-      /* Six sessions started in the range, by four people. */
-      expect(byName.get("session:")?.events).toBe(6);
-      expect(byName.get("session:")?.users).toBe(4);
-      /* Alice bought twice. */
-      expect(byName.get("custom:Purchased")?.events).toBe(3);
-      expect(byName.get("custom:Purchased")?.users).toBe(2);
-      /* Dave's sign-up is after the range. */
-      expect(byName.get("custom:Signed up")?.users).toBe(3);
-      /*
-       * Alice clicked once anonymously and once signed in: one person,
-       * because her first session named her later on.
-       */
-      expect(byName.get("custom:Clicked")?.events).toBe(2);
-      expect(byName.get("custom:Clicked")?.users).toBe(1);
-      expect(byName.get("custom:Viewed pricing")?.lastSeenAt).toBe(
-        at(6, 23, 30),
-      );
-      expect(all.hasMore).toBe(false);
-      expect(all.dataStartedAt).toBe(at(0, 9, 58));
+        const onPhones: ProductAnalyticsEventTrendDto =
+          await RumProductAnalyticsEventReadService.getEventTrend({
+            ...range,
+            event: viewedPricing,
+            filters: mobile,
+            timeZone: "UTC",
+          });
 
-      const customOnly: ProductAnalyticsEventNamesDto =
-        await RumProductAnalyticsEventReadService.listEventNames({
-          ...range,
-          kind: ProductAnalyticsEventKind.Custom,
-        });
+        expect(onPhones.totalEvents).toBe(1);
 
-      expect(namesOf(customOnly)).toEqual([
-        "custom:Purchased",
-        "custom:Signed up",
-        "custom:Viewed pricing",
-        "custom:Clicked",
-      ]);
-      expect(customOnly.events[3]?.users).toBe(1);
-    });
+        const proSignUps: ProductAnalyticsEventTrendDto =
+          await RumProductAnalyticsEventReadService.getEventTrend({
+            ...range,
+            event: signedUp,
+            filters: [
+              {
+                field: ProductAnalyticsEventField.Property,
+                key: "plan",
+                value: "pro",
+              },
+            ],
+            timeZone: "UTC",
+          });
 
-    test("trend: every day of the range, totals over the range", async () => {
-      const trend: ProductAnalyticsEventTrendDto =
-        await RumProductAnalyticsEventReadService.getEventTrend({
-          ...range,
-          event: signedUp,
-          filters: [],
-          timeZone: "UTC",
-        });
+        expect(proSignUps.totalEvents).toBe(2);
 
-      expect(trend.days).toEqual([
-        { day: dayText(0), events: 1, users: 1 },
-        { day: dayText(1), events: 1, users: 1 },
-        { day: dayText(2), events: 0, users: 0 },
-        { day: dayText(3), events: 1, users: 1 },
-        { day: dayText(4), events: 0, users: 0 },
-        { day: dayText(5), events: 0, users: 0 },
-        { day: dayText(6), events: 0, users: 0 },
-      ]);
-      expect(trend.totalEvents).toBe(3);
-      expect(trend.totalUsers).toBe(3);
-      expect(trend.totalSessions).toBe(3);
+        const acmePro: ProductAnalyticsEventTrendDto =
+          await RumProductAnalyticsEventReadService.getEventTrend({
+            ...range,
+            event: signedUp,
+            filters: [
+              {
+                field: ProductAnalyticsEventField.Property,
+                key: "plan",
+                value: "pro",
+              },
+              {
+                field: ProductAnalyticsEventField.UserProperty,
+                key: "company",
+                value: "Acme",
+              },
+            ],
+            timeZone: "UTC",
+          });
 
-      const clicks: ProductAnalyticsEventTrendDto =
-        await RumProductAnalyticsEventReadService.getEventTrend({
-          ...range,
-          event: clicked,
-          filters: [],
-          timeZone: "UTC",
-        });
+        expect(acmePro.totalEvents).toBe(1);
+        expect(acmePro.totalUsers).toBe(1);
+      });
 
-      expect(clicks.totalEvents).toBe(2);
-      expect(clicks.totalUsers).toBe(1);
-      expect(clicks.totalSessions).toBe(2);
-    });
+      test("breakdowns: by property, user property, device and country", async () => {
+        const read: (
+          field: ProductAnalyticsEventField,
+          key: string,
+        ) => Promise<ProductAnalyticsEventBreakdownDto> = async (
+          field: ProductAnalyticsEventField,
+          key: string,
+        ): Promise<ProductAnalyticsEventBreakdownDto> => {
+          return await RumProductAnalyticsEventReadService.getEventBreakdown({
+            ...range,
+            event: signedUp,
+            filters: [],
+            breakdown: { field: field, key: key },
+            limit: 50,
+          });
+        };
 
-    test("trend: days in the reader's zone", async () => {
-      /* Tokyo is UTC+9: the range is 09:00 on day 0 to 08:59 on day 7 there. */
-      const trend: ProductAnalyticsEventTrendDto =
-        await RumProductAnalyticsEventReadService.getEventTrend({
-          ...range,
-          event: viewedPricing,
-          filters: [],
-          timeZone: "Asia/Tokyo",
-        });
+        const byPlan: ProductAnalyticsEventBreakdownDto = await read(
+          ProductAnalyticsEventField.Property,
+          "plan",
+        );
+        expect(byPlan.rows).toEqual([
+          { value: "pro", events: 2, users: 2 },
+          { value: "free", events: 1, users: 1 },
+        ]);
+        expect(byPlan.totalEvents).toBe(3);
+        expect(byPlan.totalUsers).toBe(3);
+        expect(byPlan.hasMore).toBe(false);
 
-      expect(trend.days.length).toBe(8);
-      expect(
-        trend.days.filter((day: { events: number }): boolean => {
-          return day.events > 0;
-        }),
-      ).toEqual([
-        { day: dayText(0), events: 1, users: 1 },
-        { day: dayText(1), events: 1, users: 1 },
-        { day: dayText(7), events: 1, users: 1 },
-      ]);
-    });
+        /* Bob signed up anonymously: no user properties. */
+        expect(
+          (await read(ProductAnalyticsEventField.UserProperty, "company")).rows,
+        ).toEqual([
+          { value: "", events: 1, users: 1 },
+          { value: "Acme", events: 1, users: 1 },
+          { value: "Initech", events: 1, users: 1 },
+        ]);
 
-    test("segments: every filter must hold", async () => {
-      const mobile: Array<ProductAnalyticsSegmentFilter> = [
-        {
-          field: ProductAnalyticsEventField.DeviceType,
-          key: "",
-          value: "mobile",
-        },
-      ];
+        expect(
+          (await read(ProductAnalyticsEventField.DeviceType, "")).rows,
+        ).toEqual([
+          { value: "desktop", events: 2, users: 2 },
+          { value: "mobile", events: 1, users: 1 },
+        ]);
 
-      const onPhones: ProductAnalyticsEventTrendDto =
-        await RumProductAnalyticsEventReadService.getEventTrend({
-          ...range,
-          event: viewedPricing,
-          filters: mobile,
-          timeZone: "UTC",
-        });
-
-      expect(onPhones.totalEvents).toBe(1);
-
-      const proSignUps: ProductAnalyticsEventTrendDto =
-        await RumProductAnalyticsEventReadService.getEventTrend({
-          ...range,
-          event: signedUp,
-          filters: [
-            {
-              field: ProductAnalyticsEventField.Property,
-              key: "plan",
-              value: "pro",
-            },
-          ],
-          timeZone: "UTC",
-        });
-
-      expect(proSignUps.totalEvents).toBe(2);
-
-      const acmePro: ProductAnalyticsEventTrendDto =
-        await RumProductAnalyticsEventReadService.getEventTrend({
-          ...range,
-          event: signedUp,
-          filters: [
-            {
-              field: ProductAnalyticsEventField.Property,
-              key: "plan",
-              value: "pro",
-            },
-            {
-              field: ProductAnalyticsEventField.UserProperty,
-              key: "company",
-              value: "Acme",
-            },
-          ],
-          timeZone: "UTC",
-        });
-
-      expect(acmePro.totalEvents).toBe(1);
-      expect(acmePro.totalUsers).toBe(1);
-    });
-
-    test("breakdowns: by property, user property, device and country", async () => {
-      const read: (
-        field: ProductAnalyticsEventField,
-        key: string,
-      ) => Promise<ProductAnalyticsEventBreakdownDto> = async (
-        field: ProductAnalyticsEventField,
-        key: string,
-      ): Promise<ProductAnalyticsEventBreakdownDto> => {
-        return await RumProductAnalyticsEventReadService.getEventBreakdown({
-          ...range,
-          event: signedUp,
-          filters: [],
-          breakdown: { field: field, key: key },
-          limit: 50,
-        });
-      };
-
-      const byPlan: ProductAnalyticsEventBreakdownDto = await read(
-        ProductAnalyticsEventField.Property,
-        "plan",
-      );
-      expect(byPlan.rows).toEqual([
-        { value: "pro", events: 2, users: 2 },
-        { value: "free", events: 1, users: 1 },
-      ]);
-      expect(byPlan.totalEvents).toBe(3);
-      expect(byPlan.totalUsers).toBe(3);
-      expect(byPlan.hasMore).toBe(false);
-
-      /* Bob signed up anonymously: no user properties. */
-      expect(
-        (await read(ProductAnalyticsEventField.UserProperty, "company")).rows,
-      ).toEqual([
-        { value: "", events: 1, users: 1 },
-        { value: "Acme", events: 1, users: 1 },
-        { value: "Initech", events: 1, users: 1 },
-      ]);
-
-      expect(
-        (await read(ProductAnalyticsEventField.DeviceType, "")).rows,
-      ).toEqual([
-        { value: "desktop", events: 2, users: 2 },
-        { value: "mobile", events: 1, users: 1 },
-      ]);
-
-      expect((await read(ProductAnalyticsEventField.Country, "")).rows).toEqual(
-        [
+        expect(
+          (await read(ProductAnalyticsEventField.Country, "")).rows,
+        ).toEqual([
           { value: "DE", events: 1, users: 1 },
           { value: "FR", events: 1, users: 1 },
           { value: "US", events: 1, users: 1 },
-        ],
-      );
+        ]);
 
-      const limited: ProductAnalyticsEventBreakdownDto =
-        await RumProductAnalyticsEventReadService.getEventBreakdown({
-          ...range,
-          event: signedUp,
-          filters: [],
-          breakdown: { field: ProductAnalyticsEventField.Country, key: "" },
-          limit: 2,
-        });
+        const limited: ProductAnalyticsEventBreakdownDto =
+          await RumProductAnalyticsEventReadService.getEventBreakdown({
+            ...range,
+            event: signedUp,
+            filters: [],
+            breakdown: { field: ProductAnalyticsEventField.Country, key: "" },
+            limit: 2,
+          });
 
-      expect(limited.rows.length).toBe(2);
-      expect(limited.hasMore).toBe(true);
-    });
-
-    test("property keys of an event", async () => {
-      expect(
-        await RumProductAnalyticsEventReadService.getEventProperties({
-          ...range,
-          event: signedUp,
-        }),
-      ).toEqual({ propertyKeys: ["plan"], userPropertyKeys: ["company"] });
-    });
-
-    test("funnel: steps in order within the window, across sign-in", async () => {
-      const funnel: ProductAnalyticsFunnelDto =
-        await RumProductAnalyticsEventReadService.getFunnel({
-          ...range,
-          steps: [viewedPricing, signedUp, purchased],
-          filters: [],
-          windowMs: DAY_MS,
-          now: now,
-        });
-
-      /*
-       * Alice (anonymous, then signed in, one session), Bob and Dave (whose
-       * sign-up is after the range but inside his day) viewed pricing and
-       * signed up; Alice alone bought.
-       */
-      expect(
-        funnel.steps.map((step: { people: number }): number => {
-          return step.people;
-        }),
-      ).toEqual([3, 3, 1]);
-      expect(funnel.steps[0]).toEqual({
-        kind: ProductAnalyticsEventKind.Custom,
-        name: "Viewed pricing",
-        people: 3,
-        conversionFromStart: 1,
-        conversionFromPrevious: 1,
-        droppedOff: 0,
-        medianMsFromPrevious: null,
+        expect(limited.rows.length).toBe(2);
+        expect(limited.hasMore).toBe(true);
       });
-      /* 5, 30 and 40 minutes: the median is 30. */
-      expect(funnel.steps[1]?.medianMsFromPrevious).toBe(30 * MINUTE_MS);
-      expect(funnel.steps[2]?.medianMsFromPrevious).toBe(15 * MINUTE_MS);
-      expect(funnel.steps[2]?.conversionFromStart).toBeCloseTo(1 / 3, 6);
-      expect(funnel.steps[2]?.conversionFromPrevious).toBeCloseTo(1 / 3, 6);
-      expect(funnel.steps[2]?.droppedOff).toBe(2);
-    });
 
-    test("funnel: the window decides who converted", async () => {
-      const read: (windowMs: number) => Promise<Array<number>> = async (
-        windowMs: number,
-      ): Promise<Array<number>> => {
+      test("property keys of an event", async () => {
+        expect(
+          await RumProductAnalyticsEventReadService.getEventProperties({
+            ...range,
+            event: signedUp,
+          }),
+        ).toEqual({ propertyKeys: ["plan"], userPropertyKeys: ["company"] });
+      });
+
+      test("funnel: steps in order within the window, across sign-in", async () => {
         const funnel: ProductAnalyticsFunnelDto =
           await RumProductAnalyticsEventReadService.getFunnel({
             ...range,
-            steps: [signedUp, purchased],
+            steps: [viewedPricing, signedUp, purchased],
             filters: [],
-            windowMs: windowMs,
+            windowMs: DAY_MS,
             now: now,
           });
 
-        return funnel.steps.map((step: { people: number }): number => {
-          return step.people;
+        /*
+         * Alice (anonymous, then signed in, one session), Bob and Dave (whose
+         * sign-up is after the range but inside his day) viewed pricing and
+         * signed up; Alice alone bought.
+         */
+        expect(
+          funnel.steps.map((step: { people: number }): number => {
+            return step.people;
+          }),
+        ).toEqual([3, 3, 1]);
+        expect(funnel.steps[0]).toEqual({
+          kind: ProductAnalyticsEventKind.Custom,
+          name: "Viewed pricing",
+          people: 3,
+          conversionFromStart: 1,
+          conversionFromPrevious: 1,
+          droppedOff: 0,
+          medianMsFromPrevious: null,
         });
-      };
+        /* 5, 30 and 40 minutes: the median is 30. */
+        expect(funnel.steps[1]?.medianMsFromPrevious).toBe(30 * MINUTE_MS);
+        expect(funnel.steps[2]?.medianMsFromPrevious).toBe(15 * MINUTE_MS);
+        expect(funnel.steps[2]?.conversionFromStart).toBeCloseTo(1 / 3, 6);
+        expect(funnel.steps[2]?.conversionFromPrevious).toBeCloseTo(1 / 3, 6);
+        expect(funnel.steps[2]?.droppedOff).toBe(2);
+      });
 
-      /* Carol bought 50 hours after signing up. */
-      expect(await read(DAY_MS)).toEqual([3, 1]);
-      expect(await read(7 * DAY_MS)).toEqual([3, 2]);
-      expect(await read(HOUR_MS)).toEqual([3, 1]);
-    });
+      test("funnel: the window decides who converted", async () => {
+        const read: (windowMs: number) => Promise<Array<number>> = async (
+          windowMs: number,
+        ): Promise<Array<number>> => {
+          const funnel: ProductAnalyticsFunnelDto =
+            await RumProductAnalyticsEventReadService.getFunnel({
+              ...range,
+              steps: [signedUp, purchased],
+              filters: [],
+              windowMs: windowMs,
+              now: now,
+            });
 
-    test("funnel: one event as two steps needs two occurrences", async () => {
-      const read: (windowMs: number) => Promise<ProductAnalyticsFunnelDto> =
-        async (windowMs: number): Promise<ProductAnalyticsFunnelDto> => {
+          return funnel.steps.map((step: { people: number }): number => {
+            return step.people;
+          });
+        };
+
+        /* Carol bought 50 hours after signing up. */
+        expect(await read(DAY_MS)).toEqual([3, 1]);
+        expect(await read(7 * DAY_MS)).toEqual([3, 2]);
+        expect(await read(HOUR_MS)).toEqual([3, 1]);
+      });
+
+      test("funnel: one event as two steps needs two occurrences", async () => {
+        const read: (
+          windowMs: number,
+        ) => Promise<ProductAnalyticsFunnelDto> = async (
+          windowMs: number,
+        ): Promise<ProductAnalyticsFunnelDto> => {
           return await RumProductAnalyticsEventReadService.getFunnel({
             ...range,
             steps: [purchased, purchased],
@@ -843,286 +856,292 @@ for (const analyzer of [1, 0]) {
           });
         };
 
-      const week: ProductAnalyticsFunnelDto = await read(7 * DAY_MS);
-      expect(week.steps[0]?.people).toBe(2);
-      expect(week.steps[1]?.people).toBe(1);
-      expect(week.steps[1]?.medianMsFromPrevious).toBe(
-        at(2, 9, 0) - at(0, 10, 20),
-      );
+        const week: ProductAnalyticsFunnelDto = await read(7 * DAY_MS);
+        expect(week.steps[0]?.people).toBe(2);
+        expect(week.steps[1]?.people).toBe(1);
+        expect(week.steps[1]?.medianMsFromPrevious).toBe(
+          at(2, 9, 0) - at(0, 10, 20),
+        );
 
-      const day: ProductAnalyticsFunnelDto = await read(DAY_MS);
-      expect(day.steps[1]?.people).toBe(0);
-      expect(day.steps[1]?.medianMsFromPrevious).toBeNull();
-    });
-
-    test("funnel: a segment narrows every step", async () => {
-      const funnel: ProductAnalyticsFunnelDto =
-        await RumProductAnalyticsEventReadService.getFunnel({
-          ...range,
-          steps: [viewedPricing, signedUp],
-          filters: [
-            {
-              field: ProductAnalyticsEventField.DeviceType,
-              key: "",
-              value: "mobile",
-            },
-          ],
-          windowMs: DAY_MS,
-          now: now,
-        });
-
-      expect(
-        funnel.steps.map((step: { people: number }): number => {
-          return step.people;
-        }),
-      ).toEqual([1, 1]);
-    });
-
-    test("retention by day: cohorts by first start event, null past the range", async () => {
-      const retention: ProductAnalyticsRetentionDto =
-        await RumProductAnalyticsEventReadService.getRetention({
-          ...range,
-          startEvent: signedUp,
-          returnEvent: purchased,
-          filters: [],
-          period: ProductAnalyticsRetentionPeriod.Day,
-          timeZone: "UTC",
-        });
-
-      expect(retention.cohorts.length).toBe(7);
-      expect(retention.cohorts[0]).toEqual({
-        start: dayText(0),
-        people: 1,
-        returning: [1, 0, 1, 0, 0, 0, 0],
+        const day: ProductAnalyticsFunnelDto = await read(DAY_MS);
+        expect(day.steps[1]?.people).toBe(0);
+        expect(day.steps[1]?.medianMsFromPrevious).toBeNull();
       });
-      expect(retention.cohorts[1]).toEqual({
-        start: dayText(1),
-        people: 1,
-        returning: [0, 0, 0, 0, 0, 0, null],
-      });
-      expect(retention.cohorts[2]).toEqual({
-        start: dayText(2),
-        people: 0,
-        returning: [0, 0, 0, 0, 0, null, null],
-      });
-      expect(retention.cohorts[3]).toEqual({
-        start: dayText(3),
-        people: 1,
-        returning: [0, 0, 1, 0, null, null, null],
-      });
-      expect(retention.cohorts[6]?.returning).toEqual([
-        0,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-      ]);
-    });
 
-    test("retention by week: Monday cohorts", async () => {
-      const retention: ProductAnalyticsRetentionDto =
-        await RumProductAnalyticsEventReadService.getRetention({
-          ...range,
-          startEvent: signedUp,
-          returnEvent: purchased,
-          filters: [],
-          period: ProductAnalyticsRetentionPeriod.Week,
-          timeZone: "UTC",
-        });
-
-      const mondays: Array<string> = Array.from(
-        new Set<string>(
-          [0, 1, 2, 3, 4, 5, 6].map((day: number): string => {
-            return mondayOf(at(day, 12));
-          }),
-        ),
-      );
-
-      expect(
-        retention.cohorts.map((cohort: { start: string }): string => {
-          return cohort.start;
-        }),
-      ).toEqual(mondays);
-
-      const total: number = retention.cohorts.reduce(
-        (sum: number, cohort: { people: number }): number => {
-          return sum + cohort.people;
-        },
-        0,
-      );
-      expect(total).toBe(3);
-
-      const aliceCohort: string = mondayOf(at(0, 10, 5));
-      const cohort: { people: number; returning: Array<number | null> } | undefined =
-        retention.cohorts.find((entry: { start: string }): boolean => {
-          return entry.start === aliceCohort;
-        });
-      /* Alice bought in her own week, at least. */
-      expect(cohort?.returning[0]).toBeGreaterThanOrEqual(1);
-    });
-
-    test("retention: one event as start and return keeps period zero full", async () => {
-      const retention: ProductAnalyticsRetentionDto =
-        await RumProductAnalyticsEventReadService.getRetention({
-          ...range,
-          startEvent: signedUp,
-          returnEvent: signedUp,
-          filters: [],
-          period: ProductAnalyticsRetentionPeriod.Day,
-          timeZone: "UTC",
-        });
-
-      for (const cohort of retention.cohorts) {
-        expect(cohort.returning[0]).toBe(cohort.people);
-      }
-    });
-
-    test("retention refuses more cohorts than a read covers", async () => {
-      await expect(
-        RumProductAnalyticsEventReadService.getRetention({
-          ...scope,
-          startTime: new Date(at(0, 0) - 40 * DAY_MS),
-          endTime: rangeEnd,
-          startEvent: signedUp,
-          returnEvent: purchased,
-          filters: [],
-          period: ProductAnalyticsRetentionPeriod.Day,
-          timeZone: "UTC",
-        }),
-      ).rejects.toBeInstanceOf(BadDataException);
-    });
-
-    test("periods: days, Mondays and months in a zone", async () => {
-      expect(
-        await RumProductAnalyticsEventReadService.getPeriods({
-          startTime: new Date("2026-03-30T12:00:00.000Z"),
-          endTime: new Date("2026-04-14T12:00:00.000Z"),
-          timeZone: "UTC",
-          period: ProductAnalyticsRetentionPeriod.Week,
-        }),
-      ).toEqual(["2026-03-30", "2026-04-06", "2026-04-13"]);
-
-      expect(
-        await RumProductAnalyticsEventReadService.getPeriods({
-          startTime: new Date("2026-01-31T23:30:00.000Z"),
-          endTime: new Date("2026-03-01T00:30:00.000Z"),
-          timeZone: "UTC",
-          period: ProductAnalyticsRetentionPeriod.Month,
-        }),
-      ).toEqual(["2026-01-01", "2026-02-01", "2026-03-01"]);
-
-      /* 23:30 UTC on 31 January is 1 February in Berlin. */
-      expect(
-        await RumProductAnalyticsEventReadService.getPeriods({
-          startTime: new Date("2026-01-31T23:30:00.000Z"),
-          endTime: new Date("2026-02-02T10:00:00.000Z"),
-          timeZone: "Europe/Berlin",
-          period: ProductAnalyticsRetentionPeriod.Day,
-        }),
-      ).toEqual(["2026-02-01", "2026-02-02"]);
-    });
-
-    describe("erasure", () => {
-      async function erase(
-        filters: Array<ProductAnalyticsErasureFilter>,
-      ): Promise<void> {
-        for (const filter of filters) {
-          if (filter.tableName !== AnalyticsTableName.RumProductAnalyticsEvent) {
-            continue;
-          }
-
-          await client.command({
-            query: `ALTER TABLE ${database}.${filter.tableName} DELETE WHERE ${filter.where.query}`,
-            query_params: filter.where.query_params,
-            clickhouse_settings: { mutations_sync: "2" },
+      test("funnel: a segment narrows every step", async () => {
+        const funnel: ProductAnalyticsFunnelDto =
+          await RumProductAnalyticsEventReadService.getFunnel({
+            ...range,
+            steps: [viewedPricing, signedUp],
+            filters: [
+              {
+                field: ProductAnalyticsEventField.DeviceType,
+                key: "",
+                value: "mobile",
+              },
+            ],
+            windowMs: DAY_MS,
+            now: now,
           });
-        }
-      }
 
-      async function eventsWhere(where: string): Promise<number> {
-        return await count(
-          `SELECT toUInt64(count()) AS rows FROM ${database}.RumProductAnalyticsEventV1 WHERE ${where}`,
-        );
-      }
+        expect(
+          funnel.steps.map((step: { people: number }): number => {
+            return step.people;
+          }),
+        ).toEqual([1, 1]);
+      });
 
-      test("by user removes every event of the user's sessions, the anonymous ones too", async () => {
-        const lookup: { json: () => Promise<{ data: Array<JSONObject> }> } =
-          (await RumProductAnalyticsEventService.executeQuery(
-            buildProductAnalyticsUserSessionLookup({
-              databaseName: database,
-              projectId: projectId,
-              identifiedUserKey: aliceKey,
-              limit: 10000,
-              tableName: AnalyticsTableName.RumProductAnalyticsEvent,
+      test("retention by day: cohorts by first start event, null past the range", async () => {
+        const retention: ProductAnalyticsRetentionDto =
+          await RumProductAnalyticsEventReadService.getRetention({
+            ...range,
+            startEvent: signedUp,
+            returnEvent: purchased,
+            filters: [],
+            period: ProductAnalyticsRetentionPeriod.Day,
+            timeZone: "UTC",
+          });
+
+        expect(retention.cohorts.length).toBe(7);
+        expect(retention.cohorts[0]).toEqual({
+          start: dayText(0),
+          people: 1,
+          returning: [1, 0, 1, 0, 0, 0, 0],
+        });
+        expect(retention.cohorts[1]).toEqual({
+          start: dayText(1),
+          people: 1,
+          returning: [0, 0, 0, 0, 0, 0, null],
+        });
+        expect(retention.cohorts[2]).toEqual({
+          start: dayText(2),
+          people: 0,
+          returning: [0, 0, 0, 0, 0, null, null],
+        });
+        expect(retention.cohorts[3]).toEqual({
+          start: dayText(3),
+          people: 1,
+          returning: [0, 0, 1, 0, null, null, null],
+        });
+        expect(retention.cohorts[6]?.returning).toEqual([
+          0,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+        ]);
+      });
+
+      test("retention by week: Monday cohorts", async () => {
+        const retention: ProductAnalyticsRetentionDto =
+          await RumProductAnalyticsEventReadService.getRetention({
+            ...range,
+            startEvent: signedUp,
+            returnEvent: purchased,
+            filters: [],
+            period: ProductAnalyticsRetentionPeriod.Week,
+            timeZone: "UTC",
+          });
+
+        const mondays: Array<string> = Array.from(
+          new Set<string>(
+            [0, 1, 2, 3, 4, 5, 6].map((day: number): string => {
+              return mondayOf(at(day, 12));
             }),
-          )) as unknown as {
-            json: () => Promise<{ data: Array<JSONObject> }>;
-          };
-
-        const aliceSessions: Array<string> = (await lookup.json()).data
-          .map((row: JSONObject): string => {
-            return String(row["paSessionId"]);
-          })
-          .sort();
-
-        expect(aliceSessions).toEqual([hex("01", 32), hex("02", 32)]);
-
-        await erase(
-          buildProductAnalyticsErasureFilters({
-            projectId: projectId,
-            requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
-            targetValue: aliceKey,
-            sessionIds: aliceSessions,
-          }),
-        );
-
-        expect(await eventsWhere(`visitorId = '${aliceVisitor}'`)).toBe(0);
-        expect(await eventsWhere(`visitorId = '${bobVisitor}'`)).toBe(5);
-      });
-
-      test("by date range removes the range's events and no others", async () => {
-        await erase(
-          buildProductAnalyticsErasureFilters({
-            projectId: projectId,
-            rumApplicationId: applicationId,
-            requestType: RumSessionErasureRequestType.ByDateRange,
-            startDate: new Date(at(1, 0)),
-            endDate: new Date(at(2, 0) - 1),
-          }),
-        );
-
-        expect(await eventsWhere(`sessionId = '${hex("03", 32)}'`)).toBe(0);
-        expect(await eventsWhere(`sessionId = '${hex("04", 32)}'`)).toBe(2);
-        /* The other project's day 1 is its own. */
-        expect(
-          await eventsWhere(`projectId = '${otherProjectId.toString()}'`),
-        ).toBe(2);
-      });
-
-      test("by application removes the application's events and no other's", async () => {
-        await erase(
-          buildProductAnalyticsErasureFilters({
-            projectId: projectId,
-            requestType: RumSessionErasureRequestType.ByRumApplication,
-            targetValue: applicationId.toString(),
-          }),
-        );
-
-        expect(
-          await eventsWhere(
-            `projectId = '${projectId.toString()}' AND rumApplicationId = '${applicationId.toString()}'`,
           ),
-        ).toBe(0);
+        );
+
         expect(
-          await eventsWhere(
-            `rumApplicationId = '${otherApplicationId.toString()}'`,
-          ),
-        ).toBe(2);
+          retention.cohorts.map((cohort: { start: string }): string => {
+            return cohort.start;
+          }),
+        ).toEqual(mondays);
+
+        const total: number = retention.cohorts.reduce(
+          (sum: number, cohort: { people: number }): number => {
+            return sum + cohort.people;
+          },
+          0,
+        );
+        expect(total).toBe(3);
+
+        const aliceCohort: string = mondayOf(at(0, 10, 5));
+        const cohort:
+          | { people: number; returning: Array<number | null> }
+          | undefined = retention.cohorts.find(
+          (entry: { start: string }): boolean => {
+            return entry.start === aliceCohort;
+          },
+        );
+        /* Alice bought in her own week, at least. */
+        expect(cohort?.returning[0]).toBeGreaterThanOrEqual(1);
       });
-    });
-  });
+
+      test("retention: one event as start and return keeps period zero full", async () => {
+        const retention: ProductAnalyticsRetentionDto =
+          await RumProductAnalyticsEventReadService.getRetention({
+            ...range,
+            startEvent: signedUp,
+            returnEvent: signedUp,
+            filters: [],
+            period: ProductAnalyticsRetentionPeriod.Day,
+            timeZone: "UTC",
+          });
+
+        for (const cohort of retention.cohorts) {
+          expect(cohort.returning[0]).toBe(cohort.people);
+        }
+      });
+
+      test("retention refuses more cohorts than a read covers", async () => {
+        await expect(
+          RumProductAnalyticsEventReadService.getRetention({
+            ...scope,
+            startTime: new Date(at(0, 0) - 40 * DAY_MS),
+            endTime: rangeEnd,
+            startEvent: signedUp,
+            returnEvent: purchased,
+            filters: [],
+            period: ProductAnalyticsRetentionPeriod.Day,
+            timeZone: "UTC",
+          }),
+        ).rejects.toBeInstanceOf(BadDataException);
+      });
+
+      test("periods: days, Mondays and months in a zone", async () => {
+        expect(
+          await RumProductAnalyticsEventReadService.getPeriods({
+            startTime: new Date("2026-03-30T12:00:00.000Z"),
+            endTime: new Date("2026-04-14T12:00:00.000Z"),
+            timeZone: "UTC",
+            period: ProductAnalyticsRetentionPeriod.Week,
+          }),
+        ).toEqual(["2026-03-30", "2026-04-06", "2026-04-13"]);
+
+        expect(
+          await RumProductAnalyticsEventReadService.getPeriods({
+            startTime: new Date("2026-01-31T23:30:00.000Z"),
+            endTime: new Date("2026-03-01T00:30:00.000Z"),
+            timeZone: "UTC",
+            period: ProductAnalyticsRetentionPeriod.Month,
+          }),
+        ).toEqual(["2026-01-01", "2026-02-01", "2026-03-01"]);
+
+        /* 23:30 UTC on 31 January is 1 February in Berlin. */
+        expect(
+          await RumProductAnalyticsEventReadService.getPeriods({
+            startTime: new Date("2026-01-31T23:30:00.000Z"),
+            endTime: new Date("2026-02-02T10:00:00.000Z"),
+            timeZone: "Europe/Berlin",
+            period: ProductAnalyticsRetentionPeriod.Day,
+          }),
+        ).toEqual(["2026-02-01", "2026-02-02"]);
+      });
+
+      describe("erasure", () => {
+        async function erase(
+          filters: Array<ProductAnalyticsErasureFilter>,
+        ): Promise<void> {
+          for (const filter of filters) {
+            if (
+              filter.tableName !== AnalyticsTableName.RumProductAnalyticsEvent
+            ) {
+              continue;
+            }
+
+            await client.command({
+              query: `ALTER TABLE ${database}.${filter.tableName} DELETE WHERE ${filter.where.query}`,
+              query_params: filter.where.query_params,
+              clickhouse_settings: { mutations_sync: "2" },
+            });
+          }
+        }
+
+        async function eventsWhere(where: string): Promise<number> {
+          return await count(
+            `SELECT toUInt64(count()) AS rows FROM ${database}.RumProductAnalyticsEventV1 WHERE ${where}`,
+          );
+        }
+
+        test("by user removes every event of the user's sessions, the anonymous ones too", async () => {
+          const lookup: { json: () => Promise<{ data: Array<JSONObject> }> } =
+            (await RumProductAnalyticsEventService.executeQuery(
+              buildProductAnalyticsUserSessionLookup({
+                databaseName: database,
+                projectId: projectId,
+                identifiedUserKey: aliceKey,
+                limit: 10000,
+                tableName: AnalyticsTableName.RumProductAnalyticsEvent,
+              }),
+            )) as unknown as {
+              json: () => Promise<{ data: Array<JSONObject> }>;
+            };
+
+          const aliceSessions: Array<string> = (await lookup.json()).data
+            .map((row: JSONObject): string => {
+              return String(row["paSessionId"]);
+            })
+            .sort();
+
+          expect(aliceSessions).toEqual([hex("01", 32), hex("02", 32)]);
+
+          await erase(
+            buildProductAnalyticsErasureFilters({
+              projectId: projectId,
+              requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+              targetValue: aliceKey,
+              sessionIds: aliceSessions,
+            }),
+          );
+
+          expect(await eventsWhere(`visitorId = '${aliceVisitor}'`)).toBe(0);
+          expect(await eventsWhere(`visitorId = '${bobVisitor}'`)).toBe(5);
+        });
+
+        test("by date range removes the range's events and no others", async () => {
+          await erase(
+            buildProductAnalyticsErasureFilters({
+              projectId: projectId,
+              rumApplicationId: applicationId,
+              requestType: RumSessionErasureRequestType.ByDateRange,
+              startDate: new Date(at(1, 0)),
+              endDate: new Date(at(2, 0) - 1),
+            }),
+          );
+
+          expect(await eventsWhere(`sessionId = '${hex("03", 32)}'`)).toBe(0);
+          expect(await eventsWhere(`sessionId = '${hex("04", 32)}'`)).toBe(2);
+          /* The other project's day 1 is its own. */
+          expect(
+            await eventsWhere(`projectId = '${otherProjectId.toString()}'`),
+          ).toBe(2);
+        });
+
+        test("by application removes the application's events and no other's", async () => {
+          await erase(
+            buildProductAnalyticsErasureFilters({
+              projectId: projectId,
+              requestType: RumSessionErasureRequestType.ByRumApplication,
+              targetValue: applicationId.toString(),
+            }),
+          );
+
+          expect(
+            await eventsWhere(
+              `projectId = '${projectId.toString()}' AND rumApplicationId = '${applicationId.toString()}'`,
+            ),
+          ).toBe(0);
+          expect(
+            await eventsWhere(
+              `rumApplicationId = '${otherApplicationId.toString()}'`,
+            ),
+          ).toBe(2);
+        });
+      });
+    },
+  );
 }
 
 /*

@@ -222,8 +222,8 @@ export default class RumProductAnalyticsEvent extends AnalyticsBaseModel {
       accessControl: accessControl,
     });
 
-    const userPropertiesColumn: AnalyticsTableColumn =
-      new AnalyticsTableColumn({
+    const userPropertiesColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
         key: "userProperties",
         title: "User Properties",
         description:
@@ -233,7 +233,8 @@ export default class RumProductAnalyticsEvent extends AnalyticsBaseModel {
         type: TableColumnType.MapStringString,
         codec: { codec: "ZSTD", level: 3 },
         accessControl: accessControl,
-      });
+      },
+    );
 
     super({
       tableName: AnalyticsTableName.RumProductAnalyticsEvent,

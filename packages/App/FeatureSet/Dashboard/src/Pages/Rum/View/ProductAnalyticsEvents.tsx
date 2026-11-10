@@ -105,9 +105,7 @@ import {
  * the events whose fields hold given values.
  */
 
-export const SHOW_ONLY_TEMPLATE: string = translationKey(
-  "Show only {{value}}",
-);
+export const SHOW_ONLY_TEMPLATE: string = translationKey("Show only {{value}}");
 export const OPEN_EVENT_TEMPLATE: string = translationKey("Open {{value}}");
 
 export function buildProductAnalyticsEventTiles(data: {
@@ -120,7 +118,9 @@ export function buildProductAnalyticsEventTiles(data: {
   const count: (value: number | undefined) => string = (
     value: number | undefined,
   ): string => {
-    return trend ? formatProductAnalyticsCount(value || 0, data.translator) : "-";
+    return trend
+      ? formatProductAnalyticsCount(value || 0, data.translator)
+      : "-";
   };
 
   return [

@@ -192,7 +192,9 @@ jest.mock("Common/Server/Utils/Telemetry/Telemetry", () => {
   return {
     __esModule: true,
     default: {
-      getAttributeKeys: (attributes: Record<string, unknown>): Array<string> => {
+      getAttributeKeys: (
+        attributes: Record<string, unknown>,
+      ): Array<string> => {
         return Object.keys(attributes).sort();
       },
       indexMetricNameServiceNameMap: jest.fn(),
@@ -200,14 +202,17 @@ jest.mock("Common/Server/Utils/Telemetry/Telemetry", () => {
   };
 });
 
-jest.mock("../../FeatureSet/Telemetry/Utils/ProductAnalyticsDerivedMetrics", () => {
-  return {
-    __esModule: true,
-    default: {
-      countEvents: jest.fn(),
-    },
-  };
-});
+jest.mock(
+  "../../FeatureSet/Telemetry/Utils/ProductAnalyticsDerivedMetrics",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        countEvents: jest.fn(),
+      },
+    };
+  },
+);
 
 import SessionReplayGateCache, {
   SessionReplayGatePolicy,
@@ -473,8 +478,11 @@ describe("the gate", () => {
     jest.spyOn(Date, "now").mockReturnValue(RECEIVED_AT);
 
     expect(
-      (await gate({ itemCount: PRODUCT_ANALYTICS_MAX_ITEMS_PER_PROJECT_PER_MINUTE }))
-        .outcome,
+      (
+        await gate({
+          itemCount: PRODUCT_ANALYTICS_MAX_ITEMS_PER_PROJECT_PER_MINUTE,
+        })
+      ).outcome,
     ).toBe(ProductAnalyticsGateOutcome.Accepted);
     /* The minute's counter is set to expire when it is first written. */
     expect(expireMock).toHaveBeenCalledTimes(1);
@@ -693,9 +701,11 @@ describe("the worker", () => {
     expect(indexMetricNamesMock).toHaveBeenCalledTimes(1);
     expect(
       Object.keys(
-        (indexMetricNamesMock.mock.calls[0]![0] as {
-          metricNameServiceNameMap: Record<string, unknown>;
-        }).metricNameServiceNameMap,
+        (
+          indexMetricNamesMock.mock.calls[0]![0] as {
+            metricNameServiceNameMap: Record<string, unknown>;
+          }
+        ).metricNameServiceNameMap,
       ),
     ).toEqual(["cart.value"]);
   });

@@ -296,9 +296,7 @@ router.post(
             policy: decision.policy,
             batch: parsed.batch,
             receivedAtUnixMs: receivedAtUnixMs,
-            countryCode: decision.policy.captureGeo
-              ? readCountryCode(req)
-              : "",
+            countryCode: decision.policy.captureGeo ? readCountryCode(req) : "",
           }),
         );
       } catch (err) {

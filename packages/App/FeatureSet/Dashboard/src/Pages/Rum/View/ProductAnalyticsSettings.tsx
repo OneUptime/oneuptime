@@ -33,7 +33,9 @@ export function ProductAnalyticsUserPropertyChips(props: {
   if (keys.length === 0) {
     return (
       <span className="text-sm text-gray-500">
-        {translator.translateText(ProductAnalyticsEventsSwitchCopy.noProperties)}
+        {translator.translateText(
+          ProductAnalyticsEventsSwitchCopy.noProperties,
+        )}
       </span>
     );
   }
@@ -79,7 +81,8 @@ const RumApplicationProductAnalyticsSettings: FunctionComponent<
         name={ProductAnalyticsEventsSwitchCopy.propertiesCardTitle}
         cardProps={{
           title: ProductAnalyticsEventsSwitchCopy.propertiesCardTitle,
-          description: ProductAnalyticsEventsSwitchCopy.propertiesCardDescription,
+          description:
+            ProductAnalyticsEventsSwitchCopy.propertiesCardDescription,
         }}
         isEditable={true}
         editButtonText="Edit User Properties"

@@ -32,7 +32,13 @@ export function productAnalyticsTestNames(overrides?: JSONObject): JSONObject {
   return {
     events: [
       { kind: "session", name: "", events: 900, users: 300, lastSeenAt: 1 },
-      { kind: "page", name: "/pricing", events: 400, users: 200, lastSeenAt: 1 },
+      {
+        kind: "page",
+        name: "/pricing",
+        events: 400,
+        users: 200,
+        lastSeenAt: 1,
+      },
       {
         kind: "custom",
         name: "Signed up",
@@ -40,7 +46,13 @@ export function productAnalyticsTestNames(overrides?: JSONObject): JSONObject {
         users: 100,
         lastSeenAt: 1,
       },
-      { kind: "custom", name: "Purchased", events: 80, users: 20, lastSeenAt: 1 },
+      {
+        kind: "custom",
+        name: "Purchased",
+        events: 80,
+        users: 20,
+        lastSeenAt: 1,
+      },
     ],
     hasMore: false,
     dataStartedAt: Date.now() - 200 * DAY_MS,

@@ -177,7 +177,8 @@ describe("the application's events", () => {
     "a start of %p reads as nothing kept yet",
     (dataStartedAt: unknown) => {
       expect(
-        parseProductAnalyticsEventNames({ events: [], dataStartedAt }).dataStartedAt,
+        parseProductAnalyticsEventNames({ events: [], dataStartedAt })
+          .dataStartedAt,
       ).toBeNull();
     },
   );
@@ -605,9 +606,9 @@ describe("what each read sends", () => {
         timeZone: "UTC",
       }),
     ).rejects.toBeInstanceOf(HTTPErrorResponse);
-    await expect(fetchProductAnalyticsEventNames(window)).rejects.toBeInstanceOf(
-      HTTPErrorResponse,
-    );
+    await expect(
+      fetchProductAnalyticsEventNames(window),
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
   });
 
   test("an empty body is an empty answer", async () => {

@@ -155,9 +155,9 @@ describe("RumProductAnalyticsEvent", () => {
 
   test("every column is required, so a row never holds a null", () => {
     for (const column of model.tableColumns) {
-      expect(`${column.key}: ${String((column as AnalyticsTableColumn).required)}`).toBe(
-        `${column.key}: true`,
-      );
+      expect(
+        `${column.key}: ${String((column as AnalyticsTableColumn).required)}`,
+      ).toBe(`${column.key}: true`);
     }
   });
 });

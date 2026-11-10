@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11074
+    "keys": 47889,
+    "untranslated": 11065
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -237,6 +237,7 @@
     "Sampling",
     "ScheduledMaintenance",
     "Schema",
+    "Segment",
     "Server",
     "Service Mesh",
     "Session",

@@ -575,7 +575,8 @@ export default class SessionReplayGateCache {
          * Only an explicit true: the column defaults to false, and a row
          * that predates it must not start sending events unasked.
          */
-        isProductAnalyticsEnabled: appView["isProductAnalyticsEnabled"] === true,
+        isProductAnalyticsEnabled:
+          appView["isProductAnalyticsEnabled"] === true,
         productAnalyticsUserPropertyKeys:
           normalizeProductAnalyticsUserPropertyKeys(
             appView["productAnalyticsUserPropertyKeys"],

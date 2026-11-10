@@ -42,8 +42,8 @@ Sidemenyen til en applikasjon grupperer sidene slik; **Innstillinger**, **Utvikl
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Anbefalinger**, **Dokumentasjon** |
 | **Observerbarhet** | **Målinger**, **Logger**, **Spor**, **Klienter** |
-| **Produktanalyse** | **Brukere**, **Økter** |
-| **Øktavspilling** | **Øktavspilling**, **Brukerflyter**, **Brukere i avspillinger**, **Helse**, **Avspillingspolicy**, **Frustrasjonssignaler**, **Tilgangslogg for avspillinger**, **Dokumentasjon** |
+| **Produktanalyse** | **Brukere**, **Økter**, **Hendelser**, **Trakter**, **Brukerlojalitet**, **Brukerflyter**, **Analyseinnstillinger** |
+| **Øktavspilling** | **Øktavspilling**, **Brukere i avspillinger**, **Helse**, **Avspillingspolicy**, **Frustrasjonssignaler**, **Tilgangslogg for avspillinger**, **Dokumentasjon** |
 | **Innstillinger** | **Innstillinger** |
 | **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avansert** | **Revisjonslogger**, **Slett applikasjon** |
@@ -82,7 +82,7 @@ OneUptime finner applikasjonen ut fra `service.name`, uten å skille mellom stor
 | **Core Web Vitals** | Et kort i oversikten med LCP, INP, CLS, FCP og TTFB, hver vurdert mot Googles grenser, og INP for hver rute i en enkeltsideapp. Se [Core Web Vitals](/docs/rum/web-vitals) og [Enkeltsideapper](/docs/rum/web-vitals#enkeltsideapper). |
 | **Målinger**, **Logger**, **Spor** | Telemetriutforskerne, begrenset til denne applikasjonen. |
 | **Klienter** | Nettleserplattformene og enhetsmodellene applikasjonen er brukt på: en kort liste per plattform, aldri én rad per bruker. |
-| **Produktanalyse** | Aktive, nye, tilbakevendende og inaktive brukere, og økter etter enhet, nettleser, land og side, talt fra de innspilte øktene: se [Produktanalyse](/docs/rum/product-analytics). |
+| **Produktanalyse** | Aktive, nye, tilbakevendende og inaktive brukere, og økter etter enhet, nettleser, land og side, talt fra de innspilte øktene, og hendelsene appen din sender, som trender, trakter og lojalitet: se [Produktanalyse](/docs/rum/product-analytics). |
 | **Øktavspilling** | Opptak av ekte økter, ved siden av feilene, sporene og loggene deres: se [Øktavspilling](/docs/telemetry/session-replay). |
 | **Anbefalinger** | Ferdige monitorer for applikasjonen: dårlige Core Web Vitals, mislykkede forespørsler, nettleserunntak og, så snart den tar opp, budsjetter for Session Replay. |
 

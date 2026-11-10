@@ -253,12 +253,13 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 );
 ```
 
-`grantConsent` 、 `revokeConsent` 、 `stop` 、 `identify` 、 `setTags` 和 `addTag` 会在录制器启动之前应用，因此队列中的同意决定决定了是否有任何内容会被上传，而队列中的身份会随第一个分块一起发送。 `track` 、 `captureSession` 和 `onSessionChange` 会在启动后立即运行。
+`grantConsent` 、 `revokeConsent` 、 `stop` 、 `identify` 、 `setTags` 和 `addTag` 会在录制器启动之前应用，因此队列中的同意决定决定了是否有任何内容会被上传，而队列中的身份会随第一个分块一起发送。 `track` 、 `metric` 、 `captureSession` 和 `onSessionChange` 会在启动后立即运行。
 
 | 方法 | 作用 |
 | --- | --- |
 | `identify(userRef, traits?)` | 把最终用户关联到会话 — 关联到其中的每个页面和选项卡，从会话开始算起（参见 [识别你的用户](#识别你的用户) ）。 `traits` 是一个值为字符串、数字或布尔值的对象（≤ 20 个键，键 ≤ 40 个字符，值 ≤ 200 个字符），在 _Mask all text_ 下会被遮盖，并且只有在 **捕获最终用户身份** 开启时才会上传。为同一个用户再次调用，会在下一个分块中重新发送身份（以及新的特征，如果有）；指定另一个用户则会结束当前会话，并为该用户开始一个新会话。 |
-| `track(name, properties?)` | 在时间线上记录一个业务事件（ `"checkout_failed"` ）。 `name` ≤ 64 个字符，≤ 20 个属性键，值的限制与特征相同。每个 15 秒的分块最多 50 个；超出部分会让该分块携带一个带有数量的“events dropped”标记。 |
+| `track(name, properties?)` | 在时间线上记录一个业务事件（ `"checkout_failed"` ）。 `name` ≤ 64 个字符，≤ 20 个属性键，值的限制与特征相同。每个 15 秒的分块最多 50 个；超出部分会让该分块携带一个带有数量的“events dropped”标记。开启产品分析事件后，它也是应用程序的 [产品分析](/docs/rum/product-analytics#发送事件和指标) 页面所统计的事件，来自每个会话，无论是否录制。 |
+| `metric(name, value, attributes?)` | 把你的页面测量的数值（ `"cart.value"` 、 `42.5` ）作为应用程序某个指标的数据点发送，可附带可选属性，其限制与 `track()` 的属性相同。需要开启产品分析事件；参见 [产品分析](/docs/rum/product-analytics#发送事件和指标) 。 |
 | `setTags(tags)` / `addTag(key, value)` | 会话级标签（ `{ build: "1.4.2", experiment: "new-checkout" }` ），≤ 20 个标签，键 ≤ 32 个字符，值 ≤ 128 个字符。可以在会话列表中用 `tag:key=value` 搜索，并显示在会话详情中。 `setTags` 会 **替换** 整个映射，因此第二次调用 `setTags({ experiment })` 会去掉第一次设置的 `build` 标签； `addTag` 只设置一个键，其余保持不变。请在一次 `setTags` 调用中构建映射，或在得知每个值时使用 `addTag` 。 |
 | `captureSession(reason?)` | 在 _On error or frustration_ 下，强制这个会话从其滚动缓冲区开始上传；在 _Always_ 下，它不会改变上传，但 `reason` （≤ 80 个字符）仍会被标记在时间线上。在你自己的“报告问题”按钮中使用它。 |
 | `onSessionChange(listener)` | 如果存在会话，会立即调用 `listener(sessionId, tabId)` ，并在 ID 每次变化时再次调用 — 用户在空闲 30 分钟后回来时、达到 4 小时上限时、 `identify()` 指定另一个用户时，或同一访客的另一个选项卡先轮换了会话时。返回一个取消订阅的函数。 **可选** ：即使没有它，发往你自己来源的请求也会把后端的 span、日志和异常关联到录制（参见 [与其他遥测数据关联](#与其他遥测数据关联) ）。用它为页面自己产生的遥测设置 `session.id` ，例如来自 OpenTelemetry 浏览器 SDK 的 span；参见 [页面自身的浏览器遥测](#页面自身的浏览器遥测) 。 |
@@ -286,6 +287,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | `decisions` | 每道关卡的答案： `isSampled` 、 `captureTrigger` 、 `consentMode` 、 `consentState` 、 `uploadsAllowed` 、 `uploadBlockedBy` （ `consent` 、 `transport` 或 `null` ）、 `lastDirective` 及其原因，以及 `startDecision` （ `recording-and-uploading` 、 `recording-into-memory` 、 `not-sampled` 、 `not-started` ）。 |
 | `capabilities` | 这个版本的录制器能捕获什么： `click-events` 、 `web-vitals` 、 `custom-events` 、 `traits` 、 `tags` 、 `visibility` 、 `visitor-id` 。仪表板的 **健康状况** 页面会为最新的会话显示同样的列表，因此很容易发现来自一个打开已久的旧页面的录制。 |
 | `tags`, `hasTraits`, `triggerReason`, `isRecording`, `isUploading`, `sessionId`, `tabId`, `visitorId`, `version` | 会话的当前状态。只有当录制器确实在录制时， `isRecording` 才为 true。在录制器存在之前 `visitorId` 为 `null` ，在同意被撤销期间为 `""` 。 |
+| `productAnalytics` | [产品分析事件](/docs/rum/product-analytics#发送事件和指标) ： `state` 为 `on` 、 `off` （应用程序已关闭它们）或它们停止的原因（ `not-enabled` 、 `origin-not-allowed` 、 `refused` 或 `stopped` ）， `pending` 为等待发送的内容， `dropped` 为因等待的事件过多而被丢弃的事件数。 |
 | `records` | 最近 250 个带有稳定代码的决定 — 包括构件存在之前加载器做出的决定。每个代码都在 [会话回放故障排除](/docs/rum/session-replay-troubleshooting#代码) 中有解释。 |
 
 ## 隐私
@@ -661,7 +663,7 @@ flowchart TB
 
 ### 用户流
 
-**用户流程** 位于应用程序侧边菜单的 **会话回放** 部分，在 `.../user-flows` 。它根据所选时间范围（默认一周）内的录制，绘制人们如何在你的应用中从一个页面移动到另一个页面：他们从哪里进入、接下来去哪个页面、从哪里离开，以及在哪里兜圈子。
+**用户流程** 位于应用程序侧边菜单的 **产品分析** 部分，在 `.../user-flows` 。它根据所选时间范围（默认一周）内的录制，绘制人们如何在你的应用中从一个页面移动到另一个页面：他们从哪里进入、接下来去哪个页面、从哪里离开，以及在哪里兜圈子。
 
 流程图每一步一列。页面是一个方框，高度是该步骤的会话数；两个方框之间的带状连线，粗细与完成该移动的会话数相当。从方框伸出的红色短线，是在那里离开应用的会话；灰色渐隐表示路径延续到最后一列之外。琥珀色的带状连线表示大多数会话回到了它们已经看过的页面。方框上的红点表示有会话在该页面出现了错误。把指针悬停在方框或带状连线上，可以在图中追踪流量；点击可打开详情面板。
 

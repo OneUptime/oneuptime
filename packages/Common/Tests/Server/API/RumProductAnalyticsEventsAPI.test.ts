@@ -981,7 +981,8 @@ describe("Product analytics event API", () => {
     );
 
     test("binds an event's name as a value, never as SQL", async () => {
-      const name: string = "Signed up'); DROP TABLE RumProductAnalyticsEvent; --";
+      const name: string =
+        "Signed up'); DROP TABLE RumProductAnalyticsEvent; --";
 
       const result: CallResult = await callAsOwner(
         PRODUCT_ANALYTICS_EVENT_TREND_ROUTE,
@@ -1010,13 +1011,15 @@ describe("Product analytics event API", () => {
     test.each(SEGMENT_ROUTES)(
       "%s reads everyone without filters, and hands each filter on",
       async (uri: string) => {
-        const methods: Record<string, keyof typeof RumProductAnalyticsEventReadService> =
-          {
-            [PRODUCT_ANALYTICS_EVENT_TREND_ROUTE]: "getEventTrend",
-            [PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE]: "getEventBreakdown",
-            [PRODUCT_ANALYTICS_FUNNEL_ROUTE]: "getFunnel",
-            [PRODUCT_ANALYTICS_RETENTION_ROUTE]: "getRetention",
-          };
+        const methods: Record<
+          string,
+          keyof typeof RumProductAnalyticsEventReadService
+        > = {
+          [PRODUCT_ANALYTICS_EVENT_TREND_ROUTE]: "getEventTrend",
+          [PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE]: "getEventBreakdown",
+          [PRODUCT_ANALYTICS_FUNNEL_ROUTE]: "getFunnel",
+          [PRODUCT_ANALYTICS_RETENTION_ROUTE]: "getRetention",
+        };
         const read: jest.SpyInstance = jest.spyOn(
           RumProductAnalyticsEventReadService,
           methods[uri] as never,
@@ -1493,9 +1496,7 @@ describe("Product analytics event API", () => {
         days.push(`2026-03-${String(index).padStart(2, "0")}`);
       }
 
-      querySpy.mockResolvedValue(
-        fakeResultSet([{ paPeriods: days }]) as never,
-      );
+      querySpy.mockResolvedValue(fakeResultSet([{ paPeriods: days }]) as never);
 
       const result: CallResult = await callAsOwner(
         PRODUCT_ANALYTICS_RETENTION_ROUTE,
@@ -1506,9 +1507,7 @@ describe("Product analytics event API", () => {
       );
 
       expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-      expect((result.thrownToNext as Error).message).toContain(
-        "longer period",
-      );
+      expect((result.thrownToNext as Error).message).toContain("longer period");
       /* Only the periods were read. */
       expect(querySpy).toHaveBeenCalledTimes(1);
     });

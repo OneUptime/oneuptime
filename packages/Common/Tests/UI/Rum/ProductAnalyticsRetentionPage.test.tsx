@@ -182,7 +182,10 @@ describe("a retention table's rows", () => {
 
   test("each cohort by its first day; each cell its share, its sentence and its shade; a period not begun empty", () => {
     const rows: ReturnType<typeof buildProductAnalyticsRetentionRows> =
-      buildProductAnalyticsRetentionRows({ retention: dto, translator: english });
+      buildProductAnalyticsRetentionRows({
+        retention: dto,
+        translator: english,
+      });
 
     expect(rows[0]!.cohort).toBe("Oct 5, 2026");
     expect(rows[0]!.people).toBe("4");
@@ -215,7 +218,10 @@ describe("a retention table's rows", () => {
     ) => {
       expect(
         describeProductAnalyticsCohort({
-          start: period === ProductAnalyticsRetentionPeriod.Month ? "2026-10-01" : "2026-10-05",
+          start:
+            period === ProductAnalyticsRetentionPeriod.Month
+              ? "2026-10-01"
+              : "2026-10-05",
           period: period,
           language: language,
         }),
@@ -328,7 +334,9 @@ describe("ProductAnalyticsRetention", () => {
   it("by day over three months: read by week, and the page says why", async () => {
     mockReads({});
 
-    renderPage(`?range=${encodeURIComponent(TimeRange.PAST_THREE_MONTHS)}&per=day`);
+    renderPage(
+      `?range=${encodeURIComponent(TimeRange.PAST_THREE_MONTHS)}&per=day`,
+    );
 
     await waitFor(() => {
       expect(lastRetentionRequest()["period"]).toBe("week");
@@ -385,7 +393,9 @@ describe("ProductAnalyticsRetention", () => {
 
     expect(
       await screen.findByTestId("product-analytics-retention-nobody"),
-    ).toHaveTextContent("Nobody did the start event in this range and segment.");
+    ).toHaveTextContent(
+      "Nobody did the start event in this range and segment.",
+    );
     expect(
       screen.queryByTestId("product-analytics-retention-table"),
     ).not.toBeInTheDocument();

@@ -141,7 +141,10 @@ describe("events", () => {
 
   test.each([
     [{ kind: ProductAnalyticsEventKind.Session, name: "" }, "session:"],
-    [{ kind: ProductAnalyticsEventKind.Page, name: "/pricing" }, "page:/pricing"],
+    [
+      { kind: ProductAnalyticsEventKind.Page, name: "/pricing" },
+      "page:/pricing",
+    ],
     [
       { kind: ProductAnalyticsEventKind.Custom, name: "Signed up: pro plan" },
       "custom:Signed up: pro plan",
@@ -256,7 +259,10 @@ describe("fields", () => {
 
   test.each([
     [{ field: ProductAnalyticsEventField.DeviceType, key: "" }, "deviceType"],
-    [{ field: ProductAnalyticsEventField.Property, key: "plan" }, "property:plan"],
+    [
+      { field: ProductAnalyticsEventField.Property, key: "plan" },
+      "property:plan",
+    ],
     [
       { field: ProductAnalyticsEventField.UserProperty, key: "team:name" },
       "userProperty:team:name",
@@ -270,12 +276,16 @@ describe("fields", () => {
     expect(decodeProductAnalyticsField(encoded)).toEqual(ref);
   });
 
-  test.each([null, "", "identifiedUserLabel", "property", "property:", "userProperty:  "])(
-    "%p decodes to no field",
-    (value: string | null) => {
-      expect(decodeProductAnalyticsField(value)).toBeNull();
-    },
-  );
+  test.each([
+    null,
+    "",
+    "identifiedUserLabel",
+    "property",
+    "property:",
+    "userProperty:  ",
+  ])("%p decodes to no field", (value: string | null) => {
+    expect(decodeProductAnalyticsField(value)).toBeNull();
+  });
 
   test("a value reads as the reader reads it: a device in their words, a country by its name, nothing as Not reported", () => {
     expect(
@@ -675,7 +685,10 @@ describe("the pages' addresses", () => {
 
   test("state written into an address reads back the same, and every default is absence", () => {
     const written: string = writeProductAnalyticsEventsUrlState(HREF, {
-      event: { kind: ProductAnalyticsEventKind.Custom, name: "Signed up & paid" },
+      event: {
+        kind: ProductAnalyticsEventKind.Custom,
+        name: "Signed up & paid",
+      },
       filters: [
         {
           field: ProductAnalyticsEventField.UserProperty,

@@ -82,7 +82,9 @@ jest.mock("Common/Server/Utils/Telemetry/Telemetry", () => {
   return {
     __esModule: true,
     default: {
-      getAttributeKeys: (attributes: Record<string, unknown>): Array<string> => {
+      getAttributeKeys: (
+        attributes: Record<string, unknown>,
+      ): Array<string> => {
         return Object.keys(attributes).sort();
       },
       indexMetricNameServiceNameMap: jest.fn(),
@@ -103,7 +105,8 @@ import { ProductAnalyticsEventsJobData } from "../../FeatureSet/Telemetry/Servic
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
-const insertMock: MockedFn = MetricService.insertJsonRows as unknown as MockedFn;
+const insertMock: MockedFn =
+  MetricService.insertJsonRows as unknown as MockedFn;
 const metadataMock: MockedFn =
   OTelIngestService.buildResourceMetadataForNonService as unknown as MockedFn;
 const indexMock: MockedFn =
@@ -206,7 +209,10 @@ describe("which series an event counts in", () => {
     [ProductAnalyticsEventKind.Page, ProductAnalyticsDerivedMetric.PageViews],
   ])(
     "a %s event counts in %s under the device type, never its page",
-    (kind: ProductAnalyticsEventKind, metric: ProductAnalyticsDerivedMetric) => {
+    (
+      kind: ProductAnalyticsEventKind,
+      metric: ProductAnalyticsDerivedMetric,
+    ) => {
       expect(
         ProductAnalyticsDerivedMetrics.bucketOf({
           job: job([]),
@@ -312,7 +318,11 @@ describe("when a minute is written", () => {
   test("a worker that counted more names than it may hold writes them all at once", async () => {
     const events: Array<ProductAnalyticsParsedEvent> = [];
 
-    for (let index: number = 0; index < PRODUCT_ANALYTICS_DERIVED_MAX_BUCKETS; index++) {
+    for (
+      let index: number = 0;
+      index < PRODUCT_ANALYTICS_DERIVED_MAX_BUCKETS;
+      index++
+    ) {
       events.push(
         event(ProductAnalyticsEventKind.Custom, `Event ${index}`, MINUTE),
       );
@@ -334,11 +344,12 @@ describe("when a minute is written", () => {
       job([event(ProductAnalyticsEventKind.Custom, "Signed up", MINUTE)]),
     );
 
-    const call: Array<unknown> | undefined = registerHandlerMock.mock.calls.find(
-      (registered: Array<unknown>): boolean => {
-        return registered[0] === "ProductAnalyticsDerivedMetrics";
-      },
-    );
+    const call: Array<unknown> | undefined =
+      registerHandlerMock.mock.calls.find(
+        (registered: Array<unknown>): boolean => {
+          return registered[0] === "ProductAnalyticsDerivedMetrics";
+        },
+      );
 
     expect(call).toBeDefined();
 
@@ -431,9 +442,11 @@ describe("writing", () => {
     expect(indexMock).toHaveBeenCalledTimes(1);
     expect(
       Object.keys(
-        (indexMock.mock.calls[0]![0] as {
-          metricNameServiceNameMap: Record<string, unknown>;
-        }).metricNameServiceNameMap,
+        (
+          indexMock.mock.calls[0]![0] as {
+            metricNameServiceNameMap: Record<string, unknown>;
+          }
+        ).metricNameServiceNameMap,
       ).sort(),
     ).toEqual([...PRODUCT_ANALYTICS_DERIVED_METRICS].sort());
 

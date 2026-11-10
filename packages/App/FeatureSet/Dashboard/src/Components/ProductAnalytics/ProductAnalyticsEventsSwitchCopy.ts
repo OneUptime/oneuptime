@@ -31,11 +31,11 @@ const ProductAnalyticsEventsSwitchCopy: {
 } = {
   cardTitle: translationKey("Product Analytics"),
   cardDescription: translationKey(
-    "Events, Funnels and Retention count what people do in your app: every session's start and page views, and the events and numbers your app sends with track() and metric().",
+    "Events, Funnels and User Retention count what people do in your app: every session's start and page views, and the events and numbers your app sends with track() and metric().",
   ),
   switchTitle: translationKey("Send product analytics events"),
   switchDescription: translationKey(
-    "The recorders send each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.",
+    "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.",
   ),
   offTitle: translationKey("Product analytics events are off"),
   offDescription: translationKey(
@@ -46,7 +46,7 @@ const ProductAnalyticsEventsSwitchCopy: {
   ),
   propertiesCardTitle: translationKey("User Properties for Analytics"),
   propertiesCardDescription: translationKey(
-    "The identify() traits kept on each event, so Events, Funnels and Retention can be broken down and segmented by them. Any other trait never leaves the page.",
+    "The identify() traits kept on each event, so Events, Funnels and User Retention can be broken down and segmented by them. Any other trait never leaves the page.",
   ),
   propertiesFieldTitle: translationKey("User properties"),
   propertiesFieldDescription: translationKey(

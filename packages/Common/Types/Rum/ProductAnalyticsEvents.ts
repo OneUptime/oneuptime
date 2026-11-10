@@ -15,12 +15,14 @@
  *
  * Isomorphic and dependency-free, like everything else in this directory:
  * the browser recorder inlines it into the script served on customers'
- * pages, the mobile recorder mirrors it, and the ingest worker runs the SAME
- * parser over the bytes the recorders sent, so "the server keeps exactly
- * what the client sent" holds by construction. Nothing here may touch Node,
- * the DOM, or a module outside Common/Types/Rum and Common/Utils/Rum. The
- * reads (routes, limits, answers) live in ProductAnalyticsEventReads.ts, so
- * the script on customers' pages carries none of them.
+ * pages (the React Native recorder sends no events yet; when it does, it
+ * mirrors this file as it mirrors the replay contract), and the ingest
+ * worker runs the SAME parser over the bytes the recorder sent, so "the
+ * server keeps exactly what the client sent" holds by construction.
+ * Nothing here may touch Node, the DOM, or a module outside
+ * Common/Types/Rum and Common/Utils/Rum. The reads (routes, limits,
+ * answers) live in ProductAnalyticsEventReads.ts, so the script on
+ * customers' pages carries none of them.
  */
 
 import {
@@ -112,15 +114,15 @@ export const PRODUCT_ANALYTICS_MAX_CONTEXT_VALUE_LENGTH: number = 64;
  * for longer (a phone offline for days) sends history nobody asked about,
  * and a range already read would change under its reader.
  */
-export const PRODUCT_ANALYTICS_MAX_EVENT_AGE_MS: number = 3 * 24 * 60 * 60 * 1000;
+export const PRODUCT_ANALYTICS_MAX_EVENT_AGE_MS: number =
+  3 * 24 * 60 * 60 * 1000;
 
 /*
  * Events and metric points a project may send in one minute, all its
  * applications together. Over it, the batch is refused with a 429 and the
  * recorder waits for the next minute.
  */
-export const PRODUCT_ANALYTICS_MAX_ITEMS_PER_PROJECT_PER_MINUTE: number =
-  60000;
+export const PRODUCT_ANALYTICS_MAX_ITEMS_PER_PROJECT_PER_MINUTE: number = 60000;
 
 /* ---- Metric names. ---- */
 
@@ -175,7 +177,10 @@ export function isProductAnalyticsDerivedMetricName(
 ): boolean {
   return (
     typeof name === "string" &&
-    name.trim().toLowerCase().startsWith(PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX)
+    name
+      .trim()
+      .toLowerCase()
+      .startsWith(PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX)
   );
 }
 

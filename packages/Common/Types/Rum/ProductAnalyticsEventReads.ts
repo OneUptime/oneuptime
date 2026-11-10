@@ -87,7 +87,8 @@ export interface ProductAnalyticsFieldRef {
   key: string;
 }
 
-export interface ProductAnalyticsSegmentFilter extends ProductAnalyticsFieldRef {
+export interface ProductAnalyticsSegmentFilter
+  extends ProductAnalyticsFieldRef {
   value: string;
 }
 

@@ -361,7 +361,7 @@ const RumApplicationProductAnalyticsRetention: FunctionComponent<
 
   return (
     <Card
-      title="Retention"
+      title="User Retention"
       description="People grouped by when they first did the start event in this range, and the share of each group that came back to do the return event in each day, week or month after."
       headerLayout="toolbar"
       buttons={[

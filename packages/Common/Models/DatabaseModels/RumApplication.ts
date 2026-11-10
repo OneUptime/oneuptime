@@ -1729,12 +1729,13 @@ export default class RumApplication extends BaseModel {
   public sessionReplayMonthlyBudgetInGB?: number = undefined;
 
   /*
-   * Product analytics events (issue #6444, part two). On, the recorders also
-   * send a small batch of events - a session starting, a page viewed, a
-   * track() call - and metric() points from EVERY session, recorded or not,
-   * so Events, Funnels and Retention count everyone. Session Replay must be
-   * on for the application (the events ride its recorders, its consent and
-   * its privacy signals).
+   * Product analytics events (issue #6444, part two). On, the browser
+   * recorder also sends small batches of events - a session starting, a
+   * page viewed, a track() call - and metric() points from EVERY session,
+   * recorded or not, so Events, Funnels and User Retention count everyone.
+   * Session Replay must be on for the application (the events ride its
+   * recorder, its consent and its privacy signals). The React Native
+   * recorder sends none yet.
    *
    * The column defaults to false so no existing application starts sending
    * a new request from its users' browsers unasked; RumApplicationService
@@ -1775,7 +1776,7 @@ export default class RumApplication extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Enable Product Analytics Events",
     description:
-      "When enabled, the RUM recorders send product analytics events (session starts, page views and track() calls) and metric() points from every session, whether or not Session Replay records it, for the Events, Funnels and Retention pages. On for applications created from now on; off for existing ones until it is switched on. Session Replay must be enabled for the application.",
+      "When enabled, the browser recorder sends product analytics events (session starts, page views and track() calls) and metric() points from every session, whether or not Session Replay records it, for the Events, Funnels and User Retention pages. On for applications created from now on; off for existing ones until it is switched on. Session Replay must be enabled for the application.",
     defaultValue: false,
   })
   @Column({

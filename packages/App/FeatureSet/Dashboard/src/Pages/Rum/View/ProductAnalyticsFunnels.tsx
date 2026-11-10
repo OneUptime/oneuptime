@@ -369,7 +369,8 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
               buttonStyle={ButtonStyleType.LINK}
               buttonSize={ButtonSize.Small}
               disabled={
-                !steps || shownSteps.length >= PRODUCT_ANALYTICS_FUNNEL_MAX_STEPS
+                !steps ||
+                shownSteps.length >= PRODUCT_ANALYTICS_FUNNEL_MAX_STEPS
               }
               tooltip={
                 shownSteps.length >= PRODUCT_ANALYTICS_FUNNEL_MAX_STEPS

@@ -163,7 +163,7 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Retention",
+            title: "User Retention",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION

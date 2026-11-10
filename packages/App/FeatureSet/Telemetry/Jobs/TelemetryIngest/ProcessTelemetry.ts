@@ -607,7 +607,9 @@ if (DisableQueueWorkers) {
                   jobData.productAnalyticsEvents,
                 );
               }
-              logger.debug(`Successfully processed product analytics events job`);
+              logger.debug(
+                `Successfully processed product analytics events job`,
+              );
               break;
 
             default:
