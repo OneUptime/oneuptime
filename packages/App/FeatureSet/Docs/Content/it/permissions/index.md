@@ -227,7 +227,7 @@ Chi possiede una risorsa si legge attraverso la risorsa. I proprietari di un mon
 
 ### Proprietari dei team
 
-Anche un team ha proprietari: le persone e i team che se ne occupano. Sono mostrati nella pagina del team e nell'elenco dei team, e si aggiungono e si rimuovono con **Edit Team**. I team **Owners** e **Admin**, che fanno parte di ogni progetto, non ne hanno.
+Anche un team ha proprietari: le persone e i team che se ne occupano. Sono mostrati nella pagina del team e nell'elenco dei team, e si aggiungono e si rimuovono con **Edit Team**. I team **Owners** e **Admin**, che fanno parte di ogni progetto, non ne hanno. Per aggiungere o rimuovere i proprietari di più team insieme, selezionali nell'elenco dei team e scegli **Aggiungi proprietario** o **Rimuovi proprietario** in **Azioni di massa**; **Owners** e **Admin** vengono saltati.
 
 Sei autorizzazioni dei team possono essere limitate all'ambito Possedute: **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** e **Edit Team Permissions**. Con ambito Possedute, ognuna raggiunge solo i team di proprietà vostra o del team a cui è assegnata, con i loro membri, autorizzazioni, ruoli personalizzati e impostazioni di conformità. Chi crea un team con **Create Team** con ambito Possedute ne diventa il primo proprietario. La lettura dei team non viene mai ristretta: un team viene scelto ovunque come proprietario, come reperibile e come destinatario, quindi chiunque possa leggere i team vede ogni team, chi ne fa parte e cosa può fare.
 

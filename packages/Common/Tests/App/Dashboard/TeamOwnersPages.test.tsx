@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import {
   afterEach,
@@ -23,7 +30,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     page says so where the card would be, in the server's words
  *     (BuiltInTeam), and offers no Add;
  *   - the Teams list shows each team's owners and finds the teams someone
- *     owns with the Owner chip, from the same two tables.
+ *     owns with the Owner chip, from the same two tables;
+ *   - its Bulk Actions add and remove owners of many teams at once (#6592):
+ *     Owners and Admin in the selection are sent nothing, not even a read,
+ *     and the result lists them as left alone, saying why.
  */
 
 let allPermissionsForTest: Array<string> = [];
@@ -78,6 +88,8 @@ jest.mock("../../../UI/Utils/Translation", () => {
 
 const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
+const createMock: MockFunction = getJestMockFunction();
+const deleteItemMock: MockFunction = getJestMockFunction();
 const ownersCardMock: MockFunction = getJestMockFunction();
 
 // The arrow wrappers are load bearing: jest.mock is hoisted above the consts.
@@ -97,8 +109,11 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       count: async (): Promise<number> => {
         return 0;
       },
-      deleteItem: async (): Promise<void> => {
-        return undefined;
+      create: (...args: Array<any>) => {
+        return createMock(...args);
+      },
+      deleteItem: (...args: Array<any>) => {
+        return deleteItemMock(...args);
       },
       updateById: async (): Promise<void> => {
         return undefined;
@@ -176,9 +191,12 @@ jest.mock(
   },
 );
 
+import {
+  BUILT_IN_TEAM_OWNERS_REASON,
+  getTeamOwnersDisabledReason,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Team/BuiltInTeamOwners";
 import TeamsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/Index";
 import TeamViewPage, {
-  BUILT_IN_TEAM_OWNERS_REASON,
   TEAM_OWNERS_DESCRIPTION,
   TEAM_OWNERS_EMPTY_DESCRIPTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/View/Index";
@@ -186,6 +204,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Team from "../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import TeamOwnerTeam from "../../../Models/DatabaseModels/TeamOwnerTeam";
 import TeamOwnerUser from "../../../Models/DatabaseModels/TeamOwnerUser";
 import User from "../../../Models/DatabaseModels/User";
@@ -208,6 +227,9 @@ const OWNERS_ID: string = "0e000000-0000-4000-8000-0000000000b1";
 const ENGINEERING_ID: string = "0e000000-0000-4000-8000-0000000000b2";
 const PLATFORM_ID: string = "0e000000-0000-4000-8000-0000000000b3";
 const ADA_ID: string = "0e000000-0000-4000-8000-0000000000c1";
+const GRACE_ID: string = "0e000000-0000-4000-8000-0000000000c2";
+const ADA_OWNS_ENGINEERING_ROW_ID: string =
+  "0e000000-0000-4000-8000-0000000000d1";
 
 const listProps: PageComponentProps = {
   pageRoute: RouteMap[PageMap.TEAMS] as Route,
@@ -256,8 +278,9 @@ const TEAMS: Array<Team> = [
 // Engineering is looked after by Ada and by the Platform team.
 function ownerUserRows(): Array<TeamOwnerUser> {
   const row: TeamOwnerUser = new TeamOwnerUser();
-  row._id = "0e000000-0000-4000-8000-0000000000d1";
+  row._id = ADA_OWNS_ENGINEERING_ROW_ID;
   row.ownedTeamId = new ObjectID(ENGINEERING_ID);
+  row.userId = new ObjectID(ADA_ID);
   const ada: User = new User();
   ada._id = ADA_ID;
   ada.name = new Name("Ada Lovelace");
@@ -273,6 +296,48 @@ function ownerTeamRows(): Array<TeamOwnerTeam> {
   return [row];
 }
 
+// The project's people, as the Owners field's search lists them.
+function member(userId: string, name: string): TeamMember {
+  const user: User = new User();
+  user._id = userId;
+  user.name = new Name(name);
+  const row: TeamMember = new TeamMember();
+  row.user = user;
+  return row;
+}
+
+const MEMBERS: Array<TeamMember> = [
+  member(ADA_ID, "Ada Lovelace"),
+  member(GRACE_ID, "Grace Hopper"),
+];
+
+/*
+ * The owner rows a read names, as the server answers it: each Includes in
+ * the query (the owned teams, the people or teams picked) narrows them.
+ */
+function matching(
+  rows: Array<TeamOwnerUser | TeamOwnerTeam>,
+  query: Record<string, unknown> | undefined,
+): Array<TeamOwnerUser | TeamOwnerTeam> {
+  return rows.filter((row: TeamOwnerUser | TeamOwnerTeam): boolean => {
+    return Object.entries(query || {}).every(
+      ([column, value]: [string, unknown]): boolean => {
+        if (!(value instanceof Includes)) {
+          return true;
+        }
+
+        return value.values
+          .map((id: unknown): string => {
+            return String(id);
+          })
+          .includes(
+            String((row as unknown as Record<string, unknown>)[column]),
+          );
+      },
+    );
+  });
+}
+
 type ModelTypeOf = { new (): unknown };
 
 function callsFor(modelType: ModelTypeOf): Array<Record<string, any>> {
@@ -283,6 +348,11 @@ function callsFor(modelType: ModelTypeOf): Array<Record<string, any>> {
     .filter((args: Record<string, any>): boolean => {
       return args["modelType"] === modelType;
     });
+}
+
+// The last of a list - indexed, as this project targets es2017 (no .at).
+function lastOf<T>(items: Array<T>): T {
+  return items[items.length - 1]!;
 }
 
 // The page's own card for a team that takes no owners.
@@ -300,13 +370,21 @@ beforeEach(() => {
     const modelType: ModelTypeOf = args.modelType;
     const data: Array<unknown> =
       modelType === TeamOwnerUser
-        ? ownerUserRows()
+        ? matching(ownerUserRows(), args.query)
         : modelType === TeamOwnerTeam
-          ? ownerTeamRows()
+          ? matching(ownerTeamRows(), args.query)
           : modelType === Team
             ? TEAMS
-            : [];
+            : modelType === TeamMember
+              ? MEMBERS
+              : [];
     return { data: data, count: data.length, skip: 0, limit: 10 };
+  });
+  createMock.mockImplementation(async (): Promise<unknown> => {
+    return {};
+  });
+  deleteItemMock.mockImplementation(async (): Promise<void> => {
+    return undefined;
   });
 });
 
@@ -314,6 +392,8 @@ afterEach(() => {
   cleanup();
   getListMock.mockReset();
   getItemMock.mockReset();
+  createMock.mockReset();
+  deleteItemMock.mockReset();
   ownersCardMock.mockReset();
 });
 
@@ -336,9 +416,9 @@ describe("a team's page", () => {
 
     await screen.findByTestId("owners-card");
 
-    const props: Record<string, any> = ownersCardMock.mock.calls.at(
-      -1,
-    )![0] as Record<string, any>;
+    const props: Record<string, any> = lastOf(
+      ownersCardMock.mock.calls as Array<Array<unknown>>,
+    )[0] as Record<string, any>;
 
     expect(props["resourceId"].toString()).toBe(ENGINEERING_ID);
     expect(props["resourceIdField"]).toBe("ownedTeamId");
@@ -444,7 +524,7 @@ describe("the Teams list", () => {
     });
 
     for (const modelType of [TeamOwnerUser, TeamOwnerTeam]) {
-      const query: Record<string, any> = callsFor(modelType).at(-1)!["query"];
+      const query: Record<string, any> = lastOf(callsFor(modelType))["query"];
       expect(query["ownedTeamId"]).toBeInstanceOf(Includes);
       expect(
         [...(query["ownedTeamId"] as Includes).values]
@@ -455,13 +535,13 @@ describe("the Teams list", () => {
       ).toEqual([ENGINEERING_ID, OWNERS_ID, PLATFORM_ID].sort());
     }
 
-    expect(callsFor(TeamOwnerUser).at(-1)!["select"]["user"]).toEqual({
+    expect(lastOf(callsFor(TeamOwnerUser))["select"]["user"]).toEqual({
       _id: true,
       name: true,
       email: true,
       profilePictureId: true,
     });
-    expect(callsFor(TeamOwnerTeam).at(-1)!["select"]["team"]).toEqual({
+    expect(lastOf(callsFor(TeamOwnerTeam))["select"]["team"]).toEqual({
       _id: true,
       name: true,
     });
@@ -501,5 +581,253 @@ describe("the Teams list", () => {
         return (button.textContent || "").trim().startsWith("Owner");
       }),
     ).toBe(true);
+  });
+});
+
+describe("the Teams list's Add Owner and Remove Owner (#6592)", () => {
+  beforeEach(() => {
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `/dashboard/${PROJECT_ID}/settings/teams`,
+    );
+  });
+
+  async function rowOf(name: string): Promise<HTMLElement> {
+    const cell: HTMLElement = await screen.findByText(
+      name,
+      { selector: "td *, td" },
+      { timeout: 10000 },
+    );
+    return cell.closest("tr")!;
+  }
+
+  async function selectRows(names: Array<string>): Promise<void> {
+    for (const name of names) {
+      const row: HTMLElement = await rowOf(name);
+      fireEvent.click(row.querySelector('input[type="checkbox"]')!);
+    }
+  }
+
+  function menuItemNamed(label: string): HTMLElement | undefined {
+    return Array.from(
+      document.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    ).find((item: HTMLElement): boolean => {
+      return (item.textContent || "").trim() === label;
+    });
+  }
+
+  async function openBulkActions(): Promise<void> {
+    fireEvent.click(await screen.findByText("Bulk Actions"));
+
+    await waitFor(() => {
+      expect(menuItemNamed("Add Owner")).toBeDefined();
+    });
+  }
+
+  /*
+   * Bulk Actions, then the action, one person picked in its Owners field,
+   * and submit - then the run's result, once it lists what it left alone.
+   */
+  async function runOwnerAction(
+    action: "Add Owner" | "Remove Owner",
+    person: string,
+  ): Promise<void> {
+    await openBulkActions();
+    fireEvent.click(menuItemNamed(action)!);
+
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: "Add owner" },
+        { timeout: 10000 },
+      ),
+    );
+
+    const list: HTMLElement = await screen.findByTestId(
+      "people-search-popup",
+      {},
+      { timeout: 10000 },
+    );
+
+    const option: HTMLElement = await waitFor(
+      (): HTMLElement => {
+        const found: HTMLElement | undefined = within(list)
+          .getAllByRole("option")
+          .find((candidate: HTMLElement): boolean => {
+            return (
+              candidate.querySelector(".text-sm.font-medium")?.textContent ===
+              person
+            );
+          });
+        expect(found).toBeDefined();
+        return found!;
+      },
+      { timeout: 10000 },
+    );
+
+    fireEvent.click(option);
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await screen.findByTestId(
+      "bulk-action-unchanged-items",
+      {},
+      { timeout: 10000 },
+    );
+  }
+
+  // The owner rows the run read: the list's own reads name no person.
+  function bulkOwnerReads(): Array<Record<string, any>> {
+    return callsFor(TeamOwnerUser).filter(
+      (args: Record<string, any>): boolean => {
+        return Boolean(args["query"]?.["userId"]);
+      },
+    );
+  }
+
+  function teamsIn(read: Record<string, any>): Array<string> {
+    return [...(read["query"]["ownedTeamId"] as Includes).values].map(
+      (id: unknown): string => {
+        return String(id);
+      },
+    );
+  }
+
+  test("are in Bulk Actions, beside Delete", async () => {
+    render(<TeamsPage {...listProps} />);
+
+    await selectRows(["Engineering"]);
+    await openBulkActions();
+
+    expect(menuItemNamed("Remove Owner")).toBeDefined();
+    expect(menuItemNamed("Delete")).toBeDefined();
+  });
+
+  test("reads whether each team takes owners with the list", async () => {
+    render(<TeamsPage {...listProps} />);
+
+    await rowOf("Engineering");
+
+    expect(
+      callsFor(Team).some((args: Record<string, any>): boolean => {
+        return (
+          args["select"]?.["isTeamEditable"] === true &&
+          args["select"]?.["isTeamDeleteable"] === true
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("Add Owner makes the person an owner of each selected team, and leaves Owners alone, saying why", async () => {
+    render(<TeamsPage {...listProps} />);
+
+    await selectRows(["Owners", "Engineering"]);
+    await runOwnerAction("Add Owner", "Grace Hopper");
+
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledTimes(1);
+    });
+
+    const created: Record<string, any> = createMock.mock.calls[0]![0] as Record<
+      string,
+      any
+    >;
+    expect(created["modelType"]).toBe(TeamOwnerUser);
+    expect(String(created["model"]["ownedTeamId"])).toBe(ENGINEERING_ID);
+    expect(String(created["model"]["userId"])).toBe(GRACE_ID);
+    expect(String(created["model"]["projectId"])).toBe(PROJECT_ID);
+
+    // Owners was not even read.
+    expect(bulkOwnerReads().map(teamsIn)).toEqual([[ENGINEERING_ID]]);
+
+    const leftAlone: HTMLElement = screen.getByTestId(
+      "bulk-action-unchanged-items",
+    );
+    expect(leftAlone).toHaveTextContent("Owners");
+    expect(leftAlone).toHaveTextContent(BUILT_IN_TEAM_OWNERS_MESSAGE);
+    expect(leftAlone).not.toHaveTextContent("Engineering");
+    expect(screen.getByTestId("bulk-action-unchanged-count")).toHaveTextContent(
+      "1",
+    );
+    expect(
+      document.querySelector('[data-testid="bulk-action-failed-count"]'),
+    ).toBeNull();
+  });
+
+  test("Add Owner skips a team the person owns already", async () => {
+    render(<TeamsPage {...listProps} />);
+
+    await selectRows(["Owners", "Engineering", "Platform"]);
+    await runOwnerAction("Add Owner", "Ada Lovelace");
+
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Ada looks after Engineering already: only Platform gains her.
+    expect(
+      String(
+        (createMock.mock.calls[0]![0] as Record<string, any>)["model"][
+          "ownedTeamId"
+        ],
+      ),
+    ).toBe(PLATFORM_ID);
+    expect(bulkOwnerReads().map(teamsIn)).toEqual([
+      [ENGINEERING_ID, PLATFORM_ID],
+    ]);
+  });
+
+  test("Remove Owner removes the person from each selected team, and leaves Owners alone, saying why", async () => {
+    render(<TeamsPage {...listProps} />);
+
+    await selectRows(["Owners", "Engineering"]);
+    await runOwnerAction("Remove Owner", "Ada Lovelace");
+
+    await waitFor(() => {
+      expect(deleteItemMock).toHaveBeenCalledTimes(1);
+    });
+
+    const deleted: Record<string, any> = deleteItemMock.mock
+      .calls[0]![0] as Record<string, any>;
+    expect(deleted["modelType"]).toBe(TeamOwnerUser);
+    expect(String(deleted["id"])).toBe(ADA_OWNS_ENGINEERING_ROW_ID);
+    expect(createMock).not.toHaveBeenCalled();
+
+    expect(bulkOwnerReads().map(teamsIn)).toEqual([[ENGINEERING_ID]]);
+
+    const leftAlone: HTMLElement = screen.getByTestId(
+      "bulk-action-unchanged-items",
+    );
+    expect(leftAlone).toHaveTextContent("Owners");
+    expect(leftAlone).toHaveTextContent(BUILT_IN_TEAM_OWNERS_MESSAGE);
+  });
+
+  test("a selection of only Owners sends nothing at all", async () => {
+    render(<TeamsPage {...listProps} />);
+
+    await selectRows(["Owners"]);
+    await runOwnerAction("Add Owner", "Grace Hopper");
+
+    expect(createMock).not.toHaveBeenCalled();
+    expect(deleteItemMock).not.toHaveBeenCalled();
+    expect(bulkOwnerReads()).toEqual([]);
+    expect(screen.getByTestId("bulk-action-unchanged-items")).toHaveTextContent(
+      BUILT_IN_TEAM_OWNERS_MESSAGE,
+    );
+  });
+});
+
+describe("which teams take owners", () => {
+  test("every team but the two that come with every project", () => {
+    expect(getTeamOwnersDisabledReason(team(OWNERS_ID, "Owners", false))).toBe(
+      BUILT_IN_TEAM_OWNERS_REASON,
+    );
+    expect(
+      getTeamOwnersDisabledReason(team(ENGINEERING_ID, "Engineering", true)),
+    ).toBeUndefined();
+  });
+
+  test("a team whose kind was not read takes owners: the server refuses what it must", () => {
+    expect(getTeamOwnersDisabledReason(new Team())).toBeUndefined();
   });
 });
