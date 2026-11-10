@@ -42,6 +42,8 @@ Set **Alert When** to alert on a check:
 
 Saving the check makes a metric monitor for it, as you and with your permissions. Clearing the condition removes the monitor.
 
+A check's **Status**, on **Checks** and on its table's **Checks** tab, says how it stands: **Failing** while its alert is open, **Passing** while it is not, and **Could Not Run** when its query failed. A check with no alert says only that it **Ran**. A failing check, and one that could not run, is on the **Overview** too.
+
 ## What a check costs
 
 A check competes with your application for the database, and on a warehouse that bills by what a query reads, it costs money. Three things keep that in hand:

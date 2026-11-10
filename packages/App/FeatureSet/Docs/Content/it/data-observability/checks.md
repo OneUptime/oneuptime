@@ -42,6 +42,8 @@ Imposta **Avvisa quando** per ricevere un avviso su un controllo:
 
 Salvando il controllo si crea un monitor di metriche per esso, a tuo nome e con le tue autorizzazioni. Svuotando la condizione si rimuove il monitor.
 
+Lo **Stato** di un controllo, in **Controlli** e nella scheda **Controlli** della sua tabella, dice come sta: **In errore** finché il suo avviso è aperto, **In regola** finché non lo è, e **Esecuzione non riuscita** quando la sua query è fallita. Un controllo senza avviso mostra solo **Eseguita**: la sua query ha funzionato. Un controllo in errore, e uno che non è stato possibile eseguire, compare anche nella **Panoramica**.
+
 ## Quanto costa un controllo
 
 Un controllo compete con la tua applicazione per il database e, su un warehouse che fattura in base a ciò che una query legge, costa denaro. Tre cose lo tengono sotto controllo:

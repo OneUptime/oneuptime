@@ -4,6 +4,10 @@ import ConnectDatabaseModal from "../../Components/DataObservability/ConnectData
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import DataSourceSuggestionsCard from "../../Components/DataObservability/DataSourceSuggestionsCard";
 import StoreStatusPill from "../../Components/DataObservability/StoreStatusPill";
+import StoreAlertStatus, {
+  isStoreWithoutAlerts,
+} from "../../Components/DataObservability/StoreAlertStatus";
+import { getStoreAlertsRoute } from "../../Components/DataObservability/OverviewAttention";
 import WatchedTablesCost from "../../Components/DataObservability/WatchedTablesCost";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -37,8 +41,11 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
  * or a probe in the customer's network - how the last collection went and
  * why one failed. Connect a Database adds one; Collect Now reads one again
  * without waiting for its next turn; Recommended Alerts opens the monitors
- * recommended for its tables. Below them, the databases the project already
- * knows of that nobody has connected.
+ * recommended for its tables. Each says whether any of its alerts is on: a
+ * database with none tells nobody when its tables break, so its button is
+ * Set Up Alerts instead - and a database just connected opens there.
+ * Below them, the databases the project already knows of that nobody has
+ * connected.
  */
 const DataObservabilityStoresPage: FunctionComponent<
   PageComponentProps
@@ -234,6 +241,7 @@ const DataObservabilityStoresPage: FunctionComponent<
                             <></>
                           )}
                         </div>
+                        <StoreAlertStatus store={store} />
                         {store.message ? (
                           <p
                             className={`whitespace-pre-line text-xs ${
@@ -249,8 +257,13 @@ const DataObservabilityStoresPage: FunctionComponent<
                         )}
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-2">
+                        {/* A row's action is never filled: several databases can have no alert on at once. */}
                         <Button
-                          title="Recommended Alerts"
+                          title={
+                            isStoreWithoutAlerts(store)
+                              ? "Set Up Alerts"
+                              : "Recommended Alerts"
+                          }
                           buttonStyle={ButtonStyleType.NORMAL}
                           icon={IconProp.Alert}
                           onClick={() => {
@@ -298,9 +311,10 @@ const DataObservabilityStoresPage: FunctionComponent<
           onClose={() => {
             setIsConnecting(false);
           }}
-          onConnected={() => {
+          onConnected={(dataStoreId: ObjectID) => {
             setIsConnecting(false);
-            readAgain();
+            // Its tables are watched now; nobody is told of them until its alerts are on.
+            Navigation.navigate(getStoreAlertsRoute(dataStoreId.toString()));
           }}
         />
       ) : (

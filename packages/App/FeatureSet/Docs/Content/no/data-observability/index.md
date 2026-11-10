@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Koble til en database
 
-Åpne **Dataobserverbarhet**, gå til **Databaser** og velg **Koble til en database**. Velg databasemotoren, og oppgi en skrivebeskyttet tilkoblingsstreng, eller navnet på miljøvariabelen sonden din leser den fra. [Koble til en database](/docs/data-observability/connect) viser brukeren hver databasemotor trenger.
+Åpne **Dataobserverbarhet** og velg **Koble til en database**, på **Oversikt** eller på **Databaser**. Velg databasemotoren, og oppgi en skrivebeskyttet tilkoblingsstreng, eller navnet på miljøvariabelen sonden din leser den fra. [Koble til en database](/docs/data-observability/connect) viser brukeren hver databasemotor trenger.
 
-### Se tabellene
+### Slå på de anbefalte varslene
+
+En database du kobler til, åpner på siden **Anbefalte varsler**, for ingen hører om tabellene før noen av dem er slått på. Legg til dem du vil ha: en tabell som er forsinket, en der antall rader faller kraftig eller er uvanlig lavt, en der kolonnene endres, og en database som slutter å rapportere. Hver av dem er en vanlig monitor: vakt, eiere, vedlikeholdsvinduer og statussider fungerer som for alle andre.
+
+### Les oversikten
 
 Innen fem minutter vises tabellene under **Tabeller**, hver med rader, størrelse og når den sist ble endret. Aktualiteten til en tabell er kjent når den har endret seg to ganger: **Fersk** så lenge den holder rytmen, **Sen** når den bryter den.
 
-### Legg til de anbefalte varslene
-
-Under **Databaser** velger du **Anbefalte varsler** for databasen og legger til dem du vil ha: en tabell som er forsinket, en der antall rader faller kraftig eller er uvanlig lavt, en der kolonnene endres, og en database som slutter å rapportere. Hver av dem er en vanlig monitor: vakt, eiere, vedlikeholdsvinduer og statussider fungerer som for alle andre.
+**Oversikt** viser deretter hva som trenger noen nå, det verste først: en database som ikke kunne leses, en pipelinekjøring som feilet eller er forsinket, en sjekk som feiler eller ikke kunne kjøre, en avstemming som har drevet av, og et dataprodukt eller en tabell som er forsinket. Hvert punkt sier hvem som eier det og om varselet er åpent, eller at ingen får beskjed fordi databasen ikke har noen varsler slått på, og åpner siden der det rettes. Til prosjektet er satt opp, viser **Oversikt** stegene som gjenstår: varsler på hver database, eiere for tabellene, en sjekk og pipelinekjøringene dine.
 :::
+
+## Hvor du finner hva
+
+Menyen følger spørsmålene du stiller om dataene dine. Den første delen har sidene du bruker hver dag: **Oversikt**, **Tabeller**, **Pipelines**, **Skjemaendringer**, **Databaser** og **Lagringsstier**. **Kvalitet** har reglene dataene må følge, **Sjekker** og **Avstemminger**, og **Forbruk** hvem som er avhengige av dem og hva de koster: **Dataprodukter**, **BI-dashbord**, **Lagerforbruk** og **Ubrukte tabeller**. **Regler** (**Eierregler** og **Etikettregler**), **Hjelp** og **Avansert** (**Innstillinger** og **Slettede tabeller**) er lukket til du åpner dem.
 
 ## Hva det koster
 
