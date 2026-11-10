@@ -615,13 +615,13 @@
       },
       "ingestionBudgets": {
         "dailyCardTitle": "Standard-Tagesbudgets",
-        "dailyCardDescription": "Wie viel jedes Projekt von jedem Telemetriesignal an einem Budgettag höchstens senden darf, beim Eintreffen dekomprimiert gezählt. Sobald ein Budget aufgebraucht ist, wird dieses Signal abgelehnt, bis das Budget zurückgesetzt wird. Das eigene Budget eines Projekts, festgelegt auf seiner Seite unter Projekte, hat Vorrang vor diesen. Lassen Sie ein Signal leer für kein Limit.",
+        "dailyCardDescription": "Wie viel jedes Projekt von jedem Telemetriesignal an einem Budgettag höchstens senden darf. Sobald das aufgebraucht ist, wird dieses Signal abgelehnt, bis das Budget zurückgesetzt wird. Das eigene Budget eines Projekts hat Vorrang. Lassen Sie ein Signal leer für kein Limit.",
         "dailyEditButton": "Standard-Tagesbudgets bearbeiten",
         "resetCardTitle": "Warnung und Zurücksetzen",
         "resetCardDescription": "Wann Projekte gewarnt werden, dass ein Budget zur Neige geht, und wann jeder Budgettag neu beginnt.",
         "resetEditButton": "Warnung und Zurücksetzen bearbeiten",
         "rateCardTitle": "Standard-Ratenlimits",
-        "rateCardDescription": "Optional. Wie schnell jedes Projekt jedes Signal höchstens senden darf, damit ein einzelner Schub das Budget eines Tages nicht in Minuten aufbrauchen kann. Schnellere Anfragen werden mit 429 und Retry-After beantwortet, und Sender versuchen sie erneut. Lassen Sie ein Signal leer für kein Limit.",
+        "rateCardDescription": "Optional. Wie schnell jedes Projekt jedes Signal höchstens senden darf, damit ein einzelner Schub das Budget eines Tages nicht in Minuten aufbrauchen kann. Schnellere Anfragen werden mit 429 beantwortet und erneut versucht. Lassen Sie ein Signal leer für kein Limit.",
         "rateEditButton": "Standard-Ratenlimits bearbeiten"
       }
     },

@@ -159,7 +159,7 @@ export const UNLINK_TITLE: string = translationKey("Unlink this device?");
  * every appliance's traffic, linked or not.
  */
 export const UNLINK_DESCRIPTION: string = translationKey(
-  "The serial number of {{appliance}} is removed from this device, and its traffic stops showing here. It still shows on the network's Traffic page, and you can link the device again at any time.",
+  "The serial number of {{appliance}} is removed from this device, and its traffic stops showing here. It still shows on the network's Traffic page.",
 );
 
 // The link dialog.

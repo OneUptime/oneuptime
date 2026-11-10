@@ -242,7 +242,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Alert Investigation Time Limit (Minutes)",
               description:
-                "Stop an alert investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
+                "An alert investigation stops after this many minutes and reports what it found. Leave empty for the project's time limit: 120 minutes by default.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "The project's time limit",

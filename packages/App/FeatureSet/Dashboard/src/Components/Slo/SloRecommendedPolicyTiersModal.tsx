@@ -63,7 +63,7 @@ const SloRecommendedPolicyTiersModal: FunctionComponent<ComponentProps> = (
   return (
     <ConfirmModal
       title={USE_RECOMMENDED_POLICY_TITLE}
-      description="These are the recommended tiers this SLO does not have yet. They raise no alerts or incidents until you switch that on, and you can edit them afterwards like any other tier."
+      description="These are the recommended tiers this SLO does not have yet. They raise no alerts or incidents until you switch that on."
       submitButtonText="Add tiers"
       onSubmit={props.onSubmit}
       onClose={props.onClose}

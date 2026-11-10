@@ -568,7 +568,7 @@ describe("the Limits per run card", () => {
       expect(queryInputFor(dialog, title)).toBeNull();
     }
     expect(dialog).toHaveTextContent(
-      "Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.",
+      "Leave empty for the default, 120 minutes. Incident and alert time limits come first.",
     );
     expect(
       within(dialog).getByTestId("modal-footer-submit-button"),

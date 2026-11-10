@@ -1516,7 +1516,7 @@ export const ProjectAiRunLimitsCopy: {
 } = {
   cardTitle: translationKey("Limits per run"),
   cardDescription: translationKey(
-    "How far one OneUptime AI run may go: an investigation, an Ask AI or chat answer, a triage, a fix or a code task. With nothing set, a run makes as many calls as its work needs, for up to 120 minutes. A run that reaches a limit answers with what it found, and says which limit stopped it.",
+    "How far one OneUptime AI run may go, such as an investigation. With nothing set, a run makes as many calls as its work needs, for up to 120 minutes. A run that reaches a limit answers with what it found.",
   ),
   noLimitPlaceholder: translationKey("No limit"),
   // Tests hold each 120 here to DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES.
@@ -1586,7 +1586,7 @@ export const PROJECT_AI_RUN_LIMIT_FIELDS: ReadonlyArray<ProjectAiRunLimitField> 
       column: PROJECT_AI_RUN_TIME_LIMIT_COLUMN,
       title: translationKey("Time Limit per Run (Minutes)"),
       description: translationKey(
-        "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.",
+        "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. Incident and alert time limits come first.",
       ),
       placeholder: ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder,
       stepId: "time-limit",
