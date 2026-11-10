@@ -139,7 +139,24 @@ gh pr merge <number> --merge   # --admin if the code-owner review is still missi
 Merge it with a merge commit (not squash, not rebase): the merge's push to
 `release` starts the release run.
 
-### 7. Follow the release run until OneUptime has released
+### 7. Merge the release branch back into `main` right away
+
+As soon as the pull request is merged - not once the release run has finished:
+
+```bash
+git fetch origin main release-14.0.106
+git checkout -B merge-release-back origin/main
+git merge --no-ff origin/release-14.0.106 -m "Merge release-14.0.106 back into main"
+git push origin HEAD:main
+```
+
+This brings the version bump and every fix made in the release branch to `main`
+at once, so what merges into `main` from then on builds on them, and the next
+release branch starts from a `main` with the last release's fixes in it. If
+`main` changed the same lines since the cut, resolve the conflict keeping both
+intents, and run the tests of the files involved before pushing.
+
+### 8. Follow the release run until OneUptime has released
 
 ```bash
 gh run list --workflow release.yml --branch release --limit 1
@@ -155,8 +172,9 @@ Keep `PrioritizeReleaseRuns.sh` running through it. The release is out when
 - A job that failed for a transient reason (a registry timeout, a runner lost):
   `gh run rerun <run id> --failed`.
 - A failure in the code, before anything was published: fix it in the release
-  branch, as in step 5, and merge the branch into `release` again. The version
-  has no GitHub release yet, so the new run goes ahead.
+  branch, as in step 5, and merge the branch into `release` again, and into
+  `main` again as in step 7. The version has no GitHub release yet, so the new
+  run goes ahead.
 - A failure after the GitHub release was published, in a job that only publishes
   elsewhere (a package manager): re-run it once its cause is fixed, or fix it in
   the next release. `Publish the infrastructure agent to winget` depends on
@@ -166,21 +184,8 @@ Keep `PrioritizeReleaseRuns.sh` running through it. The release is out when
   unless the run is dispatched with them turned on:
   [packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md).
 
-### 8. Merge the release branch back into `main`
-
-```bash
-git fetch origin main release-14.0.106
-git checkout -B merge-release-back origin/main
-git merge --no-ff origin/release-14.0.106 -m "Merge release-14.0.106 back into main"
-git push origin HEAD:main
-```
-
-This brings the version bump and every fix made in the release branch to `main`.
-If `main` changed the same lines since the cut, resolve the conflict keeping both
-intents, and run the tests of the files involved before pushing.
-
 ### 9. Start the next release
 
-Go back to step 1 with the next patch version, cut from `main` as it is now, and
-restart `PrioritizeReleaseRuns.sh` with the new branch's name. Stop it for good
-only when no release is in flight.
+Once OneUptime has released, go back to step 1 with the next patch version, cut
+from `main` as it is now, and restart `PrioritizeReleaseRuns.sh` with the new
+branch's name. Stop it for good only when no release is in flight.

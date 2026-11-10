@@ -91,8 +91,8 @@ see `HelmChart/README.md` for how to add one.
 
 Releases go through a release branch: `release-<version>` is cut from `main` and bumped, its pull request into
 `release` is the release's CI gate, every red check is fixed in that branch, the branch is merged into `release`
-once green, the release run is followed until OneUptime has shipped, and the branch is then merged back into `main`
-before the next release is cut. While a release is in flight, `Scripts/Release/PrioritizeReleaseRuns.sh` cancels
+once green and straight back into `main`, and the release run is followed until OneUptime has shipped before the
+next release is cut. While a release is in flight, `Scripts/Release/PrioritizeReleaseRuns.sh` cancels
 every other workflow run so the release has the runners. [RELEASING.md](RELEASING.md) has every step and command.
 
 ### Release notes
