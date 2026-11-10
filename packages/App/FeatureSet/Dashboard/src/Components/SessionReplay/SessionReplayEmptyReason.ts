@@ -8,7 +8,7 @@ import {
 import {
   formatRelativeAge,
   parseHealthTimestamp,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import { SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS } from "Common/Types/Rum/SessionReplay";
 import {
   ComposedValue,
@@ -53,7 +53,7 @@ import {
  * empty state passes useTranslator()), and in English, word for word as
  * it always was, without one. The recording health's own words - a
  * diagnosis's title, detail and action, which some answers pass on - are
- * the diagnosis's (Common/Utils/Rum/SessionReplayHealth.ts), as it wrote
+ * the diagnosis's (Common/Utils/SessionReplay/SessionReplayHealth.ts), as it wrote
  * them.
  */
 
@@ -258,11 +258,9 @@ export function getEmptyReason(
   const hasFilters: boolean =
     context.signal !== "all" || hasAnyAdvancedFilter(context.advanced);
   // The window, in the language of the sentence it goes into.
-  const range: ComposedValue = composedValue(
-    (sentence: Translator): string => {
-      return describeTimeRange(context.timeRange, sentence);
-    },
-  );
+  const range: ComposedValue = composedValue((sentence: Translator): string => {
+    return describeTimeRange(context.timeRange, sentence);
+  });
   const diagnosis: RecordingHealthDiagnosis | null =
     context.health?.status && context.health.diagnosis
       ? context.health.diagnosis
@@ -457,11 +455,9 @@ function describeQuietWindow(
         );
   }
 
-  const age: ComposedValue = composedValue(
-    (sentence: Translator): string => {
-      return formatRelativeAge(lastSessionUnixMs, nowUnixMs, sentence);
-    },
-  );
+  const age: ComposedValue = composedValue((sentence: Translator): string => {
+    return formatRelativeAge(lastSessionUnixMs, nowUnixMs, sentence);
+  });
 
   return isHealthy
     ? translator.translateTemplate(

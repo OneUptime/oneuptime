@@ -9,7 +9,7 @@ import { JSONObject } from "../../../Types/JSON";
 import TimeRange from "../../../Types/Time/TimeRange";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { RecordingHealthStatus } from "../../../Types/Rum/SessionReplayHealth";
-import { diagnoseRecordingHealth } from "../../../Utils/Rum/SessionReplayHealth";
+import { diagnoseRecordingHealth } from "../../../Utils/SessionReplay/SessionReplayHealth";
 
 /*
  * The explained empty list. Every variant renders its cause, its quantity

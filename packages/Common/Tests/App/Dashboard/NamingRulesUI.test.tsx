@@ -1,12 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   act,
   cleanup,

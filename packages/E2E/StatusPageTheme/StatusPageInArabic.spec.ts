@@ -8,6 +8,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -230,17 +231,11 @@ test.describe("a status page in Arabic", () => {
 
     await openArabicPage(page);
 
-    const overview: { x: number; width: number } | null = await page
-      .getByRole("link", { name: arabic("nav.overview") })
-      .first()
-      .boundingBox();
-    const subscribe: { x: number; width: number } | null = await page
-      .getByRole("link", { name: arabic("nav.subscribe") })
-      .first()
-      .boundingBox();
+    const [overview, subscribe]: Array<FrameBox> = await boxesInOneFrame([
+      page.getByRole("link", { name: arabic("nav.overview") }).first(),
+      page.getByRole("link", { name: arabic("nav.subscribe") }).first(),
+    ]);
 
-    expect(overview).not.toBeNull();
-    expect(subscribe).not.toBeNull();
     expect(overview!.x).toBeGreaterThan(subscribe!.x + subscribe!.width);
   });
 

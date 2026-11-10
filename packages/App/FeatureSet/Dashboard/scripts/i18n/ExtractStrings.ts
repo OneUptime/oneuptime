@@ -346,7 +346,7 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * its reason codes and field names stay as written.
    */
   {
-    directory: "packages/Common/Utils/Rum/SessionReplayHealth.ts",
+    directory: "packages/Common/Utils/SessionReplay/SessionReplayHealth.ts",
     kind: "keys",
   },
   /*

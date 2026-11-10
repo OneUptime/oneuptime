@@ -16,7 +16,7 @@ import {
   formatRelativeAge,
   getTopRefusal,
   parseHealthTimestamp,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import {
   ComposedValue,
   composedValue,

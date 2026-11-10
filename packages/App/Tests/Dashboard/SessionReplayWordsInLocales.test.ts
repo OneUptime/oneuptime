@@ -105,7 +105,7 @@ const UI_FILES: ReadonlyArray<string> = [
  * writes: the file marks its words, its reason codes stay as written.
  */
 const KEYS_FILES: ReadonlyArray<string> = [
-  "packages/Common/Utils/Rum/SessionReplayHealth.ts",
+  "packages/Common/Utils/SessionReplay/SessionReplayHealth.ts",
 ];
 
 /*

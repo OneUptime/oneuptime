@@ -50,7 +50,7 @@ import {
   formatCountForCopy,
   formatRelativeAge,
   parseHealthTimestamp,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useSessionReplayHealth, {
