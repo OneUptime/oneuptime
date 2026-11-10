@@ -193,6 +193,66 @@ describe("the switch's words", () => {
       "isProductAnalyticsEnabled",
     );
   });
+
+  /*
+   * A switch's and a field's description is one line on a phone: at most
+   * 150 characters (App's ShortDescriptionsGuard). Shortened to fit
+   * (issue #6660), each still says everything it said before.
+   */
+  test("fit the 150 characters a switch's or a field's description has", () => {
+    for (const description of [
+      ProductAnalyticsEventsSwitchCopy.switchDescription,
+      ProductAnalyticsEventsSwitchCopy.offDescription,
+      ProductAnalyticsEventsSwitchCopy.propertiesFieldDescription,
+    ]) {
+      expect({ description, fits: description.length <= 150 }).toEqual({
+        description,
+        fits: true,
+      });
+    }
+  });
+
+  test("the switch says what is sent, recorded or not, and what still applies", () => {
+    for (const said of [
+      "session starts",
+      "page views",
+      "track()",
+      "metric()",
+      "from every session, recorded or not",
+      "Consent",
+      "Do Not Track",
+      "allowed origins",
+    ]) {
+      expect(ProductAnalyticsEventsSwitchCopy.switchDescription).toContain(
+        said,
+      );
+    }
+  });
+
+  test("turning events on changes nothing on the pages: the Session Replay recorder sends them", () => {
+    for (const said of [
+      "session starts",
+      "page views",
+      "track()",
+      "Nothing changes on your pages",
+      "Session Replay recorder",
+    ]) {
+      expect(ProductAnalyticsEventsSwitchCopy.offDescription).toContain(said);
+    }
+  });
+
+  test("the user properties field gives the format, the limit, when they are kept and what never to list", () => {
+    const description: string =
+      ProductAnalyticsEventsSwitchCopy.propertiesFieldDescription;
+
+    expect(description).toContain("identify()");
+    expect(description).toContain('JSON array: ["plan", "role"]');
+    expect(description).toContain(
+      `Up to ${PRODUCT_ANALYTICS_USER_PROPERTY_LIMITS.maxKeys},`,
+    );
+    expect(description).toContain("while end-user identity capture is on");
+    expect(description).toContain("No personal data");
+  });
 });
 
 describe("Analytics Settings", () => {
