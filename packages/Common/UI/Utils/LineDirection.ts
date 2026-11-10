@@ -31,6 +31,24 @@ import {
 export const LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME: string = "text-end";
 
 /*
+ * A ONE-LINE VALUE THAT MAY BE CUT SHORT BY LINE-CLAMP, READ THE OTHER WAY.
+ *
+ * A table row's name, while its table fits its card, breaks anywhere and
+ * shows only its first line (TableLayout's
+ * TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME). Aligned to its end as a one-line
+ * box is, that line's "..." was drawn past the box's end, where the box cut
+ * it: "Customer notifications worker (queue co.." on an Arabic monitor
+ * list. So only the box's last line is aligned to its end
+ * (text-align-last). A name that fits is one line, its last, and starts
+ * where the page's lines do; a name cut short shows a first line that is
+ * never its last, which runs from its own start and ends in the whole
+ * "...". A line that does not wrap is its box's last, so the same box cut
+ * short by text-overflow reads as a one-line box does.
+ */
+export const LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME: string =
+  "text-start [text-align-last:end]";
+
+/*
  * A VALUE CUT SHORT TO A FEW LINES (line-clamp), READ THE OTHER WAY.
  *
  * A clamped box cannot be aligned to its end as a one-line box is: Chrome

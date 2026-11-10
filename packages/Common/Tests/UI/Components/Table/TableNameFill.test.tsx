@@ -15,6 +15,8 @@ import {
   TABLE_CELL_MAX_WIDTH_CLASS_NAME,
   TABLE_NAME_FILL_FLOOR_IN_PX,
   TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
+  TABLE_RIGHT_TO_LEFT_LINE_BREAKS,
+  TABLE_VALUE_GIVE_CLASS_NAME,
   TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
 } from "../../../../UI/Components/Table/TableLayout";
 import useTableScrollState, {
@@ -101,8 +103,41 @@ describe("the classes a row's name fills with", () => {
       "min-w-[10rem]",
       "whitespace-normal",
       "break-all",
+      ...TABLE_RIGHT_TO_LEFT_LINE_BREAKS,
       "line-clamp-1",
     ]);
+  });
+
+  /*
+   * Arabic and Persian join a word's letters: broken between two of them,
+   * "...في المملكة العربية" was cut short to "...في المملكةلعربي...", its
+   * space and a letter gone under Chrome's "...". A line read right to left
+   * breaks between words; one read left to right - an English name on an
+   * Arabic page, which carries dir="ltr" - still runs to its column's end.
+   */
+  test("a line read right to left breaks between words, by its own way rather than the page's", () => {
+    expect(TABLE_RIGHT_TO_LEFT_LINE_BREAKS).toEqual([
+      "[&:dir(rtl)]:[word-break:normal]",
+      "[&:dir(rtl)]:[overflow-wrap:anywhere]",
+    ]);
+
+    for (const rule of TABLE_RIGHT_TO_LEFT_LINE_BREAKS) {
+      expect(tokens(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME)).toContain(
+        `${FILL_VARIANT}${rule}`,
+      );
+      expect(tokens(TABLE_VALUE_GIVE_CLASS_NAME)).toContain(
+        `data-[give=line]:${rule}`,
+      );
+      // The line's own way (:dir), not the page's (rtl:, any ancestor's).
+      expect(rule.startsWith("rtl:")).toBe(false);
+    }
+
+    // Written after break-all, which it overrides on such a line only.
+    const fill: Array<string> = tokens(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME);
+
+    expect(fill.indexOf(`${FILL_VARIANT}break-all`)).toBeLessThan(
+      fill.indexOf(`${FILL_VARIANT}${TABLE_RIGHT_TO_LEFT_LINE_BREAKS[0]}`),
+    );
   });
 
   test("its floor is the one a name has to be wider than to be set free", () => {

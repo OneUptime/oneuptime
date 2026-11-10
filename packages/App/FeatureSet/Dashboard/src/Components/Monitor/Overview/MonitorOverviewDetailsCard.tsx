@@ -1,9 +1,6 @@
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
+import MonitorTypeTitle, { getMonitorTypeTitle } from "../MonitorTypeTitle";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorType, {
-  MonitorTypeHelper,
-  MonitorTypeProps,
-} from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -19,22 +16,8 @@ export interface ComponentProps {
   onSaveSuccess: () => void;
 }
 
-export const getMonitorTypeTitle: (
-  monitorType: MonitorType | undefined,
-) => string = (monitorType: MonitorType | undefined): string => {
-  if (!monitorType) {
-    return "Unknown";
-  }
-
-  const typeProps: MonitorTypeProps | undefined =
-    MonitorTypeHelper.getAllMonitorTypeProps().find(
-      (item: MonitorTypeProps) => {
-        return item.monitorType === monitorType;
-      },
-    );
-
-  return typeProps?.title || monitorType;
-};
+// The type's English title (MonitorTypeTitle), as the type picker writes it.
+export { getMonitorTypeTitle };
 
 /*
  * The monitor's own record in the side column: name, description and labels
@@ -124,7 +107,7 @@ const MonitorOverviewDetailsCard: FunctionComponent<ComponentProps> = (
             title: "Monitor Type",
             fieldType: FieldType.Element,
             getElement: (item: Monitor): ReactElement => {
-              return <span>{getMonitorTypeTitle(item.monitorType)}</span>;
+              return <MonitorTypeTitle monitorType={item.monitorType} />;
             },
           },
           {

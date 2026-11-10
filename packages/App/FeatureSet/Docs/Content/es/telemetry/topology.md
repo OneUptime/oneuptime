@@ -16,7 +16,7 @@ Cada vista de la topología se construye a partir de un tipo de telemetría dist
 
 ```mermaid title="De dónde sale cada vista de la topología"
 flowchart LR
-    traces["Trazas y eBPF,<br/>leídas cada<br/>10 minutos"] --> serviceMap["Service Map"]
+    traces["Trazas y eBPF,<br/>leídas cada<br/>10 minutos"] --> serviceMap["Mapa de servicios"]
     resources["Hosts, clústeres y<br/>contenedores que<br/>envían datos"] --> infrastructure["Infraestructura"]
     neighbours["Vecinos que sus<br/>dispositivos informan<br/>por LLDP"] --> network["Red"]
 ```
@@ -32,11 +32,11 @@ flowchart LR
 
 ## Abrir la topología
 
-Vaya a **Productos → Observabilidad → Topología**. **Inventario → Mapa de topología** abre la misma página. Se abre en el **Service Map**, para el **Último día**.
+Vaya a **Productos → Observabilidad → Topología**. **Inventario → Mapa de topología** abre la misma página. Se abre en el **Mapa de servicios**, para el **Último día**.
 
 | Vista | La pregunta que responde |
 | --- | --- |
-| **Service Map** | ¿Qué servicios dependen unos de otros? |
+| **Mapa de servicios** | ¿Qué servicios dependen unos de otros? |
 | **Infraestructura** | ¿Qué se ejecuta dónde en su infraestructura? |
 | **Red** | ¿Cómo están conectados sus dispositivos de red? |
 
@@ -44,7 +44,7 @@ Junto al selector de tiempo, **Mostrar inactivos** añade lo que no envió datos
 
 ## Leer el mapa de servicios
 
-El **Service Map** dibuja cada servicio que envió datos, y las bases de datos, las API y los brokers de mensajes a los que llama, aunque estos no envíen telemetría propia. Las flechas van del que llama al llamado, y las líneas más gruesas llevan más solicitudes. Las cifras de encima dicen cuántos servicios, dependencias y conexiones dibuja, y cuántos requieren atención.
+El **Mapa de servicios** dibuja cada servicio que envió datos, y las bases de datos, las API y los brokers de mensajes a los que llama, aunque estos no envíen telemetría propia. Las flechas van del que llama al llamado, y las líneas más gruesas llevan más solicitudes. Las cifras de encima dicen cuántos servicios, dependencias y conexiones dibuja, y cuántos requieren atención.
 
 Cada servicio muestra su estado, calculado a partir de las llamadas que recibió en los últimos 15 minutos:
 
@@ -80,7 +80,7 @@ Haga clic en una flecha para ver su tasa de solicitudes, su tasa de errores y su
 
 - **Recórrala a su manera.** Muéstrela como **Lista** o como **Mapa**, desde toda su infraestructura hasta un solo pod. Las cifras de encima dicen cuántos recursos y cargas de trabajo dibuja, cuántos servicios puede ubicar y cuántos recursos en silencio deja fuera.
 - **Encuentre un recurso.** Búsquelo por nombre y haga clic en **Ver detalles** para abrir su página.
-- **Pase de una vista a otra.** Un servicio listado en un recurso se abre en el **Service Map**, y los recursos en los que se ejecuta un servicio se abren en **Infraestructura**.
+- **Pase de una vista a otra.** Un servicio listado en un recurso se abre en el **Mapa de servicios**, y los recursos en los que se ejecuta un servicio se abren en **Infraestructura**.
 
 ## Abrir el mapa propio de un recurso
 

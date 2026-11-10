@@ -16,7 +16,7 @@ Varje vy i Topologi byggs från en annan sorts telemetri:
 
 ```mermaid title="Var varje vy i Topologi kommer ifrån"
 flowchart LR
-    traces["Spår och eBPF,<br/>läses var<br/>10:e minut"] --> serviceMap["Service Map"]
+    traces["Spår och eBPF,<br/>läses var<br/>10:e minut"] --> serviceMap["Tjänstekarta"]
     resources["Värdar, kluster och<br/>containrar som<br/>skickar data"] --> infrastructure["Infrastruktur"]
     neighbours["Grannar som dina<br/>enheter rapporterar<br/>via LLDP"] --> network["Nätverk"]
 ```
@@ -32,11 +32,11 @@ flowchart LR
 
 ## Öppna Topologi
 
-Gå till **Produkter → Observerbarhet → Topologi**. **Inventarie → Topologikarta** öppnar samma sida. Den öppnas på **Service Map**, för **Senaste dygnet**.
+Gå till **Produkter → Observerbarhet → Topologi**. **Inventarie → Topologikarta** öppnar samma sida. Den öppnas på **Tjänstekarta**, för **Senaste dygnet**.
 
 | Vy | Frågan den besvarar |
 | --- | --- |
-| **Service Map** | Vilka tjänster beror på varandra? |
+| **Tjänstekarta** | Vilka tjänster beror på varandra? |
 | **Infrastruktur** | Vad körs var i din infrastruktur? |
 | **Nätverk** | Hur är dina nätverksenheter anslutna? |
 
@@ -44,7 +44,7 @@ Bredvid tidsväljaren lägger **Visa inaktiva** till det som inte skickade data 
 
 ## Läs tjänstekartan
 
-**Service Map** ritar varje tjänst som skickade data, och de databaser, API:er och meddelandemäklare som de anropar, även när dessa inte skickar någon egen telemetri. Pilar pekar från anroparen till den anropade, och tjockare linjer bär fler begäranden. Siffrorna ovanför säger hur många tjänster, beroenden och anslutningar den ritar, och hur många som kräver uppmärksamhet.
+**Tjänstekarta** ritar varje tjänst som skickade data, och de databaser, API:er och meddelandemäklare som de anropar, även när dessa inte skickar någon egen telemetri. Pilar pekar från anroparen till den anropade, och tjockare linjer bär fler begäranden. Siffrorna ovanför säger hur många tjänster, beroenden och anslutningar den ritar, och hur många som kräver uppmärksamhet.
 
 Varje tjänst visar sin status, beräknad från de anrop den tog emot under de senaste 15 minuterna:
 
@@ -80,7 +80,7 @@ Klicka på en pil för att se dess begärandefrekvens, felfrekvens och genomsnit
 
 - **Bläddra på ditt sätt.** Visa den som **Lista** eller **Karta**, från hela din infrastruktur ned till en enda podd. Siffrorna ovanför säger hur många resurser och arbetsbelastningar den ritar, hur många tjänster den kan placera och hur många tysta resurser den utelämnar.
 - **Hitta en resurs.** Sök efter den med namn och klicka på **Visa detaljer** för att öppna dess sida.
-- **Växla mellan vyer.** En tjänst som listas på en resurs öppnas på **Service Map**, och de resurser som en tjänst körs på öppnas på **Infrastruktur**.
+- **Växla mellan vyer.** En tjänst som listas på en resurs öppnas på **Tjänstekarta**, och de resurser som en tjänst körs på öppnas på **Infrastruktur**.
 
 ## Öppna en resurs egen karta
 

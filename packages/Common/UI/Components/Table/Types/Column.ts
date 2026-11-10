@@ -134,4 +134,12 @@ export default interface Column<T extends GenericObject> {
   getElement?:
     | ((item: T, onBeforeFetchData?: T | undefined) => ReactElement)
     | undefined;
+  /*
+   * The words an element column draws on its line - a monitor's name drawn
+   * as a link - so the cell reads their way when that is not the page's
+   * (TableRow's LineDirection): an English name on an Arabic page is cut
+   * short at its own end, not at its start. Without it an element column
+   * keeps the page's way, since what an element draws is its own.
+   */
+  getLineText?: ((item: T) => string | undefined) | undefined;
 }
