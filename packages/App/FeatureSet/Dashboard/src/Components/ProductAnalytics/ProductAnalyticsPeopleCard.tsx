@@ -82,6 +82,12 @@ export const PRODUCT_ANALYTICS_SEARCH_PLACEHOLDER: string = translationKey(
   "Search signed-in users by name",
 );
 
+/* The card's words, the same with its search in the header and without. */
+const PEOPLE_CARD_TITLE: string = translationKey("People");
+const PEOPLE_CARD_DESCRIPTION: string = translationKey(
+  "Everyone the numbers above count, one row per person, most recently seen first. Open a person for their sessions.",
+);
+
 export interface ProductAnalyticsPeopleCardProps {
   rumApplicationId: ObjectID;
   startTime: Date;
@@ -453,141 +459,155 @@ const ProductAnalyticsPeopleCard: FunctionComponent<
   const isSearchExpanded: boolean =
     isSearchOpen || searchText.trim().length > 0;
 
+  const body: ReactElement = (
+    <div className="space-y-4" data-testid="product-analytics-people">
+      <FilterButtons
+        className="flex-wrap"
+        ariaLabel="People"
+        dataTestId="product-analytics-people-filter"
+        selectedValue={props.filter}
+        onSelect={(value: string): void => {
+          props.onFilterChange(value as ProductAnalyticsPeopleFilter);
+        }}
+        options={PRODUCT_ANALYTICS_PEOPLE_FILTERS.map(
+          (
+            filter: ProductAnalyticsPeopleFilter,
+          ): { label: string; value: string } => {
+            return {
+              label: PRODUCT_ANALYTICS_FILTER_LABELS[filter],
+              value: filter,
+            };
+          },
+        )}
+      />
+      {props.filter === ProductAnalyticsPeopleFilter.Dormant ? (
+        <div
+          className="flex flex-wrap items-center gap-2 text-sm text-gray-600"
+          data-testid="product-analytics-dormant-window"
+        >
+          <span>{translator.translateText("Dormant after")}</span>
+          <FilterButtons
+            className="flex-wrap"
+            ariaLabel="Dormant after"
+            dataTestId="product-analytics-dormant"
+            selectedValue={String(props.dormantAfterDays)}
+            onSelect={(value: string): void => {
+              props.onDormantAfterDaysChange(Number(value));
+            }}
+            options={PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS_OPTIONS.map(
+              (days: number): { label: string; value: string } => {
+                return {
+                  label: translator.translatePlural(
+                    { one: "{{count}} day", other: "{{count}} days" },
+                    days,
+                  ),
+                  value: String(days),
+                };
+              },
+            )}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
+      {read.error ? (
+        <ErrorMessage message={read.error} onRefreshClick={read.reload} />
+      ) : (
+        <Table<PersonRow>
+          id="product-analytics-people-table"
+          data={rows}
+          columns={columns}
+          isLoading={read.isLoading}
+          error=""
+          singularLabel="Person"
+          pluralLabel="People"
+          currentPageNumber={pageNumber}
+          totalItemsCount={pageSize * (pageNumber - 1) + rows.length}
+          itemsOnPage={pageSize}
+          hasMore={Boolean(people?.hasMore)}
+          paginationDataTestId="product-analytics-people-pagination"
+          onNavigateToPage={(next: number, itemsOnPage: number): void => {
+            if (itemsOnPage !== pageSize) {
+              /* A new size is a new query: it starts on its first page. */
+              setPageSize(itemsOnPage);
+
+              return;
+            }
+
+            setPage({ number: next, queryKey: queryKey });
+          }}
+          sortBy={null}
+          sortOrder={SortOrder.Descending}
+          onSortChanged={(): void => {
+            /* Most recently seen first: the route's only order. */
+          }}
+          noItemsMessage={
+            <div
+              className="flex bg-white px-6 py-12"
+              data-testid="product-analytics-people-empty"
+            >
+              <div className="m-auto max-w-md text-center">
+                <Icon
+                  icon={IconProp.UserGroup}
+                  className="mx-auto h-10 w-10 rounded-lg bg-indigo-50 p-2 text-indigo-500"
+                />
+                <p className="mt-3 text-sm font-semibold text-gray-900">
+                  {isSearching
+                    ? translator.translateText(
+                        "Nobody whose name matches this search.",
+                      )
+                    : translator.translateText(
+                        "Nobody to show for this filter and range.",
+                      )}
+                </p>
+              </div>
+            </div>
+          }
+        />
+      )}
+    </div>
+  );
+
+  /*
+   * No search, no header controls: an empty toolbar would still take a line
+   * of the header on a phone.
+   */
+  if (!hasSearch) {
+    return (
+      <Card title={PEOPLE_CARD_TITLE} description={PEOPLE_CARD_DESCRIPTION}>
+        {body}
+      </Card>
+    );
+  }
+
+  const peopleToolbar: ReactElement = (
+    <TableHeaderToolbar
+      key="product-analytics-people-toolbar"
+      dataTestId="product-analytics-people-toolbar"
+      isSearchOpen={isSearchExpanded}
+      search={
+        <PeopleSearch
+          value={searchText}
+          onChange={setSearchText}
+          isOpen={isSearchExpanded}
+          onOpen={openSearch}
+          onClose={(): void => {
+            setIsSearchOpen(false);
+          }}
+          inputRef={searchInputRef}
+        />
+      }
+    />
+  );
+
   return (
     <Card
-      title="People"
-      description="Everyone the numbers above count, one row per person, most recently seen first. Open a person for their sessions."
-      headerLayout={hasSearch ? "toolbar" : undefined}
-      buttons={
-        hasSearch
-          ? [
-              <TableHeaderToolbar
-                key="product-analytics-people-toolbar"
-                dataTestId="product-analytics-people-toolbar"
-                isSearchOpen={isSearchExpanded}
-                search={
-                  <PeopleSearch
-                    value={searchText}
-                    onChange={setSearchText}
-                    isOpen={isSearchExpanded}
-                    onOpen={openSearch}
-                    onClose={(): void => {
-                      setIsSearchOpen(false);
-                    }}
-                    inputRef={searchInputRef}
-                  />
-                }
-              />,
-            ]
-          : undefined
-      }
+      title={PEOPLE_CARD_TITLE}
+      description={PEOPLE_CARD_DESCRIPTION}
+      headerLayout="toolbar"
+      buttons={[peopleToolbar]}
     >
-      <div className="space-y-4" data-testid="product-analytics-people">
-        <FilterButtons
-          className="flex-wrap"
-          ariaLabel="People"
-          dataTestId="product-analytics-people-filter"
-          selectedValue={props.filter}
-          onSelect={(value: string): void => {
-            props.onFilterChange(value as ProductAnalyticsPeopleFilter);
-          }}
-          options={PRODUCT_ANALYTICS_PEOPLE_FILTERS.map(
-            (
-              filter: ProductAnalyticsPeopleFilter,
-            ): { label: string; value: string } => {
-              return {
-                label: PRODUCT_ANALYTICS_FILTER_LABELS[filter],
-                value: filter,
-              };
-            },
-          )}
-        />
-        {props.filter === ProductAnalyticsPeopleFilter.Dormant ? (
-          <div
-            className="flex flex-wrap items-center gap-2 text-sm text-gray-600"
-            data-testid="product-analytics-dormant-window"
-          >
-            <span>{translator.translateText("Dormant after")}</span>
-            <FilterButtons
-              className="flex-wrap"
-              ariaLabel="Dormant after"
-              dataTestId="product-analytics-dormant"
-              selectedValue={String(props.dormantAfterDays)}
-              onSelect={(value: string): void => {
-                props.onDormantAfterDaysChange(Number(value));
-              }}
-              options={PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS_OPTIONS.map(
-                (days: number): { label: string; value: string } => {
-                  return {
-                    label: translator.translatePlural(
-                      { one: "{{count}} day", other: "{{count}} days" },
-                      days,
-                    ),
-                    value: String(days),
-                  };
-                },
-              )}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-        {read.error ? (
-          <ErrorMessage message={read.error} onRefreshClick={read.reload} />
-        ) : (
-          <Table<PersonRow>
-            id="product-analytics-people-table"
-            data={rows}
-            columns={columns}
-            isLoading={read.isLoading}
-            error=""
-            singularLabel="Person"
-            pluralLabel="People"
-            currentPageNumber={pageNumber}
-            totalItemsCount={pageSize * (pageNumber - 1) + rows.length}
-            itemsOnPage={pageSize}
-            hasMore={Boolean(people?.hasMore)}
-            paginationDataTestId="product-analytics-people-pagination"
-            onNavigateToPage={(next: number, itemsOnPage: number): void => {
-              if (itemsOnPage !== pageSize) {
-                /* A new size is a new query: it starts on its first page. */
-                setPageSize(itemsOnPage);
-
-                return;
-              }
-
-              setPage({ number: next, queryKey: queryKey });
-            }}
-            sortBy={null}
-            sortOrder={SortOrder.Descending}
-            onSortChanged={(): void => {
-              /* Most recently seen first: the route's only order. */
-            }}
-            noItemsMessage={
-              <div
-                className="flex bg-white px-6 py-12"
-                data-testid="product-analytics-people-empty"
-              >
-                <div className="m-auto max-w-md text-center">
-                  <Icon
-                    icon={IconProp.UserGroup}
-                    className="mx-auto h-10 w-10 rounded-lg bg-indigo-50 p-2 text-indigo-500"
-                  />
-                  <p className="mt-3 text-sm font-semibold text-gray-900">
-                    {isSearching
-                      ? translator.translateText(
-                          "Nobody whose name matches this search.",
-                        )
-                      : translator.translateText(
-                          "Nobody to show for this filter and range.",
-                        )}
-                  </p>
-                </div>
-              </div>
-            }
-          />
-        )}
-      </div>
+      {body}
     </Card>
   );
 };
