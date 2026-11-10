@@ -954,6 +954,7 @@ import { AddNotificationChannelsToOnCallDutyPolicyExecutionLogTimeline1809090065
 import { AddTwilioConfigDefaultPerKind1809090657400 } from "./1809090657400-AddTwilioConfigDefaultPerKind";
 import { AddRumApplicationProductAnalyticsEvents1809096444000 } from "./1809096444000-AddRumApplicationProductAnalyticsEvents";
 import { AddNetworkDeviceNamingRules1809100066190 } from "./1809100066190-AddNetworkDeviceNamingRules";
+import { AddDataDashboardUsageAndRefreshes1809100612000 } from "./1809100612000-AddDataDashboardUsageAndRefreshes";
 
 export default [
   InitialMigration,
@@ -1912,4 +1913,5 @@ export default [
   AddTwilioConfigDefaultPerKind1809090657400,
   AddRumApplicationProductAnalyticsEvents1809096444000,
   AddNetworkDeviceNamingRules1809100066190,
+  AddDataDashboardUsageAndRefreshes1809100612000,
 ];
