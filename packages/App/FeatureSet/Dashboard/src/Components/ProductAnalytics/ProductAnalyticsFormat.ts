@@ -115,6 +115,9 @@ export function describeProductAnalyticsDevice(
   return label ? translator.translateText(label) || label : value;
 }
 
+// A country as the sessions carry it: ISO 3166-1 alpha-2, "DE".
+const COUNTRY_CODE: RegExp = /^[A-Z]{2}$/;
+
 /* A two-letter country code by its name in the reader's language, else the code. */
 export function describeProductAnalyticsCountry(
   code: string,
@@ -122,7 +125,7 @@ export function describeProductAnalyticsCountry(
 ): string {
   const region: string = code.trim().toUpperCase();
 
-  if (!/^[A-Z]{2}$/.test(region)) {
+  if (!COUNTRY_CODE.test(region)) {
     return code.trim();
   }
 
@@ -341,6 +344,9 @@ function readZoneDay(instant: number, timeZone: string): string {
     .slice(0, 10);
 }
 
+// A day as the trend reads it: "2026-03-01".
+const DAY: RegExp = /^(\d{4})-(\d{2})-(\d{2})$/;
+
 /*
  * The instant a day ("2026-03-01") starts in a zone: where the trend's
  * points go on the chart's time axis, so each sits on its own day in the
@@ -351,7 +357,7 @@ export function getProductAnalyticsDayStart(
   day: string,
   timeZone: string,
 ): Date | null {
-  const match: RegExpExecArray | null = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  const match: RegExpExecArray | null = DAY.exec(day);
 
   if (!match) {
     return null;
