@@ -131,13 +131,6 @@ const PublicNoteApprovalSettings: FunctionComponent<ComponentProps> = (
         columns={[
           {
             field: {
-              order: true,
-            },
-            title: "Step",
-            type: FieldType.Number,
-          },
-          {
-            field: {
               name: true,
             },
             title: "Name",
