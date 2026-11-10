@@ -160,8 +160,9 @@ export function prepareNamingRules(
       continue;
     }
 
-    const read: { pattern: ParsedNamePattern } | { problem: NamePatternProblem } =
-      parseNamePattern(rule.namePattern);
+    const read:
+      | { pattern: ParsedNamePattern }
+      | { problem: NamePatternProblem } = parseNamePattern(rule.namePattern);
 
     if ("problem" in read) {
       continue;

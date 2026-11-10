@@ -40,6 +40,13 @@ const translationKey: (text: string) => string = (text: string): string => {
   return text;
 };
 
+// A filter's count: one to three digits ("first:3").
+const FILTER_COUNT: RegExp = /^\s*\d{1,3}\s*$/;
+// One part of an IPv4 address, as digits.
+const OCTET_DIGITS: RegExp = /^\d{1,3}$/;
+const HEX_DIGIT: RegExp = /[0-9a-fA-F]/;
+const ONLY_DIGITS: RegExp = /^\d+$/;
+
 export enum NamePlaceholder {
   DiscoveredName = "discoveredName",
   IpAddress = "ip",
@@ -367,7 +374,7 @@ function parseFilter(
 
   const countText: string = colon === -1 ? "" : piece.substring(colon + 1);
 
-  if (!/^\s*\d{1,3}\s*$/.test(countText)) {
+  if (!FILTER_COUNT.test(countText)) {
     return problem(NAME_PATTERN_PROBLEMS.filterNeedsCount, {
       filter: piece,
       example: `${filter}:3`,
@@ -426,8 +433,9 @@ function parsePlaceholder(
   const filters: Array<NamePatternFilterStep> = [];
 
   for (const filterText of parts.slice(1)) {
-    const read: { step: NamePatternFilterStep } | { problem: NamePatternProblem } =
-      parseFilter(filterText);
+    const read:
+      | { step: NamePatternFilterStep }
+      | { problem: NamePatternProblem } = parseFilter(filterText);
 
     if ("problem" in read) {
       return read;
@@ -509,8 +517,11 @@ export function parseNamePattern(
       });
     }
 
-    const read: { segment: NamePatternSegment } | { problem: NamePatternProblem } =
-      parsePlaceholder(pattern.substring(index + 1, close));
+    const read:
+      | { segment: NamePatternSegment }
+      | { problem: NamePatternProblem } = parsePlaceholder(
+      pattern.substring(index + 1, close),
+    );
 
     if ("problem" in read) {
       return read;
@@ -632,7 +643,7 @@ export function readIpv4Octets(value: unknown): Array<string> | null {
   const octets: Array<string> = [];
 
   for (const part of parts) {
-    if (!/^\d{1,3}$/.test(part)) {
+    if (!OCTET_DIGITS.test(part)) {
       return null;
     }
 
@@ -658,7 +669,7 @@ export function readMacAddressDigits(value: unknown): string | null {
   let digits: string = "";
 
   for (const character of text) {
-    if (/[0-9a-fA-F]/.test(character)) {
+    if (HEX_DIGIT.test(character)) {
       digits += character;
       continue;
     }
@@ -871,14 +882,17 @@ export function readNameCounter(
     lowerName.length - suffix.length,
   );
 
-  if (!/^\d+$/.test(digits) || digits.length < rendering.counterWidth) {
+  if (!ONLY_DIGITS.test(digits) || digits.length < rendering.counterWidth) {
     return null;
   }
 
   const value: number = parseInt(digits, 10);
 
   // "00" is not a number the counter writes: it starts at 1.
-  if (value < 1 || formatNameCounter(value, rendering.counterWidth) !== digits) {
+  if (
+    value < 1 ||
+    formatNameCounter(value, rendering.counterWidth) !== digits
+  ) {
     return null;
   }
 

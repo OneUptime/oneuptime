@@ -131,7 +131,9 @@ export class NamingSiteDirectory {
     }
   }
 
-  public describe(siteId: string | null | undefined): NamingSiteInfo | undefined {
+  public describe(
+    siteId: string | null | undefined,
+  ): NamingSiteInfo | undefined {
     const id: string = (siteId || "").trim();
     const site: NamingSiteRow | undefined = id ? this.rows.get(id) : undefined;
 
@@ -248,7 +250,10 @@ class NetworkDeviceNamingRuleEngineServiceClass {
           isEnabled: true,
         },
         select: this.ruleSelect,
-        sort: { priority: SortOrder.Descending, createdAt: SortOrder.Ascending },
+        sort: {
+          priority: SortOrder.Descending,
+          createdAt: SortOrder.Ascending,
+        },
         limit: MAX_NAMING_RULES,
         skip: 0,
         props: { isRoot: true },
@@ -466,7 +471,8 @@ class NetworkDeviceNamingRuleEngineServiceClass {
     return this.withSite(
       {
         ipAddress: toText(device.hostname) || undefined,
-        macAddress: assetFacts.macAddress || toText(device.macAddress) || undefined,
+        macAddress:
+          assetFacts.macAddress || toText(device.macAddress) || undefined,
         vendor: getNetworkDeviceManufacturer(device) || undefined,
         discoveredName:
           toText(device.discoveredName) || toText(device.name) || undefined,
@@ -529,7 +535,10 @@ class NetworkDeviceNamingRuleEngineServiceClass {
   @RuleEvaluation()
   public async previewDiscoveredDevices(data: {
     projectId: ObjectID;
-    hosts: ReadonlyArray<{ ipAddress: string; facts: DiscoveredDeviceImportFacts }>;
+    hosts: ReadonlyArray<{
+      ipAddress: string;
+      facts: DiscoveredDeviceImportFacts;
+    }>;
   }): Promise<DeviceNamingPreview> {
     const context: DeviceNamingContext | null = await this.loadContext(
       data.projectId,
@@ -575,7 +584,11 @@ class NetworkDeviceNamingRuleEngineServiceClass {
       ).slice(0, MAX_DEVICES_PER_NAMING_PLAN);
       const devices: Array<NetworkDevice> = [];
 
-      for (let index: number = 0; index < ids.length; index += DEVICE_PAGE_SIZE) {
+      for (
+        let index: number = 0;
+        index < ids.length;
+        index += DEVICE_PAGE_SIZE
+      ) {
         devices.push(
           ...(await NetworkDeviceService.findBy({
             query: {
@@ -773,9 +786,11 @@ class NetworkDeviceNamingRuleEngineServiceClass {
       string,
       DeviceNamingPlanItem
     >(
-      plan.items.map((item: DeviceNamingPlanItem): [string, DeviceNamingPlanItem] => {
-        return [item.deviceId, item];
-      }),
+      plan.items.map(
+        (item: DeviceNamingPlanItem): [string, DeviceNamingPlanItem] => {
+          return [item.deviceId, item];
+        },
+      ),
     );
     const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
       query: {

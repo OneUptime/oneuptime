@@ -26,9 +26,8 @@ import ApplyNamingRulesModal from "./ApplyNamingRulesModal";
  * them (NetworkDeviceNamingAPI).
  */
 
-export const APPLY_NAMING_RULES_ACTION_TITLE: string = translationKey(
-  "Apply Naming Rules",
-);
+export const APPLY_NAMING_RULES_ACTION_TITLE: string =
+  translationKey("Apply Naming Rules");
 
 export interface BulkApplyNamingRulesResult {
   bulkActions: Array<BulkActionButtonSchema<NetworkDevice>>;

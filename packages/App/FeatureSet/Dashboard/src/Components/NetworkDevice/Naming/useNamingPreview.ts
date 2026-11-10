@@ -63,7 +63,9 @@ export default function useNamingPreview(data: {
   const requestRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const keys: Array<string> = (
-    data.endpointIds || data.ipAddresses || []
+    data.endpointIds ||
+    data.ipAddresses ||
+    []
   ).slice(0, MAX_HOSTS_PER_DISCOVERY_IMPORT);
   const signature: string = `${data.scanId || ""}|${keys.join(",")}`;
 

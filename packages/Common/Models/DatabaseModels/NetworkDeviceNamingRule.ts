@@ -417,7 +417,7 @@ export default class NetworkDeviceNamingRule extends RuleBaseModel {
     type: TableColumnType.JSON,
     title: "Lookup Table",
     description:
-      "Rows of a key and the value it stands for, put where the name pattern says {lookup}. A device whose key has no row is left to the next rule. At most 5,000 rows.",
+      "Rows of a key and the value it stands for, put where the name pattern says {lookup}. A device whose key has no row is left to the next rule.",
     example: [
       { key: "51", value: "MNUPLR01" },
       { key: "151", value: "MNUSCR01" },

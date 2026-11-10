@@ -127,7 +127,9 @@ export function addressIsInNamingRange(
  * condition matches when it matches any of them; a negated one, when it
  * matches none.
  */
-export function getMacAddressSpellings(value: string | undefined): Array<string> {
+export function getMacAddressSpellings(
+  value: string | undefined,
+): Array<string> {
   const digits: string | null = readMacAddressDigits(value);
 
   if (!digits) {
@@ -203,7 +205,10 @@ function matchesColumns(
 ): boolean {
   const ipMatchTarget: string = (rule.ipMatchTarget || "").trim();
 
-  if (ipMatchTarget && !addressIsInNamingRange(facts.ipAddress, ipMatchTarget)) {
+  if (
+    ipMatchTarget &&
+    !addressIsInNamingRange(facts.ipAddress, ipMatchTarget)
+  ) {
     return false;
   }
 

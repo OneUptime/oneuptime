@@ -2156,9 +2156,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         }
 
         try {
-          naming = await NetworkDeviceNamingRuleEngineService.startImportSession(
-            scan.projectId!,
-          );
+          naming =
+            await NetworkDeviceNamingRuleEngineService.startImportSession(
+              scan.projectId!,
+            );
         } catch (error) {
           logger.error(
             `Auto-import: could not read the naming rules, so devices are created under their discovered names: ${error}`,

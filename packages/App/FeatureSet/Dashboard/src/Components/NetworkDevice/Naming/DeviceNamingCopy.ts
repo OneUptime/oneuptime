@@ -29,7 +29,9 @@ export const MISSING_VALUE_SENTENCES: Readonly<
   ),
   [NamePlaceholder.MacAddress]: translationKey("Its MAC address is not known."),
   [NamePlaceholder.Vendor]: translationKey("Its vendor is not known."),
-  [NamePlaceholder.DiscoveredName]: translationKey("It has no discovered name."),
+  [NamePlaceholder.DiscoveredName]: translationKey(
+    "It has no discovered name.",
+  ),
   [NamePlaceholder.IpAddress]: translationKey("It has no IP address."),
   [NamePlaceholder.IpOctet1]: translationKey("It has no IPv4 address."),
   [NamePlaceholder.IpOctet2]: translationKey("It has no IPv4 address."),
@@ -71,17 +73,19 @@ export function describeNamingProblem(
 ): string | null {
   switch (result.outcome) {
     case DeviceNamingOutcome.NoMatchingRule:
-      return translator.translateText(NAMING_SENTENCES.noRule);
+      return (
+        translator.translateText(NAMING_SENTENCES.noRule) ||
+        NAMING_SENTENCES.noRule
+      );
     case DeviceNamingOutcome.MissingValue: {
       const placeholder: NamePlaceholder | null = readPlaceholder(
         result.missing,
       );
+      const sentence: string = placeholder
+        ? MISSING_VALUE_SENTENCES[placeholder]
+        : NAMING_SENTENCES.missingValueFallback;
 
-      return translator.translateText(
-        placeholder
-          ? MISSING_VALUE_SENTENCES[placeholder]
-          : NAMING_SENTENCES.missingValueFallback,
-      );
+      return translator.translateText(sentence) || sentence;
     }
     case DeviceNamingOutcome.NameTaken:
       return translator.translateTemplate(NAMING_SENTENCES.nameTaken, {

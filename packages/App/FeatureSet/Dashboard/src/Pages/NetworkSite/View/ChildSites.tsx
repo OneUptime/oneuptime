@@ -78,8 +78,9 @@ const NetworkSiteChildSites: FunctionComponent<
           },
         ]}
         /*
-         * One page: the child's type and name, with its location folded
-         * under More fields. Two rows and a fold need no steps (the parent
+         * One page: the child's type and name, with its site code (what
+         * naming rules write as {site.code}) and location folded under More
+         * fields. Two rows and a fold need no steps (the parent
          * is this site, so there is no hierarchy step to walk to).
          */
         formFields={[
@@ -104,6 +105,18 @@ const NetworkSiteChildSites: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Second floor",
+          },
+          {
+            field: {
+              code: true,
+            },
+            title: "Site Code",
+            collapsibleSection: SITE_MORE_FIELDS,
+            description:
+              "A short code, such as a store or unit number. Naming rules can put it in device names with {site.code}.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "1216",
           },
           {
             field: {

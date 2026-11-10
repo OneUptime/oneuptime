@@ -56,9 +56,8 @@ import { describeNamingProblem, isNamingProblem } from "./DeviceNamingCopy";
 // How many devices of a group are drawn before "Show more".
 export const PLAN_ROWS_PER_PAGE: number = 100;
 
-export const APPLY_NAMING_RULES_TITLE: string = translationKey(
-  "Apply Naming Rules",
-);
+export const APPLY_NAMING_RULES_TITLE: string =
+  translationKey("Apply Naming Rules");
 
 export interface ApplyNamingRulesModalProps {
   // The devices to check; every device of the project when left out.
@@ -158,14 +157,17 @@ const RenameRow: FunctionComponent<{
   );
 };
 
-const AttentionRow: FunctionComponent<{ item: DeviceNamingPlanItem }> = (props: {
+const AttentionRow: FunctionComponent<{
   item: DeviceNamingPlanItem;
-}): ReactElement => {
+}> = (props: { item: DeviceNamingPlanItem }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
     <li className="px-3 py-2.5" data-testid="naming-plan-attention">
-      <span dir="auto" className="block break-all text-sm font-medium text-gray-900">
+      <span
+        dir="auto"
+        className="block break-all text-sm font-medium text-gray-900"
+      >
         {props.item.currentName}
       </span>
       <span className="mt-0.5 flex items-start gap-1.5 text-xs text-amber-700">
@@ -190,7 +192,7 @@ const AttentionRow: FunctionComponent<{ item: DeviceNamingPlanItem }> = (props: 
 };
 
 const Group: FunctionComponent<{
-  title: string;
+  title: string | undefined;
   description?: string | undefined;
   count: number;
   testId: string;
@@ -199,7 +201,7 @@ const Group: FunctionComponent<{
   shown: number;
   onShowMore?: (() => void) | undefined;
 }> = (props: {
-  title: string;
+  title: string | undefined;
   description?: string | undefined;
   count: number;
   testId: string;
@@ -388,9 +390,11 @@ const ApplyNamingRulesModal: FunctionComponent<ApplyNamingRulesModalProps> = (
 
   const nameById: Map<string, string> = useMemo(() => {
     return new Map<string, string>(
-      (plan?.items || []).map((item: DeviceNamingPlanItem): [string, string] => {
-        return [item.deviceId, item.currentName];
-      }),
+      (plan?.items || []).map(
+        (item: DeviceNamingPlanItem): [string, string] => {
+          return [item.deviceId, item.currentName];
+        },
+      ),
     );
   }, [plan]);
 
@@ -631,7 +635,7 @@ const ApplyNamingRulesModal: FunctionComponent<ApplyNamingRulesModalProps> = (
     <Modal
       title={APPLY_NAMING_RULES_TITLE}
       description={
-        props.deviceIds
+        (props.deviceIds
           ? translator.translatePlural(
               {
                 one: "Rename the selected device to follow your naming rules. Nothing changes until you confirm.",
@@ -643,14 +647,16 @@ const ApplyNamingRulesModal: FunctionComponent<ApplyNamingRulesModalProps> = (
             )
           : translator.translateText(
               "Rename devices to follow your naming rules. Nothing changes until you confirm.",
-            )
+            )) || ""
       }
       modalWidth={ModalWidth.Large}
       isBodyLoading={isLoading}
       isLoading={isApplying}
       error={error || undefined}
       onClose={props.onClose}
-      closeButtonText={isDone ? translationKey("Done") : translationKey("Cancel")}
+      closeButtonText={
+        isDone ? translationKey("Done") : translationKey("Cancel")
+      }
       {...(isDone
         ? { closeButtonStyleType: ButtonStyleType.PRIMARY }
         : {
@@ -668,7 +674,6 @@ const ApplyNamingRulesModal: FunctionComponent<ApplyNamingRulesModalProps> = (
           })}
       disableSubmitButton={renames.length === 0 || isLoading}
       submitButtonStyleType={ButtonStyleType.PRIMARY}
-      dataTestId="apply-naming-rules-modal"
     >
       {body}
     </Modal>

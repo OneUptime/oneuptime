@@ -212,7 +212,8 @@ export function isDeviceNamedByPerson(device: {
   ruleAssignedName?: unknown;
   hostname?: unknown;
 }): boolean {
-  const name: string = typeof device.name === "string" ? device.name.trim() : "";
+  const name: string =
+    typeof device.name === "string" ? device.name.trim() : "";
 
   if (!name) {
     return false;

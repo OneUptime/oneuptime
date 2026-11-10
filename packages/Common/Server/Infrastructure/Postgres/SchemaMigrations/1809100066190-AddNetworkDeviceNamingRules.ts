@@ -81,26 +81,20 @@ export class AddNetworkDeviceNamingRules1809100066190
     await queryRunner.query(
       `ALTER TABLE "NetworkDevice" DROP COLUMN "ruleAssignedName"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "NetworkSite" DROP COLUMN "code"`,
-    );
+    await queryRunner.query(`ALTER TABLE "NetworkSite" DROP COLUMN "code"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_3e8e313675276ace5bf40124a6"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_b4e7eb1cb28de9e3fcb4b62dfb"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "NetworkDeviceNamingRuleSite"`,
-    );
+    await queryRunner.query(`DROP TABLE "NetworkDeviceNamingRuleSite"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_152b7f2d1f0826872841ce6941"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_a6ef16abe5adcb39c3edaa9ca1"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "NetworkDeviceNamingRule"`,
-    );
+    await queryRunner.query(`DROP TABLE "NetworkDeviceNamingRule"`);
   }
 }

@@ -37,6 +37,19 @@ const translationKey: (text: string) => string = (text: string): string => {
   return text;
 };
 
+// One part of an IPv4 address, as digits.
+const OCTET_DIGITS: RegExp = /^\d{1,3}$/;
+// What an IPv6 address is written with.
+const IPV6_CHARACTERS: RegExp = /^[0-9a-fA-F:.]+$/;
+/*
+ * A cell a spreadsheet would run as a formula, and the same cell as the
+ * export writes it, behind an apostrophe.
+ */
+const FORMULA_CELL: RegExp = /^[=+\-@]/;
+const ESCAPED_FORMULA_CELL: RegExp = /^'[=+\-@]/;
+// A cell the CSV export puts in quotes.
+const CELL_NEEDING_QUOTES: RegExp = /[",;\t\r\n]/;
+
 // What the rule form's choice and the table's first column call each key.
 export const NAMING_LOOKUP_KEY_TITLES: Readonly<
   Record<NamingLookupKey, string>
@@ -46,6 +59,9 @@ export const NAMING_LOOKUP_KEY_TITLES: Readonly<
   [NamingLookupKey.MacAddress]: translationKey("MAC address"),
   [NamingLookupKey.DiscoveredName]: translationKey("Discovered name"),
 };
+
+// An example of a table's value: the reporter's menu player's code.
+export const NAMING_LOOKUP_VALUE_EXAMPLE: string = "MNUPLR01";
 
 // An example key of each kind, for the table's empty row.
 export const NAMING_LOOKUP_KEY_EXAMPLES: Readonly<
@@ -106,7 +122,9 @@ export interface NamingLookupProblem {
   values: Record<string, string>;
 }
 
-export function formatNamingLookupProblem(problem: NamingLookupProblem): string {
+export function formatNamingLookupProblem(
+  problem: NamingLookupProblem,
+): string {
   let text: string = problem.template;
 
   for (const [key, value] of Object.entries(problem.values)) {
@@ -151,7 +169,7 @@ export function normalizeNamingLookupKey(
       // A whole number from 0 to 255, or a written ".51".
       const digits: string = text.startsWith(".") ? text.substring(1) : text;
 
-      if (!/^\d{1,3}$/.test(digits)) {
+      if (!OCTET_DIGITS.test(digits)) {
         return null;
       }
 
@@ -167,7 +185,7 @@ export function normalizeNamingLookupKey(
       }
 
       // An IPv6 address, compared without case.
-      return text.includes(":") && /^[0-9a-fA-F:.]+$/.test(text)
+      return text.includes(":") && IPV6_CHARACTERS.test(text)
         ? text.toLowerCase()
         : null;
     }
@@ -285,15 +303,15 @@ export function lookUpNamingValue(
 export function validateNamingLookupEntries(data: {
   kind: unknown;
   entries: unknown;
-}):
-  | { entries: Array<NamingLookupEntry> }
-  | { problem: NamingLookupProblem } {
+}): { entries: Array<NamingLookupEntry> } | { problem: NamingLookupProblem } {
   if (data.entries === undefined || data.entries === null) {
     return { entries: [] };
   }
 
   if (!Array.isArray(data.entries)) {
-    return { problem: { template: NAMING_LOOKUP_PROBLEMS.notAList, values: {} } };
+    return {
+      problem: { template: NAMING_LOOKUP_PROBLEMS.notAList, values: {} },
+    };
   }
 
   if (data.entries.length === 0) {
@@ -310,7 +328,9 @@ export function validateNamingLookupEntries(data: {
   }
 
   if (!isNamingLookupKey(data.kind)) {
-    return { problem: { template: NAMING_LOOKUP_PROBLEMS.noKeyKind, values: {} } };
+    return {
+      problem: { template: NAMING_LOOKUP_PROBLEMS.noKeyKind, values: {} },
+    };
   }
 
   const kind: NamingLookupKey = data.kind;
@@ -521,7 +541,7 @@ function splitCells(line: string, separator: string): Array<string> {
 function fromCsvText(cell: string): string {
   const trimmed: string = cell.trim();
 
-  return /^'[=+\-@]/.test(trimmed) ? trimmed.substring(1) : trimmed;
+  return ESCAPED_FORMULA_CELL.test(trimmed) ? trimmed.substring(1) : trimmed;
 }
 
 function isHeaderLine(cells: Array<string>, kind: NamingLookupKey): boolean {
@@ -612,9 +632,11 @@ function toCsvCell(value: string): string {
    * text with a leading apostrophe, so an exported table opened in a
    * spreadsheet never runs one.
    */
-  const safe: string = /^[=+\-@]/.test(value) ? `'${value}` : value;
+  const safe: string = FORMULA_CELL.test(value) ? `'${value}` : value;
 
-  return /[",;\t\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  return CELL_NEEDING_QUOTES.test(safe)
+    ? `"${safe.replace(/"/g, '""')}"`
+    : safe;
 }
 
 /**

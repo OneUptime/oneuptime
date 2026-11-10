@@ -147,8 +147,9 @@ export const NamingPreviewList: FunctionComponent<{
       className="mt-2 space-y-1 rounded-lg border border-gray-200 bg-white px-3 py-2"
       data-testid="naming-preview-list"
     >
-      {named.slice(0, NAMING_PREVIEW_LIST_LIMIT).map(
-        (item: DeviceNamingPreviewItem): ReactElement => {
+      {named
+        .slice(0, NAMING_PREVIEW_LIST_LIMIT)
+        .map((item: DeviceNamingPreviewItem): ReactElement => {
           return (
             <li
               key={item.key}
@@ -169,8 +170,7 @@ export const NamingPreviewList: FunctionComponent<{
               </span>
             </li>
           );
-        },
-      )}
+        })}
       {named.length > NAMING_PREVIEW_LIST_LIMIT && (
         <li className="text-xs text-gray-500">
           {translator.translateTemplate("and {{count}} more", {

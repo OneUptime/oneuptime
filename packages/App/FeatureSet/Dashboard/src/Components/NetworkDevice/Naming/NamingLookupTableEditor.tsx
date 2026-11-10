@@ -17,6 +17,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   NAMING_LOOKUP_KEY_EXAMPLES,
   NAMING_LOOKUP_KEY_TITLES,
+  NAMING_LOOKUP_VALUE_EXAMPLE,
   ParsedNamingLookupText,
   parseNamingLookupText,
   toNamingLookupCsv,
@@ -151,9 +152,9 @@ const NamingLookupTableEditor: FunctionComponent<
     ? props.kind
     : NamingLookupKey.LastIpOctet;
   const entries: Array<NamingLookupEntry> = props.entries;
-  const keyTitle: string = translator.translateText(
-    NAMING_LOOKUP_KEY_TITLES[kind],
-  );
+  const keyTitle: string =
+    translator.translateText(NAMING_LOOKUP_KEY_TITLES[kind]) ||
+    NAMING_LOOKUP_KEY_TITLES[kind];
 
   const setRow: (index: number, row: NamingLookupEntry) => void = (
     index: number,
@@ -181,30 +182,32 @@ const NamingLookupTableEditor: FunctionComponent<
     setShownRows(Math.max(shownRows, entries.length + 1));
   };
 
-  const describeRead: (read: ParsedNamingLookupText, count: number) => string =
-    (read: ParsedNamingLookupText, count: number): string => {
-      const added: string = translator.translatePlural(
-        {
-          one: "{{count}} row read.",
-          other: "{{count}} rows read.",
-        },
-        count,
-        { count: translator.formatNumber(count) },
-      );
+  const describeRead: (
+    read: ParsedNamingLookupText,
+    count: number,
+  ) => string = (read: ParsedNamingLookupText, count: number): string => {
+    const added: string = translator.translatePlural(
+      {
+        one: "{{count}} row read.",
+        other: "{{count}} rows read.",
+      },
+      count,
+      { count: translator.formatNumber(count) },
+    );
 
-      if (read.incompleteLines.length === 0) {
-        return added;
-      }
+    if (read.incompleteLines.length === 0) {
+      return added;
+    }
 
-      return `${added} ${translator.translatePlural(
-        {
-          one: "{{count}} line had no value and was skipped.",
-          other: "{{count}} lines had no value and were skipped.",
-        },
-        read.incompleteLines.length,
-        { count: translator.formatNumber(read.incompleteLines.length) },
-      )}`;
-    };
+    return `${added} ${translator.translatePlural(
+      {
+        one: "{{count}} line had no value and was skipped.",
+        other: "{{count}} lines had no value and were skipped.",
+      },
+      read.incompleteLines.length,
+      { count: translator.formatNumber(read.incompleteLines.length) },
+    )}`;
+  };
 
   const applyPaste: () => void = (): void => {
     const read: ParsedNamingLookupText = parseNamingLookupText(
@@ -326,7 +329,7 @@ const NamingLookupTableEditor: FunctionComponent<
                           dir="ltr"
                           value={entry.value}
                           maxLength={MAX_NAMING_LOOKUP_VALUE_LENGTH}
-                          placeholder="MNUPLR01"
+                          placeholder={NAMING_LOOKUP_VALUE_EXAMPLE}
                           aria-label={`${translator.translateText("Value")} ${index + 1}`}
                           className="block w-full rounded-md border border-gray-200 px-2 py-1 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           onChange={(
@@ -409,7 +412,12 @@ const NamingLookupTableEditor: FunctionComponent<
             dir="ltr"
             rows={6}
             value={pastedText}
-            placeholder={`${NAMING_LOOKUP_KEY_EXAMPLES[kind]}\tMNUPLR01\n…`}
+            placeholder={
+              [
+                NAMING_LOOKUP_KEY_EXAMPLES[kind],
+                NAMING_LOOKUP_VALUE_EXAMPLE,
+              ].join("\t") + "\n…"
+            }
             className="block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             data-testid="naming-lookup-paste-text"
             onChange={(event: React.ChangeEvent<HTMLTextAreaElement>): void => {

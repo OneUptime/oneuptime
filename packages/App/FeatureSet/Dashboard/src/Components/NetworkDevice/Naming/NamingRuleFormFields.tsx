@@ -67,7 +67,10 @@ function readText(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-function translate(problem: { template: string; values: Record<string, string> }): string {
+function translate(problem: {
+  template: string;
+  values: Record<string, string>;
+}): string {
   const translator: Translator = getGlobalTranslator();
   return translator.translateTemplate(problem.template, problem.values);
 }
@@ -129,7 +132,10 @@ export function getLookupTableFieldError(
   );
 
   if (usesLookup && validated.entries.length === 0) {
-    return translate({ template: NAMING_LOOKUP_PROBLEMS.emptyTable, values: {} });
+    return translate({
+      template: NAMING_LOOKUP_PROBLEMS.emptyTable,
+      values: {},
+    });
   }
 
   if (!usesLookup && validated.entries.length > 0) {
@@ -178,7 +184,8 @@ export default function getNamingRuleFormFields(): Array<
       stepId: "basic-info",
       fieldType: FormFieldSchemaType.LongText,
       required: false,
-      placeholder: "Menu players and screens of every unit, by their place in the unit's subnet.",
+      placeholder:
+        "Menu players and screens of every unit, by their place in the unit's subnet.",
     },
     {
       field: { isEnabled: true },
@@ -186,8 +193,7 @@ export default function getNamingRuleFormFields(): Array<
       stepId: "basic-info",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
-      description:
-        "A disabled rule names nothing, and the next rule is tried.",
+      description: "A disabled rule names nothing, and the next rule is tried.",
     },
     {
       field: { ipMatchTarget: true },
@@ -294,7 +300,9 @@ export default function getNamingRuleFormFields(): Array<
       description: "What each row of the table is keyed by.",
       collapsibleSection: {
         ...LOOKUP_SECTION,
-        isConfigured: (values: FormValues<NetworkDeviceNamingRule>): boolean => {
+        isConfigured: (
+          values: FormValues<NetworkDeviceNamingRule>,
+        ): boolean => {
           return (
             readLookupRows((values as Record<string, unknown>)["lookupEntries"])
               .length > 0
@@ -315,7 +323,9 @@ export default function getNamingRuleFormFields(): Array<
       },
       collapsibleSection: {
         ...LOOKUP_SECTION,
-        isConfigured: (values: FormValues<NetworkDeviceNamingRule>): boolean => {
+        isConfigured: (
+          values: FormValues<NetworkDeviceNamingRule>,
+        ): boolean => {
           return (
             readLookupRows((values as Record<string, unknown>)["lookupEntries"])
               .length > 0

@@ -13,11 +13,7 @@ import {
   getExampleName,
   getNamePatternProblem,
 } from "Common/Utils/NetworkDevice/Naming/NamePattern";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useRef,
-} from "react";
+import React, { FunctionComponent, ReactElement, useRef } from "react";
 
 /*
  * THE NAME PATTERN, AS IT IS TYPED (Network > Rules > Naming Rules, issue

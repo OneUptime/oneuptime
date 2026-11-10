@@ -473,7 +473,8 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
    * pattern's {nn} gives depend on which hosts are imported together.
    */
   const namingPreview: NamingPreviewState = useNamingPreview({
-    isActive: step === DiscoveryImportStep.Choose && Boolean(scan) && !isLoading,
+    isActive:
+      step === DiscoveryImportStep.Choose && Boolean(scan) && !isLoading,
     scanId: scanId,
     ipAddresses: hostsToImport.map((host: DiscoveredNetworkDevice): string => {
       return host.ipAddress;
@@ -1009,7 +1010,6 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
               hostCount={hostsToImport.length}
             />
             <DiscoveredHostTable
-              namingPreview={namingPreview.byKey}
               hosts={hosts}
               scan={scan}
               isGlobalProbe={probe?.isGlobalProbe}
@@ -1031,6 +1031,7 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
               ) => {
                 setSelection(update);
               }}
+              namingPreview={namingPreview.byKey}
             />
           </div>
         )}

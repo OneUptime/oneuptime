@@ -194,8 +194,9 @@ export class Service extends ProjectReferencesService<Model> {
   public static validateRule(state: NamingRuleState): Array<NamingLookupEntry> {
     Service.validateConditions(state);
 
-    const read: { pattern: ParsedNamePattern } | { problem: NamePatternProblem } =
-      parseNamePattern(state.namePattern);
+    const read:
+      | { pattern: ParsedNamePattern }
+      | { problem: NamePatternProblem } = parseNamePattern(state.namePattern);
 
     if ("problem" in read) {
       throw new BadDataException(formatNamePatternProblem(read.problem));
@@ -295,7 +296,10 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (filter.field === "sites") {
-      if (!LIST_OPERATORS.has(filter.operator) || !Array.isArray(filter.value)) {
+      if (
+        !LIST_OPERATORS.has(filter.operator) ||
+        !Array.isArray(filter.value)
+      ) {
         throw new BadDataException(
           "A Site condition picks sites from the list: has any of, has all of or has none of.",
         );

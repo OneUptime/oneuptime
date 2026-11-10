@@ -36,6 +36,18 @@ Naming rules name your network devices by your naming convention. A rule says **
 
 Rules name a device when discovery imports it — from **Review Results**, from **Discovered Devices**, and through **Auto Import Rules**. The import dialog shows the name each device will get before you import. The name discovery found is kept on the device as its **Discovered Name**, and a later scan never renames a device a rule named.
 
+### Match Criteria
+
+A rule names the devices that match its conditions. A rule with no conditions can name every device.
+
+### What the Conditions Compare
+
+- **IP Address** — the device's address. **Is in** takes a subnet (\`10.48.145.0/24\`) or octet ranges, where \`*\` is any number (\`10.*.*.51\`, \`10.*.*.154-159\`).
+- **Discovered Name** — the name discovery found: the SNMP or NetBIOS name, the DNS name, or the address. A pattern is a case-insensitive regular expression or a \`*\` wildcard.
+- **MAC Address** — in any spelling: \`00:05:0b*\`, \`00-05-0B*\` and \`00050b*\` match the same devices.
+- **Vendor** — who made the device, from its MAC address or its SNMP answer.
+- **Site** — the device's site. A site matches the devices of the sites under it too, so one rule can cover a whole region.
+
 ### Name Patterns
 
 A pattern is text, with the parts that differ from device to device in curly braces:
