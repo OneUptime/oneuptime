@@ -502,6 +502,47 @@ describe("a report in another language is laid out as the English one is", () =>
     expect(read).toBeGreaterThan(1000);
   });
 
+  test("a qualifier in brackets of either width, inside the label, leaves the word its section", () => {
+    let read: number = 0;
+
+    for (const language of OTHER_LANGUAGES) {
+      for (const term of INVESTIGATION_REPORT_HEADING_TERMS) {
+        for (const word of wordsFor(language, term)) {
+          const shapes: Array<[string, string]> = [
+            [`**${word}（高置信度）**\nThe body.`, `${word}（高置信度）`],
+            [
+              `**${word} (high confidence)**\nThe body.`,
+              `${word} (high confidence)`,
+            ],
+            [`## ${word}（草稿）\nThe body.`, `${word}（草稿）`],
+            [`${word}（可能）：The body.`, `${word}（可能）`],
+          ];
+
+          for (const [shape, title] of shapes) {
+            const where: string = `${language.code} ${term}: ${shape}`;
+
+            expect({
+              where,
+              sections: parseInvestigationReport(shape).sections.map(
+                (
+                  section: InvestigationReportSection,
+                ): [InvestigationReportSectionKind, string, string] => {
+                  return [section.kind, section.title, section.markdown];
+                },
+              ),
+            }).toEqual({
+              where,
+              sections: [[HEADING_KINDS[term], title, "The body."]],
+            });
+            read++;
+          }
+        }
+      }
+    }
+
+    expect(read).toBeGreaterThan(500);
+  });
+
   test("every Impact label of every language names its aspect, with either colon", () => {
     for (const language of OTHER_LANGUAGES) {
       for (const term of INVESTIGATION_REPORT_IMPACT_LABEL_TERMS) {
@@ -726,6 +767,51 @@ describe("whole reports, as a model writes them", () => {
       InvestigationReportSectionKind.RootCause,
     ]);
     expect(report.summary).toBe("结账服务：仍然失败。\n**连接池**很小。");
+  });
+
+  test("a sentence in bold that ends as its script ends one is prose, not a heading", () => {
+    function reportWith(bold: string): ParsedInvestigationReport {
+      return parseInvestigationReport(
+        [
+          "**摘要**",
+          "结账失败。",
+          "",
+          bold,
+          "它从 50 降到了 10 [C1]。",
+          "",
+          "**最可能的根本原因**",
+          "连接池被调小 [C1]。",
+        ].join("\n"),
+      );
+    }
+
+    for (const sentence of [
+      "**连接池在发布后被调小。**",
+      "**连接池被调小了吗？**",
+      "**接続プールが縮小されました！**",
+      "**هل تم تقليص المجمع؟**",
+      "**पूल छोटा किया गया।**",
+    ]) {
+      const report: ParsedInvestigationReport = reportWith(sentence);
+
+      expect({ sentence, kinds: kindsOf(report) }).toEqual({
+        sentence,
+        kinds: [
+          InvestigationReportSectionKind.Summary,
+          InvestigationReportSectionKind.RootCause,
+        ],
+      });
+      expect(report.summary).toBe(
+        `结账失败。\n\n${sentence}\n它从 50 降到了 10 [C1]。`,
+      );
+    }
+
+    // Without its full stop, the same words in bold head a section of their own.
+    expect(kindsOf(reportWith("**连接池在发布后被调小**"))).toEqual([
+      InvestigationReportSectionKind.Summary,
+      InvestigationReportSectionKind.Other,
+      InvestigationReportSectionKind.RootCause,
+    ]);
   });
 
   test("a heading the table does not know keeps its own name, as an English one does", () => {
