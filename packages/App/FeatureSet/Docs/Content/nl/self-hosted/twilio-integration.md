@@ -46,7 +46,7 @@ Zo voegt u een projectconfiguratie toe:
 2. Kies in **Twilio-configuratie** de knop **Twilio-configuratie maken**.
 3. Vul een naam in en kies bij **Dit account gebruiken voor** wat het account verstuurt: **Oproepen en sms**, **Alleen sms** of **Alleen oproepen**. Vul daarna **Twilio-account-SID**, **Twilio-authenticatietoken** en het nummer in waar die keuze om vraagt: **Twilio primair telefoonnummer** voor oproepen, of **Twilio sms-telefoonnummers** voor **Alleen sms**. Vul onder **Meer velden** eventueel door komma's gescheiden **Twilio secundaire telefoonnummers** in voor andere landen, en **Twilio sms-telefoonnummers** als uw nummers geen sms kunnen versturen.
 4. **Instellen als projectstandaard** staat aan voor de eerste configuratie van het project, zodat de sms en oproepen naar de leden van het project, inclusief on-call-meldingen, er meteen na het opslaan via lopen. Zet het uit als dit account alleen voor statuspagina's of inkomende oproepen is. Een latere configuratie begint met de schakelaar uit: zet hem aan, of kies **Instellen als projectstandaard** in het rijmenu van de configuratie, om die berichten ernaartoe te verplaatsen. Een API-verzoek dat `isProjectDefault` weglaat, wordt op dezelfde manier behandeld.
-5. Sla op. Slechts één configuratie kan de projectstandaard zijn. Statuspagina's gebruiken de configuratie die expliciet aan elke statuspagina is toegewezen.
+5. Sla op. Een project heeft een standaard voor sms en een voor oproepen, dus een configuratie op **Alleen sms** en een op **Alleen oproepen** kunnen allebei de standaard zijn: zie [Een account alleen voor sms, of alleen voor oproepen](#een-account-alleen-voor-sms-of-alleen-voor-oproepen). Statuspagina's gebruiken de configuratie die expliciet aan elke statuspagina is toegewezen.
 
 > [!IMPORTANT]
 > **SMS** en **Telefoonoproepen** staan in elk project eerst uit, en zolang ze uit staan kan niemand in het project er een telefoonnummer voor toevoegen. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan in de kaart **Meldingskanalen** op dezelfde pagina.
@@ -81,7 +81,9 @@ Een account dat u alleen voor sms gebruikt, of alleen voor oproepen, heeft geen 
 | **Alleen sms** | **Twilio sms-telefoonnummers** | Oproepen |
 | **Alleen oproepen** | **Twilio primair telefoonnummer** | Sms |
 
-Wat een configuratie niet verstuurt, gaat zoals het zonder die configuratie zou gaan: staat de projectstandaard op **Alleen sms**, dan lopen oproepen naar de leden van het project via de configuratie voor de hele installatie. Kan geen enkele configuratie een bericht versturen, dan staat in het logboek van het bericht dat de configuratie van het project daar niet voor wordt gebruikt, en wie dat kan wijzigen.
+Een project heeft een standaard voor sms en een standaard voor oproepen, en een configuratie is de standaard voor wat ze verstuurt. In het rijmenu van een configuratie maakt **Instellen als projectstandaard voor sms** of **Instellen als projectstandaard voor oproepen** haar de standaard voor wat ze verstuurt en laat de andere standaard zoals die is, zodat een configuratie op **Alleen sms** en een op **Alleen oproepen** allebei de standaard kunnen zijn. Een configuratie op **Oproepen en sms** neemt beide. De kolom **Projectstandaard** toont waarvoor elke configuratie de standaard is, en **Niet meer als projectstandaard gebruiken** in het rijmenu maakt daar een einde aan.
+
+Wat geen standaard verstuurt, gaat zoals het zonder configuratie zou gaan: zolang de enige standaard op **Alleen sms** staat, lopen oproepen naar de leden van het project via de configuratie voor de hele installatie. Kan geen enkele configuratie een bericht versturen, dan staat in het logboek van het bericht dat de configuratie van het project daar niet voor wordt gebruikt, en wie dat kan wijzigen.
 
 Statuspagina's bieden alleen de configuraties aan die sms versturen, en **Test-sms verzenden** en **Testoproep verzenden** verschijnen alleen voor wat een configuratie verstuurt. Elke bestaande configuratie staat, zoals voorheen, op **Oproepen en sms**. Via de API en Terraform is de keuze het veld `usedFor`, en een configuratie zonder de nummers die haar keuze nodig heeft, wordt geweigerd.
 
@@ -159,7 +161,7 @@ Voor ontwikkeling beschrijft de [handleiding voor het testen van webhooks](https
 | --- | --- |
 | Er wordt niets verzonden | Inloggegevens, de mogelijkheden van het nummer, beperkingen van het account en de uitgaande verbinding. |
 | Twilio weigert sms met fout 21606 | Het nummer kan geen sms versturen. Voeg bij **Twilio sms-telefoonnummers** een nummer toe dat het wel kan: zie [Aparte nummers voor oproepen en sms](#aparte-nummers-voor-oproepen-en-sms). |
-| Oproepen of sms gaan via een ander account dan dat van het project | De projectstandaard staat op **Alleen sms** of **Alleen oproepen**: zie [Een account alleen voor sms, of alleen voor oproepen](#een-account-alleen-voor-sms-of-alleen-voor-oproepen). |
+| Oproepen of sms gaan via een ander account dan dat van het project | Geen configuratie is de projectstandaard ervoor: de kolom **Projectstandaard** toont waarvoor elke configuratie de standaard is. Zie [Een account alleen voor sms, of alleen voor oproepen](#een-account-alleen-voor-sms-of-alleen-voor-oproepen). |
 | De sms of oproep komt aan, maar de status of de bevestiging wordt niet bijgewerkt | De callback-URL en de logs van de openbare ingress. De [uitleg van Twilio over HTTP-ophaalfouten](https://www.twilio.com/docs/api/errors/11200) helpt bij onbereikbare callbacks, TLS-problemen en HTTP-fouten. |
 
 Een geslaagde testoproep alleen bewijst niet dat callbacks bereikbaar zijn.
