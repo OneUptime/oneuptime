@@ -4,7 +4,7 @@
  * product does while the project has nothing in it yet - under the empty
  * table, the steps to a first result with the first as the page's own
  * button, a drawn example and the documentation - and once there is
- * something in it, About beside the page's title opens the same
+ * something in it, How it works beside the page's title opens the same
  * explanation in a dialog.
  *
  * Two lists, each in its production layout and mounted under its real
@@ -27,7 +27,7 @@
  *                 explanation
  *
  * And one page of the fixture's own, which holds every product's
- * explanation at once, each as its About dialog draws it:
+ * explanation at once, each as its How it works dialog draws it:
  *
  *   /dashboard/:projectId/product-explanations
  *                 every entry of Components/ProductOnboarding/
@@ -629,7 +629,7 @@ function StubPage() {
 }
 
 /*
- * Every product's explanation, each as its About dialog draws it
+ * Every product's explanation, each as its How it works dialog draws it
  * (ProductAboutButton): the product's name over its showcase without a
  * frame of its own, in a box as wide as a large dialog's body (Modal's
  * ModalWidth.Large: the full width on a phone, at most max-w-7xl from sm

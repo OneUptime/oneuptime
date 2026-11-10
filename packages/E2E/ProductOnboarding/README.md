@@ -4,7 +4,7 @@ An offline harness for how a product explains itself (`Components/ProductOnboard
 a project has nothing in a product yet, the product's first page says what the product does under
 its empty table - a pitch, the steps to a first result with the first as the page's own button, a
 drawn example of the page in use and the product's documentation - and once there is something in
-it, About beside the page's title opens the same explanation in a dialog.
+it, How it works beside the page's title (`ProductAboutButton`) opens the same explanation in a dialog.
 
 Two lists stand for the two kinds of list:
 
@@ -13,8 +13,14 @@ Two lists stand for the two kinds of list:
 | Monitors     | `MONITORS` `/dashboard/:projectId/monitors`         | `Pages/Monitor/Layout` and `Pages/Monitor/Monitors`            | a page of its own (Create Monitor) |
 | Status Pages | `STATUS_PAGES` `/dashboard/:projectId/status-pages` | `Pages/StatusPages/Layout` and `Pages/StatusPages/StatusPages` | the table's own create form        |
 
+And the page the issue was raised on, Data Observability's Overview (`DATA_OBSERVABILITY_OVERVIEW`,
+`/dashboard/:projectId/data-observability/overview`, `Pages/DataObservability/Layout` and `Overview`):
+no database connected yet, and one database the project's traces know of, which the page suggests
+under the explanation. Its three reads (`/data-observability/overview`, `/quality` and
+`/stores/suggestions`) are answered by the fixture.
+
 Every other product is drawn on one page of the fixture's own, `/dashboard/:projectId/product-explanations`:
-each entry of `Components/ProductOnboarding/ProductOnboardings`, in its order, as its About dialog draws it
+each entry of `Components/ProductOnboarding/ProductOnboardings`, in its order, as its How it works dialog draws it
 (the product's name over its showcase, in a box as wide as the dialog's body). The suite reads every product's
 name and pitch there, in English at 1280px and on a phone in German and in Persian dark, and fails on any box
 that runs outside its explanation or any words that run past their box.

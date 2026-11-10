@@ -34,9 +34,9 @@ import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
  * it the database the project's traces know of.
  *
  * And every other product: the fixture's explanations page draws each
- * product's explanation as its About dialog does, so one page shows every
- * product's words, in English at a laptop's width and on a phone in German
- * and in Persian dark, each held inside its box.
+ * product's explanation as its How it works dialog does, so one page shows
+ * every product's words, in English at a laptop's width and on a phone in
+ * German and in Persian dark, each held inside its box.
  *
  * Every test puts up a network fence that aborts anything leaving the
  * fixture server, and fails on an uncaught page error, on a request the
@@ -428,11 +428,11 @@ test("a count that fails leaves the list as it always was: its own Create, no ex
 
 /*
  * ---------------------------------------------------------------------------
- * A project in use: About
+ * A project in use: How it works
  * ---------------------------------------------------------------------------
  */
 
-test("a project with monitors sees its list alone, and About beside the title explains Monitors in a dialog", async ({
+test("a project with monitors sees its list alone, and How it works beside the title explains Monitors in a dialog", async ({
   page,
 }: {
   page: Page;
@@ -469,7 +469,7 @@ test("a project with monitors sees its list alone, and About beside the title ex
   await expect(dialog.getByRole("heading", { level: 2 })).toHaveText(
     MONITORS_TITLE,
   );
-  // With no list above it, About says what the product is for.
+  // With no list above it, the dialog says what the product is for.
   await expect(dialog.getByTestId("resource-showcase-description")).toHaveText(
     MONITORS_DESCRIPTION,
   );
@@ -502,7 +502,7 @@ test("a project with monitors sees its list alone, and About beside the title ex
   await expect(aboutDialog(page)).toHaveCount(0);
 });
 
-test("a project with status pages sees its list alone, and About explains Status Pages", async ({
+test("a project with status pages sees its list alone, and How it works explains Status Pages", async ({
   page,
 }: {
   page: Page;
@@ -599,13 +599,13 @@ test("on a phone: the explanation stacks under the empty table, its example unde
 
   await screenshot(page, "monitors-first-run-390");
 
-  // About fits the phone too.
+  // The dialog fits the phone too.
   await page.goto(`${MONITORS}?monitors=1`);
   await expect(aboutButton(page)).toBeVisible({ timeout: 60000 });
   await aboutButton(page).click();
   await expect(aboutDialog(page)).toBeVisible();
   await dialogAtRest(page);
-  await expectNoSidewaysScroll(page, { message: "About at 390px" });
+  await expectNoSidewaysScroll(page, { message: "How it works at 390px" });
   await screenshot(page, "monitors-about-390", { isDialog: true });
 });
 
@@ -636,7 +636,7 @@ for (const width of [1024, 768]) {
   });
 }
 
-test("in German: the explanation and About in the Dashboard's German", async ({
+test("in German: the explanation and How it works in the Dashboard's German", async ({
   page,
 }: {
   page: Page;
@@ -666,7 +666,7 @@ test("in German: the explanation and About in the Dashboard's German", async ({
   await screenshot(page, "monitors-about-de", { isDialog: true });
 });
 
-test("in Persian, dark: right to left, About before the title's end, the explanation in Persian and readable", async ({
+test("in Persian, dark: right to left, How it works before the title's end, the explanation in Persian and readable", async ({
   page,
 }: {
   page: Page;
@@ -681,7 +681,7 @@ test("in Persian, dark: right to left, About before the title's end, the explana
   );
   await expect(aboutButton(page)).toHaveText(PERSIAN[HOW_IT_WORKS]!);
 
-  // Right to left, About follows the title: to its left.
+  // Right to left, How it works follows the title: to its left.
   const [titleBox, aboutBox]: Array<FrameBox> = await boxesInOneFrame([
     page.getByTestId("page-title-row").getByRole("heading", { level: 1 }),
     aboutButton(page),
@@ -714,7 +714,7 @@ test("in Persian, dark: right to left, About before the title's end, the explana
 
 /*
  * ---------------------------------------------------------------------------
- * Every product, as About draws it
+ * Every product, as its dialog draws it
  * ---------------------------------------------------------------------------
  */
 

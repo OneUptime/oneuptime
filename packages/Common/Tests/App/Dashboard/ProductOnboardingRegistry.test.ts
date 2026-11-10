@@ -47,8 +47,8 @@ import VMWARE_VCENTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Co
  *
  *   - every entry is complete, in words a translator can find, and links a
  *     documentation page that exists;
- *   - every product's layout draws "About" beside its title, for its own
- *     product;
+ *   - every product's layout draws "How it works" (ProductAboutButton)
+ *     beside its title, for its own product;
  *   - every product's first page draws its explanation while it is empty
  *     (or, for a resource, the showcase it already had).
  *

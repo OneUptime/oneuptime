@@ -1580,16 +1580,17 @@ jobs:
           # Archivable Values (1.8, Chromium only) came from group 16 on
           # 2026-11-08, when Monitor Overview's second half grew there: about
           # 16.9.
-          # Product Onboarding (14 tests, 0.6 minutes locally with its bundle,
+          # Product Onboarding (15 tests, 0.6 minutes locally with its bundle,
           # Chromium only: a new project's Monitors and Status Pages
           # explaining their product under the empty table - its steps, its
           # example, its documentation and the list's own first button - a
-          # read-only member's and a failed count's lists, About beside the
-          # title once there is one, at 1440, 1024, 768 and 390 pixels, German
-          # and Persian dark, and every product's explanation as About draws
-          # it, in English at 1280 pixels and on a phone in German and in
-          # Persian dark) joined it on 2026-11-09, the group with the most
-          # room: about 17.6.
+          # read-only member's and a failed count's lists, How it works beside
+          # the title once there is one, Data Observability's Overview with no
+          # database, at 1440, 1024, 768 and 390 pixels, German and Persian
+          # dark, and every product's explanation as its dialog draws it, in
+          # English at 1280 pixels and on a phone in German and in Persian
+          # dark) joined it on 2026-11-09, the group with the most room:
+          # about 17.6.
           - group: 19
             openstack_pages_shard: 1/2
             suites: >-
