@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import TableDashboards from "../../../Components/DataObservability/TableDashboards";
+import TableLineageDiagram from "../../../Components/DataObservability/TableLineageDiagram";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { getRunStatePill } from "../Pipelines";
@@ -40,7 +41,9 @@ function tableLink(
 }
 
 /*
- * Where the table's data comes from and where it goes: the tables it is
+ * Where the table's data comes from and where it goes. First as a diagram,
+ * a few steps each way with how each table and pipeline is now
+ * (TableLineageDiagram); then one step each way as lists: the tables it is
  * built from - or the pipeline that writes it from data OneUptime does not
  * watch - and the tables built from it. Each edge says where it was seen:
  * a pipeline's run (OpenLineage, dbt), with how its latest run went, so a
@@ -143,6 +146,7 @@ const TableLineagePage: FunctionComponent<
 
   return (
     <div className="space-y-5">
+      <TableLineageDiagram dataAssetId={dataAssetId} />
       <TableDashboards dataAssetId={dataAssetId} />
       <ModelTable<DataAssetLineage>
         modelType={DataAssetLineage}
