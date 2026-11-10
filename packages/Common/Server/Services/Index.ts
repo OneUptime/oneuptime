@@ -252,6 +252,8 @@ import RumApplicationOwnerRuleService from "./RumApplicationOwnerRuleService";
 import RumApplicationOwnerUserService from "./RumApplicationOwnerUserService";
 import RumApplicationOwnerTeamService from "./RumApplicationOwnerTeamService";
 import RumSessionChunkService from "./RumSessionChunkService";
+import RumProductAnalyticsSessionService from "./RumProductAnalyticsSessionService";
+import RumProductAnalyticsUserService from "./RumProductAnalyticsUserService";
 import RumSessionReplayViewService from "./RumSessionReplayViewService";
 import RumSessionErasureRequestService from "./RumSessionErasureRequestService";
 import RumSessionPinService from "./RumSessionPinService";
@@ -1239,6 +1241,12 @@ export const AnalyticsServices: Array<
    */
   RumSessionService,
   RumSessionChunkService,
+  /*
+   * Product analytics (issue #6444). After RumSessionService: their views
+   * read RumSessionV1, and every table is created before any view is.
+   */
+  RumProductAnalyticsSessionService,
+  RumProductAnalyticsUserService,
   AuditLogService,
   SecurityEventService,
   ThreatIntelIndicatorService,

@@ -447,7 +447,12 @@ describe("RUM Overview: where RUM lives in the Dashboard", () => {
       expect(folded).toContain(`"${title}",`);
     }
 
-    for (const title of ["Basic", "Observability", "Session Replay"]) {
+    for (const title of [
+      "Basic",
+      "Observability",
+      "Product Analytics",
+      "Session Replay",
+    ]) {
       expect(folded).not.toContain(`  "${title}",`);
     }
   });

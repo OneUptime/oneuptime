@@ -42,6 +42,7 @@ Das Seitenmenü einer Anwendung gliedert ihre Seiten so; **Einstellungen**, **En
 | --- | --- |
 | **Grundlegend** | **Übersicht**, **Empfehlungen**, **Dokumentation** |
 | **Observability** | **Metriken**, **Protokolle**, **Traces**, **Clients** |
+| **Produktanalyse** | **Benutzer**, **Sitzungen** |
 | **Sitzungswiedergabe** | **Sitzungswiedergabe**, **Benutzerflüsse**, **Benutzer der Wiedergabe**, **Integrität**, **Wiedergaberichtlinie**, **Frustrationssignale**, **Zugriffsprotokoll der Wiedergaben**, **Dokumentation** |
 | **Einstellungen** | **Einstellungen** |
 | **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** |
@@ -81,6 +82,7 @@ OneUptime findet die Anwendung über `service.name`, ohne Rücksicht auf Groß- 
 | **Core Web Vitals** | Eine Karte in der Übersicht mit LCP, INP, CLS, FCP und TTFB, jeweils an Googles Grenzwerten gemessen, und INP für jede Route einer Single-Page-App. Siehe [Core Web Vitals](/docs/rum/web-vitals) und [Single-Page-Apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metriken**, **Protokolle**, **Traces** | Die Telemetrie-Explorer, auf diese Anwendung beschränkt. |
 | **Clients** | Die Browser-Plattformen und Gerätemodelle, auf denen die Anwendung genutzt wurde: eine kurze Liste nach Plattform, nie eine Zeile pro Benutzer. |
+| **Produktanalyse** | Aktive, neue, wiederkehrende und inaktive Benutzer sowie Sitzungen nach Gerät, Browser, Land und Seite, gezählt aus den aufgezeichneten Sitzungen: siehe [Produktanalyse](/docs/rum/product-analytics). |
 | **Sitzungswiedergabe** | Aufzeichnungen echter Sitzungen neben ihren Fehlern, Traces und Logs: siehe [Sitzungswiedergabe](/docs/telemetry/session-replay). |
 | **Empfehlungen** | Fertige Monitore für die Anwendung: schlechte Core Web Vitals, fehlgeschlagene Anfragen, Browser-Ausnahmen und, sobald sie aufzeichnet, Budgets der Sitzungswiedergabe. |
 
