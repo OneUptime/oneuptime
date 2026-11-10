@@ -77,6 +77,7 @@ Uma regra de notificação diz quais eventos são publicados no Slack, e onde. C
 | **Manutenção programada** | Uma lista de regras |
 | **Monitores** | Uma lista de regras |
 | **Plantão** | Uma lista de regras |
+| **SLOs** | Uma lista de regras |
 
 Criar uma regra passa por quatro etapas:
 
@@ -86,6 +87,8 @@ Criar uma regra passa por quatro etapas:
 | **Condições** | A quais eventos a regra se aplica, por exemplo por gravidade, estado, rótulo, monitor ou palavras no título. Elas são verificadas quando um evento é criado e novamente a cada atualização que o OneUptime publica sobre ele, então uma regra para incidentes confirmados age quando um incidente é confirmado. Uma regra nova vale para todo evento, por exemplo **Todos os incidentes**. Para restringi-la, escolha **Somente os incidentes que atendem às condições** e adicione as condições. Com duas ou mais, **Condição de correspondência** diz se todas precisam corresponder ou se basta uma. |
 | **Destino** | Onde ela publica: **Publicar em canais existentes** com os nomes dos canais, **Criar um canal para cada incidente** (ou alerta, episódio, evento, monitor ou política de plantão) com quem entra nele, ou ambos. Abaixo da etapa, **O que esta regra faz** diz isso em frases, como o cartão da regra. |
 | **Video Call** | Somente incidentes e alertas: inicia uma chamada para cada um. Consulte [Videochamadas](/docs/workspace-connections/video-calls). |
+
+Uma regra de SLOs publica as mudanças na política de orçamento de erros de um SLO: quando ele entra em um nível, volta para um menos grave ou sai de todos os níveis, e quando as implantações dele são congeladas ou voltam a ser permitidas. Ela só publica em canais existentes, já que um SLO não recebe um canal próprio. Consulte [Publique no Slack, no Microsoft Teams e no Mattermost](/docs/slo/error-budget-policy#publique-no-slack-no-microsoft-teams-e-no-mattermost).
 
 Um canal que a regra cria recebe o nome do seu registro: o incidente INC-42 recebe `inc-42`, o alerta ALT-7 recebe `alt-7` e, em um projeto sem prefixos de número, o incidente 42 recebe `incident-42`. O texto em **Prefixo do nome do canal** vai na frente, então `prod-` vira `prod-inc-42`, e o formulário mostra o nome enquanto você digita. Em um evento de manutenção agendada, o prefixo substitui o prefixo de número: SM-5 recebe `sm-5`, e `maint-` vira `maint-5`. O Slack aceita letras minúsculas, números, `-` e `_`, até 80 caracteres. Se já existir um canal com esse nome, como o de outro projeto ou um arquivado, o OneUptime adiciona `-2`, `-3` e assim por diante.
 

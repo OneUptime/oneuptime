@@ -223,6 +223,20 @@ jest.mock("Common/Server/Utils/Slo/SloMetricUtil", () => {
   };
 });
 
+/*
+ * Slack, Microsoft Teams and Mattermost: the one place an error budget
+ * policy change is posted to the channels of the project's Service Level
+ * Objective rules. Mocked at the util, so no rule, workspace or sender loads
+ * (and no message is ever sent); its own suites cover what it does with the
+ * call, and SloRulesInWorkspaceChannels the rules it reaches.
+ */
+jest.mock("Common/Server/Utils/Slo/SloWorkspaceNotifications", () => {
+  return {
+    __esModule: true,
+    default: { postPolicyChange: jest.fn() },
+  };
+});
+
 jest.mock("Common/Server/Services/AlertService", () => {
   return {
     __esModule: true,
@@ -413,6 +427,8 @@ import SloHistoryService from "Common/Server/Services/SloHistoryService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import logger from "Common/Server/Utils/Logger";
 import SloMetricUtil from "Common/Server/Utils/Slo/SloMetricUtil";
+import SloWorkspaceNotifications from "Common/Server/Utils/Slo/SloWorkspaceNotifications";
+import SloErrorBudgetPolicyChange from "Common/Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
 import Label from "Common/Models/DatabaseModels/Label";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import ServiceLevelObjectiveFeedService from "Common/Server/Services/ServiceLevelObjectiveFeedService";
@@ -488,6 +504,8 @@ const feedService: { createServiceLevelObjectiveFeedItem: jest.Mock } =
   ServiceLevelObjectiveFeedService as unknown as {
     createServiceLevelObjectiveFeedItem: jest.Mock;
   };
+const workspaceNotifications: { postPolicyChange: jest.Mock } =
+  SloWorkspaceNotifications as unknown as { postPolicyChange: jest.Mock };
 const alertService: { findOneBy: jest.Mock; create: jest.Mock } =
   AlertService as unknown as { findOneBy: jest.Mock; create: jest.Mock };
 const severityService: { findOneBy: jest.Mock } =
@@ -1070,6 +1088,7 @@ describe("Slo:EvaluateSlos worker", () => {
     feedService.createServiceLevelObjectiveFeedItem.mockResolvedValue(
       undefined,
     );
+    workspaceNotifications.postPolicyChange.mockResolvedValue(true);
     alertService.findOneBy.mockResolvedValue(null);
     alertService.create.mockResolvedValue(new Alert());
     severityService.findOneBy.mockResolvedValue(null);
@@ -7851,6 +7870,436 @@ describe("Slo:EvaluateSlos worker", () => {
         ).toEqual([]);
         expect(gateItems()).toEqual([]);
         expect(tierChangeItems()).toEqual([]);
+      });
+    });
+
+    /*
+     * The same change, posted to the Slack, Microsoft Teams and Mattermost
+     * channels of the project's Service Level Objective rules
+     * (SloWorkspaceNotifications): once per committed change, after the
+     * state write and the feed item, in the feed item's words, saying what
+     * moved for the rules' Error Budget Policy Change condition. A send that
+     * fails never reaches the evaluation.
+     */
+    describe("posted to Slack, Microsoft Teams and Mattermost", () => {
+      interface WorkspacePost {
+        projectId: ObjectID;
+        sloId: ObjectID;
+        changes: Array<SloErrorBudgetPolicyChange>;
+        markdown: { toString: () => string };
+      }
+
+      function workspacePosts(): Array<WorkspacePost> {
+        return workspaceNotifications.postPolicyChange.mock.calls.map(
+          (args: Array<unknown>): WorkspacePost => {
+            return args[0] as WorkspacePost;
+          },
+        );
+      }
+
+      // The recommended policy as it is added now: Budget exhausted freezes.
+      function freezingPolicy(): Array<ServiceLevelObjectiveErrorBudgetPolicyTier> {
+        return recommendedPolicy({ exhausted: { freezesDeployments: true } });
+      }
+
+      // The SLO as the last evaluation left it: in this tier, deployments frozen.
+      function frozenSloInTier(
+        tierId: ObjectID,
+        tierName: string,
+      ): ServiceLevelObjective {
+        const slo: ServiceLevelObjective = sloInTier(tierId, tierName);
+        slo.deploymentsAllowed = false;
+        slo.deploymentsFrozenAt = daysAgo(1);
+        return slo;
+      }
+
+      // A feed item as one message: its line, then its More Information.
+      function asMessage(item: FeedCall): string {
+        return `${item.feedInfoInMarkdown}\n\n${item.moreInformationInMarkdown}`;
+      }
+
+      test("a tier change is posted once, in the feed item's words, saying the SLO entered a more severe tier", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        const posts: Array<WorkspacePost> = workspacePosts();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.projectId).toEqual(PROJECT_ID);
+        expect(posts[0]!.sloId).toEqual(SLO_ID);
+        expect(posts[0]!.changes).toEqual([
+          SloErrorBudgetPolicyChange.EnteredMoreSevereTier,
+        ]);
+        expect(posts[0]!.markdown.toString()).toBe(
+          asMessage(tierChangeItems()[0]!),
+        );
+        expect(posts[0]!.markdown.toString()).toContain(
+          "Caution: what the team agreed to do.",
+        );
+      });
+
+      test("posted after the state write that committed the change, and after its feed item", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        const postedAt: number =
+          workspaceNotifications.postPolicyChange.mock.invocationCallOrder[0]!;
+        const writtenAt: number =
+          sloService.updateOneById.mock.invocationCallOrder[0]!;
+        const feedItemAt: number = Math.max(
+          ...feedService.createServiceLevelObjectiveFeedItem.mock.invocationCallOrder,
+        );
+
+        expect(postedAt).toBeGreaterThan(writtenAt);
+        expect(postedAt).toBeGreaterThan(feedItemAt);
+      });
+
+      test("an SLO that holds its tier under the hysteresis posts nothing", async () => {
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy(),
+          BUDGET_27_PERCENT_SECONDS,
+        );
+
+        expect(workspacePosts()).toEqual([]);
+      });
+
+      test("an SLO already in its tier posts nothing, however often it is evaluated", async () => {
+        for (let tick: number = 0; tick < 3; tick++) {
+          await evaluate(
+            sloInTier(CAUTION_ID, "Caution"),
+            recommendedPolicy(),
+            BUDGET_37_PERCENT_SECONDS,
+          );
+        }
+
+        expect(workspacePosts()).toEqual([]);
+      });
+
+      test("recovering to a less severe tier says so", async () => {
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy(),
+          BUDGET_31_PERCENT_SECONDS,
+        );
+
+        const posts: Array<WorkspacePost> = workspacePosts();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.changes).toEqual([
+          SloErrorBudgetPolicyChange.RecoveredToLessSevereTier,
+        ]);
+        expect(posts[0]!.markdown.toString()).toMatch(
+          /^📈 \[SLO Checkout availability\]\(https:\/\/oneuptime\.com\/dashboard\/slo\/slo-1\) recovered to the \*\*Caution\*\* tier/,
+        );
+      });
+
+      test("leaving every tier says so, with no agreement to quote", async () => {
+        await evaluate(sloInTier(CAUTION_ID, "Caution"), recommendedPolicy(), 0);
+
+        const posts: Array<WorkspacePost> = workspacePosts();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.changes).toEqual([
+          SloErrorBudgetPolicyChange.LeftEveryTier,
+        ]);
+        expect(posts[0]!.markdown.toString()).not.toContain("What we do");
+      });
+
+      test("a jump across several tiers is one post", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          recommendedPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const posts: Array<WorkspacePost> = workspacePosts();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.changes).toEqual([
+          SloErrorBudgetPolicyChange.EnteredMoreSevereTier,
+        ]);
+        expect(posts[0]!.markdown.toString()).toContain(
+          "entered the **Budget exhausted** tier of its error budget policy (was **Caution**).",
+        );
+      });
+
+      test("entering a tier that freezes deployments is one message that says both", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const posts: Array<WorkspacePost> = workspacePosts();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.changes).toEqual([
+          SloErrorBudgetPolicyChange.EnteredMoreSevereTier,
+          SloErrorBudgetPolicyChange.DeploymentsFrozen,
+        ]);
+        expect(posts[0]!.markdown.toString()).toContain(
+          "Deployments are frozen.",
+        );
+        expect(posts[0]!.markdown.toString()).toContain(
+          "**Deployments**: allowed → frozen",
+        );
+      });
+
+      test("recovering out of a tier that froze deployments says both", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy(),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(workspacePosts().map((post: WorkspacePost) => {
+          return post.changes;
+        })).toEqual([
+          [
+            SloErrorBudgetPolicyChange.RecoveredToLessSevereTier,
+            SloErrorBudgetPolicyChange.DeploymentsAllowed,
+          ],
+        ]);
+      });
+
+      test("Freeze Deployments switched on for the tier the SLO is in is posted on its own, in the gate item's words", async () => {
+        await evaluate(
+          sloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const posts: Array<WorkspacePost> = workspacePosts();
+        const gateItems: Array<FeedCall> = feedItemsOfType(
+          ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+        );
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.changes).toEqual([
+          SloErrorBudgetPolicyChange.DeploymentsFrozen,
+        ]);
+        expect(posts[0]!.markdown.toString()).toBe(asMessage(gateItems[0]!));
+        expect(posts[0]!.markdown.toString()).toMatch(
+          /^🔒 Deployments of \[SLO Checkout availability\]/,
+        );
+      });
+
+      test("and switched off again, deployments allowed again is posted on its own", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          recommendedPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const posts: Array<WorkspacePost> = workspacePosts();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.changes).toEqual([
+          SloErrorBudgetPolicyChange.DeploymentsAllowed,
+        ]);
+        expect(posts[0]!.markdown.toString()).toMatch(
+          /^🔓 Deployments of \[SLO Checkout availability\]/,
+        );
+      });
+
+      test("a renamed tier refreshes its name quietly, and posts nothing", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Careful"),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        expect(workspacePosts()).toEqual([]);
+      });
+
+      test("an SLO with no policy posts nothing, whatever its status does", async () => {
+        await evaluate(sloInTier(null, null), [], BUDGET_OVERSPENT_SECONDS);
+
+        expect(persistedStateUpdate()["sloStatus"]).toBe(
+          SloStatus.BudgetExhausted,
+        );
+        expect(workspacePosts()).toEqual([]);
+      });
+
+      test("a Paused SLO keeps its tier and posts nothing", async () => {
+        const paused: Monitor = enabledMonitor(MONITOR_A_ID);
+        paused.disableActiveMonitoring = true;
+        monitorService.findBy.mockResolvedValue([paused]);
+
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          recommendedPolicy(),
+          0,
+        );
+
+        expect(workspacePosts()).toEqual([]);
+      });
+
+      test("an SLO disabled after the sweep started posts nothing", async () => {
+        sloService.findOneById.mockImplementation(
+          (): Promise<ServiceLevelObjective> => {
+            const current: ServiceLevelObjective = new ServiceLevelObjective(
+              SLO_ID,
+            );
+            current.isEnabled = false;
+            current.isArchived = false;
+            return Promise.resolve(current);
+          },
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        expect(workspacePosts()).toEqual([]);
+      });
+
+      test("a state write that fails posts nothing, and the next evaluation posts the change once", async () => {
+        sloService.updateOneById.mockRejectedValueOnce(
+          new Error("database is down"),
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        expect(workspacePosts()).toEqual([]);
+        expect(tierChangeItems()).toEqual([]);
+
+        // The next tick meets the same change, as nothing was committed.
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        expect(workspacePosts()).toHaveLength(1);
+      });
+
+      test("a send that fails is logged, and costs the evaluation, its feed item and what the tier raises nothing", async () => {
+        workspaceNotifications.postPolicyChange.mockRejectedValue(
+          new Error("Slack is down"),
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({ reliabilityFirst: { shouldCreateAlert: true } }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(mockedLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "Error posting the error budget policy change of SLO slo-1 to Slack, Microsoft Teams or Mattermost: Error: Slack is down",
+          ),
+          expect.anything(),
+        );
+        // The tier change is committed and in the feed...
+        expect(
+          persistedStateUpdate()["currentErrorBudgetPolicyTierId"],
+        ).toEqual(RELIABILITY_FIRST_ID);
+        expect(tierChangeItems()).toHaveLength(1);
+        // ...the evaluation's history goes on...
+        expect(historyService.insertHistoryRows).toHaveBeenCalledTimes(1);
+        // ...and the tier raises what it is set to raise.
+        expect(alertService.create).toHaveBeenCalledTimes(1);
+      });
+
+      test("a gate flip whose send fails is logged and costs nothing either", async () => {
+        workspaceNotifications.postPolicyChange.mockRejectedValue(
+          new Error("Teams is down"),
+        );
+
+        await evaluate(
+          sloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        expect(mockedLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "Error posting the error budget policy change of SLO slo-1",
+          ),
+          expect.anything(),
+        );
+        expect(persistedStateUpdate()["deploymentsAllowed"]).toBe(false);
+        expect(
+          feedItemsOfType(
+            ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+          ),
+        ).toHaveLength(1);
+      });
+
+      test("a feed item that fails to post is still posted to the channels", async () => {
+        feedService.createServiceLevelObjectiveFeedItem.mockRejectedValue(
+          new Error("feed is down"),
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        const posts: Array<WorkspacePost> = workspacePosts();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.markdown.toString()).toMatch(
+          /^📉 \[SLO Checkout availability\]/,
+        );
+      });
+
+      test("a change whose words cannot be written - the SLO's link failed - posts nothing, and is logged", async () => {
+        sloService.getSloMarkdownLink.mockRejectedValue(
+          new Error("no dashboard url"),
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        expect(workspacePosts()).toEqual([]);
+        expect(mockedLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "Error posting the error budget policy tier change feed item",
+          ),
+          expect.anything(),
+        );
+      });
+
+      test("an agreement that quotes a Slack mention is posted with the mention broken, and the feed keeps it as written", async () => {
+        const tiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+          recommendedPolicy();
+        tiers[2]!.whatWeDo = "Page <!channel> and <@U0123ABC>.";
+
+        await evaluate(
+          sloInTier(null, null),
+          tiers,
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        const message: string = workspacePosts()[0]!.markdown.toString();
+
+        expect(message).not.toContain("<!channel>");
+        expect(message).not.toContain("<@U0123ABC>");
+        expect(message.split("⁠").join("")).toContain(
+          "Page <!channel> and <@U0123ABC>.",
+        );
+        expect(tierChangeItems()[0]!.moreInformationInMarkdown).toContain(
+          "Page <!channel> and <@U0123ABC>.",
+        );
       });
     });
 
