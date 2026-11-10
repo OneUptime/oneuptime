@@ -47456,5 +47456,6 @@
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before.": "서로 {{radius}}px 이내에서 {{clicks}}회 이상 클릭하고, 각 클릭이 이전 클릭 후 {{count}}초 이내인 경우.",
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before._one": "서로 {{radius}}px 이내에서 {{clicks}}회 이상 클릭하고, 각 클릭이 이전 클릭 후 {{count}}초 이내인 경우.",
   "{{name}} is a built-in signal. Give yours its own name.": "{{name}}은(는) 기본 제공 신호입니다. 다른 이름을 붙이세요.",
-  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "지금부터 기록되는 세션에서는 {{name}}이(가) 감지되지 않습니다. 이미 기록된 세션의 마커와 배지는 그대로 남습니다."
+  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "지금부터 기록되는 세션에서는 {{name}}이(가) 감지되지 않습니다. 이미 기록된 세션의 마커와 배지는 그대로 남습니다.",
+  "a marker, not frustration": "a marker, not frustration"
 }

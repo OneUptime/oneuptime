@@ -47456,5 +47456,6 @@
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before.": "{{clicks}} کلیک یا بیشتر در فاصله {{radius}} px از هم، هر کدام حداکثر {{count}} ثانیه پس از قبلی.",
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before._one": "{{clicks}} کلیک یا بیشتر در فاصله {{radius}} px از هم، هر کدام حداکثر {{count}} ثانیه پس از قبلی.",
   "{{name}} is a built-in signal. Give yours its own name.": "{{name}} یک سیگنال داخلی است. برای سیگنال خودتان نام دیگری بگذارید.",
-  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "{{name}} در نشست‌هایی که از این پس ضبط می‌شوند دیگر تشخیص داده نمی‌شود. نشست‌های ضبط‌شده نشانگرها و نشان‌های آن را نگه می‌دارند."
+  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "{{name}} در نشست‌هایی که از این پس ضبط می‌شوند دیگر تشخیص داده نمی‌شود. نشست‌های ضبط‌شده نشانگرها و نشان‌های آن را نگه می‌دارند.",
+  "a marker, not frustration": "a marker, not frustration"
 }

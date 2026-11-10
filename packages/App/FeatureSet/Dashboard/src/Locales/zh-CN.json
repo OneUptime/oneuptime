@@ -47456,5 +47456,6 @@
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before.": "彼此相距 {{radius}} px 以内的 {{clicks}} 次或更多点击，每次都在上一次之后 {{count}} 秒内。",
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before._one": "彼此相距 {{radius}} px 以内的 {{clicks}} 次或更多点击，每次都在上一次之后 {{count}} 秒内。",
   "{{name}} is a built-in signal. Give yours its own name.": "{{name}} 是内置信号。请为你的信号另起名称。",
-  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "从现在起录制的会话将不再检测 {{name}}。已录制的会话保留它的标记和徽章。"
+  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "从现在起录制的会话将不再检测 {{name}}。已录制的会话保留它的标记和徽章。",
+  "a marker, not frustration": "a marker, not frustration"
 }

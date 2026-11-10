@@ -47456,5 +47456,6 @@
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before.": "{{clicks}} clics ou plus à {{radius}} px au plus les uns des autres, chacun au plus {{count}} secondes après le précédent.",
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before._one": "{{clicks}} clics ou plus à {{radius}} px au plus les uns des autres, chacun au plus {{count}} seconde après le précédent.",
   "{{name}} is a built-in signal. Give yours its own name.": "{{name}} est un signal intégré. Donnez au vôtre un nom bien à lui.",
-  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "{{name}} ne sera plus détecté dans les sessions enregistrées à partir de maintenant. Les sessions déjà enregistrées conservent ses repères et ses badges."
+  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "{{name}} ne sera plus détecté dans les sessions enregistrées à partir de maintenant. Les sessions déjà enregistrées conservent ses repères et ses badges.",
+  "a marker, not frustration": "a marker, not frustration"
 }

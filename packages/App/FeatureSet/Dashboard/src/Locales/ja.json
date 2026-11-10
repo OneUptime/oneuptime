@@ -47456,5 +47456,6 @@
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before.": "互いに {{radius}} px 以内で {{clicks}} 回以上のクリックがあり、それぞれ前のクリックから {{count}} 秒以内のもの。",
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before._one": "互いに {{radius}} px 以内で {{clicks}} 回以上のクリックがあり、それぞれ前のクリックから {{count}} 秒以内のもの。",
   "{{name}} is a built-in signal. Give yours its own name.": "{{name}} は組み込みシグナルです。独自の名前を付けてください。",
-  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "今後記録されるセッションでは {{name}} は検出されなくなります。記録済みのセッションのマーカーとバッジはそのまま残ります。"
+  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "今後記録されるセッションでは {{name}} は検出されなくなります。記録済みのセッションのマーカーとバッジはそのまま残ります。",
+  "a marker, not frustration": "a marker, not frustration"
 }

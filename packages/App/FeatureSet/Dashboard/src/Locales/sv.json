@@ -47456,5 +47456,6 @@
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before.": "{{clicks}} eller fler klick inom {{radius}} px från varandra, vart och ett högst {{count}} sekunder efter det föregående.",
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before._one": "{{clicks}} eller fler klick inom {{radius}} px från varandra, vart och ett högst {{count}} sekund efter det föregående.",
   "{{name}} is a built-in signal. Give yours its own name.": "{{name}} är en inbyggd signal. Ge din ett eget namn.",
-  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "{{name}} upptäcks inte längre i sessioner som spelas in från och med nu. Redan inspelade sessioner behåller dess markörer och brickor."
+  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "{{name}} upptäcks inte längre i sessioner som spelas in från och med nu. Redan inspelade sessioner behåller dess markörer och brickor.",
+  "a marker, not frustration": "a marker, not frustration"
 }

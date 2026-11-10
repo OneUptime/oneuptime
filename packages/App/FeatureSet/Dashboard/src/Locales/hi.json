@@ -47456,5 +47456,6 @@
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before.": "एक-दूसरे से {{radius}} px के भीतर {{clicks}} या ज़्यादा क्लिक, हर एक पिछले क्लिक के {{count}} सेकंड के भीतर।",
   "{{clicks}} or more clicks within {{radius}} px of each other, each within {{count}} seconds of the one before._one": "एक-दूसरे से {{radius}} px के भीतर {{clicks}} या ज़्यादा क्लिक, हर एक पिछले क्लिक के {{count}} सेकंड के भीतर।",
   "{{name}} is a built-in signal. Give yours its own name.": "{{name}} एक बिल्ट-इन सिग्नल है। अपने सिग्नल को अलग नाम दें।",
-  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "अब से रिकॉर्ड होने वाले सेशन में {{name}} नहीं पहचाना जाएगा। पहले से रिकॉर्ड हुए सेशन में इसके मार्कर और बैज बने रहेंगे।"
+  "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.": "अब से रिकॉर्ड होने वाले सेशन में {{name}} नहीं पहचाना जाएगा। पहले से रिकॉर्ड हुए सेशन में इसके मार्कर और बैज बने रहेंगे।",
+  "a marker, not frustration": "a marker, not frustration"
 }
