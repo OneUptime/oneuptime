@@ -473,8 +473,14 @@ describe("the Basic step asks what the account is used for", () => {
       ),
     ).toEqual([
       ["Calls and SMS", "Calls and SMS go out from this account."],
-      ["SMS only", "Calls go through OneUptime's own Twilio account instead."],
-      ["Calls only", "SMS go through OneUptime's own Twilio account instead."],
+      [
+        "SMS only",
+        "Calls go through the project default for calls, or OneUptime's own Twilio account if there is none.",
+      ],
+      [
+        "Calls only",
+        "SMS go through the project default for SMS, or OneUptime's own Twilio account if there is none.",
+      ],
     ]);
     expect(TwilioConfigUseCopy.fieldTitle).toBe("Use This Account For");
   });
