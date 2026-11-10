@@ -363,10 +363,12 @@ jobs:
 
       # Clones the migrated Databases tables (DatabaseServer, its endpoints,
       # labels, owners, incident / alert / maintenance links and the
-      # Kubernetes / Docker / Podman parents) into an isolated schema and runs
-      # the product's hand-written SQL against them. The second suite holds
-      # the container command projection Postgres computes to its JavaScript
-      # twin (reduceContainerCommand), which the discovery job classifies by.
+      # Kubernetes / Docker / Podman parents, with the Project and User rows
+      # a delete reads for its audit log entry) into an isolated schema and
+      # runs the product's hand-written SQL against them. The second suite
+      # holds the container command projection Postgres computes to its
+      # JavaScript twin (reduceContainerCommand), which the discovery job
+      # classifies by.
       # The third runs the metrics snapshot's container upsert on session TEMP
       # tables: agent labels merged into a row's labels, the start time only
       # moving forward.
@@ -542,12 +544,13 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Workflow/RunRecordSearchPostgres.test.ts --forceExit
 
-      # Clones the migrated Workflow, Incident and legacy Huntress connection
-      # tables into an isolated schema: a workflow's signing secret is written
-      # encrypted and a new one clears the last refusal, the Huntress webhook
-      # finds a workflow by its key and keeps what each request did, and every
-      # Huntress connection made before becomes the workflow that does what it
-      # did - answering at its old address, with its old secret.
+      # Clones the migrated Workflow, WorkflowVersion, Incident and legacy
+      # Huntress connection tables into an isolated schema: a workflow's
+      # signing secret is written encrypted and a new one clears the last
+      # refusal, the Huntress webhook finds a workflow by its key and keeps
+      # what each request did, and every Huntress connection made before
+      # becomes the workflow that does what it did - answering at its old
+      # address, with its old secret.
       - name: Test Huntress workflows and the move of Huntress connections on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -1013,7 +1016,7 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/PublicNoteApprovalRequestPostgres.test.ts --forceExit
 
-      # Clones the migrated Project, StatusPage and
+      # Clones the migrated User, Project, StatusPage and
       # StatusPageHistoryChartBarColorRule tables (with the rules' foreign
       # keys) into an isolated schema, and makes a new status page's
       # recommended bar color rules through the real services: they read

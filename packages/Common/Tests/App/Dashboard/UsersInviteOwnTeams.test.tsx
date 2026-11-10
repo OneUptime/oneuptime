@@ -182,7 +182,12 @@ async function openInviteUser(): Promise<Record<string, unknown>> {
     expect(inviteModalMock).toHaveBeenCalled();
   });
 
-  return inviteModalMock.mock.calls.at(-1)![0] as Record<string, unknown>;
+  // Indexed rather than .at(-1): this project targets es2017.
+  const calls: Array<Array<unknown>> = inviteModalMock.mock.calls as Array<
+    Array<unknown>
+  >;
+
+  return calls[calls.length - 1]![0] as Record<string, unknown>;
 }
 
 beforeEach(() => {

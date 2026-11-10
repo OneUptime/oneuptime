@@ -227,7 +227,7 @@ Hvem der ejer en ressource, læses gennem ressourcen. Ejerne af en monitor eller
 
 ### Ejere af teams
 
-Et team har også ejere: de personer og teams, der passer på det. De vises på teamets side og i listen over teams og tilføjes og fjernes med **Edit Team**. Teamene **Owners** og **Admin**, der følger med alle projekter, har ingen.
+Et team har også ejere: de personer og teams, der passer på det. De vises på teamets side og i listen over teams og tilføjes og fjernes med **Edit Team**. Teamene **Owners** og **Admin**, der følger med alle projekter, har ingen. For at tilføje eller fjerne ejere af flere teams på én gang markerer du dem i listen over teams og vælger **Tilføj ejer** eller **Fjern ejer** under **Massehandlinger**; **Owners** og **Admin** springes over.
 
 Seks teamtilladelser kan begrænses til omfanget Ejede: **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** og **Edit Team Permissions**. Med omfanget Ejede rækker hver af dem kun til de teams, som du eller det team, den er givet til, ejer, med deres medlemmer, tilladelser, brugerdefinerede roller og compliance-indstillinger. Den, der opretter et team med **Create Team** med omfanget Ejede, bliver dets første ejer. Læsning af teams indskrænkes aldrig: et team vælges overalt som ejer, som vagthavende og som modtager, så alle, der må læse teams, ser alle teams, hvem der er i dem, og hvad de må.
 

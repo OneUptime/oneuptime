@@ -707,7 +707,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Project Default",
     description:
-      "When set, all SMS and Calls sent to project team members (on-call notifications, alerts, verification codes, etc.) will use this Twilio config instead of the global config. Only one Twilio config per project can be the project default. A project's first Twilio config becomes the project default when this is not set on create; an explicit false is kept. This does not affect status pages — they use the config explicitly assigned to each status page.",
+      "Whether the SMS and calls sent to project team members (on-call notifications, alerts, verification codes, etc.) go through this Twilio config instead of the global config - the ones it is used for. A project has one default for SMS and one for calls, so a config used for SMS only and one used for calls only can both be the default. Setting this to true makes the config the project default for everything it is used for, taking that from the project's other configs; false makes it the default for nothing. It reads true while the config is the default for SMS, calls or both: isProjectDefaultForSms and isProjectDefaultForCalls say which. A project's first Twilio config becomes the project default when this is not set on create; an explicit false is kept. This does not affect status pages — they use the config explicitly assigned to each status page.",
     /*
      * False for every config but a project's first: ProjectCallSMSConfigService
      * makes the first one the default when the create leaves this out, and
@@ -722,4 +722,81 @@ export default class ProjectCallSMSConfig extends BaseModel {
     default: false,
   })
   public isProjectDefault?: boolean = undefined;
+
+  /*
+   * WHAT THE CONFIG IS THE PROJECT DEFAULT FOR: its SMS, its calls, or both
+   * (Types/CallAndSMS/TwilioConfigDefaults). A project has one default for
+   * each, so a config used for SMS only and one used for calls only are the
+   * project default together - with one default per project, making the
+   * calls config the default took it from the SMS config (issue #6574).
+   *
+   * Written by the server alone, once a write has been saved
+   * (ProjectCallSMSConfigService), from isProjectDefault and what each
+   * config is used for: nobody may write them, and the API, Terraform and
+   * MCP read them. The senders read the default for the kind of message
+   * they send.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectCallSMSConfig,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    computed: true,
+    type: TableColumnType.Boolean,
+    title: "Is Project Default for SMS",
+    description:
+      "Whether the SMS sent to project team members go through this Twilio config: it is the project default for SMS. Set by OneUptime from isProjectDefault and what the config is used for; at most one config of a project is the default for SMS.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isProjectDefaultForSms?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectCallSMSConfig,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    computed: true,
+    type: TableColumnType.Boolean,
+    title: "Is Project Default for Calls",
+    description:
+      "Whether the calls made to project team members go through this Twilio config: it is the project default for calls. Set by OneUptime from isProjectDefault and what the config is used for; at most one config of a project is the default for calls.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isProjectDefaultForCalls?: boolean = undefined;
 }

@@ -227,7 +227,7 @@ Les propriétaires d'une ressource se lisent à travers la ressource. Les propri
 
 ### Propriétaires d'équipes
 
-Une équipe a elle aussi des propriétaires : les personnes et les équipes qui s'en occupent. Ils apparaissent sur la page de l'équipe et dans la liste des équipes, et s'ajoutent et se retirent avec **Edit Team**. Les équipes **Owners** et **Admin**, fournies avec chaque projet, n'en ont aucun.
+Une équipe a elle aussi des propriétaires : les personnes et les équipes qui s'en occupent. Ils apparaissent sur la page de l'équipe et dans la liste des équipes, et s'ajoutent et se retirent avec **Edit Team**. Les équipes **Owners** et **Admin**, fournies avec chaque projet, n'en ont aucun. Pour ajouter ou retirer des propriétaires de plusieurs équipes à la fois, sélectionnez-les dans la liste des équipes et choisissez **Ajouter un propriétaire** ou **Retirer un propriétaire** sous **Actions groupées** ; les équipes **Owners** et **Admin** sont ignorées.
 
 Six autorisations d'équipe peuvent être limitées à la portée Possédées : **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** et **Edit Team Permissions**. Avec la portée Possédées, chacune n'atteint que les équipes qui vous appartiennent, ou qui appartiennent à l'équipe à qui elle est donnée, avec leurs membres, autorisations, rôles personnalisés et paramètres de conformité. Quiconque crée une équipe avec **Create Team** en portée Possédées en devient le premier propriétaire. La lecture des équipes n'est jamais restreinte : une équipe se choisit partout comme propriétaire, comme intervenant d'astreinte et comme destinataire, donc tous ceux qui peuvent lire les équipes voient chaque équipe, qui en fait partie et ce qu'elle peut faire.
 

@@ -29,6 +29,7 @@ import { JSONObject } from "../../../Types/JSON";
 import EmailMessage from "../../../Types/Email/EmailMessage";
 import SMS from "../../../Types/SMS/SMS";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
+import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
@@ -1268,12 +1269,13 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
 
   /*
    * ----------------------------------------------------------------------- *
-   * (F) projectTwilioConfig: resolved once, in the delivery half.
+   * (F) The project's Twilio configs: its default for SMS and its default
+   * for calls (#6574), each resolved once, in the delivery half.
    * -----------------------------------------------------------------------
    */
 
   describe("the project Twilio config", () => {
-    test("is resolved exactly once per delivery, from options.projectId", async () => {
+    test("is resolved exactly once per kind of message per delivery, from options.projectId", async () => {
       const options: ExecuteOptions = executeOptions();
       spies.findRule.mockResolvedValue(
         loadedRule({
@@ -1286,7 +1288,7 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
         options,
       );
 
-      expect(spies.twilio).toHaveBeenCalledTimes(1);
+      expect(spies.twilio).toHaveBeenCalledTimes(2);
       /*
        * Identity against the caller's own projectId. The channel blocks below
        * pass the TRIGGER entity's projectId to the senders, so reading the
@@ -1294,6 +1296,38 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
        * every normal case and diverge only in the odd one.
        */
       expect(spies.twilio.mock.calls[0]![0]).toBe(options.projectId);
+      expect(spies.twilio.mock.calls[0]![1]).toBe(TwilioMessageKind.SMS);
+      expect(spies.twilio.mock.calls[1]![0]).toBe(options.projectId);
+      expect(spies.twilio.mock.calls[1]![1]).toBe(TwilioMessageKind.Call);
+    });
+
+    /*
+     * A project with an SMS-only config and a calls-only config has one
+     * default for each (#6574): an SMS sent through the calls config would
+     * not go out from it at all, and would be paid for from the balance.
+     */
+    test("an SMS goes through the default for SMS, not the default for calls", async () => {
+      const smsConfig: TwilioConfig = fakeTwilioConfig();
+      const callsConfig: TwilioConfig = fakeTwilioConfig();
+      spies.twilio.mockImplementation((async (
+        _projectId: ObjectID,
+        kind: TwilioMessageKind,
+      ): Promise<TwilioConfig> => {
+        return kind === TwilioMessageKind.SMS ? smsConfig : callsConfig;
+      }) as never);
+      spies.findRule.mockResolvedValue(
+        loadedRule({
+          userSms: verifiedUserSms(),
+        } as unknown as JSONObject) as never,
+      );
+
+      await UserNotificationRuleService.executeNotificationRuleItem(
+        RULE_ID,
+        executeOptions(),
+      );
+
+      expect(smsConfig).not.toBe(callsConfig);
+      expect(sentSmsOptions().customTwilioConfig).toBe(smsConfig);
     });
 
     test("is resolved AFTER the rule is loaded and BEFORE any timeline row or send", async () => {
@@ -1380,18 +1414,19 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
        * zero-cost method, so when it does reach SMS the project's own Twilio
        * account is the one that must be charged.
        */
-      expect(spies.twilio).toHaveBeenCalledTimes(1);
+      expect(spies.twilio).toHaveBeenCalledTimes(2);
       expect(spies.twilio.mock.calls[0]![0]).toBe(options.projectId);
+      expect(spies.twilio.mock.calls[1]![0]).toBe(options.projectId);
       expect(sentSmsOptions().customTwilioConfig).toBe(twilioConfig);
     });
 
-    test("it is hoisted above the channel blocks - two channels, still one lookup", async () => {
+    test("it is hoisted above the channel blocks - two channels, still one lookup of each kind", async () => {
       /*
        * A rule with two methods is not something the product creates (a rule
        * carries exactly one), and the fallback deliberately never builds one -
        * see the distinct-instances test above for why. It is used HERE only to
-       * prove the config read sits above the channel blocks rather than inside
-       * them: were it per-block, this would be two reads.
+       * prove the config reads sit above the channel blocks rather than inside
+       * them: were they per-block, this would be more reads.
        */
       spies.findRule.mockResolvedValue(
         loadedRule({
@@ -1407,7 +1442,7 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
 
       expect(spies.mail).toHaveBeenCalledTimes(1);
       expect(spies.sms).toHaveBeenCalledTimes(1);
-      expect(spies.twilio).toHaveBeenCalledTimes(1);
+      expect(spies.twilio).toHaveBeenCalledTimes(2);
     });
 
     test("a Twilio config read that rejects takes the whole delivery down", async () => {

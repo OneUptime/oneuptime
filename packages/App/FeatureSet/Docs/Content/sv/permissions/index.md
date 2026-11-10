@@ -227,7 +227,7 @@ Vem som äger en resurs läses genom resursen. Ägarna till en övervakare eller
 
 ### Ägare av team
 
-Ett team har också ägare: de personer och team som tar hand om det. De visas på teamets sida och i teamlistan och läggs till och tas bort med **Edit Team**. Teamen **Owners** och **Admin**, som ingår i alla projekt, har inga.
+Ett team har också ägare: de personer och team som tar hand om det. De visas på teamets sida och i teamlistan och läggs till och tas bort med **Edit Team**. Teamen **Owners** och **Admin**, som ingår i alla projekt, har inga. För att lägga till eller ta bort ägare för flera team på en gång markerar du dem i teamlistan och väljer **Lägg till ägare** eller **Ta bort ägare** under **Massåtgärder**; **Owners** och **Admin** hoppas över.
 
 Sex teambehörigheter kan begränsas till omfattningen Ägda: **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** och **Edit Team Permissions**. Med omfattningen Ägda når var och en bara de team som du, eller teamet den har getts till, äger, med deras medlemmar, behörigheter, anpassade roller och efterlevnadsinställningar. Den som skapar ett team med **Create Team** med omfattningen Ägda blir dess första ägare. Läsning av team begränsas aldrig: ett team väljs överallt som ägare, som jourhavande och som mottagare, så alla som får läsa team ser varje team, vilka som är med i det och vad det får göra.
 

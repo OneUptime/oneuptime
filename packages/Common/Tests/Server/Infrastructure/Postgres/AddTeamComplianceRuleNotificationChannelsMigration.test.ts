@@ -161,6 +161,10 @@ describe("AddTeamComplianceRuleNotificationChannels migration - identity and reg
     expect(registeredNames[ownIndex - 1]).toBe("AddIncidentForms1796400000000");
   });
 
+  /*
+   * This table's column: another table's "notificationChannels" - an
+   * on-call step's, say - is a column of its own.
+   */
   test("no other migration file adds the column - the wall-clock one typeorm generated was not left behind", () => {
     expect(
       fs
@@ -170,7 +174,7 @@ describe("AddTeamComplianceRuleNotificationChannels migration - identity and reg
             fileName !== MIGRATION_FILE_NAME &&
             fs
               .readFileSync(path.join(MIGRATIONS_DIRECTORY, fileName), "utf8")
-              .includes(`ADD "notificationChannels"`)
+              .includes(`"TeamComplianceSetting" ADD "notificationChannels"`)
           );
         }),
     ).toEqual([]);

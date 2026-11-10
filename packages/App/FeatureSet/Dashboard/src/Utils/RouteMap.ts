@@ -219,6 +219,16 @@ export const SloRoutePath: Dictionary<string> = {
   [PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.SLOS_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  /*
+   * The Workspace section's pages: list-layout pages too, whose static
+   * segments React Router ranks above the view's `:id`.
+   */
+  [PageMap.SLOS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
+  [PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
+    "workspace-connection-microsoft-teams",
+  [PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
+  [PageMap.SLOS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   [PageMap.SLO_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SLO_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
   [PageMap.SLO_VIEW_MONITOR_RULES]: `${RouteParams.ModelID}/monitor-rules`,
@@ -4111,6 +4121,31 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  // SLOs' Slack, Microsoft Teams and Mattermost rules
+  [PageMap.SLOS_WORKSPACE_CONNECTION_SLACK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTION_SLACK]
+    }`,
+  ),
+
+  [PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST]
+    }`,
+  ),
+
+  [PageMap.SLOS_WORKSPACE_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTIONS]
     }`,
   ),
 

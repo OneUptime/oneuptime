@@ -18,6 +18,7 @@ import path from "path";
  * the server and its workers and holds each to the rule of its kind:
  *
  *   - a message to a project's members passes the project's default config
+ *     for its kind of message - its default for SMS, or for calls
  *     (ProjectCallSMSConfigService.getProjectDefaultTwilioConfig);
  *   - a message to a status page's subscribers passes that page's own config
  *     (ProjectCallSMSConfigService.toTwilioConfig of its callSmsConfig);
@@ -234,6 +235,85 @@ describe("the SMS and calls the server sends", () => {
         );
       }).map(describeCall),
     ).toEqual([]);
+  });
+
+  /*
+   * A project has a default for SMS and a default for calls - a config used
+   * for SMS only and one used for calls only can both be the default
+   * (issue #6574) - so the default is read for the kind of message: an SMS
+   * passes the config read as the default for SMS, a call the one read as
+   * the default for calls. One read for both would send the calls through
+   * the SMS config, which makes none, and they would go through OneUptime's
+   * own account.
+   */
+  test("to a project's members pass the default read for their kind of message", () => {
+    const READ: RegExp =
+      /const(\w+):TwilioConfig\|undefined=awaitProjectCallSMSConfigService\.getProjectDefaultTwilioConfig\(/g;
+    // The kind a read names, its last argument (the source has no spaces here).
+    const READ_FOR_KIND: RegExp = /,TwilioMessageKind\.(SMS|Call),?\)$/;
+    // The variable a send passes as its Twilio config.
+    const SENT_THROUGH: RegExp = /customTwilioConfig:(\w+)[,}]/;
+    const KIND_OF_CALLEE: Record<string, string> = {
+      "SmsService.sendSms": "SMS",
+      "CallService.makeCall": "Call",
+    };
+
+    const problems: Array<string> = [];
+    let reads: number = 0;
+
+    for (const file of MEMBER_SENDERS) {
+      const source: string = fs
+        .readFileSync(path.join(PACKAGES_DIR, file), "utf8")
+        .replace(/\s+/g, "");
+
+      // Each variable a default is read into, and the kind it is read for.
+      const kindOfVariable: Map<string, string> = new Map();
+
+      for (const match of source.matchAll(READ)) {
+        reads++;
+
+        const args: string = argumentsOf(
+          source,
+          match.index! + match[0].length - 1,
+        );
+        const kind: string | undefined = READ_FOR_KIND.exec(args)?.[1];
+
+        if (!kind) {
+          problems.push(`${file}: ${match[1]} is read for no kind of message`);
+          continue;
+        }
+
+        if (
+          kindOfVariable.has(match[1]!) &&
+          kindOfVariable.get(match[1]!) !== kind
+        ) {
+          problems.push(`${file}: ${match[1]} is read for SMS and for calls`);
+        }
+
+        kindOfVariable.set(match[1]!, kind);
+      }
+
+      for (const call of SEND_CALLS) {
+        if (call.file !== file) {
+          continue;
+        }
+
+        const variable: string | undefined = SENT_THROUGH.exec(call.text)?.[1];
+
+        if (
+          !variable ||
+          kindOfVariable.get(variable) !== KIND_OF_CALLEE[call.callee]
+        ) {
+          problems.push(
+            `${describeCall(call)} passes ${variable}, read for ${kindOfVariable.get(variable || "") || "nothing"}`,
+          );
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
+    // Every member sender reads a default, the rule service one of each kind.
+    expect(reads).toBeGreaterThanOrEqual(MEMBER_SENDERS.length + 1);
   });
 
   test("to a status page's subscribers go through that page's own config", () => {

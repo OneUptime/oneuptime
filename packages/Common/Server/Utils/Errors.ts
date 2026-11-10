@@ -28,5 +28,7 @@ export default {
       "You have reached the user limit. You cannot invite any more users to this project. Please contact billing@oneuptime.com to increase your user limit.",
     LIMIT_REACHED_FOR_FREE_PLAN:
       "You have reached the user limit for the free plan. Please upgrade your plan to Growth to invite more users.",
+    REMOVE_FROM_SOME_TEAMS_ONLY:
+      "You can remove this person from only some of their teams, so you can't remove them from the project. Remove them from those teams on their Teams page instead.",
   },
 };

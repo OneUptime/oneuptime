@@ -6,6 +6,7 @@ import { getIncidentsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/sr
 import { getMonitorBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MonitorBreadcrumbs";
 import { getOnCallDutyBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/OnCallDutyBreadcrumbs";
 import { getScheduleMaintenanceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ScheduledMaintenanceBreadcrumbs";
+import { getSloBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/Utils/Breadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
@@ -106,6 +107,19 @@ const PRODUCTS: Array<Product> = [
     microsoftTeams: "ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
     mattermost: "ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST",
     getBreadcrumbs: getOnCallDutyBreadcrumbs,
+  },
+  // The rules that post SLOs' error budget policy changes.
+  {
+    name: "SLOs",
+    crumb: "SLOs",
+    segment: "slos",
+    routesFile: "Routes/SloRoutes.tsx",
+    routePathTable: "SloRoutePath",
+    connect: "SLOS_WORKSPACE_CONNECTIONS",
+    slack: "SLOS_WORKSPACE_CONNECTION_SLACK",
+    microsoftTeams: "SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+    mattermost: "SLOS_WORKSPACE_CONNECTION_MATTERMOST",
+    getBreadcrumbs: getSloBreadcrumbs,
   },
 ];
 

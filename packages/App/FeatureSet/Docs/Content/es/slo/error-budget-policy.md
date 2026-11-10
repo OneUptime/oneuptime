@@ -1,11 +1,12 @@
 # Política de presupuesto de errores
 
-Una política de presupuesto de errores deja escrito lo que tu equipo acordó hacer a medida que se agota el presupuesto de errores de un SLO, como revisar los cambios arriesgados cuando se ha gastado la mitad, o congelar las publicaciones cuando se ha gastado todo. OneUptime coloca el SLO en el nivel de la política al que ha llegado su presupuesto, muestra el acuerdo del equipo para ese nivel en las páginas del SLO, puede generar una alerta o declarar un incidente cuando el SLO entra en un nivel, y les dice a tus pipelines de CI/CD si deben retener las publicaciones. Es la práctica de política de presupuesto de errores del [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+Una política de presupuesto de errores deja escrito lo que tu equipo acordó hacer a medida que se agota el presupuesto de errores de un SLO, como revisar los cambios arriesgados cuando se ha gastado la mitad, o congelar las publicaciones cuando se ha gastado todo. OneUptime coloca el SLO en el nivel de la política al que ha llegado su presupuesto, muestra el acuerdo del equipo para ese nivel en las páginas del SLO, puede generar una alerta o declarar un incidente cuando el SLO entra en un nivel, publica cada cambio de nivel en los canales de Slack, Microsoft Teams o Mattermost que elijas, y les dice a tus pipelines de CI/CD si deben retener las publicaciones. Es la práctica de política de presupuesto de errores del [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Cómo funcionan los niveles](#cómo-funcionan-los-niveles): Qué nivel se aplica y cuándo lo deja el SLO.
 - [Configura una política](#configura-una-política): Parte de la política recomendada o escribe tus propios niveles.
 - [Alertas e incidentes](#alertas-e-incidentes): Avisa a tu equipo cuando el SLO entra en un nivel.
+- [Publica en Slack, Microsoft Teams y Mattermost](#publica-en-slack-microsoft-teams-y-mattermost): Informa a un canal cuando un SLO entra en un nivel, sin avisar a nadie.
 - [Barrera de despliegue](#barrera-de-despliegue): Retén las publicaciones desde CI/CD mientras un nivel congela los despliegues.
 - [Lee el nivel desde la API](#lee-el-nivel-desde-la-api): Comprueba el nivel desde CI y scripts.
 :::
@@ -88,6 +89,7 @@ Ninguno genera una alerta ni declara un incidente hasta que lo actives. **Budget
 - La **Vista general** del SLO muestra el nivel en el que está y lo que el equipo acordó hacer en él, para que todo el que abra el SLO vea el acuerdo que rige ahora. Mientras el nivel congela los despliegues, una insignia roja bajo su nombre indica desde cuándo.
 - El gráfico **Consumo del presupuesto de errores** dibuja una línea con etiqueta en el umbral de cada nivel, junto a la del umbral de riesgo.
 - El **Feed** del SLO publica cada cambio de nivel: el nivel que dejó el SLO y el nivel al que entró, el presupuesto restante, lo que el equipo acordó hacer en el nuevo nivel y si el cambio congeló los despliegues o volvió a permitirlos.
+- Los canales de Slack, Microsoft Teams y Mattermost que nombran tus reglas reciben la misma publicación: consulta [Publica en Slack, Microsoft Teams y Mattermost](#publica-en-slack-microsoft-teams-y-mattermost).
 - Los **Registros de auditoría** del SLO registran cada cambio de nivel, y cada vez que los despliegues se congelan o se vuelven a permitir, como un cambio que hizo el propio OneUptime, así que solo los muestran con **Almacenar eventos del sistema** activado: consulta [Activar los registros de auditoría](/docs/slo/feed-and-audit-logs#activar-los-registros-de-auditoría). Añadir, editar y quitar un nivel se registra a nombre de la persona que lo hizo.
 - La API de lectura del SLO devuelve el nivel y si los despliegues están permitidos: consulta [Lee el nivel desde la API](#lee-el-nivel-desde-la-api) y [Barrera de despliegue](#barrera-de-despliegue).
 
@@ -121,6 +123,43 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 ```
 
 La descripción integrada nombra el nivel, compara el presupuesto restante con el umbral del nivel y dice lo que el equipo acordó hacer en él.
+
+## Publica en Slack, Microsoft Teams y Mattermost
+
+Una regla puede publicar cada cambio de la política de presupuesto de errores de un SLO en los canales de Slack, Microsoft Teams o Mattermost que lee tu equipo, sin avisar a nadie: cuando el SLO entra en un nivel, se recupera a uno menos grave o sale de todos los niveles, y cuando sus despliegues se congelan o se vuelven a permitir. Cada regla elige los SLO y los cambios que publica. Primero conecta el espacio de trabajo al proyecto: consulta [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) o [Mattermost](/docs/workspace-connections/mattermost).
+
+:::steps
+### Abre la sección Espacio de trabajo de los SLO
+
+Ve a **SLO** → **Espacio de trabajo** → **Slack**, **Microsoft Teams** o **Mattermost**. La sección **Espacio de trabajo** solo lista los espacios de chat que tu proyecto ha conectado.
+
+### Crea una regla
+
+Haz clic en **Crear Regla de notificación de SLO** y escribe un nombre en **Nombre de la regla**. En **Qué SLO**, deja **Todos los SLO**, o elige **Solo los SLO que cumplen las condiciones** y añade condiciones: consulta [A qué se aplica una regla](#a-qué-se-aplica-una-regla).
+
+### Elige dónde publica
+
+En **Luego, en Slack**, nombra los canales en los que publica la regla. En Microsoft Teams, elige un equipo y sus canales, o chats a los que se añadió la app de OneUptime. Un SLO no tiene canal propio, así que una regla solo publica en canales y chats que ya tienes.
+:::
+
+El mensaje cuenta el cambio con las palabras del **Feed** del SLO: el nivel que dejó el SLO y el nivel al que entró, cómo cambiaron los despliegues, el presupuesto de errores restante, el umbral del nuevo nivel y lo que el equipo acordó hacer en él, tal como lo escribió el equipo. Una mención en ese acuerdo, como `<!channel>`, se publica como texto y no notifica a nadie.
+
+- Un cambio se publica una sola vez, después de que se guarde la evaluación que lo produjo. Una evaluación que no se guarda no publica nada, y la siguiente publica el cambio.
+- No se publica nada mientras el SLO permanece en su nivel, por mucho tiempo que el presupuesto ronde un umbral: consulta [Entrar en un nivel y salir de él](#entrar-en-un-nivel-y-salir-de-él).
+- Activar o desactivar **Congelar despliegues** en el nivel en el que está el SLO publica un mensaje propio.
+- Un SLO pausado, mal configurado, deshabilitado o archivado mantiene su nivel y no publica nada.
+- Un mensaje que no se puede enviar queda registrado, y la evaluación, el feed del SLO y lo que genera el nivel siguen adelante sin él.
+
+### A qué se aplica una regla
+
+| Condición | A qué se aplica |
+| --- | --- |
+| **SLO** | Los SLO que elijas, o todos los SLO excepto esos. |
+| **Etiquetas del SLO** | Las etiquetas del SLO: cualquiera de las que elijas, todas o ninguna. |
+| **Nombre del SLO** | El nombre del SLO: igual a tu texto o no, que lo contenga o no, que empiece o termine por él. |
+| **Cambio en la política de presupuesto de errores** | Qué cambió: **Entró en un nivel más grave**, **Se recuperó a un nivel menos grave**, **Salió de todos los niveles**, **Despliegues congelados** o **Despliegues permitidos de nuevo**. |
+
+Un cambio de nivel que congeló los despliegues, o volvió a permitirlos, es un único mensaje que reúne ambos cambios. Así, una regla para **Despliegues congelados** también publica el cambio por el que el SLO entra en un nivel que los congela: un canal de despliegues se entera de cada congelación.
 
 ## Cuando no se mide el presupuesto
 
@@ -259,7 +298,7 @@ Estos permisos están en el grupo SLO de un rol. Los roles Project Owner y Proje
 
 ## Aún no disponible
 
-Algunas partes de una política de presupuesto de errores aún no están disponibles: disparadores de flujos de trabajo y notificaciones de Slack o Microsoft Teams para cada nivel, una política compartida por varios SLO, reconocer un nivel o concederle una excepción, y niveles basados en la autonomía del presupuesto en lugar del presupuesto restante. OneUptime no detiene una publicación por sí solo: lo hace un pipeline que comprueba `deploymentsAllowed`, como muestra [Barrera de despliegue](#barrera-de-despliegue).
+Algunas partes de una política de presupuesto de errores aún no están disponibles: un disparador de flujo de trabajo propio para cada nivel, una política compartida por varios SLO, reconocer un nivel o concederle una excepción, y niveles basados en la autonomía del presupuesto en lugar del presupuesto restante. OneUptime no detiene una publicación por sí solo: lo hace un pipeline que comprueba `deploymentsAllowed`, como muestra [Barrera de despliegue](#barrera-de-despliegue).
 
 ## Próximos pasos
 

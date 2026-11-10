@@ -19,7 +19,8 @@ export const BUILT_IN_TEAM_DELETE_MESSAGE: string =
  * owner for them with it (TeamOwnerUserService, TeamOwnerTeamService), and
  * such a team's page says it where other teams list their owners: the
  * Dashboard holds the same English as a translation key
- * (BUILT_IN_TEAM_OWNERS_REASON in Pages/Teams/View/Index.tsx; a test keeps
+ * (BUILT_IN_TEAM_OWNERS_REASON in Components/Team/BuiltInTeamOwners.ts, on
+ * the team's page and the Teams list's Add Owner and Remove Owner; a test keeps
  * the two equal).
  */
 export const BUILT_IN_TEAM_OWNERS_MESSAGE: string =
