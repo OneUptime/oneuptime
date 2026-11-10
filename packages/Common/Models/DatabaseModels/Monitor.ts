@@ -2522,17 +2522,52 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * The latest request as people read it: cut as the monitor's logs are,
+   * and without its headers and body when the monitor keeps no request
+   * content (LatestIncomingRequest). The request as it came is the column
+   * below, which only the server reads.
+   */
   @TableColumn({
     type: TableColumnType.JSON,
     required: false,
     title: "Incoming Monitor Request",
-    description: "Incoming Monitor Request for Incoming Request Monitor",
+    description:
+      "The latest request this monitor received, as its logs keep it: secrets masked, and no headers or body when it keeps no request content.",
   })
   @Column({
     type: ColumnType.JSON,
     nullable: true,
   })
   public incomingMonitorRequest?: IncomingMonitorRequest = undefined;
+
+  /*
+   * The latest request as it came - only the monitor's own key masked, at
+   * ingest - for the heartbeat job, which judges it again (CheckHeartbeat):
+   * a filter on its body or on a header needs what the sender sent. No role
+   * reads it, so the API, exports, MCP, Terraform and the audit log leave it
+   * out; people read the copy above (LatestIncomingRequest).
+   * https://github.com/OneUptime/oneuptime/issues/6402
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    computed: true,
+    canReadOnRelationQuery: false,
+    title: "Incoming Monitor Request As Received",
+    description:
+      "The latest request as it came, for the heartbeat check to judge again. Only the server reads it.",
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public incomingMonitorRequestAsReceived?: IncomingMonitorRequest = undefined;
 
   // Incoming Email Monitor fields
 
