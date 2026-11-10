@@ -2,13 +2,16 @@ import { DataAssetFreshness } from "Common/Types/DataObservability/DataAssetFres
 import DataAssetLineageSource from "Common/Types/DataObservability/DataAssetLineageSource";
 import {
   DataLineageEdgeKind,
+  DataLineageHighlight,
   DataLineageNodeKind,
   DataLineageSide,
   DataTableLineage,
   DataTableLineageEdge,
   DataTableLineageNode,
   DataTableLineagePipeline,
+  getLineagePipelineNodeId,
   isFailedLineageRunState,
+  isLineagePipelineNodeId,
   isRunningLineageRunState,
 } from "Common/Types/DataObservability/DataTableLineage";
 
@@ -23,6 +26,9 @@ import {
  * source. Pipelines that bring data in from outside sit a column before
  * the first table they write, dashboards a column after the last table
  * they read.
+ *
+ * A pipeline's drawing reads the same way with the pipeline in the middle:
+ * the tables it reads on the left, the tables it writes on the right.
  *
  * Within a column, cards line up with the cards they are joined to: the
  * columns are arranged from the table outwards, then back, then outwards
@@ -97,11 +103,62 @@ export interface LineageSummary {
   downstreamProblems: number;
 }
 
+// Which page a drawing is on: what its own card says, whether it opens, what its counts tell.
+export enum LineagePlace {
+  // A table's Lineage tab: the table is the page.
+  Table = "Table",
+  // A pipeline's page: the pipeline is the page.
+  Pipeline = "Pipeline",
+  // A data alert's page: its table or pipeline opens its own page.
+  Alert = "Alert",
+}
+
+// A card at the end of a way an alert's drawing picks out.
+export enum LineageCardRole {
+  // Where the alert's cause is.
+  Cause = "Cause",
+  // Where an alert it caused is.
+  Consequence = "Consequence",
+}
+
+// A pipeline named on an arrow.
+export interface LineageEdgeLabel {
+  pipeline: DataTableLineagePipeline;
+  // Its latest run failed (red); otherwise it is on an alert's way (indigo).
+  isFailed: boolean;
+}
+
+// How an arrow is drawn, all told.
+export interface LineageArrowLook {
+  color: string;
+  width: number;
+  dash: string | null;
+  label: LineageEdgeLabel | null;
+  // On an alert's way: drawn over a halo.
+  isHighlighted: boolean;
+  // Off the ways a drawing picks out: drawn faint.
+  isDimmed: boolean;
+}
+
+// The ways a drawing picks out, to look things up in.
+export interface LineageHighlightSets {
+  nodeIds: Set<string>;
+  edgeIds: Set<string>;
+  causeNodeIds: Set<string>;
+  consequenceNodeIds: Set<string>;
+  dataPipelineIds: Set<string>;
+}
+
 export const LINEAGE_NEUTRAL_COLOR: string = "#94a3b8";
 export const LINEAGE_READS_COLOR: string = "#cbd5e1";
 export const LINEAGE_PROBLEM_COLOR: string = "#ef4444";
 export const LINEAGE_HEALTHY_COLOR: string = "#22c55e";
 export const LINEAGE_RUNNING_COLOR: string = "#eab308";
+// The ways an alert's drawing picks out: indigo, as the drawing's own card is ringed.
+export const LINEAGE_HIGHLIGHT_COLOR: string = "#6366f1";
+export const LINEAGE_HIGHLIGHT_WIDTH: number = 2.5;
+// How faint what is off the ways is drawn.
+export const LINEAGE_DIMMED_OPACITY: number = 0.4;
 
 // A query seen moving the data: dashed. A view's definition: dotted. A pipeline's run: solid.
 export const LINEAGE_QUERY_HISTORY_DASH: string = "6 4";
@@ -166,7 +223,11 @@ export function getLineageEdgeStyle(
       return isFailedLineageRunState(pipeline.lastRunState);
     }) || null;
 
-  if (edge.kind === DataLineageEdgeKind.Reads) {
+  // A dashboard's read: light. A pipeline's read of a table is drawn as any other arrow into it.
+  if (
+    edge.kind === DataLineageEdgeKind.Reads &&
+    !isLineagePipelineNodeId(edge.target)
+  ) {
     return {
       color: LINEAGE_READS_COLOR,
       width: 1.25,
@@ -194,6 +255,162 @@ export function getLineageEdgeStyle(
     dash,
     failedPipeline,
   };
+}
+
+// The ways a drawing picks out, as sets; null when it picks none.
+export function getLineageHighlightSets(
+  lineage: DataTableLineage,
+): LineageHighlightSets | null {
+  const highlight: DataLineageHighlight | undefined = lineage.highlight;
+
+  if (!highlight || highlight.nodeIds.length === 0) {
+    return null;
+  }
+
+  return {
+    nodeIds: new Set(highlight.nodeIds),
+    edgeIds: new Set(highlight.edgeIds),
+    causeNodeIds: new Set(highlight.causeNodeIds),
+    consequenceNodeIds: new Set(highlight.consequenceNodeIds),
+    dataPipelineIds: new Set(highlight.dataPipelineIds),
+  };
+}
+
+// Where a card is on an alert's ways: its cause, an alert it caused, or neither.
+export function getLineageCardRole(
+  sets: LineageHighlightSets | null,
+  nodeId: string,
+): LineageCardRole | null {
+  if (sets?.causeNodeIds.has(nodeId)) {
+    return LineageCardRole.Cause;
+  }
+
+  if (sets?.consequenceNodeIds.has(nodeId)) {
+    return LineageCardRole.Consequence;
+  }
+
+  return null;
+}
+
+// Whether a card is drawn faint: off every way a drawing picks out.
+export function isLineageCardDimmed(
+  sets: LineageHighlightSets | null,
+  nodeId: string,
+): boolean {
+  return Boolean(sets && !sets.nodeIds.has(nodeId));
+}
+
+/*
+ * The pipeline an arrow names: one whose latest run failed, or - on an
+ * alert's way - the pipeline that is its cause or an alert it caused. Never
+ * a pipeline that has its own card at the arrow's start, or that the
+ * drawing is about: its card already says how it is.
+ */
+export function getLineageEdgeLabel(
+  edge: DataTableLineageEdge,
+  focusNodeId: string,
+  sets: LineageHighlightSets | null,
+): LineageEdgeLabel | null {
+  const hasOwnCard: (pipeline: DataTableLineagePipeline) => boolean = (
+    pipeline: DataTableLineagePipeline,
+  ): boolean => {
+    const card: string = getLineagePipelineNodeId(pipeline.dataPipelineId);
+
+    return edge.source === card || focusNodeId === card;
+  };
+
+  const failed: DataTableLineagePipeline | undefined = edge.pipelines.find(
+    (pipeline: DataTableLineagePipeline): boolean => {
+      return (
+        isFailedLineageRunState(pipeline.lastRunState) && !hasOwnCard(pipeline)
+      );
+    },
+  );
+
+  if (failed) {
+    return { pipeline: failed, isFailed: true };
+  }
+
+  if (sets?.edgeIds.has(edge.id)) {
+    const named: DataTableLineagePipeline | undefined = edge.pipelines.find(
+      (pipeline: DataTableLineagePipeline): boolean => {
+        return (
+          sets.dataPipelineIds.has(pipeline.dataPipelineId) &&
+          !hasOwnCard(pipeline)
+        );
+      },
+    );
+
+    if (named) {
+      return { pipeline: named, isFailed: false };
+    }
+  }
+
+  return null;
+}
+
+/*
+ * How an arrow is drawn: by where it was seen and whether its pipeline
+ * failed (getLineageEdgeStyle), and on an alert's drawing, picked out in
+ * indigo - red still red - when it is on a way, faint when it is not.
+ */
+export function getLineageArrowLook(
+  edge: DataTableLineageEdge,
+  focusNodeId: string,
+  sets: LineageHighlightSets | null,
+): LineageArrowLook {
+  const style: LineageEdgeStyle = getLineageEdgeStyle(edge);
+  const isHighlighted: boolean = Boolean(sets?.edgeIds.has(edge.id));
+
+  return {
+    color:
+      isHighlighted && !style.failedPipeline
+        ? LINEAGE_HIGHLIGHT_COLOR
+        : style.color,
+    width: isHighlighted
+      ? Math.max(style.width, LINEAGE_HIGHLIGHT_WIDTH)
+      : style.width,
+    dash: style.dash,
+    label: getLineageEdgeLabel(edge, focusNodeId, sets),
+    isHighlighted,
+    isDimmed: Boolean(sets) && !isHighlighted,
+  };
+}
+
+/*
+ * A pipeline's drawing: how many tables it reads and writes, those not
+ * drawn included - the arrows into and out of its card, and the counts on
+ * its card.
+ */
+export function countPipelineTables(lineage: DataTableLineage): {
+  reads: number;
+  writes: number;
+} {
+  const focus: DataTableLineageNode | undefined = lineage.nodes.find(
+    (node: DataTableLineageNode): boolean => {
+      return node.id === lineage.focusNodeId;
+    },
+  );
+  let reads: number = focus?.hiddenUpstreamCount || 0;
+  let writes: number = focus?.hiddenDownstreamCount || 0;
+
+  for (const edge of lineage.edges) {
+    if (
+      edge.kind === DataLineageEdgeKind.Reads &&
+      edge.target === lineage.focusNodeId
+    ) {
+      reads++;
+    }
+
+    if (
+      edge.kind === DataLineageEdgeKind.Writes &&
+      edge.source === lineage.focusNodeId
+    ) {
+      writes++;
+    }
+  }
+
+  return { reads, writes };
 }
 
 // Only the table itself: nothing has been seen feeding it or built from it.
@@ -249,7 +466,8 @@ function compareText(a: string, b: string): number {
  * Each card's column. Upstream, the longest way to the table along the
  * arrows between upstream tables (a cycle among them is cut where the walk
  * meets it); downstream, the longest way from it. A card no such way
- * reaches keeps the steps the lineage gave it.
+ * reaches keeps the steps the lineage gave it. On a pipeline's drawing the
+ * arrows into and out of the pipeline are the first steps of those ways.
  */
 export function getLineageColumns(
   lineage: DataTableLineage,
@@ -279,7 +497,17 @@ export function getLineageColumns(
   const from: Map<string, Array<string>> = new Map();
 
   for (const edge of lineage.edges) {
-    if (edge.kind !== DataLineageEdgeKind.Feeds) {
+    // A pipeline's own arrows: what it reads into it, what it writes out of it.
+    const isFocusRead: boolean =
+      edge.kind === DataLineageEdgeKind.Reads && edge.target === focus;
+    const isFocusWrite: boolean =
+      edge.kind === DataLineageEdgeKind.Writes && edge.source === focus;
+
+    if (
+      edge.kind !== DataLineageEdgeKind.Feeds &&
+      !isFocusRead &&
+      !isFocusWrite
+    ) {
       continue;
     }
 
@@ -366,6 +594,14 @@ export function getLineageColumns(
 
   // A pipeline a column before the first table it writes, a dashboard a column after the last it reads.
   for (const edge of lineage.edges) {
+    // The pipeline a drawing is about stays in the middle.
+    if (
+      (edge.kind === DataLineageEdgeKind.Writes && edge.source === focus) ||
+      (edge.kind === DataLineageEdgeKind.Reads && edge.target === focus)
+    ) {
+      continue;
+    }
+
     const tableColumn: number | undefined = columns.get(
       edge.kind === DataLineageEdgeKind.Writes ? edge.target : edge.source,
     );

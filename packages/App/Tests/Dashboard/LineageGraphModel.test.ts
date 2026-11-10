@@ -21,6 +21,8 @@ import {
   LINEAGE_CARD_HEIGHT,
   LINEAGE_CARD_WIDTH,
   LINEAGE_COLUMN_GAP,
+  LINEAGE_HIGHLIGHT_COLOR,
+  LINEAGE_HIGHLIGHT_WIDTH,
   LINEAGE_NEUTRAL_COLOR,
   LINEAGE_PROBLEM_COLOR,
   LINEAGE_FIT_PADDING,
@@ -29,15 +31,24 @@ import {
   LINEAGE_READS_COLOR,
   LINEAGE_ROW_GAP,
   LINEAGE_VIEW_DEFINITION_DASH,
+  LineageArrowLook,
+  LineageCardRole,
+  LineageHighlightSets,
   LineageLayout,
   LineagePoint,
   LineageTone,
   LineageViewport,
+  countPipelineTables,
   fitHeights,
+  getLineageArrowLook,
+  getLineageCardRole,
   getLineageColumns,
+  getLineageEdgeLabel,
   getLineageEdgeStyle,
+  getLineageHighlightSets,
   getLineageNodeTone,
   getLineageViewport,
+  isLineageCardDimmed,
   isLineageEmpty,
   layoutLineage,
   summarizeLineage,
@@ -878,5 +889,473 @@ describe("a table's Lineage tab", () => {
     );
 
     expect(api).toContain("DATA_OBSERVABILITY_API_ROUTES.tableLineage");
+  });
+});
+
+/*
+ * A pipeline's drawing: the pipeline in the middle ("etl"), the tables it
+ * reads a column before it, the tables it writes a column after, and the
+ * walk going on from those.
+ */
+const ETL: string = getLineagePipelineNodeId("etl");
+
+function pipelineLineageOf(
+  nodes: Array<DataTableLineageNode>,
+  edges: Array<DataTableLineageEdge>,
+  focus: Partial<DataTableLineageNode> = {},
+): DataTableLineage {
+  return {
+    focusNodeId: ETL,
+    depth: 1,
+    nodes: [
+      pipelineNode("etl", {
+        side: DataLineageSide.Focus,
+        depth: 0,
+        hiddenUpstreamCount: 0,
+        hiddenDownstreamCount: 0,
+        ...focus,
+      }),
+      ...nodes,
+    ],
+    edges,
+    hiddenDashboardCount: 0,
+    isTruncated: false,
+  };
+}
+
+// The pipeline's read of a table, and its write of one.
+function readsInto(name: string): DataTableLineageEdge {
+  return edge(DataLineageEdgeKind.Reads, getLineageTableNodeId(name), ETL, {
+    seenIn: [DataAssetLineageSource.Pipeline],
+  });
+}
+
+function writesOut(
+  name: string,
+  fields: Partial<DataTableLineageEdge> = {},
+): DataTableLineageEdge {
+  return edge(DataLineageEdgeKind.Writes, ETL, getLineageTableNodeId(name), {
+    pipelines: [
+      { dataPipelineId: "etl", name: "etl", lastRunState: "COMPLETE" },
+    ],
+    ...fields,
+  });
+}
+
+describe("a pipeline's drawing", () => {
+  test("what it reads sits a column before it, what it writes a column after, and the walk goes on from them", () => {
+    const columns: Map<string, number> = getLineageColumns(
+      pipelineLineageOf(
+        [up("a", -1), up("b", -1), up("x", -2), down("c", 1), down("d", 2)],
+        [
+          readsInto("a"),
+          readsInto("b"),
+          feeds("x", "a"),
+          writesOut("c"),
+          feeds("c", "d"),
+        ],
+      ),
+    );
+
+    expect(columns.get(ETL)).toBe(0);
+    expect(columnOf(columns, "a")).toBe(-1);
+    expect(columnOf(columns, "b")).toBe(-1);
+    expect(columnOf(columns, "x")).toBe(-2);
+    expect(columnOf(columns, "c")).toBe(1);
+    expect(columnOf(columns, "d")).toBe(2);
+  });
+
+  test("a table it reads that feeds another it reads sits further left, so every arrow points right", () => {
+    const columns: Map<string, number> = getLineageColumns(
+      pipelineLineageOf(
+        [up("a", -1), up("b", -1), down("c", 1)],
+        [readsInto("a"), readsInto("b"), feeds("a", "b"), writesOut("c")],
+      ),
+    );
+
+    expect(columnOf(columns, "b")).toBe(-1);
+    expect(columnOf(columns, "a")).toBe(-2);
+  });
+
+  test("a pipeline loading a table it reads sits a column before that table; the pipeline it is about stays in the middle", () => {
+    const columns: Map<string, number> = getLineageColumns(
+      pipelineLineageOf(
+        [up("a", -1), pipelineNode("sync", { depth: -2 }), down("c", 1)],
+        [
+          readsInto("a"),
+          edge(
+            DataLineageEdgeKind.Writes,
+            getLineagePipelineNodeId("sync"),
+            getLineageTableNodeId("a"),
+          ),
+          writesOut("c"),
+        ],
+      ),
+    );
+
+    expect(columns.get(getLineagePipelineNodeId("sync"))).toBe(-2);
+    expect(columns.get(ETL)).toBe(0);
+  });
+
+  test("laid out, every arrow points right, the pipeline between what it reads and what it writes", () => {
+    const layout: LineageLayout = layoutLineage(
+      pipelineLineageOf(
+        [up("a", -1), up("b", -1), up("x", -2), down("c", 1), down("d", 2)],
+        [
+          readsInto("a"),
+          readsInto("b"),
+          feeds("x", "a"),
+          writesOut("c"),
+          writesOut("d"),
+          feeds("c", "d"),
+        ],
+      ),
+    );
+    const x: (id: string) => number = (id: string): number => {
+      return layout.positions.get(id)!.x;
+    };
+
+    for (const [source, target] of [
+      [getLineageTableNodeId("a"), ETL],
+      [getLineageTableNodeId("x"), getLineageTableNodeId("a")],
+      [ETL, getLineageTableNodeId("c")],
+      [ETL, getLineageTableNodeId("d")],
+      [getLineageTableNodeId("c"), getLineageTableNodeId("d")],
+    ] as Array<[string, string]>) {
+      expect(x(source)).toBeLessThan(x(target));
+    }
+  });
+
+  test("its read of a table is drawn as any arrow into it; a dashboard's read stays light", () => {
+    expect(getLineageEdgeStyle(readsInto("a"))).toEqual({
+      color: LINEAGE_NEUTRAL_COLOR,
+      width: 1.5,
+      dash: null,
+      failedPipeline: null,
+    });
+    expect(
+      getLineageEdgeStyle(edge(DataLineageEdgeKind.Reads, FOCUS, "dashboard:d"))
+        .color,
+    ).toBe(LINEAGE_READS_COLOR);
+  });
+
+  test("how many tables it reads and writes: the arrows into and out of it, and the counts on its card", () => {
+    expect(
+      countPipelineTables(
+        pipelineLineageOf(
+          [up("a", -1), up("b", -1), down("c", 1), down("d", 2)],
+          [
+            readsInto("a"),
+            readsInto("b"),
+            writesOut("c"),
+            // Further down: not one it writes.
+            feeds("c", "d"),
+          ],
+          { hiddenUpstreamCount: 4, hiddenDownstreamCount: 1 },
+        ),
+      ),
+    ).toEqual({ reads: 6, writes: 2 });
+    expect(countPipelineTables(pipelineLineageOf([], []))).toEqual({
+      reads: 0,
+      writes: 0,
+    });
+  });
+
+  test("a pipeline alone is a drawing with nothing in it", () => {
+    expect(isLineageEmpty(pipelineLineageOf([], []))).toBe(true);
+    expect(
+      isLineageEmpty(pipelineLineageOf([up("a", -1)], [readsInto("a")])),
+    ).toBe(false);
+  });
+});
+
+describe("an alert's drawing: the ways it picks out", () => {
+  const failed: DataTableLineagePipeline = {
+    dataPipelineId: "p1",
+    name: "orders_etl",
+    lastRunState: "FAIL",
+  };
+  const onTheWay: DataTableLineagePipeline = {
+    dataPipelineId: "p2",
+    name: "orders_mart",
+    lastRunState: "COMPLETE",
+  };
+
+  // focus <- a <- cause, focus -> b (a consequence), and c off the ways.
+  function withWays(
+    edges: Array<DataTableLineageEdge> = [
+      feeds("cause", "a"),
+      feeds("a", "focus"),
+      feeds("focus", "b", { pipelines: [onTheWay] }),
+      feeds("c", "focus"),
+    ],
+  ): DataTableLineage {
+    return {
+      ...lineageOf(
+        [up("a", -1), up("cause", -2), up("c", -1), down("b", 1)],
+        edges,
+      ),
+      highlight: {
+        nodeIds: [
+          FOCUS,
+          getLineageTableNodeId("a"),
+          getLineageTableNodeId("cause"),
+          getLineageTableNodeId("b"),
+        ],
+        edgeIds: [
+          feeds("cause", "a").id,
+          feeds("a", "focus").id,
+          feeds("focus", "b").id,
+        ],
+        causeNodeIds: [getLineageTableNodeId("cause")],
+        consequenceNodeIds: [getLineageTableNodeId("b")],
+        dataPipelineIds: ["p2"],
+      },
+    };
+  }
+
+  test("no ways: nothing to look up, nothing faint, no card named", () => {
+    expect(getLineageHighlightSets(lineageOf([], []))).toBeNull();
+    expect(
+      getLineageHighlightSets({
+        ...lineageOf([], []),
+        highlight: {
+          nodeIds: [],
+          edgeIds: [],
+          causeNodeIds: [],
+          consequenceNodeIds: [],
+          dataPipelineIds: [],
+        },
+      }),
+    ).toBeNull();
+    expect(isLineageCardDimmed(null, FOCUS)).toBe(false);
+    expect(getLineageCardRole(null, FOCUS)).toBeNull();
+  });
+
+  test("the cause's card and each consequence's are named; the rest of a way's cards are not", () => {
+    const sets: LineageHighlightSets = getLineageHighlightSets(withWays())!;
+
+    expect(getLineageCardRole(sets, getLineageTableNodeId("cause"))).toBe(
+      LineageCardRole.Cause,
+    );
+    expect(getLineageCardRole(sets, getLineageTableNodeId("b"))).toBe(
+      LineageCardRole.Consequence,
+    );
+    expect(getLineageCardRole(sets, getLineageTableNodeId("a"))).toBeNull();
+    expect(getLineageCardRole(sets, FOCUS)).toBeNull();
+  });
+
+  test("a card is faint only off every way", () => {
+    const sets: LineageHighlightSets = getLineageHighlightSets(withWays())!;
+
+    for (const name of ["focus", "a", "cause", "b"]) {
+      expect(isLineageCardDimmed(sets, getLineageTableNodeId(name))).toBe(
+        false,
+      );
+    }
+
+    expect(isLineageCardDimmed(sets, getLineageTableNodeId("c"))).toBe(true);
+  });
+
+  test("an arrow on a way is indigo and wide, the line it was seen as kept; one off the ways faint", () => {
+    const lineage: DataTableLineage = withWays([
+      feeds("cause", "a", { seenIn: [DataAssetLineageSource.QueryHistory] }),
+      feeds("a", "focus"),
+      feeds("focus", "b", { pipelines: [onTheWay] }),
+      feeds("c", "focus"),
+    ]);
+    const sets: LineageHighlightSets = getLineageHighlightSets(lineage)!;
+    const way: LineageArrowLook = getLineageArrowLook(
+      lineage.edges[0]!,
+      FOCUS,
+      sets,
+    );
+    const off: LineageArrowLook = getLineageArrowLook(
+      lineage.edges[3]!,
+      FOCUS,
+      sets,
+    );
+
+    expect(way).toEqual({
+      color: LINEAGE_HIGHLIGHT_COLOR,
+      width: LINEAGE_HIGHLIGHT_WIDTH,
+      dash: LINEAGE_QUERY_HISTORY_DASH,
+      label: null,
+      isHighlighted: true,
+      isDimmed: false,
+    });
+    expect(off).toEqual({
+      color: LINEAGE_NEUTRAL_COLOR,
+      width: 1.5,
+      dash: null,
+      label: null,
+      isHighlighted: false,
+      isDimmed: true,
+    });
+  });
+
+  test("an arrow whose run failed stays red on a way", () => {
+    const lineage: DataTableLineage = withWays([
+      feeds("cause", "a"),
+      feeds("a", "focus", { pipelines: [failed] }),
+      feeds("focus", "b"),
+      feeds("c", "focus"),
+    ]);
+    const look: LineageArrowLook = getLineageArrowLook(
+      lineage.edges[1]!,
+      FOCUS,
+      getLineageHighlightSets(lineage),
+    );
+
+    expect(look.color).toBe(LINEAGE_PROBLEM_COLOR);
+    expect(look.width).toBeGreaterThanOrEqual(LINEAGE_HIGHLIGHT_WIDTH);
+    expect(look.label).toEqual({ pipeline: failed, isFailed: true });
+    expect(look.isHighlighted).toBe(true);
+  });
+
+  test("without ways, an arrow looks as a table's drawing draws it", () => {
+    const arrow: DataTableLineageEdge = feeds("a", "focus", {
+      pipelines: [failed],
+    });
+    const style: ReturnType<typeof getLineageEdgeStyle> =
+      getLineageEdgeStyle(arrow);
+
+    expect(getLineageArrowLook(arrow, FOCUS, null)).toEqual({
+      color: style.color,
+      width: style.width,
+      dash: style.dash,
+      label: { pipeline: failed, isFailed: true },
+      isHighlighted: false,
+      isDimmed: false,
+    });
+  });
+
+  test("a pipeline on a way is named on its arrow, not failed; off the ways it is not named", () => {
+    const lineage: DataTableLineage = withWays();
+    const sets: LineageHighlightSets = getLineageHighlightSets(lineage)!;
+
+    expect(getLineageEdgeLabel(lineage.edges[2]!, FOCUS, sets)).toEqual({
+      pipeline: onTheWay,
+      isFailed: false,
+    });
+    // The same pipeline on an arrow off the ways: nothing.
+    expect(
+      getLineageEdgeLabel(
+        feeds("c", "focus", { pipelines: [onTheWay] }),
+        FOCUS,
+        sets,
+      ),
+    ).toBeNull();
+    // A pipeline not picked out, on a way: nothing.
+    expect(
+      getLineageEdgeLabel(
+        feeds("a", "focus", {
+          pipelines: [{ ...onTheWay, dataPipelineId: "p9" }],
+        }),
+        FOCUS,
+        sets,
+      ),
+    ).toBeNull();
+  });
+
+  test("a failed run is named before a pipeline on the way", () => {
+    const lineage: DataTableLineage = withWays([
+      feeds("cause", "a"),
+      feeds("a", "focus"),
+      feeds("focus", "b", { pipelines: [onTheWay, failed] }),
+      feeds("c", "focus"),
+    ]);
+
+    expect(
+      getLineageEdgeLabel(
+        lineage.edges[2]!,
+        FOCUS,
+        getLineageHighlightSets(lineage),
+      ),
+    ).toEqual({ pipeline: failed, isFailed: true });
+  });
+
+  test("never a pipeline whose card starts the arrow, nor the pipeline the drawing is about", () => {
+    const sets: LineageHighlightSets = getLineageHighlightSets(withWays())!;
+    const fromItsCard: DataTableLineageEdge = edge(
+      DataLineageEdgeKind.Writes,
+      getLineagePipelineNodeId("p1"),
+      getLineageTableNodeId("a"),
+      { pipelines: [failed] },
+    );
+
+    expect(getLineageEdgeLabel(fromItsCard, FOCUS, sets)).toBeNull();
+    expect(
+      getLineageEdgeLabel(
+        writesOut("c", {
+          pipelines: [
+            { dataPipelineId: "etl", name: "etl", lastRunState: "FAIL" },
+          ],
+        }),
+        ETL,
+        null,
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("a pipeline's page and a data alert's page", () => {
+  const DASHBOARD_SRC: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+  );
+
+  function source(...parts: Array<string>): string {
+    return fs.readFileSync(path.join(DASHBOARD_SRC, ...parts), "utf8");
+  }
+
+  test("a pipeline's page draws its lineage after its stats and before its runs", () => {
+    const page: string = source(
+      "Pages",
+      "DataPipeline",
+      "View",
+      "Overview.tsx",
+    );
+    const diagram: number = page.indexOf(
+      "<PipelineLineageDiagram dataPipelineId={dataPipelineId} />",
+    );
+
+    expect(diagram).toBeGreaterThan(-1);
+    expect(diagram).toBeGreaterThan(page.indexOf("</EventStatBar>"));
+    expect(diagram).toBeLessThan(page.indexOf("<ModelTable<DataPipelineRun>"));
+  });
+
+  test("a data alert's page draws its lineage after its Data card, only for an alert about a table or pipeline", () => {
+    const card: string = source(
+      "Components",
+      "DataObservability",
+      "DataAlertLineage.tsx",
+    );
+    const diagram: number = card.indexOf(
+      "<AlertLineageDiagram alertId={props.alertId} />",
+    );
+
+    expect(diagram).toBeGreaterThan(card.indexOf('title="Data"'));
+    expect(diagram).toBeLessThan(card.indexOf("<DataAlertExplanationCard"));
+    expect(card.slice(diagram - 120, diagram)).toContain(
+      "own?.dataAssetId || own?.dataPipelineId ?",
+    );
+  });
+
+  test("both ask their routes through the Dashboard's own client", () => {
+    const api: string = source(
+      "Components",
+      "DataObservability",
+      "DataObservabilityApi.ts",
+    );
+
+    expect(api).toContain("DATA_OBSERVABILITY_API_ROUTES.pipelineLineage");
+    expect(api).toContain(
+      "DATA_OBSERVABILITY_API_ROUTES.alertLineage(alertId.toString())",
+    );
   });
 });

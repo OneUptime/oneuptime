@@ -94,6 +94,8 @@ Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue es
 - **Pipeline Run Unusually Long**: un'esecuzione ha impiegato il doppio del tempo abituale o più, verificato ogni cinque minuti mentre è in corso, così un'esecuzione bloccata viene notata prima che finisca.
 - **Pipeline Is Late**: nessuna esecuzione è partita da più tempo di quanto la sua pianificazione consenta.
 
+La pagina di una pipeline disegna la sua **Derivazione**, il primo posto in cui guardare quando un'esecuzione non riesce o è in ritardo: a sinistra le tabelle che legge, a destra le tabelle che scrive, la pipeline in mezzo, e ogni riquadro dice com'è adesso. Scegli più passi per vedere da cosa sono costruite quelle tabelle e cosa è costruito a partire da esse, e apri qualsiasi tabella per vedere la sua scheda **Derivazione**.
+
 ## Una segnalazione per causa
 
 Quando una tabella smette di essere aggiornata, ogni tabella costruita a partire da essa smette di esserlo a sua volta. Prima che si apra un avviso sui dati, OneUptime cerca nel lineage un avviso già aperto su ciò da cui viene costruita la sua tabella o la sua pipeline: le tabelle a monte, le pipeline che le scrivono e i database in cui si trovano, fino a cinque livelli più su. Se ne trova uno, il nuovo avviso è una conseguenza di quell'avviso:
@@ -102,6 +104,10 @@ Quando una tabella smette di essere aggiornata, ogni tabella costruita a partire
 - Il suo feed e il suo riquadro **Dati** indicano quale avviso lo ha causato, e si unisce all'episodio della causa.
 
 Il riquadro **Dati** della causa elenca il suo **Impatto a valle**: ogni avviso che ha causato. Il riquadro di un avviso su una tabella mostra anche i servizi che scrivono la tabella, con le loro scritture non riuscite, e i loro deploy e le altre modifiche nel giorno precedente l'avviso.
+
+Sotto il riquadro **Dati**, la pagina di un avviso disegna la sua **Derivazione**: attorno alla sua tabella, come la disegna la scheda **Derivazione** della tabella, o attorno alla sua pipeline. Il percorso che sale fino all'avviso che lo ha causato e scende fino a ogni avviso che ha causato è evidenziato - la tabella o la pipeline della causa segnata come **Causa**, quelle di ogni avviso causato come **Conseguenza** - e il resto si attenua, così chi lo apre vede in quale punto della catena è iniziato il problema. Quando la causa riguarda un intero database, o si trova più in alto di dove arriva il diagramma, il riquadro lo dice a parole. **Esplora la derivazione** apre la scheda **Derivazione** della tabella, o la pagina della pipeline.
+
+Chi non può vedere l'avviso che lo ha causato non riceve né il riquadro **Dati** né la derivazione, e un avviso causato che non può vedere non viene né evidenziato né contato.
 
 ## Prima che una modifica venga unita
 

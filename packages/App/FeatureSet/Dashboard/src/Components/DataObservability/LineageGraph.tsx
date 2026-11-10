@@ -3,20 +3,29 @@ import { formatOverdue } from "./DataObservabilityFormat";
 import {
   LINEAGE_CARD_HEIGHT,
   LINEAGE_CARD_WIDTH,
+  LINEAGE_DIMMED_OPACITY,
   LINEAGE_EDGE_LABEL_MAX_WIDTH,
   LINEAGE_FIT_PADDING,
+  LINEAGE_HIGHLIGHT_COLOR,
+  LINEAGE_HIGHLIGHT_WIDTH,
   LINEAGE_NEUTRAL_COLOR,
   LINEAGE_PROBLEM_COLOR,
   LINEAGE_QUERY_HISTORY_DASH,
   LINEAGE_VIEW_DEFINITION_DASH,
-  LineageEdgeStyle,
+  LineageArrowLook,
+  LineageCardRole,
+  LineageHighlightSets,
   LineageLayout,
+  LineagePlace,
   LineageTone,
   LineageViewport,
-  getLineageEdgeStyle,
+  getLineageArrowLook,
+  getLineageCardRole,
+  getLineageHighlightSets,
   getLineageViewport,
   getLineageNodeTone,
   getLineageToneColor,
+  isLineageCardDimmed,
   layoutLineage,
 } from "./LineageGraphModel";
 import { getRunStatePill } from "../../Pages/DataObservability/Pipelines";
@@ -24,7 +33,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
+import { Gray500, Green500, Indigo500, Red500 } from "Common/Types/BrandColors";
 import { DataAssetFreshness } from "Common/Types/DataObservability/DataAssetFreshness";
 import DataAssetKind from "Common/Types/DataObservability/DataAssetKind";
 import {
@@ -99,13 +108,36 @@ import "reactflow/dist/style.css";
  * wide to read whole opens on the table itself, at a zoom its names can be
  * read at (getLineageViewport); the rest is a drag away. Until the reader
  * pans or zooms, the view follows the canvas's size.
+ *
+ * The same drawing sits on a pipeline's page, the pipeline in the middle,
+ * and on a data alert's page, around the alert's table or pipeline - which
+ * opens its own page there - with the way to the alert's cause and to the
+ * alerts it caused picked out: its cards and arrows in indigo, the cause
+ * and each consequence named on its card, and the rest drawn faint.
  */
 
-const MAP_LABEL: string = translationKey(
-  "The tables this table is built from, and the tables and dashboards built from it",
-);
+const MAP_LABELS: Readonly<Record<LineagePlace, string>> = {
+  [LineagePlace.Table]: translationKey(
+    "The tables this table is built from, and the tables and dashboards built from it",
+  ),
+  [LineagePlace.Pipeline]: translationKey(
+    "The tables this pipeline reads and the tables it writes, with the lineage around them",
+  ),
+  [LineagePlace.Alert]: translationKey(
+    "The lineage around this alert, with the way to the alert that caused it and to the alerts it caused",
+  ),
+};
+// What the card the drawing is about says it is.
+const FOCUS_LABELS: Readonly<Record<LineagePlace, string>> = {
+  [LineagePlace.Table]: translationKey("This table"),
+  [LineagePlace.Pipeline]: translationKey("This pipeline"),
+  [LineagePlace.Alert]: translationKey("This alert"),
+};
+const ROLE_LABELS: Readonly<Record<LineageCardRole, string>> = {
+  [LineageCardRole.Cause]: translationKey("Cause"),
+  [LineageCardRole.Consequence]: translationKey("Consequence"),
+};
 const PIPELINE: string = translationKey("Pipeline");
-const THIS_TABLE: string = translationKey("This table");
 const DROPPED: string = translationKey("Dropped");
 const FRESH: string = translationKey("Fresh");
 const FAILED_PIPELINE: string = translationKey("{{pipeline}} failed");
@@ -133,6 +165,14 @@ const MORE_DOWNSTREAM_HERE: PluralTemplate = {
   one: "{{count}} more table built from this one is not drawn. Feeds below lists them all.",
   other:
     "{{count}} more tables built from this one are not drawn. Feeds below lists them all.",
+};
+const MORE_READ_BY_PIPELINE: PluralTemplate = {
+  one: "{{count}} more table this pipeline reads is not drawn.",
+  other: "{{count}} more tables this pipeline reads are not drawn.",
+};
+const MORE_WRITTEN_BY_PIPELINE: PluralTemplate = {
+  one: "{{count}} more table this pipeline writes is not drawn.",
+  other: "{{count}} more tables this pipeline writes are not drawn.",
 };
 
 const ASSET_KIND_ICONS: Readonly<Record<string, IconProp>> = {
@@ -164,12 +204,19 @@ export function getLineageCanvasStyle(layout: LineageLayout): CSSProperties {
   };
 }
 
-// The page a card opens inside OneUptime, if it opens one: never the table the diagram is about.
+/*
+ * The page a card opens inside OneUptime, if it opens one: never the page
+ * the diagram is on (isOwnPage), the table's or the pipeline's own.
+ */
 export function getLineageCardRoute(
   node: DataTableLineageNode,
-  isFocus: boolean,
+  isOwnPage: boolean,
 ): Route | null {
-  if (node.kind === DataLineageNodeKind.Table && node.dataAssetId && !isFocus) {
+  if (isOwnPage) {
+    return null;
+  }
+
+  if (node.kind === DataLineageNodeKind.Table && node.dataAssetId) {
     return RouteUtil.populateRouteParams(
       RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE] as Route,
       { modelId: new ObjectID(node.dataAssetId) },
@@ -244,11 +291,54 @@ function getCardSubtitle(
 interface LineageCardData {
   node: DataTableLineageNode;
   isFocus: boolean;
+  place: LineagePlace;
+  // At the end of an alert's way: its cause, or an alert it caused.
+  role: LineageCardRole | null;
+  // Off every way an alert's drawing picks out.
+  isDimmed: boolean;
+}
+
+/*
+ * What a count of tables not drawn says under the pointer: on a pipeline's
+ * card, what it reads or writes; on the table whose Lineage tab this is,
+ * the lists below; elsewhere, to open the table.
+ */
+function getHiddenTooltip(data: {
+  translator: Translator;
+  node: DataTableLineageNode;
+  isFocus: boolean;
+  place: LineagePlace;
+  isUpstream: boolean;
+  count: number;
+}): string {
+  let template: PluralTemplate;
+
+  if (data.node.kind === DataLineageNodeKind.Pipeline) {
+    template = data.isUpstream
+      ? MORE_READ_BY_PIPELINE
+      : MORE_WRITTEN_BY_PIPELINE;
+  } else if (data.isFocus && data.place === LineagePlace.Table) {
+    template = data.isUpstream ? MORE_UPSTREAM_HERE : MORE_DOWNSTREAM_HERE;
+  } else {
+    template = data.isUpstream ? MORE_UPSTREAM : MORE_DOWNSTREAM;
+  }
+
+  return data.translator.translatePlural(template, data.count, {
+    count: data.translator.formatNumber(data.count),
+  });
+}
+
+// What a card's chips are read from: the card's own data, but whether it fades.
+interface CardChipsProps {
+  node: DataTableLineageNode;
+  isFocus: boolean;
+  place: LineagePlace;
+  role: LineageCardRole | null;
 }
 
 // What most needs saying about a card, at most two chips.
-const CardChips: FunctionComponent<LineageCardData> = (
-  props: LineageCardData,
+const CardChips: FunctionComponent<CardChipsProps> = (
+  props: CardChipsProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const node: DataTableLineageNode = props.node;
@@ -258,8 +348,19 @@ const CardChips: FunctionComponent<LineageCardData> = (
     chips.push(
       <Pill
         key="focus"
-        text={THIS_TABLE}
+        text={FOCUS_LABELS[props.place]}
         color={Gray500}
+        size={PillSize.Small}
+      />,
+    );
+  }
+
+  if (props.role) {
+    chips.push(
+      <Pill
+        key="role"
+        text={ROLE_LABELS[props.role]}
+        color={Indigo500}
         size={PillSize.Small}
       />,
     );
@@ -363,8 +464,13 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
   const translator: Translator = useTranslator();
   const node: DataTableLineageNode = props.data.node;
   const isFocus: boolean = props.data.isFocus;
+  const place: LineagePlace = props.data.place;
   const tone: LineageTone = getLineageNodeTone(node);
-  const route: Route | null = getLineageCardRoute(node, isFocus);
+  // On an alert's page its table or pipeline opens its own page; on that page, nothing.
+  const route: Route | null = getLineageCardRoute(
+    node,
+    isFocus && place !== LineagePlace.Alert,
+  );
   const dashboardUrl: URL | null = getLineageDashboardUrl(node);
   const subtitle: string = getCardSubtitle(node, translator);
   const isDropped: boolean = tone === LineageTone.Dropped;
@@ -389,9 +495,12 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
     background: "var(--ou-surface-primary, #ffffff)",
     color: "var(--ou-text-primary, #111827)",
     opacity: isDropped ? 0.75 : 1,
-    boxShadow: isFocus
-      ? "0 0 0 3px rgba(99, 102, 241, 0.25), 0 2px 6px rgba(15, 23, 42, 0.08)"
-      : "0 2px 6px rgba(15, 23, 42, 0.06)",
+    // The card the drawing is about, ringed; the cause and the alerts it caused, ringed strongly.
+    boxShadow: props.data.role
+      ? "0 0 0 3px rgba(99, 102, 241, 0.6), 0 2px 6px rgba(15, 23, 42, 0.08)"
+      : isFocus
+        ? "0 0 0 3px rgba(99, 102, 241, 0.25), 0 2px 6px rgba(15, 23, 42, 0.08)"
+        : "0 2px 6px rgba(15, 23, 42, 0.06)",
   };
 
   const body: ReactElement = (
@@ -420,7 +529,12 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
       ) : (
         <></>
       )}
-      <CardChips node={node} isFocus={isFocus} />
+      <CardChips
+        node={node}
+        isFocus={isFocus}
+        place={place}
+        role={props.data.role}
+      />
     </>
   );
 
@@ -458,8 +572,14 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
 
   return (
     <div
-      style={{ width: LINEAGE_CARD_WIDTH, position: "relative" }}
+      style={{
+        width: LINEAGE_CARD_WIDTH,
+        position: "relative",
+        ...(props.data.isDimmed ? { opacity: LINEAGE_DIMMED_OPACITY } : {}),
+      }}
       data-node-id={node.id}
+      {...(props.data.role ? { "data-role": props.data.role } : {})}
+      {...(props.data.isDimmed ? { "data-dimmed": "true" } : {})}
     >
       <Handle
         type="target"
@@ -478,11 +598,14 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
         <HiddenCount
           count={hiddenUpstream}
           side="left"
-          tooltip={translator.translatePlural(
-            isFocus ? MORE_UPSTREAM_HERE : MORE_UPSTREAM,
-            hiddenUpstream,
-            { count: translator.formatNumber(hiddenUpstream) },
-          )}
+          tooltip={getHiddenTooltip({
+            translator,
+            node,
+            isFocus,
+            place,
+            isUpstream: true,
+            count: hiddenUpstream,
+          })}
         />
       ) : (
         <></>
@@ -491,11 +614,14 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
         <HiddenCount
           count={hiddenDownstream}
           side="right"
-          tooltip={translator.translatePlural(
-            isFocus ? MORE_DOWNSTREAM_HERE : MORE_DOWNSTREAM,
-            hiddenDownstream,
-            { count: translator.formatNumber(hiddenDownstream) },
-          )}
+          tooltip={getHiddenTooltip({
+            translator,
+            node,
+            isFocus,
+            place,
+            isUpstream: false,
+            count: hiddenDownstream,
+          })}
         />
       ) : (
         <></>
@@ -512,12 +638,17 @@ interface LineageArrowData {
   // The failed pipeline's name, on its arrow; the whole sentence under the pointer.
   label?: string | undefined;
   title?: string | undefined;
+  // The label names a pipeline on an alert's way, not a failed one: indigo, not red.
+  isLabelHighlighted?: boolean | undefined;
+  // On an alert's way: drawn over a halo.
+  isHighlighted?: boolean | undefined;
 }
 
 /*
  * An arrow, and on one whose pipeline failed that pipeline's name: an
  * HTML label, so it is cut to the room between two columns, ends in "..."
- * when it is longer, and says the whole sentence under the pointer.
+ * when it is longer, and says the whole sentence under the pointer. An
+ * arrow on an alert's way is drawn over a wide, faint indigo halo.
  */
 const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
   props: EdgeProps<LineageArrowData>,
@@ -533,6 +664,19 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
 
   return (
     <>
+      {props.data?.isHighlighted ? (
+        <path
+          d={path}
+          fill="none"
+          stroke={LINEAGE_HIGHLIGHT_COLOR}
+          strokeOpacity={0.22}
+          strokeWidth={9}
+          strokeLinecap="round"
+          data-testid="lineage-edge-halo"
+        />
+      ) : (
+        <></>
+      )}
       <BaseEdge
         id={props.id}
         path={path}
@@ -546,7 +690,9 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
             style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               maxWidth: LINEAGE_EDGE_LABEL_MAX_WIDTH,
-              color: LINEAGE_PROBLEM_COLOR,
+              color: props.data.isLabelHighlighted
+                ? LINEAGE_HIGHLIGHT_COLOR
+                : LINEAGE_PROBLEM_COLOR,
               background: "var(--ou-surface-primary, #ffffff)",
               pointerEvents: "all",
             }}
@@ -569,15 +715,22 @@ const EDGE_TYPES: EdgeTypes = {
 
 export interface ComponentProps {
   lineage: DataTableLineage;
+  // The page it is on: a table's Lineage tab unless said otherwise.
+  place?: LineagePlace | undefined;
 }
 
 const LineageGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const place: LineagePlace = props.place || LineagePlace.Table;
   const layout: LineageLayout = useMemo((): LineageLayout => {
     return layoutLineage(props.lineage);
   }, [props.lineage]);
+  const highlight: LineageHighlightSets | null =
+    useMemo((): LineageHighlightSets | null => {
+      return getLineageHighlightSets(props.lineage);
+    }, [props.lineage]);
 
   const nodes: Array<Node<LineageCardData>> = useMemo((): Array<
     Node<LineageCardData>
@@ -588,7 +741,13 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
           id: node.id,
           type: "lineageCard",
           position: layout.positions.get(node.id) || { x: 0, y: 0 },
-          data: { node, isFocus: node.id === props.lineage.focusNodeId },
+          data: {
+            node,
+            isFocus: node.id === props.lineage.focusNodeId,
+            place,
+            role: getLineageCardRole(highlight, node.id),
+            isDimmed: isLineageCardDimmed(highlight, node.id),
+          },
           selectable: false,
           draggable: false,
           /*
@@ -600,19 +759,29 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
         };
       },
     );
-  }, [layout, props.lineage]);
+  }, [layout, props.lineage, place, highlight]);
 
   const edges: Array<Edge> = useMemo((): Array<Edge> => {
     return props.lineage.edges.map((edge: DataTableLineageEdge): Edge => {
-      const style: LineageEdgeStyle = getLineageEdgeStyle(edge);
-      const data: LineageArrowData = style.failedPipeline
-        ? {
-            label: style.failedPipeline.name,
-            title: translator.translateTemplate(FAILED_PIPELINE, {
-              pipeline: style.failedPipeline.name,
-            }),
-          }
-        : {};
+      const look: LineageArrowLook = getLineageArrowLook(
+        edge,
+        props.lineage.focusNodeId,
+        highlight,
+      );
+      const data: LineageArrowData = {
+        ...(look.label
+          ? {
+              label: look.label.pipeline.name,
+              title: look.label.isFailed
+                ? translator.translateTemplate(FAILED_PIPELINE, {
+                    pipeline: look.label.pipeline.name,
+                  })
+                : look.label.pipeline.name,
+              ...(look.label.isFailed ? {} : { isLabelHighlighted: true }),
+            }
+          : {}),
+        ...(look.isHighlighted ? { isHighlighted: true } : {}),
+      };
 
       return {
         id: edge.id,
@@ -620,21 +789,24 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
         target: edge.target,
         type: "lineageArrow",
         data,
+        // Over the faint arrows around it.
+        ...(look.isHighlighted ? { zIndex: 1 } : {}),
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          color: style.color,
+          color: look.color,
           width: ARROWHEAD_SIZE,
           height: ARROWHEAD_SIZE,
           markerUnits: "userSpaceOnUse",
         },
         style: {
-          stroke: style.color,
-          strokeWidth: style.width,
-          ...(style.dash ? { strokeDasharray: style.dash } : {}),
+          stroke: look.color,
+          strokeWidth: look.width,
+          ...(look.dash ? { strokeDasharray: look.dash } : {}),
+          ...(look.isDimmed ? { opacity: LINEAGE_DIMMED_OPACITY } : {}),
         },
       };
     });
-  }, [props.lineage, translator.language]);
+  }, [props.lineage, highlight, translator.language]);
 
   /*
    * A new drawing - another table, or more steps - is drawn afresh and
@@ -703,7 +875,9 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
     <div
       ref={canvasRef}
       role="figure"
-      aria-label={translator.translateText(MAP_LABEL) || MAP_LABEL}
+      aria-label={
+        translator.translateText(MAP_LABELS[place]) || MAP_LABELS[place]
+      }
       className="rounded-md border border-gray-200 bg-gray-50"
       style={getLineageCanvasStyle(layout)}
       data-testid="lineage-graph"
@@ -765,18 +939,34 @@ const LegendLine: FunctionComponent<{
   color: string;
   dash?: string | undefined;
   width?: number | undefined;
+  hasHalo?: boolean | undefined;
 }> = (props: {
   color: string;
   dash?: string | undefined;
   width?: number | undefined;
+  hasHalo?: boolean | undefined;
 }): ReactElement => {
   return (
-    <svg width="28" height="8" aria-hidden="true" className="shrink-0">
+    <svg width="28" height="10" aria-hidden="true" className="shrink-0">
+      {props.hasHalo ? (
+        <line
+          x1="3"
+          y1="5"
+          x2="25"
+          y2="5"
+          stroke={LINEAGE_HIGHLIGHT_COLOR}
+          strokeOpacity={0.22}
+          strokeWidth={8}
+          strokeLinecap="round"
+        />
+      ) : (
+        <></>
+      )}
       <line
         x1="1"
-        y1="4"
+        y1="5"
         x2="27"
-        y2="4"
+        y2="5"
         stroke={props.color}
         strokeWidth={props.width || 1.75}
         {...(props.dash ? { strokeDasharray: props.dash } : {})}
@@ -809,8 +999,10 @@ const LegendSwatch: FunctionComponent<{
   );
 };
 
-// What the diagram's lines and colours mean.
-export const LineageLegend: FunctionComponent = (): ReactElement => {
+// What the diagram's lines and colours mean; on an alert's drawing, what is picked out.
+export const LineageLegend: FunctionComponent<{
+  hasHighlight?: boolean | undefined;
+}> = (props: { hasHighlight?: boolean | undefined }): ReactElement => {
   const translator: Translator = useTranslator();
   const item: (
     key: string,
@@ -834,6 +1026,19 @@ export const LineageLegend: FunctionComponent = (): ReactElement => {
       className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500"
       data-testid="lineage-legend"
     >
+      {props.hasHighlight ? (
+        item(
+          "highlight",
+          <LegendLine
+            color={LINEAGE_HIGHLIGHT_COLOR}
+            width={LINEAGE_HIGHLIGHT_WIDTH}
+            hasHalo={true}
+          />,
+          translationKey("Way to the cause and the alerts it caused"),
+        )
+      ) : (
+        <></>
+      )}
       {item(
         "pipeline",
         <LegendLine color={LINEAGE_NEUTRAL_COLOR} />,

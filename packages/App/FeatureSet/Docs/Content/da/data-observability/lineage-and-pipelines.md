@@ -94,6 +94,8 @@ Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sin
 - **Pipeline Run Unusually Long**: en kørsel har taget dobbelt så lang tid som normalt eller mere, tjekket hvert femte minut, mens den kører, så en kørsel, der hænger, opdages, før den slutter.
 - **Pipeline Is Late**: ingen kørsel er startet i længere tid, end tidsplanen tillader.
 
+En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel mislykkes eller er forsinket: til venstre de tabeller, den læser, til højre de tabeller, den skriver, pipelinen imellem, og hvert kort viser, hvordan det står til nu. Vælg flere trin for at se, hvad tabellerne er bygget af, og hvad der er bygget af dem, og åbn en hvilken som helst tabel for at se dens egen fane **Afstamning**.
+
 ## Én advarsel pr. årsag
 
 Når en tabel bliver forældet, bliver hver tabel, der er bygget af den, også forældet. Før en dataadvarsel åbnes, slår OneUptime op i afstamningen efter en advarsel, der allerede er åben på det, dens tabel eller pipeline er bygget af: tabellerne opstrøms, de pipelines, der skriver til dem, og de databaser, de ligger i, op til fem trin op. Finder den en, er den nye advarsel en følge af den advarsel:
@@ -102,6 +104,10 @@ Når en tabel bliver forældet, bliver hver tabel, der er bygget af den, også f
 - Dens feed og dens **Data**-kort viser, hvilken advarsel der forårsagede den, og den slutter sig til årsagens episode.
 
 Årsagens **Data**-kort viser dens **Nedstrøms påvirkning**: hver advarsel, den forårsagede. En tabeladvarsels kort viser også de tjenester, der skriver til tabellen, med deres mislykkede skrivninger og deres udrulninger og andre ændringer i døgnet før advarslen.
+
+Under **Data**-kortet tegner en advarsels side dens **Afstamning**: omkring dens tabel, som tabellens fane **Afstamning** tegner den, eller omkring dens pipeline. Vejen op til den advarsel, der forårsagede den, og ned til hver advarsel, den forårsagede, er fremhævet - årsagens tabel eller pipeline markeret med **Årsag**, hver forårsaget advarsels med **Følge** - og resten tones ned, så den, der åbner den, kan se, hvor i kæden problemet begyndte. Handler årsagen om en hel database, eller ligger den længere oppe, end diagrammet når, siger kortet det med ord. **Udforsk afstamning** åbner tabellens fane **Afstamning** eller pipelinens side.
+
+Den, der ikke må se den advarsel, der forårsagede den, får hverken **Data**-kortet eller afstamningen, og en forårsaget advarsel, som vedkommende ikke må se, bliver hverken fremhævet eller talt med.
 
 ## Før en ændring flettes
 

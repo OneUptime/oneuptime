@@ -33,6 +33,8 @@ Det virker med et skrivebeskyttet login og svarer som den person eller API-nøgl
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbytes synkroniseringswebhooks | Indtagelsesnøglen i URL'en |
 | `POST /api/data-observability/tables/freshness` | En tabels aktualitet, som MCP-værktøjet besvarer den, med `{ "table": "public.orders" }` | En API-nøgle |
 | `POST /api/data-observability/tables/lineage` | En tabels afstamning nogle trin i hver retning, med hvordan hver tabel står nu, som dens fane **Afstamning** tegner den, med `{ "dataAssetId": "<table ID>", "depth": 3 }` | En API-nøgle |
+| `POST /api/data-observability/pipelines/lineage` | De tabeller, en pipeline læser og skriver, med hvordan hver tabel står nu, som dens side tegner dem, med `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | En API-nøgle |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | En dataadvarsels afstamning, som dens side tegner den, med vejen til den advarsel, der forårsagede den, og til de advarsler, den forårsagede | En API-nøgle |
 | `POST /api/data-observability/checks/apply` | Få projektets tjek til at matche en fil, som `oneuptime data-checks apply` gør, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nøgle |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Et dataprodukts "data as of"-badge | Badgets eget token |
 

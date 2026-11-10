@@ -85,9 +85,11 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
   table it is built from, so #311 is #310's consequence. #311's Data card names its table, its
   cause, the two services that write the table (payments-webhooks with 37 failed writes) and
   payments-webhooks' deploy eight minutes before it; #310's page lists #311 under Downstream
-  Impact. `?fail=data-alert` refuses the two `DataAlert` reads, `?fail=data-writers` fails the
-  read of who writes the table (`DataAssetUsage`), and `?fail=data-changes` refuses the read of
-  the writers' changes (`ChangeEvent`).
+  Impact. `POST /data-observability/alerts/:id/lineage` answers each alert's Lineage card as
+  `DataAlertLineageReader` does: the two tables, the way from #311 up to #310 picked out, and
+  on #310's page the way down to #311. `?fail=data-alert` refuses the two `DataAlert` reads,
+  `?fail=data-writers` fails the read of who writes the table (`DataAssetUsage`), and
+  `?fail=data-changes` refuses the read of the writers' changes (`ChangeEvent`).
 - **Scheduled maintenance #58** "Primary database failover drill" with two status pages,
   affected monitors and services, reminders and a feed.
 - **When #58 is published** (`?publish=`, issue #5249): by default right away, as every event
@@ -418,7 +420,7 @@ incident Security Events has nothing to say about; nothing read or drawn for a P
 who may not read security cases; and the card whole at 1280 and 390 in both themes. Its
 screenshots are `incident-security-card-*`.
 
-`DataAlertCard.spec.ts` (6 tests, same fixture and command): an alert's Data card - for an
+`DataAlertCard.spec.ts` (10 tests, same fixture and command): an alert's Data card - for an
 alert no data monitor raised, its two `DataAlert` reads and nothing drawn; a refused
 `DataAlert` read (`?fail=data-alert`) drawing nothing and leaving the page whole; with
 `?data=table`, #311's card (its table, its cause #310 and why it started acknowledged, the
@@ -426,7 +428,10 @@ services that write the table with their failed writes, and the deploy around it
 card with the writers' changes refused (`?fail=data-changes`), which then says nothing of
 changes rather than that there were none, and with who writes the table unreadable
 (`?fail=data-writers`), still saying what the alert is about and what caused it; and #310's
-Downstream Impact.
+Downstream Impact. Then the alert's Lineage card: on #311 the two tables with the way up to
+its cause marked Cause, under the Data card and asked for once (screenshot
+`data-alert-lineage-synthetic.png`); on #310 the way down to #311 marked Consequence; and no
+card, nor any read of it, for an alert no data monitor raised or with its data alert refused.
 
 ## What the fixture records
 

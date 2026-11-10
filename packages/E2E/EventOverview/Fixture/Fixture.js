@@ -2610,6 +2610,90 @@ const mainAlert = defineAlert({
  */
 const DATA_CAUSE_ALERT_NUMBER = 310;
 const DATA_ALERT_REFUSAL = "You do not have permission to read data alerts.";
+
+/*
+ * A data alert's lineage, as DataAlertLineageReader answers it: with
+ * ?data=table, #311's table payments.ledger_entries drawn with the table it
+ * is built from, payments.provider_callbacks, the way up to its cause #310
+ * picked out; on #310's page, the way down to #311. Both tables have their
+ * alert open. Any other alert has nothing to draw.
+ */
+function dataAlertLineage(url) {
+  const isCause = url.includes(`/alerts/${ID.alert(DATA_CAUSE_ALERT_NUMBER)}/`);
+  const isConsequence = url.includes(`/alerts/${ID.alert(ALERT_NUMBER)}/`);
+
+  if (dataMode !== "table" || (!isCause && !isConsequence)) {
+    return {
+      lineage: null,
+      hasCause: false,
+      isCauseDrawn: false,
+      consequenceCount: 0,
+      drawnConsequenceCount: 0,
+    };
+  }
+
+  const callbacks = `table:${ID.dataAsset(1)}`;
+  const ledger = `table:${ID.dataAsset(2)}`;
+  const feeds = `Feeds:${callbacks}>${ledger}`;
+  const tableNode = (number, name, side, depth) => {
+    return {
+      id: `table:${ID.dataAsset(number)}`,
+      kind: "Table",
+      side,
+      depth,
+      name,
+      dataAssetId: ID.dataAsset(number),
+      database: "Payments warehouse",
+      assetKind: "Table",
+      freshness: "Fresh",
+      lateBySeconds: 0,
+      isDropped: false,
+      openAlertCount: 1,
+      hiddenUpstreamCount: 0,
+      hiddenDownstreamCount: 0,
+    };
+  };
+
+  return {
+    lineage: {
+      focusNodeId: isCause ? callbacks : ledger,
+      depth: 3,
+      nodes: isCause
+        ? [
+            tableNode(1, "payments.provider_callbacks", "Focus", 0),
+            tableNode(2, "payments.ledger_entries", "Downstream", 1),
+          ]
+        : [
+            tableNode(2, "payments.ledger_entries", "Focus", 0),
+            tableNode(1, "payments.provider_callbacks", "Upstream", -1),
+          ],
+      edges: [
+        {
+          id: feeds,
+          source: callbacks,
+          target: ledger,
+          kind: "Feeds",
+          seenIn: ["Pipeline"],
+          pipelines: [],
+          lastSeenAt: at("18:05").toISOString(),
+        },
+      ],
+      hiddenDashboardCount: 0,
+      isTruncated: false,
+      highlight: {
+        nodeIds: isCause ? [callbacks, ledger] : [ledger, callbacks],
+        edgeIds: [feeds],
+        causeNodeIds: isCause ? [] : [callbacks],
+        consequenceNodeIds: isCause ? [ledger] : [],
+        dataPipelineIds: [],
+      },
+    },
+    hasCause: !isCause,
+    isCauseDrawn: !isCause,
+    consequenceCount: isCause ? 1 : 0,
+    drawnConsequenceCount: isCause ? 1 : 0,
+  };
+}
 const DATA_WRITERS_FAILURE =
   "Who writes this table could not be read. Please try again.";
 const DATA_CHANGES_REFUSAL =
@@ -9135,6 +9219,18 @@ async function handleApi(method, options) {
     url.endsWith("/explanation")
   ) {
     return ok({ explanation: null });
+  }
+
+  /*
+   * A data alert's lineage (AlertLineageDiagram), asked only for an alert
+   * a data monitor raised on a table or pipeline: see "Data alerts".
+   */
+  if (
+    method === "POST" &&
+    url.includes("/data-observability/alerts/") &&
+    url.endsWith("/lineage")
+  ) {
+    return ok(dataAlertLineage(url));
   }
 
   if (

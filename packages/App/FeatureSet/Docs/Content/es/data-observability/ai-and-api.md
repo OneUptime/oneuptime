@@ -33,6 +33,8 @@ Funciona con un inicio de sesión de solo lectura y responde como la persona o l
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Los webhooks de sincronización de Airbyte | La clave de ingesta en la URL |
 | `POST /api/data-observability/tables/freshness` | La frescura de una tabla, tal como la responde la herramienta MCP, con `{ "table": "public.orders" }` | Una clave de API |
 | `POST /api/data-observability/tables/lineage` | El linaje de una tabla unos pasos en cada dirección, con el estado de cada tabla, tal como lo dibuja su pestaña **Linaje**, con `{ "dataAssetId": "<table ID>", "depth": 3 }` | Una clave de API |
+| `POST /api/data-observability/pipelines/lineage` | Las tablas que un pipeline lee y escribe, con el estado de cada una, tal como las dibuja su página, con `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | Una clave de API |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | El linaje de una alerta de datos, tal como lo dibuja su página, con el camino hasta la alerta que la causó y hasta las alertas que causó | Una clave de API |
 | `POST /api/data-observability/checks/apply` | Hacer que las comprobaciones del proyecto coincidan con un archivo, como lo hace `oneuptime data-checks apply`, con `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Una clave de API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | La insignia «data as of» de un producto de datos | El token propio de la insignia |
 

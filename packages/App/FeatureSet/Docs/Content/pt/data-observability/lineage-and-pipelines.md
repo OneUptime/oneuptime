@@ -94,6 +94,8 @@ Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas ex
 - **Pipeline Run Unusually Long**: uma execução levou o dobro do tempo típico ou mais, verificado a cada cinco minutos enquanto ela roda, para que uma execução travada seja notada antes de terminar.
 - **Pipeline Is Late**: nenhuma execução começa há mais tempo do que o agendamento dele permite.
 
+A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela.
+
 ## Um alerta por causa
 
 Quando uma tabela fica desatualizada, todas as tabelas construídas a partir dela também ficam. Antes que um alerta de dados seja aberto, o OneUptime procura na linhagem um alerta já aberto sobre aquilo a partir do qual a tabela ou o pipeline dele é construído: as tabelas a montante, os pipelines que escrevem nelas e os bancos de dados em que elas ficam, até cinco níveis acima. Quando encontra um, o novo alerta é consequência desse alerta:
@@ -102,6 +104,10 @@ Quando uma tabela fica desatualizada, todas as tabelas construídas a partir del
 - O feed dele e o cartão **Dados** dele dizem qual alerta o causou, e ele entra no episódio da causa.
 
 O cartão **Dados** da causa lista o **Impacto a jusante** dela: cada alerta que ela causou. O cartão de um alerta de tabela também mostra os serviços que escrevem na tabela, com as escritas que falharam, e as implantações e outras mudanças deles no dia anterior ao alerta.
+
+Abaixo do cartão **Dados**, a página de um alerta desenha a **Linhagem** dele: em torno da tabela dele, como a aba **Linhagem** da tabela a desenha, ou em torno do pipeline dele. O caminho para cima até o alerta que o causou e para baixo até cada alerta que ele causou fica destacado - a tabela ou o pipeline da causa marcado como **Causa**, os de cada alerta causado como **Consequência** - e o resto esmaece, para que quem o abre veja em que ponto da cadeia o problema começou. Quando a causa é sobre um banco de dados inteiro, ou está mais acima do que o diagrama alcança, o cartão diz isso em palavras. **Explorar linhagem** abre a aba **Linhagem** da tabela, ou a página do pipeline.
+
+Quem não pode ver o alerta que o causou não recebe nem o cartão **Dados** nem a linhagem, e um alerta causado que essa pessoa não pode ver não é destacado nem contado.
 
 ## Antes de uma alteração ser mesclada
 

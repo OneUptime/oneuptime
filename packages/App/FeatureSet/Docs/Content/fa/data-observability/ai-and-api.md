@@ -33,6 +33,8 @@ OneUptime AI داده‌های شما را می‌شناسد: یک هشدار د
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | وب‌هوک‌های همگام‌سازی Airbyte | کلید دریافت داده در URL |
 | `POST /api/data-observability/tables/freshness` | تازگی یک جدول، همان‌طور که ابزار MCP پاسخ می‌دهد، با `{ "table": "public.orders" }` | یک کلید API |
 | `POST /api/data-observability/tables/lineage` | تبار یک جدول تا چند گام در هر سو، همراه با وضع کنونی هر جدول، همان‌طور که زبانهٔ **تبار** آن را رسم می‌کند، با `{ "dataAssetId": "<table ID>", "depth": 3 }` | یک کلید API |
+| `POST /api/data-observability/pipelines/lineage` | جدول‌هایی که یک پایپ‌لاین می‌خواند و می‌نویسد، همراه با وضع کنونی هر جدول، همان‌طور که صفحهٔ آن رسمشان می‌کند، با `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | یک کلید API |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | تبار یک هشدار داده، همان‌طور که صفحهٔ آن رسمش می‌کند، همراه با مسیر تا هشداری که باعث آن شده و تا هشدارهایی که آن باعث شده | یک کلید API |
 | `POST /api/data-observability/checks/apply` | بررسی‌های پروژه را با یک فایل یکی کنید، همان‌طور که `oneuptime data-checks apply` انجام می‌دهد، با `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | یک کلید API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | نشان «data as of» یک محصول داده | توکن خود نشان |
 
