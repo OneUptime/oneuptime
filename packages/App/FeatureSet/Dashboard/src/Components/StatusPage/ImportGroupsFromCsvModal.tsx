@@ -465,7 +465,7 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
             <p className="mb-1 text-sm font-medium text-red-800">
               {translator.translateText("Fix these problems before importing:")}
             </p>
-            <ul className="list-disc space-y-0.5 pl-5">
+            <ul className="list-disc space-y-0.5 ps-5">
               {parseErrors.map(
                 (
                   error: StatusPageGroupCsvError,
@@ -508,23 +508,23 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
               </p>
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead>
-                  <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    <th className="px-3 py-2">
+                  <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Line")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Name")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Parent")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Description")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("View Mode")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Options")}
                     </th>
                   </tr>
@@ -565,17 +565,17 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
             </p>
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="px-3 py-2">
+                <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Line")}
                   </th>
-                  <th className="px-3 py-2">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Name")}
                   </th>
-                  <th className="px-3 py-2">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Result")}
                   </th>
-                  <th className="px-3 py-2">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Details")}
                   </th>
                 </tr>
