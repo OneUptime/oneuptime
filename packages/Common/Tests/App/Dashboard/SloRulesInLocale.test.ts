@@ -53,6 +53,8 @@ const LANGUAGES: Array<string> = [
   "zh-TW",
   "hi",
   "fa",
+  // Arabic, whose locale is still being filled: an SLO rule's words are in it.
+  "ar",
 ];
 
 function readJson(file: string): unknown {
@@ -194,5 +196,20 @@ describe("an SLO rule's words, in every language", () => {
     expect(german["SLO Notification Rule"]).toBe(
       "Benachrichtigungsregel für SLOs",
     );
+  });
+
+  test("as an Arabic reader reads the rule, the condition and the changes", () => {
+    const arabic: Record<string, string> = readLocale("ar");
+
+    expect(arabic["SLO Notification Rule"]).toBe("قاعدة إشعارات SLO");
+    expect(
+      arabic[NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange],
+    ).toBe("تغيير سياسة ميزانية الأخطاء");
+    expect(arabic["Entered a more severe tier"]).toBe("دخل مستوى أشد");
+    expect(arabic["Deployments allowed again"]).toBe(
+      "سُمح بعمليات النشر مجددًا",
+    );
+    // The SLOs menu's own word, which the rule's words build on.
+    expect(arabic["Which SLOs"]).toContain(arabic["SLOs"] as string);
   });
 });
