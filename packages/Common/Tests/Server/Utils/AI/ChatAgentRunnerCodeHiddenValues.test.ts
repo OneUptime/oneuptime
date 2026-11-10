@@ -616,7 +616,7 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
 });
 
 describe("in a later turn: of what the change writes, wherever the read was", () => {
-  test("read in the turn before, committed now from what the model was shown: the card says so", async () => {
+  test("read in the turn before, committed now from what the model was shown: the card says so, beside that Ask AI no longer has the file (issue #6365)", async () => {
     startRepository();
     const question: AIConversationMessage = new AIConversationMessage();
     question.role = AIChatMessageRole.User;
@@ -661,6 +661,14 @@ describe("in a later turn: of what the change writes, wherever the read was", ()
 
     await ChatAgentRunner.runTurn(buildRequest());
 
-    expect(actionOf(spies).description).toBe(HIDDEN);
+    // Two lines of one file, each of its own: the placeholders first.
+    expect(
+      actionOf(spies).words!.description!.map((sentence: AIActionSentence) => {
+        return sentence.template;
+      }),
+    ).toEqual([
+      AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other,
+      AI_ACTION_PLURAL_LINES.codeFilesReadInEarlierAnswer.other,
+    ]);
   });
 });

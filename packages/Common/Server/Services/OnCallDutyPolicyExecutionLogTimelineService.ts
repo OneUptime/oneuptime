@@ -1,5 +1,17 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import { isOnCallObserverPage } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import {
+  ON_CALL_PAGE_CHANNELS,
+  OnCallPageChannel,
+  OnCallPageChannelInfo,
+  OnCallPageNotification,
+  OnCallPageNotificationEvent,
+  OnCallPageNotificationNews,
+  getOnCallPageAnsweredChannels,
+  getOnCallPageChannelsOut,
+  getOnCallPageNotificationNews,
+} from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { EntityManager } from "typeorm";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
@@ -23,7 +35,13 @@ import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
-import OnCallFeedText from "../Utils/OnCall/OnCallFeedText";
+import OnCallFeedText, {
+  OnCallDirectPageStepFeedTextInput,
+  OnCallStepFeedTextInput,
+} from "../Utils/OnCall/OnCallFeedText";
+import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
+import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import {
@@ -34,9 +52,41 @@ import FirstPagedAt from "../Utils/OnCall/FirstPagedAt";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import PositiveNumber from "../../Types/PositiveNumber";
 
+/*
+ * The columns of a notification (UserOnCallLogTimeline) that say whether it
+ * went out, and by what: its status, and each channel's own column
+ * (ON_CALL_PAGE_CHANNELS) - all getOnCallPageChannelsOut reads.
+ */
+export const STEP_NOTIFICATION_CHANNEL_COLUMNS: ReadonlyArray<string> = [
+  "status",
+  ...ON_CALL_PAGE_CHANNELS.map((info: OnCallPageChannelInfo): string => {
+    return info.field;
+  }),
+];
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * How an entry of one notification is drawn: a failure red, a call not
+   * answered as a warning - the page still stands, nobody has answered it
+   * yet - and one sent later as a page sent is.
+   */
+  public getNotificationColor(event: OnCallPageNotificationEvent): Color {
+    switch (event) {
+      case OnCallPageNotificationEvent.Failed:
+        return this.getColorBasedOnStatus(
+          OnCallDutyExecutionLogTimelineStatus.Error,
+        );
+      case OnCallPageNotificationEvent.NotAnswered:
+        return Yellow500;
+      default:
+        return this.getColorBasedOnStatus(
+          OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+        );
+    }
   }
 
   public getColorBasedOnStatus(
@@ -94,24 +144,23 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  @CaptureSpan()
-  public async addToIncidentOrAlertFeed(data: {
-    onCallDutyPolicyExecutionLogTimelineId: ObjectID;
-  }): Promise<void> {
-    logger.debug(
-      "OnCallDutyPolicyExecutionLogTimelineService.addToIncidentFeed",
-      {
-        onCallDutyPolicyExecutionLogTimelineId:
-          data.onCallDutyPolicyExecutionLogTimelineId?.toString(),
-      } as LogAttributes,
-    );
-
+  /*
+   * A step, read with all its feed entries say of it - or null when the feed
+   * tells nothing of it: it is of no record, it is a direct page's second
+   * line for somebody it paged already, or it is a line for somebody who
+   * escalated the page, passed over later.
+   */
+  private async findStepForFeed(
+    onCallDutyPolicyExecutionLogTimelineId: ObjectID,
+  ): Promise<Model | null> {
     const onCallDutyPolicyExecutionLogTimeline: Model | null =
       await this.findOneById({
-        id: data.onCallDutyPolicyExecutionLogTimelineId,
+        id: onCallDutyPolicyExecutionLogTimelineId,
         select: {
           _id: true,
           onCallDutyPolicyId: true,
+          // The run's index finds the page's notifications (OnCallPageChannel).
+          onCallDutyPolicyExecutionLogId: true,
           triggeredByIncidentId: true,
           triggeredByAlertId: true,
           triggeredByAlertEpisodeId: true,
@@ -176,7 +225,7 @@ export class Service extends DatabaseService<Model> {
     } as LogAttributes);
 
     if (!onCallDutyPolicyExecutionLogTimeline) {
-      return;
+      return null;
     }
 
     if (
@@ -185,7 +234,7 @@ export class Service extends DatabaseService<Model> {
       !onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId &&
       !onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId
     ) {
-      return;
+      return null;
     }
 
     /*
@@ -207,7 +256,7 @@ export class Service extends DatabaseService<Model> {
       onCallDutyPolicyExecutionLogTimeline.statusMessage ===
         ALREADY_PAGED_TIMELINE_MESSAGE
     ) {
-      return;
+      return null;
     }
 
     /*
@@ -222,207 +271,566 @@ export class Service extends DatabaseService<Model> {
         onCallDutyPolicyExecutionLogTimeline.statusMessage,
       )
     ) {
-      return;
+      return null;
     }
 
     if (
-      isDirectPage ||
-      (onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy &&
-        onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id)
+      !isDirectPage &&
+      !onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy?.id
     ) {
-      const status: OnCallDutyExecutionLogTimelineStatus =
-        onCallDutyPolicyExecutionLogTimeline.status!;
+      return null;
+    }
 
-      logger.debug("Status: " + status, {
-        projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
-      } as LogAttributes);
+    return onCallDutyPolicyExecutionLogTimeline;
+  }
 
-      if (
-        status &&
-        (status === OnCallDutyExecutionLogTimelineStatus.Skipped ||
-          status === OnCallDutyExecutionLogTimelineStatus.Error ||
-          status ===
-            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
-          status === OnCallDutyExecutionLogTimelineStatus.PassedOn ||
-          status === OnCallDutyExecutionLogTimelineStatus.NotificationSent)
-      ) {
-        /*
-         * A level skipped because somebody escalated past it is no failure:
-         * it is drawn as the escalation is, not as a page that went wrong.
-         */
-        const displayColor: Color = isOnCallLevelSkippedByEscalationMessage(
-          onCallDutyPolicyExecutionLogTimeline.statusMessage,
-        )
-          ? this.getColorBasedOnStatus(
-              OnCallDutyExecutionLogTimelineStatus.PassedOn,
-            )
-          : status
-            ? this.getColorBasedOnStatus(status)
-            : Blue500;
+  /*
+   * The notifications of a step's page - each a row of its person's on-call
+   * timeline (UserOnCallLogTimeline), oldest first - which say how the page
+   * reached them and how they answered it (OnCallPageChannel). Never fails
+   * an entry: one written without them still says who was paged, as entries
+   * always have.
+   */
+  private async findStepNotifications(
+    step: Model,
+  ): Promise<Array<UserOnCallLogTimeline>> {
+    if (!step.id || !step.projectId || !step.alertSentToUserId) {
+      return [];
+    }
 
-        /*
-         * One sentence in the words the run's Slack and Microsoft Teams
-         * message uses (OnCallFeedText). The record it is for is not
-         * named: the entry goes to that record's own feed only.
-         */
-        const policyLink: MarkdownText | null =
-          !isDirectPage && onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy
-            ? FeedMarkdown.link(
-                onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name ||
-                  "",
-                (
-                  await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-                    onCallDutyPolicyExecutionLogTimeline.projectId!,
-                    onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!,
-                  )
-                ).toString(),
+    try {
+      return await UserOnCallLogTimelineService.findBy({
+        query: {
+          projectId: step.projectId,
+          ...(step.onCallDutyPolicyExecutionLogId
+            ? {
+                onCallDutyPolicyExecutionLogId:
+                  step.onCallDutyPolicyExecutionLogId,
+              }
+            : {}),
+          onCallDutyPolicyExecutionLogTimelineId: step.id,
+        },
+        select: {
+          _id: true,
+          status: true,
+          isAcknowledged: true,
+          acknowledgedAt: true,
+          createdAt: true,
+          userCallId: true,
+          userSmsId: true,
+          userWhatsAppId: true,
+          userTelegramId: true,
+          userPushId: true,
+          userEmailId: true,
+          userSlackId: true,
+          userMicrosoftTeamsId: true,
+          userMattermostId: true,
+          userWebhookId: true,
+          customNotificationChannelId: true,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.debug(
+        `Could not read the notifications of on-call step ${step.id.toString()}`,
+      );
+      logger.debug(error);
+      return [];
+    }
+  }
+
+  /*
+   * The channels a step's own entry names (OnCallFeedText): for a page
+   * sent, the ones its notifications went out by; for one acknowledged or
+   * escalated, the one the person answered from. A step that reached nobody
+   * names none.
+   */
+  private getStepChannels(
+    status: OnCallDutyExecutionLogTimelineStatus,
+    notifications: Array<OnCallPageNotification>,
+  ): Array<OnCallPageChannel> {
+    switch (status) {
+      case OnCallDutyExecutionLogTimelineStatus.NotificationSent:
+        return getOnCallPageChannelsOut(notifications);
+      case OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged:
+        return getOnCallPageAnsweredChannels(notifications, "acknowledged");
+      case OnCallDutyExecutionLogTimelineStatus.PassedOn:
+        return getOnCallPageAnsweredChannels(notifications, "escalated");
+      default:
+        return [];
+    }
+  }
+
+  /*
+   * What a step's entries are written from (OnCallFeedText): a policy's
+   * page, or a direct page's.
+   */
+  private async getStepFeedTextInput(data: {
+    step: Model;
+    channels: Array<OnCallPageChannel>;
+  }): Promise<
+    | { isDirectPage: false; input: OnCallStepFeedTextInput }
+    | { isDirectPage: true; input: OnCallDirectPageStepFeedTextInput }
+  > {
+    const onCallDutyPolicyExecutionLogTimeline: Model = data.step;
+    const status: OnCallDutyExecutionLogTimelineStatus =
+      onCallDutyPolicyExecutionLogTimeline.status!;
+
+    /*
+     * One sentence in the words the run's Slack and Microsoft Teams
+     * message uses (OnCallFeedText). The record it is for is not
+     * named: the entry goes to that record's own feed only.
+     */
+    const policyLink: MarkdownText | null =
+      !isOnCallDirectPage(onCallDutyPolicyExecutionLogTimeline) &&
+      onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy
+        ? FeedMarkdown.link(
+            onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name || "",
+            (
+              await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+                onCallDutyPolicyExecutionLogTimeline.projectId!,
+                onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!,
               )
-            : null;
+            ).toString(),
+          )
+        : null;
 
-        /*
-         * Some timeline rows have NO recipient by construction: a schedule
-         * that currently has nobody on call (a coverage gap), or an
-         * escalation rule with no responders at all. Those rows are exactly
-         * the ones an operator most needs to understand, so they get their
-         * own wording - and never a user looked up by an id that is not set,
-         * which would name an arbitrary person.
-         */
-        const recipient: MarkdownText | undefined =
-          onCallDutyPolicyExecutionLogTimeline.alertSentToUserId
-            ? await UserService.getUserMarkdownString({
-                userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId,
-                projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-              })
-            : undefined;
-
-        const overriddenUser: MarkdownText | undefined =
-          recipient && onCallDutyPolicyExecutionLogTimeline.overridedByUser?.id
-            ? await UserService.getUserMarkdownString({
-                userId: onCallDutyPolicyExecutionLogTimeline.overridedByUser.id,
-                projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-              })
-            : undefined;
-
-        /*
-         * The level by its place, as the Escalate dialog names it: "Level 2
-         * of 3" (OnCallFeedText).
-         */
-        const ruleOrder: number | undefined =
-          onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule
-            ?.order || undefined;
-
-        const feedInfoInMarkdown: string = policyLink
-          ? OnCallFeedText.getStepMarkdown({
-              status: status,
-              policyLink: policyLink,
-              ruleName:
-                onCallDutyPolicyExecutionLogTimeline
-                  .onCallDutyPolicyEscalationRule?.name,
-              ruleOrder: ruleOrder,
-              ruleCount: ruleOrder
-                ? await this.countPolicyLevels(
-                    onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyId,
-                  )
-                : undefined,
-              scheduleName:
-                onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
-              isNextInRotation: Boolean(
-                onCallDutyPolicyExecutionLogTimeline.isNextInRotation,
-              ),
-              teamName:
-                onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
-              recipient: recipient,
-              overriddenUser: overriddenUser,
-              statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
-              isObserverPage: isOnCallObserverPage(
-                onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyExecutionLog,
-              ),
-            })
-          : OnCallFeedText.getDirectPageStepMarkdown({
-              status: status,
-              pager:
-                await OnCallDutyPolicyExecutionLogService.getDirectPagePager({
-                  projectId: onCallDutyPolicyExecutionLogTimeline.projectId,
-                  triggeredByWorkflowName:
-                    onCallDutyPolicyExecutionLogTimeline
-                      .onCallDutyPolicyExecutionLog?.triggeredByWorkflowName,
-                  triggeredByUserId:
-                    onCallDutyPolicyExecutionLogTimeline
-                      .onCallDutyPolicyExecutionLog?.triggeredByUserId,
-                }),
-              scheduleName:
-                onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
-              teamName:
-                onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
-              recipient: recipient,
-              overriddenUser: overriddenUser,
-              statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
-              isObserverPage: isOnCallObserverPage(
-                onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyExecutionLog,
-              ),
-            });
-
-        logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown, {
-          projectId:
-            onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
-        } as LogAttributes);
-
-        /*
-         * The record's feed only. Slack and Microsoft Teams hear of this
-         * step through the run's one message, which is edited as the run
-         * goes (OnCallPolicyRunMessage) - not through a paragraph per person
-         * per rule per repeat, as they used to.
-         */
-        if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
-          await IncidentFeedService.createIncidentFeedItem({
-            incidentId:
-              onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId,
+    /*
+     * Some timeline rows have NO recipient by construction: a schedule
+     * that currently has nobody on call (a coverage gap), or an
+     * escalation rule with no responders at all. Those rows are exactly
+     * the ones an operator most needs to understand, so they get their
+     * own wording - and never a user looked up by an id that is not set,
+     * which would name an arbitrary person.
+     */
+    const recipient: MarkdownText | undefined =
+      onCallDutyPolicyExecutionLogTimeline.alertSentToUserId
+        ? await UserService.getUserMarkdownString({
+            userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId,
             projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-            incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
-            displayColor: displayColor,
-            feedInfoInMarkdown: feedInfoInMarkdown,
-          });
-        }
+          })
+        : undefined;
 
-        if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
-          await AlertFeedService.createAlertFeedItem({
-            alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
+    const overriddenUser: MarkdownText | undefined =
+      recipient && onCallDutyPolicyExecutionLogTimeline.overridedByUser?.id
+        ? await UserService.getUserMarkdownString({
+            userId: onCallDutyPolicyExecutionLogTimeline.overridedByUser.id,
             projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-            alertFeedEventType: AlertFeedEventType.OnCallPolicy,
-            displayColor: displayColor,
-            feedInfoInMarkdown: feedInfoInMarkdown,
-          });
-        }
+          })
+        : undefined;
 
-        if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId) {
-          await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
-            alertEpisodeId:
-              onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId,
-            projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-            alertEpisodeFeedEventType:
-              AlertEpisodeFeedEventType.OnCallNotification,
-            displayColor: displayColor,
-            feedInfoInMarkdown: feedInfoInMarkdown,
-          });
-        }
+    const isObserverPage: boolean = isOnCallObserverPage(
+      onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyExecutionLog,
+    );
 
-        if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId) {
-          await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
-            incidentEpisodeId:
-              onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId,
-            projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-            incidentEpisodeFeedEventType:
-              IncidentEpisodeFeedEventType.OnCallNotification,
-            displayColor: displayColor,
-            feedInfoInMarkdown: feedInfoInMarkdown,
-          });
-        }
+    if (policyLink) {
+      /*
+       * The level by its place, as the Escalate dialog names it: "Level 2
+       * of 3" (OnCallFeedText).
+       */
+      const ruleOrder: number | undefined =
+        onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule
+          ?.order || undefined;
 
-        logger.debug("Incident Feed created", {
-          projectId:
-            onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
-        } as LogAttributes);
+      return {
+        isDirectPage: false,
+        input: {
+          status: status,
+          policyLink: policyLink,
+          ruleName:
+            onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule
+              ?.name,
+          ruleOrder: ruleOrder,
+          ruleCount: ruleOrder
+            ? await this.countPolicyLevels(
+                onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyId,
+              )
+            : undefined,
+          scheduleName:
+            onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
+          isNextInRotation: Boolean(
+            onCallDutyPolicyExecutionLogTimeline.isNextInRotation,
+          ),
+          teamName:
+            onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
+          recipient: recipient,
+          overriddenUser: overriddenUser,
+          statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
+          isObserverPage: isObserverPage,
+          channels: data.channels,
+        },
+      };
+    }
+
+    return {
+      isDirectPage: true,
+      input: {
+        status: status,
+        pager: await OnCallDutyPolicyExecutionLogService.getDirectPagePager({
+          projectId: onCallDutyPolicyExecutionLogTimeline.projectId,
+          triggeredByWorkflowName:
+            onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyExecutionLog
+              ?.triggeredByWorkflowName,
+          triggeredByUserId:
+            onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyExecutionLog
+              ?.triggeredByUserId,
+        }),
+        scheduleName:
+          onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
+        teamName: onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
+        recipient: recipient,
+        overriddenUser: overriddenUser,
+        statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
+        isObserverPage: isObserverPage,
+        channels: data.channels,
+      },
+    };
+  }
+
+  /*
+   * One entry, in the feed of each record the step's page is about.
+   *
+   * The record's feed only. Slack and Microsoft Teams hear of this
+   * step through the run's one message, which is edited as the run
+   * goes (OnCallPolicyRunMessage) - not through a paragraph per person
+   * per rule per repeat, as they used to.
+   */
+  private async writeToRecordFeeds(data: {
+    step: Model;
+    displayColor: Color;
+    feedInfoInMarkdown: string;
+  }): Promise<void> {
+    const onCallDutyPolicyExecutionLogTimeline: Model = data.step;
+
+    if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId,
+        projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+        incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
+        displayColor: data.displayColor,
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+      });
+    }
+
+    if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
+      await AlertFeedService.createAlertFeedItem({
+        alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
+        projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+        alertFeedEventType: AlertFeedEventType.OnCallPolicy,
+        displayColor: data.displayColor,
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+      });
+    }
+
+    if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId) {
+      await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+        alertEpisodeId:
+          onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId,
+        projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallNotification,
+        displayColor: data.displayColor,
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+      });
+    }
+
+    if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId) {
+      await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+        incidentEpisodeId:
+          onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId,
+        projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+        incidentEpisodeFeedEventType:
+          IncidentEpisodeFeedEventType.OnCallNotification,
+        displayColor: data.displayColor,
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+      });
+    }
+
+    logger.debug("Incident Feed created", {
+      projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
+    } as LogAttributes);
+  }
+
+  @CaptureSpan()
+  public async addToIncidentOrAlertFeed(data: {
+    onCallDutyPolicyExecutionLogTimelineId: ObjectID;
+  }): Promise<void> {
+    logger.debug(
+      "OnCallDutyPolicyExecutionLogTimelineService.addToIncidentFeed",
+      {
+        onCallDutyPolicyExecutionLogTimelineId:
+          data.onCallDutyPolicyExecutionLogTimelineId?.toString(),
+      } as LogAttributes,
+    );
+
+    const onCallDutyPolicyExecutionLogTimeline: Model | null =
+      await this.findStepForFeed(data.onCallDutyPolicyExecutionLogTimelineId);
+
+    if (!onCallDutyPolicyExecutionLogTimeline) {
+      return;
+    }
+
+    const status: OnCallDutyExecutionLogTimelineStatus =
+      onCallDutyPolicyExecutionLogTimeline.status!;
+
+    logger.debug("Status: " + status, {
+      projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
+    } as LogAttributes);
+
+    if (
+      !status ||
+      !(
+        status === OnCallDutyExecutionLogTimelineStatus.Skipped ||
+        status === OnCallDutyExecutionLogTimelineStatus.Error ||
+        status ===
+          OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
+        status === OnCallDutyExecutionLogTimelineStatus.PassedOn ||
+        status === OnCallDutyExecutionLogTimelineStatus.NotificationSent
+      )
+    ) {
+      return;
+    }
+
+    /*
+     * A level skipped because somebody escalated past it is no failure:
+     * it is drawn as the escalation is, not as a page that went wrong.
+     */
+    const displayColor: Color = isOnCallLevelSkippedByEscalationMessage(
+      onCallDutyPolicyExecutionLogTimeline.statusMessage,
+    )
+      ? this.getColorBasedOnStatus(
+          OnCallDutyExecutionLogTimelineStatus.PassedOn,
+        )
+      : this.getColorBasedOnStatus(status);
+
+    /*
+     * How the page reached its person, or how they answered it: read from
+     * its notifications only for a step that says either.
+     */
+    const channels: Array<OnCallPageChannel> = this.getStepChannels(
+      status,
+      status === OnCallDutyExecutionLogTimelineStatus.NotificationSent ||
+        status ===
+          OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
+        status === OnCallDutyExecutionLogTimelineStatus.PassedOn
+        ? await this.findStepNotifications(onCallDutyPolicyExecutionLogTimeline)
+        : [],
+    );
+
+    const textInput:
+      | { isDirectPage: false; input: OnCallStepFeedTextInput }
+      | { isDirectPage: true; input: OnCallDirectPageStepFeedTextInput } =
+      await this.getStepFeedTextInput({
+        step: onCallDutyPolicyExecutionLogTimeline,
+        channels: channels,
+      });
+
+    const feedInfoInMarkdown: string = textInput.isDirectPage
+      ? OnCallFeedText.getDirectPageStepMarkdown(textInput.input)
+      : OnCallFeedText.getStepMarkdown(textInput.input);
+
+    logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown, {
+      projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
+    } as LogAttributes);
+
+    await this.writeToRecordFeeds({
+      step: onCallDutyPolicyExecutionLogTimeline,
+      displayColor: displayColor,
+      feedInfoInMarkdown: feedInfoInMarkdown,
+    });
+  }
+
+  /*
+   * ONE NOTIFICATION OF A PERSON'S PAGE, TOLD OF AFTER THE PAGE'S OWN ENTRY
+   * (OnCallFeedText.getStepNotificationMarkdown): one their On-Call Rules
+   * sent later - "paged Nitin again via phone call" -, one that could not
+   * be sent - "could not page Nitin via SMS" - or a call they did not pick
+   * up - "Nitin did not answer the phone call" - each channel once a page
+   * (getOnCallPageNotificationNews). Asked for by the notification's own
+   * hooks (UserOnCallLogTimelineService).
+   *
+   * Never throws: a feed entry is no reason for a notification not to go
+   * out, or for its status not to be saved.
+   */
+  @CaptureSpan()
+  public async addNotificationToFeed(data: {
+    onCallDutyPolicyExecutionLogTimelineId: ObjectID;
+    userOnCallLogTimelineId: ObjectID;
+    event: OnCallPageNotificationEvent;
+  }): Promise<void> {
+    try {
+      const step: Model | null = await this.findStepForFeed(
+        data.onCallDutyPolicyExecutionLogTimelineId,
+      );
+
+      if (!step || !step.alertSentToUserId || !step.status) {
+        return;
       }
+
+      /*
+       * Sent later: once the page's own entry is written, and has named the
+       * channels its first notifications went out by - one sent before it
+       * is among them. Once the person has answered, their notifications
+       * stop.
+       */
+      if (
+        data.event === OnCallPageNotificationEvent.SentLater &&
+        step.status !== OnCallDutyExecutionLogTimelineStatus.NotificationSent
+      ) {
+        return;
+      }
+
+      /*
+       * Could not be sent, or a call not answered: not once the person has
+       * answered - a push's failure can come back from its provider minutes
+       * later, and a call rings out a minute after it went out, while they
+       * acknowledged by its SMS; neither tells how the page went any more.
+       */
+      if (
+        (data.event === OnCallPageNotificationEvent.Failed ||
+          data.event === OnCallPageNotificationEvent.NotAnswered) &&
+        (step.status ===
+          OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
+          step.status === OnCallDutyExecutionLogTimelineStatus.PassedOn ||
+          step.status === OnCallDutyExecutionLogTimelineStatus.Skipped)
+      ) {
+        return;
+      }
+
+      const notifications: Array<UserOnCallLogTimeline> =
+        await this.findStepNotifications(step);
+
+      const notification: UserOnCallLogTimeline | undefined =
+        notifications.find((item: UserOnCallLogTimeline) => {
+          return (
+            item.id?.toString() === data.userOnCallLogTimelineId.toString()
+          );
+        });
+
+      if (!notification) {
+        return;
+      }
+
+      const news: OnCallPageNotificationNews | null =
+        getOnCallPageNotificationNews({
+          event: data.event,
+          notification: notification,
+          notifications: notifications,
+        });
+
+      if (!news) {
+        return;
+      }
+
+      const textInput:
+        | { isDirectPage: false; input: OnCallStepFeedTextInput }
+        | { isDirectPage: true; input: OnCallDirectPageStepFeedTextInput } =
+        await this.getStepFeedTextInput({
+          step: step,
+          channels: [],
+        });
+
+      const feedInfoInMarkdown: string = textInput.isDirectPage
+        ? OnCallFeedText.getDirectPageStepNotificationMarkdown(
+            textInput.input,
+            news,
+          )
+        : OnCallFeedText.getStepNotificationMarkdown(textInput.input, news);
+
+      if (!feedInfoInMarkdown) {
+        return;
+      }
+
+      await this.writeToRecordFeeds({
+        step: step,
+        displayColor: this.getNotificationColor(data.event),
+        feedInfoInMarkdown: feedInfoInMarkdown,
+      });
+    } catch (error) {
+      logger.error(
+        `Could not tell the feed of notification ${data.userOnCallLogTimelineId.toString()} of on-call step ${data.onCallDutyPolicyExecutionLogTimelineId.toString()}: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * THE CHANNELS A STEP'S PAGE WENT OUT BY, KEPT ON THE STEP
+   * (notificationChannels) for the run's Execution Timeline: whoever can
+   * read the run can read its steps, while each notification
+   * (UserOnCallLogTimeline) can be read by its own person only.
+   *
+   * Worked out again from all of the step's notifications, as the feed's
+   * entry names them (getOnCallPageChannelsOut), whenever one of them is
+   * written or changes status (UserOnCallLogTimelineService's hooks) - never
+   * just added to: one sent later by a new channel joins the list, and one
+   * that could not be sent after all leaves it.
+   *
+   * The step's row is held while the list is worked out and written, so
+   * notifications that change at once take turns: each reads the
+   * notifications after the one before it wrote, and none writes back a list
+   * older than the one it found.
+   *
+   * Never throws: the list is no reason for a notification not to go out,
+   * or for its status not to be saved.
+   */
+  @CaptureSpan()
+  public async refreshNotificationChannels(
+    onCallDutyPolicyExecutionLogTimelineId: ObjectID,
+  ): Promise<void> {
+    const stepId: string = onCallDutyPolicyExecutionLogTimelineId.toString();
+
+    try {
+      await this.executeTransaction(
+        async (entityManager: EntityManager): Promise<void> => {
+          const steps: Array<{ notificationChannels: unknown }> =
+            await entityManager.query(
+              `SELECT "notificationChannels" FROM "OnCallDutyPolicyExecutionLogTimeline" WHERE "_id" = $1 AND "deletedAt" IS NULL FOR UPDATE`,
+              [stepId],
+            );
+
+          if (steps.length === 0) {
+            return;
+          }
+
+          const notifications: Array<OnCallPageNotification> =
+            await entityManager.query(
+              `SELECT ${STEP_NOTIFICATION_CHANNEL_COLUMNS.map(
+                (column: string): string => {
+                  return `"${column}"`;
+                },
+              ).join(
+                ", ",
+              )} FROM "UserOnCallLogTimeline" WHERE "onCallDutyPolicyExecutionLogTimelineId" = $1 AND "deletedAt" IS NULL`,
+              [stepId],
+            );
+
+          const channels: Array<OnCallPageChannel> =
+            getOnCallPageChannelsOut(notifications);
+
+          // The list the step has already: nothing to write.
+          if (
+            JSON.stringify(steps[0]!.notificationChannels) ===
+            JSON.stringify(channels)
+          ) {
+            return;
+          }
+
+          await entityManager.query(
+            `UPDATE "OnCallDutyPolicyExecutionLogTimeline" SET "notificationChannels" = $1::jsonb WHERE "_id" = $2`,
+            [JSON.stringify(channels), stepId],
+          );
+        },
+      );
+    } catch (error) {
+      logger.error(
+        `Could not keep the channels of on-call step ${stepId}: ${error}`,
+      );
     }
   }
 

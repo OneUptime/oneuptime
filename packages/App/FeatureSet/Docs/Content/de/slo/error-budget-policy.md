@@ -1,11 +1,12 @@
 # Fehlerbudget-Richtlinie
 
-Eine Fehlerbudget-Richtlinie hält fest, was Ihr Team vereinbart hat zu tun, während das Fehlerbudget eines SLO schrumpft, etwa riskante Änderungen zu prüfen, sobald die Hälfte verbraucht ist, oder Releases einzufrieren, sobald alles verbraucht ist. OneUptime ordnet das SLO der Stufe der Richtlinie zu, die sein Budget erreicht hat, zeigt die Vereinbarung des Teams für diese Stufe auf den Seiten des SLO, kann eine Warnung auslösen oder einen Vorfall melden, wenn das SLO in eine Stufe eintritt, und sagt Ihren CI/CD-Pipelines, ob sie Releases zurückhalten sollen. Das ist die Praxis der Fehlerbudget-Richtlinie aus dem [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+Eine Fehlerbudget-Richtlinie hält fest, was Ihr Team vereinbart hat zu tun, während das Fehlerbudget eines SLO schrumpft, etwa riskante Änderungen zu prüfen, sobald die Hälfte verbraucht ist, oder Releases einzufrieren, sobald alles verbraucht ist. OneUptime ordnet das SLO der Stufe der Richtlinie zu, die sein Budget erreicht hat, zeigt die Vereinbarung des Teams für diese Stufe auf den Seiten des SLO, kann eine Warnung auslösen oder einen Vorfall melden, wenn das SLO in eine Stufe eintritt, postet jeden Stufenwechsel in den Slack-, Microsoft-Teams- oder Mattermost-Kanälen, die Sie auswählen, und sagt Ihren CI/CD-Pipelines, ob sie Releases zurückhalten sollen. Das ist die Praxis der Fehlerbudget-Richtlinie aus dem [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Wie Stufen funktionieren](#wie-stufen-funktionieren): Welche Stufe gilt und wann das SLO sie verlässt.
 - [Eine Richtlinie einrichten](#eine-richtlinie-einrichten): Mit der empfohlenen Richtlinie beginnen oder eigene Stufen schreiben.
 - [Warnungen und Vorfälle](#warnungen-und-vorfälle): Ihr Team alarmieren, wenn das SLO in eine Stufe eintritt.
+- [In Slack, Microsoft Teams und Mattermost posten](#in-slack-microsoft-teams-und-mattermost-posten): Einen Kanal informieren, wenn ein SLO in eine Stufe eintritt, ohne jemanden zu alarmieren.
 - [Deployment-Gate](#deployment-gate): Releases in CI/CD zurückhalten, solange eine Stufe Deployments einfriert.
 - [Die Stufe über die API lesen](#die-stufe-über-die-api-lesen): Die Stufe aus CI und Skripten prüfen.
 :::
@@ -88,6 +89,7 @@ Keine von ihnen löst eine Warnung aus oder meldet einen Vorfall, bis Sie das ei
 - Die **Übersicht** des SLO zeigt die Stufe, in der es ist, und was das Team dort vereinbart hat, sodass jeder, der das SLO öffnet, die Vereinbarung sieht, die gerade gilt. Solange die Stufe Deployments einfriert, zeigt ein rotes Badge unter ihrem Namen, seit wann.
 - Das Diagramm **Fehlerbudget-Burn-down** zeichnet beim Schwellenwert jeder Stufe eine beschriftete Linie, neben der Linie der Risikoschwelle.
 - Der **Feed** des SLO zeigt jeden Stufenwechsel: die Stufe, die das SLO verlassen hat, und die, in die es eingetreten ist, das verbleibende Budget, was das Team in der neuen Stufe vereinbart hat, und ob der Wechsel Deployments eingefroren oder wieder erlaubt hat.
+- Die Slack-, Microsoft-Teams- und Mattermost-Kanäle, die Ihre Regeln nennen, bekommen dieselbe Nachricht: siehe [In Slack, Microsoft Teams und Mattermost posten](#in-slack-microsoft-teams-und-mattermost-posten).
 - Die **Audit-Protokolle** des SLO halten jeden Stufenwechsel und jedes Einfrieren oder erneute Erlauben von Deployments als Änderung fest, die OneUptime selbst vorgenommen hat, und zeigen sie daher nur mit eingeschaltetem **Systemereignisse speichern**: siehe [Audit-Protokolle einschalten](/docs/slo/feed-and-audit-logs#audit-protokolle-einschalten). Das Hinzufügen, Bearbeiten und Entfernen einer Stufe wird unter der Person festgehalten, die es getan hat.
 - Die Lese-API des SLO liefert die Stufe und ob Deployments erlaubt sind: siehe [Die Stufe über die API lesen](#die-stufe-über-die-api-lesen) und [Deployment-Gate](#deployment-gate).
 
@@ -121,6 +123,43 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 ```
 
 Die eingebaute Beschreibung nennt die Stufe, stellt das verbleibende Budget dem Schwellenwert der Stufe gegenüber und sagt, was das Team in ihr vereinbart hat.
+
+## In Slack, Microsoft Teams und Mattermost posten
+
+Eine Regel kann jede Änderung der Fehlerbudget-Richtlinie eines SLO in den Slack-, Microsoft-Teams- oder Mattermost-Kanälen posten, die Ihr Team liest, ohne jemanden zu alarmieren: wenn das SLO in eine Stufe eintritt, sich in eine weniger strenge Stufe erholt oder alle Stufen verlässt, und wenn seine Deployments eingefroren oder wieder erlaubt werden. Jede Regel wählt die SLOs und die Änderungen, die sie postet. Verbinden Sie zuerst den Workspace mit dem Projekt: siehe [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) oder [Mattermost](/docs/workspace-connections/mattermost).
+
+:::steps
+### Den Abschnitt Arbeitsbereich der SLOs öffnen
+
+Gehen Sie zu **SLOs** → **Arbeitsbereich** → **Slack**, **Microsoft Teams** oder **Mattermost**. Der Abschnitt **Arbeitsbereich** listet nur die Chat-Workspaces, die Ihr Projekt verbunden hat.
+
+### Eine Regel erstellen
+
+Klicken Sie auf **Benachrichtigungsregel für SLOs erstellen** und tragen Sie unter **Regelname** einen Namen ein. Behalten Sie unter **Welche SLOs** die Option **Alle SLOs** bei, oder wählen Sie **Nur SLOs, die den Bedingungen entsprechen** und fügen Sie Bedingungen hinzu: siehe [Worauf eine Regel zutrifft](#worauf-eine-regel-zutrifft).
+
+### Festlegen, wo sie postet
+
+Nennen Sie unter **Dann in Slack** die Kanäle, in denen die Regel postet. In Microsoft Teams wählen Sie ein Team und seine Kanäle aus, oder Chats, denen die OneUptime-App hinzugefügt wurde. Ein SLO bekommt keinen eigenen Kanal, daher postet eine Regel nur in Kanälen und Chats, die Sie schon haben.
+:::
+
+Die Nachricht beschreibt die Änderung so, wie der **Feed** des SLO sie beschreibt: die Stufe, die das SLO verlassen hat, und die, in die es eingetreten ist, wie sich die Deployments geändert haben, das verbleibende Fehlerbudget, den Schwellenwert der neuen Stufe und was das Team dort vereinbart hat, so wie das Team es geschrieben hat. Eine Erwähnung in dieser Vereinbarung, etwa `<!channel>`, wird als Text gepostet und benachrichtigt niemanden.
+
+- Eine Änderung wird einmal gepostet, nachdem die Auswertung, die sie bewirkt hat, gespeichert ist. Eine Auswertung, die nicht gespeichert wird, postet nichts, und die nächste postet die Änderung.
+- Solange das SLO in seiner Stufe bleibt, wird nichts gepostet, wie lange das Budget auch um einen Schwellenwert pendelt: siehe [In eine Stufe eintreten und sie verlassen](#in-eine-stufe-eintreten-und-sie-verlassen).
+- Das Ein- oder Ausschalten von **Deployments einfrieren** für die Stufe, in der das SLO ist, postet eine eigene Nachricht.
+- Ein pausiertes, falsch konfiguriertes, deaktiviertes oder archiviertes SLO behält seine Stufe und postet nichts.
+- Eine Nachricht, die nicht gesendet werden kann, wird protokolliert, und die Auswertung, der Feed des SLO und das, was die Stufe auslöst, laufen ohne sie weiter.
+
+### Worauf eine Regel zutrifft
+
+| Bedingung | Worauf sie zutrifft |
+| --- | --- |
+| **SLOs** | Die SLOs, die Sie auswählen, oder jedes SLO außer diesen. |
+| **SLO-Beschriftungen** | Die Beschriftungen des SLO: eine beliebige der ausgewählten, alle oder keine davon. |
+| **SLO-Name** | Der Name des SLO: ist gleich Ihrem Text oder nicht, enthält ihn oder nicht, beginnt oder endet mit ihm. |
+| **Änderung der Fehlerbudget-Richtlinie** | Was sich geändert hat: **In eine strengere Stufe eingetreten**, **In eine weniger strenge Stufe erholt**, **Alle Stufen verlassen**, **Deployments eingefroren** oder **Deployments wieder erlaubt**. |
+
+Ein Stufenwechsel, der Deployments eingefroren oder wieder erlaubt hat, ist eine einzige Nachricht für beide Änderungen. Eine Regel für **Deployments eingefroren** postet also auch den Wechsel in eine Stufe, die sie einfriert: Ein Release-Kanal erfährt von jedem Einfrieren.
 
 ## Wenn das Budget nicht gemessen wird
 
@@ -259,7 +298,7 @@ Diese Berechtigungen stehen in der SLO-Gruppe einer Rolle. Die Rollen Project Ow
 
 ## Noch nicht verfügbar
 
-Einige Teile einer Fehlerbudget-Richtlinie sind noch nicht verfügbar: Workflow-Auslöser sowie Slack- und Microsoft-Teams-Benachrichtigungen für jede Stufe, eine Richtlinie, die sich mehrere SLOs teilen, das Bestätigen einer Stufe oder das Gewähren einer Ausnahme davon, und Stufen, die sich nach der Budget-Reichweite statt nach dem verbleibenden Budget richten. OneUptime hält ein Release nicht von selbst an: Das tut eine Pipeline, die `deploymentsAllowed` prüft, wie [Deployment-Gate](#deployment-gate) zeigt.
+Einige Teile einer Fehlerbudget-Richtlinie sind noch nicht verfügbar: ein eigener Workflow-Auslöser für jede Stufe, eine Richtlinie, die sich mehrere SLOs teilen, das Bestätigen einer Stufe oder das Gewähren einer Ausnahme davon, und Stufen, die sich nach der Budget-Reichweite statt nach dem verbleibenden Budget richten. OneUptime hält ein Release nicht von selbst an: Das tut eine Pipeline, die `deploymentsAllowed` prüft, wie [Deployment-Gate](#deployment-gate) zeigt.
 
 ## Nächste Schritte
 

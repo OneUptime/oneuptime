@@ -18,6 +18,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import {
@@ -77,6 +78,8 @@ export interface NotificationRuleWhenProps {
   // A security case rule's: the project's own case priorities and statuses.
   securityCasePriorities?: Array<SecurityCasePriority> | undefined;
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
+  // An SLO rule's: the project's SLOs, to name the ones it picks.
+  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
 
@@ -107,6 +110,7 @@ export const NotificationRuleWhen: FunctionComponent<
       scheduledMaintenanceStates={props.scheduledMaintenanceStates}
       securityCasePriorities={props.securityCasePriorities}
       securityCaseStatuses={props.securityCaseStatuses}
+      serviceLevelObjectives={props.serviceLevelObjectives}
       monitorStatus={props.monitorStatus}
       filterCondition={props.rule.filterCondition}
       criteriaFilters={props.rule.filters}
@@ -223,6 +227,7 @@ export function getNotificationRuleCardColumns(
             scheduledMaintenanceStates={data.scheduledMaintenanceStates}
             securityCasePriorities={data.securityCasePriorities}
             securityCaseStatuses={data.securityCaseStatuses}
+            serviceLevelObjectives={data.serviceLevelObjectives}
             monitorStatus={data.monitorStatus}
           />
         );

@@ -378,7 +378,14 @@ const updateAnnouncementsWhere: (
   });
 };
 
-// The reads of the rows an update writes, with the status pages they have.
+/*
+ * The reads of the rows an update writes, with the status pages they have,
+ * that its asks are made on: the pages by their ids, as the check reads them
+ * (getRowsToUpdateSelect). Not the write's own read of its rows, just before
+ * it writes them, which takes the pages' names as well - for the audit
+ * entry to say which pages were added or taken away
+ * (addAuditLogColumnsToUpdateSelect).
+ */
 const rowReadsWithPages: () => Array<RowRead> = (): Array<RowRead> => {
   return rowReads.filter((each: RowRead): boolean => {
     const select: Record<string, unknown> | undefined = each.findBy.select as
@@ -386,8 +393,7 @@ const rowReadsWithPages: () => Array<RowRead> = (): Array<RowRead> => {
       | undefined;
 
     return (
-      Boolean(select?.["statusPages"]) &&
-      typeof select?.["statusPages"] === "object"
+      JSON.stringify(select?.["statusPages"]) === JSON.stringify({ _id: true })
     );
   });
 };

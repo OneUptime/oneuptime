@@ -817,10 +817,17 @@ describe("a member who reads every resource but may add and remove owners only o
         return !onOwners.includes(permission);
       });
 
-      expect([table.name, onTheKindAlone.length > 0]).toEqual([
+      /*
+       * A team's owners are read with the team's own read permissions -
+       * there is none on them alone (TeamOwnerUser). Every reader of teams
+       * reads every team whatever their scope (ownedScopeLeavesReads), so
+       * the member below - every permission on owners scoped to Owned -
+       * still reads the owners of every team.
+       */
+      expect([
         table.name,
-        true,
-      ]);
+        onTheKindAlone.length > 0 || Boolean(table.pair.ownedScopeLeavesReads),
+      ]).toEqual([table.name, true]);
 
       const props: DatabaseCommonInteractionProps = memberWith([
         ...rowsAt(onOwners, PermissionScope.Owned),

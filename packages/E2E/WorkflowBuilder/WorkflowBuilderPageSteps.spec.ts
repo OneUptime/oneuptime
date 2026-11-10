@@ -302,9 +302,16 @@ test.describe("Workflow builder: the Page steps", () => {
     // Nothing about a new alert: this page is about an incident.
     await expect(textbox(dialog, "Title")).toHaveCount(0);
     await expect(textbox(dialog, "Alert ID")).toHaveCount(0);
-    await expect(
-      dialog.getByRole("button", { name: /^More fields/ }),
-    ).toHaveCount(0);
+    /*
+     * Folded under More fields: whether the people paged respond or only
+     * observe - a page about an incident that is already there - and no
+     * new alert's Severity.
+     */
+    const moreFields: Locator = dialog.getByRole("button", {
+      name: /^More fields/,
+    });
+    await expect(moreFields).toContainText("Page As");
+    await expect(moreFields).not.toContainText("Severity");
     await expect(dialog.getByRole("button", { name: "Save" })).toBeEnabled();
   });
 
@@ -488,17 +495,20 @@ test.describe("Workflow builder: the Page steps", () => {
     await expect(textbox(dialog, "Title")).toContainText(
       "Payments are failing",
     );
-    await expect(
-      dialog.getByRole("button", { name: /^More fields/ }),
-    ).toContainText("Severity");
+    const moreFields: Locator = dialog.getByRole("button", {
+      name: /^More fields/,
+    });
+    await expect(moreFields).toContainText("Severity");
+    // Observers are told about something already there, not a new alert.
+    await expect(moreFields).not.toContainText("Page As");
 
     await dialog.getByRole("radio", { name: "An incident" }).check();
 
     await expect(textbox(dialog, "Title")).toHaveCount(0);
     await expect(textbox(dialog, "Message")).toHaveCount(0);
-    await expect(
-      dialog.getByRole("button", { name: /^More fields/ }),
-    ).toHaveCount(0);
+    // The new alert's Severity goes; whether to respond or observe comes.
+    await expect(moreFields).not.toContainText("Severity");
+    await expect(moreFields).toContainText("Page As");
     await expect(recordPicker(dialog, "Incident ID")).toBeVisible();
     // Required, and empty: nothing to save yet.
     await expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();

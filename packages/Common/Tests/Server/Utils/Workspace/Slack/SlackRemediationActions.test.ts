@@ -135,7 +135,7 @@ beforeEach(() => {
   ephemeral = jest
     .spyOn(SlackUtil, "sendEphemeralMessageToChannel")
     .mockResolvedValue() as AnySpy;
-  jest.spyOn(SlackUtil, "sendDirectMessageToUser").mockResolvedValue();
+  jest.spyOn(SlackUtil, "sendDirectMessageToUser").mockResolvedValue(null);
   showModal = jest
     .spyOn(SlackUtil, "showModalToUser")
     .mockResolvedValue() as AnySpy;

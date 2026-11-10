@@ -188,8 +188,10 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     // Titles built from a template literal, which no lookup can find.
     "Add a monitor to {group}",
     "Search in {group}...",
-    // The bulk add summary's heading, drawn as written (no translator).
-    "Already Added",
+    /*
+     * The bulk add summary's Already Added heading left this list with
+     * Add Multiple Monitor Groups (#6544): every language words it now.
+     */
   ],
 };
 

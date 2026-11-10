@@ -11,6 +11,17 @@ import MonitorService from "../../Services/MonitorService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import {
+  EvaluationSentence,
+  EvaluationSentenceValue,
+  englishOfEvaluationSentence,
+  translatablePluralSentence,
+  translatableSentence,
+} from "../../../Types/Monitor/EvaluationSentence";
+import { translationKey } from "../../../Types/Translator";
+
+// More parents than a sentence holds values are named in one text.
+const MAX_PARENTS_AS_VALUES: number = 30;
 
 /*
  * Re-exported so server-side callers (and the existing tests) keep a
@@ -188,5 +199,61 @@ export default class MonitorDependencySuppression {
     suppressingParents: Array<SuppressingParent>,
   ): string {
     return MonitorDependencyRule.buildSuppressionReason(suppressingParents);
+  }
+
+  /*
+   * buildSuppressionReason as a sentence each reader's language words
+   * (EvaluationSentence): 'parent monitor "Router" is Offline'. Its English
+   * is buildSuppressionReason's. The monitors and their statuses are the
+   * project's names, as written.
+   */
+  public static buildSuppressionReasonSentence(
+    suppressingParents: Array<SuppressingParent>,
+  ): EvaluationSentence {
+    const parents: Array<EvaluationSentence> = suppressingParents.map(
+      (parent: SuppressingParent): EvaluationSentence => {
+        return translatableSentence('"{{monitor}}" is {{status}}', {
+          monitor: parent.monitorName,
+          status: parent.statusName,
+        });
+      },
+    );
+
+    /*
+     * The parents in a list the way the English always wrote it, "A, B": a
+     * template with no words of its own, which every language reads as it
+     * is. Past what a sentence holds, they are one text in English.
+     */
+    const list: EvaluationSentenceValue =
+      parents.length > MAX_PARENTS_AS_VALUES
+        ? parents.map(englishOfEvaluationSentence).join(", ")
+        : parents.length === 1
+          ? parents[0]!
+          : translatableSentence(
+              parents
+                .map((_parent: EvaluationSentence, index: number): string => {
+                  return `{{parent${index}}}`;
+                })
+                .join(", "),
+              Object.fromEntries(
+                parents.map(
+                  (
+                    parent: EvaluationSentence,
+                    index: number,
+                  ): [string, EvaluationSentence] => {
+                    return [`parent${index}`, parent];
+                  },
+                ),
+              ),
+            );
+
+    return translatablePluralSentence(
+      {
+        one: translationKey("parent monitor {{parents}}"),
+        other: translationKey("parent monitors {{parents}}"),
+      },
+      suppressingParents.length,
+      { parents: list },
+    );
   }
 }

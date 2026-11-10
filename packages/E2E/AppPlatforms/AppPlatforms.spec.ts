@@ -1571,9 +1571,16 @@ test.describe("apps and their deploys", () => {
       "color",
       "rgb(180, 83, 9)",
     );
+    /*
+     * On both charts: a mark to hover or focus, not a button, as a lone
+     * mark that opens nothing is.
+     */
+    await expect(page.getByRole("img", { name: ROLLBACK_MARKER })).toHaveCount(
+      2,
+    );
     await expect(
       page.getByRole("button", { name: ROLLBACK_MARKER }),
-    ).toHaveCount(2);
+    ).toHaveCount(0);
     await screenshot(page, "app-platforms-app-rolled-back-1280");
 
     await open(page, `${REPORTS_APP}?tab=Revisions`);

@@ -125,6 +125,9 @@ import ScheduledMaintenanceWorkspaceConnectionSlack from "../../../../App/Featur
 import SecurityEventsWorkspaceConnectionMattermost from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionMattermost";
 import SecurityEventsWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams";
 import SecurityEventsWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionSlack";
+import SloWorkspaceConnectionMattermost from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/WorkspaceConnectionMattermost";
+import SloWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/WorkspaceConnectionMicrosoftTeams";
+import SloWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/WorkspaceConnectionSlack";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import ConnectedWorkspaces, {
   ConnectedWorkspacesFetcher,
@@ -650,6 +653,25 @@ describe("a product's Slack, Microsoft Teams or Mattermost page", () => {
       workspaceType: WorkspaceType.Mattermost,
       firstEventType: NotificationRuleEventType.SecurityCase,
     },
+    // SLOs > Workspace: the rules that post SLOs' error budget policy changes.
+    {
+      name: "SLOs > Slack",
+      Page: SloWorkspaceConnectionSlack,
+      workspaceType: WorkspaceType.Slack,
+      firstEventType: NotificationRuleEventType.ServiceLevelObjective,
+    },
+    {
+      name: "SLOs > Microsoft Teams",
+      Page: SloWorkspaceConnectionMicrosoftTeams,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      firstEventType: NotificationRuleEventType.ServiceLevelObjective,
+    },
+    {
+      name: "SLOs > Mattermost",
+      Page: SloWorkspaceConnectionMattermost,
+      workspaceType: WorkspaceType.Mattermost,
+      firstEventType: NotificationRuleEventType.ServiceLevelObjective,
+    },
   ];
 
   const PAGE_CASES: Array<[string, WorkspacePage]> = PAGES.map(
@@ -875,7 +897,7 @@ describe("a product's Slack, Microsoft Teams or Mattermost page", () => {
       },
     );
 
-    expect(mattermostPages).toHaveLength(6);
+    expect(mattermostPages).toHaveLength(7);
 
     for (const page of mattermostPages) {
       connect(page.workspaceType);

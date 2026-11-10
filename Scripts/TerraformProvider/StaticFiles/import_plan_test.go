@@ -89,6 +89,7 @@ func newSettleAPI(t *testing.T) *settleAPI {
 		"monitorType":             "Website",
 		"isArchived":              false,
 		"disableActiveMonitoring": false,
+		"keepResponseContent":     true,
 		"monitorSteps": monitorStepWire("https://example.com/", onlineCriteria(serverCriteriaDefaults), map[string]interface{}{
 			"requestType": "GET",
 		}),

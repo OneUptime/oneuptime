@@ -2,10 +2,13 @@ import { describe, expect, test } from "@jest/globals";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Hostname from "../../../Types/API/Hostname";
 import IP from "../../../Types/IP/IP";
+import { CriteriaAlert } from "../../../Types/Monitor/CriteriaAlert";
+import { CriteriaIncident } from "../../../Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import { createTranslator, Translator } from "../../../Types/Translator";
 import {
   buildPingMonitorDescription,
   buildPingMonitorForAddress,
@@ -227,6 +230,58 @@ describe("buildPingMonitorForAddress", () => {
 
   test("does not persist anything or assume an id", () => {
     expect(build({})._id).toBeUndefined();
+  });
+
+  /*
+   * A person in the Dashboard provisioning the monitor gets its criteria's
+   * words in their language (#6542); every other caller - discovery
+   * import, the server - gets them in English, as before.
+   */
+  test("writes the criteria's words in the reader's language when given the reader's translator", () => {
+    const wordsOf: (monitor: Monitor) => Array<string> = (
+      monitor: Monitor,
+    ): Array<string> => {
+      return (
+        firstStep(monitor).data?.monitorCriteria?.data
+          ?.monitorCriteriaInstanceArray || []
+      ).flatMap((criterion: MonitorCriteriaInstance): Array<string> => {
+        return [
+          criterion.data?.name || "",
+          criterion.data?.description || "",
+          ...(criterion.data?.incidents || []).flatMap(
+            (incident: CriteriaIncident) => {
+              return [incident.title, incident.description];
+            },
+          ),
+          ...(criterion.data?.alerts || []).flatMap((alert: CriteriaAlert) => {
+            return [alert.title, alert.description];
+          }),
+        ];
+      });
+    };
+
+    const marking: Translator = createTranslator((text: string): string => {
+      return `«${text}»`;
+    }, "zh-CN");
+
+    const english: Array<string> = wordsOf(build({}));
+    const translated: Array<string> = wordsOf(
+      buildPingMonitorForAddress({
+        projectId: PROJECT_ID,
+        address: "10.0.0.7",
+        deviceName: "lobby-ap-01",
+        seedIds: SEED_IDS,
+        origin: PingMonitorOrigin.DeviceCreateForm,
+        translator: marking,
+      }),
+    );
+
+    expect(english).toContain("Check if Ping lobby-ap-01 is offline");
+    expect(translated).toEqual(
+      english.map((word: string): string => {
+        return `«${word}»`;
+      }),
+    );
   });
 });
 

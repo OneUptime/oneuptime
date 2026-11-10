@@ -89,6 +89,7 @@ Une règle de notification dit quels événements sont publiés dans Microsoft T
 | **Maintenance planifiée** | Une liste de règles |
 | **Moniteurs** | Une liste de règles |
 | **Astreinte** | Une liste de règles |
+| **SLOs** | Une liste de règles |
 
 Créer une règle passe par quatre étapes :
 
@@ -98,6 +99,8 @@ Créer une règle passe par quatre étapes :
 | **Conditions** | Pour quels événements est la règle, par exemple selon la gravité, l'état, l'étiquette, le moniteur ou des mots du titre. Elles sont vérifiées à la création d'un événement, puis à chaque mise à jour que OneUptime publie à son sujet : une règle pour les incidents pris en compte agit donc quand un incident est pris en compte. Une nouvelle règle est pour chaque événement, par exemple **Tous les incidents**. Pour la restreindre, choisissez **Uniquement les incidents qui correspondent aux conditions** et ajoutez les conditions. Avec deux ou plus, **Condition de correspondance** dit si toutes doivent correspondre, ou une seule. |
 | **Destination** | Où elle publie : dans un canal existant d'une équipe choisie, dans les conversations choisies, dans un canal pour chaque incident (ou alerte, épisode, événement, moniteur ou politique d'astreinte) créé dans une équipe choisie, ou dans plusieurs d'entre eux à la fois. Sous l'étape, **Ce que fait cette règle** le dit en phrases, comme la carte de la règle. |
 | **Appel vidéo** | Incidents et alertes uniquement : lancer un appel pour chacun. Voir [Appels vidéo](/docs/workspace-connections/video-calls). |
+
+Une règle de SLO publie les changements de la politique de budget d'erreur d'un SLO : quand le SLO entre dans un palier, revient à un palier moins grave ou sort de tous les paliers, et quand ses déploiements sont gelés ou de nouveau autorisés. Elle ne publie que dans des canaux et des conversations existants, car un SLO n'a pas de canal à lui. Voir [Publier dans Slack, Microsoft Teams et Mattermost](/docs/slo/error-budget-policy#publier-dans-slack-microsoft-teams-et-mattermost).
 
 Un canal que la règle crée porte le nom de son enregistrement : l'incident INC-42 reçoit `inc-42`, l'alerte ALT-7 reçoit `alt-7`, et dans un projet sans préfixes de numéro, l'incident 42 reçoit `incident-42`. Le texte de **Préfixe du nom de canal** se place devant, donc `prod-` donne `prod-inc-42`, et le formulaire montre le nom pendant que vous tapez. Pour un événement de maintenance planifiée, le préfixe remplace son préfixe de numéro : SM-5 reçoit `sm-5`, et `maint-` donne `maint-5`. OneUptime conserve les lettres, les chiffres, les espaces, `-` et `_`, jusqu'aux 50 caractères qu'accepte Microsoft Teams. Si l'équipe a déjà un canal de ce nom, par exemple celui d'un autre projet ou un canal supprimé ces 30 derniers jours, OneUptime ajoute `-2`, `-3` et ainsi de suite.
 

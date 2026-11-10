@@ -276,6 +276,15 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "Service.refineMessagingSystem MessageQueue": Why.Reported,
     "Service.restoreIfAutoArchived MessageQueue": Why.Bookkeeping,
   },
+  "packages/Common/Server/Services/MonitorService.ts": {
+    /*
+     * An Incoming Request monitor's latest request as people read it, cut
+     * again from the request as it came by the monitor's switch (#6402):
+     * kept in step after the switch changed - a change the audit log
+     * records - and when a request kept once is split.
+     */
+    "Service.rewriteLatestIncomingRequestForReaders Monitor": Why.Derived,
+  },
   "packages/Common/Server/Services/MonitorTestService.ts": {
     "Service.claimMonitorTestsForProbing MonitorTest": Why.Bookkeeping,
     "Service.mergeStepProbeResponse MonitorTest": Why.Reported,

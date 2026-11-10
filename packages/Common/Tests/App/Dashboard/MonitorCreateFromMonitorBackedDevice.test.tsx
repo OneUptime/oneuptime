@@ -8,7 +8,9 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
 import * as React from "react";
+import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
@@ -309,23 +311,32 @@ function networkDevice(data: {
 
 const navigateMock: MockFunction = getJestMockFunction();
 
-function renderCreatePage(): void {
+// readerI18n: the Dashboard in a reader's language, when a test sets one.
+function renderCreatePage(readerI18n?: i18n): void {
   const project: Project = new Project();
   project.id = PROJECT_ID;
 
-  render(
+  const page: React.ReactElement = (
     <MemoryRouter>
       <MonitorCreate
         pageRoute={new Route("/dashboard/monitors/create")}
         currentProject={project}
         hasPaymentMethod={true}
       />
-    </MemoryRouter>,
+    </MemoryRouter>
+  );
+
+  render(
+    readerI18n ? (
+      <I18nextProvider i18n={readerI18n}>{page}</I18nextProvider>
+    ) : (
+      page
+    ),
   );
 }
 
-async function openForm(): Promise<CapturedFormProps> {
-  renderCreatePage();
+async function openForm(readerI18n?: i18n): Promise<CapturedFormProps> {
+  renderCreatePage(readerI18n);
 
   await waitFor(() => {
     expect(capturedForm).not.toBeNull();
@@ -461,6 +472,44 @@ describe("the monitor create page opened from a network device", () => {
           return instance.changeMonitorStatus === true;
         }),
       ).toBe(true);
+    });
+
+    /*
+     * The monitor is the person's, written in their language (#6542): its
+     * criteria's names and the titles of what they open.
+     */
+    test("the step's criteria, and what they open, are in the reader's language", async () => {
+      const chinese: i18n = createInstance();
+
+      await chinese.init({
+        lng: "zh-CN",
+        fallbackLng: "zh-CN",
+        resources: {
+          "zh-CN": {
+            translation: {
+              "Check if {{monitorName}} is offline":
+                "检查 {{monitorName}} 是否离线",
+              "{{monitorName}} is offline": "{{monitorName}} 已离线",
+            },
+          },
+        },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+
+      const form: CapturedFormProps = await openForm(chinese);
+
+      const steps: MonitorSteps = MonitorSteps.fromJSON(
+        form.initialValues["monitorSteps"] as JSONObject,
+      );
+      const offline: MonitorCriteriaInstance | undefined =
+        steps.data?.monitorStepsInstanceArray[0]?.data?.monitorCriteria.data
+          ?.monitorCriteriaInstanceArray[0];
+
+      expect(offline?.data?.name).toBe("检查 Ping Lobby AP 是否离线");
+      expect(offline?.data?.alerts[0]?.title).toBe("Ping Lobby AP 已离线");
+      expect(offline?.data?.incidents[0]?.title).toBe("Ping Lobby AP 已离线");
     });
 
     test("reads the method, address and probe in the one device request", async () => {

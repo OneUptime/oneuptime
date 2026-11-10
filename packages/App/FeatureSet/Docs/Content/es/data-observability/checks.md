@@ -42,6 +42,8 @@ Configura **Alertar cuando** para alertar sobre una comprobación:
 
 Al guardar la comprobación se crea un monitor de métricas para ella, en tu nombre y con tus permisos. Si vacías la condición, se elimina el monitor.
 
+El **Estado** de una comprobación, en **Comprobaciones** y en la pestaña **Comprobaciones** de su tabla, dice cómo está: **Fallando** mientras su alerta está abierta, **Cumple** mientras no lo está, y **No se pudo ejecutar** cuando su consulta falló. Una comprobación sin alerta solo muestra **Ejecutó**: su consulta funcionó. Una comprobación que falla, y una que no se pudo ejecutar, aparece también en **Vista general**.
+
 ## Lo que cuesta una comprobación
 
 Una comprobación compite con tu aplicación por la base de datos, y en un almacén de datos que factura por lo que lee una consulta, cuesta dinero. Tres cosas lo mantienen bajo control:

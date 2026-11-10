@@ -73,7 +73,7 @@
 
 ### Twilio
 
-대응자가 통화 중에 1을 눌러 호출을 확인하면, Twilio가 누른 키를 `POST /api/user-notification-log-timeline/call/gather-input/*`로 보냅니다. 사용 중인 Twilio 에디션에 [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy)가 포함되어 있지 않으면 Twilio의 웹훅 주소는 바뀝니다. SMS 전달 상태 업데이트와 수신 전화는 [Twilio 통합](/docs/self-hosted/twilio-integration)에서 설명합니다.
+대응자가 통화 중에 1을 눌러 호출을 확인하면, Twilio가 누른 키를 `POST /api/user-notification-log-timeline/call/gather-input/*`로 보냅니다. 사용 중인 Twilio 에디션에 [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy)가 포함되어 있지 않으면 Twilio의 웹훅 주소는 바뀝니다. SMS 전달 상태 업데이트, 통화 결과, 수신 전화는 [Twilio 통합](/docs/self-hosted/twilio-integration)에서 설명합니다.
 
 ### WhatsApp
 

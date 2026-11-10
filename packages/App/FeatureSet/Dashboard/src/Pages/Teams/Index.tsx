@@ -11,6 +11,11 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
+import TeamOwnerTeam from "Common/Models/DatabaseModels/TeamOwnerTeam";
+import TeamOwnerUser from "Common/Models/DatabaseModels/TeamOwnerUser";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import { getTeamOwnersDisabledReason } from "../../Components/Team/BuiltInTeamOwners";
 import useCustomFieldFacets from "../../Components/CustomFields/useCustomFieldFacets";
 import {
   ROLE_ACCESS_FIELD_KEY,
@@ -268,7 +273,17 @@ const Teams: FunctionComponent<PageComponentProps> = (
   const { facets: customFieldFacets, isLoading: areCustomFieldFacetsLoading } =
     useCustomFieldFacets({ customFieldsModelType: TeamCustomField });
 
+  /*
+   * A team's owners look after it - who is in it and what it may do - with
+   * the team permissions limited to the teams they own (TeamOwnerUser,
+   * TeamOwnerTeam). The Owner chip finds the teams someone owns, answered
+   * by the server in the list's own query, and the Owners column shows who
+   * owns each one.
+   */
   const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
     filterBar,
     emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
@@ -276,10 +291,26 @@ const Teams: FunctionComponent<PageComponentProps> = (
     restoreFacetState,
   } = useResourceOwners<Team>({
     persistKey: "settings-teams-table",
-    showOwnerFacet: false,
+    ownerUserModelType: TeamOwnerUser,
+    ownerTeamModelType: TeamOwnerTeam,
+    resourceIdField: "ownedTeamId",
     extraFacets: [...teamExtraFacets, ...customFieldFacets],
     areFacetsLoading: areCustomFieldFacetsLoading,
   });
+
+  /*
+   * Add Owner and Remove Owner for the selected teams, as every list of
+   * things with owners has them. Owners and Admin take no owners: a run
+   * that includes them sends nothing for them and lists them as left
+   * alone, saying why (Components/Team/BuiltInTeamOwners).
+   */
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Team>({
+      ownerUserModelType: TeamOwnerUser,
+      ownerTeamModelType: TeamOwnerTeam,
+      resourceIdField: "ownedTeamId",
+      getOwnersDisabledReason: getTeamOwnersDisabledReason,
+    });
 
   return (
     <Fragment>
@@ -311,8 +342,12 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isDeleteable={true}
         selectMoreFields={{
           isTeamDeleteable: true,
+          isTeamEditable: true,
         }}
         getDeleteDisabledReason={getTeamDeleteDisabledReason}
+        bulkActions={{
+          buttons: ownerBulkActions,
+        }}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
@@ -322,6 +357,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
         emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
+        onFetchSuccess={(items: Array<Team>): void => {
+          onResourcesFetched(items);
+        }}
         cardProps={{
           title: "Teams",
           description:
@@ -433,8 +471,25 @@ const Teams: FunctionComponent<PageComponentProps> = (
             title: "Description",
             type: FieldType.LongText,
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Team): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

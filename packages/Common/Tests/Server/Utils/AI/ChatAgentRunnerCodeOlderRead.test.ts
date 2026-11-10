@@ -591,7 +591,7 @@ describe("what an earlier turn showed the model counts, as far as the history it
     ]);
   });
 
-  test("a commit of its own in the turn before - a citation keeping a list - counts: the next commit of the file says nothing", async () => {
+  test("a commit of its own in the turn before - a citation keeping a list - counts as seen, never as changed since; but Ask AI no longer has what it wrote (issue #6365)", async () => {
     startRepository();
     push(repository, "fix/login", CHARGE, doubled(V1));
     const written: Array<AIChatRecordSeen> = [
@@ -625,7 +625,10 @@ describe("what an earlier turn showed the model counts, as far as the history it
 
     await ChatAgentRunner.runTurn(buildRequest());
 
-    expect(commitAction(spies).description).toBeUndefined();
+    expect(commitAction(spies).description).toBe(
+      `Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: ${CHARGE}.`,
+    );
+    // Stored as the commit kept it, unmarked: the mark is the prepare's alone.
     expect(pausedStateOf(spies).recordsSeenBeforeTurn).toEqual(written);
   });
 

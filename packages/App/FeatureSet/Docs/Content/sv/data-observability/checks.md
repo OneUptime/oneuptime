@@ -42,6 +42,8 @@ Ställ in **Larma när** för att larma på en kontroll:
 
 När du sparar kontrollen skapas en metrikövervakning för den, i ditt namn och med dina behörigheter. Om du rensar villkoret tas monitorn bort.
 
+En kontrolls **Status**, under **Kontroller** och på fliken **Kontroller** för dess tabell, säger hur den står till: **Misslyckas** medan dess larm är öppet, **Godkänns** medan det inte är det, och **Kunde inte köra** när dess fråga misslyckades. En kontroll utan larm visar bara **Kördes**: dess fråga fungerade. En kontroll som misslyckas, och en som inte kunde köras, finns också på **Översikt**.
+
 ## Vad en kontroll kostar
 
 En kontroll konkurrerar med din applikation om databasen, och i ett datavaruhus som debiterar efter vad en fråga läser kostar den pengar. Tre saker håller det under kontroll:

@@ -252,6 +252,8 @@ import RumApplicationOwnerRuleService from "./RumApplicationOwnerRuleService";
 import RumApplicationOwnerUserService from "./RumApplicationOwnerUserService";
 import RumApplicationOwnerTeamService from "./RumApplicationOwnerTeamService";
 import RumSessionChunkService from "./RumSessionChunkService";
+import RumProductAnalyticsSessionService from "./RumProductAnalyticsSessionService";
+import RumProductAnalyticsUserService from "./RumProductAnalyticsUserService";
 import RumSessionReplayViewService from "./RumSessionReplayViewService";
 import RumSessionErasureRequestService from "./RumSessionErasureRequestService";
 import RumSessionPinService from "./RumSessionPinService";
@@ -572,6 +574,8 @@ import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumbe
 import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
+import TeamOwnerTeamService from "./TeamOwnerTeamService";
+import TeamOwnerUserService from "./TeamOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudBudgetService from "./CloudBudgetService";
@@ -1186,6 +1190,8 @@ const services: Array<BaseService> = [
   PushNotificationLogService,
   RunnerOwnerTeamService,
   RunnerOwnerUserService,
+  TeamOwnerTeamService,
+  TeamOwnerUserService,
   ServerlessFunctionLabelRuleService,
   ServerlessFunctionOwnerRuleService,
   ServerlessFunctionOwnerTeamService,
@@ -1239,6 +1245,12 @@ export const AnalyticsServices: Array<
    */
   RumSessionService,
   RumSessionChunkService,
+  /*
+   * Product analytics (issue #6444). After RumSessionService: their views
+   * read RumSessionV1, and every table is created before any view is.
+   */
+  RumProductAnalyticsSessionService,
+  RumProductAnalyticsUserService,
   AuditLogService,
   SecurityEventService,
   ThreatIntelIndicatorService,

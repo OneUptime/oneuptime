@@ -37,6 +37,10 @@ import {
   getAuditLogRedactedColumns,
   redactAuditLogValue,
 } from "Common/Types/AuditLog/AuditLogRedaction";
+import {
+  getAuditLogRetentionDate,
+  readAuditLogRetentionInDays,
+} from "Common/Types/AuditLog/AuditLogRetention";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AuditLogRootResource } from "Common/Types/BaseDatabase/EnableAuditLogOn";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -544,9 +548,17 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     return this.store || CoreAuditLogService;
   }
 
+  /*
+   * When the entry recorded now is deleted: the project's retention in
+   * calendar days, read by the one rule a failing export reckons with too
+   * (Common/Types/AuditLog/AuditLogRetention), so its "will start losing
+   * entries" email goes a day before this moment, whatever the stored value.
+   */
   private computeRetentionDate(retentionInDays: number): Date {
-    const days: number = Math.max(1, Math.min(retentionInDays || 7, 180));
-    return OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), days);
+    return getAuditLogRetentionDate({
+      recordedAt: OneUptimeDate.getCurrentDate(),
+      retentionInDays,
+    });
   }
 
   private isEligible(
@@ -662,7 +674,9 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
 
     const settings: CachedProjectSettings = {
       enableAuditLogs: Boolean(project.enableAuditLogs),
-      retentionInDays: project.auditLogsRetentionInDays ?? 7,
+      retentionInDays: readAuditLogRetentionInDays(
+        project.auditLogsRetentionInDays,
+      ),
       storeSystemEventsInAuditLogs: Boolean(
         project.storeSystemEventsInAuditLogs,
       ),

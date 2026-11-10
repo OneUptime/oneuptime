@@ -5,10 +5,16 @@ import ConnectDatabaseModal from "../../Components/DataObservability/ConnectData
 import DataSourceSuggestionsCard from "../../Components/DataObservability/DataSourceSuggestionsCard";
 import WatchedTablesCost from "../../Components/DataObservability/WatchedTablesCost";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
+import { formatSize } from "../../Components/DataObservability/DataObservabilityFormat";
+import OverviewNeedsAttention from "../../Components/DataObservability/OverviewNeedsAttention";
+import OverviewSetupSteps from "../../Components/DataObservability/OverviewSetupSteps";
+import StoreAlertStatus from "../../Components/DataObservability/StoreAlertStatus";
+import { isStoreWaitingForFirstRead } from "../../Components/DataObservability/StoreStatusPill";
 import {
-  formatOverdue,
-  formatSize,
-} from "../../Components/DataObservability/DataObservabilityFormat";
+  getStoreAlertsRoute,
+  isSetupKnown,
+  normalizeDataObservabilityOverview,
+} from "../../Components/DataObservability/OverviewAttention";
 import EventStatBar from "../../Components/EventView/EventStatBar";
 import EventStatTile from "../../Components/EventView/EventStatTile";
 import PageMap from "../../Utils/PageMap";
@@ -17,10 +23,10 @@ import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import {
   DataObservabilityOverview,
-  DataObservabilityOverviewAsset,
   DataObservabilityOverviewChange,
   DataObservabilitySourceSuggestion,
   DataObservabilityStoreSummary,
+  SCHEMA_CHANGE_WINDOW_IN_DAYS,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -32,6 +38,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -48,10 +55,17 @@ import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 
 /*
- * What a person opening Data Observability needs first: how many tables are
- * watched, which are late and by how much, what changed in the schemas
- * lately, and whether every database is being collected. A project with no
- * database yet sees how to connect one, in one click.
+ * THE STATE OF THE PROJECT'S DATA, FIRST.
+ *
+ * What a person opening Data Observability needs, in the order they need
+ * it: until everything is set up, the steps that make it useful (alerts
+ * on, owners named, a check, the pipelines' runs); how many tables are
+ * watched and how many need someone; then what needs someone now - what is
+ * broken, late or drifting, worst first, who owns it, and whether anyone
+ * was told (OverviewNeedsAttention); what changed in the schemas; and each
+ * database, how its last read went and whether its alerts are on. How well
+ * Data Observability itself is doing comes last. A project with no
+ * database yet sees how it works, and connects one in one click.
  */
 // A share, or a dash until there is anything to measure.
 function formatPercent(value: number | null): string {
@@ -66,6 +80,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
   const [overview, setOverview] = useState<DataObservabilityOverview | null>(
     null,
   );
+  const [hasSetup, setHasSetup] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [readCount, setReadCount] = useState<number>(0);
@@ -82,8 +97,10 @@ const DataObservabilityOverviewPage: FunctionComponent<
       setIsLoading(!hasLoaded.current);
 
       try {
-        const result: DataObservabilityOverview =
+        const raw: DataObservabilityOverview =
           await DataObservabilityApi.getOverview();
+        const result: DataObservabilityOverview =
+          normalizeDataObservabilityOverview(raw);
         // Extra to the Overview: without it, the rest still shows.
         const measures: DataObservabilityQuality | null =
           await DataObservabilityApi.getQuality().catch(() => {
@@ -97,6 +114,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
         hasLoaded.current = true;
         setError("");
         setOverview(result);
+        setHasSetup(isSetupKnown(raw));
         setQuality(measures);
       } catch (err) {
         if (isCurrent && !hasLoaded.current) {
@@ -133,15 +151,16 @@ const DataObservabilityOverviewPage: FunctionComponent<
     );
   };
 
+  // A database just connected opens on its alerts: its tables tell nobody until they are on.
   const connectModal: ReactElement = isConnecting ? (
     <ConnectDatabaseModal
       suggestion={suggestion}
       onClose={() => {
         setIsConnecting(false);
       }}
-      onConnected={() => {
+      onConnected={(dataStoreId: ObjectID) => {
         setIsConnecting(false);
-        Navigation.navigate(route(PageMap.DATA_OBSERVABILITY_STORES));
+        Navigation.navigate(getStoreAlertsRoute(dataStoreId.toString()));
       }}
     />
   ) : (
@@ -183,155 +202,91 @@ const DataObservabilityOverviewPage: FunctionComponent<
     );
   }
 
+  const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
+
   return (
     <div className="space-y-5">
-      {quality && quality.issueCount > 0 ? (
-        <EventStatBar columns={4} ariaLabel="How well it is working">
-          <EventStatTile
-            label="Useful Issues a Week"
-            value={translator.formatNumber(quality.usefulIssuesPerWeek)}
-            icon={IconProp.CheckCircle}
-            description={translator.translateTemplate(
-              "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.",
-              { days: translator.formatNumber(quality.windowInDays) },
-            )}
-          />
-          <EventStatTile
-            label="Precision"
-            value={formatPercent(quality.precisionPercent)}
-            icon={IconProp.Filter}
-            description="The share of issues not marked expected or not an issue."
-          />
-          <EventStatTile
-            label="Caught First"
-            value={formatPercent(quality.caughtFirstPercent)}
-            icon={IconProp.Bolt}
-            description="The share of problems people reported that OneUptime had already raised."
-          />
-          <EventStatTile
-            label="Cause Found"
-            value={formatPercent(quality.causeFoundPercent)}
-            icon={IconProp.Search}
-            description="The share of answered issues whose likely cause was the real one."
-          />
-        </EventStatBar>
+      {projectId && hasSetup ? (
+        <OverviewSetupSteps projectId={projectId} setup={overview.setup} />
       ) : (
         <></>
       )}
-      <EventStatBar columns={4} ariaLabel="Data health">
+
+      {/*
+       * Laid out by the bar's own width: beside the side menu, four tiles
+       * share a row only once each has room for its label on one line.
+       */}
+      <EventStatBar
+        columns={4}
+        ariaLabel="Data health"
+        isLaidOutByOwnWidth={true}
+      >
         <EventStatTile
+          variant="segment"
           label="Tables Watched"
           value={translator.formatNumber(overview.assetCount)}
           icon={IconProp.TableCells}
-          description="Tables and views in your connected databases."
+          description={translator.translatePlural(
+            {
+              one: "In {{count}} connected database.",
+              other: "In {{count}} connected databases.",
+            },
+            overview.storeCount,
+          )}
         />
         <EventStatTile
+          variant="segment"
+          label="Needs Attention"
+          value={translator.formatNumber(overview.attentionCount)}
+          icon={IconProp.Alert}
+          description={translator.translateText(
+            "Broken, late or drifting now.",
+          )}
+        />
+        <EventStatTile
+          variant="segment"
           label="Late Tables"
           value={translator.formatNumber(overview.lateAssetCount)}
           icon={IconProp.Clock}
-          description="Tables that have gone well past their usual interval without a change."
+          description={translator.translateText(
+            "Tables that have gone well past their usual interval without a change.",
+          )}
         />
         <EventStatTile
-          label="Schema Changes"
-          value={translator.formatNumber(overview.schemaChangeCount)}
-          icon={IconProp.List}
-          description="Columns added, removed, renamed or retyped in the last 7 days."
-        />
-        <EventStatTile
-          label="Databases"
-          value={translator.formatNumber(overview.storeCount)}
-          icon={IconProp.Database}
-          description={
-            overview.failingStoreCount > 0
-              ? translator.translatePlural(
-                  {
-                    one: "{{count}} could not be collected.",
-                    other: "{{count}} could not be collected.",
-                  },
-                  overview.failingStoreCount,
-                )
-              : translator.translateText("All collected.")
-          }
+          variant="segment"
+          label="Failing Checks"
+          value={translator.formatNumber(overview.failingCheckCount)}
+          icon={IconProp.CheckCircle}
+          description={translator.translateText("Checks whose alert is open.")}
         />
       </EventStatBar>
-      <WatchedTablesCost />
 
-      {overview.unusedAssetCount > 0 ? (
-        <Card
-          title="Unused Tables"
-          description="Tables nobody has read for 90 days: candidates to archive or drop."
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3 px-6 pb-6">
-            <p className="text-sm text-gray-700">
-              {translator.translatePlural(
-                {
-                  one: "{{count}} table nobody has read for 90 days holds {{size}}.",
-                  other:
-                    "{{count}} tables nobody has read for 90 days hold {{size}}.",
-                },
-                overview.unusedAssetCount,
-                { size: formatSize(overview.unusedSizeInBytes) },
-              )}
-            </p>
-            <AppLink
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.DATA_OBSERVABILITY_TABLES_UNUSED] as Route,
-              )}
-              className="text-sm font-medium text-indigo-600 hover:underline"
-            >
-              <span>{translator.translateText("See them")}</span>
-            </AppLink>
-          </div>
-        </Card>
-      ) : (
-        <></>
-      )}
+      <OverviewNeedsAttention
+        items={overview.attention}
+        totalCount={overview.attentionCount}
+        stores={overview.stores}
+      />
 
+      {/*
+       * Half the page each, so headers are stacked, as Data Security's
+       * Overview has them: the button on the title's line, the description
+       * under both, across the card.
+       */}
       <CardGrid columns={2}>
         <Card
-          title="Late Tables"
-          description="The tables most overdue for a change, worst first."
-        >
-          {overview.lateAssets.length === 0 ? (
-            <p className="px-6 pb-6 text-sm text-gray-500">
-              {translator.translateText(
-                "Every table is as fresh as it usually is.",
-              )}
-            </p>
-          ) : (
-            <ul className="divide-y divide-gray-100 px-6 pb-4">
-              {overview.lateAssets.map(
-                (asset: DataObservabilityOverviewAsset): ReactElement => {
-                  return (
-                    <li
-                      key={asset.dataAssetId}
-                      className="flex items-center justify-between gap-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <AppLink
-                          to={tableRoute(asset.dataAssetId)}
-                          className="block truncate font-medium text-gray-900 hover:underline"
-                        >
-                          <span>{asset.assetKey}</span>
-                        </AppLink>
-                        <span className="block truncate text-xs text-gray-500">
-                          {asset.dataStoreName}
-                        </span>
-                      </div>
-                      <span className="shrink-0 text-sm font-medium text-red-600">
-                        {formatOverdue(translator, asset.overdueBySeconds)}
-                      </span>
-                    </li>
-                  );
-                },
-              )}
-            </ul>
-          )}
-        </Card>
-
-        <Card
           title="Recent Schema Changes"
-          description="The latest columns added, removed, renamed or retyped."
+          headerLayout="stacked"
+          description={translator.translatePlural(
+            {
+              one: "{{count}} column added, removed, renamed or retyped in the last {{days}} days.",
+              other:
+                "{{count}} columns added, removed, renamed or retyped in the last {{days}} days.",
+            },
+            overview.schemaChangeCount,
+            {
+              days: translator.formatNumber(SCHEMA_CHANGE_WINDOW_IN_DAYS),
+            },
+          )}
           buttons={[
             {
               title: "All Changes",
@@ -383,72 +338,169 @@ const DataObservabilityOverviewPage: FunctionComponent<
             </ul>
           )}
         </Card>
+
+        <Card
+          title="Databases"
+          headerLayout="stacked"
+          description="Each connected database, how its last read went, and whether its alerts are on."
+          buttons={[
+            {
+              title: "Connect a Database",
+              phoneTitle: "Connect",
+              buttonStyle: ButtonStyleType.NORMAL,
+              icon: IconProp.Add,
+              onClick: () => {
+                setSuggestion(undefined);
+                setIsConnecting(true);
+              },
+            },
+          ]}
+        >
+          {/*
+           * A database's name and facts, and how its last read went: side
+           * by side in a card wide enough for both, one under the other in
+           * a narrow one (a phone, or beside the side menu) - keyed to the
+           * card's width, not the window's.
+           */}
+          <ul className="divide-y divide-gray-100 px-6 pb-4 [container-type:inline-size]">
+            {overview.stores.map(
+              (store: DataObservabilityStoreSummary): ReactElement => {
+                return (
+                  <li
+                    key={store.dataStoreId}
+                    data-testid="data-observability-store-row"
+                    className="flex flex-col gap-1 py-2 [@container(min-width:24rem)]:flex-row [@container(min-width:24rem)]:items-center [@container(min-width:24rem)]:justify-between [@container(min-width:24rem)]:gap-3"
+                  >
+                    <div className="min-w-0 [@container(min-width:24rem)]:flex-1">
+                      <AppLink
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[
+                            PageMap.DATA_OBSERVABILITY_STORE_VIEW
+                          ] as Route,
+                          { modelId: new ObjectID(store.dataStoreId) },
+                        )}
+                        className="block truncate font-medium text-gray-900 hover:underline"
+                      >
+                        <span>{store.name}</span>
+                      </AppLink>
+                      <span className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
+                        <span>{store.kind}</span>
+                        <StoreAlertStatus store={store} />
+                      </span>
+                    </div>
+                    <span
+                      className={`text-sm [@container(min-width:24rem)]:flex-none ${
+                        store.status === "Failed"
+                          ? "font-medium text-red-600"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {/*
+                       * A database just connected has no table to count
+                       * until its first read: it says so, not "0 tables".
+                       */}
+                      {!store.isTableHealthEnabled
+                        ? translator.translateText("Not watched")
+                        : store.status === "Failed"
+                          ? translator.translateText("Collection failed")
+                          : isStoreWaitingForFirstRead(store)
+                            ? translator.translateText(
+                                "Waiting for first collection",
+                              )
+                            : translator.translatePlural(
+                                {
+                                  one: "{{count}} table",
+                                  other: "{{count}} tables",
+                                },
+                                store.assetCount,
+                              )}
+                    </span>
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </Card>
       </CardGrid>
 
-      <Card
-        title="Databases"
-        description="Each connected database and how its last collection went."
-        buttons={[
-          {
-            title: "Connect a Database",
-            phoneTitle: "Connect",
-            buttonStyle: ButtonStyleType.NORMAL,
-            icon: IconProp.Add,
-            onClick: () => {
-              setIsConnecting(true);
-            },
-          },
-        ]}
-      >
-        <ul className="divide-y divide-gray-100 px-6 pb-4">
-          {overview.stores.map(
-            (store: DataObservabilityStoreSummary): ReactElement => {
-              return (
-                <li
-                  key={store.dataStoreId}
-                  className="flex items-center justify-between gap-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <AppLink
-                      to={RouteUtil.populateRouteParams(
-                        RouteMap[
-                          PageMap.DATA_OBSERVABILITY_STORE_VIEW
-                        ] as Route,
-                        { modelId: new ObjectID(store.dataStoreId) },
-                      )}
-                      className="block truncate font-medium text-gray-900 hover:underline"
-                    >
-                      <span>{store.name}</span>
-                    </AppLink>
-                    <span className="block truncate text-xs text-gray-500">
-                      {store.kind}
-                    </span>
-                  </div>
-                  <span
-                    className={`shrink-0 text-sm ${
-                      store.status === "Failed"
-                        ? "font-medium text-red-600"
-                        : "text-gray-600"
-                    }`}
-                  >
-                    {!store.isTableHealthEnabled
-                      ? translator.translateText("Not watched")
-                      : store.status === "Failed"
-                        ? translator.translateText("Collection failed")
-                        : translator.translatePlural(
-                            {
-                              one: "{{count}} table",
-                              other: "{{count}} tables",
-                            },
-                            store.assetCount,
-                          )}
-                  </span>
-                </li>
-              );
-            },
-          )}
-        </ul>
-      </Card>
+      {overview.unusedAssetCount > 0 ? (
+        <Card
+          title="Unused Tables"
+          description="Tables nobody has read for 90 days: candidates to archive or drop."
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 px-6 pb-6">
+            <p className="text-sm text-gray-700">
+              {translator.translatePlural(
+                {
+                  one: "{{count}} table nobody has read for 90 days holds {{size}}.",
+                  other:
+                    "{{count}} tables nobody has read for 90 days hold {{size}}.",
+                },
+                overview.unusedAssetCount,
+                { size: formatSize(overview.unusedSizeInBytes) },
+              )}
+            </p>
+            <AppLink
+              to={route(PageMap.DATA_OBSERVABILITY_TABLES_UNUSED)}
+              className="text-sm font-medium text-indigo-600 hover:underline"
+            >
+              <span>{translator.translateText("See them")}</span>
+            </AppLink>
+          </div>
+        </Card>
+      ) : (
+        <></>
+      )}
+
+      <WatchedTablesCost />
+
+      {quality && quality.issueCount > 0 ? (
+        <EventStatBar
+          columns={4}
+          ariaLabel="How well it is working"
+          isLaidOutByOwnWidth={true}
+        >
+          <EventStatTile
+            variant="segment"
+            label="Useful Issues a Week"
+            value={translator.formatNumber(quality.usefulIssuesPerWeek)}
+            icon={IconProp.CheckCircle}
+            description={translator.translateTemplate(
+              "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.",
+              { days: translator.formatNumber(quality.windowInDays) },
+            )}
+          />
+          <EventStatTile
+            variant="segment"
+            label="Precision"
+            value={formatPercent(quality.precisionPercent)}
+            icon={IconProp.Filter}
+            description={translator.translateText(
+              "The share of issues not marked expected or not an issue.",
+            )}
+          />
+          <EventStatTile
+            variant="segment"
+            label="Caught First"
+            value={formatPercent(quality.caughtFirstPercent)}
+            icon={IconProp.Bolt}
+            description={translator.translateText(
+              "The share of problems people reported that OneUptime had already raised.",
+            )}
+          />
+          <EventStatTile
+            variant="segment"
+            label="Cause Found"
+            value={formatPercent(quality.causeFoundPercent)}
+            icon={IconProp.Search}
+            description={translator.translateText(
+              "The share of answered issues whose likely cause was the real one.",
+            )}
+          />
+        </EventStatBar>
+      ) : (
+        <></>
+      )}
 
       {connectModal}
     </div>

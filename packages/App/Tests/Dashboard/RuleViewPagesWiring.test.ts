@@ -147,14 +147,20 @@ function pagesListing(ruleType: RuleRunType): number {
   return PAGES_PER_RULE_TYPE[ruleType] || 1;
 }
 
-// Each page's wiring, in the order the pages were found.
+/*
+ * Each page's wiring, in the order the pages were found. The table may take
+ * props of its own before the wiring - a rule some teams own passes what it
+ * read of them (ruleOwnership, the edit and delete locks) - as long as each
+ * is a plain value: one with braces inside it, such as a function, would let
+ * the match run on past this table's props.
+ */
 function getWirings(ruleType: RuleRunType): Array<RuleViewWiring> {
   const mounts: Array<RuleMount> = findMounts(ruleType);
   expect(mounts).toHaveLength(pagesListing(ruleType));
 
   return mounts.map((mount: RuleMount): RuleViewWiring => {
     const viewMatch: RegExpMatchArray | null = mount.rest.match(
-      /^modelType=\{[A-Za-z]+\}viewRuleId=\{[^}]*\}listRoute=\{RuleViewPageUtil\.getListRoute\(PageMap\.([A-Z_]+)[,)][\s\S]*?getRuleViewRoute=\{\([^)]*\):Route=>\{returnRuleViewPageUtil\.getRuleViewRoute\(PageMap\.([A-Z_]+),/,
+      /^modelType=\{[A-Za-z]+\}(?:[A-Za-z]+=(?:\{[^{}]*\}|"[^"]*"))*viewRuleId=\{[^}]*\}listRoute=\{RuleViewPageUtil\.getListRoute\(PageMap\.([A-Z_]+)[,)][\s\S]*?getRuleViewRoute=\{\([^)]*\):Route=>\{returnRuleViewPageUtil\.getRuleViewRoute\(PageMap\.([A-Z_]+),/,
     );
 
     expect(viewMatch).not.toBeNull();

@@ -44,6 +44,7 @@ import OpenStackCloudOwnerUserService from "../../Services/OpenStackCloudOwnerUs
 import RumApplicationOwnerUserService from "../../Services/RumApplicationOwnerUserService";
 import RunbookOwnerUserService from "../../Services/RunbookOwnerUserService";
 import RunnerOwnerUserService from "../../Services/RunnerOwnerUserService";
+import TeamOwnerUserService from "../../Services/TeamOwnerUserService";
 import ScheduledMaintenanceOwnerUserService from "../../Services/ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
@@ -187,6 +188,7 @@ export default class ProjectLeaveResourceCleanup {
       ownerUserTable(RumApplicationOwnerUserService, "rumApplicationId"),
       ownerUserTable(RunbookOwnerUserService, "runbookId"),
       ownerUserTable(RunnerOwnerUserService, "runnerId"),
+      ownerUserTable(TeamOwnerUserService, "ownedTeamId"),
       ownerUserTable(
         ScheduledMaintenanceTemplateOwnerUserService,
         "scheduledMaintenanceTemplateId",

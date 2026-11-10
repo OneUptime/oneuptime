@@ -1646,6 +1646,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Service Level Objectives",
         pages: [{ page: PageMap.SLOS, title: "SLOs", icon: IconProp.Gauge }],
       },
+      // The rules that post SLOs' error budget policy changes to chat.
+      workspaceSection({
+        slack: PageMap.SLOS_WORKSPACE_CONNECTION_SLACK,
+        microsoftTeams: PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST,
+      }),
       ...resourceSettingsSections({
         ownerRules: PageMap.SLOS_SETTINGS_OWNER_RULES,
         labelRules: PageMap.SLOS_SETTINGS_LABEL_RULES,
@@ -2592,7 +2598,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     productPage: PageMap.DATA_OBSERVABILITY_OVERVIEW,
     icon: IconProp.TableCells,
     iconColor: "cyan",
-    // The menu's sections and their pages. A table's pages need the record, so they are not here.
+    /*
+     * The menu's sections and their pages, as DataObservabilityNavigation.ts
+     * lists them. A table's pages need the record, so they are not here.
+     */
     sections: [
       {
         title: "Data Observability",
@@ -2601,13 +2610,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.DATA_OBSERVABILITY_OVERVIEW,
             title: "Overview",
             icon: IconProp.Home,
-            keywords: ["data health", "late tables", "stale data"],
-          },
-          {
-            page: PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS,
-            title: "Data Products",
-            icon: IconProp.Layers,
-            keywords: ["freshness sla", "data consumers", "data as of badge"],
+            keywords: [
+              "data health",
+              "needs attention",
+              "late tables",
+              "failing checks",
+              "stale data",
+            ],
           },
           {
             page: PageMap.DATA_OBSERVABILITY_TABLES,
@@ -2621,6 +2630,39 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.DATA_OBSERVABILITY_PIPELINES,
+            title: "Pipelines",
+            icon: IconProp.Workflow,
+            keywords: ["openlineage", "airflow", "etl jobs"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,
+            title: "Schema Changes",
+            icon: IconProp.List,
+            keywords: ["columns added", "columns removed", "schema drift"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORES,
+            title: "Databases",
+            icon: IconProp.Database,
+            keywords: [
+              "connect a database",
+              "collect now",
+              "recommended alerts",
+            ],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORAGE_PATHS,
+            title: "Storage Paths",
+            icon: IconProp.Folder,
+            keywords: ["s3", "gcs", "azure blob", "bucket", "partition"],
+          },
+        ],
+      },
+      {
+        title: "Quality",
+        pages: [
+          {
             page: PageMap.DATA_OBSERVABILITY_CHECKS,
             title: "Checks",
             icon: IconProp.CheckCircle,
@@ -2632,11 +2674,16 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Scale,
             keywords: ["compare two tables", "data parity", "source and copy"],
           },
+        ],
+      },
+      {
+        title: "Usage",
+        pages: [
           {
-            page: PageMap.DATA_OBSERVABILITY_PIPELINES,
-            title: "Pipelines",
-            icon: IconProp.Workflow,
-            keywords: ["openlineage", "airflow", "etl jobs"],
+            page: PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS,
+            title: "Data Products",
+            icon: IconProp.Layers,
+            keywords: ["freshness sla", "data consumers", "data as of badge"],
           },
           {
             page: PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS,
@@ -2655,23 +2702,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
-            page: PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,
-            title: "Schema Changes",
-            icon: IconProp.List,
-            keywords: ["columns added", "columns removed", "schema drift"],
+            page: PageMap.DATA_OBSERVABILITY_TABLES_UNUSED,
+            title: "Unused Tables",
+            icon: IconProp.Moon,
+            keywords: ["unread tables", "never read", "wasted storage"],
           },
-          {
-            page: PageMap.DATA_OBSERVABILITY_STORES,
-            title: "Databases",
-            icon: IconProp.Database,
-            keywords: ["connect a database", "collect now"],
-          },
-          {
-            page: PageMap.DATA_OBSERVABILITY_STORAGE_PATHS,
-            title: "Storage Paths",
-            icon: IconProp.Folder,
-            keywords: ["s3", "gcs", "azure blob", "bucket", "partition"],
-          },
+        ],
+      },
+      {
+        title: "Rules",
+        pages: [
+          ownerRules(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES),
         ],
       },
       {
@@ -2689,18 +2731,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Advanced",
         pages: [
           {
-            page: PageMap.DATA_OBSERVABILITY_TABLES_UNUSED,
-            title: "Unused Tables",
-            icon: IconProp.Moon,
-            keywords: ["unread tables", "never read", "wasted storage"],
-          },
-          {
-            page: PageMap.DATA_OBSERVABILITY_TABLES_DROPPED,
-            title: "Dropped Tables",
-            icon: IconProp.Archive,
-            keywords: ["deleted tables", "gone tables"],
-          },
-          {
             page: PageMap.DATA_OBSERVABILITY_SETTINGS,
             title: "Settings",
             icon: IconProp.Settings,
@@ -2710,8 +2740,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "wait when a database is busy",
             ],
           },
-          ownerRules(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES),
-          labelRules(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES),
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES_DROPPED,
+            title: "Dropped Tables",
+            icon: IconProp.Archive,
+            keywords: ["deleted tables", "gone tables"],
+          },
         ],
       },
     ],

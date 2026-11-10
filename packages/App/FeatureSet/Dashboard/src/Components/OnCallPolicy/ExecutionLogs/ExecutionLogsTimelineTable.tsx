@@ -22,6 +22,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import { PASS_ON_PAGE_TEXT } from "../PassOn/PassOnPage";
+import NotifiedVia, {
+  getNotifiedViaChannels,
+  NOTIFIED_VIA_TITLE,
+} from "./NotifiedVia";
 import { withEscalatedStatusLabel } from "../PassOn/PassedOnStatus";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
@@ -432,6 +436,35 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
               }
 
               return <p>-</p>;
+            },
+          },
+          {
+            /*
+             * How the page reached the person named before it: the
+             * channels the step keeps (NotifiedVia). Answers stay in the
+             * record's feed.
+             */
+            field: {
+              notificationChannels: true,
+            },
+            title: NOTIFIED_VIA_TITLE,
+            type: FieldType.Element,
+            disableSort: true,
+            getElement: (
+              item: OnCallDutyPolicyExecutionLogTimeline,
+            ): ReactElement => {
+              /*
+               * A step that kept no channels is the bare dash the table
+               * turns into its quiet one, as for its other empty cells.
+               */
+              if (
+                getNotifiedViaChannels(item["notificationChannels"]).length ===
+                0
+              ) {
+                return <p>-</p>;
+              }
+
+              return <NotifiedVia channels={item["notificationChannels"]} />;
             },
           },
           {

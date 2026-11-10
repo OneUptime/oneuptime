@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47765,
-    "untranslated": 10667
+    "keys": 48350,
+    "untranslated": 10653
   },
   "sameAsEnglish": [
     " is",
@@ -221,6 +221,7 @@
     "Item",
     "Items",
     "Japan (+81)",
+    "Jitter (in ms)",
     "Kelvin",
     "Kernel",
     "Keystone",
@@ -438,6 +439,7 @@
     "Trace: {{id}}",
     "Traces",
     "Transceivers",
+    "Trend",
     "Trigger",
     "Triggers",
     "Tunnel",
@@ -751,7 +753,10 @@
     "{{inQuorum}}/{{count}} mons in quorum",
     "{{in}} in",
     "{{minutes}} min",
+    "{{monitorName}} is offline",
     "{{size}} in {{duration}}",
+    "{{subject}} is {{value}}.",
+    "{{subject}} was {{value}}",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up"
   ]

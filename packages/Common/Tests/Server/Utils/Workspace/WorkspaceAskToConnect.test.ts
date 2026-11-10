@@ -295,11 +295,11 @@ beforeEach(() => {
 
   slackDmSpy = jest
     .spyOn(SlackUtil, "sendDirectMessageToUser")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(null);
 
   teamsDmSpy = jest
     .spyOn(MicrosoftTeamsUtil, "sendDirectMessageToUserAsBot")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(null);
 
   rosterSpy = jest.spyOn(MicrosoftTeamsUtil, "getTeamRoster");
 

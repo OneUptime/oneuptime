@@ -34,9 +34,12 @@ import EvaluationGroupingNote, {
   isWordableGroupingNote,
 } from "./EvaluationGroupingNote";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import { wordEvaluationText } from "../../../Utils/EvaluationText";
 
 interface FilterGroup {
   message: string;
+  // The sentence the message was filled from, when the engine wrote one.
+  messageSentence?: unknown;
   firstIndex: number;
   occurrences: Array<MonitorEvaluationFilterResult>;
 }
@@ -68,6 +71,10 @@ const groupFiltersByMessage: (
 
         if (existingGroup) {
           existingGroup.occurrences.push(filter);
+
+          if (existingGroup.messageSentence === undefined) {
+            existingGroup.messageSentence = filter.messageSentence;
+          }
         }
         return;
       }
@@ -75,6 +82,7 @@ const groupFiltersByMessage: (
       messageToIndex.set(filter.message, groups.length);
       groups.push({
         message: filter.message,
+        messageSentence: filter.messageSentence,
         firstIndex: position,
         occurrences: [filter],
       });
@@ -460,8 +468,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                  * On a phone the status sits above the message, which then
                  * has the row's whole width: beside it, a waiting series'
                  * message ran a dozen lines of three or four words. The
-                 * message is the server's sentence, in English: dir="auto"
-                 * keeps its full stop at its end on a Persian page.
+                 * message is the server's sentence, in the reader's
+                 * language when the engine wrote it as one their language
+                 * words, else in English: dir="auto" keeps its full stop at
+                 * its end on a Persian page either way.
                  */
                 return (
                   <li
@@ -479,7 +489,11 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                         dir="auto"
                         className="break-words text-sm text-gray-700"
                       >
-                        {filterGroup.message}
+                        {wordEvaluationText(
+                          translator,
+                          filterGroup.message,
+                          filterGroup.messageSentence,
+                        )}
                       </div>
                       {metadataParts.length > 0 && (
                         <div className="text-xs text-gray-500">
@@ -631,8 +645,19 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
       return null;
     })();
 
-    const decorate: (text: string) => string = (text: string): string => {
-      if (!eventNumber || text.includes(eventNumber.englishLabel)) {
+    /*
+     * The title or the message in the reader's language - from the
+     * sentence the engine stored beside its English, when it stored one -
+     * with the incident or alert it is about named after it, unless the
+     * English already names it.
+     */
+    const decorate: (english: string, sentence: unknown) => string = (
+      english: string,
+      sentence: unknown,
+    ): string => {
+      const text: string = wordEvaluationText(translator, english, sentence);
+
+      if (!eventNumber || english.includes(eventNumber.englishLabel)) {
         return text;
       }
 
@@ -642,10 +667,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
       });
     };
 
-    const decoratedTitle: string = decorate(event.title);
+    const decoratedTitle: string = decorate(event.title, event.titleSentence);
 
     const decoratedMessage: string | undefined = event.message
-      ? decorate(event.message)
+      ? decorate(event.message, event.messageSentence)
       : event.message;
 
     /*

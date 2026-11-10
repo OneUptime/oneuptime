@@ -73,7 +73,7 @@ Sending alerts needs only outbound HTTPS to `api.telegram.org`. Linking an accou
 
 ### Twilio
 
-When a responder presses 1 to acknowledge a call, Twilio posts the key to `POST /api/user-notification-log-timeline/call/gather-input/*`. Twilio's webhook addresses change, unless your Twilio edition includes [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). SMS delivery updates and incoming calls are described in [Twilio Integration](/docs/self-hosted/twilio-integration).
+When a responder presses 1 to acknowledge a call, Twilio posts the key to `POST /api/user-notification-log-timeline/call/gather-input/*`. Twilio's webhook addresses change, unless your Twilio edition includes [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). SMS delivery updates, call outcomes and incoming calls are described in [Twilio Integration](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 

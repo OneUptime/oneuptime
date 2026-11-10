@@ -19,6 +19,12 @@ import {
   SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX,
   parseInvestigationReport,
 } from "../../Utils/AI/InvestigationReport";
+import {
+  InvestigationReportTerm,
+  getInvestigationReportWordKey,
+  getTranslatedReportWords,
+} from "../../Utils/AI/InvestigationReportLanguages";
+import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { seededRandom, type SeededRandom } from "../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
@@ -56,6 +62,10 @@ const RULE_CASES: string = path.join(
 const RUN_API_SOURCE: string = path.join(
   REPOSITORY_ROOT,
   "packages/Common/Server/API/SecurityPlaybookRunAPI.ts",
+);
+const REPORT_PARSER_SOURCE: string = path.join(
+  REPOSITORY_ROOT,
+  "packages/Common/Utils/AI/InvestigationReport.ts",
 );
 
 type ModuleExports = Record<string, unknown>;
@@ -855,6 +865,399 @@ describe("the Summary the app lifts from a triage report is the parser's own", (
       "🔎 Evidence",
       "**🔎 Evidence**",
       "| a | b |",
+      FOOTER,
+    ];
+    let lifted: number = 0;
+
+    for (let run: number = 0; run < 5000; run++) {
+      const reportLines: Array<string> = [openings[random(openings.length)]!];
+      const count: number = random(10);
+
+      for (let index: number = 0; index < count; index++) {
+        reportLines.push(lines[random(lines.length)]!);
+      }
+
+      const markdown: string = report(...reportLines);
+      const parts: { summary: string; rest: string } =
+        splitTriageReport(markdown);
+
+      if (parts.summary) {
+        lifted++;
+        expect(parserSummary(markdown).startsWith(parts.summary)).toBe(true);
+        // What is not lifted is still there: the folded rest is the report's tail.
+        expect(markdown.trimEnd().endsWith(parts.rest)).toBe(true);
+      }
+    }
+
+    // The sweep reached the lifted case often enough to mean something.
+    expect(lifted).toBeGreaterThan(1000);
+  });
+});
+
+/*
+ * A team's AI context may ask OneUptime AI to write in another language,
+ * headings included (issue #6542): "**摘要**", "Belege: ...", "الملخص: ...",
+ * with the full-width colon and brackets Chinese and Japanese write. The
+ * parser reads those headings as it reads the English ones, and the app
+ * keeps its own copy of their words - so this holds the copy to Common's
+ * table, and what the app lifts from such a report to the parser's Summary,
+ * as above: all of it for the shapes the triage writes, never anything
+ * past it.
+ */
+describe("the Summary the app lifts is the parser's in every language the parser reads", () => {
+  const splitTriageReport: (markdown: unknown) => {
+    summary: string;
+    rest: string;
+  } = caseTermsModule["splitTriageReport"] as (markdown: unknown) => {
+    summary: string;
+    rest: string;
+  };
+  const toReportWordKey: (text: string, compatible: boolean) => string =
+    caseTermsModule["toReportWordKey"] as (
+      text: string,
+      compatible: boolean,
+    ) => string;
+
+  // The app's tables, copied out of the app's realm.
+  function appWords(name: string): Array<string> {
+    return [...(caseTermsModule[name] as ReadonlyArray<string>)];
+  }
+
+  const FULL_WIDTH_COLON: string = String.fromCharCode(0xff1a);
+  const FULL_WIDTH_OPEN: string = String.fromCharCode(0xff08);
+  const FULL_WIDTH_CLOSE: string = String.fromCharCode(0xff09);
+  const ZERO_WIDTH_NON_JOINER: string = String.fromCharCode(0x200c);
+  const SHADDA: string = String.fromCharCode(0x0651);
+  const IDEOGRAPHIC_SPACE: string = String.fromCharCode(0x3000);
+  const HEADING: string = "## 🧠 AI — Security Case Triage";
+  const FOOTER: string =
+    "---\n*Investigated automatically by OneUptime AI — read-only, 3 queries run across your own telemetry. This is an AI-generated first pass; verify before acting.*";
+  const TEXT: string = "alice@acme.test 先失败 14 次，然后登录成功 [C1]。";
+  // The rest of a report written in Chinese; the runner's own lines stay English.
+  const REST: Array<string> = [
+    "",
+    "**评估**",
+    "很可能是恶意的：该地址在密码喷洒名单上 [C1]。",
+    "",
+    "**证据**",
+    "- 六分钟内 14 次登录失败 [C1]",
+    "",
+    "**建议的后续步骤**",
+    "1. 在 Okta 中暂停 alice@acme.test。",
+    "",
+    "**Evidence checked**",
+    "- **[C1]** Security events for alice@acme.test — 15 row(s)",
+    "",
+    FOOTER,
+  ];
+
+  function report(...lines: Array<string>): string {
+    return [HEADING, "", ...lines].join("\n");
+  }
+
+  function parserSummary(markdown: string): string {
+    return parseInvestigationReport(markdown).summary || "";
+  }
+
+  // The parser's English labels, from its own table: [label, kind].
+  function parserEnglishLabels(): Array<[string, string]> {
+    const source: string = fs.readFileSync(REPORT_PARSER_SOURCE, "utf8");
+    const start: number = source.indexOf("const KNOWN_LABELS");
+    const table: string = source.slice(start, source.indexOf("]);", start));
+
+    return [
+      ...table.matchAll(
+        /\["([^"]+)",\s*(?:InvestigationReportSectionKind\.(\w+)|"(\w+)")\]/g,
+      ),
+    ].map((entry: RegExpMatchArray): [string, string] => {
+      return [entry[1]!, entry[2] || entry[3]!];
+    });
+  }
+
+  test("its labels are the parser's: the English table, and every other language's words", () => {
+    const english: Array<[string, string]> = parserEnglishLabels();
+
+    expect(english.length).toBeGreaterThan(30);
+    expect(appWords("SUMMARY_LABELS")).toEqual(
+      english
+        .filter((entry: [string, string]): boolean => {
+          return entry[1] === "Summary";
+        })
+        .map((entry: [string, string]): string => {
+          return entry[0];
+        }),
+    );
+    expect(appWords("OTHER_SECTION_LABELS")).toEqual(
+      english
+        .filter((entry: [string, string]): boolean => {
+          return entry[1] !== "Summary";
+        })
+        .map((entry: [string, string]): string => {
+          return entry[0];
+        }),
+    );
+
+    expect(appWords("TRANSLATED_SUMMARY_LABELS")).toEqual(
+      getTranslatedReportWords(InvestigationReportTerm.Summary),
+    );
+    expect(appWords("TRANSLATED_SECTION_LABELS")).toEqual([
+      ...new Set<string>(
+        [
+          InvestigationReportTerm.Impact,
+          InvestigationReportTerm.RootCause,
+          InvestigationReportTerm.Evidence,
+          InvestigationReportTerm.RuledOut,
+          InvestigationReportTerm.NextSteps,
+        ].flatMap((term: InvestigationReportTerm): Array<string> => {
+          return getTranslatedReportWords(term);
+        }),
+      ),
+    ]);
+  });
+
+  test("it keys a word as the parser does, and as written only where the word is already in its compatibility form", () => {
+    const codes: Array<number> = [
+      // Latin, with a letter written whole and as a letter and a mark.
+      0x61, 0x5a, 0xe9, 0x65, 0x301, 0x130,
+      // Russian "ё" and "е", either case.
+      0x451, 0x401, 0x435,
+      // Arabic: alef variants, yeh and kaf variants, marks, tatweel.
+      0x627, 0x622, 0x623, 0x625, 0x671, 0x64a, 0x649, 0x6cc, 0x643, 0x6a9,
+      0x64b, 0x64e, 0x651, 0x654, 0x65f, 0x670, 0x640, 0x648,
+      // Joiners, the word joiner, the byte order mark.
+      0x200b, 0x200c, 0x200d, 0x2060, 0xfeff,
+      // White space of every kind, and the full-width colon.
+      0x20, 0x09, 0x0a, 0xa0, 0x1680, 0x2003, 0x2028, 0x202f, 0x3000, 0xff1a,
+      // Full-width and other compatibility forms.
+      0xff3a, 0xff41, 0xfb01, 0x2126, 0x212a, 0x24cf, 0xff71,
+      // Chinese, Japanese, Korean, and Korean letters that join into one.
+      0x6458, 0x8981, 0x30b5, 0xc694, 0x1100, 0x1161, 0x11a8,
+      // Hindi, with its marks.
+      0x938, 0x93e, 0x902, 0x93c,
+      // An astral letter.
+      0x20000,
+    ];
+    const alphabet: Array<string> = codes.map((code: number): string => {
+      return String.fromCodePoint(code);
+    });
+    let unchanged: number = 0;
+
+    for (const text of generatedTexts(20000, 6542, alphabet, 12)) {
+      expect(toReportWordKey(text, true)).toBe(
+        getInvestigationReportWordKey(text),
+      );
+
+      if (text.normalize("NFKC") === text) {
+        unchanged++;
+        expect(toReportWordKey(text, false)).toBe(
+          getInvestigationReportWordKey(text),
+        );
+      }
+    }
+
+    expect(unchanged).toBeGreaterThan(1000);
+
+    // White space of every kind is left out of a word as written too.
+    for (const code of [
+      0x20, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0xa0, 0x1680, 0x2000, 0x200a, 0x2028,
+      0x2029, 0x202f, 0x205f, 0x3000, 0xfeff,
+    ]) {
+      const word: string = `摘${String.fromCharCode(code)}要`;
+
+      expect(toReportWordKey(word, false)).toBe("摘要");
+      expect(toReportWordKey(word, true)).toBe(
+        getInvestigationReportWordKey(word),
+      );
+    }
+
+    // Longer text than any word is no word, on both sides.
+    for (const length of [199, 200, 201, 5000]) {
+      const text: string = "摘".repeat(length);
+
+      expect(toReportWordKey(text, true)).toBe(
+        getInvestigationReportWordKey(text),
+      );
+      expect(toReportWordKey(text, false)).toBe(
+        getInvestigationReportWordKey(text),
+      );
+    }
+  });
+
+  test("all of it, in every language's word for the Summary, however the triage writes it", () => {
+    const words: Array<string> = [
+      ...appWords("TRANSLATED_SUMMARY_LABELS"),
+      // The same words as a model may write them otherwise.
+      "جمعبندی",
+      "جمع بندی",
+      `الملخ${SHADDA}ص`,
+      `خلاصه${ZERO_WIDTH_NON_JOINER}`,
+      "要 約",
+      "ИТОГИ",
+      "Résumé ",
+    ];
+    let reports: number = 0;
+
+    for (const word of words) {
+      const shapes: Array<Array<string>> = [
+        [`**${word}**`, TEXT],
+        [`**${word}**`, "", TEXT],
+        [`**${word}:**`, TEXT],
+        [`**${word}${FULL_WIDTH_COLON}**`, TEXT],
+        [`**${word}**${FULL_WIDTH_COLON}`, TEXT],
+        [`**${word}**${FULL_WIDTH_COLON}${TEXT}`],
+        [`**${word}${FULL_WIDTH_COLON}** ${TEXT}`],
+        [`**${word}${FULL_WIDTH_COLON}**${TEXT}`],
+        [`**${word}** — ${TEXT}`],
+        [`***${word}***`, TEXT],
+        [`__${word}__`, TEXT],
+        [`**${word}${FULL_WIDTH_OPEN}高置信度${FULL_WIDTH_CLOSE}**`, TEXT],
+        [`**${word} (high confidence)**`, TEXT],
+        [`## ${word}`, TEXT],
+        [`### ${word} ###`, TEXT],
+        [`${word}: ${TEXT}`],
+        [`${word}${FULL_WIDTH_COLON}${TEXT}`],
+        [`${word}${FULL_WIDTH_COLON}`, TEXT],
+        [`**${word}**`, TEXT, "- 14 次失败", "- 1 次成功"],
+      ];
+
+      for (const shape of shapes) {
+        const markdown: string = report(...shape, ...REST);
+        const lifted: string = splitTriageReport(markdown).summary;
+
+        reports++;
+        expect(lifted).not.toBe("");
+        expect(lifted).toBe(parserSummary(markdown));
+      }
+    }
+
+    expect(reports).toBeGreaterThan(700);
+
+    // A bold label may space its word with any white space; a plain one only with spaces.
+    for (const label of [
+      `**摘${IDEOGRAPHIC_SPACE}要**`,
+      `**要${String.fromCharCode(0xa0)}約**`,
+      `## 요${IDEOGRAPHIC_SPACE}약`,
+    ]) {
+      const markdown: string = report(label, TEXT, ...REST);
+
+      expect(splitTriageReport(markdown).summary).toBe(TEXT);
+      expect(parserSummary(markdown)).toBe(TEXT);
+    }
+  });
+
+  test("where the parser ends the Summary at a label of any language, so does the app", () => {
+    const labels: Array<string> = [
+      /*
+       * Not "Evidence checked": the runner writes that block under a bold
+       * line, and the parser reads it plain as prose. The app ends the
+       * Summary there too - sooner, never later.
+       */
+      ...appWords("OTHER_SECTION_LABELS").filter((label: string): boolean => {
+        return label !== "evidence checked";
+      }),
+      ...appWords("TRANSLATED_SECTION_LABELS"),
+      ...appWords("TRANSLATED_SUMMARY_LABELS"),
+      // In the compatibility forms the parser reads a word in.
+      "Ｂｅｌｅｇｅ",
+      "ＩＭＰＡＣＴＯ",
+      // With the qualifier the parser takes off.
+      `根本原因${FULL_WIDTH_OPEN}可能${FULL_WIDTH_CLOSE}`,
+      "Ursache (vermutlich)",
+    ];
+
+    for (const label of labels) {
+      for (const line of [
+        `${label}: 更多。`,
+        `${label}${FULL_WIDTH_COLON}更多。`,
+        `${label}${FULL_WIDTH_COLON}`,
+      ]) {
+        const markdown: string = report(
+          "**摘要**",
+          TEXT,
+          line,
+          "更多。",
+          ...REST,
+        );
+
+        // The parser reads the label as one: its Summary ends right there.
+        expect(parserSummary(markdown).startsWith(TEXT)).toBe(true);
+        expect(parserSummary(markdown)).not.toContain(line);
+        expect(splitTriageReport(markdown).summary).toBe(TEXT);
+      }
+    }
+  });
+
+  test("never anything past it, in any language, on thousands of generated reports", () => {
+    const random: SeededRandom = seededRandom(6542);
+    const openings: Array<string> = [
+      "**摘要**",
+      "**摘要：**",
+      "**摘要**：一切开始了。",
+      "**摘要：** 一切开始了。",
+      "**摘要** — 一切开始了。",
+      "摘要：一切开始了。",
+      "摘要：",
+      "## 摘要",
+      "### 摘要 ###",
+      "**摘要（草稿）**",
+      "**摘要**（草稿）",
+      "摘要（草稿）：一切开始了。",
+      "**Zusammenfassung**",
+      "Zusammenfassung: Es begann.",
+      "**Résumé :**",
+      "**الملخص**",
+      "الملخص: بدأ الأمر.",
+      `**جمع${ZERO_WIDTH_NON_JOINER}بندی**`,
+      "**요약**",
+      "**サマリー**",
+      "**Ｚｕｓａｍｍｅｎｆａｓｓｕｎｇ**",
+      "Ｚｕｓａｍｍｅｎｆａｓｓｕｎｇ: Es begann.",
+      `${ZERO_WIDTH_NON_JOINER}摘要：一切开始了。`,
+      `${SHADDA}الملخص: بدأ الأمر.`,
+      // A yeh and a hamza, which the parser's compatibility form joins into another letter.
+      `**جمع${ZERO_WIDTH_NON_JOINER}بند${String.fromCharCode(0x064a, 0x0654)}**`,
+      // Longer than any label the parser looks up.
+      `**摘${" ".repeat(170)}要**`,
+      `**TL;${" ".repeat(170)}DR**`,
+      `摘${IDEOGRAPHIC_SPACE}要：一切开始了。`,
+      "摘要表：一切开始了。",
+      "**摘要**是下面的。",
+      "**评估**",
+      "**Summary**",
+      "Summary：It began.",
+      "一些话。",
+    ];
+    const lines: Array<string> = [
+      "一句话。",
+      "另一句话 [C1]。",
+      "",
+      "",
+      "**评估**",
+      "**评估：** 恶意。",
+      "**证据**",
+      "**证据：** 十四行。",
+      "证据：十四行。",
+      "影响：30 个用户。",
+      "根本原因（可能）：泄露。",
+      "已排除的原因：流量激增。",
+      "下一步：暂停该账户。",
+      "## 证据",
+      "注意：该地址是新的。",
+      "Belege: vierzehn Zeilen.",
+      "Ursache: ein Leck.",
+      "الأدلة: أربعة عشر سطرًا.",
+      "Evidence：rows.",
+      "Impact: 30 users.",
+      "Ruled out: a spike.",
+      "Ｂｅｌｅｇｅ：rows.",
+      "摘要：再说一遍",
+      "Summary: again",
+      "- 一个列表项",
+      "1. 第一步",
+      "---",
+      "```",
+      "**Alice** 登录了。",
+      "| 甲 | 乙 |",
       FOOTER,
     ];
     let lifted: number = 0;

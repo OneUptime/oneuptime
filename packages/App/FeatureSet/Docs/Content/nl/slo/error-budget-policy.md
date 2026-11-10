@@ -1,11 +1,12 @@
 # Foutbudgetbeleid
 
-Een foutbudgetbeleid legt vast wat uw team heeft afgesproken te doen terwijl het foutbudget van een SLO opraakt, zoals riskante wijzigingen nakijken zodra de helft op is, of releases bevriezen zodra alles op is. OneUptime zet de SLO in het niveau van het beleid dat zijn budget heeft bereikt, toont de afspraak van het team voor dat niveau op de pagina's van de SLO, kan een waarschuwing geven of een incident melden wanneer de SLO een niveau binnengaat, en laat uw CI/CD-pipelines weten of ze releases moeten tegenhouden. Het is de praktijk van het foutbudgetbeleid uit het [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+Een foutbudgetbeleid legt vast wat uw team heeft afgesproken te doen terwijl het foutbudget van een SLO opraakt, zoals riskante wijzigingen nakijken zodra de helft op is, of releases bevriezen zodra alles op is. OneUptime zet de SLO in het niveau van het beleid dat zijn budget heeft bereikt, toont de afspraak van het team voor dat niveau op de pagina's van de SLO, kan een waarschuwing geven of een incident melden wanneer de SLO een niveau binnengaat, plaatst elke niveauwijziging in de kanalen die u kiest in Slack, Microsoft Teams of Mattermost, en laat uw CI/CD-pipelines weten of ze releases moeten tegenhouden. Het is de praktijk van het foutbudgetbeleid uit het [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Hoe niveaus werken](#hoe-niveaus-werken): Welk niveau geldt, en wanneer de SLO het verlaat.
 - [Een beleid instellen](#een-beleid-instellen): Begin met het aanbevolen beleid of schrijf uw eigen niveaus.
 - [Waarschuwingen en incidenten](#waarschuwingen-en-incidenten): Waarschuw uw team wanneer de SLO een niveau binnengaat.
+- [Berichten plaatsen in Slack, Microsoft Teams en Mattermost](#berichten-plaatsen-in-slack-microsoft-teams-en-mattermost): Laat een kanaal weten wanneer een SLO een niveau binnengaat, zonder iemand te waarschuwen.
 - [Implementatiepoort](#implementatiepoort): Houd releases vanuit CI/CD tegen zolang een niveau implementaties bevriest.
 - [Het niveau via de API lezen](#het-niveau-via-de-api-lezen): Controleer het niveau vanuit CI en scripts.
 :::
@@ -88,6 +89,7 @@ Geen van hen geeft een waarschuwing of meldt een incident totdat u dat aanzet. *
 - Het **Overzicht** van de SLO toont het niveau waarin hij zit en wat het team daar heeft afgesproken, zodat iedereen die de SLO opent de afspraak ziet die nu geldt. Zolang het niveau implementaties bevriest, toont een rode badge onder zijn naam sinds wanneer.
 - De grafiek **Burn-down van foutbudget** tekent een lijn met label op de drempel van elk niveau, naast die van de risicodrempel.
 - De **Feed** van de SLO plaatst elke niveauwijziging: het niveau dat de SLO verliet en het niveau waarin hij kwam, het resterende budget, wat het team in het nieuwe niveau heeft afgesproken, en of de wijziging implementaties bevroor of weer toestond.
+- De kanalen in Slack, Microsoft Teams en Mattermost die uw regels noemen, krijgen hetzelfde bericht: zie [Berichten plaatsen in Slack, Microsoft Teams en Mattermost](#berichten-plaatsen-in-slack-microsoft-teams-en-mattermost).
 - De **Auditlogboeken** van de SLO leggen elke niveauwijziging, en elke keer dat implementaties worden bevroren of weer toegestaan, vast als een wijziging die OneUptime zelf heeft gedaan, en tonen die dus alleen met **Systeemgebeurtenissen opslaan** aan: zie [Auditlogboeken aanzetten](/docs/slo/feed-and-audit-logs#auditlogboeken-aanzetten). Het toevoegen, bewerken en verwijderen van een niveau wordt vastgelegd op naam van de persoon die het deed.
 - De lees-API van de SLO geeft het niveau terug, en of implementaties zijn toegestaan: zie [Het niveau via de API lezen](#het-niveau-via-de-api-lezen) en [Implementatiepoort](#implementatiepoort).
 
@@ -121,6 +123,43 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 ```
 
 De ingebouwde beschrijving noemt het niveau, zet het resterende budget af tegen de drempel van het niveau en zegt wat het team daarin heeft afgesproken.
+
+## Berichten plaatsen in Slack, Microsoft Teams en Mattermost
+
+Een regel kan elke wijziging in het foutbudgetbeleid van een SLO plaatsen in de kanalen in Slack, Microsoft Teams of Mattermost die uw team leest, zonder iemand te waarschuwen: wanneer de SLO een niveau binnengaat, herstelt naar een minder ernstig niveau of elk niveau verlaat, en wanneer zijn implementaties worden bevroren of weer toegestaan. Elke regel kiest de SLO's en de wijzigingen die hij plaatst. Koppel eerst de workspace aan het project: zie [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) of [Mattermost](/docs/workspace-connections/mattermost).
+
+:::steps
+### De sectie Werkruimte van SLO's openen
+
+Ga naar **SLOs** → **Werkruimte** → **Slack**, of **Microsoft Teams**, of **Mattermost**. De sectie **Werkruimte** toont alleen de chatworkspaces die uw project heeft gekoppeld.
+
+### Een regel aanmaken
+
+Klik op **Meldingsregel voor SLO's aanmaken** en geef de regel een **Regelnaam**. Laat onder **Welke SLO's** de keuze **Alle SLO's** staan, of kies **Alleen SLO's die aan de voorwaarden voldoen** en voeg voorwaarden toe: zie [Waarvoor een regel geldt](#waarvoor-een-regel-geldt).
+
+### Kiezen waar de regel plaatst
+
+Vul onder **Daarna, in Slack** de kanalen in waarin de regel plaatst. Kies in Microsoft Teams een team en zijn kanalen, of chats waaraan de OneUptime-app is toegevoegd. Een SLO krijgt geen eigen kanaal, dus een regel plaatst alleen in kanalen en chats die u al hebt.
+:::
+
+Het bericht beschrijft de wijziging in de woorden van de **Feed** van de SLO: het niveau dat de SLO verliet en het niveau waarin hij kwam, wat er met de implementaties gebeurde, het resterende foutbudget, de drempel van het nieuwe niveau en wat het team daar heeft afgesproken, zoals het team het heeft geschreven. Een vermelding in die afspraak, zoals `<!channel>`, wordt als tekst geplaatst en geeft niemand een melding.
+
+- Een wijziging wordt één keer geplaatst, nadat de evaluatie die haar veroorzaakte is opgeslagen. Een evaluatie die niet wordt opgeslagen, plaatst niets, en de volgende plaatst de wijziging.
+- Er wordt niets geplaatst zolang de SLO in zijn niveau blijft, hoe lang het budget ook rond een drempel schommelt: zie [Een niveau binnengaan en verlaten](#een-niveau-binnengaan-en-verlaten).
+- **Implementaties bevriezen** aan- of uitzetten voor het niveau waarin de SLO zit, plaatst een eigen bericht.
+- Een SLO die gepauzeerd, verkeerd geconfigureerd, uitgeschakeld of gearchiveerd is, houdt zijn niveau en plaatst niets.
+- Een bericht dat niet kan worden verzonden, wordt gelogd, en de evaluatie, de feed van de SLO en wat het niveau geeft, gaan zonder dat bericht door.
+
+### Waarvoor een regel geldt
+
+| Voorwaarde | Waarvoor ze geldt |
+| --- | --- |
+| **SLOs** | De SLO's die u kiest, of elke SLO behalve die. |
+| **SLO-labels** | De labels van de SLO: een van de labels die u kiest, ze allemaal, of geen ervan. |
+| **SLO-naam** | De naam van de SLO: wel of niet gelijk aan uw tekst, wel of niet met die tekst erin, of beginnend of eindigend met die tekst. |
+| **Wijziging in foutbudgetbeleid** | Wat er veranderde: **Strenger niveau binnengegaan**, **Hersteld naar een minder streng niveau**, **Alle niveaus verlaten**, **Implementaties bevroren** of **Implementaties weer toegestaan**. |
+
+Een niveauwijziging die implementaties bevroor, of weer toestond, is één bericht dat voor beide wijzigingen telt. Een regel voor **Implementaties bevroren** plaatst dus ook de wijziging waarmee de SLO een niveau binnenging dat ze bevriest: een releasekanaal hoort van elke bevriezing.
 
 ## Als het budget niet wordt gemeten
 
@@ -259,7 +298,7 @@ Deze machtigingen staan in de SLO-groep van een rol. De rollen Project Owner en 
 
 ## Nog niet beschikbaar
 
-Sommige onderdelen van een foutbudgetbeleid zijn nog niet beschikbaar: workflowtriggers en meldingen in Slack of Microsoft Teams per niveau, een beleid dat meerdere SLO's delen, een niveau bevestigen of er een uitzondering op maken, en niveaus die de looptijd van het budget volgen in plaats van het resterende budget. OneUptime houdt een release niet zelf tegen: een pipeline die `deploymentsAllowed` controleert, doet dat, zoals [Implementatiepoort](#implementatiepoort) laat zien.
+Sommige onderdelen van een foutbudgetbeleid zijn nog niet beschikbaar: een eigen workflowtrigger per niveau, een beleid dat meerdere SLO's delen, een niveau bevestigen of er een uitzondering op maken, en niveaus die de looptijd van het budget volgen in plaats van het resterende budget. OneUptime houdt een release niet zelf tegen: een pipeline die `deploymentsAllowed` controleert, doet dat, zoals [Implementatiepoort](#implementatiepoort) laat zien.
 
 ## Volgende stappen
 

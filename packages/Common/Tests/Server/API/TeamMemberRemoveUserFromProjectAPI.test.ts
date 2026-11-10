@@ -6,10 +6,12 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import Errors from "../../../Server/Utils/Errors";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserPermission,
@@ -40,6 +42,12 @@ import {
  * So these tests pin: one deleteBy, over exactly {userId, projectId}, with the
  * caller's own permissions (not root), and with the project taken from the
  * request's tenant rather than from anything the caller put in the body.
+ *
+ * A delete removes only the rows its caller may delete, so a caller who may
+ * take the person off only some of their teams - Remove Team Members scoped
+ * to Owned - is refused before the delete, nothing removed
+ * (TeamMemberService.assertCallerMayRemoveUserFromProject, held in
+ * TeamOwners.test.ts).
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -132,6 +140,7 @@ describe("POST /team-member/remove-user-from-project", () => {
   let targetUserId: ObjectID;
   let deleteBySpy: jest.SpyInstance;
   let propsSpy: jest.SpyInstance;
+  let everyTeamSpy: jest.SpyInstance;
 
   beforeAll(() => {
     mockRouter.routes.length = 0;
@@ -147,6 +156,11 @@ describe("POST /team-member/remove-user-from-project", () => {
     deleteBySpy = jest
       .spyOn(TeamMemberService, "deleteBy")
       .mockResolvedValue(3);
+
+    // The caller may take the person off every team, unless a test says not.
+    everyTeamSpy = jest
+      .spyOn(TeamMemberService, "assertCallerMayRemoveUserFromProject")
+      .mockResolvedValue(undefined);
 
     propsSpy = jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
@@ -285,6 +299,50 @@ describe("POST /team-member/remove-user-from-project", () => {
 
     expect(deleteBySpy).not.toHaveBeenCalled();
     expect(result.nextCallCount).toBe(1);
+  });
+
+  test("asks, before deleting, whether the caller may take the person off every team, with the caller's own permissions", async () => {
+    await callRoute({
+      body: { userId: targetUserId.toString() },
+      authenticatedUserId: callerUserId,
+    });
+
+    expect(everyTeamSpy).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      userId: ObjectID;
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    } = everyTeamSpy.mock.calls[0]![0] as {
+      userId: ObjectID;
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    };
+
+    expect(asked.userId.toString()).toBe(targetUserId.toString());
+    expect(asked.projectId.toString()).toBe(projectId.toString());
+    expect(asked.props.isRoot).toBeFalsy();
+    expect(asked.props.userId?.toString()).toBe(callerUserId.toString());
+    expect(everyTeamSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      deleteBySpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("refuses, removing nothing, when the caller may take the person off only some of their teams", async () => {
+    const someTeamsOnly: BadDataException = new BadDataException(
+      Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY,
+    );
+
+    everyTeamSpy.mockRejectedValue(someTeamsOnly);
+
+    const result: RouteCallResult = await callRoute({
+      body: { userId: targetUserId.toString() },
+      authenticatedUserId: callerUserId,
+    });
+
+    expect(deleteBySpy).not.toHaveBeenCalled();
+    expect(result.thrownToNext).toBe(someTeamsOnly);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 
   test("passes a server rejection on rather than reporting success", async () => {

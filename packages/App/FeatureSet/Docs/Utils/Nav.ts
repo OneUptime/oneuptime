@@ -1099,6 +1099,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/rum/web-vitals",
       },
       {
+        title: "Product Analytics",
+        url: "/docs/rum/product-analytics",
+      },
+      {
         title: "Managing Applications",
         url: "/docs/rum/applications",
       },

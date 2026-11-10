@@ -240,10 +240,9 @@ describe("the permissions issue #5602 was about", () => {
     expect(narrowedButUnflagged.length).toBeGreaterThan(500);
   });
 
-  test("a permission on what everyone shares - a team, a label - is narrowed by no scope", () => {
+  test("a permission on what everyone shares - a label, reading teams - is narrowed by no scope", () => {
     for (const permission of [
-      Permission.CreateProjectTeam,
-      Permission.EditProjectTeam,
+      Permission.ReadProjectTeam,
       Permission.CreateProjectLabel,
       Permission.ReadProjectLabel,
     ]) {
@@ -254,6 +253,33 @@ describe("the permissions issue #5602 was about", () => {
       expect(PermissionScopeNarrowing.getScopes(permission)).toEqual([
         PermissionScope.All,
       ]);
+    }
+  });
+
+  /*
+   * Issue #6561: teams have owners (TeamOwnerUser, TeamOwnerTeam), so the
+   * permissions that create, change and delete a team, and change who is in
+   * it and what it may do, are narrowed to the teams their holder or their
+   * teams own - and labels, which no team carries, narrow none of them.
+   */
+  test("the permissions that change a team are narrowed by its owners, and by nothing else", () => {
+    for (const permission of [
+      Permission.CreateProjectTeam,
+      Permission.EditProjectTeam,
+      Permission.DeleteProjectTeam,
+      Permission.InviteProjectTeamMembers,
+      Permission.RemoveProjectTeamMembers,
+      Permission.EditProjectTeamPermissions,
+    ]) {
+      expect({
+        permission,
+        narrowedBy: narrowedByModels(permission),
+        scopes: PermissionScopeNarrowing.getScopes(permission),
+      }).toEqual({
+        permission,
+        narrowedBy: NarrowedBy.Owners,
+        scopes: [PermissionScope.All, PermissionScope.Owned],
+      });
     }
   });
 

@@ -334,20 +334,27 @@ export const LLM_SHOWCASE: ResourceShowcase = {
   },
 };
 
+/*
+ * Data Observability's first steps are the ones that make it useful, in
+ * order: the page's own button (Connect a Database), then the database's
+ * recommended alerts - monitors a person turns on, as nobody is told of a
+ * table until they are - then who owns which tables, and the checks on
+ * what they hold. A connected table is watched by itself; it alerts nobody
+ * by itself, so the example says Late, as the product does, not Stale.
+ */
 export const DATA_OBSERVABILITY_SHOWCASE: ResourceShowcase = {
   icon: IconProp.TableCells,
   eyebrow: translationKey("Data Observability"),
-  title: translationKey("Know when a table goes stale or changes shape"),
+  title: translationKey("Know when your data is late, wrong or changed"),
   description: translationKey(
-    "Connect a database and every table in it is watched from the first minute: its rows, size, last change and columns. Only the catalog is read, so no value leaves the database, and no threshold has to be set.",
+    "Connect a database and every table in it is watched within minutes: its rows, size, columns and when it last changed, against its own usual rhythm. Only the catalog is read, so no value leaves the database. Turn on its recommended alerts, and a table's owners hear when it is late, loses rows or changes its columns.",
   ),
   highlights: [],
   steps: [
     translationKey("Connect a database"),
-    translationKey("Every table is watched on its own"),
-    translationKey(
-      "Get an alert when a table goes stale or its columns change",
-    ),
+    translationKey("Turn on its recommended alerts"),
+    translationKey("Say who owns which tables"),
+    translationKey("Add checks on the values that matter"),
   ],
   features: [
     {
@@ -358,10 +365,10 @@ export const DATA_OBSERVABILITY_SHOWCASE: ResourceShowcase = {
       ),
     },
     {
-      icon: IconProp.ShieldCheck,
-      title: translationKey("Shared with Data Security"),
+      icon: IconProp.CheckCircle,
+      title: translationKey("Checks, dbt tests and pipelines"),
       description: translationKey(
-        "Databases already connected for Data Security are watched too.",
+        "Test what tables hold, bring your dbt tests, and send pipeline runs from Airflow, dbt or Spark to see which failed run made a table late.",
       ),
     },
     {
@@ -381,7 +388,8 @@ export const DATA_OBSERVABILITY_SHOWCASE: ResourceShowcase = {
       { label: translationKey("Tables"), value: "184" },
       { label: translationKey("Rows"), value: "92M" },
       { label: translationKey("Size"), value: "48 GB" },
-      { label: translationKey("Issues"), value: "2" },
+      // public.payments, late: a column added (public.customers) needs nobody.
+      { label: translationKey("Needs Attention"), value: "1" },
     ],
     chart: {
       label: translationKey("Rows"),
@@ -399,7 +407,7 @@ export const DATA_OBSERVABILITY_SHOWCASE: ResourceShowcase = {
         name: "public.payments",
         detail: translationKey("Freshness"),
         status: ShowcaseStatus.Critical,
-        statusText: translationKey("Stale"),
+        statusText: translationKey("Late"),
       },
       {
         name: "public.customers",

@@ -484,6 +484,12 @@ const NOT_A_CARD_HEADER: Record<string, { count: number; reason: string }> = {
       reason:
         "The infrastructure explorer's Map / List view switch: a view control that reads from the left.",
     },
+  "packages/App/FeatureSet/Dashboard/src/Components/MessageQueue/Topology/MessageQueueTopologyExplorer.tsx":
+    {
+      count: 1,
+      reason:
+        "The queues topology's Map / Table view switch, drawn as the service map's: a view control that reads from the left.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/FormBuilder/Builder/FormBuilder.tsx":
     {
       count: 1,
