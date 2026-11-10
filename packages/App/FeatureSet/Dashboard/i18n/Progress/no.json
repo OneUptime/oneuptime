@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48448,
-    "untranslated": 10628
+    "keys": 49075,
+    "untranslated": 10203
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -350,6 +350,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} CPU",
@@ -388,17 +389,22 @@
     "{{count}} s",
     "{{count}} sample",
     "{{count}} samples",
+    "{{count}} signal",
     "{{count}} stack",
     "{{count}} team",
     "{{count}} token",
     "{{count}} tokens",
     "{{count}} vCPU",
     "{{count}} worker",
+    "{{count}}d",
+    "{{count}}m",
+    "{{count}}s",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
     "{{percent}} full",
     "{{size}} disk",
-    "{{tokens}} tokens"
+    "{{tokens}} tokens",
+    "{{value}} ms"
   ]
 }

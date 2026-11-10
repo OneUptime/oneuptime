@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48448,
-    "untranslated": 2449
+    "keys": 49075,
+    "untranslated": 2433
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -521,6 +521,7 @@
     "mqtt",
     "ms",
     "namespace",
+    "neutral",
     "nightly-backups",
     "nova-compute",
     "npm ci",
@@ -669,6 +670,7 @@
     "{{minutes}} min",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
+    "{{value}} ms",
     "μs",
     "≤ 1000 ms",
     "≤ 150 ms",

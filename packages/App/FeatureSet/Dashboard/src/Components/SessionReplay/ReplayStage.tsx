@@ -15,9 +15,12 @@ import {
   ReplayEngineListener,
   ReplayEngineReplayerEvent,
   ReplayEngineSnapshot,
+  ReplayPhase,
   ReplayRecordedSize,
   ReplayerLike,
 } from "./Engine/ReplayEngineTypes";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS,
   SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS,
@@ -1673,9 +1676,25 @@ export function computeReplayStageFrameGeometry(
   };
 }
 
+/*
+ * The engine's phase as the one word a screen reader announces when the
+ * picture changes state ("buffering", "ended"), in the reader's language.
+ * English keys; data-replay-phase keeps the phase itself for the E2E hooks.
+ */
+export const REPLAY_PHASE_WORDS: Record<ReplayPhase, string> = {
+  loading: translationKey("loading"),
+  seeking: translationKey("seeking"),
+  buffering: translationKey("buffering"),
+  paused: translationKey("paused"),
+  playing: translationKey("playing"),
+  ended: translationKey("ended"),
+  error: translationKey("error"),
+};
+
 const ReplayStage: FunctionComponent<ReplayStageProps> = (
   props: ReplayStageProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { engine } = props;
   const fit: ReplayStageFit = props.fit ?? "contain";
   const sizing: ReplayStageSizing =
@@ -2090,7 +2109,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       data-replay-sizing={sizing}
       data-replay-frame={isMobile ? "phone" : "desktop"}
       role="region"
-      aria-label="Session replay"
+      aria-label={translator.translateText("Session replay")}
       aria-busy={isBusy}
       className={`${getReplayStageBoxClassName(sizing, fit)} ${
         props.className ?? ""
@@ -2110,7 +2129,9 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         aria-live="polite"
         aria-atomic="true"
       >
-        {snapshot.phase}
+        {translator.translateText(
+          REPLAY_PHASE_WORDS[snapshot.phase] || snapshot.phase,
+        )}
       </span>
       <div
         data-testid="replay-stage-frame"

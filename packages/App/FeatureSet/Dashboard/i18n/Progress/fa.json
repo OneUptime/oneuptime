@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48448,
-    "untranslated": 10577
+    "keys": 49075,
+    "untranslated": 10155
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -205,6 +205,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} CPU",
     "{{count}} DNS zone",
     "{{count}} Kubernetes",
@@ -215,6 +216,7 @@
     "{{count}} share",
     "{{count}} vCPU",
     "{{gigabytes}} GB",
-    "{{in}} in"
+    "{{in}} in",
+    "{{value}} ms"
   ]
 }

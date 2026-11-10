@@ -2,6 +2,14 @@ import {
   SessionReplayChunkManifestEntry,
   SessionReplayGap,
 } from "Common/Types/Rum/SessionReplay";
+import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  TemplateValue,
+  Translator,
+} from "Common/Types/Translator";
 import ChunkMath from "Common/Utils/Rum/ChunkMath";
 import ChunkLoader, {
   ChunkLoadError,
@@ -11,6 +19,7 @@ import ChunkLoader, {
   RRWEB_MOUSE_INTERACTION_TOUCH_START,
   RRWEB_SOURCE_MOUSE_INTERACTION,
   SessionReplayRecordedEvent,
+  getReplayErrorWording,
 } from "../ChunkLoader";
 import {
   IDLE_SKIP_MIN_REMAINING_MS,
@@ -188,6 +197,25 @@ function formatOffset(ms: number): string {
   const seconds: number = total % 60;
 
   return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+}
+
+/*
+ * The engine's words are English (ReplayEngineError): a sentence with
+ * values in it is kept as its wording too, composed again in the reader's
+ * language by whoever draws it. Never React, never the reader's language
+ * here.
+ */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+function wordedError(
+  wording: ComposedValue,
+  retryable: boolean,
+): ReplayEngineError {
+  return {
+    message: wording.compose(ENGLISH),
+    wording: wording,
+    retryable: retryable,
+  };
 }
 
 /*
@@ -1506,14 +1534,29 @@ class ReplayEngineMachine implements ReplayEngine {
            * rrweb refused the events. Nothing advanced, so nothing can be
            * fed past a chunk the Replayer never took; RETRY rebuilds.
            */
-          this.halt({
-            message: `Footage from ${formatOffset(
-              this.chunkStartMs(decision.chunkIndex),
-            )} could not be applied to the player${
-              err instanceof Error && err.message ? `: ${err.message}` : "."
-            }`,
-            retryable: true,
-          });
+          const time: string = formatOffset(
+            this.chunkStartMs(decision.chunkIndex),
+          );
+          // rrweb's own words, quoted as they are.
+          const reason: string =
+            err instanceof Error && err.message ? err.message : "";
+
+          this.halt(
+            wordedError(
+              composedValue((translator: Translator): string => {
+                return reason
+                  ? translator.translateTemplate(
+                      "Footage from {{time}} could not be applied to the player: {{reason}}",
+                      { time: time, reason: reason },
+                    )
+                  : translator.translateTemplate(
+                      "Footage from {{time}} could not be applied to the player.",
+                      { time: time },
+                    );
+              }),
+              true,
+            ),
+          );
           return;
         }
 
@@ -1847,11 +1890,21 @@ class ReplayEngineMachine implements ReplayEngine {
     );
 
     if (requestedMs < earliest) {
+      const requestedTime: string = formatOffset(Math.max(0, requestedMs));
+      const earliestTime: string = formatOffset(earliest);
+      const wording: ComposedValue = composedValue(
+        (translator: Translator): string => {
+          return translator.translateTemplate(
+            "No snapshot before {{requestedTime}}; the earliest playable moment is {{earliestTime}}.",
+            { requestedTime: requestedTime, earliestTime: earliestTime },
+          );
+        },
+      );
+
       this.notice = {
         kind: "seek-clamped",
-        message: `No snapshot before ${formatOffset(
-          Math.max(0, requestedMs),
-        )}; the earliest playable moment is ${formatOffset(earliest)}.`,
+        message: wording.compose(ENGLISH),
+        wording: wording,
         requestedMs: requestedMs,
         landedAtMs: earliest,
       };
@@ -2486,28 +2539,60 @@ class ReplayEngineMachine implements ReplayEngine {
       const first: number | undefined = err.chunkIndexes[0];
       const fromMs: number =
         first === undefined ? this.currentTimeMs : this.chunkStartMs(first);
-      const where: string = `Footage from ${formatOffset(fromMs)}`;
+      const time: string = formatOffset(fromMs);
+      const attempts: number = err.attempts;
 
       if (err.isTimeout) {
-        return {
-          message: `${where} did not arrive: the server did not respond in time on any of ${err.attempts} attempts.`,
-          retryable: true,
-        };
+        return wordedError(
+          composedValue((translator: Translator): string => {
+            return translator.translatePlural(
+              {
+                one: "Footage from {{time}} did not arrive: the server did not respond in time on its only attempt.",
+                other:
+                  "Footage from {{time}} did not arrive: the server did not respond in time on any of {{count}} attempts.",
+              },
+              attempts,
+              { time: time },
+            );
+          }),
+          true,
+        );
       }
 
-      return {
-        message: `${where} could not be fetched after ${err.attempts} attempts. ${err.message}`,
-        retryable: true,
-      };
+      // The loader's own sentence, in the language this one is drawn in.
+      const reason: ComposedValue = err.wording;
+
+      return wordedError(
+        composedValue((translator: Translator): string => {
+          return translator.translatePlural(
+            {
+              one: "Footage from {{time}} could not be fetched after {{count}} attempt. {{reason}}",
+              other:
+                "Footage from {{time}} could not be fetched after {{count}} attempts. {{reason}}",
+            },
+            attempts,
+            { time: time, reason: reason },
+          );
+        }),
+        true,
+      );
     }
 
-    return {
-      message:
-        err instanceof Error && err.message
-          ? `The recording could not be loaded. ${err.message}`
-          : "The recording could not be loaded.",
-      retryable: true,
-    };
+    const reason: TemplateValue | null = getReplayErrorWording(err);
+
+    if (reason === null) {
+      return { message: "The recording could not be loaded.", retryable: true };
+    }
+
+    return wordedError(
+      composedValue((translator: Translator): string => {
+        return translator.translateTemplate(
+          "The recording could not be loaded. {{reason}}",
+          { reason: reason },
+        );
+      }),
+      true,
+    );
   }
 
   private anchorForOffset(offsetMs: number): number | null {

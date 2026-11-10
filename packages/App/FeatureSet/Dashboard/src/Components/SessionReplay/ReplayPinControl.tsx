@@ -14,8 +14,9 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import { ReplayToolButton } from "./ReplayUi";
 
@@ -79,12 +80,16 @@ export type PinState =
 /* While a pin is pending, poll for the materializer's stamp. */
 export const PENDING_POLL_INTERVAL_MS: number = 15 * 1000;
 
-export const PIN_PENDING_COPY: string =
-  "Pin pending - protection starts when the recording ends (about 10 minutes after the last activity)";
-export const PIN_REMOVED_COPY: string =
-  "Pin removed: the recording had already expired, so there was nothing left to protect";
-export const PIN_UNPINNED_COPY: string =
-  "Unpinned - the protected copy is removed within an hour and ordinary retention applies again";
+/* English keys: the control looks each one up where it draws it. */
+export const PIN_PENDING_COPY: string = translationKey(
+  "Pin pending - protection starts when the recording ends (about 10 minutes after the last activity)",
+);
+export const PIN_REMOVED_COPY: string = translationKey(
+  "Pin removed: the recording had already expired, so there was nothing left to protect",
+);
+export const PIN_UNPINNED_COPY: string = translationKey(
+  "Unpinned - the protected copy is removed within an hour and ordinary retention applies again",
+);
 
 const CONTROL_ROW_CLASS: string =
   "inline-flex min-w-0 max-w-full flex-wrap items-center gap-2";
@@ -124,6 +129,7 @@ interface ActionError {
 const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
   props: ReplayPinControlProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [state, setState] = useState<PinState>({ kind: "loading" });
   const [isWorking, setIsWorking] = useState<boolean>(false);
   const [actionError, setActionError] = useState<ActionError | null>(null);
@@ -332,7 +338,10 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
           data-testid="replay-pin-error"
           title={state.message}
         >
-          Could not check whether this recording is pinned: {state.message}
+          {translator.translateTemplate(
+            "Could not check whether this recording is pinned: {{error}}",
+            { error: state.message },
+          )}
         </span>
         <ReplayToolButton
           label="Retry"
@@ -354,7 +363,9 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
         data-testid="replay-pin-error"
         title={actionError.message}
       >
-        Could not pin: {actionError.message}
+        {translator.translateTemplate("Could not pin: {{error}}", {
+          error: actionError.message,
+        })}
       </span>
     ) : null;
 
@@ -369,20 +380,28 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
           <span
             className={`${CONTROL_STATUS_CLASS} text-gray-600`}
             data-testid="replay-pin-status"
-            title={PIN_UNPINNED_COPY}
+            title={translator.translateText(PIN_UNPINNED_COPY)}
           >
-            <span aria-hidden="true">Unpinned</span>
-            <span className="sr-only">{PIN_UNPINNED_COPY}</span>
+            <span aria-hidden="true">
+              {translator.translateText("Unpinned")}
+            </span>
+            <span className="sr-only">
+              {translator.translateText(PIN_UNPINNED_COPY)}
+            </span>
           </span>
         )}
         {state.kind === "removed-by-worker" && (
           <span
             className={`${CONTROL_STATUS_CLASS} text-amber-700`}
             data-testid="replay-pin-status"
-            title={PIN_REMOVED_COPY}
+            title={translator.translateText(PIN_REMOVED_COPY)}
           >
-            <span aria-hidden="true">Pin removed</span>
-            <span className="sr-only">{PIN_REMOVED_COPY}</span>
+            <span aria-hidden="true">
+              {translator.translateText("Pin removed")}
+            </span>
+            <span className="sr-only">
+              {translator.translateText(PIN_REMOVED_COPY)}
+            </span>
           </span>
         )}
         {pinError}
@@ -407,17 +426,22 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
     state.kind === "protected" ? state.expiresAt : null;
 
   /*
-   * In English, as the pin's other states and the replay's other words
-   * still are, its date too: one German state among English ones would
-   * read as a mistake.
+   * One sentence with the date as its value, so the date is written in the
+   * sentence's language: English while the reader's language has no
+   * wording of it, never a German date inside English words.
    */
-  const badgeTitle: string = isProtected
+  const badgeTitle: string | undefined = isProtected
     ? expiresAt
-      ? inEnglishDates((): string => {
-          return `A copy of this recording is stored under pinned retention until ${OneUptimeDate.getDateAsFormattedString(expiresAt)}.`;
-        })
-      : "A copy of this recording is stored under pinned retention."
-    : "The pin is queued. Until the recording is finalized and the copy is written, this recording is NOT yet protected from retention.";
+      ? translator.translateTemplate(
+          "A copy of this recording is stored under pinned retention until {{date}}.",
+          { date: OneUptimeDate.getDateAsFormattedString(expiresAt) },
+        )
+      : translator.translateText(
+          "A copy of this recording is stored under pinned retention.",
+        )
+    : translator.translateText(
+        "The pin is queued. Until the recording is finalized and the copy is written, this recording is NOT yet protected from retention.",
+      );
 
   return (
     <div className={CONTROL_ROW_CLASS} data-testid="replay-pin-control">
@@ -437,11 +461,15 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
         />
         <span className="max-w-36 truncate sm:max-w-64">
           {isProtected ? (
-            "Pinned"
+            translator.translateText("Pinned")
           ) : (
             <>
-              <span aria-hidden="true">Pin pending</span>
-              <span className="sr-only">{PIN_PENDING_COPY}</span>
+              <span aria-hidden="true">
+                {translator.translateText("Pin pending")}
+              </span>
+              <span className="sr-only">
+                {translator.translateText(PIN_PENDING_COPY)}
+              </span>
             </>
           )}
         </span>
@@ -453,7 +481,9 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
           data-testid="replay-pin-error"
           title={actionError.message}
         >
-          Could not unpin: {actionError.message}
+          {translator.translateTemplate("Could not unpin: {{error}}", {
+            error: actionError.message,
+          })}
         </span>
       )}
 

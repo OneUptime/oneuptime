@@ -8,6 +8,12 @@ import React, {
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   ReplayUserSessionDescription,
   ReplayUserSessionItem,
@@ -59,21 +65,67 @@ export interface ReplayUserSessionsMenuProps {
   nowUnixMs?: number | undefined;
 }
 
-function headerCopyFor(
-  kind: ReplayUserSessionsKind,
-  isTruncated: boolean,
-): string {
-  const noun: string = kind === "visitor" ? "visitor" : "user";
+/*
+ * Every sentence that names the person, whole for each kind of link: a
+ * user reference, or the recorder's anonymous visitor id. Never "user" or
+ * "visitor" put into one sentence: a language words "this user" and "this
+ * visitor" each its own way. English keys, looked up where they are drawn.
+ */
+export interface ReplayUserSessionsKindCopy {
+  /* The trigger's accessible name: "5 sessions by this user; open the list". */
+  triggerName: PluralTemplate;
+  /* The trigger's tooltip, whole list or not. */
+  title: string;
+  truncatedTitle: string;
+  /* The panel's heading. "Some", not "Sessions": a partial list must not read as the whole. */
+  heading: string;
+  truncatedHeading: string;
+  /* The listbox's accessible name. */
+  listName: string;
+}
 
-  /* "Some", not "Sessions": a partial list must not read as the whole. */
-  return isTruncated
-    ? `Some sessions from this ${noun} · past 30 days`
-    : `Sessions from this ${noun} · past 30 days`;
+const USER_SESSIONS_COPY: ReplayUserSessionsKindCopy = {
+  triggerName: {
+    one: "{{count}} session by this user; open the list",
+    other: "{{count}} sessions by this user; open the list",
+  },
+  title: translationKey("Every session from this user in the past 30 days"),
+  truncatedTitle: translationKey(
+    "More sessions from this user than the switcher can show; open the session list for all of them",
+  ),
+  heading: translationKey("Sessions from this user · past 30 days"),
+  truncatedHeading: translationKey(
+    "Some sessions from this user · past 30 days",
+  ),
+  listName: translationKey("Sessions from this user"),
+};
+
+const VISITOR_SESSIONS_COPY: ReplayUserSessionsKindCopy = {
+  triggerName: {
+    one: "{{count}} session by this visitor; open the list",
+    other: "{{count}} sessions by this visitor; open the list",
+  },
+  title: translationKey("Every session from this visitor in the past 30 days"),
+  truncatedTitle: translationKey(
+    "More sessions from this visitor than the switcher can show; open the session list for all of them",
+  ),
+  heading: translationKey("Sessions from this visitor · past 30 days"),
+  truncatedHeading: translationKey(
+    "Some sessions from this visitor · past 30 days",
+  ),
+  listName: translationKey("Sessions from this visitor"),
+};
+
+export function getReplayUserSessionsCopy(
+  kind: ReplayUserSessionsKind,
+): ReplayUserSessionsKindCopy {
+  return kind === "visitor" ? VISITOR_SESSIONS_COPY : USER_SESSIONS_COPY;
 }
 
 const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
   props: ReplayUserSessionsMenuProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { sessions, currentSessionId, onOpenUserSession } = props;
 
   const {
@@ -209,7 +261,9 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
   );
 
   const count: number = sessions.length;
-  const kindNoun: string = props.kind === "visitor" ? "visitor" : "user";
+  const copy: ReplayUserSessionsKindCopy = getReplayUserSessionsCopy(
+    props.kind,
+  );
   const isTruncated: boolean = props.isTruncated === true;
 
   return (
@@ -217,18 +271,18 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
       <ReplayToolButton
         ref={triggerRef}
         dataTestId="replay-user-sessions-button"
-        label={`${count} sessions`}
+        label={translator.translatePlural(
+          { one: "{{count}} session", other: "{{count}} sessions" },
+          count,
+        )}
         variant="ghost"
         tone="accent"
         trailingIcon={IconProp.ChevronDown}
         hasPopup="listbox"
         isExpanded={isOpen}
-        ariaLabel={`${count} sessions by this ${kindNoun}; open the list`}
-        title={
-          isTruncated
-            ? `More sessions from this ${kindNoun} than the switcher can show; open the session list for all of them`
-            : `Every session from this ${kindNoun} in the past 30 days`
-        }
+        ariaLabel={translator.translatePlural(copy.triggerName, count)}
+        /* An English key: the button looks its title up. */
+        title={isTruncated ? copy.truncatedTitle : copy.title}
         dataAttributes={isTruncated ? { "data-truncated": "true" } : undefined}
         onClick={(): void => {
           setIsOpen(!isOpen);
@@ -241,11 +295,13 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
           className="absolute left-0 z-20 mt-1 w-[26rem] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
         >
           <div className="px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
-            {headerCopyFor(props.kind, isTruncated)}
+            {translator.translateText(
+              isTruncated ? copy.truncatedHeading : copy.heading,
+            )}
           </div>
           <div
             role="listbox"
-            aria-label={`Sessions from this ${kindNoun}`}
+            aria-label={translator.translateText(copy.listName)}
             className="max-h-80 overflow-y-auto"
             onKeyDown={handleListKeyDown}
           >
@@ -272,8 +328,12 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                     data-session-id={item.sessionId}
                     title={
                       isCurrent
-                        ? "The session you are watching"
-                        : `Open session ${item.sessionId.slice(0, 8)}`
+                        ? translator.translateText(
+                            "The session you are watching",
+                          )
+                        : translator.translateTemplate("Open session {{id}}", {
+                            id: item.sessionId.slice(0, 8),
+                          })
                     }
                     className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                       isCurrent ? "bg-indigo-50" : ""
@@ -295,7 +355,8 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                         className="block truncate text-sm text-gray-700"
                         title={item.entryUrl || undefined}
                       >
-                        {description.path || "Unknown page"}
+                        {description.path ||
+                          translator.translateText("Unknown page")}
                       </span>
                       {description.deviceHint.length > 0 && (
                         <span className="block text-[11px] text-gray-500">
@@ -305,7 +366,9 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                     </span>
                     <span className="flex shrink-0 items-center gap-1.5">
                       {isCurrent && (
-                        <ReplayPill tone="accent">Watching</ReplayPill>
+                        <ReplayPill tone="accent">
+                          {translator.translateText("Watching")}
+                        </ReplayPill>
                       )}
                       {/*
                        * Red and pulsing only while footage may still
@@ -317,8 +380,10 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                       {isSessionReplayRecordingLive(item) && (
                         <span
                           role="img"
-                          aria-label="Recording now"
-                          title="Still being recorded"
+                          aria-label={translator.translateText("Recording now")}
+                          title={translator.translateText(
+                            "Still being recorded",
+                          )}
                           data-testid="replay-user-session-live"
                           className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-red-500"
                         />
@@ -326,8 +391,12 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                       {!item.isFinalized && item.hasRecordingEnded === true && (
                         <span
                           role="img"
-                          aria-label="Recording ended"
-                          title="Recording ended; still being finalized"
+                          aria-label={translator.translateText(
+                            "Recording ended",
+                          )}
+                          title={translator.translateText(
+                            "Recording ended; still being finalized",
+                          )}
                           data-testid="replay-user-session-ended"
                           className="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400"
                         />
@@ -335,9 +404,13 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                       {item.errorCount > 0 && (
                         <span
                           data-testid="replay-user-session-errors"
-                          title={`${item.errorCount} error${
-                            item.errorCount === 1 ? "" : "s"
-                          } in this session`}
+                          title={translator.translatePlural(
+                            {
+                              one: "{{count}} error in this session",
+                              other: "{{count}} errors in this session",
+                            },
+                            item.errorCount,
+                          )}
                           className="rounded-full bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700"
                         >
                           {item.errorCount}

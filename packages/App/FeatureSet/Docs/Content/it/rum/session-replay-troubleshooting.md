@@ -108,7 +108,7 @@ Restituisce la versione del registratore, l'id di sessione, il suo `state` (`rec
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-Incolla l'uno o l'altro nel tuo ticket di supporto — oppure in **Ask the browser** nella pagina **Integrità** dell'applicazione, che spiega ogni codice che contiene. Spesso basta da solo.
+Incolla l'uno o l'altro nel tuo ticket di supporto — oppure in **Chiedi al browser** nella pagina **Integrità** dell'applicazione, che spiega ogni codice che contiene. Spesso basta da solo.
 
 ## Quando il silenzio è normale: la policy attivata dagli errori
 
@@ -185,7 +185,7 @@ Ogni riga porta un `code` stabile. Cerca qui il tuo.
 | `disabled-by-default` | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` su questo deployment. Impostalo su `true` — e prima imposta `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` se sei in self-hosting, perché la riproduzione è la tabella più pesante che hai. |
 | `ingest-disabled` | `SESSION_REPLAY_INGEST_ENABLED=false` su questo deployment. |
 | `policy-unavailable` | Il server non è riuscito a risolvere la policy — di solito Redis o Postgres. Fallisce in modo chiuso di proposito. Controlla i log dell'app OneUptime. |
-| `not-reported` | Il server è più vecchio di questo campo. Usa invece il pannello **Test your installation** della dashboard, nella pagina **Policy di riproduzione**. |
+| `not-reported` | Il server è più vecchio di questo campo. Usa invece il pannello **Testa l'installazione** della dashboard, nella pagina **Policy di riproduzione**. |
 
 ### L'artefatto
 
@@ -370,7 +370,7 @@ I vuoti non sono la stessa cosa dei tratti inattivi: un tratto inattivo è regis
 
 ## Il lettore dice Buffering, o un frammento non è stato caricato
 
-Il lettore recupera la registrazione in segmenti di 15 secondi man mano che la testina si avvicina. _Buffering_ significa che il segmento successivo non è ancora arrivato; dopo otto secondi offre **Riprova**. Un segmento che fallisce definitivamente mostra un errore con **Riprova** e **Copy diagnostic** — quest'ultimo porta l'id di sessione, la scheda, il segmento e la generazione, che è ciò che serve al supporto. Una sessione la cui registrazione è scaduta mostra una spiegazione al posto della scena, mentre le schede Logs, Traces ed Errors continuano a funzionare sulla tua telemetria.
+Il lettore recupera la registrazione in segmenti di 15 secondi man mano che la testina si avvicina. _Buffering_ significa che il segmento successivo non è ancora arrivato; dopo otto secondi offre **Riprova**. Un segmento che fallisce definitivamente mostra un errore con **Riprova** e **Copia diagnostica** — quest'ultimo porta l'id di sessione, la scheda, il segmento e la generazione, che è ciò che serve al supporto. Una sessione la cui registrazione è scaduta mostra una spiegazione al posto della scena, mentre le schede Logs, Traces ed Errors continuano a funzionare sulla tua telemetria.
 
 ## Mancano immagini, icone o stili nella riproduzione
 
@@ -385,7 +385,7 @@ Una registrazione conserva l'indirizzo di ogni immagine, e di ogni foglio di sti
 
 ### Controlla prima questo
 
-1. **Leggi le note di cattura sotto il lettore.** Quando immagini o fogli di stile non si sono potuti caricare nel tuo browser, la prima nota lo dice — per esempio _2 images didn't load in this replay_ — e indica i siti da cui provenivano. Copre ogni scheda che il lettore ha riprodotto da quando hai aperto la sessione. **Dettagli della sessione** (`I`) → **Fidelity** → **Missing assets** elenca ogni indirizzo, fino ai primi 200. I font web, le immagini di sfondo CSS e le immagini che la tua pagina ha creato nel browser (indirizzi `blob:`) non sono in quell'elenco; cercali nei DevTools (sotto).
+1. **Leggi le note di cattura sotto il lettore.** Quando immagini o fogli di stile non si sono potuti caricare nel tuo browser, la prima nota lo dice — per esempio _2 images didn't load in this replay_ — e indica i siti da cui provenivano. Copre ogni scheda che il lettore ha riprodotto da quando hai aperto la sessione. **Dettagli della sessione** (`I`) → **Fedeltà** → **Risorse mancanti** elenca ogni indirizzo, fino ai primi 200. I font web, le immagini di sfondo CSS e le immagini che la tua pagina ha creato nel browser (indirizzi `blob:`) non sono in quell'elenco; cercali nei DevTools (sotto).
 2. **Controlla la modalità di mascheramento.** Una sessione registrata con _Mask all text_ non carica né le sue immagini né i suoi font web, per progettazione (un'immagine che la pagina conteneva come URL `data:` fa parte della registrazione, e viene comunque mostrata), e le sue note di cattura dicono _Images and web fonts are not loaded_. Lo stesso vale per una sessione la cui modalità di mascheramento non è stata segnalata, o non è una che la dashboard riconosce. I fogli di stile si caricano comunque in entrambi i casi. **Dettagli della sessione** → **Privacy** mostra la modalità segnalata dalla sessione, che è quella del suo caricamento di pagina più recente.
 3. **Controlla se è fallito anche per il tuo utente.** Apri la scheda **Errori** del pannello eventi in quel momento: una riga _Resource failed to load_ per lo stesso file significa che era rotto anche sullo schermo del tuo utente, e che la riproduzione lo mostra fedelmente.
 
@@ -479,8 +479,8 @@ Raccogli queste informazioni prima di chiedere aiuto:
 
 - L'output di `OneUptimeReplay.getDiagnostics()`.
 - Lo stato della richiesta `session-replay/v1/config`.
-- Cosa dicono la pagina **Integrità** dell'applicazione e il pannello **Test your installation** di **Policy di riproduzione**. Rispondono dal lato server, che è la metà che un browser non può vedere.
-- Per immagini, icone o stili mancanti: l'indirizzo di un file che non si è caricato (**Missing assets** li elenca) e la riga che la console del browser ha stampato per esso.
+- Cosa dicono la pagina **Integrità** dell'applicazione e il pannello **Testa l'installazione** di **Policy di riproduzione**. Rispondono dal lato server, che è la metà che un browser non può vedere.
+- Per immagini, icone o stili mancanti: l'indirizzo di un file che non si è caricato (**Risorse mancanti** li elenca) e la riga che la console del browser ha stampato per esso.
 
 Poi scrivi a support@oneuptime.com o apri una issue su [GitHub](https://github.com/OneUptime/oneuptime).
 

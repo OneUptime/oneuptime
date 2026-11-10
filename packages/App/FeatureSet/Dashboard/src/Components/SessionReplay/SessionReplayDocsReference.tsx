@@ -5,6 +5,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { SETUP_GUIDE_DOCS_PATH } from "./SessionReplaySetupGuide";
 import { TROUBLESHOOTING_DOCS_PATH } from "./RecordingHealthCard";
 
@@ -16,6 +18,9 @@ import { TROUBLESHOOTING_DOCS_PATH } from "./RecordingHealthCard";
  * Each anchor is a heading slug on the docs page, pinned against the markdown
  * by App/Tests/Dashboard/SessionReplayDocumentationPage.test.ts so a renamed
  * heading fails a test instead of landing people at the top of the page.
+ *
+ * Each tile's title and description is English here, a key of the
+ * Dashboard's locales, and is drawn in the reader's language.
  */
 
 export interface SessionReplayDocsTopic {
@@ -131,6 +136,8 @@ export function buildSessionReplayDocsUrl(topic: SessionReplayDocsTopic): URL {
 }
 
 const SessionReplayDocsReference: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <Card
       title="Session Replay Reference"
@@ -158,10 +165,10 @@ const SessionReplayDocsReference: FunctionComponent = (): ReactElement => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium text-gray-900">
-                      {topic.title}
+                      {translator.translateText(topic.title)}
                     </div>
                     <div className="mt-0.5 text-xs text-gray-500">
-                      {topic.description}
+                      {translator.translateText(topic.description)}
                     </div>
                   </div>
                 </>

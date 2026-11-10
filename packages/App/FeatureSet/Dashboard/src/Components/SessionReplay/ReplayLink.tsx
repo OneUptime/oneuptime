@@ -1,6 +1,8 @@
 import AppLink from "../AppLink/AppLink";
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { buildReplayLinkRoute, ReplayLinkRouteProps } from "./ReplayLinkRoute";
 
 /*
@@ -20,6 +22,7 @@ export type ComponentProps = ReplayLinkRouteProps;
 const ReplayLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const {
     rumApplicationId,
     sessionId,
@@ -48,7 +51,15 @@ const ReplayLink: FunctionComponent<ComponentProps> = (
     <div className="flex space-x-2" data-testid="replay-link">
       <div className="hover:underline">
         <AppLink to={route} className={className}>
-          <p>{label || "Watch session replay"}</p>
+          {/*
+           * The caller's label is an English key (the exception table's
+           * "Watch replay"), drawn here as text: looked up like the default.
+           */}
+          <p>
+            {label
+              ? translator.translateText(label)
+              : translator.translateText("Watch session replay")}
+          </p>
         </AppLink>
       </div>
     </div>

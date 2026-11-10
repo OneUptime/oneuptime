@@ -2,6 +2,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "Common/Types/Rum/SessionReplay";
@@ -24,7 +31,9 @@ import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "Common/Types/Rum/Sessi
  * past the customer's backend; with the switch off there is nothing to say.
  *
  * The sentence builder is pure and exported so every combination can be
- * pinned in a test without rendering.
+ * pinned in a test without rendering. Every sentence and Change label is a
+ * whole sentence of the Dashboard's locales, looked up with the translator
+ * the card hands in; without one they read in English, word for word.
  */
 
 export interface PrivacySummaryInput {
@@ -67,6 +76,9 @@ const DEFAULT_CAPTURE_IDENTITY: boolean = true;
 const DEFAULT_CAPTURE_GEO: boolean = true;
 const DEFAULT_SAME_ORIGIN_TRACE_PROPAGATION: boolean = true;
 
+// What the sentences read without a translator: English, as a test reads them.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
 function countSelectors(value: Array<string> | null | undefined): number {
   return Array.isArray(value)
     ? value.filter((entry: string): boolean => {
@@ -75,14 +87,16 @@ function countSelectors(value: Array<string> | null | undefined): number {
     : 0;
 }
 
-function plural(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
-}
-
 export function buildPrivacySummary(
   input: PrivacySummaryInput,
+  translator: Translator = ENGLISH,
 ): Array<PrivacySummarySentence> {
   const sentences: Array<PrivacySummarySentence> = [];
+
+  // A fixed line in the reader's language; a line is a string.
+  const translateLine: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
 
   /* ---- 1. Page text ---- */
   const maskingIsDefault: boolean =
@@ -95,42 +109,73 @@ export function buildPrivacySummary(
   const extras: Array<string> = [];
 
   if (maskCount > 0) {
-    extras.push(`${plural(maskCount, "extra selector")} masked`);
+    extras.push(
+      translator.translatePlural(
+        {
+          one: "{{count}} extra selector masked",
+          other: "{{count}} extra selectors masked",
+        },
+        maskCount,
+      ),
+    );
   }
 
   if (blockCount > 0) {
-    extras.push(`${plural(blockCount, "selector")} blocked entirely`);
+    extras.push(
+      translator.translatePlural(
+        {
+          one: "{{count}} selector blocked entirely",
+          other: "{{count}} selectors blocked entirely",
+        },
+        blockCount,
+      ),
+    );
   }
 
   if (input.recordCanvas === true) {
-    extras.push("canvas contents recorded");
+    extras.push(translateLine("canvas contents recorded"));
   }
 
-  const extrasCopy: string = extras.length > 0 ? ` ${extras.join("; ")}.` : "";
+  /*
+   * What the policy adds to its mode, after the mode's sentence: each fact
+   * whole in the reader's language, the facts run together with semicolons.
+   */
+  const extrasSentence: string =
+    extras.length > 0 ? `${extras.join("; ")}.` : "";
 
-  let pageText: string;
+  let modeText: string;
   let pageTextSensitive: boolean;
 
   if (maskingMode === SessionReplayMaskingMode.MaskAllText) {
-    pageText = `Page text is never recorded: every text node and every input is replaced before upload, so the replay is a wireframe.${extrasCopy}`;
+    modeText = translateLine(
+      "Page text is never recorded: every text node and every input is replaced before upload, so the replay is a wireframe.",
+    );
     pageTextSensitive = false;
   } else if (maskingMode === SessionReplayMaskingMode.MaskInputsOnly) {
-    pageText = `Readable page text is recorded; every input value is masked. An account number in a heading is visible in the replay, one typed into a form is not.${extrasCopy}`;
+    modeText = translateLine(
+      "Readable page text is recorded; every input value is masked. An account number in a heading is visible in the replay, one typed into a form is not.",
+    );
     pageTextSensitive = true;
   } else if (maskingMode === SessionReplayMaskingMode.MaskSensitiveInputsOnly) {
-    pageText = `Readable page text and most input values are recorded; only passwords and fields your markup declares sensitive (card, one-time code) are masked. This is the least private mode.${extrasCopy}`;
+    modeText = translateLine(
+      "Readable page text and most input values are recorded; only passwords and fields your markup declares sensitive (card, one-time code) are masked. This is the least private mode.",
+    );
     pageTextSensitive = true;
   } else {
-    pageText = `The masking mode "${maskingMode}" is not one this dashboard knows; the recorder falls back to masking all text.${extrasCopy}`;
+    modeText = translator.translateTemplate(
+      'The masking mode "{{mode}}" is not one this dashboard knows; the recorder falls back to masking all text.',
+      { mode: maskingMode },
+      { setsValuesApart: true },
+    );
     pageTextSensitive = false;
   }
 
   sentences.push({
     key: "page-text",
-    text: pageText,
+    text: joinSentences([modeText, extrasSentence]),
     isDefault: maskingIsDefault,
     isSensitive: pageTextSensitive,
-    changeLabel: "Change masking",
+    changeLabel: translateLine("Change masking"),
   });
 
   /* ---- 2. Identity ---- */
@@ -156,14 +201,17 @@ export function buildPrivacySummary(
   let identityText: string;
 
   if (captureIdentity) {
-    identityText =
-      "Recordings are identified: the user reference and traits your page supplies through identify() are stored with the session and searchable by user:. Erasure requests match on the reference.";
+    identityText = translateLine(
+      "Recordings are identified: the user reference and traits your page supplies through identify() are stored with the session and searchable by user:. Erasure requests match on the reference.",
+    );
   } else if (backendLink) {
-    identityText =
-      "Recordings are pseudonymous: no user reference or traits are stored with the session. Backend telemetry linked to it by same-origin trace propagation can still name the person, if your backend records who made each request.";
+    identityText = translateLine(
+      "Recordings are pseudonymous: no user reference or traits are stored with the session. Backend telemetry linked to it by same-origin trace propagation can still name the person, if your backend records who made each request.",
+    );
   } else {
-    identityText =
-      "Recordings are pseudonymous: no user reference or traits are stored, so a session cannot be found by who the person was.";
+    identityText = translateLine(
+      "Recordings are pseudonymous: no user reference or traits are stored, so a session cannot be found by who the person was.",
+    );
   }
 
   sentences.push({
@@ -171,17 +219,19 @@ export function buildPrivacySummary(
     text: identityText,
     isDefault: identityIsDefault,
     isSensitive: captureIdentity,
-    changeLabel: "Change identity capture",
+    changeLabel: translateLine("Change identity capture"),
   });
 
   /* ---- 2b. Backend link (only while it is on) ---- */
   if (backendLink) {
     sentences.push({
       key: "backend-link",
-      text: "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.",
+      text: translateLine(
+        "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.",
+      ),
       isDefault: backendLinkIsDefault,
       isSensitive: true,
-      changeLabel: "Change trace propagation",
+      changeLabel: translateLine("Change trace propagation"),
     });
   }
 
@@ -195,11 +245,15 @@ export function buildPrivacySummary(
   sentences.push({
     key: "location",
     text: captureGeo
-      ? "Only a country code is stored. The end user's IP address is never stored with a recording."
-      : "No location is stored, not even a country. The end user's IP address is never stored with a recording.",
+      ? translateLine(
+          "Only a country code is stored. The end user's IP address is never stored with a recording.",
+        )
+      : translateLine(
+          "No location is stored, not even a country. The end user's IP address is never stored with a recording.",
+        ),
     isDefault: geoIsDefault,
     isSensitive: false,
-    changeLabel: "Change location capture",
+    changeLabel: translateLine("Change location capture"),
   });
 
   /* ---- 4. Retention ---- */
@@ -213,10 +267,17 @@ export function buildPrivacySummary(
 
   sentences.push({
     key: "retention",
-    text: `Recorded footage is deleted after ${plural(retentionInDays, "day")}, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.`,
+    text: translator.translatePlural(
+      {
+        one: "Recorded footage is deleted after {{count}} day, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.",
+        other:
+          "Recorded footage is deleted after {{count}} days, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.",
+      },
+      retentionInDays,
+    ),
     isDefault: retentionIsDefault,
     isSensitive: retentionInDays > 30,
-    changeLabel: "Change retention",
+    changeLabel: translateLine("Change retention"),
   });
 
   /* ---- 5. Consent ---- */
@@ -230,15 +291,21 @@ export function buildPrivacySummary(
   let consentSensitive: boolean;
 
   if (consentMode === SessionReplayConsentMode.RequireExplicit) {
-    consentText =
-      "Nothing is uploaded until your page calls OneUptimeReplay.grantConsent(); the recorder buffers in memory until then, and a session that never consents is never stored.";
+    consentText = translateLine(
+      "Nothing is uploaded until your page calls OneUptimeReplay.grantConsent(); the recorder buffers in memory until then, and a session that never consents is never stored.",
+    );
     consentSensitive = false;
   } else if (consentMode === SessionReplayConsentMode.NotRequired) {
-    consentText =
-      "Recording does not wait for consent: you are asserting a lawful basis that needs no per-session grant, and uploads start on the first page load.";
+    consentText = translateLine(
+      "Recording does not wait for consent: you are asserting a lawful basis that needs no per-session grant, and uploads start on the first page load.",
+    );
     consentSensitive = true;
   } else {
-    consentText = `The consent mode "${consentMode}" is not one this dashboard knows; check the policy.`;
+    consentText = translator.translateTemplate(
+      'The consent mode "{{mode}}" is not one this dashboard knows; check the policy.',
+      { mode: consentMode },
+      { setsValuesApart: true },
+    );
     consentSensitive = true;
   }
 
@@ -247,7 +314,7 @@ export function buildPrivacySummary(
     text: consentText,
     isDefault: consentIsDefault,
     isSensitive: consentSensitive,
-    changeLabel: "Change consent",
+    changeLabel: translateLine("Change consent"),
   });
 
   return sentences;
@@ -267,8 +334,9 @@ export interface ComponentProps {
 const PrivacySummaryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const sentences: Array<PrivacySummarySentence> = props.policy
-    ? buildPrivacySummary(props.policy)
+    ? buildPrivacySummary(props.policy, translator)
     : [];
 
   return (
@@ -282,7 +350,7 @@ const PrivacySummaryCard: FunctionComponent<ComponentProps> = (
             className="text-sm text-gray-500"
             data-testid="privacy-summary-loading"
           >
-            Reading the policy…
+            {translator.translateText("Reading the policy…")}
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
@@ -310,7 +378,9 @@ const PrivacySummaryCard: FunctionComponent<ComponentProps> = (
                     {sentence.text}
                     {sentence.isDefault && (
                       <span className="ml-1 text-xs text-gray-500">
-                        (default; never set for this application)
+                        {translator.translateText(
+                          "(default; never set for this application)",
+                        )}
                       </span>
                     )}
                   </div>

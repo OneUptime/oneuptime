@@ -3,7 +3,6 @@ import React, {
   ReactElement,
   ReactNode,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
@@ -13,6 +12,16 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatInline,
+  getInlineSeparator,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import { RecordingHealthStatus } from "Common/Types/Rum/SessionReplayHealth";
 import {
   formatCountForCopy,
@@ -32,6 +41,7 @@ import {
   RecordingHealthActionButton,
   SEVERITY_STYLES,
   SeverityStyle,
+  describeStaleHealthRead,
   getBudgetAlertRecommendationsRoute,
   getReplayPolicyPageRoute,
   labelEnum,
@@ -68,6 +78,13 @@ import { RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS } from "../MetricDescriptions/
  *
  * The rule every health surface keeps holds here too: a counter that could
  * not be read says "unknown" and is never drawn as zero or as green.
+ *
+ * Everything is drawn in the reader's language: the diagnosis comes so from
+ * useSessionReplayHealth, the model's values and captions from the
+ * translator handed to it, and the page's own words are looked up where
+ * they are drawn. The panels below take their titles, labels and hints as
+ * English literals and look them up themselves, as the shared components
+ * do; the (i) beside a label gets the English, which it looks up itself.
  */
 
 interface ToneStyle {
@@ -116,13 +133,38 @@ const HERO_ICON_RING: Record<string, string> = {
   error: "ring-rose-200",
 };
 
+/*
+ * A stage's tone as a screen reader announces it after the stage's name.
+ * English keys, looked up where they are drawn.
+ */
+const TONE_LABELS: Record<HealthTone, string> = {
+  ok: translationKey("ok"),
+  warning: translationKey("warning"),
+  error: translationKey("error"),
+  neutral: translationKey("neutral"),
+};
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed line in the translator's language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
+/*
+ * A refusal's label standing on its own line: worded for the middle of a
+ * sentence, so its first letter is raised here.
+ */
 function capitalize(value: string): string {
   return value.length === 0
     ? value
     : `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
-/* A white panel with a header; every section below the hero is one. */
+/*
+ * A white panel with a header; every section below the hero is one. Its
+ * title and description are English literals, looked up here.
+ */
 function HealthPanel(props: {
   title: string;
   description?: string | undefined;
@@ -132,11 +174,13 @@ function HealthPanel(props: {
   children: ReactNode;
   className?: string | undefined;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <section
       className={`flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm ${props.className ?? ""}`}
       data-testid={props.dataTestId}
-      aria-label={props.title}
+      aria-label={translator.translateText(props.title)}
     >
       <header className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4">
         <div className="flex min-w-0 items-start gap-3">
@@ -145,11 +189,11 @@ function HealthPanel(props: {
           </span>
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-gray-900">
-              {props.title}
+              {translator.translateText(props.title)}
             </h3>
             {props.description && (
               <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
-                {props.description}
+                {translator.translateText(props.description)}
               </p>
             )}
           </div>
@@ -163,11 +207,14 @@ function HealthPanel(props: {
   );
 }
 
+// A link in a panel's header; its label is an English literal, looked up here.
 function PanelLink(props: {
   to: Route;
   label: string;
   dataTestId: string;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <Link
       to={props.to}
@@ -182,7 +229,9 @@ function PanelLink(props: {
       }}
       className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-indigo-600 hover:text-indigo-800"
     >
-      <span data-testid={props.dataTestId}>{props.label}</span>
+      <span data-testid={props.dataTestId}>
+        {translator.translateText(props.label)}
+      </span>
       <Icon icon={IconProp.ChevronRight} className="h-3 w-3" />
     </Link>
   );
@@ -198,6 +247,7 @@ function HealthHero(props: {
   onRefresh?: (() => void) | undefined;
 }): ReactElement {
   const { health } = props;
+  const translator: Translator = useTranslator();
   const hasNoStatus: boolean = health.status === null && Boolean(health.error);
 
   /* The word the E2E suites read: the diagnosis state, or the load state. */
@@ -215,22 +265,46 @@ function HealthHero(props: {
   let detail: string = health.diagnosis.detail;
 
   if (health.isLoading) {
-    title = "Checking recording health…";
-    detail =
-      "Reading what the server knows about recordings for this application.";
+    title = translateLine("Checking recording health…", translator);
+    detail = translateLine(
+      "Reading what the server knows about recordings for this application.",
+      translator,
+    );
   } else if (hasNoStatus && health.error) {
     const described: { title: string; detail: string } = describeHealthError(
       health.error,
+      translator,
     );
 
     title = described.title;
     detail = described.detail;
   }
 
+  const fetchedAtUnixMs: number | null = health.fetchedAtUnixMs;
+
   const updatedCopy: string =
-    health.fetchedAtUnixMs === null
-      ? "Not read yet"
-      : `Updated ${formatRelativeAge(health.fetchedAtUnixMs, Math.max(props.clockUnixMs, health.fetchedAtUnixMs))}`;
+    fetchedAtUnixMs === null
+      ? translateLine("Not read yet", translator)
+      : translator.translateTemplate("Updated {{time}}", {
+          time: composedValue((sentence: Translator): string => {
+            return formatRelativeAge(
+              fetchedAtUnixMs,
+              Math.max(props.clockUnixMs, fetchedAtUnixMs),
+              sentence,
+            );
+          }),
+        });
+
+  // "Recording health · acme-web": the page's name, then the application's.
+  const eyebrow: string = health.status?.appIdentifier
+    ? formatInline(
+        [
+          translateLine("Recording health", translator),
+          health.status.appIdentifier,
+        ],
+        translator,
+      )
+    : translateLine("Recording health", translator);
 
   return (
     <section
@@ -265,10 +339,7 @@ function HealthHero(props: {
             <p
               className={`text-xs font-semibold uppercase tracking-wide ${style.text} opacity-75`}
             >
-              Recording health
-              {health.status?.appIdentifier
-                ? ` · ${health.status.appIdentifier}`
-                : ""}
+              {eyebrow}
             </p>
             <h2
               className="mt-1 text-lg font-semibold leading-snug text-gray-900 sm:text-xl"
@@ -276,7 +347,16 @@ function HealthHero(props: {
             >
               {title}
             </h2>
-            <span className="sr-only" data-testid="health-level">
+            {/*
+             * The state word the E2E suites read, as the code names the
+             * state. Hidden from assistive technology as well: the title
+             * says the same in the reader's words.
+             */}
+            <span
+              className="sr-only"
+              data-testid="health-level"
+              aria-hidden="true"
+            >
               {level}
             </span>
             <p
@@ -290,7 +370,11 @@ function HealthHero(props: {
                 className="mt-1 text-xs text-gray-500"
                 data-testid="health-error-message"
               >
-                Server said: {health.error.message}
+                {translator.translateTemplate(
+                  "Server said: {{message}}",
+                  { message: health.error.message },
+                  { setsValuesApart: true },
+                )}
               </p>
             )}
             {!health.isLoading && !hasNoStatus && health.diagnosis.action && (
@@ -322,8 +406,8 @@ function HealthHero(props: {
           >
             {updatedCopy}
             <span className="max-sm:hidden sm:inline">
-              {" "}
-              · refreshes {describePollInterval(props.pollIntervalMs)}
+              {getInlineSeparator(translator.language)}
+              {describePollInterval(props.pollIntervalMs, translator)}
             </span>
           </p>
         </div>
@@ -336,13 +420,12 @@ function HealthHero(props: {
         >
           <Icon icon={IconProp.Alert} className="h-3.5 w-3.5 shrink-0" />
           <span>
-            The last refresh failed (
-            {describeHealthError(health.error).title.toLowerCase()}); showing
-            the status read{" "}
-            {health.fetchedAtUnixMs === null
-              ? "earlier"
-              : formatRelativeAge(health.fetchedAtUnixMs, health.nowUnixMs)}
-            .
+            {describeStaleHealthRead(
+              health.error,
+              health.fetchedAtUnixMs,
+              health.nowUnixMs,
+              translator,
+            )}
           </span>
         </div>
       )}
@@ -370,19 +453,22 @@ export const PIPELINE_STAGE_TOOLTIPS: Record<
 function RecordingPipeline(props: {
   stages: Array<RecordingPipelineStage>;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <section
       className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
       data-testid="health-pipeline"
-      aria-label="Recording pipeline"
+      aria-label={translator.translateText("Recording pipeline")}
     >
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-gray-100 px-5 py-3 sm:px-6">
         <h3 className="text-sm font-semibold text-gray-900">
-          From page load to playable session
+          {translator.translateText("From page load to playable session")}
         </h3>
         <p className="text-xs text-gray-500">
-          Read left to right: the first amber or red step is where recordings
-          stop.
+          {translator.translateText(
+            "Read left to right: the first amber or red step is where recordings stop.",
+          )}
         </p>
       </header>
       <ol className="grid grid-cols-1 gap-px bg-gray-100 sm:grid-cols-2 xl:grid-cols-4">
@@ -404,11 +490,11 @@ function RecordingPipeline(props: {
                 />
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[11px] font-semibold text-gray-600">
-                    {index + 1}
+                    {translator.formatNumber(index + 1)}
                   </span>
                   <span className="flex min-w-0 flex-1 items-center gap-1">
                     <span className="min-w-0 truncate text-xs font-medium uppercase tracking-wide text-gray-500">
-                      {stage.label}
+                      {translator.translateText(stage.label)}
                     </span>
                     <InfoTooltip
                       label={stage.label}
@@ -420,7 +506,9 @@ function RecordingPipeline(props: {
                     icon={tone.icon}
                     className={`h-4 w-4 shrink-0 ${tone.iconClassName}`}
                   />
-                  <span className="sr-only">{stage.tone}</span>
+                  <span className="sr-only">
+                    {translator.translateText(TONE_LABELS[stage.tone])}
+                  </span>
                 </div>
                 <p
                   className={`mt-3 text-2xl font-semibold tabular-nums ${tone.valueClassName}`}
@@ -450,6 +538,12 @@ function RecordingPipeline(props: {
 
 /* ------------------------------------------------------------- Uploads */
 
+/*
+ * Refusals or drops by reason. Its title, hint and "none" line are English
+ * literals, looked up here; the rows' labels come from the model in the
+ * reader's language, and a reason the model has no words for is drawn as
+ * the server wrote it.
+ */
 function CounterList(props: {
   title: string;
   hint: string;
@@ -461,12 +555,13 @@ function CounterList(props: {
   barClassName: string;
 }): ReactElement {
   const { breakdown } = props;
+  const translator: Translator = useTranslator();
 
   return (
     <div data-testid={props.dataTestId} data-kind={breakdown.kind}>
       <div className="flex items-baseline justify-between gap-3">
         <h4 className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
-          {props.title}
+          {translator.translateText(props.title)}
           <InfoTooltip
             label={props.title}
             text={props.tooltip}
@@ -478,25 +573,31 @@ function CounterList(props: {
             className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-700"
             data-testid={`${props.dataTestId}-total`}
           >
-            {formatCountForCopy(breakdown.total)} total
+            {translator.translateTemplate("{{count}} total", {
+              count: formatCountForCopy(breakdown.total, translator),
+            })}
           </span>
         )}
       </div>
       <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
-        {props.hint}
+        {translator.translateText(props.hint)}
       </p>
 
       {breakdown.kind === "unknown" && (
         <div className="mt-3 flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-sm text-gray-600">
           <Icon icon={IconProp.Info} className="h-4 w-4 shrink-0" />
-          <span>Unknown: the counter store was unreachable.</span>
+          <span>
+            {translator.translateText(
+              "Unknown: the counter store was unreachable.",
+            )}
+          </span>
         </div>
       )}
 
       {breakdown.kind === "none" && (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800">
           <Icon icon={IconProp.CheckCircle} className="h-4 w-4 shrink-0" />
-          <span>{props.noneCopy}</span>
+          <span>{translator.translateText(props.noneCopy)}</span>
         </div>
       )}
 
@@ -519,7 +620,7 @@ function CounterList(props: {
                     )}
                   </span>
                   <span className="shrink-0 font-semibold tabular-nums text-gray-900">
-                    {formatCountForCopy(row.count)}
+                    {formatCountForCopy(row.count, translator)}
                   </span>
                 </div>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100">
@@ -539,6 +640,10 @@ function CounterList(props: {
 
 /* ------------------------------------------------------------- Storage */
 
+/*
+ * One byte budget. Its label and "no limit" line are English literals,
+ * looked up here; the figures come from the model written the reader's way.
+ */
 function UsageMeterRow(props: {
   label: string;
   /* Which bytes, which window and which ceiling, in an (i) beside the label. */
@@ -548,6 +653,7 @@ function UsageMeterRow(props: {
   dataTestId: string;
 }): ReactElement {
   const { meter } = props;
+  const translator: Translator = useTranslator();
 
   return (
     <div
@@ -557,7 +663,7 @@ function UsageMeterRow(props: {
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
-          {props.label}
+          {translator.translateText(props.label)}
           <InfoTooltip
             label={props.label}
             text={props.tooltip}
@@ -568,35 +674,44 @@ function UsageMeterRow(props: {
           <span
             className={`text-sm font-semibold tabular-nums ${TONE_STYLES[meter.tone].valueClassName}`}
           >
-            {meter.percent}%
+            {translator.formatNumber(meter.percent)}%
           </span>
         )}
       </div>
 
       {meter.kind === "unknown" && (
         <p className="mt-1 text-sm text-gray-600">
-          Unknown: the usage counter was unreachable.
+          {translator.translateText(
+            "Unknown: the usage counter was unreachable.",
+          )}
         </p>
       )}
 
       {meter.kind === "unlimited" && (
         <>
           <p className="mt-1 text-sm tabular-nums text-gray-700">
-            {meter.usedCopy} used
+            {translator.translateTemplate("{{used}} used", {
+              used: meter.usedCopy,
+            })}
           </p>
-          <p className="mt-0.5 text-xs text-gray-500">{props.noLimitCopy}</p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {translator.translateText(props.noLimitCopy)}
+          </p>
         </>
       )}
 
       {meter.kind === "limited" && (
         <>
           <p className="mt-0.5 text-xs tabular-nums text-gray-500">
-            {meter.usedCopy} of {meter.limitCopy}
+            {translator.translateTemplate("{{used}} of {{limit}}", {
+              used: meter.usedCopy,
+              limit: meter.limitCopy,
+            })}
           </p>
           <div
             className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100"
             role="progressbar"
-            aria-label={props.label}
+            aria-label={translator.translateText(props.label)}
             aria-valuenow={meter.percent}
             aria-valuemin={0}
             aria-valuemax={100}
@@ -614,18 +729,21 @@ function UsageMeterRow(props: {
 
 /* -------------------------------------------------------------- Policy */
 
+// One setting of the policy; its label is an English literal, looked up here.
 function DefinitionRow(props: {
   label: string;
   dataTestId: string;
   children: ReactNode;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div
       className="grid grid-cols-1 gap-1 py-2.5 sm:grid-cols-3 sm:gap-4"
       data-testid={props.dataTestId}
     >
       <dt className="text-xs font-medium text-gray-500 sm:pt-0.5">
-        {props.label}
+        {translator.translateText(props.label)}
       </dt>
       <dd className="min-w-0 text-sm text-gray-900 sm:col-span-2">
         {props.children}
@@ -651,19 +769,28 @@ function Chips(props: { values: Array<string> }): ReactElement {
   );
 }
 
-function describeSwitch(status: RecordingHealthStatus): {
+function describeSwitch(
+  status: RecordingHealthStatus,
+  translator: Translator,
+): {
   text: string;
   tone: HealthTone;
 } {
   if (!status.policy.isProjectEnabled) {
-    return { text: "Off for the project", tone: "error" };
+    return {
+      text: translateLine("Off for the project", translator),
+      tone: "error",
+    };
   }
 
   if (!status.policy.isApplicationEnabled) {
-    return { text: "Off for this application", tone: "error" };
+    return {
+      text: translateLine("Off for this application", translator),
+      tone: "error",
+    };
   }
 
-  return { text: "On", tone: "ok" };
+  return { text: translateLine("On", translator), tone: "ok" };
 }
 
 function PolicyPanel(props: {
@@ -671,7 +798,11 @@ function PolicyPanel(props: {
   status: RecordingHealthStatus;
 }): ReactElement {
   const { status } = props;
-  const recording: { text: string; tone: HealthTone } = describeSwitch(status);
+  const translator: Translator = useTranslator();
+  const recording: { text: string; tone: HealthTone } = describeSwitch(
+    status,
+    translator,
+  );
 
   return (
     <HealthPanel
@@ -698,23 +829,38 @@ function PolicyPanel(props: {
           </span>
         </DefinitionRow>
         <DefinitionRow label="Uploads when" dataTestId="health-policy-trigger">
-          {labelEnum(CAPTURE_TRIGGER_LABELS, status.policy.captureTrigger)}
+          {labelEnum(
+            CAPTURE_TRIGGER_LABELS,
+            status.policy.captureTrigger,
+            translator,
+          )}
         </DefinitionRow>
         <DefinitionRow label="Sampling" dataTestId="health-policy-sampling">
           <span className="tabular-nums">
-            {status.policy.samplePercentage}%
+            {translator.formatNumber(status.policy.samplePercentage)}%
           </span>
         </DefinitionRow>
         <DefinitionRow label="Consent" dataTestId="health-policy-consent">
-          {labelEnum(CONSENT_MODE_LABELS, status.policy.consentMode)}
+          {labelEnum(
+            CONSENT_MODE_LABELS,
+            status.policy.consentMode,
+            translator,
+          )}
         </DefinitionRow>
         <DefinitionRow label="Masking" dataTestId="health-policy-masking">
-          {labelEnum(MASKING_MODE_LABELS, status.policy.maskingMode)}
+          {labelEnum(
+            MASKING_MODE_LABELS,
+            status.policy.maskingMode,
+            translator,
+          )}
         </DefinitionRow>
         <DefinitionRow label="Retention" dataTestId="health-policy-retention">
           {status.policy.retentionInDays === null
-            ? "not reported"
-            : `${status.policy.retentionInDays} day${status.policy.retentionInDays === 1 ? "" : "s"}`}
+            ? translator.translateText("not reported")
+            : translator.translatePlural(
+                { one: "{{count}} day", other: "{{count}} days" },
+                status.policy.retentionInDays,
+              )}
         </DefinitionRow>
         <DefinitionRow
           label="Allowed origins"
@@ -722,7 +868,7 @@ function PolicyPanel(props: {
         >
           {status.allowedOrigins.length === 0 ? (
             <span className="text-amber-700">
-              Any origin the ingestion key allows
+              {translator.translateText("Any origin the ingestion key allows")}
             </span>
           ) : (
             <Chips values={status.allowedOrigins} />
@@ -740,44 +886,61 @@ function PolicyPanel(props: {
  * when a visitor is running an older, long-lived page, so its null copy has
  * to name WHICH silence it is looking at. "unknown" for both causes read as a
  * bug on every application that had simply never recorded.
+ *
+ * In the translator's language; English, word for word, without one. The
+ * capabilities themselves are the recorder's own words, kept as written.
  */
 export function describeRecorderCapabilities(
   status: RecordingHealthStatus,
   recorderCapabilities: Array<string> | null,
+  translator: Translator = ENGLISH,
 ): { value: Array<string> | string; hint: string } {
+  const translate: (text: string) => string = (text: string): string => {
+    return translateLine(text, translator);
+  };
   const hasEverRecorded: boolean = status.lastChunkReceivedAt !== null;
 
   if (recorderCapabilities === null) {
     if (!hasEverRecorded) {
       return {
-        value: "not reported yet",
-        hint: "Announced on a session's first chunk. No chunk has arrived for this application yet, so there is no recorder to read them from.",
+        value: translate("not reported yet"),
+        hint: translate(
+          "Announced on a session's first chunk. No chunk has arrived for this application yet, so there is no recorder to read them from.",
+        ),
       };
     }
 
     if (status.publishedRecorderVersion === null) {
       return {
-        value: "not reported",
-        hint: "Capabilities are announced on a session's first chunk, but the newest recording announced none and this deployment did not report a current recorder artifact to reload.",
+        value: translate("not reported"),
+        hint: translate(
+          "Capabilities are announced on a session's first chunk, but the newest recording announced none and this deployment did not report a current recorder artifact to reload.",
+        ),
       };
     }
 
     return {
-      value: "not reported",
-      hint: "Capabilities are announced on a session's first chunk, and nothing announced them here: the newest recording came from an older recorder, possibly on a page opened before the current deployment. A reload fetches the latest artifact.",
+      value: translate("not reported"),
+      hint: translate(
+        "Capabilities are announced on a session's first chunk, and nothing announced them here: the newest recording came from an older recorder, possibly on a page opened before the current deployment. A reload fetches the latest artifact.",
+      ),
     };
   }
 
   if (recorderCapabilities.length === 0) {
     return {
-      value: "none announced",
-      hint: "The newest session's recorder uploaded without announcing any capability.",
+      value: translate("none announced"),
+      hint: translate(
+        "The newest session's recorder uploaded without announcing any capability.",
+      ),
     };
   }
 
   return {
     value: recorderCapabilities,
-    hint: "Read from the newest session's first chunk. Long-lived pages can keep an older recorder until they reload and fetch the latest artifact.",
+    hint: translate(
+      "Read from the newest session's first chunk. Long-lived pages can keep an older recorder until they reload and fetch the latest artifact.",
+    ),
   };
 }
 
@@ -786,8 +949,13 @@ function RecorderPanel(props: {
   recorderCapabilities: Array<string> | null;
 }): ReactElement {
   const { status } = props;
+  const translator: Translator = useTranslator();
   const capabilities: { value: Array<string> | string; hint: string } =
-    describeRecorderCapabilities(status, props.recorderCapabilities);
+    describeRecorderCapabilities(
+      status,
+      props.recorderCapabilities,
+      translator,
+    );
 
   return (
     <HealthPanel
@@ -799,14 +967,17 @@ function RecorderPanel(props: {
       <div className="space-y-4">
         <div data-testid="health-recorder-version">
           <p className="text-xs font-medium text-gray-500">
-            Published recorder
+            {translator.translateText("Published recorder")}
           </p>
           {status.publishedRecorderVersion === null ? (
             <>
-              <p className="mt-1 text-sm text-gray-700">not reported</p>
+              <p className="mt-1 text-sm text-gray-700">
+                {translator.translateText("not reported")}
+              </p>
               <p className="mt-0.5 text-xs text-gray-500">
-                Either this deployment builds no recorder artifact, or the
-                server did not say.
+                {translator.translateText(
+                  "Either this deployment builds no recorder artifact, or the server did not say.",
+                )}
               </p>
             </>
           ) : (
@@ -815,15 +986,16 @@ function RecorderPanel(props: {
                 {status.publishedRecorderVersion}
               </p>
               <p className="mt-0.5 text-xs text-gray-500">
-                The artifact label the /config route hands out to new page
-                loads. Runtime chunks still report their exact build version.
+                {translator.translateText(
+                  "The artifact label the /config route hands out to new page loads. Runtime chunks still report their exact build version.",
+                )}
               </p>
             </>
           )}
         </div>
         <div data-testid="health-capabilities">
           <p className="text-xs font-medium text-gray-500">
-            Capabilities (newest session)
+            {translator.translateText("Capabilities (newest session)")}
           </p>
           <div className="mt-1.5">
             {typeof capabilities.value === "string" ? (
@@ -877,16 +1049,23 @@ export const RecordingHealthDashboardView: FunctionComponent<
   RecordingHealthDashboardViewProps
 > = (props: RecordingHealthDashboardViewProps): ReactElement => {
   const { health } = props;
+  const translator: Translator = useTranslator();
   const status: RecordingHealthStatus | null = health.isLoading
     ? null
     : health.status;
 
-  const stages: Array<RecordingPipelineStage> =
-    useMemo((): Array<RecordingPipelineStage> => {
-      return status
-        ? buildRecordingPipeline(status, health.diagnosis, health.nowUnixMs)
-        : [];
-    }, [status, health.diagnosis, health.nowUnixMs]);
+  /*
+   * Built on every render, in the reader's language: four stages are
+   * cheap, and a language switch has to reach them.
+   */
+  const stages: Array<RecordingPipelineStage> = status
+    ? buildRecordingPipeline(
+        status,
+        health.diagnosis,
+        health.nowUnixMs,
+        translator,
+      )
+    : [];
 
   /*
    * "Set up alerts" rides on the same fact that makes the Recommendations
@@ -936,8 +1115,13 @@ export const RecordingHealthDashboardView: FunctionComponent<
                   tooltip={
                     RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.refusedAtGate
                   }
-                  noneCopy="No upload was refused in the last 24 hours."
-                  breakdown={buildCounterBreakdown(status.refusalsLast24h)}
+                  noneCopy={translationKey(
+                    "No upload was refused in the last 24 hours.",
+                  )}
+                  breakdown={buildCounterBreakdown(
+                    status.refusalsLast24h,
+                    translator,
+                  )}
                   dataTestId="health-refusals"
                   barClassName="bg-amber-400"
                 />
@@ -947,8 +1131,13 @@ export const RecordingHealthDashboardView: FunctionComponent<
                   tooltip={
                     RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.droppedAfterAcceptance
                   }
-                  noneCopy="No accepted chunk was dropped in the last 24 hours."
-                  breakdown={buildCounterBreakdown(health.extras.dropsLast24h)}
+                  noneCopy={translationKey(
+                    "No accepted chunk was dropped in the last 24 hours.",
+                  )}
+                  breakdown={buildCounterBreakdown(
+                    health.extras.dropsLast24h,
+                    translator,
+                  )}
                   dataTestId="health-drops"
                   barClassName="bg-rose-400"
                 />
@@ -993,8 +1182,11 @@ export const RecordingHealthDashboardView: FunctionComponent<
                   meter={buildUsageMeter(
                     status.projectBytesUsedToday,
                     status.dailyByteLimit,
+                    translator,
                   )}
-                  noLimitCopy="No daily limit is set on this deployment."
+                  noLimitCopy={translationKey(
+                    "No daily limit is set on this deployment.",
+                  )}
                   dataTestId="health-meter-project-day"
                 />
                 <UsageMeterRow
@@ -1007,8 +1199,11 @@ export const RecordingHealthDashboardView: FunctionComponent<
                     status.monthlyBudgetInGB === null
                       ? null
                       : status.monthlyBudgetInGB * 1024 * 1024 * 1024,
+                    translator,
                   )}
-                  noLimitCopy="No monthly budget is set (0 or blank means no ceiling)."
+                  noLimitCopy={translationKey(
+                    "No monthly budget is set (0 or blank means no ceiling).",
+                  )}
                   dataTestId="health-meter-app-month"
                 />
               </div>

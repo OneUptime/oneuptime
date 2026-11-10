@@ -2,8 +2,9 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
@@ -23,6 +24,7 @@ export interface SessionReplayAuditSessionLinkProps {
 const SessionReplayAuditSessionLink: FunctionComponent<
   SessionReplayAuditSessionLinkProps
 > = (props: SessionReplayAuditSessionLinkProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const sessionId: string = props.sessionId?.trim() || "";
 
   if (!sessionId) {
@@ -40,23 +42,25 @@ const SessionReplayAuditSessionLink: FunctionComponent<
     });
   const startedAt: Date | null = presentation.startedAt;
   /*
-   * In English, as the rest of the link and the audit log around it still
-   * are, its times too.
+   * When it was recorded, in the reader's language: the time goes into a
+   * looked-up sentence, so it is written in the sentence's language.
    */
   const context: Array<string> = [
     startedAt
-      ? inEnglishDates((): string => {
-          return `Recorded ${OneUptimeDate.fromNow(startedAt)}`;
+      ? translator.translateTemplate("Recorded {{age}}", {
+          age: OneUptimeDate.fromNow(startedAt),
         })
       : "",
     presentation.durationLabel,
     presentation.deviceLabel,
   ].filter(Boolean);
   const hoverDetails: string = [
-    `Session ${presentation.fullSessionId}`,
+    translator.translateTemplate("Session {{id}}", {
+      id: presentation.fullSessionId,
+    }),
     startedAt
-      ? inEnglishDates((): string => {
-          return `Recorded ${OneUptimeDate.getDateAsLocalFormattedString(startedAt)}`;
+      ? translator.translateTemplate("Recorded {{date}}", {
+          date: OneUptimeDate.getDateAsLocalFormattedString(startedAt),
         })
       : "",
     props.summary?.entryUrl || "",
@@ -92,14 +96,16 @@ const SessionReplayAuditSessionLink: FunctionComponent<
             className="mt-0.5 block truncate text-xs text-gray-500"
             data-testid="audit-session-context"
           >
-            {context.join(" · ")}
+            {formatInline(context, translator)}
           </span>
         )}
         <span className="mt-1 inline-flex rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-gray-600">
           {presentation.sessionLabel}
         </span>
         <span className="sr-only">
-          {`Full session ID ${presentation.fullSessionId}`}
+          {translator.translateTemplate("Full session ID {{id}}", {
+            id: presentation.fullSessionId,
+          })}
         </span>
       </span>
     </AppLink>

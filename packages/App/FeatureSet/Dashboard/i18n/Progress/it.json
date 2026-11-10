@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48448,
-    "untranslated": 10621
+    "keys": 49075,
+    "untranslated": 10195
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -322,6 +322,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Viewport",
     "Vital",
     "Volume",
     "Web",
@@ -448,6 +449,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{controlPlane}} control plane, {{workers}}",
     "{{count}} B",
     "{{count}} CPU",
@@ -472,6 +474,7 @@
     "{{count}} host",
     "{{count}} hypervisor",
     "{{count}} load balancer",
+    "{{count}} log",
     "{{count}} manager",
     "{{count}} mon",
     "{{count}} placement group",
@@ -496,6 +499,7 @@
     "{{minutes}} min",
     "{{observation}} in {{readings}}",
     "{{size}} in {{duration}}",
-    "{{up}}/{{count}} OSD up"
+    "{{up}}/{{count}} OSD up",
+    "{{value}} ms"
   ]
 }

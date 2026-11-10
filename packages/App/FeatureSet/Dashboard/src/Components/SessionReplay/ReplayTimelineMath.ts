@@ -2,6 +2,18 @@ import {
   SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS,
   SessionReplayGap,
 } from "Common/Types/Rum/SessionReplay";
+import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatInline,
+  PluralTemplate,
+  TemplateValues,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import { ReplayIdleBand } from "./Engine/ReplayEngineTypes";
 import {
   ReplaySignal,
@@ -26,7 +38,59 @@ import { formatReplayDuration, formatReplayOffset } from "./ReplayTimeFormat";
  * it the moment the chunk lands. Coarse markers are hollow, sit at the
  * chunk midpoint and say so in their title, because the old scrubber drew
  * them as solid ticks with a to-the-second time for a +-7.5s estimate.
+ *
+ * WORDS. Every sentence this file writes is in the reader's language when
+ * the caller hands its Translator in (the player passes useTranslator()),
+ * and in English, word for word as it always was, without one - what a
+ * node test gets. A band's label is worded again where the timeline draws
+ * it (describeTrackBandLabel), from the length the band carries, so the
+ * sentence that names the band and the label inside it are always in one
+ * language.
  */
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+function isEnglish(translator: Translator): boolean {
+  return (translator.language || DEFAULT_LANGUAGE)
+    .toLowerCase()
+    .startsWith(DEFAULT_LANGUAGE);
+}
+
+/*
+ * A length of time as formatReplayDuration writes it ("18s", "1m 12s",
+ * "2h 5m"), in the translator's language: word for word in English, and in
+ * the units another language abbreviates with ("18 Sek.", "1 Min., 12
+ * Sek.") through formatDurationCompactInLanguage. Inside a sentence it goes
+ * in as a composedValue, so it is written in the sentence's language.
+ */
+export function formatReplayDurationInLanguage(
+  durationMs: number,
+  translator: Translator = ENGLISH,
+): string {
+  if (isEnglish(translator)) {
+    return formatReplayDuration(durationMs);
+  }
+
+  if (!Number.isFinite(durationMs) || durationMs <= 0) {
+    return formatDurationCompactInLanguage(0, translator.language);
+  }
+
+  const totalSeconds: number = Math.round(durationMs / 1000);
+
+  /* "<1s": a stretch that exists is never labelled as nothing. */
+  if (totalSeconds < 1) {
+    return `<${formatDurationCompactInLanguage(1, translator.language)}`;
+  }
+
+  return formatDurationCompactInLanguage(totalSeconds, translator.language);
+}
+
+/* The same length, as a value of a sentence: in the sentence's language. */
+function durationValue(durationMs: number): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return formatReplayDurationInLanguage(durationMs, sentence);
+  });
+}
 
 /* Subset of SessionReplayChunkManifestEntry the timeline reads. */
 export interface ReplayTimelineChunkInput {
@@ -113,15 +177,31 @@ export interface ReplayTrackBand {
   endMs: number;
   /*
    * Accessible name and inline label: "18s missing", "42s idle",
-   * "23m paused".
+   * "23m paused". In English: the timeline draws a gap, idle,
+   * background-tab or paused band's label in the reader's language from
+   * lengthMs (describeTrackBandLabel), and draws no loaded or available
+   * band's label at all.
    */
   label: string;
+  /*
+   * The length the label states: the manifest's missingMs for a gap, the
+   * clipped stretch for an idle, background-tab or paused band. Absent on
+   * a loaded or available band, and on a band built before it existed,
+   * whose label is then drawn as given.
+   */
+  lengthMs?: number | undefined;
   /*
    * Idle, background-tab and paused bands only: coarse (from counters) or
    * exact (from decoded events). Paused bands are always exact.
    */
   fidelity?: "coarse" | "exact" | undefined;
 }
+
+/* The bands drawn full height over the track, each with a label. */
+export type ReplayTrackLabelledBandKind = Exclude<
+  ReplayTrackBandKind,
+  "loaded" | "available"
+>;
 
 export interface ReplayTrackBandsInput {
   chunks: Array<ReplayTimelineChunkInput>;
@@ -229,7 +309,8 @@ export function buildTrackBands(
       kind: "gap",
       startMs: startMs,
       endMs: endMs,
-      label: `${formatReplayDuration(missingMs)} missing`,
+      label: describeTrackBandLabel("gap", missingMs),
+      lengthMs: missingMs,
     });
   }
 
@@ -241,13 +322,12 @@ export function buildTrackBands(
       continue;
     }
 
-    const lengthLabel: string = formatReplayDuration(endMs - startMs);
-
     bands.push({
       kind: band.kind,
       startMs: startMs,
       endMs: endMs,
-      label: describeInactivityBand(band.kind, lengthLabel),
+      label: describeTrackBandLabel(band.kind, endMs - startMs),
+      lengthMs: endMs - startMs,
       fidelity: band.fidelity,
     });
   }
@@ -256,27 +336,56 @@ export function buildTrackBands(
 }
 
 /*
- * The inline label for an engine band, by kind. A paused stretch is
- * named for what it is - capture stopped - rather than as idle: there is
- * nothing in it to watch, and playback jumps it.
+ * The inline label of a full-height band, by kind: "18s missing", "tab in
+ * background 5s", "23m paused", "42s idle". A paused stretch is named for
+ * what it is - capture stopped - rather than as idle: there is nothing in
+ * it to watch, and playback jumps it. In the translator's language, its
+ * length too; English without one.
  */
-function describeInactivityBand(
-  kind: ReplayIdleBand["kind"],
-  lengthLabel: string,
+export function describeTrackBandLabel(
+  kind: ReplayTrackLabelledBandKind,
+  lengthMs: number,
+  translator: Translator = ENGLISH,
 ): string {
+  const values: TemplateValues = { duration: durationValue(lengthMs) };
+
   switch (kind) {
+    case "gap":
+      return translator.translateTemplate("{{duration}} missing", values);
     case "background-tab":
-      return `tab in background ${lengthLabel}`;
+      return translator.translateTemplate(
+        "tab in background {{duration}}",
+        values,
+      );
     case "paused":
-      return `${lengthLabel} paused`;
+      return translator.translateTemplate("{{duration}} paused", values);
     case "idle":
-      return `${lengthLabel} idle`;
+      return translator.translateTemplate("{{duration}} idle", values);
     default: {
       /* Exhaustiveness: a new band kind needs its own words. */
       const unreachable: never = kind;
       return unreachable;
     }
   }
+}
+
+/*
+ * A band's label as the timeline draws it: worded from its length in the
+ * translator's language, or as given when the band carries no length.
+ */
+export function describeTrackBand(
+  band: ReplayTrackBand,
+  translator: Translator = ENGLISH,
+): string {
+  if (
+    band.kind === "loaded" ||
+    band.kind === "available" ||
+    typeof band.lengthMs !== "number"
+  ) {
+    return band.label;
+  }
+
+  return describeTrackBandLabel(band.kind, band.lengthMs, translator);
 }
 
 /* ---- Activity heat. ---- */
@@ -367,11 +476,12 @@ export const REPLAY_TIMELINE_LANES: ReadonlyArray<ReplayTimelineLane> = [
   "navigation",
 ];
 
+/* English keys: the timeline looks each one up where it draws it. */
 export const REPLAY_TIMELINE_LANE_LABELS: Record<ReplayTimelineLane, string> = {
-  errors: "Errors",
-  network: "Network",
-  navigation: "Nav / clicks",
-  track: "Recording",
+  errors: translationKey("Errors"),
+  network: translationKey("Network"),
+  navigation: translationKey("Nav / clicks"),
+  track: translationKey("Recording"),
 };
 
 /*
@@ -420,15 +530,21 @@ function readBoolean(detail: Record<string, unknown>, key: string): boolean {
   return detail[key] === true;
 }
 
-function markerTitle(signal: ReplaySignal): string {
+/*
+ * "0:37 TypeError: x is undefined": the time, then the signal's own title
+ * as the rail wrote it. An unanchored row says it is placed by server time.
+ */
+function markerTitle(signal: ReplaySignal, translator: Translator): string {
   const time: string = formatReplayOffset(signal.offsetMs);
-  const base: string = `${time} ${signal.title}`;
 
   if (signal.alignment === "unanchored") {
-    return `${base} (server time; not aligned to the recording clock)`;
+    return translator.translateTemplate(
+      "{{time}} {{title}} (server time; not aligned to the recording clock)",
+      { time: time, title: signal.title },
+    );
   }
 
-  return base;
+  return `${time} ${signal.title}`;
 }
 
 /*
@@ -515,6 +631,7 @@ export function assignMarkerLane(
 
 export function buildExactMarkers(
   signals: Array<ReplaySignal>,
+  translator: Translator = ENGLISH,
 ): Array<ReplayTimelineMarker> {
   const markers: Array<ReplayTimelineMarker> = [];
 
@@ -534,7 +651,7 @@ export function buildExactMarkers(
       offsetMs: Math.max(0, signal.offsetMs),
       kind: signal.kind,
       severity: signal.severity,
-      title: markerTitle(signal),
+      title: markerTitle(signal, translator),
       tone: placement.tone,
       fidelity: "exact",
       isHollow: signal.alignment === "unanchored",
@@ -549,60 +666,78 @@ export function buildExactMarkers(
 /*
  * Only the non-zero counters, so one dead click reads "1 dead click" and
  * not "0 rage · 1 dead · 0 error clicks · 0 refresh rage" (finding 22).
+ * Each count in the translator's plural, set off from the next the way
+ * its language does (formatInline).
  */
 export function describeFrustrationCounters(
   chunk: ReplayTimelineChunkInput,
+  translator: Translator = ENGLISH,
 ): string | null {
   const parts: Array<string> = [];
 
-  const push: (count: number, singular: string, plural: string) => void = (
+  const push: (count: number, template: PluralTemplate) => void = (
     count: number,
-    singular: string,
-    plural: string,
+    template: PluralTemplate,
   ): void => {
     if (count > 0) {
-      parts.push(`${count} ${count === 1 ? singular : plural}`);
+      parts.push(translator.translatePlural(template, count));
     }
   };
 
-  push(chunk.rageClickCount, "rage click", "rage clicks");
-  push(chunk.deadClickCount, "dead click", "dead clicks");
-  push(chunk.errorClickCount, "error click", "error clicks");
-  push(chunk.refreshRageCount, "refresh rage", "refresh rages");
-  push(
-    chunk.customSignalFrustrationCount ?? 0,
-    "signal of your own",
-    "signals of your own",
-  );
+  push(chunk.rageClickCount, {
+    one: "{{count}} rage click",
+    other: "{{count}} rage clicks",
+  });
+  push(chunk.deadClickCount, {
+    one: "{{count}} dead click",
+    other: "{{count}} dead clicks",
+  });
+  push(chunk.errorClickCount, {
+    one: "{{count}} error click",
+    other: "{{count}} error clicks",
+  });
+  push(chunk.refreshRageCount, {
+    one: "{{count}} refresh rage",
+    other: "{{count}} refresh rages",
+  });
+  push(chunk.customSignalFrustrationCount ?? 0, {
+    one: "{{count}} signal of your own",
+    other: "{{count}} signals of your own",
+  });
 
-  return parts.length > 0 ? parts.join(" · ") : null;
+  return parts.length > 0 ? formatInline(parts, translator) : null;
 }
 
-const COARSE_SUFFIX: string = "approximate, chunk not loaded yet";
-
-function coarseTitle(
+/*
+ * What every coarse title puts around its count: "~1:07" (where the
+ * marker sits) and the chunk's length ("15s"), in the sentence's language.
+ */
+function coarseValues(
   chunk: ReplayTimelineChunkInput,
   midpointMs: number,
-  what: string,
-): string {
-  const windowLabel: string = formatReplayDuration(
-    Math.max(0, chunk.chunkEndOffsetMs - chunk.chunkStartOffsetMs),
-  );
-
-  return `~${formatReplayOffset(
-    midpointMs,
-  )} ${what} in this ${windowLabel} chunk (${COARSE_SUFFIX})`;
+): TemplateValues {
+  return {
+    time: formatReplayOffset(midpointMs),
+    window: durationValue(
+      Math.max(0, chunk.chunkEndOffsetMs - chunk.chunkStartOffsetMs),
+    ),
+  };
 }
 
 /*
  * Counter-derived markers for chunks that are NOT decoded yet. A loaded
  * chunk's counters are ignored here because its exact signals already
  * cover the lane; that is the coarse->exact replacement.
+ *
+ * The title is one whole sentence per counter, its count and noun worded
+ * together: "~1:07 2 errors in this 15s chunk (approximate, chunk not
+ * loaded yet)".
  */
 export function buildCoarseMarkers(
   chunks: Array<ReplayTimelineChunkInput>,
   loadedChunkIndexes: Array<number>,
   durationMs: number,
+  translator: Translator = ENGLISH,
 ): Array<ReplayTimelineMarker> {
   const loaded: Set<number> = new Set<number>(loadedChunkIndexes);
   const markers: Array<ReplayTimelineMarker> = [];
@@ -616,6 +751,7 @@ export function buildCoarseMarkers(
       (chunk.chunkStartOffsetMs + chunk.chunkEndOffsetMs) / 2,
       durationMs,
     );
+    const values: TemplateValues = coarseValues(chunk, midpointMs);
 
     if (chunk.errorCount > 0) {
       markers.push({
@@ -624,10 +760,14 @@ export function buildCoarseMarkers(
         offsetMs: midpointMs,
         kind: "client-error",
         severity: "error",
-        title: coarseTitle(
-          chunk,
-          midpointMs,
-          `${chunk.errorCount} ${chunk.errorCount === 1 ? "error" : "errors"}`,
+        title: translator.translatePlural(
+          {
+            one: "~{{time}} {{count}} error in this {{window}} chunk (approximate, chunk not loaded yet)",
+            other:
+              "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)",
+          },
+          chunk.errorCount,
+          values,
         ),
         tone: "rose",
         fidelity: "coarse",
@@ -636,16 +776,23 @@ export function buildCoarseMarkers(
       });
     }
 
-    const frustration: string | null = describeFrustrationCounters(chunk);
-
-    if (frustration) {
+    if (describeFrustrationCounters(chunk) !== null) {
       markers.push({
         id: `coarse:frustration:${chunk.chunkIndex}`,
         lane: "navigation",
         offsetMs: midpointMs,
         kind: "frustration",
         severity: "warn",
-        title: coarseTitle(chunk, midpointMs, frustration),
+        /* Several counts: a list, worded in the sentence's language. */
+        title: translator.translateTemplate(
+          "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)",
+          {
+            ...values,
+            counts: composedValue((sentence: Translator): string => {
+              return describeFrustrationCounters(chunk, sentence) || "";
+            }),
+          },
+        ),
         tone: "amber",
         fidelity: "coarse",
         isHollow: true,
@@ -670,14 +817,14 @@ export function buildCoarseMarkers(
         offsetMs: midpointMs,
         kind: "custom",
         severity: "info",
-        title: coarseTitle(
-          chunk,
-          midpointMs,
-          `${markerSignalCount} ${
-            markerSignalCount === 1
-              ? "signal of your own"
-              : "signals of your own"
-          }`,
+        title: translator.translatePlural(
+          {
+            one: "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)",
+            other:
+              "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)",
+          },
+          markerSignalCount,
+          values,
         ),
         tone: "gray",
         fidelity: "coarse",
@@ -693,12 +840,14 @@ export function buildCoarseMarkers(
         offsetMs: midpointMs,
         kind: "navigation",
         severity: "info",
-        title: coarseTitle(
-          chunk,
-          midpointMs,
-          `${chunk.routeCount} ${
-            chunk.routeCount === 1 ? "route change" : "route changes"
-          }`,
+        title: translator.translatePlural(
+          {
+            one: "~{{time}} {{count}} route change in this {{window}} chunk (approximate, chunk not loaded yet)",
+            other:
+              "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)",
+          },
+          chunk.routeCount,
+          values,
         ),
         tone: "sky",
         fidelity: "coarse",
@@ -744,16 +893,21 @@ export interface ReplayTimelineMarkersInput {
   durationMs: number;
 }
 
-/* Exact markers first, coarse for undecoded chunks, notices on the track. */
+/*
+ * Exact markers first, coarse for undecoded chunks, notices on the track.
+ * Their titles in the translator's language: the player passes its own.
+ */
 export function buildTimelineMarkers(
   input: ReplayTimelineMarkersInput,
+  translator: Translator = ENGLISH,
 ): Array<ReplayTimelineMarker> {
   const markers: Array<ReplayTimelineMarker> = [
-    ...buildExactMarkers(input.signals),
+    ...buildExactMarkers(input.signals, translator),
     ...buildCoarseMarkers(
       input.chunks,
       input.loadedChunkIndexes,
       input.durationMs,
+      translator,
     ),
     ...buildNoticeMarkers(input.notices || [], input.durationMs),
   ];
@@ -866,8 +1020,14 @@ export function clusterMarkers(
 
 export const REPLAY_CLUSTER_TITLE_LIMIT: number = 5;
 
-/* Tooltip for a pill: the first five, then "and N more". */
-export function describeCluster(cluster: ReplayMarkerCluster): string {
+/*
+ * Tooltip for a pill: the first five, then "and N more" in the
+ * translator's language.
+ */
+export function describeCluster(
+  cluster: ReplayMarkerCluster,
+  translator: Translator = ENGLISH,
+): string {
   const lines: Array<string> = cluster.markers
     .slice(0, REPLAY_CLUSTER_TITLE_LIMIT)
     .map((marker: ReplayTimelineMarker): string => {
@@ -877,7 +1037,12 @@ export function describeCluster(cluster: ReplayMarkerCluster): string {
   const remaining: number = cluster.count - lines.length;
 
   if (remaining > 0) {
-    lines.push(`and ${remaining} more`);
+    lines.push(
+      translator.translatePlural(
+        { one: "and {{count}} more", other: "and {{count}} more" },
+        remaining,
+      ),
+    );
   }
 
   return lines.join("\n");

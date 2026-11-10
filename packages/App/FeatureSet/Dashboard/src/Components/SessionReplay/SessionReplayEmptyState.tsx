@@ -5,8 +5,18 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
 import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
-import { SessionReplayFilterChip } from "./SessionReplayFilterFields";
+import {
+  SESSION_REPLAY_FILTER_FIELDS,
+  SessionReplayFilterChip,
+  SessionReplayFilterField,
+  SessionReplayFilterKind,
+} from "./SessionReplayFilterFields";
 import {
   getRecordingHealthActionLink,
   RecordingHealthActionLink,
@@ -27,6 +37,7 @@ import {
   SessionReplayEmptyVariant,
   SessionReplayListErrorCopy,
   SessionReplayListErrorKind,
+  SessionReplayListFailure,
 } from "./SessionReplayEmptyReason";
 
 /*
@@ -49,9 +60,34 @@ export type {
   SessionReplayEmptyVariant,
   SessionReplayListErrorCopy,
   SessionReplayListErrorKind,
+  SessionReplayListFailure,
 };
 
 /* ---- Chips ---- */
+
+/*
+ * Whether a chip's text is OneUptime's own words, looked up in the reader's
+ * language, rather than a value someone typed or the recorder wrote: a
+ * drop-down's choice ("Desktop", a trigger) and the stand-in for the
+ * pseudonymous key. A drop-down value that matches no choice is shown as
+ * sent, and looking it up finds nothing.
+ */
+export function isSessionReplayChipTextOurWords(
+  chip: SessionReplayFilterChip,
+): boolean {
+  if (chip.field === "identifiedUserKey") {
+    return true;
+  }
+
+  const field: SessionReplayFilterField | undefined =
+    SESSION_REPLAY_FILTER_FIELDS.find(
+      (candidate: SessionReplayFilterField): boolean => {
+        return candidate.field === chip.field;
+      },
+    );
+
+  return field?.kind === SessionReplayFilterKind.Dropdown;
+}
 
 export interface SessionReplayFilterChipListProps {
   chips: Array<SessionReplayFilterChip>;
@@ -66,10 +102,12 @@ export interface SessionReplayFilterChipListProps {
 export const SessionReplayFilterChipList: FunctionComponent<
   SessionReplayFilterChipListProps
 > = (props: SessionReplayFilterChipListProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <ul
       className="flex flex-wrap items-center gap-2"
-      aria-label="Applied filters"
+      aria-label={translator.translateText("Applied filters")}
       data-testid="session-filter-chips"
     >
       {props.chips.map((chip: SessionReplayFilterChip): ReactElement => {
@@ -80,12 +118,22 @@ export const SessionReplayFilterChipList: FunctionComponent<
             data-field={chip.field}
             className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 py-1 pl-3 pr-1 text-xs text-gray-700"
           >
-            <span className="font-medium">{chip.label}</span>
-            <span className="text-gray-500">{chip.text}</span>
+            {/* The field's name, as the filter form and the chips name it. */}
+            <span className="font-medium">
+              {translator.translateText(chip.label)}
+            </span>
+            <span className="text-gray-500">
+              {isSessionReplayChipTextOurWords(chip)
+                ? translator.translateText(chip.text)
+                : chip.text}
+            </span>
             <button
               type="button"
               className="ml-1 rounded-full p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700"
-              aria-label={`Remove ${chip.label} filter`}
+              aria-label={translator.translateTemplate(
+                "Remove {{filter}} filter",
+                { filter: translatableTerm(chip.label) },
+              )}
               onClick={(): void => {
                 props.onRemoveChip(chip.field);
               }}
@@ -249,17 +297,22 @@ export interface SessionReplayEmptyStateProps {
 const SessionReplayEmptyState: FunctionComponent<
   SessionReplayEmptyStateProps
 > = (props: SessionReplayEmptyStateProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const health: SessionReplayHealthSnapshot = useSessionReplayHealth(
     props.rumApplicationId,
   );
 
-  const reason: SessionReplayEmptyReason | null = getEmptyReason({
-    ...props.context,
-    health: health.isLoading
-      ? null
-      : { status: health.status, diagnosis: health.diagnosis },
-    nowUnixMs: health.nowUnixMs,
-  });
+  // Every sentence of ours in the reader's language.
+  const reason: SessionReplayEmptyReason | null = getEmptyReason(
+    {
+      ...props.context,
+      health: health.isLoading
+        ? null
+        : { status: health.status, diagnosis: health.diagnosis },
+      nowUnixMs: health.nowUnixMs,
+    },
+    translator,
+  );
 
   if (!reason) {
     return <></>;
