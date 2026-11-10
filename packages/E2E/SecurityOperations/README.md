@@ -442,7 +442,8 @@ ClickHouse matches the search the page compiles.
 kept as it was, one the case keeps already left alone. CASE-138 keeps one of the PowerShell events,
 found by the first hunt. The project's Slack page holds two rules (`WorkspaceNotificationRule`, in
 `Fixture.js` beside the connected Slack): New cases to #soc under Security Case Rules, and
-PowerShell finds to #threat-hunting under Hunt Rules (Security Hunt Name contains PowerShell);
+PowerShell finds to #threat-hunting under Hunt Rules (Security Hunt Name contains PowerShell),
+neither owned by a team (`WorkspaceNotificationRuleOwningTeam` holds no rows);
 `GET /workspace-notification-rule/number-prefixes` answers no prefixes.
 
 | Parameter | Values                                     |

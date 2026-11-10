@@ -196,6 +196,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
+import WorkspaceNotificationRuleOwningTeam from "Common/Models/DatabaseModels/WorkspaceNotificationRuleOwningTeam";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import {
@@ -2866,8 +2867,11 @@ insert(WorkspaceProjectAuthToken, { workspaceType: WorkspaceType.Slack });
  * Security Case Rules, posting new cases to #soc, and one under Hunt Rules,
  * posting what the PowerShell hunts find to #threat-hunting. The rule form's
  * value pickers read the other products' states and schedules: none here.
+ * Neither rule belongs to a team (its Owning Teams), so whoever may edit
+ * rules may edit both.
  */
 table(WorkspaceNotificationRule);
+table(WorkspaceNotificationRuleOwningTeam);
 for (const modelType of [
   AlertState,
   IncidentState,
