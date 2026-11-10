@@ -16,7 +16,7 @@ En Server- / VM-monitor overvåger én maskine gennem OneUptimes infrastrukturag
 
 Agenten kører som en systemtjeneste. Hvert 30. sekund samler den en rapport og sender den til din OneUptime-URL, signeret med monitorens hemmelige nøgle. OneUptime gemmer tallene som monitorens metrikker og holder rapporten op mod monitorens kriterier.
 
-Stilhed kontrolleres for sig. Hvert minut evaluerer OneUptime igen **Is Online**-kriterierne for hver Server- / VM-monitor, der ikke har rapporteret i 3 minutter eller mere, og en server, der er tavs længere, end dens kriterier tillader (som standard 3 minutter), regnes for offline. En monitor uden **Is Online**-kriterium markeres aldrig som offline, blot fordi agenten er blevet tavs. Kun tid, hvor OneUptime modtog data, tæller med i den stilhed: tid, hvor OneUptime selv genstartede, blev opgraderet eller indhentede et efterslæb, tæller ikke, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+Stilhed kontrolleres for sig. Hvert minut evaluerer OneUptime igen **Er online**-kriterierne for hver Server- / VM-monitor, der ikke har rapporteret i 3 minutter eller mere, og en server, der er tavs længere, end dens kriterier tillader (som standard 3 minutter), regnes for offline. En monitor uden **Er online**-kriterium markeres aldrig som offline, blot fordi agenten er blevet tavs. Kun tid, hvor OneUptime modtog data, tæller med i den stilhed: tid, hvor OneUptime selv genstartede, blev opgraderet eller indhentede et efterslæb, tæller ikke, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ```mermaid title="Sådan får en Server- / VM-monitor sine data"
 flowchart TB
@@ -224,17 +224,17 @@ Kriterier afgør, hvornår monitoren er online, forringet eller offline, og hvor
 | Load Average (1 minute) | Belastningsgennemsnit over det seneste minut | Som for CPU |
 | Load Average (5 minute) | Belastningsgennemsnit over de seneste 5 minutter | Som for CPU |
 | Load Average (15 minute) | Belastningsgennemsnit over de seneste 15 minutter | Som for CPU |
-| Server Process Name | Om en proces med dette navn kører (uden forskel på store og små bogstaver) | Is Executing, Is Not Executing |
-| Server Process Command | Om en proces med præcis denne kommandolinje kører (uden forskel på store og små bogstaver) | Is Executing, Is Not Executing |
-| Server Process PID | Om en proces med dette PID kører | Is Executing, Is Not Executing |
+| Server Process Name | Om en proces med dette navn kører (uden forskel på store og små bogstaver) | Kører, Kører ikke |
+| Server Process Command | Om en proces med præcis denne kommandolinje kører (uden forskel på store og små bogstaver) | Kører, Kører ikke |
+| Server Process PID | Om en proces med dette PID kører | Kører, Kører ikke |
 
 **Disksti** tager et monteringspunkt eller en enhed, f.eks. `/`, `/mnt/data`, `C:\` eller `/dev/sda1`; tomt er den `/`. Angiv `*` for at kontrollere hver disk, agenten rapporterer: hver disk, der krydser tærsklen, får sin egen advarsel, så en anden disk, der fyldes op, ikke skjules bag den førstes åbne advarsel. Store og små bogstaver og en afsluttende `/` eller `\` er ligegyldige, og en enhed står for den disk, der er monteret fra den. En sti, der ikke navngiver nogen disk, agenten rapporterer, matcher ikke. Kan agenten ikke læse serverens processer, har dens rapport ingen procesliste, og intet procesfilter matcher, hvad enten det kontrollerer, at en proces kører, eller at den ikke gør.
 
 ### Evaluér over en periode
 
-**Evaluér disse kriterier over en periode** er et separat afkrydsningsfelt i kriterieformularen og ikke en filterbetingelse. Det findes for **Is Online** og for hver numerisk filtertype. Slå det til for at sammenligne en aggregeret værdi – valgt under **Evaluér** (Gennemsnit, Sum, Maximum Value, Minimum Value, All Values, Any Value) over det vindue, som **For de seneste (i minutter)** angiver – i stedet for værdien fra den seneste kontrol. På et **Is Online**-filter er vinduet, hvor længe agenten må være tavs, før serveren regnes for offline.
+**Evaluér disse kriterier over en periode** er et separat afkrydsningsfelt i kriterieformularen og ikke en filterbetingelse. Det findes for **Er online** og for hver numerisk filtertype. Slå det til for at sammenligne en aggregeret værdi – valgt under **Evaluér** (Gennemsnit, Sum, Maximum Value, Minimum Value, All Values, Any Value) over det vindue, som **For de seneste (i minutter)** angiver – i stedet for værdien fra den seneste kontrol. På et **Er online**-filter er vinduet, hvor længe agenten må være tavs, før serveren regnes for offline.
 
-**All Values** matcher først, når vinduet reelt er dækket af data. En monitor, der lige er oprettet, eller en, hvis kontroller er holdt op med at blive registreret, har ikke nok historik til at sige noget om de sidste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Any Value** er indstillingen til "giv mig besked, så snart en enkelt kontrol overskrider grænsen", og den udløses stadig med det samme.
+**Alle værdier** matcher først, når vinduet reelt er dækket af data. En monitor, der lige er oprettet, eller en, hvis kontroller er holdt op med at blive registreret, har ikke nok historik til at sige noget om de sidste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen til "giv mig besked, så snart en enkelt kontrol overskrider grænsen", og den udløses stadig med det samme.
 
 **Hvis ingen data** styrer, hvad der sker, mens vinduet ikke kan bære kriteriet:
 
@@ -245,7 +245,7 @@ Kriterier afgør, hvornår monitoren er online, forringet eller offline, og hvor
 | **Treat As Zero** | Vinduet sammenlignes som et enkelt nul. | Tællere, hvor "ingen hændelser" reelt betyder nul. |
 
 > [!TIP]
-> CPU og belastning har hele tiden korte spidser. Evaluér dem over et par minutter med **Gennemsnit** eller **All Values** i stedet for at advare på en enkelt rapport.
+> CPU og belastning har hele tiden korte spidser. Evaluér dem over et par minutter med **Gennemsnit** eller **Alle værdier** i stedet for at advare på en enkelt rapport.
 
 ### Eksempler på kriterier
 
@@ -256,7 +256,7 @@ Kriterier afgør, hvornår monitoren er online, forringet eller offline, og hvor
 | Advar, når roddisken er mere end 85 % fuld | Disk Usage (in %), **Disksti** `/` | Større end | `85` |
 | Advar om enhver disk, der er mere end 85 % fuld, én advarsel pr. disk | Disk Usage (in %), **Disksti** `*` | Større end | `85` |
 | Advar, når hukommelsesforbruget er over 80 % | Memory Usage (in %) | Større end | `80` |
-| Advar, når nginx holder op med at køre | Server Process Name | Is Not Executing | `nginx` |
+| Advar, når nginx holder op med at køre | Server Process Name | Kører ikke | `nginx` |
 
 ## Fejlfinding
 
@@ -280,7 +280,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details Monitoren går aldrig offline, når serveren er nede
-Kun et **Is Online**-kriterium markerer en tavs server som offline. Tilføj et med **Filterbetingelse** sat til **Falsk**, og angiv den monitorstatus, det skifter til.
+Kun et **Er online**-kriterium markerer en tavs server som offline. Tilføj et med **Filterbetingelse** sat til **Falsk**, og angiv den monitorstatus, det skifter til.
 :::
 
 :::details Rapporterne kommer ikke gennem proxyen

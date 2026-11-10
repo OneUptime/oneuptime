@@ -16,7 +16,7 @@ Ein Server-/VM-Monitor überwacht einen einzelnen Rechner über den OneUptime-In
 
 Der Agent läuft als Systemdienst. Alle 30 Sekunden erstellt er einen Bericht und sendet ihn, signiert mit dem geheimen Schlüssel des Monitors, an Ihre OneUptime-URL. OneUptime speichert die Werte als Metriken des Monitors und prüft den Bericht anhand der Kriterien des Monitors.
 
-Stille wird separat geprüft. Jede Minute wertet OneUptime die **Is Online**-Kriterien jedes Server-/VM-Monitors neu aus, der seit 3 Minuten oder länger nichts gemeldet hat, und ein Server, der länger schweigt, als seine Kriterien erlauben (standardmäßig 3 Minuten), gilt als offline. Ein Monitor ohne **Is Online**-Kriterium wird nie allein deshalb als offline markiert, weil der Agent verstummt ist. Zu dieser Stille zählt nur Zeit, in der OneUptime Daten empfangen hat: Zeit, in der OneUptime selbst neu startete, aktualisiert wurde oder Rückstände aufholte, zählt nicht, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
+Stille wird separat geprüft. Jede Minute wertet OneUptime die **Ist online**-Kriterien jedes Server-/VM-Monitors neu aus, der seit 3 Minuten oder länger nichts gemeldet hat, und ein Server, der länger schweigt, als seine Kriterien erlauben (standardmäßig 3 Minuten), gilt als offline. Ein Monitor ohne **Ist online**-Kriterium wird nie allein deshalb als offline markiert, weil der Agent verstummt ist. Zu dieser Stille zählt nur Zeit, in der OneUptime Daten empfangen hat: Zeit, in der OneUptime selbst neu startete, aktualisiert wurde oder Rückstände aufholte, zählt nicht, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
 ```mermaid title="Wie ein Server-/VM-Monitor seine Daten erhält"
 flowchart TB
@@ -224,17 +224,17 @@ Kriterien entscheiden, wann der Monitor online, beeinträchtigt oder offline ist
 | Load Average (1 minute) | Lastdurchschnitt der letzten Minute | Wie bei CPU |
 | Load Average (5 minute) | Lastdurchschnitt der letzten 5 Minuten | Wie bei CPU |
 | Load Average (15 minute) | Lastdurchschnitt der letzten 15 Minuten | Wie bei CPU |
-| Server Process Name | Ob ein Prozess mit diesem Namen läuft (ohne Beachtung der Groß-/Kleinschreibung) | Is Executing, Is Not Executing |
-| Server Process Command | Ob ein Prozess mit genau dieser Befehlszeile läuft (ohne Beachtung der Groß-/Kleinschreibung) | Is Executing, Is Not Executing |
-| Server Process PID | Ob ein Prozess mit dieser PID läuft | Is Executing, Is Not Executing |
+| Server Process Name | Ob ein Prozess mit diesem Namen läuft (ohne Beachtung der Groß-/Kleinschreibung) | Wird ausgeführt, Wird nicht ausgeführt |
+| Server Process Command | Ob ein Prozess mit genau dieser Befehlszeile läuft (ohne Beachtung der Groß-/Kleinschreibung) | Wird ausgeführt, Wird nicht ausgeführt |
+| Server Process PID | Ob ein Prozess mit dieser PID läuft | Wird ausgeführt, Wird nicht ausgeführt |
 
 **Festplattenpfad** nimmt einen Einhängepunkt oder ein Gerät an, etwa `/`, `/mnt/data`, `C:\` oder `/dev/sda1`; leer gelassen ist er `/`. Geben Sie `*` ein, um jede Festplatte zu prüfen, die der Agent meldet: Jede Festplatte, die den Schwellenwert überschreitet, erhält eine eigene Warnung, sodass eine zweite volllaufende Festplatte nicht hinter der offenen Warnung der ersten verborgen bleibt. Groß-/Kleinschreibung und ein abschließendes `/` oder `\` spielen keine Rolle, und ein Gerät steht für die Festplatte, die von ihm eingehängt ist. Ein Pfad, der keine vom Agent gemeldete Festplatte bezeichnet, trifft nicht zu. Kann der Agent die Prozesse des Servers nicht lesen, enthält sein Bericht keine Prozessliste, und kein Prozessfilter trifft zu, ob er prüft, dass ein Prozess läuft oder dass er nicht läuft.
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein eigenes Kontrollkästchen im Kriterienformular, keine Filterbedingung. Es steht für **Is Online** und jeden numerischen Filtertyp zur Verfügung. Aktivieren Sie es, um statt des Werts der letzten Prüfung einen Gesamtwert zu vergleichen – gewählt unter **Auswerten** (Durchschnitt, Summe, Maximum Value, Minimum Value, All Values, Any Value) über das unter **Für die letzten (in Minuten)** festgelegte Zeitfenster. Bei einem **Is Online**-Filter ist das Zeitfenster die Dauer, die der Agent schweigen darf, bevor der Server als offline gilt.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein eigenes Kontrollkästchen im Kriterienformular, keine Filterbedingung. Es steht für **Ist online** und jeden numerischen Filtertyp zur Verfügung. Aktivieren Sie es, um statt des Werts der letzten Prüfung einen Gesamtwert zu vergleichen – gewählt unter **Auswerten** (Durchschnitt, Summe, Maximum Value, Minimum Value, All Values, Any Value) über das unter **Für die letzten (in Minuten)** festgelegte Zeitfenster. Bei einem **Ist online**-Filter ist das Zeitfenster die Dauer, die der Agent schweigen darf, bevor der Server als offline gilt.
 
-**All Values** trifft erst zu, wenn das Zeitfenster tatsächlich mit Daten abgedeckt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen; das Kriterium wartet daher, statt auf dem einen vorhandenen Messwert zuzutreffen. **Any Value** ist die Einstellung für „melde mich, sobald eine einzige Prüfung den Wert überschreitet“ und löst weiterhin sofort aus.
+**Alle Werte** trifft erst zu, wenn das Zeitfenster tatsächlich mit Daten abgedeckt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen; das Kriterium wartet daher, statt auf dem einen vorhandenen Messwert zuzutreffen. **Beliebiger Wert** ist die Einstellung für „melde mich, sobald eine einzige Prüfung den Wert überschreitet“ und löst weiterhin sofort aus.
 
 **Bei keinen Daten** steuert, was geschieht, solange das Zeitfenster das Kriterium nicht stützen kann:
 
@@ -245,7 +245,7 @@ Kriterien entscheiden, wann der Monitor online, beeinträchtigt oder offline ist
 | **Treat As Zero** | Das Zeitfenster wird als einzelne Null verglichen. | Zähler, bei denen „keine Ereignisse“ wirklich null bedeutet. |
 
 > [!TIP]
-> CPU und Last schnellen ständig kurz in die Höhe. Werten Sie sie über einige Minuten mit **Durchschnitt** oder **All Values** aus, statt bei einem einzelnen Bericht zu warnen.
+> CPU und Last schnellen ständig kurz in die Höhe. Werten Sie sie über einige Minuten mit **Durchschnitt** oder **Alle Werte** aus, statt bei einem einzelnen Bericht zu warnen.
 
 ### Beispielkriterien
 
@@ -256,7 +256,7 @@ Kriterien entscheiden, wann der Monitor online, beeinträchtigt oder offline ist
 | Warnen, wenn die Root-Festplatte zu mehr als 85 % voll ist | Disk Usage (in %), **Festplattenpfad** `/` | Größer als | `85` |
 | Bei jeder Festplatte warnen, die zu mehr als 85 % voll ist, eine Warnung pro Festplatte | Disk Usage (in %), **Festplattenpfad** `*` | Größer als | `85` |
 | Warnen, wenn die Speicherauslastung über 80 % liegt | Memory Usage (in %) | Größer als | `80` |
-| Warnen, wenn nginx nicht mehr läuft | Server Process Name | Is Not Executing | `nginx` |
+| Warnen, wenn nginx nicht mehr läuft | Server Process Name | Wird nicht ausgeführt | `nginx` |
 
 ## Fehlerbehebung
 
@@ -280,7 +280,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details Der Monitor wird nie offline, wenn der Server ausgefallen ist
-Nur ein **Is Online**-Kriterium markiert einen stillen Server als offline. Fügen Sie eines hinzu, dessen **Filterbedingung** auf **Falsch** steht, und legen Sie den Monitorstatus fest, den es setzt.
+Nur ein **Ist online**-Kriterium markiert einen stillen Server als offline. Fügen Sie eines hinzu, dessen **Filterbedingung** auf **Falsch** steht, und legen Sie den Monitorstatus fest, den es setzt.
 :::
 
 :::details Berichte kommen nicht durch den Proxy

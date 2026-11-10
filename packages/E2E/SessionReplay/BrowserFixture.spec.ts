@@ -267,7 +267,6 @@ test("uses the shared table and groups replay navigation in its own category", a
     .locator("..");
   await expect(section.getByRole("link")).toHaveText([
     "Session Replay",
-    "User Flows",
     "Replay Users",
     "Health",
     "Replay Policy",
@@ -275,8 +274,17 @@ test("uses the shared table and groups replay navigation in its own category", a
     "Replay Access Log",
     "Documentation",
   ]);
+  /*
+   * User Flows is product analytics: it sits in the Product Analytics
+   * section, beside Events, Funnels and User Retention, not with replay.
+   */
+  const productAnalytics: Locator = page
+    .locator("h6")
+    .filter({ hasText: /^Product Analytics$/ })
+    .locator("../..")
+    .locator("..");
   await expect(
-    section.getByRole("link", { name: "User Flows" }),
+    productAnalytics.getByRole("link", { name: "User Flows" }),
   ).toHaveAttribute("href", userFlowsRoute);
   await expect(
     section.getByRole("link", { name: "Replay Users" }),

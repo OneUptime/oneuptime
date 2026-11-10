@@ -52,7 +52,7 @@ Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **K
 
 ### Gennemgå kriterierne
 
-**Monitorkriterier** starter med [standardkriterierne](#standardkriterier): offline, når navnet ikke kan slås op, online, når det kan. For at kontrollere, hvad posterne siger, skal du tilføje et filter **DNS Record Value** og derefter klikke på **Næste**.
+**Monitorkriterier** starter med [standardkriterierne](#standardkriterier): offline, når navnet ikke kan slås op, online, når det kan. For at kontrollere, hvad posterne siger, skal du tilføje et filter **DNS-postværdi** og derefter klikke på **Næste**.
 
 ### Vælg sonder, og opret
 
@@ -72,7 +72,7 @@ Behold eller skift **Sonder** og **Overvågningsinterval** (det starter på **Hv
 
 ### Posttyper
 
-Et kriterium med **DNS Record Value** sammenligner din tekst med hver post, som sonden skriver den, så følg dette format:
+Et kriterium med **DNS-postværdi** sammenligner din tekst med hver post, som sonden skriver den, så følg dette format:
 
 | Posttype | Hvad den indeholder | Værdiens format, til kriterier |
 | --- | --- | --- |
@@ -95,15 +95,15 @@ Kriterier afgør, hvornår navnet tæller som online, forringet eller offline, o
 
 | Filter | Betingelser | Hvad det kontrollerer |
 | --- | --- | --- |
-| **DNS Is Online** | **Sand**, **Falsk** | Om forespørgslen returnerede mindst én post af typen. |
-| **DNS Response Time (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hvor lang tid forespørgslen tog. |
-| **DNS Record Exists** | **Sand**, **Falsk** | Om der kom en post af typen tilbage. |
-| **DNS Record Value** | **Indeholder**, **Indeholder ikke**, **Starter med**, **Slutter med**, **Lig med**, **Ikke lig med** | Posternes værdier. Filteret matcher, når én enkelt post matcher. |
-| **DNSSEC Is Valid** | **Sand**, **Falsk** | Om en validerende resolver sætter AD-flaget på svaret. |
+| **DNS er online** | **Sand**, **Falsk** | Om forespørgslen returnerede mindst én post af typen. |
+| **DNS-svartid (i ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hvor lang tid forespørgslen tog. |
+| **DNS-post findes** | **Sand**, **Falsk** | Om der kom en post af typen tilbage. |
+| **DNS-postværdi** | **Indeholder**, **Indeholder ikke**, **Starter med**, **Slutter med**, **Lig med**, **Ikke lig med** | Posternes værdier. Filteret matcher, når én enkelt post matcher. |
+| **DNSSEC er gyldig** | **Sand**, **Falsk** | Om en validerende resolver sætter AD-flaget på svaret. |
 
-**DNS Record Value** matcher, når _en hvilken som helst_ af posterne matcher. Med flere `A`-poster matcher **Lig med** `93.184.216.34`, når en af dem er den adresse, og **Ikke lig med** matcher, når en af dem ikke er det.
+**DNS-postværdi** matcher, når _en hvilken som helst_ af posterne matcher. Med flere `A`-poster matcher **Lig med** `93.184.216.34`, når en af dem er den adresse, og **Ikke lig med** matcher, når en af dem ikke er det.
 
-**DNSSEC Is Valid** spørger serveren i **DNS-server (valgfri)**, på dens **Port**, eller Google Public DNS (`8.8.8.8`), når feltet er tomt, så den server, du angiver, bør validere DNSSEC. Filteret har ingen værdi og matcher ingen af vejene, når sonden ikke kan udføre den kontrol. Til en fuld kontrol af en signeret zone skal du bruge en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
+**DNSSEC er gyldig** spørger serveren i **DNS-server (valgfri)**, på dens **Port**, eller Google Public DNS (`8.8.8.8`), når feltet er tomt, så den server, du angiver, bør validere DNSSEC. Filteret har ingen værdi og matcher ingen af vejene, når sonden ikke kan udføre den kontrol. Til en fuld kontrol af en signeret zone skal du bruge en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 
 Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, eller om **Enhver** af dem er nok. Et kriteriums **Handlinger** afgør, hvad det gør: ændrer monitorens status, opretter en advarsel, erklærer en hændelse eller flere af disse.
 
@@ -118,15 +118,15 @@ Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hv
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **DNS Is Online** og **DNS Response Time (in ms)**. Slå det til for at bedømme et vindue af tidligere kontroller i stedet for den seneste: vælg en aggregering under **Evaluér** og et vindue, fra 2 til 60 minutter, under **For de seneste (i minutter)**.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **DNS er online** og **DNS-svartid (i ms)**. Slå det til for at bedømme et vindue af tidligere kontroller i stedet for den seneste: vælg en aggregering under **Evaluér** og et vindue, fra 2 til 60 minutter, under **For de seneste (i minutter)**.
 
 | Aggregering | Matcher, når |
 | --- | --- |
-| **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value** | Den værdi over vinduet opfylder betingelsen. Kun **DNS Response Time (in ms)**. |
-| **All Values** | Hver kontrol i vinduet opfylder betingelsen. |
-| **Any Value** | Mindst én kontrol i vinduet opfylder betingelsen. |
+| **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi** | Den værdi over vinduet opfylder betingelsen. Kun **DNS-svartid (i ms)**. |
+| **Alle værdier** | Hver kontrol i vinduet opfylder betingelsen. |
+| **Vilkårlig værdi** | Mindst én kontrol i vinduet opfylder betingelsen. |
 
-**All Values** matcher først, når vinduet reelt er dækket af data. En monitor, der lige er oprettet, eller en, hvis kontroller ikke længere blev registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Any Value** er indstillingen til "sig til, så snart en enkelt kontrol overskrider grænsen" og udløses stadig med det samme.
+**Alle værdier** matcher først, når vinduet reelt er dækket af data. En monitor, der lige er oprettet, eller en, hvis kontroller ikke længere blev registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen til "sig til, så snart en enkelt kontrol overskrider grænsen" og udløses stadig med det samme.
 
 **Hvis ingen data** afgør, hvad der sker, så længe vinduet ikke kan bære kriteriet:
 
@@ -140,11 +140,11 @@ Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hv
 
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
-| Offline, når navnet ikke længere kan slås op | **DNS Is Online** | **Falsk** | — |
-| Advar, når et navns eneste `A`-post ændres | **DNS Record Value** | **Ikke lig med** | `93.184.216.34` |
-| Advar, når en `MX`-post peger uden for dit domæne | **DNS Record Value** | **Indeholder ikke** | `example.com` |
-| Markér DNS som forringet, når det er langsomt | **DNS Response Time (in ms)** | **Større end** | `500` |
-| Advar, når DNSSEC-valideringen fejler | **DNSSEC Is Valid** | **Falsk** | — |
+| Offline, når navnet ikke længere kan slås op | **DNS er online** | **Falsk** | — |
+| Advar, når et navns eneste `A`-post ændres | **DNS-postværdi** | **Ikke lig med** | `93.184.216.34` |
+| Advar, når en `MX`-post peger uden for dit domæne | **DNS-postværdi** | **Indeholder ikke** | `example.com` |
+| Markér DNS som forringet, når det er langsomt | **DNS-svartid (i ms)** | **Større end** | `500` |
+| Advar, når DNSSEC-valideringen fejler | **DNSSEC er gyldig** | **Falsk** | — |
 
 ## Fejlfinding
 
@@ -157,11 +157,11 @@ dig @8.8.8.8 example.com A
 :::
 
 :::details Et kriterium med Ikke lig med udløses, selvom den rigtige adresse er der
-**DNS Record Value** matcher, når én enkelt post matcher. Med flere poster udløses **Ikke lig med**, så snart en af dem afviger. For at kontrollere, at en bestemt værdi er blandt posterne, skal du bruge rækkefølgen af kriterierne, da det første, der matcher, vinder:
+**DNS-postværdi** matcher, når én enkelt post matcher. Med flere poster udløses **Ikke lig med**, så snart en af dem afviger. For at kontrollere, at en bestemt værdi er blandt posterne, skal du bruge rækkefølgen af kriterierne, da det første, der matcher, vinder:
 
-1. Behold standardkriteriet for offline øverst: **DNS Is Online** / **Falsk**.
-2. Tilføj under det et kriterium med **DNS Record Value** / **Lig med** / den forventede værdi, der markerer monitoren som **I drift**.
-3. Tilføj under det igen et kriterium med **DNS Is Online** / **Sand**, der markerer monitoren som **Offline** og erklærer en hændelse. Det matcher kun svar, der ikke har værdien.
+1. Behold standardkriteriet for offline øverst: **DNS er online** / **Falsk**.
+2. Tilføj under det et kriterium med **DNS-postværdi** / **Lig med** / den forventede værdi, der markerer monitoren som **I drift**.
+3. Tilføj under det igen et kriterium med **DNS er online** / **Sand**, der markerer monitoren som **Offline** og erklærer en hændelse. Det matcher kun svar, der ikke har værdien.
 :::
 
 :::details DNSSEC Is Valid matcher aldrig

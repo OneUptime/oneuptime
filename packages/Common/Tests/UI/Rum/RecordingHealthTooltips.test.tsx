@@ -24,7 +24,7 @@ import {
   SESSION_REPLAY_RECORDER_ACTIVE_WINDOW_MS,
   SESSION_REPLAY_REFUSAL_ALERT_THRESHOLD,
   SESSION_REPLAY_STALE_CHUNK_MS,
-} from "../../../Utils/Rum/SessionReplayHealth";
+} from "../../../Utils/SessionReplay/SessionReplayHealth";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*

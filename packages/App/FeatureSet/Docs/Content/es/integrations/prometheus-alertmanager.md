@@ -222,7 +222,7 @@ Ninguno de los dos caminos se da cuenta cuando Prometheus o Alertmanager dejan d
 :::steps
 ### Crear el monitor de vigilancia
 
-Crea un segundo monitor de solicitudes entrantes, llamado `Alertmanager watchdog`. Configura el filtro de su primer criterio, el que marca el monitor como fuera de línea, como **Solicitud entrante**, **Not Recieved In Minutes**, `10`, y el filtro de su segundo criterio como **Solicitud entrante**, **Recieved In Minutes**, `10`. El panel escribe ambos así. Copia la **URL de latido** del nuevo monitor.
+Crea un segundo monitor de solicitudes entrantes, llamado `Alertmanager watchdog`. Configura el filtro de su primer criterio, el que marca el monitor como fuera de línea, como **Solicitud entrante**, **No recibido en minutos**, `10`, y el filtro de su segundo criterio como **Solicitud entrante**, **Recibido en minutos**, `10`. El panel escribe ambos así. Copia la **URL de latido** del nuevo monitor.
 
 ### Dirigir a él la alerta de vigilancia
 

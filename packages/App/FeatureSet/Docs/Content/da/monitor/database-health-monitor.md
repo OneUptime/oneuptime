@@ -370,14 +370,14 @@ Tællere, der ender på `total`, er kumulative siden serverens start. Sammenlign
 
 | Filtertype | Hvad den kontrollerer |
 |---|---|
-| **Database Is Online** | Om databasen kunne nås, og testforespørgslen lykkedes. Det er det offline-kriterium, monitoren oprettes med, og den eneste kontrol, der afspejler tilgængeligheden. |
-| **Database Metric** | Vælg en metrik, og sammenlign den: Større end, Mindre end, Større end eller lig med, Mindre end eller lig med, Lig med eller Ikke lig med. Metrikvælgeren tilbyder kun de metrikker, din valgte motor kan levere, så du kan ikke bygge et kriterium, der for altid forbliver uopfyldt (én undtagelse: de Replication-metrikker, der tilbydes for Microsoft SQL Server, indsamles aldrig på Azure SQL Database). Hvis metrikken ikke blev indsamlet ved en kontrol — gruppen fejlede, eller motoren rapporterer den ikke — matcher filteret ikke, og det matcher heller ikke som "false": det springes over. Et rettighedsproblem kan ikke tilkalde nogen. |
-| **Database Collection Error** | Oversigten over kontrollens indsamlingsproblemer, én "gruppe: meddelelse" pr. utilgængelig gruppe. Send en advarsel, når den ikke er tom, for at opdage tabt overblik, eller brug Indeholder til at holde øje med én bestemt gruppe. |
-| **JavaScript Expression** | Fuld kontrol. Se [JavaScript-udtryk](/docs/monitor/javascript-expression). |
+| **Database er online** | Om databasen kunne nås, og testforespørgslen lykkedes. Det er det offline-kriterium, monitoren oprettes med, og den eneste kontrol, der afspejler tilgængeligheden. |
+| **Databasemetrik** | Vælg en metrik, og sammenlign den: Større end, Mindre end, Større end eller lig med, Mindre end eller lig med, Lig med eller Ikke lig med. Metrikvælgeren tilbyder kun de metrikker, din valgte motor kan levere, så du kan ikke bygge et kriterium, der for altid forbliver uopfyldt (én undtagelse: de Replication-metrikker, der tilbydes for Microsoft SQL Server, indsamles aldrig på Azure SQL Database). Hvis metrikken ikke blev indsamlet ved en kontrol — gruppen fejlede, eller motoren rapporterer den ikke — matcher filteret ikke, og det matcher heller ikke som "false": det springes over. Et rettighedsproblem kan ikke tilkalde nogen. |
+| **Indsamlingsfejl for database** | Oversigten over kontrollens indsamlingsproblemer, én "gruppe: meddelelse" pr. utilgængelig gruppe. Send en advarsel, når den ikke er tom, for at opdage tabt overblik, eller brug Indeholder til at holde øje med én bestemt gruppe. |
+| **JavaScript-udtryk** | Fuld kontrol. Se [JavaScript-udtryk](/docs/monitor/javascript-expression). |
 
 Tærskler er heltal. Skriv `90`, ikke `90.5` — procenter og sekunder sammenlignes som heltal.
 
-**Database Is Online** og **Database Metric** kan kontrolleres over tid: Sæt flueben ved **Evaluér disse kriterier over en periode**, vælg derefter under **Evaluér**, hvordan værdierne vurderes (for eksempel **All Values**), og udfyld **For de seneste (i minutter)**. Over tid afgør filterets indstilling **Hvis ingen data**, hvad en manglende værdi betyder; lad den stå på **Ignore**, så en manglende rettighed stadig ikke kan tilkalde nogen.
+**Database er online** og **Databasemetrik** kan kontrolleres over tid: Sæt flueben ved **Evaluér disse kriterier over en periode**, vælg derefter under **Evaluér**, hvordan værdierne vurderes (for eksempel **Alle værdier**), og udfyld **For de seneste (i minutter)**. Over tid afgør filterets indstilling **Hvis ingen data**, hvad en manglende værdi betyder; lad den stå på **Ignore**, så en manglende rettighed stadig ikke kan tilkalde nogen.
 
 ### Variabler til JavaScript-udtryk
 
@@ -402,7 +402,7 @@ For at læse én metrik i et udtryk kan du skrive det prikkede serienavn inden i
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Til en tærskel på en enkelt metrik bør du vælge **Database Metric** frem for et udtryk: det slår serien op for dig, tilbyder kun det, din motor kan levere, og springer kontrollen over, når værdien ikke blev indsamlet, i stedet for at sammenligne med ingenting.
+Til en tærskel på en enkelt metrik bør du vælge **Databasemetrik** frem for et udtryk: det slår serien op for dig, tilbyder kun det, din motor kan levere, og springer kontrollen over, når værdien ikke blev indsamlet, i stedet for at sammenligne med ingenting.
 
 ### Eksempel: en primær PostgreSQL-server
 

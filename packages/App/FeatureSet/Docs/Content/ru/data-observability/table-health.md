@@ -57,7 +57,7 @@
 | `oneuptime.data.table.schema_changes` | Столбцы, изменившиеся с предыдущего сбора |
 | `oneuptime.data.table.breaking_schema_changes` | Столбцы, удалённые, переименованные или сменившие тип с предыдущего сбора |
 
-Каждая строка несёт `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` и `oneuptime.data.table.key` (`schema.table`). [Монитор метрик](/docs/monitor/metrics-monitor) с группировкой по `oneuptime.data.table.key` оповещает отдельно по каждой таблице, а его фильтры **Anomalously High** и **Anomalously Low** сравнивают каждую таблицу с её собственным обычным значением для этого часа недели. Эти метрики — собственные эксплуатационные данные OneUptime, и они не тарифицируются как телеметрия.
+Каждая строка несёт `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` и `oneuptime.data.table.key` (`schema.table`). [Монитор метрик](/docs/monitor/metrics-monitor) с группировкой по `oneuptime.data.table.key` оповещает отдельно по каждой таблице, а его фильтры **Аномально высоко** и **Аномально низко** сравнивают каждую таблицу с её собственным обычным значением для этого часа недели. Эти метрики — собственные эксплуатационные данные OneUptime, и они не тарифицируются как телеметрия.
 
 ## Неиспользуемые таблицы
 

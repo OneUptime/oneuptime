@@ -168,7 +168,7 @@ Skapa en övervakare av typen **Mätvärden** (se [Metrikövervakning](/docs/mon
 
 1. **Måttfråga:** `sdwan.gateway.latency.ms`, aggregering **Genomsnitt**, **Gruppera efter** `gw_name` och `profile_name`.
 2. **Rullande tidsfönster:** Past 15 Minutes. Brandväggen rapporterar med några minuters mellanrum, så fönstret innehåller flera punkter per gateway.
-3. **Aggregeringsstrategi:** **All Values**: varje punkt i fönstret måste överskrida gränsen, så att en enda långsam sammanfattning inte larmar någon. Använd i stället **Genomsnitt** för att larma på ett högt genomsnitt.
+3. **Aggregeringsstrategi:** **Alla värden**: varje punkt i fönstret måste överskrida gränsen, så att en enda långsam sammanfattning inte larmar någon. Använd i stället **Genomsnitt** för att larma på ett högt genomsnitt.
 4. **Kriterier:** Metric value **Större än** `150` öppnar ett larm.
 5. Använd eventuellt grupperingsvärdena i larmets titel, t.ex. `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 

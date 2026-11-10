@@ -108,11 +108,11 @@ Kriterien entscheiden, wann der Port als online, beeinträchtigt oder offline gi
 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
-| **Is Online** | **Wahr**, **Falsch** | Ob der Port eine Verbindung angenommen hat. |
+| **Ist online** | **Wahr**, **Falsch** | Ob der Port eine Verbindung angenommen hat. |
 | **Gesamte Verbindungszeit (DNS + TCP) (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Die gesamte Verbindungszeit, einschließlich des DNS-Nachschlagens bei einem Hostnamen. |
-| **Port DNS Lookup Time (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Das DNS-Nachschlagen vor dem ersten TCP-Versuch. Es hat keinen Wert, wenn das Ziel eine IP-Adresse ist. |
-| **Port TCP Connect Time (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Vom ersten TCP-Versuch bis zur Annahme der Verbindung, einschließlich des Wechsels zwischen IPv6 und IPv4. |
-| **Is Request Timeout** | **Wahr**, **Falsch** | Ob das DNS-Nachschlagen oder die TCP-Verbindung bei jedem Versuch das Zeitlimit überschritten hat. |
+| **DNS-Abfragezeit des Ports (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Das DNS-Nachschlagen vor dem ersten TCP-Versuch. Es hat keinen Wert, wenn das Ziel eine IP-Adresse ist. |
+| **TCP-Verbindungszeit des Ports (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Vom ersten TCP-Versuch bis zur Annahme der Verbindung, einschließlich des Wechsels zwischen IPv6 und IPv4. |
+| **Zeitüberschreitung der Anfrage** | **Wahr**, **Falsch** | Ob das DNS-Nachschlagen oder die TCP-Verbindung bei jedem Versuch das Zeitlimit überschritten hat. |
 
 Ein Kriterium zur DNS-Nachschlagezeit hat nichts auszuwerten, wenn das Ziel eine IP-Adresse ist. Für Kriterien, die mit Hostnamen und IP-Adressen gleichermaßen funktionieren müssen, verwenden Sie die Gesamt- oder die TCP-Verbindungszeit.
 
@@ -129,17 +129,17 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Is Online**, **Gesamte Verbindungszeit (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)**, **Port TCP Connect Time (in ms)** und **Is Request Timeout**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Gesamte Verbindungszeit (DNS + TCP) (in ms)**, **DNS-Abfragezeit des Ports (in ms)**, **TCP-Verbindungszeit des Ports (in ms)** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
-| **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
-| **All Values** | Jede Prüfung im Fenster die Bedingung erfüllt. |
-| **Any Value** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
+| **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
+| **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 
-**All Values** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Any Value** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
+**Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
-**Is Request Timeout** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **All Values** oder **Any Value**.
+**Zeitüberschreitung der Anfrage** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**.
 
 Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 
@@ -155,11 +155,11 @@ Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Offline, wenn der Port geschlossen ist | **Is Online** | **Falsch** | — |
+| Offline, wenn der Port geschlossen ist | **Ist online** | **Falsch** | — |
 | Warnen, wenn der Verbindungsaufbau langsam ist | **Gesamte Verbindungszeit (DNS + TCP) (in ms)** | **Größer als** | `500` |
 | Den Dienst als beeinträchtigt markieren, wenn er langsam verbindet | **Gesamte Verbindungszeit (DNS + TCP) (in ms)** | **Größer als** | `200` |
-| Warnen, wenn DNS langsam ist | **Port DNS Lookup Time (in ms)** | **Größer als** | `100` |
-| Warnen, wenn der TCP-Handshake langsam ist | **Port TCP Connect Time (in ms)** | **Größer als** | `250` |
+| Warnen, wenn DNS langsam ist | **DNS-Abfragezeit des Ports (in ms)** | **Größer als** | `100` |
+| Warnen, wenn der TCP-Handshake langsam ist | **TCP-Verbindungszeit des Ports (in ms)** | **Größer als** | `250` |
 
 ## Fehlerbehebung
 
@@ -168,7 +168,7 @@ Die Sonde konnte keine Verbindung öffnen: Eine Firewall verwirft sie, der Diens
 :::
 
 :::details Die DNS-Nachschlagezeit ist immer leer
-Das Ziel ist eine IP-Adresse, also gibt es nichts nachzuschlagen. Verwenden Sie stattdessen **Gesamte Verbindungszeit (DNS + TCP) (in ms)** oder **Port TCP Connect Time (in ms)**.
+Das Ziel ist eine IP-Adresse, also gibt es nichts nachzuschlagen. Verwenden Sie stattdessen **Gesamte Verbindungszeit (DNS + TCP) (in ms)** oder **TCP-Verbindungszeit des Ports (in ms)**.
 :::
 
 :::details Ich muss einen UDP-Dienst prüfen

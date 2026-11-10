@@ -110,9 +110,9 @@ Kriteriene til en trasemonitor har én **Filtertype**: **Span Count**, antallet 
 | **Mindre enn** | under verdien |
 | **Mindre enn eller lik** | lik verdien eller lavere |
 | **Lik** | nøyaktig verdien |
-| **Anomalously High** | over det forventede området for denne timen i uken |
-| **Anomalously Low** | under det området |
-| **Anomalous** | utenfor det området, i hvilken som helst retning |
+| **Unormalt høy** | over det forventede området for denne timen i uken |
+| **Unormalt lav** | under det området |
+| **Avvikende** | utenfor det området, i hvilken som helst retning |
 
 Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. OneUptime gjør antallet om til en rate per minutt og sammenligner den med vinduer av samme lengde rundt samme tidspunkt i tidligere uker, så langt tilbake som **Grunnlinjevindu** rekker; det som skjer nå, er aldri del av sammenligningen. Grunnlinjen dekker bare monitorens tjenester og span-statuser: filtrene på span-navn og attributter inngår ikke. Minutter uten spans teller også, så en tjeneste som ofte er stille, regnes ikke som uvanlig lav fordi den er stille. Et vindu regnes bare som uvanlig høyt mot vinduene som hadde spans, og bare med minst 20, 10 eller 5 spans ved følsomheten Lav, Middels eller Høy, så verken en jobbs vanlige utbrudd eller de første spansene fra en stille tjeneste utløser det. Inntil monitorens tjenester har to ukers historikk, lærer kriteriet fortsatt og utløses ikke.
 

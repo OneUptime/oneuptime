@@ -52,7 +52,7 @@ Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine 
 
 ### Die Kriterien prüfen
 
-**Monitor-Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn der Name nicht aufgelöst wird, online, wenn er aufgelöst wird. Um zu prüfen, was in den Einträgen steht, fügen Sie einen Filter **DNS Record Value** hinzu und klicken Sie dann auf **Weiter**.
+**Monitor-Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn der Name nicht aufgelöst wird, online, wenn er aufgelöst wird. Um zu prüfen, was in den Einträgen steht, fügen Sie einen Filter **DNS-Eintragswert** hinzu und klicken Sie dann auf **Weiter**.
 
 ### Sonden wählen und erstellen
 
@@ -72,7 +72,7 @@ Behalten oder ändern Sie die **Sonden** und das **Überwachungsintervall** (es 
 
 ### Eintragstypen
 
-Ein Kriterium mit **DNS Record Value** vergleicht Ihren Text mit jedem Eintrag so, wie die Sonde ihn schreibt. Halten Sie sich daher an dieses Format:
+Ein Kriterium mit **DNS-Eintragswert** vergleicht Ihren Text mit jedem Eintrag so, wie die Sonde ihn schreibt. Halten Sie sich daher an dieses Format:
 
 | Eintragstyp | Was er enthält | Format des Werts, für Kriterien |
 | --- | --- | --- |
@@ -95,15 +95,15 @@ Kriterien entscheiden, wann der Name als online, beeinträchtigt oder offline gi
 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
-| **DNS Is Online** | **Wahr**, **Falsch** | Ob die Abfrage mindestens einen Eintrag des Typs geliefert hat. |
-| **DNS Response Time (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Wie lange die Abfrage gedauert hat. |
-| **DNS Record Exists** | **Wahr**, **Falsch** | Ob ein Eintrag des Typs zurückgekommen ist. |
-| **DNS Record Value** | **Enthält**, **Enthält nicht**, **Beginnt mit**, **Endet mit**, **Gleich**, **Ungleich** | Die Werte der Einträge. Der Filter trifft zu, wenn ein einzelner Eintrag zutrifft. |
-| **DNSSEC Is Valid** | **Wahr**, **Falsch** | Ob ein validierender Resolver das AD-Flag in der Antwort setzt. |
+| **DNS ist online** | **Wahr**, **Falsch** | Ob die Abfrage mindestens einen Eintrag des Typs geliefert hat. |
+| **DNS-Antwortzeit (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Wie lange die Abfrage gedauert hat. |
+| **DNS-Eintrag existiert** | **Wahr**, **Falsch** | Ob ein Eintrag des Typs zurückgekommen ist. |
+| **DNS-Eintragswert** | **Enthält**, **Enthält nicht**, **Beginnt mit**, **Endet mit**, **Gleich**, **Ungleich** | Die Werte der Einträge. Der Filter trifft zu, wenn ein einzelner Eintrag zutrifft. |
+| **DNSSEC ist gültig** | **Wahr**, **Falsch** | Ob ein validierender Resolver das AD-Flag in der Antwort setzt. |
 
-**DNS Record Value** trifft zu, wenn _irgendeiner_ der Einträge zutrifft. Bei mehreren `A`-Einträgen trifft **Gleich** `93.184.216.34` zu, wenn einer davon diese Adresse ist, und **Ungleich** trifft zu, wenn einer davon es nicht ist.
+**DNS-Eintragswert** trifft zu, wenn _irgendeiner_ der Einträge zutrifft. Bei mehreren `A`-Einträgen trifft **Gleich** `93.184.216.34` zu, wenn einer davon diese Adresse ist, und **Ungleich** trifft zu, wenn einer davon es nicht ist.
 
-**DNSSEC Is Valid** fragt den Server unter **DNS-Server (Optional)** auf seinem **Port** oder, wenn das Feld leer ist, Google Public DNS (`8.8.8.8`). Der Server, den Sie eintragen, sollte DNSSEC also validieren. Der Filter hat keinen Wert und trifft in keine Richtung zu, wenn die Sonde diese Prüfung nicht ausführen kann. Für eine vollständige Prüfung einer signierten Zone verwenden Sie einen [DNSSEC-Monitor](/docs/monitor/dnssec-monitor).
+**DNSSEC ist gültig** fragt den Server unter **DNS-Server (Optional)** auf seinem **Port** oder, wenn das Feld leer ist, Google Public DNS (`8.8.8.8`). Der Server, den Sie eintragen, sollte DNSSEC also validieren. Der Filter hat keinen Wert und trifft in keine Richtung zu, wenn die Sonde diese Prüfung nicht ausführen kann. Für eine vollständige Prüfung einer signierten Zone verwenden Sie einen [DNSSEC-Monitor](/docs/monitor/dnssec-monitor).
 
 Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutreffen müssen oder **Beliebig** einer genügt. Die **Aktionen** eines Kriteriums legen fest, was es tut: den Monitorstatus ändern, eine Warnung erstellen, einen Vorfall melden oder mehreres davon.
 
@@ -118,15 +118,15 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **DNS Is Online** und **DNS Response Time (in ms)**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **DNS ist online** und **DNS-Antwortzeit (in ms)**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
-| **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für **DNS Response Time (in ms)**. |
-| **All Values** | Jede Prüfung im Fenster die Bedingung erfüllt. |
-| **Any Value** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für **DNS-Antwortzeit (in ms)**. |
+| **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
+| **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 
-**All Values** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Any Value** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
+**Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
 **Bei keinen Daten** entscheidet, was passiert, solange das Fenster das Kriterium nicht stützen kann:
 
@@ -140,11 +140,11 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Offline, wenn der Name nicht mehr aufgelöst wird | **DNS Is Online** | **Falsch** | — |
-| Warnen, wenn sich der einzige `A`-Eintrag eines Namens ändert | **DNS Record Value** | **Ungleich** | `93.184.216.34` |
-| Warnen, wenn ein `MX`-Eintrag aus Ihrer Domain hinauszeigt | **DNS Record Value** | **Enthält nicht** | `example.com` |
-| DNS als beeinträchtigt markieren, wenn es langsam ist | **DNS Response Time (in ms)** | **Größer als** | `500` |
-| Warnen, wenn die DNSSEC-Validierung fehlschlägt | **DNSSEC Is Valid** | **Falsch** | — |
+| Offline, wenn der Name nicht mehr aufgelöst wird | **DNS ist online** | **Falsch** | — |
+| Warnen, wenn sich der einzige `A`-Eintrag eines Namens ändert | **DNS-Eintragswert** | **Ungleich** | `93.184.216.34` |
+| Warnen, wenn ein `MX`-Eintrag aus Ihrer Domain hinauszeigt | **DNS-Eintragswert** | **Enthält nicht** | `example.com` |
+| DNS als beeinträchtigt markieren, wenn es langsam ist | **DNS-Antwortzeit (in ms)** | **Größer als** | `500` |
+| Warnen, wenn die DNSSEC-Validierung fehlschlägt | **DNSSEC ist gültig** | **Falsch** | — |
 
 ## Fehlerbehebung
 
@@ -157,11 +157,11 @@ dig @8.8.8.8 example.com A
 :::
 
 :::details Ein Kriterium mit Ungleich schlägt an, obwohl die richtige Adresse da ist
-**DNS Record Value** trifft zu, wenn ein einzelner Eintrag zutrifft. Bei mehreren Einträgen schlägt **Ungleich** an, sobald einer davon abweicht. Um zu prüfen, dass ein bestimmter Wert unter den Einträgen ist, nutzen Sie die Reihenfolge der Kriterien, denn das erste zutreffende gewinnt:
+**DNS-Eintragswert** trifft zu, wenn ein einzelner Eintrag zutrifft. Bei mehreren Einträgen schlägt **Ungleich** an, sobald einer davon abweicht. Um zu prüfen, dass ein bestimmter Wert unter den Einträgen ist, nutzen Sie die Reihenfolge der Kriterien, denn das erste zutreffende gewinnt:
 
-1. Lassen Sie das Standard-Offline-Kriterium oben: **DNS Is Online** / **Falsch**.
-2. Fügen Sie darunter ein Kriterium mit **DNS Record Value** / **Gleich** / dem erwarteten Wert hinzu, das den Monitor als **Betriebsbereit** markiert.
-3. Fügen Sie darunter ein Kriterium mit **DNS Is Online** / **Wahr** hinzu, das den Monitor als **Offline** markiert und einen Vorfall meldet. Es trifft nur auf Antworten zu, die den Wert nicht enthalten.
+1. Lassen Sie das Standard-Offline-Kriterium oben: **DNS ist online** / **Falsch**.
+2. Fügen Sie darunter ein Kriterium mit **DNS-Eintragswert** / **Gleich** / dem erwarteten Wert hinzu, das den Monitor als **Betriebsbereit** markiert.
+3. Fügen Sie darunter ein Kriterium mit **DNS ist online** / **Wahr** hinzu, das den Monitor als **Offline** markiert und einen Vorfall meldet. Es trifft nur auf Antworten zu, die den Wert nicht enthalten.
 :::
 
 :::details DNSSEC Is Valid trifft nie zu

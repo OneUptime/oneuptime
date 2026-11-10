@@ -2,6 +2,7 @@ import {
   EvaluationSentence,
   englishOfEvaluationSentence,
 } from "../../../Types/Monitor/EvaluationSentence";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 /*
  * WHICH SENTENCE A FILTER'S FINDING WAS FILLED FROM (issue #6542).
@@ -28,8 +29,12 @@ import {
 
 const MAX_REMEMBERED: number = 2000;
 
-// Map keeps insertion order: the first key is the oldest.
-const remembered: Map<string, EvaluationSentence> = new Map<
+/*
+ * Insertion order, oldest first. OldestKeyMap answers the oldest key without
+ * walking past the slots of the keys evicted before it, as keys().next()
+ * would in a memo that evicts on every write once it is full.
+ */
+const remembered: OldestKeyMap<string, EvaluationSentence> = new OldestKeyMap<
   string,
   EvaluationSentence
 >();
@@ -56,7 +61,7 @@ export default class EvaluationSentenceMemo {
     remembered.set(english, sentence);
 
     while (remembered.size > MAX_REMEMBERED) {
-      const oldest: string | undefined = remembered.keys().next().value;
+      const oldest: string | undefined = remembered.oldestKey();
 
       if (oldest === undefined) {
         break;

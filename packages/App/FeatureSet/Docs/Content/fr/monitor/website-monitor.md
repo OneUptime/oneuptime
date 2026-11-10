@@ -25,7 +25,7 @@ flowchart TB
     criteria -->|"2xx ou 3xx"| up["Opérationnel"]
 ```
 
-Quand aucun des critères du moniteur ne lit le corps de la réponse (un filtre **Corps de la réponse** ou **JavaScript Expression**), la sonde envoie une requête `HEAD` au lieu d'un `GET`, et la répète en `GET` si le serveur refuse `HEAD`. Les journaux d'accès de votre serveur peuvent montrer l'un ou l'autre.
+Quand aucun des critères du moniteur ne lit le corps de la réponse (un filtre **Corps de la réponse** ou **Expression JavaScript**), la sonde envoie une requête `HEAD` au lieu d'un `GET`, et la répète en `GET` si le serveur refuse `HEAD`. Les journaux d'accès de votre serveur peuvent montrer l'un ou l'autre.
 
 Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, elle ne peut donc pas marquer votre site hors ligne.
 
@@ -146,10 +146,10 @@ Les critères décident quand le site web compte comme en ligne, dégradé ou ho
 | **Code de statut de la réponse** | **Égal à**, **Différent de**, **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le code de statut HTTP. |
 | **Temps de réponse (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps qu'a pris la requête, redirections comprises. |
 | **Corps de la réponse** | **Contient**, **Ne contient pas** | Du texte dans le corps de la réponse. La correspondance respecte la casse. |
-| **Response Header** | **Contient**, **Ne contient pas** | Si la réponse a un en-tête avec ce nom. Saisissez le nom en minuscules, comme `x-cache`. |
-| **Response Header Value** | **Contient**, **Ne contient pas** | Si un en-tête a exactement cette valeur, comparée en minuscules, comme `no-store`. |
-| **JavaScript Expression** | **Evaluates To True** | Une expression sur la réponse. Voir [Expressions JavaScript](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Vrai**, **Faux** | Si la requête a expiré à chaque tentative. |
+| **En-tête de réponse** | **Contient**, **Ne contient pas** | Si la réponse a un en-tête avec ce nom. Saisissez le nom en minuscules, comme `x-cache`. |
+| **Valeur de l'en-tête de réponse** | **Contient**, **Ne contient pas** | Si un en-tête a exactement cette valeur, comparée en minuscules, comme `no-store`. |
+| **Expression JavaScript** | **S'évalue à vrai** | Une expression sur la réponse. Voir [Expressions JavaScript](/docs/monitor/javascript-expression). |
+| **Délai de la requête dépassé** | **Vrai**, **Faux** | Si la requête a expiré à chaque tentative. |
 
 **Ajouter un critère** ajoute un critère déjà nommé d'après son filtre, par exemple _Response Time (in ms) is above 3000_. Le nom change avec les filtres jusqu'à ce que vous saisissiez votre propre nom. Une description est facultative : pour en ajouter une, ouvrez les **Paramètres** du critère.
 
@@ -174,17 +174,17 @@ Les moniteurs créés avant que OneUptime change ces valeurs par défaut gardent
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **Response Header**, **Response Header Value**, **JavaScript Expression** et **Is Request Timeout**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **En-tête de réponse**, **Valeur de l'en-tête de réponse**, **Expression JavaScript** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
-| **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
-| **All Values** | Chaque vérification de la fenêtre remplit la condition. |
-| **Any Value** | Au moins une vérification de la fenêtre remplit la condition. |
+| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
+| **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
+| **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
 
-**All Values** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Any Value** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
+**Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
-Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Is Request Timeout**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **All Values** ou **Any Value**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **All Values**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
+Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Délai de la requête dépassé**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **Toutes les valeurs**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
 
 Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'elle contienne plusieurs vérifications : un moniteur vérifié toutes les 5 minutes n'a qu'une seule vérification dans une fenêtre de 5 minutes.
 
@@ -202,10 +202,10 @@ Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'el
 | --- | --- | --- | --- |
 | Marquer le site dégradé quand il est lent | **Temps de réponse (en ms)** | **Supérieur à** | `3000` |
 | Repérer une page d'erreur servie avec `200` | **Corps de la réponse** | **Ne contient pas** | `Welcome` |
-| Vérifier qu'un en-tête de CDN est présent | **Response Header** | **Contient** | `x-cache` |
+| Vérifier qu'un en-tête de CDN est présent | **En-tête de réponse** | **Contient** | `x-cache` |
 | N'accepter que `200` comme sain | **Code de statut de la réponse** | **Égal à** | `200` |
 
-Pour traverser un redémarrage, activez **Évaluer ce critère sur une période donnée** pour le filtre du corps de la réponse et choisissez **All Values** sur 15 minutes.
+Pour traverser un redémarrage, activez **Évaluer ce critère sur une période donnée** pour le filtre du corps de la réponse et choisissez **Toutes les valeurs** sur 15 minutes.
 
 ## Dépannage
 
@@ -218,7 +218,7 @@ La sonde a reçu une autre réponse que votre navigateur. La cause racine de l'i
 :::
 
 :::details La vérification échoue avec « Remote response exceeded the allowed size. »
-La sonde lit au plus 512 Kio d'une réponse, et cette page est plus grande. Pointez le moniteur vers une page plus petite, comme un point de terminaison de santé, ou retirez les filtres **Corps de la réponse** et **JavaScript Expression** pour que la sonde n'ait besoin que des en-têtes.
+La sonde lit au plus 512 Kio d'une réponse, et cette page est plus grande. Pointez le moniteur vers une page plus petite, comme un point de terminaison de santé, ou retirez les filtres **Corps de la réponse** et **Expression JavaScript** pour que la sonde n'ait besoin que des en-têtes.
 :::
 
 :::details La vérification échoue avec « Monitor target exceeded 10 redirects. »

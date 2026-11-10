@@ -151,7 +151,7 @@ Det passar det vanliga fallet där ett jobb eller ett verktyg från tredje part 
 Ändra värdet till det som din avsändare faktiskt skriver (`FAILED`, `exit code 1` och så vidare).
 
 > [!NOTE]
-> De här standardinställningarna är **inte** ett dödmansgrepp: ingenting här utlöses när e-posten slutar komma. Kriterier som bara läser ämnet, avsändaren, innehållet eller mottagaren utvärderas när ett e-postmeddelande kommer och vid ingen annan tidpunkt. Om du vill larmas vid tystnad lägger du till ett kriterium **Email Received** / **Not Recieved In Minutes** — se [Exempel 3](#exempel-3-heartbeat-monitor-ingen-e-post-larm).
+> De här standardinställningarna är **inte** ett dödmansgrepp: ingenting här utlöses när e-posten slutar komma. Kriterier som bara läser ämnet, avsändaren, innehållet eller mottagaren utvärderas när ett e-postmeddelande kommer och vid ingen annan tidpunkt. Om du vill larmas vid tystnad lägger du till ett kriterium **E-post mottagen** / **Inte mottaget inom (minuter)** — se [Exempel 3](#exempel-3-heartbeat-monitor-ingen-e-post-larm).
 
 ## Tillgängliga filtertyper
 
@@ -160,13 +160,13 @@ Du kan skapa kriterier utifrån de här e-postfälten:
 | Filtertyp | Beskrivning |
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | **E-postämne** | Ämnesraden i det inkommande e-postmeddelandet |
-| **Email From Address** | Avsändarens e-postadress: bara adressen, med gemener, utan visningsnamn |
-| **Email Body** | Den oformaterade textdelen av e-postmeddelandets innehåll |
-| **Email To Address** | Mottagarens e-postadress |
-| **Email Received** | Tidsbaserade kriterier för när e-post tas emot |
-| **JavaScript Expression** | Ett eget JavaScript-uttryck som måste ge sant |
+| **Avsändaradress för e-post** | Avsändarens e-postadress: bara adressen, med gemener, utan visningsnamn |
+| **E-postinnehåll** | Den oformaterade textdelen av e-postmeddelandets innehåll |
+| **Mottagaradress för e-post** | Mottagarens e-postadress |
+| **E-post mottagen** | Tidsbaserade kriterier för när e-post tas emot |
+| **JavaScript-uttryck** | Ett eget JavaScript-uttryck som måste ge sant |
 
-Monitorns egen adress maskeras innan något kriterium läser e-postmeddelandet, så i **Email To Address**, **E-postämne** och **Email Body** står det `[REDACTED]`.
+Monitorns egen adress maskeras innan något kriterium läser e-postmeddelandet, så i **Mottagaradress för e-post**, **E-postämne** och **E-postinnehåll** står det `[REDACTED]`.
 
 ## Filtervillkor
 
@@ -191,8 +191,8 @@ Instrumentpanelen stavar de här villkoren "Recieved".
 
 | Filtervillkor | Beskrivning | Exempel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
-| **Recieved In Minutes** | Ett e-postmeddelande togs emot inom X minuter | E-post mottagen inom 30 minuter |
-| **Not Recieved In Minutes** | Ingen e-post togs emot på X minuter | Ingen e-post mottagen på 60 minuter |
+| **Mottaget inom (minuter)** | Ett e-postmeddelande togs emot inom X minuter | E-post mottagen inom 30 minuter |
+| **Inte mottaget inom (minuter)** | Ingen e-post togs emot på X minuter | Ingen e-post mottagen på 60 minuter |
 
 En monitor som aldrig har tagit emot något e-postmeddelande räknar tidpunkten då den skapades som det senaste e-postmeddelandet.
 
@@ -200,9 +200,9 @@ En monitor som aldrig har tagit emot något e-postmeddelande räknar tidpunkten 
 
 | Filtervillkor | Beskrivning |
 | --------------------- | ------------------------------------- |
-| **Evaluates To True** | Uttrycket returnerar ett sant värde |
+| **Utvärderas till sant** | Uttrycket returnerar ett sant värde |
 
-Uttrycket körs i en sandlåda utan bundna e-postfält, så det kan inte läsa ämnet, avsändaren, innehållet eller mottagaren för meddelandet som utlöste kontrollen. Använd filtertyperna **E-postämne**, **Email From Address**, **Email Body** och **Email To Address** för att matcha på e-postmeddelandets innehåll.
+Uttrycket körs i en sandlåda utan bundna e-postfält, så det kan inte läsa ämnet, avsändaren, innehållet eller mottagaren för meddelandet som utlöste kontrollen. Använd filtertyperna **E-postämne**, **Avsändaradress för e-post**, **E-postinnehåll** och **Mottagaradress för e-post** för att matcha på e-postmeddelandets innehåll.
 
 ## Exempel på konfigurationer
 
@@ -221,15 +221,15 @@ Lägg det kritiska kriteriet först: kriterierna kontrolleras uppifrån, och det
 
 | Kriterium | Filter | Matchningsvillkor | Åtgärder |
 | --- | --- | --- | --- |
-| Misslyckat jobb | **Email From Address** Lika med `monitoring@legacy-system.com`; **E-postämne** Innehåller `Failed` | **Alla** | Ändra statusen till offline; deklarera en incident |
-| Lyckat jobb | **Email From Address** Lika med `monitoring@legacy-system.com`; **E-postämne** Innehåller `Success` | **Alla** | Ändra statusen till online |
+| Misslyckat jobb | **Avsändaradress för e-post** Lika med `monitoring@legacy-system.com`; **E-postämne** Innehåller `Failed` | **Alla** | Ändra statusen till offline; deklarera en incident |
+| Lyckat jobb | **Avsändaradress för e-post** Lika med `monitoring@legacy-system.com`; **E-postämne** Innehåller `Success` | **Alla** | Ändra statusen till online |
 
 ### Exempel 3: Heartbeat-monitor (ingen e-post = larm)
 
 | Kriterium | Filter | Åtgärder |
 | --- | --- | --- |
-| E-posten är sen | **Email Received** Not Recieved In Minutes `60` | Ändra statusen till offline; skapa ett larm |
-| E-posten har kommit | **Email Received** Recieved In Minutes `60` | Ändra statusen till online |
+| E-posten är sen | **E-post mottagen** Inte mottaget inom (minuter) `60` | Ändra statusen till offline; skapa ett larm |
+| E-posten har kommit | **E-post mottagen** Mottaget inom (minuter) `60` | Ändra statusen till online |
 
 Det första kriteriet utlöses när inget e-postmeddelande har kommit på 60 minuter — användbart för schemalagda jobb eller batchprocesser som skickar ett mejl när de är klara. Det andra löser larmet så snart ett meddelande kommer. Minuter då OneUptime självt inte tog emot e-post räknas inte in i de 60, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
@@ -240,7 +240,7 @@ Ett kriterium håller en incident öppen i taget: så länge den är öppen öpp
 :::steps
 ### Välj e-postmeddelandena
 
-Ge kriteriet ett filter som matchar de e-postmeddelanden som ska öppna incidenter. För att bara ta emot rapporter från era egna medarbetare använder du **Email From Address** med **Slutar med** och er domän, till exempel `@example.com`.
+Ge kriteriet ett filter som matchar de e-postmeddelanden som ska öppna incidenter. För att bara ta emot rapporter från era egna medarbetare använder du **Avsändaradress för e-post** med **Slutar med** och er domän, till exempel `@example.com`.
 
 ### Deklarera incidenten
 
@@ -263,7 +263,7 @@ Från och med då hanterar kriteriet varje e-postmeddelande för sig:
 
 Varje e-postmeddelande får fortfarande en rad i **Övervakningsloggar**, och **Visa sammanfattning** på den raden säger vad e-postmeddelandet öppnade, eller varför det inte öppnade något. När kriteriet även skapar larm heter reglaget **Öppna en ny incident och ett nytt larm för varje e-postmeddelande**, och varje e-postmeddelande öppnar ett eget larm på samma sätt.
 
-Dessa incidenter förblir öppna tills någon löser dem. Med **Lös incident automatiskt** påslaget löses de också när ett senare e-postmeddelande matchar ett annat kriterium, som alla incidenter; ett senare e-postmeddelande som matchar samma kriterium löser aldrig de tidigare. En kontroll av saknad e-post (**Email Received**) är inget e-postmeddelande, så den öppnar fortfarande en incident i taget.
+Dessa incidenter förblir öppna tills någon löser dem. Med **Lös incident automatiskt** påslaget löses de också när ett senare e-postmeddelande matchar ett annat kriterium, som alla incidenter; ett senare e-postmeddelande som matchar samma kriterium löser aldrig de tidigare. En kontroll av saknad e-post (**E-post mottagen**) är inget e-postmeddelande, så den öppnar fortfarande en incident i taget.
 
 > [!WARNING]
 > **Alla som känner till adressen kan öppna incidenter.** Håll adressen privat, filtrera på avsändaren som ovan och [återställ adressen](#återställa-eller-anpassa-e-postadressen) om den läcker. En avsändares adress kan förfalskas, så filtret håller borta vilsen e-post, inte någon som är fast besluten att ta sig in.
@@ -294,7 +294,7 @@ Titlarna, beskrivningarna och åtgärdsanteckningarna i de larm och incidenter s
 
 - **En titel får en rad av varje.** I en titel kortas varje variabel till en rad på högst 150 tecken, som slutar med `...` när den var längre. En titel får inte vara längre än 500 tecken, och ett larm eller en incident med för lång titel skapas inte alls, så att citera ett helt e-postmeddelande skulle hindra monitorn från att larma om långa e-postmeddelanden. Beskrivningar och åtgärdsanteckningar får hela värdet.
 - **Den här monitorns adress är maskerad.** Adressen fungerar som ett lösenord, så den maskeras innan e-postmeddelandet lagras, och `{{emailTo}}` blir `monitor-[REDACTED]@{inbound-domain}` (eller `[REDACTED]@{inbound-domain}` för en anpassad adress).
-- **En kontroll av saknad e-post använder det senaste e-postmeddelandet.** När ett kriterium med **Email Received** öppnar ett larm för att inget e-postmeddelande kom i tid, beskriver variablerna det senaste e-postmeddelandet som monitorn tog emot. De är tomma om inget har kommit ännu.
+- **En kontroll av saknad e-post använder det senaste e-postmeddelandet.** När ett kriterium med **E-post mottagen** öppnar ett larm för att inget e-postmeddelande kom i tid, beskriver variablerna det senaste e-postmeddelandet som monitorn tog emot. De är tomma om inget har kommit ännu.
 
 ## Vyn Monitor-sammanfattning
 
@@ -312,7 +312,7 @@ Klicka på **Visa fler detaljer** för att se resten:
 
 ### Tidigare e-postmeddelanden
 
-Kortet visar bara det senaste e-postmeddelandet. Varje e-postmeddelande som monitorn utvärderar skrivs också till **Övervakningsloggar**: kolumnen **E-post** visar dess ämne och avsändare, och **Visa sammanfattning** på dess rad visar hela e-postmeddelandet på samma sätt som kortet. En monitor med övervakningen avstängd utvärderar ingenting, så e-postmeddelandena den tar emot får inga rader. Om något av dina kriterier kontrollerar **Email Received** skriver monitorn också en rad varje gång den letar efter saknad e-post. Kolumnen **E-post** säger "Scheduled check" på de raderna, och deras **Visa sammanfattning** visar det senaste e-postmeddelandet vid kontrollen, eller "No email yet" om inget hade kommit. Övervakningsloggar sparas som standard i en dag. På en självhostad server kan en administratör ändra det med **Lagringstid för övervakningsloggar (dagar)** i inställningarna i Admin Dashboard.
+Kortet visar bara det senaste e-postmeddelandet. Varje e-postmeddelande som monitorn utvärderar skrivs också till **Övervakningsloggar**: kolumnen **E-post** visar dess ämne och avsändare, och **Visa sammanfattning** på dess rad visar hela e-postmeddelandet på samma sätt som kortet. En monitor med övervakningen avstängd utvärderar ingenting, så e-postmeddelandena den tar emot får inga rader. Om något av dina kriterier kontrollerar **E-post mottagen** skriver monitorn också en rad varje gång den letar efter saknad e-post. Kolumnen **E-post** säger "Scheduled check" på de raderna, och deras **Visa sammanfattning** visar det senaste e-postmeddelandet vid kontrollen, eller "No email yet" om inget hade kommit. Övervakningsloggar sparas som standard i en dag. På en självhostad server kan en administratör ändra det med **Lagringstid för övervakningsloggar (dagar)** i inställningarna i Admin Dashboard.
 
 ## Självhostad konfiguration
 

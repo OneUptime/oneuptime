@@ -267,6 +267,69 @@ describe("a pending receipt as stored (serialize, parse)", () => {
       ),
     ).toEqual(receipt());
   });
+
+  /*
+   * Whether the push was an on-call page - to this device or among several
+   * - is kept with its receipt, for the receipt's delivery metric (#6648):
+   * notification.delivery.count says it as notification.send.count did.
+   */
+  test("an on-call page is read back as one, written last: the field an older entry lacks", () => {
+    const page: PendingExpoPushReceipt = receipt({
+      pushNotificationLogId: "7f000000-0000-4000-8000-000000000101",
+      isOnCallPage: true,
+    });
+
+    const member: string = ExpoPushReceiptQueue.serialize(page);
+
+    expect(ExpoPushReceiptQueue.parse(member)).toEqual(page);
+    expect(Object.keys(JSON.parse(member) as Record<string, unknown>)).toEqual([
+      "receiptId",
+      "deviceToken",
+      "via",
+      "sentAt",
+      "attempts",
+      "pushNotificationLogId",
+      "isOnCallPage",
+    ]);
+  });
+
+  test("a push that was no page writes nothing of it: the member is as it always was", () => {
+    expect(
+      ExpoPushReceiptQueue.serialize(receipt({ isOnCallPage: false })),
+    ).toBe(ExpoPushReceiptQueue.serialize(receipt()));
+    expect(
+      ExpoPushReceiptQueue.serialize(receipt({ isOnCallPage: undefined })),
+    ).toBe(ExpoPushReceiptQueue.serialize(receipt()));
+  });
+
+  test.each([
+    ["false", false],
+    ["text", "true"],
+    ["a number", 1],
+    ["null", null],
+  ])(
+    "an on-call page flag that is %s is no page, and the receipt is still read",
+    (_name: string, flag: unknown) => {
+      expect(
+        ExpoPushReceiptQueue.parse(
+          JSON.stringify({ ...receipt(), isOnCallPage: flag }),
+        ),
+      ).toEqual(receipt());
+    },
+  );
+
+  test("an entry written before the flag was kept is read as it was", () => {
+    const older: string = JSON.stringify({
+      ...receipt(),
+      userOnCallLogTimelineId: "7f000000-0000-4000-8000-000000000102",
+    });
+
+    expect(ExpoPushReceiptQueue.parse(older)).toEqual(
+      receipt({
+        userOnCallLogTimelineId: "7f000000-0000-4000-8000-000000000102",
+      }),
+    );
+  });
 });
 
 describe("keeping a send's receipts to read (add)", () => {

@@ -80,7 +80,7 @@ Mantenga o cambie las **Sondas** y el **Intervalo de monitoreo** (empieza en **C
 | **Zona (nombre de dominio)** | Ninguno | La zona que se valida, como `example.com`. |
 | **Resolutores** | `1.1.1.1, 8.8.8.8, 9.9.9.9` | Resolutores validadores que se consultan, separados por comas. Cada uno debe devolver el indicador AD para que la cadena cuente como válida. |
 | **Comprobar coherencia de los servidores de nombres** | Activado | Consultar directamente cada servidor de nombres autoritativo y comparar sus números de serie SOA. Desactívelo si su red bloquea el DNS saliente hacia servidores arbitrarios. |
-| **Aviso de caducidad de la firma (días)** (en **Más campos**) | `7` | Se guarda con el monitor. El filtro **DNSSEC Signature Expires In Days** usa el valor que le dé en el criterio, así que fije allí su umbral. |
+| **Aviso de caducidad de la firma (días)** (en **Más campos**) | `7` | Se guarda con el monitor. El filtro **Días hasta la caducidad de la firma DNSSEC** usa el valor que le dé en el criterio, así que fije allí su umbral. |
 | **Tiempo de espera (ms)** (en **Más campos**) | `10000` | Cuánto esperar cada consulta DNS, en milisegundos. Un intento puede tardar en total hasta tres veces esto. |
 | **Reintentos** (en **Más campos**) | `3` | Reintentos después de que falle el primer intento. `0` significa un solo intento. |
 
@@ -90,12 +90,12 @@ Los criterios deciden cuándo la zona cuenta como en línea, degradada o sin con
 
 | Filtro | Condiciones | Qué comprueba |
 | --- | --- | --- |
-| **DNSSEC Chain Is Valid** | **Verdadero**, **Falso** | Se cumplen las cuatro comprobaciones de arriba: claves publicadas, DS en la zona padre, firmas presentes con un día o más por delante, y el indicador AD de cada resolutor. |
-| **DNSSEC DNSKEY Record Exists** | **Verdadero**, **Falso** | La zona publica al menos un registro DNSKEY. |
-| **DNSSEC DS Record Exists At Parent** | **Verdadero**, **Falso** | La zona padre publica un registro DS para la zona. |
-| **DNSSEC Signature Expires In Days** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Los días completos hasta que caduca la firma (RRSIG) más próxima a vencer. |
-| **DNSSEC Resolver Consensus (AD Flag)** | **Verdadero**, **Falso** | Cada resolutor de **Resolutores** devuelve el indicador AD. |
-| **DNSSEC Nameservers Are Consistent** | **Verdadero**, **Falso** | Cada servidor de nombres autoritativo responde con el mismo número de serie SOA. Siempre **Verdadero** mientras **Comprobar coherencia de los servidores de nombres** está desactivado. |
+| **Cadena DNSSEC válida** | **Verdadero**, **Falso** | Se cumplen las cuatro comprobaciones de arriba: claves publicadas, DS en la zona padre, firmas presentes con un día o más por delante, y el indicador AD de cada resolutor. |
+| **Registro DNSKEY de DNSSEC presente** | **Verdadero**, **Falso** | La zona publica al menos un registro DNSKEY. |
+| **Registro DS de DNSSEC presente en la zona padre** | **Verdadero**, **Falso** | La zona padre publica un registro DS para la zona. |
+| **Días hasta la caducidad de la firma DNSSEC** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Los días completos hasta que caduca la firma (RRSIG) más próxima a vencer. |
+| **Consenso de resolutores DNSSEC (indicador AD)** | **Verdadero**, **Falso** | Cada resolutor de **Resolutores** devuelve el indicador AD. |
+| **Servidores de nombres DNSSEC consistentes** | **Verdadero**, **Falso** | Cada servidor de nombres autoritativo responde con el mismo número de serie SOA. Siempre **Verdadero** mientras **Comprobar coherencia de los servidores de nombres** está desactivado. |
 
 Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir **Todos** o basta con **Cualquiera**. Las **Acciones** de un criterio deciden qué hace: cambiar el estado del monitor, crear una alerta, declarar un incidente, o varias de estas cosas.
 
@@ -103,7 +103,7 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor de DNSSEC nuevo empieza con dos criterios:
 
-- **Cadena rota** — **DNSSEC Chain Is Valid** es **Falso**. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ DNSSEC chain is broken». El incidente se resuelve solo en cuanto la cadena vuelve a ser válida.
+- **Cadena rota** — **Cadena DNSSEC válida** es **Falso**. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ DNSSEC chain is broken». El incidente se resuelve solo en cuanto la cadena vuelve a ser válida.
 - **Cadena válida** — el monitor se marca como **Operativo**.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Cuando ninguno coincide, el monitor muestra su estado predeterminado: **Operativo**, salvo que elija otro en **Más campos**, debajo de los criterios.
@@ -114,16 +114,16 @@ Los criterios predeterminados no vigilan por sí solos la caducidad de las firma
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
-| Sin conexión cuando la cadena está rota (uno predeterminado) | **DNSSEC Chain Is Valid** | **Falso** | — |
-| Avisar antes de que caduquen las firmas | **DNSSEC Signature Expires In Days** | **Menor que** | `7` |
-| Detectar una delegación que perdió su registro DS | **DNSSEC DS Record Exists At Parent** | **Falso** | — |
-| Detectar resolutores que no coinciden | **DNSSEC Resolver Consensus (AD Flag)** | **Falso** | — |
-| Detectar servidores de nombres desacompasados | **DNSSEC Nameservers Are Consistent** | **Falso** | — |
+| Sin conexión cuando la cadena está rota (uno predeterminado) | **Cadena DNSSEC válida** | **Falso** | — |
+| Avisar antes de que caduquen las firmas | **Días hasta la caducidad de la firma DNSSEC** | **Menor que** | `7` |
+| Detectar una delegación que perdió su registro DS | **Registro DS de DNSSEC presente en la zona padre** | **Falso** | — |
+| Detectar resolutores que no coinciden | **Consenso de resolutores DNSSEC (indicador AD)** | **Falso** | — |
+| Detectar servidores de nombres desacompasados | **Servidores de nombres DNSSEC consistentes** | **Falso** | — |
 
 ## Buenas prácticas
 
 1. **Elija resolutores que estén siempre accesibles.** Cada resolutor debe devolver el indicador AD para que la cadena cuente como válida, así que un resolutor al que la sonda no llega hace fallar la comprobación cuando se agotan los reintentos. Los predeterminados, `1.1.1.1`, `8.8.8.8` y `9.9.9.9`, los gestionan tres operadores distintos, lo que también detecta una zona que valida en un resolutor pero no en otro.
-2. **Reciba un aviso antes de que caduquen las firmas.** Los firmantes vuelven a firmar una zona antes de que caduquen sus firmas, así que una firma a punto de caducar significa que la refirma se ha detenido. Añada un criterio con **DNSSEC Signature Expires In Days** / **Menor que** / `7` que cree una alerta, y un segundo en `2` que declare un incidente. Arrastre ambos por encima del criterio que marca la cadena como válida, primero el de `2` días, porque gana el primer criterio que coincide. Elija umbrales inferiores al tiempo que su firmante suele dejar en una firma antes de volver a firmar, para que no se disparen mientras la refirma funciona.
+2. **Reciba un aviso antes de que caduquen las firmas.** Los firmantes vuelven a firmar una zona antes de que caduquen sus firmas, así que una firma a punto de caducar significa que la refirma se ha detenido. Añada un criterio con **Días hasta la caducidad de la firma DNSSEC** / **Menor que** / `7` que cree una alerta, y un segundo en `2` que declare un incidente. Arrastre ambos por encima del criterio que marca la cadena como válida, primero el de `2` días, porque gana el primer criterio que coincide. Elija umbrales inferiores al tiempo que su firmante suele dejar en una firma antes de volver a firmar, para que no se disparen mientras la refirma funciona.
 3. **Monitorice cada zona firmada.** Incluya el dominio raíz, los subdominios firmados y cualquier zona delegada a otro operador.
 4. **Mantenga activada la comprobación de coherencia de los servidores de nombres,** y añada un criterio para ella. Detecta un servidor secundario que dejó de recibir transferencias del primario, algo que la validación de DNSSEC por sí sola puede pasar por alto.
 

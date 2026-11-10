@@ -104,7 +104,7 @@ Cada cambio de estado, con su motivo, queda registrado en la **Cronología de es
 
 ## Criterios
 
-Los criterios de un monitor de registros tienen un único **Tipo de filtro**: **Log Count**, el número de registros que coincidieron en la ventana. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y, para una condición de umbral, un **Valor**.
+Los criterios de un monitor de registros tienen un único **Tipo de filtro**: **Recuento de registros**, el número de registros que coincidieron en la ventana. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y, para una condición de umbral, un **Valor**.
 
 | Condición de filtro | Coincide cuando el recuento de registros está… |
 | --- | --- |
@@ -113,9 +113,9 @@ Los criterios de un monitor de registros tienen un único **Tipo de filtro**: **
 | **Menor que** | por debajo del valor |
 | **Menor o igual que** | en el valor o por debajo |
 | **Igual a** | exactamente en el valor |
-| **Anomalously High** | por encima del rango esperado para esta hora de la semana |
-| **Anomalously Low** | por debajo de ese rango |
-| **Anomalous** | fuera de ese rango, en cualquier sentido |
+| **Anómalamente alto** | por encima del rango esperado para esta hora de la semana |
+| **Anómalamente bajo** | por debajo de ese rango |
+| **Anómalo** | fuera de ese rango, en cualquier sentido |
 
 Las condiciones de anomalía no llevan **Valor**. Elige una **Sensibilidad** (Baja, Media, la predeterminada, o Alta) y, en los criterios propios, una **Ventana de referencia** de 14 (la predeterminada), 28, 60 o 90 días. OneUptime convierte el recuento en una tasa por minuto y la compara con ventanas de la misma duración en torno a la misma hora de semanas anteriores, hasta donde llega la **Ventana de referencia**; lo que ocurre ahora nunca forma parte de esa comparación. La referencia solo abarca los servicios y las gravedades del monitor: sus filtros de texto y de atributos no forman parte de ella. Los minutos sin logs también cuentan, así que un servicio que suele estar en silencio no se considera inusualmente bajo por estarlo. Una ventana solo se considera inusualmente alta frente a las ventanas que tuvieron logs, y solo con al menos 20, 10 o 5 logs con la sensibilidad Baja, Media o Alta, de modo que ni la ráfaga habitual de una tarea ni las primeras líneas de un servicio silencioso lo disparan. Hasta que los servicios del monitor tengan dos semanas de historial, el criterio sigue aprendiendo y no se dispara.
 
@@ -131,8 +131,8 @@ Un monitor de registros creado mediante la API o Terraform sin criterios empieza
 
 | Criterio | Filtro | Efecto |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
-| Check if … is online | **Log Count** **Mayor que** `0` | Pone el monitor en línea |
+| Check if … is offline | **Recuento de registros** **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
+| Check if … is online | **Recuento de registros** **Mayor que** `0` | Pone el monitor en línea |
 
 ## Ejemplo práctico: un pico de errores
 
@@ -234,7 +234,7 @@ El valor de cada atributo de Group By es una [variable de plantilla](/docs/monit
 
 - **Se evalúan todos los criterios**, como en un monitor de métricas agrupado, así que distintos grupos pueden cumplir distintos criterios a la vez. Un grupo que cumple dos criterios sigue recibiendo una sola alerta, la del primero, así que ordena los criterios del más grave al menos grave.
 - **Un grupo solo existe si registró algo en la ventana de tiempo.** Por eso los criterios **Igual a 0** y **Menor que** solo se disparan en grupos que registraron al menos una vez; para alertar cuando los registros dejan de llegar del todo, usa un monitor sin Group By.
-- **La detección de anomalías** (**Anomalously High**, **Anomalously Low**, **Anomalous**) no se evalúa por grupo (su referencia abarca todo el monitor), así que esos filtros nunca coinciden en un monitor agrupado.
+- **La detección de anomalías** (**Anómalamente alto**, **Anómalamente bajo**, **Anómalo**) no se evalúa por grupo (su referencia abarca todo el monitor), así que esos filtros nunca coinciden en un monitor agrupado.
 - El estado del monitor sigue al primer criterio que cumple algún grupo. Cuando ningún grupo cumple ningún criterio, el monitor vuelve a su estado predeterminado.
 
 ## Solución de problemas
@@ -244,7 +244,7 @@ El recuento fue 0, así que los filtros no coinciden con ninguno de los registro
 :::
 
 :::details Hubo un pico, pero nada alertó
-Los criterios se comprueban de arriba abajo y decide la primera coincidencia. Un criterio amplio por encima del que esperabas, como **Log Count** **Mayor que** `0`, coincide primero y detiene el resto. Pon arriba el criterio más grave.
+Los criterios se comprueban de arriba abajo y decide la primera coincidencia. Un criterio amplio por encima del que esperabas, como **Recuento de registros** **Mayor que** `0`, coincide primero y detiene el resto. Pon arriba el criterio más grave.
 :::
 
 :::details Un criterio de anomalía nunca se dispara

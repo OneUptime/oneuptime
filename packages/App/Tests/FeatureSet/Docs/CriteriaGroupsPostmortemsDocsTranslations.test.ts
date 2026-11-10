@@ -77,8 +77,8 @@ import { describe, expect, it } from "@jest/globals";
  * segment (drawnPath: one bold span joined by " → "; in Persian a bold span
  * per segment joined by " > ", with no "→" left in the prose). Where a
  * language's Dashboard still draws a label in English, the page writes it in
- * English too. The words a page keeps as written - the filter names and
- * built-in outlines no locale words - stay in English (KEPT_AS_WRITTEN). A
+ * English too. The words a page keeps as written - the row menu's glyph and
+ * the built-in outlines no locale words - stay in English (KEPT_AS_WRITTEN). A
  * new bold word on these English pages fails "know every bold word" until it
  * is a label or listed.
  */
@@ -926,8 +926,11 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
-    // A filter name no locale words is kept, not drawn.
-    expect(dashboardLabels(CRITERIA_AND_STATUSES)).not.toContain("Is Online");
+    // A filter name is drawn: #6575 keyed the criteria's filter types.
+    expect(dashboardLabels(CRITERIA_AND_STATUSES)).toContain("Is Online");
+    expect(drawnActionLabel("de", "Is Online")).not.toBe("Is Online");
+    // The row menu's glyph is kept, not drawn.
+    expect(dashboardLabels(CRITERIA_AND_STATUSES)).not.toContain("⋯");
     // A built-in outline is kept.
     expect(dashboardLabels(POSTMORTEMS)).not.toContain("Standard Postmortem");
     // A seeded status is drawn.

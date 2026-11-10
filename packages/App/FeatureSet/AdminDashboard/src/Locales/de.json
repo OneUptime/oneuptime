@@ -1791,7 +1791,7 @@
   "filter": "Filter",
   "Hide Advanced Filters": "Erweiterte Filter ausblenden",
   "Show Advanced Filters": "Erweiterte Filter anzeigen",
-  "Filter by {{field}}": "Filter by {{field}}",
+  "Filter by {{field}}": "Nach {{field}} filtern",
   "Something went wrong. Please try again.": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
   "More actions": "Weitere Aktionen",
   "More actions for": "Weitere Aktionen für",

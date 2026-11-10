@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import fs from "fs";
 import Path from "path";
 import Handlebars from "handlebars";
@@ -291,11 +292,10 @@ describe("an email", () => {
       fromName: "Alerts",
     } as never);
 
-    const sendGrid: jest.SpiedFunction<
-      typeof SendGridMailProvider.prototype.send
-    > = jest
-      .spyOn(SendGridMailProvider.prototype, "send")
-      .mockResolvedValue(undefined as never);
+    const sendGrid: SpyInstance<typeof SendGridMailProvider.prototype.send> =
+      jest
+        .spyOn(SendGridMailProvider.prototype, "send")
+        .mockResolvedValue(undefined as never);
 
     await MailService.send(message());
 

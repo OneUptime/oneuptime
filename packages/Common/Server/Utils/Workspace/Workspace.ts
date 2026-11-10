@@ -26,6 +26,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
 import PromptText from "../../../Utils/AI/PromptText";
 import BlockedProjectNotifications from "../Notification/BlockedProjectNotifications";
+import WorkspaceDeliveryMetrics from "./WorkspaceDeliveryMetrics";
 
 export interface WorkspaceChannelMessage {
   messageId: string;
@@ -301,7 +302,9 @@ export default class WorkspaceUtil {
     /*
      * A project a master admin blocked posts nothing as its bot
      * (BlockedProjectNotifications): answered as a project with no
-     * workspace connected is, one empty answer per payload.
+     * workspace connected is, one empty answer per payload. Each channel a
+     * payload names is not sent, for the platform's operator
+     * (WorkspaceDeliveryMetrics).
      */
     if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
       logger.debug(
@@ -311,6 +314,11 @@ export default class WorkspaceUtil {
 
       return data.messagePayloadsByWorkspace.map(
         (payload: WorkspaceMessagePayload): WorkspaceSendMessageResponse => {
+          WorkspaceDeliveryMetrics.recordChannelPostsNotSent({
+            workspaceType: payload.workspaceType,
+            payload: payload,
+          });
+
           return { workspaceType: payload.workspaceType, threads: [] };
         },
       );
@@ -448,12 +456,20 @@ export default class WorkspaceUtil {
     );
     logger.debug(data, postLogAttributes);
 
-    // A project a master admin blocked posts nothing (BlockedProjectNotifications).
+    /*
+     * A project a master admin blocked posts nothing (BlockedProjectNotifications):
+     * each channel the message names is not sent (WorkspaceDeliveryMetrics).
+     */
     if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
       logger.debug(
         BlockedProjectNotifications.getNotSentReason("Workspace message"),
         postLogAttributes,
       );
+
+      WorkspaceDeliveryMetrics.recordChannelPostsNotSent({
+        workspaceType: data.workspaceType,
+        payload: data.workspaceMessagePayload,
+      });
 
       return { workspaceType: data.workspaceType, threads: [] };
     }

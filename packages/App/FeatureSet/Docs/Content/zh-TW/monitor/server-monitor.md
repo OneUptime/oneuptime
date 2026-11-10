@@ -16,7 +16,7 @@ Server / VM 監測器透過 OneUptime 基礎設施代理程式（`oneuptime-infr
 
 代理程式以系統服務的形式執行。它每 30 秒收集一份報告，以監測器的密鑰簽署後傳送到你的 OneUptime URL。OneUptime 會把這些數值存為監測器的指標，並用監測器的條件檢查報告。
 
-靜默會另外檢查。OneUptime 每分鐘會重新評估所有 3 分鐘以上沒有回報的 Server / VM 監測器的 **Is Online** 條件；靜默時間超過條件允許範圍（預設 3 分鐘）的伺服器會被視為離線。沒有 **Is Online** 條件的監測器，不會只因為代理程式靜默就被標記為離線。只有 OneUptime 正在接收資料的時間才會計入這段靜默：OneUptime 本身重新啟動、升級或追趕積壓的時間不會計入，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
+靜默會另外檢查。OneUptime 每分鐘會重新評估所有 3 分鐘以上沒有回報的 Server / VM 監測器的 **是否在線** 條件；靜默時間超過條件允許範圍（預設 3 分鐘）的伺服器會被視為離線。沒有 **是否在線** 條件的監測器，不會只因為代理程式靜默就被標記為離線。只有 OneUptime 正在接收資料的時間才會計入這段靜默：OneUptime 本身重新啟動、升級或追趕積壓的時間不會計入，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ```mermaid title="Server / VM 監測器如何取得資料"
 flowchart TB
@@ -224,17 +224,17 @@ oneuptime-infrastructure-agent start
 | Load Average (1 minute) | 最近 1 分鐘的平均負載 | 與 CPU 相同 |
 | Load Average (5 minute) | 最近 5 分鐘的平均負載 | 與 CPU 相同 |
 | Load Average (15 minute) | 最近 15 分鐘的平均負載 | 與 CPU 相同 |
-| Server Process Name | 是否有使用此名稱的處理程序正在執行（不區分大小寫） | Is Executing, Is Not Executing |
-| Server Process Command | 是否有指令列與此完全相同的處理程序正在執行（不區分大小寫） | Is Executing, Is Not Executing |
-| Server Process PID | 是否有此 PID 的處理程序正在執行 | Is Executing, Is Not Executing |
+| Server Process Name | 是否有使用此名稱的處理程序正在執行（不區分大小寫） | 正在執行, 未在執行 |
+| Server Process Command | 是否有指令列與此完全相同的處理程序正在執行（不區分大小寫） | 正在執行, 未在執行 |
+| Server Process PID | 是否有此 PID 的處理程序正在執行 | 正在執行, 未在執行 |
 
 **磁碟路徑** 接受掛接點或裝置，例如 `/`、`/mnt/data`、`C:\` 或 `/dev/sda1`；留白時為 `/`。輸入 `*` 可檢查代理程式回報的所有磁碟：每個超過閾值的磁碟都會有自己的警示，因此第二個磁碟快滿時，不會被第一個磁碟尚未解決的警示掩蓋。大小寫以及結尾的 `/` 或 `\` 都不影響比對，裝置代表從該裝置掛接的磁碟。沒有指向代理程式所回報任何磁碟的路徑不會相符。代理程式無法讀取伺服器的處理程序時，報告中沒有處理程序清單，任何處理程序篩選條件都不會相符，無論它檢查處理程序正在執行還是未在執行。
 
 ### 依時間區段評估
 
-**在一段時間內評估此條件** 是條件表單上的獨立核取方塊，而不是篩選條件。它適用於 **Is Online** 和所有數值型篩選器類型。開啟後，比較的不再是最近一次檢查的值，而是一個彙總值：在 **評估** 中選擇（平均、總和、Maximum Value、Minimum Value、All Values、Any Value），時間視窗由 **過去(以分鐘計)** 設定。對於 **Is Online** 篩選器，這個視窗就是伺服器被視為離線之前，代理程式可以保持靜默的時間。
+**在一段時間內評估此條件** 是條件表單上的獨立核取方塊，而不是篩選條件。它適用於 **是否在線** 和所有數值型篩選器類型。開啟後，比較的不再是最近一次檢查的值，而是一個彙總值：在 **評估** 中選擇（平均、總和、Maximum Value、Minimum Value、All Values、Any Value），時間視窗由 **過去(以分鐘計)** 設定。對於 **是否在線** 篩選器，這個視窗就是伺服器被視為離線之前，代理程式可以保持靜默的時間。
 
-**All Values** 只有在視窗確實被資料涵蓋時才會符合。剛建立的監測器，或檢查不再被記錄的監測器，沒有足夠的歷史可以判斷最近 N 分鐘的情況，所以條件會等待，而不是根據手上唯一的一筆讀數符合。**Any Value** 用於「只要有一次檢查越過閾值就立刻通知我」，它仍然會立即觸發。
+**所有值** 只有在視窗確實被資料涵蓋時才會符合。剛建立的監測器，或檢查不再被記錄的監測器，沒有足夠的歷史可以判斷最近 N 分鐘的情況，所以條件會等待，而不是根據手上唯一的一筆讀數符合。**任一值** 用於「只要有一次檢查越過閾值就立刻通知我」，它仍然會立即觸發。
 
 **如果沒有資料** 控制視窗無法支撐條件時會發生什麼事：
 
@@ -245,7 +245,7 @@ oneuptime-infrastructure-agent start
 | **Treat As Zero** | 把視窗當成單一的零來比較。 | 計數器，「沒有事件」確實代表零。 |
 
 > [!TIP]
-> CPU 和負載經常出現短暫的尖峰。請使用 **平均** 或 **All Values** 在幾分鐘內評估它們，而不是根據單一報告發出警示。
+> CPU 和負載經常出現短暫的尖峰。請使用 **平均** 或 **所有值** 在幾分鐘內評估它們，而不是根據單一報告發出警示。
 
 ### 條件範例
 
@@ -256,7 +256,7 @@ oneuptime-infrastructure-agent start
 | 根磁碟使用率超過 85% 時發出警示 | Disk Usage (in %)，**磁碟路徑** `/` | 大於 | `85` |
 | 任何磁碟使用率超過 85% 時發出警示，每個磁碟一個警示 | Disk Usage (in %)，**磁碟路徑** `*` | 大於 | `85` |
 | 記憶體使用率超過 80% 時發出警示 | Memory Usage (in %) | 大於 | `80` |
-| nginx 停止執行時發出警示 | Server Process Name | Is Not Executing | `nginx` |
+| nginx 停止執行時發出警示 | Server Process Name | 未在執行 | `nginx` |
 
 ## 疑難排解
 
@@ -280,7 +280,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details 伺服器停機時監測器始終不會進入離線狀態
-只有 **Is Online** 條件會把靜默的伺服器標記為離線。請新增一個 **篩選條件** 為 **否** 的條件，並設定它要切換到的監測器狀態。
+只有 **是否在線** 條件會把靜默的伺服器標記為離線。請新增一個 **篩選條件** 為 **否** 的條件，並設定它要切換到的監測器狀態。
 :::
 
 :::details 報告無法通過 Proxy

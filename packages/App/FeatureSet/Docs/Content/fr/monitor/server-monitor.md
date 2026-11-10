@@ -16,7 +16,7 @@ Un moniteur Serveur / VM surveille une machine grâce à l'agent d'infrastructur
 
 L'agent s'exécute comme service système. Toutes les 30 secondes, il collecte un rapport et l'envoie à votre URL OneUptime, signé avec la clé secrète du moniteur. OneUptime enregistre les valeurs comme métriques du moniteur et vérifie le rapport par rapport aux critères du moniteur.
 
-Le silence est vérifié séparément. Chaque minute, OneUptime réévalue les critères **Is Online** de chaque moniteur Serveur / VM qui n'a rien envoyé depuis 3 minutes ou plus, et un serveur silencieux plus longtemps que ses critères ne le permettent (3 minutes par défaut) est considéré hors ligne. Un moniteur sans critère **Is Online** n'est jamais marqué hors ligne simplement parce que l'agent s'est tu. Seul le temps pendant lequel OneUptime recevait des données compte dans ce silence : le temps pendant lequel OneUptime lui-même redémarrait, était mis à jour ou rattrapait son retard ne compte pas, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
+Le silence est vérifié séparément. Chaque minute, OneUptime réévalue les critères **En ligne** de chaque moniteur Serveur / VM qui n'a rien envoyé depuis 3 minutes ou plus, et un serveur silencieux plus longtemps que ses critères ne le permettent (3 minutes par défaut) est considéré hors ligne. Un moniteur sans critère **En ligne** n'est jamais marqué hors ligne simplement parce que l'agent s'est tu. Seul le temps pendant lequel OneUptime recevait des données compte dans ce silence : le temps pendant lequel OneUptime lui-même redémarrait, était mis à jour ou rattrapait son retard ne compte pas, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ```mermaid title="Comment un moniteur Serveur / VM obtient ses données"
 flowchart TB
@@ -224,17 +224,17 @@ Les critères décident quand le moniteur est en ligne, dégradé ou hors ligne,
 | Load Average (1 minute) | Charge moyenne de la dernière minute | Comme pour le CPU |
 | Load Average (5 minute) | Charge moyenne des 5 dernières minutes | Comme pour le CPU |
 | Load Average (15 minute) | Charge moyenne des 15 dernières minutes | Comme pour le CPU |
-| Server Process Name | Si un processus portant ce nom est en cours d'exécution (sans tenir compte de la casse) | Is Executing, Is Not Executing |
-| Server Process Command | Si un processus avec exactement cette ligne de commande est en cours d'exécution (sans tenir compte de la casse) | Is Executing, Is Not Executing |
-| Server Process PID | Si un processus avec ce PID est en cours d'exécution | Is Executing, Is Not Executing |
+| Server Process Name | Si un processus portant ce nom est en cours d'exécution (sans tenir compte de la casse) | En cours d'exécution, Pas en cours d'exécution |
+| Server Process Command | Si un processus avec exactement cette ligne de commande est en cours d'exécution (sans tenir compte de la casse) | En cours d'exécution, Pas en cours d'exécution |
+| Server Process PID | Si un processus avec ce PID est en cours d'exécution | En cours d'exécution, Pas en cours d'exécution |
 
 **Chemin du disque** accepte un point de montage ou un périphérique, comme `/`, `/mnt/data`, `C:\` ou `/dev/sda1` ; laissé vide, il vaut `/`. Saisissez `*` pour vérifier chaque disque que l'agent remonte : chaque disque qui dépasse le seuil reçoit sa propre alerte, si bien qu'un deuxième disque qui se remplit n'est pas caché derrière l'alerte ouverte du premier. La casse et un `/` ou un `\` final n'ont pas d'importance, et un périphérique désigne le disque monté à partir de lui. Un chemin qui ne désigne aucun disque remonté par l'agent ne correspond pas. Quand l'agent ne peut pas lire les processus du serveur, son rapport n'a pas de liste de processus, et aucun filtre de processus ne correspond, qu'il vérifie qu'un processus s'exécute ou qu'il ne s'exécute pas.
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher distincte dans le formulaire de critère, et non une condition de filtre. Elle est disponible pour **Is Online** et pour chaque type de filtre numérique. Cochez-la pour comparer un agrégat – choisi sous **Évaluer** (Moyenne, Somme, Maximum Value, Minimum Value, All Values, Any Value) sur la fenêtre définie par **Pour les dernières (en minutes)** – au lieu de la valeur de la dernière vérification. Sur un filtre **Is Online**, la fenêtre est la durée pendant laquelle l'agent peut rester silencieux avant que le serveur soit considéré hors ligne.
+**Évaluer ce critère sur une période donnée** est une case à cocher distincte dans le formulaire de critère, et non une condition de filtre. Elle est disponible pour **En ligne** et pour chaque type de filtre numérique. Cochez-la pour comparer un agrégat – choisi sous **Évaluer** (Moyenne, Somme, Maximum Value, Minimum Value, All Values, Any Value) sur la fenêtre définie par **Pour les dernières (en minutes)** – au lieu de la valeur de la dernière vérification. Sur un filtre **En ligne**, la fenêtre est la durée pendant laquelle l'agent peut rester silencieux avant que le serveur soit considéré hors ligne.
 
-**All Values** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes ; le critère attend donc au lieu de correspondre sur la seule mesure dont il dispose. **Any Value** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse » et se déclenche toujours immédiatement.
+**Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes ; le critère attend donc au lieu de correspondre sur la seule mesure dont il dispose. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse » et se déclenche toujours immédiatement.
 
 **En l'absence de données** contrôle ce qui se passe tant que la fenêtre ne peut pas étayer le critère :
 
@@ -245,7 +245,7 @@ Les critères décident quand le moniteur est en ligne, dégradé ou hors ligne,
 | **Treat As Zero** | La fenêtre est comparée comme un zéro unique. | Les compteurs, où « aucun événement » signifie vraiment zéro. |
 
 > [!TIP]
-> Le CPU et la charge connaissent sans cesse de brefs pics. Évaluez-les sur quelques minutes avec **Moyenne** ou **All Values** au lieu d'alerter sur un seul rapport.
+> Le CPU et la charge connaissent sans cesse de brefs pics. Évaluez-les sur quelques minutes avec **Moyenne** ou **Toutes les valeurs** au lieu d'alerter sur un seul rapport.
 
 ### Exemples de critères
 
@@ -256,7 +256,7 @@ Les critères décident quand le moniteur est en ligne, dégradé ou hors ligne,
 | Alerter quand le disque racine est plein à plus de 85 % | Disk Usage (in %), **Chemin du disque** `/` | Supérieur à | `85` |
 | Alerter pour tout disque plein à plus de 85 %, une alerte par disque | Disk Usage (in %), **Chemin du disque** `*` | Supérieur à | `85` |
 | Alerter quand l'utilisation de la mémoire dépasse 80 % | Memory Usage (in %) | Supérieur à | `80` |
-| Alerter quand nginx cesse de tourner | Server Process Name | Is Not Executing | `nginx` |
+| Alerter quand nginx cesse de tourner | Server Process Name | Pas en cours d'exécution | `nginx` |
 
 ## Dépannage
 
@@ -280,7 +280,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details Le moniteur ne passe jamais hors ligne quand le serveur est en panne
-Seul un critère **Is Online** marque un serveur silencieux comme hors ligne. Ajoutez-en un avec la **Condition de filtre** réglée sur **Faux**, et définissez le statut de moniteur qu'il applique.
+Seul un critère **En ligne** marque un serveur silencieux comme hors ligne. Ajoutez-en un avec la **Condition de filtre** réglée sur **Faux**, et définissez le statut de moniteur qu'il applique.
 :::
 
 :::details Les rapports ne passent pas le proxy

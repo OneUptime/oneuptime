@@ -1,6 +1,6 @@
 # JavaScript-uttrykk
 
-Et kriteriefilter **JavaScript Expression** avgjør med én linje JavaScript i stedet for en fast sammenligning om en monitors kriterium er oppfylt. Bruk det når de innebygde filtrene ikke kan uttrykke betingelsen — et felt dypt inne i et JSON-svar, to verdier som sammenlignes med hverandre, eller flere sjekker kombinert med `&&` og `||`.
+Et kriteriefilter **JavaScript-uttrykk** avgjør med én linje JavaScript i stedet for en fast sammenligning om en monitors kriterium er oppfylt. Bruk det når de innebygde filtrene ikke kan uttrykke betingelsen — et felt dypt inne i et JSON-svar, to verdier som sammenlignes med hverandre, eller flere sjekker kombinert med `&&` og `||`.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Plassholderne fylles inn, deretter kjører uttrykket.
@@ -33,7 +33,7 @@ Fordi plassholderne erstattes som tekst, blir `{{responseBody.item}}` til den r�
 
 ### Legg til et filter
 
-Klikk på **Legg til filter** under **Filtre**, og sett **Filtertype** til **JavaScript Expression**. **Filtervilkår** er **Evaluates To True**.
+Klikk på **Legg til filter** under **Filtre**, og sett **Filtertype** til **JavaScript-uttrykk**. **Filtervilkår** er **Evalueres til sann**.
 
 ### Skriv uttrykket
 

@@ -113,9 +113,9 @@ En log-monitors kriterier har én **Filtertype**: **Log Count**, antallet af log
 | **Mindre end** | under værdien |
 | **Mindre end eller lig med** | lig med værdien eller derunder |
 | **Lig med** | præcis værdien |
-| **Anomalously High** | over det forventede interval for denne time på ugen |
-| **Anomalously Low** | under det interval |
-| **Anomalous** | uden for det interval, i begge retninger |
+| **Unormalt høj** | over det forventede interval for denne time på ugen |
+| **Unormalt lav** | under det interval |
+| **Unormal** | uden for det interval, i begge retninger |
 
 Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med vinduer af samme længde omkring samme tidspunkt i tidligere uger, så langt tilbage som **Baseline-vindue** rækker; det, der sker nu, indgår aldrig i sammenligningen. Baselinen dækker kun monitorens tjenester og alvorligheder: dens tekst- og attributfiltre indgår ikke. Minutter uden logs tæller også med, så en tjeneste, der ofte er stille, ikke regnes for usædvanligt lav, fordi den er stille. Et vindue regnes kun for usædvanligt højt i forhold til de vinduer, der indeholdt logs, og kun med mindst 20, 10 eller 5 logs ved følsomheden Lav, Middel eller Høj, så hverken et jobs sædvanlige udbrud eller en stille tjenestes første få linjer udløser det. Indtil monitorens tjenester har to ugers historik, er kriteriet stadig ved at lære og udløses ikke.
 
@@ -234,7 +234,7 @@ Værdien af hver Group By-attribut er en [skabelonvariabel](/docs/monitor/incide
 
 - **Alle kriterier evalueres**, som på en grupperet metrik-monitor, så forskellige grupper kan opfylde forskellige kriterier samtidig. En gruppe, der opfylder to kriterier, får stadig kun én advarsel, fra det første; sorter derfor kriterierne fra mest til mindst alvorlige.
 - **En gruppe findes kun, hvis den har logget noget i tidsvinduet.** Kriterier som **Lig med 0** og **Mindre end** udløses derfor kun for grupper, der har logget mindst én gang; for at få en advarsel, når logs helt holder op med at komme, bruger du en monitor uden Group By.
-- **Anomalidetektion** (**Anomalously High**, **Anomalously Low**, **Anomalous**) evalueres ikke pr. gruppe (dens baseline dækker hele monitoren), så de filtre matcher aldrig på en grupperet monitor.
+- **Anomalidetektion** (**Unormalt høj**, **Unormalt lav**, **Unormal**) evalueres ikke pr. gruppe (dens baseline dækker hele monitoren), så de filtre matcher aldrig på en grupperet monitor.
 - Monitorens status følger det første kriterium, som en gruppe opfylder. Når ingen gruppe opfylder et kriterium, går monitoren tilbage til sin standardstatus.
 
 ## Fejlfinding

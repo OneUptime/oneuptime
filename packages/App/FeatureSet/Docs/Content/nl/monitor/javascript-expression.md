@@ -1,6 +1,6 @@
 # JavaScript-expressies
 
-Een criteriumfilter **JavaScript Expression** bepaalt met één regel JavaScript in plaats van een vaste vergelijking of aan het criterium van een monitor is voldaan. Gebruik het wanneer de ingebouwde filters de voorwaarde niet kunnen uitdrukken — een veld diep in een JSON-antwoord, twee waarden die met elkaar worden vergeleken, of meerdere controles gecombineerd met `&&` en `||`.
+Een criteriumfilter **JavaScript-expressie** bepaalt met één regel JavaScript in plaats van een vaste vergelijking of aan het criterium van een monitor is voldaan. Gebruik het wanneer de ingebouwde filters de voorwaarde niet kunnen uitdrukken — een veld diep in een JSON-antwoord, twee waarden die met elkaar worden vergeleken, of meerdere controles gecombineerd met `&&` en `||`.
 
 :::cards
 - [Hoe het werkt](#hoe-het-werkt): Plaatshouders worden ingevuld, daarna draait de expressie.
@@ -33,7 +33,7 @@ Open bij de monitor **Configuratie → Criteria** en klik op **Bewakingscriteria
 
 ### Een filter toevoegen
 
-Klik onder **Filters** op **Filter toevoegen** en zet het **Filtertype** op **JavaScript Expression**. De **Filtervoorwaarde** is **Evaluates To True**.
+Klik onder **Filters** op **Filter toevoegen** en zet het **Filtertype** op **JavaScript-expressie**. De **Filtervoorwaarde** is **Resulteert in waar**.
 
 ### De expressie schrijven
 

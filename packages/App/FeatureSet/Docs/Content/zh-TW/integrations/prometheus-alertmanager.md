@@ -45,7 +45,7 @@ Prometheus 評估你的警示規則，並把觸發的警示傳送給 Alertmanage
 :::steps
 ### 建立監測器
 
-前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下選擇 **Incoming Request**，將其命名為 `Alertmanager`，然後點選 **下一步**。
+前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下選擇 **傳入請求**，將其命名為 `Alertmanager`，然後點選 **下一步**。
 
 ### 為每個觸發的警示宣告事件
 
@@ -222,7 +222,7 @@ amtool alert add test_alert severity=warning \
 :::steps
 ### 建立看門狗監測器
 
-建立第二個 Incoming Request 監測器，命名為 `Alertmanager watchdog`。把它第一個條件（把監測器標記為離線的那個）的篩選器設為 **Incoming Request**、**Not Recieved In Minutes**、`10`，把第二個條件的篩選器設為 **Incoming Request**、**Recieved In Minutes**、`10`。儀表板上這兩項就是這樣拼寫的。複製新監測器的 **Heartbeat URL**。
+建立第二個 Incoming Request 監測器，命名為 `Alertmanager watchdog`。把它第一個條件（把監測器標記為離線的那個）的篩選器設為 **傳入請求**、**在指定分鐘內未收到**、`10`，把第二個條件的篩選器設為 **傳入請求**、**在指定分鐘內收到**、`10`。儀表板上這兩項就是這樣拼寫的。複製新監測器的 **Heartbeat URL**。
 
 ### 把看門狗警示路由到它
 

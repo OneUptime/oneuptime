@@ -151,7 +151,7 @@ Det passer til det almindelige tilfælde, hvor et job eller et værktøj fra en 
 Ret værdien til det, din afsender faktisk skriver (`FAILED`, `exit code 1` og så videre).
 
 > [!NOTE]
-> Disse standarder er **ikke** en dødmandsknap: intet her udløses, når e-mails holder op med at komme. Kriterier, der kun læser emnet, afsenderen, teksten eller modtageren, evalueres, når en e-mail lander, og på intet andet tidspunkt. Vil du advares ved stilhed, så tilføj et kriterium **Email Received** / **Not Recieved In Minutes** — se [Eksempel 3](#eksempel-3-heartbeat-monitor-ingen-e-mail-advarsel).
+> Disse standarder er **ikke** en dødmandsknap: intet her udløses, når e-mails holder op med at komme. Kriterier, der kun læser emnet, afsenderen, teksten eller modtageren, evalueres, når en e-mail lander, og på intet andet tidspunkt. Vil du advares ved stilhed, så tilføj et kriterium **E-mail modtaget** / **Ikke modtaget inden for minutter** — se [Eksempel 3](#eksempel-3-heartbeat-monitor-ingen-e-mail-advarsel).
 
 ## Tilgængelige filtertyper
 
@@ -160,13 +160,13 @@ Du kan oprette kriterier ud fra disse e-mailfelter:
 | Filtertype | Beskrivelse |
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | **E-mailemne** | Emnelinjen i den indgående e-mail |
-| **Email From Address** | Afsenderens e-mailadresse: den rene adresse med små bogstaver, uden visningsnavn |
-| **Email Body** | E-mailens del i ren tekst |
-| **Email To Address** | Modtagerens e-mailadresse |
-| **Email Received** | Tidsbaserede kriterier for, hvornår e-mails modtages |
-| **JavaScript Expression** | Et brugerdefineret JavaScript-udtryk, der skal give sand |
+| **E-mailens afsenderadresse** | Afsenderens e-mailadresse: den rene adresse med små bogstaver, uden visningsnavn |
+| **E-mailens brødtekst** | E-mailens del i ren tekst |
+| **E-mailens modtageradresse** | Modtagerens e-mailadresse |
+| **E-mail modtaget** | Tidsbaserede kriterier for, hvornår e-mails modtages |
+| **JavaScript-udtryk** | Et brugerdefineret JavaScript-udtryk, der skal give sand |
 
-Monitorens egen adresse maskeres, før et kriterium læser e-mailen, så i **Email To Address**, **E-mailemne** og **Email Body** står der `[REDACTED]`.
+Monitorens egen adresse maskeres, før et kriterium læser e-mailen, så i **E-mailens modtageradresse**, **E-mailemne** og **E-mailens brødtekst** står der `[REDACTED]`.
 
 ## Filterbetingelser
 
@@ -191,8 +191,8 @@ Dashboardet staver disse betingelser "Recieved".
 
 | Filterbetingelse | Beskrivelse | Eksempel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
-| **Recieved In Minutes** | Der er modtaget en e-mail inden for X minutter | E-mail modtaget inden for 30 minutter |
-| **Not Recieved In Minutes** | Der er ikke modtaget nogen e-mail i X minutter | Ingen e-mail modtaget i 60 minutter |
+| **Modtaget inden for minutter** | Der er modtaget en e-mail inden for X minutter | E-mail modtaget inden for 30 minutter |
+| **Ikke modtaget inden for minutter** | Der er ikke modtaget nogen e-mail i X minutter | Ingen e-mail modtaget i 60 minutter |
 
 En monitor, der aldrig har modtaget en e-mail, regner sit oprettelsestidspunkt som den seneste e-mail.
 
@@ -200,9 +200,9 @@ En monitor, der aldrig har modtaget en e-mail, regner sit oprettelsestidspunkt s
 
 | Filterbetingelse | Beskrivelse |
 | --------------------- | ------------------------------------- |
-| **Evaluates To True** | Udtrykket returnerer en sand værdi |
+| **Evalueres til sand** | Udtrykket returnerer en sand værdi |
 
-Udtrykket kører i en sandkasse uden bundne e-mailfelter, så det kan ikke læse emnet, afsenderen, teksten eller modtageren af den besked, der udløste tjekket. Brug filtertyperne **E-mailemne**, **Email From Address**, **Email Body** og **Email To Address** for at matche på e-mailens indhold.
+Udtrykket kører i en sandkasse uden bundne e-mailfelter, så det kan ikke læse emnet, afsenderen, teksten eller modtageren af den besked, der udløste tjekket. Brug filtertyperne **E-mailemne**, **E-mailens afsenderadresse**, **E-mailens brødtekst** og **E-mailens modtageradresse** for at matche på e-mailens indhold.
 
 ## Eksempler på konfigurationer
 
@@ -221,15 +221,15 @@ Placér det kritiske kriterium først: kriterier tjekkes oppefra, og det første
 
 | Kriterium | Filtre | Matchbetingelse | Handlinger |
 | --- | --- | --- | --- |
-| Mislykket job | **Email From Address** Lig med `monitoring@legacy-system.com`; **E-mailemne** Indeholder `Failed` | **Alle** | Ændr status til offline; erklær en hændelse |
-| Vellykket job | **Email From Address** Lig med `monitoring@legacy-system.com`; **E-mailemne** Indeholder `Success` | **Alle** | Ændr status til online |
+| Mislykket job | **E-mailens afsenderadresse** Lig med `monitoring@legacy-system.com`; **E-mailemne** Indeholder `Failed` | **Alle** | Ændr status til offline; erklær en hændelse |
+| Vellykket job | **E-mailens afsenderadresse** Lig med `monitoring@legacy-system.com`; **E-mailemne** Indeholder `Success` | **Alle** | Ændr status til online |
 
 ### Eksempel 3: Heartbeat-monitor (ingen e-mail = advarsel)
 
 | Kriterium | Filtre | Handlinger |
 | --- | --- | --- |
-| E-mailen er forsinket | **Email Received** Not Recieved In Minutes `60` | Ændr status til offline; opret en advarsel |
-| E-mailen er kommet | **Email Received** Recieved In Minutes `60` | Ændr status til online |
+| E-mailen er forsinket | **E-mail modtaget** Ikke modtaget inden for minutter `60` | Ændr status til offline; opret en advarsel |
+| E-mailen er kommet | **E-mail modtaget** Modtaget inden for minutter `60` | Ændr status til online |
 
 Det første kriterium udløses, når der ikke er kommet nogen e-mail i 60 minutter — nyttigt til planlagte jobs eller batchprocesser, der sender en e-mail, når de er færdige. Det andet løser advarslen, så snart en e-mail kommer. Minutter, hvor OneUptime ikke selv modtog e-mail, tæller ikke med i de 60, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
@@ -240,7 +240,7 @@ Et kriterium holder én hændelse åben ad gangen: så længe den er åben, åbn
 :::steps
 ### Vælg e-mails
 
-Giv kriteriet et filter, der matcher de e-mails, der skal åbne hændelser. For kun at tage imod meldinger fra jeres egne folk skal du bruge **Email From Address** med **Slutter med** og jeres domæne, for eksempel `@example.com`.
+Giv kriteriet et filter, der matcher de e-mails, der skal åbne hændelser. For kun at tage imod meldinger fra jeres egne folk skal du bruge **E-mailens afsenderadresse** med **Slutter med** og jeres domæne, for eksempel `@example.com`.
 
 ### Erklær hændelsen
 
@@ -263,7 +263,7 @@ Fra da af behandler kriteriet hver e-mail for sig:
 
 Hver e-mail får stadig en række i **Overvågningslogs**, og **Vis oversigt** på den række siger, hvad e-mailen åbnede, eller hvorfor den intet åbnede. Når kriteriet også opretter advarsler, hedder kontakten **Åbn en ny hændelse og en ny advarsel for hver e-mail**, og hver e-mail åbner sin egen advarsel på samme måde.
 
-Disse hændelser forbliver åbne, indtil nogen løser dem. Med **Løs hændelse automatisk** slået til løses de også, når en senere e-mail matcher et andet kriterium, som enhver hændelse; en senere e-mail, der matcher det samme kriterium, løser aldrig de tidligere. En kontrol for manglende e-mail (**Email Received**) er ikke en e-mail, så den åbner stadig én hændelse ad gangen.
+Disse hændelser forbliver åbne, indtil nogen løser dem. Med **Løs hændelse automatisk** slået til løses de også, når en senere e-mail matcher et andet kriterium, som enhver hændelse; en senere e-mail, der matcher det samme kriterium, løser aldrig de tidligere. En kontrol for manglende e-mail (**E-mail modtaget**) er ikke en e-mail, så den åbner stadig én hændelse ad gangen.
 
 > [!WARNING]
 > **Alle, der kender adressen, kan åbne hændelser.** Hold adressen privat, filtrér på afsenderen som ovenfor, og [nulstil adressen](#nulstil-eller-tilpas-e-mailadressen), hvis den slipper ud. En afsenders adresse kan forfalskes, så filteret holder vildfaren post ude, ikke nogen, der er fast besluttet på at komme ind.
@@ -294,7 +294,7 @@ Titler, beskrivelser og afhjælpningsnoter i de advarsler og hændelser, denne m
 
 - **En titel får én linje af hver.** I en titel afkortes hver variabel til én linje på højst 150 tegn, der slutter med `...`, når den var længere. En titel må ikke være længere end 500 tegn, og en advarsel eller hændelse med en for lang titel oprettes slet ikke, så hvis du citerede en hel e-mail, ville monitoren ikke kunne advare om lange e-mails. Beskrivelser og afhjælpningsnoter får hele værdien.
 - **Denne monitors adresse er maskeret.** Adressen virker som en adgangskode, så den maskeres, før e-mailen gemmes, og `{{emailTo}}` lyder `monitor-[REDACTED]@{inbound-domain}` (eller `[REDACTED]@{inbound-domain}` for en tilpasset adresse).
-- **Et tjek for manglende e-mail bruger den seneste e-mail.** Når et kriterium med **Email Received** åbner en advarsel, fordi der ikke kom nogen e-mail i tide, beskriver variablerne den seneste e-mail, monitoren modtog. De er tomme, hvis der endnu ikke er kommet nogen.
+- **Et tjek for manglende e-mail bruger den seneste e-mail.** Når et kriterium med **E-mail modtaget** åbner en advarsel, fordi der ikke kom nogen e-mail i tide, beskriver variablerne den seneste e-mail, monitoren modtog. De er tomme, hvis der endnu ikke er kommet nogen.
 
 ## Visningen Monitor-resumé
 
@@ -312,7 +312,7 @@ Klik på **Vis flere detaljer** for at se resten:
 
 ### Tidligere e-mails
 
-Kortet viser kun den nyeste e-mail. Hver e-mail, monitoren evaluerer, skrives også til **Overvågningslogs**: kolonnen **E-mail** viser dens emne og afsender, og **Vis oversigt** i dens række viser hele e-mailen på samme måde som kortet. En monitor med overvågning slået fra evaluerer ingenting, så de e-mails, den modtager, får ingen rækker. Hvis et af dine kriterier tjekker **Email Received**, skriver monitoren også en række, hver gang den tjekker for manglende e-mail. Kolonnen **E-mail** siger "Scheduled check" i de rækker, og deres **Vis oversigt** viser den nyeste e-mail på tidspunktet for tjekket eller "No email yet", hvis der ikke var kommet nogen. Overvågningslogs gemmes som standard i én dag. På en selvhostet server kan en administrator ændre det med **Opbevaring af overvågningslogfiler (dage)** i Admin Dashboards indstillinger.
+Kortet viser kun den nyeste e-mail. Hver e-mail, monitoren evaluerer, skrives også til **Overvågningslogs**: kolonnen **E-mail** viser dens emne og afsender, og **Vis oversigt** i dens række viser hele e-mailen på samme måde som kortet. En monitor med overvågning slået fra evaluerer ingenting, så de e-mails, den modtager, får ingen rækker. Hvis et af dine kriterier tjekker **E-mail modtaget**, skriver monitoren også en række, hver gang den tjekker for manglende e-mail. Kolonnen **E-mail** siger "Scheduled check" i de rækker, og deres **Vis oversigt** viser den nyeste e-mail på tidspunktet for tjekket eller "No email yet", hvis der ikke var kommet nogen. Overvågningslogs gemmes som standard i én dag. På en selvhostet server kan en administrator ændre det med **Opbevaring af overvågningslogfiler (dage)** i Admin Dashboards indstillinger.
 
 ## Selvhostet opsætning
 

@@ -224,16 +224,16 @@ Lägg till kriterier för att avgöra när monitorn anses vara online, försämr
 
 | Filtertyp | Vad den kontrollerar |
 |---|---|
-| **SQL Is Online** | Om databasen kunde nås och frågan lyckades. |
-| **SQL Query Row Count** | Antalet returnerade rader. Jämför med operatorer som större än, mindre än eller lika med. |
-| **SQL Query Scalar Value** | Den första kolumnen i den första raden. Jämförs som ett tal när värdet du anger är ett tal, annars som en sträng. Det här är kontrollen att använda för frågor av typen `COUNT(*)`. |
-| **SQL Query Execution Time (in ms)** | Hur lång tid frågan tog. Användbart för att fånga en långsam databas. |
-| **SQL Query Error** | Frågans felmeddelande. Larma när det är (eller inte är) tomt, eller matchar en viss sträng. |
-| **JavaScript Expression** | Utvärdera ett eget JavaScript-uttryck över `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` och `isOnline`. Se [JavaScript-uttryck](/docs/monitor/javascript-expression#monitorer-för-sql-frågor). |
+| **SQL är online** | Om databasen kunde nås och frågan lyckades. |
+| **Antal rader från SQL-fråga** | Antalet returnerade rader. Jämför med operatorer som större än, mindre än eller lika med. |
+| **Skalärvärde från SQL-fråga** | Den första kolumnen i den första raden. Jämförs som ett tal när värdet du anger är ett tal, annars som en sträng. Det här är kontrollen att använda för frågor av typen `COUNT(*)`. |
+| **Körningstid för SQL-fråga (i ms)** | Hur lång tid frågan tog. Användbart för att fånga en långsam databas. |
+| **SQL-frågefel** | Frågans felmeddelande. Larma när det är (eller inte är) tomt, eller matchar en viss sträng. |
+| **JavaScript-uttryck** | Utvärdera ett eget JavaScript-uttryck över `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` och `isOnline`. Se [JavaScript-uttryck](/docs/monitor/javascript-expression#monitorer-för-sql-frågor). |
 
 Numeriska tröskelvärden är heltal: skriv `10`, inte `10.5`. SQL Query-filter kan inte utvärderas över en tidsperiod; varje kontroll står för sig själv.
 
-En ny SQL-frågemonitor börjar med två kriterier: **SQL Is Online** är falskt — monitorn blir offline och deklarerar en incident som löser sig själv — och **SQL Is Online** är sant, vilket markerar den som online. **Lägg till kriterier** lägger till ett längst ned; dra det ovanför online-kriteriet, eftersom kriterierna kontrolleras uppifrån och det första som matchar avgör.
+En ny SQL-frågemonitor börjar med två kriterier: **SQL är online** är falskt — monitorn blir offline och deklarerar en incident som löser sig själv — och **SQL är online** är sant, vilket markerar den som online. **Lägg till kriterier** lägger till ett längst ned; dra det ovanför online-kriteriet, eftersom kriterierna kontrolleras uppifrån och det första som matchar avgör.
 
 ### Exempel: larma när avbokningarna rusar
 

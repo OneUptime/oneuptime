@@ -6,7 +6,7 @@
  * that POST /telemetry/rum/session-replay/ingest-status answers today
  * plus its additive fields, every new one optional. RecordingHealthStatus
  * is the normalised object the Dashboard builds from it (see
- * parseRecordingHealthStatus in Common/Utils/Rum/SessionReplayHealth.ts)
+ * parseRecordingHealthStatus in Common/Utils/SessionReplay/SessionReplayHealth.ts)
  * and the only input diagnoseRecordingHealth takes. Keeping the two apart
  * is what lets the diagnosis be exhaustively tested against a stable
  * shape while the wire grows a field at a time.

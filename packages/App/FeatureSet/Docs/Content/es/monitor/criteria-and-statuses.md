@@ -25,7 +25,7 @@ flowchart TB
     A --> L["Crea una<br/>alerta"]
 ```
 
-El orden forma parte de la regla. Un monitor nuevo enumera sus criterios del peor caso al mejor: sin conexión, después una advertencia si su tipo la tiene (un certificado o un dominio que caduca pronto) y después en línea. Un criterio sano y amplio, como **Is Online** en **Verdadero**, coincide con casi todas las comprobaciones, así que va el último: por encima de los demás, coincidiría primero cada vez y los demás nunca actuarían.
+El orden forma parte de la regla. Un monitor nuevo enumera sus criterios del peor caso al mejor: sin conexión, después una advertencia si su tipo la tiene (un certificado o un dominio que caduca pronto) y después en línea. Un criterio sano y amplio, como **En línea** en **Verdadero**, coincide con casi todas las comprobaciones, así que va el último: por encima de los demás, coincidiría primero cada vez y los demás nunca actuarían.
 
 Un criterio que coincide pero no cambia ningún estado sigue decidiendo la comprobación: el monitor conserva su estado, y los criterios de debajo esperan a la siguiente comprobación. El **Estado de monitor predeterminado** solo se aplica cuando ningún criterio coincide. En un monitor nuevo es **Operativo**; cámbielo en **Más campos**, debajo de los criterios.
 
@@ -49,7 +49,7 @@ Un filtro lee un dato de la comprobación y lo compara: un **Tipo de filtro** (q
 
 A partir de dos filtros aparece debajo la **Condición de coincidencia**: **Todos** significa que todos los filtros deben coincidir, **Cualquiera** que basta con uno. Un criterio nuevo empieza en **Todos**.
 
-Los filtros que miden cada comprobación, como **Is Online**, **Código de estado de respuesta** y **Tiempo de respuesta (en ms)**, ofrecen **Evaluar estos criterios durante un periodo de tiempo**. Juzga una ventana de comprobaciones recientes en lugar de solo la última, y empieza con los últimos 5 minutos y **All Values**, que solo coincide cuando todas las comprobaciones de la ventana han coincidido. Consulte [Evaluar durante un periodo de tiempo](/docs/monitor/website-monitor#evaluar-durante-un-periodo-de-tiempo).
+Los filtros que miden cada comprobación, como **En línea**, **Código de estado de respuesta** y **Tiempo de respuesta (en ms)**, ofrecen **Evaluar estos criterios durante un periodo de tiempo**. Juzga una ventana de comprobaciones recientes en lugar de solo la última, y empieza con los últimos 5 minutos y **Todos los valores**, que solo coincide cuando todas las comprobaciones de la ventana han coincidido. Consulte [Evaluar durante un periodo de tiempo](/docs/monitor/website-monitor#evaluar-durante-un-periodo-de-tiempo).
 
 ### Acciones
 
@@ -97,8 +97,8 @@ Para ver cómo se juzgó una comprobación, abra la **Vista general** del monito
 
 Un incidente o una alerta que abre un monitor conserva la comprobación que lo abrió, para que pueda ver el porqué mucho después de que se borren los registros del propio monitor. Bajo su causa raíz, la sección **Detalles de la evaluación** nombra el criterio que coincidió y, para cada filtro que coincidió, qué encontró la comprobación. **Mostrar detalles** añade el resto de las pruebas, los filtros que no coincidieron y la propia comprobación: la solicitud, cuándo se ejecutó, desde qué sonda y qué se recibió. Lo que encontró un filtro puede ser:
 
-- **El campo.** Dónde coincidió un filtro **Cuerpo de la respuesta** en un cuerpo JSON, como `checks[1].status`, o el encabezado en el que coincidió un filtro **Response Header Value**.
-- **Los valores.** Lo que contenía cada valor que lee una **JavaScript Expression** cuando se evaluó, como `responseBody.status = "down"`.
+- **El campo.** Dónde coincidió un filtro **Cuerpo de la respuesta** en un cuerpo JSON, como `checks[1].status`, o el encabezado en el que coincidió un filtro **Valor del encabezado de respuesta**.
+- **Los valores.** Lo que contenía cada valor que lee una **Expresión de JavaScript** cuando se evaluó, como `responseBody.status = "down"`.
 - **Un extracto.** Un fragmento corto de la respuesta alrededor de la coincidencia, con la coincidencia marcada: nunca el cuerpo entero.
 
 Los secretos y los datos personales se enmascaran antes de conservar nada: encabezados como `Authorization`, `Cookie` y `Set-Cookie`, campos cuyo nombre dice `password`, `token`, `key`, `session` o `email`, y texto que parece un token bearer, un JWT, un número de tarjeta o una dirección de correo electrónico. La URL de la solicitud es la configurada en el monitor, así que `{{monitorSecrets.NAME}}` sigue siendo un nombre, y un valor secreto de la consulta se enmascara. Los **Registros de monitoreo** del monitor, y cualquier valor que cite una causa raíz, se enmascaran de la misma forma. Un incidente o una alerta abiertos a mano, o antes de que se conservaran los detalles de la evaluación, no los tienen.

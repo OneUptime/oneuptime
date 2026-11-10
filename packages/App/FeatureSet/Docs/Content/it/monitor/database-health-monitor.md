@@ -370,14 +370,14 @@ I contatori che finiscono con `total` sono cumulativi dall'avvio del server. Con
 
 | Tipo di filtro | Cosa controlla |
 |---|---|
-| **Database Is Online** | Se il database era raggiungibile e la query di prova è riuscita. È il criterio offline con cui viene creato il monitor, e l'unico controllo che riflette la raggiungibilità. |
-| **Database Metric** | Scegli una metrica e confrontala: Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a, Uguale a o Diverso da. Il selettore delle metriche offre solo le metriche che il motore scelto può produrre, quindi non puoi costruire un criterio che resterebbe per sempre non soddisfatto (un'eccezione: le metriche Replication offerte per Microsoft SQL Server non vengono mai raccolte su Azure SQL Database). Se la metrica non è stata raccolta in un controllo — il gruppo è fallito o il motore non la riporta —, il filtro non corrisponde, e non corrisponde nemmeno come "false": viene saltato. Un problema di permessi non può chiamare nessuno. |
-| **Database Collection Error** | Il riepilogo dei problemi di raccolta del controllo, un "gruppo: messaggio" per ogni gruppo non disponibile. Imposta un avviso quando non è vuoto per accorgerti della perdita di visibilità, oppure usa Contiene per tenere d'occhio un gruppo specifico. |
-| **JavaScript Expression** | Controllo completo. Vedi [Espressioni JavaScript](/docs/monitor/javascript-expression). |
+| **Database online** | Se il database era raggiungibile e la query di prova è riuscita. È il criterio offline con cui viene creato il monitor, e l'unico controllo che riflette la raggiungibilità. |
+| **Metrica del database** | Scegli una metrica e confrontala: Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a, Uguale a o Diverso da. Il selettore delle metriche offre solo le metriche che il motore scelto può produrre, quindi non puoi costruire un criterio che resterebbe per sempre non soddisfatto (un'eccezione: le metriche Replication offerte per Microsoft SQL Server non vengono mai raccolte su Azure SQL Database). Se la metrica non è stata raccolta in un controllo — il gruppo è fallito o il motore non la riporta —, il filtro non corrisponde, e non corrisponde nemmeno come "false": viene saltato. Un problema di permessi non può chiamare nessuno. |
+| **Errore di raccolta del database** | Il riepilogo dei problemi di raccolta del controllo, un "gruppo: messaggio" per ogni gruppo non disponibile. Imposta un avviso quando non è vuoto per accorgerti della perdita di visibilità, oppure usa Contiene per tenere d'occhio un gruppo specifico. |
+| **Espressione JavaScript** | Controllo completo. Vedi [Espressioni JavaScript](/docs/monitor/javascript-expression). |
 
 Le soglie sono numeri interi. Scrivi `90`, non `90.5`: percentuali e secondi vengono confrontati come interi.
 
-**Database Is Online** e **Database Metric** possono essere controllati nel tempo: spunta **Valuta questo criterio su un periodo di tempo**, poi scegli come **Valuta** i valori (ad esempio **All Values**) e **Per gli ultimi (in minuti)**. Nel tempo, l'impostazione **Se nessun dato** del filtro decide cosa significa un valore mancante; lasciala su **Ignore**, così un permesso mancante continua a non poter chiamare nessuno.
+**Database online** e **Metrica del database** possono essere controllati nel tempo: spunta **Valuta questo criterio su un periodo di tempo**, poi scegli come **Valuta** i valori (ad esempio **Tutti i valori**) e **Per gli ultimi (in minuti)**. Nel tempo, l'impostazione **Se nessun dato** del filtro decide cosa significa un valore mancante; lasciala su **Ignore**, così un permesso mancante continua a non poter chiamare nessuno.
 
 ### Variabili delle espressioni JavaScript
 
@@ -402,7 +402,7 @@ Per leggere una metrica in un'espressione, scrivi il nome della serie, con i suo
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Per una soglia su una singola metrica, usa **Database Metric** invece di un'espressione: risolve la serie al posto tuo, offre solo ciò che il tuo motore può produrre e salta il controllo quando il valore non è stato raccolto, invece di confrontarlo con il nulla.
+Per una soglia su una singola metrica, usa **Metrica del database** invece di un'espressione: risolve la serie al posto tuo, offre solo ciò che il tuo motore può produrre e salta il controllo quando il valore non è stato raccolto, invece di confrontarlo con il nulla.
 
 ### Esempio: un primario PostgreSQL
 

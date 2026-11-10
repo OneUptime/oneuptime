@@ -71,9 +71,8 @@ import { describe, expect, it } from "@jest/globals";
  *     " > " between them.
  *   - The Overview's verdicts are quoted as the Overview words them, with a
  *     number in them, in any plural form the locale has.
- *   - What every Dashboard shows in English stays English: criteria names
- *     (the criteria form has no locale key for them), records the product
- *     creates with English names, and labels with no locale key
+ *   - What every Dashboard shows in English stays English: records the
+ *     product creates with English names, and labels with no locale key
  *     (SHOWN_IN_ENGLISH); so do permission names (PERMISSIONS), the labels
  *     of other products' consoles (OTHER_CONSOLES) and names of products,
  *     vendors and vendor templates (NAMES).
@@ -120,16 +119,13 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
  * locale has no key for them, by page.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
+  /*
+   * The criteria form's Filter Type options (SNMP OID Value, SNMP Device Is
+   * Online, SNMP Interface Is Down) left this list on 2026-11-10: #6575
+   * keyed them in every language, so every translation names them as its
+   * criteria form draws them.
+   */
   [DEVICE]: [
-    // Criteria names: the criteria form's Filter Type options.
-    "SNMP OID Value",
-    "SNMP OID Exists",
-    "SNMP OID Rate (per second)",
-    "SNMP Table Row Is Unhealthy",
-    "SNMP Transceiver Reading",
-    "SNMP Trap Received (Trap OID)",
-    "SNMP Trap Varbind Value",
-    "SNMP Device Is Online",
     // Review Results' label for a host found without a name.
     "No name found",
     // The alert pack's criteria, named in English (NetworkDeviceAlertPack).
@@ -144,13 +140,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     // Criteria the recommended alerts create, named after their tables.
     "IPsec Tunnels: row unhealthy",
     "Fabric Adjacencies (IS-IS): row unhealthy",
-    // Criteria names and filter types.
-    "SNMP Table Row Is Unhealthy",
-    "SNMP Interface Is Down",
-    "SNMP Interface Utilization (in %)",
-    "SNMP Trap Received (Trap OID)",
-    "SNMP Trap Varbind Value",
-    "SNMP Table Value",
   ],
 };
 

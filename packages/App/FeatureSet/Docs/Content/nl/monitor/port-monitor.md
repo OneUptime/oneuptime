@@ -108,11 +108,11 @@ Criteria bepalen wanneer de poort als online, verminderd of offline telt, en of 
 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
-| **Is Online** | **Waar**, **Onwaar** | Of de poort een verbinding accepteerde. |
+| **Is online** | **Waar**, **Onwaar** | Of de poort een verbinding accepteerde. |
 | **Total Connection Time (DNS + TCP) (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De volledige verbindingstijd, inclusief het DNS-opzoeken voor een hostnaam. |
-| **Port DNS Lookup Time (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Het DNS-opzoeken vóór de eerste TCP-poging. Het heeft geen waarde wanneer het doel een IP-adres is. |
-| **Port TCP Connect Time (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Van de eerste TCP-poging tot de verbinding wordt geaccepteerd, inclusief het wisselen tussen IPv6 en IPv4. |
-| **Is Request Timeout** | **Waar**, **Onwaar** | Of het DNS-opzoeken of de TCP-verbinding bij elke poging de time-out overschreed. |
+| **DNS-opzoektijd van poort (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Het DNS-opzoeken vóór de eerste TCP-poging. Het heeft geen waarde wanneer het doel een IP-adres is. |
+| **TCP-verbindingstijd van poort (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Van de eerste TCP-poging tot de verbinding wordt geaccepteerd, inclusief het wisselen tussen IPv6 en IPv4. |
+| **Time-out van aanvraag** | **Waar**, **Onwaar** | Of het DNS-opzoeken of de TCP-verbinding bij elke poging de time-out overschreed. |
 
 Een criterium op de DNS-opzoektijd heeft niets te evalueren wanneer het doel een IP-adres is. Gebruik voor criteria die met hostnamen en IP-adressen gelijk moeten werken de totale tijd of de TCP-verbindingstijd.
 
@@ -129,17 +129,17 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)**, **Port TCP Connect Time (in ms)** en **Is Request Timeout**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Total Connection Time (DNS + TCP) (in ms)**, **DNS-opzoektijd van poort (in ms)**, **TCP-verbindingstijd van poort (in ms)** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
-| **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
-| **All Values** | Elke controle in het venster aan de voorwaarde voldoet. |
-| **Any Value** | Minstens één controle in het venster aan de voorwaarde voldoet. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
+| **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
+| **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 
-**All Values** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Any Value** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
+**Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
 
-**Is Request Timeout** is geen getal dat OneUptime vastlegt. OneUptime legt daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **All Values** of **Any Value**.
+**Time-out van aanvraag** is geen getal dat OneUptime vastlegt. OneUptime legt daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**.
 
 Maak het venster langer dan het monitoringinterval, zodat het meerdere controles bevat: een monitor die elke 5 minuten wordt gecontroleerd, heeft in elk venster van 5 minuten maar één controle.
 
@@ -155,11 +155,11 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| Offline wanneer de poort dicht is | **Is Online** | **Onwaar** | — |
+| Offline wanneer de poort dicht is | **Is online** | **Onwaar** | — |
 | Waarschuwen wanneer verbinden traag gaat | **Total Connection Time (DNS + TCP) (in ms)** | **Groter dan** | `500` |
 | De dienst als verminderd markeren wanneer hij traag verbindt | **Total Connection Time (DNS + TCP) (in ms)** | **Groter dan** | `200` |
-| Waarschuwen wanneer DNS traag is | **Port DNS Lookup Time (in ms)** | **Groter dan** | `100` |
-| Waarschuwen wanneer de TCP-handshake traag is | **Port TCP Connect Time (in ms)** | **Groter dan** | `250` |
+| Waarschuwen wanneer DNS traag is | **DNS-opzoektijd van poort (in ms)** | **Groter dan** | `100` |
+| Waarschuwen wanneer de TCP-handshake traag is | **TCP-verbindingstijd van poort (in ms)** | **Groter dan** | `250` |
 
 ## Problemen oplossen
 
@@ -168,7 +168,7 @@ De sonde kon geen verbinding openen: een firewall laat haar vallen, de dienst lu
 :::
 
 :::details De DNS-opzoektijd is altijd leeg
-Het doel is een IP-adres, dus er valt niets op te zoeken. Gebruik in plaats daarvan **Total Connection Time (DNS + TCP) (in ms)** of **Port TCP Connect Time (in ms)**.
+Het doel is een IP-adres, dus er valt niets op te zoeken. Gebruik in plaats daarvan **Total Connection Time (DNS + TCP) (in ms)** of **TCP-verbindingstijd van poort (in ms)**.
 :::
 
 :::details Ik moet een UDP-dienst controleren

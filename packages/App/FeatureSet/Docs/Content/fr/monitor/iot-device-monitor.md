@@ -139,14 +139,14 @@ Chaque série porte le label `device.id` de l'appareil, et les attributs `iot.de
 
 ## Critères de surveillance
 
-Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les critères d'un moniteur d'appareils IoT proposent un seul **Type de filtre**, **Metric Value** : chaque règle vérifie la valeur de la métrique, avec ces champs.
+Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les critères d'un moniteur d'appareils IoT proposent un seul **Type de filtre**, **Valeur de la métrique** : chaque règle vérifie la valeur de la métrique, avec ces champs.
 
 | Champ | Ce qu'il fait |
 | --- | --- |
-| **Type de filtre** | Toujours **Metric Value**, la seule vérification que propose ce moniteur. |
+| **Type de filtre** | Toujours **Valeur de la métrique**, la seule vérification que propose ce moniteur. |
 | **Select Metric Variable** | La requête ou la formule à vérifier, par son nom de variable. |
-| **Agrégation** | La façon dont les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
-| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. **Devrait dépasser** et **Devrait passer sous** correspondent quand la tendance de la métrique sur la fenêtre aura franchi le seuil à la fin de **Horizon**. |
+| **Agrégation** | La façon dont les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale**, **Toutes les valeurs** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Au moins une valeur** (une seule suffit). |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anormalement élevé**, **Anormalement bas** ou **Anormal**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. **Devrait dépasser** et **Devrait passer sous** correspondent quand la tendance de la métrique sur la fenêtre aura franchi le seuil à la fin de **Horizon**. |
 | **Seuil** | La valeur à laquelle comparer. Une liste d'unités se trouve à côté lorsque la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |

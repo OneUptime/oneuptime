@@ -111,7 +111,9 @@ const mockQRCodeImage: { shouldFail: boolean } = { shouldFail: false };
 
 jest.mock("../../../UI/Components/QR/QRCodeImage", () => {
   const actual: { default: (text: string) => Promise<string> } =
-    jest.requireActual("../../../UI/Components/QR/QRCodeImage");
+    jest.requireActual("../../../UI/Components/QR/QRCodeImage") as {
+      default: (text: string) => Promise<string>;
+    };
 
   return {
     __esModule: true,

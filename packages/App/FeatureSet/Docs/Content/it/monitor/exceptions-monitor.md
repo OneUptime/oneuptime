@@ -116,7 +116,7 @@ Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di 
 
 ## Criteri
 
-I criteri di un monitor eccezioni hanno quattro valori di **Tipo di filtro**: **Exception Count**, il numero di eccezioni che hanno corrisposto nella finestra, e **New Exceptions**, **Regressed Exceptions** e **Exception Increase (in %)**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
+I criteri di un monitor eccezioni hanno quattro valori di **Tipo di filtro**: **Exception Count**, il numero di eccezioni che hanno corrisposto nella finestra, e **New Exceptions**, **Eccezioni in regressione** e **Aumento delle eccezioni (in %)**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
 
 | Condizione del filtro | Corrisponde quando il conteggio delle eccezioni è… |
 | --- | --- |
@@ -126,9 +126,9 @@ I criteri di un monitor eccezioni hanno quattro valori di **Tipo di filtro**: **
 | **Minore o uguale a** | pari al valore o inferiore |
 | **Uguale a** | esattamente il valore |
 | **Diverso da** | qualsiasi cosa tranne il valore |
-| **Anomalously High** | sopra l'intervallo atteso per quest'ora della settimana |
-| **Anomalously Low** | sotto quell'intervallo |
-| **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
+| **Anomalmente alto** | sopra l'intervallo atteso per quest'ora della settimana |
+| **Anomalmente basso** | sotto quell'intervallo |
+| **Anomalo** | fuori da quell'intervallo, in un senso o nell'altro |
 
 Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto) e, nei criteri personalizzati, una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. Solo **Exception Count** le ha: vedete [Picchi rispetto alla norma](#picchi-rispetto-alla-norma).
 
@@ -156,8 +156,8 @@ Oltre al numero di eccezioni, un monitor eccezioni può avvisare su ciò che un 
 | Tipo di filtro | Cosa conta nella finestra |
 | --- | --- |
 | **New Exceptions** | Le eccezioni corrispondenti viste per la prima volta, né risolte né archiviate. |
-| **Regressed Exceptions** | Le eccezioni corrispondenti che avete risolto, tornate e ancora aperte. |
-| **Exception Increase (in %)** | Di quanto il numero di eccezioni corrispondenti supera il solito: il giorno prima della finestra, per finestra della stessa durata, almeno una. Dieci eccezioni dopo un giorno tranquillo danno 900%. |
+| **Eccezioni in regressione** | Le eccezioni corrispondenti che avete risolto, tornate e ancora aperte. |
+| **Aumento delle eccezioni (in %)** | Di quanto il numero di eccezioni corrispondenti supera il solito: il giorno prima della finestra, per finestra della stessa durata, almeno una. Dieci eccezioni dopo un giorno tranquillo danno 900%. |
 
 Le eccezioni nuove e tornate sono filtrate per servizio, tipo di eccezione, ambiente e messaggio, e anche per entità di infrastruttura: un'eccezione conta quando una delle sue occorrenze nella finestra è arrivata da una delle entità scelte.
 

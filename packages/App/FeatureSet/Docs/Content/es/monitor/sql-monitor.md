@@ -224,16 +224,16 @@ Añada criterios para decidir cuándo el monitor se considera en línea, degrada
 
 | Tipo de filtro | Qué comprueba |
 |---|---|
-| **SQL Is Online** | Si la base de datos estaba accesible y la consulta tuvo éxito. |
-| **SQL Query Row Count** | El número de filas devueltas. Compare con operadores como mayor que, menor que o igual a. |
-| **SQL Query Scalar Value** | La primera columna de la primera fila. Se compara como número cuando el valor que introduce es un número, y si no, como cadena. Es la comprobación que debe usar en consultas del estilo `COUNT(*)`. |
-| **SQL Query Execution Time (in ms)** | Cuánto tardó la consulta. Útil para detectar una base de datos lenta. |
-| **SQL Query Error** | El mensaje de error de la consulta. Alerte cuando esté (o no) vacío, o cuando coincida con una cadena concreta. |
-| **JavaScript Expression** | Evaluar una expresión de JavaScript personalizada sobre `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` e `isOnline`. Consulte [Expresiones JavaScript](/docs/monitor/javascript-expression#monitores-de-consultas-sql). |
+| **SQL en línea** | Si la base de datos estaba accesible y la consulta tuvo éxito. |
+| **Número de filas de la consulta SQL** | El número de filas devueltas. Compare con operadores como mayor que, menor que o igual a. |
+| **Valor escalar de la consulta SQL** | La primera columna de la primera fila. Se compara como número cuando el valor que introduce es un número, y si no, como cadena. Es la comprobación que debe usar en consultas del estilo `COUNT(*)`. |
+| **Tiempo de ejecución de la consulta SQL (en ms)** | Cuánto tardó la consulta. Útil para detectar una base de datos lenta. |
+| **Error de la consulta SQL** | El mensaje de error de la consulta. Alerte cuando esté (o no) vacío, o cuando coincida con una cadena concreta. |
+| **Expresión de JavaScript** | Evaluar una expresión de JavaScript personalizada sobre `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` e `isOnline`. Consulte [Expresiones JavaScript](/docs/monitor/javascript-expression#monitores-de-consultas-sql). |
 
 Los umbrales numéricos son números enteros: escriba `10`, no `10.5`. Los filtros de SQL Query no se pueden evaluar durante un periodo de tiempo; cada comprobación es independiente.
 
-Un monitor de consultas SQL nuevo empieza con dos criterios: **SQL Is Online** es falso (el monitor queda sin conexión y declara un incidente que se resuelve solo) y **SQL Is Online** es verdadero, que lo marca en línea. **Añadir criterios** añade uno al final; arrástrelo por encima del criterio en línea, porque los criterios se comprueban desde arriba y el primero que coincide decide.
+Un monitor de consultas SQL nuevo empieza con dos criterios: **SQL en línea** es falso (el monitor queda sin conexión y declara un incidente que se resuelve solo) y **SQL en línea** es verdadero, que lo marca en línea. **Añadir criterios** añade uno al final; arrástrelo por encima del criterio en línea, porque los criterios se comprueban desde arriba y el primero que coincide decide.
 
 ### Ejemplo: alertar cuando se disparan las cancelaciones
 

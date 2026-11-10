@@ -116,7 +116,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En undtagelse-monitors kriterier har fire slags **Filtertype**: **Exception Count**, antallet af undtagelser, der matchede i vinduet, samt **New Exceptions**, **Regressed Exceptions** og **Exception Increase (in %)**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
+En undtagelse-monitors kriterier har fire slags **Filtertype**: **Exception Count**, antallet af undtagelser, der matchede i vinduet, samt **New Exceptions**, **Genopståede undtagelser** og **Stigning i undtagelser (i %)**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af undtagelser er… |
 | --- | --- |
@@ -126,9 +126,9 @@ En undtagelse-monitors kriterier har fire slags **Filtertype**: **Exception Coun
 | **Mindre end eller lig med** | lig med værdien eller derunder |
 | **Lig med** | præcis værdien |
 | **Ikke lig med** | alt andet end værdien |
-| **Anomalously High** | over det forventede interval for denne time på ugen |
-| **Anomalously Low** | under det interval |
-| **Anomalous** | uden for det interval, i begge retninger |
+| **Unormalt høj** | over det forventede interval for denne time på ugen |
+| **Unormalt lav** | under det interval |
+| **Unormal** | uden for det interval, i begge retninger |
 
 Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. Kun **Exception Count** har dem: se [Toppe i forhold til det normale](#toppe-i-forhold-til-det-normale).
 
@@ -156,8 +156,8 @@ Ud over hvor mange undtagelser der skete, kan en undtagelse-monitor advare ved d
 | Filtertype | Hvad den tæller i vinduet |
 | --- | --- |
 | **New Exceptions** | Matchende undtagelser, der ses for første gang og hverken er løst eller arkiveret. |
-| **Regressed Exceptions** | Matchende undtagelser, du har løst, som kom tilbage og stadig er åbne. |
-| **Exception Increase (in %)** | Hvor langt antallet af matchende undtagelser ligger over det sædvanlige: dagen før vinduet, pr. vindue af samme længde, mindst én. Ti undtagelser efter en rolig dag giver 900 %. |
+| **Genopståede undtagelser** | Matchende undtagelser, du har løst, som kom tilbage og stadig er åbne. |
+| **Stigning i undtagelser (i %)** | Hvor langt antallet af matchende undtagelser ligger over det sædvanlige: dagen før vinduet, pr. vindue af samme længde, mindst én. Ti undtagelser efter en rolig dag giver 900 %. |
 
 Nye og tilbagevendte undtagelser filtreres efter tjeneste, undtagelsestype, miljø og meddelelse og også efter infrastrukturentitet: en undtagelse tæller med, når en af dens forekomster i vinduet kom fra en af de valgte entiteter.
 

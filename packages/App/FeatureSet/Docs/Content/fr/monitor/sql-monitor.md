@@ -224,16 +224,16 @@ Ajoutez des critères pour décider quand le moniteur est considéré comme en l
 
 | Type de filtre | Ce qu'il vérifie |
 |---|---|
-| **SQL Is Online** | Si la base de données était joignable et si la requête a réussi. |
-| **SQL Query Row Count** | Le nombre de lignes renvoyées. Comparez avec des opérateurs comme supérieur à, inférieur à ou égal à. |
-| **SQL Query Scalar Value** | La première colonne de la première ligne. Comparée comme un nombre quand la valeur saisie est un nombre, sinon comme une chaîne. C'est la vérification à utiliser pour les requêtes de type `COUNT(*)`. |
-| **SQL Query Execution Time (in ms)** | La durée de la requête. Utile pour repérer une base de données lente. |
-| **SQL Query Error** | Le message d'erreur de la requête. Alertez quand il est vide (ou non), ou quand il correspond à une chaîne précise. |
-| **JavaScript Expression** | Évaluer une expression JavaScript personnalisée sur `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` et `isOnline`. Voir [Expressions JavaScript](/docs/monitor/javascript-expression#moniteurs-de-requêtes-sql). |
+| **SQL en ligne** | Si la base de données était joignable et si la requête a réussi. |
+| **Nombre de lignes de la requête SQL** | Le nombre de lignes renvoyées. Comparez avec des opérateurs comme supérieur à, inférieur à ou égal à. |
+| **Valeur scalaire de la requête SQL** | La première colonne de la première ligne. Comparée comme un nombre quand la valeur saisie est un nombre, sinon comme une chaîne. C'est la vérification à utiliser pour les requêtes de type `COUNT(*)`. |
+| **Temps d'exécution de la requête SQL (en ms)** | La durée de la requête. Utile pour repérer une base de données lente. |
+| **Erreur de requête SQL** | Le message d'erreur de la requête. Alertez quand il est vide (ou non), ou quand il correspond à une chaîne précise. |
+| **Expression JavaScript** | Évaluer une expression JavaScript personnalisée sur `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` et `isOnline`. Voir [Expressions JavaScript](/docs/monitor/javascript-expression#moniteurs-de-requêtes-sql). |
 
 Les seuils numériques sont des nombres entiers : écrivez `10`, pas `10.5`. Les filtres SQL Query ne peuvent pas être évalués sur une période ; chaque vérification est indépendante.
 
-Un nouveau moniteur de requête SQL commence avec deux critères : **SQL Is Online** est faux — le moniteur passe hors ligne et déclare un incident qui se résout de lui-même — et **SQL Is Online** est vrai, ce qui le marque en ligne. **Ajouter un critère** en ajoute un en bas de la liste ; faites-le glisser au-dessus du critère en ligne, car les critères sont vérifiés depuis le haut et le premier qui correspond décide.
+Un nouveau moniteur de requête SQL commence avec deux critères : **SQL en ligne** est faux — le moniteur passe hors ligne et déclare un incident qui se résout de lui-même — et **SQL en ligne** est vrai, ce qui le marque en ligne. **Ajouter un critère** en ajoute un en bas de la liste ; faites-le glisser au-dessus du critère en ligne, car les critères sont vérifiés depuis le haut et le premier qui correspond décide.
 
 ### Exemple : alerter quand les annulations s'envolent
 

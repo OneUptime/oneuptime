@@ -93,6 +93,8 @@ export default class SendMessageToChannel extends ComponentCode {
       apiResult = await SlackUtil.sendMessageToChannelViaIncomingWebhook({
         url: args["webhook-url"] as URL,
         text: args["text"] as string,
+        // The workflow's own request, not a notification: not counted.
+        isNotification: false,
       });
 
       if (apiResult instanceof HTTPErrorResponse) {

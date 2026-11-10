@@ -73,14 +73,14 @@ Los criterios deciden cuándo el certificado cuenta como correcto, degradado o r
 
 | Filtro | Condiciones | Qué comprueba |
 | --- | --- | --- |
-| **Is Valid Certificate** | **Verdadero**, **Falso** | El certificado supera las comprobaciones de un navegador: un emisor de confianza, un nombre de host que coincide y unas fechas que incluyen hoy. **Falso** cuando el punto de conexión no respondió. |
-| **Is Not A Valid Certificate** | **Verdadero**, **Falso** | Lo contrario de **Is Valid Certificate**: **Verdadero** cuando el certificado no supera esas comprobaciones o no se pudo comprobar. |
-| **Is Expired Certificate** | **Verdadero**, **Falso** | La fecha de caducidad del certificado ya pasó. |
-| **Is Self Signed Certificate** | **Verdadero**, **Falso** | El certificado, o uno de su cadena, es autofirmado. |
-| **Expires In Days** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Los días que faltan para que caduque el certificado. |
-| **Expires In Hours** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Las horas que faltan para que caduque el certificado. |
+| **Certificado válido** | **Verdadero**, **Falso** | El certificado supera las comprobaciones de un navegador: un emisor de confianza, un nombre de host que coincide y unas fechas que incluyen hoy. **Falso** cuando el punto de conexión no respondió. |
+| **Certificado no válido** | **Verdadero**, **Falso** | Lo contrario de **Certificado válido**: **Verdadero** cuando el certificado no supera esas comprobaciones o no se pudo comprobar. |
+| **Certificado caducado** | **Verdadero**, **Falso** | La fecha de caducidad del certificado ya pasó. |
+| **Certificado autofirmado** | **Verdadero**, **Falso** | El certificado, o uno de su cadena, es autofirmado. |
+| **Días hasta la caducidad** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Los días que faltan para que caduque el certificado. |
+| **Horas hasta la caducidad** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Las horas que faltan para que caduque el certificado. |
 
-**Expires In Days** cuenta días completos: a un certificado que caduca dentro de 14 días y 20 horas le quedan 14 días. **Expires In Hours** cuenta horas completas del mismo modo.
+**Días hasta la caducidad** cuenta días completos: a un certificado que caduca dentro de 14 días y 20 horas le quedan 14 días. **Horas hasta la caducidad** cuenta horas completas del mismo modo.
 
 Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir **Todos** o basta con **Cualquiera**. Las **Acciones** de un criterio deciden qué hace: cambiar el estado del monitor, crear una alerta, declarar un incidente, o varias de estas cosas.
 
@@ -96,13 +96,13 @@ El aviso de «caduca pronto» es una alerta, no un incidente: no aparece en sus 
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Por eso «caduca pronto» está por encima de «es válido»: un certificado a punto de caducar sigue siendo válido, así que coincidiría con ambos.
 
-Para recibir el aviso antes, cambie el valor del filtro **Expires In Days** del criterio «caduca pronto», por ejemplo a `30`. Para avisar a alguien en su lugar, abra las **Acciones** de ese criterio: active **Cuando los filtros coinciden, declarar un incidente.**, o mantenga la alerta y añádale una política de guardia en **Políticas de guardia**.
+Para recibir el aviso antes, cambie el valor del filtro **Días hasta la caducidad** del criterio «caduca pronto», por ejemplo a `30`. Para avisar a alguien en su lugar, abra las **Acciones** de ese criterio: active **Cuando los filtros coinciden, declarar un incidente.**, o mantenga la alerta y añádale una política de guardia en **Políticas de guardia**.
 
 :::details Añadir el aviso a un monitor creado antes de que existiera
 Los monitores creados antes de que OneUptime añadiera este aviso no tienen un criterio de «caduca pronto». Para añadirlo:
 
 1. En el monitor, abra **Configuración → Criterios** y haga clic en **Editar criterios de monitoreo**.
-2. Haga clic en **Añadir criterios**. Ponga su filtro en **Is Valid Certificate** / **Verdadero**, haga clic en **Añadir filtro** y ponga el segundo en **Expires In Days** / **Menor o igual que** / `14`. Deje **Condición de coincidencia** en **Todos** (aparece bajo los filtros en cuanto hay dos).
+2. Haga clic en **Añadir criterios**. Ponga su filtro en **Certificado válido** / **Verdadero**, haga clic en **Añadir filtro** y ponga el segundo en **Días hasta la caducidad** / **Menor o igual que** / `14`. Deje **Condición de coincidencia** en **Todos** (aparece bajo los filtros en cuanto hay dos).
 3. En **Acciones**, active **Cuando los filtros coinciden, crear una alerta.** y deje desactivado **Cuando los filtros coinciden, cambiar el estado del monitor.**, para que cree una alerta y no cambie el estado del monitor.
 4. Arrastre el nuevo criterio por encima del criterio que marca el monitor como en línea, y guarde.
 :::
@@ -111,10 +111,10 @@ Los monitores creados antes de que OneUptime añadiera este aviso no tienen un c
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
-| Avisar con un mes de antelación | **Expires In Days** | **Menor o igual que** | `30` |
-| Avisar a alguien el último día | **Expires In Hours** | **Menor que** | `24` |
-| Sin conexión solo cuando el certificado ya caducó | **Is Expired Certificate** | **Verdadero** | — |
-| Señalar un certificado autofirmado | **Is Self Signed Certificate** | **Verdadero** | — |
+| Avisar con un mes de antelación | **Días hasta la caducidad** | **Menor o igual que** | `30` |
+| Avisar a alguien el último día | **Horas hasta la caducidad** | **Menor que** | `24` |
+| Sin conexión solo cuando el certificado ya caducó | **Certificado caducado** | **Verdadero** | — |
+| Señalar un certificado autofirmado | **Certificado autofirmado** | **Verdadero** | — |
 
 Un criterio sobre la caducidad tiene que estar por encima del criterio que marca el certificado como válido: un certificado a punto de caducar sigue siendo válido, y gana el primer criterio que coincide.
 
@@ -132,11 +132,11 @@ La causa raíz del incidente dice por qué. Un caso habitual es un servidor que 
 :::
 
 :::details Monitorizo un servicio interno con un certificado autofirmado
-Un certificado autofirmado nunca es válido, así que los criterios predeterminados mantienen el monitor sin conexión. **Is Self Signed Certificate**, **Is Expired Certificate** y **Expires In Days** siguen funcionando con él, así que construya los criterios sobre ellos. En **Configuración → Criterios**:
+Un certificado autofirmado nunca es válido, así que los criterios predeterminados mantienen el monitor sin conexión. **Certificado autofirmado**, **Certificado caducado** y **Días hasta la caducidad** siguen funcionando con él, así que construya los criterios sobre ellos. En **Configuración → Criterios**:
 
-1. En el criterio «no es válido», haga clic en **Añadir filtro**, ponga el nuevo filtro en **Is Self Signed Certificate** / **Falso** y ponga **Condición de coincidencia** en **Todos**. El criterio sigue poniendo el monitor sin conexión cuando el punto de conexión no responde, o el certificado está mal de otra manera.
-2. Añada un criterio con **Is Expired Certificate** / **Verdadero** que marque el monitor como **Sin conexión** y declare un incidente, y arrástrelo arriba del todo.
-3. En el criterio «caduca pronto», sustituya **Is Valid Certificate** / **Verdadero** por **Is Expired Certificate** / **Falso**, para que el aviso cubra también el certificado autofirmado.
+1. En el criterio «no es válido», haga clic en **Añadir filtro**, ponga el nuevo filtro en **Certificado autofirmado** / **Falso** y ponga **Condición de coincidencia** en **Todos**. El criterio sigue poniendo el monitor sin conexión cuando el punto de conexión no responde, o el certificado está mal de otra manera.
+2. Añada un criterio con **Certificado caducado** / **Verdadero** que marque el monitor como **Sin conexión** y declare un incidente, y arrástrelo arriba del todo.
+3. En el criterio «caduca pronto», sustituya **Certificado válido** / **Verdadero** por **Certificado caducado** / **Falso**, para que el aviso cubra también el certificado autofirmado.
 
 Mientras el certificado esté vigente, ningún criterio coincide y el monitor muestra su estado predeterminado, **Operativo**.
 :::

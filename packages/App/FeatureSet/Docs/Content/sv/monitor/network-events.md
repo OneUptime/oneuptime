@@ -246,7 +246,7 @@ En pipeline tillhör sitt projekt. För att använda en i ett annat projekt skap
 
 - **Syslog över TLS** (RFC 5425). Sonden tar emot vanlig UDP och TCP; håll vägen mellan enheterna och sonden på ett nätverk du litar på.
 - **Dela parsrar mellan projekt.** En pipeline kan ännu inte exporteras och importeras.
-- **Händelser från andra SNMP-traps än de fyra standardtrapsen.** En leverantörs egna traps sparas som loggar, och larm på dem skapas med kriteriet **SNMP Trap Received (Trap OID)** i [nätverksenhetsmonitorn](/docs/monitor/network-device-monitor).
+- **Händelser från andra SNMP-traps än de fyra standardtrapsen.** En leverantörs egna traps sparas som loggar, och larm på dem skapas med kriteriet **SNMP-trap mottagen (trap-OID)** i [nätverksenhetsmonitorn](/docs/monitor/network-device-monitor).
 - **Cambium cnMatrix-switchar, Aruba mobility controllers och FortiGate i CEF-läge.** Deras meddelanden sparas och är sökbara; inga händelser läses ur dem ännu.
 - **En livevy.** Händelser-sidan visar det som hade kommit när den öppnades; använd dess uppdateringsknapp, eller livevyn i **Loggar**.
 

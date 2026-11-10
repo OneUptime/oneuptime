@@ -25,7 +25,7 @@ flowchart TB
     A --> L["Crea un avviso"]
 ```
 
-L'ordine fa parte della regola. Un nuovo monitor elenca i suoi criteri dal caso peggiore: offline, poi un avvertimento se il suo tipo ne ha uno (un certificato o un dominio in scadenza), poi online. Un criterio sano e ampio, come **Is Online** impostato su **Vero**, corrisponde a quasi ogni controllo, quindi va per ultimo: sopra gli altri, corrisponderebbe per primo ogni volta e gli altri non agirebbero mai.
+L'ordine fa parte della regola. Un nuovo monitor elenca i suoi criteri dal caso peggiore: offline, poi un avvertimento se il suo tipo ne ha uno (un certificato o un dominio in scadenza), poi online. Un criterio sano e ampio, come **Online** impostato su **Vero**, corrisponde a quasi ogni controllo, quindi va per ultimo: sopra gli altri, corrisponderebbe per primo ogni volta e gli altri non agirebbero mai.
 
 Un criterio che corrisponde ma non cambia alcuno stato decide comunque il controllo: il monitor mantiene il suo stato, e i criteri sottostanti attendono il controllo successivo. Lo **Stato predefinito del monitor** si applica solo quando nessun criterio corrisponde. Per un nuovo monitor è **Operativo**; modificatelo sotto **Altri campi**, sotto i criteri.
 
@@ -49,7 +49,7 @@ Un filtro legge un dato dal controllo e lo confronta: un **Tipo di filtro** (cos
 
 Con due o più filtri, sotto di essi compare la **Condizione di corrispondenza**: **Tutti** significa che ogni filtro deve corrispondere, **Qualsiasi** che ne basta uno. Un nuovo criterio parte da **Tutti**.
 
-I filtri che misurano ogni controllo, come **Is Online**, **Codice di stato della risposta** e **Tempo di risposta (in ms)**, offrono **Valuta questo criterio su un periodo di tempo**. Giudica una finestra di controlli recenti invece del solo ultimo, e parte dagli ultimi 5 minuti con **All Values**, che corrisponde solo quando ogni controllo della finestra ha corrisposto. Vedere [Valutare su un periodo di tempo](/docs/monitor/website-monitor#valutare-su-un-periodo-di-tempo).
+I filtri che misurano ogni controllo, come **Online**, **Codice di stato della risposta** e **Tempo di risposta (in ms)**, offrono **Valuta questo criterio su un periodo di tempo**. Giudica una finestra di controlli recenti invece del solo ultimo, e parte dagli ultimi 5 minuti con **Tutti i valori**, che corrisponde solo quando ogni controllo della finestra ha corrisposto. Vedere [Valutare su un periodo di tempo](/docs/monitor/website-monitor#valutare-su-un-periodo-di-tempo).
 
 ### Azioni
 
@@ -97,8 +97,8 @@ Per vedere come è stato giudicato un controllo, aprite la **Panoramica** del mo
 
 Un incidente o un avviso aperto da un monitor conserva il controllo che lo ha aperto, così potete vedere il perché molto dopo che i log del monitor sono stati eliminati. Sotto la sua causa principale, la sezione **Dettagli della valutazione** indica il criterio che ha corrisposto e, per ogni filtro che ha corrisposto, che cosa ha trovato il controllo. **Mostra dettagli** aggiunge il resto delle prove, i filtri che non hanno corrisposto e il controllo stesso: la richiesta, quando è stato eseguito, da quale sonda e che cosa è tornato. Ciò che un filtro ha trovato può essere:
 
-- **Il campo.** Il punto di un corpo JSON in cui un filtro **Corpo della Risposta** ha corrisposto, come `checks[1].status`, o l'intestazione in cui ha corrisposto un filtro **Response Header Value**.
-- **I valori.** Che cosa conteneva ogni valore letto da una **JavaScript Expression** quando è stata valutata, come `responseBody.status = "down"`.
+- **Il campo.** Il punto di un corpo JSON in cui un filtro **Corpo della Risposta** ha corrisposto, come `checks[1].status`, o l'intestazione in cui ha corrisposto un filtro **Valore dell'intestazione della risposta**.
+- **I valori.** Che cosa conteneva ogni valore letto da una **Espressione JavaScript** quando è stata valutata, come `responseBody.status = "down"`.
 - **Un estratto.** Un breve tratto della risposta intorno alla corrispondenza, evidenziata: mai l'intero corpo.
 
 Segreti e dati personali vengono mascherati prima di conservare qualsiasi cosa: intestazioni come `Authorization`, `Cookie` e `Set-Cookie`, campi il cui nome dice `password`, `token`, `key`, `session` o `email`, e testo che sembra un token bearer, un JWT, un numero di carta o un indirizzo email. L'URL della richiesta è quello con cui è stato configurato il monitor, quindi `{{monitorSecrets.NAME}}` resta un nome e un valore segreto della query viene mascherato. I **Registri di monitoraggio** del monitor, e ogni valore che una causa principale cita, vengono mascherati allo stesso modo. Un incidente o un avviso aperto a mano, o prima che i dettagli della valutazione venissero conservati, non ne ha.

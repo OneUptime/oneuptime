@@ -81,11 +81,11 @@ Kriterier avgjør når verten regnes som tilkoblet, redusert eller frakoblet, og
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
-| **Is Online** | **Sann**, **Usann** | Om minst én ekkoforespørsel fikk svar. |
+| **Er tilkoblet** | **Sann**, **Usann** | Om minst én ekkoforespørsel fikk svar. |
 | **Svartid (i ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Gjennomsnittlig tur-retur-tid for svarene. |
-| **Packet Loss (in %)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Andelen av de fem ekkoforespørslene som ikke fikk svar. |
-| **Jitter (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Standardavviket for tur-retur-tidene over pakkene i én sjekk. |
-| **Is Request Timeout** | **Sann**, **Usann** | Om pingen fikk tidsavbrudd ved hvert forsøk. |
+| **Pakketap (i %)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Andelen av de fem ekkoforespørslene som ikke fikk svar. |
+| **Jitter (i ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Standardavviket for tur-retur-tidene over pakkene i én sjekk. |
+| **Er tidsavbrudd for forespørsel** | **Sann**, **Usann** | Om pingen fikk tidsavbrudd ved hvert forsøk. |
 
 Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvare, eller om **Hvilken som helst** av dem holder. Et kriteriums **Handlinger** avgjør hva det gjør: endrer monitorstatusen, oppretter et varsel, erklærer en hendelse, eller flere av disse.
 
@@ -100,17 +100,17 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 
 ### Evaluering over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Is Online**, **Svartid (i ms)**, **Packet Loss (in %)**, **Jitter (in ms)** og **Is Request Timeout**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 til 60 minutter under **For de siste (i minutter)**.
+**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Er tilkoblet**, **Svartid (i ms)**, **Pakketap (i %)**, **Jitter (i ms)** og **Er tidsavbrudd for forespørsel**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 til 60 minutter under **For de siste (i minutter)**.
 
 | Aggregering | Samsvarer når |
 | --- | --- |
-| **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value** | Den verdien over vinduet oppfyller betingelsen. Bare numeriske filtre. |
-| **All Values** | Hver sjekk i vinduet oppfyller betingelsen. |
-| **Any Value** | Minst én sjekk i vinduet oppfyller betingelsen. |
+| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi** | Den verdien over vinduet oppfyller betingelsen. Bare numeriske filtre. |
+| **Alle verdier** | Hver sjekk i vinduet oppfyller betingelsen. |
+| **Minst én verdi** | Minst én sjekk i vinduet oppfyller betingelsen. |
 
-**All Values** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Any Value** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
+**Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
 
-**Is Request Timeout** er ikke et tall OneUptime registrerer. OneUptime registrerer derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **All Values** eller **Any Value**.
+**Er tidsavbrudd for forespørsel** er ikke et tall OneUptime registrerer. OneUptime registrerer derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **Alle verdier** eller **Minst én verdi**.
 
 Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekker: en monitor som sjekkes hvert 5. minutt, har bare én sjekk i et vindu på 5 minutter.
 
@@ -126,12 +126,12 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Frakoblet når verten ikke kan nås | **Is Online** | **Usann** | — |
+| Frakoblet når verten ikke kan nås | **Er tilkoblet** | **Usann** | — |
 | Varsle når forsinkelsen er høy | **Svartid (i ms)** | **Større enn** | `200` |
-| Merk verten som redusert på en forbindelse med tap | **Packet Loss (in %)** | **Større enn** | `20` |
-| Varsle ved en ustabil forbindelse | **Jitter (in ms)** | **Større enn** | `30` |
+| Merk verten som redusert på en forbindelse med tap | **Pakketap (i %)** | **Større enn** | `20` |
+| Varsle ved en ustabil forbindelse | **Jitter (i ms)** | **Større enn** | `30` |
 
-For bare å varsle når forsinkelsen holder seg høy, slår du på **Evaluer disse kriteriene over en tidsperiode** for svartidsfilteret og velger **All Values** over **5** minutter.
+For bare å varsle når forsinkelsen holder seg høy, slår du på **Evaluer disse kriteriene over en tidsperiode** for svartidsfilteret og velger **Alle verdier** over **5** minutter.
 
 ## Feilsøking
 

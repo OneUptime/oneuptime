@@ -27,7 +27,7 @@ import {
 } from "../../../Types/NetworkDevice/DeviceNaming";
 import { DeviceNameRegistry } from "../../../Utils/NetworkDevice/Naming/DeviceNamingPlanner";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The naming rules on the server (OneUptime issue #6619): the engine reads

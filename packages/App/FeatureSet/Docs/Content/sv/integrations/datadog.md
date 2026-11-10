@@ -91,7 +91,7 @@ En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) ger dig en
 :::steps
 ### Skapa monitorn
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Incoming Request** under **Monitortyp**, ge den namnet `Datadog` och klicka på **Nästa**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Inkommande begäran** under **Monitortyp**, ge den namnet `Datadog` och klicka på **Nästa**.
 
 ### Deklarera en incident för varje larm
 

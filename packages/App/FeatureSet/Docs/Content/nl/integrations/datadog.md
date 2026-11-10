@@ -91,7 +91,7 @@ Een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) geeft je 
 :::steps
 ### De monitor maken
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Incoming Request** onder **Monitortype**, noem hem `Datadog` en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Inkomende aanvraag** onder **Monitortype**, noem hem `Datadog` en klik op **Volgende**.
 
 ### Een incident declareren voor elke waarschuwing
 

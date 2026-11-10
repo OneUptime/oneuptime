@@ -45,7 +45,7 @@ En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) ger dig en
 :::steps
 ### Skapa monitorn
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Incoming Request** under **Monitortyp**, ge den namnet `Alertmanager` och klicka på **Nästa**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Inkommande begäran** under **Monitortyp**, ge den namnet `Alertmanager` och klicka på **Nästa**.
 
 ### Deklarera en incident för varje utlöst larm
 
@@ -222,7 +222,7 @@ Ingen av vägarna märker när Prometheus eller Alertmanager slutar fungera: att
 :::steps
 ### Skapa watchdog-monitorn
 
-Skapa en andra Incoming Request-monitor, som heter `Alertmanager watchdog`. Ställ in filtret för dess första kriterium, det som markerar monitorn som offline, på **Incoming Request**, **Not Recieved In Minutes**, `10`, och filtret för dess andra kriterium på **Incoming Request**, **Recieved In Minutes**, `10`. Instrumentpanelen stavar båda så. Kopiera den nya monitorns **Heartbeat URL**.
+Skapa en andra Incoming Request-monitor, som heter `Alertmanager watchdog`. Ställ in filtret för dess första kriterium, det som markerar monitorn som offline, på **Inkommande begäran**, **Inte mottaget inom (minuter)**, `10`, och filtret för dess andra kriterium på **Inkommande begäran**, **Mottaget inom (minuter)**, `10`. Instrumentpanelen stavar båda så. Kopiera den nya monitorns **Heartbeat URL**.
 
 ### Skicka watchdog-larmet dit
 

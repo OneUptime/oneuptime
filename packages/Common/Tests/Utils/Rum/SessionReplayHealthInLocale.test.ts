@@ -6,7 +6,7 @@ import {
   formatCountForCopy,
   formatDurationForCopy,
   formatRelativeAge,
-} from "../../../Utils/Rum/SessionReplayHealth";
+} from "../../../Utils/SessionReplay/SessionReplayHealth";
 import {
   RecordingHealthDiagnosis,
   RecordingHealthState,
