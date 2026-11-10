@@ -47645,5 +47645,6 @@
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "مجوز تغییر این هشدار را ندارید، پس نمی‌توانید از OneUptime AI بخواهید این اصلاح را دوباره امتحان کند.",
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "مجوز تغییر این حادثه را ندارید، پس نمی‌توانید از OneUptime AI بخواهید این اصلاح را دوباره امتحان کند.",
   "No fix ran, and nobody was asked to approve one.": "هیچ اصلاحی اجرا نشد و از هیچ‌کس تأیید خواسته نشد.",
-  "Show full reasoning": "نمایش استدلال کامل"
+  "Show full reasoning": "نمایش استدلال کامل",
+  "Follow the steps below. The last one waits for the first data to arrive.": "مراحل زیر را دنبال کنید. مرحله‌ی آخر منتظر رسیدن نخستین داده‌ها می‌ماند."
 }

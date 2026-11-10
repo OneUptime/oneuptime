@@ -92,6 +92,12 @@ export interface ShowcasePreview {
    */
   badge?: string | undefined;
   /*
+   * The pill's colour: healthy (green) when unset. An example whose header
+   * names a state its rows draw in another colour says so (an alert that
+   * is only Acknowledged is amber, in its row and its header alike).
+   */
+  badgeStatus?: ShowcaseStatus | undefined;
+  /*
    * What a screen reader hears for the whole example: "An example of what
    * you see once one is connected." when unset.
    */

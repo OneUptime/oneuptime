@@ -1,4 +1,11 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import IconProp from "Common/Types/Icon/IconProp";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -16,8 +23,13 @@ import { RESOURCE_CONNECTION_STEP_TITLE } from "../ResourceOnboarding/ResourceOn
 import TelemetryDocumentation, {
   TelemetryType,
 } from "../Telemetry/Documentation";
+import {
+  TelemetryFirstRunHost,
+  TelemetryFirstRunHostContext,
+} from "../Telemetry/TelemetryFirstRunHost";
 import { ProductKey } from "./ProductOnboarding";
 import ProductShowcase, { getProductStartButton } from "./ProductShowcase";
+import { ShowcaseAddButton } from "../ResourceShowcase/ResourceShowcaseCard";
 
 /*
  * A telemetry product's explanation (Logs, Traces, Metrics, Exceptions,
@@ -30,6 +42,13 @@ import ProductShowcase, { getProductStartButton } from "./ProductShowcase";
  * The explorer stays under it: nothing is hidden on the strength of this
  * check, and a project whose services have reported never sees it. A
  * failed check shows nothing.
+ *
+ * Telemetry that names no service (a host's syslog) reports no service, so
+ * a page that hands its explorer in as children shows the explanation only
+ * once the explorer, too, is empty - its first steps are drawn - and drops
+ * it when the explorer draws data (TelemetryFirstRunHost). The first steps
+ * then leave the setup guide to the explanation's button. Topology, which
+ * has no such list, goes by the check alone.
  */
 
 export interface TelemetryFirstRun {
@@ -92,6 +111,14 @@ export type TelemetryProductKey = keyof typeof TELEMETRY_FIRST_RUNS;
 
 export const TELEMETRY_SETUP_DIALOG_TEST_ID: string = "telemetry-setup-dialog";
 
+/*
+ * Under the dialog's title: the guide is long, and the step that waits for
+ * the data - and links to it - is its last.
+ */
+export const TELEMETRY_SETUP_DESCRIPTION: string = translationKey(
+  "Follow the steps below. The last one waits for the first data to arrive.",
+);
+
 export interface SetupModalProps {
   firstRun: TelemetryFirstRun;
   onClose: () => void;
@@ -107,6 +134,7 @@ export const TelemetrySetupModal: FunctionComponent<SetupModalProps> = (
   return (
     <Modal
       title={props.firstRun.startText}
+      description={TELEMETRY_SETUP_DESCRIPTION}
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}
       closeButtonText="Done"
@@ -136,6 +164,8 @@ export const TelemetrySetupModal: FunctionComponent<SetupModalProps> = (
 
 export interface ComponentProps {
   product: TelemetryProductKey;
+  // The product's explorer, drawn under the explanation.
+  children?: ReactNode | undefined;
 }
 
 const TelemetryFirstRunShowcase: FunctionComponent<ComponentProps> = (
@@ -143,6 +173,12 @@ const TelemetryFirstRunShowcase: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const firstRun: TelemetryFirstRun = TELEMETRY_FIRST_RUNS[props.product];
   const [isSetupOpen, setIsSetupOpen] = useState<boolean>(false);
+  /*
+   * What the explorer under it has drawn: its first steps (kept while it
+   * loads again, so the explanation does not blink), and data.
+   */
+  const [hasFirstSteps, setHasFirstSteps] = useState<boolean>(false);
+  const [hasData, setHasData] = useState<boolean>(false);
   // Services that have reported: any telemetry at all.
   const watch: FirstRecordWatch = useFirstRecordWatch({
     modelType: Service,
@@ -152,23 +188,37 @@ const TelemetryFirstRunShowcase: FunctionComponent<ComponentProps> = (
     },
   });
 
+  const startButton: ShowcaseAddButton | undefined = getProductStartButton({
+    modelType: TelemetryIngestionKey,
+    button: {
+      title: firstRun.startText,
+      icon: IconProp.Book,
+      onClick: () => {
+        setIsSetupOpen(true);
+      },
+    },
+  });
+  const waitsForExplorer: boolean = props.children !== undefined;
+  const isShown: boolean =
+    watch.count === 0 && (!waitsForExplorer || (hasFirstSteps && !hasData));
+  const offersSetup: boolean = isShown && startButton !== undefined;
+
+  const onFirstStepsShown: () => void = useCallback((): void => {
+    setHasFirstSteps(true);
+  }, []);
+  const onDataShown: () => void = useCallback((): void => {
+    setHasData(true);
+  }, []);
+  const host: TelemetryFirstRunHost = useMemo((): TelemetryFirstRunHost => {
+    return { onFirstStepsShown, onDataShown, offersSetup };
+  }, [onFirstStepsShown, onDataShown, offersSetup]);
+
   return (
-    <>
-      {watch.count === 0 && (
-        <ProductShowcase
-          product={props.product}
-          startButton={getProductStartButton({
-            modelType: TelemetryIngestionKey,
-            button: {
-              title: firstRun.startText,
-              icon: IconProp.Book,
-              onClick: () => {
-                setIsSetupOpen(true);
-              },
-            },
-          })}
-        />
+    <TelemetryFirstRunHostContext.Provider value={host}>
+      {isShown && (
+        <ProductShowcase product={props.product} startButton={startButton} />
       )}
+      {props.children}
       {isSetupOpen && (
         <TelemetrySetupModal
           firstRun={firstRun}
@@ -180,7 +230,7 @@ const TelemetryFirstRunShowcase: FunctionComponent<ComponentProps> = (
           }}
         />
       )}
-    </>
+    </TelemetryFirstRunHostContext.Provider>
   );
 };
 

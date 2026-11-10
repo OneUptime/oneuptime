@@ -17,6 +17,15 @@
  *                 Pages/StatusPages/{Layout,StatusPages}: the first step is
  *                 the table's own create form
  *
+ * And the page the issue was raised on, a product with no list of its own
+ * at the start:
+ *
+ *   DATA_OBSERVABILITY  /dashboard/:projectId/data-observability/overview
+ *                 Pages/DataObservability/{Layout,Overview}: no database
+ *                 connected yet (its overview read says so), and one its
+ *                 traces know of, which the page suggests under the
+ *                 explanation
+ *
  * And one page of the fixture's own, which holds every product's
  * explanation at once, each as its About dialog draws it:
  *
@@ -66,6 +75,8 @@ import MonitorLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/L
 import MonitorsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Monitors";
 import StatusPagesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Layout";
 import StatusPagesPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages";
+import DataObservabilityLayout from "../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Layout";
+import DataObservabilityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Overview";
 import { PRODUCT_ONBOARDINGS } from "../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductOnboardings";
 import ResourceShowcaseCard from "../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -78,6 +89,7 @@ import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import Project from "Common/Models/DatabaseModels/Project";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
@@ -305,6 +317,8 @@ const TABLES = {
   // The Monitors menu's probe pages and its workspace (Slack, Teams) section.
   [tableName(Probe)]: [],
   [tableName(WorkspaceProjectAuthToken)]: [],
+  // Data Observability's suggested databases nobody has dismissed.
+  [tableName(RecommendationDismissal)]: [],
 };
 
 function rowsOf(modelType, verb) {
@@ -491,7 +505,37 @@ async function create(options) {
 ModelAPI.createOrUpdate = create;
 ModelAPI.create = create;
 
+/*
+ * Data Observability's own reads (Components/DataObservability/
+ * DataObservabilityApi): no database connected, and one its traces know of.
+ */
+const DATA_OBSERVABILITY_ANSWERS = {
+  "/data-observability/overview": { storeCount: 0 },
+  "/data-observability/quality": {},
+  "/data-observability/stores/suggestions": {
+    suggestions: [
+      {
+        id: "traces:postgres:billing-db",
+        dataStoreId: null,
+        name: "billing-db",
+        kind: "postgres",
+        origin: "Traces",
+        connectionExample: null,
+      },
+    ],
+  },
+};
+
 async function handleApi(method, options) {
+  const url = options && options.url ? options.url.toString() : "";
+  const answer = Object.entries(DATA_OBSERVABILITY_ANSWERS).find(([route]) => {
+    return method === "POST" && url.endsWith(route);
+  });
+
+  if (answer) {
+    return new HTTPResponse(200, serialize(answer[1]), {});
+  }
+
   fixture.unhandled.push({
     kind: "api",
     method,
@@ -632,6 +676,8 @@ function ExplanationsPage() {
 
 const MONITORS_ROUTE = RouteMap[PageMap.MONITORS].toString();
 const STATUS_PAGES_ROUTE = RouteMap[PageMap.STATUS_PAGES].toString();
+const DATA_OBSERVABILITY_ROUTE =
+  RouteMap[PageMap.DATA_OBSERVABILITY_OVERVIEW].toString();
 const EXPLANATIONS_ROUTE = "/dashboard/:projectId/product-explanations";
 
 /*
@@ -674,6 +720,24 @@ createRoot(document.getElementById("root")).render(
               <StatusPagesPage
                 {...pageProps}
                 pageRoute={RouteMap[PageMap.STATUS_PAGES]}
+              />
+            }
+          />
+        </PageRoute>
+        <PageRoute
+          element={
+            <DataObservabilityLayout
+              {...pageProps}
+              pageRoute={RouteMap[PageMap.DATA_OBSERVABILITY_OVERVIEW]}
+            />
+          }
+        >
+          <PageRoute
+            path={DATA_OBSERVABILITY_ROUTE}
+            element={
+              <DataObservabilityOverviewPage
+                {...pageProps}
+                pageRoute={RouteMap[PageMap.DATA_OBSERVABILITY_OVERVIEW]}
               />
             }
           />

@@ -47645,5 +47645,6 @@
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "このアラートを変更する権限がないため、OneUptime AI にこの修正の再試行を依頼できません。",
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "このインシデントを変更する権限がないため、OneUptime AI にこの修正の再試行を依頼できません。",
   "No fix ran, and nobody was asked to approve one.": "修正は実行されておらず、誰にも承認を求めていません。",
-  "Show full reasoning": "推論全体を表示"
+  "Show full reasoning": "推論全体を表示",
+  "Follow the steps below. The last one waits for the first data to arrive.": "下の手順に従ってください。最後の手順では、最初のデータが届くのを待ちます。"
 }

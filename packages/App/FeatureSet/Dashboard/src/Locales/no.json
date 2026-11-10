@@ -47645,5 +47645,6 @@
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "Du har ikke tillatelse til å endre dette varselet, så du kan ikke be OneUptime AI om å prøve denne rettelsen igjen.",
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "Du har ikke tillatelse til å endre denne hendelsen, så du kan ikke be OneUptime AI om å prøve denne rettelsen igjen.",
   "No fix ran, and nobody was asked to approve one.": "Ingen rettelse ble kjørt, og ingen ble bedt om å godkjenne en.",
-  "Show full reasoning": "Vis hele begrunnelsen"
+  "Show full reasoning": "Vis hele begrunnelsen",
+  "Follow the steps below. The last one waits for the first data to arrive.": "Følg trinnene nedenfor. Det siste venter til de første dataene kommer inn."
 }

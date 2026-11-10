@@ -73,6 +73,7 @@ import {
 } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { useReportTelemetryDataShown } from "../Telemetry/TelemetryFirstRunHost";
 import {
   showsTelemetryFirstSteps,
   TelemetryFirstStepsSignal,
@@ -743,6 +744,8 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [page, setPage] = useState<number>(initialUrlState.page);
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  // Under the Metrics page's explanation: data drawn means it gives way.
+  useReportTelemetryDataShown(metrics.length > 0);
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);

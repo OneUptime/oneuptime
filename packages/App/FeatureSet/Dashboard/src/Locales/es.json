@@ -47645,5 +47645,6 @@
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "No tienes permiso para cambiar esta alerta, así que no puedes pedir a OneUptime AI que vuelva a intentar esta corrección.",
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "No tienes permiso para cambiar este incidente, así que no puedes pedir a OneUptime AI que vuelva a intentar esta corrección.",
   "No fix ran, and nobody was asked to approve one.": "No se ejecutó ninguna corrección ni se pidió a nadie que aprobara una.",
-  "Show full reasoning": "Mostrar el razonamiento completo"
+  "Show full reasoning": "Mostrar el razonamiento completo",
+  "Follow the steps below. The last one waits for the first data to arrive.": "Sigue los pasos de abajo. El último espera a que lleguen los primeros datos."
 }

@@ -141,6 +141,8 @@ export const ALERTS_SHOWCASE: ResourceShowcase = {
     name: "ALT-118",
     subtitle: translationKey("Disk almost full"),
     badge: translationKey("Acknowledged"),
+    // Amber, as its row below draws it: acknowledged, not yet resolved.
+    badgeStatus: ShowcaseStatus.Warning,
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
       { label: translationKey("Severity"), value: "P2" },

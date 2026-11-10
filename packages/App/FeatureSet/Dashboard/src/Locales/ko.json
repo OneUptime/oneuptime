@@ -47645,5 +47645,6 @@
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "이 경고를 변경할 권한이 없으므로 OneUptime AI에게 이 수정을 다시 시도하도록 요청할 수 없습니다.",
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "이 인시던트를 변경할 권한이 없으므로 OneUptime AI에게 이 수정을 다시 시도하도록 요청할 수 없습니다.",
   "No fix ran, and nobody was asked to approve one.": "실행된 수정은 없으며 누구에게도 승인을 요청하지 않았습니다.",
-  "Show full reasoning": "전체 추론 보기"
+  "Show full reasoning": "전체 추론 보기",
+  "Follow the steps below. The last one waits for the first data to arrive.": "아래 단계를 따르세요. 마지막 단계에서 첫 데이터가 들어오기를 기다립니다."
 }

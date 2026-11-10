@@ -11,7 +11,7 @@ import { ResourceShowcase } from "../ResourceShowcase/ResourceShowcase";
  * a pitch, the steps to a first result with the first one as the button,
  * a drawn example of what the page shows once it is in use, and a link to
  * the product's documentation. Once there is something in it, the same
- * explanation is one click away: "About" beside the page's title
+ * explanation is one click away: "How it works" beside the page's title
  * (ProductAboutButton) opens it in a dialog.
  *
  *   ┌ eyebrow · title · description      ┐ ┌ example: the page in use  ┐
@@ -120,5 +120,9 @@ export const PRODUCT_EXAMPLE_DESCRIPTION: string = translationKey(
   "An example of what this page shows once it is in use.",
 );
 
-// The About button beside a product page's title, and its dialog.
-export const PRODUCT_ABOUT_TEXT: string = translationKey("About");
+/*
+ * The button beside a product page's title that opens its explanation
+ * (ProductAboutButton). Not "About": that key already reads "Regarding"
+ * in most of the Dashboard's languages (German "Betrifft").
+ */
+export const PRODUCT_ABOUT_TEXT: string = translationKey("How it works");

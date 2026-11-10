@@ -105,6 +105,8 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import ResourceShowcaseCard, {
   RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
+  RESOURCE_SHOWCASE_BADGE_TEST_ID,
+  RESOURCE_SHOWCASE_EYEBROW_TEST_ID,
   RESOURCE_SHOWCASE_DESCRIPTION_TEST_ID,
   RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID,
   RESOURCE_SHOWCASE_FEATURES_TITLE,
@@ -140,6 +142,9 @@ import useProductFirstRun, {
 import TelemetryFirstRunShowcase, {
   TELEMETRY_SETUP_DIALOG_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/TelemetryFirstRunShowcase";
+import TelemetryFirstStepsEmptyState from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetryFirstStepsEmptyState";
+import { TelemetryFirstStepsSignal } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetryFirstSteps";
+import { useReportTelemetryDataShown } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetryFirstRunHost";
 import HOST_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Host/HostShowcase";
 import StatusPagesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages";
 
@@ -438,6 +443,47 @@ describe("the showcase, as a product draws it", () => {
     expect(screen.getByTestId(RESOURCE_SHOWCASE_TEST_ID).className).toBe(
       SHOWCASE_BARE_CLASS_NAME,
     );
+    // The dialog's title names the product: no second name over the pitch.
+    expect(screen.queryByTestId(RESOURCE_SHOWCASE_EYEBROW_TEST_ID)).toBeNull();
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: "Know something is down before your users do",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("on a page it names its product over the pitch", async () => {
+    await renderInRouter(<ResourceShowcaseCard showcase={MONITORS_SHOWCASE} />);
+
+    expect(
+      screen.getByTestId(RESOURCE_SHOWCASE_EYEBROW_TEST_ID),
+    ).toHaveTextContent("Monitors");
+  });
+
+  test("the example's header pill takes its state's colour: an acknowledged alert is amber, as in its row", async () => {
+    await renderInRouter(
+      <ResourceShowcaseCard
+        showcase={PRODUCT_ONBOARDINGS[ProductKey.Alerts].showcase}
+      />,
+    );
+
+    const badge: HTMLElement = screen.getByTestId(
+      RESOURCE_SHOWCASE_BADGE_TEST_ID,
+    );
+    expect(badge).toHaveTextContent("Acknowledged");
+    expect(badge.className).toContain("bg-amber-50");
+    expect(badge.className).not.toContain("emerald");
+    cleanup();
+
+    // A healthy one is green, as before.
+    await renderInRouter(<ResourceShowcaseCard showcase={MONITORS_SHOWCASE} />);
+    expect(
+      screen.getByTestId(RESOURCE_SHOWCASE_BADGE_TEST_ID),
+    ).toHaveTextContent("Operational");
+    expect(
+      screen.getByTestId(RESOURCE_SHOWCASE_BADGE_TEST_ID).className,
+    ).toContain("bg-emerald-50");
   });
 });
 
@@ -478,7 +524,13 @@ describe("About, beside a product page's title", () => {
   test("opens the product's explanation in a dialog, and closes it", async () => {
     await renderInRouter(<ProductAboutButton product={ProductKey.Monitors} />);
 
-    const about: HTMLElement = screen.getByRole("button", { name: "About" });
+    /*
+     * "How it works", not "About": most of the Dashboard's languages read
+     * that key as "Regarding" (German "Betrifft").
+     */
+    const about: HTMLElement = screen.getByRole("button", {
+      name: "How it works",
+    });
     expect(about).toHaveAttribute("aria-haspopup", "dialog");
     expect(screen.queryByTestId(PRODUCT_ABOUT_DIALOG_TEST_ID)).toBeNull();
 
@@ -518,7 +570,7 @@ describe("About, beside a product page's title", () => {
     await renderInRouter(<ProductAboutButton product={ProductKey.Hosts} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "About" }));
+      fireEvent.click(screen.getByRole("button", { name: "How it works" }));
     });
 
     const dialog: HTMLElement = screen.getByTestId(
@@ -891,6 +943,10 @@ describe("a telemetry product before its first telemetry", () => {
     const dialog: HTMLElement = screen.getByTestId(
       TELEMETRY_SETUP_DIALOG_TEST_ID,
     );
+    // Said up front: the step that waits is at the end of a long guide.
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "Follow the steps below. The last one waits for the first data to arrive.",
+    );
     expect(
       within(dialog).getByText("Wait for it to connect"),
     ).toBeInTheDocument();
@@ -983,5 +1039,133 @@ describe("a telemetry product before its first telemetry", () => {
     expect(
       screen.queryByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
     ).toBeNull();
+  });
+});
+
+/*
+ * The Logs page's explorer, as far as its explanation sees it: its first
+ * steps while it is empty, data once it has some, nothing while it loads.
+ */
+type ExplorerState = "loading" | "empty" | "data";
+
+const Explorer: React.FunctionComponent<{ state: ExplorerState }> = (props: {
+  state: ExplorerState;
+}): ReactElement => {
+  useReportTelemetryDataShown(props.state === "data");
+
+  if (props.state === "empty") {
+    return (
+      <TelemetryFirstStepsEmptyState signal={TelemetryFirstStepsSignal.Logs} />
+    );
+  }
+
+  return (
+    <div data-testid="explorer-rows">
+      {props.state === "data" ? "web-01 sshd: session opened" : "Loading"}
+    </div>
+  );
+};
+
+describe("a telemetry product's explanation over its explorer", () => {
+  async function renderLogsPage(
+    state: ExplorerState,
+  ): Promise<(next: ExplorerState) => Promise<void>> {
+    goTo(`/dashboard/${PROJECT_ID}/logs`);
+    const page: (explorerState: ExplorerState) => ReactElement = (
+      explorerState: ExplorerState,
+    ): ReactElement => {
+      return (
+        <MemoryRouter>
+          <TelemetryFirstRunShowcase product={ProductKey.Logs}>
+            <Explorer state={explorerState} />
+          </TelemetryFirstRunShowcase>
+        </MemoryRouter>
+      );
+    };
+    let rerender: (element: ReactElement) => void = (): void => {
+      return undefined;
+    };
+    await act(async () => {
+      rerender = render(page(state)).rerender;
+    });
+    await settle();
+
+    return async (next: ExplorerState): Promise<void> => {
+      await act(async () => {
+        rerender(page(next));
+      });
+      await settle();
+    };
+  }
+
+  test("an empty explorer of a project no service has reported to: the explanation over it, and one way to set up - its button", async () => {
+    setCount(Service, 0);
+    await renderLogsPage("empty");
+
+    const showcase: HTMLElement = screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID);
+    expect(
+      within(showcase).getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+    ).toHaveTextContent("Send your first logs");
+    // The explorer still says it is empty, without a second setup button.
+    expect(screen.getByText("No logs here yet")).toBeInTheDocument();
+    expect(screen.queryByTestId("logs-first-steps-setup")).toBeNull();
+    expect(screen.queryByText("Set up logs")).toBeNull();
+  });
+
+  test("logs that name no service: the explorer has data, so there is nothing to explain, though no service has reported", async () => {
+    setCount(Service, 0);
+    await renderLogsPage("data");
+
+    expect(screen.getByTestId("explorer-rows")).toHaveTextContent(
+      "web-01 sshd: session opened",
+    );
+    expect(screen.queryByTestId(PRODUCT_SHOWCASE_TEST_ID)).toBeNull();
+  });
+
+  test("an explorer that loads again keeps the explanation, and data gives it way", async () => {
+    setCount(Service, 0);
+    const show: (next: ExplorerState) => Promise<void> =
+      await renderLogsPage("empty");
+    expect(screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID)).toBeInTheDocument();
+
+    // A longer range: the list loads, and the explanation stays put.
+    await show("loading");
+    expect(screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID)).toBeInTheDocument();
+
+    // Older logs of a host that names no service.
+    await show("data");
+    expect(screen.queryByTestId(PRODUCT_SHOWCASE_TEST_ID)).toBeNull();
+  });
+
+  test("a read-only member's explanation has no button, so the explorer keeps its own way to the setup guide", async () => {
+    setCount(Service, 0);
+    asViewer();
+    await renderLogsPage("empty");
+
+    expect(screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID)).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+    ).toBeNull();
+    expect(screen.getByTestId("logs-first-steps-setup")).toHaveTextContent(
+      "Set up logs",
+    );
+  });
+
+  test("a project whose services have reported: the explorer's own empty state, with its setup button", async () => {
+    setCount(Service, 2);
+    await renderLogsPage("empty");
+
+    expect(screen.queryByTestId(PRODUCT_SHOWCASE_TEST_ID)).toBeNull();
+    expect(screen.getByTestId("logs-first-steps-setup")).toHaveTextContent(
+      "Set up logs",
+    );
+  });
+
+  test("a check that fails: no explanation, and the explorer keeps its setup button", async () => {
+    setCount(Service, new Error("The count failed."));
+    await renderLogsPage("empty");
+
+    expect(screen.queryByTestId(PRODUCT_SHOWCASE_TEST_ID)).toBeNull();
+    expect(screen.getByTestId("logs-first-steps-setup")).toBeInTheDocument();
   });
 });

@@ -13,8 +13,8 @@ import {
 import { getProductOnboarding } from "./ProductOnboardings";
 
 /*
- * "About" beside a product page's title (Page's titleRight): the product's
- * explanation - what it does, its first steps, an example and its
+ * "How it works" beside a product page's title (Page's titleRight): the
+ * product's explanation - what it does, its first steps, an example and its
  * documentation - one click away once the page has data of its own and no
  * longer shows it. Every product's layout draws one.
  */

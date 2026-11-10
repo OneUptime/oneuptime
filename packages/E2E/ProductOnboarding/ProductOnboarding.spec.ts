@@ -24,9 +24,14 @@ import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
  * table does not repeat the button, and the explanation does not repeat
  * what the table says. Someone who may not create one reads it without the
  * button; a count that fails leaves the list as it always was. Once there
- * is something in the list, About beside the page's title opens the same
- * explanation in a dialog. On a laptop, beside the side menu at 1024 and
- * 768 pixels, on a phone, in German, and in Persian in the dark theme.
+ * is something in the list, How it works beside the page's title opens the
+ * same explanation in a dialog (About, in the code). On a laptop, beside
+ * the side menu at 1024 and 768 pixels, on a phone, in German, and in
+ * Persian in the dark theme.
+ *
+ * Data Observability's Overview, the page the issue was raised on: with no
+ * database connected, the explanation with Connect a Database, and under
+ * it the database the project's traces know of.
  *
  * And every other product: the fixture's explanations page draws each
  * product's explanation as its About dialog does, so one page shows every
@@ -43,6 +48,7 @@ const PORT: string = process.env["PRODUCT_ONBOARDING_FIXTURE_PORT"] || "4489";
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000a1";
 const MONITORS: string = `/dashboard/${PROJECT_ID}/monitors`;
 const STATUS_PAGES: string = `/dashboard/${PROJECT_ID}/status-pages`;
+const DATA_OBSERVABILITY: string = `/dashboard/${PROJECT_ID}/data-observability/overview`;
 // The status page Create answers with (Fixture.js).
 const NEW_STATUS_PAGE_ID: string = "30000000-0000-4000-8000-0000000000a9";
 
@@ -61,6 +67,11 @@ const MONITORS_STEPS: Array<string> = [
   "Get an incident or an alert when a check fails",
 ];
 const STATUS_PAGES_TITLE: string = "Tell your customers what is going on";
+/*
+ * The button beside the title. Not "About", which most of the Dashboard's
+ * languages already translate as "Regarding" (German "Betrifft").
+ */
+const HOW_IT_WORKS: string = "How it works";
 // What a screen reader hears for an example (PRODUCT_EXAMPLE_DESCRIPTION).
 const EXAMPLE_DESCRIPTION: string =
   "An example of what this page shows once it is in use.";
@@ -216,11 +227,34 @@ async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
   return Boolean(top && bottom && bottom.y >= top.y + top.height - 1);
 }
 
-async function screenshot(page: Page, name: string): Promise<void> {
+/*
+ * A dialog grows in (Modal's 150ms transition): photographed or measured
+ * any sooner, it is caught half drawn over the page.
+ */
+async function dialogAtRest(page: Page): Promise<void> {
+  await page.waitForFunction((): boolean => {
+    return document.getAnimations().every((animation: Animation): boolean => {
+      const endTime: number | string | undefined = animation.effect
+        ? animation.effect.getComputedTiming().endTime
+        : undefined;
+      return animation.playState !== "running" || endTime === Infinity;
+    });
+  });
+}
+
+/*
+ * The whole page, or - for a dialog, whose backdrop covers the window, not
+ * the page under it - the window.
+ */
+async function screenshot(
+  page: Page,
+  name: string,
+  options: { isDialog?: boolean } = {},
+): Promise<void> {
   fs.mkdirSync(SCREENSHOTS, { recursive: true });
   await page.screenshot({
     path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
-    fullPage: true,
+    fullPage: !options.isDialog,
   });
 }
 
@@ -415,7 +449,9 @@ test("a project with monitors sees its list alone, and About beside the title ex
     level: 1,
     name: "Monitors",
   });
-  await expect(row.getByTestId("product-about-button")).toHaveText("About");
+  await expect(row.getByTestId("product-about-button")).toHaveText(
+    HOW_IT_WORKS,
+  );
   const [titleBox, aboutBox]: Array<FrameBox> = await boxesInOneFrame([
     title,
     aboutButton(page),
@@ -447,7 +483,20 @@ test("a project with monitors sees its list alone, and About beside the title ex
   // An explanation, not a second way to create one.
   await expect(startButton(dialog)).toHaveCount(0);
 
-  await screenshot(page, "monitors-about-1440");
+  /*
+   * The dialog is its frame: its title names the product, so no second
+   * name over the pitch, and the pitch starts under the title rather than
+   * a card's padding further in.
+   */
+  await dialogAtRest(page);
+  await expect(dialog.getByTestId("resource-showcase-eyebrow")).toHaveCount(0);
+  const [modalTitleBox, pitchBox]: Array<FrameBox> = await boxesInOneFrame([
+    page.getByTestId("modal-title"),
+    dialog.getByRole("heading", { level: 2 }),
+  ]);
+  expect(Math.abs(pitchBox!.x - modalTitleBox!.x)).toBeLessThanOrEqual(1);
+
+  await screenshot(page, "monitors-about-1440", { isDialog: true });
 
   await page.getByTestId("modal-footer-close-button").click();
   await expect(aboutDialog(page)).toHaveCount(0);
@@ -469,6 +518,59 @@ test("a project with status pages sees its list alone, and About explains Status
   await expect(aboutDialog(page).getByRole("heading", { level: 2 })).toHaveText(
     STATUS_PAGES_TITLE,
   );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The page the issue was raised on
+ * ---------------------------------------------------------------------------
+ */
+
+test("Data Observability with no database: the explanation with Connect a Database, and the database the traces know of under it", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(DATA_OBSERVABILITY);
+  await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+    timeout: 60000,
+  });
+  await expect(showcase(page)).toBeVisible();
+  await expect(showcase(page)).toHaveAttribute(
+    "data-product",
+    "data-observability",
+  );
+  await expect(showcase(page).getByRole("heading", { level: 2 })).toHaveText(
+    "Know when a table goes stale or changes shape",
+  );
+  // Nothing above it says what the product is for: the explanation does.
+  await expect(
+    showcase(page).getByTestId("resource-showcase-description"),
+  ).toBeVisible();
+  expect((await steps(showcase(page)))[0]).toBe("Connect a database");
+  await expect(startButton(showcase(page))).toHaveText("Connect a Database");
+  await expect(
+    showcase(page).getByRole("link", { name: "Documentation" }),
+  ).toHaveAttribute("href", "/docs/data-observability/index");
+
+  // The database the traces know of, under the explanation.
+  const suggestion: Locator = page.getByText("billing-db", { exact: true });
+  await expect(suggestion).toBeVisible();
+  expect(await isBelow(showcase(page), suggestion)).toBe(true);
+
+  // How it works stays beside the title for later.
+  await expect(aboutButton(page)).toHaveText(HOW_IT_WORKS);
+  await expectNoSidewaysScroll(page, {
+    message: "Data Observability at 1440px",
+  });
+  await screenshot(page, "data-observability-first-run-1440");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(showcase(page)).toBeVisible();
+  await expectNoSidewaysScroll(page, {
+    message: "Data Observability at 390px",
+  });
+  await screenshot(page, "data-observability-first-run-390");
 });
 
 /*
@@ -502,8 +604,9 @@ test("on a phone: the explanation stacks under the empty table, its example unde
   await expect(aboutButton(page)).toBeVisible({ timeout: 60000 });
   await aboutButton(page).click();
   await expect(aboutDialog(page)).toBeVisible();
+  await dialogAtRest(page);
   await expectNoSidewaysScroll(page, { message: "About at 390px" });
-  await screenshot(page, "monitors-about-390");
+  await screenshot(page, "monitors-about-390", { isDialog: true });
 });
 
 for (const width of [1024, 768]) {
@@ -549,7 +652,7 @@ test("in German: the explanation and About in the Dashboard's German", async ({
       return GERMAN[step]!;
     }),
   );
-  await expect(aboutButton(page)).toHaveText(GERMAN["About"]!);
+  await expect(aboutButton(page)).toHaveText(GERMAN[HOW_IT_WORKS]!);
   await expectNoSidewaysScroll(page, { message: "Monitors in German" });
 
   await screenshot(page, "monitors-first-run-de");
@@ -559,7 +662,8 @@ test("in German: the explanation and About in the Dashboard's German", async ({
   await expect(
     aboutDialog(page).getByTestId("resource-showcase-description"),
   ).toHaveText(GERMAN[MONITORS_DESCRIPTION]!);
-  await screenshot(page, "monitors-about-de");
+  await dialogAtRest(page);
+  await screenshot(page, "monitors-about-de", { isDialog: true });
 });
 
 test("in Persian, dark: right to left, About before the title's end, the explanation in Persian and readable", async ({
@@ -575,7 +679,7 @@ test("in Persian, dark: right to left, About before the title's end, the explana
   await expect(showcase(page).getByRole("heading", { level: 2 })).toHaveText(
     PERSIAN[MONITORS_TITLE]!,
   );
-  await expect(aboutButton(page)).toHaveText(PERSIAN["About"]!);
+  await expect(aboutButton(page)).toHaveText(PERSIAN[HOW_IT_WORKS]!);
 
   // Right to left, About follows the title: to its left.
   const [titleBox, aboutBox]: Array<FrameBox> = await boxesInOneFrame([

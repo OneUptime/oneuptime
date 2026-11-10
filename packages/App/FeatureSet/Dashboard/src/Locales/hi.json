@@ -47645,5 +47645,6 @@
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "आपको इस अलर्ट को बदलने की अनुमति नहीं है, इसलिए आप OneUptime AI से यह सुधार फिर से आज़माने को नहीं कह सकते।",
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "आपको इस घटना को बदलने की अनुमति नहीं है, इसलिए आप OneUptime AI से यह सुधार फिर से आज़माने को नहीं कह सकते।",
   "No fix ran, and nobody was asked to approve one.": "कोई सुधार नहीं चला, और किसी से उसे मंज़ूरी देने को नहीं कहा गया।",
-  "Show full reasoning": "पूरा तर्क दिखाएँ"
+  "Show full reasoning": "पूरा तर्क दिखाएँ",
+  "Follow the steps below. The last one waits for the first data to arrive.": "नीचे दिए चरणों का पालन करें। आख़िरी चरण पहले डेटा के आने की प्रतीक्षा करता है।"
 }

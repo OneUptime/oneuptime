@@ -20,22 +20,26 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      {/* Until the project's first telemetry: what the product does, and its setup guide. */}
-      <TelemetryFirstRunShowcase product={ProductKey.Logs} />
-      <DashboardLogsViewer
-        showFilters={true}
-        serviceIds={[]}
-        limit={100}
-        enableRealtime={true}
-        id="logs"
-        // The Logs page's own saved views, none saved on a resource's Logs tab.
-        savedViewScope={EXPLORER_SAVED_VIEW_SCOPE}
-        syncUrlState={true}
-        // The product page: an empty explorer offers the setup guide.
-        offersSetupWhenEmpty={true}
-        // ...and a monitor watching what it shows.
-        offersCreateMonitor={true}
-      />
+      {/*
+       * Until the project's first telemetry, while the explorer is empty:
+       * what the product does, and its setup guide.
+       */}
+      <TelemetryFirstRunShowcase product={ProductKey.Logs}>
+        <DashboardLogsViewer
+          showFilters={true}
+          serviceIds={[]}
+          limit={100}
+          enableRealtime={true}
+          id="logs"
+          // The Logs page's own saved views, none saved on a resource's Logs tab.
+          savedViewScope={EXPLORER_SAVED_VIEW_SCOPE}
+          syncUrlState={true}
+          // The product page: an empty explorer offers the setup guide.
+          offersSetupWhenEmpty={true}
+          // ...and a monitor watching what it shows.
+          offersCreateMonitor={true}
+        />
+      </TelemetryFirstRunShowcase>
     </Fragment>
   );
 };

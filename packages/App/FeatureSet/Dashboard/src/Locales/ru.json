@@ -47645,5 +47645,6 @@
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "У вас нет прав на изменение этого оповещения, поэтому вы не можете попросить OneUptime AI повторить это исправление.",
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "У вас нет прав на изменение этого инцидента, поэтому вы не можете попросить OneUptime AI повторить это исправление.",
   "No fix ran, and nobody was asked to approve one.": "Ни одно исправление не выполнялось, и никого не просили его утвердить.",
-  "Show full reasoning": "Показать рассуждения полностью"
+  "Show full reasoning": "Показать рассуждения полностью",
+  "Follow the steps below. The last one waits for the first data to arrive.": "Выполните шаги ниже. Последний ждёт, пока поступят первые данные."
 }

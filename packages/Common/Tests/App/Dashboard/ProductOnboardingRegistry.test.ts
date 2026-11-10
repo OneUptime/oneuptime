@@ -216,23 +216,28 @@ const FIRST_PAGES: Record<ProductKey, { file: string; draws: string }> = {
   },
   [ProductKey.Logs]: {
     file: "Pages/Logs/Index.tsx",
-    draws: "<TelemetryFirstRunShowcase product={ProductKey.Logs} />",
+    // Around its explorer, whose first steps it waits for.
+    draws: "<TelemetryFirstRunShowcase product={ProductKey.Logs}>",
   },
   [ProductKey.Traces]: {
     file: "Pages/Traces/Index.tsx",
-    draws: "<TelemetryFirstRunShowcase product={ProductKey.Traces} />",
+    // Around its explorer, whose first steps it waits for.
+    draws: "<TelemetryFirstRunShowcase product={ProductKey.Traces}>",
   },
   [ProductKey.Metrics]: {
     file: "Pages/Metrics/Index.tsx",
-    draws: "<TelemetryFirstRunShowcase product={ProductKey.Metrics} />",
+    // Around its explorer, whose first steps it waits for.
+    draws: "<TelemetryFirstRunShowcase product={ProductKey.Metrics}>",
   },
   [ProductKey.Profiles]: {
     file: "Pages/Profiles/Index.tsx",
-    draws: "<TelemetryFirstRunShowcase product={ProductKey.Profiles} />",
+    // Around its explorer, whose first steps it waits for.
+    draws: "<TelemetryFirstRunShowcase product={ProductKey.Profiles}>",
   },
   [ProductKey.Exceptions]: {
     file: "Pages/Exceptions/Unresolved.tsx",
-    draws: "<TelemetryFirstRunShowcase product={ProductKey.Exceptions} />",
+    // Around its explorer, whose first steps it waits for.
+    draws: "<TelemetryFirstRunShowcase product={ProductKey.Exceptions}>",
   },
   [ProductKey.Topology]: {
     file: "Pages/Topology/TopologyPage.tsx",

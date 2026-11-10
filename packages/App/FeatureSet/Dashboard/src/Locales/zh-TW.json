@@ -47645,5 +47645,6 @@
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "您沒有變更此警示的權限，因此無法請 OneUptime AI 重試此修正。",
   "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "您沒有變更此事件的權限，因此無法請 OneUptime AI 重試此修正。",
   "No fix ran, and nobody was asked to approve one.": "沒有執行任何修正，也沒有請任何人核准。",
-  "Show full reasoning": "顯示完整推理"
+  "Show full reasoning": "顯示完整推理",
+  "Follow the steps below. The last one waits for the first data to arrive.": "依照下方步驟操作。最後一步會等待第一批資料送達。"
 }

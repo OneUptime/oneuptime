@@ -199,6 +199,7 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { useReportTelemetryDataShown } from "../Telemetry/TelemetryFirstRunHost";
 import useProjectHasExceptions from "./useProjectHasExceptions";
 import {
   showsTelemetryFirstSteps,
@@ -724,6 +725,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     useState<BulkActionOnClickProps<TelemetryException> | null>(null);
 
   const [exceptions, setExceptions] = useState<Array<TelemetryException>>([]);
+  // Under the Exceptions page's explanation: data drawn means it gives way.
+  useReportTelemetryDataShown(exceptions.length > 0);
   /*
    * The range the rows above were read for, set with them: the rows'
    * affected users and trend charts are counted over the same range.

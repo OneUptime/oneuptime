@@ -313,19 +313,19 @@ export const LLM_SHOWCASE: ResourceShowcase = {
     },
     rows: [
       {
-        name: "gpt-4o",
+        name: "chat-large",
         detail: translationKey("Model"),
         status: ShowcaseStatus.Healthy,
         statusText: "1.1 s",
       },
       {
-        name: "claude-sonnet-4",
+        name: "chat-small",
         detail: translationKey("Model"),
         status: ShowcaseStatus.Healthy,
         statusText: "1.4 s",
       },
       {
-        name: "text-embedding-3-small",
+        name: "embed-small",
         detail: translationKey("Model"),
         status: ShowcaseStatus.Warning,
         statusText: translationKey("Error"),
