@@ -857,6 +857,8 @@ describe("ProductAnalyticsUsers people", () => {
     await waitForPeople(2);
 
     expect(screen.queryByTestId("product-analytics-people-search")).toBeNull();
+    /* Nor an empty toolbar, which would still take a line on a phone. */
+    expect(screen.queryByTestId("product-analytics-people-toolbar")).toBeNull();
     /* No name to show: the row says what it is, never "undefined". */
     expect(
       screen.getAllByTestId("product-analytics-person-link")[0],
