@@ -63,13 +63,16 @@ import {
   InviteTeam,
   InviteTeamPermissionRow,
   MEMBERS_TEAM_NAME,
+  TEAM_INVITE_PERMISSIONS,
   canSignedInUserGrantAll,
+  canSignedInUserInviteToEveryTeam,
   fetchDefaultInviteTeam,
   findDefaultInviteTeam,
   pickDefaultInviteTeam,
 } from "../../../UI/Utils/DefaultInviteTeam";
 import * as DashboardDefaultInviteTeam from "../../../../App/FeatureSet/Dashboard/src/Utils/DefaultInviteTeam";
 import Team from "../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -693,6 +696,102 @@ describe("who may hand a team on, by default", () => {
 });
 
 /*
+ * Invite New Members scoped to Owned reaches only the teams the inviter, or
+ * the team holding it, owns (#6561): the server refuses any other team, the
+ * members team included. Invite User then picks no team; someone who may
+ * invite to every team still starts on the members team.
+ */
+describe("who may invite to every team", () => {
+  function holdingRows(
+    rows: Array<Partial<UserPermission> & { permission: Permission }>,
+  ): void {
+    projectPermissionsForTest = {
+      projectId: PROJECT_ID,
+      permissions: rows.map(
+        (
+          row: Partial<UserPermission> & { permission: Permission },
+        ): UserPermission => {
+          return {
+            labelIds: [],
+            isBlockPermission: false,
+            scope: PermissionScope.All,
+            _type: "UserPermission",
+            ...row,
+          };
+        },
+      ),
+      _type: "UserTenantAccessPermission",
+    };
+  }
+
+  test("what adds someone to a team is what TeamMember's create takes", () => {
+    expect([...TEAM_INVITE_PERMISSIONS].sort()).toEqual(
+      [...new Set(new TeamMember().createRecordPermissions)].sort(),
+    );
+  });
+
+  test("a project owner, a project admin, or Invite New Members for the whole project", () => {
+    for (const permission of TEAM_INVITE_PERMISSIONS) {
+      holdingRows([{ permission: permission }]);
+
+      expect([permission, canSignedInUserInviteToEveryTeam()]).toEqual([
+        permission,
+        true,
+      ]);
+    }
+  });
+
+  test("not Invite New Members scoped to the teams they own: the server refuses every other team", () => {
+    holdingRows([
+      {
+        permission: Permission.InviteProjectTeamMembers,
+        scope: PermissionScope.Owned,
+      },
+      { permission: Permission.ProjectMember },
+    ]);
+
+    expect(canSignedInUserInviteToEveryTeam()).toBe(false);
+  });
+
+  test("Owned alongside a grant over the whole project reaches every team", () => {
+    holdingRows([
+      {
+        permission: Permission.InviteProjectTeamMembers,
+        scope: PermissionScope.Owned,
+      },
+      { permission: Permission.InviteProjectTeamMembers },
+    ]);
+
+    expect(canSignedInUserInviteToEveryTeam()).toBe(true);
+  });
+
+  test("a block on what adds someone to a team takes it away, whatever else they hold", () => {
+    holdingRows([
+      { permission: Permission.ProjectAdmin },
+      {
+        permission: Permission.InviteProjectTeamMembers,
+        isBlockPermission: true,
+      },
+    ]);
+
+    expect(canSignedInUserInviteToEveryTeam()).toBe(false);
+  });
+
+  test("someone who may not invite anyone does not", () => {
+    holdingRows([{ permission: Permission.ProjectMember }]);
+
+    expect(canSignedInUserInviteToEveryTeam()).toBe(false);
+  });
+
+  test("a master admin may, as on the server", () => {
+    holdingRows([]);
+    isMasterAdminForTest = true;
+
+    expect(canSignedInUserInviteToEveryTeam()).toBe(true);
+  });
+});
+
+/*
  * The rule moved from the Dashboard to Common so the Admin Dashboard can use
  * it too. The Dashboard keeps reading it through its own path, and the SSO,
  * SCIM and Invite User tests replace the lookup by mocking that path - which
@@ -711,6 +810,9 @@ describe("the Dashboard's path to it", () => {
     );
     expect(DashboardDefaultInviteTeam.canSignedInUserGrantAll).toBe(
       canSignedInUserGrantAll,
+    );
+    expect(DashboardDefaultInviteTeam.canSignedInUserInviteToEveryTeam).toBe(
+      canSignedInUserInviteToEveryTeam,
     );
     expect(DashboardDefaultInviteTeam.MEMBERS_TEAM_NAME).toBe(
       MEMBERS_TEAM_NAME,

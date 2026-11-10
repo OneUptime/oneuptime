@@ -41,6 +41,10 @@ Stubbed:
 - The side menu's counts beside Open Cases, Assigned to Me and Approvals
   (`ModelAPI.count` of the open cases, the signed-in user's open cases and the runs waiting
   for approval) answer 0.
+- Today's telemetry ingestion budgets (`GET /telemetry-ingestion-budget/project`), which the
+  layout reads for its banner: the project sets no budget, so every signal answers without one, as
+  the server answers then, and the banner stays away
+  (`../SecurityOperations/Fixture/IngestionBudgetFixture.js`).
 - The menu's other pages (Overview; Open Cases, Assigned to Me, Unassigned, Closed Cases, All
   Cases; Correlate, Entities; Detection Rules, Rule Library, ATT&CK Coverage, Threat Intel;
   Playbooks, Approvals, Playbook Runs; Setup Guide) render a small stub page with

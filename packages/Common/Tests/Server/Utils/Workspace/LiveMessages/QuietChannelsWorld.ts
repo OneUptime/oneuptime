@@ -17,7 +17,10 @@ import OnCallDutyPolicySchedule from "../../../../../Models/DatabaseModels/OnCal
 import Team from "../../../../../Models/DatabaseModels/Team";
 import User from "../../../../../Models/DatabaseModels/User";
 import UserOnCallLogTimeline from "../../../../../Models/DatabaseModels/UserOnCallLogTimeline";
-import { OnCallPageNotificationMethods } from "../../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  ON_CALL_PAGE_CHANNELS,
+  OnCallPageNotificationMethods,
+} from "../../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import WorkspaceNotificationRule from "../../../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import DatabaseConfig from "../../../../../Server/DatabaseConfig";
@@ -1118,6 +1121,26 @@ export default class QuietChannelsWorld {
 
     this.installDirectPages(hook);
 
+    /*
+     * The step's own list of the channels its page went out by, kept by
+     * the notifications' hooks (refreshNotificationChannels) in a
+     * transaction of its own: its statements, answered from the rows here.
+     */
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "executeTransaction")
+      .mockImplementation((async (
+        run: (entityManager: unknown) => Promise<unknown>,
+      ): Promise<unknown> => {
+        return await run({
+          query: async (
+            sql: string,
+            parameters: Array<unknown>,
+          ): Promise<Array<Record<string, unknown>>> => {
+            return this.answerStepChannelsStatement(sql, parameters);
+          },
+        });
+      }) as never);
+
     // How each page reached its person.
     jest
       .spyOn(UserOnCallLogTimelineService, "findBy")
@@ -1338,6 +1361,75 @@ export default class QuietChannelsWorld {
     return new Date(this.clock.getTime() + this.deliveriesWritten);
   }
 
+  /*
+   * What the run's Execution Timeline shows as "Notified Via" on a person's
+   * page: the channels its step keeps (#6585) - null for one that keeps no
+   * list.
+   */
+  public notifiedVia(userId: ObjectID): unknown {
+    return this.latestPageOf(userId)?.notificationChannels ?? null;
+  }
+
+  /*
+   * A statement of the step's own list of the channels its page went out by
+   * (OnCallDutyPolicyExecutionLogTimelineService.refreshNotificationChannels),
+   * answered from the rows kept here: the step's row, the step's
+   * notifications as Postgres hands them back, and the list written.
+   */
+  private answerStepChannelsStatement(
+    sql: string,
+    parameters: Array<unknown>,
+  ): Array<Record<string, unknown>> {
+    if (sql.includes('FROM "OnCallDutyPolicyExecutionLogTimeline"')) {
+      const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
+        this.steps.find(
+          (candidate: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+            return candidate.id!.toString() === String(parameters[0]);
+          },
+        );
+
+      return step
+        ? [{ notificationChannels: step.notificationChannels ?? null }]
+        : [];
+    }
+
+    if (sql.includes('FROM "UserOnCallLogTimeline"')) {
+      return this.deliveries
+        .filter((delivery: UserOnCallLogTimeline): boolean => {
+          return (
+            delivery.onCallDutyPolicyExecutionLogTimelineId?.toString() ===
+            String(parameters[0])
+          );
+        })
+        .map((delivery: UserOnCallLogTimeline): Record<string, unknown> => {
+          const row: Record<string, unknown> = { status: delivery.status };
+
+          for (const info of ON_CALL_PAGE_CHANNELS) {
+            row[info.field] = delivery[info.field]?.toString() ?? null;
+          }
+
+          return row;
+        });
+    }
+
+    if (sql.startsWith('UPDATE "OnCallDutyPolicyExecutionLogTimeline"')) {
+      const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
+        this.steps.find(
+          (candidate: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+            return candidate.id!.toString() === String(parameters[1]);
+          },
+        );
+
+      if (step) {
+        step.notificationChannels = JSON.parse(String(parameters[0]));
+      }
+
+      return [];
+    }
+
+    throw new Error(`The world does not answer: ${sql}`);
+  }
+
   // A person's page as it stands: their latest step that paged them.
   private latestPageOf(
     userId: ObjectID,
@@ -1424,22 +1516,54 @@ export default class QuietChannelsWorld {
     userId: ObjectID,
     method: keyof OnCallPageNotificationMethods,
   ): Promise<void> {
-    const step: OnCallDutyPolicyExecutionLogTimeline =
-      this.latestPageOf(userId)!;
+    await this.markNotification({
+      userId: userId,
+      method: method,
+      status: UserNotificationStatus.Error,
+      statusMessage: "The provider refused the message.",
+    });
+  }
+
+  /*
+   * A call of a person's page rang and was not picked up - Twilio says so
+   * when the call ends (the notification server's call status callback):
+   * marked Not Answered through the delivery's real update hook, with the
+   * status it had before, as the callback marks one. The latest of the
+   * page's calls.
+   */
+  public async missCall(userId: ObjectID): Promise<void> {
+    await this.markNotification({
+      userId: userId,
+      method: "userCallId",
+      status: UserNotificationStatus.NotAnswered,
+      statusMessage: "The call was not answered: it rang out.",
+    });
+  }
+
+  // The latest of a person's page's notifications by a method, marked so.
+  private async markNotification(data: {
+    userId: ObjectID;
+    method: keyof OnCallPageNotificationMethods;
+    status: UserNotificationStatus;
+    statusMessage: string;
+  }): Promise<void> {
+    const step: OnCallDutyPolicyExecutionLogTimeline = this.latestPageOf(
+      data.userId,
+    )!;
 
     const delivery: UserOnCallLogTimeline = this.deliveries
       .filter((candidate: UserOnCallLogTimeline): boolean => {
         return (
           candidate.onCallDutyPolicyExecutionLogTimelineId?.toString() ===
-            step.id!.toString() && Boolean(candidate[method])
+            step.id!.toString() && Boolean(candidate[data.method])
         );
       })
       .pop()!;
 
     const statusBefore: UserNotificationStatus | undefined = delivery.status;
 
-    delivery.status = UserNotificationStatus.Error;
-    delivery.statusMessage = "The provider refused the message.";
+    delivery.status = data.status;
+    delivery.statusMessage = data.statusMessage;
 
     await (
       UserOnCallLogTimelineService as unknown as Record<
@@ -1452,7 +1576,7 @@ export default class QuietChannelsWorld {
         updateBy: {
           query: { _id: delivery.id!.toString() },
           data: {
-            status: UserNotificationStatus.Error,
+            status: data.status,
             statusMessage: delivery.statusMessage,
           },
           props: { isRoot: true },

@@ -73,7 +73,7 @@ L'envoi des alertes ne demande qu'un accès HTTPS sortant vers `api.telegram.org
 
 ### Twilio
 
-Quand un intervenant appuie sur 1 pendant un appel pour acquitter l'alerte, Twilio envoie la touche à `POST /api/user-notification-log-timeline/call/gather-input/*`. Les adresses des webhooks de Twilio changent, sauf si votre édition de Twilio inclut [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Les mises à jour de livraison des SMS et les appels entrants sont décrits dans [Intégration Twilio](/docs/self-hosted/twilio-integration).
+Quand un intervenant appuie sur 1 pendant un appel pour acquitter l'alerte, Twilio envoie la touche à `POST /api/user-notification-log-timeline/call/gather-input/*`. Les adresses des webhooks de Twilio changent, sauf si votre édition de Twilio inclut [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Les mises à jour de livraison des SMS, l'issue des appels et les appels entrants sont décrits dans [Intégration Twilio](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 

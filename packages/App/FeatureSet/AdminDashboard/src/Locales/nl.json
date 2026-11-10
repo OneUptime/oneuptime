@@ -2054,7 +2054,7 @@
   "The secret that goes with the access key ID. It is stored encrypted.": "Het geheim dat bij de toegangssleutel-ID hoort. Het wordt versleuteld opgeslagen.",
   "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.": "De AWS-regio waarin de identiteit van uw afzender is geverifieerd, zoals us-east-1 of eu-west-1.",
   "Enter an AWS Region code, such as us-east-1.": "Voer een AWS-regiocode in, zoals us-east-1.",
-  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.": "Een SendGrid-API-sleutel met de machtiging Mail Send, uit Settings > API Keys in SendGrid. Hij wordt versleuteld opgeslagen.",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.": "Een SendGrid-API-sleutel met de machtiging Mail Send, uit Settings > API Keys in SendGrid. Hij wordt versleuteld opgeslagen.",
   "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.": "Een API-sleutel van uw Mailgun-account, of een verzendsleutel die voor dit domein is gemaakt. Hij wordt versleuteld opgeslagen.",
   "The sending domain, as Mailgun lists it under Sending > Domains.": "Het verzenddomein, zoals Mailgun het toont onder Sending > Domains.",
   "Enter a domain, such as mg.example.com.": "Voer een domein in, zoals mg.example.com.",

@@ -25,7 +25,10 @@ import { ModelSchema } from "../../Utils/Schema/ModelSchema";
  *     every create (it would put every new row at that number);
  *   - writable by whoever can create and edit the row, because dragging a
  *     row is an edit of its order column;
- *   - scoped by columns that exist, so "its list" means something.
+ *   - scoped by columns that exist, so "its list" means something: the id
+ *     of the parent whose rows the list is, or a short text of a few
+ *     allowed values that splits a project's rows into lists of their own
+ *     (ListOrderMaintainer reads an id as an ObjectID, the text as it is).
  *
  * And the set itself is pinned: a list that gains or loses the decorator is
  * a change somebody should notice.
@@ -179,6 +182,15 @@ const EXPECTED: Record<string, ListOrderSettings> = {
   IncomingCallPolicyEscalationRule: {
     column: "order",
     scopeColumns: ["incomingCallPolicyId"],
+    sortOrder: SortOrder.Ascending,
+  },
+  /*
+   * The steps a public note goes through before it is published, in order:
+   * an incident's notes and a scheduled maintenance's each have their own.
+   */
+  PublicNoteApprovalStep: {
+    column: "order",
+    scopeColumns: ["projectId", "eventType"],
     sortOrder: SortOrder.Ascending,
   },
   /*
@@ -353,9 +365,25 @@ describe("drag-ordered lists (@ListOrderColumn)", () => {
       expect(settings.scopeColumns.length).toBeGreaterThan(0);
 
       for (const scopeColumn of settings.scopeColumns) {
-        expect(model.getTableColumnMetadata(scopeColumn)?.type).toBe(
-          TableColumnType.ObjectID,
-        );
+        const metadata: TableColumnMetadata | undefined =
+          model.getTableColumnMetadata(scopeColumn);
+
+        if (metadata?.type === TableColumnType.ObjectID) {
+          continue;
+        }
+
+        // Not an id: a short text, one of a few values, always set.
+        expect({
+          scopeColumn: scopeColumn,
+          type: metadata?.type,
+          hasAllowedValues: (metadata?.allowedValues || []).length > 0,
+          required: metadata?.required,
+        }).toEqual({
+          scopeColumn: scopeColumn,
+          type: TableColumnType.ShortText,
+          hasAllowedValues: true,
+          required: true,
+        });
       }
     });
   });

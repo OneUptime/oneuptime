@@ -46,7 +46,7 @@ Sådan tilføjer du en projektkonfiguration:
 2. Vælg **Opret Twilio-konfiguration** i **Twilio-konfiguration**.
 3. Angiv et navn, og vælg under **Brug denne konto til**, hvad kontoen sender: **Opkald og SMS**, **Kun SMS** eller **Kun opkald**. Angiv derefter **Twilio-konto-SID**, **Twilio-godkendelsestoken** og det nummer, valget beder om: **Twilio primært telefonnummer** til opkald eller **Twilio SMS-telefonnumre** til **Kun SMS**. Under **Flere felter** kan du også angive kommaseparerede **Twilio sekundære telefonnumre** til andre lande og **Twilio SMS-telefonnumre**, hvis dine numre ikke kan sende SMS.
 4. **Indstil som projektstandard** er slået til for projektets første konfiguration, så SMS og opkald til projektets medlemmer, herunder vagtnotifikationer, går gennem den, så snart du gemmer. Slå den fra, hvis kontoen kun er til statussider eller indgående opkald. En senere konfiguration starter med kontakten slået fra: Slå den til, eller vælg **Indstil som projektstandard** i konfigurationens rækkemenu for at flytte de beskeder til den. En API-anmodning, der udelader `isProjectDefault`, behandles på samme måde.
-5. Gem. Kun én konfiguration kan være projektstandarden. Statussider bruger den konfiguration, der udtrykkeligt er tildelt hver statusside.
+5. Gem. Et projekt har én standard for SMS og én for opkald, så en konfiguration sat til **Kun SMS** og en sat til **Kun opkald** kan begge være standard: se [En konto kun til SMS eller kun til opkald](#en-konto-kun-til-sms-eller-kun-til-opkald). Statussider bruger den konfiguration, der udtrykkeligt er tildelt hver statusside.
 
 > [!IMPORTANT]
 > **SMS** og **Telefonopkald** er slået fra fra start i hvert projekt, og indtil de er slået til, kan ingen i projektet tilføje et telefonnummer til dem. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår dem til i kortet **Notifikationskanaler** på samme side.
@@ -81,13 +81,15 @@ En konto, du kun bruger til SMS eller kun til opkald, behøver intet nummer til 
 | **Kun SMS** | **Twilio SMS-telefonnumre** | Opkald |
 | **Kun opkald** | **Twilio primært telefonnummer** | SMS |
 
-Det, en konfiguration ikke sender, går ud, som det ville uden konfigurationen: når projektets standard er sat til **Kun SMS**, går opkald til projektets medlemmer gennem konfigurationen for hele installationen. Kan ingen konfiguration sende en besked, står der i beskedens log, at projektets konfiguration ikke bruges til den, og hvem der kan ændre det.
+Et projekt har en standard for SMS og en standard for opkald, og en konfiguration er standard for det, den sender. I en konfigurations rækkemenu gør **Indstil som projektstandard for SMS** eller **Indstil som projektstandard for opkald** den til standard for det, den sender, og lader den anden standard være, som den er, så en konfiguration sat til **Kun SMS** og en sat til **Kun opkald** kan begge være standard. En konfiguration sat til **Opkald og SMS** tager begge dele. Kolonnen **Projektstandard** viser, hvad hver konfiguration er standard for, og **Stop med at bruge som projektstandard** i rækkemenuen afslutter det.
+
+Det, som ingen standard sender, går ud, som det ville uden en konfiguration: så længe den eneste standard er sat til **Kun SMS**, går opkald til projektets medlemmer gennem konfigurationen for hele installationen. Kan ingen konfiguration sende en besked, står der i beskedens log, at projektets konfiguration ikke bruges til den, og hvem der kan ændre det.
 
 Statussider tilbyder kun de konfigurationer, der sender SMS, og **Send test-SMS** og **Send testopkald** vises kun for det, en konfiguration sender. Alle eksisterende konfigurationer er som før sat til **Opkald og SMS**. Gennem API'et og Terraform er valget feltet `usedFor`, og en konfiguration uden de numre, dens valg kræver, afvises.
 
 ## 3. Konfigurer netværksadgang
 
-Afsendelse virker med udgående adgang alene. Leveringsopdateringer, kvittering via tastaturet og indgående opkald kræver, at Twilio kan nå din server.
+Afsendelse virker med udgående adgang alene. Leveringsopdateringer, opkaldsresultater, kvittering via tastaturet og indgående opkald kræver, at Twilio kan nå din server.
 
 ```mermaid title="Udgående afsendelser, indgående callbacks"
 sequenceDiagram
@@ -109,6 +111,7 @@ Indgående adgang afhænger af funktionen:
 | --- | --- |
 | Indsendelse af SMS | Nej. Opdateringer af leveringsstatus kræver dog et callback. |
 | Et simpelt teststemmeopkald | Nej. OneUptime sender de talte instruktioner med i den udgående API-anmodning. |
+| Vide, om et vagtopkald blev besvaret | Ja. Twilio melder, hvordan hvert opkald endte, så hændelsens feed kan sige, når en vagthavende ikke svarede. Opkald sendes stadig uden det. |
 | Tryk 1 for at kvittere for en vagtalarm | Ja. Twilio sender tastaturinputtet til OneUptime. |
 | Politikker for indgående opkald | Ja. Twilio henter opkaldsinstruktioner og rapporterer resultaterne af opkaldet. |
 
@@ -117,13 +120,14 @@ Det er de eksterne stier gennem OneUptimes Nginx-gateway. Pladsholderne er forsk
 | Metode | Sti | Formål |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS'ens leveringsstatus |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Opkaldsresultat |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Kvittering via tastaturet |
 | POST | `/notification/incoming-call/voice` | Valgfrie instruktioner til indgående opkald |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Valgfrie resultater af routing af indgående opkald |
 
-OneUptime genererer automatisk URL'erne til SMS og kvittering. Erstat ikke deres tokens med en fast webhook-URL. For indgående opkald følger du [politikker for indgående opkald](/docs/on-call/incoming-call-policy), der konfigurerer nummerets webhook, når du tilknytter et nummer.
+OneUptime genererer automatisk URL'erne til SMS, opkaldsresultater og kvittering. Erstat ikke deres tokens med en fast webhook-URL. For indgående opkald følger du [politikker for indgående opkald](/docs/on-call/incoming-call-policy), der konfigurerer nummerets webhook, når du tilknytter et nummer.
 
-Twilio kræver [offentligt tilgængelige webhook-URL'er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Brug et offentligt betroet TLS-certifikat, og bevar den oprindelige vært, protokol, sti, forespørgselsparametre, body og headeren `X-Twilio-Signature` gennem proxyer. Handlerne til indgående opkald validerer Twilios signaturer; SMS-levering bruger et URL-token pr. besked, og kvittering via tastaturet et signeret forespørgselstoken. Afslør ikke tokens i delte logs eller skærmbilleder. Se [Twilios webhook-sikkerhed](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio kræver [offentligt tilgængelige webhook-URL'er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Brug et offentligt betroet TLS-certifikat, og bevar den oprindelige vært, protokol, sti, forespørgselsparametre, body og headeren `X-Twilio-Signature` gennem proxyer. Handlerne til indgående opkald validerer Twilios signaturer; SMS-levering og opkaldsresultater bruger et URL-token pr. besked eller opkald, og kvittering via tastaturet et signeret forespørgselstoken. Afslør ikke tokens i delte logs eller skærmbilleder. Se [Twilios webhook-sikkerhed](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Udgiv callbacks fra en privat installation
 
@@ -142,7 +146,7 @@ Dashboardet kan blive på en privat ingress: Med split DNS slår medarbejderne d
 De almindelige kildeadresser for Twilios webhooks ændrer sig, så brug ikke SIP- eller medie-IP-intervaller som allowlist for callbacks. Kvalificerede Twilio-udgaver tilbyder [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Bekræft, at din udgave er kvalificeret, og hvilke produkter der understøttes, og konfigurer din firewall med de intervaller, Twilio aktuelt offentliggør; bliv ved med at validere callbacks, også når du bruger det.
 
 > [!WARNING]
-> Hvis en politik forbyder indgående forbindelser, kan indsendelse af SMS og simpel indbygget afspilning af stemme virke med udgående HTTPS. Opdateringer af SMS-levering, kvittering via tastaturet og routing af indgående opkald kan ikke virke uden tilgængelige callbacks. En fuldstændig afskåret installation kan ikke bruge Twilio.
+> Hvis en politik forbyder indgående forbindelser, kan indsendelse af SMS og simpel indbygget afspilning af stemme virke med udgående HTTPS. Opdateringer af SMS-levering, opkaldsresultater, kvittering via tastaturet og routing af indgående opkald kan ikke virke uden tilgængelige callbacks. En fuldstændig afskåret installation kan ikke bruge Twilio.
 
 Til udvikling beskriver Twilios [vejledning i test af webhooks](https://www.twilio.com/docs/usage/webhooks/webhook-testing) brugen af en offentlig tunnel: Send den videre til en proxy, der kun tillader de nødvendige ruter, konfigurer det værtsnavn, du får, som ovenfor, og stop tunnelen efter testen. En tunnel åbner stadig for indgående adgang.
 
@@ -159,7 +163,7 @@ Til udvikling beskriver Twilios [vejledning i test af webhooks](https://www.twil
 | --- | --- |
 | Intet bliver sendt | Legitimationsoplysninger, nummerets funktioner, kontoens begrænsninger og den udgående forbindelse. |
 | Twilio afviser SMS med fejl 21606 | Nummeret kan ikke sende SMS. Tilføj et, der kan, under **Twilio SMS-telefonnumre**: se [Separate numre til opkald og SMS](#separate-numre-til-opkald-og-sms). |
-| Opkald eller SMS går gennem en anden konto end projektets | Projektets standard er sat til **Kun SMS** eller **Kun opkald**: se [En konto kun til SMS eller kun til opkald](#en-konto-kun-til-sms-eller-kun-til-opkald). |
+| Opkald eller SMS går gennem en anden konto end projektets | Ingen konfiguration er projektets standard for dem: kolonnen **Projektstandard** viser, hvad hver konfiguration er standard for. Se [En konto kun til SMS eller kun til opkald](#en-konto-kun-til-sms-eller-kun-til-opkald). |
 | SMS'en eller opkaldet kommer frem, men status eller kvittering opdateres ikke | Callback-URL'en og logs fra den offentlige ingress. Twilios [vejledning om fejl ved HTTP-hentning](https://www.twilio.com/docs/api/errors/11200) hjælper med utilgængelige callbacks, TLS-problemer og HTTP-fejl. |
 
 Et vellykket testopkald alene beviser ikke, at callbacks kan nås.

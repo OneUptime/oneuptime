@@ -8,6 +8,11 @@ import { ServiceLevelObjectiveFeedEventType } from "Common/Models/DatabaseModels
 import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveOwnerRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerRule";
+import {
+  AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
+  AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+  AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+} from "Common/Types/AuditLog/AuditLogRetention";
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import Permission, {
   PermissionHelper,
@@ -83,6 +88,27 @@ import {
   BurnRateDeclares,
   getBurnRateDeclares,
 } from "../../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateDeclares";
+import {
+  APPLIES_TO_ALL_ANSWERS,
+  APPLIES_TO_MATCHING_ANSWERS,
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+  NOTIFICATION_RULE_DESTINATION_TITLES,
+  RULE_SINGULAR_NAMES,
+} from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
+import { canRuleCreateChannel } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
+import { SLO_ERROR_BUDGET_POLICY_CHANGES } from "Common/Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import {
+  ConditionType,
+  NotificationRuleConditionCheckOn,
+  NotificationRuleConditionUtil,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import {
+  getSloFeedChatMarkdown,
+  getSloPolicyTierChangedFeedParts,
+} from "Common/Utils/Slo/SloFeedMarkdown";
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -125,6 +151,8 @@ const SOURCES: Record<string, string> = {
   notificationSettingService:
     "Common/Server/Services/UserNotificationSettingService.ts",
   worker: "App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
+  sloWorkspaceNotifications:
+    "Common/Server/Utils/Slo/SloWorkspaceNotifications.ts",
   sloHistory: "Common/Models/AnalyticsModels/SloHistory.ts",
   projectModel: "Common/Models/DatabaseModels/Project.ts",
   dashboardTemplates: "Common/Types/Dashboard/DashboardTemplates.ts",
@@ -3084,6 +3112,196 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
   });
 });
 
+describe("Error Budget Policy in Slack, Microsoft Teams and Mattermost, against the rules and the worker", () => {
+  const page: string = englishPage(ERROR_BUDGET_POLICY);
+  const posting: string = section(
+    page,
+    "Post to Slack, Microsoft Teams and Mattermost",
+  );
+  const SLO: NotificationRuleEventType =
+    NotificationRuleEventType.ServiceLevelObjective;
+
+  it("opens the SLOs' own Workspace section, as the SLO list's menu holds it", () => {
+    const menu: string = readSource("sloListSideMenu");
+
+    expect(menu).toContain("useWorkspaceSideMenuSection(");
+    expect(menu).toContain("slack: PageMap.SLOS_WORKSPACE_CONNECTION_SLACK");
+    expect(posting).toContain(
+      "Go to **SLOs** → **Workspace** → **Slack**, or **Microsoft Teams**, or **Mattermost**.",
+    );
+  });
+
+  it("names the rule's create button, its Conditions step and its Destination step as the rule form draws them", () => {
+    expect(posting).toContain(`**Create ${RULE_SINGULAR_NAMES[SLO]}**`);
+    expect(posting).toContain(
+      `Under **${NOTIFICATION_RULE_CONDITIONS_TITLES[SLO]}**, keep **${APPLIES_TO_ALL_ANSWERS[SLO]}**, or pick **${APPLIES_TO_MATCHING_ANSWERS[SLO]}**`,
+    );
+    expect(posting).toContain(
+      `Under **${NOTIFICATION_RULE_DESTINATION_TITLES[WorkspaceType.Slack]}**, name the channels`,
+    );
+  });
+
+  it("lists the conditions an SLO rule offers, in the order the Filter Type lists them", () => {
+    expect(firstCells(section(page, "What a rule matches"))).toEqual(
+      NotificationRuleConditionUtil.getCheckOnByEventType(SLO).map(
+        (checkOn: string): string => {
+          return `**${checkOn}**`;
+        },
+      ),
+    );
+  });
+
+  it("names every change a rule can pick, in the order its dropdown lists them", () => {
+    expect(section(page, "What a rule matches")).toContain(
+      `What changed: ${SLO_ERROR_BUDGET_POLICY_CHANGES.slice(0, -1)
+        .map((change: string): string => {
+          return `**${change}**`;
+        })
+        .join(", ")} or **${
+        SLO_ERROR_BUDGET_POLICY_CHANGES[
+          SLO_ERROR_BUDGET_POLICY_CHANGES.length - 1
+        ]
+      }**.`,
+    );
+  });
+
+  it("says an SLO rule only posts, to channels and chats that exist", () => {
+    expect(canRuleCreateChannel(SLO)).toBe(false);
+    expect(posting).toContain(
+      "An SLO gets no channel of its own, so a rule posts only to channels and chats you already have.",
+    );
+  });
+
+  it("says a mention in the agreement notifies nobody, as the message breaks it", () => {
+    const message: string = getSloFeedChatMarkdown(
+      getSloPolicyTierChangedFeedParts({
+        sloMarkdownLink: FeedMarkdown.asMarkdown("[SLO Checkout](https://x)"),
+        previousTierName: null,
+        newTier: {
+          name: "Budget exhausted",
+          thresholdPercentage: 0,
+          whatWeDo: "Page <!channel> now.",
+        },
+        isEscalation: true,
+        errorBudgetRemainingPercentage: 0,
+        errorBudgetRemainingSeconds: 0,
+      }),
+    ).toString();
+
+    expect(message).not.toContain("<!channel>");
+    expect(posting).toContain(
+      "A mention in that agreement, such as `<!channel>`, is posted as text and notifies nobody.",
+    );
+  });
+
+  it("says a change is posted once, after it is saved, from the worker's one place", () => {
+    const worker: string = readSource("worker");
+
+    expect(worker).toContain("SloWorkspaceNotifications.postPolicyChange(");
+    // After the one hooked state write, as the feed item is.
+    expect(worker.indexOf("await postPolicyChange({")).toBeGreaterThan(
+      worker.indexOf("await ServiceLevelObjectiveService.updateOneById({"),
+    );
+    expect(readSource("sloWorkspaceNotifications")).toContain(
+      "sendWorkspaceMarkdownNotification",
+    );
+    expect(posting).toContain(
+      "A change is posted once, after the evaluation that made it is saved.",
+    );
+    expect(posting).toContain(
+      "Switching **Freeze Deployments** on or off for the tier the SLO is in posts a message of its own.",
+    );
+  });
+
+  it("names the channels as one of the places the tier shows, and no longer lists them as not available", () => {
+    expect(section(page, "Where the tier shows")).toContain(
+      "The Slack, Microsoft Teams and Mattermost channels your rules name get the same post",
+    );
+    expect(section(page, "Not available yet")).not.toContain("Slack");
+    expect(section(page, "Not available yet")).not.toContain(
+      "Microsoft Teams",
+    );
+  });
+
+  it("says how each condition matches, as the Filter Type offers its operators", () => {
+    const matches: Map<string, string> = new Map(
+      tableRows(section(page, "What a rule matches")).map(
+        (row: Array<string>): [string, string] => {
+          return [row[0] as string, row[1] as string];
+        },
+      ),
+    );
+    const operators: (checkOn: NotificationRuleConditionCheckOn) => string = (
+      checkOn: NotificationRuleConditionCheckOn,
+    ): string => {
+      return NotificationRuleConditionUtil.getConditionTypeByCheckOn(checkOn)
+        .slice()
+        .sort()
+        .join(", ");
+    };
+
+    // Picked SLOs: any of them, or every SLO but them.
+    expect(operators(NotificationRuleConditionCheckOn.Slos)).toBe(
+      [ConditionType.ContainsAny, ConditionType.NotContains].sort().join(", "),
+    );
+    expect(matches.get("**SLOs**")).toBe(
+      "The SLOs you pick, or every SLO but those.",
+    );
+
+    // Labels: any, all, or none of the ones picked.
+    expect(operators(NotificationRuleConditionCheckOn.SloLabels)).toBe(
+      [
+        ConditionType.ContainsAny,
+        ConditionType.ContainsAll,
+        ConditionType.NotContains,
+      ]
+        .sort()
+        .join(", "),
+    );
+    expect(matches.get("**SLO Labels**")).toBe(
+      "The SLO's labels: any of the ones you pick, all of them, or none of them.",
+    );
+
+    // The name: equal or not, containing or not, starting or ending with.
+    expect(operators(NotificationRuleConditionCheckOn.SloName)).toBe(
+      [
+        ConditionType.EqualTo,
+        ConditionType.NotEqualTo,
+        ConditionType.Contains,
+        ConditionType.NotContains,
+        ConditionType.StartsWith,
+        ConditionType.EndsWith,
+      ]
+        .sort()
+        .join(", "),
+    );
+    expect(matches.get("**SLO Name**")).toBe(
+      "The SLO's name: equal to your text or not, containing it or not, starting or ending with it.",
+    );
+  });
+
+  it("says a message that cannot be sent is logged, and the evaluation goes on without it", () => {
+    const worker: string = readSource("worker");
+    const poster: string = readSource("sloWorkspaceNotifications");
+
+    // The poster catches what the workspaces throw, and says so in the log...
+    expect(poster).toContain("} catch (err) {");
+    expect(poster).toContain("logger.error(");
+    // ...and the worker catches whatever is left, after the feed item.
+    const workerPost: string = blockFrom(
+      worker,
+      "async function postPolicyChangeToWorkspaces(",
+      "\n}\n",
+    );
+
+    expect(workerPost).toContain("} catch (err) {");
+    expect(workerPost).toContain("logger.error(");
+    expect(posting).toContain(
+      "A message that cannot be sent is logged, and the evaluation, the SLO's feed and what the tier raises go on without it.",
+    );
+  });
+});
+
 describe("SLO Metrics and Dashboards, against the emitter and the Metrics page", () => {
   const page: string = englishPage(METRICS);
 
@@ -3300,6 +3518,12 @@ describe("SLO Feed and Audit Logs, against the feed and the audit log settings",
     expect(page).toContain(
       "Set **Retention (days)**, from 7 (the default) to 180, and turn on **Store System Events**",
     );
+    // The range the recorder, a failing export and the server read it by.
+    expect([
+      AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
+      AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+      AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+    ]).toEqual([7, 7, 180]);
   });
 
   it("walks the audit log settings as the settings page draws them, where the build has it", () => {
@@ -3324,8 +3548,8 @@ describe("SLO Feed and Audit Logs, against the feed and the audit log settings",
       'title: "Enable Audit Logs",',
       'title: "Retention (days)",',
       'title: "Store System Events",',
-      "minValue: 7,",
-      "maxValue: 180,",
+      "minValue: AUDIT_LOG_MIN_RETENTION_IN_DAYS,",
+      "maxValue: AUDIT_LOG_MAX_RETENTION_IN_DAYS,",
     ]) {
       expect({ text, inSettings: settings.includes(text) }).toEqual({
         text,

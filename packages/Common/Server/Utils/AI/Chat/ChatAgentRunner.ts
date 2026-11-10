@@ -35,6 +35,7 @@ import {
   AIChatRecordSeen,
   getLatestAIChatRecordsSeen,
   listAIChatRecordsSeen,
+  markAIChatRecordsFromEarlierAnswers,
 } from "../../../../Types/AI/AIChatRecordSeen";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import AIConversationMessageService from "../../../Services/AIConversationMessageService";
@@ -1652,11 +1653,15 @@ export default class ChatAgentRunner {
    * What the model has been shown of records it may change, oldest first:
    * by the turns before this one, then by this turn's results so far, each
    * kept with its citation - one record, or the several a commit wrote
-   * (Types/AI/AIChatRecordSeen, issues #6291 and #6313).
+   * (Types/AI/AIChatRecordSeen, issues #6291 and #6313). Those of the turns
+   * before are marked as from an earlier answer (issue #6365): the model is
+   * shown those turns' answers, never their results, so what they say of a
+   * version counts, but their lines are not in hand. A turn resumed after
+   * an approval keeps its own results (pausedState), and so their lines.
    */
   private static getRecordsSeen(state: TurnState): Array<AIChatRecordSeen> {
     return getLatestAIChatRecordsSeen([
-      ...state.recordsSeenBeforeTurn,
+      ...markAIChatRecordsFromEarlierAnswers(state.recordsSeenBeforeTurn),
       ...state.citations.flatMap((citation: AIChatCitation): Array<unknown> => {
         return listAIChatRecordsSeen(citation.recordSeen);
       }),

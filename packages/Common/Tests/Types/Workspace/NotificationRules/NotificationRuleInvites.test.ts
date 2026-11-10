@@ -62,6 +62,8 @@ describe("NotificationRuleInvites.getInvitees", () => {
     [NotificationRuleEventType.SecurityCase, []],
     // Nor a hunt's: what it finds is posted to channels that exist.
     [NotificationRuleEventType.SecurityHunt, []],
+    // Nor an SLO's: its error budget policy changes are posted to channels that exist.
+    [NotificationRuleEventType.ServiceLevelObjective, []],
   ] as Array<[NotificationRuleEventType, Array<NotificationRuleInvitee>]>)(
     "a %s rule can add %j, in the form's order",
     (
@@ -75,9 +77,11 @@ describe("NotificationRuleInvites.getInvitees", () => {
   test("every kind of record with owners is answered, and only records an on-call policy pages for have on-call responders", () => {
     for (const eventType of ALL_EVENT_TYPES.filter(
       (kind: NotificationRuleEventType): boolean => {
+        // The kinds of record a rule only posts about, with no channel of their own.
         return (
           kind !== NotificationRuleEventType.SecurityCase &&
-          kind !== NotificationRuleEventType.SecurityHunt
+          kind !== NotificationRuleEventType.SecurityHunt &&
+          kind !== NotificationRuleEventType.ServiceLevelObjective
         );
       },
     )) {

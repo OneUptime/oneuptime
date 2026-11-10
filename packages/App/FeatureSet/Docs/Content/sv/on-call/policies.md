@@ -112,7 +112,7 @@ Du hittar exekveringsloggar på tre ställen:
 - under **Jourtjänst → Avancerad → Exekveringsloggar**, för varje policy, där direkta utlarmningar från arbetsflöden och chatt visas som **Direkt utlarmning**;
 - på en incidents eller ett larms sida **Jourexekveringar**.
 
-Varje rad visar vad som startade körningen, när, dess **Status** och vem som bekräftade den. **Visa tidslinje** öppnar dess **Tidslinje för körningen**: varje eskaleringsregel, vem den larmade, via vilket schema och hur varje utlarmning slutade. Ett schema där ingen har jour visar **Ingen hade jour** i stället för en person. En nivå som inte larmade någon säger varför, med **Gick vidare direkt** under: policyn väntade inte på den. I OneUptime Cloud kräver exekveringsloggar abonnemanget **Growth**.
+Varje rad visar vad som startade körningen, när, dess **Status** och vem som bekräftade den. **Visa tidslinje** öppnar dess **Tidslinje för körningen**: varje eskaleringsregel, vem den larmade, via vilket schema och hur varje utlarmning slutade. **Aviserad via** visar hur varje utlarmning nådde personen: telefonsamtal, SMS, e-post, push-avisering och så vidare. Ett schema där ingen har jour visar **Ingen hade jour** i stället för en person. En nivå som inte larmade någon säger varför, med **Gick vidare direkt** under: policyn väntade inte på den. I OneUptime Cloud kräver exekveringsloggar abonnemanget **Growth**.
 
 ## Arkivera eller ta bort en policy
 

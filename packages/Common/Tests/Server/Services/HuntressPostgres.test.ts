@@ -72,8 +72,10 @@ import { DataSource, Logger } from "typeorm";
  *
  * The tables are cloned structure-only (LIKE ... INCLUDING ALL: columns,
  * defaults, indexes, no foreign keys) into a uniquely named schema that is
- * dropped afterwards. The workflow service, the workflow rules and Valkey,
- * the only side effects outside Postgres, are stubbed.
+ * dropped afterwards - WorkflowVersion among them: a workflow created,
+ * whether by hand or by the move, gets its first version in the same
+ * create. The workflow service, the workflow rules and Valkey, the only
+ * side effects outside Postgres, are stubbed.
  */
 
 // describe.skip's type is the one both branches share.
@@ -84,6 +86,8 @@ const describePostgres: typeof describe.skip =
 
 const TABLES: Array<string> = [
   "Workflow",
+  // Every create writes the workflow's first version (version history).
+  "WorkflowVersion",
   "Incident",
   "HuntressConnection",
   "HuntressConnectionOnCallDutyPolicy",

@@ -73,7 +73,7 @@
 
 ### Twilio
 
-जब जवाब देने वाला कॉल पर पेज स्वीकार करने के लिए 1 दबाता है, तो Twilio वह कुंजी `POST /api/user-notification-log-timeline/call/gather-input/*` पर भेजता है। Twilio के वेबहुक पते बदलते रहते हैं, जब तक कि आपके Twilio संस्करण में [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy) शामिल न हो। SMS डिलीवरी अपडेट और आने वाली कॉल के बारे में [Twilio इंटीग्रेशन](/docs/self-hosted/twilio-integration) में बताया गया है।
+जब जवाब देने वाला कॉल पर पेज स्वीकार करने के लिए 1 दबाता है, तो Twilio वह कुंजी `POST /api/user-notification-log-timeline/call/gather-input/*` पर भेजता है। Twilio के वेबहुक पते बदलते रहते हैं, जब तक कि आपके Twilio संस्करण में [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy) शामिल न हो। SMS डिलीवरी अपडेट, कॉल के नतीजों और आने वाली कॉल के बारे में [Twilio इंटीग्रेशन](/docs/self-hosted/twilio-integration) में बताया गया है।
 
 ### WhatsApp
 

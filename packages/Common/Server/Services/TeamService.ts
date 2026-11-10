@@ -6,7 +6,10 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { BUILT_IN_TEAM_DELETE_MESSAGE } from "../../Types/Team/BuiltInTeam";
+import {
+  BUILT_IN_TEAM_DELETE_MESSAGE,
+  BUILT_IN_TEAM_OWNERS_MESSAGE,
+} from "../../Types/Team/BuiltInTeam";
 import Model from "../../Models/DatabaseModels/Team";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
@@ -19,6 +22,36 @@ import EditionEnforcement from "../Utils/EditionEnforcement";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Owners and Admin come with every project and have no owners: their
+   * members are the project's owners and admins, whom no team permission
+   * scoped to Owned may change (BuiltInTeam). Every other team may have
+   * owners, Members included. Asked by the team owner services before an
+   * owner is added, by anyone - OneUptime's own writes too.
+   */
+  public async assertTeamCanHaveOwners(
+    teamId: ObjectID | string | null | undefined,
+  ): Promise<void> {
+    if (!teamId) {
+      return;
+    }
+
+    const team: Model | null = await this.findOneById({
+      id: new ObjectID(teamId.toString()),
+      select: {
+        isTeamEditable: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // A team that is not there is the reference check's to answer.
+    if (team && team.isTeamEditable === false) {
+      throw new BadDataException(BUILT_IN_TEAM_OWNERS_MESSAGE);
+    }
   }
 
   public async getTeamsUserIsAPartOf(data: {

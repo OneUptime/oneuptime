@@ -18,6 +18,12 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Pill from "../Pill/Pill";
 import { getTableHeaderButtons } from "../Table/TableHeaderControls";
 import TableEmptyState, { TableEmptyStateKind } from "../Table/TableEmptyState";
+import { ColumnWidthKind } from "../Table/ColumnResize/ColumnWidths";
+import ResizableHeaderCell from "../Table/ColumnResize/ResizableHeaderCell";
+import { SizedColumn } from "../Table/ColumnResize/SizedColumnsStyle";
+import useResizableColumns, {
+  ResizableColumns,
+} from "../Table/ColumnResize/useResizableColumns";
 import { getTelemetryUsageSignalTitle } from "../TelemetryUsage/TelemetryUsageWords";
 import {
   formatTelemetryIngestionBudgetBytes,
@@ -181,7 +187,7 @@ export const SignalRows: FunctionComponent<{
                   <></>
                 )}
               </td>
-              <td className="hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
+              <td className="max-md:hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
                 <span className="tabular-nums">
                   {signal.rateLimitBytesPerSecond === null
                     ? "—"
@@ -191,7 +197,7 @@ export const SignalRows: FunctionComponent<{
                       )}
                 </span>
               </td>
-              <td className="hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
+              <td className="max-md:hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
                 <span className="tabular-nums">
                   {signal.droppedBytes
                     ? formatTelemetryIngestionBudgetBytes(
@@ -201,7 +207,7 @@ export const SignalRows: FunctionComponent<{
                     : "—"}
                 </span>
               </td>
-              <td className="hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
+              <td className="max-md:hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
                 <span className="tabular-nums">
                   {signal.throttledRequests
                     ? translator.translatePlural(
@@ -228,6 +234,38 @@ export const SignalRows: FunctionComponent<{
   );
 };
 
+/*
+ * The table's columns in a row's order: the ingestion key's name first where
+ * the table lists keys. The rate, what was dropped and what was throttled
+ * fold away on a phone, which has no room for them.
+ */
+type SignalTableColumnId =
+  | "ingestionKey"
+  | "signal"
+  | "usedToday"
+  | "dailyBudget"
+  | "rateLimit"
+  | "dropped"
+  | "throttled"
+  | "status";
+
+const getSignalTableColumnIds: (
+  showKeyName: boolean,
+) => Array<SignalTableColumnId> = (
+  showKeyName: boolean,
+): Array<SignalTableColumnId> => {
+  return [
+    ...(showKeyName ? (["ingestionKey"] as Array<SignalTableColumnId>) : []),
+    "signal",
+    "usedToday",
+    "dailyBudget",
+    "rateLimit",
+    "dropped",
+    "throttled",
+    "status",
+  ];
+};
+
 export const SignalTable: FunctionComponent<{
   scopes: Array<TelemetryIngestionBudgetScopeStatus>;
   showKeyName: boolean;
@@ -239,39 +277,114 @@ export const SignalTable: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
+  const titles: Record<SignalTableColumnId, string> = {
+    ingestionKey: translator.translateText("Ingestion Key") || "Ingestion Key",
+    signal: translator.translateText("Signal") || "Signal",
+    usedToday: translator.translateText("Used Today") || "Used Today",
+    dailyBudget: translator.translateText("Daily Budget") || "Daily Budget",
+    rateLimit: translator.translateText("Rate Limit") || "Rate Limit",
+    dropped: translator.translateText("Dropped") || "Dropped",
+    throttled: translator.translateText("Throttled") || "Throttled",
+    status: translator.translateText("Status") || "Status",
+  };
+
+  /*
+   * The columns as wide as a person makes them (Common's
+   * Table/ColumnResize), kept apart for the project's signals and the
+   * keys': a row's name - the key's, or the signal's where no key is
+   * listed - gives way to 10rem, a signal beside its key to 8rem, an amount
+   * or a state never.
+   */
+  const columnIds: Array<SignalTableColumnId> = getSignalTableColumnIds(
+    props.showKeyName,
+  );
+  const columns: ResizableColumns = useResizableColumns({
+    tableKey: props.showKeyName
+      ? "telemetry-ingestion-budget-key-signals"
+      : "telemetry-ingestion-budget-signals",
+    columns: columnIds.map(
+      (id: SignalTableColumnId, index: number): SizedColumn => {
+        return { id: id, cellNumber: index + 1 };
+      },
+    ),
+  });
+
+  const headerCell: (data: {
+    id: SignalTableColumnId;
+    kind: ColumnWidthKind;
+    className: string;
+  }) => ReactElement = (data: {
+    id: SignalTableColumnId;
+    kind: ColumnWidthKind;
+    className: string;
+  }): ReactElement => {
+    return (
+      <ResizableHeaderCell
+        key={data.id}
+        scope="col"
+        className={data.className}
+        resize={columns.getResize(data.id, titles[data.id], data.kind)}
+      >
+        <span>{titles[data.id]}</span>
+      </ResizableHeaderCell>
+    );
+  };
+
   return (
     <div className="overflow-x-auto" data-testid={props.dataTestId}>
-      <table className="min-w-full text-left">
+      {columns.styles}
+      <table
+        className={`${columns.getTableWidthClassName("min-w-full")} text-left`}
+        {...columns.tableAttributes}
+      >
         <thead>
           <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
             {props.showKeyName ? (
-              <th className="pb-2 pr-4 font-medium">
-                {translator.translateText("Ingestion Key")}
-              </th>
+              headerCell({
+                id: "ingestionKey",
+                kind: ColumnWidthKind.Name,
+                className: "pb-2 pr-4 font-medium",
+              })
             ) : (
               <></>
             )}
-            <th className="pb-2 pr-4 font-medium">
-              {translator.translateText("Signal")}
-            </th>
-            <th className="pb-2 pr-4 font-medium">
-              {translator.translateText("Used Today")}
-            </th>
-            <th className="pb-2 pr-4 font-medium">
-              {translator.translateText("Daily Budget")}
-            </th>
-            <th className="hidden pb-2 pr-4 font-medium md:table-cell">
-              {translator.translateText("Rate Limit")}
-            </th>
-            <th className="hidden pb-2 pr-4 font-medium md:table-cell">
-              {translator.translateText("Dropped")}
-            </th>
-            <th className="hidden pb-2 pr-4 font-medium md:table-cell">
-              {translator.translateText("Throttled")}
-            </th>
-            <th className="pb-2 font-medium">
-              {translator.translateText("Status")}
-            </th>
+            {headerCell({
+              id: "signal",
+              kind: props.showKeyName
+                ? ColumnWidthKind.Text
+                : ColumnWidthKind.Name,
+              className: "pb-2 pr-4 font-medium",
+            })}
+            {headerCell({
+              id: "usedToday",
+              kind: ColumnWidthKind.Whole,
+              className: "pb-2 pr-4 font-medium",
+            })}
+            {headerCell({
+              id: "dailyBudget",
+              kind: ColumnWidthKind.Whole,
+              className: "pb-2 pr-4 font-medium",
+            })}
+            {headerCell({
+              id: "rateLimit",
+              kind: ColumnWidthKind.Whole,
+              className: "max-md:hidden pb-2 pr-4 font-medium md:table-cell",
+            })}
+            {headerCell({
+              id: "dropped",
+              kind: ColumnWidthKind.Whole,
+              className: "max-md:hidden pb-2 pr-4 font-medium md:table-cell",
+            })}
+            {headerCell({
+              id: "throttled",
+              kind: ColumnWidthKind.Whole,
+              className: "max-md:hidden pb-2 pr-4 font-medium md:table-cell",
+            })}
+            {headerCell({
+              id: "status",
+              kind: ColumnWidthKind.Whole,
+              className: "pb-2 font-medium",
+            })}
           </tr>
         </thead>
         <tbody>

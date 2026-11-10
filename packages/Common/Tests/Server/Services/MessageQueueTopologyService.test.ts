@@ -71,10 +71,14 @@ function queueRow(
   system: string,
 ): MessageQueue {
   const row: MessageQueue = new MessageQueue();
+  // "system|broker scope|destination": one that names no queue has none.
+  const destination: string | undefined = identifier.split("|")[2];
   row._id = id;
-  row.name = identifier.split("|")[2];
+  if (destination !== undefined) {
+    row.name = destination;
+    row.destinationName = destination;
+  }
   row.messagingSystem = system;
-  row.destinationName = identifier.split("|")[2];
   row.queueIdentifier = identifier;
   row.discoverySource = "traces";
   return row;

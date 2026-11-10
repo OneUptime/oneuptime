@@ -125,10 +125,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * If the project has its own default Twilio config that sends SMS,
-     * OneUptime does not charge the project's SMS balance, so the
-     * low-balance check does not apply. A default used for calls only sends
-     * no SMS: they are paid from the balance, as without a config.
+     * If the project has its own default Twilio config for SMS, OneUptime
+     * does not charge the project's SMS balance, so the low-balance check
+     * does not apply. A project whose only default is used for calls only
+     * sends its SMS through OneUptime: they are paid from the balance, as
+     * without a config.
      */
     const projectTwilioConfig: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
@@ -137,7 +138,7 @@ export class Service extends DatabaseService<Model> {
       );
 
     if (
-      !projectTwilioConfig &&
+      !TwilioPhoneNumbers.canSend(projectTwilioConfig, TwilioMessageKind.SMS) &&
       (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
       IsBillingEnabled
     ) {
@@ -204,14 +205,16 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * If the project has its own default Twilio config that sends SMS,
-     * OneUptime does not charge the project's SMS balance, so the
-     * low-balance check does not apply. A default used for calls only sends
-     * no SMS: they are paid from the balance, as without a config.
+     * If the project has its own default Twilio config for SMS, OneUptime
+     * does not charge the project's SMS balance, so the low-balance check
+     * does not apply. A project whose only default is used for calls only
+     * sends its SMS through OneUptime: they are paid from the balance, as
+     * without a config.
      */
     const projectDefaultTwilioConfig: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         projectId,
+        TwilioMessageKind.SMS,
       );
 
     if (
@@ -368,13 +371,14 @@ export class Service extends DatabaseService<Model> {
    */
   public async sendVerificationCode(item: Model, code: string): Promise<void> {
     /*
-     * The project's default, whatever it is used for: one used for calls
-     * only sends no SMS, and the Notification service then sends the code
-     * as it would without a config - or says why it cannot.
+     * The project's default for SMS - or, when it has none, its default for
+     * calls, which sends no SMS: the Notification service then sends the
+     * code as it would without a config, or says why it cannot.
      */
     const projectTwilioConfig: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         item.projectId,
+        TwilioMessageKind.SMS,
       );
 
     ChannelVerification.throwIfNotSent(

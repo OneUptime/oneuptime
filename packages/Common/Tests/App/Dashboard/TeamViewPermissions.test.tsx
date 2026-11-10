@@ -1204,14 +1204,54 @@ describe("one permission's scope", () => {
     expect(await within(modal).findByText("Labels")).toBeInTheDocument();
   });
 
-  test("a permission no scope narrows - Create Team, the same for everyone - takes none: no More fields line", async () => {
+  /*
+   * A team permission reaches the teams its holder owns when scoped to
+   * Owned: a team has owners, and no labels.
+   */
+  test("a team permission - Invite New Members - is offered All and the teams they own, never labels", async () => {
     await renderPage();
 
     const modal: HTMLElement = await openModal(
       await moreMenuItem(card("Permissions"), "Add Permission"),
     );
 
-    await pickPermission(modal, Permission.CreateProjectTeam);
+    await pickPermission(modal, Permission.InviteProjectTeamMembers);
+    await openMoreFields(modal);
+
+    expect(within(modal).getAllByRole("radio")).toHaveLength(2);
+    expect(
+      within(modal).queryByRole("radio", {
+        name: "Only resources with certain labels",
+      }),
+    ).toBeNull();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByRole("radio", { name: "Only resources they own" }),
+      );
+    });
+    await settleForm();
+
+    await submitModal(modal);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request: any = createOrUpdateMock.mock.calls[0]![0];
+
+    expect(request.model.permission).toBe(Permission.InviteProjectTeamMembers);
+    expect(request.model.scope).toBe(PermissionScope.Owned);
+  });
+
+  test("a permission no scope narrows - Create Label, the same for everyone - takes none: no More fields line", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      await moreMenuItem(card("Permissions"), "Add Permission"),
+    );
+
+    await pickPermission(modal, Permission.CreateProjectLabel);
 
     expect(
       within(modal).queryByRole("button", { name: /More fields/ }),

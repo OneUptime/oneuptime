@@ -19,7 +19,7 @@ const BOTH: Permission = Permission.CreateWorkflow;
 const LABELS_ONLY: Permission = PermissionScopeNarrowing
   .NARROWED_BY_LABELS[0] as Permission;
 const OWNERS_ONLY: Permission = Permission.ReadSecurityCaseNote;
-const NEITHER: Permission = Permission.CreateProjectTeam;
+const NEITHER: Permission = Permission.CreateProjectLabel;
 
 describe("PermissionScopeNarrowing", () => {
   test("each list holds permissions, so every kind of answer is offered somewhere", () => {

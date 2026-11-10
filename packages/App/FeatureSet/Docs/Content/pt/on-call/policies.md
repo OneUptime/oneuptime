@@ -112,7 +112,7 @@ Você encontra registros de execução em três lugares:
 - em **Plantão → Avançado → Registros de execução**, para todas as políticas, onde os acionamentos diretos de workflows e do chat aparecem como **Acionamento direto**;
 - na página **Execuções de plantão** de um incidente ou de um alerta.
 
-Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **Ver linha do tempo** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. Um agendamento sem ninguém de plantão mostra **Ninguém estava de plantão** no lugar de uma pessoa. Um nível que não acionou ninguém diz por quê, com **Seguiu sem esperar** embaixo: a política não esperou por ele. No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
+Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **Ver linha do tempo** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. **Notificado por** mostra como cada acionamento chegou à pessoa: chamada telefônica, SMS, e-mail, notificação push e assim por diante. Um agendamento sem ninguém de plantão mostra **Ninguém estava de plantão** no lugar de uma pessoa. Um nível que não acionou ninguém diz por quê, com **Seguiu sem esperar** embaixo: a política não esperou por ele. No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
 
 ## Arquivar ou excluir uma política
 

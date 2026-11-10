@@ -1,7 +1,9 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import { isOnCallObserverPage } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import {
+  ON_CALL_PAGE_CHANNELS,
   OnCallPageChannel,
+  OnCallPageChannelInfo,
   OnCallPageNotification,
   OnCallPageNotificationEvent,
   OnCallPageNotificationNews,
@@ -9,6 +11,7 @@ import {
   getOnCallPageChannelsOut,
   getOnCallPageNotificationNews,
 } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { EntityManager } from "typeorm";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
@@ -49,9 +52,41 @@ import FirstPagedAt from "../Utils/OnCall/FirstPagedAt";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import PositiveNumber from "../../Types/PositiveNumber";
 
+/*
+ * The columns of a notification (UserOnCallLogTimeline) that say whether it
+ * went out, and by what: its status, and each channel's own column
+ * (ON_CALL_PAGE_CHANNELS) - all getOnCallPageChannelsOut reads.
+ */
+export const STEP_NOTIFICATION_CHANNEL_COLUMNS: ReadonlyArray<string> = [
+  "status",
+  ...ON_CALL_PAGE_CHANNELS.map((info: OnCallPageChannelInfo): string => {
+    return info.field;
+  }),
+];
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * How an entry of one notification is drawn: a failure red, a call not
+   * answered as a warning - the page still stands, nobody has answered it
+   * yet - and one sent later as a page sent is.
+   */
+  public getNotificationColor(event: OnCallPageNotificationEvent): Color {
+    switch (event) {
+      case OnCallPageNotificationEvent.Failed:
+        return this.getColorBasedOnStatus(
+          OnCallDutyExecutionLogTimelineStatus.Error,
+        );
+      case OnCallPageNotificationEvent.NotAnswered:
+        return Yellow500;
+      default:
+        return this.getColorBasedOnStatus(
+          OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+        );
+    }
   }
 
   public getColorBasedOnStatus(
@@ -614,8 +649,9 @@ export class Service extends DatabaseService<Model> {
   /*
    * ONE NOTIFICATION OF A PERSON'S PAGE, TOLD OF AFTER THE PAGE'S OWN ENTRY
    * (OnCallFeedText.getStepNotificationMarkdown): one their On-Call Rules
-   * sent later - "paged Nitin again via phone call" - or one that could not
-   * be sent - "could not page Nitin via SMS" - each channel once a page
+   * sent later - "paged Nitin again via phone call" -, one that could not
+   * be sent - "could not page Nitin via SMS" - or a call they did not pick
+   * up - "Nitin did not answer the phone call" - each channel once a page
    * (getOnCallPageNotificationNews). Asked for by the notification's own
    * hooks (UserOnCallLogTimelineService).
    *
@@ -651,12 +687,14 @@ export class Service extends DatabaseService<Model> {
       }
 
       /*
-       * Could not be sent: not once the person has answered - a push's
-       * failure can come back from its provider minutes later, and no longer
-       * tells how the page went.
+       * Could not be sent, or a call not answered: not once the person has
+       * answered - a push's failure can come back from its provider minutes
+       * later, and a call rings out a minute after it went out, while they
+       * acknowledged by its SMS; neither tells how the page went any more.
        */
       if (
-        data.event === OnCallPageNotificationEvent.Failed &&
+        (data.event === OnCallPageNotificationEvent.Failed ||
+          data.event === OnCallPageNotificationEvent.NotAnswered) &&
         (step.status ===
           OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
           step.status === OnCallDutyExecutionLogTimelineStatus.PassedOn ||
@@ -711,16 +749,87 @@ export class Service extends DatabaseService<Model> {
 
       await this.writeToRecordFeeds({
         step: step,
-        displayColor: this.getColorBasedOnStatus(
-          data.event === OnCallPageNotificationEvent.Failed
-            ? OnCallDutyExecutionLogTimelineStatus.Error
-            : OnCallDutyExecutionLogTimelineStatus.NotificationSent,
-        ),
+        displayColor: this.getNotificationColor(data.event),
         feedInfoInMarkdown: feedInfoInMarkdown,
       });
     } catch (error) {
       logger.error(
         `Could not tell the feed of notification ${data.userOnCallLogTimelineId.toString()} of on-call step ${data.onCallDutyPolicyExecutionLogTimelineId.toString()}: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * THE CHANNELS A STEP'S PAGE WENT OUT BY, KEPT ON THE STEP
+   * (notificationChannels) for the run's Execution Timeline: whoever can
+   * read the run can read its steps, while each notification
+   * (UserOnCallLogTimeline) can be read by its own person only.
+   *
+   * Worked out again from all of the step's notifications, as the feed's
+   * entry names them (getOnCallPageChannelsOut), whenever one of them is
+   * written or changes status (UserOnCallLogTimelineService's hooks) - never
+   * just added to: one sent later by a new channel joins the list, and one
+   * that could not be sent after all leaves it.
+   *
+   * The step's row is held while the list is worked out and written, so
+   * notifications that change at once take turns: each reads the
+   * notifications after the one before it wrote, and none writes back a list
+   * older than the one it found.
+   *
+   * Never throws: the list is no reason for a notification not to go out,
+   * or for its status not to be saved.
+   */
+  @CaptureSpan()
+  public async refreshNotificationChannels(
+    onCallDutyPolicyExecutionLogTimelineId: ObjectID,
+  ): Promise<void> {
+    const stepId: string = onCallDutyPolicyExecutionLogTimelineId.toString();
+
+    try {
+      await this.executeTransaction(
+        async (entityManager: EntityManager): Promise<void> => {
+          const steps: Array<{ notificationChannels: unknown }> =
+            await entityManager.query(
+              `SELECT "notificationChannels" FROM "OnCallDutyPolicyExecutionLogTimeline" WHERE "_id" = $1 AND "deletedAt" IS NULL FOR UPDATE`,
+              [stepId],
+            );
+
+          if (steps.length === 0) {
+            return;
+          }
+
+          const notifications: Array<OnCallPageNotification> =
+            await entityManager.query(
+              `SELECT ${STEP_NOTIFICATION_CHANNEL_COLUMNS.map(
+                (column: string): string => {
+                  return `"${column}"`;
+                },
+              ).join(
+                ", ",
+              )} FROM "UserOnCallLogTimeline" WHERE "onCallDutyPolicyExecutionLogTimelineId" = $1 AND "deletedAt" IS NULL`,
+              [stepId],
+            );
+
+          const channels: Array<OnCallPageChannel> =
+            getOnCallPageChannelsOut(notifications);
+
+          // The list the step has already: nothing to write.
+          if (
+            JSON.stringify(steps[0]!.notificationChannels) ===
+            JSON.stringify(channels)
+          ) {
+            return;
+          }
+
+          await entityManager.query(
+            `UPDATE "OnCallDutyPolicyExecutionLogTimeline" SET "notificationChannels" = $1::jsonb WHERE "_id" = $2`,
+            [JSON.stringify(channels), stepId],
+          );
+        },
+      );
+    } catch (error) {
+      logger.error(
+        `Could not keep the channels of on-call step ${stepId}: ${error}`,
       );
     }
   }

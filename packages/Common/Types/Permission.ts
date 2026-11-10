@@ -522,6 +522,7 @@ enum Permission {
   ReadProjectTeam = "ReadProjectTeam",
   EditProjectTeam = "EditProjectTeam",
   InviteProjectTeamMembers = "InviteProjectTeamMembers",
+  RemoveProjectTeamMembers = "RemoveProjectTeamMembers",
   EditProjectTeamPermissions = "EditProjectTeamPermissions",
 
   CreateProjectProbe = "CreateProjectProbe",
@@ -6219,7 +6220,7 @@ export class PermissionHelper {
       {
         permission: Permission.CreateProjectTeam,
         title: "Create Team",
-        description: "This permission can create teams this project.",
+        description: "This permission can create teams in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6228,7 +6229,8 @@ export class PermissionHelper {
       {
         permission: Permission.DeleteProjectTeam,
         title: "Delete Team",
-        description: "This permission can delete teams of this project.",
+        description:
+          "This permission can delete teams of this project, and remove people from them.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6237,7 +6239,24 @@ export class PermissionHelper {
       {
         permission: Permission.InviteProjectTeamMembers,
         title: "Invite New Members",
-        description: "This permission can invite users to the team.",
+        description:
+          "This permission can invite people to teams of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Team,
+      },
+      {
+        /*
+         * Taking someone out of a team, without deleting it: with Invite New
+         * Members, what a team's owners need to look after who is in it
+         * when both are limited to the teams they own. Delete Team removes
+         * people too, as it always has: deleting a team takes everyone out.
+         */
+        permission: Permission.RemoveProjectTeamMembers,
+        title: "Remove Team Members",
+        description:
+          "This permission can remove people from teams of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6247,7 +6266,7 @@ export class PermissionHelper {
         permission: Permission.EditProjectTeamPermissions,
         title: "Edit Team Permissions",
         description:
-          "This permission can edit team permissions of this project.",
+          "This permission can change what teams of this project may do: their permissions and custom roles.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6256,7 +6275,8 @@ export class PermissionHelper {
       {
         permission: Permission.EditProjectTeam,
         title: "Edit Team",
-        description: "This permission can edit teams of this project.",
+        description:
+          "This permission can edit teams of this project: their name, description and owners.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

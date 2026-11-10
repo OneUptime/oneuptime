@@ -193,14 +193,17 @@ const RULES_THE_UPGRADE_ADDS: Array<string> = [
 
 /*
  * Labels the Dashboard drew before and draws no more, named by the notes on
- * what changed: the tables of rules the AI rules replaced, and the step a
- * rule asked before fixing became a step of the AI rules. A translation
+ * what changed: the tables of rules the AI rules replaced. A translation
  * names them as its Dashboard drew them then.
+ *
+ * The Approval an auto remediation rule asked before fixing became a step
+ * of the AI rules, but the Dashboard draws Approval again - the column of
+ * a public note that waits for approval - so a translation names it as its
+ * Dashboard draws it now, as it names every other label.
  */
 const FORMER_DASHBOARD_LABELS: Array<string> = [
   "Auto Remediation Rules",
   "Investigation Rules",
-  "Approval",
 ];
 
 /*

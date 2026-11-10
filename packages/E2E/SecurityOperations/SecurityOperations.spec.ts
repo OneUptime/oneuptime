@@ -764,9 +764,11 @@ test.describe("the overview", () => {
         return new URL(request.url).pathname.replace(/^.*\/api/, "");
       },
     );
+    // ...and the layout reads today's ingestion budgets, for its banner.
     expect(routes.sort()).toEqual([
       "/security-case/overview",
       "/security-case/setup/status",
+      "/telemetry-ingestion-budget/project",
     ]);
     expect(
       state.listRequests.filter((request: { modelName: string }): boolean => {
@@ -7431,11 +7433,11 @@ test.describe("detections", () => {
     ];
 
     // Each counted entry, by the page whose menu draws it, its address and its count.
-    const counted: Array<[string, string, string]> = [
-      [OVERVIEW_PATH, CASES_PATH, "6"],
-      [OVERVIEW_PATH, MY_CASES_PATH, "2"],
-      [OVERVIEW_PATH, RUNS_PATH, "1"],
-      [SPRAY_CASE_PATH, `${SPRAY_CASE_PATH}/playbook-runs`, "1"],
+    const counted: Array<[string, string, number]> = [
+      [OVERVIEW_PATH, CASES_PATH, 6],
+      [OVERVIEW_PATH, MY_CASES_PATH, 2],
+      [OVERVIEW_PATH, RUNS_PATH, 1],
+      [SPRAY_CASE_PATH, `${SPRAY_CASE_PATH}/playbook-runs`, 1],
     ];
     const cutShort: Array<string> = [];
 
@@ -7451,7 +7453,11 @@ test.describe("detections", () => {
           const entry: Locator = sideMenu(page).locator(
             `a[href="${pathname!}"]`,
           );
-          await expect(entry).toContainText(count!, { timeout: 30000 });
+          // In the reader's digits, as the page's other counts: "۶" in Persian.
+          await expect(entry).toContainText(
+            new Intl.NumberFormat(lang || "en").format(count!),
+            { timeout: 30000 },
+          );
 
           const title: Locator = entry
             .getByTestId("side-menu-item-title")

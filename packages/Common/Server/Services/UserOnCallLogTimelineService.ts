@@ -36,6 +36,26 @@ import {
   isOnCallPageNotificationOut,
 } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 
+/*
+ * What the record's feed is told of a notification that an update gives
+ * this status: one that could not be sent, or a call not answered. Null for
+ * every other status - the feed hears of none of those from an update.
+ */
+export const getFeedEventOfStatus: (
+  status: unknown,
+) => OnCallPageNotificationEvent | null = (
+  status: unknown,
+): OnCallPageNotificationEvent | null => {
+  switch (status) {
+    case UserNotificationStatus.Error:
+      return OnCallPageNotificationEvent.Failed;
+    case UserNotificationStatus.NotAnswered:
+      return OnCallPageNotificationEvent.NotAnswered;
+    default:
+      return null;
+  }
+};
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -108,6 +128,39 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The step of a page keeps the channels its page went out by, for the
+   * run's Execution Timeline - which anybody who can read the run can read,
+   * where these notifications are their person's own
+   * (OnCallDutyPolicyExecutionLogTimelineService.refreshNotificationChannels).
+   * Asked for once a step, of notifications written or given a status:
+   * only of ones that belong to a page and name a channel. Never throws.
+   */
+  private async refreshStepNotificationChannels(
+    notifications: Array<Model>,
+  ): Promise<void> {
+    const stepIds: Array<string> = [];
+
+    for (const notification of notifications) {
+      const stepId: string | undefined =
+        notification.onCallDutyPolicyExecutionLogTimelineId?.toString();
+
+      if (
+        stepId &&
+        !stepIds.includes(stepId) &&
+        getOnCallPageChannelsOf(notification).length > 0
+      ) {
+        stepIds.push(stepId);
+      }
+    }
+
+    for (const stepId of stepIds) {
+      await OnCallDutyPolicyExecutionLogTimelineService.refreshNotificationChannels(
+        new ObjectID(stepId),
+      );
+    }
+  }
+
+  /*
    * How a page reached somebody - a call, an SMS, an email - is named in the
    * on-call run's Slack / Microsoft Teams message (OnCallPolicyRunMessage):
    * each delivery that is written, or changes status, asks for it to be
@@ -116,7 +169,8 @@ export class Service extends DatabaseService<Model> {
    * The record's feed names it too: the page's own entry names the
    * notifications that went out with it, and one that goes out later - a
    * call ten minutes on, by the person's own On-Call Rules - or that could
-   * not be sent at all is an entry of its own.
+   * not be sent at all is an entry of its own. So does the run's Execution
+   * Timeline, on the page's step ("Notified Via").
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
@@ -124,6 +178,8 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
+
+    await this.refreshStepNotificationChannels([createdItem]);
 
     if (createdItem.status === UserNotificationStatus.Error) {
       await this.addNotificationToFeed(
@@ -142,8 +198,8 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * The status each notification had before an update that marks it as not
-   * sent, so the record's feed hears of its failure once - not again when a
-   * second write says the same (onUpdateSuccess).
+   * sent, or as a call not answered, so the record's feed hears of it once -
+   * not again when a second write says the same (onUpdateSuccess).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -154,7 +210,7 @@ export class Service extends DatabaseService<Model> {
       UserNotificationStatus | undefined
     > = {};
 
-    if (updateBy.data.status === UserNotificationStatus.Error) {
+    if (getFeedEventOfStatus(updateBy.data.status)) {
       const itemsBeforeUpdate: Array<Model> =
         await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
@@ -225,12 +281,26 @@ export class Service extends DatabaseService<Model> {
       }
 
       /*
-       * A notification that could not be sent after all - its provider
-       * refused it, its push token is gone - is told of in the record's
-       * feed, once: a second write saying the same is no news. A status
-       * not read before the update counts as a change.
+       * A status can take a channel off its step's list - one that could
+       * not be sent after all - or put it back.
        */
-      if (onUpdate.updateBy.data.status === UserNotificationStatus.Error) {
+      await this.refreshStepNotificationChannels(deliveries);
+
+      /*
+       * A notification that could not be sent after all - its provider
+       * refused it, its push token is gone - or a call that rang and was
+       * not picked up is told of in the record's feed, once: a second write
+       * saying the same is no news. A status not read before the update
+       * counts as a change.
+       */
+      const event: OnCallPageNotificationEvent | null = getFeedEventOfStatus(
+        onUpdate.updateBy.data.status,
+      );
+
+      if (event) {
+        const status: UserNotificationStatus = onUpdate.updateBy.data
+          .status as UserNotificationStatus;
+
         const statusBeforeUpdate:
           | Record<string, UserNotificationStatus | undefined>
           | undefined = (
@@ -245,20 +315,14 @@ export class Service extends DatabaseService<Model> {
         for (const delivery of deliveries) {
           const id: string = delivery.id?.toString() || "";
 
-          const wasFailedBefore: boolean = Boolean(
+          const wasSoBefore: boolean = Boolean(
             statusBeforeUpdate &&
               id in statusBeforeUpdate &&
-              statusBeforeUpdate[id] === UserNotificationStatus.Error,
+              statusBeforeUpdate[id] === status,
           );
 
-          if (
-            delivery.status === UserNotificationStatus.Error &&
-            !wasFailedBefore
-          ) {
-            await this.addNotificationToFeed(
-              delivery,
-              OnCallPageNotificationEvent.Failed,
-            );
+          if (delivery.status === status && !wasSoBefore) {
+            await this.addNotificationToFeed(delivery, event);
           }
         }
       }
