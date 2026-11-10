@@ -140,13 +140,21 @@ describe("the User Flows page is reachable", () => {
     ).toBe(1);
   });
 
-  test("the side menu lists it in the Session Replay section", () => {
+  /*
+   * User Flows is product analytics: it sits in the Product Analytics
+   * section, beside Events, Funnels and User Retention, which comes before
+   * the Session Replay section.
+   */
+  test("the side menu lists it in the Product Analytics section", () => {
     const sectionStart: number = sideMenuSource.indexOf(
-      'SideMenuSection title="Session Replay"',
+      'SideMenuSection title="Product Analytics"',
     );
     const sectionEnd: number = sideMenuSource.indexOf(
-      'SideMenuSection title="Settings"',
+      'SideMenuSection title="Session Replay"',
     );
+
+    expect(sectionStart).toBeGreaterThan(-1);
+    expect(sectionEnd).toBeGreaterThan(sectionStart);
     const itemIndex: number = sideMenuSource.indexOf('title: "User Flows"');
 
     expect(itemIndex).toBeGreaterThan(sectionStart);
