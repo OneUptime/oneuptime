@@ -252,6 +252,7 @@ import {
 } from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
+import RumProductAnalyticsSessionService from "Common/Server/Services/RumProductAnalyticsSessionService";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 
 const projectId: ObjectID = new ObjectID("6600000000000000000000a1");
@@ -699,6 +700,7 @@ describe("Rum:ProcessSessionErasureRequests activity purge", () => {
       LogService,
       SpanService,
       ExceptionInstanceService,
+      RumProductAnalyticsSessionService,
     ]) {
       jest
         .spyOn(
@@ -1522,6 +1524,7 @@ describe("Rum:ProcessSessionErasureRequests removes pins", () => {
       { name: "logs", service: LogService },
       { name: "spans", service: SpanService },
       { name: "exceptions", service: ExceptionInstanceService },
+      { name: "productAnalytics", service: RumProductAnalyticsSessionService },
     ];
 
     for (const entry of analyticsServices) {
@@ -1551,13 +1554,15 @@ describe("Rum:ProcessSessionErasureRequests removes pins", () => {
       /*
        * The header goes last of the ClickHouse deletes: three of the four
        * request types find a session through it, so a run that dies
-       * earlier must leave it for the retry to find.
+       * earlier must leave it for the retry to find. Product analytics'
+       * summaries of the sessions go just before it.
        */
       expect(order).toEqual([
         "chunks",
         "logs",
         "spans",
         "exceptions",
+        "productAnalytics",
         "headers",
         "pins",
       ]);
