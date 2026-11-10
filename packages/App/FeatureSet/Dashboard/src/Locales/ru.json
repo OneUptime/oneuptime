@@ -47018,5 +47018,15 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "Значение {{variable}} в файле .env агента по-прежнему должно быть «{{name}}». С другим именем данные уйдут в другое облако.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "Значение {{variable}} в файле .env агента по-прежнему должно быть «{{name}}». С другим именем данные уйдут в другой кластер.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "Значение {{variable}} в файле .env агента по-прежнему должно быть «{{name}}». С другим именем данные уйдут в другую систему хранения.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "Значение {{variable}} в файле .env агента по-прежнему должно быть «{{name}}». С другим именем данные уйдут в другой vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "Значение {{variable}} в файле .env агента по-прежнему должно быть «{{name}}». С другим именем данные уйдут в другой vCenter.",
+  "Exceptions Ingested (in GB)": "Принято исключений (в GB)",
+  "Exceptions recorded from spans and logs.": "Исключения, записанные из спанов и журналов.",
+  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "Исключения, записанные из спанов и журналов. Они оплачиваются в составе трассировок.",
+  "Exceptions: {{size}}": "Исключения: {{size}}",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Spans. Days counted before exceptions were shown apart include their exceptions too.": "Спаны. Дни, подсчитанные до того, как исключения стали показываться отдельно, включают и их исключения."
 }

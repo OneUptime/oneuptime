@@ -19,6 +19,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import TelemetryUsageOverview from "Common/UI/Components/TelemetryUsage/TelemetryUsageOverview";
+import { formatTelemetryUsageExceptionsPart } from "Common/UI/Components/TelemetryUsage/TelemetryUsageWords";
 import {
   fetchProjectTelemetryUsage,
   getTelemetryUsageResourceRoute,
@@ -224,17 +225,45 @@ const Settings: FunctionComponent<ComponentProps> = (
               return <div className="text-gray-400">—</div>;
             },
           },
+          /*
+           * What the row is billed for. A Traces row is billed for its spans
+           * and its exceptions together, so it says, under that, how much
+           * of it the exceptions were - the overview above shows them apart
+           * (issue #6356). A row counted before then says nothing more.
+           */
           {
             field: {
               dataIngestedInGB: true,
+              exceptionDataIngestedInGB: true,
             },
             title: "Data Ingested (in GB)",
             type: FieldType.Text,
             getElement: (item: TelemetryUsageBilling) => {
+              const exceptionDataIngestedInGB: number = Number(
+                (item["exceptionDataIngestedInGB"] as Decimal | undefined)
+                  ?.value || 0,
+              );
+
               return (
-                <div>{`${DiskSize.convertToDecimalPlaces(
-                  (item["dataIngestedInGB"] as Decimal).value as number,
-                )} GB`}</div>
+                <div>
+                  <div>{`${DiskSize.convertToDecimalPlaces(
+                    (item["dataIngestedInGB"] as Decimal).value as number,
+                  )} GB`}</div>
+                  {item["productType"] === ProductType.Traces &&
+                  exceptionDataIngestedInGB > 0 ? (
+                    <div
+                      className="text-xs text-gray-500"
+                      data-testid="usage-history-exceptions-part"
+                    >
+                      {formatTelemetryUsageExceptionsPart(
+                        exceptionDataIngestedInGB,
+                        translator,
+                      )}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                </div>
               );
             },
           },

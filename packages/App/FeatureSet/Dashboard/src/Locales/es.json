@@ -47018,5 +47018,15 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otra nube.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otro clúster.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otra cabina de almacenamiento.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otro vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otro vCenter.",
+  "Exceptions Ingested (in GB)": "Excepciones ingeridas (en GB)",
+  "Exceptions recorded from spans and logs.": "Excepciones registradas a partir de spans y registros.",
+  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "Excepciones registradas a partir de spans y registros. Se facturan como parte de las Trazas.",
+  "Exceptions: {{size}}": "Excepciones: {{size}}",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Spans. Days counted before exceptions were shown apart include their exceptions too.": "Spans. Los días contados antes de que las excepciones se mostraran aparte también incluyen sus excepciones."
 }

@@ -1,13 +1,21 @@
 import TelemetryUsageBillingService from "../../../../Server/Services/TelemetryUsageBillingService";
-import TelemetryUsageReads from "../../../../Server/Utils/TelemetryUsage/TelemetryUsageReads";
+import TelemetryUsageReads, {
+  getExceptionCostSql,
+  getExceptionGBSql,
+  getSignalAmounts,
+  getSignalSumsSql,
+} from "../../../../Server/Utils/TelemetryUsage/TelemetryUsageReads";
 import TelemetryUsageResourceNames from "../../../../Server/Utils/TelemetryUsage/TelemetryUsageResourceNames";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../../Types/ObjectID";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import {
   getTelemetryUsageWindow,
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TelemetryProjectUsagePage,
+  TelemetryProjectUsageSortBy,
   TelemetryProjectUsageSummary,
+  TelemetryUsageResourceSummary,
   TelemetryUsageSummary,
   TelemetryUsageWindow,
 } from "../../../../Types/Telemetry/TelemetryUsage";
@@ -483,5 +491,414 @@ describe("every project's usage, for the instance admin", () => {
     expect(page.total.dataIngestedInGB).toBe(36);
     expect(page.total.totalCostInUSD).toBeCloseTo(3.6, 10);
     expect(page.projects[0]!.total.totalCostInUSD).toBeCloseTo(2, 10);
+  });
+});
+
+/*
+ * Issue #6356: exceptions are shown as a signal of their own. A Traces row
+ * keeps everything it is billed for, and how much of it was exceptions;
+ * each read takes that part out of Traces, in Postgres, and shows it as
+ * Exceptions with its share of the cost. A Traces row counted before has no
+ * part, so its exceptions stay inside Traces - and every total is what it
+ * was. The statements here are answered as Postgres would sum them;
+ * TelemetryUsageExceptionsPostgres.test.ts runs them on a real one.
+ */
+describe("exceptions, apart from the traces they are billed with", () => {
+  test("every read sums the rows' own product with the exceptions taken out, and the exceptions apart", async () => {
+    answerLatest("2026-10-03");
+    await readProject(true);
+    answers.push({ match: /AS "projectName"/, rows: [] });
+    await TelemetryUsageReads.getUsageByProject({
+      window: WINDOW,
+      isCostIncluded: true,
+      sortBy: "total",
+      sortOrder: "desc",
+      skip: 0,
+      limit: 50,
+    });
+
+    const sums: Array<Statement> = statements.filter((each: Statement) => {
+      return !each.sql.includes('AS "latestDay"');
+    });
+
+    expect(sums).toHaveLength(3);
+
+    for (const read of sums) {
+      const alias: string = read.sql.includes('"TelemetryUsageBilling" u')
+        ? "u."
+        : "";
+
+      expect(read.sql).toContain(getSignalSumsSql(alias));
+    }
+
+    expect(getSignalSumsSql("")).toBe(
+      [
+        `COALESCE(SUM("dataIngestedInGB" - ${getExceptionGBSql("")}), 0)::text AS "dataIngestedInGB"`,
+        `COALESCE(SUM("totalCostInUSD" - ${getExceptionCostSql("")}), 0)::text AS "totalCostInUSD"`,
+        `COALESCE(SUM(${getExceptionGBSql("")}), 0)::text AS "exceptionDataIngestedInGB"`,
+        `COALESCE(SUM(${getExceptionCostSql("")}), 0)::text AS "exceptionCostInUSD"`,
+      ].join(", "),
+    );
+  });
+
+  test("takes a part out of Traces rows only, held to the row, and none from a row that has none", () => {
+    expect(getExceptionGBSql("u.")).toBe(
+      `(CASE WHEN u."productType" = 'Traces' THEN LEAST(GREATEST(COALESCE(u."exceptionDataIngestedInGB", 0), 0), u."dataIngestedInGB") ELSE 0 END)`,
+    );
+  });
+
+  test("gives the part its share of the row's cost: the cost grows with the GB", () => {
+    expect(getExceptionCostSql("")).toBe(
+      `(CASE WHEN "dataIngestedInGB" > 0 THEN "totalCostInUSD" * ${getExceptionGBSql("")} / "dataIngestedInGB" ELSE 0 END)`,
+    );
+  });
+
+  describe("each day, and the range", () => {
+    beforeEach(() => {
+      answerDays([
+        // Counted before exceptions were counted apart: no part.
+        {
+          day: "2026-10-01",
+          productType: ProductType.Traces,
+          dataIngestedInGB: "3",
+          totalCostInUSD: "0.3",
+          exceptionDataIngestedInGB: "0",
+          exceptionCostInUSD: "0",
+        },
+        // Counted since: 1 GB of spans and 0.5 GB of exceptions.
+        {
+          day: "2026-10-02",
+          productType: ProductType.Traces,
+          dataIngestedInGB: "1",
+          totalCostInUSD: "0.1",
+          exceptionDataIngestedInGB: "0.5",
+          exceptionCostInUSD: "0.05",
+        },
+        {
+          day: "2026-10-02",
+          productType: ProductType.Logs,
+          dataIngestedInGB: "2",
+          totalCostInUSD: "0.2",
+          exceptionDataIngestedInGB: "0",
+          exceptionCostInUSD: "0",
+        },
+        // A day whose traces were all exceptions.
+        {
+          day: "2026-10-03",
+          productType: ProductType.Traces,
+          dataIngestedInGB: "0",
+          totalCostInUSD: "0",
+          exceptionDataIngestedInGB: "0.25",
+          exceptionCostInUSD: "0.025",
+        },
+      ]);
+      answerResources([]);
+      answerLatest("2026-10-03");
+    });
+
+    test("a day counted before exceptions were counted apart keeps them inside Traces, as it showed them", async () => {
+      const summary: TelemetryUsageSummary = await readProject(false);
+
+      expect(summary.days[0]).toEqual({
+        day: "2026-10-01",
+        byProduct: { [ProductType.Traces]: { dataIngestedInGB: 3 } },
+        total: { dataIngestedInGB: 3 },
+      });
+    });
+
+    test("a day counted since shows its exceptions apart from its spans", async () => {
+      const summary: TelemetryUsageSummary = await readProject(false);
+
+      expect(summary.days[1]).toEqual({
+        day: "2026-10-02",
+        byProduct: {
+          [ProductType.Traces]: { dataIngestedInGB: 1 },
+          [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 0.5 },
+          [ProductType.Logs]: { dataIngestedInGB: 2 },
+        },
+        total: { dataIngestedInGB: 3.5 },
+      });
+    });
+
+    test("a day whose traces were all exceptions has no Traces of its own", async () => {
+      const summary: TelemetryUsageSummary = await readProject(false);
+
+      expect(summary.days[2]).toEqual({
+        day: "2026-10-03",
+        byProduct: {
+          [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 0.25 },
+        },
+        total: { dataIngestedInGB: 0.25 },
+      });
+    });
+
+    test("a range of days counted before and after adds each up once", async () => {
+      const summary: TelemetryUsageSummary = await readProject(false);
+
+      expect(summary.byProduct).toEqual({
+        [ProductType.Traces]: { dataIngestedInGB: 4 },
+        [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 0.75 },
+        [ProductType.Logs]: { dataIngestedInGB: 2 },
+      });
+      // Every GB the rows hold, each counted once: 3 + 1.5 + 2 + 0.25.
+      expect(summary.total).toEqual({ dataIngestedInGB: 6.75 });
+    });
+
+    test("the exceptions' cost is their share, and the range costs what its rows cost", async () => {
+      const summary: TelemetryUsageSummary = await readProject(true);
+
+      expect(
+        summary.byProduct[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]!.totalCostInUSD,
+      ).toBeCloseTo(0.075, 10);
+      expect(summary.byProduct[ProductType.Traces]!.totalCostInUSD).toBeCloseTo(
+        0.4,
+        10,
+      );
+      // 0.3 + 0.15 + 0.2 + 0.025: what the rows cost, not a cent more.
+      expect(summary.total.totalCostInUSD).toBeCloseTo(0.675, 10);
+    });
+
+    test("says nothing of the exceptions' cost unless the caller may read it", async () => {
+      const summary: TelemetryUsageSummary = await readProject(false);
+
+      expect(JSON.stringify(summary)).not.toContain("totalCostInUSD");
+    });
+  });
+
+  test("lists a resource's exceptions apart from its spans, and one that sent only exceptions without Traces", async () => {
+    answerDays([]);
+    answerResources([
+      {
+        primaryEntityId: SERVICE_ID,
+        primaryEntityType: ServiceType.OpenTelemetry,
+        productType: ProductType.Traces,
+        dataIngestedInGB: "2",
+        totalCostInUSD: "0.2",
+        exceptionDataIngestedInGB: "1",
+        exceptionCostInUSD: "0.1",
+        retentionInDays: 15,
+      },
+      {
+        primaryEntityId: HOST_ID,
+        primaryEntityType: ServiceType.Host,
+        productType: ProductType.Traces,
+        dataIngestedInGB: "0",
+        totalCostInUSD: "0",
+        exceptionDataIngestedInGB: "4",
+        exceptionCostInUSD: "0.8",
+        retentionInDays: 30,
+      },
+      // Counted before: all of it Traces.
+      {
+        primaryEntityId: RUM_APP_ID,
+        primaryEntityType: ServiceType.RealUserMonitor,
+        productType: ProductType.Traces,
+        dataIngestedInGB: "0.5",
+        totalCostInUSD: "0.05",
+        retentionInDays: 15,
+      },
+    ]);
+    answerLatest("2026-10-03");
+
+    const summary: TelemetryUsageSummary = await readProject(true);
+    const byId: Map<string, TelemetryUsageResourceSummary> = new Map(
+      summary.resources.map(
+        (
+          resource: TelemetryUsageResourceSummary,
+        ): [string, TelemetryUsageResourceSummary] => {
+          return [resource.primaryEntityId, resource];
+        },
+      ),
+    );
+
+    expect(byId.get(SERVICE_ID)!.byProduct).toEqual({
+      [ProductType.Traces]: { dataIngestedInGB: 2, totalCostInUSD: 0.2 },
+      [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: {
+        dataIngestedInGB: 1,
+        totalCostInUSD: 0.1,
+      },
+    });
+    expect(byId.get(SERVICE_ID)!.total.dataIngestedInGB).toBe(3);
+    expect(byId.get(SERVICE_ID)!.total.totalCostInUSD).toBeCloseTo(0.3, 10);
+    expect(byId.get(SERVICE_ID)!.retentionInDays).toBe(15);
+
+    expect(byId.get(HOST_ID)!.byProduct).toEqual({
+      [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: {
+        dataIngestedInGB: 4,
+        totalCostInUSD: 0.8,
+      },
+    });
+    // The retention of the traces they were counted with.
+    expect(byId.get(HOST_ID)!.retentionInDays).toBe(30);
+
+    expect(byId.get(RUM_APP_ID)!.byProduct).toEqual({
+      [ProductType.Traces]: { dataIngestedInGB: 0.5, totalCostInUSD: 0.05 },
+    });
+
+    // Heaviest first, by everything each sent.
+    expect(
+      summary.resources.map(
+        (resource: TelemetryUsageResourceSummary): string => {
+          return resource.primaryEntityId;
+        },
+      ),
+    ).toEqual([HOST_ID, SERVICE_ID, RUM_APP_ID]);
+  });
+
+  describe("every project, for the instance admin", () => {
+    beforeEach(() => {
+      answers.push({
+        match: /AS "projectName"/,
+        rows: [
+          {
+            projectId: "aaaaaaaa-0000-4000-8000-000000000001",
+            projectName: "Alpha",
+            productType: ProductType.Traces,
+            dataIngestedInGB: "10",
+            totalCostInUSD: "1",
+            exceptionDataIngestedInGB: "1",
+            exceptionCostInUSD: "0.1",
+          },
+          {
+            projectId: "bbbbbbbb-0000-4000-8000-000000000002",
+            projectName: "Beta",
+            productType: ProductType.Traces,
+            dataIngestedInGB: "2",
+            totalCostInUSD: "0.2",
+            exceptionDataIngestedInGB: "8",
+            exceptionCostInUSD: "0.8",
+          },
+          {
+            projectId: "cccccccc-0000-4000-8000-000000000003",
+            projectName: "Gamma",
+            productType: ProductType.Logs,
+            dataIngestedInGB: "20",
+            totalCostInUSD: "2",
+            exceptionDataIngestedInGB: "0",
+            exceptionCostInUSD: "0",
+          },
+        ],
+      });
+    });
+
+    async function readPage(
+      sortBy: TelemetryProjectUsageSortBy,
+    ): Promise<TelemetryProjectUsagePage> {
+      return await TelemetryUsageReads.getUsageByProject({
+        window: WINDOW,
+        isCostIncluded: true,
+        sortBy: sortBy,
+        sortOrder: "desc",
+        skip: 0,
+        limit: 50,
+      });
+    }
+
+    test("shows each project's exceptions apart, and the instance's", async () => {
+      const page: TelemetryProjectUsagePage = await readPage("total");
+
+      expect(page.byProduct[ProductType.Traces]!.dataIngestedInGB).toBe(12);
+      expect(
+        page.byProduct[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]!.dataIngestedInGB,
+      ).toBe(9);
+      expect(page.total.dataIngestedInGB).toBe(41);
+      expect(page.total.totalCostInUSD).toBeCloseTo(4.1, 10);
+
+      const beta: TelemetryProjectUsageSummary = page.projects.find(
+        (project: TelemetryProjectUsageSummary): boolean => {
+          return project.projectName === "Beta";
+        },
+      )!;
+
+      expect(beta.byProduct).toEqual({
+        [ProductType.Traces]: { dataIngestedInGB: 2, totalCostInUSD: 0.2 },
+        [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: {
+          dataIngestedInGB: 8,
+          totalCostInUSD: 0.8,
+        },
+      });
+    });
+
+    test("sorts by the exceptions, and by the traces as they are shown", async () => {
+      const names: (page: TelemetryProjectUsagePage) => Array<string | null> = (
+        page: TelemetryProjectUsagePage,
+      ): Array<string | null> => {
+        return page.projects.map((project: TelemetryProjectUsageSummary) => {
+          return project.projectName;
+        });
+      };
+
+      expect(names(await readPage(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL))).toEqual(
+        ["Beta", "Alpha", "Gamma"],
+      );
+      expect(names(await readPage(ProductType.Traces))).toEqual([
+        "Alpha",
+        "Beta",
+        "Gamma",
+      ]);
+    });
+  });
+
+  describe("a group of rows' signals", () => {
+    test("are its product's alone, for any product but Traces", () => {
+      expect(
+        getSignalAmounts(
+          {
+            productType: ProductType.Logs,
+            dataIngestedInGB: "2",
+            totalCostInUSD: "0.2",
+            // Never set on another product's row; ignored if it were.
+            exceptionDataIngestedInGB: "1",
+            exceptionCostInUSD: "0.1",
+          },
+          true,
+        ),
+      ).toEqual([
+        {
+          signal: ProductType.Logs,
+          amount: { dataIngestedInGB: 2, totalCostInUSD: 0.2 },
+        },
+      ]);
+    });
+
+    test("are Traces and Exceptions apart, for Traces with exceptions", () => {
+      expect(
+        getSignalAmounts(
+          {
+            productType: ProductType.Traces,
+            dataIngestedInGB: "2",
+            totalCostInUSD: "0.2",
+            exceptionDataIngestedInGB: "1",
+            exceptionCostInUSD: "0.1",
+          },
+          false,
+        ),
+      ).toEqual([
+        { signal: ProductType.Traces, amount: { dataIngestedInGB: 2 } },
+        {
+          signal: TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+          amount: { dataIngestedInGB: 1 },
+        },
+      ]);
+    });
+
+    test("are Traces alone for rows with no exceptions part - read from before #6356 too", () => {
+      for (const part of [undefined, null, "0", 0, "not a number"]) {
+        expect(
+          getSignalAmounts(
+            {
+              productType: ProductType.Traces,
+              dataIngestedInGB: "3",
+              totalCostInUSD: "0.3",
+              exceptionDataIngestedInGB: part as never,
+              exceptionCostInUSD: part as never,
+            },
+            false,
+          ),
+        ).toEqual([
+          { signal: ProductType.Traces, amount: { dataIngestedInGB: 3 } },
+        ]);
+      }
+    });
   });
 });

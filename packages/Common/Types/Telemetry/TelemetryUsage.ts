@@ -24,9 +24,10 @@ export const TELEMETRY_USAGE_ADMIN_PROJECTS_ROUTE: string =
   "/telemetry-usage/admin/projects";
 
 /*
- * The signals usage is counted for, in the order they are shown. Each is one
- * product of the usage rows. Traces count the exceptions recorded with them
- * and Profiles their samples, as billing counts them.
+ * The products usage is counted for: each is one product of the usage rows,
+ * staged and - where billing is on - billed on its own. Traces count the
+ * exceptions recorded with them, and Profiles their samples, as billing
+ * counts them.
  */
 export const TELEMETRY_USAGE_PRODUCT_TYPES: ReadonlyArray<ProductType> = [
   ProductType.Logs,
@@ -41,6 +42,47 @@ export const isTelemetryUsageProductType: (
   value: unknown,
 ) => value is ProductType = (value: unknown): value is ProductType => {
   return TELEMETRY_USAGE_PRODUCT_TYPES.includes(value as ProductType);
+};
+
+/*
+ * Exceptions: a signal the usage pages and the API show on their own, but
+ * never a product. They are billed inside Traces, one product that sums the
+ * span rows and the exception rows, so a Traces usage row keeps that sum -
+ * the bytes it is billed for - and says how much of it was exceptions
+ * (TelemetryUsageBilling.exceptionDataIngestedInGB). The reads show that part
+ * as Exceptions and the rest as Traces. A Traces row counted before the
+ * exceptions were counted apart has no such part: its exceptions stay inside
+ * Traces, as they were shown when it was counted.
+ *
+ * Not a ProductType on purpose: every product type is metered and has a
+ * price of its own, and exceptions have neither.
+ */
+export const TELEMETRY_USAGE_EXCEPTIONS_SIGNAL: "Exceptions" = "Exceptions";
+
+export type TelemetryUsageSignal =
+  | ProductType
+  | typeof TELEMETRY_USAGE_EXCEPTIONS_SIGNAL;
+
+/*
+ * The signals the usage pages and the API show, in the order they are shown:
+ * every product, and the exceptions after the traces they are billed with.
+ */
+export const TELEMETRY_USAGE_SIGNALS: ReadonlyArray<TelemetryUsageSignal> = [
+  ProductType.Logs,
+  ProductType.Metrics,
+  ProductType.Traces,
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+  ProductType.Profiles,
+  ProductType.SessionReplay,
+  ProductType.SecurityEvents,
+];
+
+export const isTelemetryUsageSignal: (
+  value: unknown,
+) => value is TelemetryUsageSignal = (
+  value: unknown,
+): value is TelemetryUsageSignal => {
+  return TELEMETRY_USAGE_SIGNALS.includes(value as TelemetryUsageSignal);
 };
 
 /*
@@ -226,8 +268,13 @@ export interface TelemetryUsageAmount {
   totalCostInUSD?: number | undefined;
 }
 
+/*
+ * Usage by signal (TELEMETRY_USAGE_SIGNALS): each product's, and the
+ * exceptions' under TELEMETRY_USAGE_EXCEPTIONS_SIGNAL, apart from the Traces
+ * they are billed with.
+ */
 export type TelemetryUsageByProduct = Partial<
-  Record<ProductType, TelemetryUsageAmount>
+  Record<TelemetryUsageSignal, TelemetryUsageAmount>
 >;
 
 export interface TelemetryUsageDaySummary {
@@ -276,7 +323,10 @@ export interface TelemetryProjectUsageSummary {
 }
 
 // What a project list can be sorted by: the total, a signal, or the name.
-export type TelemetryProjectUsageSortBy = "total" | "name" | ProductType;
+export type TelemetryProjectUsageSortBy =
+  | "total"
+  | "name"
+  | TelemetryUsageSignal;
 
 export interface TelemetryProjectUsagePage {
   startDay: string;
@@ -298,9 +348,7 @@ export const isTelemetryProjectUsageSortBy: (
 ) => value is TelemetryProjectUsageSortBy = (
   value: unknown,
 ): value is TelemetryProjectUsageSortBy => {
-  return (
-    value === "total" || value === "name" || isTelemetryUsageProductType(value)
-  );
+  return value === "total" || value === "name" || isTelemetryUsageSignal(value);
 };
 
 // The sum of two amounts; a cost only when both carry one.

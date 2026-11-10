@@ -47018,5 +47018,15 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別のクラウドに送信されます。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別のクラスターに送信されます。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別のストレージアレイに送信されます。",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別の vCenter に送信されます。"
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別の vCenter に送信されます。",
+  "Exceptions Ingested (in GB)": "取り込まれた例外（GB 単位）",
+  "Exceptions recorded from spans and logs.": "スパンとログから記録された例外。",
+  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "スパンとログから記録された例外。トレースの一部として課金されます。",
+  "Exceptions: {{size}}": "例外: {{size}}",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Spans. Days counted before exceptions were shown apart include their exceptions too.": "スパン。例外が別に表示される前に集計された日は、その例外も含みます。"
 }

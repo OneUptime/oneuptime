@@ -6,10 +6,12 @@ import ProductType from "../../../Types/MeteredPlan/ProductType";
 import {
   getTelemetryUsageRangeOfLastDays,
   TELEMETRY_USAGE_DEFAULT_RANGE_IN_DAYS,
-  TELEMETRY_USAGE_PRODUCT_TYPES,
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TELEMETRY_USAGE_RANGE_OPTIONS_IN_DAYS,
+  TELEMETRY_USAGE_SIGNALS,
   TelemetryUsageRange,
   TelemetryUsageResourceSummary,
+  TelemetryUsageSignal,
   TelemetryUsageSummary,
 } from "../../../Types/Telemetry/TelemetryUsage";
 import { PluralTemplate, Translator } from "../../../Types/Translator";
@@ -37,8 +39,8 @@ import {
   formatTelemetryUsageSize,
   getTelemetryUsageResourceName,
   getTelemetryUsageResourceTypeLabel,
+  getTelemetryUsageSignalTooltip,
   TELEMETRY_USAGE_SIGNAL_TITLES,
-  TELEMETRY_USAGE_SIGNAL_TOOLTIPS,
 } from "./TelemetryUsageWords";
 import React, {
   Fragment,
@@ -99,7 +101,9 @@ export interface TelemetryUsageResourceRow {
   retention: string;
   logsGB: number;
   metricsGB: number;
+  // Spans - and, on days counted before exceptions were shown apart, those too.
   tracesGB: number;
+  exceptionsGB: number;
   profilesGB: number;
   sessionReplayGB: number;
   securityEventsGB: number;
@@ -109,6 +113,7 @@ type SignalColumnKey =
   | "logsGB"
   | "metricsGB"
   | "tracesGB"
+  | "exceptionsGB"
   | "profilesGB"
   | "sessionReplayGB"
   | "securityEventsGB";
@@ -120,6 +125,7 @@ export const TELEMETRY_USAGE_SIGNAL_COLUMN_KEYS: Record<
   [ProductType.Logs]: "logsGB",
   [ProductType.Metrics]: "metricsGB",
   [ProductType.Traces]: "tracesGB",
+  [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: "exceptionsGB",
   [ProductType.Profiles]: "profilesGB",
   [ProductType.SessionReplay]: "sessionReplayGB",
   [ProductType.SecurityEvents]: "securityEventsGB",
@@ -141,10 +147,10 @@ export const toTelemetryUsageResourceRow: (data: {
     | undefined;
 }): TelemetryUsageResourceRow => {
   const resource: TelemetryUsageResourceSummary = data.resource;
-  const gbOf: (productType: ProductType) => number = (
-    productType: ProductType,
+  const gbOf: (signal: TelemetryUsageSignal) => number = (
+    signal: TelemetryUsageSignal,
   ): number => {
-    return resource.byProduct[productType]?.dataIngestedInGB || 0;
+    return resource.byProduct[signal]?.dataIngestedInGB || 0;
   };
 
   return {
@@ -165,6 +171,7 @@ export const toTelemetryUsageResourceRow: (data: {
     logsGB: gbOf(ProductType.Logs),
     metricsGB: gbOf(ProductType.Metrics),
     tracesGB: gbOf(ProductType.Traces),
+    exceptionsGB: gbOf(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL),
     profilesGB: gbOf(ProductType.Profiles),
     sessionReplayGB: gbOf(ProductType.SessionReplay),
     securityEventsGB: gbOf(ProductType.SecurityEvents),
@@ -323,12 +330,23 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
     return sortTelemetryUsageResourceRows(rows, sortBy, sortOrder);
   }, [rows, sortBy, sortOrder]);
 
-  const signals: Array<ProductType> = summary
+  const signals: Array<TelemetryUsageSignal> = summary
     ? getChartedSignals(summary.days)
     : [];
   const hasUsage: boolean = Boolean(
     summary && summary.total.dataIngestedInGB > 0,
   );
+
+  // A signal's (i), in the reader's language: what it counts besides its name.
+  const tooltipOf: (signal: TelemetryUsageSignal) => string | undefined = (
+    signal: TelemetryUsageSignal,
+  ): string | undefined => {
+    const tooltip: string | undefined = getTelemetryUsageSignalTooltip(signal, {
+      isCostIncluded: Boolean(summary?.isCostIncluded),
+    });
+
+    return tooltip ? translator.translateText(tooltip) || tooltip : undefined;
+  };
 
   const getSummaryBody: () => ReactElement = (): ReactElement => {
     if (isLoading && !summary) {
@@ -396,27 +414,20 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          {signals.map((productType: ProductType): ReactElement => {
+          {signals.map((signal: TelemetryUsageSignal): ReactElement => {
             const title: string =
-              TELEMETRY_USAGE_SIGNAL_TITLES[productType] ||
-              productType.toString();
-            const tooltip: string | undefined =
-              TELEMETRY_USAGE_SIGNAL_TOOLTIPS[productType];
+              TELEMETRY_USAGE_SIGNAL_TITLES[signal] || String(signal);
 
             return (
               <InfoCard
-                key={productType}
+                key={signal}
                 title={translator.translateText(title) || title}
                 value={formatTelemetryUsageSize(
-                  summary.byProduct[productType]?.dataIngestedInGB || 0,
+                  summary.byProduct[signal]?.dataIngestedInGB || 0,
                   translator,
                 )}
-                tooltip={
-                  tooltip
-                    ? translator.translateText(tooltip) || tooltip
-                    : undefined
-                }
-                dataTestId={`telemetry-usage-signal-${productType}`}
+                tooltip={tooltipOf(signal)}
+                dataTestId={`telemetry-usage-signal-${signal}`}
               />
             );
           })}
@@ -427,21 +438,19 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
   };
 
   const signalColumns: Array<Column<TelemetryUsageResourceRow>> =
-    TELEMETRY_USAGE_PRODUCT_TYPES.filter(
-      (productType: ProductType): boolean => {
-        return signals.includes(productType);
-      },
-    ).map((productType: ProductType): Column<TelemetryUsageResourceRow> => {
-      const key: SignalColumnKey =
-        TELEMETRY_USAGE_SIGNAL_COLUMN_KEYS[productType]!;
+    TELEMETRY_USAGE_SIGNALS.filter((signal: TelemetryUsageSignal): boolean => {
+      return signals.includes(signal);
+    }).map((signal: TelemetryUsageSignal): Column<TelemetryUsageResourceRow> => {
+      const key: SignalColumnKey = TELEMETRY_USAGE_SIGNAL_COLUMN_KEYS[signal]!;
+      const headerTooltip: string | undefined = tooltipOf(signal);
 
       return {
         id: key,
         key: key,
-        title:
-          TELEMETRY_USAGE_SIGNAL_TITLES[productType] || productType.toString(),
+        title: TELEMETRY_USAGE_SIGNAL_TITLES[signal] || String(signal),
         type: FieldType.Element,
         hideOnMobile: true,
+        ...(headerTooltip ? { headerTooltip: headerTooltip } : {}),
         getElement: (row: TelemetryUsageResourceRow): ReactElement => {
           return (
             <span className="tabular-nums text-gray-700">

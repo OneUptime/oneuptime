@@ -67,6 +67,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import {
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TelemetryUsageRange,
   TelemetryUsageResourceSummary,
   TelemetryUsageSummary,
@@ -421,11 +422,339 @@ describe("the usage overview", () => {
   });
 });
 
+/*
+ * Issue #6356: exceptions are a signal of their own, apart from the traces
+ * they are billed with. A range can hold days counted before that, whose
+ * exceptions are still inside Traces, and days counted since.
+ */
+describe("exceptions, apart from traces", () => {
+  // Nov 6 was counted before exceptions were shown apart; Nov 7 since.
+  function withExceptions(
+    overrides?: Partial<TelemetryUsageSummary>,
+  ): TelemetryUsageSummary {
+    return summary({
+      total: { dataIngestedInGB: 5 },
+      byProduct: {
+        [ProductType.Traces]: { dataIngestedInGB: 4 },
+        [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 1 },
+      },
+      days: [
+        {
+          day: "2026-11-06",
+          byProduct: { [ProductType.Traces]: { dataIngestedInGB: 3 } },
+          total: { dataIngestedInGB: 3 },
+        },
+        {
+          day: "2026-11-07",
+          byProduct: {
+            [ProductType.Traces]: { dataIngestedInGB: 1 },
+            [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 1 },
+          },
+          total: { dataIngestedInGB: 2 },
+        },
+      ],
+      resources: [
+        resource({
+          primaryEntityId: SERVICE_ID,
+          name: "checkout",
+          byProduct: {
+            [ProductType.Traces]: { dataIngestedInGB: 3.5 },
+            [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 0.25 },
+          },
+          total: { dataIngestedInGB: 3.75 },
+        }),
+        resource({
+          primaryEntityId: HOST_ID,
+          primaryEntityType: ServiceType.Host,
+          name: "web-01",
+          byProduct: {
+            [ProductType.Traces]: { dataIngestedInGB: 0.5 },
+            [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 0.75 },
+          },
+          total: { dataIngestedInGB: 1.25 },
+        }),
+      ],
+      ...overrides,
+    });
+  }
+
+  function headers(): Array<string> {
+    return screen
+      .getAllByRole("columnheader")
+      .map((header: HTMLElement): string => {
+        return header.textContent || "";
+      });
+  }
+
+  // What an (i) explains, once it is hovered.
+  async function explanationOf(button: HTMLElement): Promise<string> {
+    fireEvent.mouseEnter(button);
+
+    await waitFor(() => {
+      expect(button.getAttribute("aria-describedby")).toBeTruthy();
+    });
+
+    return (
+      document.getElementById(button.getAttribute("aria-describedby")!)
+        ?.textContent || ""
+    );
+  }
+
+  test("draws a tile for the exceptions and one for the spans", async () => {
+    fetchUsage.mockResolvedValue(withExceptions());
+
+    renderOverview();
+
+    const exceptions: HTMLElement = await screen.findByTestId(
+      `telemetry-usage-signal-${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}`,
+    );
+    const traces: HTMLElement = screen.getByTestId(
+      `telemetry-usage-signal-${ProductType.Traces}`,
+    );
+
+    expect(exceptions).toHaveTextContent("Exceptions");
+    expect(exceptions).toHaveTextContent("1 GB");
+    expect(traces).toHaveTextContent("Traces");
+    expect(traces).toHaveTextContent("4 GB");
+    // The total is everything, each byte once.
+    expect(screen.getByTestId("telemetry-usage-total")).toHaveTextContent(
+      "5 GB",
+    );
+  });
+
+  test("draws the tiles in order: the exceptions right after the traces", async () => {
+    fetchUsage.mockResolvedValue(
+      withExceptions({
+        byProduct: {
+          [ProductType.Logs]: { dataIngestedInGB: 1 },
+          [ProductType.Traces]: { dataIngestedInGB: 4 },
+          [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 1 },
+          [ProductType.Profiles]: { dataIngestedInGB: 1 },
+        },
+        days: [
+          {
+            day: "2026-11-07",
+            byProduct: {
+              [ProductType.Profiles]: { dataIngestedInGB: 1 },
+              [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 1 },
+              [ProductType.Logs]: { dataIngestedInGB: 1 },
+              [ProductType.Traces]: { dataIngestedInGB: 4 },
+            },
+            total: { dataIngestedInGB: 7 },
+          },
+        ],
+      }),
+    );
+
+    renderOverview();
+
+    await screen.findByTestId("telemetry-usage-totals");
+
+    expect(
+      screen
+        .getAllByTestId(/^telemetry-usage-signal-/)
+        .map((tile: HTMLElement): string | null => {
+          return tile.getAttribute("data-testid");
+        }),
+    ).toEqual([
+      `telemetry-usage-signal-${ProductType.Logs}`,
+      `telemetry-usage-signal-${ProductType.Traces}`,
+      `telemetry-usage-signal-${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}`,
+      `telemetry-usage-signal-${ProductType.Profiles}`,
+    ]);
+  });
+
+  test("gives each resource an Exceptions column, after Traces", async () => {
+    fetchUsage.mockResolvedValue(withExceptions());
+
+    renderOverview();
+
+    await screen.findByText("Usage by Resource");
+
+    const drawn: Array<string> = headers();
+    const traces: number = drawn.findIndex((header: string): boolean => {
+      return header.includes("Traces");
+    });
+
+    expect(traces).toBeGreaterThan(0);
+    expect(drawn[traces + 1]).toContain("Exceptions");
+
+    const rows: Array<HTMLElement> = resourceRows();
+
+    expect(rows[0]).toHaveTextContent("checkout");
+    expect(rows[0]).toHaveTextContent("3.5 GB");
+    expect(rows[0]).toHaveTextContent("256 MB");
+    expect(rows[1]).toHaveTextContent("web-01");
+    expect(rows[1]).toHaveTextContent("768 MB");
+  });
+
+  test("draws no Exceptions tile or column for a range counted before they were shown apart", async () => {
+    renderOverview();
+
+    await screen.findByText("Usage by Resource");
+
+    expect(
+      screen.queryByTestId(
+        `telemetry-usage-signal-${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}`,
+      ),
+    ).toBeNull();
+    expect(headers().join("|")).not.toContain("Exceptions");
+    // Traces as they were counted: their exceptions inside.
+    expect(
+      screen.getByTestId(`telemetry-usage-signal-${ProductType.Traces}`),
+    ).toHaveTextContent("1.5 GB");
+  });
+
+  function columnHeader(title: string): HTMLElement {
+    return screen
+      .getAllByRole("columnheader")
+      .find((header: HTMLElement): boolean => {
+        return (header.textContent || "").includes(title);
+      })!;
+  }
+
+  test("says what Traces count, on the tile and on the column", async () => {
+    fetchUsage.mockResolvedValue(withExceptions());
+
+    renderOverview();
+
+    await screen.findByText("Usage by Resource");
+
+    const tile: HTMLElement = within(
+      screen.getByTestId(`telemetry-usage-signal-${ProductType.Traces}`),
+    ).getByRole("button", { name: "About Traces" });
+    const column: HTMLElement = within(columnHeader("Traces")).getByRole(
+      "button",
+      { name: "About Traces" },
+    );
+
+    const words: string =
+      "Spans. Days counted before exceptions were shown apart include their exceptions too.";
+
+    expect(await explanationOf(tile)).toBe(words);
+    expect(await explanationOf(column)).toBe(words);
+  });
+
+  test("says where exceptions come from - and, to who sees what usage cost, how they are billed", async () => {
+    fetchUsage.mockResolvedValue(withExceptions());
+
+    renderOverview();
+
+    await screen.findByText("Usage by Resource");
+
+    expect(
+      await explanationOf(
+        within(
+          screen.getByTestId(
+            `telemetry-usage-signal-${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}`,
+          ),
+        ).getByRole("button", { name: "About Exceptions" }),
+      ),
+    ).toBe("Exceptions recorded from spans and logs.");
+
+    cleanup();
+
+    fetchUsage.mockResolvedValue(
+      withExceptions({
+        isCostIncluded: true,
+        total: { dataIngestedInGB: 5, totalCostInUSD: 0.5 },
+      }),
+    );
+
+    renderOverview();
+
+    await screen.findByText("Usage by Resource");
+
+    expect(
+      await explanationOf(
+        within(columnHeader("Exceptions")).getByRole("button", {
+          name: "About Exceptions",
+        }),
+      ),
+    ).toBe(
+      "Exceptions recorded from spans and logs. They are billed as part of Traces.",
+    );
+  });
+
+  test("sorts the resources by their exceptions", async () => {
+    fetchUsage.mockResolvedValue(withExceptions());
+
+    renderOverview();
+
+    await screen.findByText("Usage by Resource");
+
+    const exceptionsHeader: HTMLElement = columnHeader("Exceptions");
+
+    // Heaviest first by everything: checkout, then web-01.
+    expect(resourceRows()[0]).toHaveTextContent("checkout");
+
+    fireEvent.click(within(exceptionsHeader).getByText("Exceptions"));
+
+    await waitFor(() => {
+      expect(resourceRows()[0]).toHaveTextContent("checkout");
+    });
+
+    fireEvent.click(within(exceptionsHeader).getByText("Exceptions"));
+
+    await waitFor(() => {
+      expect(resourceRows()[0]).toHaveTextContent("web-01");
+    });
+  });
+});
+
 describe("the resource rows", () => {
   const translator: ReturnType<typeof createTranslator> = createTranslator(
     undefined,
     "en",
   );
+
+  test("carry the exceptions apart from the spans, and none for a resource that recorded none", () => {
+    const row: TelemetryUsageResourceRow = toTelemetryUsageResourceRow({
+      resource: resource({
+        primaryEntityId: SERVICE_ID,
+        name: "checkout",
+        byProduct: {
+          [ProductType.Traces]: { dataIngestedInGB: 2 },
+          [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 0.5 },
+        },
+        total: { dataIngestedInGB: 2.5 },
+      }),
+      projectId: PROJECT_ID,
+      translator: translator,
+    });
+
+    expect(row.tracesGB).toBe(2);
+    expect(row.exceptionsGB).toBe(0.5);
+    expect(row.totalGB).toBe(2.5);
+
+    expect(
+      toTelemetryUsageResourceRow({
+        resource: resource({
+          primaryEntityId: HOST_ID,
+          byProduct: { [ProductType.Traces]: { dataIngestedInGB: 1 } },
+          total: { dataIngestedInGB: 1 },
+        }),
+        projectId: PROJECT_ID,
+        translator: translator,
+      }).exceptionsGB,
+    ).toBe(0);
+  });
+
+  test("sort by their exceptions", () => {
+    const rows: Array<TelemetryUsageResourceRow> = [
+      { name: "a", primaryEntityId: "1", totalGB: 9, exceptionsGB: 1 },
+      { name: "b", primaryEntityId: "2", totalGB: 1, exceptionsGB: 3 },
+      { name: "c", primaryEntityId: "3", totalGB: 5, exceptionsGB: 0 },
+    ] as Array<TelemetryUsageResourceRow>;
+
+    expect(
+      sortTelemetryUsageResourceRows(rows, "exceptionsGB", SortOrder.Descending)
+        .map((row: TelemetryUsageResourceRow): string => {
+          return row.name;
+        })
+        .join(""),
+    ).toBe("bac");
+  });
 
   test("carry each signal's GB, the total and the retention", () => {
     const row: TelemetryUsageResourceRow = toTelemetryUsageResourceRow({
@@ -514,6 +843,32 @@ describe("the daily chart's helpers", () => {
         },
       ]),
     ).toEqual([ProductType.Logs, ProductType.Traces]);
+  });
+
+  test("chart the exceptions right after the traces, once any day has some", () => {
+    expect(
+      getChartedSignals([
+        {
+          day: "2026-11-06",
+          // Counted before exceptions were shown apart.
+          byProduct: { [ProductType.Traces]: { dataIngestedInGB: 3 } },
+          total: { dataIngestedInGB: 3 },
+        },
+        {
+          day: "2026-11-07",
+          byProduct: {
+            [ProductType.Profiles]: { dataIngestedInGB: 1 },
+            [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 0.5 },
+            [ProductType.Traces]: { dataIngestedInGB: 1 },
+          },
+          total: { dataIngestedInGB: 2.5 },
+        },
+      ]),
+    ).toEqual([
+      ProductType.Traces,
+      TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+      ProductType.Profiles,
+    ]);
   });
 
   test("put each UTC day at noon of the same day on the reader's clock", () => {

@@ -1,8 +1,10 @@
 import ProductType from "../../../Types/MeteredPlan/ProductType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import {
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TelemetryUsageAmount,
   TelemetryUsageResourceSummary,
+  TelemetryUsageSignal,
 } from "../../../Types/Telemetry/TelemetryUsage";
 import {
   getInlineSeparator,
@@ -23,22 +25,51 @@ export const TELEMETRY_USAGE_SIGNAL_TITLES: Record<string, string> = {
   [ProductType.Logs]: translationKey("Logs"),
   [ProductType.Metrics]: translationKey("Metrics"),
   [ProductType.Traces]: translationKey("Traces"),
+  [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: translationKey("Exceptions"),
   [ProductType.Profiles]: translationKey("Profiles"),
   [ProductType.SessionReplay]: translationKey("Session Replays"),
   [ProductType.SecurityEvents]: translationKey("Security Events"),
 };
 
 /*
- * What a signal counts besides its name says, in its tile's (i): traces
- * count the exceptions recorded with them, as billing counts them.
+ * What a signal counts besides its name says, in its tile's (i) and its
+ * column's header. Exceptions are shown apart from the spans they are billed
+ * with (issue #6356), so Traces count spans - except on a day counted before
+ * that, whose exceptions are still inside its Traces.
  */
 export const TELEMETRY_USAGE_SIGNAL_TOOLTIPS: Record<string, string> = {
   [ProductType.Traces]: translationKey(
-    "Spans, and the exceptions recorded with them.",
+    "Spans. Days counted before exceptions were shown apart include their exceptions too.",
+  ),
+  [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: translationKey(
+    "Exceptions recorded from spans and logs.",
   ),
   [ProductType.Profiles]: translationKey(
     "Profiles, and the samples recorded with them.",
   ),
+};
+
+/*
+ * The exceptions' (i) where the reader sees what usage cost: it says what
+ * billing reads, so the cost of Traces on an invoice adds up.
+ */
+export const TELEMETRY_USAGE_EXCEPTIONS_BILLED_TOOLTIP: string = translationKey(
+  "Exceptions recorded from spans and logs. They are billed as part of Traces.",
+);
+
+// What a signal's (i) says, in English: its words, or none.
+export const getTelemetryUsageSignalTooltip: (
+  signal: TelemetryUsageSignal | string,
+  options: { isCostIncluded: boolean },
+) => string | undefined = (
+  signal: TelemetryUsageSignal | string,
+  options: { isCostIncluded: boolean },
+): string | undefined => {
+  if (signal === TELEMETRY_USAGE_EXCEPTIONS_SIGNAL && options.isCostIncluded) {
+    return TELEMETRY_USAGE_EXCEPTIONS_BILLED_TOOLTIP;
+  }
+
+  return TELEMETRY_USAGE_SIGNAL_TOOLTIPS[signal];
 };
 
 // One colour per signal, the same on every chart and every day.
@@ -46,20 +77,20 @@ export const TELEMETRY_USAGE_SIGNAL_COLORS: Record<string, ChartColorValue> = {
   [ProductType.Logs]: "indigo",
   [ProductType.Metrics]: "emerald",
   [ProductType.Traces]: "amber",
+  [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: "violet",
   [ProductType.Profiles]: "cyan",
   [ProductType.SessionReplay]: "pink",
   [ProductType.SecurityEvents]: "rose",
 };
 
 export const getTelemetryUsageSignalTitle: (
-  productType: ProductType | string,
+  signal: TelemetryUsageSignal | string,
   translator: Translator,
 ) => string = (
-  productType: ProductType | string,
+  signal: TelemetryUsageSignal | string,
   translator: Translator,
 ): string => {
-  const title: string =
-    TELEMETRY_USAGE_SIGNAL_TITLES[productType] || productType.toString();
+  const title: string = TELEMETRY_USAGE_SIGNAL_TITLES[signal] || String(signal);
 
   return translator.translateText(title) || title;
 };
@@ -111,6 +142,21 @@ export const formatTelemetryUsageCost: (
 
   return translator.translateTemplate(COST_TEMPLATE, {
     amount: translator.formatNumber(Math.round(value * 100) / 100),
+  });
+};
+
+const EXCEPTIONS_PART_TEMPLATE: string = translationKey("Exceptions: {{size}}");
+
+/*
+ * How much of a Traces usage row was exceptions, under the GB it is billed
+ * for (Telemetry Usage History): "Exceptions: 350 MB".
+ */
+export const formatTelemetryUsageExceptionsPart: (
+  gigabytes: number,
+  translator: Translator,
+) => string = (gigabytes: number, translator: Translator): string => {
+  return translator.translateTemplate(EXCEPTIONS_PART_TEMPLATE, {
+    size: formatTelemetryUsageSize(gigabytes, translator),
   });
 };
 

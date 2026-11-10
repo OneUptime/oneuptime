@@ -47018,5 +47018,15 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 클라우드로 전송됩니다.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 클러스터로 전송됩니다.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 스토리지 어레이로 전송됩니다.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 vCenter로 전송됩니다."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 vCenter로 전송됩니다.",
+  "Exceptions Ingested (in GB)": "수집된 예외(GB)",
+  "Exceptions recorded from spans and logs.": "스팬과 로그에서 기록된 예외.",
+  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "스팬과 로그에서 기록된 예외. 트레이스의 일부로 청구됩니다.",
+  "Exceptions: {{size}}": "예외: {{size}}",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Spans. Days counted before exceptions were shown apart include their exceptions too.": "스팬. 예외가 따로 표시되기 전에 집계된 날에는 그 예외도 포함됩니다."
 }
