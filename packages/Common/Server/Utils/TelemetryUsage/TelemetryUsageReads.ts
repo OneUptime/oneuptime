@@ -298,11 +298,10 @@ export default class TelemetryUsageReads {
         continue;
       }
 
-      const signalAmounts: Array<TelemetryUsageSignalAmount> =
-        getSignalAmounts(
-          { ...row, productType: row.productType },
-          data.isCostIncluded,
-        );
+      const signalAmounts: Array<TelemetryUsageSignalAmount> = getSignalAmounts(
+        { ...row, productType: row.productType },
+        data.isCostIncluded,
+      );
 
       addSignals(day, signalAmounts, data.isCostIncluded);
       addSignals(summary, signalAmounts, data.isCostIncluded);
@@ -443,11 +442,10 @@ export default class TelemetryUsageReads {
         byProduct: {},
         total: getEmptyTelemetryUsageAmount(data.isCostIncluded),
       };
-      const signalAmounts: Array<TelemetryUsageSignalAmount> =
-        getSignalAmounts(
-          { ...row, productType: row.productType },
-          data.isCostIncluded,
-        );
+      const signalAmounts: Array<TelemetryUsageSignalAmount> = getSignalAmounts(
+        { ...row, productType: row.productType },
+        data.isCostIncluded,
+      );
 
       addSignals(project, signalAmounts, data.isCostIncluded);
       addSignals(instance, signalAmounts, data.isCostIncluded);

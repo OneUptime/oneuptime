@@ -440,28 +440,31 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
   const signalColumns: Array<Column<TelemetryUsageResourceRow>> =
     TELEMETRY_USAGE_SIGNALS.filter((signal: TelemetryUsageSignal): boolean => {
       return signals.includes(signal);
-    }).map((signal: TelemetryUsageSignal): Column<TelemetryUsageResourceRow> => {
-      const key: SignalColumnKey = TELEMETRY_USAGE_SIGNAL_COLUMN_KEYS[signal]!;
-      const headerTooltip: string | undefined = tooltipOf(signal);
+    }).map(
+      (signal: TelemetryUsageSignal): Column<TelemetryUsageResourceRow> => {
+        const key: SignalColumnKey =
+          TELEMETRY_USAGE_SIGNAL_COLUMN_KEYS[signal]!;
+        const headerTooltip: string | undefined = tooltipOf(signal);
 
-      return {
-        id: key,
-        key: key,
-        title: TELEMETRY_USAGE_SIGNAL_TITLES[signal] || String(signal),
-        type: FieldType.Element,
-        hideOnMobile: true,
-        ...(headerTooltip ? { headerTooltip: headerTooltip } : {}),
-        getElement: (row: TelemetryUsageResourceRow): ReactElement => {
-          return (
-            <span className="tabular-nums text-gray-700">
-              {row[key] > 0
-                ? formatTelemetryUsageSize(row[key], translator)
-                : "—"}
-            </span>
-          );
-        },
-      };
-    });
+        return {
+          id: key,
+          key: key,
+          title: TELEMETRY_USAGE_SIGNAL_TITLES[signal] || String(signal),
+          type: FieldType.Element,
+          hideOnMobile: true,
+          ...(headerTooltip ? { headerTooltip: headerTooltip } : {}),
+          getElement: (row: TelemetryUsageResourceRow): ReactElement => {
+            return (
+              <span className="tabular-nums text-gray-700">
+                {row[key] > 0
+                  ? formatTelemetryUsageSize(row[key], translator)
+                  : "—"}
+              </span>
+            );
+          },
+        };
+      },
+    );
 
   const columns: Array<Column<TelemetryUsageResourceRow>> = [
     {

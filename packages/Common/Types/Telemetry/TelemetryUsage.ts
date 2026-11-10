@@ -57,11 +57,12 @@ export const isTelemetryUsageProductType: (
  * Not a ProductType on purpose: every product type is metered and has a
  * price of its own, and exceptions have neither.
  */
-export const TELEMETRY_USAGE_EXCEPTIONS_SIGNAL: "Exceptions" = "Exceptions";
+export type TelemetryUsageExceptionsSignal = "Exceptions";
 
-export type TelemetryUsageSignal =
-  | ProductType
-  | typeof TELEMETRY_USAGE_EXCEPTIONS_SIGNAL;
+export const TELEMETRY_USAGE_EXCEPTIONS_SIGNAL: TelemetryUsageExceptionsSignal =
+  "Exceptions";
+
+export type TelemetryUsageSignal = ProductType | TelemetryUsageExceptionsSignal;
 
 /*
  * The signals the usage pages and the API show, in the order they are shown:
