@@ -286,9 +286,11 @@ function memoryReader(graph: MemoryGraph): DataLineageReader {
             }),
           };
         })
-        .sort((a: DataLineageDashboardRow, b: DataLineageDashboardRow): number => {
-          return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-        });
+        .sort(
+          (a: DataLineageDashboardRow, b: DataLineageDashboardRow): number => {
+            return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+          },
+        );
 
       return {
         dashboards: reading.slice(0, data.limit),
@@ -494,12 +496,22 @@ describe("walking the steps", () => {
     // Two steps, and one more read only to count what lies past the second.
     expect(
       graph.edgeReads
-        .filter((read: { direction: DataLineageDirection; ids: Array<string> }): boolean => {
-          return read.direction === DataLineageDirection.Upstream;
-        })
-        .map((read: { direction: DataLineageDirection; ids: Array<string> }): Array<string> => {
-          return read.ids;
-        }),
+        .filter(
+          (read: {
+            direction: DataLineageDirection;
+            ids: Array<string>;
+          }): boolean => {
+            return read.direction === DataLineageDirection.Upstream;
+          },
+        )
+        .map(
+          (read: {
+            direction: DataLineageDirection;
+            ids: Array<string>;
+          }): Array<string> => {
+            return read.ids;
+          },
+        ),
     ).toEqual([[t(7)], [t(6)], [t(5)]]);
   });
 
@@ -852,9 +864,14 @@ describe("the most drawn next to each table", () => {
 
     expect(lineage.isTruncated).toBe(true);
     expect(
-      graph.edgeReads.every((read: { direction: DataLineageDirection; ids: Array<string> }): boolean => {
-        return read.ids.length > 0;
-      }),
+      graph.edgeReads.every(
+        (read: {
+          direction: DataLineageDirection;
+          ids: Array<string>;
+        }): boolean => {
+          return read.ids.length > 0;
+        },
+      ),
     ).toBe(true);
     expect(MAX_DATA_LINEAGE_EDGE_ROWS).toBeGreaterThan(
       MAX_DATA_LINEAGE_NEIGHBORS,
@@ -1142,9 +1159,11 @@ describe("pipelines that bring data in from outside", () => {
     writes(graph, p(1), t(3));
 
     const lineage: DataTableLineage = await build(graph, t(1));
-    const cards: Array<DataTableLineageNode> = lineage.nodes.filter((node: DataTableLineageNode): boolean => {
-      return node.kind === DataLineageNodeKind.Pipeline;
-    });
+    const cards: Array<DataTableLineageNode> = lineage.nodes.filter(
+      (node: DataTableLineageNode): boolean => {
+        return node.kind === DataLineageNodeKind.Pipeline;
+      },
+    );
 
     expect(cards).toHaveLength(1);
     expect(cards[0]!.depth).toBe(-3);

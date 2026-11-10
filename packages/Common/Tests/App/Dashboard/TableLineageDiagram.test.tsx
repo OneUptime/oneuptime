@@ -364,7 +364,11 @@ function aLineage(fields: Partial<DataTableLineage> = {}): DataTableLineage {
     edges: [
       arrow(DataLineageEdgeKind.Writes, `pipeline:${SYNC}`, `table:${SOURCE}`, {
         pipelines: [
-          { dataPipelineId: SYNC, name: "shopify_orders", lastRunState: "FAIL" },
+          {
+            dataPipelineId: SYNC,
+            name: "shopify_orders",
+            lastRunState: "FAIL",
+          },
         ],
       }),
       arrow(DataLineageEdgeKind.Feeds, `table:${SOURCE}`, `table:${STAGING}`, {
@@ -455,9 +459,9 @@ describe("reading the lineage", () => {
 
     expect(screen.getByTestId("component-loader")).toBeInTheDocument();
     expect(getTableLineageMock).toHaveBeenCalledTimes(1);
-    expect(
-      (getTableLineageMock.mock.calls[0]![0] as ObjectID).toString(),
-    ).toBe(TABLE);
+    expect((getTableLineageMock.mock.calls[0]![0] as ObjectID).toString()).toBe(
+      TABLE,
+    );
     expect(getTableLineageMock.mock.calls[0]![1]).toBe(
       DEFAULT_DATA_LINEAGE_DEPTH,
     );
@@ -545,9 +549,9 @@ describe("reading the lineage", () => {
     await waitFor(() => {
       expect(getTableLineageMock).toHaveBeenCalledTimes(2);
     });
-    expect(
-      (getTableLineageMock.mock.calls[1]![0] as ObjectID).toString(),
-    ).toBe(MART);
+    expect((getTableLineageMock.mock.calls[1]![0] as ObjectID).toString()).toBe(
+      MART,
+    );
   });
 
   test("a read that fails says why, and reads again on Refresh", async () => {
@@ -991,10 +995,11 @@ describe("where the drawing is looked at from", () => {
     expect(setViewportMock).toHaveBeenCalledTimes(2);
 
     act(() => {
-      mockFlowProps?.onMoveStart?.(
-        new MouseEvent("mousedown") as never,
-        { x: 0, y: 0, zoom: 1 },
-      );
+      mockFlowProps?.onMoveStart?.(new MouseEvent("mousedown") as never, {
+        x: 0,
+        y: 0,
+        zoom: 1,
+      });
     });
     canvasBox = { width: 800, height: 400 };
     act(() => {

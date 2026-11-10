@@ -31,8 +31,10 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
-// How a run stands, at a glance.
-// A run's state as a pill; small where it sits among other small chips (a lineage card).
+/*
+ * How a run stands, at a glance.
+ * A run's state as a pill; small where it sits among other small chips (a lineage card).
+ */
 export function getRunStatePill(
   state: string | undefined,
   size?: PillSize | undefined,

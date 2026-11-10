@@ -186,12 +186,15 @@ export function getLineageCardRoute(
   return null;
 }
 
+// An address on the web: a dashboard's link opens only when it is one.
+const WEB_ADDRESS_REGEX: RegExp = /^https?:\/\//i;
+
 // A dashboard's link, when its tool gave one on the web: nothing else is opened.
 export function getLineageDashboardUrl(node: DataTableLineageNode): URL | null {
   if (
     node.kind !== DataLineageNodeKind.Dashboard ||
     !node.url ||
-    !/^https?:\/\//i.test(node.url.trim())
+    !WEB_ADDRESS_REGEX.test(node.url.trim())
   ) {
     return null;
   }
@@ -533,7 +536,7 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
       <BaseEdge
         id={props.id}
         path={path}
-        style={props.style}
+        {...(props.style ? { style: props.style } : {})}
         {...(props.markerEnd ? { markerEnd: props.markerEnd } : {})}
       />
       {props.data?.label ? (

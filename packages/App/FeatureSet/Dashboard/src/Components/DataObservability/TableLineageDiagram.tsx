@@ -76,6 +76,10 @@ const HIDDEN_DASHBOARDS: PluralTemplate = {
     "{{count}} more dashboards are built on these tables and are not drawn.",
 };
 
+const READ_FAILED: string = translationKey(
+  "Could not read this table's lineage.",
+);
+
 // The read the card shows, stamped with what it was read for.
 interface LoadedLineage {
   key: string;
@@ -115,7 +119,8 @@ const TableLineageDiagram: FunctionComponent<ComponentProps> = (
             lineage: null,
             error:
               error.message ||
-              translator.translateText("Could not read this table's lineage."),
+              translator.translateText(READ_FAILED) ||
+              READ_FAILED,
           });
         }
       });

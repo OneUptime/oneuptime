@@ -29,6 +29,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
+import DataBiTool from "../../../../Types/DataObservability/DataBiTool";
 import DataAssetLineageSource from "../../../../Types/DataObservability/DataAssetLineageSource";
 import {
   DataTableLineage,
@@ -550,7 +551,7 @@ describe("the dashboards", () => {
     const dashboard: DataDashboard = new DataDashboard();
     dashboard._id = id(50);
     dashboard.name = "Revenue";
-    dashboard.tool = "Metabase" as DataDashboard["tool"];
+    dashboard.tool = DataBiTool.Metabase;
     dashboard.url = "https://metabase.example.com/dashboard/1";
     dashboard.dataAssets = [id(1), id(77)].map((assetId: string): DataAsset => {
       const asset: DataAsset = new DataAsset();

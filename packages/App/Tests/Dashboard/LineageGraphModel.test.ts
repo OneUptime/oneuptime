@@ -16,10 +16,7 @@ import {
   getLineagePipelineNodeId,
   getLineageTableNodeId,
 } from "Common/Types/DataObservability/DataTableLineage";
-import {
-  SeededRandom,
-  seededRandom,
-} from "Common/Tests/Helpers/SeededRandom";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   LINEAGE_CARD_HEIGHT,
   LINEAGE_CARD_WIDTH,
@@ -131,7 +128,10 @@ function edge(
     source,
     target,
     kind,
-    seenIn: kind === DataLineageEdgeKind.Reads ? [] : [DataAssetLineageSource.Pipeline],
+    seenIn:
+      kind === DataLineageEdgeKind.Reads
+        ? []
+        : [DataAssetLineageSource.Pipeline],
     pipelines: [],
     lastSeenAt: null,
     ...fields,
@@ -175,7 +175,12 @@ describe("each card's column", () => {
     const columns: Map<string, number> = getLineageColumns(
       lineageOf(
         [up("b", -1), up("a", -2), down("c", 1), down("d", 2)],
-        [feeds("a", "b"), feeds("b", "focus"), feeds("focus", "c"), feeds("c", "d")],
+        [
+          feeds("a", "b"),
+          feeds("b", "focus"),
+          feeds("focus", "c"),
+          feeds("c", "d"),
+        ],
       ),
     );
 
@@ -247,7 +252,11 @@ describe("each card's column", () => {
           feeds("focus", "c"),
           feeds("c", "d"),
           edge(DataLineageEdgeKind.Reads, FOCUS, revenue.id),
-          edge(DataLineageEdgeKind.Reads, getLineageTableNodeId("d"), revenue.id),
+          edge(
+            DataLineageEdgeKind.Reads,
+            getLineageTableNodeId("d"),
+            revenue.id,
+          ),
         ],
       ),
     );
@@ -344,15 +353,19 @@ describe("laying the cards out", () => {
       ),
     );
     const heights: Set<number> = new Set(
-      Array.from(layout.positions.values()).map((point: LineagePoint): number => {
-        return point.y;
-      }),
+      Array.from(layout.positions.values()).map(
+        (point: LineagePoint): number => {
+          return point.y;
+        },
+      ),
     );
 
     expect(heights.size).toBe(1);
     expect(layout.positions.get(getLineageTableNodeId("a"))!.x).toBe(0);
     expect(layout.positions.get(FOCUS)!.x).toBe(2 * COLUMN);
-    expect(layout.positions.get(getLineageTableNodeId("c"))!.x).toBe(3 * COLUMN);
+    expect(layout.positions.get(getLineageTableNodeId("c"))!.x).toBe(
+      3 * COLUMN,
+    );
     expect(layout.width).toBe(3 * COLUMN + LINEAGE_CARD_WIDTH);
     expect(layout.height).toBe(LINEAGE_CARD_HEIGHT);
   });
@@ -440,9 +453,11 @@ describe("laying the cards out", () => {
             const inner: Array<string> = upstream[step - 1]!;
             const target: string = inner[random(inner.length)]!;
 
-            if (!edges.some((existing) => {
-              return existing.id === feeds(name, target).id;
-            })) {
+            if (
+              !edges.some((existing: DataTableLineageEdge): boolean => {
+                return existing.id === feeds(name, target).id;
+              })
+            ) {
               edges.push(feeds(name, target));
             }
           }
@@ -564,7 +579,12 @@ describe("where the drawing is looked at from", () => {
       [-5, 400],
     ]) {
       expect(
-        getLineageViewport({ layout, focusNodeId: FOCUS, width: width!, height: height! }),
+        getLineageViewport({
+          layout,
+          focusNodeId: FOCUS,
+          width: width!,
+          height: height!,
+        }),
       ).toBeNull();
     }
   });
@@ -643,13 +663,27 @@ describe("how a card looks", () => {
     ["with an open alert", { openAlertCount: 1 }, LineageTone.Problem],
     ["late", { freshness: DataAssetFreshness.Late }, LineageTone.Problem],
     ["fresh", { freshness: DataAssetFreshness.Fresh }, LineageTone.Healthy],
-    ["learning", { freshness: DataAssetFreshness.Unknown }, LineageTone.Neutral],
-    ["a view", { freshness: DataAssetFreshness.NotApplicable }, LineageTone.Neutral],
+    [
+      "learning",
+      { freshness: DataAssetFreshness.Unknown },
+      LineageTone.Neutral,
+    ],
+    [
+      "a view",
+      { freshness: DataAssetFreshness.NotApplicable },
+      LineageTone.Neutral,
+    ],
   ])(
     "a table %s",
-    (_name: string, fields: Partial<DataTableLineageNode>, tone: LineageTone) => {
+    (
+      _name: string,
+      fields: Partial<DataTableLineageNode>,
+      tone: LineageTone,
+    ) => {
       expect(
-        getLineageNodeTone(tableNode("t", DataLineageSide.Upstream, -1, fields)),
+        getLineageNodeTone(
+          tableNode("t", DataLineageSide.Upstream, -1, fields),
+        ),
       ).toBe(tone);
     },
   );
@@ -662,14 +696,19 @@ describe("how a card looks", () => {
     ["COMPLETE", LineageTone.Healthy],
     ["RESCHEDULED", LineageTone.Neutral],
     [null, LineageTone.Neutral],
-  ])("a pipeline whose latest run is %p", (state: string | null, tone: LineageTone) => {
-    expect(getLineageNodeTone(pipelineNode("p", { lastRunState: state }))).toBe(
-      tone,
-    );
-  });
+  ])(
+    "a pipeline whose latest run is %p",
+    (state: string | null, tone: LineageTone) => {
+      expect(
+        getLineageNodeTone(pipelineNode("p", { lastRunState: state })),
+      ).toBe(tone);
+    },
+  );
 
   test("a dashboard says nothing of its health", () => {
-    expect(getLineageNodeTone(dashboardNode("board"))).toBe(LineageTone.Neutral);
+    expect(getLineageNodeTone(dashboardNode("board"))).toBe(
+      LineageTone.Neutral,
+    );
   });
 });
 
@@ -742,7 +781,9 @@ describe("how an arrow looks", () => {
 
   test("a dashboard's read is a light solid line", () => {
     expect(
-      getLineageEdgeStyle(edge(DataLineageEdgeKind.Reads, FOCUS, "dashboard:d")),
+      getLineageEdgeStyle(
+        edge(DataLineageEdgeKind.Reads, FOCUS, "dashboard:d"),
+      ),
     ).toEqual({
       color: LINEAGE_READS_COLOR,
       width: 1.25,
@@ -820,7 +861,9 @@ describe("a table's Lineage tab", () => {
 
     expect(diagram).toBeGreaterThan(-1);
     expect(diagram).toBeLessThan(page.indexOf("<TableDashboards"));
-    expect(diagram).toBeLessThan(page.indexOf('id="data-observability-table-upstream"'));
+    expect(diagram).toBeLessThan(
+      page.indexOf('id="data-observability-table-upstream"'),
+    );
   });
 
   test("asks the table-lineage route through the Dashboard's own client", () => {

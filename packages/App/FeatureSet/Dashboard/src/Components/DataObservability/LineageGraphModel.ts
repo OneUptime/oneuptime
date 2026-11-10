@@ -448,6 +448,12 @@ export function fitHeights(wanted: Array<number>, row: number): Array<number> {
   return heights;
 }
 
+// A card in its column, and where it was before the column was arranged.
+interface PlacedCard {
+  id: string;
+  index: number;
+}
+
 export function layoutLineage(lineage: DataTableLineage): LineageLayout {
   const columns: Map<string, number> = getLineageColumns(lineage);
   const order: Map<number, Array<string>> = new Map();
@@ -524,13 +530,13 @@ export function layoutLineage(lineage: DataTableLineage): LineageLayout {
     }
 
     const sorted: Array<string> = ids
-      .map((id: string, index: number) => {
+      .map((id: string, index: number): PlacedCard => {
         return { id, index };
       })
-      .sort((a, b): number => {
+      .sort((a: PlacedCard, b: PlacedCard): number => {
         return wanted.get(a.id)! - wanted.get(b.id)! || a.index - b.index;
       })
-      .map((entry): string => {
+      .map((entry: PlacedCard): string => {
         return entry.id;
       });
 
