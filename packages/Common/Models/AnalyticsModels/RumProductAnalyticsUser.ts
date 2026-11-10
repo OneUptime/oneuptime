@@ -127,7 +127,7 @@ export default class RumProductAnalyticsUser extends AnalyticsBaseModel {
       }),
       new AnalyticsTableColumn({
         key: "sessions",
-        title: "Sessions (state)",
+        title: "Sessions",
         description:
           "AggregateFunction(uniq) of the month's session ids. Read via uniqMerge(sessions).",
         required: true,
