@@ -402,3 +402,26 @@ describe("client context", () => {
     expect(monitorGo).toContain("r.client.Delete(ctx,");
   });
 });
+
+describe("the package the Crossplane provider imports", () => {
+  /*
+   * Scripts/CrossplaneProvider runs this provider in process, and Go lets no
+   * other module import internal/provider: xpprovider is its way in.
+   */
+  test("xpprovider is written outside internal/, with its test", () => {
+    const xpprovider: string = fs.readFileSync(
+      path.join(outputDir, "xpprovider/xpprovider.go"),
+      "utf-8",
+    );
+    expect(xpprovider).toContain("package xpprovider");
+    expect(xpprovider).toContain(
+      '"github.com/oneuptime/terraform-provider-oneuptime/internal/provider"',
+    );
+    expect(xpprovider).toContain(
+      "func FrameworkProvider(version string) provider.Provider",
+    );
+    expect(
+      fs.existsSync(path.join(outputDir, "xpprovider/xpprovider_test.go")),
+    ).toBe(true);
+  });
+});

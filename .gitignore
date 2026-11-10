@@ -201,6 +201,12 @@ Terraform/openapi.json
 Terraform/provider-schema.json
 TerraformTest/**
 
+# Crossplane provider, generated from the Terraform provider
+# (npm run generate-crossplane-provider), and the packages
+# Scripts/CrossplaneProvider/build-package.sh builds from it
+Crossplane/provider-oneuptime/**
+Crossplane/packages/**
+
 terraform-provider-example/**
 
 # MCP Server

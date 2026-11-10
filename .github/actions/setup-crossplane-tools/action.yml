@@ -1,0 +1,89 @@
+name: Set up the Crossplane tools
+description: >-
+  Puts the crossplane CLI and kind on PATH, at the versions pinned here: the
+  CLI builds and pushes the provider's package
+  (Scripts/CrossplaneProvider/build-package.sh and publish-package.sh), and
+  kind runs the cluster of its end-to-end test (packages/E2E/Crossplane).
+  Linux on amd64 only. Needs the repository checked out.
+
+# The same pattern as .github/actions/setup-gomplate: each binary is pinned by
+# the sha256 of the file that gets installed, kept in the Actions cache under
+# that pin, and only downloaded on a miss, by
+# Scripts/GHA/fetch_pinned_artifact.sh, which installs nothing that does not
+# match its pin (a copy restored from the cache included).
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve the pinned tools
+      id: pin
+      shell: bash
+      run: |
+        set -euo pipefail
+        # The digests are pinned here, never fetched from the release they
+        # verify: crossplane.sha256 of the CLI's release, and
+        # kind-linux-amd64.sha256sum of kind's (the kind that
+        # test.kubernetes-agent-ebpf-e2e.yaml pins too).
+        if [[ "${RUNNER_OS}/${RUNNER_ARCH}" != "Linux/X64" ]]; then
+          echo "::error title=No pinned Crossplane tools::.github/actions/setup-crossplane-tools pins linux/amd64 builds, and this runner is ${RUNNER_OS}/${RUNNER_ARCH}."
+          exit 1
+        fi
+        {
+          echo "crossplane_version=v2.5.0"
+          echo "crossplane_sha256=065dd6b40c9ea5fc71e49900d5c924cc0bec7f58375922ddbde6b402f292347e"
+          echo "kind_version=v0.33.0"
+          echo "kind_sha256=aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d"
+          echo "dir=${RUNNER_TEMP}/crossplane-tools"
+        } >>"$GITHUB_OUTPUT"
+
+    - name: Restore the Crossplane tools from the Actions cache
+      id: cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.pin.outputs.dir }}
+        key: crossplane-tools-linux-amd64-${{ steps.pin.outputs.crossplane_sha256 }}-${{ steps.pin.outputs.kind_sha256 }}
+
+    # Runs on a hit too: a restored copy is only used after it verifies, and
+    # one that does not is downloaded again.
+    - name: Verify the Crossplane tools, or download them on a cache miss
+      shell: bash
+      env:
+        CROSSPLANE_VERSION: ${{ steps.pin.outputs.crossplane_version }}
+        CROSSPLANE_SHA256: ${{ steps.pin.outputs.crossplane_sha256 }}
+        KIND_VERSION: ${{ steps.pin.outputs.kind_version }}
+        KIND_SHA256: ${{ steps.pin.outputs.kind_sha256 }}
+        TOOLS_DIR: ${{ steps.pin.outputs.dir }}
+      run: |
+        set -euo pipefail
+        FETCH="${GITHUB_WORKSPACE}/Scripts/GHA/fetch_pinned_artifact.sh"
+        bash "$FETCH" --name crossplane --sha256 "$CROSSPLANE_SHA256" --dest "$TOOLS_DIR" --mode 0755 \
+          --source file "https://cli.crossplane.io/stable/${CROSSPLANE_VERSION}/bin/linux_amd64/crossplane"
+        bash "$FETCH" --name kind --sha256 "$KIND_SHA256" --dest "$TOOLS_DIR" --mode 0755 \
+          --source file "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+
+    # Saved straight away rather than by actions/cache's post step, which only
+    # saves when the whole job succeeds.
+    - name: Save the Crossplane tools to the Actions cache
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.pin.outputs.dir }}
+        key: ${{ steps.cache.outputs.cache-primary-key }}
+
+    - name: Put the Crossplane tools on PATH
+      shell: bash
+      env:
+        CROSSPLANE_VERSION: ${{ steps.pin.outputs.crossplane_version }}
+        KIND_VERSION: ${{ steps.pin.outputs.kind_version }}
+        TOOLS_DIR: ${{ steps.pin.outputs.dir }}
+      run: |
+        set -euo pipefail
+        echo "$TOOLS_DIR" >>"$GITHUB_PATH"
+        # Captured first: a version piped into grep -q can SIGPIPE under
+        # pipefail.
+        installed="$("${TOOLS_DIR}/crossplane" version --client)"
+        echo "$installed"
+        grep -qF "$CROSSPLANE_VERSION" <<<"$installed"
+        installed="$("${TOOLS_DIR}/kind" version)"
+        echo "$installed"
+        grep -qF "$KIND_VERSION" <<<"$installed"

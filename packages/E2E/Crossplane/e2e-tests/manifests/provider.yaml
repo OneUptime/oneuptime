@@ -1,0 +1,26 @@
+# The provider, from the package the harness pushed to the cluster's own
+# registry. It checks each resource for drift every 20 seconds rather than
+# every 10 minutes, so the drift check does not wait long.
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: oneuptime-e2e
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args:
+                - --poll=20s
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-oneuptime
+spec:
+  package: ${PACKAGE_REF}
+  runtimeConfigRef:
+    name: oneuptime-e2e
