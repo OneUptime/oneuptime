@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 47463,
-    "untranslated": 15959
+    "untranslated": 13465
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -23,6 +23,7 @@
     "@alice",
     "AES",
     "AKIAIOSFODNN7EXAMPLE",
+    "AND",
     "AWS Health: {{event}}",
     "Active + Clean",
     "Add custom connector",
@@ -121,6 +122,7 @@
     "Null",
     "OID",
     "OK",
+    "OR",
     "OSD",
     "Ollama",
     "OpenShift",
@@ -172,6 +174,7 @@
     "TTL",
     "TX",
     "Top P",
+    "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
     "Traceroute",
     "UID",
     "UTC",
@@ -300,6 +303,9 @@
     "x86",
     "you@company.com",
     "z",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{gigabytes}} GB",
     "{{inRate}} / {{outRate}} Mbps",
     "{{in}} in",
