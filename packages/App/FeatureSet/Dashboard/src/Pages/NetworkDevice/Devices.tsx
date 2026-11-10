@@ -93,6 +93,7 @@ import useBulkCreatePingMonitors from "../../Components/NetworkDevice/useBulkCre
 import useBulkSwitchToProbePolling from "../../Components/NetworkDevice/useBulkSwitchToProbePolling";
 import useBulkSnmpCredentialProfileActions from "../../Components/NetworkDevice/useBulkSnmpCredentialProfileActions";
 import useBulkShortenDeviceNames from "../../Components/NetworkDevice/useBulkShortenDeviceNames";
+import useBulkApplyNamingRules from "../../Components/NetworkDevice/Naming/useBulkApplyNamingRules";
 import useBulkSiteActions from "../../Components/NetworkDevice/useBulkSiteActions";
 import useBulkDeviceRoleActions from "../../Components/NetworkDevice/useBulkDeviceRoleActions";
 import useBulkApplyVendorTemplate from "../../Components/NetworkDevice/useBulkApplyVendorTemplate";
@@ -755,6 +756,20 @@ const NetworkDevices: FunctionComponent<
     useBulkShortenDeviceNames();
 
   /*
+   * The project's naming convention, for a selection (issue #6619): the
+   * selected devices that do not follow the naming rules, renamed after a
+   * preview of every rename.
+   */
+  const {
+    bulkActions: applyNamingRulesBulkActions,
+    modals: applyNamingRulesModals,
+  } = useBulkApplyNamingRules({
+    onRenamed: (): void => {
+      setRefreshToggle(ObjectID.generate().toString());
+    },
+  });
+
+  /*
    * Where a device is, what it is and what it collects, for a whole
    * selection: thirty discovered switches filed into a customer's site,
    * given the "Access Switch" role and their vendor's health template, each
@@ -1081,6 +1096,7 @@ const NetworkDevices: FunctionComponent<
             ...snmpCredentialProfileBulkActions,
             ...switchToProbePollingBulkActions,
             ...createPingMonitorBulkActions,
+            ...applyNamingRulesBulkActions,
             ...shortenDeviceNameBulkActions,
             ...archiveBulkActions,
           ],
@@ -2085,6 +2101,7 @@ const NetworkDevices: FunctionComponent<
         }}
       />
       {siteBulkActionModals}
+      {applyNamingRulesModals}
       {deviceRoleBulkActionModals}
       {labelBulkActionModals}
       {ownerBulkActionModals}

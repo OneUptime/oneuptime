@@ -343,11 +343,12 @@ describe("static rule criteria runtime coverage", () => {
    * Data Security's label and owner rules for data stores came, App
    * Platforms' pages for the cloud rules' environments, the alert incident
    * rules' page (AlertIncidentRules) for its model, OpenStack's label and
-   * owner rules for clouds, and Data Observability's for data assets.
+   * owner rules for clouds, Data Observability's for data assets, and the
+   * network devices' naming rules (issue #6619).
    */
-  test("all 81 static match-criteria forms route their 90 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(81);
-    expect(formsByModel.size).toBe(90);
+  test("all 82 static match-criteria forms route their 91 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(82);
+    expect(formsByModel.size).toBe(91);
     expect([...secondFormsByModel.keys()]).toEqual(
       Object.keys(SECOND_RULE_FORMS),
     );
@@ -436,6 +437,35 @@ describe("static rule criteria runtime coverage", () => {
           path.join(
             COMMON_ROOT,
             "Utils/NetworkDiscovery/AutoImportRuleMatcher.ts",
+          ),
+          "utf8",
+        );
+
+        expect(matcherSource).toContain("RuleCriteriaMatcher.matchesSync");
+        const evaluatorFields: Set<string> = new Set<string>(
+          [
+            ...matcherSource.matchAll(/case\s+"([A-Za-z][A-Za-z0-9]*)"\s*:/g),
+          ].map((match: RegExpMatchArray): string => {
+            return match[1]!;
+          }),
+        );
+
+        expect([...evaluatorFields].sort()).toEqual([...form.fields].sort());
+        return;
+      }
+
+      /*
+       * Naming rules (issue #6619): the engine hands each device's facts to
+       * NamingRuleMatcher, whose own answer for each condition is what an
+       * address range needs, as the auto import rules' matcher.
+       */
+      if (modelName === "NetworkDeviceNamingRule") {
+        expect(evaluatorSource).toContain("NamingRuleMatcher");
+
+        const matcherSource: string = fs.readFileSync(
+          path.join(
+            COMMON_ROOT,
+            "Utils/NetworkDevice/Naming/NamingRuleMatcher.ts",
           ),
           "utf8",
         );

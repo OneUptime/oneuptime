@@ -247,3 +247,184 @@ export function isDeviceStillNamedByRule(device: {
 
   return Boolean(name) && name === device.ruleAssignedName.trim();
 }
+
+/*
+ * READING THE SERVER'S ANSWERS. The Dashboard reads every answer through
+ * these, so an answer from a newer server - an outcome this build does not
+ * know, a field missing - is read as what it can be, never drawn as
+ * something it is not: an item with an unknown outcome is dropped.
+ */
+function readRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function readCount(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
+}
+
+export function readDeviceNamingResult(
+  value: unknown,
+): DeviceNamingResult | null {
+  const record: Record<string, unknown> = readRecord(value);
+
+  if (!isDeviceNamingOutcome(record["outcome"])) {
+    return null;
+  }
+
+  const result: DeviceNamingResult = { outcome: record["outcome"] };
+
+  for (const key of [
+    "name",
+    "ruleId",
+    "ruleName",
+    "missing",
+    "takenName",
+  ] as const) {
+    const text: string | undefined = readOptionalString(record[key]);
+
+    if (text) {
+      result[key] = text;
+    }
+  }
+
+  return result;
+}
+
+export function readDeviceNamingPreview(value: unknown): DeviceNamingPreview {
+  const record: Record<string, unknown> = readRecord(value);
+  const items: Array<DeviceNamingPreviewItem> = [];
+
+  if (Array.isArray(record["items"])) {
+    for (const item of record["items"]) {
+      const result: DeviceNamingResult | null = readDeviceNamingResult(item);
+      const itemRecord: Record<string, unknown> = readRecord(item);
+      const key: string | undefined = readOptionalString(itemRecord["key"]);
+
+      if (!result || !key) {
+        continue;
+      }
+
+      items.push({
+        ...result,
+        key: key,
+        discoveredName: readOptionalString(itemRecord["discoveredName"]) || "",
+      });
+    }
+  }
+
+  return { hasRules: record["hasRules"] === true, items: items };
+}
+
+export function readDeviceNamingPlan(value: unknown): DeviceNamingPlan {
+  const record: Record<string, unknown> = readRecord(value);
+  const items: Array<DeviceNamingPlanItem> = [];
+
+  if (Array.isArray(record["items"])) {
+    for (const item of record["items"]) {
+      const result: DeviceNamingResult | null = readDeviceNamingResult(item);
+      const itemRecord: Record<string, unknown> = readRecord(item);
+      const deviceId: string | undefined = readOptionalString(
+        itemRecord["deviceId"],
+      );
+
+      if (!result || !deviceId) {
+        continue;
+      }
+
+      items.push({
+        ...result,
+        deviceId: deviceId,
+        currentName: readOptionalString(itemRecord["currentName"]) || "",
+        isNamedByPerson: itemRecord["isNamedByPerson"] === true,
+      });
+    }
+  }
+
+  return {
+    hasRules: record["hasRules"] === true,
+    devicesChecked: readCount(record["devicesChecked"]),
+    items: items,
+    followingCount: readCount(record["followingCount"]),
+    isTruncated: record["isTruncated"] === true,
+  };
+}
+
+export function readDeviceNamingApplyResult(
+  value: unknown,
+): DeviceNamingApplyResult {
+  const record: Record<string, unknown> = readRecord(value);
+  const skipped: Array<{ deviceId: string; reason: string }> = [];
+
+  if (Array.isArray(record["skipped"])) {
+    for (const item of record["skipped"]) {
+      const itemRecord: Record<string, unknown> = readRecord(item);
+      const deviceId: string | undefined = readOptionalString(
+        itemRecord["deviceId"],
+      );
+
+      if (deviceId) {
+        skipped.push({
+          deviceId: deviceId,
+          reason: readOptionalString(itemRecord["reason"]) || "",
+        });
+      }
+    }
+  }
+
+  return { renamed: readCount(record["renamed"]), skipped: skipped };
+}
+
+/*
+ * The renames a plan's ticked devices ask for: the Named ones, each with
+ * the name it has and the name the rules give it.
+ */
+export function getRenamesForPlanItems(
+  items: ReadonlyArray<DeviceNamingPlanItem>,
+  selectedDeviceIds: ReadonlySet<string>,
+): Array<DeviceNamingRename> {
+  const renames: Array<DeviceNamingRename> = [];
+
+  for (const item of items) {
+    if (
+      item.outcome !== DeviceNamingOutcome.Named ||
+      !item.name ||
+      !selectedDeviceIds.has(item.deviceId)
+    ) {
+      continue;
+    }
+
+    renames.push({
+      deviceId: item.deviceId,
+      fromName: item.currentName,
+      toName: item.name,
+    });
+  }
+
+  return renames;
+}
+
+/*
+ * The devices ticked when a plan opens: every one the rules rename, except
+ * the ones a person named - renaming what someone chose is their call.
+ */
+export function getInitialPlanSelection(
+  items: ReadonlyArray<DeviceNamingPlanItem>,
+): Set<string> {
+  const selected: Set<string> = new Set<string>();
+
+  for (const item of items) {
+    if (item.outcome === DeviceNamingOutcome.Named && !item.isNamedByPerson) {
+      selected.add(item.deviceId);
+    }
+  }
+
+  return selected;
+}

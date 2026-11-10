@@ -3580,6 +3580,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Site Assignment Rules",
             icon: IconProp.Filter,
           },
+          {
+            page: PageMap.NETWORK_DEVICE_SETTINGS_NAMING_RULES,
+            title: "Naming Rules",
+            icon: IconProp.Pencil,
+            keywords: [
+              "naming convention",
+              "device names",
+              "rename devices",
+              "hostname",
+            ],
+          },
           ownerRules(PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES),
           labelRules(PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES),
           {

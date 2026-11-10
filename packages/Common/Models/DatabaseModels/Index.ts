@@ -32,6 +32,7 @@ import NetworkDeviceLink from "./NetworkDeviceLink";
 import NetworkDeviceLinkRule from "./NetworkDeviceLinkRule";
 import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
+import NetworkDeviceNamingRule from "./NetworkDeviceNamingRule";
 import NetworkControllerConnection from "./NetworkControllerConnection";
 import NetworkAddressName from "./NetworkAddressName";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
@@ -1219,6 +1220,7 @@ const AllModelTypes: Array<{
   NetworkDeviceLinkRule,
   NetworkTopologySuppression,
   NetworkSiteAssignmentRule,
+  NetworkDeviceNamingRule,
   NetworkControllerConnection,
   NetworkAddressName,
   DockerHostOwnerTeam,

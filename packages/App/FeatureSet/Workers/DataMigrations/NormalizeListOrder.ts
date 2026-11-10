@@ -25,6 +25,7 @@ import MetricPipelineRuleService from "Common/Server/Services/MetricPipelineRule
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import NetworkDeviceRoleService from "Common/Server/Services/NetworkDeviceRoleService";
 import NetworkSiteAssignmentRuleService from "Common/Server/Services/NetworkSiteAssignmentRuleService";
+import NetworkDeviceNamingRuleService from "Common/Server/Services/NetworkDeviceNamingRuleService";
 import PublicNoteApprovalStepService from "Common/Server/Services/PublicNoteApprovalStepService";
 import ScheduledMaintenanceMeasurementService from "Common/Server/Services/ScheduledMaintenanceMeasurementService";
 import ScheduledMaintenanceReminderRuleService from "Common/Server/Services/ScheduledMaintenanceReminderRuleService";
@@ -84,6 +85,7 @@ export default class NormalizeListOrder extends DataMigrationBase {
       AlertGroupingRuleService,
       NetworkDeviceRoleService,
       NetworkSiteAssignmentRuleService,
+      NetworkDeviceNamingRuleService,
       LogPipelineService,
       LogPipelineProcessorService,
       LogDropFilterService,

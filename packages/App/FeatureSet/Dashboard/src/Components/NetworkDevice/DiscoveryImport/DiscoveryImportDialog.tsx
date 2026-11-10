@@ -81,6 +81,10 @@ import {
 import useDiscoveryImportPolling, {
   DiscoveryImportPolling,
 } from "./useDiscoveryImportPolling";
+import useNamingPreview, {
+  NamingPreviewState,
+} from "../Naming/useNamingPreview";
+import NamingPreviewSummary from "../Naming/NamingPreviewSummary";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
@@ -462,6 +466,19 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
       selectedIpAddresses: selection,
     });
   }, [hosts, fullQuery, selection]);
+
+  /*
+   * What the project's naming rules call each host the import would create
+   * (issue #6619), read again as the selection changes - the numbers a
+   * pattern's {nn} gives depend on which hosts are imported together.
+   */
+  const namingPreview: NamingPreviewState = useNamingPreview({
+    isActive: step === DiscoveryImportStep.Choose && Boolean(scan) && !isLoading,
+    scanId: scanId,
+    ipAddresses: hostsToImport.map((host: DiscoveredNetworkDevice): string => {
+      return host.ipAddress;
+    }),
+  });
 
   const isIcmpOnly: boolean = ScanModeUtil.isIcmpOnly(scan);
   const probeId: string = scan?.probeId?.toString() || "";
@@ -987,7 +1004,12 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
                 scanLabel={scanLabel}
               />
             )}
+            <NamingPreviewSummary
+              preview={namingPreview.preview}
+              hostCount={hostsToImport.length}
+            />
             <DiscoveredHostTable
+              namingPreview={namingPreview.byKey}
               hosts={hosts}
               scan={scan}
               isGlobalProbe={probe?.isGlobalProbe}
