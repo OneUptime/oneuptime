@@ -105,6 +105,8 @@ Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses
 - **Pipeline Run Unusually Long** : une exécution a pris deux fois sa durée habituelle ou plus, vérifié toutes les cinq minutes pendant qu'elle tourne, si bien qu'une exécution bloquée est repérée avant qu'elle ne se termine.
 - **Pipeline Is Late** : aucune exécution n'a démarré depuis plus longtemps que sa planification ne le permet.
 
+La page d'un pipeline dessine son **Lignage**, le premier endroit où regarder quand une exécution échoue ou est en retard : à gauche les tables qu'il lit, à droite les tables qu'il écrit, le pipeline entre les deux, et chaque carte indique son état actuel. Choisissez plus d'étapes pour voir à partir de quoi ces tables sont construites et ce qui est construit à partir d'elles, et ouvrez n'importe quelle table pour voir son propre onglet **Lignage**.
+
 ## Un seul signalement par cause
 
 Quand une table devient obsolète, chaque table construite à partir d'elle le devient aussi. Avant qu'une alerte de données ne s'ouvre, OneUptime cherche dans le lignage une alerte déjà ouverte sur ce à partir de quoi sa table ou son pipeline est construit : les tables en amont, les pipelines qui y écrivent, et les bases de données où elles se trouvent, jusqu'à cinq niveaux plus haut. S'il en trouve une, la nouvelle alerte est une conséquence de cette alerte :
@@ -113,6 +115,10 @@ Quand une table devient obsolète, chaque table construite à partir d'elle le d
 - Son fil d'activité et sa carte **Données** indiquent quelle alerte l'a causée, et elle rejoint l'épisode de la cause.
 
 La carte **Données** de la cause liste son **Impact en aval** : chaque alerte qu'elle a causée. La carte d'une alerte de table montre aussi les services qui écrivent dans la table, avec leurs écritures en échec, ainsi que leurs déploiements et autres changements dans la journée précédant l'alerte.
+
+Sous la carte **Données**, la page d'une alerte dessine son **Lignage** : autour de sa table, tel que l'onglet **Lignage** de la table le dessine, ou autour de son pipeline. Le chemin qui remonte jusqu'à l'alerte qui l'a causée et qui descend jusqu'à chaque alerte qu'elle a causée est mis en évidence - la table ou le pipeline de la cause marqué **Cause**, ceux de chaque alerte causée marqués **Conséquence** - et le reste s'estompe, si bien que quiconque l'ouvre voit où, dans la chaîne, le problème a commencé. Quand la cause porte sur une base de données entière, ou se trouve plus haut que ne remonte le diagramme, la carte le dit en toutes lettres. **Explorer le lignage** ouvre l'onglet **Lignage** de la table, ou la page du pipeline.
+
+Une personne qui ne peut pas voir l'alerte qui l'a causée n'a ni la carte **Données** ni le lignage, et une alerte causée qu'elle ne peut pas voir n'est ni mise en évidence ni comptée.
 
 ## Avant qu'un changement ne soit fusionné
 

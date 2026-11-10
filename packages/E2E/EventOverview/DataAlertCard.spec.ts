@@ -5,6 +5,9 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import fs from "fs/promises";
+import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * An alert's Data card (Components/DataObservability/DataAlertLineage):
@@ -13,7 +16,9 @@ import {
  * around it - and, on a cause's page, the alerts downstream it caused. Drawn
  * only for an alert a data monitor raised. Each of its reads stands alone:
  * one that fails or is refused leaves out only what it would have shown,
- * never the rest of the card, and never the page.
+ * never the rest of the card, and never the page. Under it, the alert's
+ * Lineage card (AlertLineageDiagram): its table drawn with the one it is
+ * built from, the way to its cause, or to the alert it caused, picked out.
  *
  * On the Event Overview fixture's alerts #311 and #310 (Fixture/Fixture.js,
  * ?data= and ?fail=data-alert / data-writers / data-changes), with the clock
@@ -46,6 +51,13 @@ const STARTED_ACKNOWLEDGED: string =
   "That alert was open first, on what this one's table or pipeline is built from, so this alert started acknowledged: nobody was paged twice.";
 const NO_CHANGES: string =
   "No deploy or other change of these services in the day before the alert.";
+
+const CAUSE_TABLE_CARD: string = `table:${uuid("8b000000", 1)}`;
+const TABLE_CARD: string = `table:${uuid("8b000000", 2)}`;
+const SCREENSHOTS: string = path.resolve(
+  __dirname,
+  "../../../output/playwright/event-overview-ui",
+);
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
@@ -115,6 +127,30 @@ function dataCard(page: Page): Locator {
 
 function impactCard(page: Page): Locator {
   return cardTitled(page, "Downstream Impact");
+}
+
+function lineageCard(page: Page): Locator {
+  return cardTitled(page, "Lineage");
+}
+
+// A card of the lineage drawing, by the id the drawing gives it.
+function lineageNode(card: Locator, nodeId: string): Locator {
+  return card.locator(`[data-node-id="${nodeId}"]`);
+}
+
+// How many times the page asked for an alert's lineage.
+async function lineageReads(page: Page, alertId: string): Promise<number> {
+  return page.evaluate((id: string): number => {
+    const state: { apiRequests?: Array<{ url: string }> } =
+      (
+        window as unknown as {
+          __eventOverviewFixture?: { apiRequests?: Array<{ url: string }> };
+        }
+      ).__eventOverviewFixture || {};
+    return (state.apiRequests || []).filter((request: { url: string }) => {
+      return request.url.endsWith(`/data-observability/alerts/${id}/lineage`);
+    }).length;
+  }, alertId);
 }
 
 // One part of the Data card, by its label: About, Written By...
@@ -344,5 +380,138 @@ test.describe("an alert's Data card", () => {
       part(card, "About").getByRole("link", { name: CAUSE_TABLE_NAME }),
     ).toHaveAttribute("href", CAUSE_TABLE_PATH);
     await expect(part(card, "Caused Upstream")).toHaveCount(0);
+  });
+});
+
+test.describe("an alert's Lineage card", () => {
+  test("draws the alert's table and the table it is built from, the way up to its cause picked out (?data=table)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "data=table");
+
+    const card: Locator = lineageCard(page);
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toContainText(
+      "The way up to the alert that caused this one is highlighted.",
+    );
+
+    // The alert's own table says whose page it is on; the table of its cause is marked Cause.
+    await expect(lineageNode(card, TABLE_CARD)).toContainText(
+      "payments.ledger_entries",
+    );
+    await expect(lineageNode(card, TABLE_CARD)).toContainText("This alert");
+    await expect(lineageNode(card, CAUSE_TABLE_CARD)).toHaveAttribute(
+      "data-role",
+      "Cause",
+    );
+    await expect(lineageNode(card, CAUSE_TABLE_CARD)).toContainText(
+      "payments.provider_callbacks",
+    );
+    await expect(card.getByTestId("lineage-edge-halo")).toHaveCount(1);
+    // The sentence saying the way is highlighted starts with the way's own mark; the legend leaves the ways to it.
+    await expect(
+      card
+        .getByTestId("lineage-highlight-notes")
+        .getByTestId("lineage-highlight-mark"),
+    ).toHaveCount(1);
+    await expect(card.getByTestId("lineage-legend")).toContainText(
+      "Pipeline run",
+    );
+    await expect(card.getByTestId("lineage-legend")).not.toContainText("cause");
+    await expect(
+      card.getByRole("button", { name: "Explore Lineage" }),
+    ).toBeVisible();
+
+    // The drawing opens with the cause's card in view, and the alert's own.
+    const canvas: { x: number; width: number } | null = await card
+      .getByTestId("lineage-graph")
+      .boundingBox();
+
+    for (const nodeId of [CAUSE_TABLE_CARD, TABLE_CARD]) {
+      const box: { x: number; width: number } | null = await lineageNode(
+        card,
+        nodeId,
+      ).boundingBox();
+
+      expect(box!.x).toBeGreaterThanOrEqual(canvas!.x);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(
+        canvas!.x + canvas!.width,
+      );
+    }
+
+    // Under the Data card, asked for once.
+    const dataBox: { y: number } | null = await dataCard(page).boundingBox();
+    const lineageBox: { y: number } | null = await card.boundingBox();
+    expect(lineageBox!.y).toBeGreaterThan(dataBox!.y);
+    expect(await lineageReads(page, ALERT_ID)).toBe(1);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await card.scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    await card.screenshot({
+      path: path.join(SCREENSHOTS, "data-alert-lineage-synthetic.png"),
+      animations: "disabled",
+    });
+  });
+
+  test("the cause's page draws the way down to the alert it caused (?data=table)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CAUSE_PATH, "data=table");
+
+    const card: Locator = lineageCard(page);
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toContainText(
+      "The way down to the alert this one caused is highlighted.",
+    );
+    await expect(lineageNode(card, TABLE_CARD)).toHaveAttribute(
+      "data-role",
+      "Consequence",
+    );
+    await expect(lineageNode(card, CAUSE_TABLE_CARD)).toContainText(
+      "This alert",
+    );
+  });
+
+  test("an alert no data monitor raised has no Lineage card, and none is asked for", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH);
+
+    await expect
+      .poll(async (): Promise<Array<unknown>> => {
+        return dataAlertQueries(page);
+      })
+      .toEqual(expect.arrayContaining([OWN_DATA_ALERT_QUERY]));
+    await settle(page);
+
+    await expect(lineageCard(page)).toHaveCount(0);
+    expect(await lineageReads(page, ALERT_ID)).toBe(0);
+  });
+
+  test("with its data alert refused, no Lineage card is drawn and none is asked for (?data=table&fail=data-alert)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "data=table&fail=data-alert");
+
+    await expect
+      .poll(async (): Promise<Array<unknown>> => {
+        return dataAlertQueries(page);
+      })
+      .toEqual(expect.arrayContaining([OWN_DATA_ALERT_QUERY]));
+    await settle(page);
+
+    await expect(lineageCard(page)).toHaveCount(0);
+    expect(await lineageReads(page, ALERT_ID)).toBe(0);
+    await expect(cardTitled(page, "Alert Feed")).toBeVisible();
   });
 });

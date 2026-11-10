@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   DATA_LINEAGE_DEPTH_CHOICES,
   DEFAULT_DATA_LINEAGE_DEPTH,
+  DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH,
   DataLineageEdgeKind,
   MAX_DATA_LINEAGE_DEPTH,
   getLineageDashboardNodeId,
@@ -9,6 +10,7 @@ import {
   getLineagePipelineNodeId,
   getLineageTableNodeId,
   isFailedLineageRunState,
+  isLineagePipelineNodeId,
   isRunningLineageRunState,
   readDataLineageDepth,
 } from "../../../Types/DataObservability/DataTableLineage";
@@ -65,6 +67,51 @@ describe("readDataLineageDepth", () => {
 
   test("the most steps are the steps a data alert's cause is looked for at", () => {
     expect(MAX_DATA_LINEAGE_DEPTH).toBe(MAX_CAUSE_DEPTH);
+  });
+
+  test.each([[undefined], ["lots"], [null], [NaN]])(
+    "a pipeline's request reading %p: the pipeline's default, one step",
+    (value: unknown) => {
+      expect(
+        readDataLineageDepth(value, DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH),
+      ).toBe(1);
+    },
+  );
+
+  test("a pipeline's request for steps reads them as a table's does", () => {
+    for (const [value, steps] of [
+      [2, 2],
+      ["4", 4],
+      [0, 1],
+      [99, MAX_DATA_LINEAGE_DEPTH],
+    ] as Array<[unknown, number]>) {
+      expect(
+        readDataLineageDepth(value, DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH),
+      ).toBe(steps);
+    }
+  });
+
+  test("a pipeline's default is a choice its page offers, within the most", () => {
+    expect(DATA_LINEAGE_DEPTH_CHOICES).toContain(
+      DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH,
+    );
+    expect(DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH).toBeLessThan(
+      DEFAULT_DATA_LINEAGE_DEPTH,
+    );
+  });
+});
+
+describe("whose card a drawing is about", () => {
+  test("a pipeline's card is known by its name", () => {
+    expect(isLineagePipelineNodeId(getLineagePipelineNodeId("p1"))).toBe(true);
+    expect(isLineagePipelineNodeId(getLineageTableNodeId("p1"))).toBe(false);
+    expect(isLineagePipelineNodeId(getLineageDashboardNodeId("p1"))).toBe(
+      false,
+    );
+    // A table whose id reads like a pipeline's card is still a table's.
+    expect(isLineagePipelineNodeId(getLineageTableNodeId("pipeline:x"))).toBe(
+      false,
+    );
   });
 });
 

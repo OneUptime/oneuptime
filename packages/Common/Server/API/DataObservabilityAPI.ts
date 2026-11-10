@@ -87,7 +87,10 @@ import DataWarehouseSpendSummary from "../Utils/DataObservability/DataWarehouseS
 import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
 import DataTableSensitivity from "../Utils/DataObservability/DataTableSensitivity";
 import DataTableLineageReader from "../Utils/DataObservability/DataTableLineage";
+import DataAlertLineageReader from "../Utils/DataObservability/DataAlertLineage";
 import {
+  DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH,
+  DataAlertLineageAnswer,
   DataTableLineage,
   readDataLineageDepth,
 } from "../../Types/DataObservability/DataTableLineage";
@@ -584,6 +587,77 @@ export default class DataObservabilityAPI extends BaseAPI<
         return lineage as unknown as JSONObject;
       },
       // Read-only, so a build in CI can ask what a change reaches.
+      { allowsApiKey: true },
+    );
+
+    // A pipeline's lineage: the tables it reads and writes, a step each way unless asked for more.
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.pipelineLineage,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataPipelineId: string =
+          typeof body["dataPipelineId"] === "string"
+            ? body["dataPipelineId"]
+            : "";
+
+        if (!ObjectID.isValidUUID(dataPipelineId)) {
+          throw new BadDataException("Name the pipeline by its ID.");
+        }
+
+        // Its tables' open alerts as the person who asked may see them.
+        const lineage: DataTableLineage | null =
+          await DataTableLineageReader.readPipeline({
+            projectId,
+            dataPipelineId: new ObjectID(dataPipelineId),
+            depth: readDataLineageDepth(
+              body["depth"],
+              DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH,
+            ),
+            now: OneUptimeDate.getCurrentDate(),
+            reader: props,
+          });
+
+        if (!lineage) {
+          throw new BadDataException("Pipeline not found.");
+        }
+
+        return lineage as unknown as JSONObject;
+      },
+      { allowsApiKey: true },
+    );
+
+    /*
+     * A data alert's lineage, with the ways to its cause and to the alerts
+     * it caused: every alert as the person who asked may see it, so an
+     * alert, or a cause, they may not see is not found.
+     */
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.alertLineage(":id"),
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const answer: DataAlertLineageAnswer | null =
+          await DataAlertLineageReader.read({
+            projectId,
+            alertId: DataObservabilityAPI.readId(req),
+            now: OneUptimeDate.getCurrentDate(),
+            reader: props,
+          });
+
+        if (!answer) {
+          throw new BadDataException("Alert not found.");
+        }
+
+        return answer as unknown as JSONObject;
+      },
       { allowsApiKey: true },
     );
 

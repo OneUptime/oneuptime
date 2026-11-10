@@ -34,6 +34,8 @@ import {
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { DataCheckHealthAnswer } from "Common/Types/DataObservability/DataObservabilityAttention";
 import {
+  DataAlertLineageAnswer,
+  DataPipelineLineageRequest,
   DataTableLineage,
   DataTableLineageRequest,
 } from "Common/Types/DataObservability/DataTableLineage";
@@ -270,6 +272,31 @@ export default class DataObservabilityApi {
       DATA_OBSERVABILITY_API_ROUTES.tableLineage,
       request as unknown as JSONObject,
     )) as unknown as DataTableLineage;
+  }
+
+  // A pipeline's lineage: the tables it reads and writes, and the steps beyond them.
+  public static async getPipelineLineage(
+    dataPipelineId: ObjectID,
+    depth: number,
+  ): Promise<DataTableLineage> {
+    const request: DataPipelineLineageRequest = {
+      dataPipelineId: dataPipelineId.toString(),
+      depth,
+    };
+
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.pipelineLineage,
+      request as unknown as JSONObject,
+    )) as unknown as DataTableLineage;
+  }
+
+  // A data alert's lineage, with the ways to its cause and to the alerts it caused.
+  public static async getAlertLineage(
+    alertId: ObjectID,
+  ): Promise<DataAlertLineageAnswer> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.alertLineage(alertId.toString()),
+    )) as unknown as DataAlertLineageAnswer;
   }
 
   // The databases the project knows of that nobody has connected.

@@ -105,6 +105,8 @@ Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit s
 - **Pipeline Run Unusually Long**: Ein Lauf dauert doppelt so lange wie üblich oder länger, geprüft alle fünf Minuten, während er läuft, sodass ein hängender Lauf erkannt wird, bevor er endet.
 - **Pipeline Is Late**: Seit längerer Zeit, als ihr Zeitplan erlaubt, hat kein Lauf begonnen.
 
+Die Seite einer Pipeline zeichnet ihre **Datenherkunft**, die erste Anlaufstelle, wenn ein Lauf fehlschlägt oder sich verspätet: links die Tabellen, die sie liest, rechts die Tabellen, die sie schreibt, dazwischen die Pipeline, und wie es jetzt um jede steht. Wählen Sie mehr Schritte, um zu sehen, woraus diese Tabellen erstellt werden und was aus ihnen erstellt wird, und öffnen Sie eine beliebige Tabelle, um ihren eigenen Tab **Datenherkunft** zu sehen.
+
 ## Eine Meldung pro Ursache
 
 Veraltet eine Tabelle, veralten auch alle Tabellen, die aus ihr erstellt werden. Bevor sich eine Datenwarnung öffnet, sucht OneUptime in der Lineage nach einer bereits offenen Warnung zu dem, woraus ihre Tabelle oder Pipeline erstellt wird: den vorgelagerten Tabellen, den Pipelines, die in sie schreiben, und den Datenbanken, in denen sie liegen, bis zu fünf Stufen aufwärts. Findet es eine, ist die neue Warnung die Folge dieser Warnung:
@@ -113,6 +115,10 @@ Veraltet eine Tabelle, veralten auch alle Tabellen, die aus ihr erstellt werden.
 - Ihr Feed und ihre Karte **Daten** sagen, welche Warnung sie verursacht hat, und sie schließt sich der Episode der Ursache an.
 
 Die Karte **Daten** der Ursache listet ihren **Auswirkung auf nachgelagerte Daten** auf: jede Warnung, die sie verursacht hat. Die Karte einer Tabellenwarnung zeigt außerdem die Dienste, die in die Tabelle schreiben, mit ihren fehlgeschlagenen Schreibvorgängen sowie ihren Deployments und anderen Änderungen am Tag vor der Warnung.
+
+Unter der Karte **Daten** zeichnet die Seite einer Warnung ihre **Datenherkunft**: rund um ihre Tabelle, wie der Tab **Datenherkunft** der Tabelle sie zeichnet, oder rund um ihre Pipeline. Der Weg hinauf zu der Warnung, die sie verursacht hat, und hinunter zu jeder Warnung, die sie verursacht hat, ist hervorgehoben - die Tabelle oder Pipeline der Ursache ist als **Ursache** markiert, die jeder verursachten Warnung als **Folge** -, und der Rest tritt zurück, sodass jeder, der sie öffnet, sieht, wo in der Kette das Problem begann. Betrifft die Ursache eine ganze Datenbank oder liegt sie weiter oben, als das Diagramm reicht, sagt die Karte das in Worten. **Datenherkunft erkunden** öffnet den Tab **Datenherkunft** der Tabelle oder die Seite der Pipeline.
+
+Wer die Warnung, die sie verursacht hat, nicht sehen darf, bekommt weder die Karte **Daten** noch die Datenherkunft, und eine von ihr verursachte Warnung, die diese Person nicht sehen darf, wird weder hervorgehoben noch mitgezählt.
 
 ## Bevor eine Änderung gemergt wird
 

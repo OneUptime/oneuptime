@@ -33,6 +33,8 @@ Il fonctionne avec une connexion en lecture seule, et répond au nom de la perso
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Les webhooks de synchronisation d'Airbyte | La clé d'ingestion dans l'URL |
 | `POST /api/data-observability/tables/freshness` | La fraîcheur d'une table, telle que l'outil MCP la donne, avec `{ "table": "public.orders" }` | Une clé API |
 | `POST /api/data-observability/tables/lineage` | Le lignage d'une table sur quelques étapes de chaque côté, avec l'état de chaque table, tel que son onglet **Lignage** le dessine, avec `{ "dataAssetId": "<table ID>", "depth": 3 }` | Une clé API |
+| `POST /api/data-observability/pipelines/lineage` | Les tables qu'un pipeline lit et écrit, avec l'état de chacune, telles que sa page les dessine, avec `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | Une clé API |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | Le lignage d'une alerte de données, tel que sa page le dessine, avec le chemin vers l'alerte qui l'a causée et vers les alertes qu'elle a causées | Une clé API |
 | `POST /api/data-observability/checks/apply` | Faire correspondre les contrôles du projet à un fichier, comme le fait `oneuptime data-checks apply`, avec `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Une clé API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Le badge « data as of » d'un produit de données | Le jeton propre au badge |
 
