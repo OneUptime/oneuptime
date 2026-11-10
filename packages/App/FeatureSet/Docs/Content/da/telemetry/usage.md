@@ -1,6 +1,6 @@
 # Telemetriforbrug
 
-Se, hvor meget telemetri hvert projekt, og hver tjeneste eller ressource i det, sender: protokoller, metrikker, spor og deres undtagelser, profiler, sessionsafspilninger og sikkerhedshændelser. Forbrug tælles på alle OneUptime-installationer, med eller uden fakturering, så du kan finde det, der fylder dit lager, uden at forespørge ClickHouse.
+Se, hvor meget telemetri hvert projekt, og hver tjeneste eller ressource i det, sender: protokoller, metrikker, spor, undtagelser, profiler, sessionsafspilninger og sikkerhedshændelser. Forbrug tælles på alle OneUptime-installationer, med eller uden fakturering, så du kan finde det, der fylder dit lager, uden at forespørge ClickHouse.
 
 :::cards
 - [Sådan tælles forbrug](#sådan-tælles-forbrug): Én gang om dagen, for hver ressource og hvert signal.
@@ -24,10 +24,12 @@ flowchart TB
 
 - **En dag tælles, når den er slut.** Hver dag tælles senest omkring kl. 08:00 UTC dagen efter, så dagens forbrug vises i morgen. En dag, der ikke kunne tælles, forsøges igen i en uge.
 - **Størrelsen er den lagrede størrelse.** Hvert signal tælles som størrelsen af de rækker, det gemmes i, før komprimering. Sessionsafspilninger tælles som de bytes, optagerne uploadede.
-- **Spor omfatter deres undtagelser, og profiler deres samples.**
+- **Undtagelser vises for sig.** De undtagelser, der registreres på spans og i protokoller, har deres egen total, kolonne og del af diagrammet, og **Spor** tæller spans. De har ikke deres egen række: hver række for spor angiver, hvor meget af den der var undtagelser. En dag, der blev talt, før undtagelser blev vist for sig, har dem stadig med i **Spor**, som før.
+- **Profiler omfatter deres samples.**
 - **OneUptimes egen telemetri tælles ikke.** Målinger fra monitorer, advarsler, hændelser og SLO'er, målinger fra Dataobservabilitet og budgetmetrikkerne for sessionsafspilninger skrives af OneUptime selv.
 - **På OneUptime Cloud er det disse rækker, telemetri faktureres ud fra.** På en installation uden fakturering tælles forbrug uden omkostninger, og der opkræves intet for det, heller ikke hvis fakturering slås til senere.
-- **Et budget tælles adskilt fra forbruget.** Et [indtagelsesbudget](/docs/telemetry/ingestion-budgets) tæller telemetri, efterhånden som den ankommer, dekomprimeret, så det kan stoppe en dags telemetri samme dag. Mens et er angivet, åbner denne side med dagens budgetter.
+- **Undtagelser faktureres som en del af Spor.** På OneUptime Cloud faktureres spor for deres spans og deres undtagelser samlet, til prisen for spor, som de altid er blevet. At undtagelser vises for sig, ændrer ikke noget ved din faktura, og de opkræves aldrig to gange.
+- **Et budget tælles adskilt fra forbruget.** Et [indtagelsesbudget](/docs/telemetry/ingestion-budgets) tæller telemetri, efterhånden som den ankommer, dekomprimeret, så det kan stoppe en dags telemetri samme dag. Mens et er angivet, åbner denne side med dagens budgetter. Undtagelser har ikke deres eget budget: de tælles med i budgettet for de spor eller protokoller, de ankommer i.
 
 ## Før du begynder
 
@@ -56,7 +58,7 @@ Siden har tre kort:
 | --- | --- |
 | **Telemetriforbrug** | Periodens **Total**, en total for hvert signal og et diagram over hver dag med signalerne stablet. |
 | **Forbrug pr. ressource** | Hver **Ressource** med dens type, en kolonne for hvert signal, **Total** og **Opbevaring** for dens telemetri. |
-| **Telemetri-forbrugshistorik** | Én række pr. signal, ressource og dag, med filtre for **Produkt**, **Dag** og **Tjeneste**. |
+| **Telemetri-forbrugshistorik** | Én række pr. produkt, ressource og dag, med filtre for **Produkt**, **Dag** og **Tjeneste**. En række for **Spor** rummer spans og undtagelser samlet, sådan som spor faktureres, og angiver under **Indtaget data (i GB)**, hvor meget af den der var undtagelser. |
 
 Telemetri, der ikke angav en tjeneste, vises som **Ukendt tjeneste**. En ressource, der er slettet siden, eller hvis type din rolle ikke læser, vises med sin type og begyndelsen af sit ID.
 
@@ -112,7 +114,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` og `endDay` er dage skrevet `YYYY-MM-DD`, begge medregnet, og en periode kan være op til 1095 dage lang. Svaret indeholder totalerne, hver dag pr. signal og hver ressource pr. signal, i GB, med omkostningen kun der, hvor fakturering er slået til, og nøglen kan læse fakturering.
+`startDay` og `endDay` er dage skrevet `YYYY-MM-DD`, begge medregnet, og en periode kan være op til 1095 dage lang. Svaret indeholder totalerne, hver dag pr. signal og hver ressource pr. signal, i GB, med omkostningen kun der, hvor fakturering er slået til, og nøglen kan læse fakturering. Undtagelser ligger under `Exceptions`, adskilt fra `Traces`, og en dag, der blev talt, før undtagelser blev vist for sig, har dem med i `Traces`.
 
 ## Fejlfinding
 
@@ -126,6 +128,10 @@ Forbrug er størrelsen af rækkerne før komprimering. ClickHouse komprimerer de
 
 :::details En ressource vises med sin type og et ID
 Ressourcen er slettet, siden den sendte telemetrien, eller din rolle læser ikke den type ressource. Dens forbrug tælles stadig.
+:::
+
+:::details Spor faldt den dag, Undtagelser dukkede op
+Undtagelser blev tidligere talt med i **Spor**. Fra den første dag, der blev talt med undtagelser for sig, tæller **Spor** spans, og **Undtagelser** tæller undtagelserne. Tilsammen er de det, **Spor** var, og det, spor faktureres for.
 :::
 
 ## Næste skridt

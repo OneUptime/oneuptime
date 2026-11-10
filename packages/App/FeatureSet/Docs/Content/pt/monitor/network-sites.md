@@ -171,7 +171,7 @@ Um site sem nenhuma linha na linha do tempo mostra `—` em vez de 100%: um site
 
 ### Tempo de atividade diário
 
-Ao lado do número de 30 dias, a visão geral de cada site mostra **Uptime (24h)**, e a página **Linha do tempo de status** dele mostra as últimas 24 horas, 7, 30 e 90 dias, e uma barra por dia para os últimos 30.
+Ao lado do número de 30 dias, a visão geral de cada site mostra **Tempo de atividade (24h)**, e a página **Linha do tempo de status** dele mostra as últimas 24 horas, 7, 30 e 90 dias, e uma barra por dia para os últimos 30.
 
 Uma média de 30 dias não consegue mostrar um dia ruim. Um dia inteiro de interrupção em uma janela de 30 dias custa 3,3 pontos, então um site que ficou apagado durante uma terça-feira inteira ainda informa 96,7% no mês, um número que parece arredondamento. As barras diárias colocam os mesmos dados onde um dia ruim é uma barra ruim.
 

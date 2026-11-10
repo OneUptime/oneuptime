@@ -171,7 +171,7 @@ Een locatie zonder enige tijdlijnrij toont `—` in plaats van 100%: een locatie
 
 ### Dagelijkse uptime
 
-Naast het cijfer over 30 dagen toont het overzicht van elke locatie **Uptime (24h)**, en haar pagina **Statustijdlijn** toont de laatste 24 uur, 7, 30 en 90 dagen, en een balk per dag voor de laatste 30.
+Naast het cijfer over 30 dagen toont het overzicht van elke locatie **Uptime (24u)**, en haar pagina **Statustijdlijn** toont de laatste 24 uur, 7, 30 en 90 dagen, en een balk per dag voor de laatste 30.
 
 Een gemiddelde over 30 dagen kan geen slechte dag laten zien. Een volle dag storing in een venster van 30 dagen kost 3,3 punt, dus een locatie die een hele dinsdag donker was, meldt nog steeds 96,7% voor de maand, een getal dat leest als een afronding. De dagbalken zetten dezelfde gegevens neer waar één slechte dag één slechte balk is.
 

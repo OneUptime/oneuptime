@@ -1,6 +1,6 @@
 # Telemetriegebruik
 
-Zie hoeveel telemetrie elk project, en elke service of resource daarin, verstuurt: logboeken, metrieken, traces en hun uitzonderingen, profielen, sessieherhalingen en beveiligingsgebeurtenissen. Gebruik wordt op elke OneUptime-installatie geteld, met of zonder facturering, zodat u kunt vinden wat uw opslag vult zonder ClickHouse te bevragen.
+Zie hoeveel telemetrie elk project, en elke service of resource daarin, verstuurt: logboeken, metrieken, traces, uitzonderingen, profielen, sessieherhalingen en beveiligingsgebeurtenissen. Gebruik wordt op elke OneUptime-installatie geteld, met of zonder facturering, zodat u kunt vinden wat uw opslag vult zonder ClickHouse te bevragen.
 
 :::cards
 - [Hoe gebruik wordt geteld](#hoe-gebruik-wordt-geteld): Eén keer per dag, voor elke resource en elk signaal.
@@ -24,10 +24,12 @@ flowchart TB
 
 - **Een dag wordt geteld zodra hij voorbij is.** Elke dag wordt uiterlijk rond 08:00 UTC de volgende dag geteld, dus het gebruik van vandaag verschijnt morgen. Een dag die niet kon worden geteld, wordt een week lang opnieuw geprobeerd.
 - **De grootte is de opgeslagen grootte.** Elk signaal wordt geteld als de grootte van de rijen waarin het is opgeslagen, vóór compressie. Sessieherhalingen worden geteld als de bytes die de recorders hebben geüpload.
-- **Traces omvatten hun uitzonderingen, en profielen hun samples.**
+- **Uitzonderingen worden apart getoond.** De uitzonderingen die op spans en in logboeken worden vastgelegd, hebben hun eigen totaal, kolom en deel van de grafiek, en onder **Traces** worden spans geteld. Ze hebben geen eigen rij: elke rij voor traces vermeldt hoeveel daarvan uitzonderingen waren. Bij een dag die is geteld voordat uitzonderingen apart werden getoond, staan ze nog steeds onder **Traces**, zoals voorheen.
+- **Profielen omvatten hun samples.**
 - **De eigen telemetrie van OneUptime wordt niet geteld.** Metingen van monitoren, waarschuwingen, incidenten en SLO's, metingen van Data-observability en de budgetmetrieken van sessieherhalingen worden door OneUptime zelf geschreven.
 - **Op OneUptime Cloud wordt telemetrie gefactureerd op basis van deze rijen.** Op een installatie zonder facturering wordt gebruik kosteloos geteld, en er wordt niets voor in rekening gebracht, ook niet als facturering later wordt ingeschakeld.
-- **Een budget wordt los van het gebruik geteld.** Een [ingestiebudget](/docs/telemetry/ingestion-budgets) telt telemetrie bij binnenkomst, gedecomprimeerd, zodat het de telemetrie van een dag nog dezelfde dag kan stoppen. Zolang er een is ingesteld, opent deze pagina met de budgetten van vandaag.
+- **Uitzonderingen worden gefactureerd als onderdeel van Traces.** Op OneUptime Cloud worden traces gefactureerd voor hun spans en hun uitzonderingen samen, tegen de prijs van traces, zoals altijd. Het apart tonen van uitzonderingen verandert niets aan uw factuur, en ze worden nooit twee keer in rekening gebracht.
+- **Een budget wordt los van het gebruik geteld.** Een [ingestiebudget](/docs/telemetry/ingestion-budgets) telt telemetrie bij binnenkomst, gedecomprimeerd, zodat het de telemetrie van een dag nog dezelfde dag kan stoppen. Zolang er een is ingesteld, opent deze pagina met de budgetten van vandaag. Uitzonderingen hebben geen eigen budget: ze tellen mee in het budget van de traces of logboeken waarin ze binnenkomen.
 
 ## Voordat u begint
 
@@ -56,7 +58,7 @@ De pagina heeft drie kaarten:
 | --- | --- |
 | **Telemetriegebruik** | Het **Totaal** van de periode, een totaal voor elk signaal en een grafiek van elke dag, met de signalen gestapeld. |
 | **Gebruik per resource** | Elke **Resource** met zijn soort, een kolom voor elk signaal, het **Totaal** en de **Bewaartermijn** van de telemetrie ervan. |
-| **Geschiedenis van telemetriegebruik** | Eén rij per signaal, resource en dag, met filters voor **Product**, **Dag** en **Service**. |
+| **Geschiedenis van telemetriegebruik** | Eén rij per product, resource en dag, met filters voor **Product**, **Dag** en **Service**. Een rij voor **Traces** bevat de spans en uitzonderingen samen, zoals traces worden gefactureerd, en vermeldt onder **Geïngesteerde gegevens (in GB)** hoeveel daarvan uitzonderingen waren. |
 
 Telemetrie die geen service noemde, staat vermeld als **Onbekende service**. Een resource die sindsdien is verwijderd, of waarvan uw rol de soort niet leest, staat vermeld met zijn soort en het begin van zijn ID.
 
@@ -112,7 +114,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` en `endDay` zijn dagen in de vorm `YYYY-MM-DD`, beide inbegrepen, en een periode kan tot 1095 dagen lang zijn. Het antwoord bevat de totalen, elke dag per signaal en elke resource per signaal, in GB, met de kosten alleen waar facturering aan staat en de sleutel facturering leest.
+`startDay` en `endDay` zijn dagen in de vorm `YYYY-MM-DD`, beide inbegrepen, en een periode kan tot 1095 dagen lang zijn. Het antwoord bevat de totalen, elke dag per signaal en elke resource per signaal, in GB, met de kosten alleen waar facturering aan staat en de sleutel facturering leest. Uitzonderingen staan onder `Exceptions`, los van `Traces`, en bij een dag die is geteld voordat uitzonderingen apart werden getoond, staan ze onder `Traces`.
 
 ## Problemen oplossen
 
@@ -126,6 +128,10 @@ Gebruik is de grootte van de rijen vóór compressie. ClickHouse comprimeert wat
 
 :::details Een resource staat vermeld met zijn soort en een ID
 De resource is verwijderd nadat hij de telemetrie verstuurde, of uw rol leest dat soort resource niet. Het gebruik ervan wordt nog steeds geteld.
+:::
+
+:::details Traces daalden op de dag dat Uitzonderingen verschenen
+Uitzonderingen werden vroeger onder **Traces** meegeteld. Vanaf de eerste dag die met uitzonderingen apart is geteld, worden onder **Traces** de spans geteld en onder **Uitzonderingen** de uitzonderingen. Samen vormen ze wat eerder onder **Traces** viel, en waarvoor traces worden gefactureerd.
 :::
 
 ## Volgende stappen

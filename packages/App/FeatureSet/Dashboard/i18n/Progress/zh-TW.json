@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48847,
-    "untranslated": 10446
+    "keys": 48994,
+    "untranslated": 10013
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -49,6 +49,7 @@
     "INP 540 ms",
     "IP",
     "IoT",
+    "JVM CPU",
     "JavaScript API",
     "K8s Pod",
     "Keystone",

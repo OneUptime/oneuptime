@@ -9,6 +9,7 @@ import Decimal from "Common/Types/Decimal";
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import MarketplaceSubscriptionStatus from "Common/Types/Marketplace/MarketplaceSubscriptionStatus";
 import MarketplaceUsageReportStatus from "Common/Types/Marketplace/MarketplaceUsageReportStatus";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import Semaphore from "Common/Server/Infrastructure/Semaphore";
 import MarketplaceChargeService from "Common/Server/Services/MarketplaceChargeService";
@@ -349,6 +350,69 @@ describe("MarketplaceUsageReporter", () => {
         }),
       },
     ]);
+  });
+
+  /*
+   * Issue #6356: a Traces row records how much of it was exceptions, for the
+   * usage pages to show apart. The hourly report reads each owed row's cost
+   * and nothing else, so a Traces row is billed exactly what it cost - its
+   * spans and exceptions together - and the exceptions never on their own.
+   */
+  it("bills a traces row by its cost alone, whatever part of it was exceptions", async () => {
+    mocked(TelemetryUsageBillingService.findBy).mockResolvedValue([
+      Object.assign(telemetryRow(1.25), {
+        productType: ProductType.Traces,
+        dataIngestedInGB: new Decimal(50),
+        exceptionDataIngestedInGB: new Decimal(40),
+      }),
+      Object.assign(telemetryRow(0.5), {
+        productType: ProductType.Traces,
+        dataIngestedInGB: new Decimal(20),
+        exceptionDataIngestedInGB: new Decimal(0),
+      }),
+    ]);
+
+    await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+    // What it asks for: every owed row, of any product, by its cost and day.
+    const asked: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    } = mocked(TelemetryUsageBillingService.findBy).mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    };
+
+    expect(asked.select).toEqual({ _id: true, totalCostInUSD: true, day: true });
+    expect(Object.keys(asked.query).sort()).toEqual([
+      "isReportedToBillingProvider",
+      "projectId",
+      "totalCostInUSD",
+    ]);
+
+    // The same quantity as the two rows' costs, 1.25 and 0.5, ever were.
+    const expected: number = MarketplaceUsageCalculator.calculate({
+      periodStart: LAST_REPORTED,
+      periodEnd: HOUR_START,
+      seats: 10,
+      seatPricePerMonthInUSD: 22,
+      trialEndsAt: null,
+      activeMonitors: 3,
+      activeMonitorPricePerMonthInUSD: 1,
+      telemetryInUSD: 1.75,
+      carriedInUSD: 0.004,
+    }).quantity;
+
+    expect(
+      (
+        mocked(MarketplaceUsageReportService.create).mock.calls[0]![0] as {
+          data: MarketplaceUsageReport;
+        }
+      ).data.quantity,
+    ).toBe(expected);
+
+    // Each row is marked reported once, so the day is never billed again.
+    expect(TelemetryUsageBillingService.updateOneById).toHaveBeenCalledTimes(2);
   });
 
   it("never bills the same telemetry twice, and moves the period on with the carried fraction", async () => {
