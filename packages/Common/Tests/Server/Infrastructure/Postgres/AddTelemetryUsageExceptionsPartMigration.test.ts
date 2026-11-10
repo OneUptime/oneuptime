@@ -1,7 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { QueryRunner, getMetadataArgsStorage } from "typeorm";
+import {
+  MigrationInterface,
+  QueryRunner,
+  getMetadataArgsStorage,
+} from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import TelemetryUsageBilling from "../../../../Models/DatabaseModels/TelemetryUsageBilling";
 import { AddIncomingMonitorRequestAsReceived1809080466402 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080466402-AddIncomingMonitorRequestAsReceived";
@@ -290,10 +294,15 @@ describe("what up() and down() send", () => {
   });
 
   test("it runs inside the migration transaction, like any metadata-only column add", () => {
-    // Only migrations that build indexes or keys online opt out.
-    expect(
-      new AddTelemetryUsageExceptionsPart1809080476356().transaction,
-    ).toBeUndefined();
+    /*
+     * Only migrations that build indexes or keys online opt out. Read
+     * through TypeORM's interface: a class that does not opt out does not
+     * declare the field.
+     */
+    const migration: MigrationInterface =
+      new AddTelemetryUsageExceptionsPart1809080476356();
+
+    expect(migration.transaction).toBeUndefined();
     expect(SOURCE).not.toContain("OnlineDdl");
   });
 

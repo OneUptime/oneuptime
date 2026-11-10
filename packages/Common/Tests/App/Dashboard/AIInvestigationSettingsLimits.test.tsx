@@ -464,7 +464,7 @@ describe.each(
      * description names as runs have it.
      */
     expect(dialog.textContent || "").toContain(
-      `Leave empty to use the project's time limit per run: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes, unless the project set its own.`,
+      `Leave empty for the project's time limit: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes by default.`,
     );
     expect(dialog.textContent || "").not.toMatch(/no time limit/i);
     expectNoRetiredDefault(dialog.textContent || "");

@@ -9,6 +9,7 @@ import { render, screen } from "@testing-library/react";
 import * as React from "react";
 import { describe, expect, it } from "@jest/globals";
 import { JSONObject } from "../../../Types/JSON";
+import OneUptimeDate from "../../../Types/Date";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
@@ -299,4 +300,33 @@ describe("A stored monitor summary renders the check that caused the incident", 
     expect(screen.queryByText(/has not reported a result yet/)).toBeNull();
     expect(screen.getByText("Host unreachable")).toBeInTheDocument();
   });
+
+  it.each([MonitorType.Logs, MonitorType.Metrics, MonitorType.Kubernetes])(
+    "a %s incident's check says when it ran, and has no next check",
+    (monitorType: MonitorType) => {
+      /*
+       * The check that opened the incident has run: a "Next Check At" on
+       * its card can only ever read "-", so it is not drawn - as on the
+       * same check's row in Monitoring Logs (#6639).
+       */
+      renderSnapshot(
+        storeAndReadBack({
+          monitorType: monitorType,
+          dataToProcess: {
+            projectId: PROJECT_ID,
+            monitorId: MONITOR_ID,
+            ...(monitorType === MonitorType.Logs ? { logCount: 412 } : {}),
+          } as unknown as MonitorSummaryDataToProcess,
+        }),
+      );
+
+      const view: HTMLElement = screen.getByTestId("telemetry-monitor-summary");
+
+      expect(view).toHaveTextContent("Monitored At");
+      expect(view).toHaveTextContent(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(CAPTURED_AT),
+      );
+      expect(view).not.toHaveTextContent("Next Check At");
+    },
+  );
 });

@@ -49114,5 +49114,13 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} تغيير مسار في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} من إشاراتك الخاصة في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} إشارة خاصة بك في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
+  "{{count}} bad AI answers": "إجابات الذكاء الاصطناعي السيئة: {{count}}",
+  "{{count}} bad AI answers_one": "{{count}} إجابة سيئة من الذكاء الاصطناعي",
+  "{{count}} data points": "نقاط البيانات: {{count}}",
+  "{{count}} data points_one": "{{count}} نقطة بيانات",
+  "{{count}} profiles": "الملفات التعريفية: {{count}}",
+  "{{count}} profiles_one": "{{count}} ملف تعريفي",
+  "{{count}} security events": "الأحداث الأمنية: {{count}}",
+  "{{count}} security events_one": "{{count}} حدث أمني",
   "Microsoft Dataverse": "Microsoft Dataverse"
 }
