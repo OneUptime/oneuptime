@@ -9,6 +9,7 @@ import {
   readGlobalSameAsEnglish,
   readLocaleProgress,
 } from "../../FeatureSet/Dashboard/scripts/i18n/LocaleStatus";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -395,14 +396,10 @@ const MAY_DROP_PLURAL_S: ReadonlySet<string> = new Set<string>([
   "iframes",
 ]);
 
-function escapeForPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
-}
-
 // A name standing as a word of its own: not part of a longer word or name.
 const NAME_PATTERNS: ReadonlyArray<[string, RegExp]> = NAMES.map(
   (name: string): [string, RegExp] => {
-    return [name, new RegExp(`(?<![\\w.])${escapeForPattern(name)}(?!\\w)`)];
+    return [name, new RegExp(`(?<![\\w.])${escapeRegExp(name)}(?!\\w)`)];
   },
 );
 
