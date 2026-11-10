@@ -185,8 +185,9 @@ describe("Session Replay idle time docs", (): void => {
     );
     const player: string = section(page, "### The player");
 
+    // The overlay's sentence, looked up whole in the reader's language.
     expect(overlays).toContain(
-      "`Skipped ${length}: recording paused while the page was idle`",
+      '"Skipped {{duration}}: recording paused while the page was idle"',
     );
     expect(player).toContain(
       "_Skipped 23m: recording paused while the page was idle_",
