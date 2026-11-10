@@ -429,7 +429,8 @@ card with the writers' changes refused (`?fail=data-changes`), which then says n
 changes rather than that there were none, and with who writes the table unreadable
 (`?fail=data-writers`), still saying what the alert is about and what caused it; and #310's
 Downstream Impact. Then the alert's Lineage card: on #311 the two tables with the way up to
-its cause marked Cause, under the Data card and asked for once (screenshot
+its cause marked Cause, both in view as the drawing opens, the sentence saying so after the
+way's own mark, under the Data card and asked for once (screenshot
 `data-alert-lineage-synthetic.png`); on #310 the way down to #311 marked Consequence; and no
 card, nor any read of it, for an alert no data monitor raised or with its data alert refused.
 

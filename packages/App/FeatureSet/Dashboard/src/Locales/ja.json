@@ -49351,8 +49351,6 @@
   "Views Ledger": "Views Ledger",
   "Views Read From": "Views Read From",
   "Views Read Until": "Views Read Until",
-  "Way to the cause and the alerts it caused": "原因と、引き起こしたアラートへの経路",
-  "Where this alert's table or pipeline gets its data and where its data goes, with how each table and pipeline is now: the way to the alert that caused it and to the alerts it caused is highlighted.": "このアラートのテーブルまたはパイプラインがどこからデータを得て、そのデータがどこへ行くかを、各テーブルとパイプラインの現在の状態とともに示します。原因となったアラートと、このアラートが引き起こしたアラートへの経路をハイライト表示します。",
   "Writes {{count}} tables": "{{count}} 個のテーブルに書き込み",
   "Writes {{count}} tables_one": "{{count}} 個のテーブルに書き込み",
   "{{count}} more tables this pipeline reads are not drawn.": "このパイプラインが読み取るテーブルがほかに {{count}} 個ありますが、描画されていません。",
@@ -49365,5 +49363,6 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "Where this alert's data comes from and where it goes, with how each table and pipeline is now.": "このアラートのデータがどこから来てどこへ行くかを、各テーブルとパイプラインの現在の状態とともに示します。"
 }

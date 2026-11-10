@@ -213,13 +213,22 @@ import {
   createTranslator,
 } from "../../../UI/Utils/TranslateTemplate";
 import AlertLineageDiagram, {
+  AlertLineageNote,
+  getAlertLineageNotes,
   getAlertLineageSentences,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/AlertLineageDiagram";
 import {
+  LINEAGE_CARD_WIDTH,
   LINEAGE_DIMMED_OPACITY,
+  LINEAGE_FIT_PADDING,
   LINEAGE_HIGHLIGHT_COLOR,
   LINEAGE_HIGHLIGHT_WIDTH,
   LINEAGE_PROBLEM_COLOR,
+  LINEAGE_READABLE_ZOOM,
+  LineageLayout,
+  LineagePoint,
+  getLineageViewport,
+  layoutLineage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraphModel";
 
 const ALERT: string = "55555555-5555-4555-8555-000000000001";
@@ -626,15 +635,29 @@ describe("the ways picked out", () => {
     });
   });
 
-  test("the legend says what the indigo way is", async () => {
+  test("the legend is the diagram's own: the sentences above it say what the indigo ways are", async () => {
     await renderDrawn();
 
-    expect(screen.getByTestId("lineage-legend")).toHaveTextContent(
-      "Way to the cause and the alerts it caused",
-    );
+    const legend: HTMLElement = screen.getByTestId("lineage-legend");
+
+    for (const words of [
+      "Pipeline run",
+      "Query history",
+      "View definition",
+      "Latest run failed",
+      "Late, open alert or failed run",
+      "Fresh or last run complete",
+      "Dropped",
+    ]) {
+      expect(legend).toHaveTextContent(words);
+    }
+
+    expect(legend).not.toHaveTextContent("cause");
+    // No line drawn over a halo: that is the ways' mark, and the sentences carry it.
+    expect(legend.querySelector("line[stroke-opacity]")).toBeNull();
   });
 
-  test("a drawing with no way picked out draws nothing faint, and its legend says nothing of ways", async () => {
+  test("a drawing with no way picked out draws nothing faint, marks nothing and says nothing of ways", async () => {
     await renderDrawn(
       anAnswer({
         lineage: aLineage({ highlight: undefined }),
@@ -647,16 +670,123 @@ describe("the ways picked out", () => {
 
     expect(document.querySelector("[data-dimmed]")).toBeNull();
     expect(screen.queryByTestId("lineage-edge-halo")).not.toBeInTheDocument();
-    expect(screen.getByTestId("lineage-legend")).not.toHaveTextContent(
-      "Way to the cause",
-    );
     expect(
       screen.queryByTestId("lineage-highlight-notes"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("lineage-highlight-mark"),
     ).not.toBeInTheDocument();
   });
 });
 
+describe("the sentences' marks", () => {
+  // The sentences, each a line: its mark (or the mark's room), then its words.
+  function noteLines(): Array<HTMLElement> {
+    return Array.from(
+      screen.getByTestId("lineage-highlight-notes").children,
+    ) as Array<HTMLElement>;
+  }
+
+  test("each sentence saying a way is highlighted starts with the way's own mark: indigo, as wide as the way, over its halo", async () => {
+    await renderDrawn();
+
+    const lines: Array<HTMLElement> = noteLines();
+
+    expect(lines).toHaveLength(2);
+
+    for (const line of lines) {
+      const mark: HTMLElement = within(line).getByTestId(
+        "lineage-highlight-mark",
+      );
+
+      // Before the words, so it is read as what the sentence is about.
+      expect(line.firstElementChild).toBe(mark);
+      expect(mark.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+
+      const strokes: Array<Element> = Array.from(mark.querySelectorAll("line"));
+
+      expect(strokes).toHaveLength(2);
+      // The halo under the line, as the drawing's ways have.
+      expect(strokes[0]).toHaveAttribute("stroke", LINEAGE_HIGHLIGHT_COLOR);
+      expect(strokes[0]).toHaveAttribute("stroke-opacity");
+      expect(strokes[1]).toHaveAttribute("stroke", LINEAGE_HIGHLIGHT_COLOR);
+      expect(strokes[1]).toHaveAttribute(
+        "stroke-width",
+        String(LINEAGE_HIGHLIGHT_WIDTH),
+      );
+    }
+
+    expect(lines[0]).toHaveTextContent(
+      "The way up to the alert that caused this one is highlighted.",
+    );
+    expect(lines[1]).toHaveTextContent(
+      "The ways down to 2 of the 3 alerts this one caused are highlighted.",
+    );
+  });
+
+  test("a sentence about a way not drawn has no mark, but keeps the mark's room so the sentences line up", async () => {
+    await renderDrawn(anAnswer({ drawnConsequenceCount: 0 }));
+
+    const lines: Array<HTMLElement> = noteLines();
+
+    expect(lines).toHaveLength(2);
+
+    const mark: HTMLElement = within(lines[0]!).getByTestId(
+      "lineage-highlight-mark",
+    );
+
+    expect(lines[1]).toHaveTextContent(
+      "The 3 alerts this one caused are further down than the diagram reaches.",
+    );
+    expect(
+      within(lines[1]!).queryByTestId("lineage-highlight-mark"),
+    ).not.toBeInTheDocument();
+    expect(lines[1]!.querySelector("svg")).toBeNull();
+
+    // The room: as wide as the mark, empty, hidden from screen readers, before the words.
+    const room: Element | null = lines[1]!.firstElementChild;
+
+    expect(room).toHaveAttribute("aria-hidden", "true");
+    expect(room).toBeEmptyDOMElement();
+    expect(room).toHaveClass("w-7", "shrink-0");
+    expect(mark).toHaveClass("w-7", "shrink-0");
+  });
+
+  test("no way drawn at all: the sentences stand alone, with no mark and no room", async () => {
+    await renderDrawn(
+      anAnswer({
+        lineage: aLineage({ highlight: undefined }),
+        isCauseDrawn: false,
+        drawnConsequenceCount: 0,
+      }),
+    );
+
+    const lines: Array<HTMLElement> = noteLines();
+
+    expect(lines).toHaveLength(2);
+    expect(
+      screen.queryByTestId("lineage-highlight-mark"),
+    ).not.toBeInTheDocument();
+
+    for (const line of lines) {
+      expect(line.children).toHaveLength(1);
+      expect(line.querySelector("[aria-hidden]")).toBeNull();
+    }
+  });
+});
+
 describe("what is said, and where it leads", () => {
+  test("the card says what it draws, briefly: the ways are left to the sentences under it", async () => {
+    await renderDrawn();
+
+    expect(screen.getByText("Lineage")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Where this alert's data comes from and where it goes, with how each table and pipeline is now.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   test("says in words what is picked out", async () => {
     await renderDrawn();
 
@@ -856,5 +986,215 @@ describe("the sentences under the card's header", () => {
     expect(getAlertLineageSentences(ENGLISH, anAnswer())[0]).toContain(
       "caused this one",
     );
+  });
+
+  test("the sentences are the notes' words, in the notes' order", () => {
+    for (const answer of [
+      anAnswer(),
+      anAnswer({ isCauseDrawn: false, drawnConsequenceCount: 0 }),
+      anAnswer({ hasCause: false, isCauseDrawn: false }),
+    ]) {
+      expect(getAlertLineageSentences(ENGLISH, answer)).toEqual(
+        getAlertLineageNotes(ENGLISH, answer).map(
+          (note: AlertLineageNote): string => {
+            return note.text;
+          },
+        ),
+      );
+    }
+  });
+});
+
+describe("which sentences say a way is highlighted", () => {
+  function marked(answer: DataAlertLineageAnswer): Array<boolean> {
+    return getAlertLineageNotes(ENGLISH, answer).map(
+      (note: AlertLineageNote): boolean => {
+        return note.isHighlighted;
+      },
+    );
+  }
+
+  test("a cause drawn does; a cause the drawing does not reach does not", () => {
+    const nothingCaused: Partial<DataAlertLineageAnswer> = {
+      consequenceCount: 0,
+      drawnConsequenceCount: 0,
+    };
+
+    expect(marked(anAnswer(nothingCaused))).toEqual([true]);
+    expect(marked(anAnswer({ ...nothingCaused, isCauseDrawn: false }))).toEqual(
+      [false],
+    );
+  });
+
+  test.each([
+    [3, 3, true],
+    [3, 1, true],
+    [3, 0, false],
+    [1, 0, false],
+    // More drawn than there are is all of them.
+    [2, 5, true],
+  ])(
+    "%p alerts it caused, %p drawn: highlighted %p",
+    (count: number, drawn: number, isHighlighted: boolean) => {
+      expect(
+        marked(
+          anAnswer({
+            hasCause: false,
+            isCauseDrawn: false,
+            consequenceCount: count,
+            drawnConsequenceCount: drawn,
+          }),
+        ),
+      ).toEqual([isHighlighted]);
+    },
+  );
+
+  test("the cause and what it caused each say so on their own", () => {
+    expect(marked(anAnswer())).toEqual([true, true]);
+    expect(marked(anAnswer({ drawnConsequenceCount: 0 }))).toEqual([
+      true,
+      false,
+    ]);
+    expect(marked(anAnswer({ isCauseDrawn: false }))).toEqual([false, true]);
+    expect(
+      marked(anAnswer({ isCauseDrawn: false, drawnConsequenceCount: 0 })),
+    ).toEqual([false, false]);
+  });
+
+  test("nothing caused it and it caused nothing: no notes", () => {
+    expect(
+      getAlertLineageNotes(
+        ENGLISH,
+        anAnswer({
+          hasCause: false,
+          isCauseDrawn: false,
+          consequenceCount: 0,
+          drawnConsequenceCount: 0,
+        }),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("where the drawing opens", () => {
+  let canvasBox: { width: number; height: number };
+  let realResizeObserver: unknown;
+  let realGetBoundingClientRect: () => DOMRect;
+
+  beforeEach(() => {
+    canvasBox = { width: 1000, height: 400 };
+    realResizeObserver = (globalThis as any).ResizeObserver;
+    (globalThis as any).ResizeObserver = class {
+      public observe(): void {
+        // The canvas's size is read when the drawing first shows.
+      }
+
+      public disconnect(): void {
+        // Nothing was watched.
+      }
+    };
+    realGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+    // The canvas has the size a test gives it; everything else none.
+    HTMLElement.prototype.getBoundingClientRect = function (
+      this: HTMLElement,
+    ): DOMRect {
+      const isCanvas: boolean =
+        this.getAttribute("data-testid") === "lineage-graph";
+
+      return {
+        width: isCanvas ? canvasBox.width : 0,
+        height: isCanvas ? canvasBox.height : 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        x: 0,
+        y: 0,
+        toJSON: () => {
+          return {};
+        },
+      } as DOMRect;
+    };
+  });
+
+  afterEach(() => {
+    (globalThis as any).ResizeObserver = realResizeObserver;
+    HTMLElement.prototype.getBoundingClientRect = realGetBoundingClientRect;
+  });
+
+  // Where a point of the drawing lands on the canvas, across.
+  function onCanvas(x: number): number {
+    const viewport: { x: number; zoom: number } | undefined =
+      mockFlowProps?.defaultViewport;
+
+    expect(viewport).toBeDefined();
+
+    return viewport!.x + x * viewport!.zoom;
+  }
+
+  // A canvas with room at the readable zoom for `room` of the drawing across.
+  function canvasFor(room: number): number {
+    return room * LINEAGE_READABLE_ZOOM * (1 + LINEAGE_FIT_PADDING);
+  }
+
+  test("too wide to read whole, it opens on the cause and the alert's own card, not centred on the alert", async () => {
+    const layout: LineageLayout = layoutLineage(aLineage());
+    const cause: LineagePoint = layout.positions.get(`table:${SOURCE}`)!;
+    const focus: LineagePoint = layout.positions.get(`table:${TABLE}`)!;
+    // Room for the cause to the alert's own card, and a little more.
+    canvasBox = {
+      width: canvasFor(focus.x + LINEAGE_CARD_WIDTH - cause.x + 40),
+      height: 400,
+    };
+
+    await renderDrawn();
+
+    expect(mockFlowProps?.fitView).toBe(false);
+    expect(mockFlowProps?.defaultViewport?.zoom).toBe(LINEAGE_READABLE_ZOOM);
+    expect(onCanvas(cause.x)).toBeGreaterThan(0);
+    expect(onCanvas(focus.x + LINEAGE_CARD_WIDTH)).toBeLessThan(
+      canvasBox.width,
+    );
+
+    // A table's drawing, centred on its table, would have left the cause off the canvas.
+    const centred: ReturnType<typeof getLineageViewport> = getLineageViewport({
+      layout,
+      focusNodeId: `table:${TABLE}`,
+      width: canvasBox.width,
+      height: canvasBox.height,
+    });
+
+    expect(centred!.x + cause.x * centred!.zoom).toBeLessThan(0);
+  });
+
+  test("on a phone, the cause's card is the one in view", async () => {
+    const layout: LineageLayout = layoutLineage(aLineage());
+    const cause: LineagePoint = layout.positions.get(`table:${SOURCE}`)!;
+    canvasBox = { width: 320, height: 400 };
+
+    await renderDrawn();
+
+    expect(onCanvas(cause.x)).toBeGreaterThanOrEqual(0);
+    expect(onCanvas(cause.x + LINEAGE_CARD_WIDTH)).toBeLessThanOrEqual(320);
+  });
+
+  test("an alert that caused others but has no cause opens on its own card", async () => {
+    const lineage: DataTableLineage = aLineage();
+    lineage.highlight = {
+      ...lineage.highlight!,
+      nodeIds: [`table:${TABLE}`, `table:${MART}`, `table:${REPORT}`],
+      edgeIds: [feeds(TABLE, MART), feeds(TABLE, REPORT)].sort(),
+      causeNodeIds: [],
+    };
+    const layout: LineageLayout = layoutLineage(lineage);
+    const focus: LineagePoint = layout.positions.get(`table:${TABLE}`)!;
+    canvasBox = { width: 320, height: 400 };
+
+    await renderDrawn(
+      anAnswer({ lineage, hasCause: false, isCauseDrawn: false }),
+    );
+
+    expect(onCanvas(focus.x)).toBeGreaterThanOrEqual(0);
+    expect(onCanvas(focus.x + LINEAGE_CARD_WIDTH)).toBeLessThanOrEqual(320);
   });
 });

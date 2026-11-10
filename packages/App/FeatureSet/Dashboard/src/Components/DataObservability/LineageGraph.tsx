@@ -21,6 +21,7 @@ import {
   LineageViewport,
   getLineageArrowLook,
   getLineageCardRole,
+  getLineageCardsInView,
   getLineageHighlightSets,
   getLineageViewport,
   getLineageNodeTone,
@@ -113,7 +114,10 @@ import "reactflow/dist/style.css";
  * and on a data alert's page, around the alert's table or pipeline - which
  * opens its own page there - with the way to the alert's cause and to the
  * alerts it caused picked out: its cards and arrows in indigo, the cause
- * and each consequence named on its card, and the rest drawn faint.
+ * and each consequence named on its card, and the rest drawn faint. Too
+ * wide to read whole, an alert's drawing opens on its cause - or on its
+ * own card when nothing caused it - and as much of its ways as fits
+ * (getLineageCardsInView), not just centred on the alert's own card.
  */
 
 const MAP_LABELS: Readonly<Record<LineagePlace, string>> = {
@@ -835,8 +839,10 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
         focusNodeId: props.lineage.focusNodeId,
         width: box?.width || 0,
         height: box?.height || 0,
+        // On an alert's drawing, its cause first: what the person paged came to see.
+        inView: getLineageCardsInView(props.lineage, layout, highlight),
       });
-    }, [layout, props.lineage.focusNodeId]);
+    }, [layout, props.lineage, highlight]);
 
   useLayoutEffect(() => {
     hasReaderMovedRef.current = false;
@@ -999,10 +1005,23 @@ const LegendSwatch: FunctionComponent<{
   );
 };
 
-// What the diagram's lines and colours mean; on an alert's drawing, what is picked out.
-export const LineageLegend: FunctionComponent<{
-  hasHighlight?: boolean | undefined;
-}> = (props: { hasHighlight?: boolean | undefined }): ReactElement => {
+/*
+ * A way picked out on an alert's drawing, drawn as the diagram draws it:
+ * the mark that starts each sentence saying a way is highlighted, so the
+ * sentence says what the indigo line is.
+ */
+export const LineageHighlightSwatch: FunctionComponent = (): ReactElement => {
+  return (
+    <LegendLine
+      color={LINEAGE_HIGHLIGHT_COLOR}
+      width={LINEAGE_HIGHLIGHT_WIDTH}
+      hasHalo={true}
+    />
+  );
+};
+
+// What the diagram's lines and colours mean.
+export const LineageLegend: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
   const item: (
     key: string,
@@ -1026,19 +1045,6 @@ export const LineageLegend: FunctionComponent<{
       className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500"
       data-testid="lineage-legend"
     >
-      {props.hasHighlight ? (
-        item(
-          "highlight",
-          <LegendLine
-            color={LINEAGE_HIGHLIGHT_COLOR}
-            width={LINEAGE_HIGHLIGHT_WIDTH}
-            hasHalo={true}
-          />,
-          translationKey("Way to the cause and the alerts it caused"),
-        )
-      ) : (
-        <></>
-      )}
       {item(
         "pipeline",
         <LegendLine color={LINEAGE_NEUTRAL_COLOR} />,

@@ -49351,8 +49351,6 @@
   "Views Ledger": "Views Ledger",
   "Views Read From": "Views Read From",
   "Views Read Until": "Views Read Until",
-  "Way to the cause and the alerts it caused": "Väg till orsaken och de orsakade larmen",
-  "Where this alert's table or pipeline gets its data and where its data goes, with how each table and pipeline is now: the way to the alert that caused it and to the alerts it caused is highlighted.": "Varifrån det här larmets tabell eller pipeline får sina data och vart dess data tar vägen, med hur varje tabell och pipeline mår nu: vägen till larmet som orsakade det och till larmen det orsakade är markerad.",
   "Writes {{count}} tables": "Skriver {{count}} tabeller",
   "Writes {{count}} tables_one": "Skriver {{count}} tabell",
   "{{count}} more tables this pipeline reads are not drawn.": "{{count}} tabeller till som den här pipelinen läser ritas inte.",
@@ -49365,5 +49363,6 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "Where this alert's data comes from and where it goes, with how each table and pipeline is now.": "Varifrån det här larmets data kommer och vart de tar vägen, med hur varje tabell och pipeline mår nu."
 }

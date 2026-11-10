@@ -847,17 +847,109 @@ export function layoutLineage(lineage: DataTableLineage): LineageLayout {
 }
 
 /*
+ * The cards a drawing too wide to read whole keeps in view when it opens,
+ * the most wanted first. On a data alert's drawing that is where its
+ * problem started - the cause's card - then the alert's own card, then the
+ * alerts it caused and the other cards on its ways, nearest first: the
+ * person paged sees the cause before anything else, wherever in the chain
+ * it is. On any other drawing, only the card it is about.
+ */
+export function getLineageCardsInView(
+  lineage: DataTableLineage,
+  layout: LineageLayout,
+  sets: LineageHighlightSets | null,
+): Array<string> {
+  const focus: string = lineage.focusNodeId;
+
+  if (!sets) {
+    return [focus];
+  }
+
+  const focusColumn: number = layout.columns.get(focus) || 0;
+  const stepsAway: (id: string) => number = (id: string): number => {
+    return Math.abs((layout.columns.get(id) ?? focusColumn) - focusColumn);
+  };
+  const nearestFirst: (ids: Iterable<string>) => Array<string> = (
+    ids: Iterable<string>,
+  ): Array<string> => {
+    return Array.from(new Set(ids))
+      .filter((id: string): boolean => {
+        return id !== focus && layout.positions.has(id);
+      })
+      .sort((a: string, b: string): number => {
+        return stepsAway(a) - stepsAway(b) || compareText(a, b);
+      });
+  };
+
+  const causes: Array<string> = nearestFirst(sets.causeNodeIds);
+  const consequences: Array<string> = nearestFirst(
+    sets.consequenceNodeIds,
+  ).filter((id: string): boolean => {
+    return !causes.includes(id);
+  });
+  const rest: Array<string> = nearestFirst(sets.nodeIds).filter(
+    (id: string): boolean => {
+      return !causes.includes(id) && !consequences.includes(id);
+    },
+  );
+
+  return [...causes, focus, ...consequences, ...rest];
+}
+
+// A box in the drawing's own units.
+interface LineageBox {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+function getCardBox(point: LineagePoint): LineageBox {
+  return {
+    left: point.x,
+    top: point.y,
+    right: point.x + LINEAGE_CARD_WIDTH,
+    bottom: point.y + LINEAGE_CARD_HEIGHT,
+  };
+}
+
+/*
+ * Where a box's middle may go, one way, with the box still inside the room:
+ * as close to `toward` as that allows, or the box's own middle.
+ */
+function getLeaningMiddle(data: {
+  low: number;
+  high: number;
+  room: number;
+  toward: number | null;
+}): number {
+  const middle: number = (data.low + data.high) / 2;
+  const slack: number = Math.max(0, (data.room - (data.high - data.low)) / 2);
+
+  if (data.toward === null) {
+    return middle;
+  }
+
+  return Math.min(middle + slack, Math.max(middle - slack, data.toward));
+}
+
+/*
  * Where the diagram is looked at from on a canvas of a given size: the whole
  * drawing, fitted and centered, when it fits with its cards' names still
- * readable; otherwise the table itself in the middle, at the least zoom
- * that keeps names readable - the rest is a drag away, and the fit control
- * shows all of it. Null while the canvas has no size to go by.
+ * readable. Otherwise, at the least zoom that keeps names readable, the
+ * cards it is asked to keep in view (getLineageCardsInView: the table
+ * itself, unless an alert's ways say more), as many as fit, the most wanted
+ * first; the view leans toward the first card that did not fit, so the way
+ * to it starts on screen. The rest is a drag away, and the fit control shows
+ * all of it. Null while the canvas has no size to go by.
  */
 export function getLineageViewport(data: {
   layout: LineageLayout;
   focusNodeId: string;
   width: number;
   height: number;
+  // The cards to keep in view, the most wanted first; the drawing's own card when none are named.
+  inView?: ReadonlyArray<string> | undefined;
 }): LineageViewport | null {
   if (!(data.width > 0) || !(data.height > 0)) {
     return null;
@@ -877,19 +969,66 @@ export function getLineageViewport(data: {
     };
   }
 
-  const focus: LineagePoint | undefined = data.layout.positions.get(
-    data.focusNodeId,
-  );
-  const centerX: number = focus
-    ? focus.x + LINEAGE_CARD_WIDTH / 2
+  const zoom: number = LINEAGE_READABLE_ZOOM;
+  // The room the canvas holds at that zoom, kept clear of its edges as a fitted drawing is.
+  const roomWidth: number = data.width / (zoom * (1 + LINEAGE_FIT_PADDING));
+  const roomHeight: number = data.height / (zoom * (1 + LINEAGE_FIT_PADDING));
+  const wanted: ReadonlyArray<string> =
+    data.inView && data.inView.length > 0 ? data.inView : [data.focusNodeId];
+
+  let shown: LineageBox | null = null;
+  // The first card wanted that did not fit: the view leans toward it.
+  let leftOut: LineageBox | null = null;
+
+  for (const id of wanted) {
+    const point: LineagePoint | undefined = data.layout.positions.get(id);
+
+    if (!point) {
+      continue;
+    }
+
+    const card: LineageBox = getCardBox(point);
+    const joined: LineageBox = shown
+      ? {
+          left: Math.min(shown.left, card.left),
+          top: Math.min(shown.top, card.top),
+          right: Math.max(shown.right, card.right),
+          bottom: Math.max(shown.bottom, card.bottom),
+        }
+      : card;
+    const fits: boolean =
+      joined.right - joined.left <= roomWidth &&
+      joined.bottom - joined.top <= roomHeight;
+
+    if (fits || !shown) {
+      // A card that cannot fit even alone is still the one shown.
+      shown = joined;
+    } else if (!leftOut) {
+      leftOut = card;
+    }
+  }
+
+  // Not one card to keep in view: the drawing's middle.
+  const centerX: number = shown
+    ? getLeaningMiddle({
+        low: shown.left,
+        high: shown.right,
+        room: roomWidth,
+        toward: leftOut ? (leftOut.left + leftOut.right) / 2 : null,
+      })
     : data.layout.width / 2;
-  const centerY: number = focus
-    ? focus.y + LINEAGE_CARD_HEIGHT / 2
+  const centerY: number = shown
+    ? getLeaningMiddle({
+        low: shown.top,
+        high: shown.bottom,
+        room: roomHeight,
+        toward: leftOut ? (leftOut.top + leftOut.bottom) / 2 : null,
+      })
     : data.layout.height / 2;
 
   return {
-    x: data.width / 2 - centerX * LINEAGE_READABLE_ZOOM,
-    y: data.height / 2 - centerY * LINEAGE_READABLE_ZOOM,
-    zoom: LINEAGE_READABLE_ZOOM,
+    x: data.width / 2 - centerX * zoom,
+    y: data.height / 2 - centerY * zoom,
+    zoom,
   };
 }

@@ -42,6 +42,7 @@ import {
   fitHeights,
   getLineageArrowLook,
   getLineageCardRole,
+  getLineageCardsInView,
   getLineageColumns,
   getLineageEdgeLabel,
   getLineageEdgeStyle,
@@ -665,6 +666,421 @@ describe("where the drawing is looked at from", () => {
       450,
       9,
     );
+  });
+});
+
+describe("an alert's drawing: the cards it opens on", () => {
+  const A: string = getLineageTableNodeId("a");
+  const B: string = getLineageTableNodeId("b");
+  const C: string = getLineageTableNodeId("c");
+  const D: string = getLineageTableNodeId("d");
+  const Z: string = getLineageTableNodeId("z");
+
+  // z -> a -> b -> focus -> c -> d -> e, one card a column.
+  function chain(
+    highlight?: Partial<DataTableLineage["highlight"]> | undefined,
+  ): DataTableLineage {
+    return {
+      ...lineageOf(
+        [
+          up("b", -1),
+          up("a", -2),
+          up("z", -3),
+          down("c", 1),
+          down("d", 2),
+          down("e", 3),
+        ],
+        [
+          feeds("z", "a"),
+          feeds("a", "b"),
+          feeds("b", "focus"),
+          feeds("focus", "c"),
+          feeds("c", "d"),
+          feeds("d", "e"),
+        ],
+      ),
+      ...(highlight
+        ? {
+            highlight: {
+              nodeIds: [],
+              edgeIds: [],
+              causeNodeIds: [],
+              consequenceNodeIds: [],
+              dataPipelineIds: [],
+              ...highlight,
+            },
+          }
+        : {}),
+    };
+  }
+
+  // The cause on a, two steps up; the alert it caused on d, two steps down.
+  const ways: DataTableLineage = chain({
+    nodeIds: [FOCUS, B, A, C, D],
+    causeNodeIds: [A],
+    consequenceNodeIds: [D],
+  });
+
+  function cardsInView(lineage: DataTableLineage): Array<string> {
+    return getLineageCardsInView(
+      lineage,
+      layoutLineage(lineage),
+      getLineageHighlightSets(lineage),
+    );
+  }
+
+  // Cards placed by hand, so where the view lands can be worked out exactly.
+  function cardsAt(points: Record<string, [number, number]>): LineageLayout {
+    const positions: Map<string, LineagePoint> = new Map();
+    let width: number = 0;
+    let height: number = 0;
+
+    for (const [id, [x, y]] of Object.entries(points)) {
+      positions.set(id, { x, y });
+      width = Math.max(width, x + LINEAGE_CARD_WIDTH);
+      height = Math.max(height, y + LINEAGE_CARD_HEIGHT);
+    }
+
+    return { positions, columns: new Map(), width, height };
+  }
+
+  // A canvas whose room at the readable zoom, kept clear of its edges, is `room` across (and as high).
+  function canvasFor(room: number): number {
+    return room * LINEAGE_READABLE_ZOOM * (1 + LINEAGE_FIT_PADDING);
+  }
+
+  // Where on the drawing the canvas's middle is.
+  function middleOf(
+    viewport: LineageViewport,
+    size: { width: number; height: number },
+  ): LineagePoint {
+    return {
+      x: (size.width / 2 - viewport.x) / viewport.zoom,
+      y: (size.height / 2 - viewport.y) / viewport.zoom,
+    };
+  }
+
+  // Where a point of the drawing lands on the canvas, across.
+  function onCanvas(viewport: LineageViewport, x: number): number {
+    return viewport.x + x * viewport.zoom;
+  }
+
+  describe("which cards, the most wanted first", () => {
+    test("a drawing with no ways keeps only its own card in view", () => {
+      expect(cardsInView(chain())).toEqual([FOCUS]);
+      expect(
+        getLineageCardsInView(chain(), layoutLineage(chain()), null),
+      ).toEqual([FOCUS]);
+    });
+
+    test("the cause first, then the alert's own card, then the alerts it caused, then the rest of the ways", () => {
+      expect(cardsInView(ways)).toEqual([A, FOCUS, D, B, C]);
+    });
+
+    test("an alert that caused others but has no cause: its own card first", () => {
+      expect(
+        cardsInView(chain({ nodeIds: [FOCUS, C, D], consequenceNodeIds: [D] })),
+      ).toEqual([FOCUS, D, C]);
+    });
+
+    test("several causes, and several alerts caused: the nearest first", () => {
+      // b is a step up and a two: nearest first is not the order of their ids.
+      expect(
+        cardsInView(
+          chain({
+            nodeIds: [FOCUS, Z, A, B, C, D],
+            causeNodeIds: [A, B],
+            consequenceNodeIds: [D, C],
+          }),
+        ),
+      ).toEqual([B, A, FOCUS, C, D, Z]);
+    });
+
+    test("as near as each other: in the order of their ids, the same every time", () => {
+      const lineage: DataTableLineage = {
+        ...lineageOf(
+          [up("y", -1), up("x", -1)],
+          [feeds("y", "focus"), feeds("x", "focus")],
+        ),
+        highlight: {
+          nodeIds: [
+            FOCUS,
+            getLineageTableNodeId("y"),
+            getLineageTableNodeId("x"),
+          ],
+          edgeIds: [],
+          causeNodeIds: [
+            getLineageTableNodeId("y"),
+            getLineageTableNodeId("x"),
+          ],
+          consequenceNodeIds: [],
+          dataPipelineIds: [],
+        },
+      };
+
+      expect(cardsInView(lineage)).toEqual([
+        getLineageTableNodeId("x"),
+        getLineageTableNodeId("y"),
+        FOCUS,
+      ]);
+    });
+
+    test("a card named twice is kept once, as a cause; the alert's own card once; a card not drawn never", () => {
+      const ghost: string = getLineageTableNodeId("ghost");
+
+      expect(
+        cardsInView(
+          chain({
+            nodeIds: [FOCUS, A, D, ghost],
+            causeNodeIds: [A, ghost],
+            consequenceNodeIds: [A, FOCUS, D, ghost],
+          }),
+        ),
+      ).toEqual([A, FOCUS, D]);
+    });
+  });
+
+  describe("where the view lands", () => {
+    // Columns as the layout spaces them, all in one row.
+    const COLUMN_X: (column: number) => number = (column: number): number => {
+      return column * COLUMN;
+    };
+    const row: LineageLayout = cardsAt({
+      [Z]: [COLUMN_X(0), 0],
+      [A]: [COLUMN_X(1), 0],
+      [B]: [COLUMN_X(2), 0],
+      [FOCUS]: [COLUMN_X(3), 0],
+      [C]: [COLUMN_X(4), 0],
+      [D]: [COLUMN_X(5), 0],
+    });
+    const HEIGHT: number = 400;
+
+    function viewOf(
+      layout: LineageLayout,
+      width: number,
+      inView?: ReadonlyArray<string> | undefined,
+      height: number = HEIGHT,
+    ): LineageViewport {
+      const viewport: LineageViewport | null = getLineageViewport({
+        layout,
+        focusNodeId: FOCUS,
+        width,
+        height,
+        ...(inView ? { inView } : {}),
+      });
+
+      expect(viewport).not.toBeNull();
+      // Never past what keeps a card's name readable.
+      expect(viewport!.zoom).toBe(LINEAGE_READABLE_ZOOM);
+
+      return viewport!;
+    }
+
+    test("only the drawing's own card named, or none: the same view as a table's drawing", () => {
+      const width: number = canvasFor(600);
+      const plain: LineageViewport = viewOf(row, width);
+
+      expect(viewOf(row, width, [FOCUS])).toEqual(plain);
+      expect(viewOf(row, width, [])).toEqual(plain);
+      // The table's middle on the canvas's middle.
+      expect(middleOf(plain, { width, height: HEIGHT }).x).toBeCloseTo(
+        COLUMN_X(3) + LINEAGE_CARD_WIDTH / 2,
+        9,
+      );
+    });
+
+    test("the cause and the alert's own card both fit: both in view, leaning toward the next card wanted", () => {
+      // Room for a to focus (2 columns and a card) and 40 more, not for d.
+      const span: number = COLUMN_X(3) + LINEAGE_CARD_WIDTH - COLUMN_X(1);
+      const width: number = canvasFor(span + 40);
+      const viewport: LineageViewport = viewOf(row, width, [A, FOCUS, D, B]);
+
+      expect(onCanvas(viewport, COLUMN_X(1))).toBeGreaterThan(0);
+      expect(onCanvas(viewport, COLUMN_X(3) + LINEAGE_CARD_WIDTH)).toBeLessThan(
+        width,
+      );
+      // Toward d by all the room there is: half of the 40.
+      expect(middleOf(viewport, { width, height: HEIGHT }).x).toBeCloseTo(
+        COLUMN_X(1) + span / 2 + 20,
+        9,
+      );
+      // One row: across only.
+      expect(middleOf(viewport, { width, height: HEIGHT }).y).toBeCloseTo(
+        LINEAGE_CARD_HEIGHT / 2,
+        9,
+      );
+    });
+
+    test("everything wanted fits: the cards' own middle, leaning nowhere", () => {
+      const span: number = COLUMN_X(5) + LINEAGE_CARD_WIDTH - COLUMN_X(1);
+      const width: number = canvasFor(span + 40);
+      const viewport: LineageViewport = viewOf(row, width, [A, FOCUS, D]);
+
+      expect(middleOf(viewport, { width, height: HEIGHT }).x).toBeCloseTo(
+        COLUMN_X(1) + span / 2,
+        9,
+      );
+    });
+
+    test("too narrow for both: the cause alone, at the side the alert is on, so the way to it starts on screen", () => {
+      const width: number = canvasFor(LINEAGE_CARD_WIDTH + 100);
+      const viewport: LineageViewport = viewOf(row, width, [A, FOCUS, D]);
+      // The room's edge on the canvas: what a fitted drawing keeps clear.
+      const edge: number = (width - width / (1 + LINEAGE_FIT_PADDING)) / 2;
+
+      expect(onCanvas(viewport, COLUMN_X(1))).toBeCloseTo(edge, 9);
+      expect(onCanvas(viewport, COLUMN_X(1) + LINEAGE_CARD_WIDTH)).toBeLessThan(
+        width - edge + 1e-9,
+      );
+      // The alert's own card is a drag away, to the right.
+      expect(onCanvas(viewport, COLUMN_X(3))).toBeGreaterThan(width);
+    });
+
+    test("narrower than a card: still the cause, its middle on the canvas's middle", () => {
+      const width: number = 120;
+      const viewport: LineageViewport = viewOf(row, width, [A, FOCUS]);
+
+      expect(middleOf(viewport, { width, height: HEIGHT }).x).toBeCloseTo(
+        COLUMN_X(1) + LINEAGE_CARD_WIDTH / 2,
+        9,
+      );
+    });
+
+    test("a card that does not fit is passed over for later ones that do, and the view leans toward the first passed over", () => {
+      // Room for b and focus, not for d; b comes after d, on the other side.
+      const span: number = COLUMN_X(3) + LINEAGE_CARD_WIDTH - COLUMN_X(2);
+      const width: number = canvasFor(span + 72);
+      const viewport: LineageViewport = viewOf(row, width, [FOCUS, D, B]);
+
+      expect(onCanvas(viewport, COLUMN_X(2))).toBeGreaterThan(0);
+      expect(onCanvas(viewport, COLUMN_X(3) + LINEAGE_CARD_WIDTH)).toBeLessThan(
+        width,
+      );
+      expect(middleOf(viewport, { width, height: HEIGHT }).x).toBeCloseTo(
+        COLUMN_X(2) + span / 2 + 36,
+        9,
+      );
+    });
+
+    test("a card between two kept is in view without asking", () => {
+      // Room for focus to d, not for z: c sits between them.
+      const span: number = COLUMN_X(5) + LINEAGE_CARD_WIDTH - COLUMN_X(3);
+      const width: number = canvasFor(span + 10);
+      const viewport: LineageViewport = viewOf(row, width, [FOCUS, Z, D]);
+
+      for (const x of [COLUMN_X(3), COLUMN_X(4), COLUMN_X(5)]) {
+        expect(onCanvas(viewport, x)).toBeGreaterThan(0);
+        expect(onCanvas(viewport, x + LINEAGE_CARD_WIDTH)).toBeLessThan(width);
+      }
+    });
+
+    test("leaning left as readily as right", () => {
+      // Room for b and focus, not for z.
+      const span: number = COLUMN_X(3) + LINEAGE_CARD_WIDTH - COLUMN_X(2);
+      const width: number = canvasFor(span + 72);
+      const viewport: LineageViewport = viewOf(row, width, [FOCUS, B, Z]);
+
+      expect(middleOf(viewport, { width, height: HEIGHT }).x).toBeCloseTo(
+        COLUMN_X(2) + span / 2 - 36,
+        9,
+      );
+    });
+
+    test("leaning down toward a card further down, but never so far the cards wanted leave the room", () => {
+      const tall: LineageLayout = cardsAt({
+        [A]: [0, 0],
+        [FOCUS]: [COLUMN_X(1), 0],
+        [D]: [COLUMN_X(6), 1000],
+      });
+      const room: number = COLUMN_X(1) + LINEAGE_CARD_WIDTH + 100;
+      const width: number = canvasFor(room);
+      const height: number = canvasFor(room);
+      const viewport: LineageViewport = viewOf(
+        tall,
+        width,
+        [A, FOCUS, D],
+        height,
+      );
+      const middle: LineagePoint = middleOf(viewport, { width, height });
+
+      // As far down as the room allows: the cards' top on the room's top.
+      expect(middle.y).toBeCloseTo(room / 2, 9);
+      expect(middle.x).toBeCloseTo(
+        (COLUMN_X(1) + LINEAGE_CARD_WIDTH) / 2 + 50,
+        9,
+      );
+    });
+
+    test("cards named that are not drawn are skipped; none drawn at all shows the drawing's middle", () => {
+      const width: number = canvasFor(600);
+
+      expect(viewOf(row, width, ["table:ghost", FOCUS])).toEqual(
+        viewOf(row, width, [FOCUS]),
+      );
+      expect(
+        middleOf(viewOf(row, width, ["table:ghost"]), {
+          width,
+          height: HEIGHT,
+        }).x,
+      ).toBeCloseTo(row.width / 2, 9);
+    });
+
+    test("a drawing that fits whole is fitted whole, whatever is named", () => {
+      const width: number = 3000;
+      const small: LineageLayout = cardsAt({
+        [A]: [0, 0],
+        [FOCUS]: [COLUMN_X(1), 0],
+      });
+
+      expect(
+        getLineageViewport({
+          layout: small,
+          focusNodeId: FOCUS,
+          width,
+          height: 900,
+          inView: [A, FOCUS],
+        }),
+      ).toEqual(
+        getLineageViewport({
+          layout: small,
+          focusNodeId: FOCUS,
+          width,
+          height: 900,
+        }),
+      );
+    });
+
+    test("an alert's drawing laid out as it is drawn: the cause in view", () => {
+      const layout: LineageLayout = layoutLineage(ways);
+      const cause: LineagePoint = layout.positions.get(A)!;
+      const focus: LineagePoint = layout.positions.get(FOCUS)!;
+      const width: number = canvasFor(
+        focus.x + LINEAGE_CARD_WIDTH - cause.x + 40,
+      );
+      const viewport: LineageViewport | null = getLineageViewport({
+        layout,
+        focusNodeId: FOCUS,
+        width,
+        height: HEIGHT,
+        inView: cardsInView(ways),
+      });
+
+      expect(viewport!.zoom).toBe(LINEAGE_READABLE_ZOOM);
+      expect(onCanvas(viewport!, cause.x)).toBeGreaterThan(0);
+      expect(onCanvas(viewport!, focus.x + LINEAGE_CARD_WIDTH)).toBeLessThan(
+        width,
+      );
+
+      // Opened on the alert's own card, as a table's drawing is, the cause would be off the canvas.
+      const plain: LineageViewport | null = getLineageViewport({
+        layout,
+        focusNodeId: FOCUS,
+        width,
+        height: HEIGHT,
+      });
+
+      expect(onCanvas(plain!, cause.x)).toBeLessThan(0);
+    });
   });
 });
 

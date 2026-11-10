@@ -49351,8 +49351,6 @@
   "Views Ledger": "Views Ledger",
   "Views Read From": "Views Read From",
   "Views Read Until": "Views Read Until",
-  "Way to the cause and the alerts it caused": "Vej til årsagen og de forårsagede advarsler",
-  "Where this alert's table or pipeline gets its data and where its data goes, with how each table and pipeline is now: the way to the alert that caused it and to the alerts it caused is highlighted.": "Hvor denne advarsels tabel eller pipeline får sine data fra, og hvor dataene går hen, med hvordan hver tabel og pipeline har det nu: vejen til advarslen, der forårsagede den, og til de advarsler, den forårsagede, er fremhævet.",
   "Writes {{count}} tables": "Skriver {{count}} tabeller",
   "Writes {{count}} tables_one": "Skriver {{count}} tabel",
   "{{count}} more tables this pipeline reads are not drawn.": "{{count}} tabeller mere, som denne pipeline læser, tegnes ikke.",
@@ -49365,5 +49363,6 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "Where this alert's data comes from and where it goes, with how each table and pipeline is now.": "Hvor denne advarsels data kommer fra, og hvor de går hen, med hvordan hver tabel og pipeline har det nu."
 }

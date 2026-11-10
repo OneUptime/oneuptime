@@ -49351,8 +49351,6 @@
   "Views Ledger": "Views Ledger",
   "Views Read From": "Views Read From",
   "Views Read Until": "Views Read Until",
-  "Way to the cause and the alerts it caused": "通往原因及其导致的警报的路径",
-  "Where this alert's table or pipeline gets its data and where its data goes, with how each table and pipeline is now: the way to the alert that caused it and to the alerts it caused is highlighted.": "此警报的表或管道从哪里获取数据、数据流向哪里，以及每个表和管道的当前状况：通往导致它的警报和由它导致的警报的路径会高亮显示。",
   "Writes {{count}} tables": "写入 {{count}} 个表",
   "Writes {{count}} tables_one": "写入 {{count}} 个表",
   "{{count}} more tables this pipeline reads are not drawn.": "另有 {{count}} 个此管道读取的表未绘制。",
@@ -49365,5 +49363,6 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "Where this alert's data comes from and where it goes, with how each table and pipeline is now.": "此警报的数据从哪里来、到哪里去，并显示每个表和管道的当前状况。"
 }

@@ -49351,8 +49351,6 @@
   "Views Ledger": "Views Ledger",
   "Views Read From": "Views Read From",
   "Views Read Until": "Views Read Until",
-  "Way to the cause and the alerts it caused": "Путь к причине и вызванным оповещениям",
-  "Where this alert's table or pipeline gets its data and where its data goes, with how each table and pipeline is now: the way to the alert that caused it and to the alerts it caused is highlighted.": "Откуда таблица или пайплайн этого оповещения получает данные и куда они уходят, и в каком состоянии сейчас каждая таблица и пайплайн: выделен путь к оповещению, которое его вызвало, и к оповещениям, которые вызвало оно.",
   "Writes {{count}} tables": "Записывает таблиц: {{count}}",
   "Writes {{count}} tables_one": "Записывает {{count}} таблицу",
   "{{count}} more tables this pipeline reads are not drawn.": "Не показаны другие таблицы, которые читает этот пайплайн: {{count}}.",
@@ -49365,5 +49363,6 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "Where this alert's data comes from and where it goes, with how each table and pipeline is now.": "Откуда приходят данные этого оповещения и куда уходят, и в каком состоянии сейчас каждая таблица и пайплайн."
 }

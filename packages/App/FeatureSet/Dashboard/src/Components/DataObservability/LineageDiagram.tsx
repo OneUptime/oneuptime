@@ -294,7 +294,7 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
         })}
       </ul>
       <LineageGraph lineage={lineage} place={props.place} />
-      <LineageLegend hasHighlight={Boolean(lineage.highlight)} />
+      <LineageLegend />
       {lineage.isTruncated || lineage.hiddenDashboardCount > 0 ? (
         <div
           className="space-y-1 text-xs text-gray-500"

@@ -8,7 +8,10 @@ import {
   createTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
-import { getAlertLineageSentences } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/AlertLineageDiagram";
+import {
+  getAlertLineageNotes,
+  getAlertLineageSentences,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/AlertLineageDiagram";
 import { LINEAGE_DEPTH_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageDiagram";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
@@ -94,7 +97,6 @@ const TEXTS: ReadonlyArray<string> = [
   "Latest run failed",
   "Late, open alert or failed run",
   "Fresh or last run complete",
-  "Way to the cause and the alerts it caused",
   "This table",
   "This pipeline",
   "Consequence",
@@ -113,7 +115,7 @@ const TEXTS: ReadonlyArray<string> = [
   "The lineage around this alert, with the way to the alert that caused it and to the alerts it caused",
   "Where this table's data comes from and where it goes, a few steps each way, with how each table and pipeline is now. Open a table to center the diagram on it.",
   "The tables this pipeline reads and the tables it writes, with how each is now. Pick more steps to see what they are built from and what is built from them.",
-  "Where this alert's table or pipeline gets its data and where its data goes, with how each table and pipeline is now: the way to the alert that caused it and to the alerts it caused is highlighted.",
+  "Where this alert's data comes from and where it goes, with how each table and pipeline is now.",
 ];
 
 // Each count, by its general form: the key whose "_one" key is the one form.
@@ -299,6 +301,63 @@ describe("an alert's lineage, in words", () => {
       "Die Wege hinab zu den 3 Warnungen, die diese verursacht hat, sind hervorgehoben.",
     ]);
   });
+
+  test("German marks the sentence about the way drawn, and not the one about alerts out of reach", () => {
+    expect(
+      getAlertLineageNotes(
+        translatorFor("de"),
+        answer({
+          hasCause: true,
+          isCauseDrawn: true,
+          consequenceCount: 3,
+          drawnConsequenceCount: 0,
+        }),
+      ),
+    ).toEqual([
+      {
+        text: "Der Weg hinauf zu der Warnung, von der diese verursacht wurde, ist hervorgehoben.",
+        isHighlighted: true,
+      },
+      {
+        text: "Die 3 Warnungen, die diese verursacht hat, liegen weiter nachgelagert, als das Diagramm reicht.",
+        isHighlighted: false,
+      },
+    ]);
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s words the alert card's description apart from the table tab's, without the ways",
+    (language: string) => {
+      const words: Record<string, unknown> = locale(language);
+      const alertCard: string = String(
+        words[
+          "Where this alert's data comes from and where it goes, with how each table and pipeline is now."
+        ],
+      );
+      const tableTab: string = String(
+        words[
+          "Where this table's data comes from and where it goes, a few steps each way, with how each table and pipeline is now. Open a table to center the diagram on it."
+        ],
+      );
+      // The sentence that says a way is highlighted, in this language.
+      const highlighted: string = String(
+        words["The way up to the alert that caused this one is highlighted."],
+      );
+
+      expect({
+        language,
+        isOwnSentence: alertCard !== tableTab,
+        // One sentence, shorter than the tab's two.
+        isShorter: alertCard.length < tableTab.length,
+        saysTheWays: alertCard.includes(highlighted),
+      }).toEqual({
+        language,
+        isOwnSentence: true,
+        isShorter: true,
+        saysTheWays: false,
+      });
+    },
+  );
 
   test("French says the one alert it caused without a count", () => {
     expect(

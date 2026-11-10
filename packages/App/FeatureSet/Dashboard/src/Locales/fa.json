@@ -49351,8 +49351,6 @@
   "Views Ledger": "Views Ledger",
   "Views Read From": "Views Read From",
   "Views Read Until": "Views Read Until",
-  "Way to the cause and the alerts it caused": "مسیر تا علت و هشدارهای ناشی از این هشدار",
-  "Where this alert's table or pipeline gets its data and where its data goes, with how each table and pipeline is now: the way to the alert that caused it and to the alerts it caused is highlighted.": "جدول یا خط لولهٔ این هشدار داده‌هایش را از کجا می‌گیرد و داده‌هایش به کجا می‌رود، همراه با وضعیت کنونی هر جدول و خط لوله: مسیر تا هشداری که باعث آن شد و تا هشدارهایی که این هشدار باعثشان شد برجسته شده است.",
   "Writes {{count}} tables": "در {{count}} جدول می‌نویسد",
   "Writes {{count}} tables_one": "در {{count}} جدول می‌نویسد",
   "{{count}} more tables this pipeline reads are not drawn.": "{{count}} جدول دیگر که این خط لوله می‌خواند کشیده نشده است.",
@@ -49365,5 +49363,6 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "Where this alert's data comes from and where it goes, with how each table and pipeline is now.": "داده‌های این هشدار از کجا می‌آیند و به کجا می‌روند، همراه با وضعیت کنونی هر جدول و خط لوله."
 }

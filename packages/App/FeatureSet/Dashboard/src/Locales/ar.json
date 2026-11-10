@@ -49351,8 +49351,6 @@
   "Views Ledger": "Views Ledger",
   "Views Read From": "Views Read From",
   "Views Read Until": "Views Read Until",
-  "Way to the cause and the alerts it caused": "الطريق إلى السبب والتنبيهات التي سبّبها",
-  "Where this alert's table or pipeline gets its data and where its data goes, with how each table and pipeline is now: the way to the alert that caused it and to the alerts it caused is highlighted.": "من أين تأتي بيانات الجدول أو مسار البيانات الذي يخص هذا التنبيه وإلى أين تذهب، مع حال كل جدول ومسار بيانات الآن: الطريق إلى التنبيه الذي سبّبه وإلى التنبيهات التي سبّبها مميَّز.",
   "Writes {{count}} tables": "الجداول التي يكتبها: {{count}}",
   "Writes {{count}} tables_one": "يكتب {{count}} جدول",
   "{{count}} more tables this pipeline reads are not drawn.": "جداول أخرى يقرؤها مسار البيانات هذا لم تُرسم (العدد: {{count}}).",
@@ -49365,5 +49363,6 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "Where this alert's data comes from and where it goes, with how each table and pipeline is now.": "من أين تأتي بيانات هذا التنبيه وإلى أين تذهب، مع حال كل جدول ومسار بيانات الآن."
 }

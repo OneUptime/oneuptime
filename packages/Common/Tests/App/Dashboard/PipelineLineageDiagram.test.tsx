@@ -619,9 +619,15 @@ describe("its arrows", () => {
     expect(screen.queryByTestId("lineage-edge-halo")).not.toBeInTheDocument();
     expect(document.querySelector("[data-dimmed]")).toBeNull();
     expect(document.querySelector("[data-role]")).toBeNull();
-    expect(screen.getByTestId("lineage-legend")).not.toHaveTextContent(
-      "Way to the cause",
-    );
+    // Nor marked: the ways' mark is the alert's page's own.
+    expect(
+      screen.queryByTestId("lineage-highlight-mark"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId("lineage-legend")
+        .querySelector("line[stroke-opacity]"),
+    ).toBeNull();
   });
 });
 

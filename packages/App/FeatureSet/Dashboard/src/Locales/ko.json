@@ -49351,8 +49351,6 @@
   "Views Ledger": "Views Ledger",
   "Views Read From": "Views Read From",
   "Views Read Until": "Views Read Until",
-  "Way to the cause and the alerts it caused": "원인과 이 경고가 일으킨 경고로 가는 경로",
-  "Where this alert's table or pipeline gets its data and where its data goes, with how each table and pipeline is now: the way to the alert that caused it and to the alerts it caused is highlighted.": "이 경고의 테이블 또는 파이프라인이 어디서 데이터를 가져오고 그 데이터가 어디로 가는지, 각 테이블과 파이프라인의 현재 상태와 함께 보여 줍니다. 이 경고를 일으킨 경고와 이 경고가 일으킨 경고로 가는 경로가 강조 표시됩니다.",
   "Writes {{count}} tables": "테이블 {{count}}개 쓰기",
   "Writes {{count}} tables_one": "테이블 {{count}}개 쓰기",
   "{{count}} more tables this pipeline reads are not drawn.": "이 파이프라인이 읽는 테이블 {{count}}개가 더 있지만 그리지 않았습니다.",
@@ -49365,5 +49363,6 @@
   "{{count}} viewers in the last 28 days_one": "{{count}} viewer in the last 28 days",
   "{{count}} views": "{{count}} views",
   "{{count}} views_one": "{{count}} view",
-  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days"
+  "{{failed}} of {{count}} failed in the last 7 days": "{{failed}} of {{count}} failed in the last 7 days",
+  "Where this alert's data comes from and where it goes, with how each table and pipeline is now.": "이 경고의 데이터가 어디서 오고 어디로 가는지, 각 테이블과 파이프라인의 현재 상태와 함께 보여 줍니다."
 }

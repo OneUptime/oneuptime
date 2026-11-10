@@ -410,12 +410,36 @@ test.describe("an alert's Lineage card", () => {
       "payments.provider_callbacks",
     );
     await expect(card.getByTestId("lineage-edge-halo")).toHaveCount(1);
+    // The sentence saying the way is highlighted starts with the way's own mark; the legend leaves the ways to it.
+    await expect(
+      card
+        .getByTestId("lineage-highlight-notes")
+        .getByTestId("lineage-highlight-mark"),
+    ).toHaveCount(1);
     await expect(card.getByTestId("lineage-legend")).toContainText(
-      "Way to the cause and the alerts it caused",
+      "Pipeline run",
     );
+    await expect(card.getByTestId("lineage-legend")).not.toContainText("cause");
     await expect(
       card.getByRole("button", { name: "Explore Lineage" }),
     ).toBeVisible();
+
+    // The drawing opens with the cause's card in view, and the alert's own.
+    const canvas: { x: number; width: number } | null = await card
+      .getByTestId("lineage-graph")
+      .boundingBox();
+
+    for (const nodeId of [CAUSE_TABLE_CARD, TABLE_CARD]) {
+      const box: { x: number; width: number } | null = await lineageNode(
+        card,
+        nodeId,
+      ).boundingBox();
+
+      expect(box!.x).toBeGreaterThanOrEqual(canvas!.x);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(
+        canvas!.x + canvas!.width,
+      );
+    }
 
     // Under the Data card, asked for once.
     const dataBox: { y: number } | null = await dataCard(page).boundingBox();
