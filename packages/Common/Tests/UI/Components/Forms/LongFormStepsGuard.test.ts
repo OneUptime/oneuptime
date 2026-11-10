@@ -219,7 +219,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     file: `${DASHBOARD}/Components/StatusPage/BulkAddStatusPageMonitorsModal.tsx`,
     form: "BasicForm: Status Page > Add Multiple Monitors",
     reason:
-      "Adding several monitors to a status page: the monitors, then the folded Advanced options. 'Keep this group in sync' shows only after monitors are picked by label and never on a grid group, and the row and column only on a grid group, where they are the one cell every picked monitor goes in - so it is never more than four rows, and usually two.",
+      "Adding several monitors (or, on its other picker, monitor groups) to a status page: the monitors, then the folded Advanced options. 'Keep this group in sync' shows only after monitors are picked by label and never on a grid group or for monitor groups, and the row and column only on a grid group, where they are the one cell every picked monitor goes in - so it is never more than four rows, and usually two.",
   },
   /*
    * Small wizards whose steps did not earn their place: each split a short
