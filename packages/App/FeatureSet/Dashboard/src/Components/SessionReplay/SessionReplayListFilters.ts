@@ -57,6 +57,12 @@ export interface SessionReplayAdvancedFilters {
   tags: string;
   /* Free text: the server's `search` filter (sessionId prefix, URLs, ...). */
   search: string;
+  /*
+   * One of the application's own signals, by its name on the Frustration
+   * Signals page (issue #6443): "sessions where Payment failed fired".
+   * Exact; the server matches it against the names the session hit.
+   */
+  customSignalName: string;
 }
 
 export const EMPTY_ADVANCED_FILTERS: SessionReplayAdvancedFilters = {
@@ -73,6 +79,7 @@ export const EMPTY_ADVANCED_FILTERS: SessionReplayAdvancedFilters = {
   urlPrefix: "",
   tags: "",
   search: "",
+  customSignalName: "",
 };
 
 /*
@@ -97,7 +104,7 @@ export const SESSION_REPLAY_SIGNAL_OPTIONS: Array<SessionReplaySignalOption> = [
     value: "frustration",
     label: "Frustration",
     description:
-      "Sessions with a rage click, dead click, error click or refresh rage.",
+      "Sessions with a rage click, dead click, error click, refresh rage, or one of your own signals that counts as frustration.",
   },
   {
     value: "identified",
@@ -308,6 +315,7 @@ export const FILTER_URL_KEYS: Partial<
   urlPrefix: "urlPrefix",
   tags: "tag",
   search: "q",
+  customSignalName: "signalName",
 };
 
 /* The non-filter parts of the list URL. */
@@ -451,6 +459,10 @@ export function buildSessionReplayListFilters(
 
     if (advanced.search.trim()) {
       filters["search"] = advanced.search.trim();
+    }
+
+    if (advanced.customSignalName.trim()) {
+      filters["customSignalName"] = advanced.customSignalName.trim();
     }
   }
 

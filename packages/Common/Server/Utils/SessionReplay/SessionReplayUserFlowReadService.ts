@@ -459,11 +459,11 @@ export default class SessionReplayUserFlowReadService {
             }}
           ) AS flowRawRoutes,
           groupArrayIf(
-            (url, toFloat64(errorCount), toFloat64(rageClickCount + deadClickCount + errorClickCount + refreshRageCount)),
-            url != '' AND (errorCount + rageClickCount + deadClickCount + errorClickCount + refreshRageCount) > 0
+            (url, toFloat64(errorCount), toFloat64(rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount)),
+            url != '' AND (errorCount + rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount) > 0
           ) AS flowSignals,
           toFloat64(sum(errorCount)) AS flowErrorTotal,
-          toFloat64(sum(rageClickCount + deadClickCount + errorClickCount + refreshRageCount)) AS flowFrustrationTotal,
+          toFloat64(sum(rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount)) AS flowFrustrationTotal,
           toFloat64(toUnixTimestamp64Milli(max(chunkEndTime)) - toUnixTimestamp64Milli(min(chunkStartTime))) AS flowSpanMs
         FROM (
           SELECT
@@ -478,7 +478,13 @@ export default class SessionReplayUserFlowReadService {
             rageClickCount,
             deadClickCount,
             errorClickCount,
-            refreshRageCount
+            refreshRageCount,
+            /*
+             * The application's own signals set to count as frustration
+             * (issue #6443), so a page where they fire is a frustrating
+             * page here as it is on the session list.
+             */
+            customSignalFrustrationCount
           FROM ${AnalyticsTableName.RumSessionChunk}
           WHERE projectId = ${{
             type: TableColumnType.ObjectID,

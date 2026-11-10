@@ -159,11 +159,13 @@ describe("bundle hygiene", (): void => {
      * #3979: 94178 gzip after, 92376 before the feature), 95 KB since INP
      * per single-page-app view (2026-09-26, issue #3975: 95550 gzip after,
      * 94102 before), 97 KB since the idle pause (2026-10-02, issue #4208:
-     * 97650 gzip after, 96723 before); esbuild.config.js carries the
-     * measurements and the itemised reasons. Asserted here as well as there
-     * on purpose - see the loader note below.
+     * 97650 gzip after, 96723 before), 100 KB since frustration signals an
+     * application defines itself (2026-11-09, issue #6443: 101329 gzip
+     * after, 99229 before); esbuild.config.js carries the measurements and
+     * the itemised reasons. Asserted here as well as there on purpose - see
+     * the loader note below.
      */
-    expect(recorderGzip).toBeLessThanOrEqual(97 * 1024);
+    expect(recorderGzip).toBeLessThanOrEqual(100 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
 
     /*
@@ -234,10 +236,12 @@ describe("bundle hygiene", (): void => {
      * 323 KB since web vitals were timed as the web-vitals library times
      * them (2026-10-22, issue #5181: 329727 bytes after, 325428 before),
      * 325 KB since a prerendered page is recorded only once it is opened
-     * (2026-10-26: 331411 bytes after, 329727 before); esbuild.config.js
-     * carries the measurements and the reasons.
+     * (2026-10-26: 331411 bytes after, 329727 before), 333 KB since
+     * frustration signals an application defines itself (2026-11-09, issue
+     * #6443: 339513 bytes after, 331424 before); esbuild.config.js carries
+     * the measurements and the reasons.
      */
-    expect(recorderBundle.length).toBeLessThan(325 * 1024);
+    expect(recorderBundle.length).toBeLessThan(333 * 1024);
   });
 
   /*

@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  SessionReplayFrustrationSignalsConfig,
+  getDefaultSessionReplayFrustrationSettings,
+  toSessionReplayFrustrationSignalsConfig,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import {
@@ -333,6 +338,37 @@ const EXPECTED_CONFIG_VARY: string = [
   SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
 ].join(", ");
 
+/*
+ * An application that changed every rule and named signals of its own: what
+ * the gate hands the endpoint (SessionReplayGatePolicy.frustrationSignals).
+ */
+const CUSTOM_FRUSTRATION_SIGNALS: SessionReplayFrustrationSignalsConfig = {
+  rageClick: {
+    isEnabled: true,
+    clickCount: 5,
+    windowMs: 1500,
+    radiusPx: 40,
+    ignoreSelectors: [".quantity-stepper"],
+  },
+  deadClick: { isEnabled: false, timeoutMs: 3000, ignoreSelectors: [] },
+  errorClick: { isEnabled: true, windowMs: 2000 },
+  refreshRage: { isEnabled: true, reloadCount: 4, windowSeconds: 30 },
+  customSignals: [
+    {
+      name: "Payment failed",
+      trigger: "event",
+      match: "payment_failed",
+      isFrustration: true,
+    },
+    {
+      name: "Help opened",
+      trigger: "click",
+      match: "#help",
+      isFrustration: false,
+    },
+  ],
+};
+
 function buildPolicy(overrides?: Record<string, unknown>): unknown {
   return {
     projectId: PROJECT_ID,
@@ -357,6 +393,7 @@ function buildPolicy(overrides?: Record<string, unknown>): unknown {
     lcpBudgetMs: 4000,
     longTaskBudgetMs: 200,
     slowRequestBudgetMs: 5000,
+    frustrationSignals: CUSTOM_FRUSTRATION_SIGNALS,
     configEpoch: 77,
     ...overrides,
   };
@@ -1197,5 +1234,69 @@ describe("GET /session-replay/v1/config sameOriginTracePropagation", () => {
         return body["sameOriginTracePropagation"];
       }),
     ).toEqual([true, false, false]);
+  });
+});
+
+/*
+ * What counts as frustration reaches the recorders on this response: the
+ * browser recorder and the React Native one read the same field, and a
+ * recorder that is told to stop still gets a complete config.
+ */
+describe("GET /session-replay/v1/config frustrationSignals", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getRecorderVersionMock.mockImplementation((): string => {
+      return LATEST_RECORDER_VERSION;
+    });
+    getRecorderIntegrityMock.mockImplementation((): null => {
+      return null;
+    });
+    consumeTargetMock.mockResolvedValue(false as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    bytesUsedTodayMock.mockResolvedValue(0 as never);
+    bytesUsedThisMonthMock.mockResolvedValue(0 as never);
+  });
+
+  test("a live config carries the application's rules and signals as the gate read them", async () => {
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+    expect(body["frustrationSignals"]).toEqual(CUSTOM_FRUSTRATION_SIGNALS);
+  });
+
+  test("the React Native recorder gets the same signals as the browser one", async () => {
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest({
+        [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+        [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: "com.example.checkout",
+      }),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+    expect(body["frustrationSignals"]).toEqual(CUSTOM_FRUSTRATION_SIGNALS);
+  });
+
+  test("the disabled response carries the built-in rules, never an absent field", async () => {
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["frustrationSignals"]).toEqual(
+      toSessionReplayFrustrationSignalsConfig(
+        getDefaultSessionReplayFrustrationSettings(),
+      ),
+    );
   });
 });

@@ -10,6 +10,7 @@ import {
   SessionReplayInteractionType,
   SessionReplayNavigationType,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
+import { SessionReplayCustomSignalTrigger } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 
 /*
  * A timeline event lifted out of one decoded chunk: the recorder's type-5
@@ -132,6 +133,16 @@ export interface ReplayTimelineEvent {
   frustrationKind?: SessionReplayFrustrationKind;
   clickCount?: number;
   reloadCount?: number;
+
+  /*
+   * One of the application's own signals (oneuptime.signal, issue #6443):
+   * its name and what set it off. A row of kind "frustration" when the
+   * signal counted as frustration when it happened, of kind "custom" (a
+   * marker) when it did not - so it sits with the built-in signals, or
+   * with the page's own events, on the rail and the timeline.
+   */
+  customSignalName?: string;
+  customSignalTrigger?: SessionReplayCustomSignalTrigger;
 
   /* frustration + click: viewport coordinates, never content. */
   x?: number;

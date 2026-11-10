@@ -180,6 +180,9 @@ interface ChunkFixture {
   routes: Array<string>;
   errorCount?: number;
   rageClickCount?: number;
+  // The application's own signals (issue #6443): every hit, and the frustrating ones.
+  customSignalCount?: number;
+  customSignalFrustrationCount?: number;
 }
 
 const chunkFixtures: Array<ChunkFixture> = [
@@ -201,7 +204,13 @@ const chunkFixtures: Array<ChunkFixture> = [
     startOffsetMs: CHUNK_MS,
     url: `${ORIGIN}/never-seen`,
     routes: [`${ORIGIN}/never-seen`],
+    customSignalCount: 7,
+    customSignalFrustrationCount: 7,
   },
+  /*
+   * Two of the application's own signals: one counts as frustration, one
+   * is a marker, which frustration never counts (issue #6443).
+   */
   {
     sessionId: SESSIONS.journey,
     tabId: "tab-1",
@@ -211,6 +220,8 @@ const chunkFixtures: Array<ChunkFixture> = [
     url: `${ORIGIN}/products/42`,
     routes: [`${ORIGIN}/products`, `${ORIGIN}/products/42`],
     errorCount: 2,
+    customSignalCount: 2,
+    customSignalFrustrationCount: 1,
   },
   /*
    * A new page load: the browser recorder mints a new tab per load, and its
@@ -344,6 +355,8 @@ function chunkRow(fixture: ChunkFixture): JSONObject {
     routeCount: fixture.routes.length,
     clickCount: 0,
     customEventCount: 0,
+    customSignalCount: fixture.customSignalCount || 0,
+    customSignalFrustrationCount: fixture.customSignalFrustrationCount || 0,
     url: fixture.url,
     routes: fixture.routes,
     retentionDate: retentionDate,
@@ -681,7 +694,8 @@ integration("User Flows journeys against ClickHouse", () => {
     expect(journey.deviceType).toBe("mobile");
     expect(journey.browserName).toBe("Chrome");
     expect(journey.errorCount).toBe(2);
-    expect(journey.frustrationCount).toBe(3);
+    /* The rage clicks and the one own signal that counts; not the marker. */
+    expect(journey.frustrationCount).toBe(4);
     expect(journey.durationMs).toBe(3 * CHUNK_MS);
     expect(journey.startUnixMs).toBe(START[SESSIONS.journey]!.getTime());
 
@@ -692,7 +706,7 @@ integration("User Flows journeys against ClickHouse", () => {
     }
 
     expect(signals).toEqual({
-      [`${ORIGIN}/products/42`]: [2, 0],
+      [`${ORIGIN}/products/42`]: [2, 1],
       [`${ORIGIN}/cart`]: [0, 3],
     });
   });

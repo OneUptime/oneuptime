@@ -42,10 +42,10 @@ En applikations egen sidomeny grupperar dess sidor så här; **Inställningar**,
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Rekommendationer**, **Dokumentation** |
 | **Observerbarhet** | **Mätvärden**, **Loggar**, **Spår**, **Klienter** |
-| **Sessionsuppspelning** | **Sessionsuppspelning**, **Användarflöden**, **Användare i uppspelningar**, **Hälsa**, **Uppspelningspolicy**, **Åtkomstlogg för uppspelningar**, **Dokumentation** |
+| **Sessionsuppspelning** | **Sessionsuppspelning**, **Användarflöden**, **Användare i uppspelningar**, **Hälsa**, **Uppspelningspolicy**, **Frustrationssignaler**, **Åtkomstlogg för uppspelningar**, **Dokumentation** |
 | **Inställningar** | **Inställningar** |
 | **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avancerad** | **Radera applikation** |
+| **Avancerad** | **Granskningsloggar**, **Radera applikation** |
 
 ## Så känner OneUptime igen RUM
 

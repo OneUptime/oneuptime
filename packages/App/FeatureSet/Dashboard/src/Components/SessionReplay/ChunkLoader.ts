@@ -18,6 +18,7 @@ import {
   isSessionReplayClickPayload,
   isSessionReplayCustomDroppedPayload,
   isSessionReplayCustomPayload,
+  isSessionReplayCustomSignalPayload,
   isSessionReplayIdentifyPayload,
   isSessionReplayIdlePausedPayload,
   isSessionReplayIdleResumedPayload,
@@ -1662,16 +1663,19 @@ export default class ChunkLoader {
       }
 
       const tag: string = String(data["tag"]);
-      const kind: ReplayTimelineEventKind | undefined = TAG_TO_KIND[tag];
-
-      if (!kind) {
-        continue;
-      }
-
       const payload: Record<string, unknown> =
         data["payload"] && typeof data["payload"] === "object"
           ? (data["payload"] as Record<string, unknown>)
           : {};
+      const isCustomSignal: boolean =
+        tag === SessionReplayCustomEventTag.CustomSignal;
+      const kind: ReplayTimelineEventKind | undefined = isCustomSignal
+        ? ChunkLoader.getCustomSignalKind(payload)
+        : TAG_TO_KIND[tag];
+
+      if (!kind) {
+        continue;
+      }
 
       const row: ReplayTimelineEvent = {
         id: "",
@@ -1692,6 +1696,10 @@ export default class ChunkLoader {
       }
 
       ChunkLoader.fillRow(row, kind, payload);
+
+      if (isCustomSignal) {
+        ChunkLoader.fillCustomSignalRow(row, payload);
+      }
 
       /*
        * Performance entries are DELIVERED late by design: a buffered LCP
@@ -1831,6 +1839,56 @@ export default class ChunkLoader {
     intervals.push({ startMs: start, endMs: end, chunkIndex: chunkIndex });
 
     return intervals;
+  }
+
+  /*
+   * One of the application's own signals (issue #6443) is a frustration
+   * row when it counted as frustration when it happened, and a marker - a
+   * custom row, beside the page's own track() events - when it did not.
+   * The recording keeps what it was then: a signal changed later does not
+   * rewrite the sessions already recorded. A payload that is not a signal
+   * at all is dropped like any other unknown tag.
+   */
+  public static getCustomSignalKind(
+    payload: Record<string, unknown>,
+  ): ReplayTimelineEventKind | undefined {
+    if (!isSessionReplayCustomSignalPayload(payload)) {
+      return undefined;
+    }
+
+    return payload.isFrustration ? "frustration" : "custom";
+  }
+
+  /*
+   * The signal's name and what set it off. Never what it matched: the
+   * recorder sends neither the error's text nor the page's address, and
+   * the coordinates of a click signal are the viewport's, like a click's.
+   */
+  public static fillCustomSignalRow(
+    row: ReplayTimelineEvent,
+    payload: Record<string, unknown>,
+  ): void {
+    if (!isSessionReplayCustomSignalPayload(payload)) {
+      return;
+    }
+
+    row.customSignalName = payload.name;
+    row.customSignalTrigger = payload.trigger;
+
+    if (row.kind === "custom") {
+      /* The marker reads like a track() event of the same name. */
+      row.name = payload.name;
+    }
+
+    if (
+      typeof payload.x === "number" &&
+      Number.isFinite(payload.x) &&
+      typeof payload.y === "number" &&
+      Number.isFinite(payload.y)
+    ) {
+      row.x = payload.x;
+      row.y = payload.y;
+    }
   }
 
   private static fillRow(

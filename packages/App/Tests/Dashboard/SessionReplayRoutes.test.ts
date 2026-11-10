@@ -199,6 +199,7 @@ beforeAll(async () => {
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
+    PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
     PageMap.RUM_SETTINGS_SESSION_REPLAY,
   ];
@@ -315,6 +316,7 @@ describe("Session replay page wiring", () => {
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION",
     ]) {
       const occurrences: number = (
@@ -563,6 +565,78 @@ describe("Session replay page wiring", () => {
       "Real User Monitoring",
       "View Application",
       "Replay Health",
+    ]);
+  });
+
+  test("the frustration signals route ends with /session-replay-frustration-signals and carries the model id", () => {
+    /*
+     * The page reads its id with Navigation.getLastParamAsObjectID(1), like
+     * the health and settings pages (issue #6443).
+     */
+    const path: string =
+      RouteMap[
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS
+      ]!.toString();
+    const segments: Array<string> = path.split("/");
+
+    expect(path.endsWith("/session-replay-frustration-signals")).toBe(true);
+    expect(segments[segments.length - 2]).toBe(RouteParams.ModelID);
+  });
+
+  test("the frustration signals route cannot be shadowed by a session id", () => {
+    const signalsPath: string =
+      RouteMap[
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS
+      ]!.toString();
+    const playerPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW]!.toString();
+
+    expect(
+      signalsPath.startsWith(
+        playerPath.slice(0, playerPath.lastIndexOf("/") + 1),
+      ),
+    ).toBe(false);
+    expect(signalsPath).not.toContain("/session-replay/");
+  });
+
+  test("the frustration signals page is registered with one segment and no count", () => {
+    expect(
+      RouteUtil.getLastPathForKey(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS,
+      ),
+    ).toBe("session-replay-frustration-signals");
+    expect(routeSource).toMatch(
+      /getLastPathForKey\(\s*PageMap\.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS\s*,?\s*\)/,
+    );
+    expect(routeSource).toContain(
+      'from "../Pages/Rum/View/SessionReplayFrustrationSignals"',
+    );
+    expect(routeSource).toContain(
+      "<RumApplicationSessionReplayFrustrationSignals",
+    );
+  });
+
+  test("the frustration signals breadcrumb names the page as the side menu does", () => {
+    setNavigationLocation(
+      "/dashboard/proj-1/rum/app-1/session-replay-frustration-signals",
+    );
+
+    const trail: Array<Link> | undefined = getRumBreadcrumbs(
+      RouteUtil.getRouteString(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS,
+      ),
+    );
+
+    expect(trail).toBeDefined();
+    expect(
+      trail!.map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual([
+      "Project",
+      "Real User Monitoring",
+      "View Application",
+      "Frustration Signals",
     ]);
   });
 

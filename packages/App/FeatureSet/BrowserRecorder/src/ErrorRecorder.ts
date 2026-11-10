@@ -125,6 +125,15 @@ export interface ErrorRecorderOptions {
   ignorePatterns?: Array<RegExp>;
 
   /*
+   * Every error's RAW message, before masking, repeats included: the
+   * application's own error signals are matched against the text the
+   * page threw, not against its masked copy. The text is only compared,
+   * never recorded through this door. Optional: only a recorder with error
+   * signals to look for passes it.
+   */
+  onErrorText?: (atUnixMs: number, rawMessage: string) => void;
+
+  /*
    * Error messages routinely quote user data ("could not save order for
    * alice@example.com"), so they go through the same masking transform as a
    * text node rather than being treated as developer-authored strings.
@@ -332,6 +341,11 @@ export default class ErrorRecorder {
     }
 
     const atUnixMs: number = occurredAtUnixMs ?? Date.now();
+
+    if (this.options.onErrorText) {
+      this.options.onErrorText(atUnixMs, error.message);
+    }
+
     const fingerprint: string = ErrorRecorder.fingerprintOf(error);
 
     const known: FingerprintRecord | undefined =
