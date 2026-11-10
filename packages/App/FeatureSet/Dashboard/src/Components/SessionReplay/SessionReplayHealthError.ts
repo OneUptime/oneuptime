@@ -65,7 +65,9 @@ export function describeHealthError(
 
   if (error.kind === "plan") {
     return {
-      title: translateLine("Recording health is not included in this project's plan"),
+      title: translateLine(
+        "Recording health is not included in this project's plan",
+      ),
       detail: translateLine(
         "Session replay needs a plan that includes it. Once the plan is upgraded, this check and the recordings themselves become available. The project-wide master switch is never plan-gated.",
       ),

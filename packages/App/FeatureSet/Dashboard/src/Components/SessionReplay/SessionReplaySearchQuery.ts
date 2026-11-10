@@ -391,7 +391,10 @@ export function parseSessionReplaySearch(
   const setOnce: (
     field: keyof SessionReplayAdvancedFilters,
     value: string,
-  ) => void = (field: keyof SessionReplayAdvancedFilters, value: string): void => {
+  ) => void = (
+    field: keyof SessionReplayAdvancedFilters,
+    value: string,
+  ): void => {
     const onlyOne: string | undefined = ONLY_ONE_FILTER[field];
 
     if (advanced[field] && advanced[field] !== value && onlyOne) {

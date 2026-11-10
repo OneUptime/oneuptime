@@ -180,9 +180,7 @@ describe("the band describers, given a translator", () => {
     expect(describeIdleBandChip(band("paused"), MARKING)).toBe(
       "⟦Recording paused · 1m 12s⟧",
     );
-    expect(describeIdleBandChip(band("idle"), MARKING)).toBe(
-      "⟦Idle 1m 12s⟧",
-    );
+    expect(describeIdleBandChip(band("idle"), MARKING)).toBe("⟦Idle 1m 12s⟧");
     expect(
       describeIdleBandChip({ ...band("idle"), fidelity: "coarse" }, MARKING),
     ).toBe("⟦Idle 1m 12s (approx.)⟧");
@@ -192,9 +190,9 @@ describe("the band describers, given a translator", () => {
     expect(describeIdleSkip(band("paused"))).toBe(
       "Skipped 1m 12s: recording paused while the page was idle",
     );
-    expect(
-      describeIdleBandChip({ ...band("idle"), fidelity: "coarse" }),
-    ).toBe("Idle 1m 12s (approx.)");
+    expect(describeIdleBandChip({ ...band("idle"), fidelity: "coarse" })).toBe(
+      "Idle 1m 12s (approx.)",
+    );
     expect(describeIdleBandChip(band("paused"))).toBe(
       "Recording paused · 1m 12s",
     );
@@ -207,8 +205,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
       snapshot: makeSnapshot({
         buffer: "halted",
         error: {
-          message:
-            "Footage from 0:41 could not be applied to the player: boom",
+          message: "Footage from 0:41 could not be applied to the player: boom",
           wording: composedValue((translator: Translator): string => {
             return translator.translateTemplate(
               "Footage from {{time}} could not be applied to the player: {{reason}}",
@@ -240,7 +237,10 @@ describe("ReplayStageOverlays in the reader's language", () => {
     renderOverlays({
       snapshot: makeSnapshot({
         buffer: "halted",
-        error: { message: "No footage is stored for this tab.", retryable: false },
+        error: {
+          message: "No footage is stored for this tab.",
+          retryable: false,
+        },
       }),
     });
 
@@ -485,9 +485,9 @@ describe("ReplayStageOverlays in the reader's language", () => {
     expect(screen.getByTestId("replay-overlay-notice")).toHaveTextContent(
       "⟦No snapshot before 0:00; the earliest playable moment is 0:15.⟧",
     );
-    expect(
-      screen.getByTestId("replay-overlay-shell-notice"),
-    ).toHaveTextContent("⟦Opened at the linked moment⟧");
+    expect(screen.getByTestId("replay-overlay-shell-notice")).toHaveTextContent(
+      "⟦Opened at the linked moment⟧",
+    );
 
     unmount();
     renderOverlays({
@@ -499,9 +499,9 @@ describe("ReplayStageOverlays in the reader's language", () => {
       }),
     });
 
-    expect(
-      screen.getByTestId("replay-overlay-shell-notice"),
-    ).toHaveTextContent("⟦The recording carried on in Tab 2 - continuing there.⟧");
+    expect(screen.getByTestId("replay-overlay-shell-notice")).toHaveTextContent(
+      "⟦The recording carried on in Tab 2 - continuing there.⟧",
+    );
   });
 
   it("words an expired recording's empty state with the days and the date in place", () => {
@@ -526,9 +526,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
     expect(absent).toHaveTextContent(
       "⟦Its logs, traces and exceptions follow the telemetry retention, not the recording's, so they still load in the rail; the session facts are in Details.⟧",
     );
-    expect(screen.getByTestId("replay-phase")).toHaveTextContent(
-      "⟦expired⟧",
-    );
+    expect(screen.getByTestId("replay-phase")).toHaveTextContent("⟦expired⟧");
   });
 
   it("words the retention it does not know, and the other empty states' phase words", () => {
@@ -557,9 +555,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
     expect(screen.getByTestId("replay-footage-absent")).toHaveTextContent(
       "⟦Waiting for the first chunk⟧",
     );
-    expect(screen.getByTestId("replay-phase")).toHaveTextContent(
-      "⟦waiting⟧",
-    );
+    expect(screen.getByTestId("replay-phase")).toHaveTextContent("⟦waiting⟧");
 
     rerender(
       <ReplayStageOverlays

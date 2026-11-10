@@ -104,16 +104,15 @@ const SLACK_MENTION_PATTERN: RegExp = /<[!@#]/;
 // A Slack link whose words hide an address a name brought.
 const SLACK_HIDDEN_LINK_PATTERN: RegExp = /<https:\/\/evil\.example[^|>]*\|/;
 // A Mattermost mention: "@" at the start of a word, before a letter.
-const MATTERMOST_MENTION_PATTERN: RegExp = /(?:^|[\s(])@(?:channel|here|all|alice)/;
+const MATTERMOST_MENTION_PATTERN: RegExp =
+  /(?:^|[\s(])@(?:channel|here|all|alice)/;
 
 describe("the message says the change in the feed item's words", () => {
   test("a tier change: the item's line, then its details, then the agreement", () => {
-    const parts: SloFeedMarkdownParts = getSloPolicyTierChangedFeedParts(
-      tierChange(),
-    );
-    const feed: SloFeedMarkdown = getSloPolicyTierChangedFeedMarkdown(
-      tierChange(),
-    );
+    const parts: SloFeedMarkdownParts =
+      getSloPolicyTierChangedFeedParts(tierChange());
+    const feed: SloFeedMarkdown =
+      getSloPolicyTierChangedFeedMarkdown(tierChange());
 
     // The feed reads exactly as the item it always posted.
     expect(toSloFeedMarkdown(parts)).toEqual(feed);
@@ -254,7 +253,9 @@ describe("what people named notifies nobody and hides no link", () => {
 
   test("in a deploy gate flip's message too", () => {
     const slack: string = slackTextOf(
-      chatOf(getSloDeploymentGateChangedFeedParts(gateChange({ tierName: HOSTILE }))),
+      chatOf(
+        getSloDeploymentGateChangedFeedParts(gateChange({ tierName: HOSTILE })),
+      ),
     );
 
     expect(SLACK_MENTION_PATTERN.test(slack)).toBe(false);
@@ -400,9 +401,9 @@ describe("a long agreement is cut to what each workspace takes, with a note", ()
       }),
     ).toBe(true);
     expect(texts[0]!.startsWith("📉")).toBe(true);
-    expect(texts[texts.length - 1]!.endsWith(SlackUtil.TRUNCATED_SECTION_NOTE)).toBe(
-      true,
-    );
+    expect(
+      texts[texts.length - 1]!.endsWith(SlackUtil.TRUNCATED_SECTION_NOTE),
+    ).toBe(true);
   });
 
   test("Microsoft Teams: a text block within its budget, ending with the note", () => {
@@ -416,8 +417,8 @@ describe("a long agreement is cut to what each workspace takes, with a note", ()
   });
 
   test("Mattermost: a post within its limit", () => {
-    expect(
-      MattermostUtil.getMessageText(markdown).length,
-    ).toBeLessThanOrEqual(MattermostUtil.MESSAGE_MAX_LENGTH);
+    expect(MattermostUtil.getMessageText(markdown).length).toBeLessThanOrEqual(
+      MattermostUtil.MESSAGE_MAX_LENGTH,
+    );
   });
 });

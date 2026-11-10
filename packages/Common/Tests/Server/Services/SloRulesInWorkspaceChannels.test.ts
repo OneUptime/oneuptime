@@ -101,13 +101,11 @@ function storedSlo(data: {
   const slo: ServiceLevelObjective = new ServiceLevelObjective();
   slo.id = SLO_ID;
   slo.name = data.name ?? "Checkout availability";
-  slo.labels = (data.labelIds ?? [TIER_1_LABEL]).map(
-    (id: ObjectID): Label => {
-      const label: Label = new Label();
-      label._id = id.toString();
-      return label;
-    },
-  );
+  slo.labels = (data.labelIds ?? [TIER_1_LABEL]).map((id: ObjectID): Label => {
+    const label: Label = new Label();
+    label._id = id.toString();
+    return label;
+  });
   return slo;
 }
 
@@ -335,8 +333,16 @@ describe("an SLO's workspace rules match", () => {
     ];
 
     rules = [
-      rule({ channel: "any", conditions, filterCondition: FilterCondition.Any }),
-      rule({ channel: "all", conditions, filterCondition: FilterCondition.All }),
+      rule({
+        channel: "any",
+        conditions,
+        filterCondition: FilterCondition.Any,
+      }),
+      rule({
+        channel: "all",
+        conditions,
+        filterCondition: FilterCondition.All,
+      }),
     ];
 
     expect(await matching()).toEqual(["any"]);
@@ -353,7 +359,10 @@ describe("an SLO's workspace rules match", () => {
 
   test("only the project's SLO rules are asked: a monitor or hunt rule never hears an SLO's policy", async () => {
     rules = [
-      rule({ channel: "monitors", eventType: NotificationRuleEventType.Monitor }),
+      rule({
+        channel: "monitors",
+        eventType: NotificationRuleEventType.Monitor,
+      }),
       rule({
         channel: "hunts",
         eventType: NotificationRuleEventType.SecurityHunt,

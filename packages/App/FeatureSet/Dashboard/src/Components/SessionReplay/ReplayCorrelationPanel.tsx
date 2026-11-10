@@ -690,8 +690,8 @@ const RailPointerRow: FunctionComponent<RailPointerRowProps> = (
   props: RailPointerRowProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const copy: RailPointerCopy = RAIL_POINTER_COPY[props.railTab] ||
-    RAIL_POINTER_COPY.logs!;
+  const copy: RailPointerCopy =
+    RAIL_POINTER_COPY[props.railTab] || RAIL_POINTER_COPY.logs!;
   /*
    * "Open logs in rail": the noun takes the count's form, and the plural
    * one before anything is fetched.
