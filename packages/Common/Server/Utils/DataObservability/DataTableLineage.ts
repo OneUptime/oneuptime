@@ -143,7 +143,9 @@ export interface DataLineageReader {
     dataPipelineIds: Array<string>,
   ): Promise<Array<DataLineagePipelineRow>>;
   // By table, how many of its alerts are open, of those the drawing's reader may see.
-  readOpenAlertCounts(dataAssetIds: Array<string>): Promise<Map<string, number>>;
+  readOpenAlertCounts(
+    dataAssetIds: Array<string>,
+  ): Promise<Map<string, number>>;
   // The dashboards reading any of these tables, by name, and how many there are in all.
   readDashboards(data: {
     dataAssetIds: Array<string>;
@@ -171,6 +173,21 @@ interface PlacedTable {
 interface Writer {
   dataPipelineId: string;
   lastSeenAt: Date | null;
+}
+
+// A table one step out, with what decides whether it is drawn first.
+interface RankedNeighbour {
+  id: string;
+  hasProblem: boolean;
+  isDropped: boolean;
+  seen: number;
+  key: string;
+}
+
+// A pipeline that writes a drawn table from outside what OneUptime watches.
+interface OutsideWriter {
+  pipeline: DataLineagePipelineRow;
+  writer: Writer;
 }
 
 // What both walks build together.
@@ -411,7 +428,8 @@ export default class DataTableLineageReader {
     state: WalkState;
   }): Promise<void> {
     const state: WalkState = data.state;
-    const isUpstream: boolean = data.direction === DataLineageDirection.Upstream;
+    const isUpstream: boolean =
+      data.direction === DataLineageDirection.Upstream;
     const side: DataLineageSide = isUpstream
       ? DataLineageSide.Upstream
       : DataLineageSide.Downstream;
@@ -472,7 +490,11 @@ export default class DataTableLineageReader {
         }
 
         if (row.dataPipelineId) {
-          addTo(state.feedingPipelines, row.downstreamDataAssetId, row.dataPipelineId);
+          addTo(
+            state.feedingPipelines,
+            row.downstreamDataAssetId,
+            row.dataPipelineId,
+          );
         }
 
         const ofParent: Map<string, FeedsEdge> =
@@ -548,7 +570,10 @@ export default class DataTableLineageReader {
               break;
             }
 
-            if (placedOnSide + chosen.size >= MAX_DATA_LINEAGE_TABLES_PER_SIDE) {
+            if (
+              placedOnSide + chosen.size >=
+              MAX_DATA_LINEAGE_TABLES_PER_SIDE
+            ) {
               state.isTruncated = true;
               break;
             }
@@ -592,13 +617,7 @@ export default class DataTableLineageReader {
     edges: Map<string, FeedsEdge>;
     now: Date;
   }): Array<string> {
-    const ranked: Array<{
-      id: string;
-      hasProblem: boolean;
-      isDropped: boolean;
-      seen: number;
-      key: string;
-    }> = [];
+    const ranked: Array<RankedNeighbour> = [];
 
     for (const [id, edge] of data.edges) {
       const table: DataLineageTableRow | undefined = data.state.tables.get(id);
@@ -632,7 +651,7 @@ export default class DataTableLineageReader {
     }
 
     return ranked
-      .sort((a, b): number => {
+      .sort((a: RankedNeighbour, b: RankedNeighbour): number => {
         if (a.hasProblem !== b.hasProblem) {
           return a.hasProblem ? -1 : 1;
         }
@@ -647,7 +666,7 @@ export default class DataTableLineageReader {
 
         return compareText(a.key, b.key) || compareText(a.id, b.id);
       })
-      .map((entry): string => {
+      .map((entry: RankedNeighbour): string => {
         return entry.id;
       });
   }
@@ -737,8 +756,7 @@ export default class DataTableLineageReader {
 
       const feeding: Set<string> =
         state.feedingPipelines.get(tableId) || new Set();
-      const outside: Array<{ pipeline: DataLineagePipelineRow; writer: Writer }> =
-        [];
+      const outside: Array<OutsideWriter> = [];
 
       for (const writer of writers.values()) {
         const pipeline: DataLineagePipelineRow | undefined =
@@ -749,7 +767,7 @@ export default class DataTableLineageReader {
         }
       }
 
-      outside.sort((a, b): number => {
+      outside.sort((a: OutsideWriter, b: OutsideWriter): number => {
         const aFailed: boolean = isFailedLineageRunState(
           a.pipeline.lastRunState,
         );
@@ -775,7 +793,9 @@ export default class DataTableLineageReader {
         0,
         MAX_DATA_LINEAGE_PIPELINES_PER_TABLE,
       )) {
-        const nodeId: string = getLineagePipelineNodeId(pipeline.dataPipelineId);
+        const nodeId: string = getLineagePipelineNodeId(
+          pipeline.dataPipelineId,
+        );
         const card: DataTableLineageNode | undefined = cards.get(nodeId);
 
         if (card) {
@@ -868,7 +888,9 @@ export default class DataTableLineageReader {
         continue;
       }
 
-      const nodeId: string = getLineageDashboardNodeId(dashboard.dataDashboardId);
+      const nodeId: string = getLineageDashboardNodeId(
+        dashboard.dataDashboardId,
+      );
       const depth: number = Math.max(
         ...tableIds.map((id: string): number => {
           return data.state.placed.get(id)!.depth;
@@ -1043,7 +1065,9 @@ export default class DataTableLineageReader {
               upstreamDataAssetId: edge.upstreamDataAssetId?.toString() || null,
               downstreamDataAssetId: edge.downstreamDataAssetId.toString(),
               dataPipelineId: edge.dataPipelineId?.toString() || null,
-              source: isDataAssetLineageSource(edge.source) ? edge.source : null,
+              source: isDataAssetLineageSource(edge.source)
+                ? edge.source
+                : null,
               lastSeenAt: readDate(edge.lastSeenAt),
             });
           }
@@ -1217,7 +1241,10 @@ export default class DataTableLineageReader {
           return counts;
         }
 
-        for (const ids of chunked(Array.from(tableOfAlert.keys()), READ_CHUNK)) {
+        for (const ids of chunked(
+          Array.from(tableOfAlert.keys()),
+          READ_CHUNK,
+        )) {
           const open: Array<Alert> = await AlertService.findBy({
             query: applyAlertSelfPrivacyFilter(
               {

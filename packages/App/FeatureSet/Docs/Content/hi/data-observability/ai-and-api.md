@@ -32,6 +32,7 @@ AI एजेंटों को डेटा का उपयोग करने
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetran के सिंक वेबहुक | इंजेशन कुंजी, Fivetran के साइनिंग सीक्रेट के रूप में |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbyte के सिंक वेबहुक | URL में इंजेशन कुंजी |
 | `POST /api/data-observability/tables/freshness` | किसी टेबल की ताज़गी, जैसे MCP टूल उसका जवाब देता है, `{ "table": "public.orders" }` के साथ | API कुंजी |
+| `POST /api/data-observability/tables/lineage` | किसी टेबल की वंशावली हर दिशा में कुछ कदम तक, हर टेबल के मौजूदा हाल के साथ, जैसे उसका **वंशावली** टैब उसे दिखाता है, `{ "dataAssetId": "<table ID>", "depth": 3 }` के साथ | API कुंजी |
 | `POST /api/data-observability/checks/apply` | प्रोजेक्ट की जाँचों को किसी फ़ाइल से मिलाना, जैसे `oneuptime data-checks apply` करता है, `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` के साथ | API कुंजी |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | किसी डेटा प्रोडक्ट का "data as of" बैज | बैज का अपना टोकन |
 

@@ -18,6 +18,7 @@ import {
   DataTableLineage,
   DataTableLineageEdge,
   DataTableLineageNode,
+  DataTableLineagePipeline,
   MAX_DATA_LINEAGE_DASHBOARDS,
   MAX_DATA_LINEAGE_DEPTH,
   MAX_DATA_LINEAGE_ERROR_LENGTH,
@@ -224,7 +225,9 @@ function memoryReader(graph: MemoryGraph): DataLineageReader {
           return graph.tables.get(id);
         })
         .filter(
-          (row: DataLineageTableRow | undefined): row is DataLineageTableRow => {
+          (
+            row: DataLineageTableRow | undefined,
+          ): row is DataLineageTableRow => {
             return Boolean(row);
           },
         );
@@ -283,7 +286,7 @@ function memoryReader(graph: MemoryGraph): DataLineageReader {
             }),
           };
         })
-        .sort((a, b): number => {
+        .sort((a: DataLineageDashboardRow, b: DataLineageDashboardRow): number => {
           return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
         });
 
@@ -321,7 +324,10 @@ function nodeOf(
   });
 }
 
-function tableNode(lineage: DataTableLineage, id: string): DataTableLineageNode {
+function tableNode(
+  lineage: DataTableLineage,
+  id: string,
+): DataTableLineageNode {
   const node: DataTableLineageNode | undefined = nodeOf(
     lineage,
     getLineageTableNodeId(id),
@@ -332,7 +338,10 @@ function tableNode(lineage: DataTableLineage, id: string): DataTableLineageNode 
   return node!;
 }
 
-function tableIds(lineage: DataTableLineage, side?: DataLineageSide): Array<string> {
+function tableIds(
+  lineage: DataTableLineage,
+  side?: DataLineageSide,
+): Array<string> {
   return lineage.nodes
     .filter((node: DataTableLineageNode): boolean => {
       return (
@@ -443,9 +452,11 @@ describe("walking the steps", () => {
     const lineage: DataTableLineage = await build(graph, t(3));
 
     expect(
-      lineage.nodes.map((node: DataTableLineageNode): [string, string, number] => {
-        return [node.dataAssetId!, node.side, node.depth];
-      }),
+      lineage.nodes.map(
+        (node: DataTableLineageNode): [string, string, number] => {
+          return [node.dataAssetId!, node.side, node.depth];
+        },
+      ),
     ).toEqual([
       [t(3), DataLineageSide.Focus, 0],
       [t(2), DataLineageSide.Upstream, -1],
@@ -454,7 +465,12 @@ describe("walking the steps", () => {
       [t(5), DataLineageSide.Downstream, 2],
     ]);
     expect(feedsPairs(lineage)).toEqual(
-      [`${t(1)}>${t(2)}`, `${t(2)}>${t(3)}`, `${t(3)}>${t(4)}`, `${t(4)}>${t(5)}`].sort(),
+      [
+        `${t(1)}>${t(2)}`,
+        `${t(2)}>${t(3)}`,
+        `${t(3)}>${t(4)}`,
+        `${t(4)}>${t(5)}`,
+      ].sort(),
     );
   });
 
@@ -478,10 +494,10 @@ describe("walking the steps", () => {
     // Two steps, and one more read only to count what lies past the second.
     expect(
       graph.edgeReads
-        .filter((read) => {
+        .filter((read: { direction: DataLineageDirection; ids: Array<string> }): boolean => {
           return read.direction === DataLineageDirection.Upstream;
         })
-        .map((read) => {
+        .map((read: { direction: DataLineageDirection; ids: Array<string> }): Array<string> => {
           return read.ids;
         }),
     ).toEqual([[t(7)], [t(6)], [t(5)]]);
@@ -531,12 +547,19 @@ describe("walking the steps", () => {
 
     const lineage: DataTableLineage = await build(graph, t(4));
 
-    expect(tableIds(lineage).filter((id: string) => {
-      return id === t(1);
-    })).toHaveLength(1);
+    expect(
+      tableIds(lineage).filter((id: string) => {
+        return id === t(1);
+      }),
+    ).toHaveLength(1);
     expect(tableNode(lineage, t(1)).depth).toBe(-2);
     expect(feedsPairs(lineage)).toEqual(
-      [`${t(1)}>${t(2)}`, `${t(1)}>${t(3)}`, `${t(2)}>${t(4)}`, `${t(3)}>${t(4)}`].sort(),
+      [
+        `${t(1)}>${t(2)}`,
+        `${t(1)}>${t(3)}`,
+        `${t(2)}>${t(4)}`,
+        `${t(3)}>${t(4)}`,
+      ].sort(),
     );
   });
 
@@ -586,7 +609,11 @@ describe("walking the steps", () => {
     feeds(graph, t(2), t(1));
     feeds(graph, t(2), t(3));
 
-    const lineage: DataTableLineage = await build(graph, t(3), MAX_DATA_LINEAGE_DEPTH);
+    const lineage: DataTableLineage = await build(
+      graph,
+      t(3),
+      MAX_DATA_LINEAGE_DEPTH,
+    );
 
     expect(tableIds(lineage).sort()).toEqual([t(1), t(2), t(3)].sort());
     expect(feedsPairs(lineage)).toEqual(
@@ -656,9 +683,12 @@ describe("the most drawn next to each table", () => {
     const lineage: DataTableLineage = await build(graph, t(1), 1);
 
     expect(tableIds(lineage, DataLineageSide.Upstream)).toEqual(
-      Array.from({ length: MAX_DATA_LINEAGE_NEIGHBORS }, (_: unknown, index: number) => {
-        return t(100 + index);
-      }),
+      Array.from(
+        { length: MAX_DATA_LINEAGE_NEIGHBORS },
+        (_: unknown, index: number) => {
+          return t(100 + index);
+        },
+      ),
     );
   });
 
@@ -822,11 +852,13 @@ describe("the most drawn next to each table", () => {
 
     expect(lineage.isTruncated).toBe(true);
     expect(
-      graph.edgeReads.every((read) => {
+      graph.edgeReads.every((read: { direction: DataLineageDirection; ids: Array<string> }): boolean => {
         return read.ids.length > 0;
       }),
     ).toBe(true);
-    expect(MAX_DATA_LINEAGE_EDGE_ROWS).toBeGreaterThan(MAX_DATA_LINEAGE_NEIGHBORS);
+    expect(MAX_DATA_LINEAGE_EDGE_ROWS).toBeGreaterThan(
+      MAX_DATA_LINEAGE_NEIGHBORS,
+    );
   });
 });
 
@@ -887,9 +919,11 @@ describe("an edge", () => {
 
     const edge: DataTableLineageEdge = (await build(graph, t(1))).edges[0]!;
 
-    expect(edge.pipelines.map((entry) => {
-      return entry.name;
-    })).toEqual(["z_job", "a_job"]);
+    expect(
+      edge.pipelines.map((entry: DataTableLineagePipeline): string => {
+        return entry.name;
+      }),
+    ).toEqual(["z_job", "a_job"]);
   });
 
   test("leaves out a pipeline the project no longer has", async () => {
@@ -1057,7 +1091,11 @@ describe("pipelines that bring data in from outside", () => {
     expect(card!.lastErrorMessage).toHaveLength(MAX_DATA_LINEAGE_ERROR_LENGTH);
     expect(card!.lastErrorMessage!.endsWith("…")).toBe(true);
     expect(
-      edgeBetween(lineage, getLineagePipelineNodeId(p(1)), getLineageTableNodeId(t(1))),
+      edgeBetween(
+        lineage,
+        getLineagePipelineNodeId(p(1)),
+        getLineageTableNodeId(t(1)),
+      ),
     ).toEqual({
       id: `Writes:${getLineagePipelineNodeId(p(1))}>${getLineageTableNodeId(t(1))}`,
       source: getLineagePipelineNodeId(p(1)),
@@ -1083,9 +1121,11 @@ describe("pipelines that bring data in from outside", () => {
     const lineage: DataTableLineage = await build(graph, t(1));
 
     expect(nodeOf(lineage, getLineagePipelineNodeId(p(1)))).toBeUndefined();
-    expect(lineage.edges.map((edge) => {
-      return edge.kind;
-    })).toEqual([DataLineageEdgeKind.Feeds]);
+    expect(
+      lineage.edges.map((edge: DataTableLineageEdge): DataLineageEdgeKind => {
+        return edge.kind;
+      }),
+    ).toEqual([DataLineageEdgeKind.Feeds]);
     expect(lineage.edges[0]!.pipelines[0]!.dataPipelineId).toBe(p(1));
   });
 
@@ -1102,7 +1142,7 @@ describe("pipelines that bring data in from outside", () => {
     writes(graph, p(1), t(3));
 
     const lineage: DataTableLineage = await build(graph, t(1));
-    const cards: Array<DataTableLineageNode> = lineage.nodes.filter((node) => {
+    const cards: Array<DataTableLineageNode> = lineage.nodes.filter((node: DataTableLineageNode): boolean => {
       return node.kind === DataLineageNodeKind.Pipeline;
     });
 
@@ -1110,14 +1150,16 @@ describe("pipelines that bring data in from outside", () => {
     expect(cards[0]!.depth).toBe(-3);
     expect(
       lineage.edges
-        .filter((edge) => {
+        .filter((edge: DataTableLineageEdge): boolean => {
           return edge.kind === DataLineageEdgeKind.Writes;
         })
-        .map((edge) => {
+        .map((edge: DataTableLineageEdge): string => {
           return edge.target;
         })
         .sort(),
-    ).toEqual([getLineageTableNodeId(t(2)), getLineageTableNodeId(t(3))].sort());
+    ).toEqual(
+      [getLineageTableNodeId(t(2)), getLineageTableNodeId(t(3))].sort(),
+    );
   });
 
   test("a table drawn at the last step still shows where its data comes in", async () => {
@@ -1137,19 +1179,26 @@ describe("pipelines that bring data in from outside", () => {
     const graph: MemoryGraph = newGraph();
     table(graph, t(1));
 
-    for (let index: number = 1; index <= MAX_DATA_LINEAGE_PIPELINES_PER_TABLE + 2; index++) {
+    for (
+      let index: number = 1;
+      index <= MAX_DATA_LINEAGE_PIPELINES_PER_TABLE + 2;
+      index++
+    ) {
       pipeline(graph, p(index), {
-        lastRunState: index === MAX_DATA_LINEAGE_PIPELINES_PER_TABLE + 2 ? "FAIL" : "COMPLETE",
+        lastRunState:
+          index === MAX_DATA_LINEAGE_PIPELINES_PER_TABLE + 2
+            ? "FAIL"
+            : "COMPLETE",
       });
       writes(graph, p(index), t(1), new Date(NOW.getTime() - index * HOUR));
     }
 
     const lineage: DataTableLineage = await build(graph, t(1));
     const cards: Array<string> = lineage.nodes
-      .filter((node) => {
+      .filter((node: DataTableLineageNode): boolean => {
         return node.kind === DataLineageNodeKind.Pipeline;
       })
-      .map((node) => {
+      .map((node: DataTableLineageNode): string => {
         return node.dataPipelineId!;
       });
 
@@ -1227,14 +1276,16 @@ describe("dashboards built on it", () => {
     expect(nodeOf(lineage, getLineageDashboardNodeId(d(2)))).toBeUndefined();
     expect(
       lineage.edges
-        .filter((edge) => {
+        .filter((edge: DataTableLineageEdge): boolean => {
           return edge.kind === DataLineageEdgeKind.Reads;
         })
-        .map((edge) => {
+        .map((edge: DataTableLineageEdge): string => {
           return edge.source;
         })
         .sort(),
-    ).toEqual([getLineageTableNodeId(t(1)), getLineageTableNodeId(t(2))].sort());
+    ).toEqual(
+      [getLineageTableNodeId(t(1)), getLineageTableNodeId(t(2))].sort(),
+    );
     expect(lineage.hiddenDashboardCount).toBe(0);
   });
 
@@ -1242,7 +1293,11 @@ describe("dashboards built on it", () => {
     const graph: MemoryGraph = newGraph();
     table(graph, t(1));
 
-    for (let index: number = 0; index < MAX_DATA_LINEAGE_DASHBOARDS + 4; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_DATA_LINEAGE_DASHBOARDS + 4;
+      index++
+    ) {
       graph.dashboards.push({
         dataDashboardId: d(index),
         name: `Dashboard ${index.toString().padStart(3, "0")}`,
@@ -1255,7 +1310,7 @@ describe("dashboards built on it", () => {
     const lineage: DataTableLineage = await build(graph, t(1));
 
     expect(
-      lineage.nodes.filter((node) => {
+      lineage.nodes.filter((node: DataTableLineageNode): boolean => {
         return node.kind === DataLineageNodeKind.Dashboard;
       }),
     ).toHaveLength(MAX_DATA_LINEAGE_DASHBOARDS);
@@ -1335,10 +1390,12 @@ describe("any lineage", () => {
       // Each card once, the table once at the middle.
       expect(ids.size).toBe(lineage.nodes.length);
       expect(
-        lineage.nodes.filter((node) => {
+        lineage.nodes.filter((node: DataTableLineageNode): boolean => {
           return node.side === DataLineageSide.Focus;
         }),
-      ).toEqual([expect.objectContaining({ id: getLineageTableNodeId(focus), depth: 0 })]);
+      ).toEqual([
+        expect.objectContaining({ id: getLineageTableNodeId(focus), depth: 0 }),
+      ]);
 
       // Each arrow once, between drawn cards, and every table arrow a real edge.
       expect(
@@ -1384,8 +1441,12 @@ describe("any lineage", () => {
         }
       }
 
-      expect(upstream.length).toBeLessThanOrEqual(MAX_DATA_LINEAGE_TABLES_PER_SIDE);
-      expect(downstream.length).toBeLessThanOrEqual(MAX_DATA_LINEAGE_TABLES_PER_SIDE);
+      expect(upstream.length).toBeLessThanOrEqual(
+        MAX_DATA_LINEAGE_TABLES_PER_SIDE,
+      );
+      expect(downstream.length).toBeLessThanOrEqual(
+        MAX_DATA_LINEAGE_TABLES_PER_SIDE,
+      );
 
       // Every neighbour of a drawn table on its side is drawn, or counted on it.
       for (const node of lineage.nodes) {
@@ -1394,7 +1455,9 @@ describe("any lineage", () => {
         }
 
         const id: string = node.dataAssetId!;
-        const drawnId: (other: string) => boolean = (other: string): boolean => {
+        const drawnId: (other: string) => boolean = (
+          other: string,
+        ): boolean => {
           return ids.has(getLineageTableNodeId(other));
         };
 

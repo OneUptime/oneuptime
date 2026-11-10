@@ -32,6 +32,7 @@ AI エージェントは、データを使う前に、それが新しいこと�
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetran の同期の Webhook | Fivetran の署名シークレットとしての取り込みキー |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbyte の同期の Webhook | URL に含めた取り込みキー |
 | `POST /api/data-observability/tables/freshness` | MCP ツールが答えるのと同じ、テーブルの鮮度。 `{ "table": "public.orders" }` を送ります | API キー |
+| `POST /api/data-observability/tables/lineage` | テーブルのリネージを各方向に数ステップ分、各テーブルの現在の状態とともに返します。**リネージ** タブが描くのと同じです。 `{ "dataAssetId": "<table ID>", "depth": 3 }` を送ります | API キー |
 | `POST /api/data-observability/checks/apply` | `oneuptime data-checks apply` と同じように、プロジェクトのチェックをファイルに一致させます。 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` を送ります | API キー |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | データプロダクトの「data as of」バッジ | バッジ専用のトークン |
 

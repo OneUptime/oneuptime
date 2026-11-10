@@ -33,12 +33,9 @@ describe("readDataLineageDepth", () => {
     expect(readDataLineageDepth(value)).toBe(steps);
   });
 
-  test.each([[0], [-2], ["0"]])(
-    "holds %p to one step",
-    (value: unknown) => {
-      expect(readDataLineageDepth(value)).toBe(1);
-    },
-  );
+  test.each([[0], [-2], ["0"]])("holds %p to one step", (value: unknown) => {
+    expect(readDataLineageDepth(value)).toBe(1);
+  });
 
   test.each([[6], [500], ["99"]])("holds %p to the most", (value: unknown) => {
     expect(readDataLineageDepth(value)).toBe(MAX_DATA_LINEAGE_DEPTH);
@@ -54,12 +51,9 @@ describe("readDataLineageDepth", () => {
     [{}],
     [[3]],
     [true],
-  ])(
-    "reads %p as the default",
-    (value: unknown) => {
-      expect(readDataLineageDepth(value)).toBe(DEFAULT_DATA_LINEAGE_DEPTH);
-    },
-  );
+  ])("reads %p as the default", (value: unknown) => {
+    expect(readDataLineageDepth(value)).toBe(DEFAULT_DATA_LINEAGE_DEPTH);
+  });
 
   test("the default and every choice the Lineage tab offers are within the most", () => {
     expect(DATA_LINEAGE_DEPTH_CHOICES).toContain(DEFAULT_DATA_LINEAGE_DEPTH);

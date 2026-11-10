@@ -15,6 +15,8 @@ Avstamning viser hvilke tabeller hver tabell er bygget fra, og hvilke pipelines 
 
 Fanen **Opphav** for en tabell viser tabellene den er bygget fra, pipelinene som skriver til den med siste kjøring, og tabellene som er bygget fra den. Hver forbindelse viser hvor den ble sett.
 
+Øverst i fanen tegner et diagram dette opphavet noen trinn i hver retning (tre, eller velg 1, 2 eller 5): til venstre det tabellen er bygget fra, til høyre tabellene og dashbordene som er bygget fra den, og pipelinene som laster inn data utenfra, der dataene kommer inn. Hvert kort viser hvordan det står til nå - forsinket, et åpent varsel, en mislykket kjøring - og en pil blir rød når siste kjøring av pipelinen feilet, slik at en forsinket tabell kan følges opp til kjøringen som stanset den. Åpne en hvilken som helst tabell for å sentrere diagrammet på den.
+
 Der kilden oppgir kolonner, sier fanen **Kolonner** for en tabell hvor hver kolonne kommer fra og hva den mater: tilgangshistorikken i Snowflake (Enterprise-utgaven, som trenger `IMPORTED PRIVILEGES` på databasen `SNOWFLAKE`), og `columnLineage`-fasetten i OpenLineage.
 
 ## OpenLineage

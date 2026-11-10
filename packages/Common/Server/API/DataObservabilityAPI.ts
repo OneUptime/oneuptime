@@ -568,15 +568,14 @@ export default class DataObservabilityAPI extends BaseAPI<
         }
 
         // Its tables' open alerts as the person who asked may see them.
-        const lineage: DataTableLineage | null = await DataTableLineageReader.read(
-          {
+        const lineage: DataTableLineage | null =
+          await DataTableLineageReader.read({
             projectId,
             dataAssetId: new ObjectID(dataAssetId),
             depth: readDataLineageDepth(body["depth"]),
             now: OneUptimeDate.getCurrentDate(),
             reader: props,
-          },
-        );
+          });
 
         if (!lineage) {
           throw new BadDataException("Table not found.");

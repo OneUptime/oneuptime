@@ -33,11 +33,19 @@ import {
  * Pure and deterministic: the same lineage always draws the same way.
  */
 
-export const LINEAGE_CARD_WIDTH: number = 232;
+export const LINEAGE_CARD_WIDTH: number = 216;
 // The room a card is given in its column; a card is never taller.
 export const LINEAGE_CARD_HEIGHT: number = 84;
-export const LINEAGE_COLUMN_GAP: number = 80;
+// Room between columns for a failed pipeline's name on its arrow.
+export const LINEAGE_COLUMN_GAP: number = 96;
+export const LINEAGE_EDGE_LABEL_MAX_WIDTH: number = LINEAGE_COLUMN_GAP - 12;
 export const LINEAGE_ROW_GAP: number = 16;
+
+// The room around the drawing when it is fitted, as React Flow counts it.
+export const LINEAGE_FIT_PADDING: number = 0.12;
+
+// The least zoom the diagram opens at: below it a card's name is too small to read.
+export const LINEAGE_READABLE_ZOOM: number = 0.75;
 
 const ROW: number = LINEAGE_CARD_HEIGHT + LINEAGE_ROW_GAP;
 const COLUMN: number = LINEAGE_CARD_WIDTH + LINEAGE_COLUMN_GAP;
@@ -45,6 +53,12 @@ const COLUMN: number = LINEAGE_CARD_WIDTH + LINEAGE_COLUMN_GAP;
 export interface LineagePoint {
   x: number;
   y: number;
+}
+
+export interface LineageViewport {
+  x: number;
+  y: number;
+  zoom: number;
 }
 
 export interface LineageLayout {
@@ -199,7 +213,8 @@ export function summarizeLineage(lineage: DataTableLineage): LineageSummary {
   };
 
   for (const node of lineage.nodes) {
-    const hasProblem: boolean = getLineageNodeTone(node) === LineageTone.Problem;
+    const hasProblem: boolean =
+      getLineageNodeTone(node) === LineageTone.Problem;
 
     if (node.kind === DataLineageNodeKind.Dashboard) {
       summary.dashboards++;
@@ -272,7 +287,10 @@ export function getLineageColumns(
       isSide(edge.source, DataLineageSide.Upstream) &&
       (edge.target === focus || isSide(edge.target, DataLineageSide.Upstream))
     ) {
-      toward.set(edge.source, [...(toward.get(edge.source) || []), edge.target]);
+      toward.set(edge.source, [
+        ...(toward.get(edge.source) || []),
+        edge.target,
+      ]);
     }
 
     if (
@@ -471,58 +489,63 @@ export function layoutLineage(lineage: DataTableLineage): LineageLayout {
   const maxColumn: number = Math.max(0, ...keys);
 
   // Arrange one column by its neighbours in the columns `isArranged` says are done.
-  const arrange: (column: number, isArranged: (other: number) => boolean) => void =
-    (column: number, isArranged: (other: number) => boolean): void => {
-      const ids: Array<string> | undefined = order.get(column);
+  const arrange: (
+    column: number,
+    isArranged: (other: number) => boolean,
+  ) => void = (
+    column: number,
+    isArranged: (other: number) => boolean,
+  ): void => {
+    const ids: Array<string> | undefined = order.get(column);
 
-      if (!ids || ids.length === 0) {
-        return;
-      }
+    if (!ids || ids.length === 0) {
+      return;
+    }
 
-      const wanted: Map<string, number> = new Map();
+    const wanted: Map<string, number> = new Map();
 
-      for (const id of ids) {
-        const anchors: Array<number> = (neighbours.get(id) || [])
-          .filter((other: string): boolean => {
-            return isArranged(columns.get(other)!);
-          })
-          .map((other: string): number => {
-            return heights.get(other)!;
-          });
-
-        wanted.set(
-          id,
-          anchors.length > 0
-            ? anchors.reduce((sum: number, value: number): number => {
-                return sum + value;
-              }, 0) / anchors.length
-            : heights.get(id)!,
-        );
-      }
-
-      const sorted: Array<string> = ids
-        .map((id: string, index: number) => {
-          return { id, index };
+    for (const id of ids) {
+      const anchors: Array<number> = (neighbours.get(id) || [])
+        .filter((other: string): boolean => {
+          return isArranged(columns.get(other)!);
         })
-        .sort((a, b): number => {
-          return wanted.get(a.id)! - wanted.get(b.id)! || a.index - b.index;
-        })
-        .map((entry): string => {
-          return entry.id;
+        .map((other: string): number => {
+          return heights.get(other)!;
         });
 
-      const fitted: Array<number> = fitHeights(
-        sorted.map((id: string): number => {
-          return wanted.get(id)!;
-        }),
-        ROW,
+      wanted.set(
+        id,
+        anchors.length > 0
+          ? anchors.reduce((sum: number, value: number): number => {
+              return sum + value;
+            }, 0) / anchors.length
+          : heights.get(id)!,
       );
+    }
 
-      sorted.forEach((id: string, index: number): void => {
-        heights.set(id, fitted[index]!);
+    const sorted: Array<string> = ids
+      .map((id: string, index: number) => {
+        return { id, index };
+      })
+      .sort((a, b): number => {
+        return wanted.get(a.id)! - wanted.get(b.id)! || a.index - b.index;
+      })
+      .map((entry): string => {
+        return entry.id;
       });
-      order.set(column, sorted);
-    };
+
+    const fitted: Array<number> = fitHeights(
+      sorted.map((id: string): number => {
+        return wanted.get(id)!;
+      }),
+      ROW,
+    );
+
+    sorted.forEach((id: string, index: number): void => {
+      heights.set(id, fitted[index]!);
+    });
+    order.set(column, sorted);
+  };
 
   const outwards: () => void = (): void => {
     for (let column: number = -1; column >= minColumn; column--) {
@@ -578,5 +601,53 @@ export function layoutLineage(lineage: DataTableLineage): LineageLayout {
     columns,
     width: (maxColumn - minColumn) * COLUMN + LINEAGE_CARD_WIDTH,
     height: bottom - top + LINEAGE_CARD_HEIGHT,
+  };
+}
+
+/*
+ * Where the diagram is looked at from on a canvas of a given size: the whole
+ * drawing, fitted and centered, when it fits with its cards' names still
+ * readable; otherwise the table itself in the middle, at the least zoom
+ * that keeps names readable - the rest is a drag away, and the fit control
+ * shows all of it. Null while the canvas has no size to go by.
+ */
+export function getLineageViewport(data: {
+  layout: LineageLayout;
+  focusNodeId: string;
+  width: number;
+  height: number;
+}): LineageViewport | null {
+  if (!(data.width > 0) || !(data.height > 0)) {
+    return null;
+  }
+
+  const fitZoom: number = Math.min(
+    1,
+    data.width / (data.layout.width * (1 + LINEAGE_FIT_PADDING)),
+    data.height / (data.layout.height * (1 + LINEAGE_FIT_PADDING)),
+  );
+
+  if (fitZoom >= LINEAGE_READABLE_ZOOM) {
+    return {
+      x: (data.width - data.layout.width * fitZoom) / 2,
+      y: (data.height - data.layout.height * fitZoom) / 2,
+      zoom: fitZoom,
+    };
+  }
+
+  const focus: LineagePoint | undefined = data.layout.positions.get(
+    data.focusNodeId,
+  );
+  const centerX: number = focus
+    ? focus.x + LINEAGE_CARD_WIDTH / 2
+    : data.layout.width / 2;
+  const centerY: number = focus
+    ? focus.y + LINEAGE_CARD_HEIGHT / 2
+    : data.layout.height / 2;
+
+  return {
+    x: data.width / 2 - centerX * LINEAGE_READABLE_ZOOM,
+    y: data.height / 2 - centerY * LINEAGE_READABLE_ZOOM,
+    zoom: LINEAGE_READABLE_ZOOM,
   };
 }

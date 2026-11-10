@@ -15,6 +15,8 @@ Afstamning viser, hvilke tabeller hver tabel er bygget af, og hvilke pipelines d
 
 En tabels fane **Afstamning** viser de tabeller, den er bygget af, de pipelines, der skriver til den, med deres seneste kørsel, og de tabeller, der er bygget af den. Hver kant viser, hvor den blev set.
 
+Øverst på fanen tegner et diagram den afstamning nogle trin i hver retning (tre, eller vælg 1, 2 eller 5): til venstre det, tabellen er bygget af, til højre de tabeller og dashboards, der er bygget af den, og de pipelines, der indlæser data udefra, der hvor de kommer ind. Hvert kort viser, hvordan det står til nu - forsinket, en åben advarsel, en mislykket kørsel - og en pil bliver rød, når den seneste kørsel af dens pipeline mislykkedes, så en forsinket tabel kan følges op til den kørsel, der stoppede den. Åbn en hvilken som helst tabel for at centrere diagrammet på den.
+
 Hvor kilden nævner kolonner, viser en tabels fane **Kolonner**, hvor hver kolonne kommer fra, og hvad den føder: Snowflakes adgangshistorik (Enterprise-udgaven, som kræver `IMPORTED PRIVILEGES` på databasen `SNOWFLAKE`) og OpenLineages facet `columnLineage`.
 
 ## OpenLineage

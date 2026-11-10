@@ -24,7 +24,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -32,22 +32,26 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 // How a run stands, at a glance.
-export function getRunStatePill(state: string | undefined): ReactElement {
+// A run's state as a pill; small where it sits among other small chips (a lineage card).
+export function getRunStatePill(
+  state: string | undefined,
+  size?: PillSize | undefined,
+): ReactElement {
   switch (state) {
     case "COMPLETE":
-      return <Pill text="Complete" color={Green500} />;
+      return <Pill text="Complete" color={Green500} size={size} />;
     case "FAIL":
-      return <Pill text="Failed" color={Red500} />;
+      return <Pill text="Failed" color={Red500} size={size} />;
     case "ABORT":
-      return <Pill text="Aborted" color={Red500} />;
+      return <Pill text="Aborted" color={Red500} size={size} />;
     // A sync its tool will finish later (Fivetran, at an API's rate limit).
     case "RESCHEDULED":
-      return <Pill text="Rescheduled" color={Blue500} />;
+      return <Pill text="Rescheduled" color={Blue500} size={size} />;
     case "START":
     case "RUNNING":
-      return <Pill text="Running" color={Yellow500} />;
+      return <Pill text="Running" color={Yellow500} size={size} />;
     default:
-      return <Pill text="No run yet" color={Gray500} />;
+      return <Pill text="No run yet" color={Gray500} size={size} />;
   }
 }
 

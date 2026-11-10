@@ -15,6 +15,8 @@ Herkomst (lineage) zegt uit welke tabellen elke tabel is opgebouwd, en welke pip
 
 Het tabblad **Herkomst** van een tabel toont de tabellen waaruit ze is opgebouwd, de pipelines die ernaar schrijven met hun laatste uitvoering, en de tabellen die uit haar zijn opgebouwd. Elke verbinding zegt waar ze is gezien.
 
+Bovenaan het tabblad tekent een diagram die herkomst een paar stappen in elke richting (drie, of kies 1, 2 of 5): links waaruit de tabel is opgebouwd, rechts de tabellen en dashboards die eruit zijn opgebouwd, en de pipelines die gegevens van buitenaf laden, op de plek waar die binnenkomen. Elke kaart zegt hoe het er nu voor staat - te laat, een open waarschuwing, een mislukte uitvoering - en een pijl wordt rood als de laatste uitvoering van zijn pipeline is mislukt, zodat je een te late tabel kunt volgen tot de uitvoering die haar ophield. Open een willekeurige tabel om het diagram erop te centreren.
+
 Waar de bron kolommen noemt, zegt het tabblad **Kolommen** van een tabel waar elke kolom vandaan komt en wat ze voedt: de toegangsgeschiedenis van Snowflake (Enterprise edition, die `IMPORTED PRIVILEGES` op de database `SNOWFLAKE` nodig heeft), en de facet `columnLineage` van OpenLineage.
 
 ## OpenLineage

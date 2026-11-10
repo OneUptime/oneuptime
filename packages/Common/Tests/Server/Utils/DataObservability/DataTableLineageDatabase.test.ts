@@ -30,7 +30,10 @@ import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
 import DataAssetLineageSource from "../../../../Types/DataObservability/DataAssetLineageSource";
-import { DataTableLineage } from "../../../../Types/DataObservability/DataTableLineage";
+import {
+  DataTableLineage,
+  DataTableLineageNode,
+} from "../../../../Types/DataObservability/DataTableLineage";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -133,13 +136,14 @@ describe("the lineage edges", () => {
       .mockResolvedValue([row, writesRow] as never);
 
     const rows: Array<DataLineageEdgeRow> =
-      await DataTableLineageReader.getDatabaseReader(PROJECT_ID, null).readEdges(
-        {
-          direction: DataLineageDirection.Upstream,
-          dataAssetIds: [id(1)],
-          limit: 100,
-        },
-      );
+      await DataTableLineageReader.getDatabaseReader(
+        PROJECT_ID,
+        null,
+      ).readEdges({
+        direction: DataLineageDirection.Upstream,
+        dataAssetIds: [id(1)],
+        limit: 100,
+      });
 
     expect(rows).toEqual([
       {
@@ -204,13 +208,14 @@ describe("the lineage edges", () => {
       .mockResolvedValue([row] as never);
 
     const rows: Array<DataLineageEdgeRow> =
-      await DataTableLineageReader.getDatabaseReader(PROJECT_ID, null).readEdges(
-        {
-          direction: DataLineageDirection.Upstream,
-          dataAssetIds: [id(1)],
-          limit: 10,
-        },
-      );
+      await DataTableLineageReader.getDatabaseReader(
+        PROJECT_ID,
+        null,
+      ).readEdges({
+        direction: DataLineageDirection.Upstream,
+        dataAssetIds: [id(1)],
+        limit: 10,
+      });
 
     expect(rows[0]!.source).toBeNull();
     expect(rows[0]!.lastSeenAt).toBeNull();
@@ -237,13 +242,14 @@ describe("the lineage edges", () => {
       },
     );
     const rows: Array<DataLineageEdgeRow> =
-      await DataTableLineageReader.getDatabaseReader(PROJECT_ID, null).readEdges(
-        {
-          direction: DataLineageDirection.Downstream,
-          dataAssetIds: ids,
-          limit: 700,
-        },
-      );
+      await DataTableLineageReader.getDatabaseReader(
+        PROJECT_ID,
+        null,
+      ).readEdges({
+        direction: DataLineageDirection.Downstream,
+        dataAssetIds: ids,
+        limit: 700,
+      });
 
     expect(rows).toHaveLength(700);
 
@@ -283,9 +289,10 @@ describe("the tables and pipelines", () => {
       .mockResolvedValue([asset, odd] as never);
 
     const tables: Awaited<ReturnType<DataLineageReader["readTables"]>> =
-      await DataTableLineageReader.getDatabaseReader(PROJECT_ID, null).readTables(
-        [id(1), id(2)],
-      );
+      await DataTableLineageReader.getDatabaseReader(
+        PROJECT_ID,
+        null,
+      ).readTables([id(1), id(2)]);
 
     expect(tables).toEqual([
       {
@@ -643,15 +650,15 @@ describe("a table's lineage, read from the database", () => {
     source.assetKey = "raw.orders";
     source.assetKind = DataAssetKind.Table;
 
-    jest
-      .spyOn(DataAssetService, "findBy")
-      .mockImplementation((async (findBy: FindByCall) => {
-        const asked: Array<string> = idsOf(findBy.query["_id"]);
+    jest.spyOn(DataAssetService, "findBy").mockImplementation((async (
+      findBy: FindByCall,
+    ) => {
+      const asked: Array<string> = idsOf(findBy.query["_id"]);
 
-        return [focus, source].filter((asset: DataAsset): boolean => {
-          return asked.includes(asset._id!);
-        });
-      }) as never);
+      return [focus, source].filter((asset: DataAsset): boolean => {
+        return asked.includes(asset._id!);
+      });
+    }) as never);
 
     const edgeRead: ReturnType<typeof jest.spyOn> = jest
       .spyOn(DataAssetLineageService, "findBy")
@@ -685,7 +692,7 @@ describe("a table's lineage, read from the database", () => {
     });
 
     expect(
-      lineage?.nodes.map((node) => {
+      lineage?.nodes.map((node: DataTableLineageNode): string => {
         return node.name;
       }),
     ).toEqual(["analytics.orders", "raw.orders"]);

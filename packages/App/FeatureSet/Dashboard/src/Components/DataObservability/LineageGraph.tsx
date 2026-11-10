@@ -3,6 +3,8 @@ import { formatOverdue } from "./DataObservabilityFormat";
 import {
   LINEAGE_CARD_HEIGHT,
   LINEAGE_CARD_WIDTH,
+  LINEAGE_EDGE_LABEL_MAX_WIDTH,
+  LINEAGE_FIT_PADDING,
   LINEAGE_NEUTRAL_COLOR,
   LINEAGE_PROBLEM_COLOR,
   LINEAGE_QUERY_HISTORY_DASH,
@@ -10,7 +12,9 @@ import {
   LineageEdgeStyle,
   LineageLayout,
   LineageTone,
+  LineageViewport,
   getLineageEdgeStyle,
+  getLineageViewport,
   getLineageNodeTone,
   getLineageToneColor,
   layoutLineage,
@@ -44,14 +48,25 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   CSSProperties,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
+  RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
+  useState,
 } from "react";
 import ReactFlow, {
   Background,
   BackgroundVariant,
+  BaseEdge,
   Controls,
   Edge,
+  EdgeLabelRenderer,
+  EdgeProps,
+  EdgeTypes,
   FitViewOptions,
   Handle,
   MarkerType,
@@ -59,6 +74,8 @@ import ReactFlow, {
   NodeProps,
   NodeTypes,
   Position,
+  ReactFlowInstance,
+  getBezierPath,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -71,14 +88,17 @@ import "reactflow/dist/style.css";
  * grey when that cannot be said yet, and a dashed card for a table dropped
  * from its database. An arrow is solid where a pipeline's run moved the
  * data, dashed where only the database's query history saw it, dotted for
- * a view's definition, and red, naming the pipeline, when that pipeline's
- * latest run failed.
+ * a view's definition, and red, with the pipeline's name on it, when that
+ * pipeline's latest run failed.
  *
  * A table opens its own Lineage tab, so the diagram can be walked a table
  * at a time; a pipeline opens its page, a dashboard its tool. A small count
  * on a card's outer side says how many more tables lie that way than are
  * drawn. The page scrolls over the drawing - the wheel never zooms it - and
- * nothing on it is dragged; the controls zoom and fit it.
+ * nothing on it is dragged; the controls zoom and fit it. A drawing too
+ * wide to read whole opens on the table itself, at a zoom its names can be
+ * read at (getLineageViewport); the rest is a drag away. Until the reader
+ * pans or zooms, the view follows the canvas's size.
  */
 
 const MAP_LABEL: string = translationKey(
@@ -124,16 +144,16 @@ const ASSET_KIND_ICONS: Readonly<Record<string, IconProp>> = {
 // Arrowheads one size whatever the arrow's width: React Flow scales them with it by default.
 const ARROWHEAD_SIZE: number = 16;
 
-const FIT_VIEW_OPTIONS: FitViewOptions = { padding: 0.12, maxZoom: 1 };
+const FIT_VIEW_OPTIONS: FitViewOptions = {
+  padding: LINEAGE_FIT_PADDING,
+  maxZoom: 1,
+};
 
 const HANDLE_STYLE: CSSProperties = { opacity: 0, pointerEvents: "none" };
 
 // The canvas's height bounds; between them it keeps the drawing's shape.
-const CANVAS_MIN_HEIGHT: number = 280;
+const CANVAS_MIN_HEIGHT: number = 360;
 const CANVAS_MAX_HEIGHT: number = 640;
-
-// A pipeline's name on its arrow, cut to what an arrow's label holds.
-const MAX_EDGE_LABEL_NAME: number = 32;
 
 export function getLineageCanvasStyle(layout: LineageLayout): CSSProperties {
   return {
@@ -245,7 +265,12 @@ const CardChips: FunctionComponent<LineageCardData> = (
   if (node.kind === DataLineageNodeKind.Table) {
     if (node.isDropped) {
       chips.push(
-        <Pill key="dropped" text={DROPPED} color={Gray500} size={PillSize.Small} />,
+        <Pill
+          key="dropped"
+          text={DROPPED}
+          color={Gray500}
+          size={PillSize.Small}
+        />,
       );
     } else {
       if ((node.openAlertCount || 0) > 0) {
@@ -273,7 +298,12 @@ const CardChips: FunctionComponent<LineageCardData> = (
         );
       } else if (node.freshness === DataAssetFreshness.Fresh) {
         chips.push(
-          <Pill key="fresh" text={FRESH} color={Green500} size={PillSize.Small} />,
+          <Pill
+            key="fresh"
+            text={FRESH}
+            color={Green500}
+            size={PillSize.Small}
+          />,
         );
       }
     }
@@ -282,7 +312,7 @@ const CardChips: FunctionComponent<LineageCardData> = (
   if (node.kind === DataLineageNodeKind.Pipeline) {
     chips.push(
       <span key="run" className="inline-flex">
-        {getRunStatePill(node.lastRunState || undefined)}
+        {getRunStatePill(node.lastRunState || undefined, PillSize.Small)}
       </span>,
     );
   }
@@ -475,12 +505,64 @@ const NODE_TYPES: NodeTypes = {
   lineageCard: LineageCard,
 };
 
-// The pipeline's name, cut to what an arrow's label holds.
-function shortName(name: string): string {
-  return name.length > MAX_EDGE_LABEL_NAME
-    ? `${name.slice(0, MAX_EDGE_LABEL_NAME - 1)}…`
-    : name;
+interface LineageArrowData {
+  // The failed pipeline's name, on its arrow; the whole sentence under the pointer.
+  label?: string | undefined;
+  title?: string | undefined;
 }
+
+/*
+ * An arrow, and on one whose pipeline failed that pipeline's name: an
+ * HTML label, so it is cut to the room between two columns, ends in "..."
+ * when it is longer, and says the whole sentence under the pointer.
+ */
+const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
+  props: EdgeProps<LineageArrowData>,
+): ReactElement => {
+  const [path, labelX, labelY] = getBezierPath({
+    sourceX: props.sourceX,
+    sourceY: props.sourceY,
+    sourcePosition: props.sourcePosition,
+    targetX: props.targetX,
+    targetY: props.targetY,
+    targetPosition: props.targetPosition,
+  });
+
+  return (
+    <>
+      <BaseEdge
+        id={props.id}
+        path={path}
+        style={props.style}
+        {...(props.markerEnd ? { markerEnd: props.markerEnd } : {})}
+      />
+      {props.data?.label ? (
+        <EdgeLabelRenderer>
+          <div
+            className="nodrag nopan absolute truncate rounded px-1 text-[10px] font-medium"
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              maxWidth: LINEAGE_EDGE_LABEL_MAX_WIDTH,
+              color: LINEAGE_PROBLEM_COLOR,
+              background: "var(--ou-surface-primary, #ffffff)",
+              pointerEvents: "all",
+            }}
+            title={props.data.title}
+            data-testid="lineage-edge-label"
+          >
+            {props.data.label}
+          </div>
+        </EdgeLabelRenderer>
+      ) : (
+        <></>
+      )}
+    </>
+  );
+};
+
+const EDGE_TYPES: EdgeTypes = {
+  lineageArrow: LineageArrow,
+};
 
 export interface ComponentProps {
   lineage: DataTableLineage;
@@ -520,33 +602,21 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
   const edges: Array<Edge> = useMemo((): Array<Edge> => {
     return props.lineage.edges.map((edge: DataTableLineageEdge): Edge => {
       const style: LineageEdgeStyle = getLineageEdgeStyle(edge);
-      const label: string = style.failedPipeline
-        ? translator.translateTemplate(FAILED_PIPELINE, {
-            pipeline: shortName(style.failedPipeline.name),
-          })
-        : "";
+      const data: LineageArrowData = style.failedPipeline
+        ? {
+            label: style.failedPipeline.name,
+            title: translator.translateTemplate(FAILED_PIPELINE, {
+              pipeline: style.failedPipeline.name,
+            }),
+          }
+        : {};
 
       return {
         id: edge.id,
         source: edge.source,
         target: edge.target,
-        type: "default",
-        ...(label
-          ? {
-              label,
-              labelStyle: {
-                fontSize: 10,
-                fontWeight: 500,
-                fill: LINEAGE_PROBLEM_COLOR,
-              },
-              labelBgStyle: {
-                fill: "var(--ou-surface-primary, #ffffff)",
-                fillOpacity: 0.92,
-              },
-              labelBgPadding: [4, 2] as [number, number],
-              labelBgBorderRadius: 4,
-            }
-          : {}),
+        type: "lineageArrow",
+        data,
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: style.color,
@@ -569,46 +639,120 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
    */
   const drawingKey: string = `${props.lineage.focusNodeId}:${props.lineage.depth}:${props.lineage.nodes.length}`;
 
+  // The canvas's size, read before the drawing is first shown: where it is looked at from depends on it.
+  const canvasRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const flowRef: MutableRefObject<ReactFlowInstance | null> =
+    useRef<ReactFlowInstance | null>(null);
+  // Once the reader pans or zooms, the view is theirs.
+  const hasReaderMovedRef: MutableRefObject<boolean> = useRef<boolean>(false);
+  const [measured, setMeasured] = useState<{
+    key: string;
+    viewport: LineageViewport | null;
+  } | null>(null);
+
+  const readViewport: () => LineageViewport | null =
+    useCallback((): LineageViewport | null => {
+      const box: DOMRect | undefined =
+        canvasRef.current?.getBoundingClientRect();
+
+      return getLineageViewport({
+        layout,
+        focusNodeId: props.lineage.focusNodeId,
+        width: box?.width || 0,
+        height: box?.height || 0,
+      });
+    }, [layout, props.lineage.focusNodeId]);
+
+  useLayoutEffect(() => {
+    hasReaderMovedRef.current = false;
+    setMeasured({ key: drawingKey, viewport: readViewport() });
+  }, [drawingKey, readViewport]);
+
+  // The canvas settling into its width, or the window resized: looked at afresh, until the reader moves it.
+  useEffect(() => {
+    const canvas: HTMLDivElement | null = canvasRef.current;
+
+    if (!canvas || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer: ResizeObserver = new ResizeObserver((): void => {
+      const viewport: LineageViewport | null = readViewport();
+
+      if (viewport && flowRef.current && !hasReaderMovedRef.current) {
+        flowRef.current.setViewport(viewport);
+      }
+    });
+
+    observer.observe(canvas);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [readViewport]);
+
+  const isMeasured: boolean = measured?.key === drawingKey;
+  const viewport: LineageViewport | null = isMeasured
+    ? measured?.viewport || null
+    : null;
+
   return (
     <div
+      ref={canvasRef}
       role="figure"
       aria-label={translator.translateText(MAP_LABEL) || MAP_LABEL}
       className="rounded-md border border-gray-200 bg-gray-50"
       style={getLineageCanvasStyle(layout)}
       data-testid="lineage-graph"
     >
-      <ReactFlow
-        key={drawingKey}
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={NODE_TYPES}
-        fitView={true}
-        fitViewOptions={FIT_VIEW_OPTIONS}
-        minZoom={0.15}
-        maxZoom={1.5}
-        proOptions={{ hideAttribution: true }}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        nodesFocusable={false}
-        edgesFocusable={false}
-        elementsSelectable={false}
-        zoomOnScroll={false}
-        zoomOnDoubleClick={false}
-        panOnScroll={false}
-        preventScrolling={false}
-      >
-        <Controls
-          position="top-right"
-          showInteractive={false}
+      {isMeasured ? (
+        <ReactFlow
+          key={drawingKey}
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={NODE_TYPES}
+          edgeTypes={EDGE_TYPES}
+          // A canvas with no size to go by (never on a page) is fitted by React Flow.
+          fitView={!viewport}
+          {...(viewport ? { defaultViewport: viewport } : {})}
           fitViewOptions={FIT_VIEW_OPTIONS}
-        />
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={22}
-          size={1}
-          color="var(--ou-chart-grid, #cbd5e1)"
-        />
-      </ReactFlow>
+          onInit={(instance: ReactFlowInstance): void => {
+            flowRef.current = instance;
+          }}
+          onMoveStart={(event: MouseEvent | TouchEvent | null): void => {
+            // Only the reader's own moves carry an event.
+            if (event) {
+              hasReaderMovedRef.current = true;
+            }
+          }}
+          minZoom={0.15}
+          maxZoom={1.5}
+          proOptions={{ hideAttribution: true }}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          nodesFocusable={false}
+          edgesFocusable={false}
+          elementsSelectable={false}
+          zoomOnScroll={false}
+          zoomOnDoubleClick={false}
+          panOnScroll={false}
+          preventScrolling={false}
+        >
+          <Controls
+            position="bottom-right"
+            showInteractive={false}
+            fitViewOptions={FIT_VIEW_OPTIONS}
+          />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={22}
+            size={1}
+            color="var(--ou-chart-grid, #cbd5e1)"
+          />
+        </ReactFlow>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
@@ -653,7 +797,10 @@ const LegendSwatch: FunctionComponent<{
       style={
         props.isDashed
           ? { border: "1px dashed #94a3b8" }
-          : { border: "1px solid #e2e8f0", borderTop: `3px solid ${props.color}` }
+          : {
+              border: "1px solid #e2e8f0",
+              borderTop: `3px solid ${props.color}`,
+            }
       }
     />
   );
@@ -662,15 +809,22 @@ const LegendSwatch: FunctionComponent<{
 // What the diagram's lines and colours mean.
 export const LineageLegend: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const item: (key: string, mark: ReactElement, text: string) => ReactElement =
-    (key: string, mark: ReactElement, text: string): ReactElement => {
-      return (
-        <span key={key} className="inline-flex items-center gap-1.5">
-          {mark}
-          <span>{translator.translateText(text)}</span>
-        </span>
-      );
-    };
+  const item: (
+    key: string,
+    mark: ReactElement,
+    text: string,
+  ) => ReactElement = (
+    key: string,
+    mark: ReactElement,
+    text: string,
+  ): ReactElement => {
+    return (
+      <span key={key} className="inline-flex items-center gap-1.5">
+        {mark}
+        <span>{translator.translateText(text)}</span>
+      </span>
+    );
+  };
 
   return (
     <div

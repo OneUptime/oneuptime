@@ -15,6 +15,8 @@ A linhagem diz a partir de quais tabelas cada tabela é construída e quais pipe
 
 A aba **Linhagem** de uma tabela mostra as tabelas a partir das quais ela é construída, os pipelines que escrevem nela com a última execução de cada um, e as tabelas construídas a partir dela. Cada aresta diz onde foi vista.
 
+No topo da aba, um diagrama desenha essa linhagem alguns passos em cada direção (três, ou escolha 1, 2 ou 5): à esquerda, aquilo a partir do qual a tabela é construída; à direita, as tabelas e os painéis construídos a partir dela; e os pipelines que carregam dados de fora, onde eles entram. Cada cartão diz como está agora - atrasada, um alerta aberto, uma execução com falha - e uma seta fica vermelha quando a última execução do seu pipeline falhou, para que uma tabela atrasada possa ser seguida até a execução que a travou. Abra qualquer tabela para centralizar o diagrama nela.
+
 Quando a origem nomeia colunas, a aba **Colunas** de uma tabela diz de onde vem cada coluna e o que ela alimenta: o histórico de acessos do Snowflake (edição Enterprise, que exige `IMPORTED PRIVILEGES` no banco de dados `SNOWFLAKE`) e a faceta `columnLineage` do OpenLineage.
 
 ## OpenLineage

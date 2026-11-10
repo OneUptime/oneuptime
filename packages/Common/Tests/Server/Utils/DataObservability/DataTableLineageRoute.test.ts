@@ -206,19 +206,16 @@ describe("POST /data-observability/tables/lineage", () => {
     [99, MAX_DATA_LINEAGE_DEPTH],
     [0, 1],
     ["lots", DEFAULT_DATA_LINEAGE_DEPTH],
-  ])(
-    "asked for %p steps, walks %p",
-    async (depth: unknown, walked: number) => {
-      const asked: Asked = await ask(withPermission(Permission.ProjectMember), {
-        dataAssetId: TABLE_ID,
-        ...(depth === undefined ? {} : { depth: depth as number }),
-      });
+  ])("asked for %p steps, walks %p", async (depth: unknown, walked: number) => {
+    const asked: Asked = await ask(withPermission(Permission.ProjectMember), {
+      dataAssetId: TABLE_ID,
+      ...(depth === undefined ? {} : { depth: depth as number }),
+    });
 
-      expect((asked.read.mock.calls[0]![0] as { depth: number }).depth).toBe(
-        walked,
-      );
-    },
-  );
+    expect((asked.read.mock.calls[0]![0] as { depth: number }).depth).toBe(
+      walked,
+    );
+  });
 
   test.each([
     ["Read Data Asset", Permission.ReadDataAsset],

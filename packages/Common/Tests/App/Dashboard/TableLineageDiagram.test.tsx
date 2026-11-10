@@ -36,6 +36,9 @@ const getTableLineageMock: MockFunction = getJestMockFunction();
 // The props of the latest React Flow drawing: its cards and arrows.
 let mockFlowProps: ReactFlowProps | null = null;
 
+// The instance the stand-in hands onInit: what the diagram asks of the view.
+const setViewportMock: MockFunction = getJestMockFunction();
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataObservabilityApi",
   () => {
@@ -81,10 +84,13 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      getRunStatePill: (state: string | undefined): ReactElement => {
+      getRunStatePill: (
+        state: string | undefined,
+        size: string | undefined,
+      ): ReactElement => {
         return React.createElement(
           "span",
-          { "data-testid": "run-state" },
+          { "data-testid": "run-state", "data-size": size || "" },
           state || "No run yet",
         );
       },
@@ -113,9 +119,43 @@ jest.mock("reactflow", () => {
   ): React.ReactElement => {
     mockFlowProps = props;
 
+    React.useEffect(() => {
+      if (props.onInit) {
+        props.onInit({
+          setViewport: (...args: Array<any>) => {
+            return setViewportMock(...args);
+          },
+        });
+      }
+    }, []);
+
     return React.createElement(
       "div",
       { "data-testid": "mock-react-flow" },
+      (props.edges || []).map((edge: any) => {
+        const Arrow: any = props.edgeTypes?.[edge.type];
+
+        return Arrow
+          ? React.createElement(
+              "div",
+              { key: edge.id, "data-testid": `flow-edge-${edge.id}` },
+              React.createElement(Arrow, {
+                id: edge.id,
+                source: edge.source,
+                target: edge.target,
+                data: edge.data,
+                style: edge.style,
+                markerEnd: "url(#arrow)",
+                sourceX: 0,
+                sourceY: 0,
+                targetX: 100,
+                targetY: 0,
+                sourcePosition: "right",
+                targetPosition: "left",
+              }),
+            )
+          : null;
+      }),
       (props.nodes || []).map((node: any) => {
         const Card: any = props.nodeTypes[node.type];
 
@@ -159,6 +199,19 @@ jest.mock("reactflow", () => {
     },
     BackgroundVariant: { Dots: "dots" },
     MarkerType: { ArrowClosed: "arrowclosed" },
+    // An arrow's line, and its label drawn where it is.
+    BaseEdge: (props: any) => {
+      return React.createElement("svg", {
+        "data-testid": "base-edge",
+        "data-path": props.path,
+      });
+    },
+    EdgeLabelRenderer: (props: any) => {
+      return React.createElement(React.Fragment, null, props.children);
+    },
+    getBezierPath: () => {
+      return ["M0,0 C50,0 50,0 100,0", 50, 0];
+    },
   };
 });
 
@@ -182,9 +235,14 @@ import {
 } from "../../../Types/DataObservability/DataTableLineage";
 import TableLineageDiagram from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/TableLineageDiagram";
 import {
+  LINEAGE_EDGE_LABEL_MAX_WIDTH,
   LINEAGE_PROBLEM_COLOR,
   LINEAGE_QUERY_HISTORY_DASH,
+  LINEAGE_READABLE_ZOOM,
+  layoutLineage,
+  getLineageViewport,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraphModel";
+import { PillSize } from "../../../UI/Components/Pill/Pill";
 
 const TABLE: string = "22222222-2222-4222-8222-000000000001";
 const SOURCE: string = "22222222-2222-4222-8222-000000000002";
@@ -379,6 +437,7 @@ async function renderDrawn(
 
 beforeEach(() => {
   getTableLineageMock.mockReset();
+  setViewportMock.mockReset();
   mockFlowProps = null;
 });
 
@@ -623,6 +682,11 @@ describe("the cards", () => {
     expect(sync).toHaveTextContent("shopify_orders");
     expect(sync).toHaveTextContent("fivetran");
     expect(within(sync).getByTestId("run-state")).toHaveTextContent("FAIL");
+    // Small, as every other chip on a card.
+    expect(within(sync).getByTestId("run-state")).toHaveAttribute(
+      "data-size",
+      PillSize.Small,
+    );
     expect(
       within(sync).getByTestId("lineage-card").getAttribute("href"),
     ).toContain(`/data-observability/pipelines/${SYNC}`);
@@ -653,20 +717,33 @@ describe("the cards", () => {
 });
 
 describe("the arrows", () => {
-  test("an arrow whose pipeline's latest run failed is red and names the pipeline", async () => {
+  test("an arrow whose pipeline's latest run failed is red and carries the pipeline's name", async () => {
     await renderDrawn();
 
-    const failed: FlowEdge = flowEdge(
-      getLineageEdgeId({
-        kind: DataLineageEdgeKind.Feeds,
-        source: `table:${SOURCE}`,
-        target: `table:${STAGING}`,
-      }),
-    );
+    const id: string = getLineageEdgeId({
+      kind: DataLineageEdgeKind.Feeds,
+      source: `table:${SOURCE}`,
+      target: `table:${STAGING}`,
+    });
+    const failed: FlowEdge = flowEdge(id);
 
-    expect(failed.label).toBe("orders_etl failed");
+    expect(failed.type).toBe("lineageArrow");
+    expect(failed.data).toEqual({
+      label: "orders_etl",
+      title: "orders_etl failed",
+    });
     expect(failed.style?.stroke).toBe(LINEAGE_PROBLEM_COLOR);
     expect(failed.markerEnd).toMatchObject({ color: LINEAGE_PROBLEM_COLOR });
+
+    // Drawn: the name on the arrow, cut to the room between columns, the sentence under the pointer.
+    const label: HTMLElement = within(
+      screen.getByTestId(`flow-edge-${id}`),
+    ).getByTestId("lineage-edge-label");
+
+    expect(label).toHaveTextContent("orders_etl");
+    expect(label).toHaveAttribute("title", "orders_etl failed");
+    expect(label).toHaveClass("truncate");
+    expect(label.style.maxWidth).toBe(`${LINEAGE_EDGE_LABEL_MAX_WIDTH}px`);
   });
 
   test("an arrow seen only in query history is dashed, one moved by a pipeline solid and unlabelled", async () => {
@@ -691,7 +768,12 @@ describe("the arrows", () => {
     );
 
     expect(solid.style?.strokeDasharray).toBeUndefined();
-    expect(solid.label).toBeUndefined();
+    expect(solid.data).toEqual({});
+    expect(
+      within(screen.getByTestId(`flow-edge-${solid.id}`)).queryByTestId(
+        "lineage-edge-label",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   test("every card and arrow is handed to the drawing, nothing dragged or zoomed by the wheel", async () => {
@@ -776,5 +858,157 @@ describe("the summary and notes", () => {
     ]) {
       expect(legend).toHaveTextContent(words);
     }
+  });
+});
+
+describe("where the drawing is looked at from", () => {
+  type ResizeCallback = () => void;
+
+  let resizeCallbacks: Array<ResizeCallback>;
+  let canvasBox: { width: number; height: number };
+  let realResizeObserver: unknown;
+  let realGetBoundingClientRect: () => DOMRect;
+
+  beforeEach(() => {
+    resizeCallbacks = [];
+    canvasBox = { width: 1000, height: 400 };
+    realResizeObserver = (globalThis as any).ResizeObserver;
+    (globalThis as any).ResizeObserver = class {
+      private callback: ResizeCallback;
+
+      public constructor(callback: ResizeCallback) {
+        this.callback = callback;
+      }
+
+      public observe(): void {
+        resizeCallbacks.push(this.callback);
+      }
+
+      public disconnect(): void {
+        resizeCallbacks = resizeCallbacks.filter((callback: ResizeCallback) => {
+          return callback !== this.callback;
+        });
+      }
+    };
+    realGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+    // The canvas has the size a test gives it; everything else none.
+    HTMLElement.prototype.getBoundingClientRect = function (
+      this: HTMLElement,
+    ): DOMRect {
+      const isCanvas: boolean =
+        this.getAttribute("data-testid") === "lineage-graph";
+
+      return {
+        width: isCanvas ? canvasBox.width : 0,
+        height: isCanvas ? canvasBox.height : 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        x: 0,
+        y: 0,
+        toJSON: () => {
+          return {};
+        },
+      } as DOMRect;
+    };
+  });
+
+  afterEach(() => {
+    (globalThis as any).ResizeObserver = realResizeObserver;
+    HTMLElement.prototype.getBoundingClientRect = realGetBoundingClientRect;
+  });
+
+  test("a drawing too wide to read whole opens on the table, at a readable zoom", async () => {
+    await renderDrawn();
+
+    const expected: ReturnType<typeof getLineageViewport> = getLineageViewport({
+      layout: layoutLineage(aLineage()),
+      focusNodeId: `table:${TABLE}`,
+      width: 1000,
+      height: 400,
+    });
+
+    expect(expected?.zoom).toBe(LINEAGE_READABLE_ZOOM);
+    expect(mockFlowProps?.fitView).toBe(false);
+    expect(mockFlowProps?.defaultViewport).toEqual(expected);
+  });
+
+  test("a small drawing opens whole", async () => {
+    canvasBox = { width: 2400, height: 600 };
+    await renderDrawn(
+      aLineage({
+        nodes: [
+          table(TABLE, DataLineageSide.Focus, 0),
+          table(STAGING, DataLineageSide.Upstream, -1),
+        ],
+        edges: [
+          arrow(
+            DataLineageEdgeKind.Feeds,
+            `table:${STAGING}`,
+            `table:${TABLE}`,
+          ),
+        ],
+      }),
+    );
+
+    const viewport: { x: number; y: number; zoom: number } | undefined =
+      mockFlowProps?.defaultViewport;
+
+    // Fitted, never past life size.
+    expect(viewport?.zoom).toBe(1);
+    expect(viewport?.x).toBeGreaterThan(0);
+  });
+
+  test("follows the canvas's size until the reader moves the view, then never again", async () => {
+    await renderDrawn();
+
+    expect(resizeCallbacks).toHaveLength(1);
+
+    canvasBox = { width: 1400, height: 500 };
+    act(() => {
+      resizeCallbacks[0]!();
+    });
+
+    expect(setViewportMock).toHaveBeenCalledTimes(1);
+    expect(setViewportMock.mock.calls[0]![0]).toEqual(
+      getLineageViewport({
+        layout: layoutLineage(aLineage()),
+        focusNodeId: `table:${TABLE}`,
+        width: 1400,
+        height: 500,
+      }),
+    );
+
+    // A move of the view's own (no event) leaves it following; the reader's own move ends it.
+    act(() => {
+      mockFlowProps?.onMoveStart?.(null as never, { x: 0, y: 0, zoom: 1 });
+    });
+    act(() => {
+      resizeCallbacks[0]!();
+    });
+
+    expect(setViewportMock).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      mockFlowProps?.onMoveStart?.(
+        new MouseEvent("mousedown") as never,
+        { x: 0, y: 0, zoom: 1 },
+      );
+    });
+    canvasBox = { width: 800, height: 400 };
+    act(() => {
+      resizeCallbacks[0]!();
+    });
+
+    expect(setViewportMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("a canvas with no size is fitted by React Flow", async () => {
+    canvasBox = { width: 0, height: 0 };
+    await renderDrawn();
+
+    expect(mockFlowProps?.fitView).toBe(true);
+    expect(mockFlowProps?.defaultViewport).toBeUndefined();
   });
 });

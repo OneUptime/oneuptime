@@ -32,6 +32,7 @@ OneUptime AI знает ваши данные: он расследует опо�
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Вебхуки синхронизаций Fivetran | Ключ приёма как секрет подписи Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Вебхуки синхронизаций Airbyte | Ключ приёма в URL |
 | `POST /api/data-observability/tables/freshness` | Актуальность таблицы в том виде, в каком её возвращает инструмент MCP, с `{ "table": "public.orders" }` | API-ключ |
+| `POST /api/data-observability/tables/lineage` | Происхождение таблицы на несколько шагов в каждую сторону, с состоянием каждой таблицы, как его рисует вкладка **Происхождение**, с `{ "dataAssetId": "<table ID>", "depth": 3 }` | API-ключ |
 | `POST /api/data-observability/checks/apply` | Приводит проверки проекта в соответствие с файлом, как это делает `oneuptime data-checks apply`, с `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API-ключ |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Значок «data as of» продукта данных | Собственный токен значка |
 

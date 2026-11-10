@@ -32,6 +32,7 @@ AI 에이전트는 데이터를 쓰기 전에 그 데이터가 최신인지 확�
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetran의 동기화 웹훅 | Fivetran의 서명 시크릿으로 쓰는 수집 키 |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbyte의 동기화 웹훅 | URL에 담긴 수집 키 |
 | `POST /api/data-observability/tables/freshness` | MCP 도구가 답하는 것과 같은 테이블의 최신성. `{ "table": "public.orders" }` 로 요청합니다 | API 키 |
+| `POST /api/data-observability/tables/lineage` | 테이블의 계보를 방향마다 몇 단계씩, 각 테이블의 지금 상태와 함께 돌려줍니다. **계보** 탭이 그리는 것과 같습니다. `{ "dataAssetId": "<table ID>", "depth": 3 }` 로 요청합니다 | API 키 |
 | `POST /api/data-observability/checks/apply` | `oneuptime data-checks apply` 처럼 프로젝트의 검사를 파일과 일치시킵니다. `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` 로 요청합니다 | API 키 |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | 데이터 제품의 "data as of" 배지 | 배지 자체의 토큰 |
 

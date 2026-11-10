@@ -26,17 +26,21 @@ import {
   LINEAGE_COLUMN_GAP,
   LINEAGE_NEUTRAL_COLOR,
   LINEAGE_PROBLEM_COLOR,
+  LINEAGE_FIT_PADDING,
   LINEAGE_QUERY_HISTORY_DASH,
+  LINEAGE_READABLE_ZOOM,
   LINEAGE_READS_COLOR,
   LINEAGE_ROW_GAP,
   LINEAGE_VIEW_DEFINITION_DASH,
   LineageLayout,
   LineagePoint,
   LineageTone,
+  LineageViewport,
   fitHeights,
   getLineageColumns,
   getLineageEdgeStyle,
   getLineageNodeTone,
+  getLineageViewport,
   isLineageEmpty,
   layoutLineage,
   summarizeLineage,
@@ -527,6 +531,109 @@ describe("laying the cards out", () => {
         );
       }
     }
+  });
+});
+
+describe("where the drawing is looked at from", () => {
+  const wide: DataTableLineage = lineageOf(
+    [
+      up("b", -1),
+      up("a", -2),
+      up("z", -3),
+      down("c", 1),
+      down("d", 2),
+      down("e", 3),
+    ],
+    [
+      feeds("z", "a"),
+      feeds("a", "b"),
+      feeds("b", "focus"),
+      feeds("focus", "c"),
+      feeds("c", "d"),
+      feeds("d", "e"),
+    ],
+  );
+
+  test("a canvas with no size to go by is left to React Flow", () => {
+    const layout: LineageLayout = layoutLineage(wide);
+
+    for (const [width, height] of [
+      [0, 400],
+      [1000, 0],
+      [NaN, 400],
+      [-5, 400],
+    ]) {
+      expect(
+        getLineageViewport({ layout, focusNodeId: FOCUS, width: width!, height: height! }),
+      ).toBeNull();
+    }
+  });
+
+  test("a drawing that fits readably is fitted and centred, never past life size", () => {
+    const layout: LineageLayout = layoutLineage(
+      lineageOf([up("a")], [feeds("a", "focus")]),
+    );
+    const viewport: LineageViewport | null = getLineageViewport({
+      layout,
+      focusNodeId: FOCUS,
+      width: 3000,
+      height: 900,
+    });
+
+    expect(viewport).toEqual({
+      x: (3000 - layout.width) / 2,
+      y: (900 - layout.height) / 2,
+      zoom: 1,
+    });
+  });
+
+  test("a drawing that fits a little smaller is fitted at the zoom that holds it", () => {
+    const layout: LineageLayout = layoutLineage(wide);
+    const width: number = layout.width * (1 + LINEAGE_FIT_PADDING) * 0.9;
+    const viewport: LineageViewport | null = getLineageViewport({
+      layout,
+      focusNodeId: FOCUS,
+      width,
+      height: 2000,
+    });
+
+    expect(viewport!.zoom).toBeCloseTo(0.9, 9);
+    expect(viewport!.zoom).toBeGreaterThanOrEqual(LINEAGE_READABLE_ZOOM);
+  });
+
+  test("a drawing too wide to read whole opens on the table itself, at the readable zoom", () => {
+    const layout: LineageLayout = layoutLineage(wide);
+    const viewport: LineageViewport | null = getLineageViewport({
+      layout,
+      focusNodeId: FOCUS,
+      width: 900,
+      height: 360,
+    });
+    const focus: LineagePoint = layout.positions.get(FOCUS)!;
+
+    expect(viewport!.zoom).toBe(LINEAGE_READABLE_ZOOM);
+    // The table's middle lands on the canvas's middle.
+    expect(
+      viewport!.x + (focus.x + LINEAGE_CARD_WIDTH / 2) * viewport!.zoom,
+    ).toBeCloseTo(450, 9);
+    expect(
+      viewport!.y + (focus.y + LINEAGE_CARD_HEIGHT / 2) * viewport!.zoom,
+    ).toBeCloseTo(180, 9);
+  });
+
+  test("without the table's card, the drawing's middle is shown", () => {
+    const layout: LineageLayout = layoutLineage(wide);
+    const viewport: LineageViewport | null = getLineageViewport({
+      layout,
+      focusNodeId: "table:missing",
+      width: 900,
+      height: 360,
+    });
+
+    expect(viewport!.x + (layout.width / 2) * viewport!.zoom).toBeCloseTo(
+      450,
+      9,
+    );
   });
 });
 
