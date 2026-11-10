@@ -163,6 +163,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * and what it alerts on, and the categories More lists them under.
    */
   { directory: "packages/Common/Types/Monitor/MonitorType.ts", kind: "ui" },
+  /*
+   * A new monitor's default criteria, written in the language of the person
+   * creating it: each criteria's name and description, and the title and
+   * description of every incident and alert it opens. Only the sentences the
+   * builders look up are read - filter values, keywords and ids stay as
+   * written.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
+    kind: "keys",
+  },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   // The common schedules a workflow's Schedule trigger offers.
@@ -485,6 +496,73 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/CephMetricCatalog.ts",
     kind: "keys",
   },
+  /*
+   * What a monitor's evaluation says, for the Dashboard to word in each
+   * reader's language (issue #6542): the sentences the engine stores beside
+   * its English (EvaluationSentence, translatableSentence) - each filter's
+   * finding, each action's title and message - and the checks, conditions
+   * and evaluations over time they name (CriteriaFilterTerms). Only the
+   * words each file marks are read: the rest is the server's own English.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/CriteriaFilterTerms.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Server/Utils/Monitor/Criteria/CompareCriteria.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Server/Utils/Monitor/Criteria/APIRequestCriteria.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Server/Utils/Monitor/MonitorCriteriaExpectationBuilder.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Server/Utils/Monitor/MonitorCriteriaMessageBuilder.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Server/Utils/Monitor/MonitorCriteriaObservationBuilder.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Server/Utils/Monitor/EvaluationEventText.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Server/Utils/Monitor/MonitorResource.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Server/Utils/Monitor/MonitorIncident.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Server/Utils/Monitor/MonitorAlert.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Server/Utils/Monitor/MonitorMaintenanceSuppression.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Server/Utils/Monitor/MonitorDependencySuppression.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Server/Utils/Monitor/LogGroupCriteriaFanOut.ts",
+    kind: "keys",
+  },
 ];
 
 /*
@@ -659,10 +737,12 @@ export const TITLE_LIST_ARGUMENT_INDEX: ReadonlyMap<string, number> = new Map<
  * t(), tx(), translate(), translateString(), translateTemplate(), ... and
  * translatableTerm(): a term put into a sentence ("... so {{function}}
  * reports to OneUptime.", name || translatableTerm("this function")) is
- * looked up by its text, so a literal one is a key like any other.
+ * looked up by its text, so a literal one is a key like any other. So is
+ * translatableSentence()'s template: a sentence the monitor engine stores
+ * for the Dashboard to word (Common/Types/Monitor/EvaluationSentence).
  */
 const TRANSLATION_FUNCTION: RegExp =
-  /^(t|tx|translate|translatableTerm|translationKey|translate[A-Z][A-Za-z0-9]*)$/;
+  /^(t|tx|translate|translatableTerm|translatableSentence|translationKey|translate[A-Z][A-Za-z0-9]*)$/;
 
 // setError("..."), setEmptyMessage("..."), setModalTitle("...").
 const MESSAGE_SETTER: RegExp =

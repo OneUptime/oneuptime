@@ -45,6 +45,8 @@ import {
   getKubernetesMetricById,
 } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
@@ -124,6 +126,7 @@ const aggregationOptions: Array<DropdownOption> = [
 const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // Read query params for template/cluster pre-fill
   const urlTemplateId: string | undefined =
     props.initialTemplateId ||
@@ -476,6 +479,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
             props.defaultIncidentSeverityId || ObjectID.generate(),
           defaultAlertSeverityId:
             props.defaultAlertSeverityId || ObjectID.generate(),
+          translator: translator,
         }),
       );
     }

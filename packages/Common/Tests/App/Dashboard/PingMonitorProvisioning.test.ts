@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import i18next from "i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import ObjectID from "../../../Types/ObjectID";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -347,6 +348,48 @@ describe("provisionPingMonitorForDevice", () => {
     await expect(provision({})).rejects.toThrow(/project/i);
 
     expect(create).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The person provisioning the monitor reads the Dashboard in their
+   * language, and the monitor's criteria are written in it (#6542). Last in
+   * this file's i18next use: the global instance goes back to English.
+   */
+  test("writes the monitor's criteria in the language of the person provisioning it", async () => {
+    await i18next.init({
+      lng: "zh-CN",
+      fallbackLng: "zh-CN",
+      resources: {
+        "zh-CN": {
+          translation: {
+            "Check if {{monitorName}} is offline":
+              "检查 {{monitorName}} 是否离线",
+          },
+        },
+      },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+
+    try {
+      await provision({});
+
+      const names: Array<string> = (
+        lastCreateCall().model.monitorSteps?.data?.monitorStepsInstanceArray[0]
+          ?.data?.monitorCriteria.data?.monitorCriteriaInstanceArray || []
+      ).map((instance: { data?: { name?: string } | undefined }): string => {
+        return instance.data?.name || "";
+      });
+
+      expect(names).toEqual([
+        "检查 Ping lobby-ap-01 是否离线",
+        // Not worded in this reader's language: English, as a whole.
+        "Check if Ping lobby-ap-01 is online",
+      ]);
+    } finally {
+      await i18next.changeLanguage("en");
+    }
   });
 });
 
