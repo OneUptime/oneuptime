@@ -73,7 +73,7 @@
 
 ### Twilio
 
-Когда дежурный нажимает 1, чтобы подтвердить вызов во время звонка, Twilio отправляет нажатую клавишу на `POST /api/user-notification-log-timeline/call/gather-input/*`. Адреса, с которых Twilio отправляет вебхуки, меняются, если только ваша редакция Twilio не включает [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Обновления о доставке SMS и входящие звонки описаны на странице [Интеграция с Twilio](/docs/self-hosted/twilio-integration).
+Когда дежурный нажимает 1, чтобы подтвердить вызов во время звонка, Twilio отправляет нажатую клавишу на `POST /api/user-notification-log-timeline/call/gather-input/*`. Адреса, с которых Twilio отправляет вебхуки, меняются, если только ваша редакция Twilio не включает [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Обновления о доставке SMS, результаты звонков и входящие звонки описаны на странице [Интеграция с Twilio](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 

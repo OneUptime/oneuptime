@@ -575,6 +575,8 @@ import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumbe
 import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
+import TeamOwnerTeamService from "./TeamOwnerTeamService";
+import TeamOwnerUserService from "./TeamOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudBudgetService from "./CloudBudgetService";
@@ -1189,6 +1191,8 @@ const services: Array<BaseService> = [
   PushNotificationLogService,
   RunnerOwnerTeamService,
   RunnerOwnerUserService,
+  TeamOwnerTeamService,
+  TeamOwnerUserService,
   ServerlessFunctionLabelRuleService,
   ServerlessFunctionOwnerRuleService,
   ServerlessFunctionOwnerTeamService,

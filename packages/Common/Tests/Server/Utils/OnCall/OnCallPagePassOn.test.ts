@@ -2,6 +2,7 @@ import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/On
 import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import UserOnCallLogService from "../../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
 import { OnCallEscalationAdvanceKind } from "../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
 import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
@@ -163,6 +164,36 @@ describe("one person on the rule passes the page on", () => {
     expect(delivery.status).toBe(UserNotificationStatus.PassedOn);
     expect(delivery.statusMessage).toBe(
       ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
+    );
+  });
+
+  test("the notification is marked escalated before the page is: the feed names the channel, read from it, as the page says it was escalated", async () => {
+    const delivery: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+    delivery.id = nextId();
+    delivery.status = UserNotificationStatus.Sent;
+    world.deliveries.push(delivery);
+
+    jest.mocked(UserOnCallLogTimelineService.updateOneById).mockClear();
+    jest.mocked(UserOnCallLogService.updateOneById).mockClear();
+
+    await world.passOn(ANA, delivery.id!);
+
+    const deliveryWrites: Array<number> = jest.mocked(
+      UserOnCallLogTimelineService.updateOneById,
+    ).mock.invocationCallOrder;
+    const pageWrites: Array<number> = jest.mocked(
+      UserOnCallLogService.updateOneById,
+    ).mock.invocationCallOrder;
+
+    expect(deliveryWrites).toHaveLength(1);
+    expect(pageWrites.length).toBeGreaterThan(0);
+
+    for (const pageWrite of pageWrites) {
+      expect(deliveryWrites[0]!).toBeLessThan(pageWrite);
+    }
+
+    expect(world.stepsOf(ANA)[0]!.status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.PassedOn,
     );
   });
 

@@ -802,7 +802,9 @@ type LinesForPersonFunction = (data: {
  * unseen, in the order a person reads what matters most first: placeholders
  * written in place of hidden values (issue #6364) - which reading the file
  * again never mends - undone since the read, read on another branch, never
- * read, read only in part, not checked.
+ * read, read only in an earlier answer (issue #6365), read only in part,
+ * not checked. A file is either read in an earlier answer or read in part,
+ * never both: this turn's lines decide.
  */
 export const describeCodeFilesUnseenForPerson: LinesForPersonFunction = (data: {
   branchName: string;
@@ -884,6 +886,21 @@ export const describeCodeFilesUnseenForPerson: LinesForPersonFunction = (data: {
     );
   }
 
+  const earlier: Array<CodeFileUnseenFinding> = ofKind(
+    data.findings,
+    CodeFileUnseen.ReadInEarlierAnswer,
+  );
+
+  if (earlier.length > 0) {
+    lines.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.codeFilesReadInEarlierAnswer,
+        earlier.length,
+        { files: listFilesOnCard(pathsOf(earlier)) },
+      ),
+    );
+  }
+
   const inPart: Array<CodeFileUnseenFinding> = ofKind(
     data.findings,
     CodeFileUnseen.ReadInPart,
@@ -938,6 +955,8 @@ export const CODE_UNSEEN_SUMMARIES: Record<
       "Not committed: Ask AI read a file on another branch, and it is different on this one.",
     [CodeFileUnseen.NotRead]:
       "Not committed: Ask AI had not read a file the commit replaces.",
+    [CodeFileUnseen.ReadInEarlierAnswer]:
+      "Not committed: Ask AI had read a file the commit replaces only in an earlier answer, and no longer had its text.",
     [CodeFileUnseen.ReadInPart]:
       "Not committed: Ask AI had read only part of a file the commit replaces whole.",
     [CodeFileUnseen.NotChecked]:
@@ -952,6 +971,8 @@ export const CODE_UNSEEN_SUMMARIES: Record<
       "Not opened: Ask AI read a file on another branch, and it is different on the default branch.",
     [CodeFileUnseen.NotRead]:
       "Not opened: Ask AI had not read a file the pull request replaces.",
+    [CodeFileUnseen.ReadInEarlierAnswer]:
+      "Not opened: Ask AI had read a file the pull request replaces only in an earlier answer, and no longer had its text.",
     [CodeFileUnseen.ReadInPart]:
       "Not opened: Ask AI had read only part of a file the pull request replaces whole.",
     [CodeFileUnseen.NotChecked]:
@@ -966,6 +987,7 @@ const ORDER_OF_IMPORTANCE: ReadonlyArray<CodeFileUnseen> = [
   CodeFileUnseen.ChangedSinceRead,
   CodeFileUnseen.ReadOnAnotherBranch,
   CodeFileUnseen.NotRead,
+  CodeFileUnseen.ReadInEarlierAnswer,
   CodeFileUnseen.ReadInPart,
   CodeFileUnseen.NotChecked,
 ];
@@ -1118,14 +1140,24 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
     data.findings.every((finding: CodeFileUnseenFinding): boolean => {
       return finding.unseen === CodeFileUnseen.ValuesHidden;
     });
+  // Only files read in an earlier answer (issue #6365): read, but no longer in hand.
+  const onlyEarlier: boolean =
+    data.findings.length > 0 &&
+    data.findings.every((finding: CodeFileUnseenFinding): boolean => {
+      return finding.unseen === CodeFileUnseen.ReadInEarlierAnswer;
+    });
   const lines: Array<string> = [
     onlyHidden
       ? isCommit
         ? `Not done: nothing was committed to ${branch}, because your version of these files writes placeholders where values were hidden from you:`
         : `Not done: no pull request was opened, because your version of these files writes placeholders where values were hidden from you:`
-      : isCommit
-        ? `Not done: nothing was committed to ${branch}, because writing these files whole would undo or replace what you have not read there:`
-        : `Not done: no pull request was opened, because writing these files whole on top of ${branch}, the branch it starts from, would undo or replace what you have not read there:`,
+      : onlyEarlier
+        ? isCommit
+          ? `Not done: nothing was committed to ${branch}, because you read these files in an earlier answer and no longer have their text:`
+          : `Not done: no pull request was opened, because you read these files in an earlier answer and no longer have their text:`
+        : isCommit
+          ? `Not done: nothing was committed to ${branch}, because writing these files whole would undo or replace what you have not read there:`
+          : `Not done: no pull request was opened, because writing these files whole on top of ${branch}, the branch it starts from, would undo or replace what you have not read there:`,
   ];
 
   for (const finding of data.findings) {
@@ -1150,6 +1182,11 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
           `- ${finding.filePath} is on ${branch}, and you have not read it.`,
         );
         break;
+      case CodeFileUnseen.ReadInEarlierAnswer:
+        lines.push(
+          `- ${finding.filePath}: you read it in an earlier answer, and you no longer have its text.`,
+        );
+        break;
       case CodeFileUnseen.ReadInPart:
         lines.push(
           finding.lineCount !== undefined && finding.linesNotRead
@@ -1170,6 +1207,7 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
       return (
         finding.unseen !== CodeFileUnseen.NotChecked &&
         finding.unseen !== CodeFileUnseen.ReadInPart &&
+        finding.unseen !== CodeFileUnseen.ReadInEarlierAnswer &&
         finding.unseen !== CodeFileUnseen.ValuesHidden
       );
     },
@@ -1178,6 +1216,17 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
   if (toReadAgain) {
     lines.push(
       `Read each of these files on ${branch} with read_code_file and branchName "${branch}", tell the user it changed since you read it or that you had not read it there, and write your change on each file as it is now.`,
+    );
+  }
+
+  // Read in an earlier answer (issue #6365): read again in this one.
+  if (
+    data.findings.some((finding: CodeFileUnseenFinding): boolean => {
+      return finding.unseen === CodeFileUnseen.ReadInEarlierAnswer;
+    })
+  ) {
+    lines.push(
+      `Read each file you read in an earlier answer again in this answer, on ${branch} with read_code_file and branchName "${branch}", and only then write it whole: ${isCommit ? "a commit" : "a pull request"} replaces each file whole, and you no longer have the text you read before.`,
     );
   }
 

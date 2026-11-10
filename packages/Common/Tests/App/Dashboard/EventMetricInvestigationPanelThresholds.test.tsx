@@ -524,7 +524,7 @@ describe("an episode's snapshot", () => {
         snapshotWindow={EVALUATED}
         seriesSummary="host.name = web-01"
         eventNoun="incident"
-        metricSubject={EventMetricSubject.IncidentEpisode}
+        subject={EventMetricSubject.IncidentEpisode}
         startedAt={STARTED_AT}
         stateTimeline={[]}
         states={[]}
@@ -548,7 +548,7 @@ describe("an episode's snapshot", () => {
         snapshotWindow={EVALUATED}
         seriesSummary=""
         eventNoun="alert"
-        metricSubject={EventMetricSubject.AlertEpisode}
+        subject={EventMetricSubject.AlertEpisode}
         startedAt={STARTED_AT}
         stateTimeline={[]}
         states={[]}

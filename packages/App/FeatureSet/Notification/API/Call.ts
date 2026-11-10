@@ -1,4 +1,16 @@
 import CallService from "../Services/CallService";
+import {
+  CallOutcome,
+  getCallOutcome,
+  getCallOutcomeStatusMessage,
+} from "../Utils/CallOutcome";
+import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
+import CallStatus from "Common/Types/Call/CallStatus";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import CallLogService from "Common/Server/Services/CallLogService";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import CallLog from "Common/Models/DatabaseModels/CallLog";
+import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 import CallRequest from "Common/Types/Call/CallRequest";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
@@ -71,6 +83,170 @@ router.post(
         onCallScheduleId: (body["onCallScheduleId"] as ObjectID) || undefined,
         teamId: (body["teamId"] as ObjectID) || undefined,
       });
+
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Twilio's call status callback: how a call ended. Set as the
+ * `statusCallback` URL of every call CallService places through Twilio for
+ * a project (CallService.prepareStatusCallback). A public webhook - Twilio
+ * signs in as nobody - so it is secured by the unguessable per-call token
+ * in its URL, never by user or cluster auth, and it only records how the
+ * one call it names ended (CallOutcome):
+ *
+ *  - on the call's log: Missed Call, Busy or Error, and how it ended;
+ *  - on the on-call notification the call was made for, while that is only
+ *    sent: Not Answered or Error. An answer - pressing 1 - an escalation or
+ *    a skip is never written over. The notification's own hooks tell the
+ *    record's feed (UserOnCallLogTimelineService): "Nitin did not answer
+ *    the phone call", "could not page Nitin via phone call".
+ *
+ * A call ends once: a callback for a call whose outcome is written already
+ * - Twilio may send one twice - changes nothing.
+ */
+router.post(
+  "/status-callback/:callLogId/:token",
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const callLogId: string = req.params["callLogId"] as string;
+      const token: string = req.params["token"] as string;
+
+      if (!callLogId || !token || !ObjectID.isValidUUID(callLogId)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid status callback URL"),
+        );
+      }
+
+      const callLog: CallLog | null = await CallLogService.findOneById({
+        id: new ObjectID(callLogId),
+        select: {
+          _id: true,
+          status: true,
+          statusCallbackToken: true,
+          userOnCallLogTimelineId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      /*
+       * Unknown id - a forged request, or a log already pruned by
+       * retention. Answered with 200 so Twilio does not retry, and not
+       * acted on.
+       */
+      if (!callLog) {
+        logger.warn(`Call status callback for unknown log: ${callLogId}`);
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      // Authenticate the callback against the per-call token.
+      if (
+        !callLog.statusCallbackToken ||
+        !isStatusCallbackTokenValid(token, callLog.statusCallbackToken)
+      ) {
+        logger.warn(
+          `Call status callback with invalid token for log: ${callLogId}`,
+        );
+        res.status(403).send("Forbidden");
+        return;
+      }
+
+      const outcome: CallOutcome | null = getCallOutcome({
+        providerStatus: req.body?.["CallStatus"],
+        durationInSeconds: req.body?.["CallDuration"],
+      });
+
+      // Not how a call ended (ringing, in progress), or canceled: nothing to write.
+      if (!outcome) {
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      /*
+       * Written once. A call placed is logged Success; how it ended moves it
+       * on - Missed Call, Busy, Error - or, answered, leaves it so.
+       */
+      if (callLog.status !== CallStatus.Success) {
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      const statusMessage: string = getCallOutcomeStatusMessage({
+        callSid: req.body?.["CallSid"],
+        outcome: outcome,
+      });
+
+      /*
+       * A bookkeeping stamp on the call's own log, as an SMS's delivery
+       * status is (SMS.ts): CallLog has update workflows disabled and no
+       * service update hooks, so the full update pipeline is skipped. Only
+       * while the log still says Success, in the same statement: of two
+       * callbacks for one call at once, one writes and the other stops.
+       */
+      const isWritten: boolean =
+        await CallLogService.compareAndSetColumnsByIdWithoutHooks({
+          id: callLog.id!,
+          data: {
+            ...(outcome.callStatus ? { status: outcome.callStatus } : {}),
+            statusMessage: statusMessage,
+          },
+          expectedData: {
+            status: CallStatus.Success,
+          },
+        });
+
+      if (!isWritten) {
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      if (callLog.userOnCallLogTimelineId) {
+        const notification: UserOnCallLogTimeline | null =
+          await UserOnCallLogTimelineService.findOneById({
+            id: callLog.userOnCallLogTimelineId,
+            select: {
+              _id: true,
+              status: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        /*
+         * Only a notification that is still just sent: the person's answer
+         * (pressing 1 is their acknowledgement), an escalation from it, or a
+         * skip says more than how the call ended.
+         */
+        const correctableStatuses: Array<UserNotificationStatus> = [
+          UserNotificationStatus.Sent,
+          UserNotificationStatus.Sending,
+        ];
+
+        if (
+          notification &&
+          notification.status &&
+          correctableStatuses.includes(notification.status)
+        ) {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: callLog.userOnCallLogTimelineId,
+            data: {
+              ...(outcome.notificationStatus
+                ? { status: outcome.notificationStatus }
+                : {}),
+              statusMessage: statusMessage,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
+      }
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {

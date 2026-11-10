@@ -1,5 +1,6 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";
@@ -29,6 +30,31 @@ import {
   getOnCallObserverPageSeenMessage,
   isOnCallObserverPage,
 } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import {
+  OnCallPageNotificationEvent,
+  getOnCallPageChannelsOf,
+  isOnCallPageNotificationOut,
+} from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+
+/*
+ * What the record's feed is told of a notification that an update gives
+ * this status: one that could not be sent, or a call not answered. Null for
+ * every other status - the feed hears of none of those from an update.
+ */
+export const getFeedEventOfStatus: (
+  status: unknown,
+) => OnCallPageNotificationEvent | null = (
+  status: unknown,
+): OnCallPageNotificationEvent | null => {
+  switch (status) {
+    case UserNotificationStatus.Error:
+      return OnCallPageNotificationEvent.Failed;
+    case UserNotificationStatus.NotAnswered:
+      return OnCallPageNotificationEvent.NotAnswered;
+    default:
+      return null;
+  }
+};
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -76,10 +102,41 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Tells the record's feed of one notification of a page, after the page's
+   * own entry (OnCallDutyPolicyExecutionLogTimelineService
+   * .addNotificationToFeed, which decides whether it is news): only one that
+   * belongs to a page, and names the channel it went out by. Never throws.
+   */
+  private async addNotificationToFeed(
+    notification: Model,
+    event: OnCallPageNotificationEvent,
+  ): Promise<void> {
+    if (
+      !notification.id ||
+      !notification.onCallDutyPolicyExecutionLogTimelineId ||
+      getOnCallPageChannelsOf(notification).length === 0
+    ) {
+      return;
+    }
+
+    await OnCallDutyPolicyExecutionLogTimelineService.addNotificationToFeed({
+      onCallDutyPolicyExecutionLogTimelineId:
+        notification.onCallDutyPolicyExecutionLogTimelineId,
+      userOnCallLogTimelineId: notification.id,
+      event: event,
+    });
+  }
+
+  /*
    * How a page reached somebody - a call, an SMS, an email - is named in the
    * on-call run's Slack / Microsoft Teams message (OnCallPolicyRunMessage):
    * each delivery that is written, or changes status, asks for it to be
    * brought up to date. Never waits on Slack or Teams.
+   *
+   * The record's feed names it too: the page's own entry names the
+   * notifications that went out with it, and one that goes out later - a
+   * call ten minutes on, by the person's own On-Call Rules - or that could
+   * not be sent at all is an entry of its own.
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
@@ -88,7 +145,55 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
 
+    if (createdItem.status === UserNotificationStatus.Error) {
+      await this.addNotificationToFeed(
+        createdItem,
+        OnCallPageNotificationEvent.Failed,
+      );
+    } else if (isOnCallPageNotificationOut(createdItem.status)) {
+      await this.addNotificationToFeed(
+        createdItem,
+        OnCallPageNotificationEvent.SentLater,
+      );
+    }
+
     return createdItem;
+  }
+
+  /*
+   * The status each notification had before an update that marks it as not
+   * sent, or as a call not answered, so the record's feed hears of it once -
+   * not again when a second write says the same (onUpdateSuccess).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const statusBeforeUpdate: Record<
+      string,
+      UserNotificationStatus | undefined
+    > = {};
+
+    if (getFeedEventOfStatus(updateBy.data.status)) {
+      const itemsBeforeUpdate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          _id: true,
+          status: true,
+        });
+
+      for (const item of itemsBeforeUpdate) {
+        if (item.id) {
+          statusBeforeUpdate[item.id.toString()] = item.status;
+        }
+      }
+    }
+
+    return {
+      updateBy: updateBy,
+      carryForward: {
+        statusBeforeUpdate: statusBeforeUpdate,
+      },
+    };
   }
 
   @CaptureSpan()
@@ -97,14 +202,29 @@ export class Service extends DatabaseService<Model> {
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.data.status && updatedItemIds.length > 0) {
+      let deliveries: Array<Model> = [];
+
       try {
-        const deliveries: Array<Model> = await this.findBy({
+        deliveries = await this.findBy({
           query: {
             _id: QueryHelper.any(updatedItemIds),
           },
           select: {
             _id: true,
+            status: true,
             onCallDutyPolicyExecutionLogId: true,
+            onCallDutyPolicyExecutionLogTimelineId: true,
+            userCallId: true,
+            userSmsId: true,
+            userWhatsAppId: true,
+            userTelegramId: true,
+            userPushId: true,
+            userEmailId: true,
+            userSlackId: true,
+            userMicrosoftTeamsId: true,
+            userMattermostId: true,
+            userWebhookId: true,
+            customNotificationChannelId: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -122,6 +242,47 @@ export class Service extends DatabaseService<Model> {
         logger.error(
           `Could not ask for the on-call run's chat message to be updated: ${err}`,
         );
+      }
+
+      /*
+       * A notification that could not be sent after all - its provider
+       * refused it, its push token is gone - or a call that rang and was
+       * not picked up is told of in the record's feed, once: a second write
+       * saying the same is no news. A status not read before the update
+       * counts as a change.
+       */
+      const event: OnCallPageNotificationEvent | null = getFeedEventOfStatus(
+        onUpdate.updateBy.data.status,
+      );
+
+      if (event) {
+        const status: UserNotificationStatus = onUpdate.updateBy.data
+          .status as UserNotificationStatus;
+
+        const statusBeforeUpdate:
+          | Record<string, UserNotificationStatus | undefined>
+          | undefined = (
+          onUpdate.carryForward as {
+            statusBeforeUpdate?: Record<
+              string,
+              UserNotificationStatus | undefined
+            >;
+          } | null
+        )?.statusBeforeUpdate;
+
+        for (const delivery of deliveries) {
+          const id: string = delivery.id?.toString() || "";
+
+          const wasSoBefore: boolean = Boolean(
+            statusBeforeUpdate &&
+              id in statusBeforeUpdate &&
+              statusBeforeUpdate[id] === status,
+          );
+
+          if (delivery.status === status && !wasSoBefore) {
+            await this.addNotificationToFeed(delivery, event);
+          }
+        }
       }
     }
 

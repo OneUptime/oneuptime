@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47889,
-    "untranslated": 11065
+    "keys": 48275,
+    "untranslated": 11061
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -237,7 +237,6 @@
     "Sampling",
     "ScheduledMaintenance",
     "Schema",
-    "Segment",
     "Server",
     "Service Mesh",
     "Session",
@@ -268,6 +267,7 @@
     "Tokens",
     "Top P",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
+    "Trend",
     "Tunnel",
     "UID",
     "USD",

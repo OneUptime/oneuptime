@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Both NOT NULL with a constant default: Postgres 11 and later add such a
  * column without rewriting a row.
  */
-export class AddRumApplicationProductAnalyticsEvents1809081000000
+export class AddRumApplicationProductAnalyticsEvents1809096444000
   implements MigrationInterface
 {
-  public name: string = "AddRumApplicationProductAnalyticsEvents1809081000000";
+  public name: string = "AddRumApplicationProductAnalyticsEvents1809096444000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

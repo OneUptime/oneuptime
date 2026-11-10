@@ -87,7 +87,7 @@ Statuspagina's bieden alleen de configuraties aan die sms versturen, en **Test-s
 
 ## 3. Configureer netwerktoegang
 
-Versturen werkt met alleen uitgaande toegang. Bezorgupdates, bevestigen met het toetsenblok en inkomende oproepen hebben nodig dat Twilio uw server kan bereiken.
+Versturen werkt met alleen uitgaande toegang. Bezorgupdates, de afloop van oproepen, bevestigen met het toetsenblok en inkomende oproepen hebben nodig dat Twilio uw server kan bereiken.
 
 ```mermaid title="Uitgaand versturen, inkomende callbacks"
 sequenceDiagram
@@ -109,6 +109,7 @@ Inkomende toegang hangt af van de functie:
 | --- | --- |
 | Sms indienen | Nee. Updates van de bezorgstatus hebben wel een callback nodig. |
 | Een eenvoudige spraakoproep als test | Nee. OneUptime levert de gesproken instructies mee met het uitgaande API-verzoek. |
+| Weten of een on-call-oproep is beantwoord | Ja. Twilio meldt hoe elke oproep eindigde, zodat de feed van het incident kan zeggen wanneer iemand niet opnam. Zonder dit gaan oproepen nog steeds uit. |
 | Op 1 drukken om een on-call-melding te bevestigen | Ja. Twilio stuurt de toetsinvoer naar OneUptime. |
 | Beleid voor inkomende oproepen | Ja. Twilio vraagt de oproepinstructies op en meldt de resultaten van het kiezen. |
 
@@ -117,13 +118,14 @@ Dit zijn de externe paden, via de Nginx-gateway van OneUptime. De placeholders v
 | Methode | Pad | Doel |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Bezorgstatus van de sms |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Afloop van de oproep |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Bevestigen met het toetsenblok |
 | POST | `/notification/incoming-call/voice` | Optionele instructies voor inkomende oproepen |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Optionele resultaten van het routeren van inkomende oproepen |
 
-OneUptime maakt de URL's voor sms en bevestiging automatisch aan. Vervang hun tokens niet door een vaste webhook-URL. Volg voor inkomende oproepen [het beleid voor inkomende oproepen](/docs/on-call/incoming-call-policy), dat de webhook van het nummer configureert wanneer u een nummer koppelt.
+OneUptime maakt de URL's voor sms, de afloop van oproepen en bevestiging automatisch aan. Vervang hun tokens niet door een vaste webhook-URL. Volg voor inkomende oproepen [het beleid voor inkomende oproepen](/docs/on-call/incoming-call-policy), dat de webhook van het nummer configureert wanneer u een nummer koppelt.
 
-Twilio vereist [openbaar bereikbare webhook-URL's](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Gebruik een openbaar vertrouwd TLS-certificaat en behoud via proxy's de oorspronkelijke host, het protocol, het pad, de queryparameters, de body en de header `X-Twilio-Signature`. De handlers voor inkomende oproepen valideren de handtekeningen van Twilio; sms-bezorging gebruikt een URL-token per bericht, en bevestigen met het toetsenblok een ondertekend querytoken. Stel tokens niet bloot in gedeelde logs of schermafbeeldingen. Zie [Twilio-webhookbeveiliging](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio vereist [openbaar bereikbare webhook-URL's](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Gebruik een openbaar vertrouwd TLS-certificaat en behoud via proxy's de oorspronkelijke host, het protocol, het pad, de queryparameters, de body en de header `X-Twilio-Signature`. De handlers voor inkomende oproepen valideren de handtekeningen van Twilio; sms-bezorging en de afloop van oproepen gebruiken een URL-token per bericht of oproep, en bevestigen met het toetsenblok een ondertekend querytoken. Stel tokens niet bloot in gedeelde logs of schermafbeeldingen. Zie [Twilio-webhookbeveiliging](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Callbacks publiceren vanuit een privé-installatie
 
@@ -142,7 +144,7 @@ Het dashboard kan op een privé-ingress blijven: met split DNS lossen medewerker
 De gewone bronadressen van de webhooks van Twilio veranderen, dus gebruik geen SIP- of media-IP-bereiken als allowlist voor callbacks. In aanmerking komende Twilio-edities bieden [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Controleer of uw editie in aanmerking komt en welke producten worden ondersteund, en configureer uw firewall met de bereiken die Twilio nu publiceert; blijf de callbacks valideren, ook als u het gebruikt.
 
 > [!WARNING]
-> Als beleid inkomende verbindingen verbiedt, kunnen sms indienen en eenvoudig ingebouwd spraak afspelen werken met uitgaand HTTPS. Updates van sms-bezorging, bevestigen met het toetsenblok en het routeren van inkomende oproepen werken niet zonder bereikbare callbacks. Een volledig afgesloten installatie kan Twilio niet gebruiken.
+> Als beleid inkomende verbindingen verbiedt, kunnen sms indienen en eenvoudig ingebouwd spraak afspelen werken met uitgaand HTTPS. Updates van sms-bezorging, de afloop van oproepen, bevestigen met het toetsenblok en het routeren van inkomende oproepen werken niet zonder bereikbare callbacks. Een volledig afgesloten installatie kan Twilio niet gebruiken.
 
 Voor ontwikkeling beschrijft de [handleiding voor het testen van webhooks](https://www.twilio.com/docs/usage/webhooks/webhook-testing) van Twilio het gebruik van een openbare tunnel: stuur die door naar een proxy die alleen de nodige routes toestaat, configureer de resulterende hostnaam zoals hierboven en stop de tunnel na het testen. Ook een tunnel opent inkomende toegang.
 

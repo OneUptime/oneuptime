@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47889,
-    "untranslated": 11072
+    "keys": 48275,
+    "untranslated": 11068
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -205,7 +205,6 @@
     "SSH",
     "Samples",
     "ScheduledMaintenance",
-    "Segment",
     "Send",
     "Send (Enter)",
     "Send test",
@@ -236,6 +235,7 @@
     "Token",
     "Top P",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
+    "Trend",
     "Tunnel",
     "Type",
     "UID",

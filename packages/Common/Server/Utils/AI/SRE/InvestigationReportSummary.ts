@@ -69,9 +69,11 @@ const LINE_ENDING_REGEX: RegExp = /\r\n?/g;
  * where a run of spaces starts: the report is what a model wrote, and tried
  * from every space of a run no punctuation follows, each try read on to the
  * end of the run. Every run that is followed by punctuation is taken whole
- * either way.
+ * either way. The full-width marks too: a report written in Chinese or
+ * Japanese (issue #6542) ends "耗尽 [C1]。".
  */
-const SPACE_BEFORE_PUNCTUATION_REGEX: RegExp = /(?<![ \t])[ \t]+([.,;:!?])/g;
+const SPACE_BEFORE_PUNCTUATION_REGEX: RegExp =
+  /(?<![ \t])[ \t]+([.,;:!?。，、；：！？])/g;
 
 function withoutCitations(text: string): string {
   return text

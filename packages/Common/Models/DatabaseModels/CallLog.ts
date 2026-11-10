@@ -10,6 +10,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "./OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
 import Team from "./Team";
+import UserOnCallLogTimeline from "./UserOnCallLogTimeline";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import CallStatus from "../../Types/Call/CallStatus";
@@ -954,6 +955,90 @@ export default class CallLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public teamId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    secret: true,
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Status Callback Token",
+    description:
+      "Secret token embedded in the provider call-status callback URL. Used to authenticate the callback that says how the call ended. Never exposed via the API.",
+    canReadOnRelationQuery: false,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public statusCallbackToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadCallLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userOnCallLogTimelineId",
+    type: TableColumnType.Entity,
+    modelType: UserOnCallLogTimeline,
+    title: "User On-Call Log Timeline",
+    description:
+      "On-call notification timeline entry this call was made for (if any). Lets how the call ended - answered, not answered, busy or failed - be reflected back onto the on-call log.",
+    example: "f1a2b3c4-d5e6-47f8-9a0b-1c2d3e4f5a6b",
+  })
+  @ManyToOne(
+    () => {
+      return UserOnCallLogTimeline;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userOnCallLogTimelineId" })
+  public userOnCallLogTimeline?: UserOnCallLogTimeline = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadCallLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User On-Call Log Timeline ID",
+    description:
+      "ID of the on-call notification timeline entry this call was made for (if any).",
+    example: "f1a2b3c4-d5e6-47f8-9a0b-1c2d3e4f5a6b",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userOnCallLogTimelineId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

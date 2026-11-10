@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47889,
-    "untranslated": 3471
+    "keys": 48275,
+    "untranslated": 3472
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -307,6 +307,7 @@
     "JavaScript API",
     "Jersey",
     "Jitter",
+    "Jitter (in ms)",
     "Job",
     "Jobs",
     "Journey",
@@ -527,7 +528,6 @@
     "Scans",
     "Schema",
     "Screenshots:",
-    "Segment",
     "Senegal",
     "Server",
     "Service Level Objective",
@@ -600,6 +600,7 @@
     "Traceroute",
     "Traces",
     "Transport",
+    "Trend",
     "Tunnel",
     "Turkmenistan",
     "Tuvalu",

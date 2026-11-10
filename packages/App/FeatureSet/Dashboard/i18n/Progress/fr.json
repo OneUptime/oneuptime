@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47889,
-    "untranslated": 6373
+    "keys": 48275,
+    "untranslated": 6374
   },
   "sameAsEnglish": [
     " incidents",
@@ -120,6 +120,7 @@
     "Canada (+1)",
     "Canonical Sunbeam",
     "Capture",
+    "Cause",
     "Celsius",
     "Chat",
     "Checkout primary",
@@ -155,7 +156,6 @@
     "Conversation",
     "Conversation {{id}}",
     "Conversations",
-    "Conversion",
     "Costa Rica",
     "CrowdStrike",
     "Cuba",
@@ -464,7 +464,6 @@
     "Script",
     "Secret",
     "Secrets",
-    "Segment",
     "Serverless",
     "Service",
     "Services",

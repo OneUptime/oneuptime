@@ -33,6 +33,7 @@ import User from "Common/Models/DatabaseModels/User";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
@@ -995,7 +996,7 @@ describe("where entries are written", () => {
     expect(findProjectMock).toHaveBeenCalledTimes(2);
   });
 
-  test("the retention date is clamped to 1-180 days from now", async () => {
+  test("the retention date is clamped to 7-180 days from now", async () => {
     const now: number = Date.now();
 
     project = makeProject({ enableAuditLogs: true });
@@ -1014,6 +1015,62 @@ describe("where entries are written", () => {
     expect(days).toBeGreaterThan(179);
     expect(days).toBeLessThan(181);
   });
+
+  /*
+   * #6383: a retention under 7 days, which the API took before the server
+   * checked it, kept entries for a day (-3, 0, 0.5) or for what it said (3,
+   * 6), while a failing export reckoned a week for -3 and warned after the
+   * entries were gone. A stored one is still read: as the week the export
+   * reckons (Common/Types/AuditLog/AuditLogRetention).
+   */
+  test.each([[-3], [0], [0.5], [1], [3], [6], [null]])(
+    "a stored retention of %p keeps the entry 7 calendar days, never less",
+    async (stored: number | null) => {
+      const recordedAt: Date = new Date("2026-06-01T09:30:00.000Z");
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(recordedAt);
+
+      project = makeProject({ enableAuditLogs: true });
+      project.auditLogsRetentionInDays = stored as number;
+      harness.recorder.invalidateProjectSettings(PROJECT_ID);
+
+      await harness.recorder.recordCreate({
+        model: new ServiceLevelObjective(),
+        createdItem: makeSlo(),
+        props: USER_PROPS,
+      });
+
+      expect((onlyEntry().retentionDate as Date).toISOString()).toBe(
+        OneUptimeDate.addRemoveDays(recordedAt, 7).toISOString(),
+      );
+    },
+  );
+
+  test.each([
+    [7, 7],
+    [30, 30],
+    [180, 180],
+    [181, 180],
+  ])(
+    "a stored retention of %p keeps the entry %p calendar days",
+    async (stored: number, days: number) => {
+      const recordedAt: Date = new Date("2026-06-01T09:30:00.000Z");
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(recordedAt);
+
+      project = makeProject({ enableAuditLogs: true });
+      project.auditLogsRetentionInDays = stored;
+      harness.recorder.invalidateProjectSettings(PROJECT_ID);
+
+      await harness.recorder.recordCreate({
+        model: new ServiceLevelObjective(),
+        createdItem: makeSlo(),
+        props: USER_PROPS,
+      });
+
+      expect((onlyEntry().retentionDate as Date).toISOString()).toBe(
+        OneUptimeDate.addRemoveDays(recordedAt, days).toISOString(),
+      );
+    },
+  );
 });
 
 describe("resource identity", () => {

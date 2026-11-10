@@ -285,18 +285,37 @@ export function getTriageReportBody(markdown: unknown): string {
  * whole report folds, as written. Common's SecurityCaseMobileParity holds
  * this to the parser. Each line is read by position, in time in line with
  * its length.
+ *
+ * A team's AI context may ask OneUptime AI to write in another language,
+ * headings included (Common/Utils/AI/InvestigationReportLanguages). Such a
+ * report is read the same way, by that language's words for the headings -
+ * "**摘要**", "**Zusammenfassung:** text", "الملخص: text" - with the
+ * full-width colon and brackets Chinese and Japanese write: "摘要：text".
  */
 
 // The labels a Summary goes by, lower-cased (Common's KNOWN_LABELS).
-const SUMMARY_LABELS: ReadonlySet<string> = new Set([
+export const SUMMARY_LABELS: ReadonlyArray<string> = [
   "summary",
   "tl;dr",
   "tl; dr",
   "tldr",
-]);
+];
 
-// The parser's other known labels: "Evidence: ..." opens a section of its own.
-const OTHER_SECTION_LABELS: ReadonlySet<string> = new Set([
+/*
+ * The parser's other known labels, lower-cased: "Evidence: ..." and
+ * "Impact: ..." each open a section of their own.
+ */
+export const OTHER_SECTION_LABELS: ReadonlyArray<string> = [
+  "impact",
+  "customer impact",
+  "user impact",
+  "business impact",
+  "impact assessment",
+  "impact and scope",
+  "scope of impact",
+  "blast radius",
+  "who is affected",
+  "what is affected",
   "most likely root cause",
   "likely root cause",
   "probable root cause",
@@ -307,13 +326,280 @@ const OTHER_SECTION_LABELS: ReadonlySet<string> = new Set([
   "supporting evidence",
   "key findings",
   "findings",
+  "ruled out",
+  "what was ruled out",
+  "other causes ruled out",
+  "causes ruled out",
+  "other causes checked",
+  "alternatives ruled out",
+  "hypotheses ruled out",
   "suggested next steps",
   "next steps",
   "recommended next steps",
   "recommended actions",
   "recommendations",
   "evidence checked",
-]);
+];
+
+// The Summary's words in every other language the dashboard reads, as Common writes them.
+export const TRANSLATED_SUMMARY_LABELS: ReadonlyArray<string> = [
+  "Zusammenfassung",
+  "Kurzfassung",
+  "Résumé",
+  "Synthèse",
+  "Resumen",
+  "Riepilogo",
+  "Sintesi",
+  "Riassunto",
+  "Resumo",
+  "Samenvatting",
+  "Oversigt",
+  "Resumé",
+  "Opsummering",
+  "Sammendrag",
+  "Oppsummering",
+  "Sammanfattning",
+  "Сводка",
+  "Резюме",
+  "Итог",
+  "Итоги",
+  "Кратко",
+  "概要",
+  "要約",
+  "サマリー",
+  "요약",
+  "摘要",
+  "总结",
+  "概述",
+  "總結",
+  "सारांश",
+  "خلاصه",
+  "جمع‌بندی",
+  "الملخص",
+  "ملخص",
+];
+
+/*
+ * Their words for the report's other sections: its impact, root cause,
+ * evidence, the causes it ruled out and its next steps.
+ */
+export const TRANSLATED_SECTION_LABELS: ReadonlyArray<string> = [
+  "Auswirkungen",
+  "Auswirkung",
+  "Impact",
+  "Impacto",
+  "Impatto",
+  "Påvirkning",
+  "Påverkan",
+  "Последствия",
+  "Влияние",
+  "影響",
+  "影響範囲",
+  "영향",
+  "영향 범위",
+  "影响",
+  "影响范围",
+  "影響範圍",
+  "प्रभाव",
+  "تأثیر",
+  "اثرات",
+  "التأثير",
+  "الأثر",
+  "تأثير",
+  "Wahrscheinlichste Grundursache",
+  "Grundursache",
+  "Wahrscheinliche Grundursache",
+  "Wahrscheinlichste Ursache",
+  "Ursache",
+  "Cause racine la plus probable",
+  "Cause racine",
+  "Cause racine probable",
+  "Causa raíz más probable",
+  "Causa raíz",
+  "Causa raíz probable",
+  "Causa principale più probabile",
+  "Causa principale",
+  "Causa principale probabile",
+  "Causa radice",
+  "Causa raiz mais provável",
+  "Causa raiz",
+  "Causa raiz provável",
+  "Meest waarschijnlijke hoofdoorzaak",
+  "Hoofdoorzaak",
+  "Waarschijnlijke hoofdoorzaak",
+  "Mest sandsynlige grundårsag",
+  "Grundårsag",
+  "Sandsynlig grundårsag",
+  "Mest sannsynlige rotårsak",
+  "Rotårsak",
+  "Sannsynlig rotårsak",
+  "Mest sannsynlig rotårsak",
+  "Mest trolig rotorsak",
+  "Rotorsak",
+  "Trolig rotorsak",
+  "Troligaste rotorsak",
+  "Наиболее вероятная корневая причина",
+  "Корневая причина",
+  "Вероятная корневая причина",
+  "Первопричина",
+  "最も可能性の高い根本原因",
+  "根本原因",
+  "考えられる根本原因",
+  "最も考えられる根本原因",
+  "推定される根本原因",
+  "가장 가능성 높은 근본 원인",
+  "근본 원인",
+  "가능성 높은 근본 원인",
+  "가장 가능성이 높은 근본 원인",
+  "最可能的根本原因",
+  "可能的根本原因",
+  "最可能的根因",
+  "根因",
+  "सबसे संभावित मूल कारण",
+  "मूल कारण",
+  "संभावित मूल कारण",
+  "محتمل‌ترین علت ریشه‌ای",
+  "علت ریشه‌ای",
+  "علت ریشه‌ای محتمل",
+  "السبب الجذري الأكثر احتمالًا",
+  "السبب الجذري",
+  "السبب الجذري المحتمل",
+  "Belege",
+  "Beweise",
+  "Nachweise",
+  "Preuves",
+  "Éléments de preuve",
+  "Evidencias",
+  "Evidencia",
+  "Pruebas",
+  "Prove",
+  "Evidenze",
+  "Evidências",
+  "Evidência",
+  "Provas",
+  "Bewijs",
+  "Bewijzen",
+  "Bewijsmateriaal",
+  "Beviser",
+  "Bevis",
+  "Доказательства",
+  "Свидетельства",
+  "証拠",
+  "根拠",
+  "증거",
+  "근거",
+  "证据",
+  "依据",
+  "證據",
+  "依據",
+  "साक्ष्य",
+  "सबूत",
+  "प्रमाण",
+  "شواهد",
+  "الأدلة",
+  "أدلة",
+  "Ausgeschlossene Ursachen",
+  "Ausgeschlossen",
+  "Causes écartées",
+  "Écartées",
+  "Hypothèses écartées",
+  "Causas descartadas",
+  "Descartadas",
+  "Hipótesis descartadas",
+  "Cause scartate",
+  "Cause escluse",
+  "Escluse",
+  "Hipóteses descartadas",
+  "Uitgesloten oorzaken",
+  "Uitgesloten",
+  "Udelukkede årsager",
+  "Udelukket",
+  "Utelukkede årsaker",
+  "Utelukket",
+  "Uteslutna orsaker",
+  "Uteslutet",
+  "Uteslutna",
+  "Исключённые причины",
+  "Исключено",
+  "Исключённые гипотезы",
+  "除外した原因",
+  "除外された原因",
+  "除外",
+  "제외한 원인",
+  "제외된 원인",
+  "배제된 원인",
+  "已排除的原因",
+  "已排除",
+  "排除的原因",
+  "खारिज किए गए कारण",
+  "ख़ारिज किए गए कारण",
+  "खारिज किए गए",
+  "علت‌های ردشده",
+  "موارد ردشده",
+  "فرضیه‌های ردشده",
+  "الأسباب المستبعدة",
+  "المستبعد",
+  "الأسباب التي تم استبعادها",
+  "Vorgeschlagene nächste Schritte",
+  "Nächste Schritte",
+  "Empfohlene nächste Schritte",
+  "Prochaines étapes suggérées",
+  "Prochaines étapes",
+  "Étapes suivantes",
+  "Próximos pasos sugeridos",
+  "Próximos pasos",
+  "Siguientes pasos",
+  "Prossimi passi suggeriti",
+  "Prossimi passi",
+  "Passi successivi",
+  "Próximos passos sugeridos",
+  "Próximos passos",
+  "Próximas etapas",
+  "Voorgestelde volgende stappen",
+  "Volgende stappen",
+  "Foreslåede næste trin",
+  "Næste trin",
+  "Foreslåtte neste steg",
+  "Neste steg",
+  "Föreslagna nästa steg",
+  "Nästa steg",
+  "Предлагаемые следующие шаги",
+  "Следующие шаги",
+  "Рекомендуемые следующие шаги",
+  "推奨される次のステップ",
+  "次のステップ",
+  "推奨する次のステップ",
+  "推奨対応",
+  "제안된 다음 단계",
+  "다음 단계",
+  "권장 다음 단계",
+  "建议的后续步骤",
+  "后续步骤",
+  "建议的下一步",
+  "下一步",
+  "建议措施",
+  "建議的後續步驟",
+  "後續步驟",
+  "建議的下一步",
+  "建議措施",
+  "सुझाए गए अगले कदम",
+  "अगले कदम",
+  "सुझाए गए अगले क़दम",
+  "گام‌های بعدی پیشنهادی",
+  "گام‌های بعدی",
+  "اقدامات پیشنهادی",
+  "الخطوات التالية المقترحة",
+  "الخطوات التالية",
+  "الخطوات المقترحة",
+];
+
+// The colons a label ends with: ASCII, and the full-width one CJK text writes.
+const LABEL_COLONS: ReadonlyArray<string> = [":", "\uFF1A"];
+// The full-width brackets "（high confidence）" is written in, in Chinese and Japanese.
+const FULL_WIDTH_OPEN_BRACKET: string = "\uFF08";
+const FULL_WIDTH_CLOSE_BRACKET: string = "\uFF09";
+// Every label the parser knows is shorter: a longer one is prose to it.
+const MAX_LABEL_LENGTH: number = 160;
 
 const WHITESPACE_RUN: RegExp = /\s+/;
 
@@ -321,37 +607,220 @@ function isSpace(character: string): boolean {
   return character === " " || character === "\t";
 }
 
+// White space, as trim() and \s read it (Common's isWhiteSpaceCode).
+function isWhiteSpaceCode(code: number): boolean {
+  if (code <= 0x20) {
+    return code === 0x20 || (code >= 0x09 && code <= 0x0d);
+  }
+
+  return (
+    code === 0xa0 ||
+    code === 0x1680 ||
+    (code >= 0x2000 && code <= 0x200a) ||
+    code === 0x2028 ||
+    code === 0x2029 ||
+    code === 0x202f ||
+    code === 0x205f ||
+    code === 0x3000 ||
+    code === 0xfeff
+  );
+}
+
 /*
- * A label as the parser looks it up: "Summary:", "summary" and "Summary
- * (high confidence)" are all Summary.
+ * What a word's key leaves out, as Common's does
+ * (getInvestigationReportWordKey): the joiners Persian writes inside a word
+ * (a model writes the same word with one, a space or nothing), the word
+ * joiner, the byte order mark, and the Arabic letters' stretch (tatweel).
  */
+const WORD_KEY_LEFT_OUT_CODES: ReadonlySet<number> = new Set<number>([
+  0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x0640,
+]);
+
+// The Arabic vowel marks a model may or may not write over a word.
+function isArabicVowelMark(code: number): boolean {
+  return (code >= 0x064b && code <= 0x065f) || code === 0x0670;
+}
+
+/*
+ * Letters written two ways for one word: Russian "ё" and "е"; an alef with
+ * a hamza or a madda and a bare alef; the Arabic and the Persian yeh and
+ * kaf. Each is read as the second.
+ */
+const WORD_KEY_SAME_LETTERS: ReadonlyMap<number, string> = new Map<
+  number,
+  string
+>([
+  [0x0451, String.fromCharCode(0x0435)],
+  [0x0622, String.fromCharCode(0x0627)],
+  [0x0623, String.fromCharCode(0x0627)],
+  [0x0625, String.fromCharCode(0x0627)],
+  [0x0671, String.fromCharCode(0x0627)],
+  [0x064a, String.fromCharCode(0x06cc)],
+  [0x0649, String.fromCharCode(0x06cc)],
+  [0x0643, String.fromCharCode(0x06a9)],
+]);
+
+// A key is looked up, never stored: longer text than any word is no word.
+const MAX_WORD_KEY_INPUT_LENGTH: number = 200;
+
+/*
+ * The text in its compatibility form (NFKC: a full-width letter is the
+ * plain one), as the parser reads a word - where the engine has normalize;
+ * without it, the text as written.
+ */
+function toCompatibleForm(text: string): string {
+  try {
+    return typeof text.normalize === "function" ? text.normalize("NFKC") : text;
+  } catch {
+    return text;
+  }
+}
+
+/*
+ * A word as Common's report parser looks it up in another language: in
+ * lower case, without white space (Korean spaces its words as a writer
+ * likes; Chinese and Japanese do not space them), without the codes above,
+ * and with the letters a word is written either way with read as one.
+ * Compatible, the text is first put in its compatibility form, as the
+ * parser puts it; otherwise it is read as written. One pass over at most a
+ * short label's length.
+ */
+export function toReportWordKey(text: string, compatible: boolean): string {
+  if (text.length > MAX_WORD_KEY_INPUT_LENGTH) {
+    return "";
+  }
+
+  let key: string = "";
+
+  for (const character of (compatible
+    ? toCompatibleForm(text)
+    : text
+  ).toLowerCase()) {
+    const code: number = character.codePointAt(0) || 0;
+
+    if (
+      isWhiteSpaceCode(code) ||
+      WORD_KEY_LEFT_OUT_CODES.has(code) ||
+      isArabicVowelMark(code)
+    ) {
+      continue;
+    }
+
+    key += WORD_KEY_SAME_LETTERS.get(code) || character;
+  }
+
+  return key;
+}
+
+function toWordKeys(words: ReadonlyArray<string>): ReadonlySet<string> {
+  return new Set<string>(
+    words.map((word: string): string => {
+      return toReportWordKey(word, false);
+    }),
+  );
+}
+
+const SUMMARY_LABEL_SET: ReadonlySet<string> = new Set<string>(SUMMARY_LABELS);
+const SECTION_LABEL_SET: ReadonlySet<string> = new Set<string>(
+  OTHER_SECTION_LABELS,
+);
+const SUMMARY_WORD_KEYS: ReadonlySet<string> = toWordKeys(
+  TRANSLATED_SUMMARY_LABELS,
+);
+const SECTION_WORD_KEYS: ReadonlySet<string> = toWordKeys(
+  TRANSLATED_SECTION_LABELS,
+);
+
+function endsWithColon(value: string): boolean {
+  const trimmed: string = value.trimEnd();
+
+  return LABEL_COLONS.some((colon: string): boolean => {
+    return trimmed.endsWith(colon);
+  });
+}
+
+function stripColon(value: string): string {
+  const trimmed: string = value.trimEnd();
+
+  return endsWithColon(trimmed) ? trimmed.slice(0, -1).trimEnd() : trimmed;
+}
+
+// The first colon of either kind, or -1.
+function indexOfFirstColon(value: string): number {
+  let first: number = -1;
+
+  for (const colon of LABEL_COLONS) {
+    const index: number = value.indexOf(colon);
+
+    if (index !== -1 && (first === -1 || index < first)) {
+      first = index;
+    }
+  }
+
+  return first;
+}
+
+/*
+ * A label without its colon and the qualifier after it, as the parser
+ * looks it up: "Summary:" and "Summary (high confidence)" are "Summary",
+ * "摘要（草稿）：" is "摘要".
+ */
+function toBareLabel(label: string): string {
+  let bare: string = stripColon(label.trim());
+
+  if (bare.endsWith(")") || bare.endsWith(FULL_WIDTH_CLOSE_BRACKET)) {
+    const open: number = Math.max(
+      bare.lastIndexOf("("),
+      bare.lastIndexOf(FULL_WIDTH_OPEN_BRACKET),
+    );
+    const inside: string = bare.slice(open + 1, -1);
+
+    if (
+      open !== -1 &&
+      !inside.includes(")") &&
+      !inside.includes(FULL_WIDTH_CLOSE_BRACKET)
+    ) {
+      bare = bare.slice(0, open).trimEnd();
+    }
+  }
+
+  return stripColon(bare);
+}
+
+// An English label as the parser looks it up: "Summary:" and "summary" are both "summary".
 function toLabelKey(label: string): string {
-  let key: string = label.trim();
+  return toBareLabel(label)
+    .split(WHITESPACE_RUN)
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
 
-  if (key.endsWith(":")) {
-    key = key.slice(0, -1).trimEnd();
-  }
+/*
+ * Whether a word is the Summary's in another language: as written, and as
+ * the parser reads it - so the app lifts no Summary the parser does not
+ * read. A word written in compatibility forms (full-width letters) ends a
+ * Summary, as the parser reads it, but is not lifted.
+ */
+function isTranslatedSummary(word: string): boolean {
+  return (
+    SUMMARY_WORD_KEYS.has(toReportWordKey(word, false)) &&
+    SUMMARY_WORD_KEYS.has(toReportWordKey(word, true))
+  );
+}
 
-  const open: number = key.lastIndexOf("(");
-
-  if (
-    key.endsWith(")") &&
-    open !== -1 &&
-    !key.slice(open + 1, -1).includes(")")
-  ) {
-    key = key.slice(0, open).trimEnd();
-  }
-
-  if (key.endsWith(":")) {
-    key = key.slice(0, -1);
-  }
-
-  return key.split(WHITESPACE_RUN).filter(Boolean).join(" ").toLowerCase();
+// Whether a bold or heading label names the Summary, in any language.
+function isSummaryLabel(label: string): boolean {
+  return (
+    label.length <= MAX_LABEL_LENGTH &&
+    (SUMMARY_LABEL_SET.has(toLabelKey(label)) ||
+      isTranslatedSummary(toBareLabel(label)))
+  );
 }
 
 // "- text", ": text", "— text" after a label: the text; null without a separator.
 function textAfterSeparator(rest: string): string | null {
-  for (const separator of [":", "—", "–", "--", "-"]) {
+  for (const separator of [...LABEL_COLONS, "—", "–", "--", "-"]) {
     if (rest.startsWith(separator)) {
       return rest.slice(separator.length).trim();
     }
@@ -395,7 +864,7 @@ export function readSummaryLabel(line: string): { text: string } | null {
       heading = heading.slice(0, end);
     }
 
-    return SUMMARY_LABELS.has(toLabelKey(heading)) ? { text: "" } : null;
+    return isSummaryLabel(heading) ? { text: "" } : null;
   }
 
   const marker: string | undefined = ["***", "___", "**", "__"].find(
@@ -414,11 +883,11 @@ export function readSummaryLabel(line: string): { text: string } | null {
     const inner: string = content.slice(marker.length, close);
     const after: string = content.slice(close + marker.length).trim();
 
-    if (!SUMMARY_LABELS.has(toLabelKey(inner))) {
+    if (!isSummaryLabel(inner)) {
       return null;
     }
 
-    if (after === "" || after === ":") {
+    if (after === "" || LABEL_COLONS.includes(after)) {
       return { text: "" };
     }
 
@@ -428,15 +897,17 @@ export function readSummaryLabel(line: string): { text: string } | null {
       return { text: separated };
     }
 
-    return inner.trimEnd().endsWith(":") ? { text: after } : null;
+    return endsWithColon(inner) ? { text: after } : null;
   }
 
-  const colon: number = content.indexOf(":");
+  const colon: number = indexOfFirstColon(content);
   const plainLabel: string = colon > 0 ? content.slice(0, colon).trim() : "";
+  const isSummary: boolean =
+    (isPlainLabel(plainLabel) &&
+      SUMMARY_LABEL_SET.has(toLabelKey(plainLabel))) ||
+    (isPlainWord(plainLabel) && isTranslatedSummary(plainLabel));
 
-  return isPlainLabel(plainLabel) && SUMMARY_LABELS.has(toLabelKey(plainLabel))
-    ? { text: content.slice(colon + 1).trim() }
-    : null;
+  return isSummary ? { text: content.slice(colon + 1).trim() } : null;
 }
 
 function isLetter(character: string): boolean {
@@ -462,6 +933,34 @@ function isPlainLabel(label: string): boolean {
   );
 }
 
+/*
+ * A plain label in another language, as the parser takes one: no more than
+ * 61 characters, a letter first - not a joiner, a vowel mark or white space
+ * - and no white space but spaces and tabs. Only a word of the table above
+ * is looked up, whole (isTranslatedSummary), so the rest is that word's
+ * letters and the marks and joiners it is written with.
+ */
+function isPlainWord(label: string): boolean {
+  const first: number = label.codePointAt(0) || 0;
+
+  if (
+    label.length === 0 ||
+    label.length > 61 ||
+    (first < 0x80 && !isLetter(label[0]!)) ||
+    isWhiteSpaceCode(first) ||
+    (WORD_KEY_LEFT_OUT_CODES.has(first) && first !== 0x0640) ||
+    isArabicVowelMark(first)
+  ) {
+    return false;
+  }
+
+  return [...label].every((character: string): boolean => {
+    return (
+      !isWhiteSpaceCode(character.codePointAt(0) || 0) || isSpace(character)
+    );
+  });
+}
+
 // "---", "***", "_ _ _": a rule, which the report's footer starts with.
 function isRule(content: string): boolean {
   const character: string = content[0] || "";
@@ -484,7 +983,8 @@ function isRule(content: string): boolean {
 
 /*
  * Whether a line ends the Summary's first paragraph: a blank line, or a
- * line that could open another section or a block of its own.
+ * line that could open another section or a block of its own - in any
+ * language, and in the compatibility forms the parser reads a word in.
  */
 function endsSummary(line: string): boolean {
   const content: string = line.trim();
@@ -499,15 +999,22 @@ function endsSummary(line: string): boolean {
     return true;
   }
 
-  const colon: number = content.indexOf(":");
+  const colon: number = indexOfFirstColon(content);
 
   if (colon <= 0) {
     return false;
   }
 
-  const key: string = toLabelKey(content.slice(0, colon));
+  const label: string = content.slice(0, colon);
+  const key: string = toLabelKey(label);
 
-  return SUMMARY_LABELS.has(key) || OTHER_SECTION_LABELS.has(key);
+  if (SUMMARY_LABEL_SET.has(key) || SECTION_LABEL_SET.has(key)) {
+    return true;
+  }
+
+  const wordKey: string = toReportWordKey(toBareLabel(label), true);
+
+  return SUMMARY_WORD_KEYS.has(wordKey) || SECTION_WORD_KEYS.has(wordKey);
 }
 
 export interface TriageReportParts {

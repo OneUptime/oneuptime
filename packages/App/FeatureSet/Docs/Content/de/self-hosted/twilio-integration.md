@@ -87,7 +87,7 @@ Statusseiten bieten nur die Konfigurationen an, die SMS senden, und **Test-SMS s
 
 ## 3. Netzwerkzugriff konfigurieren
 
-Das Senden funktioniert allein mit ausgehendem Zugriff. Zustellungsupdates, die Bestätigung per Tastatur und eingehende Anrufe brauchen eine Verbindung von Twilio zu Ihrem Server.
+Das Senden funktioniert allein mit ausgehendem Zugriff. Zustellungsupdates, Anrufergebnisse, die Bestätigung per Tastatur und eingehende Anrufe brauchen eine Verbindung von Twilio zu Ihrem Server.
 
 ```mermaid title="Ausgehendes Senden, eingehende Callbacks"
 sequenceDiagram
@@ -109,6 +109,7 @@ Ob Twilio eingehend zugreifen muss, hängt von der Funktion ab:
 | --- | --- |
 | SMS absetzen | Nein. Updates zum Zustellungsstatus brauchen jedoch einen Callback. |
 | Ein einfacher Test-Sprachanruf | Nein. OneUptime liefert die gesprochenen Anweisungen mit der ausgehenden API-Anfrage. |
+| Erkennen, ob ein Bereitschaftsanruf angenommen wurde | Ja. Twilio meldet, wie jeder Anruf endete, damit der Feed des Vorfalls sagen kann, wenn eine Person nicht abgenommen hat. Anrufe gehen auch ohne das hinaus. |
 | 1 drücken, um einen Bereitschaftsalarm zu bestätigen | Ja. Twilio übermittelt die Tastatureingabe an OneUptime. |
 | Richtlinien für eingehende Anrufe | Ja. Twilio fragt Anrufanweisungen ab und meldet die Ergebnisse der Wahl. |
 
@@ -117,13 +118,14 @@ Dies sind die externen Pfade über das Nginx-Gateway von OneUptime. Die Platzhal
 | Methode | Pfad | Zweck |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Zustellungsstatus der SMS |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Anrufergebnis |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Bestätigung per Tastatur |
 | POST | `/notification/incoming-call/voice` | Optionale Anweisungen für eingehende Anrufe |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Optionale Ergebnisse der Weiterleitung eingehender Anrufe |
 
-OneUptime erzeugt die URLs für SMS und Bestätigung automatisch. Ersetzen Sie deren Tokens nicht durch eine statische Webhook-URL. Für eingehende Anrufe folgen Sie [Richtlinien für eingehende Anrufe](/docs/on-call/incoming-call-policy); dort wird der Webhook der Nummer konfiguriert, wenn Sie eine Nummer zuordnen.
+OneUptime erzeugt die URLs für SMS, Anrufergebnisse und Bestätigung automatisch. Ersetzen Sie deren Tokens nicht durch eine statische Webhook-URL. Für eingehende Anrufe folgen Sie [Richtlinien für eingehende Anrufe](/docs/on-call/incoming-call-policy); dort wird der Webhook der Nummer konfiguriert, wenn Sie eine Nummer zuordnen.
 
-Twilio verlangt [öffentlich erreichbare Webhook-URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Verwenden Sie ein öffentlich vertrauenswürdiges TLS-Zertifikat und erhalten Sie über Proxys hinweg den ursprünglichen Host, das Protokoll, den Pfad, die Abfrageparameter, den Body und den Header `X-Twilio-Signature`. Die Handler für eingehende Anrufe prüfen die Signaturen von Twilio; die SMS-Zustellung verwendet ein URL-Token pro Nachricht, und die Bestätigung per Tastatur ein signiertes Abfrage-Token. Legen Sie Tokens nicht in gemeinsam genutzten Logs oder Screenshots offen. Siehe [Twilio-Webhook-Sicherheit](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio verlangt [öffentlich erreichbare Webhook-URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Verwenden Sie ein öffentlich vertrauenswürdiges TLS-Zertifikat und erhalten Sie über Proxys hinweg den ursprünglichen Host, das Protokoll, den Pfad, die Abfrageparameter, den Body und den Header `X-Twilio-Signature`. Die Handler für eingehende Anrufe prüfen die Signaturen von Twilio; die SMS-Zustellung und die Anrufergebnisse verwenden ein URL-Token pro Nachricht bzw. Anruf, und die Bestätigung per Tastatur ein signiertes Abfrage-Token. Legen Sie Tokens nicht in gemeinsam genutzten Logs oder Screenshots offen. Siehe [Twilio-Webhook-Sicherheit](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Callbacks aus einer privaten Installation veröffentlichen
 
@@ -142,7 +144,7 @@ Das Dashboard kann auf einem privaten Ingress bleiben: Mit Split-DNS lösen Mita
 Die gewöhnlichen Quelladressen der Webhooks von Twilio ändern sich, verwenden Sie also keine SIP- oder Medien-IP-Bereiche als Allowlist für Callbacks. Berechtigte Twilio-Editionen bieten [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Prüfen Sie, ob Ihre Edition berechtigt ist und welche Produkte unterstützt werden, und konfigurieren Sie Ihre Firewall mit den aktuell veröffentlichten Bereichen von Twilio; prüfen Sie die Callbacks auch dann weiter, wenn Sie es nutzen.
 
 > [!WARNING]
-> Wenn eine Richtlinie eingehende Verbindungen verbietet, funktionieren das Absetzen von SMS und die einfache Wiedergabe von Sprachnachrichten mit ausgehendem HTTPS. Updates zur SMS-Zustellung, die Bestätigung per Tastatur und die Weiterleitung eingehender Anrufe funktionieren ohne erreichbare Callbacks nicht. Eine vollständig abgeschottete Installation kann Twilio nicht nutzen.
+> Wenn eine Richtlinie eingehende Verbindungen verbietet, funktionieren das Absetzen von SMS und die einfache Wiedergabe von Sprachnachrichten mit ausgehendem HTTPS. Updates zur SMS-Zustellung, Anrufergebnisse, die Bestätigung per Tastatur und die Weiterleitung eingehender Anrufe funktionieren ohne erreichbare Callbacks nicht. Eine vollständig abgeschottete Installation kann Twilio nicht nutzen.
 
 Für die Entwicklung beschreibt Twilios [Anleitung zum Testen von Webhooks](https://www.twilio.com/docs/usage/webhooks/webhook-testing) die Verwendung eines öffentlichen Tunnels: Leiten Sie ihn an einen Proxy weiter, der nur die nötigen Routen erlaubt, konfigurieren Sie den so entstandenen Hostnamen wie oben und beenden Sie ihn nach dem Test. Auch ein Tunnel öffnet einen eingehenden Zugang.
 

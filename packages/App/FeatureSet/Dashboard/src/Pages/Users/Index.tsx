@@ -59,6 +59,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   InviteTeam,
+  canSignedInUserInviteToEveryTeam,
   findDefaultInviteTeam,
 } from "../../Utils/DefaultInviteTeam";
 
@@ -76,7 +77,9 @@ const Users: FunctionComponent<PageComponentProps> = (
   /*
    * The team Invite User starts on: the project's members team, when the
    * person inviting may invite to it (Utils/DefaultInviteTeam). Looked up
-   * when the dialog is asked for, so the form opens with it picked.
+   * when the dialog is asked for, so the form opens with it picked. Someone
+   * who invites only to the teams they own gets none, and picks one of
+   * theirs.
    */
   const [defaultInviteTeam, setDefaultInviteTeam] =
     React.useState<InviteTeam | null>(null);
@@ -86,9 +89,11 @@ const Users: FunctionComponent<PageComponentProps> = (
   const openInviteUserModal: () => Promise<void> = async (): Promise<void> => {
     setIsPreparingInvite(true);
 
-    const team: InviteTeam | null = await findDefaultInviteTeam({
-      projectId: ProjectUtil.getCurrentProjectId(),
-    });
+    const team: InviteTeam | null = canSignedInUserInviteToEveryTeam()
+      ? await findDefaultInviteTeam({
+          projectId: ProjectUtil.getCurrentProjectId(),
+        })
+      : null;
 
     setDefaultInviteTeam(team);
     setIsPreparingInvite(false);
