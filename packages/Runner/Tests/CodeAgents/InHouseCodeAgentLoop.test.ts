@@ -23,8 +23,9 @@
  *     exactly one tool message carrying the same id. A provider rejects a
  *     mismatched history outright, which fails the run mid-way with an opaque
  *     4xx.
- *   - TRUNCATION. Tool output re-enters the model context, so an unbounded
- *     read of a large file would spend the run's context on one file.
+ *   - WINDOWS. Tool output re-enters the model context, so a large file is
+ *     shown a window at a time, each saying where to read on - never cut
+ *     off where a change further down cannot be reached (issue #6441).
  * ---------------------------------------------------------------------------
  */
 
@@ -33,7 +34,8 @@ import {
   CodeAgentProgressEvent,
   CodeAgentResult,
 } from "../../CodeAgents/CodeAgentInterface";
-import { MAX_TOOL_OUTPUT_CHARS } from "Common/Server/Utils/AI/CodeFix/CodeAgentWorkspaceGuard";
+import CodeAgentCompletionRetry from "../../CodeAgents/CodeAgentCompletionRetry";
+import { READ_FILE_MAX_WINDOW_CHARS } from "../../CodeAgents/Tools/CodeAgentToolLimits";
 import { LLMMessage, LLMToolCall } from "Common/Server/Utils/LLM/LLMService";
 import { execFileSync } from "child_process";
 import fs from "fs";
@@ -330,36 +332,83 @@ describe("the read-only tools", () => {
   });
 
   /*
-   * Tool output re-enters the model's context. An unbounded read of a large
-   * generated file would spend the whole run's context on one file, and the
-   * model would have no way to know it had only seen part of it.
+   * Tool output re-enters the model's context, so a file longer than one
+   * read is shown a window at a time. The old read_file returned the first
+   * 20,000 characters of a file and nothing more, so a change further down
+   * (a customer's 2,000-line file, issue #6441) could not be made at all.
    */
-  test("a large file is truncated with an explicit marker", async () => {
+  test("a large file is shown a window at a time, and says where to read on", async () => {
     const workspace: string = makeWorkspace();
-    fs.writeFileSync(
-      path.join(workspace, "big.ts"),
-      "x".repeat(MAX_TOOL_OUTPUT_CHARS * 2),
-    );
+    const lines: Array<string> = [];
 
-    let capturedToolResult: string = "";
-    llmCompletionMock
-      .mockResolvedValueOnce(
-        completion({ toolCalls: [toolCall("read_file", { path: "big.ts" })] }),
-      )
-      .mockImplementation((request: CompletionRequest) => {
-        const toolMessage: LLMMessage | undefined = request.messages.find(
-          (message: LLMMessage) => {
-            return message.role === "tool";
-          },
-        );
-        capturedToolResult = toolMessage?.content || "";
-        return Promise.resolve(completion({ content: "Read it." }));
-      });
+    for (let index: number = 1; index <= 3000; index++) {
+      lines.push(
+        `export const value${index}: number = ${index}; // ${"padding ".repeat(4)}`,
+      );
+    }
+
+    fs.writeFileSync(path.join(workspace, "big.ts"), `${lines.join("\n")}\n`);
+
+    // What the model was shown last, as each call was made.
+    const shown: Array<string> = [];
+
+    llmCompletionMock.mockImplementation((request: CompletionRequest) => {
+      const toolMessages: Array<LLMMessage> = request.messages.filter(
+        (message: LLMMessage) => {
+          return message.role === "tool";
+        },
+      );
+
+      if (toolMessages.length > 0) {
+        shown.push(toolMessages[toolMessages.length - 1]!.content);
+      }
+
+      const readArguments: Array<Record<string, unknown>> = [
+        { path: "big.ts" },
+        { path: "big.ts", start_line: 2990 },
+      ];
+      const next: Record<string, unknown> | undefined =
+        readArguments[llmCompletionMock.mock.calls.length - 1];
+
+      return Promise.resolve(
+        next
+          ? completion({ toolCalls: [toolCall("read_file", next)] })
+          : completion({ content: "Read it." }),
+      );
+    });
 
     await runAgent(workspace);
 
-    expect(capturedToolResult.length).toBeLessThan(MAX_TOOL_OUTPUT_CHARS + 200);
-    expect(capturedToolResult).toContain("output truncated");
+    expect(shown).toHaveLength(2);
+
+    const first: string = shown[0]!;
+    const second: string = shown[1]!;
+
+    // The first window: numbered lines from the top, within a window's size.
+    expect(first.length).toBeLessThan(READ_FILE_MAX_WINDOW_CHARS + 300);
+    expect(first.startsWith("     1\texport const value1: number = 1;")).toBe(
+      true,
+    );
+
+    const readOn: RegExpMatchArray | null = first.match(
+      /\[big\.ts: lines 1-(\d+) of 3000 \(a window holds about 60,000 characters\)\. Read on with start_line (\d+)\.\]$/,
+    );
+
+    expect(readOn).not.toBeNull();
+    expect(Number(readOn![2])).toBe(Number(readOn![1]) + 1);
+    expect(first).toContain(`export const value${readOn![1]}: number`);
+    expect(first).not.toContain(
+      `export const value${Number(readOn![1]) + 1}: number`,
+    );
+
+    // A window further down reaches the very end, and says it is the end.
+    expect(second.startsWith("  2990\texport const value2990: number")).toBe(
+      true,
+    );
+    expect(second).toContain("  3000\texport const value3000: number = 3000;");
+    expect(second).toContain(
+      "[big.ts: lines 2990-3000 of 3000. This is the end of the file.]",
+    );
   });
 });
 
@@ -640,28 +689,44 @@ describe("stopping", () => {
    */
   test("a failing completion is a hard failure, not a quiet success", async () => {
     const workspace: string = makeWorkspace();
+    // The waits between attempts (a minute, then five) pass at once here.
+    const sleep: jest.SpyInstance = jest
+      .spyOn(CodeAgentCompletionRetry, "sleep")
+      .mockResolvedValue(undefined);
 
     llmCompletionMock.mockRejectedValue(
       new Error("Failed to get LLM completion: ECONNREFUSED"),
     );
 
-    const result: CodeAgentResult = await runAgent(workspace);
+    try {
+      const result: CodeAgentResult = await runAgent(workspace, {
+        timeoutMs: 60 * 60_000,
+      });
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("ECONNREFUSED");
-    expect(result.filesModified).toEqual([]);
-    expect(result.exitCode).toBe(1);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("ECONNREFUSED");
+      expect(result.filesModified).toEqual([]);
+      expect(result.exitCode).toBe(1);
+      // A server out of reach is waited out twice before the task fails.
+      expect(llmCompletionMock).toHaveBeenCalledTimes(3);
+      expect(sleep).toHaveBeenCalledTimes(2);
+    } finally {
+      sleep.mockRestore();
+    }
   });
 
   test("a completion that fails midway is still a hard failure", async () => {
     const workspace: string = makeWorkspace();
+    const sleep: jest.SpyInstance = jest
+      .spyOn(CodeAgentCompletionRetry, "sleep")
+      .mockResolvedValue(undefined);
 
     llmCompletionMock
       .mockResolvedValueOnce(
         completion({
           toolCalls: [
             toolCall("write_file", {
-              path: "src/checkout.ts",
+              path: "src/new-helper.ts",
               content: "export const a = 2;\n",
             }),
           ],
@@ -669,10 +734,19 @@ describe("stopping", () => {
       )
       .mockRejectedValue(new Error("budget exhausted"));
 
-    const result: CodeAgentResult = await runAgent(workspace);
+    try {
+      const result: CodeAgentResult = await runAgent(workspace, {
+        timeoutMs: 60 * 60_000,
+      });
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("budget exhausted");
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("budget exhausted");
+      // Any other failure a repeat could fix gets one more try, no more.
+      expect(llmCompletionMock).toHaveBeenCalledTimes(3);
+      expect(sleep).toHaveBeenCalledTimes(1);
+    } finally {
+      sleep.mockRestore();
+    }
   });
 
   /*

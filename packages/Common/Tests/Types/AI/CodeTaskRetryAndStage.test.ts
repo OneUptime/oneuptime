@@ -51,6 +51,14 @@ describe("TransientAIFailure.classify", () => {
     ["read ECONNRESET", TransientAIFailureKind.NetworkError],
     ["socket hang up", TransientAIFailureKind.NetworkError],
     [
+      "The OneUptime server could not be reached for the model call: getaddrinfo ENOTFOUND oneuptime.example",
+      TransientAIFailureKind.NetworkError,
+    ],
+    [
+      "LLM completion request failed (HTTP 502)",
+      TransientAIFailureKind.ProviderUnavailable,
+    ],
+    [
       "The Runner working on it stopped reporting progress (it may have restarted).",
       TransientAIFailureKind.RunnerWentAway,
     ],
@@ -68,6 +76,7 @@ describe("TransientAIFailure.classify", () => {
     "Invalid API key provided",
     "401 Unauthorized",
     "403 Forbidden",
+    "LLM completion request failed (HTTP 400)",
     "This fix run has reached its LLM call budget (40 of 40 completion calls). The run must finish with the work done so far.",
     "The project reached its daily limit of AI runs.",
     "prompt is too long: 210000 tokens > 200000 maximum",

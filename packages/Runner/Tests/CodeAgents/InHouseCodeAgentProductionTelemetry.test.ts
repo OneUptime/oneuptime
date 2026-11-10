@@ -355,6 +355,58 @@ describe("offering production telemetry", () => {
     expect(runTelemetryToolMock).not.toHaveBeenCalled();
     expect(fs.existsSync(path.join(workspace, "src", "new.ts"))).toBe(true);
   });
+
+  // Every tool the Runner has now (issue #6441), not only the first ones.
+  test("no name of the Runner's own tools, nor ask_question, is ever a server tool", async () => {
+    const runnerNames: Array<string> = [
+      "read_file",
+      "edit_file",
+      "write_file",
+      "delete_file",
+      "move_file",
+      "list_directory",
+      "find_files",
+      "search_files",
+      "git",
+      "read_tool_output",
+      "update_plan",
+      "run_command",
+      "ask_question",
+    ];
+    getTelemetryToolsMock.mockResolvedValue(
+      offer({
+        tools: [...runnerNames, "query_traces"].map(telemetryTool),
+      }),
+    );
+    llmCompletionMock
+      .mockResolvedValueOnce(
+        completion({
+          toolCalls: [
+            toolCall("edit_file", {
+              path: "src/checkout.ts",
+              old_text: "x",
+              new_text: "y",
+            }),
+          ],
+        }),
+      )
+      .mockResolvedValue(completion({ content: "Done." }));
+
+    await runAgent(makeWorkspace(), { productionTelemetry: true });
+
+    const offered: Array<string> = toolNames(requests()[0]);
+
+    for (const name of runnerNames) {
+      expect(
+        offered.filter((offeredName: string): boolean => {
+          return offeredName === name;
+        }).length,
+      ).toBeLessThanOrEqual(1);
+    }
+
+    expect(offered).toContain("query_traces");
+    expect(runTelemetryToolMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("a production telemetry call", () => {

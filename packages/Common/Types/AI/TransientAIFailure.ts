@@ -120,6 +120,11 @@ const TRANSIENT_SIGNS: ReadonlyArray<{
       "connection reset",
       "connection closed",
       "connection refused",
+      /*
+       * What a Runner's code agent says when a model call got no answer
+       * from the OneUptime server at all (Runner/Utils/LlmCompletionError).
+       */
+      "could not be reached",
     ],
     statusCodes: [],
   },

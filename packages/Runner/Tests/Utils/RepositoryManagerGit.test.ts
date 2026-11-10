@@ -536,6 +536,61 @@ describe("branch, commit and push", () => {
 
     expect(await manager.hasStagedChanges(repositoryPath)).toBe(true);
   });
+
+  /*
+   * A path is staged as written, never read as a pattern: app/[id] (a route
+   * folder of many web frameworks) would otherwise also stage app/i and
+   * app/d - changes the fix never made.
+   */
+  test("stages each path as written: a folder named like a pattern stages itself only", async () => {
+    const { repositoryPath, manager } = await clonedRepository();
+    const pages: Array<string> = [
+      "app/[id]/page.tsx",
+      "app/[slug]/old.tsx",
+      "app/i/page.tsx",
+      "app/s/old.tsx",
+    ];
+
+    for (const page of pages) {
+      fs.mkdirSync(path.dirname(path.join(repositoryPath, page)), {
+        recursive: true,
+      });
+      fs.writeFileSync(
+        path.join(repositoryPath, page),
+        "export const v = 1;\n",
+      );
+    }
+
+    git(repositoryPath, ["add", "-A"]);
+    git(repositoryPath, [
+      "-c",
+      "user.email=tests@oneuptime.com",
+      "-c",
+      "user.name=Runner Tests",
+      "commit",
+      "-q",
+      "-m",
+      "routes",
+    ]);
+
+    // The fix changes one page and deletes another; something else changes the rest.
+    for (const page of pages) {
+      fs.writeFileSync(
+        path.join(repositoryPath, page),
+        "export const v = 2;\n",
+      );
+    }
+    fs.rmSync(path.join(repositoryPath, "app/[slug]/old.tsx"));
+
+    await manager.addPaths(repositoryPath, [
+      "app/[id]/page.tsx",
+      "app/[slug]/old.tsx",
+    ]);
+
+    expect(
+      git(repositoryPath, ["diff", "--cached", "--name-status"]).trim(),
+    ).toBe(["M\tapp/[id]/page.tsx", "D\tapp/[slug]/old.tsx"].join("\n"));
+  });
 });
 
 describe("getChangedFiles against real repository states", () => {
