@@ -263,6 +263,7 @@ describe("Settings > Audit Logs (the Enterprise page)", () => {
     const retention:
       | {
           required?: boolean;
+          description?: string;
           validation?: { minValue?: number; maxValue?: number };
         }
       | undefined = (capturedCardProps?.formFields || [])[1];
