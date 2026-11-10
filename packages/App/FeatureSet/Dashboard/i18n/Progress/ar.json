@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 47463,
-    "untranslated": 35455
+    "untranslated": 33378
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -14,6 +14,7 @@
     "412 GB",
     "4xx",
     "5xx",
+    "@alice",
     "AKIAIOSFODNN7EXAMPLE",
     "Active + Clean",
     "Amazon SES",
@@ -189,6 +190,7 @@
     "vCenter",
     "vSphere Client",
     "x86",
+    "you@company.com",
     "z",
     "{{gigabytes}} GB",
     "{{in}} in",
