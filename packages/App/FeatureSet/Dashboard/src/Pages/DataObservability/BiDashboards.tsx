@@ -10,6 +10,7 @@ import DataObservabilityApi from "../../Components/DataObservability/DataObserva
 import DataBiConnection from "Common/Models/DatabaseModels/DataBiConnection";
 import DataDashboard from "Common/Models/DatabaseModels/DataDashboard";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
 import { DataObservabilityBiSyncResponse } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import DataBiTool, {
   DATA_BI_TOOL_CREDENTIALS,
@@ -84,9 +85,7 @@ function getViewsElement(
       {summary?.since ? (
         <span className="block text-xs text-gray-500">
           {translator.translateTemplate("Since {{date}}", {
-            date: new Date(summary.since).toLocaleDateString(
-              getReaderDateLocale(),
-            ),
+            date: OneUptimeDate.getDateAsLocalDayMonthString(summary.since),
           })}
         </span>
       ) : (

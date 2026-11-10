@@ -1,3 +1,4 @@
+import RelativeTime from "../EpisodeView/RelativeTime";
 import { Gray500, Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import {
@@ -6,7 +7,6 @@ import {
   DataDashboardRefreshHistory,
   getDataDashboardRefreshTime,
 } from "Common/Types/DataObservability/DataDashboardActivity";
-import { getReaderDateLocale } from "Common/Types/DateLanguage";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
@@ -38,20 +38,19 @@ export function getRefreshStatusPill(
   }
 }
 
-// A time as "2 hours ago", with the reader's full date and time on hover.
+/*
+ * A time as "2 hours ago", with the full date and time on hover: in the
+ * reader's language, or inside a sentence in the sentence's.
+ */
 export function TimeAgo(props: {
   at: Date | string;
   className?: string | undefined;
 }): ReactElement {
-  const at: Date = OneUptimeDate.fromString(props.at);
-
   return (
-    <span
+    <RelativeTime
+      date={OneUptimeDate.fromString(props.at)}
       className={props.className || "text-xs text-gray-500"}
-      title={at.toLocaleString(getReaderDateLocale())}
-    >
-      {OneUptimeDate.fromNow(at)}
-    </span>
+    />
   );
 }
 
