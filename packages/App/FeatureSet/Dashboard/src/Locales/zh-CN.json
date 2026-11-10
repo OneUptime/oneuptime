@@ -49338,5 +49338,14 @@
   "A JSON array of up to 20 identify() trait keys. Kept only while end-user identity capture is on. Do not list personal data, such as email.": "最多 20 个 identify() 特征键的 JSON 数组。仅在开启终端用户身份采集时保留。请勿列出个人数据，例如电子邮件。",
   "Sends session starts, page views and your track() and metric() calls from every session, recorded or not. Consent and Do Not Track still apply.": "无论是否录制，都会从每个会话发送会话开始、页面浏览以及您的 track() 和 metric() 调用。同意设置和 Do Not Track 仍然适用。",
   "The browser recorder sends session starts and page views on its own. To count what people do, send events and numbers from your app's code:": "浏览器录制器会自动发送会话开始和页面浏览。要统计用户做了什么，请从应用代码中发送事件和数值：",
-  "Turn them on to count session starts, page views and the events your app sends with track(). The Session Replay recorder on your pages sends them.": "开启后会统计会话开始、页面浏览以及您的应用通过 track() 发送的事件。您页面上的会话回放录制器会发送它们。"
+  "Turn them on to count session starts, page views and the events your app sends with track(). The Session Replay recorder on your pages sends them.": "开启后会统计会话开始、页面浏览以及您的应用通过 track() 发送的事件。您页面上的会话回放录制器会发送它们。",
+  "For 204, turn product analytics events on under Analytics Settings and Session Replay on under Replay Policy. For 403, add this page's origin to the allowed origins under Replay Policy.": "如果是 204，请在分析设置中开启产品分析事件，并在回放策略中开启会话回放。如果是 403，请在回放策略中将此页面的来源添加到允许的来源。",
+  "Pass the metric's value as a finite number, such as 42.5, not as a string.": "请以有限数字（例如 42.5）而不是字符串传递指标的值。",
+  "The application has product analytics events on, so the recorder sends each session's start, its page views and the page's track() and metric() calls, from every session, recorded or not. The detail's userPropertyKeys counts the user properties the events keep.": "应用开启了产品分析事件，因此无论是否录制，录制器都会从每个会话发送会话的开始、页面浏览以及页面对 track() 和 metric() 的调用。记录详情中的 userPropertyKeys 是事件保留的用户属性数量。",
+  "The server will not take this page's product analytics events, so none are sent from it again. The detail gives the status and the server's reason: 204 means the application has them or Session Replay off, 403 that the page's origin is not allowed, and 400 that the recorder sent a batch the server cannot read.": "服务器不接受此页面的产品分析事件，因此不会再从它发送任何事件。记录详情给出状态和服务器的原因：204 表示应用关闭了事件或会话回放，403 表示页面的来源不被允许，400 表示录制器发送了服务器无法读取的批次。",
+  "Turn product analytics events on under Analytics Settings.": "请在分析设置中开启产品分析事件。",
+  "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "请使用以字母开头、只包含字母、数字、下划线、点、连字符和斜杠且最多 100 个字符的名称。以 \"oneuptime.\" 开头的名称保留给 OneUptime 自己的指标。",
+  "metric() was called while the application has product analytics events off, so nothing was sent.": "在应用关闭了产品分析事件时调用了 metric()，因此没有发送任何内容。",
+  "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() 收到了一个无法发送的名称，因此没有发送任何内容。记录详情会显示该名称；如果它不是字符串，则显示其类型。",
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() 收到了一个不是有限数字的值，因此没有发送任何内容。记录详情会给出该指标的名称。"
 }
