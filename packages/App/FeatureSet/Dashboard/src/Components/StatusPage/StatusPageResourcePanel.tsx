@@ -656,64 +656,63 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
    * it is never folded away under Advanced. Everything else about the form is
    * the same wherever it is opened from.
    */
-  const gridCellFields: Array<ModelField<StatusPageResource>> = useMemo((): Array<
-    ModelField<StatusPageResource>
-  > => {
-    if (!isGrid) {
-      return [];
-    }
+  const gridCellFields: Array<ModelField<StatusPageResource>> =
+    useMemo((): Array<ModelField<StatusPageResource>> => {
+      if (!isGrid) {
+        return [];
+      }
 
-    type ToOptionsFunction = (
-      values: Array<string>,
-    ) => Array<{ label: string; value: string }>;
+      type ToOptionsFunction = (
+        values: Array<string>,
+      ) => Array<{ label: string; value: string }>;
 
-    const toOptions: ToOptionsFunction = (
-      values: Array<string>,
-    ): Array<{ label: string; value: string }> => {
-      return values.map((value: string) => {
-        return { label: value, value: value };
-      });
-    };
+      const toOptions: ToOptionsFunction = (
+        values: Array<string>,
+      ): Array<{ label: string; value: string }> => {
+        return values.map((value: string) => {
+          return { label: value, value: value };
+        });
+      };
 
-    return [
-      {
-        field: {
-          rowAxisValue: true,
+      return [
+        {
+          field: {
+            rowAxisValue: true,
+          },
+          title: `${rowLabel} (Row)`,
+          description: "Row this resource belongs to in the grid.",
+          fieldType:
+            rowValues.length > 0
+              ? FormFieldSchemaType.Dropdown
+              : FormFieldSchemaType.Text,
+          dropdownOptions:
+            rowValues.length > 0 ? toOptions(rowValues) : undefined,
+          required: true,
+          placeholder:
+            rowValues.length > 0
+              ? `Select ${rowLabel.toLowerCase()}`
+              : "Define rows on the group first",
         },
-        title: `${rowLabel} (Row)`,
-        description: "Row this resource belongs to in the grid.",
-        fieldType:
-          rowValues.length > 0
-            ? FormFieldSchemaType.Dropdown
-            : FormFieldSchemaType.Text,
-        dropdownOptions:
-          rowValues.length > 0 ? toOptions(rowValues) : undefined,
-        required: true,
-        placeholder:
-          rowValues.length > 0
-            ? `Select ${rowLabel.toLowerCase()}`
-            : "Define rows on the group first",
-      },
-      {
-        field: {
-          columnAxisValue: true,
+        {
+          field: {
+            columnAxisValue: true,
+          },
+          title: `${columnLabel} (Column)`,
+          description: "Column this resource belongs to in the grid.",
+          fieldType:
+            columnValues.length > 0
+              ? FormFieldSchemaType.Dropdown
+              : FormFieldSchemaType.Text,
+          dropdownOptions:
+            columnValues.length > 0 ? toOptions(columnValues) : undefined,
+          required: true,
+          placeholder:
+            columnValues.length > 0
+              ? `Select ${columnLabel.toLowerCase()}`
+              : "Define columns on the group first",
         },
-        title: `${columnLabel} (Column)`,
-        description: "Column this resource belongs to in the grid.",
-        fieldType:
-          columnValues.length > 0
-            ? FormFieldSchemaType.Dropdown
-            : FormFieldSchemaType.Text,
-        dropdownOptions:
-          columnValues.length > 0 ? toOptions(columnValues) : undefined,
-        required: true,
-        placeholder:
-          columnValues.length > 0
-            ? `Select ${columnLabel.toLowerCase()}`
-            : "Define columns on the group first",
-      },
-    ];
-  }, [isGrid, rowValues, columnValues, rowLabel, columnLabel]);
+      ];
+    }, [isGrid, rowValues, columnValues, rowLabel, columnLabel]);
 
   type GetResourceFormFieldsFunction = (data: {
     targetType: StatusPageResourceTargetType;
@@ -756,16 +755,16 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
       : StatusPageResourceTargetType.Monitor;
 
   // Add Monitor: the picker is the page's choice (isAddingMonitorGroup).
-  const createFormFields: Array<ModelField<StatusPageResource>> = useMemo(():
-    | Array<ModelField<StatusPageResource>> => {
-    return getResourceFormFields({
-      targetType: createTargetType,
-      isEditForm: false,
-      onSwitchTarget: () => {
-        props.onIsAddingMonitorGroupChange(!props.isAddingMonitorGroup);
-      },
-    });
-  }, [createTargetType, props.isMonitorGroupsFeatureEnabled, gridCellFields]);
+  const createFormFields: Array<ModelField<StatusPageResource>> =
+    useMemo((): Array<ModelField<StatusPageResource>> => {
+      return getResourceFormFields({
+        targetType: createTargetType,
+        isEditForm: false,
+        onSwitchTarget: () => {
+          props.onIsAddingMonitorGroupChange(!props.isAddingMonitorGroup);
+        },
+      });
+    }, [createTargetType, props.isMonitorGroupsFeatureEnabled, gridCellFields]);
 
   /*
    * Edit resource: the picker is the resource's own, and its link swaps it
@@ -773,37 +772,37 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
    * so a display name never changed from that name follows a pick from
    * either picker.
    */
-  const editFormFields: Array<ModelField<StatusPageResource>> = useMemo(():
-    | Array<ModelField<StatusPageResource>> => {
-    if (!resourceEdit) {
-      return [];
-    }
+  const editFormFields: Array<ModelField<StatusPageResource>> =
+    useMemo((): Array<ModelField<StatusPageResource>> => {
+      if (!resourceEdit) {
+        return [];
+      }
 
-    return getResourceFormFields({
-      targetType: resourceEdit.targetType,
-      isEditForm: true,
-      savedTargetName: resourceEdit.savedTargetName,
-      onSwitchTarget: () => {
-        setResourceEdit(
-          (
-            current: StatusPageResourceEdit | null,
-          ): StatusPageResourceEdit | null => {
-            return current
-              ? {
-                  ...current,
-                  targetType: getOtherTargetType(current.targetType),
-                }
-              : current;
-          },
-        );
-      },
-    });
-  }, [
-    resourceEdit?.targetType,
-    resourceEdit?.savedTargetName,
-    props.isMonitorGroupsFeatureEnabled,
-    gridCellFields,
-  ]);
+      return getResourceFormFields({
+        targetType: resourceEdit.targetType,
+        isEditForm: true,
+        savedTargetName: resourceEdit.savedTargetName,
+        onSwitchTarget: () => {
+          setResourceEdit(
+            (
+              current: StatusPageResourceEdit | null,
+            ): StatusPageResourceEdit | null => {
+              return current
+                ? {
+                    ...current,
+                    targetType: getOtherTargetType(current.targetType),
+                  }
+                : current;
+            },
+          );
+        },
+      });
+    }, [
+      resourceEdit?.targetType,
+      resourceEdit?.savedTargetName,
+      props.isMonitorGroupsFeatureEnabled,
+      gridCellFields,
+    ]);
 
   type OpenEditFunction = (statusPageResource: StatusPageResource) => void;
 

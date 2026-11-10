@@ -387,9 +387,11 @@ describe("the status page resource forms", () => {
   });
 
   /*
-   * The resource form reaches the panel's dialogs as a prop, so the scan
-   * sees no fields there. What it can see: neither dialog is handed steps,
-   * and the page hands over no step list for them.
+   * The panel builds the resource form for its two dialogs - Add Monitor on
+   * the page's monitor/monitor group choice, Edit resource on what the
+   * resource shows (issue #6540) - from the shared form, so the scan sees no
+   * fields written out there. What it can see: neither dialog is handed
+   * steps, and the page hands over no step list for them.
    */
   describe("a resource (Add Monitor and Edit resource)", () => {
     test.each([
@@ -408,9 +410,13 @@ describe("the status page resource forms", () => {
       expect(readCode(RESOURCES_PAGE)).not.toContain("FormStep");
     });
 
-    test("its fields come from the shared resource form", () => {
-      expect(readCode(RESOURCES_PAGE)).toContain(
+    test("its fields come from the shared resource form, built by the panel", () => {
+      expect(readCode(RESOURCE_PANEL)).toContain(
         "getStatusPageResourceFormFields({",
+      );
+      // The page builds no resource form of its own for the panel to show.
+      expect(readCode(RESOURCES_PAGE)).not.toContain(
+        "getStatusPageResourceFormFields",
       );
     });
 

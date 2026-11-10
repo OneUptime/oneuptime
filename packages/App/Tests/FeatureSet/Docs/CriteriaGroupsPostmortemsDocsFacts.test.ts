@@ -623,6 +623,9 @@ const STATUS_PAGE_RESOURCE_FIELDS: string = readDashboardSource(
 const STATUS_PAGE_RESOURCE_PANEL: string = readDashboardSource(
   "Components/StatusPage/StatusPageResourcePanel.tsx",
 );
+const STATUS_PAGE_RESOURCE_TARGET_SWITCH: string = readDashboardSource(
+  "Components/StatusPage/StatusPageResourceTargetSwitch.tsx",
+);
 const POSTMORTEM_PAGE: string = readDashboardSource(
   "Pages/Incidents/View/Postmortem.tsx",
 );
@@ -2916,16 +2919,18 @@ describe("a monitor group on a status page", () => {
   );
 
   it("is added from the page's Resources with Add Monitor, switched to a group while the switch is on", () => {
+    // The link under the picker, drawn only while the switch is on.
     const footer: string = between(
-      STATUS_PAGE_RESOURCES_PAGE,
-      "const getFooterForMonitor: GetFooterForMonitorFunction = (): ReactElement => {",
-      "\n  };\n",
+      STATUS_PAGE_RESOURCE_PANEL,
+      "targetFooterElement: props.isMonitorGroupsFeatureEnabled ? (",
+      ") : undefined,",
     );
 
-    expect(footer).toContain(
-      "if (!props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {\n      return <></>;\n    }",
+    expect(footer).toContain("<StatusPageResourceTargetSwitch");
+    expect(STATUS_PAGE_RESOURCES_PAGE).toContain(
+      "isMonitorGroupsFeatureEnabled={Boolean(\n          props.currentProject?.isFeatureFlagMonitorGroupsEnabled,\n        )}",
     );
-    expect(footer).toContain(
+    expect(STATUS_PAGE_RESOURCE_TARGET_SWITCH).toContain(
       'translator.translateText("Add a Monitor Group instead.")',
     );
     expect(STATUS_PAGE_RESOURCE_PANEL).toContain('title="Add Monitor"');

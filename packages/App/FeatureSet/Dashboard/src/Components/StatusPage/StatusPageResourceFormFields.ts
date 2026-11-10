@@ -164,8 +164,10 @@ export const getFollowPickWithDisplayName: GetFollowPickWithDisplayNameFunction 
       setNewFormValues: (values: FormValues<StatusPageResource>) => void,
       change?: DropdownChange | undefined,
     ): void => {
-      const values: Record<string, unknown> = (currentValues ||
-        {}) as Record<string, unknown>;
+      const values: Record<string, unknown> = (currentValues || {}) as Record<
+        string,
+        unknown
+      >;
 
       const displayName: string | null = getDisplayNameAfterPick({
         displayName: values["displayName"],
@@ -311,41 +313,41 @@ export const getStatusPageResourceFormFields: (
 
   const targetField: ModelField<StatusPageResource> =
     options.targetType === StatusPageResourceTargetType.MonitorGroup
-    ? {
-        field: {
-          monitorGroup: true,
-        },
-        title: "Monitor Group",
-        description:
-          "Select monitor group that will be shown on the status page.",
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownModal: {
-          type: MonitorGroup,
-          labelField: "name",
-          valueField: "_id",
-        },
-        required: true,
-        placeholder: "Select Monitor Group",
-        footerElement: options.targetFooterElement,
-        onChange: followPick,
-      }
-    : {
-        field: {
-          monitor: true,
-        },
-        title: "Monitor",
-        description: "Select monitor that will be shown on the status page.",
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownModal: {
-          type: Monitor,
-          labelField: "name",
-          valueField: "_id",
-        },
-        required: true,
-        placeholder: "Select Monitor",
-        footerElement: options.targetFooterElement,
-        onChange: followPick,
-      };
+      ? {
+          field: {
+            monitorGroup: true,
+          },
+          title: "Monitor Group",
+          description:
+            "Select monitor group that will be shown on the status page.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownModal: {
+            type: MonitorGroup,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: true,
+          placeholder: "Select Monitor Group",
+          footerElement: options.targetFooterElement,
+          onChange: followPick,
+        }
+      : {
+          field: {
+            monitor: true,
+          },
+          title: "Monitor",
+          description: "Select monitor that will be shown on the status page.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownModal: {
+            type: Monitor,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: true,
+          placeholder: "Select Monitor",
+          footerElement: options.targetFooterElement,
+          onChange: followPick,
+        };
 
   return [
     targetField,

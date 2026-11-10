@@ -32,7 +32,7 @@ const StatusPageResourceTargetSwitch: FunctionComponent<ComponentProps> = (
   const isMonitorGroupPicker: boolean =
     props.targetType === StatusPageResourceTargetType.MonitorGroup;
 
-  let text: string;
+  let text: string | undefined;
 
   if (props.isEditForm) {
     text = isMonitorGroupPicker

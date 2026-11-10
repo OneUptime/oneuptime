@@ -513,10 +513,8 @@ export class Service extends ProjectReferencesService<Model> {
      * Pointing an existing resource at a monitor the page already lists is the
      * same duplicate onBeforeCreate refuses, just reached from the edit form.
      */
-    const updateData: Record<string, unknown> = updateBy.data as unknown as Record<
-      string,
-      unknown
-    >;
+    const updateData: Record<string, unknown> =
+      updateBy.data as unknown as Record<string, unknown>;
 
     const updatedTarget: StatusPageResourceTarget =
       this.getResourceMonitorTarget(updateData);
