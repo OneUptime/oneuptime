@@ -138,6 +138,26 @@ const TABLES: Array<string> = [
   "AlertEpisodeStateTimeline",
 ];
 
+/*
+ * Read, never written, by every delete of an audited record: it reads the
+ * whole of each row it removes, the rows it links to included (its
+ * incident, alert, episode or event, the state it names, who created or
+ * deleted it), for the audit log's entry. They are cloned bare - no foreign
+ * key to or from them - so the timelines still name their records by any id,
+ * and the read finds none.
+ */
+const READ_FOR_AUDIT_LOG: Array<string> = [
+  "User",
+  "Incident",
+  "IncidentState",
+  "Alert",
+  "AlertState",
+  "ScheduledMaintenance",
+  "ScheduledMaintenanceState",
+  "IncidentEpisode",
+  "AlertEpisode",
+];
+
 interface ForeignKeyRow {
   table: string;
   name: string;
@@ -585,7 +605,7 @@ describePostgres(
 
       await query(`CREATE SCHEMA "${schema}"`);
 
-      for (const table of TABLES) {
+      for (const table of [...TABLES, ...READ_FOR_AUDIT_LOG]) {
         await query(
           `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
         );
