@@ -2080,6 +2080,7 @@ import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
@@ -2334,6 +2335,12 @@ import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteA
 import NetworkSiteAssignmentRuleService, {
   Service as NetworkSiteAssignmentRuleServiceType,
 } from "Common/Server/Services/NetworkSiteAssignmentRuleService";
+
+// NetworkDeviceNamingRule
+import NetworkDeviceNamingRule from "Common/Models/DatabaseModels/NetworkDeviceNamingRule";
+import NetworkDeviceNamingRuleService, {
+  Service as NetworkDeviceNamingRuleServiceType,
+} from "Common/Server/Services/NetworkDeviceNamingRuleService";
 
 // NetworkAddressName
 import NetworkAddressName from "Common/Models/DatabaseModels/NetworkAddressName";
@@ -6548,6 +6555,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     /*
+     * Naming rules (Network > Settings > Naming Rules, issue #6619): what an
+     * import names each host, and the devices that do not follow the rules,
+     * renamed after a preview. A bare router for the same reason as the
+     * import's: a plan reads every device and rule as root, so its own
+     * checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkDeviceNamingAPI);
+
+    /*
      * The Discovered Devices list (Network > Discovered Devices): every
      * device switches and controllers saw, searched and paged in the
      * database, hidden from the map and shown on it again in bulk. A bare
@@ -7606,6 +7622,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         NetworkSiteAssignmentRule,
         NetworkSiteAssignmentRuleService,
+      ).getRouter(),
+    );
+
+    // network device naming rule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceNamingRule, NetworkDeviceNamingRuleServiceType>(
+        NetworkDeviceNamingRule,
+        NetworkDeviceNamingRuleService,
       ).getRouter(),
     );
 

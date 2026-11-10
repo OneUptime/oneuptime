@@ -67,7 +67,7 @@ O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, *
 | Seção | Páginas |
 | --- | --- |
 | **Topologia** | **Topologia do dispositivo**, **Dispositivos descobertos**, **Matriz de latência**, **Links do site**, **Links do dispositivo** |
-| **Regras** | **Regras de importação automática**, **Regras de atribuição de sites**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de links** |
+| **Regras** | **Regras de importação automática**, **Regras de atribuição de sites**, **Regras de nomenclatura**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de links** |
 | **Configurações** | **Políticas de alerta**, **Credenciais SNMP**, **Funções de dispositivo**, **Tipos de site**, **Nomes de endereço**, **Modelos de coleta de OID** |
 | **Avançado** | **Walk SNMP**, **Dispositivos arquivados** |
 
@@ -691,8 +691,33 @@ Uma varredura nem sempre encontra o melhor nome de um host na primeira vez. Os r
 
 Por isso, um dispositivo que a descoberta nomeou lembra de onde o nome dele veio. Quando uma varredura concluída do endereço dele encontra um nome melhor — o nome de sistema SNMP ou o nome NetBIOS em vez do nome de DNS reverso, qualquer nome em vez do endereço IP —, o dispositivo é renomeado com o nome que uma importação daria a ele agora, e o DNS Name dele é preenchido se não houver um. Se outro dispositivo já tiver esse nome, o dispositivo recebe o nome com o endereço entre parênteses (`FILESRV01 (10.0.0.5)`), e se esse também estiver ocupado, ele mantém o nome.
 
-Um nome só melhora: um dispositivo mantém o nome quando o registro DNS dele muda, ou quando uma varredura posterior não recebe resposta NetBIOS. Um dispositivo com nome DNS só é renomeado por uma varredura que encontra esse mesmo nome DNS no endereço dele, então, quando o endereço agora pertence a outra máquina (uma concessão DHCP que mudou, por exemplo), o dispositivo não assume o nome dessa máquina. Um dispositivo que você renomeou — na página de Configurações dele, pela API ou com **Shorten Names to Hostname** — nunca é renomeado por uma varredura. Os dispositivos importados antes de a descoberta registrar de onde vinham os nomes mantêm os seus nomes, exceto um que uma varredura ainda em andamento importou pelo endereço IP, que é renomeado quando essa varredura é concluída.
+Um nome só melhora: um dispositivo mantém o nome quando o registro DNS dele muda, ou quando uma varredura posterior não recebe resposta NetBIOS. Um dispositivo com nome DNS só é renomeado por uma varredura que encontra esse mesmo nome DNS no endereço dele, então, quando o endereço agora pertence a outra máquina (uma concessão DHCP que mudou, por exemplo), o dispositivo não assume o nome dessa máquina. Um dispositivo que você renomeou — na página de Configurações dele, pela API ou com **Shorten Names to Hostname** — nunca é renomeado por uma varredura, nem um dispositivo que uma [regra de nomenclatura](#nomear-dispositivos-pela-sua-convenção-de-nomenclatura) nomeou. Os dispositivos importados antes de a descoberta registrar de onde vinham os nomes mantêm os seus nomes, exceto um que uma varredura ainda em andamento importou pelo endereço IP, que é renomeado quando essa varredura é concluída.
 :::
+
+### Nomear dispositivos pela sua convenção de nomenclatura
+
+Quando os seus dispositivos seguem uma convenção de nomenclatura própria — `UN1216MNUPLR01` é o player de menu da unidade 1216 —, escreva-a como **regras de nomenclatura** em **Rede → Regras → Regras de nomenclatura**, e a descoberta passa a dar nome aos dispositivos por ela, e não pelo que encontra. Uma regra diz quais dispositivos (uma faixa de IPs, o nome descoberto, o endereço MAC, o fabricante e o site, com as mesmas condições de todas as regras de rede) e como eles se chamam: um **padrão de nome**, um texto em que as partes que mudam de um dispositivo para outro ficam entre chaves.
+
+| Marcador | É substituído por | Exemplo |
+| --- | --- | --- |
+| `{site.code}` | O **Código do site** do site a que o dispositivo pertence (defina-o nas configurações do site) | `1216` |
+| `{site}` | O nome do site do dispositivo | `Unit 1216` |
+| `{discoveredName}` | O nome que a descoberta encontrou, como descrito acima | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | O endereço IP, ou uma das suas quatro partes | `51` |
+| `{mac}` | O endereço MAC, 12 dígitos e letras | `00050BB07FFC` |
+| `{vendor}` | Quem fabricou o dispositivo | `SICOM Systems` |
+| `{lookup}` | O valor que a tabela de consulta da regra dá ao dispositivo | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | O menor número que torna o nome único: `1`, `01`, `001` | `01` |
+
+Um marcador pode ser seguido de filtros, um depois do outro: `upper`, `lower`, `first:N`, `last:N`, `digits` e `nospaces`. `{vendor|first:3|upper}` é `SIC`, e `{site|digits}` é `1216` para um site chamado "Unit 1216". O formulário da regra oferece cada marcador como um botão e dá nome a um dispositivo de exemplo enquanto você digita.
+
+Algumas convenções são uma tabela, e não uma fórmula: na sub-rede de cada unidade, o dispositivo em `.51` é o player de menu `MNUPLR01`, e o que está em `.151` é a tela esquerda `MNUSCR01`. Abra **Tabela de consulta** na etapa **Nome** da regra, escolha qual é a chave da tabela — a última parte do endereço IP, o endereço IP, o endereço MAC ou o nome descoberto — e digite as linhas, cole duas colunas de uma planilha ou importe um arquivo CSV (**Exportar CSV** salva a tabela de volta em um arquivo). Assim, `UN{site.code}{lookup}` dá nome aos painéis de menu de todas as unidades com uma única regra.
+
+As regras são testadas a partir do topo da lista, e você as arrasta para mudar a ordem. A primeira regra habilitada que corresponde a um dispositivo, e que tem todos os valores de que o padrão dela precisa, dá nome a ele. Um dispositivo que uma regra não consegue nomear — o site dele não tem código, o endereço dele não tem linha na tabela de consulta — fica para a próxima regra. Os nomes de dispositivos são únicos em um projeto, então um padrão com número pega o menor número ainda livre — `UN{site.code}DRTPLR{nn}` conta a partir de `01` em cada unidade — e um padrão sem número cujo nome outro dispositivo já tem deixa o dispositivo com o nome descoberto.
+
+As regras dão nome a um dispositivo quando ele é importado: de **Revisar resultados**, de **Dispositivos descobertos** com **Adicionar ao monitoramento** e pelas regras de importação automática. **Revisar resultados** mostra, sob cada host, o nome com que o dispositivo será criado — **Será chamado** `UN1216DRTPLR02` — ou por que uma regra não consegue nomeá-lo, e **Adicionar ao monitoramento** lista os nomes da mesma forma. Um dispositivo que uma regra nomeia guarda o nome que a descoberta encontrou como seu **Nome descoberto** e é criado no site que as regras de atribuição de site dão a ele, então o nome e o site dele sempre combinam. Uma varredura posterior nunca o renomeia, mesmo quando encontra um nome melhor.
+
+Para adequar às regras os dispositivos que você já tem, aperte **Aplicar aos dispositivos existentes** na página Regras de nomenclatura, ou selecione dispositivos na lista **Dispositivos** e use **Aplicar regras de nomenclatura**. Nada é renomeado até você confirmar: a prévia lista cada dispositivo cujo nome não segue as regras, com o nome que ele receberia, os dispositivos que uma regra ainda não consegue nomear, com o motivo, e conta os dispositivos que já as seguem. Os dispositivos nomeados pela descoberta ou por uma regra vêm marcados; os dispositivos cujos nomes alguém digitou aparecem desmarcados, então um nome que uma pessoa escolheu só muda quando você o marca. Um dispositivo que já leva um número do seu padrão mantém esse número. Aplicar as regras exige permissão para editar as regras de nomenclatura e para editar todos os dispositivos de rede do projeto.
 
 ### Importar automaticamente com regras de importação automática
 

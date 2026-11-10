@@ -5068,6 +5068,8 @@ describe("renaming devices imported during the run (issue #3677)", () => {
         dnsName: true,
         discoveredName: true,
         discoveredNameSource: true,
+        // A device a naming rule named is left to the rules (issue #6619).
+        ruleAssignedName: true,
         createdAt: true,
       });
       expect(lookups[0].props).toEqual({ isRoot: true });

@@ -366,15 +366,17 @@ More details stay here.
      * App Platforms' (81, with the alert incident rules: Match, then
      * Incident, and a help panel whose Match Criteria section is the
      * shared one, and OpenStack's and Data Observability's label and owner
-     * rules).
+     * rules; 82 with the network naming rules, whose help has the shared
+     * Match Criteria section too).
      */
-    expect(staticRuleFormFiles).toHaveLength(81);
-    expect(helpFormFiles).toHaveLength(65);
+    expect(staticRuleFormFiles).toHaveLength(82);
+    expect(helpFormFiles).toHaveLength(66);
     /*
      * 68, the five episode rule help texts that now have the heading too,
-     * the alert incident rules', and two for Data Observability's data assets.
+     * the alert incident rules', two for Data Observability's data assets,
+     * and the network naming rules'.
      */
-    expect(helpMarkdown).toHaveLength(76);
+    expect(helpMarkdown).toHaveLength(77);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);

@@ -238,6 +238,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Register devices by the address they send traps from",
     "Keep interface walking on for switches and routers, and turn on Collect Connected Endpoints on each site's switches and router.",
     "Reserve the bound-monitor override for gear a probe cannot reach.",
+    // The naming rules section's own terms (#6619).
+    "naming rules",
+    "name pattern",
   ],
   [VENDORS]: ["Port health.", "Path quality.", "Traffic."],
 };

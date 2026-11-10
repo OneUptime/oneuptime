@@ -67,7 +67,7 @@ El menú Red mantiene a la vista lo que abres cada día: **Vista general**, **Di
 | Sección | Páginas |
 | --- | --- |
 | **Topología** | **Topología del dispositivo**, **Dispositivos descubiertos**, **Matriz de latencia**, **Enlaces del sitio**, **Enlaces del dispositivo** |
-| **Reglas** | **Reglas de importación automática**, **Reglas de asignación de sitios**, **Reglas del propietario**, **Reglas de etiquetas**, **Reglas de enlaces** |
+| **Reglas** | **Reglas de importación automática**, **Reglas de asignación de sitios**, **Reglas de nomenclatura**, **Reglas del propietario**, **Reglas de etiquetas**, **Reglas de enlaces** |
 | **Ajustes** | **Políticas de alertas**, **Credenciales SNMP**, **Roles de dispositivo**, **Tipos de sitio**, **Nombres de dirección**, **Plantillas de recopilación de OID** |
 | **Avanzado** | **Recorrido SNMP**, **Dispositivos archivados** |
 
@@ -691,8 +691,33 @@ Un escaneo no siempre encuentra el mejor nombre de un host a la primera. Los res
 
 Por eso un dispositivo que nombró el descubrimiento recuerda de dónde salió su nombre. Cuando un escaneo terminado de su dirección encuentra un nombre mejor — su nombre de sistema SNMP o su nombre NetBIOS en lugar de su nombre DNS inverso, cualquier nombre en lugar de su dirección IP —, el dispositivo se renombra con el nombre que le daría ahora una importación, y su nombre DNS se rellena si no tiene. Si otro dispositivo ya tiene ese nombre, el dispositivo se nombra con su dirección entre paréntesis (`FILESRV01 (10.0.0.5)`), y si también está ocupado, conserva su nombre.
 
-Un nombre solo mejora: un dispositivo conserva su nombre cuando cambia su registro DNS, o cuando un escaneo posterior no obtiene respuesta NetBIOS. Un dispositivo con nombre DNS solo se renombra con un escaneo que encuentra ese mismo nombre DNS en su dirección, así que cuando la dirección pertenece ahora a otra máquina (una concesión DHCP que se movió, por ejemplo) el dispositivo no toma el nombre de esa máquina. Un dispositivo que renombraste tú — en su página de Ajustes, mediante la API o con **Shorten Names to Hostname** — nunca lo renombra un escaneo. Los dispositivos importados antes de que el descubrimiento registrara el origen de los nombres conservan sus nombres, salvo uno que un escaneo todavía en curso importó por su dirección IP, que se renombra cuando ese escaneo termina.
+Un nombre solo mejora: un dispositivo conserva su nombre cuando cambia su registro DNS, o cuando un escaneo posterior no obtiene respuesta NetBIOS. Un dispositivo con nombre DNS solo se renombra con un escaneo que encuentra ese mismo nombre DNS en su dirección, así que cuando la dirección pertenece ahora a otra máquina (una concesión DHCP que se movió, por ejemplo) el dispositivo no toma el nombre de esa máquina. Un dispositivo que renombraste tú — en su página de Ajustes, mediante la API o con **Shorten Names to Hostname** — nunca lo renombra un escaneo, y lo mismo ocurre con un dispositivo nombrado por una [regla de nomenclatura](#nombrar-los-dispositivos-según-tu-convención-de-nomenclatura). Los dispositivos importados antes de que el descubrimiento registrara el origen de los nombres conservan sus nombres, salvo uno que un escaneo todavía en curso importó por su dirección IP, que se renombra cuando ese escaneo termina.
 :::
+
+### Nombrar los dispositivos según tu convención de nomenclatura
+
+Cuando tus dispositivos siguen una convención de nomenclatura propia — `UN1216MNUPLR01` es el reproductor de menú del local 1216 —, déjala escrita como **reglas de nomenclatura** en **Red → Reglas → Reglas de nomenclatura**, y el descubrimiento nombra los dispositivos según ella en lugar de según lo que encuentra. Una regla dice a qué dispositivos se aplica (un rango de IP, el nombre descubierto, la dirección MAC, el fabricante y el sitio, con las mismas condiciones que cualquier regla de red) y cómo se llaman: un **patrón de nombre**, un texto con las partes que cambian de un dispositivo a otro entre llaves.
+
+| Marcador | Se sustituye por | Ejemplo |
+| --- | --- | --- |
+| `{site.code}` | El **Código del sitio** del sitio al que pertenece el dispositivo (defínelo en los ajustes del sitio) | `1216` |
+| `{site}` | El nombre del sitio del dispositivo | `Unit 1216` |
+| `{discoveredName}` | El nombre que encontró el descubrimiento, como se describe más arriba | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | La dirección IP, o una de sus cuatro partes | `51` |
+| `{mac}` | La dirección MAC, 12 dígitos y letras | `00050BB07FFC` |
+| `{vendor}` | El fabricante del dispositivo | `SICOM Systems` |
+| `{lookup}` | El valor que la tabla de búsqueda de la regla da al dispositivo | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | El número más bajo que hace único el nombre: `1`, `01`, `001` | `01` |
+
+Un marcador puede ir seguido de filtros, uno tras otro: `upper`, `lower`, `first:N`, `last:N`, `digits` y `nospaces`. `{vendor|first:3|upper}` da `SIC`, y `{site|digits}` da `1216` para un sitio llamado «Unit 1216». El formulario de la regla ofrece cada marcador como un botón y, mientras escribes, muestra el nombre que recibiría un dispositivo de ejemplo.
+
+Algunas convenciones son una tabla más que una fórmula: en la subred de cada local, el dispositivo en `.51` es el reproductor de menú `MNUPLR01`, y el de `.151`, la pantalla izquierda `MNUSCR01`. Abre la sección **Tabla de búsqueda** en el paso **Nombre** de la regla, elige cuál es su clave — la última parte de la dirección IP, la dirección IP, la dirección MAC o el nombre descubierto — y escribe las filas, pega dos columnas desde una hoja de cálculo o importa un archivo CSV (**Exportar CSV** la vuelve a guardar en un archivo). Luego `UN{site.code}{lookup}` nombra los paneles de menú de todos los locales con una sola regla.
+
+Las reglas se prueban empezando por arriba de la lista, y las arrastras para cambiar su orden. La primera regla habilitada que coincide con un dispositivo, y tiene todos los valores que necesita su patrón, lo nombra. Un dispositivo que una regla no puede nombrar — su sitio no tiene código, su dirección no tiene fila en la tabla de búsqueda — queda para la siguiente regla. Los nombres de dispositivo son únicos en un proyecto, así que un patrón con un número toma el número más bajo que aún esté libre — `UN{site.code}DRTPLR{nn}` cuenta desde `01` en cada local — y si un patrón sin número da un nombre que ya tiene otro dispositivo, el dispositivo se queda con su nombre descubierto.
+
+Las reglas nombran un dispositivo cuando se importa: desde **Revisar resultados**, desde **Dispositivos descubiertos** con **Añadir al monitoreo**, y mediante las reglas de importación automática. **Revisar resultados** muestra, bajo cada host, el nombre con el que se creará su dispositivo — **Se llamará** `UN1216DRTPLR02` — o por qué una regla no puede nombrarlo, y **Añadir al monitoreo** lista los nombres de la misma manera. Un dispositivo nombrado por una regla conserva el nombre que encontró el descubrimiento como su **Nombre descubierto**, y se crea en el sitio que le dan las reglas de asignación de sitios, así que su nombre y su sitio siempre concuerdan. Un escaneo posterior nunca lo renombra, aunque encuentre un nombre mejor.
+
+Para que los dispositivos que ya tienes sigan la convención, pulsa **Aplicar a los dispositivos existentes** en la página Reglas de nomenclatura, o selecciona dispositivos en la lista **Dispositivos** y usa **Aplicar reglas de nomenclatura**. Nada se renombra hasta que confirmes: la vista previa lista cada dispositivo cuyo nombre no sigue las reglas con el nombre que recibiría, los dispositivos que una regla aún no puede nombrar con el motivo, y cuenta los dispositivos que ya las siguen. Los dispositivos nombrados por el descubrimiento o por una regla aparecen marcados; los dispositivos cuyo nombre escribió alguien aparecen sin marcar, así que un nombre que eligió una persona solo se cambia si marcas el dispositivo. Un dispositivo que ya lleva un número de su patrón conserva ese número. Aplicar las reglas requiere permiso para editar las reglas de nomenclatura y para editar todos los dispositivos de red del proyecto.
 
 ### Importar automáticamente con reglas de importación automática
 

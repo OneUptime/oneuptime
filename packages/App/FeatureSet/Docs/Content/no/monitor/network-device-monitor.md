@@ -67,7 +67,7 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**,
 | Seksjon | Sider |
 | --- | --- |
 | **Topologi** | **Enhetstopologi**, **Oppdagede enheter**, **Latensmatrise**, **Lokasjonslenker**, **Enhetslenker** |
-| **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Eierregler**, **Etikettregler**, **Lenkeregler** |
+| **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Navneregler**, **Eierregler**, **Etikettregler**, **Lenkeregler** |
 | **Innstillinger** | **Varslingsretningslinjer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
 | **Avansert** | **SNMP-walk**, **Arkiverte enheter** |
 
@@ -691,8 +691,33 @@ En skanning finner ikke alltid en verts beste navn første gang. Delresultatene 
 
 Derfor husker en enhet som discovery har gitt navn, hvor navnet kom fra. Når en fullført skanning av adressen finner et bedre navn — SNMP-systemnavnet eller NetBIOS-navnet i stedet for det omvendte DNS-navnet, et hvilket som helst navn i stedet for IP-adressen — får enheten nytt navn etter navnet en import ville gitt den nå, og DNS Name fylles ut hvis den ikke har et. Hvis en annen enhet allerede har det navnet, får enheten navnet med adressen i parentes (`FILESRV01 (10.0.0.5)`), og hvis også det er tatt, beholder den navnet sitt.
 
-Et navn blir bare bedre: en enhet beholder navnet når DNS-oppføringen endres, eller når en senere skanning ikke får noe NetBIOS-svar. En enhet med et DNS-navn får bare nytt navn av en skanning som finner det samme DNS-navnet på adressen, så når adressen nå tilhører en annen maskin (en DHCP-leie som har flyttet seg, for eksempel), tar ikke enheten den maskinens navn. En enhet du har gitt nytt navn — på siden Innstillinger, gjennom API-et eller med **Shorten Names to Hostname** — får aldri nytt navn av en skanning. Enheter som ble importert før discovery registrerte hvor navn kom fra, beholder navnene sine, unntatt en som en skanning som fortsatt pågår, importerte med IP-adressen; den får nytt navn når skanningen er fullført.
+Et navn blir bare bedre: en enhet beholder navnet når DNS-oppføringen endres, eller når en senere skanning ikke får noe NetBIOS-svar. En enhet med et DNS-navn får bare nytt navn av en skanning som finner det samme DNS-navnet på adressen, så når adressen nå tilhører en annen maskin (en DHCP-leie som har flyttet seg, for eksempel), tar ikke enheten den maskinens navn. En enhet du har gitt nytt navn — på siden Innstillinger, gjennom API-et eller med **Shorten Names to Hostname** — får aldri nytt navn av en skanning, og det samme gjelder en enhet som en [navneregel](#gi-enheter-navn-etter-navnekonvensjonen-din) har gitt navn. Enheter som ble importert før discovery registrerte hvor navn kom fra, beholder navnene sine, unntatt en som en skanning som fortsatt pågår, importerte med IP-adressen; den får nytt navn når skanningen er fullført.
 :::
+
+### Gi enheter navn etter navnekonvensjonen din
+
+Når enhetene dine følger en navnekonvensjon du har bestemt selv — `UN1216MNUPLR01` er menyspilleren i avdeling 1216 — skriver du den ned som **navneregler** under **Nettverk → Regler → Navneregler**, og da gir discovery enhetene navn etter den i stedet for etter det den finner. En regel sier hvilke enheter (et IP-område, det oppdagede navnet, MAC-adressen, produsenten og lokasjonen, med de samme betingelsene som i alle nettverksregler) og hva de heter: et **navnemønster**, tekst der delene som varierer fra enhet til enhet, står i krøllparenteser.
+
+| Plassholder | Erstattes av | Eksempel |
+| --- | --- | --- |
+| `{site.code}` | **Lokasjonskode** for enhetens lokasjon (angi den i lokasjonens innstillinger) | `1216` |
+| `{site}` | Navnet på enhetens lokasjon | `Unit 1216` |
+| `{discoveredName}` | Navnet discovery fant, som beskrevet ovenfor | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | IP-adressen, eller en av de fire delene i den | `51` |
+| `{mac}` | MAC-adressen, 12 sifre og bokstaver | `00050BB07FFC` |
+| `{vendor}` | Hvem som har laget enheten | `SICOM Systems` |
+| `{lookup}` | Verdien regelens oppslagstabell gir enheten | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | Det laveste tallet som gjør navnet unikt: `1`, `01`, `001` | `01` |
+
+En plassholder kan følges av filtre, det ene etter det andre: `upper`, `lower`, `first:N`, `last:N`, `digits` og `nospaces`. `{vendor|first:3|upper}` er `SIC`, og `{site|digits}` er `1216` for en lokasjon som heter "Unit 1216". Regelskjemaet tilbyr hver plassholder som en knapp og gir en eksempelenhet navn mens du skriver.
+
+Noen konvensjoner er en tabell heller enn en formel: i hver avdelings subnett er enheten på `.51` menyspilleren `MNUPLR01`, og den på `.151` den venstre skjermen `MNUSCR01`. Åpne **Oppslagstabell** i regelens trinn **Navn**, velg hva tabellen slår opp etter — den siste delen av IP-adressen, IP-adressen, MAC-adressen eller det oppdagede navnet — og skriv inn radene, lim inn to kolonner fra et regneark, eller importer en CSV-fil (**Eksporter CSV** lagrer den som fil igjen). Da gir `UN{site.code}{lookup}` menytavlene i alle avdelinger navn med én regel.
+
+Reglene prøves fra toppen av listen, og du drar dem for å endre rekkefølgen. Den første aktiverte regelen som treffer en enhet, og som har alle verdiene mønsteret trenger, gir den navn. En enhet en regel ikke kan gi navn — lokasjonen har ingen kode, adressen har ingen rad i oppslagstabellen — overlates til neste regel. Enhetsnavn er unike i et prosjekt, så et mønster med et tall tar det laveste tallet som fortsatt er ledig — `UN{site.code}DRTPLR{nn}` teller fra `01` i hver avdeling — og et mønster uten tall der en annen enhet allerede har navnet, lar enheten beholde det oppdagede navnet.
+
+Regler gir en enhet navn når den importeres: fra **Se gjennom resultater**, fra **Oppdagede enheter** med **Legg til i overvåking**, og av automatiske importregler. **Se gjennom resultater** viser under hver vert navnet enheten blir opprettet med — **Får navnet** `UN1216DRTPLR02` — eller hvorfor en regel ikke kan gi den navn, og **Legg til i overvåking** viser navnene på samme måte. En enhet en regel gir navn, beholder navnet discovery fant, som sitt **Oppdaget navn**, og opprettes i lokasjonen lokasjonstildelingsreglene gir den, så navnet og lokasjonen alltid stemmer overens. En senere skanning gir den aldri nytt navn, selv når den finner et bedre navn.
+
+For å få enhetene du allerede har, i tråd med reglene, trykker du på **Bruk på eksisterende enheter** på siden Navneregler, eller merker enheter i listen **Enheter** og bruker **Bruk navneregler**. Ingenting får nytt navn før du bekrefter: forhåndsvisningen viser hver enhet med et navn som ikke følger reglene, med navnet den ville fått, og enhetene en regel ennå ikke kan gi navn, med årsaken, og teller enhetene som allerede følger dem. Enheter som discovery eller en regel har gitt navn, er krysset av; enheter som noen har skrevet inn navnet på, vises uten kryss, så et navn en person har valgt, endres bare når du krysser det av. En enhet som allerede har et tall fra mønsteret sitt, beholder det tallet. Å bruke reglene krever tillatelse til å redigere navnereglene og til å redigere alle nettverksenheter i prosjektet.
 
 ### Importer automatisk med automatiske importregler
 

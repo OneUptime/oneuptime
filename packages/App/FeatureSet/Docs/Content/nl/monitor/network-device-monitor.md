@@ -67,7 +67,7 @@ Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Apparate
 | Sectie | Pagina's |
 | --- | --- |
 | **Topologie** | **Apparaattopologie**, **Gedetecteerde apparaten**, **Latentiematrix**, **Locatiekoppelingen**, **Apparaatkoppelingen** |
-| **Regels** | **Regels voor automatisch importeren**, **Regels voor locatietoewijzing**, **Eigenaarsregels**, **Labelregels**, **Koppelingsregels** |
+| **Regels** | **Regels voor automatisch importeren**, **Regels voor locatietoewijzing**, **Naamgevingsregels**, **Eigenaarsregels**, **Labelregels**, **Koppelingsregels** |
 | **Instellingen** | **Waarschuwingsbeleid**, **SNMP-inloggegevens**, **Apparaatrollen**, **Locatietypen**, **Adresnamen**, **Sjablonen voor OID-verzameling** |
 | **Geavanceerd** | **SNMP-walk**, **Gearchiveerde apparaten** |
 
@@ -691,8 +691,33 @@ Een scan vindt niet altijd de eerste keer de beste naam van een host. De deelres
 
 Daarom onthoudt een apparaat dat door discovery een naam kreeg, waar die naam vandaan kwam. Als een voltooide scan van zijn adres een betere naam vindt — zijn SNMP-systeemnaam of NetBIOS-naam in plaats van zijn reverse-DNS-naam, welke naam dan ook in plaats van zijn IP-adres —, wordt het apparaat hernoemd naar de naam die een import het nu zou geven, en wordt zijn DNS Name ingevuld als het er geen heeft. Als een ander apparaat die naam al heeft, krijgt het apparaat de naam met zijn adres tussen haakjes (`FILESRV01 (10.0.0.5)`), en als die ook bezet is, houdt het zijn naam.
 
-Een naam wordt alleen verbeterd: een apparaat houdt zijn naam als zijn DNS-record verandert, of als een latere scan geen NetBIOS-antwoord krijgt. Een apparaat met een DNS-naam wordt alleen hernoemd door een scan die diezelfde DNS-naam op zijn adres vindt, dus als het adres nu bij een andere machine hoort (een DHCP-lease die is verschoven, bijvoorbeeld), neemt het apparaat de naam van die machine niet over. Een apparaat dat jij hebt hernoemd — op zijn pagina Instellingen, via de API of met **Shorten Names to Hostname** — wordt nooit door een scan hernoemd. Apparaten die zijn geïmporteerd voordat discovery bijhield waar namen vandaan kwamen, houden hun naam, behalve een apparaat dat een nog lopende scan op zijn IP-adres importeerde; dat wordt hernoemd als die scan voltooid is.
+Een naam wordt alleen verbeterd: een apparaat houdt zijn naam als zijn DNS-record verandert, of als een latere scan geen NetBIOS-antwoord krijgt. Een apparaat met een DNS-naam wordt alleen hernoemd door een scan die diezelfde DNS-naam op zijn adres vindt, dus als het adres nu bij een andere machine hoort (een DHCP-lease die is verschoven, bijvoorbeeld), neemt het apparaat de naam van die machine niet over. Een apparaat dat jij hebt hernoemd — op zijn pagina Instellingen, via de API of met **Shorten Names to Hostname** — wordt nooit door een scan hernoemd, en een apparaat dat een [naamgevingsregel](#apparaten-een-naam-geven-volgens-je-naamgevingsconventie) een naam gaf evenmin. Apparaten die zijn geïmporteerd voordat discovery bijhield waar namen vandaan kwamen, houden hun naam, behalve een apparaat dat een nog lopende scan op zijn IP-adres importeerde; dat wordt hernoemd als die scan voltooid is.
 :::
+
+### Apparaten een naam geven volgens je naamgevingsconventie
+
+Als je apparaten een naamgevingsconventie volgen die je zelf hebt bedacht — `UN1216MNUPLR01` is de menuspeler van vestiging 1216 —, leg die dan vast als **naamgevingsregels** onder **Netwerk → Regels → Naamgevingsregels**, en discovery geeft apparaten een naam volgens die conventie in plaats van volgens wat de scan vindt. Een regel zegt welke apparaten (een IP-bereik, de ontdekte naam, het MAC-adres, de leverancier en de locatie, met dezelfde voorwaarden als elke netwerkregel) en hoe ze heten: een **naampatroon**, tekst waarin de delen die per apparaat verschillen tussen accolades staan.
+
+| Plaatshouder | Wordt vervangen door | Voorbeeld |
+| --- | --- | --- |
+| `{site.code}` | De **Locatiecode** van de locatie van het apparaat (stel die in bij de instellingen van de locatie) | `1216` |
+| `{site}` | De naam van de locatie van het apparaat | `Unit 1216` |
+| `{discoveredName}` | De naam die discovery vond, zoals hierboven beschreven | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | Het IP-adres, of een van zijn vier delen | `51` |
+| `{mac}` | Het MAC-adres, 12 cijfers en letters | `00050BB07FFC` |
+| `{vendor}` | Wie het apparaat heeft gemaakt | `SICOM Systems` |
+| `{lookup}` | De waarde die de opzoektabel van de regel aan het apparaat geeft | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | Het laagste nummer dat de naam uniek maakt: `1`, `01`, `001` | `01` |
+
+Een plaatshouder kan worden gevolgd door filters, de een na de ander: `upper`, `lower`, `first:N`, `last:N`, `digits` en `nospaces`. `{vendor|first:3|upper}` is `SIC`, en `{site|digits}` is `1216` voor een locatie die "Unit 1216" heet. Het regelformulier biedt elke plaatshouder aan als knop en geeft een voorbeeldapparaat een naam terwijl je typt.
+
+Sommige conventies zijn eerder een tabel dan een formule: in het subnet van elke vestiging is het apparaat op `.51` de menuspeler `MNUPLR01`, en dat op `.151` het linkerscherm `MNUSCR01`. Open **Opzoektabel** in de stap **Naam** van de regel, kies wat de sleutel van de tabel is — het laatste deel van het IP-adres, het IP-adres, het MAC-adres of de ontdekte naam — en typ de rijen, plak twee kolommen uit een spreadsheet of importeer een CSV-bestand (**CSV exporteren** slaat de tabel weer als bestand op). Dan geeft `UN{site.code}{lookup}` met één regel de menuborden van elke vestiging een naam.
+
+Regels worden vanaf de bovenkant van de lijst geprobeerd, en je sleept ze om de volgorde te veranderen. De eerste ingeschakelde regel waaraan een apparaat voldoet, en die elke waarde heeft die zijn patroon nodig heeft, geeft het een naam. Een apparaat dat een regel geen naam kan geven — zijn locatie heeft geen code, zijn adres heeft geen rij in de opzoektabel — wordt aan de volgende regel overgelaten. Apparaatnamen zijn uniek binnen een project, dus een patroon met een nummer neemt het laagste nummer dat nog vrij is — `UN{site.code}DRTPLR{nn}` telt in elke vestiging vanaf `01` — en een patroon zonder nummer waarvan een ander apparaat de naam al heeft, laat het apparaat zijn ontdekte naam houden.
+
+Regels geven een apparaat een naam wanneer het wordt geïmporteerd: vanuit **Resultaten bekijken**, vanuit **Gedetecteerde apparaten** met **Toevoegen aan bewaking**, en door auto-importregels. **Resultaten bekijken** toont onder elke host de naam waaronder het apparaat wordt gemaakt — **Krijgt de naam** `UN1216DRTPLR02` — of waarom een regel het geen naam kan geven, en **Toevoegen aan bewaking** toont de namen op dezelfde manier. Een apparaat dat een regel een naam geeft, bewaart de naam die discovery vond als zijn **Ontdekte naam**, en wordt gemaakt in de locatie die de locatietoewijzingsregels het geven, zodat zijn naam en zijn locatie altijd overeenkomen. Een latere scan hernoemt het nooit, ook niet als die een betere naam vindt.
+
+Om de apparaten die je al hebt met de regels in lijn te brengen, druk je op **Toepassen op bestaande apparaten** op de pagina Naamgevingsregels, of selecteer je apparaten in de lijst **Apparaten** en gebruik je **Naamgevingsregels toepassen**. Er wordt niets hernoemd tot je bevestigt: de voorvertoning toont elk apparaat waarvan de naam de regels niet volgt, met de naam die het zou krijgen, en de apparaten die een regel nog geen naam kan geven, met de reden, en telt de apparaten die ze al volgen. Apparaten die door discovery of door een regel een naam kregen, zijn aangevinkt; apparaten waarvan iemand de naam heeft getypt, staan er niet aangevinkt bij, zodat een naam die iemand heeft gekozen alleen verandert als je hem aanvinkt. Een apparaat dat al een nummer van zijn patroon draagt, houdt dat nummer. De regels toepassen vereist recht om de naamgevingsregels te bewerken en om elk netwerkapparaat in het project te bewerken.
 
 ### Automatisch importeren met auto-importregels
 

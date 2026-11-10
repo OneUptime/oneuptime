@@ -19,7 +19,9 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import DataBiTool from "../../Types/DataObservability/DataBiTool";
+import { DataBiRefreshStatus } from "../../Types/DataObservability/DataDashboardActivity";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import {
@@ -37,8 +39,10 @@ import {
  *
  * Read from its tool every hour (DataBiSync), never made by hand: its name,
  * where it opens, its folder and owner, and the watched tables its charts
- * query. A table's alerts and Lineage tab list the dashboards built on it,
- * and on the tables built from it.
+ * query - and, where the tool says (Power BI), how often it is opened and
+ * by whom, and the latest refreshes of the data it charts. A table's alerts
+ * and Lineage tab list the dashboards built on it, and on the tables built
+ * from it.
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -314,6 +318,120 @@ export default class DataDashboard extends BaseModel {
     nullable: true,
   })
   public tableCount?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Views",
+    description:
+      "How many times it was opened in the last 28 days, from its tool's activity log (Power BI).",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public viewCount?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Viewers",
+    description: "How many people opened it in the last 28 days.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public viewerCount?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Last Viewed At",
+    description: "When someone last opened it.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastViewedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Top Viewers",
+    description:
+      "Who opened it most in the last 28 days, with how often and when last, and since when its views are counted while the 28 days are still being read.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public usageSummary?: JSONObject = undefined;
+
+  // Views by day and by viewer, and the hours read: what the counts above are counted from.
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Views Ledger",
+    description:
+      "Its views by day and by viewer, and the hours of its tool's activity log they were read from.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public usageLedger?: JSONObject = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Last Refresh",
+    allowedValues: Object.values(DataBiRefreshStatus),
+    description:
+      "How the last refresh of the data it charts went (Power BI): Completed, Failed, Cancelled, Disabled, In Progress or Unknown.",
+    example: "Completed",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public lastRefreshStatus?: DataBiRefreshStatus = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Last Refreshed At",
+    description:
+      "When the last refresh of the data it charts ended, or started while it runs.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastRefreshAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Refresh History",
+    description:
+      "The latest refreshes of the data it charts, each with how it went and a failed one's error, and how many ran and failed in the last seven days.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public refreshHistory?: JSONObject = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

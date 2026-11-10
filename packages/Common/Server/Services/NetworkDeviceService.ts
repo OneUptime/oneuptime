@@ -274,9 +274,46 @@ function recordDiscoveredNameOnCreate(data: Record<string, unknown>): void {
   const name: string =
     typeof data["name"] === "string" ? data["name"].trim() : "";
 
+  /*
+   * A device a naming rule named (OneUptime issue #6619) is created under
+   * the rule's name, which it records as its rule-assigned name - and only
+   * when it IS created under it: the import's collision fallback renames the
+   * device, and a name that is not the rule's is not marked as the rule's.
+   */
+  const ruleAssignedName: string =
+    typeof data["ruleAssignedName"] === "string"
+      ? data["ruleAssignedName"].trim()
+      : "";
+  const isNamedByRule: boolean = Boolean(name) && ruleAssignedName === name;
+
+  data["ruleAssignedName"] = isNamedByRule ? name : undefined;
+
   if (!source || !name) {
     data["discoveredNameSource"] = undefined;
     data["discoveredName"] = undefined;
+    return;
+  }
+
+  /*
+   * Named by a rule, the device keeps the name discovery found as its
+   * discovered name - the original hostname the issue asks to keep - rather
+   * than the rule's name, which a later scan would otherwise take for
+   * discovery's and "improve". Without one, it records no source either:
+   * a source with no discovered name is a pair nobody can read.
+   */
+  if (isNamedByRule) {
+    const discoveredName: string =
+      typeof data["discoveredName"] === "string"
+        ? data["discoveredName"].trim()
+        : "";
+
+    if (!discoveredName) {
+      data["discoveredNameSource"] = undefined;
+      data["discoveredName"] = undefined;
+      return;
+    }
+
+    data["discoveredName"] = discoveredName;
     return;
   }
 

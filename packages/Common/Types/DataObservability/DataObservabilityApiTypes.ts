@@ -174,6 +174,14 @@ export interface DataObservabilityTableDashboard {
   owner: string | null;
   // The table built from this one that the dashboard reads; null when it reads this one.
   via: { dataAssetId: string; table: string } | null;
+  // Views and viewers in the last 28 days, and the latest view; null where its tool does not say.
+  viewCount?: number | null;
+  viewerCount?: number | null;
+  lastViewedAt?: string | null;
+  // How the last refresh of its data went (a DataBiRefreshStatus), when, and a failed one's error.
+  lastRefreshStatus?: string | null;
+  lastRefreshAt?: string | null;
+  lastRefreshError?: string | null;
 }
 
 export interface DataObservabilityCheckSuggestRequest {

@@ -54,7 +54,7 @@ Each device attaches to one site. A site's subtree is the site itself plus every
 Go to **Network → Sites** and click **Add Site**.
 
 ### Say what the site is
-On the **Site Details** step, pick the **Site Type** (what kind of place this is: a region, a store, a data center) and type a **Name**. The description, the street address, and the latitude and longitude that pin the site on the map are folded under **More fields**: fill them in now or later.
+On the **Site Details** step, pick the **Site Type** (what kind of place this is: a region, a store, a data center) and type a **Name**. The **Site Code**, the description, the street address, and the latitude and longitude that pin the site on the map are folded under **More fields**: fill them in now or later. A site code is a short code such as a store or unit number (`1216`); [naming rules](/docs/monitor/network-device-monitor#naming-devices-by-your-naming-convention) put it in device names with `{site.code}`.
 
 ### Place it in the tree
 On the **Hierarchy** step, pick the **Parent Site** if the site sits under another one. Leave it empty to keep the site at the top level.

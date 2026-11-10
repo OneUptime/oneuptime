@@ -67,7 +67,7 @@ Il menu Rete tiene in vista ciò che apri ogni giorno: **Panoramica**, **Disposi
 | Sezione | Pagine |
 | --- | --- |
 | **Topologia** | **Topologia del dispositivo**, **Dispositivi rilevati**, **Matrice di latenza**, **Collegamenti del sito**, **Collegamenti del dispositivo** |
-| **Regole** | **Regole di importazione automatica**, **Regole di assegnazione dei siti**, **Regole del proprietario**, **Regole etichette**, **Regole dei collegamenti** |
+| **Regole** | **Regole di importazione automatica**, **Regole di assegnazione dei siti**, **Regole di denominazione**, **Regole del proprietario**, **Regole etichette**, **Regole dei collegamenti** |
 | **Impostazioni** | **Policy di avviso**, **Credenziali SNMP**, **Ruoli dei dispositivi**, **Tipi di sito**, **Nomi indirizzo**, **Modelli di raccolta OID** |
 | **Avanzato** | **Walk SNMP**, **Dispositivi archiviati** |
 
@@ -691,8 +691,33 @@ Una scansione non trova sempre al primo colpo il nome migliore di un host. I ris
 
 Per questo un dispositivo a cui il rilevamento ha dato un nome ricorda da dove viene il suo nome. Quando una scansione completata del suo indirizzo trova un nome migliore — il suo nome di sistema SNMP o il suo nome NetBIOS invece del suo nome DNS inverso, un nome qualsiasi invece del suo indirizzo IP —, il dispositivo viene rinominato con il nome che gli darebbe ora un'importazione, e il suo DNS Name viene compilato se non ne ha uno. Se un altro dispositivo ha già quel nome, il dispositivo prende il nome con il suo indirizzo tra parentesi (`FILESRV01 (10.0.0.5)`), e se anche questo è occupato, mantiene il suo nome.
 
-Un nome può solo migliorare: un dispositivo mantiene il suo nome quando cambia il suo record DNS, o quando una scansione successiva non riceve risposta NetBIOS. Un dispositivo con un nome DNS viene rinominato solo da una scansione che trova lo stesso nome DNS al suo indirizzo, quindi quando l'indirizzo ora appartiene a un'altra macchina (un lease DHCP che si è spostato, per esempio) il dispositivo non prende il nome di quella macchina. Un dispositivo che hai rinominato tu — nella sua pagina Impostazioni, tramite l'API o con **Shorten Names to Hostname** — non viene mai rinominato da una scansione. I dispositivi importati prima che il rilevamento registrasse l'origine dei nomi mantengono i loro nomi, tranne uno che una scansione ancora in corso ha importato con il suo indirizzo IP, che viene rinominato quando quella scansione si completa.
+Un nome può solo migliorare: un dispositivo mantiene il suo nome quando cambia il suo record DNS, o quando una scansione successiva non riceve risposta NetBIOS. Un dispositivo con un nome DNS viene rinominato solo da una scansione che trova lo stesso nome DNS al suo indirizzo, quindi quando l'indirizzo ora appartiene a un'altra macchina (un lease DHCP che si è spostato, per esempio) il dispositivo non prende il nome di quella macchina. Un dispositivo che hai rinominato tu — nella sua pagina Impostazioni, tramite l'API o con **Shorten Names to Hostname** — non viene mai rinominato da una scansione, e nemmeno un dispositivo a cui una [regola di denominazione](#dare-un-nome-ai-dispositivi-secondo-la-tua-convenzione-di-denominazione) ha dato un nome. I dispositivi importati prima che il rilevamento registrasse l'origine dei nomi mantengono i loro nomi, tranne uno che una scansione ancora in corso ha importato con il suo indirizzo IP, che viene rinominato quando quella scansione si completa.
 :::
+
+### Dare un nome ai dispositivi secondo la tua convenzione di denominazione
+
+Quando i tuoi dispositivi seguono una convenzione di denominazione tutta tua — `UN1216MNUPLR01` è il player del menu del punto vendita 1216 —, mettila per iscritto come **regole di denominazione** in **Rete → Regole → Regole di denominazione**, e il rilevamento dà un nome ai dispositivi in base a essa invece che in base a ciò che trova. Una regola dice a quali dispositivi si applica (un intervallo IP, il nome rilevato, l'indirizzo MAC, il produttore e il sito, con le stesse condizioni di ogni regola di rete) e come si chiamano: un **modello di nome**, un testo con le parti che cambiano da un dispositivo all'altro tra parentesi graffe.
+
+| Segnaposto | Viene sostituito da | Esempio |
+| --- | --- | --- |
+| `{site.code}` | Il **Codice del sito** del sito a cui appartiene il dispositivo (definiscilo nelle impostazioni del sito) | `1216` |
+| `{site}` | Il nome del sito del dispositivo | `Unit 1216` |
+| `{discoveredName}` | Il nome trovato dal rilevamento, come descritto sopra | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | L'indirizzo IP, o una delle sue quattro parti | `51` |
+| `{mac}` | L'indirizzo MAC, 12 cifre e lettere | `00050BB07FFC` |
+| `{vendor}` | Il produttore del dispositivo | `SICOM Systems` |
+| `{lookup}` | Il valore che la tabella di ricerca della regola assegna al dispositivo | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | Il numero più basso che rende il nome univoco: `1`, `01`, `001` | `01` |
+
+Un segnaposto può essere seguito da filtri, uno dopo l'altro: `upper`, `lower`, `first:N`, `last:N`, `digits` e `nospaces`. `{vendor|first:3|upper}` dà `SIC`, e `{site|digits}` dà `1216` per un sito chiamato «Unit 1216». Il modulo della regola offre ogni segnaposto come pulsante e, mentre scrivi, mostra il nome che riceverebbe un dispositivo di esempio.
+
+Alcune convenzioni sono una tabella più che una formula: nella subnet di ogni punto vendita il dispositivo all'indirizzo `.51` è il player del menu `MNUPLR01`, quello al `.151` lo schermo di sinistra `MNUSCR01`. Apri la sezione **Tabella di ricerca** nel passo **Nome** della regola, scegli qual è la sua chiave — l'ultima parte dell'indirizzo IP, l'indirizzo IP, l'indirizzo MAC o il nome rilevato — e digita le righe, incolla due colonne da un foglio di calcolo o importa un file CSV (**Esporta CSV** la salva di nuovo in un file). Poi `UN{site.code}{lookup}` dà un nome ai menu board di tutti i punti vendita con una sola regola.
+
+Le regole vengono provate partendo dall'alto dell'elenco, e le trascini per cambiarne l'ordine. La prima regola abilitata che corrisponde a un dispositivo, e ha ogni valore di cui il suo modello ha bisogno, gli dà un nome. Un dispositivo a cui una regola non può dare un nome — il suo sito non ha un codice, il suo indirizzo non ha una riga nella tabella di ricerca — viene lasciato alla regola successiva. I nomi dei dispositivi sono univoci in un progetto, quindi un modello con un numero prende il numero più basso ancora libero — `UN{site.code}DRTPLR{nn}` conta a partire da `01` in ogni punto vendita — e se un modello senza numero dà un nome che un altro dispositivo ha già, il dispositivo resta con il suo nome rilevato.
+
+Le regole danno un nome a un dispositivo quando viene importato: da **Esamina i risultati**, da **Dispositivi rilevati** con **Aggiungi al monitoraggio**, e dalle regole di importazione automatica. **Esamina i risultati** mostra, sotto ogni host, il nome con cui verrà creato il suo dispositivo — **Si chiamerà** `UN1216DRTPLR02` — o perché una regola non può dargli un nome, e **Aggiungi al monitoraggio** elenca i nomi allo stesso modo. Un dispositivo a cui una regola dà un nome conserva il nome trovato dal rilevamento come suo **Nome rilevato**, e viene creato nel sito che gli danno le regole di assegnazione dei siti, così il suo nome e il suo sito corrispondono sempre. Una scansione successiva non lo rinomina mai, nemmeno quando trova un nome migliore.
+
+Per adeguare alla convenzione i dispositivi che hai già, premi **Applica ai dispositivi esistenti** nella pagina Regole di denominazione, oppure seleziona i dispositivi nell'elenco **Dispositivi** e usa **Applica regole di denominazione**. Nulla viene rinominato finché non confermi: l'anteprima elenca ogni dispositivo il cui nome non segue le regole con il nome che riceverebbe, i dispositivi a cui una regola non può ancora dare un nome con il motivo, e conta i dispositivi che le seguono già. I dispositivi a cui ha dato un nome il rilevamento o una regola sono spuntati; quelli il cui nome è stato digitato da qualcuno sono elencati senza spunta, così un nome scelto da una persona viene cambiato solo se spunti il dispositivo. Un dispositivo che porta già un numero del suo modello mantiene quel numero. Applicare le regole richiede il permesso di modificare le regole di denominazione e di modificare ogni dispositivo di rete del progetto.
 
 ### Importare automaticamente con le regole di importazione automatica
 

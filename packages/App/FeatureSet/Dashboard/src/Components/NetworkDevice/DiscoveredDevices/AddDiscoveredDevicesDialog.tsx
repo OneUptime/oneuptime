@@ -84,6 +84,12 @@ import {
   getAddToMonitoringPlan,
   getDiscoveredDeviceLabel,
 } from "./DiscoveredDeviceItems";
+import useNamingPreview, {
+  NamingPreviewState,
+} from "../Naming/useNamingPreview";
+import NamingPreviewSummary, {
+  NamingPreviewList,
+} from "../Naming/NamingPreviewSummary";
 
 /*
  * ADDING DISCOVERED DEVICES TO MONITORING (Network > Discovered Devices and
@@ -399,6 +405,17 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
 
   const tooMany: boolean = plan.toAdd.length > MAX_HOSTS_PER_DISCOVERY_IMPORT;
 
+  /*
+   * What the project's naming rules call each device this adds (issue
+   * #6619): said under the devices' names, before anything is added.
+   */
+  const namingPreview: NamingPreviewState = useNamingPreview({
+    isActive: !props.importId && plan.toAdd.length > 0 && !tooMany,
+    endpointIds: plan.toAdd.map((item: DiscoveredDeviceItem): string => {
+      return item.id;
+    }),
+  });
+
   const blocker: string | null =
     plan.toAdd.length === 0
       ? translationKey("None of the selected devices can be added.")
@@ -641,6 +658,15 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
           >
             {namesOf(translator, plan.toAdd)}
           </p>
+        )}
+        {plan.toAdd.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <NamingPreviewSummary
+              preview={namingPreview.preview}
+              hostCount={plan.toAdd.length}
+            />
+            <NamingPreviewList preview={namingPreview.preview} />
+          </div>
         )}
         {tooMany && (
           <p

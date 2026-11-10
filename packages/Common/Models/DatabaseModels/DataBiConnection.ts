@@ -28,7 +28,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * Metabase, Superset, Tableau, Looker or Power BI, with credentials that
  * may read its dashboards and what they query. Every hour OneUptime reads
  * the tool's dashboards and the tables behind each (DataBiSync), so a late
- * or broken table's alert lists the dashboards people open on it. The
+ * or broken table's alert lists the dashboards people open on it - and, for
+ * Power BI, how often each is viewed and when its data last refreshed. The
  * credentials are encrypted at rest and never returned by the API.
  */
 const readPermissions: Array<Permission> = [
@@ -328,6 +329,48 @@ export default class DataBiConnection extends BaseModel {
     nullable: true,
   })
   public matchedTableCount?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    required: false,
+    title: "Last Warning",
+    description:
+      "What the last read could not read while it read the dashboards - views or refreshes - and why; empty when it read everything.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public lastSyncWarning?: string = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Views Read From",
+    description:
+      "The start of the hours of the tool's activity log read so far (Power BI): its dashboards' views are counted from them.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public usageReadFrom?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Views Read Until",
+    description:
+      "The end of the hours of the tool's activity log read so far (Power BI): the next read goes on from here.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public usageReadUntil?: Date = undefined;
 
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
