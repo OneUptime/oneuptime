@@ -281,6 +281,12 @@ npm run compile           # tsc for the server, then the Dashboard and Admin Das
 - Run one project or one file with
   `node node_modules/.bin/jest --selectProjects server Tests/Server/ModuleShape.test.ts`
   (or `--selectProjects ui`). Never use the repository root's jest 30.
+- Every test, in both projects, gets Common's test timeout (60 seconds), set at
+  the top level of `jest.config.js`. With `projects`, jest reads `testTimeout`
+  and its other global options only at the top level, and drops one set inside
+  a project without a word (`Tests/Server/JestConfig.test.ts` fails on it).
+  Give one slow test more time with `test(name, fn, timeoutInMs)`, or a whole
+  run with `--testTimeout`.
 - Core CI jobs run with `ee/` deleted, so core tests must never depend on it.
   Tests for code in `ee/` live in `ee/Tests`.
 - For the same reason a core guard that scans the repository's files never
