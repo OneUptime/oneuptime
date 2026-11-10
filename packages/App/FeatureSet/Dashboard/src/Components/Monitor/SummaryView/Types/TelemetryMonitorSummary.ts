@@ -1,3 +1,5 @@
+import TelemetryObservation from "Common/Types/Monitor/TelemetryObservation";
+
 export default interface TelemetryMonitorSummary {
   lastCheckedAt?: Date | undefined;
   nextCheckAt?: Date | undefined;
@@ -7,4 +9,11 @@ export default interface TelemetryMonitorSummary {
    * only says a run was queued ("Scheduled At"). Defaults to "Monitored At".
    */
   lastCheckedLabel?: string | undefined;
+  /*
+   * A check that has run, as a Monitoring Logs row shows it: it has no next
+   * check, so "Next Check At" is not drawn.
+   */
+  isPastCheck?: boolean | undefined;
+  // What the check saw (MonitorLogSummaryUtil.getTelemetryObservation).
+  observation?: TelemetryObservation | undefined;
 }

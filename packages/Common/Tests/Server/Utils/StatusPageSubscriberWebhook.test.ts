@@ -23,6 +23,11 @@ import dns from "dns";
  * the request at all for internal targets, and when it does send, it does not
  * follow redirects (which would otherwise let a public host bounce the server
  * to an internal address after validation passed).
+ *
+ * Every send here is to a subscriber a visitor signed up (isAddedByTeam
+ * false), held to public addresses whatever the instance allows. A subscriber
+ * the team added follows the private network settings instead: see
+ * StatusPageSubscriberWebhookPrivateNetwork.test.ts.
  */
 
 describe("StatusPageSubscriberWebhookUtil.sendWebhookNotification", () => {
@@ -59,6 +64,7 @@ describe("StatusPageSubscriberWebhookUtil.sendWebhookNotification", () => {
         webhookUrl: URL.fromString(
           "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
         ),
+        isAddedByTeam: false,
         payload,
       });
 
@@ -75,6 +81,7 @@ describe("StatusPageSubscriberWebhookUtil.sendWebhookNotification", () => {
       const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await StatusPageSubscriberWebhookUtil.sendWebhookNotification({
           webhookUrl: URL.fromString(unsafeUrl),
+          isAddedByTeam: false,
           payload,
         });
 
@@ -87,6 +94,7 @@ describe("StatusPageSubscriberWebhookUtil.sendWebhookNotification", () => {
   test("sends to a public target without following redirects", async () => {
     await StatusPageSubscriberWebhookUtil.sendWebhookNotification({
       webhookUrl: URL.fromString("https://hooks.example.com/webhook"),
+      isAddedByTeam: false,
       payload,
     });
 
