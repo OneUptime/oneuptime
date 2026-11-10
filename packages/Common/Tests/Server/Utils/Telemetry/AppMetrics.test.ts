@@ -112,6 +112,20 @@ const CATALOG: Array<Instrument> = [
     unit: "ms",
   },
   {
+    getter: "getNotificationTriggerCounter",
+    factory: "getCounter",
+    kind: "counter",
+    name: "notification.trigger.count",
+    unit: "1",
+  },
+  {
+    getter: "getNotificationTimeToSend",
+    factory: "getHistogram",
+    kind: "histogram",
+    name: "notification.time_to_send",
+    unit: "ms",
+  },
+  {
     getter: "getIngestCounter",
     factory: "getCounter",
     kind: "counter",
@@ -293,6 +307,53 @@ describe("AppMetrics catalog", () => {
     )["ON_CALL_CALENDAR_FEED_KIND_ATTRIBUTE"];
 
     expect(attribute).toBe("oneuptime.oncall_calendar.feed_kind");
+  });
+
+  test("the notification latency histograms carry buckets that reach minutes", async () => {
+    /*
+     * The SDK's default buckets end at 10,000 (ms): a page sent 45 seconds
+     * after its trigger would land in the overflow bucket with every page
+     * sent an hour late, and no SLO could be read off it.
+     */
+    const { Telemetry, AppMetrics } = await loadFresh();
+
+    AppMetrics["getNotificationTimeToSend"]!();
+    AppMetrics["getNotificationDuration"]!();
+
+    const bucketsByName: Record<string, Array<number>> = {};
+
+    for (const call of Telemetry.getHistogram.mock.calls) {
+      const options: {
+        name: string;
+        explicitBucketBoundaries?: Array<number>;
+      } = call[0] as {
+        name: string;
+        explicitBucketBoundaries?: Array<number>;
+      };
+      bucketsByName[options.name] = options.explicitBucketBoundaries || [];
+    }
+
+    const timeToSend: Array<number> =
+      bucketsByName["notification.time_to_send"]!;
+    const sendDuration: Array<number> =
+      bucketsByName["notification.send.duration"]!;
+
+    for (const buckets of [timeToSend, sendDuration]) {
+      expect(buckets.length).toBeGreaterThan(5);
+      // Strictly increasing, as the SDK requires.
+      for (let i: number = 1; i < buckets.length; i++) {
+        expect(buckets[i]!).toBeGreaterThan(buckets[i - 1]!);
+      }
+    }
+
+    // An SLO of "within 30 seconds" and "within 5 minutes" has a bucket edge.
+    expect(timeToSend).toContain(30000);
+    expect(timeToSend).toContain(300000);
+    expect(timeToSend[timeToSend.length - 1]!).toBeGreaterThanOrEqual(3600000);
+    // A provider call that takes a minute is not lost in the overflow.
+    expect(sendDuration[sendDuration.length - 1]!).toBeGreaterThanOrEqual(
+      60000,
+    );
   });
 
   test("every metric name in the catalog is unique", () => {
