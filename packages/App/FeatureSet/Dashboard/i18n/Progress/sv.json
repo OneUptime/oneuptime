@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48994,
-    "untranslated": 10341
+    "untranslated": 10274
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -431,8 +431,10 @@
     "{{count}} s",
     "{{count}} sample",
     "{{count}} samples",
+    "{{count}} session",
     "{{count}} share",
     "{{count}} shares",
+    "{{count}} signal",
     "{{count}} stack",
     "{{count}} team",
     "{{count}} token",
