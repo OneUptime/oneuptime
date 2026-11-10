@@ -49113,5 +49113,10 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} routewijzigingen in dit blok van {{window}} (bij benadering, blok nog niet geladen)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} routewijziging in dit blok van {{window}} (bij benadering, blok nog niet geladen)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} eigen signalen in dit blok van {{window}} (bij benadering, blok nog niet geladen)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} eigen signaal in dit blok van {{window}} (bij benadering, blok nog niet geladen)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} eigen signaal in dit blok van {{window}} (bij benadering, blok nog niet geladen)",
+  "Can't scan the QR code?": "Kunt u de QR-code niet scannen?",
+  "Enter this setup key in your authenticator app instead.": "Voer in plaats daarvan deze configuratiesleutel in uw authenticator-app in.",
+  "If your app asks, choose a time-based key.": "Kies een op tijd gebaseerde sleutel als uw app daarom vraagt.",
+  "QR code": "QR-code",
+  "The QR code could not be shown.": "De QR-code kan niet worden weergegeven."
 }

@@ -49113,5 +49113,10 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} mudanças de rota neste bloco de {{window}} (aproximado, bloco ainda não carregado)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} mudança de rota neste bloco de {{window}} (aproximado, bloco ainda não carregado)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} sinais próprios neste bloco de {{window}} (aproximado, bloco ainda não carregado)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} sinal próprio neste bloco de {{window}} (aproximado, bloco ainda não carregado)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} sinal próprio neste bloco de {{window}} (aproximado, bloco ainda não carregado)",
+  "Can't scan the QR code?": "Não consegue ler o código QR?",
+  "Enter this setup key in your authenticator app instead.": "Em vez disso, insira esta chave de configuração na sua aplicação de autenticação.",
+  "If your app asks, choose a time-based key.": "Se a aplicação pedir, escolha uma chave baseada no tempo.",
+  "QR code": "Código QR",
+  "The QR code could not be shown.": "Não foi possível mostrar o código QR."
 }

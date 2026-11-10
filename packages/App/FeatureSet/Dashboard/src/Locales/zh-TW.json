@@ -49113,5 +49113,10 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 這個 {{window}} 的資料區塊中有 {{count}} 次路由變化（約略值，資料區塊尚未載入）",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} route change in this {{window}} chunk (approximate, chunk not loaded yet)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 這個 {{window}} 的資料區塊中有 {{count}} 個自訂訊號（約略值，資料區塊尚未載入）",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)",
+  "Can't scan the QR code?": "無法掃描 QR 碼？",
+  "Enter this setup key in your authenticator app instead.": "請改為在驗證器應用程式中輸入此設定金鑰。",
+  "If your app asks, choose a time-based key.": "如果應用程式詢問，請選擇以時間為基礎的金鑰。",
+  "QR code": "QR 碼",
+  "The QR code could not be shown.": "無法顯示 QR 碼。"
 }

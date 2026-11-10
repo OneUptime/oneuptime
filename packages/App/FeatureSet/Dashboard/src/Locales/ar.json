@@ -49113,5 +49113,10 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} من تغييرات المسار في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} تغيير مسار في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} من إشاراتك الخاصة في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} إشارة خاصة بك في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} إشارة خاصة بك في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
+  "Can't scan the QR code?": "لا يمكنك مسح رمز QR؟",
+  "Enter this setup key in your authenticator app instead.": "أدخل مفتاح الإعداد هذا في تطبيق المصادقة بدلاً من ذلك.",
+  "If your app asks, choose a time-based key.": "إذا طلب التطبيق ذلك، فاختر مفتاحًا مستندًا إلى الوقت.",
+  "QR code": "رمز QR",
+  "The QR code could not be shown.": "تعذّر عرض رمز QR."
 }

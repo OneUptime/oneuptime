@@ -36,6 +36,8 @@ interface PendingCode {
   reject: (error: Error) => void;
 }
 
+type VoidMock = ReturnType<typeof jest.fn<() => void>>;
+
 const mockQRCodeImage: { requires: number; pending: Array<PendingCode> } = {
   requires: 0,
   pending: [],
@@ -244,7 +246,7 @@ describe("QRCodeElement", () => {
   });
 
   test("tells the page once when the code cannot be drawn, so it can offer another way in", async () => {
-    const onError: jest.Mock<void, []> = jest.fn<void, []>();
+    const onError: VoidMock = jest.fn<() => void>();
 
     render(<QRCodeElement text={OTP_URL} onError={onError} />);
     await settle();
@@ -259,8 +261,8 @@ describe("QRCodeElement", () => {
   });
 
   test("tells the page that drew it last, not the one it was first drawn with", async () => {
-    const first: jest.Mock<void, []> = jest.fn<void, []>();
-    const latest: jest.Mock<void, []> = jest.fn<void, []>();
+    const first: VoidMock = jest.fn<() => void>();
+    const latest: VoidMock = jest.fn<() => void>();
 
     const { rerender } = render(
       <QRCodeElement text={OTP_URL} onError={first} />,
@@ -280,7 +282,7 @@ describe("QRCodeElement", () => {
   });
 
   test("says nothing about a code for text it no longer shows", async () => {
-    const onError: jest.Mock<void, []> = jest.fn<void, []>();
+    const onError: VoidMock = jest.fn<() => void>();
     const { rerender } = render(
       <QRCodeElement text="first" onError={onError} />,
     );

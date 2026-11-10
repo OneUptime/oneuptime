@@ -49113,5 +49113,10 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} смен маршрута в этом фрагменте длительностью {{window}}: {{count}} (приблизительно, фрагмент ещё не загружен)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} смена маршрута в этом фрагменте длительностью {{window}} (приблизительно, фрагмент ещё не загружен)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} ваших собственных сигналов в этом фрагменте длительностью {{window}}: {{count}} (приблизительно, фрагмент ещё не загружен)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} ваш собственный сигнал в этом фрагменте длительностью {{window}} (приблизительно, фрагмент ещё не загружен)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} ваш собственный сигнал в этом фрагменте длительностью {{window}} (приблизительно, фрагмент ещё не загружен)",
+  "Can't scan the QR code?": "Не получается отсканировать QR-код?",
+  "Enter this setup key in your authenticator app instead.": "Вместо этого введите этот ключ настройки в приложении-аутентификаторе.",
+  "If your app asks, choose a time-based key.": "Если приложение спросит, выберите ключ на основе времени.",
+  "QR code": "QR-код",
+  "The QR code could not be shown.": "Не удалось показать QR-код."
 }

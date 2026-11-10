@@ -49113,5 +49113,10 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} تغییر مسیر در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} تغییر مسیر در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} سیگنال خودتان در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} سیگنال خودتان در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} سیگنال خودتان در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
+  "Can't scan the QR code?": "نمی‌توانید کد QR را اسکن کنید؟",
+  "Enter this setup key in your authenticator app instead.": "به‌جای آن، این کلید راه‌اندازی را در اپلیکیشن احراز هویت خود وارد کنید.",
+  "If your app asks, choose a time-based key.": "اگر اپلیکیشن پرسید، کلید مبتنی بر زمان را انتخاب کنید.",
+  "QR code": "کد QR",
+  "The QR code could not be shown.": "نمایش کد QR ممکن نشد."
 }

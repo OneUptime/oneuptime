@@ -49113,5 +49113,10 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 이 {{window}} 청크의 경로 변경 {{count}}회(근사치, 청크가 아직 로드되지 않음)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} route change in this {{window}} chunk (approximate, chunk not loaded yet)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 이 {{window}} 청크의 자체 신호 {{count}}개(근사치, 청크가 아직 로드되지 않음)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)",
+  "Can't scan the QR code?": "QR 코드를 스캔할 수 없나요?",
+  "Enter this setup key in your authenticator app instead.": "대신 인증 앱에 이 설정 키를 입력하세요.",
+  "If your app asks, choose a time-based key.": "앱에서 묻는 경우 시간 기반 키를 선택하세요.",
+  "QR code": "QR 코드",
+  "The QR code could not be shown.": "QR 코드를 표시할 수 없습니다."
 }

@@ -49113,5 +49113,10 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{window}} वाले इस चंक में {{count}} रूट बदलाव (अनुमानित, चंक अभी लोड नहीं हुआ)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{window}} वाले इस चंक में {{count}} रूट बदलाव (अनुमानित, चंक अभी लोड नहीं हुआ)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{window}} वाले इस चंक में आपके अपने {{count}} सिग्नल (अनुमानित, चंक अभी लोड नहीं हुआ)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{window}} वाले इस चंक में आपका अपना {{count}} सिग्नल (अनुमानित, चंक अभी लोड नहीं हुआ)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{window}} वाले इस चंक में आपका अपना {{count}} सिग्नल (अनुमानित, चंक अभी लोड नहीं हुआ)",
+  "Can't scan the QR code?": "QR कोड स्कैन नहीं कर पा रहे हैं?",
+  "Enter this setup key in your authenticator app instead.": "इसके बजाय यह सेटअप कुंजी अपने प्रमाणक ऐप में दर्ज करें।",
+  "If your app asks, choose a time-based key.": "अगर आपका ऐप पूछे, तो समय-आधारित कुंजी चुनें।",
+  "QR code": "QR कोड",
+  "The QR code could not be shown.": "QR कोड नहीं दिखाया जा सका।"
 }

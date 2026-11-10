@@ -49113,5 +49113,10 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} この {{window}} のチャンク内のルートの変更 {{count}} 件（概算、チャンクは未読み込み）",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} route change in this {{window}} chunk (approximate, chunk not loaded yet)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} この {{window}} のチャンク内の独自シグナル {{count}} 件（概算、チャンクは未読み込み）",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)",
+  "Can't scan the QR code?": "QR コードをスキャンできない場合",
+  "Enter this setup key in your authenticator app instead.": "代わりに、このセットアップキーを認証アプリに入力してください。",
+  "If your app asks, choose a time-based key.": "アプリで尋ねられた場合は、時間ベースのキーを選択してください。",
+  "QR code": "QR コード",
+  "The QR code could not be shown.": "QR コードを表示できませんでした。"
 }
