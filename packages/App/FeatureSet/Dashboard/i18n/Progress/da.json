@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48994,
-    "untranslated": 10278
+    "untranslated": 10207
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -563,6 +563,9 @@
     "{{count}} tokens",
     "{{count}} vCPU",
     "{{count}} worker",
+    "{{count}}d",
+    "{{count}}m",
+    "{{count}}s",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{online}}/{{count}} node online",

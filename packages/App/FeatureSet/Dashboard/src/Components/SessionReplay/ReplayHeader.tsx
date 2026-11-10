@@ -831,15 +831,26 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
               renderText={renderRecordedText}
             />
           ) : (
-            <>
-              {renderRecordedText(translateLine("Recorded"))}
-              <span
-                className="min-w-0 truncate text-gray-700"
-                data-testid="replay-header-started-at"
-              >
-                {translator.translateText("Start time unavailable")}
-              </span>
-            </>
+            /*
+             * The same sentence with what is known of the time in its
+             * place, so the label is never a lone word of its own: a bare
+             * "Recorded" key would be every screen's "Recorded" (an
+             * incident measurement's status among them) in every language.
+             */
+            <TranslatedSentence
+              template="Recorded {{time}}"
+              slots={{
+                time: (
+                  <span
+                    className="min-w-0 truncate text-gray-700"
+                    data-testid="replay-header-started-at"
+                  >
+                    {translator.translateText("Start time unavailable")}
+                  </span>
+                ),
+              }}
+              renderText={renderRecordedText}
+            />
           )}
         </span>
 

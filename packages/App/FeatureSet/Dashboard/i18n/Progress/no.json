@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48994,
-    "untranslated": 10281
+    "untranslated": 10210
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -396,6 +396,9 @@
     "{{count}} tokens",
     "{{count}} vCPU",
     "{{count}} worker",
+    "{{count}}d",
+    "{{count}}m",
+    "{{count}}s",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
