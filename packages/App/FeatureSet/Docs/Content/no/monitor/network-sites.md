@@ -171,7 +171,7 @@ En lokasjon uten noen tidslinjerader i det hele tatt viser `—` i stedet for 10
 
 ### Daglig oppetid
 
-Ved siden av tallet for 30 dager viser hver lokasjons oversikt **Uptime (24h)**, og siden **Statustidslinje** viser de siste 24 timene, 7, 30 og 90 dagene, og én stolpe per dag for de siste 30.
+Ved siden av tallet for 30 dager viser hver lokasjons oversikt **Oppetid (24 t)**, og siden **Statustidslinje** viser de siste 24 timene, 7, 30 og 90 dagene, og én stolpe per dag for de siste 30.
 
 Et gjennomsnitt over 30 dager kan ikke vise en dårlig dag. En hel dags avbrudd i et vindu på 30 dager koster 3,3 prosentpoeng, så en lokasjon som var mørk en hel tirsdag, rapporterer likevel 96,7 % for måneden, et tall som ser ut som en avrunding. De daglige stolpene plasserer de samme dataene der én dårlig dag er én dårlig stolpe.
 

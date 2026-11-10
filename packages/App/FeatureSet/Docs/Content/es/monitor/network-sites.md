@@ -171,7 +171,7 @@ Un sitio sin ninguna fila en su cronología muestra `—` en lugar de 100%: un s
 
 ### Tiempo de actividad diario
 
-Junto a la cifra de 30 días, la vista general de cada sitio muestra **Uptime (24h)**, y su página **Cronología de estados** muestra las últimas 24 horas, 7, 30 y 90 días, y una barra por día para los últimos 30.
+Junto a la cifra de 30 días, la vista general de cada sitio muestra **Tiempo de actividad (24 h)**, y su página **Cronología de estados** muestra las últimas 24 horas, 7, 30 y 90 días, y una barra por día para los últimos 30.
 
 Una media de 30 días no puede mostrar un mal día. Un día entero de caída en una ventana de 30 días cuesta 3,3 puntos, así que un sitio que estuvo apagado todo un martes sigue informando un 96,7% para el mes, una cifra que parece redondeo. Las barras diarias ponen los mismos datos donde un mal día es una mala barra.
 

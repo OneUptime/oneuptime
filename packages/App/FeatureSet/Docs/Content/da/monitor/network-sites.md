@@ -171,7 +171,7 @@ En lokation helt uden tidslinjerækker viser `—` i stedet for 100 %: en lokati
 
 ### Daglig oppetid
 
-Ved siden af tallet for 30 dage viser hver lokations oversigt **Uptime (24h)**, og dens side **Statustidslinje** viser de seneste 24 timer, 7, 30 og 90 dage og en søjle pr. dag for de seneste 30.
+Ved siden af tallet for 30 dage viser hver lokations oversigt **Oppetid (24t)**, og dens side **Statustidslinje** viser de seneste 24 timer, 7, 30 og 90 dage og en søjle pr. dag for de seneste 30.
 
 Et gennemsnit over 30 dage kan ikke vise en dårlig dag. En hel dags nedbrud i et vindue på 30 dage koster 3,3 point, så en lokation, der var mørk en hel tirsdag, stadig rapporterer 96,7 % for måneden, et tal, der ligner en afrunding. De daglige søjler placerer de samme data, så én dårlig dag er én dårlig søjle.
 
