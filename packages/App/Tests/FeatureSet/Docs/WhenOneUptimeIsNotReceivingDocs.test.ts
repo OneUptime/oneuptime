@@ -58,9 +58,9 @@ const WORKER_ENV_PATTERN: RegExp =
 
 /*
  * The dashboard labels the page bolds, in the order it bolds them. Each
- * language's page bolds each one as that language's dashboard shows it; the
- * criteria names have no translation, so they stay as the dashboard shows
- * them everywhere.
+ * language's page bolds each one as that language's dashboard shows it: the
+ * criteria's check and conditions too (Is Online, Recieved In Minutes), which
+ * every locale has worded since 31eadaee92e and f155e8e0998.
  */
 const BOLDED_LABELS: Array<string> = [
   "Is Online",

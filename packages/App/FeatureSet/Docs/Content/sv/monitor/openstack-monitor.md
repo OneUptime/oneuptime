@@ -84,7 +84,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 Ett filter avgränsar bara en serie som har dess etikett: `openstack_nova_up` har inget projekt, så ett projektfilter låter den vara som den är.
 
-Låt fönstret vara minst tre insamlingar av det du läser: 6 minuter för compute, network, volume och placement, 15 för identity och image. Ett kortare fönster rymmer inte tillräckligt många insamlingar för att **All Values** ska kunna betyda en varaktighet.
+Låt fönstret vara minst tre insamlingar av det du läser: 6 minuter för compute, network, volume och placement, 15 för identity och image. Ett kortare fönster rymmer inte tillräckligt många insamlingar för att **Alla värden** ska kunna betyda en varaktighet.
 
 ## Identitetsattribut
 
@@ -752,8 +752,8 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | Fält | Vad det gör |
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som ska kontrolleras, med sitt variabelnamn. |
-| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste stämma, över hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte skickade något i fönstret, **Har data** när den skickade något. **Väntas stiga över** och **Väntas sjunka under** stämmer när mätvärdets trend över fönstret kommer att ha passerat tröskeln vid slutet av **Tidshorisont**. |
+| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde**, **Alla värden** (varje värde måste stämma, över hela fönstret) eller **Minst ett värde** (ett räcker). |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Onormalt hög**, **Onormalt låg** eller **Avvikande**. **Inga data** stämmer när frågan inte skickade något i fönstret, **Har data** när den skickade något. **Väntas stiga över** och **Väntas sjunka under** stämmer när mätvärdets trend över fönstret kommer att ha passerat tröskeln vid slutet av **Tidshorisont**. |
 | **Tröskel** | Värdet att jämföra med. En enhetslista finns bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |

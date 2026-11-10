@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Am Monitor speichern
     O->>O: Die Kriterien prüfen
     O->>T: Warnung oder Vorfall,<br/>wenn eines zutrifft
-    Note over O: Alle 30 Sekunden Kriterien<br/>mit Email Received prüfen
+    Note over O: Alle 30 Sekunden Kriterien<br/>mit „E-Mail empfangen“ prüfen
 ```
 
 1. Wenn Sie einen Monitor für eingehende E-Mails erstellen, gibt OneUptime ihm eine eindeutige E-Mail-Adresse.
@@ -143,15 +143,15 @@ Ein neuer Monitor für eingehende E-Mails wird mit zwei Kriterien erstellt, die 
 
 | Kriterium | Filtertyp | Filterbedingung | Wert | Wirkung |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Email Body  | Enthält | `error` | Markiert den Monitor als offline, eröffnet einen Vorfall |
-| Online   | Email Body  | Enthält nicht | `error` | Markiert den Monitor als online |
+| Offline  | E-Mail-Text  | Enthält | `error` | Markiert den Monitor als offline, eröffnet einen Vorfall |
+| Online   | E-Mail-Text  | Enthält nicht | `error` | Markiert den Monitor als online |
 
 Das passt zum häufigen Fall, dass ein Job oder ein Werkzeug eines Drittanbieters sein eigenes Ergebnis per E-Mail meldet: Eine Nachricht, deren Text `error` erwähnt, nimmt den Monitor offline, und die nächste Nachricht ohne das Wort bringt ihn wieder online und behebt den Vorfall. Der Textvergleich beachtet die Groß- und Kleinschreibung nicht, `Error` und `ERROR` treffen also ebenfalls zu.
 
 Ändern Sie den Wert auf das, was Ihr Absender tatsächlich schreibt (`FAILED`, `exit code 1` und so weiter).
 
 > [!NOTE]
-> Diese Standardkriterien sind **kein** Totmannschalter: Nichts davon löst aus, wenn keine E-Mails mehr kommen. Kriterien, die nur Betreff, Absender, Text oder Empfänger lesen, werden geprüft, wenn eine E-Mail eintrifft, und zu keinem anderen Zeitpunkt. Um bei Stille alarmiert zu werden, fügen Sie ein Kriterium **Email Received** / **Not Recieved In Minutes** hinzu — siehe [Beispiel 3](#beispiel-3-heartbeat-monitor-keine-e-mail-warnung).
+> Diese Standardkriterien sind **kein** Totmannschalter: Nichts davon löst aus, wenn keine E-Mails mehr kommen. Kriterien, die nur Betreff, Absender, Text oder Empfänger lesen, werden geprüft, wenn eine E-Mail eintrifft, und zu keinem anderen Zeitpunkt. Um bei Stille alarmiert zu werden, fügen Sie ein Kriterium **E-Mail empfangen** / **Nicht empfangen in Minuten** hinzu — siehe [Beispiel 3](#beispiel-3-heartbeat-monitor-keine-e-mail-warnung).
 
 ## Verfügbare Filtertypen
 
@@ -160,13 +160,13 @@ Sie können Kriterien auf Grundlage dieser E-Mail-Felder erstellen:
 | Filtertyp | Beschreibung |
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | **E-Mail-Betreff** | Die Betreffzeile der eingehenden E-Mail |
-| **Email From Address** | Die Adresse des Absenders: die reine Adresse, kleingeschrieben, ohne Anzeigenamen |
-| **Email Body** | Der Klartextteil des E-Mail-Texts |
-| **Email To Address** | Die Adresse des Empfängers |
-| **Email Received** | Zeitbasierte Kriterien dafür, wann E-Mails eintreffen |
-| **JavaScript Expression** | Ein eigener JavaScript-Ausdruck, der wahr ergeben muss |
+| **E-Mail-Absenderadresse** | Die Adresse des Absenders: die reine Adresse, kleingeschrieben, ohne Anzeigenamen |
+| **E-Mail-Text** | Der Klartextteil des E-Mail-Texts |
+| **E-Mail-Empfängeradresse** | Die Adresse des Empfängers |
+| **E-Mail empfangen** | Zeitbasierte Kriterien dafür, wann E-Mails eintreffen |
+| **JavaScript-Ausdruck** | Ein eigener JavaScript-Ausdruck, der wahr ergeben muss |
 
-Die eigene Adresse des Monitors wird maskiert, bevor ein Kriterium die E-Mail liest, in **Email To Address**, **E-Mail-Betreff** und **Email Body** steht also `[REDACTED]`.
+Die eigene Adresse des Monitors wird maskiert, bevor ein Kriterium die E-Mail liest, in **E-Mail-Empfängeradresse**, **E-Mail-Betreff** und **E-Mail-Text** steht also `[REDACTED]`.
 
 ## Filterbedingungen
 
@@ -185,24 +185,22 @@ Die eigene Adresse des Monitors wird maskiert, bevor ein Kriterium die E-Mail li
 
 Alle diese Vergleiche beachten die Groß- und Kleinschreibung nicht. Ein Filter mit leerem Wert trifft nie zu.
 
-### Zeitbasierte Filter (Email Received)
-
-Das Dashboard schreibt diese Bedingungen "Recieved".
+### Zeitbasierte Filter (E-Mail empfangen)
 
 | Filterbedingung | Beschreibung | Beispiel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
-| **Recieved In Minutes** | Innerhalb von X Minuten ging eine E-Mail ein | E-Mail in 30 Minuten eingegangen |
-| **Not Recieved In Minutes** | In X Minuten ging keine E-Mail ein | Keine E-Mail in 60 Minuten eingegangen |
+| **Empfangen in Minuten** | Innerhalb von X Minuten ging eine E-Mail ein | E-Mail in 30 Minuten eingegangen |
+| **Nicht empfangen in Minuten** | In X Minuten ging keine E-Mail ein | Keine E-Mail in 60 Minuten eingegangen |
 
 Ein Monitor, der noch nie eine E-Mail erhalten hat, zählt seine Erstellungszeit als letzte E-Mail.
 
-### JavaScript Expression
+### JavaScript-Ausdruck
 
 | Filterbedingung | Beschreibung |
 | --------------------- | ------------------------------------- |
-| **Evaluates To True** | Der Ausdruck liefert einen wahren Wert |
+| **Ergibt wahr** | Der Ausdruck liefert einen wahren Wert |
 
-Der Ausdruck läuft in einer Sandbox, an die keine E-Mail-Felder gebunden sind, er kann also Betreff, Absender, Text oder Empfänger der auslösenden Nachricht nicht lesen. Verwenden Sie die Filtertypen **E-Mail-Betreff**, **Email From Address**, **Email Body** und **Email To Address**, um auf den Inhalt der E-Mail zu prüfen.
+Der Ausdruck läuft in einer Sandbox, an die keine E-Mail-Felder gebunden sind, er kann also Betreff, Absender, Text oder Empfänger der auslösenden Nachricht nicht lesen. Verwenden Sie die Filtertypen **E-Mail-Betreff**, **E-Mail-Absenderadresse**, **E-Mail-Text** und **E-Mail-Empfängeradresse**, um auf den Inhalt der E-Mail zu prüfen.
 
 ## Beispielkonfigurationen
 
@@ -221,15 +219,15 @@ Setzen Sie das kritische Kriterium an den Anfang: Kriterien werden von oben gepr
 
 | Kriterium | Filter | Abgleichsbedingung | Aktionen |
 | --- | --- | --- | --- |
-| Fehlgeschlagener Job | **Email From Address** Gleich `monitoring@legacy-system.com`; **E-Mail-Betreff** Enthält `Failed` | **Alle** | Den Status auf offline ändern; einen Vorfall eröffnen |
-| Erfolgreicher Job | **Email From Address** Gleich `monitoring@legacy-system.com`; **E-Mail-Betreff** Enthält `Success` | **Alle** | Den Status auf online ändern |
+| Fehlgeschlagener Job | **E-Mail-Absenderadresse** Gleich `monitoring@legacy-system.com`; **E-Mail-Betreff** Enthält `Failed` | **Alle** | Den Status auf offline ändern; einen Vorfall eröffnen |
+| Erfolgreicher Job | **E-Mail-Absenderadresse** Gleich `monitoring@legacy-system.com`; **E-Mail-Betreff** Enthält `Success` | **Alle** | Den Status auf online ändern |
 
 ### Beispiel 3: Heartbeat-Monitor (keine E-Mail = Warnung)
 
 | Kriterium | Filter | Aktionen |
 | --- | --- | --- |
-| E-Mail ist überfällig | **Email Received** Not Recieved In Minutes `60` | Den Status auf offline ändern; eine Warnung erstellen |
-| E-Mail ist eingetroffen | **Email Received** Recieved In Minutes `60` | Den Status auf online ändern |
+| E-Mail ist überfällig | **E-Mail empfangen** Nicht empfangen in Minuten `60` | Den Status auf offline ändern; eine Warnung erstellen |
+| E-Mail ist eingetroffen | **E-Mail empfangen** Empfangen in Minuten `60` | Den Status auf online ändern |
 
 Das erste Kriterium löst aus, wenn 60 Minuten lang keine E-Mail eingetroffen ist — nützlich für geplante Jobs oder Stapelprozesse, die eine Abschluss-E-Mail senden. Das zweite behebt die Warnung, sobald eine eintrifft. Minuten, in denen OneUptime selbst keine E-Mails empfangen hat, zählen nicht zu den 60, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
@@ -240,7 +238,7 @@ Ein Kriterium hält jeweils einen Vorfall offen: Solange er offen ist, eröffnen
 :::steps
 ### Die E-Mails auswählen
 
-Geben Sie dem Kriterium einen Filter, der die E-Mails erfasst, für die Vorfälle eröffnet werden sollen. Um nur Meldungen Ihrer eigenen Leute anzunehmen, verwenden Sie **Email From Address** mit **Endet mit** und Ihrer Domain, etwa `@example.com`.
+Geben Sie dem Kriterium einen Filter, der die E-Mails erfasst, für die Vorfälle eröffnet werden sollen. Um nur Meldungen Ihrer eigenen Leute anzunehmen, verwenden Sie **E-Mail-Absenderadresse** mit **Endet mit** und Ihrer Domain, etwa `@example.com`.
 
 ### Den Vorfall deklarieren
 
@@ -263,7 +261,7 @@ Von da an behandelt das Kriterium jede E-Mail für sich:
 
 Jede E-Mail bekommt weiterhin eine Zeile in **Überwachungsprotokolle**, und **Zusammenfassung anzeigen** in dieser Zeile sagt, was die E-Mail eröffnet hat oder warum sie nichts eröffnet hat. Erstellt das Kriterium auch Warnungen, heißt der Schalter **Für jede E-Mail einen neuen Vorfall und eine neue Warnung eröffnen**, und jede E-Mail eröffnet auf dieselbe Weise eine eigene Warnung.
 
-Diese Vorfälle bleiben offen, bis jemand sie behebt. Mit eingeschaltetem **Vorfall automatisch beheben** werden sie außerdem behoben, wenn eine spätere E-Mail ein anderes Kriterium erfüllt, wie jeder Vorfall; eine spätere E-Mail, die dasselbe Kriterium erfüllt, behebt die früheren nie. Eine Prüfung auf fehlende E-Mails (**Email Received**) ist keine E-Mail und eröffnet deshalb weiterhin jeweils einen Vorfall.
+Diese Vorfälle bleiben offen, bis jemand sie behebt. Mit eingeschaltetem **Vorfall automatisch beheben** werden sie außerdem behoben, wenn eine spätere E-Mail ein anderes Kriterium erfüllt, wie jeder Vorfall; eine spätere E-Mail, die dasselbe Kriterium erfüllt, behebt die früheren nie. Eine Prüfung auf fehlende E-Mails (**E-Mail empfangen**) ist keine E-Mail und eröffnet deshalb weiterhin jeweils einen Vorfall.
 
 > [!WARNING]
 > **Wer die Adresse kennt, kann Vorfälle eröffnen.** Halten Sie die Adresse geheim, filtern Sie wie oben nach dem Absender und [setzen Sie die Adresse zurück](#die-e-mail-adresse-zurücksetzen-oder-anpassen), wenn sie bekannt wird. Die Adresse eines Absenders lässt sich fälschen, daher hält der Filter verirrte E-Mails fern, aber niemanden, der es darauf anlegt.
@@ -294,7 +292,7 @@ Titel, Beschreibungen und Behebungshinweise der Warnungen und Vorfälle, die die
 
 - **Ein Titel bekommt je eine Zeile.** In einem Titel wird jede Variable auf eine Zeile mit höchstens 150 Zeichen gekürzt und endet mit `...`, wenn sie länger war. Ein Titel darf nicht länger als 500 Zeichen sein, und eine Warnung oder ein Vorfall mit zu langem Titel wird gar nicht erstellt, eine ganze E-Mail zu zitieren würde den Monitor also daran hindern, auf lange E-Mails zu alarmieren. Beschreibungen und Behebungshinweise bekommen den vollständigen Wert.
 - **Die Adresse dieses Monitors ist maskiert.** Die Adresse wirkt wie ein Passwort, deshalb wird sie maskiert, bevor die E-Mail gespeichert wird, und `{{emailTo}}` lautet `monitor-[REDACTED]@{inbound-domain}` (oder `[REDACTED]@{inbound-domain}` bei einer angepassten Adresse).
-- **Eine Prüfung auf fehlende E-Mails verwendet die letzte E-Mail.** Wenn ein Kriterium **Email Received** eine Warnung eröffnet, weil keine E-Mail rechtzeitig kam, beschreiben die Variablen die letzte E-Mail, die der Monitor erhalten hat. Sie sind leer, wenn noch keine eingetroffen ist.
+- **Eine Prüfung auf fehlende E-Mails verwendet die letzte E-Mail.** Wenn ein Kriterium **E-Mail empfangen** eine Warnung eröffnet, weil keine E-Mail rechtzeitig kam, beschreiben die Variablen die letzte E-Mail, die der Monitor erhalten hat. Sie sind leer, wenn noch keine eingetroffen ist.
 
 ## Ansicht Monitor-Zusammenfassung
 
@@ -312,7 +310,7 @@ Klicken Sie auf **Weitere Details anzeigen**, um den Rest zu sehen:
 
 ### Frühere E-Mails
 
-Die Karte zeigt nur die neueste E-Mail. Jede E-Mail, die der Monitor prüft, wird außerdem in **Überwachungsprotokolle** geschrieben: Die Spalte **E-Mail** zeigt ihren Betreff und Absender, und **Zusammenfassung anzeigen** in ihrer Zeile zeigt die ganze E-Mail so wie die Karte. Ein Monitor mit ausgeschalteter Überwachung prüft nichts, die E-Mails, die er erhält, bekommen also keine Zeilen. Prüft eines Ihrer Kriterien **Email Received**, schreibt der Monitor außerdem bei jeder Prüfung auf fehlende E-Mails eine Zeile. Die Spalte **E-Mail** zeigt in diesen Zeilen "Scheduled check", und ihre **Zusammenfassung anzeigen** zeigt die zum Zeitpunkt der Prüfung neueste E-Mail oder "No email yet", falls keine eingetroffen war. Überwachungsprotokolle werden standardmäßig einen Tag lang aufbewahrt. Auf einem selbst gehosteten Server kann ein Administrator das mit **Aufbewahrung der Überwachungsprotokolle (Tage)** in den Einstellungen des Admin-Dashboards ändern.
+Die Karte zeigt nur die neueste E-Mail. Jede E-Mail, die der Monitor prüft, wird außerdem in **Überwachungsprotokolle** geschrieben: Die Spalte **E-Mail** zeigt ihren Betreff und Absender, und **Zusammenfassung anzeigen** in ihrer Zeile zeigt die ganze E-Mail so wie die Karte. Ein Monitor mit ausgeschalteter Überwachung prüft nichts, die E-Mails, die er erhält, bekommen also keine Zeilen. Prüft eines Ihrer Kriterien **E-Mail empfangen**, schreibt der Monitor außerdem bei jeder Prüfung auf fehlende E-Mails eine Zeile. Die Spalte **E-Mail** zeigt in diesen Zeilen "Scheduled check", und ihre **Zusammenfassung anzeigen** zeigt die zum Zeitpunkt der Prüfung neueste E-Mail oder "No email yet", falls keine eingetroffen war. Überwachungsprotokolle werden standardmäßig einen Tag lang aufbewahrt. Auf einem selbst gehosteten Server kann ein Administrator das mit **Aufbewahrung der Überwachungsprotokolle (Tage)** in den Einstellungen des Admin-Dashboards ändern.
 
 ## Selbst gehostete Einrichtung
 

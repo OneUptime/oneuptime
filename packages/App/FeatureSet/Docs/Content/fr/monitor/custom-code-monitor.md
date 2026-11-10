@@ -178,16 +178,16 @@ Les critères d'un moniteur Custom Code peuvent vérifier :
 | Type de filtre | Ce qu'il vérifie | Conditions de filtre |
 | --- | --- | --- |
 | **Erreur** | L'erreur levée par le script, le cas échéant. | Contient, Ne contient pas, Égal à, Différent de, Est vide, N'est pas vide |
-| **Result Value** | Les `data` renvoyées par le script. Comparées comme un nombre quand c'en est un. | Les mêmes, plus Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à, Vrai et Faux |
+| **Valeur du résultat** | Les `data` renvoyées par le script. Comparées comme un nombre quand c'en est un. | Les mêmes, plus Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à, Vrai et Faux |
 | **Temps d'exécution (en ms)** | La durée d'exécution du script. | Comparaisons numériques |
 
 Les critères par défaut marquent le moniteur en ligne quand **Erreur** est vide, et hors ligne — avec un incident qui se résout de lui-même quand le script réussit à nouveau — dans le cas contraire. Dans les modèles d'incident et d'alerte, l'exécution est disponible sous `{{result}}`, `{{scriptError}}`, `{{logMessages}}` et `{{executionTimeInMs}}` : voir [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
 
 ### Alerter sur les données renvoyées
 
-Ce que le script renvoie comme `data` est la **Result Value** du moniteur, et un critère peut la comparer — par exemple _Result Value est Égal à `UP`_.
+Ce que le script renvoie comme `data` est la **Valeur du résultat** du moniteur, et un critère peut la comparer — par exemple _Valeur du résultat est Égal à `UP`_.
 
-Quand `data` est un objet ou un tableau, renseignez **Chemin du champ (facultatif)** dans le filtre Result Value pour comparer un de ses champs plutôt que la valeur entière. Utilisez des points pour les champs imbriqués et `[n]` pour les éléments de tableau :
+Quand `data` est un objet ou un tableau, renseignez **Chemin du champ (facultatif)** dans le filtre Valeur du résultat pour comparer un de ses champs plutôt que la valeur entière. Utilisez des points pour les champs imbriqués et `[n]` pour les éléments de tableau :
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

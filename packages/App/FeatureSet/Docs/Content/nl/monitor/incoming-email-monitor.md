@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Op de monitor opslaan
     O->>O: De criteria toetsen
     O->>T: Waarschuwing of incident,<br/>als er een overeenkomt
-    Note over O: Elke 30 seconden criteria<br/>met Email Received toetsen
+    Note over O: Elke 30 seconden criteria<br/>met “E-mail ontvangen” toetsen
 ```
 
 1. Als u een monitor voor inkomende e-mail maakt, geeft OneUptime hem een uniek e-mailadres.
@@ -143,15 +143,15 @@ Een nieuwe monitor voor inkomende e-mail wordt gemaakt met twee criteria die de 
 
 | Criterium | Filtertype | Filtervoorwaarde | Waarde | Effect |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Email Body  | Bevat | `error` | Markeert de monitor als offline, opent een incident |
-| Online   | Email Body  | Bevat niet | `error` | Markeert de monitor als online |
+| Offline  | E-mailtekst  | Bevat | `error` | Markeert de monitor als offline, opent een incident |
+| Online   | E-mailtekst  | Bevat niet | `error` | Markeert de monitor als online |
 
 Dit past bij het gangbare geval waarin een job of een tool van derden zijn eigen resultaat per e-mail meldt: een bericht waarvan de tekst `error` noemt, haalt de monitor neer, en het volgende bericht zonder dat woord brengt de monitor weer online en lost het incident op. Bij het vergelijken van de tekst tellen hoofdletters niet, dus `Error` en `ERROR` komen ook overeen.
 
 Verander de waarde in wat uw afzender werkelijk schrijft (`FAILED`, `exit code 1` enzovoort).
 
 > [!NOTE]
-> Deze standaardcriteria zijn **geen** dodemansknop: niets hier gaat af als er geen e-mail meer binnenkomt. Criteria die alleen het onderwerp, de afzender, de tekst of de ontvanger lezen, worden getoetst als er een e-mail binnenkomt en op geen ander moment. Wilt u bij stilte gewaarschuwd worden, voeg dan een criterium **Email Received** / **Not Recieved In Minutes** toe — zie [Voorbeeld 3](#voorbeeld-3-heartbeat-monitor-geen-e-mail-waarschuwing).
+> Deze standaardcriteria zijn **geen** dodemansknop: niets hier gaat af als er geen e-mail meer binnenkomt. Criteria die alleen het onderwerp, de afzender, de tekst of de ontvanger lezen, worden getoetst als er een e-mail binnenkomt en op geen ander moment. Wilt u bij stilte gewaarschuwd worden, voeg dan een criterium **E-mail ontvangen** / **Niet ontvangen in minuten** toe — zie [Voorbeeld 3](#voorbeeld-3-heartbeat-monitor-geen-e-mail-waarschuwing).
 
 ## Beschikbare filtertypen
 
@@ -160,13 +160,13 @@ U kunt criteria maken op basis van deze e-mailvelden:
 | Filtertype | Beschrijving |
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | **E-mailonderwerp** | De onderwerpregel van de binnenkomende e-mail |
-| **Email From Address** | Het e-mailadres van de afzender: het kale adres, in kleine letters, zonder weergavenaam |
-| **Email Body** | Het platte-tekstdeel van de e-mail |
-| **Email To Address** | Het e-mailadres van de ontvanger |
-| **Email Received** | Tijdgebaseerde criteria voor wanneer e-mails binnenkomen |
-| **JavaScript Expression** | Een eigen JavaScript-expressie die waar moet opleveren |
+| **Afzenderadres van e-mail** | Het e-mailadres van de afzender: het kale adres, in kleine letters, zonder weergavenaam |
+| **E-mailtekst** | Het platte-tekstdeel van de e-mail |
+| **Ontvangeradres van e-mail** | Het e-mailadres van de ontvanger |
+| **E-mail ontvangen** | Tijdgebaseerde criteria voor wanneer e-mails binnenkomen |
+| **JavaScript-expressie** | Een eigen JavaScript-expressie die waar moet opleveren |
 
-Het eigen adres van de monitor wordt gemaskeerd voordat een criterium de e-mail leest, dus in **Email To Address**, **E-mailonderwerp** en **Email Body** staat `[REDACTED]`.
+Het eigen adres van de monitor wordt gemaskeerd voordat een criterium de e-mail leest, dus in **Ontvangeradres van e-mail**, **E-mailonderwerp** en **E-mailtekst** staat `[REDACTED]`.
 
 ## Filtervoorwaarden
 
@@ -185,24 +185,22 @@ Het eigen adres van de monitor wordt gemaskeerd voordat een criterium de e-mail 
 
 Bij al deze vergelijkingen tellen hoofdletters niet. Een filter met een lege waarde komt nooit overeen.
 
-### Tijdgebaseerde filters (Email Received)
-
-Het dashboard spelt deze voorwaarden "Recieved".
+### Tijdgebaseerde filters (E-mail ontvangen)
 
 | Filtervoorwaarde | Beschrijving | Voorbeeld |
 | --------------------------- | ----------------------------------- | -------------------------------- |
-| **Recieved In Minutes** | Binnen X minuten is een e-mail ontvangen | E-mail ontvangen binnen 30 minuten |
-| **Not Recieved In Minutes** | In X minuten is geen e-mail ontvangen | Geen e-mail ontvangen in 60 minuten |
+| **Ontvangen in minuten** | Binnen X minuten is een e-mail ontvangen | E-mail ontvangen binnen 30 minuten |
+| **Niet ontvangen in minuten** | In X minuten is geen e-mail ontvangen | Geen e-mail ontvangen in 60 minuten |
 
 Een monitor die nog nooit een e-mail heeft ontvangen, telt zijn aanmaaktijd als de laatste e-mail.
 
-### JavaScript Expression
+### JavaScript-expressie
 
 | Filtervoorwaarde | Beschrijving |
 | --------------------- | ------------------------------------- |
-| **Evaluates To True** | De expressie levert een waarheidsgetrouwe waarde op |
+| **Resulteert in waar** | De expressie levert een waarheidsgetrouwe waarde op |
 
-De expressie draait in een sandbox waaraan geen e-mailvelden zijn gebonden, dus ze kan het onderwerp, de afzender, de tekst of de ontvanger van het bericht dat de controle uitlokte, niet lezen. Gebruik de filtertypen **E-mailonderwerp**, **Email From Address**, **Email Body** en **Email To Address** om op de inhoud van de e-mail te toetsen.
+De expressie draait in een sandbox waaraan geen e-mailvelden zijn gebonden, dus ze kan het onderwerp, de afzender, de tekst of de ontvanger van het bericht dat de controle uitlokte, niet lezen. Gebruik de filtertypen **E-mailonderwerp**, **Afzenderadres van e-mail**, **E-mailtekst** en **Ontvangeradres van e-mail** om op de inhoud van de e-mail te toetsen.
 
 ## Voorbeeldconfiguraties
 
@@ -221,15 +219,15 @@ Zet het kritieke criterium bovenaan: criteria worden van boven af getoetst, en h
 
 | Criterium | Filters | Overeenkomstvoorwaarde | Acties |
 | --- | --- | --- | --- |
-| Mislukte job | **Email From Address** Gelijk aan `monitoring@legacy-system.com`; **E-mailonderwerp** Bevat `Failed` | **Alle** | De status op offline zetten; een incident verklaren |
-| Geslaagde job | **Email From Address** Gelijk aan `monitoring@legacy-system.com`; **E-mailonderwerp** Bevat `Success` | **Alle** | De status op online zetten |
+| Mislukte job | **Afzenderadres van e-mail** Gelijk aan `monitoring@legacy-system.com`; **E-mailonderwerp** Bevat `Failed` | **Alle** | De status op offline zetten; een incident verklaren |
+| Geslaagde job | **Afzenderadres van e-mail** Gelijk aan `monitoring@legacy-system.com`; **E-mailonderwerp** Bevat `Success` | **Alle** | De status op online zetten |
 
 ### Voorbeeld 3: Heartbeat-monitor (geen e-mail = waarschuwing)
 
 | Criterium | Filters | Acties |
 | --- | --- | --- |
-| E-mail is te laat | **Email Received** Not Recieved In Minutes `60` | De status op offline zetten; een waarschuwing maken |
-| E-mail is binnengekomen | **Email Received** Recieved In Minutes `60` | De status op online zetten |
+| E-mail is te laat | **E-mail ontvangen** Niet ontvangen in minuten `60` | De status op offline zetten; een waarschuwing maken |
+| E-mail is binnengekomen | **E-mail ontvangen** Ontvangen in minuten `60` | De status op online zetten |
 
 Het eerste criterium gaat af als er 60 minuten lang geen e-mail is binnengekomen — handig voor geplande jobs of batchprocessen die een e-mail sturen als ze klaar zijn. Het tweede lost de waarschuwing op zodra er een binnenkomt. Minuten waarin OneUptime zelf geen e-mail ontving, tellen niet mee voor de 60, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
@@ -240,7 +238,7 @@ Een criterium houdt telkens één incident open: zolang het openstaat, openen la
 :::steps
 ### De e-mails kiezen
 
-Geef het criterium een filter dat overeenkomt met de e-mails waarvoor incidenten moeten worden geopend. Om alleen meldingen van uw eigen mensen aan te nemen, gebruikt u **Email From Address** met **Eindigt op** en uw domein, bijvoorbeeld `@example.com`.
+Geef het criterium een filter dat overeenkomt met de e-mails waarvoor incidenten moeten worden geopend. Om alleen meldingen van uw eigen mensen aan te nemen, gebruikt u **Afzenderadres van e-mail** met **Eindigt op** en uw domein, bijvoorbeeld `@example.com`.
 
 ### Het incident verklaren
 
@@ -263,7 +261,7 @@ Vanaf dan behandelt het criterium elke e-mail afzonderlijk:
 
 Elke e-mail krijgt nog steeds een rij in **Monitoringlogboeken**, en **Samenvatting bekijken** op die rij zegt wat de e-mail heeft geopend, of waarom hij niets heeft geopend. Maakt het criterium ook waarschuwingen, dan heet de schakelaar **Voor elke e-mail een nieuw incident en een nieuwe waarschuwing openen**, en opent elke e-mail op dezelfde manier een eigen waarschuwing.
 
-Deze incidenten blijven open tot iemand ze oplost. Met **Incident automatisch oplossen** aan worden ze ook opgelost wanneer een latere e-mail aan een ander criterium voldoet, zoals elk incident; een latere e-mail die aan hetzelfde criterium voldoet, lost de eerdere nooit op. Een controle op ontbrekende e-mail (**Email Received**) is geen e-mail en opent dus nog steeds telkens één incident.
+Deze incidenten blijven open tot iemand ze oplost. Met **Incident automatisch oplossen** aan worden ze ook opgelost wanneer een latere e-mail aan een ander criterium voldoet, zoals elk incident; een latere e-mail die aan hetzelfde criterium voldoet, lost de eerdere nooit op. Een controle op ontbrekende e-mail (**E-mail ontvangen**) is geen e-mail en opent dus nog steeds telkens één incident.
 
 > [!WARNING]
 > **Iedereen die het adres kent, kan incidenten openen.** Houd het adres privé, filter op de afzender zoals hierboven en [stel het adres opnieuw in](#het-e-mailadres-opnieuw-instellen-of-aanpassen) als het uitlekt. Het adres van een afzender kan worden vervalst, dus het filter houdt verdwaalde e-mail tegen, niet iemand die vastbesloten is binnen te komen.
@@ -294,7 +292,7 @@ De titels, beschrijvingen en herstelnotities van de waarschuwingen en incidenten
 
 - **Een titel krijgt van elk één regel.** In een titel wordt elke variabele ingekort tot één regel van hoogstens 150 tekens, die eindigt op `...` als hij langer was. Een titel mag niet langer zijn dan 500 tekens, en een waarschuwing of incident met een te lange titel wordt helemaal niet gemaakt, dus een hele e-mail citeren zou de monitor beletten te waarschuwen bij lange e-mails. Beschrijvingen en herstelnotities krijgen de volledige waarde.
 - **Het adres van deze monitor wordt gemaskeerd.** Het adres werkt als een wachtwoord, dus het wordt gemaskeerd voordat de e-mail wordt opgeslagen, en `{{emailTo}}` luidt `monitor-[REDACTED]@{inbound-domain}` (of `[REDACTED]@{inbound-domain}` bij een aangepast adres).
-- **Een controle op ontbrekende e-mail gebruikt de laatste e-mail.** Opent een criterium **Email Received** een waarschuwing omdat er niet op tijd een e-mail binnenkwam, dan beschrijven de variabelen de laatste e-mail die de monitor heeft ontvangen. Ze zijn leeg als er nog geen is binnengekomen.
+- **Een controle op ontbrekende e-mail gebruikt de laatste e-mail.** Opent een criterium **E-mail ontvangen** een waarschuwing omdat er niet op tijd een e-mail binnenkwam, dan beschrijven de variabelen de laatste e-mail die de monitor heeft ontvangen. Ze zijn leeg als er nog geen is binnengekomen.
 
 ## Weergave Monitorsamenvatting
 
@@ -312,7 +310,7 @@ Klik op **Meer details weergeven** om de rest te zien:
 
 ### Eerdere e-mails
 
-De kaart toont alleen de nieuwste e-mail. Elke e-mail die de monitor toetst, wordt ook naar **Monitoringlogboeken** geschreven: de kolom **E-mail** toont het onderwerp en de afzender, en **Samenvatting bekijken** in de rij toont de hele e-mail op dezelfde manier als de kaart. Een monitor met bewaking uit toetst niets, dus de e-mails die hij ontvangt, krijgen geen rijen. Controleert een van uw criteria **Email Received**, dan schrijft de monitor ook een rij telkens als hij op ontbrekende e-mail controleert. De kolom **E-mail** zegt in die rijen "Scheduled check", en hun **Samenvatting bekijken** toont de nieuwste e-mail op het moment van de controle, of "No email yet" als er nog geen was binnengekomen. Monitoringlogboeken worden standaard één dag bewaard. Op een zelf gehoste server kan een beheerder dat wijzigen met **Logbewaring van monitor (dagen)** in de instellingen van het beheerdashboard.
+De kaart toont alleen de nieuwste e-mail. Elke e-mail die de monitor toetst, wordt ook naar **Monitoringlogboeken** geschreven: de kolom **E-mail** toont het onderwerp en de afzender, en **Samenvatting bekijken** in de rij toont de hele e-mail op dezelfde manier als de kaart. Een monitor met bewaking uit toetst niets, dus de e-mails die hij ontvangt, krijgen geen rijen. Controleert een van uw criteria **E-mail ontvangen**, dan schrijft de monitor ook een rij telkens als hij op ontbrekende e-mail controleert. De kolom **E-mail** zegt in die rijen "Scheduled check", en hun **Samenvatting bekijken** toont de nieuwste e-mail op het moment van de controle, of "No email yet" als er nog geen was binnengekomen. Monitoringlogboeken worden standaard één dag bewaard. Op een zelf gehoste server kan een beheerder dat wijzigen met **Logbewaring van monitor (dagen)** in de instellingen van het beheerdashboard.
 
 ## Zelf gehoste installatie
 

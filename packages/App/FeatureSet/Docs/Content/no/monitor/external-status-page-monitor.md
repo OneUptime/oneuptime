@@ -102,7 +102,7 @@ Velg **Sonder** og et **Overvåkingsintervall** — det starter på **Hvert 5. m
 
 ### Komponenter
 
-Velg komponentene du er avhengig av, så følger monitoren bare med på dem: **External Status Page Component Status** sammenligner bare statusene deres, den samlede statusen er den verste av deres, og **External Status Page Active Incidents** teller bare hendelsene som rammer minst én av dem. Det er fortsatt én kontroll av siden, uansett hvor mange du velger.
+Velg komponentene du er avhengig av, så følger monitoren bare med på dem: **Komponentstatus på ekstern statusside** sammenligner bare statusene deres, den samlede statusen er den verste av deres, og **Aktive hendelser på ekstern statusside** teller bare hendelsene som rammer minst én av dem. Det er fortsatt én kontroll av siden, uansett hvor mange du velger.
 
 Når du åpner **Komponenter**, leser nettleseren din sidens egen liste fra en Atlassian Statuspage, en incident.io-side eller en OneUptime-statusside og viser den i sidens grupper; hver komponent som ikke er i drift, sier hvordan det står til. Et navn du velger, følger med på komponenten med nøyaktig det navnet, uten hensyn til store og små bokstaver: `Copilot` på GitHubs side er ikke `Copilot AI Model Providers`.
 
@@ -129,13 +129,13 @@ Du kan konfigurere kriterier som avgjør når den eksterne tjenesten regnes som 
 
 | Filtertype | Hva den sjekker | Filtervilkår |
 | --- | --- | --- |
-| **External Status Page Is Online** | Om statussiden kan nås og returnerer statusdata | Sann eller Usann |
-| **External Status Page Overall Status** | Den samlede statusen siden melder | Lik, Ikke lik, Inneholder, Inneholder ikke, Starter med, Slutter med |
-| **External Status Page Component Status** | Statusen til hver komponent innenfor avgrensningen (de valgte komponentene, eller gruppens, når de er angitt): I drift, Under vedlikehold, Redusert ytelse, Delvis driftsavbrudd, Større driftsavbrudd eller Fullt driftsavbrudd | Lik, Ikke lik, Inneholder, Inneholder ikke, Starter med, Slutter med |
-| **External Status Page Active Incidents** | Antallet aktive hendelser statussiden melder om nå (bare de som rammer en komponent innenfor avgrensningen, når komponenter eller en gruppe er valgt) | Lik, Ikke lik og de numeriske sammenligningene |
-| **External Status Page Response Time (in ms)** | Hvor lang tid det tar å hente dataene fra statussiden | Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik |
+| **Ekstern statusside er tilkoblet** | Om statussiden kan nås og returnerer statusdata | Sann eller Usann |
+| **Samlet status for ekstern statusside** | Den samlede statusen siden melder | Lik, Ikke lik, Inneholder, Inneholder ikke, Starter med, Slutter med |
+| **Komponentstatus på ekstern statusside** | Statusen til hver komponent innenfor avgrensningen (de valgte komponentene, eller gruppens, når de er angitt): I drift, Under vedlikehold, Redusert ytelse, Delvis driftsavbrudd, Større driftsavbrudd eller Fullt driftsavbrudd | Lik, Ikke lik, Inneholder, Inneholder ikke, Starter med, Slutter med |
+| **Aktive hendelser på ekstern statusside** | Antallet aktive hendelser statussiden melder om nå (bare de som rammer en komponent innenfor avgrensningen, når komponenter eller en gruppe er valgt) | Lik, Ikke lik og de numeriske sammenligningene |
+| **Svartid for ekstern statusside (i ms)** | Hvor lang tid det tar å hente dataene fra statussiden | Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik |
 
-Den samlede statusen er det siden sier, så verdiene varierer med leverandøren: en Atlassian Statuspage melder sin egen beskrivelse, som `All Systems Operational`; en OneUptime-statusside den verste statusen blant komponentene i omfanget, som `under_maintenance`; en feed melder `operational` eller `degraded_performance`; kontrollen av om siden kan nås, melder `reachable` eller `unreachable`. Med valgte komponenter eller en gruppe er det den verste statusen blant dem, på hvilken som helst side. Disse sammenligningene skiller mellom store og små bokstaver. Monitorens sammendrag viser den samlede statusen i ord og farge, slik det viser hver komponents (`under_maintenance` står som **Under vedlikehold**), mens kriteriene sammenligner verdien siden melder. For å varsle om driftsavbrudd er **External Status Page Active Incidents** og **External Status Page Component Status** som regel mer pålitelige.
+Den samlede statusen er det siden sier, så verdiene varierer med leverandøren: en Atlassian Statuspage melder sin egen beskrivelse, som `All Systems Operational`; en OneUptime-statusside den verste statusen blant komponentene i omfanget, som `under_maintenance`; en feed melder `operational` eller `degraded_performance`; kontrollen av om siden kan nås, melder `reachable` eller `unreachable`. Med valgte komponenter eller en gruppe er det den verste statusen blant dem, på hvilken som helst side. Disse sammenligningene skiller mellom store og små bokstaver. Monitorens sammendrag viser den samlede statusen i ord og farge, slik det viser hver komponents (`under_maintenance` står som **Under vedlikehold**), mens kriteriene sammenligner verdien siden melder. For å varsle om driftsavbrudd er **Aktive hendelser på ekstern statusside** og **Komponentstatus på ekstern statusside** som regel mer pålitelige.
 
 På en RSS- eller Atom-feed regnes elementene fra de siste 24 timene som aktive hendelser: et RSS-element ut fra publiseringsdatoen, et Atom-element ut fra oppdateringsdatoen. Et element som er datert fram i tid, regnes først fra datoen sin.
 
@@ -178,7 +178,7 @@ Mens en pågående planlagt vedlikeholdshendelse berører en ressurs, fordi den 
 :::steps
 ### Legg til kriteriet
 
-Klikk **Legg til kriterier** i kriteriene til monitoren. Gi det filteret **External Status Page Component Status**, **Lik**, **Under vedlikehold**, og velg vedlikeholdsstatusen din i **Endre overvåkingsstatus til**.
+Klikk **Legg til kriterier** i kriteriene til monitoren. Gi det filteret **Komponentstatus på ekstern statusside**, **Lik**, **Under vedlikehold**, og velg vedlikeholdsstatusen din i **Endre overvåkingsstatus til**.
 
 ### Flytt det helt øverst
 

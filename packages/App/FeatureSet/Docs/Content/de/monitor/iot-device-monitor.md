@@ -139,14 +139,14 @@ Jede Serie trägt das Label `device.id` des Geräts sowie die Attribute `iot.dev
 
 ## Überwachungskriterien
 
-Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem Schwellenwert. Die Kriterien eines IoT-Geräte-Monitors bieten einen **Filtertyp**, **Metric Value**: Jede Regel prüft den Metrikwert, mit diesen Feldern.
+Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem Schwellenwert. Die Kriterien eines IoT-Geräte-Monitors bieten einen **Filtertyp**, **Metrikwert**: Jede Regel prüft den Metrikwert, mit diesen Feldern.
 
 | Feld | Was es tut |
 | --- | --- |
-| **Filtertyp** | Immer **Metric Value**, die einzige Prüfung, die dieser Monitor bietet. |
+| **Filtertyp** | Immer **Metrikwert**, die einzige Prüfung, die dieser Monitor bietet. |
 | **Metrikvariable auswählen** | Die zu prüfende Abfrage oder Formel, über ihren Variablennamen. |
-| **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen, im ganzen Fenster) oder **Any Value** (einer genügt). |
-| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. **Keine Daten** trifft zu, wenn die Abfrage im Zeitfenster nichts lieferte, **Daten vorhanden**, wenn sie etwas lieferte. **Steigt voraussichtlich über** und **Fällt voraussichtlich unter** treffen zu, wenn der Trend der Metrik im Zeitfenster am Ende der unter **Prognosezeitraum** gewählten Zeit jenseits des Schwellenwerts liegt. |
+| **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert**, **Alle Werte** (jeder Wert muss zutreffen, im ganzen Fenster) oder **Beliebiger Wert** (einer genügt). |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomal hoch**, **Anomal niedrig** oder **Anomal**. **Keine Daten** trifft zu, wenn die Abfrage im Zeitfenster nichts lieferte, **Daten vorhanden**, wenn sie etwas lieferte. **Steigt voraussichtlich über** und **Fällt voraussichtlich unter** treffen zu, wenn der Trend der Metrik im Zeitfenster am Ende der unter **Prognosezeitraum** gewählten Zeit jenseits des Schwellenwerts liegt. |
 | **Schwellenwert** | Der Wert, mit dem verglichen wird. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |

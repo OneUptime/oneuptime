@@ -128,7 +128,7 @@ Gegevens die het script teruggeeft, worden naar JSON geserialiseerd voordat ze w
 
 ### Waarschuwen op de teruggegeven gegevens
 
-Wat het script als `data` teruggeeft, is de **Result Value** van de monitor, die een criterium kan vergelijken. Is `data` een object of een array, vul dan **Veldpad (optioneel)** in op het Result Value-filter om één veld ervan te vergelijken, bijvoorbeeld `status`, `timings.loadTime` of `errors[0].message`. Het filter wordt getoetst aan de gegevens van elke browser en elk schermformaat waarop de monitor draait, en komt overeen als een ervan overeenkomt. Zie [Waarschuwen op de teruggegeven gegevens](/docs/monitor/custom-code-monitor#waarschuwen-op-de-teruggegeven-gegevens) voor hoe paden en voorwaarden werken.
+Wat het script als `data` teruggeeft, is de **Resultaatwaarde** van de monitor, die een criterium kan vergelijken. Is `data` een object of een array, vul dan **Veldpad (optioneel)** in op het Resultaatwaarde-filter om één veld ervan te vergelijken, bijvoorbeeld `status`, `timings.loadTime` of `errors[0].message`. Het filter wordt getoetst aan de gegevens van elke browser en elk schermformaat waarop de monitor draait, en komt overeen als een ervan overeenkomt. Zie [Waarschuwen op de teruggegeven gegevens](/docs/monitor/custom-code-monitor#waarschuwen-op-de-teruggegeven-gegevens) voor hoe paden en voorwaarden werken.
 
 ## Schermafbeeldingen
 
@@ -232,10 +232,10 @@ Een uitvoering kan hoogstens 100 metrieken vastleggen, alleen met numerieke waar
 | Filtertype | Wat het controleert |
 | --- | --- |
 | **Fout** | De fout die een uitvoering gooide, als die er is. |
-| **Result Value** | De `data` die een uitvoering teruggaf. |
+| **Resultaatwaarde** | De `data` die een uitvoering teruggaf. |
 | **Uitvoeringstijd (in ms)** | Hoe lang een uitvoering duurde. |
 | **Browsertype** | De browser die een uitvoering gebruikte: **Gelijk aan** of **Niet gelijk aan**. |
-| **Screen Size** | Het schermformaat dat een uitvoering gebruikte: **Gelijk aan** of **Niet gelijk aan**. |
+| **Schermgrootte** | Het schermformaat dat een uitvoering gebruikte: **Gelijk aan** of **Niet gelijk aan**. |
 
 Elk filter wordt aan elke uitvoering getoetst en komt overeen zodra één uitvoering overeenkomt. Filters worden los van elkaar getoetst, niet per uitvoering: **Fout** Is niet leeg samen met **Browsertype** Gelijk aan `Firefox` komt overeen als er een uitvoering mislukte en een van de uitvoeringen Firefox gebruikte, niet alleen als de Firefox-uitvoering mislukte. Wilt u één browser apart volgen, geef die dan een eigen monitor.
 

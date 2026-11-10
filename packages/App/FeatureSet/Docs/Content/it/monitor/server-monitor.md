@@ -16,7 +16,7 @@ Un monitor Server / VM sorveglia una macchina tramite l'agente di infrastruttura
 
 L'agente viene eseguito come servizio di sistema. Ogni 30 secondi raccoglie un report e lo invia al vostro URL di OneUptime, firmato con la chiave segreta del monitor. OneUptime salva i valori come metriche del monitor e verifica il report rispetto ai criteri del monitor.
 
-Il silenzio viene controllato a parte. Ogni minuto OneUptime rivaluta i criteri **Is Online** di ogni monitor Server / VM che non comunica da 3 minuti o più, e un server in silenzio più a lungo di quanto consentano i suoi criteri (3 minuti per impostazione predefinita) conta come offline. Un monitor senza criteri **Is Online** non viene mai segnato offline solo perché l'agente tace. Per quel silenzio conta solo il tempo in cui OneUptime stava ricevendo: il tempo in cui OneUptime stesso si riavviava, veniva aggiornato o recuperava il ritardo non conta, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
+Il silenzio viene controllato a parte. Ogni minuto OneUptime rivaluta i criteri **Online** di ogni monitor Server / VM che non comunica da 3 minuti o più, e un server in silenzio più a lungo di quanto consentano i suoi criteri (3 minuti per impostazione predefinita) conta come offline. Un monitor senza criteri **Online** non viene mai segnato offline solo perché l'agente tace. Per quel silenzio conta solo il tempo in cui OneUptime stava ricevendo: il tempo in cui OneUptime stesso si riavviava, veniva aggiornato o recuperava il ritardo non conta, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ```mermaid title="Come un monitor Server / VM riceve i suoi dati"
 flowchart TB
@@ -215,26 +215,26 @@ I criteri decidono quando il monitor è online, degradato od offline, e quando a
 
 | Tipo di filtro | Cosa controlla | Condizioni del filtro |
 | --- | --- | --- |
-| Is Online | Se l'agente ha comunicato di recente (negli ultimi 3 minuti, per impostazione predefinita) | Vero, Falso |
-| CPU Usage (in %) | Utilizzo complessivo della CPU | Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a |
-| Memory Usage (in %) | Memoria in uso | Come per la CPU |
-| Disk Usage (in %) | Utilizzo del disco indicato in **Percorso del disco** | Come per la CPU |
-| Swap Usage (in %) | Swap in uso | Come per la CPU |
-| CPU IO Wait (in %) | Quota del tempo di CPU passata ad attendere l'I/O | Come per la CPU |
-| Load Average (1 minute) | Media di carico dell'ultimo minuto | Come per la CPU |
-| Load Average (5 minute) | Media di carico degli ultimi 5 minuti | Come per la CPU |
-| Load Average (15 minute) | Media di carico degli ultimi 15 minuti | Come per la CPU |
-| Server Process Name | Se è in esecuzione un processo con questo nome (senza distinzione tra maiuscole e minuscole) | Is Executing, Is Not Executing |
-| Server Process Command | Se è in esecuzione un processo con esattamente questa riga di comando (senza distinzione tra maiuscole e minuscole) | Is Executing, Is Not Executing |
-| Server Process PID | Se è in esecuzione un processo con questo PID | Is Executing, Is Not Executing |
+| Online | Se l'agente ha comunicato di recente (negli ultimi 3 minuti, per impostazione predefinita) | Vero, Falso |
+| Utilizzo CPU (in %) | Utilizzo complessivo della CPU | Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a |
+| Utilizzo della memoria (in %) | Memoria in uso | Come per la CPU |
+| Utilizzo del disco (in %) | Utilizzo del disco indicato in **Percorso del disco** | Come per la CPU |
+| Utilizzo dello swap (in %) | Swap in uso | Come per la CPU |
+| Attesa I/O della CPU (in %) | Quota del tempo di CPU passata ad attendere l'I/O | Come per la CPU |
+| Carico medio (1 minuto) | Media di carico dell'ultimo minuto | Come per la CPU |
+| Carico medio (5 minuti) | Media di carico degli ultimi 5 minuti | Come per la CPU |
+| Carico medio (15 minuti) | Media di carico degli ultimi 15 minuti | Come per la CPU |
+| Nome del processo del server | Se è in esecuzione un processo con questo nome (senza distinzione tra maiuscole e minuscole) | È in esecuzione, Non è in esecuzione |
+| Comando del processo del server | Se è in esecuzione un processo con esattamente questa riga di comando (senza distinzione tra maiuscole e minuscole) | È in esecuzione, Non è in esecuzione |
+| PID del processo del server | Se è in esecuzione un processo con questo PID | È in esecuzione, Non è in esecuzione |
 
 **Percorso del disco** accetta un punto di montaggio o un dispositivo, come `/`, `/mnt/data`, `C:\` o `/dev/sda1`; se lasciato vuoto vale `/`. Inserite `*` per controllare ogni disco comunicato dall'agente: ogni disco che supera la soglia riceve un avviso proprio, così un secondo disco che si riempie non resta nascosto dietro l'avviso aperto del primo. Maiuscole e minuscole e un `/` o `\` finale non contano, e un dispositivo indica il disco montato da esso. Un percorso che non indica nessun disco comunicato dall'agente non corrisponde. Quando l'agente non riesce a leggere i processi del server, il suo report non ha un elenco dei processi e nessun filtro sui processi corrisponde, che controlli che un processo sia in esecuzione o che non lo sia.
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella di controllo a parte nel modulo dei criteri, non una condizione del filtro. È disponibile per **Is Online** e per ogni tipo di filtro numerico. Attivatela per confrontare un aggregato – scelto in **Valuta** (Media, Somma, Maximum Value, Minimum Value, All Values, Any Value) sulla finestra impostata da **Per gli ultimi (in minuti)** – invece del valore dell'ultimo controllo. Su un filtro **Is Online**, la finestra è il tempo per cui l'agente può restare in silenzio prima che il server conti come offline.
+**Valuta questo criterio su un periodo di tempo** è una casella di controllo a parte nel modulo dei criteri, non una condizione del filtro. È disponibile per **Online** e per ogni tipo di filtro numerico. Attivatela per confrontare un aggregato – scelto in **Valuta** (Media, Somma, Valore massimo, Valore minimo, Tutti i valori, Qualsiasi valore) sulla finestra impostata da **Per gli ultimi (in minuti)** – invece del valore dell'ultimo controllo. Su un filtro **Online**, la finestra è il tempo per cui l'agente può restare in silenzio prima che il server conti come offline.
 
-**All Values** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Any Value** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
+L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
 
 **Se nessun dato** controlla cosa succede finché la finestra non può sostenere il criterio:
 
@@ -245,18 +245,18 @@ I criteri decidono quando il monitor è online, degradato od offline, e quando a
 | **Treat As Zero** | La finestra viene confrontata come un singolo zero. | Contatori, in cui «nessun evento» significa davvero zero. |
 
 > [!TIP]
-> CPU e carico hanno continuamente brevi picchi. Valutateli su qualche minuto con **Media** o **All Values** invece di avvisare su un singolo report.
+> CPU e carico hanno continuamente brevi picchi. Valutateli su qualche minuto con **Media** o **Tutti i valori** invece di avvisare su un singolo report.
 
 ### Esempi di criteri
 
 | Obiettivo | Tipo di filtro | Condizione del filtro | Valore |
 | --- | --- | --- | --- |
-| Segnare il server offline quando l'agente smette di comunicare | Is Online | Falso | — |
-| Avvisare quando l'utilizzo della CPU supera il 90% | CPU Usage (in %) | Maggiore di | `90` |
-| Avvisare quando il disco root è pieno oltre l'85% | Disk Usage (in %), **Percorso del disco** `/` | Maggiore di | `85` |
-| Avvisare per ogni disco pieno oltre l'85%, un avviso per disco | Disk Usage (in %), **Percorso del disco** `*` | Maggiore di | `85` |
-| Avvisare quando l'utilizzo della memoria supera l'80% | Memory Usage (in %) | Maggiore di | `80` |
-| Avvisare quando nginx smette di essere in esecuzione | Server Process Name | Is Not Executing | `nginx` |
+| Segnare il server offline quando l'agente smette di comunicare | Online | Falso | — |
+| Avvisare quando l'utilizzo della CPU supera il 90% | Utilizzo CPU (in %) | Maggiore di | `90` |
+| Avvisare quando il disco root è pieno oltre l'85% | Utilizzo del disco (in %), **Percorso del disco** `/` | Maggiore di | `85` |
+| Avvisare per ogni disco pieno oltre l'85%, un avviso per disco | Utilizzo del disco (in %), **Percorso del disco** `*` | Maggiore di | `85` |
+| Avvisare quando l'utilizzo della memoria supera l'80% | Utilizzo della memoria (in %) | Maggiore di | `80` |
+| Avvisare quando nginx smette di essere in esecuzione | Nome del processo del server | Non è in esecuzione | `nginx` |
 
 ## Risoluzione dei problemi
 
@@ -280,7 +280,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details Il monitor non va mai offline quando il server è giù
-Solo un criterio **Is Online** segna offline un server silenzioso. Aggiungetene uno con la **Condizione del filtro** impostata su **Falso**, e impostate lo stato del monitor che applica.
+Solo un criterio **Online** segna offline un server silenzioso. Aggiungetene uno con la **Condizione del filtro** impostata su **Falso**, e impostate lo stato del monitor che applica.
 :::
 
 :::details I report non passano attraverso il proxy

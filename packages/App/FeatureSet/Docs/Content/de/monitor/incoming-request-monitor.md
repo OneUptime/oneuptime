@@ -53,7 +53,7 @@ Wählen Sie unter **Monitortyp** die Option **Eingehende Anfrage** — sie ist e
 
 ### Die Kriterien prüfen
 
-Der Schritt **Kriterien** beginnt mit [den Standardkriterien](#was-sie-von-anfang-an-bekommen). Für einen Heartbeat klicken Sie auf **Kriterien hinzufügen** und geben dem neuen Kriterium einen Filter **Eingehende Anfrage** / **Not Recieved In Minutes**, der den Status auf offline ändert und einen Vorfall eröffnet, mit eingeschaltetem **Vorfall automatisch beheben**. Ziehen Sie es dann an den Anfang der Liste — warum, steht unter [Beispielkriterien](#beispielkriterien).
+Der Schritt **Kriterien** beginnt mit [den Standardkriterien](#was-sie-von-anfang-an-bekommen). Für einen Heartbeat klicken Sie auf **Kriterien hinzufügen** und geben dem neuen Kriterium einen Filter **Eingehende Anfrage** / **Nicht empfangen in Minuten**, der den Status auf offline ändert und einen Vorfall eröffnet, mit eingeschaltetem **Vorfall automatisch beheben**. Ziehen Sie es dann an den Anfang der Liste — warum, steht unter [Beispielkriterien](#beispielkriterien).
 
 ### Den Monitor erstellen
 
@@ -205,7 +205,7 @@ Das passt zum häufigen Fall, dass der Absender seinen eigenen Zustand in der Nu
 Ändern Sie den Wert auf das, was Ihr Absender tatsächlich schickt (`"status":"firing"`, `FAILED` und so weiter) — der Vergleich ist eine Teilzeichenkettensuche mit Beachtung der Groß- und Kleinschreibung über den ganzen Body, Schlüssel eingeschlossen, also trifft auch `{"error":null}` auf `error` zu.
 
 > [!NOTE]
-> Diese Standardkriterien sind **kein** Totmannschalter: Nichts davon löst aus, wenn keine Anfragen mehr kommen. Wenn Sie bei Stille alarmiert werden wollen, fügen Sie ein Kriterium **Eingehende Anfrage** / **Not Recieved In Minutes** hinzu, wie unten beschrieben.
+> Diese Standardkriterien sind **kein** Totmannschalter: Nichts davon löst aus, wenn keine Anfragen mehr kommen. Wenn Sie bei Stille alarmiert werden wollen, fügen Sie ein Kriterium **Eingehende Anfrage** / **Nicht empfangen in Minuten** hinzu, wie unten beschrieben.
 
 ### Verfügbare Filtertypen
 
@@ -213,9 +213,9 @@ Das passt zum häufigen Fall, dass der Absender seinen eigenen Zustand in der Nu
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | Eingehende Anfrage | Ob in einem Zeitfenster eine Anfrage einging | Die einzige Prüfung, die auslösen kann, wenn nichts ankommt |
 | Anfragetext | Den Body der Anfrage | Teilzeichenkettensuche. Objekt-Bodys werden als kompaktes JSON verglichen |
-| Request Header | Die Namen der Anfrage-Header | Exakter Vergleich mit einem ganzen Header-Namen, ohne Beachtung der Groß- und Kleinschreibung |
-| Request Header Value | Die Werte der Anfrage-Header | Exakter Vergleich mit einem ganzen Header-Wert, ohne Beachtung der Groß- und Kleinschreibung |
-| JavaScript Expression | Jeden Ausdruck über `requestBody` und `requestHeaders` | Die flexibelste Option — siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression) |
+| Anfrage-Header | Die Namen der Anfrage-Header | Exakter Vergleich mit einem ganzen Header-Namen, ohne Beachtung der Groß- und Kleinschreibung |
+| Anfrage-Header-Wert | Die Werte der Anfrage-Header | Exakter Vergleich mit einem ganzen Header-Wert, ohne Beachtung der Groß- und Kleinschreibung |
+| JavaScript-Ausdruck | Jeden Ausdruck über `requestBody` und `requestHeaders` | Die flexibelste Option — siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression) |
 
 ### Filterbedingungen
 
@@ -223,9 +223,9 @@ Jeder Filtertyp bietet eigene Bedingungen:
 
 | Filtertyp | Bedingungen |
 | --- | --- |
-| **Eingehende Anfrage** | **Recieved In Minutes** — innerhalb der angegebenen Zahl von Minuten ging eine Anfrage ein. **Not Recieved In Minutes** — innerhalb der angegebenen Zahl von Minuten ging keine Anfrage ein. (Das Dashboard schreibt sie so.) |
-| **Anfragetext**, **Request Header**, **Request Header Value** | **Enthält** und **Enthält nicht** |
-| **JavaScript Expression** | **Evaluates To True** |
+| **Eingehende Anfrage** | **Empfangen in Minuten** — innerhalb der angegebenen Zahl von Minuten ging eine Anfrage ein. **Nicht empfangen in Minuten** — innerhalb der angegebenen Zahl von Minuten ging keine Anfrage ein. |
+| **Anfragetext**, **Anfrage-Header**, **Anfrage-Header-Wert** | **Enthält** und **Enthält nicht** |
+| **JavaScript-Ausdruck** | **Ergibt wahr** |
 
 > [!NOTE]
 > Header-Namen und -Werte werden kleingeschrieben verglichen, gegen den ganzen Namen oder Wert, nicht als Teilzeichenkette: `application/json` trifft nicht auf `application/json; charset=utf-8` zu. Nur **Anfragetext** sucht nach Teilzeichenketten. Header, die Ihr Proxy oder der Load Balancer von OneUptime hinzufügt (`x-forwarded-for`, `x-real-ip`), werden ebenfalls gespeichert.
@@ -239,7 +239,7 @@ Objekt-Bodys werden als kompaktes JSON ohne Leerzeichen verglichen, ein Filter *
 | Feld | Wert |
 | --- | --- |
 | **Filtertyp** | Eingehende Anfrage |
-| **Filterbedingung** | Not Recieved In Minutes |
+| **Filterbedingung** | Nicht empfangen in Minuten |
 | **Wert** | `10` |
 
 #### Anhand des Anfragetexts als beeinträchtigt markieren
@@ -254,9 +254,9 @@ Objekt-Bodys werden als kompaktes JSON ohne Leerzeichen verglichen, ein Filter *
 > Setzen Sie den Totmannschalter **über** die Standardkriterien. Kriterien werden von oben geprüft, und das erste, das zutrifft, entscheidet. Die Prüfung im Hintergrund liest die letzte Anfrage erneut, das Online-Standardkriterium — "Anfragetext Enthält nicht `error`" — trifft also weiter darauf zu, und ein Kriterium darunter kommt nie an die Reihe. **Kriterien hinzufügen** fügt ein Kriterium unten an: Ziehen Sie es nach oben.
 
 > [!WARNING]
-> Ein Monitor wird nur dann im Hintergrund erneut geprüft, wenn mindestens eines seiner Kriterien **Eingehende Anfrage** prüft. Ein Monitor, dessen Kriterien nur Anfragetext, Request Header oder einen JavaScript-Ausdruck prüfen, wird geprüft, wenn eine Anfrage eintrifft, und zu keinem anderen Zeitpunkt — er kann also nie von selbst offline gehen. Wenn Sie einen Alarm bei fehlendem Heartbeat wollen, brauchen Sie ein Kriterium **Eingehende Anfrage**.
+> Ein Monitor wird nur dann im Hintergrund erneut geprüft, wenn mindestens eines seiner Kriterien **Eingehende Anfrage** prüft. Ein Monitor, dessen Kriterien nur Anfragetext, Anfrage-Header oder einen JavaScript-Ausdruck prüfen, wird geprüft, wenn eine Anfrage eintrifft, und zu keinem anderen Zeitpunkt — er kann also nie von selbst offline gehen. Wenn Sie einen Alarm bei fehlendem Heartbeat wollen, brauchen Sie ein Kriterium **Eingehende Anfrage**.
 
-Die Prüfung im Hintergrund zählt ganze Minuten und löst aus, sobald *mehr* als der Wert vergangen ist: "Not Recieved In Minutes: 10" löst etwa 11 Minuten nach der letzten Anfrage aus (die Prüfung läuft alle 30 Sekunden). Ein Monitor, der noch nie eine Anfrage erhalten hat, wird so behandelt, als wäre seine Erstellungszeit die letzte Anfrage, dasselbe Kriterium löst bei einem brandneuen Monitor also etwa 11 Minuten nach dem Erstellen aus, auch wenn der Absender nie eingerichtet wurde. Es zählen nur Minuten, in denen OneUptime empfangen hat: Minuten, in denen OneUptime selbst neu startet, aktualisiert wird oder aufholt, zählen nicht, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
+Die Prüfung im Hintergrund zählt ganze Minuten und löst aus, sobald *mehr* als der Wert vergangen ist: "Nicht empfangen in Minuten: 10" löst etwa 11 Minuten nach der letzten Anfrage aus (die Prüfung läuft alle 30 Sekunden). Ein Monitor, der noch nie eine Anfrage erhalten hat, wird so behandelt, als wäre seine Erstellungszeit die letzte Anfrage, dasselbe Kriterium löst bei einem brandneuen Monitor also etwa 11 Minuten nach dem Erstellen aus, auch wenn der Absender nie eingerichtet wurde. Es zählen nur Minuten, in denen OneUptime empfangen hat: Minuten, in denen OneUptime selbst neu startet, aktualisiert wird oder aufholt, zählen nicht, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
 ## Warnungen aus einem anderen System empfangen
 
@@ -347,10 +347,10 @@ Eine vollständige Alertmanager-Konfiguration finden Sie unter [Prometheus Alert
 
 ## Bewährte Vorgehensweisen
 
-1. **Das Zeitfenster passend setzen** — Läuft Ihr Cronjob alle 5 Minuten, setzen Sie die Schwelle "Not Recieved In Minutes" auf 10–15 Minuten, um gelegentliche Verzögerungen aufzufangen, und setzen Sie dieses Kriterium an den Anfang.
+1. **Das Zeitfenster passend setzen** — Läuft Ihr Cronjob alle 5 Minuten, setzen Sie die Schwelle "Nicht empfangen in Minuten" auf 10–15 Minuten, um gelegentliche Verzögerungen aufzufangen, und setzen Sie dieses Kriterium an den Anfang.
 2. **Aussagekräftige Daten senden** — Senden Sie Statusinformationen im Anfragetext, damit Sie feingranulare Kriterien einrichten können.
 3. **POST mit `Content-Type: application/json` verwenden** — alles, was im Body liest, hängt davon ab.
-4. **Die beiden Aufgaben nicht auf einem Monitor mischen** — ein Monitor, der ereignisgesteuerte Warnungen empfängt, hat keinen regelmäßigen Takt, ein Kriterium "Not Recieved In Minutes" darauf würde also flattern. Verwenden Sie für den Totmannschalter einen eigenen Monitor.
+4. **Die beiden Aufgaben nicht auf einem Monitor mischen** — ein Monitor, der ereignisgesteuerte Warnungen empfängt, hat keinen regelmäßigen Takt, ein Kriterium "Nicht empfangen in Minuten" darauf würde also flattern. Verwenden Sie für den Totmannschalter einen eigenen Monitor.
 5. **Den Monitor überwachen** — Sorgen Sie dafür, dass der Dienst, der die Anfragen sendet, eine ordentliche Fehlerbehandlung hat, damit fehlgeschlagene Anfragen nicht unbemerkt bleiben.
 
 ## Fehlerbehebung
@@ -360,14 +360,14 @@ Die `200` wird gesendet, bevor die Anfrage geprüft wird, sie beweist also nicht
 :::
 
 :::details Der Monitor geht nie offline, wenn die Heartbeats ausbleiben
-Nur ein Kriterium **Eingehende Anfrage** (**Not Recieved In Minutes**) bemerkt Stille. Fügen Sie eines hinzu, falls keines da ist, und ziehen Sie es über die Standardkriterien: Das Online-Standardkriterium trifft bei jeder Prüfung im Hintergrund auf die letzte Anfrage zu, und das erste Kriterium, das zutrifft, entscheidet.
+Nur ein Kriterium **Eingehende Anfrage** (**Nicht empfangen in Minuten**) bemerkt Stille. Fügen Sie eines hinzu, falls keines da ist, und ziehen Sie es über die Standardkriterien: Das Online-Standardkriterium trifft bei jeder Prüfung im Hintergrund auf die letzte Anfrage zu, und das erste Kriterium, das zutrifft, entscheidet.
 :::
 
 :::details Ein Filter Anfragetext trifft nie zu
 Senden Sie `Content-Type: application/json` und schreiben Sie den Wert als kompaktes JSON — `"status":"firing"`, ohne Leerzeichen nach dem Doppelpunkt. Ohne JSON- oder Formular-Content-Type wird der Body nicht geparst.
 :::
 
-:::details Ein Filter Request Header trifft nie zu
+:::details Ein Filter Anfrage-Header trifft nie zu
 Header-Namen und -Werte werden als Ganzes verglichen. Geben Sie den vollständigen Wert an, etwa `application/json; charset=utf-8`, statt eines Teils davon.
 :::
 

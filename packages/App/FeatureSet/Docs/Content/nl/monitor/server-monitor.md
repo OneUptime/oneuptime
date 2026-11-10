@@ -16,7 +16,7 @@ Een Server- / VM-monitor bewaakt één machine via de OneUptime-infrastructuurag
 
 De agent draait als systeemservice. Elke 30 seconden verzamelt hij een rapport en stuurt het naar uw OneUptime-URL, ondertekend met de geheime sleutel van de monitor. OneUptime slaat de waarden op als metrieken van de monitor en toetst het rapport aan de criteria van de monitor.
 
-Stilte wordt apart gecontroleerd. Elke minuut evalueert OneUptime opnieuw de **Is Online**-criteria van elke Server- / VM-monitor die 3 minuten of langer niets heeft gerapporteerd, en een server die langer stil is dan zijn criteria toestaan (standaard 3 minuten), telt als offline. Een monitor zonder **Is Online**-criterium wordt nooit offline gemarkeerd alleen omdat de agent stil is gevallen. Voor die stilte telt alleen tijd waarin OneUptime ontving: tijd waarin OneUptime zelf herstartte, werd bijgewerkt of een achterstand inhaalde, telt niet mee, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
+Stilte wordt apart gecontroleerd. Elke minuut evalueert OneUptime opnieuw de **Is online**-criteria van elke Server- / VM-monitor die 3 minuten of langer niets heeft gerapporteerd, en een server die langer stil is dan zijn criteria toestaan (standaard 3 minuten), telt als offline. Een monitor zonder **Is online**-criterium wordt nooit offline gemarkeerd alleen omdat de agent stil is gevallen. Voor die stilte telt alleen tijd waarin OneUptime ontving: tijd waarin OneUptime zelf herstartte, werd bijgewerkt of een achterstand inhaalde, telt niet mee, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
 ```mermaid title="Hoe een Server- / VM-monitor zijn gegevens krijgt"
 flowchart TB
@@ -215,26 +215,26 @@ Criteria bepalen wanneer de monitor online, verminderd of offline is, en wanneer
 
 | Filtertype | Wat het controleert | Filtervoorwaarden |
 | --- | --- | --- |
-| Is Online | Of de agent onlangs heeft gerapporteerd (standaard in de laatste 3 minuten) | Waar, Onwaar |
-| CPU Usage (in %) | Totaal CPU-gebruik | Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan |
-| Memory Usage (in %) | Geheugen in gebruik | Zelfde als CPU |
-| Disk Usage (in %) | Gebruik van de schijf die in **Schijfpad** staat | Zelfde als CPU |
-| Swap Usage (in %) | Swap in gebruik | Zelfde als CPU |
-| CPU IO Wait (in %) | Aandeel van de CPU-tijd dat op I/O wacht | Zelfde als CPU |
-| Load Average (1 minute) | Gemiddelde belasting over de laatste minuut | Zelfde als CPU |
-| Load Average (5 minute) | Gemiddelde belasting over de laatste 5 minuten | Zelfde als CPU |
-| Load Average (15 minute) | Gemiddelde belasting over de laatste 15 minuten | Zelfde als CPU |
-| Server Process Name | Of er een proces met deze naam draait (hoofdletterongevoelig) | Is Executing, Is Not Executing |
-| Server Process Command | Of er een proces met precies deze opdrachtregel draait (hoofdletterongevoelig) | Is Executing, Is Not Executing |
-| Server Process PID | Of er een proces met deze PID draait | Is Executing, Is Not Executing |
+| Is online | Of de agent onlangs heeft gerapporteerd (standaard in de laatste 3 minuten) | Waar, Onwaar |
+| CPU-gebruik (in %) | Totaal CPU-gebruik | Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan |
+| Geheugengebruik (in %) | Geheugen in gebruik | Zelfde als CPU |
+| Schijfgebruik (in %) | Gebruik van de schijf die in **Schijfpad** staat | Zelfde als CPU |
+| Swapgebruik (in %) | Swap in gebruik | Zelfde als CPU |
+| CPU-IO-wachttijd (in %) | Aandeel van de CPU-tijd dat op I/O wacht | Zelfde als CPU |
+| Gemiddelde belasting (1 minuut) | Gemiddelde belasting over de laatste minuut | Zelfde als CPU |
+| Gemiddelde belasting (5 minuten) | Gemiddelde belasting over de laatste 5 minuten | Zelfde als CPU |
+| Gemiddelde belasting (15 minuten) | Gemiddelde belasting over de laatste 15 minuten | Zelfde als CPU |
+| Naam van serverproces | Of er een proces met deze naam draait (hoofdletterongevoelig) | Wordt uitgevoerd, Wordt niet uitgevoerd |
+| Opdracht van serverproces | Of er een proces met precies deze opdrachtregel draait (hoofdletterongevoelig) | Wordt uitgevoerd, Wordt niet uitgevoerd |
+| PID van serverproces | Of er een proces met deze PID draait | Wordt uitgevoerd, Wordt niet uitgevoerd |
 
 **Schijfpad** accepteert een koppelpunt of een apparaat, zoals `/`, `/mnt/data`, `C:\` of `/dev/sda1`; leeg gelaten is het `/`. Vul `*` in om elke schijf te controleren die de agent rapporteert: elke schijf die de drempel overschrijdt, krijgt een eigen waarschuwing, zodat een tweede schijf die volloopt niet verborgen blijft achter de openstaande waarschuwing van de eerste. Hoofdletters en een afsluitende `/` of `\` maken niet uit, en een apparaat staat voor de schijf die ervan is gekoppeld. Een pad dat geen schijf noemt die de agent rapporteert, komt niet overeen. Kan de agent de processen van de server niet lezen, dan heeft zijn rapport geen proceslijst en komt geen procesfilter overeen, of het nu controleert dat een proces draait of dat het niet draait.
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een apart selectievakje in het criteriaformulier, geen filtervoorwaarde. Het is beschikbaar voor **Is Online** en voor elk numeriek filtertype. Zet het aan om een aggregaat te vergelijken – gekozen onder **Evalueren** (Gemiddelde, Som, Maximum Value, Minimum Value, All Values, Any Value) over het venster dat **Voor de laatste (in minuten)** instelt – in plaats van de waarde van de laatste controle. Bij een **Is Online**-filter is het venster hoe lang de agent stil mag zijn voordat de server als offline telt.
+**Evalueer deze criteria over een bepaalde periode** is een apart selectievakje in het criteriaformulier, geen filtervoorwaarde. Het is beschikbaar voor **Is online** en voor elk numeriek filtertype. Zet het aan om een aggregaat te vergelijken – gekozen onder **Evalueren** (Gemiddelde, Som, Maximale waarde, Minimale waarde, Alle waarden, Willekeurige waarde) over het venster dat **Voor de laatste (in minuten)** instelt – in plaats van de waarde van de laatste controle. Bij een **Is online**-filter is het venster hoe lang de agent stil mag zijn voordat de server als offline telt.
 
-**All Values** komt pas overeen als het venster echt met gegevens is gevuld. Een monitor die net is gemaakt, of een monitor waarvan de controles niet meer werden vastgelegd, heeft te weinig geschiedenis om iets over de laatste N minuten te zeggen; het criterium wacht dan in plaats van overeen te komen op de ene meting die het heeft. **Any Value** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en gaat nog steeds meteen af.
+De optie **Alle waarden** komt pas overeen als het venster echt met gegevens is gevuld. Een monitor die net is gemaakt, of een monitor waarvan de controles niet meer werden vastgelegd, heeft te weinig geschiedenis om iets over de laatste N minuten te zeggen; het criterium wacht dan in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en gaat nog steeds meteen af.
 
 **Als geen gegevens** bepaalt wat er gebeurt zolang het venster het criterium niet kan onderbouwen:
 
@@ -245,18 +245,18 @@ Criteria bepalen wanneer de monitor online, verminderd of offline is, en wanneer
 | **Treat As Zero** | Het venster wordt vergeleken als één enkele nul. | Tellers, waarbij "geen gebeurtenissen" echt nul betekent. |
 
 > [!TIP]
-> CPU en belasting pieken voortdurend kort. Evalueer ze over een paar minuten met **Gemiddelde** of **All Values** in plaats van op één enkel rapport te waarschuwen.
+> CPU en belasting pieken voortdurend kort. Evalueer ze over een paar minuten met **Gemiddelde** of **Alle waarden** in plaats van op één enkel rapport te waarschuwen.
 
 ### Voorbeeldcriteria
 
 | Doel | Filtertype | Filtervoorwaarde | Waarde |
 | --- | --- | --- | --- |
-| De server offline markeren als de agent stopt met rapporteren | Is Online | Onwaar | — |
-| Waarschuwen als het CPU-gebruik boven 90% komt | CPU Usage (in %) | Groter dan | `90` |
-| Waarschuwen als de rootschijf meer dan 85% vol is | Disk Usage (in %), **Schijfpad** `/` | Groter dan | `85` |
-| Waarschuwen voor elke schijf die meer dan 85% vol is, één waarschuwing per schijf | Disk Usage (in %), **Schijfpad** `*` | Groter dan | `85` |
-| Waarschuwen als het geheugengebruik boven 80% komt | Memory Usage (in %) | Groter dan | `80` |
-| Waarschuwen als nginx niet meer draait | Server Process Name | Is Not Executing | `nginx` |
+| De server offline markeren als de agent stopt met rapporteren | Is online | Onwaar | — |
+| Waarschuwen als het CPU-gebruik boven 90% komt | CPU-gebruik (in %) | Groter dan | `90` |
+| Waarschuwen als de rootschijf meer dan 85% vol is | Schijfgebruik (in %), **Schijfpad** `/` | Groter dan | `85` |
+| Waarschuwen voor elke schijf die meer dan 85% vol is, één waarschuwing per schijf | Schijfgebruik (in %), **Schijfpad** `*` | Groter dan | `85` |
+| Waarschuwen als het geheugengebruik boven 80% komt | Geheugengebruik (in %) | Groter dan | `80` |
+| Waarschuwen als nginx niet meer draait | Naam van serverproces | Wordt niet uitgevoerd | `nginx` |
 
 ## Problemen oplossen
 
@@ -280,7 +280,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details De monitor gaat nooit offline als de server uitvalt
-Alleen een **Is Online**-criterium markeert een stille server als offline. Voeg er een toe met de **Filtervoorwaarde** op **Onwaar**, en stel de monitorstatus in die het toepast.
+Alleen een **Is online**-criterium markeert een stille server als offline. Voeg er een toe met de **Filtervoorwaarde** op **Onwaar**, en stel de monitorstatus in die het toepast.
 :::
 
 :::details Rapporten komen niet door de proxy

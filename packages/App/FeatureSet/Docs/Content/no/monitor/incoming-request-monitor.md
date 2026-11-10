@@ -47,13 +47,13 @@ Bruk den til å:
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**.
 
-### Velg Incoming Request
+### Velg Innkommende forespørsel
 
-Under **Monitortype** velger du **Incoming Request** — den er en av de vanlige typene øverst. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Under **Monitortype** velger du **Innkommende forespørsel** — den er en av de vanlige typene øverst. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Gå gjennom kriteriene
 
-Trinnet **Kriterier** starter med [standardkriteriene](#hva-du-får-fra-start). For et heartbeat klikker du på **Legg til kriterier** og gir det nye kriteriet et filter **Incoming Request** / **Not Recieved In Minutes** som endrer statusen til frakoblet og erklærer en hendelse, med **Løs hendelse automatisk** slått på. Dra det deretter øverst i listen — se [Eksempler på kriterier](#eksempler-på-kriterier) for hvorfor.
+Trinnet **Kriterier** starter med [standardkriteriene](#hva-du-får-fra-start). For et heartbeat klikker du på **Legg til kriterier** og gir det nye kriteriet et filter **Innkommende forespørsel** / **Ikke mottatt innen (minutter)** som endrer statusen til frakoblet og erklærer en hendelse, med **Løs hendelse automatisk** slått på. Dra det deretter øverst i listen — se [Eksempler på kriterier](#eksempler-på-kriterier) for hvorfor.
 
 ### Opprett monitoren
 
@@ -205,17 +205,17 @@ Dette passer for det vanlige tilfellet der avsenderen rapporterer sin egen helse
 Endre verdien til det avsenderen faktisk sender (`"status":"firing"`, `FAILED` og så videre) — sammenligningen er et søk etter en delstreng i hele teksten, nøkler inkludert, som skiller mellom store og små bokstaver, så også `{"error":null}` samsvarer med `error`.
 
 > [!NOTE]
-> Disse standardene er **ikke** en dødmannsbryter: ingenting her utløses når forespørslene slutter å komme. Vil du bli varslet ved stillhet, legger du til et kriterium **Incoming Request** / **Not Recieved In Minutes** som beskrevet nedenfor.
+> Disse standardene er **ikke** en dødmannsbryter: ingenting her utløses når forespørslene slutter å komme. Vil du bli varslet ved stillhet, legger du til et kriterium **Innkommende forespørsel** / **Ikke mottatt innen (minutter)** som beskrevet nedenfor.
 
 ### Tilgjengelige filtertyper
 
 | Filtertype | Sjekker | Merknader |
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Incoming Request | Om en forespørsel er mottatt innenfor et tidsvindu | Den eneste kontrollen som kan utløses når ingenting kommer |
+| Innkommende forespørsel | Om en forespørsel er mottatt innenfor et tidsvindu | Den eneste kontrollen som kan utløses når ingenting kommer |
 | Forespørselstekst | Forespørselsteksten | Søk etter en delstreng. Objekter som tekst sammenlignes som kompakt JSON |
-| Request Header | Navnene på forespørselens headere | Nøyaktig sammenligning med et helt headernavn, uten hensyn til store og små bokstaver |
-| Request Header Value | Verdiene til forespørselens headere | Nøyaktig sammenligning med en hel headerverdi, uten hensyn til store og små bokstaver |
-| JavaScript Expression | Ethvert uttrykk over `requestBody` og `requestHeaders` | Det mest fleksible alternativet — se [JavaScript-uttrykk](/docs/monitor/javascript-expression) |
+| Forespørselshode | Navnene på forespørselens headere | Nøyaktig sammenligning med et helt headernavn, uten hensyn til store og små bokstaver |
+| Verdi for forespørselshode | Verdiene til forespørselens headere | Nøyaktig sammenligning med en hel headerverdi, uten hensyn til store og små bokstaver |
+| JavaScript-uttrykk | Ethvert uttrykk over `requestBody` og `requestHeaders` | Det mest fleksible alternativet — se [JavaScript-uttrykk](/docs/monitor/javascript-expression) |
 
 ### Filtervilkår
 
@@ -223,9 +223,9 @@ Hver filtertype har sine egne vilkår:
 
 | Filtertype | Vilkår |
 | --- | --- |
-| **Incoming Request** | **Recieved In Minutes** — en forespørsel er mottatt innenfor det angitte antallet minutter. **Not Recieved In Minutes** — ingen forespørsel er mottatt innenfor det angitte antallet minutter. (Dashbordet staver dem slik.) |
-| **Forespørselstekst**, **Request Header**, **Request Header Value** | **Inneholder** og **Inneholder ikke** |
-| **JavaScript Expression** | **Evaluates To True** |
+| **Innkommende forespørsel** | **Mottatt innen (minutter)** — en forespørsel er mottatt innenfor det angitte antallet minutter. **Ikke mottatt innen (minutter)** — ingen forespørsel er mottatt innenfor det angitte antallet minutter. |
+| **Forespørselstekst**, **Forespørselshode**, **Verdi for forespørselshode** | **Inneholder** og **Inneholder ikke** |
+| **JavaScript-uttrykk** | **Evalueres til sann** |
 
 > [!NOTE]
 > Headernavn og -verdier sammenlignes med små bokstaver og med hele navnet eller hele verdien, ikke som delstreng: `application/json` samsvarer ikke med `application/json; charset=utf-8`. Bare **Forespørselstekst** søker etter en delstreng. Headere som proxyen din eller OneUptimes egen lastbalanserer legger til (`x-forwarded-for`, `x-real-ip`), lagres også.
@@ -238,8 +238,8 @@ Objekter som tekst sammenlignes som kompakt JSON uten mellomrom, så et filter *
 
 | Felt | Verdi |
 | --- | --- |
-| **Filtertype** | Incoming Request |
-| **Filtervilkår** | Not Recieved In Minutes |
+| **Filtertype** | Innkommende forespørsel |
+| **Filtervilkår** | Ikke mottatt innen (minutter) |
 | **Verdi** | `10` |
 
 #### Marker som redusert ut fra innholdet i forespørselsteksten
@@ -254,9 +254,9 @@ Objekter som tekst sammenlignes som kompakt JSON uten mellomrom, så et filter *
 > Legg dødmannsbryteren **over** standardkriteriene. Kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør. Bakgrunnskontrollen leser den siste forespørselen på nytt, så standardkriteriet for online — "Forespørselstekst Inneholder ikke `error`" — fortsetter å samsvare med den, og et kriterium under det kommer aldri til. **Legg til kriterier** legger til et kriterium nederst: dra det opp.
 
 > [!WARNING]
-> En monitor evalueres bare på nytt i bakgrunnen hvis minst ett av kriteriene sjekker **Incoming Request**. En monitor der kriteriene bare sjekker forespørselsteksten, Request Header eller et JavaScript-uttrykk, evalueres når en forespørsel kommer, og ikke på noe annet tidspunkt — så den kan aldri bli frakoblet av seg selv. Vil du ha en alarm for manglende heartbeat, trenger du et kriterium med **Incoming Request**.
+> En monitor evalueres bare på nytt i bakgrunnen hvis minst ett av kriteriene sjekker **Innkommende forespørsel**. En monitor der kriteriene bare sjekker forespørselsteksten, Forespørselshode eller et JavaScript-uttrykk, evalueres når en forespørsel kommer, og ikke på noe annet tidspunkt — så den kan aldri bli frakoblet av seg selv. Vil du ha en alarm for manglende heartbeat, trenger du et kriterium med **Innkommende forespørsel**.
 
-Bakgrunnskontrollen teller hele minutter og utløses så snart *mer* enn verdien har gått: "Not Recieved In Minutes: 10" utløses omtrent 11 minutter etter den siste forespørselen (kontrollen kjører hvert 30. sekund). En monitor som aldri har mottatt en forespørsel, behandles som om opprettelsestidspunktet var den siste forespørselen, så det samme kriteriet på en helt ny monitor utløses omtrent 11 minutter etter at du oppretter den, selv om avsenderen aldri ble koblet til. Bare minutter da OneUptime tok imot, teller med: minutter mens OneUptime selv starter på nytt, oppgraderes eller tar igjen etterslep, teller ikke, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+Bakgrunnskontrollen teller hele minutter og utløses så snart *mer* enn verdien har gått: "Ikke mottatt innen (minutter): 10" utløses omtrent 11 minutter etter den siste forespørselen (kontrollen kjører hvert 30. sekund). En monitor som aldri har mottatt en forespørsel, behandles som om opprettelsestidspunktet var den siste forespørselen, så det samme kriteriet på en helt ny monitor utløses omtrent 11 minutter etter at du oppretter den, selv om avsenderen aldri ble koblet til. Bare minutter da OneUptime tok imot, teller med: minutter mens OneUptime selv starter på nytt, oppgraderes eller tar igjen etterslep, teller ikke, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Motta varsler fra et annet system
 
@@ -347,10 +347,10 @@ En fullstendig Alertmanager-konfigurasjon finner du under [Prometheus Alertmanag
 
 ## Beste praksis
 
-1. **Sett tidsvinduet riktig** — Hvis cron-jobben din kjører hvert 5. minutt, setter du terskelen for "Not Recieved In Minutes" til 10–15 minutter for å gi rom for forsinkelser av og til, og legger det kriteriet først.
+1. **Sett tidsvinduet riktig** — Hvis cron-jobben din kjører hvert 5. minutt, setter du terskelen for "Ikke mottatt innen (minutter)" til 10–15 minutter for å gi rom for forsinkelser av og til, og legger det kriteriet først.
 2. **Send med meningsfulle data** — Send statusinformasjon i forespørselsteksten, slik at du kan sette opp detaljerte kriterier.
 3. **Bruk POST med `Content-Type: application/json`** — alt som leser inne i teksten, avhenger av det.
-4. **Ikke bland de to oppgavene på én monitor** — en monitor som mottar hendelsesdrevne varsler, har ingen fast rytme, så et kriterium "Not Recieved In Minutes" på den vil vippe frem og tilbake. Bruk en egen monitor til dødmannsbryteren.
+4. **Ikke bland de to oppgavene på én monitor** — en monitor som mottar hendelsesdrevne varsler, har ingen fast rytme, så et kriterium "Ikke mottatt innen (minutter)" på den vil vippe frem og tilbake. Bruk en egen monitor til dødmannsbryteren.
 5. **Overvåk overvåkingen** — Sørg for at tjenesten som sender forespørslene, håndterer feil skikkelig, slik at mislykkede forespørsler ikke går upåaktet hen.
 
 ## Feilsøking
@@ -360,14 +360,14 @@ En fullstendig Alertmanager-konfigurasjon finner du under [Prometheus Alertmanag
 :::
 
 :::details Monitoren blir aldri frakoblet når heartbeats stopper
-Bare et kriterium med **Incoming Request** (**Not Recieved In Minutes**) kan merke stillhet. Legg til et hvis det ikke finnes, og dra det over standardkriteriene: standardkriteriet for online samsvarer med den siste forespørselen ved hver bakgrunnskontroll, og det første kriteriet som samsvarer, avgjør.
+Bare et kriterium med **Innkommende forespørsel** (**Ikke mottatt innen (minutter)**) kan merke stillhet. Legg til et hvis det ikke finnes, og dra det over standardkriteriene: standardkriteriet for online samsvarer med den siste forespørselen ved hver bakgrunnskontroll, og det første kriteriet som samsvarer, avgjør.
 :::
 
 :::details Et filter på Forespørselstekst samsvarer aldri
 Send `Content-Type: application/json`, og skriv verdien som kompakt JSON — `"status":"firing"`, uten mellomrom etter kolonet. Uten en innholdstype for JSON eller skjema blir teksten ikke tolket.
 :::
 
-:::details Et filter på Request Header samsvarer aldri
+:::details Et filter på Forespørselshode samsvarer aldri
 Headernavn og -verdier sammenlignes i sin helhet. Oppgi hele verdien, som `application/json; charset=utf-8`, i stedet for en del av den.
 :::
 

@@ -84,7 +84,7 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 Un filtre ne restreint qu'une série qui porte son label : `openstack_nova_up` n'a pas de projet, donc un filtre de projet la laisse telle quelle.
 
-Gardez une fenêtre d'au moins trois collectes de ce que vous lisez : 6 minutes pour compute, network, volume et placement, 15 pour identity et image. Une fenêtre plus courte ne contient pas assez de collectes pour que **All Values** désigne une durée.
+Gardez une fenêtre d'au moins trois collectes de ce que vous lisez : 6 minutes pour compute, network, volume et placement, 15 pour identity et image. Une fenêtre plus courte ne contient pas assez de collectes pour que l'option **Toutes les valeurs** désigne une durée.
 
 ## Attributs d'identité
 
@@ -752,8 +752,8 @@ Un critère compare une des requêtes ou formules du moniteur à un seuil. Les c
 | Champ | Rôle |
 | --- | --- |
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
-| **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
-| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** - ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** correspond quand la requête n'a rien envoyé dans la fenêtre, **Données reçues** quand elle a envoyé quoi que ce soit. **Devrait dépasser** et **Devrait passer sous** correspondent quand la tendance de la métrique sur la fenêtre aura franchi le seuil à la fin de l'**Horizon**. |
+| **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale**, **Toutes les valeurs** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Au moins une valeur** (une seule suffit). |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** - ou une condition d'anomalie : **Anormalement élevé**, **Anormalement bas** ou **Anormal**. **Aucune donnée** correspond quand la requête n'a rien envoyé dans la fenêtre, **Données reçues** quand elle a envoyé quoi que ce soit. **Devrait dépasser** et **Devrait passer sous** correspondent quand la tendance de la métrique sur la fenêtre aura franchi le seuil à la fin de l'**Horizon**. |
 | **Seuil** | La valeur à laquelle comparer. Une liste d'unités l'accompagne quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (par défaut), 28, 60 ou 90 jours d'historique. |

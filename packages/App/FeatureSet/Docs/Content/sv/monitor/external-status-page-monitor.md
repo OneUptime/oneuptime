@@ -102,7 +102,7 @@ Välj **Sonder** och ett **Övervakningsintervall** — det börjar på **Var 5:
 
 ### Komponenter
 
-Välj de komponenter du är beroende av, så bevakar monitorn bara dem: **External Status Page Component Status** jämför bara deras statusar, den övergripande statusen är den sämsta av deras, och **External Status Page Active Incidents** räknar bara incidenterna som påverkar minst en av dem. Det är fortfarande en enda kontroll av sidan, hur många du än väljer.
+Välj de komponenter du är beroende av, så bevakar monitorn bara dem: **Komponentstatus på extern statussida** jämför bara deras statusar, den övergripande statusen är den sämsta av deras, och **Aktiva incidenter på extern statussida** räknar bara incidenterna som påverkar minst en av dem. Det är fortfarande en enda kontroll av sidan, hur många du än väljer.
 
 När du öppnar **Komponenter** läser din webbläsare sidans egen lista från en Atlassian Statuspage, en incident.io-sida eller en OneUptime-statussida och visar den i sidans grupper; varje komponent som inte fungerar säger hur det står till. Ett namn du väljer bevakar komponenten med exakt det namnet, utan hänsyn till versaler och gemener: `Copilot` på GitHubs sida är inte `Copilot AI Model Providers`.
 
@@ -129,13 +129,13 @@ Du kan konfigurera kriterier som avgör när den externa tjänsten anses vara on
 
 | Filtertyp | Vad den kontrollerar | Filtervillkor |
 | --- | --- | --- |
-| **External Status Page Is Online** | Om statussidan kan nås och returnerar statusdata | Sant eller Falskt |
-| **External Status Page Overall Status** | Den övergripande status som sidan rapporterar | Lika med, Inte lika med, Innehåller, Innehåller inte, Börjar med, Slutar med |
-| **External Status Page Component Status** | Statusen för varje komponent inom avgränsningen (de valda komponenterna, eller gruppens, när de är angivna): Fungerar, Under underhåll, Försämrad prestanda, Delvis avbrott, Större avbrott eller Fullständigt avbrott | Lika med, Inte lika med, Innehåller, Innehåller inte, Börjar med, Slutar med |
-| **External Status Page Active Incidents** | Antalet incidenter som för närvarande är aktiva på statussidan (bara de som påverkar en komponent inom avgränsningen, när komponenter eller en grupp är valda) | Lika med, Inte lika med och de numeriska jämförelserna |
-| **External Status Page Response Time (in ms)** | Hur lång tid det tar att hämta statussidans data | Större än, Mindre än, Större än eller lika med, Mindre än eller lika med |
+| **Extern statussida är online** | Om statussidan kan nås och returnerar statusdata | Sant eller Falskt |
+| **Övergripande status för extern statussida** | Den övergripande status som sidan rapporterar | Lika med, Inte lika med, Innehåller, Innehåller inte, Börjar med, Slutar med |
+| **Komponentstatus på extern statussida** | Statusen för varje komponent inom avgränsningen (de valda komponenterna, eller gruppens, när de är angivna): Fungerar, Under underhåll, Försämrad prestanda, Delvis avbrott, Större avbrott eller Fullständigt avbrott | Lika med, Inte lika med, Innehåller, Innehåller inte, Börjar med, Slutar med |
+| **Aktiva incidenter på extern statussida** | Antalet incidenter som för närvarande är aktiva på statussidan (bara de som påverkar en komponent inom avgränsningen, när komponenter eller en grupp är valda) | Lika med, Inte lika med och de numeriska jämförelserna |
+| **Svarstid för extern statussida (i ms)** | Hur lång tid det tar att hämta statussidans data | Större än, Mindre än, Större än eller lika med, Mindre än eller lika med |
 
-Den övergripande statusen är det som sidan säger, så värdena varierar mellan leverantörer: en Atlassian Statuspage rapporterar sin egen beskrivning, som `All Systems Operational`; en OneUptime-statussida den sämsta statusen bland sina komponenter i omfånget, som `under_maintenance`; ett flöde rapporterar `operational` eller `degraded_performance`; kontrollen av om sidan kan nås rapporterar `reachable` eller `unreachable`. Med valda komponenter eller en grupp är det den sämsta statusen bland dem, på vilken sida som helst. De här jämförelserna skiljer på versaler och gemener. Monitorns sammanfattning visar den övergripande statusen i ord och färg, precis som varje komponents (`under_maintenance` står som **Under underhåll**), medan kriterierna jämför värdet som sidan rapporterar. För att larma om avbrott är **External Status Page Active Incidents** och **External Status Page Component Status** oftast mer tillförlitliga.
+Den övergripande statusen är det som sidan säger, så värdena varierar mellan leverantörer: en Atlassian Statuspage rapporterar sin egen beskrivning, som `All Systems Operational`; en OneUptime-statussida den sämsta statusen bland sina komponenter i omfånget, som `under_maintenance`; ett flöde rapporterar `operational` eller `degraded_performance`; kontrollen av om sidan kan nås rapporterar `reachable` eller `unreachable`. Med valda komponenter eller en grupp är det den sämsta statusen bland dem, på vilken sida som helst. De här jämförelserna skiljer på versaler och gemener. Monitorns sammanfattning visar den övergripande statusen i ord och färg, precis som varje komponents (`under_maintenance` står som **Under underhåll**), medan kriterierna jämför värdet som sidan rapporterar. För att larma om avbrott är **Aktiva incidenter på extern statussida** och **Komponentstatus på extern statussida** oftast mer tillförlitliga.
 
 I ett RSS- eller Atom-flöde räknas posterna från de senaste 24 timmarna som aktiva incidenter: en RSS-post utifrån sitt publiceringsdatum, en Atom-post utifrån sitt uppdateringsdatum. En post som är daterad framåt i tiden räknas först från sitt datum.
 
@@ -178,7 +178,7 @@ Medan en pågående planerad underhållshändelse berör en resurs, eftersom den
 :::steps
 ### Lägg till kriteriet
 
-Klicka på **Lägg till kriterier** i monitorns kriterier. Ge det filtret **External Status Page Component Status**, **Lika med**, **Under underhåll**, och välj din underhållsstatus i **Ändra övervakningsstatus till**.
+Klicka på **Lägg till kriterier** i monitorns kriterier. Ge det filtret **Komponentstatus på extern statussida**, **Lika med**, **Under underhåll**, och välj din underhållsstatus i **Ändra övervakningsstatus till**.
 
 ### Flytta det högst upp
 
