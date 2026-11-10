@@ -60,13 +60,19 @@ import TelegramService from "../../../../Server/Services/TelegramService";
 import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
 import WebhookService from "../../../../Server/Services/WebhookService";
 import WhatsAppService from "../../../../Server/Services/WhatsAppService";
+import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import BlockedProjectNotifications from "../../../../Server/Utils/Notification/BlockedProjectNotifications";
 import CustomChannelEdition from "../../../../Server/Utils/Notification/CustomChannelEdition";
 import { NotificationDeliveryChannel } from "../../../../Server/Utils/Telemetry/NotificationDeliveryMetrics";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
+import WorkspaceUtil from "../../../../Server/Utils/Workspace/Workspace";
+import { WorkspaceSendMessageResponse } from "../../../../Server/Utils/Workspace/WorkspaceBase";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import Email from "../../../../Types/Email";
 import ObjectID from "../../../../Types/ObjectID";
 import Phone from "../../../../Types/Phone";
+import WorkspaceMessagePayload from "../../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
 
 const BLOCKED_PROJECT_ID: ObjectID = new ObjectID(
@@ -274,6 +280,131 @@ describe("every core sender's refusal is counted under its own channel", () => {
     );
 
     expect(post).toHaveBeenCalledTimes(1);
+    expect(sendCounterCalls).toEqual([]);
+  });
+});
+
+/*
+ * A blocked project's bot posts in no channel (WorkspaceUtil): each channel
+ * - and Microsoft Teams chat - its message names is not sent, under the
+ * workspace it was for, as a channel post (issue #6645). Nothing reaches the
+ * workspace, so nothing else counts it.
+ */
+describe("a blocked project's chat channel posts are counted as not sent", () => {
+  function payload(data: {
+    workspaceType: WorkspaceType;
+    channelNames?: Array<string> | undefined;
+    channelIds?: Array<string> | undefined;
+    chatIds?: Array<string> | undefined;
+  }): WorkspaceMessagePayload {
+    const messagePayload: WorkspaceMessagePayload = {
+      _type: "WorkspaceMessagePayload",
+      channelNames: data.channelNames || [],
+      channelIds: data.channelIds || [],
+      messageBlocks: [],
+      workspaceType: data.workspaceType,
+    };
+
+    if (data.chatIds) {
+      messagePayload.chatIds = data.chatIds;
+    }
+
+    return messagePayload;
+  }
+
+  function notSentPost(channel: string): {
+    value: number;
+    attributes: Record<string, string>;
+  } {
+    return {
+      value: 1,
+      attributes: {
+        "notification.channel": channel,
+        "notification.provider": channel,
+        "notification.provider.config": "project",
+        "notification.on_call_page": "false",
+        "notification.destination": "channel",
+        outcome: "not_sent",
+      },
+    };
+  }
+
+  test("every workspace's: one for each channel and chat its message names", async () => {
+    const getProjectAuth: jest.SpyInstance = jest.spyOn(
+      WorkspaceProjectAuthTokenService,
+      "getProjectAuth",
+    );
+
+    const responses: Array<WorkspaceSendMessageResponse> =
+      await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+        projectId: BLOCKED_PROJECT_ID,
+        messagePayloadsByWorkspace: [
+          payload({
+            workspaceType: WorkspaceType.Slack,
+            channelNames: ["incidents", "ops"],
+          }),
+          payload({
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            channelIds: ["19:a@thread.tacv2"],
+            chatIds: ["19:chat-1@thread.v2"],
+          }),
+          payload({
+            workspaceType: WorkspaceType.Mattermost,
+            channelIds: ["c".repeat(26)],
+          }),
+        ],
+      });
+
+    expect(responses).toHaveLength(3);
+    expect(getProjectAuth).not.toHaveBeenCalled();
+    expect(sendCounterCalls).toEqual([
+      notSentPost("slack"),
+      notSentPost("slack"),
+      notSentPost("microsoft_teams"),
+      notSentPost("microsoft_teams"),
+      notSentPost("mattermost"),
+    ]);
+  });
+
+  test("one workspace's: each channel its message names, once", async () => {
+    const sendMessage: jest.SpyInstance = jest.spyOn(SlackUtil, "sendMessage");
+
+    await WorkspaceUtil.postToWorkspaceChannels({
+      workspaceUserId: "U123",
+      projectOrUserAuthTokenForWorkspace: "xoxb-token",
+      workspaceType: WorkspaceType.Slack,
+      workspaceMessagePayload: payload({
+        workspaceType: WorkspaceType.Slack,
+        channelNames: ["incidents"],
+        channelIds: ["C1"],
+      }),
+      projectId: BLOCKED_PROJECT_ID,
+    });
+
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(sendCounterCalls).toEqual([
+      notSentPost("slack"),
+      notSentPost("slack"),
+    ]);
+  });
+
+  test("a live project's message goes on to its workspace, which counts its posts: none here", async () => {
+    const sendMessage: jest.SpyInstance = jest
+      .spyOn(SlackUtil, "sendMessage")
+      .mockResolvedValue({ workspaceType: WorkspaceType.Slack, threads: [] });
+
+    await WorkspaceUtil.postToWorkspaceChannels({
+      workspaceUserId: "U123",
+      projectOrUserAuthTokenForWorkspace: "xoxb-token",
+      workspaceType: WorkspaceType.Slack,
+      workspaceMessagePayload: payload({
+        workspaceType: WorkspaceType.Slack,
+        channelIds: ["C1"],
+      }),
+      projectId: LIVE_PROJECT_ID,
+    });
+
+    expect(sendMessage).toHaveBeenCalledTimes(1);
     expect(sendCounterCalls).toEqual([]);
   });
 });

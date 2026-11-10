@@ -3,8 +3,14 @@ import {
   CallOutcome,
   getCallOutcome,
   getCallOutcomeStatusMessage,
+  getTimeToCallOutcomeInMs,
 } from "../Utils/CallOutcome";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
+import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import CallStatus from "Common/Types/Call/CallStatus";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import CallLogService from "Common/Server/Services/CallLogService";
@@ -129,8 +135,10 @@ router.post(
         select: {
           _id: true,
           status: true,
+          statusMessage: true,
           statusCallbackToken: true,
           userOnCallLogTimelineId: true,
+          createdAt: true,
         },
         props: {
           isRoot: true,
@@ -183,11 +191,21 @@ router.post(
       });
 
       /*
+       * An answered call's log still says Success once its end is written:
+       * its message, which says how it ended, is what tells a callback
+       * Twilio sent twice that it was.
+       */
+      if (callLog.statusMessage === statusMessage) {
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      /*
        * A bookkeeping stamp on the call's own log, as an SMS's delivery
        * status is (SMS.ts): CallLog has update workflows disabled and no
        * service update hooks, so the full update pipeline is skipped. Only
-       * while the log still says Success, in the same statement: of two
-       * callbacks for one call at once, one writes and the other stops.
+       * while the log still says Success, with the message it had when the
+       * call was placed, in the same statement: of two callbacks for one
+       * call at once, one writes and the other stops.
        */
       const isWritten: boolean =
         await CallLogService.compareAndSetColumnsByIdWithoutHooks({
@@ -198,12 +216,31 @@ router.post(
           },
           expectedData: {
             status: CallStatus.Success,
+            statusMessage: (callLog.statusMessage ?? null) as string,
           },
         });
 
       if (!isWritten) {
         return Response.sendEmptySuccessResponse(req, res);
       }
+
+      /*
+       * How the call ended, for the platform's operator - once, as only the
+       * callback that wrote it gets here (notification.delivery.count).
+       */
+      NotificationDeliveryMetrics.recordDelivery({
+        channel: NotificationDeliveryChannel.Call,
+        provider: NotificationDeliveryProvider.Twilio,
+        providerConfig: getProviderConfigOfCallback(req.query),
+        isOnCallPage: Boolean(callLog.userOnCallLogTimelineId),
+        status: outcome.deliveryStatus,
+        timeToStatusInMs: getTimeToCallOutcomeInMs({
+          outcome: outcome,
+          // The call's log is written as Twilio accepts the call.
+          millisecondsSincePlaced:
+            NotificationDeliveryMetrics.getMillisecondsSince(callLog.createdAt),
+        }),
+      });
 
       if (callLog.userOnCallLogTimelineId) {
         const notification: UserOnCallLogTimeline | null =

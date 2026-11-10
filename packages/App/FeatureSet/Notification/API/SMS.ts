@@ -1,5 +1,12 @@
 import SmsService from "../Services/SmsService";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
+import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
+import Select from "Common/Server/Types/Database/Select";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDeliveryStatus,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
 import TwilioPhoneNumbers, {
@@ -87,6 +94,43 @@ router.post(
   },
 );
 
+// What the delivery-status callback reads of an SMS log.
+export const SMS_LOG_STATUS_CALLBACK_SELECT: Select<SmsLog> = {
+  _id: true,
+  status: true,
+  statusCallbackToken: true,
+  userOnCallLogTimelineId: true,
+  createdAt: true,
+};
+
+/*
+ * How many times a callback writes its status when the log keeps changing
+ * under it: each try reads the log again, and another callback that wrote
+ * first has decided what this one finds.
+ */
+export const MAX_STATUS_WRITE_ATTEMPTS: number = 3;
+
+const FINAL_SMS_STATUSES: ReadonlyArray<SmsStatus> = [
+  SmsStatus.Delivered,
+  SmsStatus.Undelivered,
+  SmsStatus.Failed,
+];
+
+/*
+ * Whether a status a callback brings is older than the log's: one still on
+ * the way (Sending, Sent) after the SMS reached a final one.
+ */
+export function isStaleSmsStatus(data: {
+  current: SmsStatus | null | undefined;
+  next: SmsStatus;
+}): boolean {
+  return Boolean(
+    data.current &&
+      FINAL_SMS_STATUSES.includes(data.current) &&
+      !FINAL_SMS_STATUSES.includes(data.next),
+  );
+}
+
 /*
  * Twilio delivery-status callback. Configured as the `statusCallback` URL on each
  * outbound message in SmsService. This is a public webhook (Twilio is unauthenticated),
@@ -110,12 +154,7 @@ router.post(
 
       const smsLog: SmsLog | null = await SmsLogService.findOneById({
         id: new ObjectID(smsLogId),
-        select: {
-          _id: true,
-          status: true,
-          statusCallbackToken: true,
-          userOnCallLogTimelineId: true,
-        },
+        select: SMS_LOG_STATUS_CALLBACK_SELECT,
         props: {
           isRoot: true,
         },
@@ -155,23 +194,6 @@ router.post(
         return Response.sendEmptySuccessResponse(req, res);
       }
 
-      /*
-       * Provider callbacks can occasionally arrive out of order. Don't let a stale
-       * non-terminal status (Sending/Sent) regress an already-terminal one.
-       */
-      const terminalStatuses: Array<SmsStatus> = [
-        SmsStatus.Delivered,
-        SmsStatus.Undelivered,
-        SmsStatus.Failed,
-      ];
-      if (
-        smsLog.status &&
-        terminalStatuses.includes(smsLog.status) &&
-        !terminalStatuses.includes(mappedStatus)
-      ) {
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
       const errorCode: string | undefined = req.body["ErrorCode"]
         ? String(req.body["ErrorCode"])
         : undefined;
@@ -191,15 +213,91 @@ router.post(
        * Per-delivery-callback bookkeeping stamp. SmsLog has update workflows
        * disabled and no audit/realtime decorators or service update hooks,
        * so skip the full update pipeline.
+       *
+       * Written only while the log still says what was read, in one
+       * statement: Twilio's callbacks for one message can arrive together -
+       * "sent" and "delivered" a moment apart - and out of order. The one
+       * that finds the log changed reads it again and decides again, so a
+       * stale status never overwrites a final one, and a final status is
+       * moved into once.
        */
-      await SmsLogService.updateColumnsByIdWithoutHooks({
-        id: smsLog.id!,
-        data: {
-          status: mappedStatus,
-          statusMessage: statusMessage,
-          ...(errorCode ? { errorCode: errorCode } : {}),
-        },
-      });
+      let current: SmsLog = smsLog;
+      let isWritten: boolean = false;
+
+      for (
+        let attempt: number = 0;
+        attempt < MAX_STATUS_WRITE_ATTEMPTS && !isWritten;
+        attempt++
+      ) {
+        if (attempt > 0) {
+          const latest: SmsLog | null = await SmsLogService.findOneById({
+            id: smsLog.id!,
+            select: SMS_LOG_STATUS_CALLBACK_SELECT,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!latest) {
+            return Response.sendEmptySuccessResponse(req, res);
+          }
+
+          current = latest;
+        }
+
+        /*
+         * Provider callbacks can occasionally arrive out of order. Don't let a stale
+         * non-terminal status (Sending/Sent) regress an already-terminal one.
+         */
+        if (isStaleSmsStatus({ current: current.status, next: mappedStatus })) {
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+
+        isWritten = await SmsLogService.compareAndSetColumnsByIdWithoutHooks({
+          id: smsLog.id!,
+          data: {
+            status: mappedStatus,
+            statusMessage: statusMessage,
+            ...(errorCode ? { errorCode: errorCode } : {}),
+          },
+          expectedData: {
+            // A log with no status yet is expected to have none still.
+            status: (current.status || null) as SmsStatus,
+          },
+        });
+      }
+
+      if (!isWritten) {
+        logger.warn(
+          `SMS status callback could not write the delivery status of log ${smsLogId}: it kept changing.`,
+        );
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      /*
+       * The SMS reached its final status now: how it ended, for the
+       * platform's operator - once, as only the callback that moved the log
+       * into it gets here (notification.delivery.count).
+       */
+      const deliveryStatus: NotificationDeliveryStatus | null =
+        NotificationDeliveryMetrics.getDeliveryStatusOfSms(mappedStatus);
+
+      if (
+        deliveryStatus &&
+        !NotificationDeliveryMetrics.getDeliveryStatusOfSms(current.status)
+      ) {
+        NotificationDeliveryMetrics.recordDelivery({
+          channel: NotificationDeliveryChannel.SMS,
+          provider: NotificationDeliveryProvider.Twilio,
+          providerConfig: getProviderConfigOfCallback(req.query),
+          isOnCallPage: Boolean(current.userOnCallLogTimelineId),
+          status: deliveryStatus,
+          // The log is written just before the SMS is handed to Twilio.
+          timeToStatusInMs: NotificationDeliveryMetrics.getMillisecondsSince(
+            current.createdAt,
+          ),
+        });
+      }
 
       /*
        * Reflect a failed delivery back onto the linked on-call timeline entry — the

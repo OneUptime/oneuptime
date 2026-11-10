@@ -169,6 +169,15 @@ export default class WhatsAppService {
         whatsAppLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
       }
 
+      /*
+       * The on-call page it was sent for, if any: Meta's status webhook
+       * reads it from the log to tell, as the send's metric did, that the
+       * message was a page (API/WhatsApp.ts).
+       */
+      if (options.userOnCallLogTimelineId) {
+        whatsAppLog.userOnCallLogTimelineId = options.userOnCallLogTimelineId;
+      }
+
       const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
 
       const shouldChargeForMessage: boolean = IsBillingEnabled;
