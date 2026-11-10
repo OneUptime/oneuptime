@@ -16,7 +16,7 @@ Elke weergave van Topologie is opgebouwd uit een ander soort telemetrie:
 
 ```mermaid title="Waar elke weergave van Topologie vandaan komt"
 flowchart LR
-    traces["Traces en eBPF,<br/>elke 10 minuten<br/>gelezen"] --> serviceMap["Service Map"]
+    traces["Traces en eBPF,<br/>elke 10 minuten<br/>gelezen"] --> serviceMap["Servicekaart"]
     resources["Hosts, clusters en<br/>containers die<br/>gegevens sturen"] --> infrastructure["Infrastructuur"]
     neighbours["Buren die uw<br/>apparaten via LLDP<br/>melden"] --> network["Netwerk"]
 ```
@@ -32,11 +32,11 @@ flowchart LR
 
 ## Topologie openen
 
-Ga naar **Producten → Observability → Topologie**. **Inventaris → Topologiekaart** opent dezelfde pagina. Die opent op de **Service Map**, voor **Afgelopen dag**.
+Ga naar **Producten → Observability → Topologie**. **Inventaris → Topologiekaart** opent dezelfde pagina. Die opent op de **Servicekaart**, voor **Afgelopen dag**.
 
 | Weergave | De vraag die ze beantwoordt |
 | --- | --- |
-| **Service Map** | Welke services zijn van elkaar afhankelijk? |
+| **Servicekaart** | Welke services zijn van elkaar afhankelijk? |
 | **Infrastructuur** | Wat draait waar in uw infrastructuur? |
 | **Netwerk** | Hoe zijn uw netwerkapparaten verbonden? |
 
@@ -44,7 +44,7 @@ Naast de tijdkiezer voegt **Inactieve tonen** toe wat in het bereik niets stuurd
 
 ## De servicekaart lezen
 
-De **Service Map** tekent elke service die gegevens stuurde, en de databases, API's en message brokers die ze aanroepen, ook als die zelf geen telemetrie sturen. Pijlen wijzen van aanroeper naar aangeroepene, en dikkere lijnen dragen meer verzoeken. De aantallen erboven zeggen hoeveel services, afhankelijkheden en verbindingen ze tekent, en hoeveel er aandacht vragen.
+De **Servicekaart** tekent elke service die gegevens stuurde, en de databases, API's en message brokers die ze aanroepen, ook als die zelf geen telemetrie sturen. Pijlen wijzen van aanroeper naar aangeroepene, en dikkere lijnen dragen meer verzoeken. De aantallen erboven zeggen hoeveel services, afhankelijkheden en verbindingen ze tekent, en hoeveel er aandacht vragen.
 
 Elke service toont zijn status, berekend uit de aanroepen die hij in de laatste 15 minuten ontving:
 
@@ -80,7 +80,7 @@ Klik op een pijl voor het aantal verzoeken, het foutpercentage en de gemiddelde 
 
 - **Blader er op uw manier door.** Toon haar als **Lijst** of als **Kaart**, van uw hele infrastructuur tot één pod. De aantallen erboven zeggen hoeveel resources en workloads ze tekent, hoeveel services ze kan plaatsen en hoeveel stille resources ze weglaat.
 - **Zoek een resource.** Zoek er op naam naar, en klik op **Details bekijken** om de pagina ervan te openen.
-- **Wissel tussen weergaven.** Een service die bij een resource staat, opent op de **Service Map**, en de resources waarop een service draait, openen op **Infrastructuur**.
+- **Wissel tussen weergaven.** Een service die bij een resource staat, opent op de **Servicekaart**, en de resources waarop een service draait, openen op **Infrastructuur**.
 
 ## De eigen kaart van een resource openen
 

@@ -49113,5 +49113,8 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} смен маршрута в этом фрагменте длительностью {{window}}: {{count}} (приблизительно, фрагмент ещё не загружен)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} смена маршрута в этом фрагменте длительностью {{window}} (приблизительно, фрагмент ещё не загружен)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} ваших собственных сигналов в этом фрагменте длительностью {{window}}: {{count}} (приблизительно, фрагмент ещё не загружен)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} ваш собственный сигнал в этом фрагменте длительностью {{window}} (приблизительно, фрагмент ещё не загружен)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} ваш собственный сигнал в этом фрагменте длительностью {{window}} (приблизительно, фрагмент ещё не загружен)",
+  "Loading infrastructure…": "Загрузка инфраструктуры…",
+  "Loading service map…": "Загрузка карты сервисов…",
+  "Service Map": "Карта сервисов"
 }

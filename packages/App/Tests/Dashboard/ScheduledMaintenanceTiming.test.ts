@@ -1,4 +1,5 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
+import { setDateDisplayLanguage } from "Common/Types/DateLanguage";
 import {
   SCHEDULED_MAINTENANCE_DURATION_PREFIX,
   SCHEDULED_MAINTENANCE_OVERDUE_GRACE_PERIOD_IN_MS,
@@ -969,5 +970,43 @@ describe("formatScheduledMaintenanceRelativeTime", () => {
     expect(
       formatScheduledMaintenanceRelativeTime("2026-09-14T22:00:00.000Z", now),
     ).toBe("in 2 hours");
+  });
+
+  /*
+   * Under an Arabic or German maintenance window's Starts and Ends, in the
+   * language its date above is written in - the same floored minutes and
+   * rounded hours and days, and that language's "now" under a minute.
+   */
+  describe("in the language dates are written in", () => {
+    afterEach(() => {
+      setDateDisplayLanguage(null);
+    });
+
+    test.each([
+      ["ar", 90 * MINUTE, "خلال ساعتين"],
+      ["ar", -36 * HOUR, "قبل يومين"],
+      ["ar", 3 * DAY, "خلال 3 أيام"],
+      ["ar", MINUTE + 59 * SECOND, "خلال دقيقة واحدة"],
+      ["ar", 30 * SECOND, "الآن"],
+      ["de", -5 * HOUR, "vor 5 Stunden"],
+      ["de", 23 * HOUR + 30 * MINUTE, "in 1 Tag"],
+    ])(
+      "%s: %i ms reads %s",
+      (language: string, offset: number, text: string) => {
+        setDateDisplayLanguage(language);
+
+        expect(
+          formatScheduledMaintenanceRelativeTime(at(offset, now), now),
+        ).toBe(text);
+      },
+    );
+
+    test("English is unchanged when English is set", () => {
+      setDateDisplayLanguage("en");
+
+      expect(
+        formatScheduledMaintenanceRelativeTime(at(90 * MINUTE, now), now),
+      ).toBe("in 2 hours");
+    });
   });
 });

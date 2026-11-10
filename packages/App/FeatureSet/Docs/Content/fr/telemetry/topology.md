@@ -16,7 +16,7 @@ Chaque vue de la topologie est construite à partir d'un type de télémétrie d
 
 ```mermaid title="D'où vient chaque vue de la topologie"
 flowchart LR
-    traces["Traces et eBPF,<br/>lus toutes les<br/>10 minutes"] --> serviceMap["Service Map"]
+    traces["Traces et eBPF,<br/>lus toutes les<br/>10 minutes"] --> serviceMap["Carte des services"]
     resources["Hôtes, clusters et<br/>conteneurs qui<br/>remontent des données"] --> infrastructure["Infrastructure"]
     neighbours["Voisins que les<br/>équipements signalent<br/>via LLDP"] --> network["Réseau"]
 ```
@@ -32,11 +32,11 @@ flowchart LR
 
 ## Ouvrir la topologie
 
-Allez dans **Produits → Observabilité → Topologie**. **Inventaire → Carte de topologie** ouvre la même page. Elle s'ouvre sur la **Service Map**, pour la période **Dernier jour**.
+Allez dans **Produits → Observabilité → Topologie**. **Inventaire → Carte de topologie** ouvre la même page. Elle s'ouvre sur la **Carte des services**, pour la période **Dernier jour**.
 
 | Vue | La question à laquelle elle répond |
 | --- | --- |
-| **Service Map** | Quels services dépendent les uns des autres ? |
+| **Carte des services** | Quels services dépendent les uns des autres ? |
 | **Infrastructure** | Qu'est-ce qui tourne où dans votre infrastructure ? |
 | **Réseau** | Comment vos équipements réseau sont-ils connectés ? |
 
@@ -44,7 +44,7 @@ Allez dans **Produits → Observabilité → Topologie**. **Inventaire → Carte
 
 ## Lire la carte des services
 
-La **Service Map** dessine chaque service qui a remonté des données, ainsi que les bases de données, les API et les brokers de messages qu'il appelle, même quand ceux-ci n'envoient aucune télémétrie. Les flèches vont de l'appelant vers l'appelé, et les lignes plus épaisses portent plus de requêtes. Les chiffres au-dessus indiquent combien de services, de dépendances et de connexions elle dessine, et combien demandent de l'attention.
+La **Carte des services** dessine chaque service qui a remonté des données, ainsi que les bases de données, les API et les brokers de messages qu'il appelle, même quand ceux-ci n'envoient aucune télémétrie. Les flèches vont de l'appelant vers l'appelé, et les lignes plus épaisses portent plus de requêtes. Les chiffres au-dessus indiquent combien de services, de dépendances et de connexions elle dessine, et combien demandent de l'attention.
 
 Chaque service affiche son statut, calculé à partir des appels qu'il a reçus pendant les 15 dernières minutes :
 
@@ -80,7 +80,7 @@ Cliquez sur une flèche pour voir son débit de requêtes, son taux d'erreur et 
 
 - **Parcourez-la à votre façon.** Affichez-la en **Liste** ou en **Carte**, de toute votre infrastructure jusqu'à un seul pod. Les chiffres au-dessus indiquent combien de ressources et de charges de travail elle dessine, combien de services elle peut placer, et combien de ressources silencieuses elle laisse de côté.
 - **Trouvez une ressource.** Cherchez-la par son nom, et cliquez sur **Voir les détails** pour ouvrir sa page.
-- **Passez d'une vue à l'autre.** Un service listé sur une ressource s'ouvre sur la **Service Map**, et les ressources sur lesquelles tourne un service s'ouvrent dans **Infrastructure**.
+- **Passez d'une vue à l'autre.** Un service listé sur une ressource s'ouvre sur la **Carte des services**, et les ressources sur lesquelles tourne un service s'ouvrent dans **Infrastructure**.
 
 ## Ouvrir la carte propre à une ressource
 

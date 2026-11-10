@@ -49113,5 +49113,8 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} この {{window}} のチャンク内のルートの変更 {{count}} 件（概算、チャンクは未読み込み）",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} route change in this {{window}} chunk (approximate, chunk not loaded yet)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} この {{window}} のチャンク内の独自シグナル {{count}} 件（概算、チャンクは未読み込み）",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)",
+  "Loading infrastructure…": "インフラストラクチャを読み込み中…",
+  "Loading service map…": "サービスマップを読み込み中…",
+  "Service Map": "サービスマップ"
 }

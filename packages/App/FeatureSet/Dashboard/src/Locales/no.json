@@ -49113,5 +49113,8 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} ruteendringer i denne blokken på {{window}} (omtrentlig, blokken er ikke lastet inn ennå)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} ruteendring i denne blokken på {{window}} (omtrentlig, blokken er ikke lastet inn ennå)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} egne signaler i denne blokken på {{window}} (omtrentlig, blokken er ikke lastet inn ennå)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} eget signal i denne blokken på {{window}} (omtrentlig, blokken er ikke lastet inn ennå)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} eget signal i denne blokken på {{window}} (omtrentlig, blokken er ikke lastet inn ennå)",
+  "Loading infrastructure…": "Laster infrastruktur…",
+  "Loading service map…": "Laster tjenestekart…",
+  "Service Map": "Tjenestekart"
 }

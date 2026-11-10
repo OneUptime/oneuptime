@@ -49113,5 +49113,8 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} cambi di route in questo blocco di {{window}} (approssimativo, blocco non ancora caricato)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} cambio di route in questo blocco di {{window}} (approssimativo, blocco non ancora caricato)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} segnali propri in questo blocco di {{window}} (approssimativo, blocco non ancora caricato)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} segnale proprio in questo blocco di {{window}} (approssimativo, blocco non ancora caricato)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} segnale proprio in questo blocco di {{window}} (approssimativo, blocco non ancora caricato)",
+  "Loading infrastructure…": "Caricamento dell'infrastruttura…",
+  "Loading service map…": "Caricamento della mappa dei servizi…",
+  "Service Map": "Mappa dei servizi"
 }

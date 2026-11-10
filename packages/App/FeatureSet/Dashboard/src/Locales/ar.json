@@ -15747,7 +15747,7 @@
   "Search inventory...": "ابحث في الجرد...",
   "Search labels...": "ابحث في التسميات...",
   "Search log messages": "البحث في رسائل السجلات",
-  "Search logs... (e.g. severity:error service:api \"connection refused\")": "البحث في السجلات... (مثلًا severity:error service:api \"connection refused\")",
+  "Search logs... (e.g. severity:error service:api \"connection refused\")": "البحث في السجلات... (مثلًا service:api \"connection refused\" severity:error)",
   "Search metric names": "البحث في أسماء المقاييس",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "البحث في المقاييس — مثلًا name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "البحث في أنواع المراقبة...",
@@ -49113,5 +49113,8 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} من تغييرات المسار في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} تغيير مسار في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} من إشاراتك الخاصة في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} إشارة خاصة بك في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} إشارة خاصة بك في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
+  "Loading infrastructure…": "جارٍ تحميل البنية التحتية…",
+  "Loading service map…": "جارٍ تحميل خريطة الخدمات…",
+  "Service Map": "خريطة الخدمات"
 }
