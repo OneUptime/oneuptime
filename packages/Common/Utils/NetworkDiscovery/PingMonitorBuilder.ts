@@ -7,6 +7,7 @@ import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
+import { Translator } from "../../Types/Translator";
 
 /*
  * The Ping monitor a ping-only discovered host imports with.
@@ -126,6 +127,12 @@ export interface BuildPingMonitorForAddressData {
   deviceName: string;
   seedIds: MonitorCriteriaSeedIds;
   origin: PingMonitorOrigin;
+  /*
+   * The reader's, when a person in the Dashboard provisions the monitor: its
+   * criteria's names and descriptions, and the words of what they open, are
+   * written in their language (#6542). Without one, English.
+   */
+  translator?: Translator | undefined;
 }
 
 /**
@@ -261,6 +268,7 @@ export function buildPingMonitorForAddress(
     offlineMonitorStatusId: data.seedIds.offlineMonitorStatusId,
     defaultIncidentSeverityId: data.seedIds.defaultIncidentSeverityId,
     defaultAlertSeverityId: data.seedIds.defaultAlertSeverityId,
+    translator: data.translator,
   });
 
   /*

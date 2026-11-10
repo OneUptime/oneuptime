@@ -163,6 +163,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * and what it alerts on, and the categories More lists them under.
    */
   { directory: "packages/Common/Types/Monitor/MonitorType.ts", kind: "ui" },
+  /*
+   * A new monitor's default criteria, written in the language of the person
+   * creating it: each criteria's name and description, and the title and
+   * description of every incident and alert it opens. Only the sentences the
+   * builders look up are read - filter values, keywords and ids stay as
+   * written.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
+    kind: "keys",
+  },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   // The common schedules a workflow's Schedule trigger offers.
