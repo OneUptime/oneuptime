@@ -8,6 +8,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * in-process (WorkspaceUserNotificationService): each message is recorded
  * once (notification.send.count and .duration), by its workspace, as sent
  * through the project's own workspace connection, and as accepted or not.
+ * Each says it went to one person (notification.destination
+ * direct_message, issue #6645), apart from the channel posts and incoming
+ * webhooks the same workspaces carry.
  */
 
 interface RecordedCall {
@@ -140,11 +143,15 @@ describe("a direct message", () => {
             "notification.provider": name,
             "notification.provider.config": "project",
             "notification.on_call_page": "true",
+            "notification.destination": "direct_message",
             outcome: "success",
           },
         },
       ]);
       expect(sendDurationCalls).toHaveLength(1);
+      expect(sendDurationCalls[0]!.attributes).toEqual(
+        sendCounterCalls[0]!.attributes,
+      );
     },
   );
 
@@ -165,6 +172,9 @@ describe("a direct message", () => {
     expect(sendCounterCalls[0]!.attributes["notification.on_call_page"]).toBe(
       "false",
     );
+    expect(sendCounterCalls[0]!.attributes["notification.destination"]).toBe(
+      "direct_message",
+    );
   });
 
   test("a project not connected to the workspace: a failure - the page did not go out", async () => {
@@ -181,6 +191,9 @@ describe("a direct message", () => {
 
     expect(slackSend).not.toHaveBeenCalled();
     expect(sendCounterCalls[0]!.attributes["outcome"]).toBe("failure");
+    expect(sendCounterCalls[0]!.attributes["notification.destination"]).toBe(
+      "direct_message",
+    );
   });
 
   test("a log row that could not be written does not change a sent message's outcome", async () => {

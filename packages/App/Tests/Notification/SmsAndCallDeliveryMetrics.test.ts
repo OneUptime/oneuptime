@@ -340,6 +340,39 @@ describe("an SMS", () => {
     expect(onlySend()["notification.on_call_page"]).toBe("true");
   });
 
+  /*
+   * How the SMS ended is counted on the same account as its send (issue
+   * #6648): its status callback's address says whose account it went out on.
+   */
+  test("on the project's own Twilio account, its status callback says so", async () => {
+    await SmsService.sendSms(TO, MESSAGE, {
+      projectId: PROJECT_ID,
+      customTwilioConfig: PROJECT_TWILIO,
+    });
+
+    const callback: string = String(
+      (createMessage.mock.calls[0]![0] as JSONObject)["statusCallback"],
+    );
+
+    expect(callback).toContain(
+      "oneuptime.example.com/notification/sms/status-callback/",
+    );
+    expect(callback.endsWith("?providerConfig=project")).toBe(true);
+  });
+
+  test("on the server's own account, its status callback's address is as it always was", async () => {
+    await SmsService.sendSms(TO, MESSAGE, { projectId: PROJECT_ID });
+
+    const callback: string = String(
+      (createMessage.mock.calls[0]![0] as JSONObject)["statusCallback"],
+    );
+
+    expect(callback).toContain(
+      "oneuptime.example.com/notification/sms/status-callback/",
+    );
+    expect(callback).not.toContain("?");
+  });
+
   test("through the server's own gateway: counted under the gateway, not Twilio", async () => {
     (getCallAndSmsGateway as unknown as jest.Mock).mockResolvedValue(
       GATEWAY as never,

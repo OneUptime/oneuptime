@@ -230,6 +230,61 @@ export default class AppMetrics {
     return this.notificationTimeToSend;
   }
 
+  // -- Notification final statuses --------------------------------------
+
+  /*
+   * How a message the provider accepted ended, as the provider tells it
+   * later - Twilio's status callbacks for SMS and calls, Expo's push
+   * receipts, Meta's WhatsApp status webhooks - and how long after the
+   * provider accepted it. Recorded through
+   * NotificationDeliveryMetrics.recordDelivery, once per message.
+   */
+
+  private static notificationDeliveryCounter: TelemetryCounter | null = null;
+  private static notificationDeliveryDuration: TelemetryHistogram | null =
+    null;
+
+  /*
+   * From half a second to a day: most SMS reach a phone within seconds, a
+   * call is answered or rings out within a minute, but a carrier holding an
+   * SMS for a phone that is off reports it delivered or not hours later -
+   * the slow end an operator chases has buckets of its own.
+   */
+  public static readonly NOTIFICATION_DELIVERY_DURATION_BUCKETS_IN_MS: ReadonlyArray<number> =
+    [
+      500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000,
+      600000, 1800000, 3600000, 14400000, 86400000,
+    ];
+
+  public static getNotificationDeliveryCounter(): TelemetryCounter {
+    if (!this.notificationDeliveryCounter) {
+      this.notificationDeliveryCounter = Telemetry.getCounter({
+        name: "notification.delivery.count",
+        description:
+          "Number of final delivery statuses providers reported for notifications they accepted - an SMS delivered, undelivered or failed, a call answered, not answered or failed, a push delivered, undelivered or failed, a WhatsApp message delivered or failed - partitioned by channel, provider and outcome. Each message is counted once.",
+        unit: "1",
+      });
+    }
+
+    return this.notificationDeliveryCounter;
+  }
+
+  public static getNotificationDeliveryDuration(): TelemetryHistogram {
+    if (!this.notificationDeliveryDuration) {
+      this.notificationDeliveryDuration = Telemetry.getHistogram({
+        name: "notification.delivery.duration",
+        description:
+          "Time from a provider accepting a notification to its final status - an SMS or WhatsApp message delivered or not, a call picked up (to the moment it was answered) or ended unanswered - partitioned by channel, provider and outcome. Push receipts do not say when they were delivered and are not timed.",
+        unit: "ms",
+        explicitBucketBoundaries: [
+          ...this.NOTIFICATION_DELIVERY_DURATION_BUCKETS_IN_MS,
+        ],
+      });
+    }
+
+    return this.notificationDeliveryDuration;
+  }
+
   // -- OTLP / telemetry ingestion ---------------------------------------
 
   private static ingestCounter: TelemetryCounter | null = null;

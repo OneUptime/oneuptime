@@ -11,6 +11,14 @@ import {
   WhatsAppTemplateLanguage,
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
+import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
+import Select from "Common/Server/Types/Database/Select";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDeliveryStatus,
+  NotificationProviderConfig,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import WhatsAppAuthorization from "Common/Server/Middleware/WhatsAppAuthorization";
@@ -176,6 +184,40 @@ export const buildStatusMessage: (payload: JSONObject) => string | undefined = (
   return `${statusMessage.substring(0, MAX_STATUS_MESSAGE_LENGTH - 3)}...`;
 };
 
+// What Meta's status webhook reads of a WhatsApp log.
+export const WHATSAPP_LOG_STATUS_WEBHOOK_SELECT: Select<WhatsAppLog> = {
+  _id: true,
+  status: true,
+  userOnCallLogTimelineId: true,
+  createdAt: true,
+};
+
+/*
+ * How many times a webhook writes its status when the log keeps changing
+ * under it: each try reads the log again.
+ */
+export const MAX_STATUS_WRITE_ATTEMPTS: number = 3;
+
+/*
+ * Whether a status Meta reports is older than the log's. Meta's webhooks
+ * arrive out of order: once a message reached a final status - delivered,
+ * read, failed (NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp) -
+ * only "read" moves a delivered message on, and any other status is stale.
+ */
+export function isStaleWhatsAppStatus(data: {
+  current: WhatsAppStatus | null | undefined;
+  next: WhatsAppStatus;
+}): boolean {
+  if (!NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(data.current)) {
+    return false;
+  }
+
+  return !(
+    data.current === WhatsAppStatus.Delivered &&
+    data.next === WhatsAppStatus.Read
+  );
+}
+
 const updateWhatsAppLogStatus: (
   statusPayload: JSONObject,
 ) => Promise<void> = async (statusPayload: JSONObject): Promise<void> => {
@@ -200,30 +242,119 @@ const updateWhatsAppLogStatus: (
 
   const statusMessage: string | undefined = buildStatusMessage(statusPayload);
 
-  const updateResult: number = await WhatsAppLogService.updateOneBy({
+  let whatsAppLog: WhatsAppLog | null = await WhatsAppLogService.findOneBy({
     query: {
       whatsAppMessageId: messageId,
     },
-    data: {
-      status: derivedStatus,
-      ...(statusMessage ? { statusMessage } : {}),
-    },
+    select: WHATSAPP_LOG_STATUS_WEBHOOK_SELECT,
     props: {
       isRoot: true,
     },
   });
 
-  if (updateResult === 0) {
+  if (!whatsAppLog) {
     logger.warn(
       `[Meta WhatsApp Webhook] No WhatsApp log found for message id ${messageId}. Payload: ${JSON.stringify(statusPayload)}`,
       {} as any,
     );
-  } else {
-    logger.debug(
-      `[Meta WhatsApp Webhook] Updated WhatsApp log for message id ${messageId} with status ${derivedStatus}.`,
+    return;
+  }
+
+  /*
+   * A bookkeeping stamp on the message's own log - WhatsAppLog has update
+   * workflows disabled and no service update hooks for a server's write -
+   * written only while the log still says what was read, in one statement.
+   * Meta's webhooks arrive out of order, and several in one request are
+   * handled at once: the one that finds the log changed reads it again and
+   * decides again, so a stale status never overwrites a final one, and a
+   * final status is moved into once.
+   */
+  const logId: ObjectID = whatsAppLog.id!;
+  let isWritten: boolean = false;
+
+  for (
+    let attempt: number = 0;
+    attempt < MAX_STATUS_WRITE_ATTEMPTS && !isWritten;
+    attempt++
+  ) {
+    if (attempt > 0) {
+      whatsAppLog = await WhatsAppLogService.findOneById({
+        id: logId,
+        select: WHATSAPP_LOG_STATUS_WEBHOOK_SELECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!whatsAppLog) {
+        return;
+      }
+    }
+
+    if (
+      isStaleWhatsAppStatus({
+        current: whatsAppLog.status,
+        next: derivedStatus,
+      })
+    ) {
+      logger.debug(
+        `[Meta WhatsApp Webhook] Kept the status of the WhatsApp log for message id ${messageId}: ${derivedStatus} came after ${whatsAppLog.status}.`,
+        {} as any,
+      );
+      return;
+    }
+
+    isWritten = await WhatsAppLogService.compareAndSetColumnsByIdWithoutHooks({
+      id: logId,
+      data: {
+        status: derivedStatus,
+        ...(statusMessage ? { statusMessage } : {}),
+      },
+      expectedData: {
+        // A log with no status yet is expected to have none still.
+        status: (whatsAppLog.status ?? null) as WhatsAppStatus,
+      },
+    });
+  }
+
+  if (!isWritten) {
+    logger.warn(
+      `[Meta WhatsApp Webhook] Could not write the status of the WhatsApp log for message id ${messageId}: it kept changing.`,
       {} as any,
     );
+    return;
   }
+
+  /*
+   * The message reached its final status now: how it ended, for the
+   * platform's operator - once, as only the webhook that moved the log
+   * into it gets here (notification.delivery.count).
+   */
+  const deliveryStatus: NotificationDeliveryStatus | null =
+    NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(derivedStatus);
+
+  if (
+    deliveryStatus &&
+    !NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(whatsAppLog.status)
+  ) {
+    NotificationDeliveryMetrics.recordDelivery({
+      channel: NotificationDeliveryChannel.WhatsApp,
+      provider: NotificationDeliveryProvider.MetaWhatsApp,
+      // Sent with the installation's own WhatsApp Business account.
+      providerConfig: NotificationProviderConfig.Global,
+      isOnCallPage: Boolean(whatsAppLog.userOnCallLogTimelineId),
+      status: deliveryStatus,
+      // The log is written as Meta accepts the message.
+      timeToStatusInMs: NotificationDeliveryMetrics.getMillisecondsSince(
+        whatsAppLog.createdAt,
+      ),
+    });
+  }
+
+  logger.debug(
+    `[Meta WhatsApp Webhook] Updated WhatsApp log for message id ${messageId} with status ${derivedStatus}.`,
+    {} as any,
+  );
 };
 
 const toTemplateVariables: (

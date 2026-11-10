@@ -12,6 +12,12 @@ import DefaultExpoPushReceiptQueue, {
   PendingExpoPushReceipt,
 } from "../Infrastructure/ExpoPushReceiptQueue";
 import logger from "../Utils/Logger";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDeliveryStatus,
+  NotificationProviderConfig,
+} from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import PushStatus from "../../Types/PushNotification/PushStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
@@ -42,6 +48,10 @@ import UserNotificationStatus from "../../Types/UserNotification/UserNotificatio
  *    InvalidCredentials, MismatchSenderId...) says nothing about the phone,
  *    which is left as it is; the error is logged for whoever runs the
  *    deployment.
+ *
+ * Each receipt read is counted for the platform's operator
+ * (notification.delivery.count): delivered, undelivered (the phone's app is
+ * gone) or failed (any other error) - once, as the receipt is read once.
  *
  * Pushes sent with this deployment's Expo access token have their receipts
  * read from Expo. Pushes sent through the push relay have them read from
@@ -328,6 +338,10 @@ export default class ExpoPushReceiptService {
 
       if (receipt.status === "ok") {
         run.summary.delivered++;
+        ExpoPushReceiptService.recordDelivery(
+          entry,
+          NotificationDeliveryStatus.Delivered,
+        );
         continue;
       }
 
@@ -378,6 +392,14 @@ export default class ExpoPushReceiptService {
     run: CheckRun,
   ): Promise<void> {
     const code: string | undefined = receipt.details?.error || undefined;
+
+    // The phone's app is gone, or Expo, Apple or Google could not send it.
+    ExpoPushReceiptService.recordDelivery(
+      entry,
+      code === EXPO_DEVICE_NOT_REGISTERED
+        ? NotificationDeliveryStatus.Undelivered
+        : NotificationDeliveryStatus.Failed,
+    );
 
     // Expo writes the token into its messages; the logs and rows never get it.
     const expoMessage: string = PushNotificationService.withoutAnyPushToken(
@@ -433,6 +455,33 @@ export default class ExpoPushReceiptService {
     }
 
     await ExpoPushReceiptService.recordNotDelivered(entry, message);
+  }
+
+  /*
+   * A push's final status, for the platform's operator
+   * (NotificationDeliveryMetrics): counted once, as its receipt is read once
+   * - its entry was taken from the queue by this run alone, and is not kept
+   * to read again. On the way it was sent (Expo with this installation's
+   * access token, or the push relay) and as an on-call page when it was one,
+   * as notification.send.count said them. Not timed: a receipt says whether
+   * Apple or Google took the push, not when, and it is read 15 minutes or
+   * more after the send. Never throws.
+   */
+  private static recordDelivery(
+    entry: PendingExpoPushReceipt,
+    status: NotificationDeliveryStatus,
+  ): void {
+    NotificationDeliveryMetrics.recordDelivery({
+      channel: NotificationDeliveryChannel.Push,
+      provider:
+        entry.via === "relay"
+          ? NotificationDeliveryProvider.PushRelay
+          : NotificationDeliveryProvider.Expo,
+      providerConfig: NotificationProviderConfig.Global,
+      // An entry an older version kept says a page only by its timeline row.
+      isOnCallPage: Boolean(entry.isOnCallPage || entry.userOnCallLogTimelineId),
+      status: status,
+    });
   }
 
   /*

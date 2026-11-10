@@ -9,6 +9,7 @@ import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
 import CallRequest from "Common/Types/Call/CallRequest";
 import CallStatus from "Common/Types/Call/CallStatus";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import { NotificationProviderConfig } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
@@ -26,6 +27,11 @@ import Twilio from "twilio";
  * written only after, and keeps the on-call notification the call was made
  * for, so the callback can tell it. A server with no public host, or a call
  * of no project - which keeps no log - asks for no callback.
+ *
+ * A call placed on the project's own Twilio account says so in its
+ * callback's query (?providerConfig=project), so how it ended is counted as
+ * the project's account, as its send was (issue #6648). The server's own
+ * account adds nothing: its URL is as it always was.
  */
 
 // The server's public host, set per test (setHost): read as each call is made.
@@ -114,6 +120,11 @@ const UUID: RegExp =
 
 const CALLBACK: RegExp = new RegExp(
   "^https://oneuptime\\.example\\.com/notification/call/status-callback/([0-9a-f-]{36})/([0-9a-f-]{36})$",
+);
+
+// A call on the project's own Twilio account: the same URL, saying so.
+const PROJECT_ACCOUNT_CALLBACK: RegExp = new RegExp(
+  "^https://oneuptime\\.example\\.com/notification/call/status-callback/([0-9a-f-]{36})/([0-9a-f-]{36})\\?providerConfig=project$",
 );
 
 let createCall: jest.Mock;
@@ -244,13 +255,30 @@ describe("a project's call through Twilio", () => {
     expect(callLogs[0]!.userOnCallLogTimelineId).toBeUndefined();
   });
 
-  test("the project's own Twilio account names the callback too", async () => {
+  test("the project's own Twilio account names the callback too, saying whose account the call is on", async () => {
     await CallService.makeCall(pageCall(), {
       projectId: PROJECT_ID,
       customTwilioConfig: TWILIO_CONFIG,
     });
 
-    expect(String(twilioRequest()["statusCallback"])).toMatch(CALLBACK);
+    const url: string = String(twilioRequest()["statusCallback"]);
+
+    expect(url).toMatch(PROJECT_ACCOUNT_CALLBACK);
+
+    const [, logId, token] = PROJECT_ACCOUNT_CALLBACK.exec(url)!;
+
+    expect(callLogs[0]!.id?.toString()).toBe(logId);
+    expect(callLogs[0]!.statusCallbackToken).toBe(token);
+  });
+
+  test("the server's own account adds nothing to the URL", async () => {
+    await CallService.makeCall(pageCall(), { projectId: PROJECT_ID });
+
+    const url: string = String(twilioRequest()["statusCallback"]);
+
+    expect(url).toMatch(CALLBACK);
+    expect(url).not.toContain("?");
+    expect(url).not.toContain("providerConfig");
   });
 });
 
@@ -288,6 +316,34 @@ describe("prepareStatusCallback", () => {
     expect(log.id!.toString()).toBe(id.toString());
     expect(url).toBe(
       `https://oneuptime.example.com/notification/call/status-callback/${id.toString()}/${log.statusCallbackToken}`,
+    );
+  });
+
+  test("the server's own account, said or not, is the URL as it always was", () => {
+    const log: CallLog = new CallLog();
+    log.id = ObjectID.generate();
+
+    const url: string | null = CallService.prepareStatusCallback(
+      log,
+      NotificationProviderConfig.Global,
+    );
+
+    expect(url).toBe(
+      `https://oneuptime.example.com/notification/call/status-callback/${log.id.toString()}/${log.statusCallbackToken}`,
+    );
+  });
+
+  test("the project's own account says so in the query", () => {
+    const log: CallLog = new CallLog();
+    log.id = ObjectID.generate();
+
+    const url: string | null = CallService.prepareStatusCallback(
+      log,
+      NotificationProviderConfig.Project,
+    );
+
+    expect(url).toBe(
+      `https://oneuptime.example.com/notification/call/status-callback/${log.id.toString()}/${log.statusCallbackToken}?providerConfig=project`,
     );
   });
 

@@ -1059,6 +1059,11 @@ export default class PushNotificationService {
             data.userOnCallLogTimelineId.toString();
         }
 
+        // As measureDeviceSend said it, for the receipt's delivery metric.
+        if (data.userOnCallLogTimelineId) {
+          receipt.isOnCallPage = true;
+        }
+
         receipts.push(receipt);
       },
     );

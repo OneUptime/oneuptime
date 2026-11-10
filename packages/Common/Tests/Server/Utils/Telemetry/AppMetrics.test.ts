@@ -126,6 +126,20 @@ const CATALOG: Array<Instrument> = [
     unit: "ms",
   },
   {
+    getter: "getNotificationDeliveryCounter",
+    factory: "getCounter",
+    kind: "counter",
+    name: "notification.delivery.count",
+    unit: "1",
+  },
+  {
+    getter: "getNotificationDeliveryDuration",
+    factory: "getHistogram",
+    kind: "histogram",
+    name: "notification.delivery.duration",
+    unit: "ms",
+  },
+  {
     getter: "getIngestCounter",
     factory: "getCounter",
     kind: "counter",
@@ -354,6 +368,64 @@ describe("AppMetrics catalog", () => {
     expect(sendDuration[sendDuration.length - 1]!).toBeGreaterThanOrEqual(
       60000,
     );
+  });
+
+  test("the final status histogram's buckets reach a day: an SMS can wait hours on a phone that is off", async () => {
+    /*
+     * notification.delivery.duration (issue #6648): a call is picked up in
+     * seconds, an SMS is delivered in seconds - or hours later, when the
+     * phone comes back on - and a carrier gives up after a day or so. An SLO
+     * of "delivered within 30 seconds", "within 5 minutes" or "within an
+     * hour" has a bucket edge to be read off.
+     */
+    const { Telemetry, AppMetrics } = await loadFresh();
+
+    AppMetrics["getNotificationDeliveryDuration"]!();
+
+    const options: {
+      name: string;
+      explicitBucketBoundaries?: Array<number>;
+    } = Telemetry.getHistogram.mock.calls[0]![0] as {
+      name: string;
+      explicitBucketBoundaries?: Array<number>;
+    };
+
+    expect(options.name).toBe("notification.delivery.duration");
+
+    const buckets: Array<number> = options.explicitBucketBoundaries || [];
+
+    expect(buckets).toEqual([
+      500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000,
+      600000, 1800000, 3600000, 14400000, 86400000,
+    ]);
+
+    for (let i: number = 1; i < buckets.length; i++) {
+      expect(buckets[i]!).toBeGreaterThan(buckets[i - 1]!);
+    }
+
+    // The catalog's own copy, which the histogram is made from.
+    expect([
+      ...(
+        AppMetrics as unknown as {
+          NOTIFICATION_DELIVERY_DURATION_BUCKETS_IN_MS: ReadonlyArray<number>;
+        }
+      ).NOTIFICATION_DELIVERY_DURATION_BUCKETS_IN_MS,
+    ]).toEqual(buckets);
+  });
+
+  test("the final status metrics say what they count", async () => {
+    const { Telemetry, AppMetrics } = await loadFresh();
+
+    AppMetrics["getNotificationDeliveryCounter"]!();
+    AppMetrics["getNotificationDeliveryDuration"]!();
+
+    const counter: { description: string } = Telemetry.getCounter.mock
+      .calls[0]![0] as { description: string };
+    const histogram: { description: string } = Telemetry.getHistogram.mock
+      .calls[0]![0] as { description: string };
+
+    expect(counter.description).toContain("Each message is counted once");
+    expect(histogram.description).toContain("not timed");
   });
 
   test("every metric name in the catalog is unique", () => {
