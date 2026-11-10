@@ -569,6 +569,13 @@ test.describe("Fix with AI", () => {
 });
 
 test.describe("first steps and empty windows", () => {
+  /*
+   * No service has reported to the fixture's project (it counts none), so
+   * the Profiles explanation stands over the empty page, and its button,
+   * Send your first profiles, is the one way to set up: the first steps
+   * under it leave their own Set up profiling out (TelemetryFirstRunHost).
+   * The button opens the setup guide in a dialog.
+   */
   test("no profile anywhere: the Profiler's first steps and the setup guide", async ({
     page,
   }: {
@@ -580,10 +587,24 @@ test.describe("first steps and empty windows", () => {
       timeout: 60000,
     });
     await expect(page.getByTestId("profiles-scope-bar")).toHaveCount(0);
+
+    const explanation: Locator = page.getByTestId("product-showcase");
+    await expect(explanation).toHaveAttribute("data-product", "profiles");
+    // One way to set up, not two.
+    await expect(
+      page.getByRole("button", { name: "Set up profiling" }),
+    ).toHaveCount(0);
     await screenshot(page, testInfo, "first-steps");
 
-    await page.getByRole("button", { name: "Set up profiling" }).click();
-    await expect(page.getByTestId("setup-guide-page")).toBeVisible();
+    await explanation
+      .getByRole("button", { name: "Send your first profiles" })
+      .click();
+    const guide: Locator = page.getByTestId("telemetry-setup-dialog");
+    await expect(guide).toBeVisible();
+    // The profiling guide, which starts with the eBPF profiler.
+    await expect(
+      guide.getByRole("button", { name: /^Grafana Alloy \(eBPF\)/ }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   test("profiles came in lately, none in this window: the past week, one click away", async ({
