@@ -311,6 +311,7 @@ import ActionButtonSchema, {
   ActionButtonPlacement,
   RowActionConfirmation,
 } from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const SWITCH_TITLE: string = "Set as Project Default";
 const SMS_TITLE: string = "Set as Project Default for SMS";
@@ -1465,45 +1466,31 @@ describe("the strings a default for SMS and one for calls add", () => {
     ).toEqual([]);
   });
 
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])("are translated in %s", (language: string) => {
-    const words: Record<string, string> = readLocale(language);
+  test.each([...DASHBOARD_LANGUAGES])(
+    "are translated in %s",
+    (language: string) => {
+      const words: Record<string, string> = readLocale(language);
 
-    for (const key of KEYS) {
-      expect({
-        language,
-        key,
-        translated: Boolean(words[key]) && words[key] !== key,
-      }).toEqual({ language, key, translated: true });
-    }
+      for (const key of KEYS) {
+        expect({
+          language,
+          key,
+          translated: Boolean(words[key]) && words[key] !== key,
+        }).toEqual({ language, key, translated: true });
+      }
 
-    expect(words[TwilioConfigDefaultCopy.stopDefaultConfirmTitle]).toContain(
-      "{{config}}",
-    );
-
-    for (const sentence of [
-      TwilioConfigDefaultCopy.noSmsDefaultCardDescription,
-      TwilioConfigDefaultCopy.noCallsDefaultCardDescription,
-    ]) {
-      expect(words[sentence]).toContain(
-        words[TwilioConfigDefaultCopy.setDefaultTitle],
+      expect(words[TwilioConfigDefaultCopy.stopDefaultConfirmTitle]).toContain(
+        "{{config}}",
       );
-    }
-  });
+
+      for (const sentence of [
+        TwilioConfigDefaultCopy.noSmsDefaultCardDescription,
+        TwilioConfigDefaultCopy.noCallsDefaultCardDescription,
+      ]) {
+        expect(words[sentence]).toContain(
+          words[TwilioConfigDefaultCopy.setDefaultTitle],
+        );
+      }
+    },
+  );
 });
