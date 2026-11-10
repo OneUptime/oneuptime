@@ -22,7 +22,7 @@ import {
   SESSION_REPLAY_RECORDER_ACTIVE_WINDOW_MS,
   SESSION_REPLAY_REFUSAL_ALERT_THRESHOLD,
   SESSION_REPLAY_STALE_CHUNK_MS,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
 import { SESSION_REPLAY_FRUSTRATION_LIMITS } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import { USAGE_WARNING_PERCENT } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/RecordingHealthModel";

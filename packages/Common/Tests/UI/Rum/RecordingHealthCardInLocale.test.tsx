@@ -20,7 +20,7 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import { RecordingHealthStatus } from "../../../Types/Rum/SessionReplayHealth";
-import { diagnoseRecordingHealth } from "../../../Utils/Rum/SessionReplayHealth";
+import { diagnoseRecordingHealth } from "../../../Utils/SessionReplay/SessionReplayHealth";
 import {
   createTranslator,
   DEFAULT_LANGUAGE,

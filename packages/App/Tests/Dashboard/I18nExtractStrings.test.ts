@@ -1554,7 +1554,7 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/DatabaseServer/DatabaseHealth.ts",
       // A RUM application's status and what each means - not its stored values.
       "keys packages/Common/Types/Rum/RumApplicationStatus.ts",
-      "keys packages/Common/Utils/Rum/SessionReplayHealth.ts",
+      "keys packages/Common/Utils/SessionReplay/SessionReplayHealth.ts",
       // A serverless function's and a service's status - not their stored values.
       "keys packages/Common/Types/Serverless/ServerlessFunctionStatus.ts",
       "keys packages/Common/Types/Service/ServiceTelemetryStatus.ts",

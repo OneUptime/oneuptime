@@ -8,7 +8,7 @@ import {
   SESSION_REPLAY_REFUSAL_ALERT_THRESHOLD,
   SESSION_REPLAY_STALE_CHUNK_MS,
   diagnoseRecordingHealth,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import {
   HealthCounterBreakdown,
   RecordingPipelineStage,
