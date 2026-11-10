@@ -197,3 +197,8 @@ Kept in Latin letters: product, vendor and protocol names, plan names, the
 default teams Owners, Admin and Members, and units such as `ms` and `GB`.
 The Dashboard's list of texts Arabic writes as English on purpose is
 `sameAsEnglish` in `../../i18n/Progress/ar.json`.
+
+Latency, a datastore and the inventory are named in well over a hundred texts
+each. `Common/Tests/App/ArabicLocaleGuards` fails when a text whose English names
+one in a sentence says it in other words than the table's; a metric's dotted
+name, a placeholder or an identifier is not a sentence.

@@ -119,6 +119,38 @@ const hasLetters: (text: string) => boolean = (text: string): boolean => {
 };
 
 /*
+ * Code inside an English sentence: `quoted`, a {{placeholder}}, a dotted
+ * metric or attribute name (vcenter.host.disk.latency.max), key=value and a
+ * CamelCase identifier (ServerSendLatency). A word there is a name, not
+ * the word the glossary translates.
+ */
+const CODE_IN_PROSE: RegExp =
+  /`[^`]*`|\{\{[^{}]*\}\}|\b[\w-]+(?:\.[\w-]+)+\b|\b\w+=\w+|\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b/g;
+
+interface GlossaryWordInProse {
+  name: string;
+  english: RegExp;
+  arabic: RegExp;
+}
+
+/*
+ * ARABIC.md's words for three things the Dashboard names in well over a
+ * hundred texts each, which two translations made side by side said
+ * differently: latency had also been زمن الاستجابة (a monitor's response
+ * time), a datastore Datastore and the inventory المخزون.
+ */
+const GLOSSARY_WORDS_IN_PROSE: Array<GlossaryWordInProse> = [
+  { name: "Latency", english: /\blatenc(?:y|ies)\b/i, arabic: /انتقال/ },
+  { name: "Datastore", english: /\bdata ?stores?\b/i, arabic: /مخزن|مخازن/ },
+  { name: "Inventory", english: /\binventor(?:y|ies)\b/i, arabic: /جرد/ },
+];
+
+// Texts that name one of them as code would, though no code marks it so.
+const NAMED_AS_CODE: Record<string, string> = {
+  "e.g. latency": "an example of a log attribute's name",
+};
+
+/*
  * The small apps' texts Arabic writes as English does, on purpose: product
  * and vendor names, example values a person types over, and templates that
  * are only their values.
@@ -598,6 +630,64 @@ describe("the Dashboard's most-used words, in Arabic", () => {
       "التعليمات البرمجية",
     );
     expect(readLocale("Accounts", "ar")["Code"]).toBe("التعليمات البرمجية");
+  });
+
+  /*
+   * Wherever the Dashboard's English names latency, a datastore or the
+   * inventory in its prose, the Arabic says it in the glossary's words,
+   * so one metric is never called two things on two pages.
+   */
+  test("latency, a datastore and the inventory are said in the glossary's words", () => {
+    const arabicTexts: Map<string, string> = leaves(arabic);
+    const englishTexts: Map<string, string> = leaves(english);
+    const missed: Array<string> = [];
+    const named: Record<string, number> = {};
+
+    for (const word of GLOSSARY_WORDS_IN_PROSE) {
+      named[word.name] = 0;
+
+      for (const [key, text] of englishTexts) {
+        if (!word.english.test(text.replace(CODE_IN_PROSE, " "))) {
+          continue;
+        }
+
+        named[word.name] = (named[word.name] || 0) + 1;
+
+        if (key in NAMED_AS_CODE) {
+          continue;
+        }
+
+        if (!word.arabic.test(arabicTexts.get(key) || "")) {
+          missed.push(`${word.name}: ${key} -> ${arabicTexts.get(key)}`);
+        }
+      }
+    }
+
+    expect(missed).toEqual([]);
+
+    // Each is named in over a hundred texts, so a slip has somewhere to show.
+    for (const word of GLOSSARY_WORDS_IN_PROSE) {
+      expect([word.name, (named[word.name] || 0) > 100]).toEqual([
+        word.name,
+        true,
+      ]);
+    }
+
+    // A name the guard skips is still named in the Dashboard's English.
+    for (const key of Object.keys(NAMED_AS_CODE)) {
+      expect([key, englishTexts.get(key)]).toEqual([key, key]);
+    }
+
+    const glossary: string = fs.readFileSync(
+      path.join(PACKAGES, LOCALE_DIRS["Dashboard"] as string, "ARABIC.md"),
+      "utf8",
+    );
+
+    expect(glossary).toContain("| Latency | زمن الانتقال |");
+    expect(glossary).toContain(
+      "| Data store, Datastore (VMware) | مخزن البيانات (مخازن البيانات) |",
+    );
+    expect(glossary).toContain("| Inventory | الجرد |");
   });
 });
 
